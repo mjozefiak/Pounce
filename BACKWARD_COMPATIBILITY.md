@@ -47,6 +47,8 @@ Location: `~/Library/Application Support/Pounce/`. All files are `0600`; each pl
 
 **Surface:** every `UserDefaults` key and its value type and meaning, in the two namespaces from the spec: `app.*` (main shortcut, `app.hotkey.userDefined`, launch at login, text size, section order) and `plugins.<id>.*` (`plugins.<id>.enabled` and each plugin's settings: file index roots and exclusions, retention, ignored apps, recording paused), plus the shortcuts stored by KeyboardShortcuts and any key added later.
 
+Keys in use since v0.1 (declared in `Sources/PounceApp/SettingsKeys.swift` and in each plugin): `app.hotkey.userDefined` (Bool), `app.hotkey.commandDefaultsApplied` ([String] of command ids whose default shortcut was applied once), `app.onboarding.shortcutCompleted` (Bool), `app.textSize` (`s`/`m`/`l`/`xl`), `app.panelLevel` (`floating`/`statusBar`, the spike 1.2 fallback), `plugins.<id>.enabled` (Bool), `plugins.apps.roots` ([String] or String), `plugins.apps.spotlight` (Bool); KeyboardShortcuts keys `KeyboardShortcuts_mainHotkey` and `KeyboardShortcuts_command_<command id with dots as underscores>`.
+
 **Breaking:** renaming or removing a key; moving a key to another namespace; changing its type or encoding; changing the meaning of a stored value; changing a default in a way that changes behaviour for users who never touched the setting (for example ignoring fewer apps by default, or capturing more types).
 
 **Required path:**
