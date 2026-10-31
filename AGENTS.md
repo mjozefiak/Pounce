@@ -1,0 +1,59 @@
+# AGENTS.md
+
+Instructions for coding agents (and humans) working in this repository.
+
+## Project overview
+
+Pounce is a fast, native macOS launcher with three features: app search, file search and clipboard history. It is a menu-bar agent app (`LSUIElement`) written in Swift 6 with AppKit (`NSPanel`) and SwiftUI, built with Swift Package Manager. Search uses its own in-memory filename index kept fresh with FSEvents (not Spotlight) and an fzf-style matcher with frecency ranking; clipboard history is stored encrypted (SQLCipher, key in the Keychain) and pastes into the previous app. Pounce is MIT-licensed and distributed as a DMG built by a tag-triggered GitHub Actions workflow, plus a landing page on GitHub Pages. Target: macOS 26+ on Apple silicon.
+
+**Status: design phase.** `main` holds only the README, the license and the agent pipeline setup. The MVP spec is `.ai/specs/2026-10-31-pounce-launcher-mvp.md` (Polish prose, English identifiers; under review on branch `feat/mvp-spec` until it merges). Phase 0 of that spec scaffolds `Package.swift` on `feat/scaffold`. Everything marked **planned** below comes from the spec and does not exist yet; when you create it, follow the layout here or update this file in the same PR.
+
+## Architecture: features are compile-time plugins
+
+Every feature (apps, files, clipboard, and anything added later) is an **internal, compile-time plugin** (spec decision Q9):
+
+- It lives in **its own SwiftPM target** under `Sources/<Name>Plugin/` (`AppsPlugin`, `FilesPlugin`, `ClipboardPlugin`) with its own test target under `Tests/<Name>PluginTests/`.
+- It conforms to the `PouncePlugin` protocol from the contracts-only target `PounceKit` (`PluginManifest`, `PluginContext`, `SearchSource`, `Candidate`, `MatchResult`, `ResultAction`, `PanelMode`, `PluginCommand`, `OnboardingStep`, `Permission`, plus the DI ports `KeychainClient`, `PasteboardClient`, `EventPoster`, `WorkspaceClient`, `UsageRecorder`, `PermissionsReader`). Every contribution has an empty default in a protocol extension.
+- It is **registered in exactly one place**: `Sources/PounceApp/PluginRegistry.swift` (`static let all: [any PouncePlugin.Type]`, planned). `PluginHost` in `PounceApp` owns the lifecycle (`activate()` / `deactivate()`, enable/disable, `failed` state, per-source time budget). Adding a feature = a new target, a `PounceApp` dependency on it, and one line in `PluginRegistry`.
+- **Dependencies flow one way:** plugins → `PouncePersistence` / `PounceCore` → `PounceKit`. `PounceKit`, `PounceCore` and `PouncePersistence` never import a plugin; plugins never import each other or `PounceApp`. `PounceApp` is the only composition root and the only target that knows concrete plugins (and only in `PluginRegistry`). The SwiftPM graph enforces this.
+- `PounceCore` is pure logic without I/O (`TextNormalizer`, `FuzzyMatcher`, `Ranker`); `PouncePersistence` is GRDB, the per-owner `DatabaseMigrator` factory, `UsageRepository` over `ranking.sqlite` and the atomic-write helper.
+- Plugins share one process, so plugin code (outside tests) never traps: no `fatalError`, `try!` or force unwrap (risk R7). `activate()` and `search` report errors by throwing.
+- There is **no runtime loading** of code (no bundles, dylibs, scripts or extension stores). Third-party or runtime-loaded plugins are out of MVP scope; the internal plugins above are in scope (Q9).
+
+## Task routing
+
+| When the task involves… | Read first | Key rules |
+|---|---|---|
+| Process, labels, QA, merging | `SDLC.md`, `.ai/agentic.config.json`, `.ai/trackers/github.md` | One `feat/` branch and one PR per change, based on `main`. Follow the label state machine and QA gate in `SDLC.md`. |
+| Specs and design docs | `.ai/specs/` (MVP spec: `.ai/specs/2026-10-31-pounce-launcher-mvp.md`), `.ai/specs/research/` | File names `{YYYY-MM-DD}-{kebab-case-title}.md`. Each spec phase ships on its own `feat/` branch and PR. Spec-only PRs stay design-only. |
+| Package manifest and targets (**planned**, Phase 0) | `Package.swift`, the Architecture section of the MVP spec | `swift-tools-version: 6.2`, Swift 6 language mode with strict concurrency in every target. Targets: `PounceKit`, `PounceCore`, `PouncePersistence`, `AppsPlugin`, `FilesPlugin`, `ClipboardPlugin`, `PounceApp` (executable). Only `PounceApp` sets `.defaultIsolation(MainActor.self)`; the others stay `nonisolated` and declare isolation explicitly. Approved packages: GRDB (in `PouncePersistence`, variant from spike 0.4) and KeyboardShortcuts (in `PounceApp`). New dependencies need a reason in the PR body and an MIT/BSD/Apache-compatible license. |
+| Plugin contracts (**planned**) | `Sources/PounceKit/`, `CODE_REVIEW.md` (plugin rules), `BACKWARD_COMPATIBILITY.md` | Contracts only, no implementation. A protected contract: changes are additive only, with a default for every new contribution (risk R8). `PluginID` and the `<plugin id>:<key>` item-key format never change after v0.1. |
+| Matching and ranking core (**planned**) | `Sources/PounceCore/` | No I/O; the `Ranker` receives usage stats as an argument. Matching tiers: exact > prefix > word start/acronym > substring > fuzzy; frecency never promotes across tiers. No feature-specific logic in core. |
+| App shell, panel, hotkeys, settings (**planned**) | `Sources/PounceApp/` | `@MainActor` for all UI. `LauncherPanel: NSPanel` is built once and shown on hotkey (< 50 ms budget). Plugins are registered in `PluginRegistry` and nowhere else; `SearchCoordinator` queries sources in a `TaskGroup` with a per-source budget (150 ms). Default hotkey ⌘Space, or ⌃⌥Space when Spotlight holds it, confirmed in a first-launch recorder step (Q10); a user-chosen shortcut always wins. Settings keys (`app.*`, `plugins.<id>.*`) are a protected contract. |
+| App search plugin (**planned**, Phase 1) | `Sources/AppsPlugin/`, `Tests/AppsPluginTests/` | Directory scan is the source of truth; `NSMetadataQuery` only supplements. Dedupe by bundle ID. Icons load off the main thread. |
+| File search plugin (**planned**, Phase 3) | `Sources/FilesPlugin/`, `Tests/FilesPluginTests/` | Filenames only, no content search. `FileIndex` is an `actor` publishing immutable snapshots. Atomic snapshot writes (temp file + `rename`) to `Plugins/files/index.snapshot`. Search never waits for a scan. No TCC prompts without Full Disk Access. |
+| Clipboard plugin (**planned**, Phase 2) | `Sources/ClipboardPlugin/`, `Tests/ClipboardPluginTests/`, Data Model section of the spec | Never log clipboard contents. Skip concealed/transient types and ignored apps. Only `errSecItemNotFound` may reset the database; every other Keychain error disables history without deleting anything. Nothing from the clipboard is written to `ranking.sqlite`. |
+| Persistence and migrations (**planned**) | `Sources/PouncePersistence/`, `BACKWARD_COMPATIBILITY.md` | Two separate databases: `ranking.sqlite` (plain, at the Application Support root, owned by `PounceApp` and shared through `UsageRecorder`) and `clipboard.sqlite` (SQLCipher, in `Plugins/clipboard/`, private to `ClipboardPlugin`, with its own migrator). Plugin data lives in `Plugins/<id>/` (0700), files `0600`. GRDB `DatabaseMigrator`, additive migrations only. SQLCipher variant chosen in spike 0.4 (`docs/decisions/0001-sqlite.md`, planned). |
+| Localization (**planned**, Phase 0) | `Localizable.xcstrings` | English base plus Polish via a String Catalog (`defaultLocalization: "en"`, Q11). The system picks the language; there is no in-app switch. The spec's Polish UI labels are the `pl` strings. |
+| Tests (**planned**) | `Tests/<Target>Tests/` | Every new `SearchSource` / `ResultAction` ships with unit tests. CI runs `swift test` only (plus `--sanitize=thread` for the `FileIndex` and `PluginHost` tests); tests needing Accessibility, Full Disk Access, UI tests and benchmarks are local/manual with results in the PR body. |
+| Build, packaging, release (**planned**, Phase 0) | `scripts/make-app.sh`, `scripts/make-dmg.sh`, `Resources/Info.plist`, `.github/workflows/ci.yml`, `.github/workflows/release.yml` | Release signs with the stable self-signed "Pounce Release" certificate so TCC grants survive updates. Never commit signing material; it lives in repo secrets (`SIGNING_P12`, `SIGNING_P12_PASSWORD`). |
+| Landing page (**planned**, Phase 4) | `docs/` (GitHub Pages), `.github/workflows/pages.yml` | QA through the browser provider (`.ai/browsers/agent-browser.md`). |
+| Native UI QA | `SDLC.md` (QA gate) | Build and run the app locally; attach screenshots of the running app in light and dark mode and the relevant UI states as PR evidence. |
+| Decisions and measurements (**planned**) | `docs/decisions/`, `docs/perf.md` | Record architectural decisions as numbered ADRs; record performance budgets measured against the spec. |
+
+## Validation
+
+Validation gate, in order (also in `.ai/agentic.config.json`):
+
+1. `swift build`
+2. `swift test`
+3. `swift format lint --strict -r Sources Tests`
+
+**Until Phase 0 adds `Package.swift`, these commands fail by design.** Docs-only PRs (process docs, specs, `.ai/` config) are exempt and say so in the PR body. After Phase 0, every PR that touches Swift code or the package manifest must pass the full gate.
+
+## Further reading
+
+- `SDLC.md` — ticket flow, labels, QA gate, claim protocol.
+- `CODE_REVIEW.md` — Pounce-specific review checklist (applied automatically by `om-code-review`).
+- `BACKWARD_COMPATIBILITY.md` — protected contract surfaces and how to change them.
+- `.ai/agentic.config.json` — agent pipeline configuration.
