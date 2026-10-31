@@ -1976,7 +1976,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce znajduje pliki i foldery po nazwie, korzystając z własnego indeksu, który nie opuszcza tego Maca. Nigdy nie czyta zawartości Twoich plików."
+            "value" : "Pounce znajduje pliki i foldery po nazwie, korzystając z własnego indeksu, który zostaje na tym Macu. Nigdy nie czyta zawartości Twoich plików."
           }
         }
       }
