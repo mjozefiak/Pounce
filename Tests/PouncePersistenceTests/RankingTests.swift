@@ -181,6 +181,28 @@ private func candidate(_ title: String, _ query: NormalizedQuery) -> Candidate? 
     }
 }
 
+/// Settings → Advanced → "Reset Ranking" empties both tables for every plugin.
+@Suite struct ResetRankingTests {
+    @Test func deletesEveryStatAndAssociation() async throws {
+        let repository = try UsageRepository.inMemory(halfLife: Ranker.frecencyHalfLife)
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let app = ItemKey(pluginID: "apps", key: "com.example.notes")
+        let file = ItemKey(pluginID: "files", key: "/notes.txt")
+        for key in [app, file] {
+            try await repository.recordUse(of: key, queryPrefix: "no", at: now)
+        }
+
+        try await repository.removeAllUsage()
+
+        #expect(try await repository.stats(for: [app, file], queryPrefix: "no").isEmpty)
+        #expect(try await repository.mostUsed(pluginID: "apps", limit: 8, now: now).isEmpty)
+        #expect(try await repository.associationKeys().isEmpty)
+
+        try await repository.recordUse(of: app, queryPrefix: nil, at: now)
+        #expect(try await repository.stats(for: [app], queryPrefix: nil)[app]?.useCount == 1)
+    }
+}
+
 extension UsageRepository {
     /// Item keys that still have a query association (tests).
     fileprivate func associationKeys() async throws -> [String] {

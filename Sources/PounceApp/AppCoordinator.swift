@@ -160,6 +160,17 @@ final class AppCoordinator {
             features: { [weak self] in
                 AnyView(FeaturesPane(host: host, settings: settings) { self?.pluginsChanged() })
             },
+            permissions: { [environment] in
+                let model = PermissionsModel(host: host, reader: environment.permissionsReader) { url in
+                    NSWorkspace.shared.open(url)
+                }
+                return AnyView(PermissionsPane(model: model))
+            },
+            advanced: { [environment, weak self] in
+                AnyView(
+                    AdvancedPane(
+                        controls: AdvancedControls(usage: environment.usage) { self?.panelModel.resultsChanged() }))
+            },
             pluginPanes: {
                 host.entries.compactMap { entry in
                     guard entry.state.isActive, let view = entry.plugin.settingsPane() else { return nil }

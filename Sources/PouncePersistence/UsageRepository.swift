@@ -198,6 +198,16 @@ public final class UsageRepository: UsageRecorder {
         }
     }
 
+    /// Deletes every usage statistic and query association of every plugin: Settings → Advanced →
+    /// "Reset Ranking" (spec step 4.1). Results then follow the match tiers alone until new uses are
+    /// recorded.
+    public func removeAllUsage() async throws {
+        try await queue.write { db in
+            try db.execute(sql: "DELETE FROM usage_stat")
+            try db.execute(sql: "DELETE FROM query_association")
+        }
+    }
+
     /// The half-open range of item keys that start with `<id>:`. `:` sorts right before `;`, so the range
     /// holds exactly one plugin's keys and lookups use the primary key index.
     static func keyRange(of pluginID: PluginID) -> (lower: String, upper: String) {

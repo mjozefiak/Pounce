@@ -44,6 +44,14 @@ struct AppEnvironment {
             .appending(path: id.rawValue, directoryHint: .isDirectory)
     }
 
+    /// The permission states plugins and Settings → Permissions read (preflight only, never a prompt). In QA
+    /// mode the overrides replace the system's answers.
+    var permissionsReader: SystemPermissionsReader {
+        SystemPermissionsReader(
+            pasteboardName: pasteboardName, accessibilityOverride: accessibility, fullDiskAccessOverride: fullDiskAccess
+        )
+    }
+
     /// - Parameters:
     ///   - resultsChanged: called by the plugin when its results change (see `PluginContext`).
     ///   - makeShortcutRecorder: the shell's recorder for one of the plugin's commands.
@@ -61,9 +69,7 @@ struct AppEnvironment {
             pasteboard: SystemPasteboardClient(name: pasteboardName, accessOverride: pasteboardAccess),
             events: postsKeystrokes ? SystemEventPoster() : LoggingEventPoster(),
             workspace: SystemWorkspaceClient(),
-            permissions: SystemPermissionsReader(
-                pasteboardName: pasteboardName, accessibilityOverride: accessibility,
-                fullDiskAccessOverride: fullDiskAccess),
+            permissions: permissionsReader,
             clock: ContinuousClock(),
             cachesDirectory: cachesDirectory(for: manifest.id),
             resultsChanged: resultsChanged,

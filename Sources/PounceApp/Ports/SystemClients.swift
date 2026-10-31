@@ -348,6 +348,12 @@ actor InMemoryUsageRecorder: UsageRecorder {
             .map(\.key)
     }
 
+    /// Forgets every use and association (Reset Ranking).
+    func removeEverything() {
+        uses = [:]
+        associations = [:]
+    }
+
     func removeAll(pluginID: PluginID) async throws {
         uses = uses.filter { $0.key.pluginID != pluginID }
         for prefix in associations.keys {
