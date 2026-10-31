@@ -201,10 +201,14 @@ public final class FilesPlugin: PouncePlugin {
         restart(plan)
     }
 
-    private func restart(_ plan: IndexPlan) {
+    /// Replaces the running index task. The new task waits for the previous one to end (it saves on the way
+    /// out), then deletes the snapshot when `deletingSnapshot` (Rebuild Index) and runs. It is always the
+    /// tracked `runTask`, so `deactivate()` and the next restart cancel and wait for it.
+    private func restart(_ plan: IndexPlan, deletingSnapshot: Bool = false) {
         state.plan = plan
         let previous = runTask
         previous?.cancel()
+        let directory = context.storageDirectory
         let controller = IndexController(
             index: index,
             configuration: IndexController.Configuration(plan: plan, storageDirectory: context.storageDirectory),
@@ -218,6 +222,9 @@ public final class FilesPlugin: PouncePlugin {
         runTask = Task.detached(priority: .utility) {
             await previous?.value
             guard !Task.isCancelled else { return }
+            if deletingSnapshot {
+                IndexSnapshot.delete(in: directory)
+            }
             await controller.run()
         }
     }
@@ -234,16 +241,7 @@ public final class FilesPlugin: PouncePlugin {
     /// "Rebuild Index": deletes the snapshot and scans again.
     func rebuild() {
         guard isActive, settings.setupCompleted else { return }
-        let directory = context.storageDirectory
-        let previous = runTask
-        previous?.cancel()
-        runTask = nil
-        let plan = settings.plan(fullDiskAccess: state.fullDiskAccess == .granted)
-        Task {
-            await previous?.value
-            IndexSnapshot.delete(in: directory)
-            restart(plan)
-        }
+        restart(settings.plan(fullDiskAccess: state.fullDiskAccess == .granted), deletingSnapshot: true)
     }
 
     /// The Full Disk Access step was finished or skipped, or "Start Indexing" was pressed.

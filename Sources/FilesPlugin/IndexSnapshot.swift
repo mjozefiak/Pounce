@@ -88,7 +88,8 @@ struct IndexSnapshot: Sendable {
         }
         guard let nodeCount = reader.uint32() else { throw .damaged }
         var store = NameStore()
-        store.reserve(Int(min(nodeCount, 50_000_000)), nameBytes: 0, foldBytes: 0)
+        // Each node takes at least 13 bytes, so a damaged count cannot reserve more than the payload holds.
+        store.reserve(min(Int(nodeCount), payload.count / 13), nameBytes: 0, foldBytes: 0)
         for index in 0..<Int(nodeCount) {
             guard let parent = reader.int32(), let rawFlags = reader.byte(), let modified = reader.uint32(),
                 let raw = reader.bytes()

@@ -122,6 +122,37 @@ struct FilesPluginTests {
         #expect(ready.isEmpty)
     }
 
+    /// Rebuild Index followed at once by turning the plugin off must not leave an indexer running.
+    @Test func rebuildThenDeactivateLeavesNothingRunning() async throws {
+        let harness = try PluginHarness(settings: ["plugins.files.setupCompleted": .bool(true)])
+        try harness.directory.make(Self.fixture)
+        try await harness.plugin.activate()
+        #expect(await eventually { harness.plugin.state.status.phase == .ready })
+
+        harness.plugin.rebuild()
+        await harness.plugin.deactivate()
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(harness.plugin.controller == nil)
+        #expect(harness.plugin.state.status.phase == .waiting)
+        await harness.plugin.waitForIndex()
+        #expect(harness.plugin.controller == nil)
+    }
+
+    @Test func rebuildDeletesTheSnapshotAndScansAgain() async throws {
+        let harness = try PluginHarness(settings: ["plugins.files.setupCompleted": .bool(true)])
+        try harness.directory.make(Self.fixture)
+        try await harness.plugin.activate()
+        #expect(await eventually { harness.plugin.state.status.phase == .ready })
+        let scans = try #require(harness.plugin.controller).fullScanCount
+
+        harness.plugin.rebuild()
+        #expect(await eventually { (harness.plugin.controller?.fullScanCount ?? 0) == 1 })
+        #expect(await eventually { harness.plugin.state.status.phase == .ready })
+        #expect(scans == 1)
+        #expect(try await harness.names("notes") == ["notes.txt"])
+        await harness.plugin.deactivate()
+    }
+
     @Test func eraseDataEmptiesTheIndex() async throws {
         let harness = try PluginHarness(settings: ["plugins.files.setupCompleted": .bool(true)])
         try harness.directory.make(Self.fixture)

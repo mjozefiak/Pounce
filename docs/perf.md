@@ -6,7 +6,7 @@ measurement can be compared.
 
 | Budget | Target | Measured | Status |
 |---|---|---|---|
-| File query, p95, 1 million entries (spec step 3.2) | < 30 ms on M1 | 6.6 ms (p50 3.8 ms, max 10.4 ms) on M4 Max, synthetic names | Met on M4 Max; an M1 run is still to do |
+| File query, p95, 1 million entries (spec step 3.2) | < 30 ms on M1 | 7.1 ms (p50 3.8 ms, max 7.3 ms) on M4 Max, synthetic names | Met on M4 Max; an M1 run is still to do |
 | Index memory per entry (R6) | about 100 B | 70 B (synthetic 1 M names), 83 B (fixture tree, 204 k entries) | Met |
 | Memory at rest with an index of ~500 k files (spec step 3.6) | < 150 MB for the whole app | not measured on a real home folder yet | Manual item for the owner (see below) |
 
@@ -32,7 +32,8 @@ POUNCE_BENCHMARKS=1 swift test -c release -Xswiftc -enable-testing --filter File
   across building the index. The footprint change also counts allocator slack and the arrays' growth
   copies, so it is an upper bound for the index itself.
 
-Machine: Apple M4 Max, 16 cores, macOS 27.0.1, release build, 2026-10-31.
+Machine: Apple M4 Max, 16 cores, macOS 27.0.1, release build, 2026-10-31. Re-measured after the byte
+prefilter learned camel-case and digit word starts (the review fix); the earlier run gave p95 6.6 ms.
 
 ### Results
 
@@ -40,11 +41,11 @@ Machine: Apple M4 Max, 16 cores, macOS 27.0.1, release build, 2026-10-31.
 |---|---|---|
 | Index size (`approximateBytes`) | 67.5 MB | 16.2 MB |
 | Bytes per entry | 70 | 83 |
-| Process footprint change | 93.9 MB | 21.9 MB |
-| Query p50 / p95 / max | 3.8 / 6.6 / 10.4 ms | – |
-| First full scan, including the first snapshot save | – | 294 ms |
+| Process footprint change | 93.8 MB | 26.3 MB |
+| Query p50 / p95 / max | 3.8 / 7.1 / 7.3 ms | – |
+| First full scan, including the first snapshot save | – | 231 ms |
 | Snapshot on disk (LZFSE) | – | 0.7 MB |
-| Snapshot load | – | 19 ms |
+| Snapshot load | – | 20 ms |
 
 The fixture's names repeat a lot, so its snapshot compresses far better than a real one would.
 
@@ -54,6 +55,17 @@ At 70–85 B per entry the index of a typical home folder (300–800 k entries a
 exclusions, R6) takes 25–70 MB, and 1.5 M entries about 125 MB, against the spec's estimate of 100 B
 per entry. The app's other memory (AppKit, SwiftUI, GRDB, icons) comes on top; the < 150 MB budget is
 for the whole process at rest.
+
+The numbers above are the index at rest. While the index changes, memory briefly goes higher:
+
+- Applying a batch (scan listings or FSEvents changes) copies the arrays once, because searches still
+  hold the last published copy. Until the next publish (at most 400 ms during a scan), the index takes
+  about twice its size. After the publish the two copies share storage again.
+- Saving the snapshot (after the first scan, then at most every 10 minutes and on quit) adds the
+  encoder's buffers: roughly 30 B per entry uncompressed, plus the compressed file. A compacted copy of
+  the index is also made when nodes were removed.
+
+So measure memory at rest (step 2 below), not while Settings → Files still shows indexing.
 
 ### Manual measurement on a real home folder
 
