@@ -2,7 +2,7 @@
 import PackageDescription
 
 // Dependency graph (one way only, see AGENTS.md):
-//   PounceApp -> plugins (AppsPlugin) -> PouncePersistence / PounceCore -> PounceKit
+//   PounceApp -> plugins (AppsPlugin, ClipboardPlugin) -> PouncePersistence / PounceCore -> PounceKit
 // Only PounceApp is MainActor by default; every other target stays nonisolated and declares
 // isolation explicitly.
 let package = Package(
@@ -35,6 +35,17 @@ let package = Package(
             name: "AppsPlugin",
             dependencies: ["PounceKit", "PounceCore"]
         ),
+        .target(
+            name: "ClipboardPlugin",
+            dependencies: [
+                "PounceKit",
+                "PounceCore",
+                "PouncePersistence",
+                // The plugin owns clipboard.sqlite and its migrator (spec: Migracje), so it uses GRDB
+                // directly: the same SQLCipher build PouncePersistence uses (ADR 0001).
+                .product(name: "GRDB", package: "GRDBCipher"),
+            ]
+        ),
         .executableTarget(
             name: "PounceApp",
             dependencies: [
@@ -42,6 +53,7 @@ let package = Package(
                 "PounceCore",
                 "PouncePersistence",
                 "AppsPlugin",
+                "ClipboardPlugin",
                 .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
             ],
             swiftSettings: [.defaultIsolation(MainActor.self)]
@@ -57,6 +69,16 @@ let package = Package(
         .testTarget(
             name: "AppsPluginTests",
             dependencies: ["AppsPlugin", "PounceKit", "PounceCore"]
+        ),
+        .testTarget(
+            name: "ClipboardPluginTests",
+            dependencies: [
+                "ClipboardPlugin",
+                "PounceKit",
+                "PounceCore",
+                "PouncePersistence",
+                .product(name: "GRDB", package: "GRDBCipher"),
+            ]
         ),
         .testTarget(
             name: "PouncePersistenceTests",
