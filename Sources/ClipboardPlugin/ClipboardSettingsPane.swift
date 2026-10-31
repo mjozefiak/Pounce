@@ -53,7 +53,7 @@ struct ClipboardSettingsPane: View {
                 }
                 Picker(selection: countBinding) {
                     ForEach(RetentionPolicy.countChoices, id: \.self) { count in
-                        Text(count, format: .number).tag(count)
+                        Text(count, format: .number.grouping(.never)).tag(count)
                     }
                 } label: {
                     Text("Keep at most", comment: "Settings label of the maximum number of clipboard entries")

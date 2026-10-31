@@ -1364,7 +1364,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce zapamiętuje to, co kopiujesz, żebyś mógł wkleić to ponownie skrótem ⌘⇧V. Historia zostaje na tym Macu, zaszyfrowana, przez 30 dni lub do 1000 wpisów."
+            "value" : "Pounce zapamiętuje to, co kopiujesz, aby można było wkleić to ponownie skrótem ⌘⇧V. Historia zostaje na tym Macu, zaszyfrowana, przez 30 dni lub do 1000 wpisów."
           }
         }
       }
