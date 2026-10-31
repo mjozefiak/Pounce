@@ -883,6 +883,24 @@
         }
       }
     },
+    "Delete (key)" : {
+      "comment" : "Spoken name of the Delete key",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
+          }
+        }
+      }
+    },
     "Denied" : {
       "comment" : "Clipboard access state",
       "extractionState" : "manual",

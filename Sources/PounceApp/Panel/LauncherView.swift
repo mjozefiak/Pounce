@@ -397,7 +397,9 @@ struct ActionFooter: View {
         switch shortcut.key {
         case "\r": parts.append(String(localized: "Return", comment: "Spoken name of the Return key"))
         case " ": parts.append(String(localized: "Space", comment: "Spoken name of the Space bar"))
-        case "\u{8}", "\u{7F}": parts.append(String(localized: "Delete", comment: "Spoken name of the Delete key"))
+        case "\u{8}", "\u{7F}":
+            parts.append(
+                String(localized: "Delete (key)", defaultValue: "Delete", comment: "Spoken name of the Delete key"))
         default: parts.append(shortcut.key.uppercased())
         }
         return parts.joined(separator: "-")
