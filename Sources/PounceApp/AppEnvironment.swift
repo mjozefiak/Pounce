@@ -24,6 +24,9 @@ struct AppEnvironment {
     var pasteboardAccess: PasteboardAccess?
     /// QA mode only: the Accessibility status plugins see (`--qa-accessibility`), instead of the system's.
     var accessibility: PermissionStatus?
+    /// QA mode only: the Full Disk Access status plugins see (`--qa-full-disk-access`, default denied), so
+    /// a QA run never probes a protected folder.
+    var fullDiskAccess: PermissionStatus?
     /// False in QA mode: a paste is logged instead of posting a real Command-V to the tester's apps.
     var postsKeystrokes = true
 
@@ -59,7 +62,8 @@ struct AppEnvironment {
             events: postsKeystrokes ? SystemEventPoster() : LoggingEventPoster(),
             workspace: SystemWorkspaceClient(),
             permissions: SystemPermissionsReader(
-                pasteboardName: pasteboardName, accessibilityOverride: accessibility),
+                pasteboardName: pasteboardName, accessibilityOverride: accessibility,
+                fullDiskAccessOverride: fullDiskAccess),
             clock: ContinuousClock(),
             cachesDirectory: cachesDirectory(for: manifest.id),
             resultsChanged: resultsChanged,
@@ -102,7 +106,9 @@ struct AppEnvironment {
                 directoryHint: .isDirectory
             )
         try createPrivateDirectory(root, fileManager: fileManager)
-        let settings = InMemorySettingsStore(options.settings)
+        let fileHome = root.appending(path: "files-home", directoryHint: .isDirectory)
+        try createPrivateDirectory(fileHome, fileManager: fileManager)
+        let settings = InMemorySettingsStore(qaFileIndexSettings(options.settings, emptyHome: fileHome.path))
         return AppEnvironment(
             dataRoot: root,
             cachesRoot: root.appending(path: "Caches", directoryHint: .isDirectory),
@@ -113,8 +119,22 @@ struct AppEnvironment {
             registersGlobalHotkeys: false,
             pasteboardAccess: options.pasteboardAccess,
             accessibility: options.accessibility,
+            fullDiskAccess: options.fullDiskAccess ?? .denied,
             postsKeystrokes: false
         )
+    }
+
+    /// The file index in QA mode never sees the tester's folders: unless the run names a fake home
+    /// (`plugins.files.qaHome`) and roots (`plugins.files.roots`), both point at an empty folder in the QA
+    /// data root, so neither the home folder nor `/Applications` is ever scanned (`docs/qa.md`).
+    static func qaFileIndexSettings(_ settings: [String: SettingValue], emptyHome: String) -> [String: SettingValue] {
+        var result = settings
+        let home: SettingValue = settings[QAOptions.filesHomeKey] ?? .string(emptyHome)
+        result[QAOptions.filesHomeKey] = home
+        if settings[QAOptions.filesRootsKey] == nil {
+            result[QAOptions.filesRootsKey] = home
+        }
+        return result
     }
     #endif
 
