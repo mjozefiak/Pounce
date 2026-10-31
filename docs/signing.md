@@ -29,7 +29,9 @@ explain "Open Anyway". The app is not notarized.
 
 1. Creates a temporary keychain with a random password, imports the `.p12` with access for
    `/usr/bin/codesign`, sets the key partition list so `codesign` never prompts, and adds the keychain
-   to the search list.
+   to the search list. Only this step receives `SIGNING_P12` and `SIGNING_P12_PASSWORD`; the decoded
+   `.p12` is deleted even when the import fails, and the other steps (third-party actions, tests and
+   build scripts) see only a `HAS_SIGNING_SECRETS` flag and the temporary keychain.
 2. Probes `codesign` with the identity. The certificate is self-signed and therefore untrusted; if a
    runner image refuses to sign with it, the workflow trusts it in that ephemeral runner's System
    keychain only.
