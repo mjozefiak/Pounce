@@ -126,6 +126,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if let query = options.query {
                 coordinator?.panelModel.updateQuery(query)
             }
+            if options.failsAction, let model = coordinator?.panelModel {
+                Task {
+                    await model.waitForSearch()
+                    guard let action = model.selectedActions.first else { return }
+                    model.actionFailed(action, itemTitle: model.selectedItem?.candidate.title)
+                }
+            }
         }
         if let quitAfter = options.quitAfter {
             schedule(after: quitAfter) { [weak self] in

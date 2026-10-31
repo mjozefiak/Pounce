@@ -57,6 +57,7 @@ If that domain did not exist before a QA session, remove it afterwards with
 | `--qa-record-use <item key>` | Phase 1 | Record a use of `<plugin id>:<key>` in the QA ranking database before launch (repeatable), so the empty query shows "Recently Used". |
 | `--qa-settings general\|features` | Phase 1 | Open the Settings window on that pane. |
 | `--qa-onboarding` | Phase 1 | Show the first-launch Shortcut step. |
+| `--qa-fail-action` | Phase 1 | With `--qa-panel`: once results load, show the failed-action message for the selected row's first action without running it. |
 | `--qa-spotlight on\|off` | Phase 1 | Pretend Spotlight does or does not hold ⌘Space instead of reading the system's symbolic hotkeys. |
 
 Unknown `--qa…` arguments stop the launch with an error, so a typo never silently falls back to real

@@ -39,6 +39,9 @@ struct QAOptions: Equatable {
     var panelMode: String?
     /// `--qa-query <text>`: the query typed into the panel opened with `--qa-panel`.
     var query: String?
+    /// `--qa-fail-action`: once the panel's results load, shows the failed-action message for the selected
+    /// row's first action without running it (the state a moved or deleted app produces).
+    var failsAction = false
     /// `--qa-settings general|features`: opens the Settings window on that pane.
     var settingsPane: String?
     /// `--qa-onboarding`: shows the first-launch Shortcut step.
@@ -102,6 +105,8 @@ struct QAOptions: Equatable {
                 options.settingsPane = value
             case "--qa-onboarding":
                 options.showsOnboarding = true
+            case "--qa-fail-action":
+                options.failsAction = true
             case "--qa-spotlight":
                 guard let value = iterator.next() else { throw .missingValue(argument) }
                 switch value {

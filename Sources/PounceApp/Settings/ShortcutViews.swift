@@ -10,8 +10,16 @@ struct MainShortcutRecorder: View {
         KeyboardShortcuts.Recorder(for: .init(HotkeyName.main)) { _ in
             hotkeys.userRecordedMainShortcut()
         }
-        .disabled(!hotkeys.allowsRecording)
-        .allowsHitTesting(hotkeys.allowsRecording)
+        .overlay {
+            // QA mode: a transparent layer swallows clicks, so the recorder looks as it does in the app
+            // (for screenshots) but cannot start recording.
+            if !hotkeys.allowsRecording {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture {}
+                    .accessibilityHidden(true)
+            }
+        }
         .accessibilityLabel(Text("Shortcut to open Pounce", comment: "Accessibility label of the shortcut recorder"))
     }
 }
