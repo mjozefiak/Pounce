@@ -102,28 +102,28 @@ settings.
 
 ### Phase 1: Plugin target and Full Disk Access gate
 
-- [ ] 1.1 FilesPlugin target, registry line, settings and RootPlanner
-- [ ] 1.2 Full Disk Access probe, onboarding step before the first scan, QA flag
+- [x] 1.1 FilesPlugin target, registry line, settings and RootPlanner — b1a2a0d
+- [x] 1.2 Full Disk Access probe, onboarding step before the first scan, QA flag — b1a2a0d, 1b2093c
 
 ### Phase 2: Scanner and index
 
-- [ ] 2.1 IgnoreRules and BulkScanner
-- [ ] 2.2 NameStore, FileIndex actor and parallel top-N search
+- [x] 2.1 IgnoreRules and BulkScanner — b1a2a0d
+- [x] 2.2 NameStore, FileIndex actor and parallel top-N search — b1a2a0d
 
 ### Phase 3: Search, watcher and snapshot
 
-- [ ] 3.1 FileSearchSource and file actions
-- [ ] 3.2 FileEventWatcher and rescan planning
-- [ ] 3.3 IndexSnapshot persistence and catch-up
+- [x] 3.1 FileSearchSource and file actions — b1a2a0d
+- [x] 3.2 FileEventWatcher and rescan planning — b1a2a0d
+- [x] 3.3 IndexSnapshot persistence and catch-up — b1a2a0d
 
 ### Phase 4: Settings, status and section order
 
-- [ ] 4.1 Search status: indexing progress and no-Full-Disk-Access banner
-- [ ] 4.2 Files settings pane: roots, exclusions, protected folders
-- [ ] 4.3 User-defined section order (issue #5)
-- [ ] 4.4 Strings, accessibility, docs and CI Thread Sanitizer step
+- [x] 4.1 Search status: indexing progress and no-Full-Disk-Access banner — 90347ae, 5025497
+- [x] 4.2 Files settings pane: roots, exclusions, protected folders — b1a2a0d
+- [x] 4.3 User-defined section order (issue #5) — 5025497
+- [x] 4.4 Strings, accessibility, docs and CI Thread Sanitizer step — cf1e7d2
 
 ### Phase 5: Verification
 
-- [ ] 5.1 Full validation gate and Thread Sanitizer run
+- [x] 5.1 Full validation gate and Thread Sanitizer run — cf1e7d2
 - [ ] 5.2 Native QA on fixture data with evidence on the PR
