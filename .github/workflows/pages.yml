@@ -1,0 +1,110 @@
+name: Landing page
+
+# Builds the landing page (docs/index.html) on every pull request that touches it, and deploys it to
+# GitHub Pages from main. Only the page itself is published, not the Markdown docs next to it.
+# Deploying needs Pages enabled with "GitHub Actions" as the source (Settings → Pages), a one-time
+# owner step; the build job works without it.
+
+on:
+  pull_request:
+    paths:
+      - "docs/index.html"
+      - "docs/assets/**"
+      - ".github/workflows/pages.yml"
+  push:
+    branches: [main]
+    paths:
+      - "docs/index.html"
+      - "docs/assets/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build the site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Assemble the site
+        run: |
+          mkdir -p _site
+          cp docs/index.html _site/index.html
+          if [[ -d docs/assets ]]; then cp -R docs/assets _site/assets; fi
+          touch _site/.nojekyll
+
+      - name: Check the page
+        run: |
+          python3 - <<'PY'
+          import html.parser, re, sys
+          page = open("_site/index.html", encoding="utf-8").read()
+
+          class Parser(html.parser.HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.ids, self.hrefs, self.keys, self.imgs = [], [], [], 0
+              def handle_starttag(self, tag, attrs):
+                  attrs = dict(attrs)
+                  if "id" in attrs:
+                      self.ids.append(attrs["id"])
+                  if tag == "a" and "href" in attrs:
+                      self.hrefs.append(attrs["href"])
+                  if "data-i18n" in attrs:
+                      self.keys.append(attrs["data-i18n"])
+                  if tag == "img":
+                      self.imgs += 1
+                      if not attrs.get("alt"):
+                          sys.exit("An <img> has no alt text")
+
+          parser = Parser()
+          parser.feed(page)
+          errors = []
+          if len(parser.ids) != len(set(parser.ids)):
+              errors.append("Duplicate ids")
+          for href in parser.hrefs:
+              if href.startswith("#") and href[1:] not in parser.ids:
+                  errors.append(f"Broken anchor {href}")
+          pl = re.search(r"var PL = \{(.*?)\n  \};", page, re.S)
+          if not pl:
+              errors.append("No Polish strings")
+          else:
+              translated = set(re.findall(r'^\s*"([^"]+)":', pl.group(1), re.M))
+              missing = sorted(set(parser.keys) - translated)
+              if missing:
+                  errors.append("Missing Polish strings: " + ", ".join(missing))
+          if 'lang="en"' not in page:
+              errors.append("No document language")
+          if errors:
+              sys.exit("\n".join(errors))
+          print(f"{len(parser.keys)} translated elements, {len(parser.hrefs)} links, {parser.imgs} images")
+          PY
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure Pages
+        uses: actions/configure-pages@v6
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v5
