@@ -364,11 +364,43 @@ struct ActionFooter: View {
                 }
                 .font(textSize.font(.caption1))
                 .foregroundStyle(.secondary)
-                .accessibilityElement(children: .combine)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(Self.spokenLabel(action)))
             }
         }
         .padding(.horizontal, 14)
         .frame(height: PanelModel.Metrics.footerHeight)
+    }
+
+    /// The action and its keys in words ("Show in Finder, Command-Return"), because VoiceOver reads the
+    /// key symbols (⌘⏎) poorly.
+    static func spokenLabel(_ action: ResultAction) -> String {
+        let title = String(localized: action.title)
+        guard let shortcut = action.shortcut else { return title }
+        return "\(title), \(spokenKeys(shortcut))"
+    }
+
+    static func spokenKeys(_ shortcut: KeyShortcut) -> String {
+        var parts: [String] = []
+        if shortcut.modifiers.contains(.control) {
+            parts.append(String(localized: "Control", comment: "Spoken name of the Control key"))
+        }
+        if shortcut.modifiers.contains(.option) {
+            parts.append(String(localized: "Option", comment: "Spoken name of the Option key"))
+        }
+        if shortcut.modifiers.contains(.shift) {
+            parts.append(String(localized: "Shift", comment: "Spoken name of the Shift key"))
+        }
+        if shortcut.modifiers.contains(.command) {
+            parts.append(String(localized: "Command", comment: "Spoken name of the Command key"))
+        }
+        switch shortcut.key {
+        case "\r": parts.append(String(localized: "Return", comment: "Spoken name of the Return key"))
+        case " ": parts.append(String(localized: "Space", comment: "Spoken name of the Space bar"))
+        case "\u{8}", "\u{7F}": parts.append(String(localized: "Delete", comment: "Spoken name of the Delete key"))
+        default: parts.append(shortcut.key.uppercased())
+        }
+        return parts.joined(separator: "-")
     }
 
     static func keys(_ shortcut: KeyShortcut) -> String {
@@ -440,6 +472,12 @@ struct FilterBar: View {
     let textSize: TextSize
     let toggle: (Int) -> Void
 
+    @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiatesWithoutColor
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    /// The text on the selected (accent-filled) chip: the system's colour for text on a selection.
+    private var selectedText: Color { Color(nsColor: .alternateSelectedControlTextColor) }
+
     var body: some View {
         HStack(spacing: 6) {
             ForEach(Array(filters.enumerated()), id: \.element.id) { index, filter in
@@ -448,7 +486,8 @@ struct FilterBar: View {
                     toggle(index)
                 } label: {
                     HStack(spacing: 4) {
-                        Image(systemName: filter.symbolName)
+                        // With Differentiate Without Colour the selected chip also gets a checkmark.
+                        Image(systemName: isSelected && differentiatesWithoutColor ? "checkmark" : filter.symbolName)
                             .symbolRenderingMode(.hierarchical)
                             .accessibilityHidden(true)
                         Text(filter.title)
@@ -456,7 +495,7 @@ struct FilterBar: View {
                             Text(verbatim: "⌘\(index + 1)")
                                 .monospacedDigit()
                                 .foregroundStyle(
-                                    isSelected ? AnyShapeStyle(.white.opacity(0.8)) : AnyShapeStyle(.tertiary)
+                                    isSelected ? AnyShapeStyle(selectedText.opacity(0.8)) : AnyShapeStyle(.tertiary)
                                 )
                                 .accessibilityHidden(true)
                         }
@@ -464,9 +503,15 @@ struct FilterBar: View {
                     .font(textSize.font(.caption1, weight: isSelected ? .semibold : .regular))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
-                    .foregroundStyle(isSelected ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
+                    .foregroundStyle(isSelected ? AnyShapeStyle(selectedText) : AnyShapeStyle(.secondary))
                     .background {
                         Capsule().fill(isSelected ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.quaternary))
+                    }
+                    .overlay {
+                        // Increase Contrast: every chip gets an outline, the selected one a thicker one.
+                        if contrast == .increased {
+                            Capsule().strokeBorder(Color.primary, lineWidth: isSelected ? 2 : 1)
+                        }
                     }
                     .contentShape(Capsule())
                 }

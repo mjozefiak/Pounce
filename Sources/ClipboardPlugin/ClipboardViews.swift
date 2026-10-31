@@ -176,7 +176,7 @@ struct ClipboardEmptyView: View {
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: "doc.on.clipboard")
-                .font(.system(size: 34, weight: .light))
+                .font(.largeTitle.weight(.light))
                 .foregroundStyle(.tertiary)
                 .accessibilityHidden(true)
             Text("No clipboard history yet", comment: "Empty state title of the clipboard history")

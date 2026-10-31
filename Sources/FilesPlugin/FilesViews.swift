@@ -332,12 +332,20 @@ struct ProtectedFolderRow: View {
                 } label: {
                     Text("Remove", comment: "Button that removes the selected item from a list")
                 }
+                .accessibilityLabel(
+                    Text(
+                        "Remove \(String(localized: folder.title))",
+                        comment: "Accessibility label of the button that stops searching a protected folder"))
             } else {
                 Button {
                     setAdded(true)
                 } label: {
                     Text("Add", comment: "Button that adds an item to a list")
                 }
+                .accessibilityLabel(
+                    Text(
+                        "Add \(String(localized: folder.title))",
+                        comment: "Accessibility label of the button that searches a protected folder"))
             }
         } label: {
             Label {

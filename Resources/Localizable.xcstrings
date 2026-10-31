@@ -253,6 +253,24 @@
         }
       }
     },
+    "Add %@" : {
+      "comment" : "Accessibility label of the button that searches a protected folder",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodaj %@"
+          }
+        }
+      }
+    },
     "Add App…" : {
       "comment" : "Button that adds an app to the ignored apps",
       "extractionState" : "manual",
@@ -613,6 +631,24 @@
         }
       }
     },
+    "Command" : {
+      "comment" : "Spoken name of the Command key",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command"
+          }
+        }
+      }
+    },
     "Command-%lld" : {
       "comment" : "Accessibility hint with a filter's shortcut",
       "extractionState" : "manual",
@@ -645,6 +681,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dalej"
+          }
+        }
+      }
+    },
+    "Control" : {
+      "comment" : "Spoken name of the Control key",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Control"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Control"
           }
         }
       }
@@ -987,6 +1041,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Usuń dane"
+          }
+        }
+      }
+    },
+    "Erase Data of %@…" : {
+      "comment" : "Accessibility label of a feature's Erase Data button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erase Data of %@…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń dane: %@…"
           }
         }
       }
@@ -2161,6 +2233,24 @@
         }
       }
     },
+    "Option" : {
+      "comment" : "Spoken name of the Option key",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Option"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Option"
+          }
+        }
+      }
+    },
     "Passwords, concealed content and apps like password managers are never recorded. You can pause recording from the menu bar." : {
       "comment" : "Clipboard onboarding text about privacy",
       "extractionState" : "manual",
@@ -2629,6 +2719,24 @@
         }
       }
     },
+    "Remove %@" : {
+      "comment" : "Accessibility label of the button that stops searching a protected folder",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń %@"
+          }
+        }
+      }
+    },
     "Reset Ranking" : {
       "comment" : "Confirmation button that clears the learned ranking",
       "extractionState" : "manual",
@@ -2827,6 +2935,24 @@
         }
       }
     },
+    "Return" : {
+      "comment" : "Spoken name of the Return key",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Return"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Return"
+          }
+        }
+      }
+    },
     "Return copies. Allow Accessibility to paste into the previous app." : {
       "comment" : "Clipboard banner when Accessibility is not granted",
       "extractionState" : "manual",
@@ -2971,6 +3097,24 @@
         }
       }
     },
+    "Shift" : {
+      "comment" : "Spoken name of the Shift key",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shift"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shift"
+          }
+        }
+      }
+    },
     "Shortcut" : {
       "comment" : "Settings section title",
       "extractionState" : "manual",
@@ -3111,6 +3255,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kod źródłowy"
+          }
+        }
+      }
+    },
+    "Space" : {
+      "comment" : "Spoken name of the Space bar",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Space"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spacja"
           }
         }
       }

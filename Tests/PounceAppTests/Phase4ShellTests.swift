@@ -349,3 +349,25 @@ actor PlainRecorder: UsageRecorder {
         withExtendedLifetime(builder) {}
     }
 }
+
+/// Accessibility audit (spec step 4.3): what VoiceOver hears where the screen shows symbols.
+@Suite struct AccessibilityAuditTests {
+    @Test func footerKeysAreSpokenInWords() {
+        #expect(ActionFooter.spokenKeys(KeyShortcut(key: "\r")) == "Return")
+        #expect(ActionFooter.spokenKeys(KeyShortcut(key: "\r", modifiers: .command)) == "Command-Return")
+        #expect(ActionFooter.spokenKeys(KeyShortcut(key: "c", modifiers: [.command, .shift])) == "Shift-Command-C")
+        #expect(ActionFooter.spokenKeys(KeyShortcut(key: "x", modifiers: .control)) == "Control-X")
+        #expect(ActionFooter.spokenKeys(KeyShortcut(key: "\u{7F}", modifiers: [.option])) == "Option-Delete")
+        #expect(ActionFooter.spokenKeys(KeyShortcut(key: " ")) == "Space")
+
+        let reveal = ResultAction(
+            id: "reveal", title: "Show in Finder", symbolName: "folder",
+            shortcut: KeyShortcut(key: "\r", modifiers: .command)
+        ) { _ in }
+        #expect(ActionFooter.spokenLabel(reveal) == "Show in Finder, Command-Return")
+        let plain = ResultAction(id: "open", title: "Open", symbolName: "arrow.up.forward") { _ in }
+        #expect(ActionFooter.spokenLabel(plain) == "Open")
+        // The screen still shows the symbols.
+        #expect(ActionFooter.keys(KeyShortcut(key: "\r", modifiers: .command)) == "⌘⏎")
+    }
+}
