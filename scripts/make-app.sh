@@ -42,6 +42,16 @@ install_name_tool -add_rpath "@executable_path/../Frameworks" "$OUT/Contents/Mac
 # distributions).
 cp Resources/THIRD_PARTY_NOTICES.txt "$OUT/Contents/Resources/THIRD_PARTY_NOTICES.txt"
 
+# Resource bundles of package dependencies (KeyboardShortcuts' recorder strings). The generated
+# `Bundle.module` accessor looks for them in Contents/Resources and traps when one is missing.
+for bundle in "$BIN_DIR"/*.bundle(N); do
+  ditto "$bundle" "$OUT/Contents/Resources/${bundle:t}"
+done
+if [[ ! -d "$OUT/Contents/Resources/KeyboardShortcuts_KeyboardShortcuts.bundle" ]]; then
+  echo "The KeyboardShortcuts resource bundle is missing from $BIN_DIR" >&2
+  exit 1
+fi
+
 # Localizations: compile the String Catalog into <lang>.lproj/Localizable.strings.
 xcrun xcstringstool compile Resources/Localizable.xcstrings --output-directory "$OUT/Contents/Resources"
 

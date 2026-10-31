@@ -61,6 +61,23 @@ nonisolated struct SystemWorkspaceClient: WorkspaceClient {
     @MainActor func revealInFinder(_ urls: [URL]) {
         NSWorkspace.shared.activateFileViewerSelecting(urls)
     }
+
+    /// Hands activation to the app first: Pounce is never active, so under cooperative activation the
+    /// opened app could otherwise stay behind the previous one.
+    @MainActor func openApplication(at url: URL, options: ApplicationOpenOptions) async throws {
+        if let bundleIdentifier = options.yieldsActivationTo {
+            NSApp.yieldActivation(toApplicationWithBundleIdentifier: bundleIdentifier)
+        }
+        _ = try await NSWorkspace.shared.openApplication(at: url, configuration: Self.configuration(for: options))
+    }
+
+    static func configuration(for options: ApplicationOpenOptions) -> NSWorkspace.OpenConfiguration {
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.activates = options.activates
+        configuration.addsToRecentItems = options.addsToRecentItems
+        configuration.promptsUserIfNeeded = options.promptsUserIfNeeded
+        return configuration
+    }
 }
 
 /// Preflight-only permission checks; none of these trigger a TCC prompt.
@@ -93,7 +110,7 @@ nonisolated struct SystemPermissionsReader: PermissionsReader {
     }
 }
 
-/// Keeps usage in memory until `ranking.sqlite` arrives in spec step 1.6.
+/// Usage kept in memory: the fallback when `ranking.sqlite` cannot be opened, and a test double.
 actor InMemoryUsageRecorder: UsageRecorder {
     private var uses: [ItemKey: (count: Int, last: Date)] = [:]
     private var associations: [String: [ItemKey: Int]] = [:]
@@ -121,5 +138,14 @@ actor InMemoryUsageRecorder: UsageRecorder {
             )
         }
         return result
+    }
+
+    func mostUsed(pluginID: PluginID, limit: Int, now: Date) async throws -> [ItemKey] {
+        uses.filter { $0.key.pluginID == pluginID }
+            .sorted {
+                $0.value.count != $1.value.count ? $0.value.count > $1.value.count : $0.key.rawValue < $1.key.rawValue
+            }
+            .prefix(max(0, limit))
+            .map(\.key)
     }
 }

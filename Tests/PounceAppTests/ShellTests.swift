@@ -38,9 +38,12 @@ private let repositoryRoot = URL(filePath: #filePath)
         #expect(notices.contains("Copyright (c) 2025, ZETETIC LLC"))
         #expect(notices.contains("Redistributions in binary form must reproduce the above copyright"))
         #expect(notices.contains("Copyright (C) 2015-2025 Gwendal Roué"))
+        #expect(notices.contains("Copyright (c) Sindre Sorhus"))
 
         let script = try String(contentsOf: repositoryRoot.appending(path: "scripts/make-app.sh"), encoding: .utf8)
         #expect(script.contains("Resources/THIRD_PARTY_NOTICES.txt \"$OUT/Contents/Resources/"))
+        // KeyboardShortcuts' `Bundle.module` traps when its resource bundle is missing from the app.
+        #expect(script.contains("KeyboardShortcuts_KeyboardShortcuts.bundle"))
     }
 }
 

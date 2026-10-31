@@ -1,4 +1,5 @@
 import AppKit
+import PounceKit
 import os
 
 @main
@@ -29,9 +30,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.terminate(nil)
             return
         }
-        let coordinator = AppCoordinator(environment: environment)
+        let coordinator = makeCoordinator(environment)
         self.coordinator = coordinator
         Task {
+            #if DEBUG
+            await recordQAUses(environment)
+            #endif
             await coordinator.start()
             #if DEBUG
             runQAActions()
@@ -61,6 +65,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return try AppEnvironment.live()
     }
 
+    /// The live app registers global shortcuts and Launch at Login; QA mode gets in-memory stand-ins.
+    private func makeCoordinator(_ environment: AppEnvironment) -> AppCoordinator {
+        #if DEBUG
+        if let options = qaOptions {
+            let occupied: Set<HotkeyShortcut>
+            switch options.spotlightHoldsCommandSpace {
+            case true?: occupied = [.commandSpace, .optionCommandSpace]
+            case false?: occupied = []
+            case nil: occupied = SymbolicHotkeys.occupiedShortcuts(SymbolicHotkeys.readSystem())
+            }
+            return AppCoordinator(
+                environment: environment,
+                registrar: PreviewHotkeyRegistrar(),
+                occupiedShortcuts: { occupied },
+                launchAtLogin: InMemoryLaunchAtLogin()
+            )
+        }
+        #endif
+        return AppCoordinator(
+            environment: environment,
+            registrar: KeyboardShortcutsRegistrar(),
+            occupiedShortcuts: { SymbolicHotkeys.occupiedShortcuts(SymbolicHotkeys.readSystem()) },
+            launchAtLogin: SystemLaunchAtLogin()
+        )
+    }
+
     private func presentFatalAlert(_ error: any Error) {
         let alert = NSAlert()
         alert.messageText = String(
@@ -84,10 +114,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.coordinator?.statusItem?.openMenu()
             }
         }
+        if options.showsOnboarding {
+            coordinator?.showOnboardingForQA()
+        }
+        if let pane = options.settingsPane.flatMap(SettingsWindowController.Pane.init(rawValue:)) {
+            coordinator?.openSettings(pane)
+        }
+        if let mode = options.panelMode {
+            let panelMode: PanelModel.Mode = mode == "search" ? .search : .plugin(PanelModeID(rawValue: mode))
+            coordinator?.panelModel.show(mode: panelMode)
+            if let query = options.query {
+                coordinator?.panelModel.updateQuery(query)
+            }
+        }
         if let quitAfter = options.quitAfter {
             schedule(after: quitAfter) { [weak self] in
                 self?.coordinator?.statusItem?.closeMenu()
                 NSApp.terminate(nil)
+            }
+        }
+    }
+
+    /// `--qa-record-use`: seeds the QA ranking database before the plugins start.
+    private func recordQAUses(_ environment: AppEnvironment) async {
+        guard let options = qaOptions else { return }
+        for raw in options.recordedUses {
+            guard let key = ItemKey(rawValue: raw) else {
+                logger.error("Ignoring invalid --qa-record-use key \(raw, privacy: .public)")
+                continue
+            }
+            do {
+                try await environment.usage.recordUse(of: key, queryPrefix: nil, at: Date())
+            } catch {
+                logger.error("Cannot record a QA use: \(String(describing: error), privacy: .public)")
             }
         }
     }

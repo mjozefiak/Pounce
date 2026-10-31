@@ -1,6 +1,8 @@
 import AppKit
 import Foundation
+import PounceCore
 import PounceKit
+import PouncePersistence
 import os
 
 /// Where the app keeps its data and which port implementations plugins get. `live()` is the normal
@@ -8,6 +10,8 @@ import os
 struct AppEnvironment {
     /// `~/Library/Application Support/Pounce` (0700), or a temporary root in QA mode.
     let dataRoot: URL
+    /// `~/Library/Caches/Pounce`, or `Caches/` under the data root in QA mode. Rebuildable.
+    let cachesRoot: URL
     /// Settings (`app.*`, `plugins.<id>.*`): `UserDefaults.standard` normally, in memory in QA mode.
     let settings: any SettingsStore
     let keychain: any KeychainClient
@@ -23,7 +27,18 @@ struct AppEnvironment {
             .appending(path: id.rawValue, directoryHint: .isDirectory)
     }
 
-    func makeContext(for manifest: PluginManifest) -> PluginContext {
+    /// `Plugins/<id>/` under the caches root.
+    func cachesDirectory(for id: PluginID) -> URL {
+        cachesRoot
+            .appending(path: "Plugins", directoryHint: .isDirectory)
+            .appending(path: id.rawValue, directoryHint: .isDirectory)
+    }
+
+    /// - Parameter resultsChanged: called by the plugin when its results change (see `PluginContext`).
+    func makeContext(
+        for manifest: PluginManifest,
+        resultsChanged: @escaping @Sendable () -> Void = {}
+    ) -> PluginContext {
         PluginContext(
             storageDirectory: storageDirectory(for: manifest.id),
             settings: PluginSettings(pluginID: manifest.id, store: settings),
@@ -34,7 +49,9 @@ struct AppEnvironment {
             events: SystemEventPoster(),
             workspace: SystemWorkspaceClient(),
             permissions: SystemPermissionsReader(pasteboardName: pasteboardName),
-            clock: ContinuousClock()
+            clock: ContinuousClock(),
+            cachesDirectory: cachesDirectory(for: manifest.id),
+            resultsChanged: resultsChanged
         )
     }
 
@@ -47,12 +64,19 @@ struct AppEnvironment {
         )
         let root = support.appending(path: "Pounce", directoryHint: .isDirectory)
         try createPrivateDirectory(root, fileManager: fileManager)
+        let caches = try fileManager.url(
+            for: .cachesDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        )
         return AppEnvironment(
             dataRoot: root,
+            cachesRoot: caches.appending(path: "Pounce", directoryHint: .isDirectory),
             settings: UserDefaultsSettingsStore(),
             keychain: SystemKeychainClient(),
             pasteboardName: nil,
-            usage: InMemoryUsageRecorder(),
+            usage: openRanking(in: root),
             registersGlobalHotkeys: true
         )
     }
@@ -66,16 +90,33 @@ struct AppEnvironment {
                 directoryHint: .isDirectory
             )
         try createPrivateDirectory(root, fileManager: fileManager)
+        let settings = InMemorySettingsStore(options.settings)
         return AppEnvironment(
             dataRoot: root,
-            settings: InMemorySettingsStore(),
+            cachesRoot: root.appending(path: "Caches", directoryHint: .isDirectory),
+            settings: settings,
             keychain: InMemoryKeychainClient(),
             pasteboardName: NSPasteboard.Name("app.pounce.qa.\(ProcessInfo.processInfo.processIdentifier)"),
-            usage: InMemoryUsageRecorder(),
+            usage: openRanking(in: root),
             registersGlobalHotkeys: false
         )
     }
     #endif
+
+    /// `ranking.sqlite` at the data root. If it cannot be opened, ranking falls back to memory for this
+    /// session instead of stopping the app.
+    static func openRanking(in root: URL) -> any UsageRecorder {
+        do {
+            return try UsageRepository.open(
+                at: root.appending(path: UsageRepository.fileName),
+                halfLife: Ranker.frecencyHalfLife
+            )
+        } catch {
+            Logger(subsystem: "app.pounce", category: "app")
+                .error("Cannot open ranking.sqlite: \(String(describing: error), privacy: .private)")
+            return InMemoryUsageRecorder()
+        }
+    }
 
     /// Creates a directory with mode 0700 (and tightens an existing one).
     static func createPrivateDirectory(_ url: URL, fileManager: FileManager) throws {
