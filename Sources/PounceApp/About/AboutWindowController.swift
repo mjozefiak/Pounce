@@ -153,7 +153,7 @@ struct AboutView: View {
             }
         }
         .padding(24)
-        .frame(width: 520)
+        .frame(width: 600)
         .fixedSize(horizontal: false, vertical: true)
     }
 
