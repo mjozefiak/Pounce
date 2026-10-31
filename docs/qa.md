@@ -30,7 +30,7 @@ Any `--qa…` argument turns QA mode on:
 | Concern | Normal run | QA mode |
 |---|---|---|
 | Data root | `~/Library/Application Support/Pounce` | `--qa-data-root <path>`, or a fresh `$TMPDIR/pounce-qa-<uuid>` |
-| Settings | `UserDefaults` domain `app.pounce.Pounce` | suite `app.pounce.Pounce.qa`, wiped at launch and quit |
+| Settings | `UserDefaults` domain `app.pounce.Pounce` | in memory; no defaults domain is written |
 | Keychain | file-based login keychain | in memory; the real `app.pounce.clipboard` item is never created or read |
 | Pasteboard | `NSPasteboard.general` | private named pasteboard `app.pounce.qa.<pid>` |
 | Global hotkeys | registered | never registered, so ⌘Space and ⌘⇧V stay with the tester |

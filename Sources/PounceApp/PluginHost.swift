@@ -34,7 +34,7 @@ final class PluginHost {
     /// Plugins sorted by `manifest.order`.
     private(set) var entries: [Entry] = []
 
-    @ObservationIgnored private let defaults: UserDefaults
+    @ObservationIgnored private let settings: any SettingsStore
     @ObservationIgnored private let fileManager: FileManager
     @ObservationIgnored private let logger: Logger
     @ObservationIgnored private let clock: any Clock<Duration>
@@ -44,17 +44,17 @@ final class PluginHost {
     /// - Parameters:
     ///   - pluginTypes: usually `PluginRegistry.all`. A duplicate `PluginID` is skipped and logged.
     ///   - makeContext: builds each plugin's context from its manifest.
-    ///   - defaults: where `plugins.<id>.enabled` lives.
+    ///   - settings: where `plugins.<id>.enabled` lives.
     init(
         pluginTypes: [any PouncePlugin.Type],
         makeContext: (PluginManifest) -> PluginContext,
-        defaults: UserDefaults,
+        settings: any SettingsStore,
         fileManager: FileManager = .default,
         sourceBudget: Duration = .milliseconds(150),
         clock: any Clock<Duration> = ContinuousClock(),
         logger: Logger = Logger(subsystem: "app.pounce", category: "host")
     ) {
-        self.defaults = defaults
+        self.settings = settings
         self.fileManager = fileManager
         self.sourceBudget = sourceBudget
         self.clock = clock
@@ -89,8 +89,10 @@ final class PluginHost {
 
     func isEnabled(_ id: PluginID) -> Bool {
         guard let entry = entries.first(where: { $0.manifest.id == id }) else { return false }
-        return defaults.object(forKey: SettingsKeys.pluginEnabled(id)) as? Bool
-            ?? entry.manifest.defaultEnabled
+        guard case .bool(let enabled) = settings.value(forKey: SettingsKeys.pluginEnabled(id)) else {
+            return entry.manifest.defaultEnabled
+        }
+        return enabled
     }
 
     private var activeEntries: [Entry] { entries.filter { $0.state.isActive } }
@@ -125,7 +127,7 @@ final class PluginHost {
     /// Persists the toggle and activates or deactivates the plugin without a restart.
     func setEnabled(_ enabled: Bool, for id: PluginID) async {
         guard entries.contains(where: { $0.manifest.id == id }) else { return }
-        defaults.set(enabled, forKey: SettingsKeys.pluginEnabled(id))
+        settings.setValue(.bool(enabled), forKey: SettingsKeys.pluginEnabled(id))
         await enqueue(id) { host in
             if enabled {
                 await host.activateNow(id)

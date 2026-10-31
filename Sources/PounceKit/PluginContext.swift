@@ -1,70 +1,61 @@
 import Foundation
 import os
 
-/// A plugin's settings: `UserDefaults` keys under the `plugins.<id>.` prefix.
+/// A plugin's settings: keys under the `plugins.<id>.` prefix in the host's `SettingsStore`
+/// (`UserDefaults` in the app).
 public struct PluginSettings: Sendable {
     public let pluginID: PluginID
-    private let storage: DefaultsStorage
+    private let store: any SettingsStore
 
-    public init(pluginID: PluginID, defaults: UserDefaults) {
+    public init(pluginID: PluginID, store: any SettingsStore) {
         self.pluginID = pluginID
-        self.storage = DefaultsStorage(defaults: defaults)
+        self.store = store
     }
-
-    private var defaults: UserDefaults { storage.defaults }
 
     /// `plugins.<id>.`
     public var prefix: String { "plugins.\(pluginID.rawValue)." }
 
-    /// The full `UserDefaults` key for a plugin-local name.
+    /// The full settings key for a plugin-local name.
     public func key(_ name: String) -> String { prefix + name }
 
     public func bool(_ name: String, default fallback: Bool) -> Bool {
-        defaults.object(forKey: key(name)) as? Bool ?? fallback
+        guard case .bool(let value) = store.value(forKey: key(name)) else { return fallback }
+        return value
     }
 
     public func integer(_ name: String, default fallback: Int) -> Int {
-        defaults.object(forKey: key(name)) as? Int ?? fallback
+        guard case .integer(let value) = store.value(forKey: key(name)) else { return fallback }
+        return value
     }
 
     public func string(_ name: String) -> String? {
-        defaults.string(forKey: key(name))
+        guard case .string(let value) = store.value(forKey: key(name)) else { return nil }
+        return value
     }
 
     public func stringArray(_ name: String) -> [String]? {
-        defaults.stringArray(forKey: key(name))
+        guard case .stringArray(let value) = store.value(forKey: key(name)) else { return nil }
+        return value
     }
 
     public func set(_ value: Bool, for name: String) {
-        defaults.set(value, forKey: key(name))
+        store.setValue(.bool(value), forKey: key(name))
     }
 
     public func set(_ value: Int, for name: String) {
-        defaults.set(value, forKey: key(name))
+        store.setValue(.integer(value), forKey: key(name))
     }
 
     public func set(_ value: String, for name: String) {
-        defaults.set(value, forKey: key(name))
+        store.setValue(.string(value), forKey: key(name))
     }
 
     public func set(_ value: [String], for name: String) {
-        defaults.set(value, forKey: key(name))
+        store.setValue(.stringArray(value), forKey: key(name))
     }
 
     public func removeValue(for name: String) {
-        defaults.removeObject(forKey: key(name))
-    }
-}
-
-/// Carries a `UserDefaults` across isolation domains.
-///
-/// `@unchecked Sendable` is safe here: Apple documents `UserDefaults` as thread-safe, the reference is
-/// immutable (`let`), and this wrapper exposes no other state.
-private final class DefaultsStorage: @unchecked Sendable {
-    let defaults: UserDefaults
-
-    init(defaults: UserDefaults) {
-        self.defaults = defaults
+        store.setValue(nil, forKey: key(name))
     }
 }
 

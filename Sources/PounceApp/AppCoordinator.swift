@@ -15,7 +15,7 @@ final class AppCoordinator {
         self.host = PluginHost(
             pluginTypes: pluginTypes,
             makeContext: environment.makeContext(for:),
-            defaults: environment.defaults
+            settings: environment.settings
         )
     }
 
@@ -31,8 +31,5 @@ final class AppCoordinator {
     /// Deactivates every plugin before the app exits.
     func stop() async {
         await host.stop()
-        if let suite = environment.volatileDefaultsSuite {
-            environment.defaults.removePersistentDomain(forName: suite)
-        }
     }
 }

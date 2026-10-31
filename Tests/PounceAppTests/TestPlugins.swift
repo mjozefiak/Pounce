@@ -151,24 +151,24 @@ final class StorageWritingPlugin: PouncePlugin {
     }
 }
 
-/// A fresh, isolated environment per test: temporary data root, its own defaults suite, an in-memory
-/// Keychain and a private pasteboard.
+/// A fresh, isolated environment per test: temporary data root, in-memory settings and Keychain, and
+/// a private pasteboard. Nothing is written to a `UserDefaults` domain.
 struct TestEnvironment {
     let environment: AppEnvironment
-    let suiteName: String
+    let settings: InMemorySettingsStore
 
     init() throws {
-        suiteName = "pounce-app-tests-\(UUID().uuidString)"
-        let root = FileManager.default.temporaryDirectory.appending(path: suiteName, directoryHint: .isDirectory)
+        let name = "pounce-app-tests-\(UUID().uuidString)"
+        let root = FileManager.default.temporaryDirectory.appending(path: name, directoryHint: .isDirectory)
         try AppEnvironment.createPrivateDirectory(root, fileManager: .default)
+        settings = InMemorySettingsStore()
         environment = AppEnvironment(
             dataRoot: root,
-            defaults: UserDefaults(suiteName: suiteName) ?? .standard,
+            settings: settings,
             keychain: InMemoryKeychainClient(),
-            pasteboardName: NSPasteboard.Name(suiteName),
+            pasteboardName: NSPasteboard.Name(name),
             usage: InMemoryUsageRecorder(),
-            registersGlobalHotkeys: false,
-            volatileDefaultsSuite: suiteName
+            registersGlobalHotkeys: false
         )
     }
 
@@ -179,13 +179,12 @@ struct TestEnvironment {
         PluginHost(
             pluginTypes: types,
             makeContext: environment.makeContext(for:),
-            defaults: environment.defaults,
+            settings: settings,
             sourceBudget: budget
         )
     }
 
     func tearDown() {
-        environment.defaults.removePersistentDomain(forName: suiteName)
         try? FileManager.default.removeItem(at: environment.dataRoot)
     }
 }

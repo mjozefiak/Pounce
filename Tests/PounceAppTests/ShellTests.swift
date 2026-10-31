@@ -125,6 +125,37 @@ private let repositoryRoot = URL(filePath: #filePath)
     }
 }
 
+@Suite struct SettingsStoreTests {
+    @Test func userDefaultsObjectsMapToTypedSettings() {
+        #expect(UserDefaultsSettingsStore.settingValue(from: NSNumber(value: true)) == .bool(true))
+        #expect(UserDefaultsSettingsStore.settingValue(from: false) == .bool(false))
+        #expect(UserDefaultsSettingsStore.settingValue(from: NSNumber(value: 7)) == .integer(7))
+        #expect(UserDefaultsSettingsStore.settingValue(from: 1) == .integer(1))
+        #expect(UserDefaultsSettingsStore.settingValue(from: "x") == .string("x"))
+        #expect(UserDefaultsSettingsStore.settingValue(from: ["a", "b"]) == .stringArray(["a", "b"]))
+        #expect(UserDefaultsSettingsStore.settingValue(from: nil) == nil)
+        #expect(UserDefaultsSettingsStore.settingValue(from: Data([1])) == nil)
+        #expect(UserDefaultsSettingsStore.settingValue(from: [1, 2]) == nil)
+    }
+
+    @Test(arguments: [
+        SettingValue.bool(true), .bool(false), .integer(0), .integer(30), .string("s"), .stringArray(["a"]),
+    ])
+    func settingsRoundTripThroughPropertyListObjects(_ value: SettingValue) {
+        let object = UserDefaultsSettingsStore.propertyListObject(for: value)
+        #expect(UserDefaultsSettingsStore.settingValue(from: object) == value)
+    }
+
+    @Test func inMemoryStoreSetsReadsAndRemoves() {
+        let store = InMemorySettingsStore()
+        #expect(store.value(forKey: "plugins.apps.enabled") == nil)
+        store.setValue(.bool(false), forKey: "plugins.apps.enabled")
+        #expect(store.value(forKey: "plugins.apps.enabled") == .bool(false))
+        store.setValue(nil, forKey: "plugins.apps.enabled")
+        #expect(store.value(forKey: "plugins.apps.enabled") == nil)
+    }
+}
+
 @Suite struct UsageRecorderTests {
     @Test func countsUsesAndQueryAssociations() async throws {
         let recorder = InMemoryUsageRecorder()
@@ -183,13 +214,12 @@ private let repositoryRoot = URL(filePath: #filePath)
         let root = FileManager.default.temporaryDirectory.appending(path: "pounce-qa-test-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: root) }
         let environment = try AppEnvironment.qa(QAOptions(dataRoot: root))
-        defer { environment.defaults.removePersistentDomain(forName: AppEnvironment.qaDefaultsSuite) }
 
         #expect(environment.dataRoot == root)
         #expect(environment.keychain is InMemoryKeychainClient)
         #expect(environment.pasteboardName != nil)
         #expect(!environment.registersGlobalHotkeys)
-        #expect(environment.volatileDefaultsSuite == AppEnvironment.qaDefaultsSuite)
+        #expect(environment.settings is InMemorySettingsStore)
         #expect(environment.storageDirectory(for: "clipboard").path.hasPrefix(root.path))
         let attributes = try FileManager.default.attributesOfItem(atPath: root.path)
         #expect((attributes[.posixPermissions] as? NSNumber)?.intValue == 0o700)

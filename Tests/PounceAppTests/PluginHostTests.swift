@@ -32,7 +32,7 @@ import Testing
 
         await host.setEnabled(false, for: "alpha")
         #expect(host.state(of: "alpha").map(isDisabled) == true)
-        #expect(env.environment.defaults.object(forKey: "plugins.alpha.enabled") as? Bool == false)
+        #expect(env.settings.value(forKey: "plugins.alpha.enabled") == .bool(false))
 
         await host.setEnabled(true, for: "alpha")
         #expect(host.state(of: "alpha")?.isActive == true)
@@ -41,8 +41,8 @@ import Testing
 
     @Test func persistedToggleWinsOverTheManifestDefault() async {
         defer { env.tearDown() }
-        env.environment.defaults.set(true, forKey: "plugins.beta.enabled")
-        env.environment.defaults.set(false, forKey: "plugins.alpha.enabled")
+        env.settings.setValue(.bool(true), forKey: "plugins.beta.enabled")
+        env.settings.setValue(.bool(false), forKey: "plugins.alpha.enabled")
         let host = env.makeHost([AlphaPlugin.self, BetaPlugin.self])
 
         await host.start()

@@ -5,9 +5,9 @@ import Foundation
 /// DEBUG-only launch arguments that isolate a QA run from the user's real data (`docs/qa.md`).
 /// Release builds compile this file out, so the arguments do nothing there.
 ///
-/// Any `--qa…` argument turns QA mode on. In QA mode Pounce uses a temporary data root, a separate
-/// `UserDefaults` suite, an in-memory Keychain and a private named pasteboard, and it never
-/// registers global hotkeys.
+/// Any `--qa…` argument turns QA mode on. In QA mode Pounce uses a temporary data root, in-memory
+/// settings, an in-memory Keychain and a private named pasteboard, and it never registers global
+/// hotkeys.
 struct QAOptions: Equatable {
     enum Appearance: String, Equatable {
         case light

@@ -87,3 +87,21 @@ public protocol UsageRecorder: Sendable {
 public protocol PermissionsReader: Sendable {
     @MainActor func status(of permission: Permission) -> PermissionStatus
 }
+
+/// A value in the settings store. Settings only ever hold these types, so every store is `Sendable`
+/// without bridging `Any`.
+public enum SettingValue: Hashable, Sendable {
+    case bool(Bool)
+    case integer(Int)
+    case string(String)
+    case stringArray([String])
+}
+
+/// Key-value storage behind `PluginSettings` and the host's `plugins.<id>.enabled` toggles. The app
+/// stores settings in `UserDefaults.standard`; tests and QA mode use an in-memory store, so they never
+/// create or change a defaults domain on the tester's Mac.
+public protocol SettingsStore: Sendable {
+    func value(forKey key: String) -> SettingValue?
+    /// Stores the value; `nil` removes the key.
+    func setValue(_ value: SettingValue?, forKey key: String)
+}

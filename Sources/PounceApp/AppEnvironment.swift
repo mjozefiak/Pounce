@@ -8,14 +8,13 @@ import os
 struct AppEnvironment {
     /// `~/Library/Application Support/Pounce` (0700), or a temporary root in QA mode.
     let dataRoot: URL
-    let defaults: UserDefaults
+    /// Settings (`app.*`, `plugins.<id>.*`): `UserDefaults.standard` normally, in memory in QA mode.
+    let settings: any SettingsStore
     let keychain: any KeychainClient
     let pasteboardName: NSPasteboard.Name?
     let usage: any UsageRecorder
     /// False in QA mode, so a QA run never takes the user's global shortcuts.
     let registersGlobalHotkeys: Bool
-    /// The `UserDefaults` suite to remove when the app quits (QA mode only).
-    let volatileDefaultsSuite: String?
 
     /// `Plugins/<id>/` under the data root.
     func storageDirectory(for id: PluginID) -> URL {
@@ -27,7 +26,7 @@ struct AppEnvironment {
     func makeContext(for manifest: PluginManifest) -> PluginContext {
         PluginContext(
             storageDirectory: storageDirectory(for: manifest.id),
-            settings: PluginSettings(pluginID: manifest.id, defaults: defaults),
+            settings: PluginSettings(pluginID: manifest.id, store: settings),
             usage: usage,
             logger: Logger(subsystem: "app.pounce", category: manifest.id.rawValue),
             keychain: keychain,
@@ -50,18 +49,15 @@ struct AppEnvironment {
         try createPrivateDirectory(root, fileManager: fileManager)
         return AppEnvironment(
             dataRoot: root,
-            defaults: .standard,
+            settings: UserDefaultsSettingsStore(),
             keychain: SystemKeychainClient(),
             pasteboardName: nil,
             usage: InMemoryUsageRecorder(),
-            registersGlobalHotkeys: true,
-            volatileDefaultsSuite: nil
+            registersGlobalHotkeys: true
         )
     }
 
     #if DEBUG
-    static let qaDefaultsSuite = "app.pounce.Pounce.qa"
-
     static func qa(_ options: QAOptions, fileManager: FileManager = .default) throws -> AppEnvironment {
         let root =
             options.dataRoot
@@ -70,17 +66,13 @@ struct AppEnvironment {
                 directoryHint: .isDirectory
             )
         try createPrivateDirectory(root, fileManager: fileManager)
-        let suite = qaDefaultsSuite
-        let defaults = UserDefaults(suiteName: suite) ?? .standard
-        defaults.removePersistentDomain(forName: suite)
         return AppEnvironment(
             dataRoot: root,
-            defaults: defaults,
+            settings: InMemorySettingsStore(),
             keychain: InMemoryKeychainClient(),
             pasteboardName: NSPasteboard.Name("app.pounce.qa.\(ProcessInfo.processInfo.processIdentifier)"),
             usage: InMemoryUsageRecorder(),
-            registersGlobalHotkeys: false,
-            volatileDefaultsSuite: suite
+            registersGlobalHotkeys: false
         )
     }
     #endif

@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import Synchronization
 import Testing
 
 @testable import PounceKit
@@ -31,24 +32,34 @@ import Testing
 }
 
 @Suite struct PluginSettingsTests {
-    @Test func namespacesKeysUnderThePluginPrefix() throws {
-        let suite = "pounce-kit-tests-\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suite))
-        defer { defaults.removePersistentDomain(forName: suite) }
-
-        let settings = PluginSettings(pluginID: "clipboard", defaults: defaults)
+    @Test func namespacesKeysUnderThePluginPrefix() {
+        let store = TestContext.MemorySettings()
+        let settings = PluginSettings(pluginID: "clipboard", store: store)
         #expect(settings.key("retentionDays") == "plugins.clipboard.retentionDays")
         #expect(settings.integer("retentionDays", default: 30) == 30)
 
         settings.set(7, for: "retentionDays")
         settings.set(true, for: "paused")
+        settings.set("en", for: "language")
         settings.set(["com.1password.1password"], for: "ignoredApps")
-        #expect(defaults.integer(forKey: "plugins.clipboard.retentionDays") == 7)
+        #expect(store.value(forKey: "plugins.clipboard.retentionDays") == .integer(7))
+        #expect(settings.integer("retentionDays", default: 30) == 7)
         #expect(settings.bool("paused", default: false))
+        #expect(settings.string("language") == "en")
         #expect(settings.stringArray("ignoredApps") == ["com.1password.1password"])
 
         settings.removeValue(for: "paused")
+        #expect(store.value(forKey: "plugins.clipboard.paused") == nil)
         #expect(!settings.bool("paused", default: false))
+    }
+
+    @Test func aValueOfAnotherTypeFallsBackToTheDefault() {
+        let store = TestContext.MemorySettings()
+        let settings = PluginSettings(pluginID: "clipboard", store: store)
+        store.setValue(.string("thirty"), forKey: "plugins.clipboard.retentionDays")
+        #expect(settings.integer("retentionDays", default: 30) == 30)
+        #expect(!settings.bool("retentionDays", default: false))
+        #expect(settings.stringArray("retentionDays") == nil)
     }
 }
 
@@ -98,6 +109,19 @@ import Testing
 
 /// A context whose ports do nothing, for contract tests that never call them.
 enum TestContext {
+    /// Settings in memory, so tests never write a `UserDefaults` domain.
+    final class MemorySettings: SettingsStore {
+        private let values = Mutex<[String: SettingValue]>([:])
+
+        func value(forKey key: String) -> SettingValue? {
+            values.withLock { $0[key] }
+        }
+
+        func setValue(_ value: SettingValue?, forKey key: String) {
+            values.withLock { $0[key] = value }
+        }
+    }
+
     struct NoKeychain: KeychainClient {
         func readGenericPassword(service: String, account: String) throws(KeychainError) -> Data {
             throw .itemNotFound
@@ -134,7 +158,7 @@ enum TestContext {
     static func make() -> PluginContext {
         PluginContext(
             storageDirectory: FileManager.default.temporaryDirectory.appending(path: "pounce-kit-tests"),
-            settings: PluginSettings(pluginID: "minimal", defaults: .standard),
+            settings: PluginSettings(pluginID: "minimal", store: MemorySettings()),
             usage: NoUsage(),
             logger: .init(subsystem: "app.pounce.tests", category: "kit"),
             keychain: NoKeychain(),
