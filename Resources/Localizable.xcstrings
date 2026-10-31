@@ -433,6 +433,24 @@
         }
       }
     },
+    "Back" : {
+      "comment" : "Welcome screen button that shows the previous step",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wstecz"
+          }
+        }
+      }
+    },
     "Changes the size of text in the Pounce panel." : {
       "comment" : "Settings footer for text size",
       "extractionState" : "manual",
@@ -465,24 +483,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sprawdź ponownie"
-          }
-        }
-      }
-    },
-    "Choose a Shortcut" : {
-      "comment" : "Onboarding step title",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose a Shortcut"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wybierz skrót"
           }
         }
       }
@@ -771,6 +771,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Skopiuj coś, a pojawi się tutaj. Hasła i ignorowane aplikacje nigdy nie są zapisywane."
+          }
+        }
+      }
+    },
+    "Current" : {
+      "comment" : "Welcome screen: state of the step on screen",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bieżący"
           }
         }
       }
@@ -1221,6 +1239,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ogólne"
+          }
+        }
+      }
+    },
+    "Get Started" : {
+      "comment" : "Welcome screen button on the first page",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get Started"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaczynamy"
           }
         }
       }
@@ -1801,6 +1837,24 @@
         }
       }
     },
+    "Not started" : {
+      "comment" : "Welcome screen: state of a step not reached yet",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not started"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nierozpoczęty"
+          }
+        }
+      }
+    },
     "Nothing copied in these apps is recorded." : {
       "comment" : "Settings footer of the ignored apps",
       "extractionState" : "manual",
@@ -2301,6 +2355,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pounce nigdy sam nie prosi o uprawnienia. Zmiany w Ustawieniach systemowych działają od razu."
+          }
+        }
+      }
+    },
+    "Pounce opens with a shortcut from anywhere and lives in the menu bar. The next steps set it up; you can skip any of them and change everything later in Settings." : {
+      "comment" : "Welcome screen introduction",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce opens with a shortcut from anywhere and lives in the menu bar. The next steps set it up; you can skip any of them and change everything later in Settings."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce otwierasz skrótem z dowolnego miejsca, a mieszka w pasku menu. Kolejne kroki go skonfigurują; każdy możesz pominąć i wszystko zmienić później w Ustawieniach."
           }
         }
       }
@@ -2953,6 +3025,24 @@
         }
       }
     },
+    "Skip this step. You can change it later in Settings." : {
+      "comment" : "Welcome screen: help of the Skip button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip this step. You can change it later in Settings."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pomiń ten krok. Możesz to zmienić później w Ustawieniach."
+          }
+        }
+      }
+    },
     "Small" : {
       "comment" : "Text size option, spoken",
       "extractionState" : "manual",
@@ -3021,6 +3111,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uruchamianie…"
+          }
+        }
+      }
+    },
+    "Step %lld of %lld: %@" : {
+      "comment" : "Welcome screen: VoiceOver announcement of the current step",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Step %lld of %lld: %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Krok %1$lld z %2$lld: %3$@"
+          }
+        }
+      }
+    },
+    "Steps" : {
+      "comment" : "Welcome screen: accessibility label of the step list",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steps"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kroki"
           }
         }
       }
@@ -3381,6 +3507,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Czeka na konfigurację"
+          }
+        }
+      }
+    },
+    "Welcome" : {
+      "comment" : "Welcome screen: title of the first page",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welcome"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Witaj"
           }
         }
       }

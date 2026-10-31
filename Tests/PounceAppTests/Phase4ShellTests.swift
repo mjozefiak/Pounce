@@ -175,3 +175,120 @@ actor PlainRecorder: UsageRecorder {
         #expect(SettingsWindowController.tabIndex(ofPlugin: "gone", in: ["apps"]) == nil)
     }
 }
+
+@MainActor
+@Suite struct WelcomeScreenTests {
+    private func step(_ id: String) -> OnboardingStep {
+        OnboardingStep(id: id, title: "Step \(id)", symbolName: "star") { AnyView(EmptyView()) }
+    }
+
+    private func makeController(
+        _ store: InMemorySettingsStore, steps: [String]
+    ) -> (OnboardingController, AppSettings) {
+        let settings = AppSettings(store: store)
+        let hotkeys = HotkeyService(registrar: InMemoryHotkeyRegistrar(), settings: store, readOccupied: { [] })
+        let ids = steps
+        let controller = OnboardingController(hotkeys: hotkeys, settings: settings) { [self] in ids.map(step) }
+        controller.activatesApp = false
+        return (controller, settings)
+    }
+
+    @Test func firstLaunchCombinesTheIntroTheShortcutAndEveryPluginStep() {
+        let store = InMemorySettingsStore()
+        let (controller, settings) = makeController(store, steps: ["clipboard.intro", "files.fullDiskAccess"])
+        #expect(controller.pendingPages.map(\.id) == ["intro", "shortcut", "clipboard.intro", "files.fullDiskAccess"])
+
+        // After an update only the new plugin step is pending: no introduction, no Shortcut step.
+        settings.shortcutOnboardingCompleted = true
+        settings.completedOnboardingSteps = ["clipboard.intro"]
+        #expect(controller.pendingPages.map(\.id) == ["files.fullDiskAccess"])
+
+        settings.completedOnboardingSteps = ["clipboard.intro", "files.fullDiskAccess"]
+        #expect(controller.pendingPages.isEmpty)
+        #expect(!controller.hasPendingSteps)
+    }
+
+    @Test func flowMovesForwardAndBackAndRemembersFinishedPages() {
+        let pages = [WelcomePage(kind: .intro), WelcomePage(kind: .shortcut), WelcomePage(kind: .plugin(step("a")))]
+        let flow = WelcomeFlow(pages: pages)
+        var finished: [String] = []
+        var completed = 0
+        flow.onFinish = { page, skipped in finished.append("\(page.id)\(skipped ? ":skip" : "")") }
+        flow.onComplete = { completed += 1 }
+
+        #expect(flow.isFirst)
+        #expect(flow.current?.isSkippable == false)
+        flow.back()
+        #expect(flow.index == 0)
+        flow.advance()
+        flow.advance(skipping: true)
+        #expect(flow.current?.id == "a")
+        #expect(flow.isLast)
+        #expect(flow.positionDescription == "Step 3 of 3: Step a")
+        flow.back()
+        #expect(flow.current?.id == "shortcut")
+        flow.advance()
+        flow.advance()
+        #expect(finished == ["intro", "shortcut:skip", "shortcut", "a"])
+        #expect(flow.finishedPageIDs == ["intro", "shortcut", "a"])
+        #expect(completed == 1)
+
+        #expect(WelcomeFlow(pages: pages, startAt: "a").index == 2)
+        #expect(WelcomeFlow(pages: pages, startAt: "missing").index == 0)
+    }
+
+    @Test func skippingTheShortcutKeepsTheDefaultAndEveryStepIsRecorded() throws {
+        let store = InMemorySettingsStore()
+        store.setValue(.bool(true), forKey: SettingsKeys.hotkeyUserDefined)
+        let (controller, settings) = makeController(store, steps: ["clipboard.intro", "files.fullDiskAccess"])
+        controller.showPendingSteps()
+        let flow = try #require(controller.flow)
+        flow.advance()
+        #expect(controller.currentPluginStep == nil)
+        flow.advance(skipping: true)
+        #expect(settings.shortcutOnboardingCompleted)
+        #expect(store.value(forKey: SettingsKeys.hotkeyUserDefined) == nil)
+        #expect(controller.currentPluginStep == "clipboard.intro")
+        flow.advance(skipping: true)
+        #expect(settings.completedOnboardingSteps == ["clipboard.intro"])
+        flow.advance()
+        #expect(settings.completedOnboardingSteps == ["clipboard.intro", "files.fullDiskAccess"])
+        #expect(controller.flow == nil)
+        #expect(!controller.isVisible)
+        #expect(!controller.hasPendingSteps)
+    }
+
+    @Test func usingTheShortcutKeepsTheRecordedOne() {
+        let store = InMemorySettingsStore()
+        store.setValue(.bool(true), forKey: SettingsKeys.hotkeyUserDefined)
+        let (controller, settings) = makeController(store, steps: [])
+        controller.showPendingSteps()
+        controller.flow?.advance()
+        controller.flow?.advance()
+        #expect(settings.shortcutOnboardingCompleted)
+        #expect(store.value(forKey: SettingsKeys.hotkeyUserDefined) == .bool(true))
+        #expect(controller.flow == nil)
+    }
+
+    @Test func closingSkipsOnlyTheStepOnScreen() {
+        let store = InMemorySettingsStore()
+        let (controller, settings) = makeController(store, steps: ["clipboard.intro", "files.fullDiskAccess"])
+        settings.shortcutOnboardingCompleted = true
+        controller.showPendingSteps()
+        #expect(controller.currentPluginStep == "clipboard.intro")
+        controller.close()
+        #expect(settings.completedOnboardingSteps == ["clipboard.intro"])
+        #expect(controller.pendingPages.map(\.id) == ["files.fullDiskAccess"])
+    }
+
+    @Test func qaShowsEveryPageFromTheRequestedOne() {
+        let store = InMemorySettingsStore()
+        let (controller, settings) = makeController(store, steps: ["clipboard.intro"])
+        settings.shortcutOnboardingCompleted = true
+        settings.completedOnboardingSteps = ["clipboard.intro"]
+        controller.showAllSteps(startingAt: "shortcut")
+        defer { controller.close() }
+        #expect(controller.flow?.pages.map(\.id) == ["intro", "shortcut", "clipboard.intro"])
+        #expect(controller.flow?.current?.id == "shortcut")
+    }
+}

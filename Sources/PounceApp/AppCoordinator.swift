@@ -65,8 +65,8 @@ final class AppCoordinator {
             diskDirectory: environment.cachesRoot.appending(path: "icons", directoryHint: .isDirectory))
     }
 
-    /// Builds the panel and windows, activates the enabled plugins, registers shortcuts and, on first
-    /// launch, shows the Shortcut step.
+    /// Builds the panel and windows, activates the enabled plugins, registers shortcuts and, while steps
+    /// are pending, shows the welcome screen.
     func start() async {
         let host = host
         statusItem = StatusItemController(
@@ -211,19 +211,20 @@ final class AppCoordinator {
     }
 
     #if DEBUG
-    /// QA: shows the onboarding step regardless of the first-launch flag.
+    /// QA: shows the whole welcome screen regardless of what was completed.
     func showOnboardingForQA() {
-        onboarding?.showShortcutStep()
+        onboarding?.showAllSteps()
     }
 
-    /// QA: shows one plugin onboarding step by id.
+    /// QA: shows the whole welcome screen on one page: `intro`, `shortcut` or a plugin step id.
     func showOnboardingStepForQA(_ id: String) {
         let steps = host.entries.filter(\.state.isActive).flatMap(\.plugin.onboardingSteps)
-        guard let step = steps.first(where: { $0.id == id }) else {
+        guard [WelcomePage.introID, WelcomePage.shortcutID].contains(id) || steps.contains(where: { $0.id == id })
+        else {
             logger.error("No active onboarding step \(id, privacy: .public)")
             return
         }
-        onboarding?.showPluginStep(step)
+        onboarding?.showAllSteps(startingAt: id)
     }
     #endif
 }
