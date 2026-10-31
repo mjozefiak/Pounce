@@ -18,7 +18,8 @@ final class ClipboardSettings {
         /// `Bool`: the history was reset because its key was missing; cleared when the user dismisses the
         /// notice.
         static let historyResetNotice = "historyResetNotice"
-        /// DEBUG builds only, QA mode: `demo` seeds an empty history with fake entries (`docs/qa.md`).
+        /// DEBUG builds only, QA mode: `demo` seeds an empty history with fake entries, defaults the ignored
+        /// apps to fake ones and never looks up the tester's installed apps (`docs/qa.md`).
         static let qaSeed = "qaSeed"
     }
 
@@ -28,6 +29,9 @@ final class ClipboardSettings {
     private(set) var isPaused: Bool
     private(set) var retention: RetentionPolicy
     private(set) var ignoredApps: [String]
+    /// Whether the ignored-apps list shows the installed app's name and icon. False in QA mode
+    /// (`qaSeed=demo`), so screenshots never reveal which apps the tester has installed.
+    @ObservationIgnored let looksUpInstalledApps: Bool
 
     init(_ store: PluginSettings) {
         self.store = store
@@ -36,8 +40,18 @@ final class ClipboardSettings {
             days: store.integer(Key.retentionDays, default: RetentionPolicy.default.days),
             maximumCount: store.integer(Key.maximumEntries, default: RetentionPolicy.default.maximumCount)
         )
-        ignoredApps = store.stringArray(Key.ignoredApps) ?? CaptureFilter.defaultIgnoredApps
+        #if DEBUG
+        let qaDemo = store.string(Key.qaSeed) == "demo"
+        #else
+        let qaDemo = false
+        #endif
+        looksUpInstalledApps = !qaDemo
+        ignoredApps =
+            store.stringArray(Key.ignoredApps) ?? (qaDemo ? Self.qaIgnoredApps : CaptureFilter.defaultIgnoredApps)
     }
+
+    /// QA mode's ignored apps: fake bundle identifiers that match no real app.
+    static let qaIgnoredApps = ["com.example.vault-demo", "com.example.authenticator-demo", "com.example.notes-demo"]
 
     var captureFilter: CaptureFilter {
         CaptureFilter(ignoredApps: Set(ignoredApps))
@@ -104,5 +118,8 @@ final class ClipboardSettings {
         "com.agilebits.onepassword7": "1Password 7",
         "com.agilebits.onepassword-osx": "1Password 6",
         "com.bitwarden.desktop": "Bitwarden",
+        "com.example.vault-demo": "Vault Demo",
+        "com.example.authenticator-demo": "Authenticator Demo",
+        "com.example.notes-demo": "Secret Notes Demo",
     ]
 }

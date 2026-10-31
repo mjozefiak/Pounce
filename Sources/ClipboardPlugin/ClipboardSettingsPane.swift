@@ -72,7 +72,7 @@ struct ClipboardSettingsPane: View {
             Section {
                 List(selection: $selectedApp) {
                     ForEach(settings.ignoredApps, id: \.self) { bundleID in
-                        IgnoredAppRow(bundleID: bundleID)
+                        IgnoredAppRow(bundleID: bundleID, looksUpInstalledApp: settings.looksUpInstalledApps)
                             .tag(bundleID)
                     }
                 }
@@ -188,12 +188,14 @@ struct ClipboardSettingsPane: View {
     }
 }
 
-/// An ignored app: its name and icon when it is installed, else the bundle identifier.
+/// An ignored app: its name and icon when it is installed, else its known name or the bundle identifier.
+/// In QA mode (`looksUpInstalledApp == false`) installed apps are never looked up.
 struct IgnoredAppRow: View {
     let bundleID: String
+    var looksUpInstalledApp = true
 
     var body: some View {
-        let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
+        let url = looksUpInstalledApp ? NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) : nil
         HStack(spacing: 8) {
             if let url {
                 Image(nsImage: NSWorkspace.shared.icon(forFile: url.path(percentEncoded: false)))

@@ -73,7 +73,10 @@ QA mode never reads the tester's clipboard: the plugin watches the private paste
 `app.pounce.qa.<pid>`, and its key lives in the in-memory keychain, so no `app.pounce.clipboard` item is
 created. To fill the history with fake entries (text, a link, a note, two `/tmp/pounce-demo/` file
 paths, a generated picture), seed it with `plugins.clipboard.qaSeed=demo`. Seeding only fills an empty
-history and exists only in DEBUG builds.
+history and exists only in DEBUG builds. The same setting replaces the default ignored apps with fake
+ones (`com.example.*-demo`) and stops the settings pane from looking up installed apps, so a screenshot
+never shows which apps (for example which password manager) the tester has installed. Always pass it
+when capturing the Clipboard History settings pane.
 
 ```bash
 dist/Pounce.app/Contents/MacOS/Pounce --qa --qa-setting plugins.clipboard.qaSeed=demo \
@@ -84,7 +87,7 @@ dist/Pounce.app/Contents/MacOS/Pounce --qa --qa-setting plugins.clipboard.qaSeed
   --qa-panel clipboard
 # Empty history, settings pane, onboarding step:
 dist/Pounce.app/Contents/MacOS/Pounce --qa --qa-accessibility granted --qa-panel clipboard
-dist/Pounce.app/Contents/MacOS/Pounce --qa --qa-settings clipboard
+dist/Pounce.app/Contents/MacOS/Pounce --qa --qa-setting plugins.clipboard.qaSeed=demo --qa-settings clipboard
 dist/Pounce.app/Contents/MacOS/Pounce --qa --qa-onboarding-step clipboard.intro
 ```
 
