@@ -36,6 +36,8 @@ struct CaptureFilter: Sendable {
     ]
 
     enum Skip: Equatable, Sendable {
+        /// Pasteboard access is set to ask or deny, so nothing is read.
+        case accessNotAllowed
         case markerType
         case ignoredApp
         case tooLarge
@@ -45,12 +47,13 @@ struct CaptureFilter: Sendable {
     let ignoredApps: Set<String>
     var maximumBytes = Self.maximumEntryBytes
 
-    /// Checked before any data is read: marker types and the source app.
-    func skipBeforeReading(types: [String], sourceBundleID: String?) -> Skip? {
+    /// Checked before any data is read: marker types and the possible source apps (the app frontmost
+    /// now and the one frontmost at the previous poll).
+    func skipBeforeReading(types: [String], sourceBundleIDs: [String]) -> Skip? {
         if types.contains(where: Self.markerTypes.contains) {
             return .markerType
         }
-        if let sourceBundleID, ignoredApps.contains(sourceBundleID) {
+        if sourceBundleIDs.contains(where: ignoredApps.contains) {
             return .ignoredApp
         }
         if types.isEmpty {
@@ -71,6 +74,14 @@ struct CaptureFilter: Sendable {
     }
 }
 
+extension PasteboardAccess {
+    /// Whether the watcher may read the pasteboard: `.ask` would prompt on every read and `.alwaysDeny`
+    /// fails every read.
+    var allowsRecording: Bool {
+        self == .alwaysAllow || self == .systemDefault
+    }
+}
+
 /// Turns what was read from the pasteboard into an entry: the representations worth keeping, the kind
 /// and the preview text. Runs off the main actor.
 enum ClipClassifier {
@@ -83,8 +94,9 @@ enum ClipClassifier {
         "public.png", "public.tiff", "public.jpeg", "public.heic", "com.compuserve.gif", "org.webmproject.webp",
     ]
 
-    /// Dynamic types (`dyn.…`) are app-private and opaque, and marker types carry no content.
-    static func keeps(_ type: String) -> Bool {
+    /// Dynamic types (`dyn.…`) are app-private and opaque, and marker types carry no content. The
+    /// watcher passes this to the read, so their data is never even requested.
+    @Sendable static func keeps(_ type: String) -> Bool {
         !type.hasPrefix("dyn.") && !CaptureFilter.markerTypes.contains(type)
     }
 

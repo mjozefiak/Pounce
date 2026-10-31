@@ -29,14 +29,19 @@ import PounceKit
 
     func types() -> [String] { pasteboard.types?.map(\.rawValue) ?? [] }
 
-    func readContents(maxBytes: Int) -> PasteboardContents? {
+    /// Types whose data was requested by the last read.
+    private(set) var requestedTypes: [String] = []
+
+    func readContents(maxBytes: Int, including includes: (String) -> Bool) -> PasteboardContents? {
         let changeCount = pasteboard.changeCount
+        requestedTypes = []
         guard let items = pasteboard.pasteboardItems, !items.isEmpty else { return nil }
         var total = 0
         var copied: [PasteboardItem] = []
         for item in items {
             var representations: [PasteboardRepresentation] = []
-            for type in item.types {
+            for type in item.types where includes(type.rawValue) {
+                requestedTypes.append(type.rawValue)
                 guard let data = item.data(forType: type) else { continue }
                 total += data.count
                 if total > maxBytes {
@@ -90,8 +95,8 @@ import PounceKit
     func setString(_ string: String) -> Int { base.setString(string) }
     func types() -> [String] { base.types() }
 
-    func readContents(maxBytes: Int) -> PasteboardContents? {
-        let contents = base.readContents(maxBytes: maxBytes)
+    func readContents(maxBytes: Int, including includes: (String) -> Bool) -> PasteboardContents? {
+        let contents = base.readContents(maxBytes: maxBytes, including: includes)
         if let replacement {
             self.replacement = nil
             base.setString(replacement)

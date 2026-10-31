@@ -89,6 +89,88 @@ import os
         #expect(log.captures.isEmpty)
     }
 
+    /// Copying a password and switching apps before the next poll: the copy is still attributed to the
+    /// ignored app that was frontmost at the previous tick, so it is not recorded under the next app.
+    @Test func aCopyFollowedByAnAppSwitchBeforeThePollIsStillIgnored() {
+        let pasteboard = NamedPasteboard()
+        defer { pasteboard.release() }
+        let workspace = FakeWorkspace()
+        workspace.frontmost = RunningApplication(
+            processIdentifier: 9, bundleIdentifier: "com.bitwarden.desktop", name: "Bitwarden")
+        let log = CaptureLog()
+        let watcher = makeWatcher(pasteboard, workspace: workspace, log: log)
+        watcher.start()
+        defer { watcher.stop() }
+        #expect(!watcher.check())
+
+        pasteboard.setString("fake secret")
+        workspace.frontmost = RunningApplication(processIdentifier: 10, bundleIdentifier: "com.apple.Safari")
+        watcher.check()
+        #expect(watcher.lastEvent == .skipped(.ignoredApp))
+        #expect(log.captures.isEmpty)
+
+        // One tick later the ignored app is no longer a candidate source.
+        pasteboard.setString("fake copied in Safari")
+        watcher.check()
+        #expect(watcher.lastEvent == .captured)
+    }
+
+    /// Spec Edge Cases: the watcher detects `accessBehavior`. Under ask or deny nothing is read (no
+    /// prompt per copy), the change is reported, and allowing access again resumes recording.
+    @Test(arguments: [PasteboardAccess.ask, .alwaysDeny])
+    func accessThatWouldPromptOrFailIsDetectedAndNothingIsRead(_ access: PasteboardAccess) throws {
+        let pasteboard = NamedPasteboard()
+        defer { pasteboard.release() }
+        var reported: [PasteboardAccess] = []
+        let log = CaptureLog()
+        let watcher = PasteboardWatcher(
+            pasteboard: pasteboard,
+            workspace: FakeWorkspace(),
+            clock: ContinuousClock(),
+            logger: Logger(subsystem: "app.pounce.tests", category: "clipboard"),
+            filter: { CaptureFilter(ignoredApps: []) },
+            onAccess: { reported.append($0) },
+            onCapture: { log.captures.append($0) }
+        )
+        watcher.start()
+        defer { watcher.stop() }
+
+        pasteboard.access = access
+        pasteboard.setString("fake text while access is \(access.rawValue)")
+        watcher.check()
+        #expect(watcher.lastEvent == .skipped(.accessNotAllowed))
+        #expect(pasteboard.requestedTypes.isEmpty)
+        #expect(reported.last == access)
+        #expect(log.captures.isEmpty)
+
+        pasteboard.access = .alwaysAllow
+        pasteboard.setString("fake text after allowing")
+        watcher.check()
+        #expect(watcher.lastEvent == .captured)
+        #expect(reported.last == .alwaysAllow)
+        #expect(log.captures.count == 1)
+    }
+
+    /// App-private `dyn.*` types are never stored, so their data is never requested from the writer.
+    @Test func dynamicTypesAreNotRead() throws {
+        let pasteboard = NamedPasteboard()
+        defer { pasteboard.release() }
+        let log = CaptureLog()
+        let watcher = makeWatcher(pasteboard, maximumBytes: 64, log: log)
+        watcher.start()
+        defer { watcher.stop() }
+        let privateType = "dyn.ah62d4rv4gu8yc6durvwwaznwmuuha2pxsvw0e55bsmwca7d3sbwu"
+        pasteboard.writeTypes([
+            "public.utf8-plain-text": Data("fake text".utf8),
+            privateType: Data(repeating: 7, count: 1024),
+        ])
+        watcher.check()
+        // The 1 KB private payload would exceed the 64-byte limit if it were read.
+        #expect(watcher.lastEvent == .captured)
+        #expect(!pasteboard.requestedTypes.contains(privateType))
+        #expect(pasteboard.requestedTypes.contains("public.utf8-plain-text"))
+    }
+
     @Test func entriesOverTheLimitAreSkipped() {
         let pasteboard = NamedPasteboard()
         defer { pasteboard.release() }

@@ -105,10 +105,11 @@ public protocol PasteboardClient: Sendable {
     /// Every type currently on the pasteboard, read without any data (for example the nspasteboard.org
     /// marker types). Added in Phase 2; the default reports the plain-text type when there is a string.
     @MainActor func types() -> [String]
-    /// Reads every item with its representations. Stops reading data once the representations exceed
-    /// `maxBytes` and reports `exceedsLimit`. Returns `nil` when the pasteboard is empty. Added in
-    /// Phase 2; the default reads the string only.
-    @MainActor func readContents(maxBytes: Int) -> PasteboardContents?
+    /// Reads every item with the representations whose type `includes` accepts; the data of any other
+    /// type is never requested (it may be large or produced lazily by the writing app). Stops reading
+    /// once the representations exceed `maxBytes` and reports `exceedsLimit`. Returns `nil` when the
+    /// pasteboard is empty. Added in Phase 2; the default reads the string only.
+    @MainActor func readContents(maxBytes: Int, including includes: (String) -> Bool) -> PasteboardContents?
     /// Replaces the contents with these items and returns the new `changeCount`. Added in Phase 2; the
     /// default writes the first plain-text representation through `setString`.
     @MainActor @discardableResult func write(_ items: [PasteboardItem]) -> Int
@@ -121,8 +122,13 @@ extension PasteboardClient {
         string() == nil ? [] : [PasteboardRepresentation.plainTextType]
     }
 
+    /// Reads every type.
     @MainActor public func readContents(maxBytes: Int) -> PasteboardContents? {
-        guard let string = string() else { return nil }
+        readContents(maxBytes: maxBytes) { _ in true }
+    }
+
+    @MainActor public func readContents(maxBytes: Int, including includes: (String) -> Bool) -> PasteboardContents? {
+        guard includes(PasteboardRepresentation.plainTextType), let string = string() else { return nil }
         let data = Data(string.utf8)
         guard data.count <= maxBytes else {
             return PasteboardContents(changeCount: changeCount, items: [], exceedsLimit: true)

@@ -99,7 +99,7 @@ enum ClipboardBanner: Hashable {
             LocalizedStringResource("Recording is paused.", comment: "Clipboard banner when recording is paused")
         case .historyReset:
             LocalizedStringResource(
-                "The history key was missing, so a new, empty history was started. The old file was kept.",
+                "The history key was missing, so a new, empty history was started. The old history stays encrypted and is deleted automatically after 30 days.",
                 comment: "Clipboard banner after the history was reset because its key was missing")
         case .pasteDisabled:
             LocalizedStringResource(

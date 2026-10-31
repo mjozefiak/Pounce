@@ -26,7 +26,9 @@ not, the read happens on `MainActor` and only hashing stays in the background.
    read at a stable `changeCount`.
 3. **Cost of the fallback.** Reading 1, 5 and 20 MB representations on the main thread took 1.0 ms,
    0.1 ms and 0.1 ms in-process. Data another app promised lazily is produced by that app during the
-   read, so a cross-process read can take longer; the 20 MB limit bounds it.
+   read, so a cross-process read can take longer. `NSPasteboard` cannot report a representation's size
+   before its data is read, so the 20 MB limit stops the read after the representation that crosses
+   it; it does not prevent one oversized representation from being read in full.
 
 A passing stress test cannot prove the absence of a data race in a closed-source class, and the
 vendor's guidance is that the class is main-thread only. **The spike does not confirm the
@@ -34,9 +36,12 @@ background read, so Pounce uses the spec's fallback.**
 
 ## Decision
 
-- `PasteboardClient` keeps every member `@MainActor`. `PasteboardWatcher` compares `changeCount`, reads
-  the types, filters (marker types, ignored apps) and copies the representations on the main actor,
-  and stops at 20 MB.
+- `PasteboardClient` keeps every member `@MainActor`. `PasteboardWatcher` compares `changeCount`, checks
+  the access setting, reads the types, filters (marker types, ignored apps) and copies the
+  representations on the main actor, and stops at 20 MB.
+- Only the types Pounce stores are requested (`readContents(maxBytes:including:)` with
+  `ClipClassifier.keeps`): app-private `dyn.*` types and marker types are never read, so they cost no
+  main-thread time and do not count toward the 20 MB limit.
 - After the read it compares `changeCount` again. If the pasteboard changed meanwhile, the copy is
   dropped and the next tick handles the newer contents.
 - Everything after the copy runs off the main actor: classification (kind, preview text, image size),
@@ -47,8 +52,9 @@ background read, so Pounce uses the spec's fallback.**
 - The spec's design holds; only the read moved to the main actor, as its fallback says. No spec
   amendment is needed beyond this record.
 - A very large entry promised lazily by another app can cost the main thread a few milliseconds at
-  capture time. If measurements later show hitches, the next step is to skip representations of
-  types Pounce does not use before reading their data, not to read off the main thread.
+  capture time. If measurements later show hitches, the next step is to narrow the requested types
+  further (for example one image representation instead of every image format the writer offers),
+  not to read off the main thread.
 - If Apple documents `NSPasteboard` as thread-safe, the read can move into the background task. The
   port change would be additive (a new, non-isolated read with a default), keeping
-  `readContents(maxBytes:)` as it is.
+  `readContents(maxBytes:including:)` as it is.

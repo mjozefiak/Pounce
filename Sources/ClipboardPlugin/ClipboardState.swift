@@ -27,14 +27,17 @@ final class ClipboardState {
     /// Number of entries, refreshed after changes (settings pane).
     var entryCount = 0
 
-    /// Whether the watcher may run (`PasteboardAccess.ask` would prompt on every read, `.alwaysDeny`
-    /// fails every read).
-    var accessAllowsRecording: Bool {
-        access == .alwaysAllow || access == .systemDefault
+    /// Whether the watcher runs: the history is open and recording is not paused. It keeps running
+    /// while pasteboard access is ask or deny, comparing only `changeCount`, so it notices when access
+    /// is allowed again.
+    var isWatching: Bool {
+        availability == .ready && !isPaused
     }
 
+    /// Whether copies are recorded now (`PasteboardAccess.ask` would prompt on every read, `.alwaysDeny`
+    /// fails every read).
     var isRecording: Bool {
-        availability == .ready && !isPaused && accessAllowsRecording
+        isWatching && access.allowsRecording
     }
 }
 

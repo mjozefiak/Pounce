@@ -1873,20 +1873,20 @@
         }
       }
     },
-    "The history key was missing, so a new, empty history was started. The old file was kept." : {
+    "The history key was missing, so a new, empty history was started. The old history stays encrypted and is deleted automatically after 30 days." : {
       "comment" : "Clipboard banner after the history was reset because its key was missing",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The history key was missing, so a new, empty history was started. The old file was kept."
+            "value" : "The history key was missing, so a new, empty history was started. The old history stays encrypted and is deleted automatically after 30 days."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Brakowało klucza historii, więc zaczęto nową, pustą historię. Stary plik został zachowany."
+            "value" : "Brakowało klucza historii, więc zaczęto nową, pustą historię. Stara historia pozostaje zaszyfrowana i zostanie automatycznie usunięta po 30 dniach."
           }
         }
       }

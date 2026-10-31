@@ -45,6 +45,21 @@ import Testing
         #expect(contents.items.isEmpty)
     }
 
+    @Test func readsOnlyTheIncludedTypes() throws {
+        let client = SystemPasteboardClient(name: name)
+        defer { NSPasteboard(name: name).releaseGlobally() }
+        client.write([
+            PasteboardItem(representations: [
+                PasteboardRepresentation(type: "public.utf8-plain-text", data: Data("fake".utf8)),
+                PasteboardRepresentation(type: "public.html", data: Data(repeating: 60, count: 64)),
+            ])
+        ])
+        // The excluded HTML would exceed the 10-byte limit if it were read.
+        let contents = try #require(client.readContents(maxBytes: 10) { $0 != "public.html" })
+        #expect(!contents.exceedsLimit)
+        #expect(contents.items.first?.types == ["public.utf8-plain-text"])
+    }
+
     @Test func anEmptyPasteboardReadsAsNil() {
         let client = SystemPasteboardClient(name: name)
         defer { NSPasteboard(name: name).releaseGlobally() }

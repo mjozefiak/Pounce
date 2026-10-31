@@ -39,9 +39,10 @@ nonisolated struct SystemPasteboardClient: PasteboardClient {
         pasteboard.types?.map(\.rawValue) ?? []
     }
 
-    /// Copies every representation of every item. Data the writer promised lazily is produced now, on
-    /// the main actor (spike 2.2: `NSPasteboard` is not safe to read elsewhere).
-    @MainActor func readContents(maxBytes: Int) -> PasteboardContents? {
+    /// Copies the accepted representations of every item. Data the writer promised lazily is produced
+    /// now, on the main actor (spike 2.2: `NSPasteboard` is not safe to read elsewhere), so types the
+    /// caller does not keep are never requested.
+    @MainActor func readContents(maxBytes: Int, including includes: (String) -> Bool) -> PasteboardContents? {
         let pasteboard = pasteboard
         let changeCount = pasteboard.changeCount
         guard let items = pasteboard.pasteboardItems, !items.isEmpty else { return nil }
@@ -49,7 +50,7 @@ nonisolated struct SystemPasteboardClient: PasteboardClient {
         var copied: [PasteboardItem] = []
         for item in items {
             var representations: [PasteboardRepresentation] = []
-            for type in item.types {
+            for type in item.types where includes(type.rawValue) {
                 guard let data = item.data(forType: type) else { continue }
                 total += data.count
                 guard total <= maxBytes else {

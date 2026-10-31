@@ -66,7 +66,8 @@ struct HistoryOpener {
         return archived
     }
 
-    /// Deletes archives older than 30 days. Returns how many were deleted.
+    /// Deletes archives older than 30 days (at activation and then hourly, from `RetentionJob`). Returns how
+    /// many were deleted.
     @discardableResult
     func purgeOldArchives(now: Date) -> Int {
         let names = (try? fileManager.contentsOfDirectory(atPath: directory.path)) ?? []

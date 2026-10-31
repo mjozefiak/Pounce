@@ -9,8 +9,8 @@ import os
 /// - Data: `Plugins/clipboard/clipboard.sqlite` (SQLCipher) and `blobs/`, keyed from the master key in
 ///   the login keychain (`KeyStore`, `HistoryOpener`). Nothing from the clipboard goes to
 ///   `ranking.sqlite`; the plugin never calls `PluginContext.usage`.
-/// - Capture: `PasteboardWatcher` runs only while the plugin is active, recording is not paused,
-///   pasteboard access allows it and the key is available.
+/// - Capture: `PasteboardWatcher` runs only while the plugin is active, recording is not paused and the
+///   key is available; it reads nothing while pasteboard access is ask or deny.
 /// - Safety controls: pause (menu bar and settings), ignored apps, retention, Clear History,
 ///   permission and Keychain banners.
 ///
@@ -64,7 +64,6 @@ public final class ClipboardPlugin: PouncePlugin {
         isActive = true
         refreshEnvironment()
         let opener = HistoryOpener(directory: context.storageDirectory, keyStore: KeyStore(keychain: context.keychain))
-        opener.purgeOldArchives(now: Date())
         try openHistory(opener)
         #if DEBUG
         await seedForQA()
@@ -81,6 +80,12 @@ public final class ClipboardPlugin: PouncePlugin {
         retention.start(
             store: { [weak self] in self?.store },
             policy: { [weak self] in self?.settings.retention ?? .default },
+            hourly: { [directory = context.storageDirectory, keychain = context.keychain] in
+                Task.detached(priority: .utility) {
+                    HistoryOpener(directory: directory, keyStore: KeyStore(keychain: keychain))
+                        .purgeOldArchives(now: Date())
+                }
+            },
             changed: { [weak self] in self?.historyChanged() }
         )
         updateRecording()
@@ -303,7 +308,7 @@ public final class ClipboardPlugin: PouncePlugin {
     /// Starts or stops the watcher to match the state: it runs only while recording is possible.
     func updateRecording() {
         state.isPaused = settings.isPaused
-        guard isActive, state.isRecording else {
+        guard isActive, state.isWatching else {
             watcher?.stop()
             return
         }
@@ -314,6 +319,13 @@ public final class ClipboardPlugin: PouncePlugin {
 
     var isWatching: Bool { watcher?.isRunning ?? false }
 
+    /// The watcher saw the pasteboard access setting on a change; the banners follow it.
+    private func accessChanged(_ access: PasteboardAccess) {
+        guard state.access != access else { return }
+        context.logger.notice("Pasteboard access changed to \(access.rawValue, privacy: .public)")
+        state.access = access
+    }
+
     private func makeWatcher() -> PasteboardWatcher {
         PasteboardWatcher(
             pasteboard: context.pasteboard,
@@ -321,6 +333,7 @@ public final class ClipboardPlugin: PouncePlugin {
             clock: context.clock,
             logger: context.logger,
             filter: { [weak self] in self?.settings.captureFilter ?? CaptureFilter(ignoredApps: []) },
+            onAccess: { [weak self] access in self?.accessChanged(access) },
             onCapture: { [weak self] capture in self?.store(capture) }
         )
     }

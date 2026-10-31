@@ -37,6 +37,24 @@ struct ClipboardPluginLifecycleTests {
         let blobs = try FileManager.default.attributesOfItem(
             atPath: directory.appending(path: "blobs").path)
         #expect((blobs[.posixPermissions] as? Int) == 0o700)
+        let pluginDirectory = try FileManager.default.attributesOfItem(atPath: directory.path)
+        #expect((pluginDirectory[.posixPermissions] as? Int) == 0o700)
+
+        let store = try #require(harness.plugin.store)
+        let large = PasteboardItem(representations: [
+            PasteboardRepresentation(type: "public.png", data: Data(repeating: 1, count: ClipStore.inlineLimit + 1))
+        ])
+        try store.insert(
+            ClipDraft(
+                kind: .image, previewText: "", items: [large], sourceBundleID: nil, sourceAppName: nil,
+                capturedAt: Date()))
+        let blobFiles = try FileManager.default.contentsOfDirectory(
+            at: directory.appending(path: "blobs"), includingPropertiesForKeys: nil)
+        #expect(blobFiles.count == 1)
+        for file in blobFiles {
+            let attributes = try FileManager.default.attributesOfItem(atPath: file.path)
+            #expect((attributes[.posixPermissions] as? Int) == 0o600)
+        }
         await harness.tearDown()
     }
 
@@ -107,10 +125,39 @@ struct ClipboardPluginLifecycleTests {
         let harness = try PluginHarness()
         harness.pasteboard.access = access
         try await harness.plugin.activate()
-        #expect(!harness.plugin.isWatching)
+        // The watcher keeps comparing `changeCount` (no prompt) but records nothing.
+        #expect(harness.plugin.isWatching)
         #expect(!harness.plugin.state.isRecording)
         let banners = ClipboardBanner.banners(for: harness.plugin.state)
         #expect(banners.contains(access == .ask ? .accessAsks : .accessDenied))
+        let watcher = try #require(harness.plugin.watcher)
+        harness.pasteboard.setString("fake text")
+        watcher.check()
+        #expect(watcher.lastEvent == .skipped(.accessNotAllowed))
+        #expect(try harness.plugin.store?.count() == 0)
+        await harness.tearDown()
+    }
+
+    /// Changing the pasteboard privacy setting while Pounce runs: the watcher notices on the next copy,
+    /// without waiting for the mode to open, and the banners follow.
+    @Test func anAccessChangeWhileRunningUpdatesTheBannersAndRecording() async throws {
+        let harness = try PluginHarness()
+        try await harness.plugin.activate()
+        let watcher = try #require(harness.plugin.watcher)
+
+        harness.pasteboard.access = .ask
+        harness.pasteboard.setString("fake text one")
+        watcher.check()
+        #expect(harness.plugin.state.access == .ask)
+        #expect(ClipboardBanner.banners(for: harness.plugin.state).contains(.accessAsks))
+        #expect(try harness.plugin.store?.count() == 0)
+
+        harness.pasteboard.access = .alwaysAllow
+        harness.pasteboard.setString("fake text two")
+        watcher.check()
+        #expect(harness.plugin.state.isRecording)
+        #expect(!ClipboardBanner.banners(for: harness.plugin.state).contains(.accessAsks))
+        #expect(await eventually { (try? harness.plugin.store?.count()) == 1 })
         await harness.tearDown()
     }
 
@@ -421,6 +468,20 @@ struct ClipboardViewTests {
     }
 
     #if DEBUG
+    /// QA screenshots of the settings pane must not show which apps the tester has installed.
+    @Test func qaModeUsesFakeIgnoredAppsAndNeverLooksUpInstalledApps() {
+        let qa = ClipboardSettings(
+            PluginSettings(
+                pluginID: "clipboard", store: MemorySettingsStore(["plugins.clipboard.qaSeed": .string("demo")])))
+        #expect(qa.ignoredApps == ClipboardSettings.qaIgnoredApps)
+        #expect(qa.ignoredApps.allSatisfy { $0.hasPrefix("com.example.") })
+        #expect(!qa.looksUpInstalledApps)
+
+        let normal = ClipboardSettings(PluginSettings(pluginID: "clipboard", store: MemorySettingsStore()))
+        #expect(normal.ignoredApps == CaptureFilter.defaultIgnoredApps)
+        #expect(normal.looksUpInstalledApps)
+    }
+
     @Test func qaSeedFillsOnlyAnEmptyHistory() async throws {
         let harness = try PluginHarness(settings: ["plugins.clipboard.qaSeed": .string("demo")])
         try await harness.plugin.activate()

@@ -38,9 +38,11 @@ final class RetentionJob {
 
     var isRunning: Bool { task != nil }
 
-    /// Runs once now and then every hour, until `stop()`.
+    /// Runs once now and then every hour, until `stop()`. `hourly` runs on each pass too, even while the
+    /// history is unavailable (the plugin purges expired reset archives there).
     func start(
         store: @escaping @MainActor () -> ClipStore?, policy: @escaping @MainActor () -> RetentionPolicy,
+        hourly: @escaping @MainActor () -> Void = {},
         changed: @escaping @MainActor () -> Void
     ) {
         stop()
@@ -48,6 +50,7 @@ final class RetentionJob {
         task = Task { [weak self] in
             while !Task.isCancelled {
                 guard let self else { return }
+                hourly()
                 if let store = store(), await self.run(store: store, policy: policy()) {
                     changed()
                 }

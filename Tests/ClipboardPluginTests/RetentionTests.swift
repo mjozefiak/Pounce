@@ -78,13 +78,15 @@ import os
         try store.insert(draft("fake ancient", at: now.addingTimeInterval(-90 * day)))
         let job = job(now: now)
         var changes = 0
+        var hourlyRuns = 0
         let store = store
-        job.start(store: { store }, policy: { .default }, changed: { changes += 1 })
+        job.start(store: { store }, policy: { .default }, hourly: { hourlyRuns += 1 }, changed: { changes += 1 })
         defer { job.stop() }
         for _ in 0..<50 where changes == 0 {
             try await Task.sleep(for: .milliseconds(20))
         }
         #expect(changes == 1)
+        #expect(hourlyRuns == 1)
         #expect(job.isRunning)
         job.stop()
         #expect(!job.isRunning)
