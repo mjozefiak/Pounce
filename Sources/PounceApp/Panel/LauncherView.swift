@@ -53,6 +53,9 @@ struct ResultList: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
+                    if let errorMessage = model.errorMessage {
+                        ActionErrorRow(message: errorMessage, textSize: model.textSize)
+                    }
                     if model.showsNoResults {
                         Text("No Results", comment: "Panel state when nothing matches the query")
                             .font(model.textSize.font(.body))
@@ -117,6 +120,29 @@ struct SectionHeader: View {
         .frame(minHeight: PanelModel.Metrics.headerHeight * textSize.scale, alignment: .bottomLeading)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
+    }
+}
+
+/// A result action that failed: shown above the results until the next keystroke.
+struct ActionErrorRow: View {
+    let message: String
+    let textSize: TextSize
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle")
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(.secondary)
+                .frame(width: 28, height: 28)
+                .accessibilityHidden(true)
+            Text(message)
+                .font(textSize.font(.body))
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 8)
+        .frame(minHeight: PanelModel.Metrics.messageHeight)
+        .accessibilityElement(children: .combine)
     }
 }
 

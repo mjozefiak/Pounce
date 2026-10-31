@@ -44,7 +44,8 @@ final class PanelModel {
     /// Index into `results.items`.
     private(set) var selectedIndex: Int?
     var textSize = TextSize.default
-    /// Set when a result action fails, shown under the field until the next keystroke.
+    /// Set when a result action fails: the panel opens again with this message under the field, until
+    /// the next keystroke or until it closes.
     private(set) var errorMessage: String?
 
     @ObservationIgnored weak var presenter: (any PanelPresenting)?
@@ -58,6 +59,7 @@ final class PanelModel {
     @ObservationIgnored private let clock: any Clock<Duration>
     @ObservationIgnored private var searchTask: Task<Void, Never>?
     @ObservationIgnored private var announcementTask: Task<Void, Never>?
+    @ObservationIgnored private var actionTask: Task<Void, Never>?
     @ObservationIgnored private var previousApp: pid_t?
     @ObservationIgnored private let logger = Logger(subsystem: "app.pounce", category: "panel")
 
@@ -213,21 +215,59 @@ final class PanelModel {
         perform(actions[index])
     }
 
-    /// Hides the panel first (the action may open another app), then runs the action.
+    /// Hides the panel first (the action may open another app), then runs the action. If the action fails
+    /// (for example the app was moved since the last scan), the panel opens again and says so.
     func perform(_ action: ResultAction) {
         guard let panelPresenter else { return }
         let context = ActionContext(previousApp: previousApp, panel: panelPresenter, query: results.query)
+        let itemTitle = selectedItem?.candidate.title
         hide()
         let logger = logger
-        Task {
+        actionTask = Task { [weak self] in
             do {
                 try await action.perform(context)
             } catch {
                 logger.error(
                     "Action \(action.id, privacy: .public) failed: \(String(describing: error), privacy: .private)"
                 )
+                guard !Self.isCancellation(error) else { return }
+                self?.actionFailed(action, itemTitle: itemTitle)
             }
         }
+    }
+
+    /// Opens the panel with a message about the failed action and announces it.
+    func actionFailed(_ action: ResultAction, itemTitle: String?) {
+        let actionTitle = String(localized: action.title)
+        let message =
+            if let itemTitle {
+                String(
+                    localized: "“\(actionTitle)” did not work for “\(itemTitle)”.",
+                    comment: "Panel message when a result action fails; action title, then the result's title"
+                )
+            } else {
+                String(
+                    localized: "“\(actionTitle)” did not work.",
+                    comment: "Panel message when a result action fails; the action title"
+                )
+            }
+        show()
+        errorMessage = message
+        announce(message)
+    }
+
+    /// The user cancelled (for example a system prompt about the app); that is not a failure to report.
+    static func isCancellation(_ error: any Error) -> Bool {
+        if error is CancellationError {
+            return true
+        }
+        let nsError = error as NSError
+        return nsError.domain == NSCocoaErrorDomain && nsError.code == NSUserCancelledError
+    }
+
+    /// Waits for the last action (tests).
+    func waitForAction() async {
+        await actionTask?.value
     }
 
     // MARK: Layout and accessibility
@@ -237,7 +277,10 @@ final class PanelModel {
         let scale = textSize.scale
         guard showsResultsArea else { return Metrics.fieldHeight }
         var content = Metrics.listPadding * 2
-        if results.sections.isEmpty {
+        if showsNoResults {
+            content += Metrics.messageHeight
+        }
+        if errorMessage != nil {
             content += Metrics.messageHeight
         }
         for section in results.sections {
@@ -248,9 +291,10 @@ final class PanelModel {
         return min(total, Metrics.maximumHeight)
     }
 
-    /// The list area shows when there are results, or when a typed query found nothing.
+    /// The list area shows when there are results, when a typed query found nothing, or after a failed
+    /// action.
     var showsResultsArea: Bool {
-        !results.sections.isEmpty || (!query.isEmpty && !isSearching && results.query.raw == query)
+        errorMessage != nil || !results.sections.isEmpty || showsNoResults
     }
 
     var showsNoResults: Bool {
