@@ -58,14 +58,15 @@ If that domain did not exist before a QA session, remove it afterwards with
 | `--qa-panel <mode>` | Phase 1 | Open the panel after launch without the global hotkey: `search`, or a plugin's panel mode id. |
 | `--qa-query <text>` | Phase 1 | Type this query into the panel opened with `--qa-panel`. |
 | `--qa-record-use <item key>` | Phase 1 | Record a use of `<plugin id>:<key>` in the QA ranking database before launch (repeatable), so the empty query shows "Recently Used". |
-| `--qa-settings general\|features\|<plugin id>` | Phase 1, plugin panes Phase 2 | Open the Settings window on that pane, for example `clipboard`. |
-| `--qa-onboarding` | Phase 1 | Show the first-launch Shortcut step. |
+| `--qa-settings general\|features\|permissions\|advanced\|<plugin id>` | Phase 1, plugin panes Phase 2, `permissions` and `advanced` Phase 4 | Open the Settings window on that pane, for example `clipboard`. |
+| `--qa-onboarding` | Phase 1; the whole welcome screen since Phase 4 | Show the welcome screen with every page (introduction, Shortcut, every active plugin's step), whatever was completed. |
 | `--qa-fail-action` | Phase 1 | With `--qa-panel`: once results load, show the failed-action message for the selected row's first action without running it. |
 | `--qa-spotlight on\|off` | Phase 1 | Pretend Spotlight does or does not hold ⌘Space instead of reading the system's symbolic hotkeys. |
-| `--qa-onboarding-step <step id>` | Phase 2 | Show one plugin onboarding step, for example `clipboard.intro`. |
+| `--qa-onboarding-step <step id>` | Phase 2; the welcome screen since Phase 4 | Show the welcome screen on one page: `intro`, `shortcut` or a plugin step such as `clipboard.intro`. |
 | `--qa-pasteboard-access allow\|default\|ask\|deny` | Phase 2 | The pasteboard access behaviour plugins see (`NSPasteboard.accessBehavior`), for the clipboard's permission banners. |
 | `--qa-accessibility granted\|denied` | Phase 2 | The Accessibility status plugins see. Without it the real status is read, never changed. |
 | `--qa-full-disk-access granted\|denied` | Phase 3 | The Full Disk Access status plugins see (default `denied` in QA mode). Never read from, or changed in, the system. |
+| `--qa-about` | Phase 4 | Open the About window. |
 
 Unknown `--qa…` arguments stop the launch with an error, so a typo never silently falls back to real
 data.
@@ -151,6 +152,56 @@ of indexing. With `--qa-full-disk-access denied`, Desktop, Documents and Downloa
 are skipped and the panel shows the "no Full Disk Access" notice; `granted` indexes them. The result
 order (Settings → Features → Result Order) is seeded with a comma-separated list, for example
 `--qa-setting app.sectionOrder=files,apps`.
+
+## Welcome screen, Permissions, Advanced and About (Phase 4)
+
+Settings → Permissions lists the permissions of the enabled plugins with the states QA mode reports, so
+pass the states to show (the real Accessibility state is read when `--qa-accessibility` is missing;
+pass it to keep the screenshot independent of the tester's Mac). The panes never open System Settings
+unless a button is clicked.
+
+```bash
+FIX=/tmp/pounce-p4-qa; mkdir -p "$FIX/home" "$FIX/apps"
+COMMON=(--qa --qa-setting "plugins.files.qaHome=$FIX/home" --qa-setting "plugins.files.roots=$FIX/home"
+  --qa-setting "plugins.apps.roots=$FIX/apps" --qa-setting plugins.apps.spotlight=false
+  --qa-setting plugins.clipboard.qaSeed=demo --qa-spotlight off)
+# The welcome screen, from the first page or on one page:
+dist/Pounce.app/Contents/MacOS/Pounce "${COMMON[@]}" --qa-onboarding
+dist/Pounce.app/Contents/MacOS/Pounce "${COMMON[@]}" --qa-onboarding-step shortcut
+# Settings → Permissions and Advanced:
+dist/Pounce.app/Contents/MacOS/Pounce "${COMMON[@]}" --qa-accessibility denied --qa-full-disk-access granted \
+  --qa-pasteboard-access ask --qa-settings permissions
+dist/Pounce.app/Contents/MacOS/Pounce "${COMMON[@]}" --qa-settings advanced
+# About (the notices come from the bundle, so use the app built by make-app.sh):
+dist/Pounce.app/Contents/MacOS/Pounce --qa --qa-about
+```
+
+Add `-AppleLanguages '(pl)'` for the Polish strings and `--qa-appearance light|dark` for each appearance.
+"Reset Ranking…" in QA mode empties only the QA data root's `ranking.sqlite`.
+
+## Accessibility audit (spec step 4.3)
+
+Phase 4 audited every screen against the spec's accessibility criteria (UI/UX → Dostępność). What the
+code does, so a regression is easy to spot:
+
+| Criterion | Where it is handled |
+|---|---|
+| Result list is a VoiceOver list of labelled rows | `ResultList` (container "Results"), `ResultRow` (label = title, value = kind and path or source app, `isSelected`) |
+| Selection and result count are announced | `PanelModel.moveSelection` announces title and kind; the count is announced after 500 ms without typing; filter changes and "Copied" are announced |
+| Footer keys are spoken in words | `ActionFooter.spokenLabel` ("Show in Finder, Command-Return") |
+| Reduce Motion | the panel's 120 ms fade is skipped (`PanelController`); no other animations |
+| Reduce Transparency, Increase Contrast | the panel and bubble use the system glass (`NSGlassEffectView`), which follows both settings; with Increase Contrast the selected row and every filter chip get an outline |
+| Differentiate Without Colour | matched characters are always bold; the selected filter chip gets a checkmark; every permission and feature state has a symbol and text |
+| Text size (S–XL) | the panel, its list modes and the confirmation bubble scale with Settings → General → Text size; at XL titles wrap instead of truncating |
+| Keyboard access | every Settings and welcome control is a standard control reachable with Tab when Keyboard Navigation is on; the welcome screen takes Return (Continue) and Esc (Skip) |
+| Repeated buttons name their target | "Erase Data of Files…", "Add Desktop"; each "Open System Settings…" in Permissions has the hint "Opens Accessibility in System Settings" |
+| Page changes are announced | the welcome screen announces "Step 2 of 4: Shortcut"; Reset Ranking announces its result |
+
+Still manual, for a person with VoiceOver and Accessibility Inspector (checklist in the Phase 4 PR):
+an Accessibility Inspector audit of the panel, Settings (every pane), the welcome screen and About
+without errors; a VoiceOver pass through the same screens; the panel with Reduce Transparency and
+Increase Contrast turned on in System Settings; the segmented text-size control read as words; and Tab
+order with Keyboard Navigation on.
 
 ## Screenshots
 
