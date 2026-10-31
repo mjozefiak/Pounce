@@ -13,7 +13,7 @@ Machine for every row: Apple M4 Max, 16 cores, macOS 27.0.1, 2026-10-31. An M1 r
 | Panel open after the shortcut | < 50 ms | 12.1–16.5 ms (5 cold launches, first open) | Met |
 | App query | < 5 ms | p95 0.54 ms with 300 apps, p95 2.28 ms with 1 000 apps (max 2.78 ms) | Met |
 | File query, p95, 1 million entries (step 3.2) | < 30 ms | p95 7.1 ms (p50 3.8 ms, max 7.3 ms), synthetic names; table below | Met |
-| Memory at rest with an index of ~500 k files | < 150 MB for the whole app | 85 MB after launching from the saved index (510 k entries); 199–222 MB for the rest of the session in which the first scan ran | Met at rest after a restart; **not met right after the first scan** (see below) |
+| Memory at rest with an index of ~500 k files | < 150 MB for the whole app | 39 MB in the session that ran the first scan, 36 MB after launching from the saved index (510 k entries), with `MallocLargeCache=0` (below); without it 217 MB and 84 MB | Met |
 | First scan of `~` | < 30 s | 1.6–1.9 s for 510 k entries of a synthetic tree on the SSD | Met on the synthetic tree; a real home folder is a manual item |
 | Start from the saved index until ready | < 2 s | 0.19 s from process start to "Loaded 510020 index entries" | Met |
 | Index memory per entry (R6) | about 100 B | 67–70 B (synthetic), 83 B (fixture tree, 204 k entries) | Met |
@@ -25,9 +25,14 @@ tester's data (`docs/qa.md`), and its launch arguments exist only in DEBUG build
 build is a release build with QA compiled in. It is never shipped:
 
 ```bash
+# The fixture tree of fake names (5 000 folders × 100 files, 510 020 entries), generated once by the
+# file benchmarks; any FileBenchmarks test creates it before it runs.
+POUNCE_BENCHMARKS=1 POUNCE_BENCH_TREE=/tmp/pounce-p4-bench/tree POUNCE_BENCH_FOLDERS=5000 \
+  swift test -c release -Xswiftc -enable-testing --filter FileBenchmarks/scanFixtureTree
 swift build -c release -Xswiftc -DDEBUG --scratch-path /tmp/pounce-perf-build
 BIN=/tmp/pounce-perf-build/out/Products/Release/Pounce
-FIX=/tmp/pounce-p4-bench/tree   # the benchmark tree below, POUNCE_BENCH_FOLDERS=5000 (510 020 entries)
+FIX=/tmp/pounce-p4-bench/tree
+APP_FIXTURES=$(mktemp -d)   # an empty apps root; the app rows below use their own benchmark
 COMMON=(--qa --qa-data-root /tmp/pounce-perf/data --qa-setting "plugins.files.qaHome=$FIX"
   --qa-setting "plugins.files.roots=$FIX" --qa-setting plugins.files.setupCompleted=true
   --qa-full-disk-access granted --qa-setting "plugins.apps.roots=$APP_FIXTURES"
@@ -56,15 +61,31 @@ COMMON=(--qa --qa-data-root /tmp/pounce-perf/data --qa-setting "plugins.files.qa
 
 ### Memory right after the first scan
 
-In the session that runs the first scan of 510 k entries, the footprint stays at 199–222 MB, above the
-budget, until Pounce is restarted; launched from the saved snapshot, the same index takes 85 MB. `heap`
-on the process shows only 54 MB of live allocations (48 MB of them the index arrays); `vmmap -summary`
-shows the rest as freed memory the allocator keeps: "Malloc Large (empty)" 104 MB and "Malloc Small
-(empty)" 41 MB dirty. They come from the scan's folder listings, the copy made while a batch is applied
-and the snapshot encoder's buffers. `malloc_zone_pressure_relief` was tried and released nothing on
-macOS 27, so this release ships no change for it. It affects only the first scan (and a full rescan);
-every later launch is at rest at 85 MB. A follow-up could reuse the scan buffers instead of reallocating
-them, or scan in a helper process.
+Without help, the session that runs the first scan of 510 k entries stays at 199–222 MB, above the
+budget, until Pounce restarts. `heap` shows only 54 MB of live allocations (48 MB of them the index
+arrays). `vmmap -summary` shows the rest as freed memory the allocator keeps: "Malloc Large (empty)"
+about 104 MB and "Malloc Small (empty)" about 41 MB, dirty. Most of it is libmalloc's cache of freed large
+allocations. The scan frees many of them: folder listings, the array copies made while a batch is applied
+and while the arrays grow, and the snapshot encoder's buffers. `malloc_zone_pressure_relief` returns 0 and
+releases nothing on macOS 27.
+
+**Mitigation (v1.0):** `Resources/Info.plist` sets `LSEnvironment` → `MallocLargeCache=0`. This turns that
+cache off, so freed large blocks go back to the system right away. Launch Services applies
+`LSEnvironment` to every launch it makes (Finder, Dock, Spotlight, `open`, the login item); a binary
+started directly from a shell (`swift run`, `.build/…/Pounce`) does not get it. The apps Pounce opens do
+not inherit it: they are launched through Launch Services with their own environment. Measured with the
+procedure above, `MallocLargeCache=0` set the way Launch Services sets it:
+
+| Session (510 020 entries) | Default allocator | `MallocLargeCache=0` |
+|---|---|---|
+| First scan, footprint 60 s after it | 217 MB | 39 MB |
+| Launched from the saved index, 60 s later | 84 MB | 36 MB |
+| `FileBenchmarks.scanFixtureTree`: scan / footprint change | 2.18–2.19 s / 121–133 MB | 2.09–2.12 s / 21–22 MB |
+| `FileBenchmarks.searchOneMillionNames`: p95 | 6.1–7.3 ms | 6.7–7.2 ms |
+
+Scan and search times do not change. A Launch Services launch was checked with a throwaway bundle: the
+process sees `MallocLargeCache=0`. To measure without the setting, run the binary directly as above. To
+measure with it, prefix the command with `MallocLargeCache=0`.
 
 ## File index (Phase 3)
 
