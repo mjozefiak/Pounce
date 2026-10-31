@@ -6,13 +6,18 @@ import Testing
 @testable import PouncePersistence
 
 /// Spike 0.4: GRDB with SQLCipher through SwiftPM (docs/decisions/0001-sqlite.md).
-@Suite struct SQLCipherSpikeTests {
+/// A class, so `deinit` removes each test's temporary directory.
+@Suite final class SQLCipherSpikeTests {
     let directory: URL
 
     init() throws {
         directory = FileManager.default.temporaryDirectory
             .appending(path: "pounce-persistence-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    }
+
+    deinit {
+        try? FileManager.default.removeItem(at: directory)
     }
 
     /// A sub-key derived the way the clipboard plugin will derive it: HKDF-SHA256 from a random
