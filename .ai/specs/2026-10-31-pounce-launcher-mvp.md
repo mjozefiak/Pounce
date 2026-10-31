@@ -1,6 +1,6 @@
 # Pounce — macOS launcher MVP
 
-> Status: **READY FOR REVIEW**. All gate questions resolved (see Decisions); adversarial scope review and the PR #1 specification review applied (Q10, Q11 await owner confirmation). Language: Polish prose, English identifiers.
+> Status: **READY FOR REVIEW**. All gate questions resolved (see Decisions); adversarial scope review and the PR #1 specification review applied; Q10 and Q11 confirmed by the owner. Language: Polish prose, English identifiers.
 
 ## 📝 TLDR
 Pounce to otwarto-źródłowy (MIT), natywny launcher dla macOS z trzema funkcjami: wyszukiwanie aplikacji, wyszukiwanie plików/folderów i historia schowka. Dziś te potrzeby pokrywa Spotlight (wolny, ranking po treści, gubi pliki) albo pełny Raycast (rozbudowany, 350–450 MB RAM w wersji 2.0). Pounce (przyszłe zachowanie) otwiera się w <50 ms po ⌘Space, szuka po własnym indeksie nazw w pamięci z rankingiem fzf + frecency, a ⌘⇧V otwiera zaszyfrowaną historię schowka, która wkleja do poprzedniej aplikacji.
@@ -17,8 +17,8 @@ Pounce to otwarto-źródłowy (MIT), natywny launcher dla macOS z trzema funkcja
 | Q7 | Dystrybucja | Open source (MIT). Release DMG z GitHub Actions po tagu + landing na GitHub Pages, jak AudioPin. **Różnica:** stały certyfikat self-signed zamiast ad-hoc (patrz Risks R1). |
 | Q8 | Nazwa | **Pounce**, repo `mjozefiak/Pounce`. |
 | Q9 | Rozszerzalność | Każda funkcja to **wewnętrzny plugin kompilowany razem z aplikacją**: osobny target SwiftPM zgodny z protokołem `PouncePlugin` z `PounceKit`, rejestrowany jedną linią w `PluginRegistry`. Pluginy pisze tylko właściciel, więc nie ma ładowania w runtime, sandboxa ani publicznego API. Wyszukiwanie aplikacji, plików i schowek to pierwsze trzy pluginy (patrz Model pluginów). |
-| Q10 | Zapasowy skrót | ⌃⌥Space, gdy ⌘Space zajmuje Spotlight. ⌥⌘Space odpada, bo domyślnie otwiera okno wyszukiwania Findera (`com.apple.symbolichotkeys`, klucz 65). ⚠ Do potwierdzenia przez właściciela. |
-| Q11 | Język interfejsu | Angielski jako bazowy plus polski przez String Catalog (`Localizable.xcstrings`, `defaultLocalization: "en"`). Polskie etykiety w tej specyfikacji to wersja `pl`. ⚠ Do potwierdzenia przez właściciela. |
+| Q10 | Skrót domyślny i jego zmiana | Domyślnie ⌘Space, a gdy zajmuje go Spotlight, ⌃⌥Space. ⌥⌘Space odpada, bo domyślnie otwiera okno wyszukiwania Findera (`com.apple.symbolichotkeys`, klucz 65). Przy pierwszym uruchomieniu krok „Skrót” pokazuje nagrywarkę wypełnioną skrótem domyślnym: użytkownik go akceptuje albo nagrywa własny. Później zmienia go w Ustawienia → Ogólne. Skrót wybrany przez użytkownika ma pierwszeństwo przed automatycznym przełączaniem ⌃⌥Space → ⌘Space. |
+| Q11 | Język interfejsu | Angielski jako bazowy plus polski przez String Catalog (`Localizable.xcstrings`, `defaultLocalization: "en"`). Polskie etykiety w tej specyfikacji to wersja `pl`. Język wybiera system (preferowane języki lub język aplikacji w Ustawieniach systemowych), bez własnego przełącznika w Pounce. |
 
 **Założenie:** minimum macOS 26 na Apple silicon, budowane z Xcode 27 SDK. Wymaga potwierdzenia w kroku 0.1, jeśli runner CI tego nie pozwala.
 
@@ -310,8 +310,9 @@ Pole wyszukiwania ma fokus przez cały czas. Strzałki i skróty obsługuje `onK
   - „Funkcja niedostępna”: sekcja pluginu w stanie `failed`, z linkiem do ustawień.
 - **Onboarding** dostarczany po kawałku razem z funkcją, której dotyczy (`onboardingSteps` pluginu; żadna faza nie wydaje funkcji bez jej uprawnień i kontroli). Każdy krok można pominąć:
   1. **Faza 1, skrót.** Pounce czyta `com.apple.symbolichotkeys`: klucz 64 („Show Spotlight search”) i 65 („Show Finder search window”). Rejestracja przez Carbon nie zgłasza błędu przy konflikcie, więc wykrywanie przez nieudaną rejestrację odpada.
-     - Jeśli skrót Spotlighta jest włączony: instrukcja i deep link do ustawień klawiatury, a do czasu jego wyłączenia działa ⌃⌥Space (Q10).
-     - Skrót można zmienić w Ustawieniach (panel Ogólne).
+     - Krok „Skrót” przy pierwszym uruchomieniu: `KeyboardShortcuts.Recorder` wypełniony skrótem domyślnym (⌘Space albo ⌃⌥Space, gdy ⌘Space zajmuje Spotlight), przyciski „Użyj tego skrótu” i „Pomiń”. Pominięcie zostawia skrót domyślny (Q10).
+     - Jeśli skrót Spotlighta jest włączony: dodatkowo instrukcja i deep link do ustawień klawiatury, żeby zwolnić ⌘Space.
+     - Skrót można później zmienić w Ustawieniach (panel Ogólne). Ten krok jest częścią fazy 1, a nie dopiero ekranu powitalnego z kroku 4.2.
   2. **Faza 2, schowek.** Wyjaśnienie, co jest zapisywane i co pomijane. Prośba o Accessibility do wklejania. Stan `accessBehavior`.
   3. **Faza 3, pliki.** Prośba o Full Disk Access, wyświetlana **przed** pierwszym skanem.
      - Bez Full Disk Access skan pomija `~/Desktop`, `~/Documents`, `~/Downloads` i iCloud Drive, żeby nie wywołać serii promptów TCC.
@@ -354,7 +355,7 @@ Prototype: brak zaakceptowanego. Ekrany można później zaprojektować osobno p
 ## 📝 Edge Cases & Failure Scenarios
 | Sytuacja | Zachowanie |
 |---|---|
-| ⌘Space nadal zajęte przez Spotlighta | Wykryte z `com.apple.symbolichotkeys` (klucz 64). Pounce rejestruje ⌃⌥Space (Q10) i pokazuje instrukcję. ⌥⌘Space nie jest używane, bo to klucz 65 (okno wyszukiwania Findera). Po wyłączeniu skrótu Spotlighta przełącza się na ⌘Space przy następnym otwarciu ustawień lub restarcie. |
+| ⌘Space nadal zajęte przez Spotlighta | Wykryte z `com.apple.symbolichotkeys` (klucz 64). Pounce rejestruje ⌃⌥Space (Q10) i pokazuje instrukcję. ⌥⌘Space nie jest używane, bo to klucz 65 (okno wyszukiwania Findera). Po wyłączeniu skrótu Spotlighta przełącza się na ⌘Space przy następnym otwarciu ustawień lub restarcie, ale tylko gdy użytkownik nie wybrał własnego skrótu (`app.hotkey.userDefined`). |
 | Zapasowy skrót też zajęty (inna aplikacja, której nie widać w `symbolichotkeys`) | Nie da się tego wykryć. Baner w onboardingu i panel Ogólne pozwalają nagrać inny skrót. Skrót otwiera się też z menu paska. |
 | W Chrome, Slacku i Dokumentach Google ⌘⇧V to „wklej bez formatowania” | Świadoma decyzja (Q6): globalny skrót wygrywa. Onboarding schowka o tym mówi, a skrót można zmienić w panelu Schowek. |
 | Pierwszy skan przerwany (zamknięcie aplikacji, crash) | Snapshot cząstkowy zapisywany co 100 tys. wpisów z `complete = false`. Po restarcie wyniki są dostępne od razu z części, a skan zaczyna się od nowa w tle. Wyszukiwanie nigdy nie czeka na skan. |
@@ -431,7 +432,7 @@ Każda faza jest wydawalna osobno i zawiera kontrolki oraz uprawnienia swojej fu
 **Phase 1: panel + aplikacje**
 - **1.1** `TextNormalizer` + `FuzzyMatcher` (tiery, highlight ranges). Test: testy jednostkowe dla „vsc” → Visual Studio Code, „kalk” → Kalkulator, „ł” → „l” i stabilnego porządku tierów.
 - **1.2** `LauncherPanel` (konfiguracja z UI/UX → Panel), `NSGlassEffectView`, `PanelController` + model stanu panelu (`@Observable`, `MainActor`), `HotkeyService` (KeyboardShortcuts, ⌘Space, fallback ⌃⌥Space, komendy z pluginów), puste pole wyszukiwania i obsługa klawiatury z tabeli. Test: jednostkowy modelu stanu bez `NSPanel` (pokaż, ukryj, utrata fokusu, Esc czyści, a potem zamyka). Lokalnie: `os_signpost` od skrótu do `orderFront` (< 50 ms) i checklista z UI/UX → Panel.
-- **1.2b** Wykrywanie konfliktu (`com.apple.symbolichotkeys`, klucze 64 i 65), baner z instrukcją, scena `Settings` z panelami Ogólne (skrót, uruchamianie przy logowaniu, rozmiar tekstu) i Funkcje (przełączniki pluginów, stan, „Usuń dane”). Test: jednostkowy parsera plist na fiksturach (włączony, wyłączony, brak klucza, oba klucze zajęte) i przypisania przełącznika do `PluginHost`.
+- **1.2b** Wykrywanie konfliktu (`com.apple.symbolichotkeys`, klucze 64 i 65), krok „Skrót” przy pierwszym uruchomieniu (nagrywarka z wartością domyślną, Q10), baner z instrukcją, scena `Settings` z panelami Ogólne (skrót, uruchamianie przy logowaniu, rozmiar tekstu) i Funkcje (przełączniki pluginów, stan, „Usuń dane”). Test: jednostkowy parsera plist na fiksturach (włączony, wyłączony, brak klucza, oba klucze zajęte), wyboru skrótu domyślnego (⌘Space wolne lub zajęte, skrót użytkownika ma pierwszeństwo) i przypisania przełącznika do `PluginHost`.
 - **1.3** Target `AppsPlugin` (jedna linia w `PluginRegistry`): `AppScanner` + `AppMetadataWatcher` + deduplikacja + aliasy (`CFBundleName`). Test: testy na katalogu fikstur z `.app`, aplikacjami pomocniczymi i duplikatem.
 - **1.4** `IconCache` (lazy, w tle) + lista wyników z klawiaturą, wygląd z UI/UX → Wygląd natywny i stopka z `actions(for:)`. Test: test widoku listy, ikony nie ładują się na wątku głównym (asercja w debug). Ręcznie: kryteria z UI/UX → Dostępność dla panelu i listy.
 - **1.5** `AppLauncher` (`openApplication`, `yieldActivation`) + akcja ⌘Enter. Test: jednostkowy budowania konfiguracji otwarcia. Lokalnie: ręczne otwarcie TextEdit.
