@@ -94,6 +94,8 @@ shortcut recorder (spec step 2.7, issue #5).
 
 ## Progress
 
+PR: #6
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Contracts and key store
@@ -121,5 +123,5 @@ shortcut recorder (spec step 2.7, issue #5).
 
 ### Phase 5: Verification
 
-- [ ] 5.1 Validation gate and CI
-- [ ] 5.2 Native UI evidence
+- [x] 5.1 Validation gate and CI — 47396ff, 1347e66
+- [x] 5.2 Native UI evidence — 1347e66 (PR comment)
