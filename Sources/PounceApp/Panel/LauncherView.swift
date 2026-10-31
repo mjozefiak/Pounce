@@ -57,6 +57,13 @@ struct ResultList: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
+                    if showsHeaders {
+                        ForEach(model.results.statuses) { status in
+                            StatusRow(status: status, textSize: model.textSize) { action in
+                                model.perform(action, of: status)
+                            }
+                        }
+                    }
                     if let errorMessage = model.errorMessage {
                         ActionErrorRow(message: errorMessage, textSize: model.textSize)
                     }
@@ -126,6 +133,49 @@ struct SectionHeader: View {
         .frame(minHeight: PanelModel.Metrics.headerHeight * textSize.scale, alignment: .bottomLeading)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
+    }
+}
+
+/// A plugin's status line above the results: indexing progress with a bar, or a notice with buttons.
+struct StatusRow: View {
+    let status: PanelStatus
+    let textSize: TextSize
+    let perform: (SearchStatusAction) -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: status.status.symbolName)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(.secondary)
+                .frame(width: 28, height: 20)
+                .accessibilityHidden(true)
+            Text(status.status.message)
+                .font(textSize.font(.subheadline))
+                .foregroundStyle(.secondary)
+                .lineLimit(textSize == .extraLarge ? 3 : 1)
+                .truncationMode(.tail)
+                .monospacedDigit()
+            Spacer(minLength: 8)
+            if status.status.style == .progress {
+                ProgressView()
+                    .progressViewStyle(.linear)
+                    .frame(width: 120)
+                    .accessibilityHidden(true)
+            }
+            ForEach(status.status.actions) { action in
+                Button {
+                    perform(action)
+                } label: {
+                    Text(action.title)
+                }
+                .buttonStyle(.link)
+                .font(textSize.font(.subheadline))
+            }
+        }
+        .padding(.horizontal, 8)
+        .frame(minHeight: PanelModel.Metrics.statusHeight * textSize.scale)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(Text(status.status.message))
     }
 }
 

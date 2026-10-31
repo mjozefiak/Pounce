@@ -30,15 +30,37 @@ struct FeatureControls {
     }
 }
 
+/// The "Result order" list (issue #5): the plugins with result sections, in the user's order.
+struct SectionOrderControls {
+    let host: PluginHost
+    let settings: AppSettings
+
+    /// Plugins that contribute search sections, in the current order.
+    var ordered: [PluginHost.Entry] {
+        SectionOrder.sorted(host.entries.filter { !$0.plugin.searchSources.isEmpty }, saved: settings.sectionOrder)
+    }
+
+    /// Moves a section up (−1) or down (+1) and saves the whole order in `app.sectionOrder`.
+    func move(_ id: PluginID, by offset: Int) {
+        settings.sectionOrder = SectionOrder.moving(id, by: offset, in: ordered.map(\.manifest.id)).map(\.rawValue)
+    }
+
+    func restoreDefault() {
+        settings.sectionOrder = []
+    }
+}
+
 /// Settings → Features: every plugin with its switch, its state (an activation error included) and
-/// "Erase Data".
+/// "Erase Data", and the order of the result sections.
 struct FeaturesPane: View {
     let controls: FeatureControls
+    let order: SectionOrderControls?
 
     @State private var eraseError: String?
 
-    init(host: PluginHost, onChange: @escaping () -> Void) {
+    init(host: PluginHost, settings: AppSettings? = nil, onChange: @escaping () -> Void) {
         controls = FeatureControls(host: host, onChange: onChange)
+        order = settings.map { SectionOrderControls(host: host, settings: $0) }
     }
 
     var body: some View {
@@ -66,6 +88,9 @@ struct FeaturesPane: View {
                 )
                 .font(.callout)
                 .foregroundStyle(.secondary)
+            }
+            if let order, order.ordered.count > 1 {
+                SectionOrderSection(order: order)
             }
         }
         .formStyle(.grouped)
@@ -152,6 +177,79 @@ struct FeatureRow: View {
             } icon: {
                 Image(systemName: "exclamationmark.triangle")
                     .symbolRenderingMode(.hierarchical)
+            }
+        }
+    }
+}
+
+/// "Result order": each search section with Move Up and Move Down buttons (reachable with Tab, unlike
+/// drag and drop).
+struct SectionOrderSection: View {
+    let order: SectionOrderControls
+
+    var body: some View {
+        let entries = order.ordered
+        Section {
+            ForEach(Array(entries.enumerated()), id: \.element.manifest.id) { index, entry in
+                HStack(spacing: 12) {
+                    Text("\(index + 1).", comment: "Position in the result order list")
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
+                    Image(systemName: entry.manifest.symbolName)
+                        .symbolRenderingMode(.hierarchical)
+                        .frame(width: 20)
+                        .accessibilityHidden(true)
+                    Text(entry.manifest.displayName)
+                    Spacer()
+                    Button {
+                        order.move(entry.manifest.id, by: -1)
+                    } label: {
+                        Label {
+                            Text("Move Up", comment: "Button that moves a result section up")
+                        } icon: {
+                            Image(systemName: "chevron.up")
+                        }
+                        .labelStyle(.iconOnly)
+                    }
+                    .disabled(index == 0)
+                    .help(Text("Move Up", comment: "Button that moves a result section up"))
+                    Button {
+                        order.move(entry.manifest.id, by: 1)
+                    } label: {
+                        Label {
+                            Text("Move Down", comment: "Button that moves a result section down")
+                        } icon: {
+                            Image(systemName: "chevron.down")
+                        }
+                        .labelStyle(.iconOnly)
+                    }
+                    .disabled(index == entries.count - 1)
+                    .help(Text("Move Down", comment: "Button that moves a result section down"))
+                }
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel(
+                    Text(
+                        "\(String(localized: entry.manifest.displayName)), position \(index + 1) of \(entries.count)",
+                        comment: "Accessibility label of a result section in the order list"))
+            }
+        } header: {
+            Text("Result Order", comment: "Settings section title")
+        } footer: {
+            HStack(alignment: .firstTextBaseline) {
+                Text(
+                    "Sections appear in the panel in this order.",
+                    comment: "Settings footer of the result order"
+                )
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                Spacer()
+                Button {
+                    order.restoreDefault()
+                } label: {
+                    Text("Restore Default Order", comment: "Button that restores the default result order")
+                }
+                .disabled(order.settings.sectionOrder.isEmpty)
             }
         }
     }

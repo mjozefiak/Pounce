@@ -11,12 +11,22 @@ final class AppSettings {
         didSet { store.setValue(.string(textSize.rawValue), forKey: SettingsKeys.textSize) }
     }
 
+    /// The user's order of result sections (plugin ids); empty means `manifest.order`.
+    var sectionOrder: [String] {
+        didSet { store.setValue(.stringArray(sectionOrder), forKey: SettingsKeys.sectionOrder) }
+    }
+
     init(store: any SettingsStore) {
         self.store = store
         if case .string(let value) = store.value(forKey: SettingsKeys.textSize) {
             textSize = TextSize(setting: value)
         } else {
             textSize = .default
+        }
+        if case .stringArray(let value) = store.value(forKey: SettingsKeys.sectionOrder) {
+            sectionOrder = value
+        } else {
+            sectionOrder = []
         }
     }
 

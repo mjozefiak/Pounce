@@ -24,6 +24,10 @@ enum SettingsKeys {
     /// once. Added in Phase 2.
     static let onboardingCompletedSteps = "app.onboarding.completedSteps"
 
+    /// `[String]`: plugin ids in the order their result sections appear (issue #5). Plugins not listed
+    /// follow in `manifest.order`. Added in Phase 3.
+    static let sectionOrder = "app.sectionOrder"
+
     /// `String`: `s`, `m` (default), `l` or `xl`, the panel's text size.
     static let textSize = "app.textSize"
 

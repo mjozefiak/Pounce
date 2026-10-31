@@ -107,6 +107,11 @@ final class PluginHost {
 
     var activePanelModes: [PanelMode] { activeEntries.flatMap { $0.plugin.panelModes } }
 
+    /// Status lines of active plugins, in plugin order.
+    var activeSearchStatuses: [(pluginID: PluginID, status: SearchStatus)] {
+        activeEntries.flatMap { entry in entry.plugin.searchStatus.map { (entry.manifest.id, $0) } }
+    }
+
     var activeSources: [RegisteredSource] {
         activeEntries.flatMap { entry in
             entry.plugin.searchSources.map { RegisteredSource(pluginID: entry.manifest.id, source: $0) }
