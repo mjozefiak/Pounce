@@ -48,7 +48,10 @@ struct AppEnvironment {
     /// mode the overrides replace the system's answers.
     var permissionsReader: SystemPermissionsReader {
         SystemPermissionsReader(
-            pasteboardName: pasteboardName, accessibilityOverride: accessibility, fullDiskAccessOverride: fullDiskAccess
+            pasteboardName: pasteboardName,
+            accessibilityOverride: accessibility,
+            fullDiskAccessOverride: fullDiskAccess,
+            pasteboardAccessOverride: pasteboardAccess
         )
     }
 

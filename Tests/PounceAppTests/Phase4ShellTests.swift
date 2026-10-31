@@ -126,6 +126,21 @@ final class FakePermissionsReader: PermissionsReader {
         }
         #expect(Set(statuses.map(\.symbolName)).count == statuses.count)
     }
+
+    @Test func qaPasteboardAccessDecidesThePasteboardRow() {
+        let expected: [PasteboardAccess: PermissionStatus] = [
+            .alwaysAllow: .granted, .alwaysDeny: .denied, .ask: .notDetermined, .systemDefault: .notDetermined,
+        ]
+        for (access, status) in expected {
+            let reader = SystemPermissionsReader(
+                pasteboardName: NSPasteboard.Name("app.pounce.tests.\(UUID().uuidString)"),
+                accessibilityOverride: .granted,
+                fullDiskAccessOverride: .granted,
+                pasteboardAccessOverride: access
+            )
+            #expect(reader.status(of: .pasteboard) == status)
+        }
+    }
 }
 
 /// A usage store whose reset fails.
