@@ -46,7 +46,8 @@ struct AboutInfo: Equatable {
 
 /// The About window (menu bar → About Pounce): version, licence, links and the third-party notices that
 /// the licences of the bundled libraries require (`Resources/THIRD_PARTY_NOTICES.txt`). Replaces the
-/// standard About panel, which cannot show a long notices file.
+/// standard About panel: its Credits area could hold the notices, but this window also gives the links, a
+/// labelled, selectable notices view and a layout that tests can check.
 final class AboutWindowController: NSObject, NSWindowDelegate {
     private var window: NSWindow?
     private let info: AboutInfo

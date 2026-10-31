@@ -113,7 +113,9 @@ final class WelcomeFlow {
 /// On the first launch it starts with a short introduction. Each step is shown until it is finished or
 /// skipped: the Shortcut step until `app.onboarding.shortcutCompleted`, a plugin step until its id is in
 /// `app.onboarding.completedSteps`. A plugin step added by an update therefore appears alone on the next
-/// launch. Closing the window skips the step on screen; steps not reached yet appear on the next launch.
+/// launch. Closing the window skips the step on screen. Plugin steps not reached yet appear on the next
+/// launch; the introduction and the Shortcut step count as answered once the window closes, so a closed
+/// first launch never shows them again (`BACKWARD_COMPATIBILITY.md` §3).
 final class OnboardingController: NSObject, NSWindowDelegate {
     private let hotkeys: HotkeyService
     private let settings: AppSettings
