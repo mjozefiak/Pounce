@@ -44,11 +44,27 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     var isVisible: Bool { window?.isVisible ?? false }
 
     func show(_ pane: Pane = .general) {
+        rebuildIfNeeded()
+        tabs?.selectedTabViewItemIndex = Pane.allCases.firstIndex(of: pane) ?? 0
+        present()
+    }
+
+    /// Opens a plugin's own pane (by plugin id), or General when the plugin has none.
+    func showPluginPane(_ id: String) {
+        rebuildIfNeeded()
+        let index = pluginPaneIDs.firstIndex(of: id).map { Pane.allCases.count + $0 } ?? 0
+        tabs?.selectedTabViewItemIndex = index
+        present()
+    }
+
+    private func rebuildIfNeeded() {
         let plugins = pluginPanes()
         if window == nil || plugins.map(\.id) != pluginPaneIDs {
             build(plugins)
         }
-        tabs?.selectedTabViewItemIndex = Pane.allCases.firstIndex(of: pane) ?? 0
+    }
+
+    private func present() {
         guard let window else { return }
         if activatesApp {
             NSApp.activate()

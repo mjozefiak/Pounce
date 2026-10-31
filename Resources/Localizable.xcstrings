@@ -1,6 +1,114 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%lld days" : {
+      "comment" : "Clipboard retention choice, a number of days",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld day"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld days"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dzień"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dni"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dni"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dnia"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld entries in the history" : {
+      "comment" : "Number of clipboard entries in the settings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld entry in the history"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld entries in the history"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld wpis w historii"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld wpisy w historii"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld wpisów w historii"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld wpisu w historii"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "About Pounce" : {
       "comment" : "Menu bar menu item that opens the About window",
       "extractionState" : "manual",
@@ -15,6 +123,78 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "O Pounce"
+          }
+        }
+      }
+    },
+    "Accessibility is allowed." : {
+      "comment" : "Clipboard onboarding status",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accessibility is allowed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce ma uprawnienie Dostępność."
+          }
+        }
+      }
+    },
+    "Add App…" : {
+      "comment" : "Button that adds an app to the ignored apps",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add App…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodaj aplikację…"
+          }
+        }
+      }
+    },
+    "All" : {
+      "comment" : "Announced when a panel filter is cleared",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wszystko"
+          }
+        }
+      }
+    },
+    "All entries are deleted. This cannot be undone." : {
+      "comment" : "Clear History confirmation message",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All entries are deleted. This cannot be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wszystkie wpisy zostaną usunięte. Tej operacji nie można cofnąć."
           }
         }
       }
@@ -69,6 +249,312 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wybierz skrót"
+          }
+        }
+      }
+    },
+    "Clear History" : {
+      "comment" : "Clear History confirmation button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear History"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyczyść historię"
+          }
+        }
+      }
+    },
+    "Clear History…" : {
+      "comment" : "Button that deletes the whole clipboard history",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear History…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyczyść historię…"
+          }
+        }
+      }
+    },
+    "Clear the clipboard history?" : {
+      "comment" : "Clear History confirmation title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear the clipboard history?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyczyścić historię schowka?"
+          }
+        }
+      }
+    },
+    "Clipboard History" : {
+      "comment" : "Plugin name of the clipboard history, and the menu command that opens it",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clipboard History"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historia schowka"
+          }
+        }
+      }
+    },
+    "Clipboard history is unavailable while the keychain is locked." : {
+      "comment" : "Clipboard banner when the login keychain is locked",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clipboard history is unavailable while the keychain is locked."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historia schowka jest niedostępna, dopóki pęk kluczy jest zablokowany."
+          }
+        }
+      }
+    },
+    "Command-%lld" : {
+      "comment" : "Accessibility hint with a filter's shortcut",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command-%lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command-%lld"
+          }
+        }
+      }
+    },
+    "Continue" : {
+      "comment" : "Onboarding button that goes to the next step",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dalej"
+          }
+        }
+      }
+    },
+    "Copied" : {
+      "comment" : "Confirmation after a clipboard entry was copied",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skopiowano"
+          }
+        }
+      }
+    },
+    "Copied from" : {
+      "comment" : "Clipboard preview label of the source app",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied from"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skopiowano z"
+          }
+        }
+      }
+    },
+    "Copied. Allow Accessibility to paste." : {
+      "comment" : "Confirmation after Return copied a clipboard entry because Accessibility is missing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied. Allow Accessibility to paste."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skopiowano. Aby wklejać, zezwól na Dostępność."
+          }
+        }
+      }
+    },
+    "Copy" : {
+      "comment" : "Clipboard action that copies the entry",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiuj"
+          }
+        }
+      }
+    },
+    "Copy Only" : {
+      "comment" : "Clipboard action that copies without pasting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy Only"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tylko kopiuj"
+          }
+        }
+      }
+    },
+    "Copy something and it appears here. Passwords and ignored apps are never recorded." : {
+      "comment" : "Empty state message of the clipboard history while recording",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy something and it appears here. Passwords and ignored apps are never recorded."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skopiuj coś, a pojawi się tutaj. Hasła i ignorowane aplikacje nigdy nie są zapisywane."
+          }
+        }
+      }
+    },
+    "Delete" : {
+      "comment" : "Clipboard action that deletes the entry",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń"
+          }
+        }
+      }
+    },
+    "Dismiss" : {
+      "comment" : "Button that dismisses a notice",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dismiss"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zamknij"
+          }
+        }
+      }
+    },
+    "Done" : {
+      "comment" : "Onboarding button on the last step",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gotowe"
+          }
+        }
+      }
+    },
+    "Entries are encrypted and stay on this Mac. Concealed content, such as passwords, is never recorded." : {
+      "comment" : "Settings footer of clipboard recording",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entries are encrypted and stay on this Mac. Concealed content, such as passwords, is never recorded."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wpisy są zaszyfrowane i zostają na tym Macu. Ukryta zawartość, np. hasła, nigdy nie jest zapisywana."
           }
         }
       }
@@ -181,6 +667,60 @@
         }
       }
     },
+    "Files" : {
+      "comment" : "Clipboard entry kind and filter",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Files"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pliki"
+          }
+        }
+      }
+    },
+    "Filters" : {
+      "comment" : "Accessibility label of the panel's filter bar",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filters"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filtry"
+          }
+        }
+      }
+    },
+    "Formatted Text" : {
+      "comment" : "Clipboard entry kind and filter (RTF or HTML)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formatted Text"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekst sformatowany"
+          }
+        }
+      }
+    },
     "General" : {
       "comment" : "Settings pane title",
       "extractionState" : "manual",
@@ -195,6 +735,132 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ogólne"
+          }
+        }
+      }
+    },
+    "History" : {
+      "comment" : "Settings section title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historia"
+          }
+        }
+      }
+    },
+    "Ignore" : {
+      "comment" : "Open panel button that adds apps to the ignored apps",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ignore"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ignoruj"
+          }
+        }
+      }
+    },
+    "Ignored apps" : {
+      "comment" : "Settings section title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ignored apps"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ignorowane aplikacje"
+          }
+        }
+      }
+    },
+    "Image" : {
+      "comment" : "Clipboard entry kind and filter",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obraz"
+          }
+        }
+      }
+    },
+    "In Chrome, Slack and Google Docs ⌘⇧V means “paste without formatting”. Pounce takes this shortcut over; you can change it in Settings." : {
+      "comment" : "Clipboard onboarding note about the shortcut conflict",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Chrome, Slack and Google Docs ⌘⇧V means “paste without formatting”. Pounce takes this shortcut over; you can change it in Settings."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W Chrome, Slacku i Dokumentach Google ⌘⇧V oznacza „wklej bez formatowania”. Pounce przejmuje ten skrót; możesz go zmienić w Ustawieniach."
+          }
+        }
+      }
+    },
+    "Keep at most" : {
+      "comment" : "Settings label of the maximum number of clipboard entries",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep at most"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przechowuj najwyżej"
+          }
+        }
+      }
+    },
+    "Keep entries for" : {
+      "comment" : "Settings label of the clipboard retention period",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep entries for"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przechowuj wpisy przez"
           }
         }
       }
@@ -253,6 +919,24 @@
         }
       }
     },
+    "Link" : {
+      "comment" : "Clipboard entry kind and filter",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link"
+          }
+        }
+      }
+    },
     "M" : {
       "comment" : "Text size option: medium",
       "extractionState" : "manual",
@@ -307,6 +991,42 @@
         }
       }
     },
+    "No clipboard history yet" : {
+      "comment" : "Empty state title of the clipboard history",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No clipboard history yet"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historia schowka jest pusta"
+          }
+        }
+      }
+    },
+    "Nothing copied in these apps is recorded." : {
+      "comment" : "Settings footer of the ignored apps",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing copied in these apps is recorded."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nic, co skopiujesz w tych aplikacjach, nie jest zapisywane."
+          }
+        }
+      }
+    },
     "OK" : {
       "comment" : "Button that dismisses an alert",
       "extractionState" : "manual",
@@ -339,6 +1059,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wyłączona"
+          }
+        }
+      }
+    },
+    "Older entries are deleted automatically." : {
+      "comment" : "Settings footer of clipboard retention",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Older entries are deleted automatically."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starsze wpisy są usuwane automatycznie."
           }
         }
       }
@@ -379,6 +1117,42 @@
         }
       }
     },
+    "Open Accessibility Settings" : {
+      "comment" : "Button that opens Accessibility privacy settings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Accessibility Settings"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz ustawienia Dostępności"
+          }
+        }
+      }
+    },
+    "Open Clipboard History" : {
+      "comment" : "Settings label of the clipboard history shortcut",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Clipboard History"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz historię schowka"
+          }
+        }
+      }
+    },
     "Open Keyboard Settings" : {
       "comment" : "Button that opens the system's keyboard settings",
       "extractionState" : "manual",
@@ -415,6 +1189,24 @@
         }
       }
     },
+    "Open Privacy Settings" : {
+      "comment" : "Button that opens Privacy & Security settings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Privacy Settings"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz ustawienia prywatności"
+          }
+        }
+      }
+    },
     "Open Settings" : {
       "comment" : "Button that opens Settings from the panel",
       "extractionState" : "manual",
@@ -429,6 +1221,60 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Otwórz Ustawienia"
+          }
+        }
+      }
+    },
+    "Passwords, concealed content and apps like password managers are never recorded. You can pause recording from the menu bar." : {
+      "comment" : "Clipboard onboarding text about privacy",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passwords, concealed content and apps like password managers are never recorded. You can pause recording from the menu bar."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hasła, ukryta zawartość i aplikacje takie jak menedżery haseł nigdy nie są zapisywane. Nagrywanie możesz wstrzymać z paska menu."
+          }
+        }
+      }
+    },
+    "Paste" : {
+      "comment" : "Clipboard action that pastes into the previous app",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wklej"
+          }
+        }
+      }
+    },
+    "Pause Clipboard Recording" : {
+      "comment" : "Menu item that pauses recording the clipboard",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause Clipboard Recording"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wstrzymaj nagrywanie schowka"
           }
         }
       }
@@ -451,6 +1297,24 @@
         }
       }
     },
+    "Pounce cannot read the clipboard history key from the keychain. Nothing was deleted." : {
+      "comment" : "Clipboard banner when the keychain denied access to the key",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce cannot read the clipboard history key from the keychain. Nothing was deleted."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce nie może odczytać klucza historii schowka z pęku kluczy. Nic nie zostało usunięte."
+          }
+        }
+      }
+    },
     "Pounce cannot start" : {
       "comment" : "Alert title when the app cannot prepare its data directory",
       "extractionState" : "manual",
@@ -465,6 +1329,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nie można uruchomić Pounce"
+          }
+        }
+      }
+    },
+    "Pounce is not allowed to read the clipboard, so nothing is recorded." : {
+      "comment" : "Clipboard banner when pasteboard access is denied in Privacy settings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce is not allowed to read the clipboard, so nothing is recorded."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak dostępu do schowka: Pounce nie może go czytać, więc nic nie jest zapisywane."
+          }
+        }
+      }
+    },
+    "Pounce keeps what you copy so you can paste it again with ⌘⇧V. The history stays on this Mac, encrypted, for 30 days or 1000 entries." : {
+      "comment" : "Clipboard onboarding text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce keeps what you copy so you can paste it again with ⌘⇧V. The history stays on this Mac, encrypted, for 30 days or 1000 entries."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce zapamiętuje to, co kopiujesz, żebyś mógł wkleić to ponownie skrótem ⌘⇧V. Historia zostaje na tym Macu, zaszyfrowana, przez 30 dni lub do 1000 wpisów."
           }
         }
       }
@@ -523,6 +1423,96 @@
         }
       }
     },
+    "Record clipboard history" : {
+      "comment" : "Settings toggle that pauses or resumes recording",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record clipboard history"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywaj historię schowka"
+          }
+        }
+      }
+    },
+    "Recording is off, so nothing new is added." : {
+      "comment" : "Empty state message of the clipboard history while not recording",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording is off, so nothing new is added."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywanie jest wyłączone, więc nic nowego nie zostanie dodane."
+          }
+        }
+      }
+    },
+    "Recording is paused." : {
+      "comment" : "Clipboard banner when recording is paused",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording is paused."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywanie wstrzymane."
+          }
+        }
+      }
+    },
+    "Remove" : {
+      "comment" : "Button that removes the selected ignored app",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń"
+          }
+        }
+      }
+    },
+    "Restore Defaults" : {
+      "comment" : "Button that restores the default ignored apps",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore Defaults"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywróć domyślne"
+          }
+        }
+      }
+    },
     "Results" : {
       "comment" : "Accessibility label of the panel's result list",
       "extractionState" : "manual",
@@ -555,6 +1545,60 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wyniki: %lld"
+          }
+        }
+      }
+    },
+    "Resume" : {
+      "comment" : "Button that resumes clipboard recording",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resume"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wznów"
+          }
+        }
+      }
+    },
+    "Resume Clipboard Recording" : {
+      "comment" : "Menu item that resumes recording the clipboard",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resume Clipboard Recording"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wznów nagrywanie schowka"
+          }
+        }
+      }
+    },
+    "Return copies. Allow Accessibility to paste into the previous app." : {
+      "comment" : "Clipboard banner when Accessibility is not granted",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Return copies. Allow Accessibility to paste into the previous app."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wklejanie wyłączone: Return tylko kopiuje. Zezwól na Dostępność, aby wklejać do poprzedniej aplikacji."
           }
         }
       }
@@ -667,6 +1711,24 @@
         }
       }
     },
+    "Size" : {
+      "comment" : "Clipboard preview label",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Size"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozmiar"
+          }
+        }
+      }
+    },
     "Skip" : {
       "comment" : "Onboarding button that keeps the default shortcut",
       "extractionState" : "manual",
@@ -739,6 +1801,24 @@
         }
       }
     },
+    "Text" : {
+      "comment" : "Clipboard entry kind and filter",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekst"
+          }
+        }
+      }
+    },
     "Text size" : {
       "comment" : "Settings label of the panel text size",
       "extractionState" : "manual",
@@ -775,6 +1855,42 @@
         }
       }
     },
+    "The history could not be cleared." : {
+      "comment" : "Error after Clear History failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The history could not be cleared."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się wyczyścić historii."
+          }
+        }
+      }
+    },
+    "The history key was missing, so a new, empty history was started. The old file was kept." : {
+      "comment" : "Clipboard banner after the history was reset because its key was missing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The history key was missing, so a new, empty history was started. The old file was kept."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brakowało klucza historii, więc zaczęto nową, pustą historię. Stary plik został zachowany."
+          }
+        }
+      }
+    },
     "This deletes everything the feature stored on this Mac. It cannot be undone." : {
       "comment" : "Erase confirmation message",
       "extractionState" : "manual",
@@ -793,6 +1909,60 @@
         }
       }
     },
+    "This entry is no longer in the history." : {
+      "comment" : "Clipboard preview of a deleted entry",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This entry is no longer in the history."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tego wpisu nie ma już w historii."
+          }
+        }
+      }
+    },
+    "To paste into the app you were using, Pounce needs Accessibility. Without it, Return copies the entry and you paste with ⌘V." : {
+      "comment" : "Clipboard onboarding text about Accessibility",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To paste into the app you were using, Pounce needs Accessibility. Without it, Return copies the entry and you paste with ⌘V."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aby wklejać do aplikacji, której używasz, Pounce potrzebuje uprawnienia Dostępność. Bez niego Return kopiuje wpis, a wklejasz go skrótem ⌘V."
+          }
+        }
+      }
+    },
+    "Try Again" : {
+      "comment" : "Button that retries opening the clipboard history",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try Again"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spróbuj ponownie"
+          }
+        }
+      }
+    },
     "Turning a feature off stops it and hides its results. Its data stays until you erase it." : {
       "comment" : "Settings footer for the feature list",
       "extractionState" : "manual",
@@ -807,6 +1977,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wyłączenie funkcji zatrzymuje ją i ukrywa jej wyniki. Jej dane zostają, dopóki ich nie usuniesz."
+          }
+        }
+      }
+    },
+    "Type" : {
+      "comment" : "Clipboard preview label",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Typ"
           }
         }
       }
@@ -897,6 +2085,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Możesz go później zmienić w Ustawieniach → Ogólne."
+          }
+        }
+      }
+    },
+    "macOS asks before Pounce reads the clipboard, so nothing is recorded. Allow Pounce in Privacy & Security to record." : {
+      "comment" : "Clipboard banner when pasteboard access is set to ask each time",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS asks before Pounce reads the clipboard, so nothing is recorded. Allow Pounce in Privacy & Security to record."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS pyta przed każdym odczytem schowka, więc nic nie jest zapisywane. Aby nagrywać, zezwól Pounce w ustawieniach Prywatność i ochrona."
           }
         }
       }

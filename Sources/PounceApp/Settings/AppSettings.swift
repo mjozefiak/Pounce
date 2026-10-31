@@ -34,4 +34,15 @@ final class AppSettings {
         }
         set { store.setValue(.bool(newValue), forKey: SettingsKeys.onboardingShortcutCompleted) }
     }
+
+    /// Plugin onboarding steps (`OnboardingStep.id`) the user finished or skipped.
+    var completedOnboardingSteps: [String] {
+        get {
+            guard case .stringArray(let value) = store.value(forKey: SettingsKeys.onboardingCompletedSteps) else {
+                return []
+            }
+            return value
+        }
+        set { store.setValue(.stringArray(newValue), forKey: SettingsKeys.onboardingCompletedSteps) }
+    }
 }

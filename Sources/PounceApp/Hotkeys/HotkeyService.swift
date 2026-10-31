@@ -135,6 +135,18 @@ final class HotkeyService {
         registrar.shortcut(for: name)
     }
 
+    /// The current shortcut of a plugin command, for menus.
+    func commandShortcut(_ commandID: String) -> HotkeyShortcut? {
+        registrar.shortcut(for: .command(commandID))
+    }
+
+    /// The user recorded (or cleared) a command's shortcut: its default is never applied again.
+    func userRecordedCommandShortcut(_ commandID: String) {
+        var applied = Set(stringArray(SettingsKeys.commandShortcutDefaultsApplied))
+        guard applied.insert(commandID).inserted else { return }
+        settings.setValue(.stringArray(applied.sorted()), forKey: SettingsKeys.commandShortcutDefaultsApplied)
+    }
+
     private func stringArray(_ key: String) -> [String] {
         guard case .stringArray(let values) = settings.value(forKey: key) else { return [] }
         return values

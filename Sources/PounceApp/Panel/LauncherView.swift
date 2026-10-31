@@ -403,7 +403,7 @@ struct FilterBar: View {
                             .accessibilityHidden(true)
                         Text(filter.title)
                         if index < 9 {
-                            Text("⌘\(index + 1)")
+                            Text(verbatim: "⌘\(index + 1)")
                                 .monospacedDigit()
                                 .foregroundStyle(
                                     isSelected ? AnyShapeStyle(.white.opacity(0.8)) : AnyShapeStyle(.tertiary)

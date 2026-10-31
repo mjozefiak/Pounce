@@ -56,7 +56,22 @@ private let repositoryRoot = URL(filePath: #filePath)
                     let state: String
                     let value: String
                 }
+                struct Variant: Decodable {
+                    let stringUnit: StringUnit?
+                }
+                struct Variations: Decodable {
+                    let plural: [String: Variant]?
+                }
                 let stringUnit: StringUnit?
+                let variations: Variations?
+
+                /// The plain value, or every plural form (Polish needs one, few, many and other).
+                var units: [StringUnit?] {
+                    if let plural = variations?.plural {
+                        return plural.values.map(\.stringUnit)
+                    }
+                    return [stringUnit]
+                }
             }
             let localizations: [String: Localization]?
         }
@@ -71,9 +86,14 @@ private let repositoryRoot = URL(filePath: #filePath)
         #expect(!catalog.strings.isEmpty)
         for (key, entry) in catalog.strings {
             for language in ["en", "pl"] {
-                let unit = entry.localizations?[language]?.stringUnit
-                #expect(unit?.state == "translated", "\(key) is missing a translated \(language) value")
-                #expect(unit?.value.isEmpty == false, "\(key) has an empty \(language) value")
+                let units = entry.localizations?[language]?.units ?? [nil]
+                for unit in units {
+                    #expect(unit?.state == "translated", "\(key) is missing a translated \(language) value")
+                    #expect(unit?.value.isEmpty == false, "\(key) has an empty \(language) value")
+                }
+            }
+            if let plural = entry.localizations?["pl"]?.variations?.plural {
+                #expect(Set(plural.keys) == ["one", "few", "many", "other"], "\(key) needs every Polish plural form")
             }
         }
     }

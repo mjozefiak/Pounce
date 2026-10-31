@@ -24,6 +24,29 @@ struct MainShortcutRecorder: View {
     }
 }
 
+/// The recorder for one plugin command's global shortcut (`PluginContext.makeShortcutRecorder`, issue #5).
+/// KeyboardShortcuts stores it under `KeyboardShortcuts_command_<id>`; the registered handler follows
+/// the new shortcut by itself.
+struct CommandShortcutRecorder: View {
+    let hotkeys: HotkeyService
+    let commandID: String
+
+    var body: some View {
+        KeyboardShortcuts.Recorder(for: .init(HotkeyName.command(commandID))) { _ in
+            hotkeys.userRecordedCommandShortcut(commandID)
+        }
+        .overlay {
+            // QA mode: read-only, like the main recorder.
+            if !hotkeys.allowsRecording {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture {}
+                    .accessibilityHidden(true)
+            }
+        }
+    }
+}
+
 /// Shown while Spotlight holds Command-Space: how to free it, with a deep link to Keyboard Shortcuts.
 struct SpotlightShortcutBanner: View {
     static let keyboardSettings = URL(string: "x-apple.systempreferences:com.apple.Keyboard-Settings.extension")

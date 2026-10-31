@@ -117,8 +117,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if options.showsOnboarding {
             coordinator?.showOnboardingForQA()
         }
-        if let pane = options.settingsPane.flatMap(SettingsWindowController.Pane.init(rawValue:)) {
-            coordinator?.openSettings(pane)
+        if let step = options.onboardingStep {
+            coordinator?.showOnboardingStepForQA(step)
+        }
+        if let pane = options.settingsPane {
+            if let shellPane = SettingsWindowController.Pane(rawValue: pane) {
+                coordinator?.openSettings(shellPane)
+            } else {
+                coordinator?.openPluginSettings(pane)
+            }
         }
         if let mode = options.panelMode {
             let panelMode: PanelModel.Mode = mode == "search" ? .search : .plugin(PanelModeID(rawValue: mode))

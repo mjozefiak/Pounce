@@ -138,7 +138,7 @@ final class SearchCoordinator {
 
     /// How long a list panel mode's source may take. Generous: the mode shows nothing else meanwhile.
     static let modeBudget: Duration = .seconds(1)
-    static let modeLimit = 200
+    static let modeLimit = 1000
 
     /// Searches a list panel mode alone, keeping the source's order. Nothing is ranked here and nothing
     /// touches `UsageRecorder`: a mode's items and queries never reach `ranking.sqlite`. Returns `nil`

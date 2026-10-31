@@ -20,6 +20,10 @@ enum SettingsKeys {
     /// `Bool`: the first-launch Shortcut step was accepted or skipped.
     static let onboardingShortcutCompleted = "app.onboarding.shortcutCompleted"
 
+    /// `[String]`: ids of plugin onboarding steps (`OnboardingStep.id`) finished or skipped; each is shown
+    /// once. Added in Phase 2.
+    static let onboardingCompletedSteps = "app.onboarding.completedSteps"
+
     /// `String`: `s`, `m` (default), `l` or `xl`, the panel's text size.
     static let textSize = "app.textSize"
 
