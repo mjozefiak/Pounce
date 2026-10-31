@@ -2,6 +2,7 @@ import AppKit
 import Carbon.HIToolbox
 import Foundation
 import PounceKit
+import SwiftUI
 import Synchronization
 import Testing
 
@@ -417,6 +418,26 @@ private func results(_ query: String, sections: [[String]], source: FixedSource)
         full.updateQuery("item")
         await full.waitForSearch()
         #expect(full.preferredHeight == PanelModel.Metrics.maximumHeight)
+    }
+
+    @Test func listViewRendersTheResultsAndCreatesTheField() async {
+        let (model, _) = makeModel()
+        model.show()
+        model.updateQuery("a")
+        await model.waitForSearch()
+        var field: NSTextField?
+        let view = LauncherView(
+            model: model,
+            icons: IconCache(loader: { _ in nil }),
+            modeView: { _ in nil },
+            onFieldCreated: { field = $0 }
+        )
+        let hosting = NSHostingView(rootView: view)
+        hosting.frame = NSRect(x: 0, y: 0, width: PanelModel.Metrics.width, height: model.preferredHeight)
+        hosting.layoutSubtreeIfNeeded()
+        #expect(field != nil)
+        #expect(field?.stringValue == "a")
+        #expect(hosting.fittingSize.width > 0)
     }
 
     @Test func panelSitsInTheUpperPartOfTheScreen() {
