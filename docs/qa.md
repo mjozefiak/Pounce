@@ -38,6 +38,8 @@ Any `--qa…` argument turns QA mode on:
 | Focus | the panel and Settings activate Pounce | windows are ordered front without activating Pounce or taking key focus, and the panel does not close when another app has focus |
 | Launch at Login | `SMAppService.mainApp` | in memory; the toggle never registers anything |
 | Paste keystroke | ⌘V posted to the previous app (needs Accessibility) | never posted; the paste is only logged |
+| File index | the home folder and `/Applications` | only `plugins.files.roots`, resolved against the fake home `plugins.files.qaHome`; both default to an empty `files-home/` folder in the data root, so the real home and `/Applications` are never scanned |
+| Full Disk Access | read by listing `~/Library/Safari` and similar folders | `--qa-full-disk-access`, default `denied`; the real state is never read |
 
 AppKit itself may still write window and status-item state to the `app.pounce.Pounce` defaults domain.
 If that domain did not exist before a QA session, remove it afterwards with
@@ -52,7 +54,7 @@ If that domain did not exist before a QA session, remove it afterwards with
 | `--qa-appearance light\|dark` | Phase 0 | Force the app's appearance (`NSApp.appearance`) without touching the system setting. |
 | `--qa-show-menu` | Phase 0 | Open the menu bar menu shortly after launch. |
 | `--qa-quit-after <seconds>` | Phase 0 | Close any open menu and quit after the delay. |
-| `--qa-setting <key>=<value>` | Phase 1 | Seed the in-memory settings (repeatable). `true`/`false` become booleans, integers integers, anything else a string. |
+| `--qa-setting <key>=<value>` | Phase 1 | Seed the in-memory settings (repeatable). `true`/`false` become booleans, integers integers, anything else a string; `app.sectionOrder` (Phase 3) takes comma-separated plugin ids. |
 | `--qa-panel <mode>` | Phase 1 | Open the panel after launch without the global hotkey: `search`, or a plugin's panel mode id. |
 | `--qa-query <text>` | Phase 1 | Type this query into the panel opened with `--qa-panel`. |
 | `--qa-record-use <item key>` | Phase 1 | Record a use of `<plugin id>:<key>` in the QA ranking database before launch (repeatable), so the empty query shows "Recently Used". |
@@ -63,9 +65,10 @@ If that domain did not exist before a QA session, remove it afterwards with
 | `--qa-onboarding-step <step id>` | Phase 2 | Show one plugin onboarding step, for example `clipboard.intro`. |
 | `--qa-pasteboard-access allow\|default\|ask\|deny` | Phase 2 | The pasteboard access behaviour plugins see (`NSPasteboard.accessBehavior`), for the clipboard's permission banners. |
 | `--qa-accessibility granted\|denied` | Phase 2 | The Accessibility status plugins see. Without it the real status is read, never changed. |
+| `--qa-full-disk-access granted\|denied` | Phase 3 | The Full Disk Access status plugins see (default `denied` in QA mode). Never read from, or changed in, the system. |
 
 Unknown `--qa…` arguments stop the launch with an error, so a typo never silently falls back to real
-data. Phase 3 adds a fixture directory as the only file-index root.
+data.
 
 ## Clipboard history with fake entries
 
@@ -117,6 +120,37 @@ app icon.
 In QA mode the shortcut recorders are read-only. KeyboardShortcuts would write a recorded shortcut to
 the `app.pounce.Pounce` defaults domain and register it with the system, so a QA run cannot record one.
 
+## File search with a fixture folder
+
+The file index would otherwise list the tester's own file names. QA mode always replaces the home
+folder with a fake one (`plugins.files.qaHome`, DEBUG builds only) and indexes only
+`plugins.files.roots`; without them both point at an empty folder in the data root. Build a fixture
+tree of fake names under `/tmp/pounce-p3-*` and point both settings at it. Prefer generic file types
+(`.txt`, `.md`, `.pdf`, `.png`, `.csv`): a file's icon comes from the app that opens it.
+
+```bash
+FIX=/tmp/pounce-p3-qa
+mkdir -p "$FIX/home/Projects/Website" "$FIX/home/Desktop" "$FIX/home/Documents" "$FIX/apps"
+touch "$FIX/home/Projects/Quarterly Report.pdf" "$FIX/home/Projects/Website/notes.md" \
+  "$FIX/home/Desktop/desk-plan.txt" "$FIX/home/Documents/tax-form.pdf"
+dist/Pounce.app/Contents/MacOS/Pounce --qa \
+  --qa-setting "plugins.files.qaHome=$FIX/home" --qa-setting "plugins.files.roots=$FIX/home" \
+  --qa-setting plugins.files.setupCompleted=true --qa-full-disk-access denied \
+  --qa-setting "plugins.apps.roots=$FIX/apps" --qa-setting plugins.apps.spotlight=false \
+  --qa-panel search --qa-query report
+# The Full Disk Access onboarding step and the Files settings pane:
+dist/Pounce.app/Contents/MacOS/Pounce --qa --qa-setting "plugins.files.qaHome=$FIX/home" \
+  --qa-onboarding-step files.fullDiskAccess
+dist/Pounce.app/Contents/MacOS/Pounce --qa --qa-setting "plugins.files.qaHome=$FIX/home" \
+  --qa-setting plugins.files.setupCompleted=true --qa-settings files
+```
+
+Without `plugins.files.setupCompleted=true` the panel shows the "set up file search" notice instead
+of indexing. With `--qa-full-disk-access denied`, Desktop, Documents and Downloads of the fake home
+are skipped and the panel shows the "no Full Disk Access" notice; `granted` indexes them. The result
+order (Settings → Features → Result Order) is seeded with a comma-separated list, for example
+`--qa-setting app.sectionOrder=files,apps`.
+
 ## Screenshots
 
 Capture only Pounce's own windows, never the full screen:
@@ -133,5 +167,6 @@ Capture only Pounce's own windows, never the full screen:
 - No signing with the "Pounce Release" identity on a developer machine (see `docs/signing.md`).
 - Quit every Pounce process you started.
 
-Checks that need TCC grants (Accessibility for paste, Full Disk Access), a full-screen app, a second
-display or Space switching are manual QA items listed in the PR body.
+Checks that need TCC grants (Accessibility for paste, a real Full Disk Access grant, the privacy prompt
+for a folder added one at a time), a full-screen app, a second display or Space switching are manual
+QA items listed in the PR body.

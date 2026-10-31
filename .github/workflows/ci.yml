@@ -45,5 +45,8 @@ jobs:
       - name: Test PluginHost under Thread Sanitizer
         run: swift test --sanitize=thread --filter PluginHostTests
 
+      - name: Test FileIndex and FilesPlugin under Thread Sanitizer
+        run: swift test --sanitize=thread --filter FilesPluginTests
+
       - name: Format lint
         run: swift format lint --strict -r Sources Tests
