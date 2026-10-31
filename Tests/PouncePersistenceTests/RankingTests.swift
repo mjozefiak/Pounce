@@ -135,3 +135,24 @@ private func candidate(_ title: String, _ query: NormalizedQuery) -> Candidate? 
         #expect(Ranker(now: start).recent(items, stats: stats, limit: 1).map(\.title) == ["Gamma"])
     }
 }
+
+@Suite struct MostUsedTests {
+    @Test func listsOnePluginsItemsByDecayedFrecency() async throws {
+        let repository = try UsageRepository.inMemory(halfLife: Ranker.frecencyHalfLife)
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let old = ItemKey(pluginID: "apps", key: "old")
+        let fresh = ItemKey(pluginID: "apps", key: "fresh")
+        let file = ItemKey(pluginID: "files", key: "/a")
+        let prefixed = ItemKey(pluginID: "appsx", key: "other")
+        for _ in 0..<4 {
+            try await repository.recordUse(of: old, queryPrefix: nil, at: now.addingTimeInterval(-30 * 24 * 3600))
+        }
+        try await repository.recordUse(of: fresh, queryPrefix: nil, at: now)
+        try await repository.recordUse(of: file, queryPrefix: nil, at: now)
+        try await repository.recordUse(of: prefixed, queryPrefix: nil, at: now)
+
+        #expect(try await repository.mostUsed(pluginID: "apps", limit: 8, now: now) == [fresh, old])
+        #expect(try await repository.mostUsed(pluginID: "apps", limit: 1, now: now) == [fresh])
+        #expect(try await repository.mostUsed(pluginID: "apps", limit: 0, now: now).isEmpty)
+    }
+}

@@ -158,6 +158,35 @@ public final class UsageRepository: UsageRecorder {
         }
     }
 
+    public func mostUsed(pluginID: PluginID, limit: Int, now: Date) async throws -> [ItemKey] {
+        guard limit > 0 else { return [] }
+        let halfLife = halfLife
+        // `:` sorts right before `;`, so this range is exactly the keys starting with `<id>:` and it uses
+        // the primary key index.
+        let lower = pluginID.rawValue + ":"
+        let upper = pluginID.rawValue + ";"
+        let timestamp = now.timeIntervalSince1970
+        let scored: [(ItemKey, Double)] = try await queue.read { db in
+            let rows = try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT item_key, frecency, last_used_at FROM usage_stat
+                    WHERE item_key >= ? AND item_key < ? AND use_count > 0
+                    """,
+                arguments: [lower, upper]
+            )
+            return rows.compactMap { row in
+                let raw: String = row["item_key"]
+                guard let key = ItemKey(rawValue: raw) else { return nil }
+                let frecency: Double = row["frecency"]
+                let lastUsed: Double = row["last_used_at"]
+                return (key, frecency * pow(2, -max(0, timestamp - lastUsed) / halfLife))
+            }
+        }
+        let sorted = scored.sorted { $0.1 != $1.1 ? $0.1 > $1.1 : $0.0.rawValue < $1.0.rawValue }
+        return sorted.prefix(limit).map(\.0)
+    }
+
     // MARK: Maintenance
 
     /// Deletes query associations last used before `date`.
