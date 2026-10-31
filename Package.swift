@@ -12,20 +12,38 @@ let package = Package(
     products: [
         .executable(name: "Pounce", targets: ["PounceApp"])
     ],
+    dependencies: [
+        // GRDB built against SQLCipher (spike 0.4, docs/decisions/0001-sqlite.md).
+        .package(path: "Packages/GRDBCipher")
+    ],
     targets: [
         .target(name: "PounceKit"),
         .target(
             name: "PounceCore",
             dependencies: ["PounceKit"]
         ),
+        .target(
+            name: "PouncePersistence",
+            dependencies: [
+                "PounceKit",
+                .product(name: "GRDB", package: "GRDBCipher"),
+            ]
+        ),
         .executableTarget(
             name: "PounceApp",
-            dependencies: ["PounceKit", "PounceCore"],
+            dependencies: ["PounceKit", "PounceCore", "PouncePersistence"],
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),
         .testTarget(
             name: "PounceKitTests",
             dependencies: ["PounceKit"]
+        ),
+        .testTarget(
+            name: "PouncePersistenceTests",
+            dependencies: [
+                "PouncePersistence",
+                .product(name: "GRDB", package: "GRDBCipher"),
+            ]
         ),
         .testTarget(
             name: "PounceAppTests",
