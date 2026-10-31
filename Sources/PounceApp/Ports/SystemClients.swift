@@ -9,9 +9,12 @@ import PounceKit
 nonisolated struct SystemPasteboardClient: PasteboardClient {
     /// `nil` means `NSPasteboard.general`.
     let name: NSPasteboard.Name?
+    /// QA mode only: reports this access behaviour instead of the system's.
+    let accessOverride: PasteboardAccess?
 
-    init(name: NSPasteboard.Name? = nil) {
+    init(name: NSPasteboard.Name? = nil, accessOverride: PasteboardAccess? = nil) {
         self.name = name
+        self.accessOverride = accessOverride
     }
 
     @MainActor private var pasteboard: NSPasteboard {
@@ -29,6 +32,64 @@ nonisolated struct SystemPasteboardClient: PasteboardClient {
         pasteboard.clearContents()
         pasteboard.setString(string, forType: .string)
         return pasteboard.changeCount
+    }
+
+    @MainActor func types() -> [String] {
+        pasteboard.types?.map(\.rawValue) ?? []
+    }
+
+    /// Copies every representation of every item. Data the writer promised lazily is produced now, on
+    /// the main actor (spike 2.2: `NSPasteboard` is not safe to read elsewhere).
+    @MainActor func readContents(maxBytes: Int) -> PasteboardContents? {
+        let pasteboard = pasteboard
+        let changeCount = pasteboard.changeCount
+        guard let items = pasteboard.pasteboardItems, !items.isEmpty else { return nil }
+        var total = 0
+        var copied: [PasteboardItem] = []
+        for item in items {
+            var representations: [PasteboardRepresentation] = []
+            for type in item.types {
+                guard let data = item.data(forType: type) else { continue }
+                total += data.count
+                guard total <= maxBytes else {
+                    return PasteboardContents(changeCount: changeCount, items: [], exceedsLimit: true)
+                }
+                representations.append(PasteboardRepresentation(type: type.rawValue, data: data))
+            }
+            copied.append(PasteboardItem(representations: representations))
+        }
+        return PasteboardContents(changeCount: changeCount, items: copied)
+    }
+
+    @MainActor @discardableResult func write(_ items: [PasteboardItem]) -> Int {
+        let pasteboard = pasteboard
+        pasteboard.clearContents()
+        let objects = items.map { item in
+            let object = NSPasteboardItem()
+            for representation in item.representations {
+                object.setData(representation.data, forType: NSPasteboard.PasteboardType(representation.type))
+            }
+            return object
+        }
+        pasteboard.writeObjects(objects)
+        return pasteboard.changeCount
+    }
+
+    @MainActor var accessBehavior: PasteboardAccess {
+        if let accessOverride {
+            return accessOverride
+        }
+        return Self.access(pasteboard.accessBehavior)
+    }
+
+    static func access(_ behavior: NSPasteboard.AccessBehavior) -> PasteboardAccess {
+        switch behavior {
+        case .alwaysAllow: .alwaysAllow
+        case .alwaysDeny: .alwaysDeny
+        case .ask: .ask
+        case .default: .systemDefault
+        @unknown default: .systemDefault
+        }
     }
 }
 
@@ -60,6 +121,50 @@ nonisolated struct SystemWorkspaceClient: WorkspaceClient {
 
     @MainActor func revealInFinder(_ urls: [URL]) {
         NSWorkspace.shared.activateFileViewerSelecting(urls)
+    }
+
+    @MainActor var frontmostApplication: RunningApplication? {
+        NSWorkspace.shared.frontmostApplication.map(Self.running)
+    }
+
+    @MainActor func runningApplication(processIdentifier: pid_t) -> RunningApplication? {
+        guard let application = NSRunningApplication(processIdentifier: processIdentifier),
+            !application.isTerminated
+        else { return nil }
+        return Self.running(application)
+    }
+
+    /// Fast user switching back to this session, and unlocking the screen (the login keychain may have
+    /// been locked while the screen was).
+    func sessionActivations() -> AsyncStream<Void> {
+        AsyncStream(bufferingPolicy: .bufferingNewest(1)) { continuation in
+            let workspace = Task { @MainActor in
+                for await _ in NSWorkspace.shared.notificationCenter.notifications(
+                    named: NSWorkspace.sessionDidBecomeActiveNotification
+                ) {
+                    continuation.yield()
+                }
+            }
+            let unlock = Task { @MainActor in
+                for await _ in DistributedNotificationCenter.default().notifications(
+                    named: Notification.Name("com.apple.screenIsUnlocked")
+                ) {
+                    continuation.yield()
+                }
+            }
+            continuation.onTermination = { _ in
+                workspace.cancel()
+                unlock.cancel()
+            }
+        }
+    }
+
+    @MainActor static func running(_ application: NSRunningApplication) -> RunningApplication {
+        RunningApplication(
+            processIdentifier: application.processIdentifier,
+            bundleIdentifier: application.bundleIdentifier,
+            name: application.localizedName
+        )
     }
 
     /// Hands activation to the app first: Pounce is never active, so under cooperative activation the

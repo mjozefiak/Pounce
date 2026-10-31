@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import os
 
 /// A plugin's settings: keys under the `plugins.<id>.` prefix in the host's `SettingsStore`
@@ -82,6 +83,10 @@ public struct PluginContext: Sendable {
     /// so an open panel searches again. Callable from any thread; the host coalesces calls. Added in
     /// Phase 1; defaults to doing nothing.
     public let resultsChanged: @Sendable () -> Void
+    /// Builds the shell's shortcut recorder for one of this plugin's commands (by `PluginCommand.id`), so
+    /// a settings pane can let the user change the command's global shortcut. Added in Phase 2; the
+    /// default shows nothing.
+    public let makeShortcutRecorder: @MainActor @Sendable (_ commandID: String) -> AnyView
 
     public init(
         storageDirectory: URL,
@@ -95,7 +100,10 @@ public struct PluginContext: Sendable {
         permissions: any PermissionsReader,
         clock: any Clock<Duration>,
         cachesDirectory: URL? = nil,
-        resultsChanged: @escaping @Sendable () -> Void = {}
+        resultsChanged: @escaping @Sendable () -> Void = {},
+        makeShortcutRecorder: @escaping @MainActor @Sendable (_ commandID: String) -> AnyView = { _ in
+            AnyView(EmptyView())
+        }
     ) {
         self.storageDirectory = storageDirectory
         self.settings = settings
@@ -110,5 +118,6 @@ public struct PluginContext: Sendable {
         self.cachesDirectory =
             cachesDirectory ?? storageDirectory.appending(path: "Caches", directoryHint: .isDirectory)
         self.resultsChanged = resultsChanged
+        self.makeShortcutRecorder = makeShortcutRecorder
     }
 }
