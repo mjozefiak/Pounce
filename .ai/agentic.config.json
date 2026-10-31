@@ -2,7 +2,9 @@
   "version": 1,
   "baseBranch": "auto",
   "tracker": "github",
-  "browser": { "provider": "agent-browser" },
+  "browser": {
+    "provider": "agent-browser"
+  },
   "validation": {
     "commands": [
       "swift build",
@@ -12,16 +14,56 @@
   },
   "labels": {
     "enabled": true,
-    "pipeline": ["review", "changes-requested", "qa", "qa-failed", "merge-queue", "blocked", "do-not-merge"],
-    "category": ["bug", "feature", "refactor", "security", "dependencies", "documentation"],
-    "meta": ["needs-qa", "skip-qa", "qa-approved", "qa-self-verified", "in-progress", "ci-monitoring"],
-    "priority": ["priority-low", "priority-medium", "priority-high", "priority-extreme"],
-    "risk": ["risk-low", "risk-medium", "risk-high"]
+    "pipeline": [
+      "review",
+      "changes-requested",
+      "qa",
+      "qa-failed",
+      "merge-queue",
+      "blocked",
+      "do-not-merge"
+    ],
+    "category": [
+      "bug",
+      "feature",
+      "refactor",
+      "security",
+      "dependencies",
+      "documentation"
+    ],
+    "meta": [
+      "needs-qa",
+      "skip-qa",
+      "qa-approved",
+      "qa-self-verified",
+      "in-progress",
+      "ci-monitoring"
+    ],
+    "priority": [
+      "priority-low",
+      "priority-medium",
+      "priority-high",
+      "priority-extreme"
+    ],
+    "risk": [
+      "risk-low",
+      "risk-medium",
+      "risk-high"
+    ]
   },
   "qaGate": true,
-  "ci": { "maxWaitMinutes": 40 },
-  "engine": { "loopStepThreshold": 20, "executorTier": "standard", "stepReview": "final" },
-  "reviewSweep": { "maxParallel": 1, "coordinationRoot": null },
+  "ci": {
+    "maxWaitMinutes": 40
+  },
+  "engine": {
+    "loopStepThreshold": 20,
+    "executorTier": "standard",
+    "stepReview": "final"
+  },
+  "reviewSweep": {
+    "maxParallel": 1,
+    "coordinationRoot": null
+  },
   "paths": {
     "runs": ".ai/runs",
     "analysis": ".ai/analysis",
@@ -33,9 +75,37 @@
   },
   "designTokens": null,
   "reviewChecklist": null,
-  "agentHarness": null,
+  "agentHarness": {
+    "version": 1,
+    "preset": "custom",
+    "host": "claude",
+    "delivery": {
+      "mode": "stage-only",
+      "issueClaim": "hold"
+    },
+    "retry": {
+      "maxAttempts": 4,
+      "backoffMs": 5000,
+      "backoffMultiplier": 2,
+      "timeoutEscalation": 1.5,
+      "maxTimeoutMs": 2400000
+    },
+    "models": {},
+    "profiles": {
+      "standard": {
+        "workers": [],
+        "reviewers": [],
+        "reviewPolicy": {
+          "mode": "advisory"
+        }
+      }
+    }
+  },
   "closeKeywords": [],
-  "dependencyAudit": { "minSeverity": "high", "ignore": [] },
+  "dependencyAudit": {
+    "minSeverity": "high",
+    "ignore": []
+  },
   "prTitleTemplate": "{prefix}({area}): {summary}{issueRef}",
   "ticketKeyPattern": ""
 }
