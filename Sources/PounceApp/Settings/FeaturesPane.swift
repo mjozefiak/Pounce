@@ -182,6 +182,11 @@ struct FeatureRow: View {
     }
 }
 
+extension PluginID {
+    /// The id of this plugin's row in the Result Order list.
+    fileprivate var orderRowID: String { "order:\(rawValue)" }
+}
+
 /// "Result order": each search section with Move Up and Move Down buttons (reachable with Tab, unlike
 /// drag and drop).
 struct SectionOrderSection: View {
@@ -190,7 +195,9 @@ struct SectionOrderSection: View {
     var body: some View {
         let entries = order.ordered
         Section {
-            ForEach(Array(entries.enumerated()), id: \.element.manifest.id) { index, entry in
+            // Row ids differ from the feature list's (plugin ids): the grouped form is one list, and equal
+            // ids in two sections make it draw a feature row in the wrong place.
+            ForEach(Array(entries.enumerated()), id: \.element.manifest.id.orderRowID) { index, entry in
                 HStack(spacing: 12) {
                     Text("\(index + 1).", comment: "Position in the result order list")
                         .monospacedDigit()

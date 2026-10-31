@@ -145,12 +145,14 @@ struct FilesSettingsPane: View {
             } header: {
                 Text("Full Disk Access", comment: "Settings section title")
             } footer: {
-                Text(
-                    "Without Full Disk Access, adding a folder here makes macOS ask once for that folder.",
-                    comment: "Settings footer of the protected folders"
-                )
-                .font(.callout)
-                .foregroundStyle(.secondary)
+                if !hasAccess {
+                    Text(
+                        "Without Full Disk Access, adding a folder here makes macOS ask once for that folder.",
+                        comment: "Settings footer of the protected folders"
+                    )
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                }
             }
 
             Section {

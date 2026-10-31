@@ -125,14 +125,15 @@ the `app.pounce.Pounce` defaults domain and register it with the system, so a QA
 The file index would otherwise list the tester's own file names. QA mode always replaces the home
 folder with a fake one (`plugins.files.qaHome`, DEBUG builds only) and indexes only
 `plugins.files.roots`; without them both point at an empty folder in the data root. Build a fixture
-tree of fake names under `/tmp/pounce-p3-*` and point both settings at it. Prefer generic file types
-(`.txt`, `.md`, `.pdf`, `.png`, `.csv`): a file's icon comes from the app that opens it.
+tree of fake names under `/tmp/pounce-p3-*` and point both settings at it. Use folders and `.txt`
+files only: a file's icon comes from the app that opens it, so other types (`.md`, `.pdf`, `.csv`,
+`.html`) can show which editor, PDF viewer or browser the tester has installed.
 
 ```bash
 FIX=/tmp/pounce-p3-qa
 mkdir -p "$FIX/home/Projects/Website" "$FIX/home/Desktop" "$FIX/home/Documents" "$FIX/apps"
-touch "$FIX/home/Projects/Quarterly Report.pdf" "$FIX/home/Projects/Website/notes.md" \
-  "$FIX/home/Desktop/desk-plan.txt" "$FIX/home/Documents/tax-form.pdf"
+touch "$FIX/home/Projects/Quarterly Report.txt" "$FIX/home/Projects/Website/notes.txt" \
+  "$FIX/home/Desktop/desk-plan.txt" "$FIX/home/Documents/tax-form.txt"
 dist/Pounce.app/Contents/MacOS/Pounce --qa \
   --qa-setting "plugins.files.qaHome=$FIX/home" --qa-setting "plugins.files.roots=$FIX/home" \
   --qa-setting plugins.files.setupCompleted=true --qa-full-disk-access denied \
