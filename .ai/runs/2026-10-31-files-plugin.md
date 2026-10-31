@@ -98,6 +98,8 @@ settings.
 
 ## Progress
 
+PR: #7
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Plugin target and Full Disk Access gate
@@ -126,4 +128,4 @@ settings.
 ### Phase 5: Verification
 
 - [x] 5.1 Full validation gate and Thread Sanitizer run — cf1e7d2
-- [ ] 5.2 Native QA on fixture data with evidence on the PR
+- [ ] 5.2 Native QA on fixture data with evidence on the PR — QA run done, fixes in 27df64a; evidence upload blocked by a permission check
