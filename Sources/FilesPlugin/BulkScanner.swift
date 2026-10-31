@@ -41,6 +41,8 @@ struct ScannedDirectory: Hashable, Sendable {
 /// - `IgnoreRules` decide what is left out; an excluded directory is never opened, so a protected folder
 ///   skipped without Full Disk Access never shows a privacy prompt.
 /// - Unreadable directories are skipped silently.
+/// - Only a root may be a symbolic link to a folder (`followsLink`): the scan starts in its target and
+///   stays on the target's volume.
 struct BulkScanner: Sendable {
     let rules: IgnoreRules
     let workerCount: Int
@@ -57,10 +59,12 @@ struct BulkScanner: Sendable {
         self.batchSize = max(1, batchSize)
     }
 
-    /// The attributes of one path, without following a symbolic link. `nil` when it does not exist.
-    static func entry(at path: String) -> (kind: EntryKind, modified: UInt32, device: Int32)? {
+    /// The attributes of one path, without following a symbolic link unless `followsLink` (a root). `nil`
+    /// when it does not exist.
+    static func entry(at path: String, followsLink: Bool = false) -> (kind: EntryKind, modified: UInt32, device: Int32)?
+    {
         var info = stat()
-        guard lstat(path, &info) == 0 else { return nil }
+        guard (followsLink ? stat(path, &info) : lstat(path, &info)) == 0 else { return nil }
         let kind: EntryKind
         switch info.st_mode & S_IFMT {
         case S_IFDIR:
@@ -74,24 +78,26 @@ struct BulkScanner: Sendable {
     }
 
     /// Lists one directory without descending (the watcher's reconcile). `nil` when it cannot be read.
-    func list(_ path: String) -> [ScannedEntry]? {
-        guard let device = Self.entry(at: path)?.device else { return nil }
+    /// `followsLink`: the path is a root, which may be a symbolic link to a folder.
+    func list(_ path: String, followsLink: Bool = false) -> [ScannedEntry]? {
+        guard let device = Self.entry(at: path, followsLink: followsLink)?.device else { return nil }
         var buffer = ListingBuffer()
-        return buffer.list(path, device: device, rules: rules, nextID: { _ in nil })
+        return buffer.list(path, device: device, rules: rules, followsLink: followsLink, nextID: { _ in nil })
     }
 
     /// Scans the tree below `path` (the folder itself is not reported). Returns `false` when cancelled.
     ///
     /// `deliver` is called serially, in discovery order, from the scanning threads; it must be quick.
-    /// This call blocks until the scan ends, so run it off the cooperative thread pool's hot path
-    /// (`Task.detached`).
+    /// This call blocks until the scan ends, so never call it on a Swift concurrency thread (`IndexController`
+    /// runs it on a GCD queue). `followsLink`: the path is a root, which may be a symbolic link to a folder.
     @discardableResult
     func scan(
         _ path: String,
+        followsLink: Bool = false,
         isCancelled: @escaping @Sendable () -> Bool = { false },
         deliver: @escaping @Sendable ([ScannedDirectory]) -> Void
     ) -> Bool {
-        guard let device = Self.entry(at: path)?.device else { return !isCancelled() }
+        guard let device = Self.entry(at: path, followsLink: followsLink)?.device else { return !isCancelled() }
         let queue = WorkQueue(first: PendingDirectory(id: 0, path: path))
         let sink = ListingSink(batchSize: batchSize, deliver: deliver)
         let ids = Mutex<Int32>(0)
@@ -108,7 +114,7 @@ struct BulkScanner: Sendable {
                 var children: [PendingDirectory] = []
                 let entries =
                     buffer.list(
-                        directory.path, device: device, rules: rules,
+                        directory.path, device: device, rules: rules, followsLink: followsLink && directory.id == 0,
                         nextID: { childPath in
                             let id = ids.withLock { value -> Int32 in
                                 value += 1
@@ -166,14 +172,16 @@ private struct ListingBuffer {
     private var storage = [UInt8](repeating: 0, count: size)
 
     /// Lists `path`; `nextID` is called for each child directory to enter and returns its id. Returns
-    /// `nil` when the directory cannot be opened.
+    /// `nil` when the directory cannot be opened or a read fails part way: a partial listing would make
+    /// the index drop entries that still exist.
     mutating func list(
         _ path: String,
         device: Int32,
         rules: IgnoreRules,
+        followsLink: Bool = false,
         nextID: (String) -> Int32?
     ) -> [ScannedEntry]? {
-        let descriptor = open(path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
+        let descriptor = open(path, O_RDONLY | O_DIRECTORY | O_CLOEXEC | (followsLink ? 0 : O_NOFOLLOW))
         guard descriptor >= 0 else { return nil }
         defer { close(descriptor) }
 
@@ -189,7 +197,11 @@ private struct ListingBuffer {
             let count = storage.withUnsafeMutableBytes { raw in
                 getattrlistbulk(descriptor, &request, raw.baseAddress, raw.count, 0)
             }
-            guard count > 0 else { break }
+            if count == 0 { break }
+            if count < 0 {
+                if errno == EINTR { continue }
+                return nil
+            }
             storage.withUnsafeBytes { raw in
                 var offset = 0
                 for _ in 0..<count {

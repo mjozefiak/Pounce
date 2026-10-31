@@ -77,7 +77,8 @@ final class FileEventWatcher: Sendable {
     /// different UUID means the event history no longer matches a saved snapshot.
     static func deviceUUID(of path: String) -> String? {
         var info = stat()
-        guard lstat(path, &info) == 0, let uuid = FSEventsCopyUUIDForDevice(info.st_dev) else { return nil }
+        // A root may be a symbolic link to a folder: its target's volume is the one that matters.
+        guard stat(path, &info) == 0, let uuid = FSEventsCopyUUIDForDevice(info.st_dev) else { return nil }
         return CFUUIDCreateString(nil, uuid) as String?
     }
 
@@ -214,6 +215,14 @@ enum RescanPlanner {
                 }
                 continue
             }
+            if event.has(kFSEventStreamEventFlagMustScanSubDirs) {
+                // An ancestor of roots (`/` when the event history is incomplete): rescan the roots below it.
+                let below = roots.filter { $0 != path && PathText.contains(path, $0) }
+                if !below.isEmpty {
+                    plan.roots.formUnion(below)
+                    continue
+                }
+            }
             guard let root = roots.filter({ PathText.contains($0, path) }).max(by: { $0.count < $1.count }) else {
                 continue
             }
@@ -251,12 +260,14 @@ enum RescanPlanner {
         return result
     }
 
-    /// Maps a path below a root's canonical path back below the root.
+    /// Maps a path below a root's canonical path back below the root (the longest canonical path wins,
+    /// for nested roots).
     static func unaliased(_ path: String, aliases: [String: String]) -> String {
-        for (canonical, root) in aliases where PathText.contains(canonical, path) {
-            return root + path.dropFirst(canonical.count)
-        }
-        return path
+        guard
+            let (canonical, root) = aliases.filter({ PathText.contains($0.key, path) })
+                .max(by: { $0.key.count < $1.key.count })
+        else { return path }
+        return root + path.dropFirst(canonical.count)
     }
 
     /// The canonical path of each root that differs from the root (symlinks resolved, `/private` kept).

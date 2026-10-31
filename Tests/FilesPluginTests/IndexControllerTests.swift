@@ -259,6 +259,15 @@ struct RescanPlannerTests {
         }
     }
 
+    /// FSEvents reports `MustScanSubDirs` for an ancestor of the roots (`/`) when its history is incomplete.
+    @Test func mustScanSubDirsAboveTheRootsRescansThem() {
+        let plan = RescanPlanner.plan(
+            [event("/", kFSEventStreamEventFlagMustScanSubDirs), event("/r/a/x")], roots: roots, rules: rules)
+        #expect(plan.roots == Set(roots))
+        #expect(plan.folders.isEmpty)
+        #expect(plan.subtrees.isEmpty)
+    }
+
     @Test func rootChangedRescansThatRoot() {
         let plan = RescanPlanner.plan(
             [event("/r", kFSEventStreamEventFlagRootChanged), event("/r/a/x")], roots: roots, rules: rules)
@@ -283,6 +292,14 @@ extension RescanPlannerTests {
         #expect(RescanPlanner.unaliased("/private/rx/a", aliases: ["/private/r": "/r"]) == "/private/rx/a")
     }
 
+    @Test func theLongestAliasWins() {
+        let aliases = ["/private/r": "/r", "/private/r/deep/inner": "/inner"]
+        for _ in 0..<20 {
+            #expect(RescanPlanner.unaliased("/private/r/deep/inner/x.txt", aliases: aliases) == "/inner/x.txt")
+            #expect(RescanPlanner.unaliased("/private/r/deep/y.txt", aliases: aliases) == "/r/deep/y.txt")
+        }
+    }
+
     @Test func aliasesResolveSymlinkedRoots() throws {
         let directory = try TemporaryDirectory()
         try directory.make(["target/"])
@@ -291,5 +308,24 @@ extension RescanPlannerTests {
         let aliases = RescanPlanner.aliases(of: [directory.sub("link")])
         #expect(aliases.values.first == directory.sub("link"))
         #expect(aliases.keys.first?.hasSuffix("/target") == true)
+    }
+}
+
+/// A root the user added as a symbolic link (for example `~/Dropbox`, which points into
+/// `~/Library/CloudStorage`) is indexed through the link, and its changes arrive under the link's path.
+@MainActor
+@Suite("Symlinked root", .serialized)
+struct SymlinkedRootTests {
+    @Test func symlinkedRootIsIndexedAndFollowed() async throws {
+        let directory = try TemporaryDirectory()
+        try directory.make(["target/inside.txt", "target/sub/deep.txt", "storage/"])
+        try FileManager.default.createSymbolicLink(
+            atPath: directory.sub("link"), withDestinationPath: directory.sub("target"))
+        let run = ControllerRun(
+            root: directory.sub("link"), storage: directory.url.appending(path: "storage", directoryHint: .isDirectory))
+        #expect(await eventually { run.contains("inside.txt") && run.contains("deep.txt") })
+        try Data("x".utf8).write(to: directory.url.appending(path: "target/sub/added.txt"))
+        #expect(await eventually(timeout: .seconds(3)) { run.contains("added.txt") })
+        await run.stop()
     }
 }

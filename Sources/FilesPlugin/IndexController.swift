@@ -173,7 +173,7 @@ final class IndexController: Sendable {
     /// Every root of the plan that exists has the same FSEvents device UUID as when it was saved.
     static func devicesMatch(_ saved: [IndexSnapshot.Root], plan: IndexPlan) -> Bool {
         let byPath = Dictionary(saved.map { ($0.path, $0.deviceUUID) }, uniquingKeysWith: { first, _ in first })
-        for root in plan.roots where BulkScanner.entry(at: root) != nil {
+        for root in plan.roots where BulkScanner.entry(at: root, followsLink: true) != nil {
             guard let uuid = byPath[root], uuid == (FileEventWatcher.deviceUUID(of: root) ?? "") else { return false }
         }
         return true
@@ -189,7 +189,7 @@ final class IndexController: Sendable {
         progress.withLock { $0.fullScans += 1 }
         let started = ContinuousClock.now
         let roots = await index.setRoots(plan.roots) { path in
-            BulkScanner.entry(at: path).map { ($0.kind, $0.modified) }
+            BulkScanner.entry(at: path, followsLink: true).map { ($0.kind, $0.modified) }
         }
         onStatus(IndexStatus(phase: .scanning, count: 0))
         progress.withLock { $0.nextPartialSave = configuration.partialSaveEvery }
@@ -213,8 +213,9 @@ final class IndexController: Sendable {
         let (batches, sink) = AsyncStream<[ScannedDirectory]>.makeStream()
         let cancelled = Mutex(false)
         let scanner = scanner
-        let worker = Task.detached(priority: .utility) {
-            scanner.scan(path, isCancelled: { cancelled.withLock { $0 } }) { sink.yield($0) }
+        let followsLink = plan.roots.contains(path)
+        let worker = Self.runBlocking {
+            scanner.scan(path, followsLink: followsLink, isCancelled: { cancelled.withLock { $0 } }) { sink.yield($0) }
             sink.finish()
         }
         await withTaskCancellationHandler {
@@ -236,6 +237,19 @@ final class IndexController: Sendable {
         }
         await worker.value
         await index.endScan(token)
+    }
+
+    /// Runs blocking work (the scanner waits on its worker threads) on a GCD queue, so it never holds a
+    /// Swift concurrency thread; awaiting the task suspends until the work ends.
+    private static func runBlocking(_ work: @escaping @Sendable () -> Void) -> Task<Void, Never> {
+        Task {
+            await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
+                DispatchQueue.global(qos: .utility).async {
+                    work()
+                    done.resume()
+                }
+            }
+        }
     }
 
     /// During a full scan, saves an incomplete snapshot each time the count passes the next multiple of
@@ -294,7 +308,7 @@ final class IndexController: Sendable {
     private func rescan(_ path: String) async {
         if plan.roots.contains(path) {
             let roots = await index.setRoots(plan.roots) { root in
-                BulkScanner.entry(at: root).map { ($0.kind, $0.modified) }
+                BulkScanner.entry(at: root, followsLink: true).map { ($0.kind, $0.modified) }
             }
             guard let node = roots[path] else {
                 await index.remove(path: path)
@@ -325,7 +339,7 @@ final class IndexController: Sendable {
                 continue
             }
             guard found.kind == .directory else { return }
-            guard let listing = scanner.list(target) else {
+            guard let listing = scanner.list(target, followsLink: plan.roots.contains(target)) else {
                 // Gone (or unreadable): its parent's listing drops it.
                 if BulkScanner.entry(at: target) == nil, found.isRoot == false {
                     target = PathText.parent(target)
