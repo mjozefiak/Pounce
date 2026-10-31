@@ -71,21 +71,23 @@ unit tests for the open configuration and the actions.
 
 ## Progress
 
+PR: #4
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Core matching and ranking
 
-- [ ] 1.1 TextNormalizer and FuzzyMatcher
-- [ ] 1.2 ranking.sqlite, UsageRepository and Ranker
+- [x] 1.1 TextNormalizer and FuzzyMatcher — 703ac31
+- [x] 1.2 ranking.sqlite, UsageRepository and Ranker — 21cee51
 
 ### Phase 2: Apps plugin
 
-- [ ] 2.1 AppsPlugin target, scanner, metadata watcher and search source
-- [ ] 2.2 AppLauncher and result actions
+- [x] 2.1 AppsPlugin target, scanner, metadata watcher and search source — b603bb6
+- [x] 2.2 AppLauncher and result actions — b603bb6
 
 ### Phase 3: Panel, hotkey, settings
 
-- [ ] 3.1 LauncherPanel, PanelModel, SearchCoordinator and HotkeyService
-- [ ] 3.2 IconCache, result list, footer and accessibility
-- [ ] 3.3 Spotlight conflict detection, Shortcut step and Settings window
-- [ ] 3.4 QA flags, docs and strings
+- [x] 3.1 LauncherPanel, PanelModel, SearchCoordinator and HotkeyService — 63af9bc
+- [x] 3.2 IconCache, result list, footer and accessibility — 63af9bc
+- [x] 3.3 Spotlight conflict detection, Shortcut step and Settings window — 63af9bc
+- [x] 3.4 QA flags, docs and strings — 63af9bc, 45d588a
