@@ -49,6 +49,8 @@ Location: `~/Library/Application Support/Pounce/`. All files are `0600`; each pl
 
 Keys in use since v0.1 (declared in `Sources/PounceApp/SettingsKeys.swift` and in each plugin): `app.hotkey.userDefined` (Bool), `app.hotkey.commandDefaultsApplied` ([String] of command ids whose default shortcut was applied once), `app.onboarding.shortcutCompleted` (Bool), `app.textSize` (`s`/`m`/`l`/`xl`), `app.panelLevel` (`floating`/`statusBar`, the spike 1.2 fallback), `plugins.<id>.enabled` (Bool), `plugins.apps.roots` ([String] or String), `plugins.apps.spotlight` (Bool); KeyboardShortcuts keys `KeyboardShortcuts_mainHotkey` and `KeyboardShortcuts_command_<command id with dots as underscores>`.
 
+Keys added in v0.2 (Phase 2, clipboard): `app.onboarding.completedSteps` ([String] of plugin `OnboardingStep.id`s finished or skipped), `plugins.clipboard.paused` (Bool), `plugins.clipboard.retentionDays` (Int, default 30), `plugins.clipboard.maximumEntries` (Int, default 1000), `plugins.clipboard.ignoredApps` ([String] of bundle identifiers; missing means the default list), `plugins.clipboard.historyResetNotice` (Bool); KeyboardShortcuts key `KeyboardShortcuts_command_clipboard_history` (default ⌘⇧V). `plugins.clipboard.qaSeed` exists only in DEBUG builds and is not a contract.
+
 **Breaking:** renaming or removing a key; moving a key to another namespace; changing its type or encoding; changing the meaning of a stored value; changing a default in a way that changes behaviour for users who never touched the setting (for example ignoring fewer apps by default, or capturing more types).
 
 **Required path:**
