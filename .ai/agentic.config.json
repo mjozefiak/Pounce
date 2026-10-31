@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "baseBranch": "auto",
+  "tracker": "github",
+  "browser": { "provider": "agent-browser" },
+  "validation": {
+    "commands": [
+      "swift build",
+      "swift test",
+      "swift format lint --strict -r Sources Tests"
+    ]
+  },
+  "labels": {
+    "enabled": true,
+    "pipeline": ["review", "changes-requested", "qa", "qa-failed", "merge-queue", "blocked", "do-not-merge"],
+    "category": ["bug", "feature", "refactor", "security", "dependencies", "documentation"],
+    "meta": ["needs-qa", "skip-qa", "qa-approved", "qa-self-verified", "in-progress", "ci-monitoring"],
+    "priority": ["priority-low", "priority-medium", "priority-high", "priority-extreme"],
+    "risk": ["risk-low", "risk-medium", "risk-high"]
+  },
+  "qaGate": true,
+  "ci": { "maxWaitMinutes": 40 },
+  "engine": { "loopStepThreshold": 20, "executorTier": "standard", "stepReview": "final" },
+  "reviewSweep": { "maxParallel": 1, "coordinationRoot": null },
+  "paths": {
+    "runs": ".ai/runs",
+    "analysis": ".ai/analysis",
+    "specs": ".ai/specs",
+    "dataModel": ".ai/data-model",
+    "prototypes": ".ai/prototypes",
+    "scripts": ".ai/scripts",
+    "qa": ".ai/qa"
+  },
+  "designTokens": null,
+  "reviewChecklist": null,
+  "agentHarness": null,
+  "closeKeywords": [],
+  "dependencyAudit": { "minSeverity": "high", "ignore": [] },
+  "prTitleTemplate": "{prefix}({area}): {summary}{issueRef}",
+  "ticketKeyPattern": ""
+}
