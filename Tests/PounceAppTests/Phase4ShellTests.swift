@@ -6,6 +6,11 @@ import Testing
 
 @testable import PounceApp
 
+private let repositoryRoot = URL(filePath: #filePath)
+    .deletingLastPathComponent()
+    .deletingLastPathComponent()
+    .deletingLastPathComponent()
+
 /// Needs Accessibility and the pasteboard, ordered first.
 final class PastingPlugin: PouncePlugin {
     static let manifest = PluginManifest(
@@ -290,5 +295,57 @@ actor PlainRecorder: UsageRecorder {
         defer { controller.close() }
         #expect(controller.flow?.pages.map(\.id) == ["intro", "shortcut", "clipboard.intro"])
         #expect(controller.flow?.current?.id == "shortcut")
+    }
+}
+
+@MainActor
+@Suite struct AboutWindowTests {
+    @Test func readsTheVersionAndTheNoticesFromTheBundle() throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: "pounce-about-\(UUID().uuidString).app")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let resources = root.appending(path: "Contents/Resources", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: resources, withIntermediateDirectories: true)
+        let plist: [String: Any] = [
+            "CFBundleIdentifier": "app.pounce.tests.about", "CFBundleShortVersionString": "1.2.3",
+            "CFBundleVersion": "45", "NSHumanReadableCopyright": "Copyright Example",
+        ]
+        try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
+            .write(to: root.appending(path: "Contents/Info.plist"))
+        try Data("Example notices".utf8).write(to: resources.appending(path: "THIRD_PARTY_NOTICES.txt"))
+
+        let info = AboutInfo(bundle: try #require(Bundle(url: root)))
+        #expect(
+            info == AboutInfo(version: "1.2.3", build: "45", copyright: "Copyright Example", notices: "Example notices")
+        )
+        #expect(info.versionText == "Version 1.2.3 (45)")
+    }
+
+    @Test func anUnbundledBuildSaysSo() {
+        let info = AboutInfo(version: nil, build: nil, copyright: nil, notices: nil)
+        #expect(info.versionText == "Development build")
+        #expect(AboutInfo(version: "1.0.0", build: nil, copyright: nil, notices: nil).versionText == "Version 1.0.0")
+        #expect(!AboutView.missingNotices.isEmpty)
+    }
+
+    @Test func theAppBundleShipsTheNotices() throws {
+        let notices = try String(
+            contentsOf: repositoryRoot.appending(path: "Resources/THIRD_PARTY_NOTICES.txt"), encoding: .utf8)
+        #expect(notices.contains("SQLCipher"))
+        let script = try String(contentsOf: repositoryRoot.appending(path: "scripts/make-app.sh"), encoding: .utf8)
+        #expect(script.contains("Contents/Resources/THIRD_PARTY_NOTICES.txt"))
+    }
+
+    @Test func theMenuItemOpensPouncesAboutWindow() throws {
+        var opened = 0
+        var actions = ShellMenuActions(openPanel: {}, openSettings: {}, mainShortcut: { nil }, runCommand: { _ in })
+        actions.showAbout = { opened += 1 }
+        let menu = NSMenu()
+        let builder = StatusMenuBuilder(actions: actions)
+        builder.populate(menu, commands: [])
+        let about = try #require(menu.items.first { $0.title == "About Pounce" })
+        let action = try #require(about.action)
+        _ = (about.target as? NSObject)?.perform(action, with: about)
+        #expect(opened == 1)
+        withExtendedLifetime(builder) {}
     }
 }

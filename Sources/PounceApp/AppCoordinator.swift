@@ -16,6 +16,7 @@ final class AppCoordinator {
     private(set) var panel: PanelController?
     private(set) var settingsWindow: SettingsWindowController?
     private(set) var onboarding: OnboardingController?
+    private(set) var about: AboutWindowController?
     private let search: SearchCoordinator
     private let icons: IconCache
     private let logger = Logger(subsystem: "app.pounce", category: "app")
@@ -75,7 +76,8 @@ final class AppCoordinator {
                 openSettings: { [weak self] in self?.openSettings() },
                 mainShortcut: { [weak self] in self?.hotkeys.mainShortcut },
                 runCommand: { [weak self] command in self?.perform(command) },
-                commandShortcut: { [weak self] id in self?.hotkeys.commandShortcut(id) }
+                commandShortcut: { [weak self] id in self?.hotkeys.commandShortcut(id) },
+                showAbout: { [weak self] in self?.showAbout() }
             )
         ) { host.activeCommands }
 
@@ -104,6 +106,12 @@ final class AppCoordinator {
         panelModel.hide()
         hotkeys.refreshDefault()
         settingsWindow?.show(pane)
+    }
+
+    /// Hides the panel first and shows the About window with the third-party notices.
+    func showAbout() {
+        panelModel.hide()
+        about?.show()
     }
 
     /// Shows a plugin's own Settings pane.
@@ -191,6 +199,10 @@ final class AppCoordinator {
         }
         onboarding.activatesApp = environment.registersGlobalHotkeys
         self.onboarding = onboarding
+
+        let about = AboutWindowController()
+        about.activatesApp = environment.registersGlobalHotkeys
+        self.about = about
     }
 
     private func pluginsChanged() {

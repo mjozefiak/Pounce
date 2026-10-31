@@ -163,6 +163,24 @@
         }
       }
     },
+    "A fast launcher for apps, files and your clipboard history." : {
+      "comment" : "About window: one-line description",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A fast launcher for apps, files and your clipboard history."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szybki launcher aplikacji, plików i historii schowka."
+          }
+        }
+      }
+    },
     "About Pounce" : {
       "comment" : "Menu bar menu item that opens the About window",
       "extractionState" : "manual",
@@ -843,6 +861,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Biurko"
+          }
+        }
+      }
+    },
+    "Development build" : {
+      "comment" : "About window: version of an unbundled build",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Development build"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wersja deweloperska"
           }
         }
       }
@@ -3061,6 +3097,24 @@
         }
       }
     },
+    "Source Code" : {
+      "comment" : "About window: link to the GitHub repository",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source Code"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kod źródłowy"
+          }
+        }
+      }
+    },
     "Spotlight uses ⌘Space. To open Pounce with ⌘Space, turn off “Show Spotlight search” in System Settings → Keyboard → Keyboard Shortcuts → Spotlight." : {
       "comment" : "Banner explaining how to free Command-Space from Spotlight",
       "extractionState" : "manual",
@@ -3277,6 +3331,24 @@
         }
       }
     },
+    "The notices are in THIRD_PARTY_NOTICES.txt in the app bundle and in the source repository." : {
+      "comment" : "About window: shown when the notices file is missing from the bundle",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The notices are in THIRD_PARTY_NOTICES.txt in the app bundle and in the source repository."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Informacje są w pliku THIRD_PARTY_NOTICES.txt w pakiecie aplikacji i w repozytorium kodu."
+          }
+        }
+      }
+    },
     "The ranking could not be reset." : {
       "comment" : "Alert title when Reset Ranking fails",
       "extractionState" : "manual",
@@ -3309,6 +3381,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ranking został zresetowany."
+          }
+        }
+      }
+    },
+    "Third-Party Notices" : {
+      "comment" : "About window: section title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Third-Party Notices"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Informacje o oprogramowaniu firm trzecich"
           }
         }
       }
@@ -3493,6 +3583,42 @@
         }
       }
     },
+    "Version %@" : {
+      "comment" : "About window: version without a build number",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wersja %@"
+          }
+        }
+      }
+    },
+    "Version %@ (%@)" : {
+      "comment" : "About window: version and build number",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version %@ (%@)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wersja %1$@ (%2$@)"
+          }
+        }
+      }
+    },
     "Waiting for setup" : {
       "comment" : "File index status before the first scan",
       "extractionState" : "manual",
@@ -3507,6 +3633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Czeka na konfigurację"
+          }
+        }
+      }
+    },
+    "Website" : {
+      "comment" : "About window: link to the landing page",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Website"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strona internetowa"
           }
         }
       }

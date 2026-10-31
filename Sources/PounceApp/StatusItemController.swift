@@ -10,6 +10,8 @@ struct ShellMenuActions {
     let runCommand: (PluginCommand) -> Void
     /// A plugin command's current global shortcut, shown next to its menu item. Added in Phase 2.
     var commandShortcut: (String) -> HotkeyShortcut? = { _ in nil }
+    /// Opens Pounce's About window. Added in Phase 4; without it the standard About panel opens.
+    var showAbout: (() -> Void)?
 }
 
 /// The menu bar item: a template SF Symbol and a menu with "Open Pounce" (showing the current shortcut),
@@ -165,6 +167,10 @@ final class StatusMenuBuilder: NSObject {
     }
 
     @objc private func showAbout() {
+        if let showAbout = actions?.showAbout {
+            showAbout()
+            return
+        }
         // An agent app is never active on its own; activate so the panel comes to the front.
         NSApp.activate()
         NSApp.orderFrontStandardAboutPanel(nil)

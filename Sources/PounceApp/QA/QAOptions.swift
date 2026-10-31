@@ -44,9 +44,12 @@ struct QAOptions: Equatable {
     var failsAction = false
     /// `--qa-settings general|features|<plugin id>`: opens the Settings window on that pane.
     var settingsPane: String?
-    /// `--qa-onboarding`: shows the first-launch Shortcut step.
+    /// `--qa-onboarding`: shows the whole welcome screen (Phase 4), whatever was completed.
     var showsOnboarding = false
-    /// `--qa-onboarding-step <step id>`: shows a plugin's onboarding step (for example `clipboard.intro`).
+    /// `--qa-about`: shows the About window (Phase 4).
+    var showsAbout = false
+    /// `--qa-onboarding-step <step id>`: shows the welcome screen on one page: `intro`, `shortcut` or a
+    /// plugin's step (for example `clipboard.intro`).
     var onboardingStep: String?
     /// `--qa-pasteboard-access allow|default|ask|deny`: the pasteboard access behaviour plugins see.
     var pasteboardAccess: PasteboardAccess?
@@ -124,6 +127,8 @@ struct QAOptions: Equatable {
                 options.settingsPane = value
             case "--qa-onboarding":
                 options.showsOnboarding = true
+            case "--qa-about":
+                options.showsAbout = true
             case "--qa-onboarding-step":
                 guard let value = iterator.next() else { throw .missingValue(argument) }
                 options.onboardingStep = value
