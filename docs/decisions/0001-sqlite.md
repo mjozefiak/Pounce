@@ -37,7 +37,8 @@ the outside:
   with the app's identity before signing the app.
 
 Licenses: GRDB is MIT, SQLCipher Community Edition is BSD-style; both are compatible with Pounce's
-MIT license.
+MIT license. SQLCipher's license requires its notice in binary distributions, so
+`Resources/THIRD_PARTY_NOTICES.txt` (both notices) ships in `Pounce.app/Contents/Resources`.
 
 ## Spike results (macOS 27.0.1, Xcode 27.2, Swift 6.4.2)
 

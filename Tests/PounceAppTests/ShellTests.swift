@@ -28,6 +28,22 @@ private let repositoryRoot = URL(filePath: #filePath)
     }
 }
 
+/// The app bundle carries the license notices of the third-party code it embeds.
+@Suite struct ThirdPartyNoticesTests {
+    @Test func noticesNameEveryEmbeddedLibraryAndShipInTheBundle() throws {
+        let notices = try String(
+            contentsOf: repositoryRoot.appending(path: "Resources/THIRD_PARTY_NOTICES.txt"),
+            encoding: .utf8
+        )
+        #expect(notices.contains("Copyright (c) 2025, ZETETIC LLC"))
+        #expect(notices.contains("Redistributions in binary form must reproduce the above copyright"))
+        #expect(notices.contains("Copyright (C) 2015-2025 Gwendal Roué"))
+
+        let script = try String(contentsOf: repositoryRoot.appending(path: "scripts/make-app.sh"), encoding: .utf8)
+        #expect(script.contains("Resources/THIRD_PARTY_NOTICES.txt \"$OUT/Contents/Resources/"))
+    }
+}
+
 /// Every string in the catalog has a translated English and Polish value (Q11).
 @Suite struct StringCatalogTests {
     struct Catalog: Decodable {

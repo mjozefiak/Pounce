@@ -38,6 +38,10 @@ printf 'APPL????' > "$OUT/Contents/PkgInfo"
 ditto "$BIN_DIR/SQLCipher.framework" "$OUT/Contents/Frameworks/SQLCipher.framework"
 install_name_tool -add_rpath "@executable_path/../Frameworks" "$OUT/Contents/MacOS/$APP_NAME"
 
+# License notices of the bundled third-party code (SQLCipher's BSD license requires them in binary
+# distributions).
+cp Resources/THIRD_PARTY_NOTICES.txt "$OUT/Contents/Resources/THIRD_PARTY_NOTICES.txt"
+
 # Localizations: compile the String Catalog into <lang>.lproj/Localizable.strings.
 xcrun xcstringstool compile Resources/Localizable.xcstrings --output-directory "$OUT/Contents/Resources"
 
