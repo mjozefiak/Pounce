@@ -84,7 +84,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
 
         let frame = window?.frame
         window?.close()
-        let window = NSWindow(contentViewController: tabs)
+        let window = ShellWindow(contentViewController: tabs)
         window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false
         window.toolbarStyle = .preference

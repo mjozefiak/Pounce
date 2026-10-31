@@ -67,6 +67,19 @@ nonisolated struct FixedSource: SearchSource {
     }
 }
 
+/// Offers one action that throws `error`, like opening an app that was moved since the last scan.
+nonisolated struct FailingActionSource: SearchSource {
+    let id: SourceID = "fruit.failing"
+    let error: any Error & Sendable
+
+    func search(_ query: NormalizedQuery, limit: Int) async throws -> [Candidate] { [] }
+
+    func actions(for candidate: Candidate) -> [ResultAction] {
+        let error = error
+        return [ResultAction(id: "open", title: "Open", symbolName: "arrow.up.forward") { _ in throw error }]
+    }
+}
+
 /// A plugin with three same-tier results, used to test ranking by usage.
 final class FruitPlugin: PouncePlugin {
     static let manifest = PluginManifest(id: "fruit", displayName: "Fruit", symbolName: "leaf", order: 5)
@@ -379,6 +392,75 @@ private func results(_ query: String, sections: [[String]], source: FixedSource)
         #expect(log.all.sorted() == ["copy Apple", "open Apple query=Ap", "reveal Apple"])
     }
 
+    @Test func aFailedActionReopensThePanelWithAMessageUntilTheNextKeystroke() async {
+        let failing = FailingActionSource(error: CocoaError(.fileNoSuchFile))
+        let model = PanelModel { query in
+            let candidate = Candidate(
+                itemKey: ItemKey(pluginID: "fruit", key: "apple"),
+                title: "Apple",
+                icon: .symbol("circle"),
+                match: MatchResult(tier: .prefix, score: 1)
+            )
+            let row = ResultItem(id: "apple", candidate: candidate, source: failing, kind: "Fruit")
+            return SearchResults(
+                query: NormalizedQuery(raw: query, normalized: query.lowercased()),
+                sections: [ResultSection(id: "s", title: "Fruit", symbolName: "leaf", kind: .results, items: [row])]
+            )
+        }
+        let presenter = FakePresenter()
+        model.presenter = presenter
+        model.panelPresenter = presenter
+        var announcements: [String] = []
+        model.announce = { announcements.append($0) }
+        model.show()
+        model.updateQuery("ap")
+        await model.waitForSearch()
+
+        model.performPrimary()
+        await model.waitForAction()
+
+        #expect(model.isVisible)
+        #expect(presenter.presented == 2)
+        #expect(model.errorMessage?.contains("Apple") == true)
+        #expect(announcements.last == model.errorMessage)
+        #expect(model.showsResultsArea)
+        #expect(model.preferredHeight > PanelModel.Metrics.fieldHeight)
+
+        model.updateQuery("a")
+        #expect(model.errorMessage == nil)
+    }
+
+    @Test func aCancelledActionIsNotReported() async {
+        let failing = FailingActionSource(error: CocoaError(.userCancelled))
+        let model = PanelModel { query in
+            let candidate = Candidate(
+                itemKey: ItemKey(pluginID: "fruit", key: "apple"),
+                title: "Apple",
+                icon: .symbol("circle"),
+                match: MatchResult(tier: .prefix, score: 1)
+            )
+            let row = ResultItem(id: "apple", candidate: candidate, source: failing, kind: "Fruit")
+            return SearchResults(
+                query: NormalizedQuery(raw: query, normalized: query.lowercased()),
+                sections: [ResultSection(id: "s", title: "Fruit", symbolName: "leaf", kind: .results, items: [row])]
+            )
+        }
+        let presenter = FakePresenter()
+        model.presenter = presenter
+        model.panelPresenter = presenter
+        model.announce = { _ in }
+        model.show()
+        model.updateQuery("ap")
+        await model.waitForSearch()
+
+        model.performPrimary()
+        await model.waitForAction()
+
+        #expect(!model.isVisible)
+        #expect(model.errorMessage == nil)
+        #expect(PanelModel.isCancellation(CancellationError()))
+    }
+
     @Test func changedResultsSearchAgainKeepingTheSelection() async {
         let titles = Mutex(["Apple"])
         let source = source
@@ -491,6 +573,59 @@ private func waitUntil(_ condition: () -> Bool) async throws {
 }
 
 // MARK: Shell pieces
+
+/// Records whether the window was asked to close, and refuses so nothing appears on screen.
+final class CloseRecorder: NSObject, NSWindowDelegate {
+    private(set) var asked = 0
+
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        asked += 1
+        return false
+    }
+}
+
+@Suite struct ShellWindowTests {
+    private func key(_ characters: String, _ flags: NSEvent.ModifierFlags, window: NSWindow) -> NSEvent? {
+        NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: flags,
+            timestamp: 0,
+            windowNumber: window.windowNumber,
+            context: nil,
+            characters: characters,
+            charactersIgnoringModifiers: characters,
+            isARepeat: false,
+            keyCode: UInt16(kVK_ANSI_W)
+        )
+    }
+
+    @Test func commandWClosesSettingsAndOnboardingWindows() throws {
+        let window = ShellWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 100, height: 100),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: true
+        )
+        window.isReleasedWhenClosed = false
+        let recorder = CloseRecorder()
+        window.delegate = recorder
+
+        #expect(window.performKeyEquivalent(with: try #require(key("w", .command, window: window))))
+        #expect(recorder.asked == 1)
+        #expect(!ShellWindow.isClose(try #require(key("w", [.command, .shift], window: window))))
+        #expect(!ShellWindow.isClose(try #require(key("q", .command, window: window))))
+    }
+
+    @Test func recordersAreReadOnlyWithoutGlobalHotkeys() {
+        let settings = InMemorySettingsStore()
+        let live = HotkeyService(registrar: InMemoryHotkeyRegistrar(), settings: settings, readOccupied: { [] })
+        let qa = HotkeyService(
+            registrar: InMemoryHotkeyRegistrar(), settings: settings, readOccupied: { [] }, allowsRecording: false)
+        #expect(live.allowsRecording)
+        #expect(!qa.allowsRecording)
+    }
+}
 
 @Suite struct ShellPhase1Tests {
     @Test func menuWithShellActionsOpensThePanelAndSettings() {

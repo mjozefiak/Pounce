@@ -28,7 +28,7 @@ final class OnboardingController: NSObject, NSWindowDelegate {
         )
         let controller = NSHostingController(rootView: view)
         controller.sizingOptions = [.preferredContentSize]
-        let window = NSWindow(contentViewController: controller)
+        let window = ShellWindow(contentViewController: controller)
         window.styleMask = [.titled, .closable]
         window.title = String(localized: "Welcome to Pounce", comment: "Onboarding window title")
         window.isReleasedWhenClosed = false

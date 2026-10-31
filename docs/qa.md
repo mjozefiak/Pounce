@@ -82,8 +82,8 @@ dist/Pounce.app/Contents/MacOS/Pounce --qa \
 `/System/Applications`, `/System/Library/CoreServices/Applications`). Fake bundles have the generic
 app icon.
 
-Do not record a shortcut in a recorder during QA: the recorder writes to the `app.pounce.Pounce`
-defaults domain and registers it with the system.
+In QA mode the shortcut recorders are read-only. KeyboardShortcuts would write a recorded shortcut to
+the `app.pounce.Pounce` defaults domain and register it with the system, so a QA run cannot record one.
 
 ## Screenshots
 

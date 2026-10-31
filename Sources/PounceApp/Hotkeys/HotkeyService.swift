@@ -41,6 +41,9 @@ final class HotkeyService {
     @ObservationIgnored private let readOccupied: () -> Set<HotkeyShortcut>
     @ObservationIgnored private var commandNames: Set<HotkeyName> = []
     @ObservationIgnored private let logger = Logger(subsystem: "app.pounce", category: "hotkeys")
+    /// False in QA mode: the recorders are read-only, because KeyboardShortcuts writes a recorded shortcut
+    /// to the real defaults domain and registers it with the system.
+    @ObservationIgnored let allowsRecording: Bool
 
     /// The current main shortcut, for menus and settings.
     private(set) var mainShortcut: HotkeyShortcut?
@@ -52,9 +55,11 @@ final class HotkeyService {
         settings: any SettingsStore,
         readOccupied: @escaping () -> Set<HotkeyShortcut> = {
             SymbolicHotkeys.occupiedShortcuts(SymbolicHotkeys.readSystem())
-        }
+        },
+        allowsRecording: Bool = true
     ) {
         self.registrar = registrar
+        self.allowsRecording = allowsRecording
         self.settings = settings
         self.readOccupied = readOccupied
     }

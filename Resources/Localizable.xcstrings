@@ -307,6 +307,24 @@
         }
       }
     },
+    "OK" : {
+      "comment" : "Button that dismisses an alert",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        }
+      }
+    },
     "Off" : {
       "comment" : "Feature state",
       "extractionState" : "manual",
@@ -739,6 +757,24 @@
         }
       }
     },
+    "The data could not be erased." : {
+      "comment" : "Alert title when Erase Data fails",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The data could not be erased."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się usunąć danych."
+          }
+        }
+      }
+    },
     "This deletes everything the feature stored on this Mac. It cannot be undone." : {
       "comment" : "Erase confirmation message",
       "extractionState" : "manual",
@@ -861,6 +897,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Możesz go później zmienić w Ustawieniach → Ogólne."
+          }
+        }
+      }
+    },
+    "“%@” did not work for “%@”." : {
+      "comment" : "Panel message when a result action fails; action title, then the result's title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” did not work for “%@”."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się wykonać akcji „%@” dla „%@”."
+          }
+        }
+      }
+    },
+    "“%@” did not work." : {
+      "comment" : "Panel message when a result action fails; the action title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” did not work."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się wykonać akcji „%@”."
           }
         }
       }

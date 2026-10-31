@@ -46,6 +46,7 @@ final class KeyboardShortcutsRegistrar: HotkeyRegistrar {
     }
 }
 
+#if DEBUG
 /// QA mode: shortcuts live in the in-memory registrar, and the recorder views read them from the
 /// volatile registration domain, so nothing is persisted or registered with the system.
 final class PreviewHotkeyRegistrar: HotkeyRegistrar {
@@ -67,3 +68,4 @@ final class PreviewHotkeyRegistrar: HotkeyRegistrar {
 
     func removeHandler(for name: HotkeyName) {}
 }
+#endif

@@ -43,7 +43,11 @@ final class AppCoordinator {
         )
         self.appSettings = AppSettings(store: environment.settings)
         self.hotkeys = HotkeyService(
-            registrar: registrar, settings: environment.settings, readOccupied: occupiedShortcuts)
+            registrar: registrar,
+            settings: environment.settings,
+            readOccupied: occupiedShortcuts,
+            allowsRecording: environment.registersGlobalHotkeys
+        )
         self.launchAtLogin = launchAtLogin
         let search = SearchCoordinator(host: host, usage: environment.usage)
         self.search = search
