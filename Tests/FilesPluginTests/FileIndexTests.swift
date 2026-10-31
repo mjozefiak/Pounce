@@ -133,16 +133,36 @@ func query(_ text: String) -> NormalizedQuery { TextNormalizer.query(text) }
         #expect(worst < .seconds(2))
     }
 
-    @Test func byteMatcherAgreesWithTheMatcherOnTiers() {
-        let names = ["plan.txt", "my plan.txt", "airplane.txt", "p-l-a-n.md", "Plan", "xplanx", "project_log_a_n"]
+    @Test func byteMatcherAgreesWithTheMatcherOnTiers() throws {
+        let names = [
+            "plan.txt", "my plan.txt", "airplane.txt", "p-l-a-n.md", "Plan", "xplanx", "project_log_a_n",
+            "MyPlan.txt", "myplan.txt", "draft+plan.md", "Q3Plan.key", "Project Log And Notes",
+        ]
         for name in names {
-            let folded = NameStore.fold(name)
+            let store = makeStore([name])
+            let node = try #require(store.locate("/r/\(name)").node)
             let approximate = Array("plan".utf8).withUnsafeBufferPointer { q in
-                folded.withUnsafeBufferPointer { ByteMatcher.match(q, in: $0) }
+                store.withSearchBytes(Int(node)) { ByteMatcher.match(q, in: $0, original: $1) }
             }
             let exact = FuzzyMatcher.match(Array("plan".unicodeScalars), in: NormalizedText(name))
             #expect(approximate?.0 == exact?.tier, "\(name)")
         }
+    }
+
+    /// Camel-case and letter-to-digit boundaries are word starts for `FuzzyMatcher`, so the byte pass must
+    /// not let substring matches crowd such a name out of the top `2 × limit`.
+    @Test func camelCaseWordStartsAreNotCrowdedOut() async throws {
+        var names = (0..<100).map { "xdelegatex\($0).txt" }
+        names += ["AppDelegate.swift", "report2024.pdf"]
+        names += (0..<100).map { "a12024b\($0).txt" }
+        let store = makeStore(names)
+        let camel = try await FileSearch.search(query("delegate"), in: store, limit: 5)
+        #expect(camel.first?.name == "AppDelegate.swift")
+        #expect(camel.first?.match.tier == .wordStart)
+        let acronym = try await FileSearch.search(query("ad"), in: store, limit: 5)
+        #expect(acronym.contains { $0.name == "AppDelegate.swift" })
+        let digits = try await FileSearch.search(query("2024"), in: store, limit: 5)
+        #expect(digits.first?.name == "report2024.pdf")
     }
 }
 

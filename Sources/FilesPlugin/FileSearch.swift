@@ -103,8 +103,8 @@ enum FileSearch {
             }
             let flags = store.flags[index]
             if flags.contains(.removed) || flags.contains(.root) { continue }
-            let approximate = store.withFoldedBytes(index) { name in
-                needle.withUnsafeBufferPointer { ByteMatcher.match($0, in: name) }
+            let approximate = store.withSearchBytes(index) { name, original in
+                needle.withUnsafeBufferPointer { ByteMatcher.match($0, in: name, original: original) }
             }
             guard let (tier, score) = approximate else { continue }
             let node = Int32(index)
@@ -158,20 +158,42 @@ struct TopList {
 
 /// The byte-level approximation of `FuzzyMatcher` over normalised UTF-8 names: the same tiers (exact,
 /// prefix, word start or acronym, substring, subsequence) with scores on the same scale.
+///
+/// Word starts follow `FuzzyScoring.bonus`: a word byte after any non-word byte (space, delimiter or
+/// punctuation), a digit after a letter, and an upper-case letter after a lower-case one. The last needs
+/// the raw name (`original`), which is only passed when it lines up byte for byte with the normalised one.
 enum ByteMatcher {
-    static func isDelimiter(_ byte: UInt8) -> Bool {
-        switch byte {
-        case 0x20, 0x2D, 0x5F, 0x2E, 0x2F, 0x2C, 0x3A, 0x3B, 0x7C, 0x28, 0x29, 0x5B, 0x5D: true
-        default: false
-        }
-    }
-
     static func isWordByte(_ byte: UInt8) -> Bool {
-        (byte >= 0x30 && byte <= 0x39) || (byte >= 0x61 && byte <= 0x7A) || byte >= 0x80
+        isDigit(byte) || (byte >= 0x61 && byte <= 0x7A) || byte >= 0x80
     }
 
-    static func match(_ query: UnsafeBufferPointer<UInt8>, in name: UnsafeBufferPointer<UInt8>) -> (MatchTier, Double)?
-    {
+    static func isDigit(_ byte: UInt8) -> Bool {
+        byte >= 0x30 && byte <= 0x39
+    }
+
+    /// Whether a word starts at `position`, as `FuzzyMatcher` decides it.
+    static func isWordStart(
+        _ position: Int, in name: UnsafeBufferPointer<UInt8>, original: UnsafeBufferPointer<UInt8>?
+    ) -> Bool {
+        let current = name[position]
+        guard isWordByte(current) else { return false }
+        guard position > 0 else { return true }
+        let previous = name[position - 1]
+        if !isWordByte(previous) { return true }
+        if isDigit(current) { return !isDigit(previous) }
+        guard let original else { return false }
+        let upper = original[position]
+        let lower = original[position - 1]
+        // Camel case, checked against the raw bytes; the folded bytes must be their lower case, so a raw
+        // name that does not line up never makes a boundary.
+        return upper >= 0x41 && upper <= 0x5A && lower >= 0x61 && lower <= 0x7A && current == upper | 0x20
+            && previous == lower
+    }
+
+    static func match(
+        _ query: UnsafeBufferPointer<UInt8>, in name: UnsafeBufferPointer<UInt8>,
+        original: UnsafeBufferPointer<UInt8>? = nil
+    ) -> (MatchTier, Double)? {
         let q = query.count
         let n = name.count
         guard q > 0, q <= n else { return nil }
@@ -192,7 +214,7 @@ enum ByteMatcher {
         var index = 1
         while index + q <= n {
             if name[index] == query[0], equal(query, name, at: index) {
-                if isDelimiter(name[index - 1]) && isWordByte(name[index]) {
+                if isWordStart(index, in: name, original: original) {
                     return (.wordStart, 0.9 * coverage * (1 - 0.25 * Double(index) / length))
                 }
                 if substring == nil { substring = index }
@@ -203,8 +225,7 @@ enum ByteMatcher {
         if q >= 2 {
             var initials = 0
             var matched = 0
-            for position in 0..<n where position == 0 || (isDelimiter(name[position - 1]) && isWordByte(name[position]))
-            {
+            for position in 0..<n where isWordStart(position, in: name, original: original) {
                 initials += 1
                 if matched < q, name[position] == query[matched] { matched += 1 }
             }

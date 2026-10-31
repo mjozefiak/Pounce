@@ -156,6 +156,25 @@ struct NameStore: Sendable {
         }
     }
 
+    /// The normalised name bytes of a node plus, when they line up byte for byte, its raw bytes, which keep
+    /// the case that camel-case word starts need (search only; ASCII names line up, most others do not).
+    @inline(__always)
+    func withSearchBytes<R>(_ node: Int, _ body: (UnsafeBufferPointer<UInt8>, UnsafeBufferPointer<UInt8>?) -> R) -> R {
+        let nameStart = Int(nameStarts[node])
+        let nameLength = Int(nameLengths[node])
+        let foldStart = foldStarts[node]
+        return namePool.withUnsafeBufferPointer { pool in
+            let raw = UnsafeBufferPointer(rebasing: pool[nameStart..<nameStart + nameLength])
+            // The same bytes: the name has no upper case, so there is no camel case to find.
+            guard foldStart != Self.sameAsRaw else { return body(raw, nil) }
+            let foldLength = Int(foldLengths[node])
+            return foldPool.withUnsafeBufferPointer { folds in
+                let folded = UnsafeBufferPointer(rebasing: folds[Int(foldStart)..<Int(foldStart) + foldLength])
+                return body(folded, foldLength == nameLength ? raw : nil)
+            }
+        }
+    }
+
     // MARK: Writing
 
     /// Adds a root (its name is the whole path).
