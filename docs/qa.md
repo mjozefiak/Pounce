@@ -37,6 +37,7 @@ Any `--qa…` argument turns QA mode on:
 | Caches | `~/Library/Caches/Pounce` | `Caches/` under the data root |
 | Focus | the panel and Settings activate Pounce | windows are ordered front without activating Pounce or taking key focus, and the panel does not close when another app has focus |
 | Launch at Login | `SMAppService.mainApp` | in memory; the toggle never registers anything |
+| Paste keystroke | ⌘V posted to the previous app (needs Accessibility) | never posted; the paste is only logged |
 
 AppKit itself may still write window and status-item state to the `app.pounce.Pounce` defaults domain.
 If that domain did not exist before a QA session, remove it afterwards with
@@ -88,8 +89,8 @@ dist/Pounce.app/Contents/MacOS/Pounce --qa --qa-onboarding-step clipboard.intro
 ```
 
 Pasting (Return posts ⌘V into the previous app) needs Accessibility and a real target app, so it is a
-manual check; in QA mode Return with `--qa-accessibility granted` would post a real keystroke, so use
-⌘Return (copy only) or `--qa-accessibility denied`.
+manual check outside QA mode. In QA mode the keystroke is never posted: Return writes the entry to the
+private pasteboard and logs that ⌘V would have been sent.
 
 ## App search with fixture apps
 

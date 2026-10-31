@@ -3,6 +3,7 @@ import ApplicationServices
 import Carbon.HIToolbox
 import Foundation
 import PounceKit
+import os
 
 /// Reads and writes one `NSPasteboard`: the general pasteboard normally, a named private pasteboard in
 /// QA mode and tests, so the user's real clipboard is never read or replaced there.
@@ -107,6 +108,13 @@ nonisolated struct SystemEventPoster: EventPoster {
         up?.flags = .maskCommand
         down?.post(tap: .cghidEventTap)
         up?.post(tap: .cghidEventTap)
+    }
+}
+
+/// QA mode: never posts a keystroke, only logs that a paste would have happened.
+nonisolated struct LoggingEventPoster: EventPoster {
+    @MainActor func postPaste() throws(EventPosterError) {
+        Logger(subsystem: "app.pounce", category: "qa").notice("QA mode: Command-V not posted")
     }
 }
 

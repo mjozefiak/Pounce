@@ -164,6 +164,7 @@ final class RecorderRequests {
             for: PluginManifest(id: "clipboard", displayName: "Clipboard History", symbolName: "doc", order: 30))
         #expect(context.pasteboard.accessBehavior == PasteboardAccess.alwaysDeny)
         #expect(context.permissions.status(of: .accessibility) == .granted)
+        #expect(context.events is LoggingEventPoster)
         NSPasteboard(name: try #require(environment.pasteboardName)).releaseGlobally()
     }
 }

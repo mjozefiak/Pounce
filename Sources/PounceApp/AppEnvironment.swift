@@ -24,6 +24,8 @@ struct AppEnvironment {
     var pasteboardAccess: PasteboardAccess?
     /// QA mode only: the Accessibility status plugins see (`--qa-accessibility`), instead of the system's.
     var accessibility: PermissionStatus?
+    /// False in QA mode: a paste is logged instead of posting a real Command-V to the tester's apps.
+    var postsKeystrokes = true
 
     /// `Plugins/<id>/` under the data root.
     func storageDirectory(for id: PluginID) -> URL {
@@ -54,7 +56,7 @@ struct AppEnvironment {
             logger: Logger(subsystem: "app.pounce", category: manifest.id.rawValue),
             keychain: keychain,
             pasteboard: SystemPasteboardClient(name: pasteboardName, accessOverride: pasteboardAccess),
-            events: SystemEventPoster(),
+            events: postsKeystrokes ? SystemEventPoster() : LoggingEventPoster(),
             workspace: SystemWorkspaceClient(),
             permissions: SystemPermissionsReader(
                 pasteboardName: pasteboardName, accessibilityOverride: accessibility),
@@ -110,7 +112,8 @@ struct AppEnvironment {
             usage: openRanking(in: root),
             registersGlobalHotkeys: false,
             pasteboardAccess: options.pasteboardAccess,
-            accessibility: options.accessibility
+            accessibility: options.accessibility,
+            postsKeystrokes: false
         )
     }
     #endif
