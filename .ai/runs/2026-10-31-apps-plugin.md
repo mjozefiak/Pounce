@@ -88,6 +88,6 @@ PR: #4
 ### Phase 3: Panel, hotkey, settings
 
 - [x] 3.1 LauncherPanel, PanelModel, SearchCoordinator and HotkeyService — 63af9bc
-- [x] 3.2 IconCache, result list, footer and accessibility — 63af9bc
+- [x] 3.2 IconCache, result list, footer and accessibility — 63af9bc, e072385
 - [x] 3.3 Spotlight conflict detection, Shortcut step and Settings window — 63af9bc
 - [x] 3.4 QA flags, docs and strings — 63af9bc, 45d588a
