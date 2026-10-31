@@ -48,6 +48,20 @@ final class LauncherPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
 
+    /// Control shortcuts (for example Control-X, delete a clipboard entry) reach the field editor before
+    /// `performKeyEquivalent`, which would swallow them; offer them to the handler first. Control-P/N and
+    /// other editing keys fall through when no action claims them.
+    override func sendEvent(_ event: NSEvent) {
+        if event.type == .keyDown,
+            event.modifierFlags.contains(.control),
+            !event.modifierFlags.contains(.command),
+            keyEquivalentHandler?(event) == true
+        {
+            return
+        }
+        super.sendEvent(event)
+    }
+
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         if keyEquivalentHandler?(event) == true {
             return true

@@ -32,6 +32,7 @@ final class PanelController: NSObject, NSWindowDelegate, PanelPresenting, PanelP
     private var observers: [any NSObjectProtocol] = []
     private var fadeGeneration = 0
     private let signposter = OSSignposter(subsystem: "app.pounce", category: "panel")
+    let confirmation = ConfirmationHUD()
     private let logger = Logger(subsystem: "app.pounce", category: "panel")
 
     /// False in QA mode: the panel is ordered front without becoming key, so it never takes keyboard
@@ -39,15 +40,14 @@ final class PanelController: NSObject, NSWindowDelegate, PanelPresenting, PanelP
     var takesKeyFocus = true
     var onOpenSettings: () -> Void = {}
 
-    init(model: PanelModel, icons: IconCache, level: LauncherPanel.Level, modeView: @escaping (PanelModeID) -> AnyView?)
-    {
+    init(model: PanelModel, icons: IconCache, level: LauncherPanel.Level) {
         self.model = model
         self.panel = LauncherPanel(level: level)
         super.init()
 
         let glass = NSGlassEffectView()
         glass.cornerRadius = 16
-        let content = LauncherView(model: model, icons: icons, modeView: modeView) { [weak self] field in
+        let content = LauncherView(model: model, icons: icons) { [weak self] field in
             self?.field = field
         }
         let hosting = NSHostingView(rootView: content)
@@ -134,8 +134,11 @@ final class PanelController: NSObject, NSWindowDelegate, PanelPresenting, PanelP
         model.hide()
     }
 
+    /// A short message ("Copied") in a small glass bubble where the panel was, also announced.
     func showConfirmation(_ message: LocalizedStringResource) {
-        model.announce(String(localized: message))
+        let text = String(localized: message)
+        model.announce(text)
+        confirmation.show(text, near: panel.frame)
     }
 
     // MARK: Window events
@@ -192,6 +195,14 @@ final class PanelController: NSObject, NSWindowDelegate, PanelPresenting, PanelP
         let flags = event.modifierFlags.intersection([.command, .shift, .option, .control])
         let key = event.charactersIgnoringModifiers?.lowercased() ?? ""
         let editor = panel.firstResponder as? NSTextView
+
+        // Command-1… pick a list mode's filter.
+        if flags == .command, let digit = Int(key), (1...9).contains(digit), model.toggleFilter(at: digit - 1) {
+            return true
+        }
+        if flags == .control, editor?.hasMarkedText() == true {
+            return false
+        }
 
         if flags == .command {
             switch key {

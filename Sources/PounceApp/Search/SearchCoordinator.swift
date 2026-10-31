@@ -136,6 +136,54 @@ final class SearchCoordinator {
         return SearchResults(query: query, sections: sections)
     }
 
+    /// How long a list panel mode's source may take. Generous: the mode shows nothing else meanwhile.
+    static let modeBudget: Duration = .seconds(1)
+    static let modeLimit = 200
+
+    /// Searches a list panel mode alone, keeping the source's order. Nothing is ranked here and nothing
+    /// touches `UsageRecorder`: a mode's items and queries never reach `ranking.sqlite`. Returns `nil`
+    /// when the task was cancelled.
+    func search(mode: PanelMode, raw: String, filter: PanelModeFilter.ID?) async -> SearchResults? {
+        guard let source = mode.source else { return SearchResults(query: TextNormalizer.query(raw), sections: []) }
+        let query = TextNormalizer.query(raw)
+        let state = signposter.beginInterval("mode query")
+        defer { signposter.endInterval("mode query", state) }
+        let adapter = ModeSourceAdapter(
+            id: SourceID(rawValue: "mode:\(mode.id.rawValue)"), source: source, filter: filter)
+        let outcome = await SourceRunner.runOne(
+            adapter, query: query, limit: Self.modeLimit, budget: Self.modeBudget, clock: ContinuousClock())
+        guard !Task.isCancelled else { return nil }
+        let candidates: [Candidate]
+        switch outcome {
+        case .results(let found):
+            candidates = found
+        case .cancelled:
+            return nil
+        case .failed(let error):
+            logger.error("Panel mode source failed: \(String(describing: error), privacy: .private)")
+            candidates = []
+        case .timedOut:
+            logger.notice("Panel mode source exceeded its budget")
+            candidates = []
+        }
+        guard !candidates.isEmpty else { return SearchResults(query: query, sections: []) }
+        let sectionID = "mode:\(mode.id.rawValue)"
+        var seen = Set<ItemKey>()
+        let items = candidates.compactMap { candidate -> ResultItem? in
+            guard seen.insert(candidate.itemKey).inserted else { return nil }
+            return ResultItem(
+                id: "\(sectionID)|\(candidate.itemKey.rawValue)", candidate: candidate, source: adapter,
+                kind: mode.title)
+        }
+        return SearchResults(
+            query: query,
+            sections: [
+                ResultSection(
+                    id: sectionID, title: mode.title, symbolName: mode.symbolName, kind: .results, items: items)
+            ]
+        )
+    }
+
     private func recentSection(
         _ groups: [(pluginID: PluginID, source: any SearchSource, candidates: [Candidate])],
         stats: [ItemKey: UsageStats],
@@ -166,5 +214,21 @@ final class SearchCoordinator {
                 items: items
             )
         ]
+    }
+}
+
+/// Presents a list panel mode's source, with the selected filter, as a `SearchSource`, so the runner's
+/// budget and the panel's action handling apply unchanged.
+nonisolated struct ModeSourceAdapter: SearchSource {
+    let id: SourceID
+    let source: any PanelModeSource
+    let filter: PanelModeFilter.ID?
+
+    func search(_ query: NormalizedQuery, limit: Int) async throws -> [Candidate] {
+        try await source.search(query, filter: filter, limit: limit)
+    }
+
+    func actions(for candidate: Candidate) -> [ResultAction] {
+        source.actions(for: candidate)
     }
 }

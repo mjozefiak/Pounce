@@ -122,13 +122,10 @@ final class AppCoordinator {
         panelModel.previousApplication = { NSWorkspace.shared.frontmostApplication?.processIdentifier }
         panelModel.openSettings = { [weak self] in self?.openSettings(.features) }
         let host = host
-        let controller = PanelController(
-            model: panelModel,
-            icons: icons,
-            level: appSettings.panelLevel
-        ) { id in
-            host.activePanelModes.first { $0.id == id }?.makeView()
-        }
+        panelModel.panelMode = { id in host.activePanelModes.first { $0.id == id } }
+        let search = search
+        panelModel.modeSearch = { mode, text, filter in await search.search(mode: mode, raw: text, filter: filter) }
+        let controller = PanelController(model: panelModel, icons: icons, level: appSettings.panelLevel)
         controller.takesKeyFocus = environment.registersGlobalHotkeys
         controller.onOpenSettings = { [weak self] in self?.openSettings() }
         panel = controller
