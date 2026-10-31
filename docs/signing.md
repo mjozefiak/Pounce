@@ -7,10 +7,10 @@ would look like a new app and users would lose their grants. With a stable certi
 is
 
 ```
-designated => identifier "app.pounce.Pounce" and certificate root = H"<certificate SHA-1>"
+designated => identifier "app.pounce.Pounce" and certificate leaf = H"<certificate SHA-1>"
 ```
 
-and it stays the same across releases (spec risk R1, `BACKWARD_COMPATIBILITY.md` section 4).
+(the certificate is self-signed, so its leaf is also its root), and it stays the same across releases (spec risk R1, `BACKWARD_COMPATIBILITY.md` section 4).
 
 The certificate is not from Apple, so Gatekeeper still blocks the first launch; the release notes
 explain "Open Anyway". The app is not notarized.
@@ -19,8 +19,9 @@ explain "Open Anyway". The app is not notarized.
 
 - The certificate and private key exist only as the repository secrets `SIGNING_P12` (base64 of a
   `.p12`) and `SIGNING_P12_PASSWORD`, plus the owner's login keychain where it was created.
-- Nothing signing-related is committed. `Resources/designated-requirement.txt` holds the expected
-  designated requirement, which contains only the certificate's public SHA-1.
+- Nothing secret is committed. `Resources/designated-requirement.txt` holds the expected
+  designated requirement, which contains only the certificate's public SHA-1. It is not bundled
+  into the app; CI compares every signed build against it.
 
 ## How CI signs
 
@@ -35,7 +36,7 @@ explain "Open Anyway". The app is not notarized.
 3. Runs `scripts/make-dmg.sh` with `SIGN_IDENTITY="Pounce Release"` and `SIGN_KEYCHAIN`. The embedded
    `SQLCipher.framework` is signed first, then the app with the hardened runtime and
    `Resources/Pounce.entitlements`, then the DMG.
-4. Checks that the designated requirement names the identifier and a certificate root (not a cdhash),
+4. Checks that the designated requirement names the identifier and the certificate hash (not a cdhash),
    matches `Resources/designated-requirement.txt`, and is identical after a second, independent build.
 5. Uploads `Pounce.dmg`, its SHA-256 and the designated requirement as the `Pounce-dmg` artifact, then
    deletes the temporary keychain. Only a `v*` tag runs the `publish` job that creates a GitHub Release.

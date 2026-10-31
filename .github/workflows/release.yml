@@ -112,7 +112,9 @@ jobs:
           codesign -dv dist/Pounce.app 2>&1 | grep -E '^(Identifier|Authority|TeamIdentifier|CodeDirectory)'
           codesign -dr - dist/Pounce.app 2>/dev/null | tee dist/designated-requirement.txt
           grep -q 'identifier "app.pounce.Pounce"' dist/designated-requirement.txt
-          grep -q 'certificate root = H"' dist/designated-requirement.txt
+          # A self-signed identity is a one-certificate chain, so codesign pins it as the leaf
+          # (identical to the root): the requirement names that certificate's hash.
+          grep -Eq 'certificate (leaf|root) = H"[0-9a-f]{40}"' dist/designated-requirement.txt
           if grep -q cdhash dist/designated-requirement.txt; then
             echo "::error::The designated requirement is a cdhash: the app was signed ad-hoc."
             exit 1
