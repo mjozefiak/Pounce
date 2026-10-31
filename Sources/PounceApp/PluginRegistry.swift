@@ -1,5 +1,6 @@
 import AppsPlugin
 import ClipboardPlugin
+import FilesPlugin
 import PounceKit
 
 /// The only place that knows the concrete plugins. Adding a feature means a new target, a `PounceApp`
@@ -7,6 +8,7 @@ import PounceKit
 enum PluginRegistry {
     static let all: [any PouncePlugin.Type] = [
         AppsPlugin.self,
+        FilesPlugin.self,
         ClipboardPlugin.self,
     ]
 }
