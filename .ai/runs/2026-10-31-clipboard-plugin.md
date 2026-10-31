@@ -109,15 +109,15 @@ shortcut recorder (spec step 2.7, issue #5).
 
 ### Phase 3: Panel mode and paste
 
-- [ ] 3.1 Shell support for list panel modes
-- [ ] 3.2 Clipboard panel mode
-- [ ] 3.3 PasteService and copy-only fallbacks
+- [x] 3.1 Shell support for list panel modes — ebf7fae
+- [x] 3.2 Clipboard panel mode — ece8e2f
+- [x] 3.3 PasteService and copy-only fallbacks — ece8e2f, 47396ff
 
 ### Phase 4: Safety controls, onboarding, docs
 
-- [ ] 4.1 Settings pane, menu commands and per-command recorder
-- [ ] 4.2 Clipboard onboarding step
-- [ ] 4.3 QA flags, docs and strings
+- [x] 4.1 Settings pane, menu commands and per-command recorder — ece8e2f, bda94b9
+- [x] 4.2 Clipboard onboarding step — ece8e2f, bda94b9
+- [x] 4.3 QA flags, docs and strings — bda94b9, f6bad86, 47396ff
 
 ### Phase 5: Verification
 
