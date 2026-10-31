@@ -44,6 +44,14 @@ import Testing
         #expect(detail.items == items)
     }
 
+    @Test func accessAfterCloseThrowsInsteadOfCrashing() throws {
+        try store.insert(draft("before close"))
+        try store.close()
+        #expect(throws: ClipStoreError.closed) { try store.count() }
+        #expect(throws: ClipStoreError.closed) { try store.insert(draft("after close")) }
+        try store.close()
+    }
+
     @Test func aDuplicateMovesTheEntryToTheTopInsteadOfANewRow() throws {
         let first = try store.insert(draft("fake one", at: Date(timeIntervalSince1970: 100)))
         try store.insert(draft("fake two", at: Date(timeIntervalSince1970: 200)))

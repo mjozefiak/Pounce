@@ -100,13 +100,51 @@ nonisolated struct SystemEventPoster: EventPoster {
         guard CGPreflightPostEventAccess() else { throw EventPosterError.notPermitted }
         guard !IsSecureEventInputEnabled() else { throw EventPosterError.secureEventInput }
         let source = CGEventSource(stateID: .combinedSessionState)
-        let keyCode = CGKeyCode(kVK_ANSI_V)
+        let keyCode = KeyboardLayout.pasteKeyCode()
         let down = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true)
         let up = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false)
         down?.flags = .maskCommand
         up?.flags = .maskCommand
         down?.post(tap: .cghidEventTap)
         up?.post(tap: .cghidEventTap)
+    }
+}
+
+/// Finds the key that types "v" with Command in the current keyboard layout (spec step 2.5), so the
+/// synthetic Command-V pastes on Dvorak, AZERTY and similar layouts. Layouts without a "v" (Cyrillic,
+/// Greek…) use the ANSI V key, which apps match for Command shortcuts.
+nonisolated enum KeyboardLayout {
+    static let ansiV = CGKeyCode(kVK_ANSI_V)
+
+    /// The first virtual key code (0–127) whose character, lowercased, is `character`.
+    static func keyCode(producing character: String, translate: (CGKeyCode) -> String?) -> CGKeyCode? {
+        (0..<128).lazy.map { CGKeyCode($0) }.first { translate($0)?.lowercased() == character }
+    }
+
+    /// Tries the layout with Command held (for "Dvorak – QWERTY ⌘"), then without, then the ANSI key.
+    @MainActor static func pasteKeyCode() -> CGKeyCode {
+        guard let source = TISCopyCurrentKeyboardLayoutInputSource()?.takeRetainedValue(),
+            let pointer = TISGetInputSourceProperty(source, kTISPropertyUnicodeKeyLayoutData)
+        else { return ansiV }
+        let layout = Unmanaged<CFData>.fromOpaque(pointer).takeUnretainedValue() as Data
+        let command = UInt32((cmdKey >> 8) & 0xFF)
+        return keyCode(producing: "v") { translate(layout, keyCode: $0, modifiers: command) }
+            ?? keyCode(producing: "v") { translate(layout, keyCode: $0, modifiers: 0) }
+            ?? ansiV
+    }
+
+    static func translate(_ layout: Data, keyCode: CGKeyCode, modifiers: UInt32) -> String? {
+        layout.withUnsafeBytes { raw -> String? in
+            guard let base = raw.baseAddress?.assumingMemoryBound(to: UCKeyboardLayout.self) else { return nil }
+            var deadKeys: UInt32 = 0
+            var length = 0
+            var characters = [UniChar](repeating: 0, count: 4)
+            let status = UCKeyTranslate(
+                base, UInt16(keyCode), UInt16(kUCKeyActionDown), modifiers, UInt32(LMGetKbdType()),
+                OptionBits(kUCKeyTranslateNoDeadKeysMask), &deadKeys, characters.count, &length, &characters)
+            guard status == noErr, length > 0 else { return nil }
+            return String(utf16CodeUnits: characters, count: length)
+        }
     }
 }
 
@@ -189,14 +227,20 @@ nonisolated struct SystemWorkspaceClient: WorkspaceClient {
 nonisolated struct SystemPermissionsReader: PermissionsReader {
     /// The pasteboard whose access behaviour is reported (`nil` means the general pasteboard).
     let pasteboardName: NSPasteboard.Name?
+    /// QA mode only: reports this Accessibility status instead of the system's.
+    let accessibilityOverride: PermissionStatus?
 
-    init(pasteboardName: NSPasteboard.Name? = nil) {
+    init(pasteboardName: NSPasteboard.Name? = nil, accessibilityOverride: PermissionStatus? = nil) {
         self.pasteboardName = pasteboardName
+        self.accessibilityOverride = accessibilityOverride
     }
 
     @MainActor func status(of permission: Permission) -> PermissionStatus {
         switch permission {
         case .accessibility:
+            if let accessibilityOverride {
+                return accessibilityOverride
+            }
             return CGPreflightPostEventAccess() ? .granted : .denied
         case .fullDiskAccess:
             // Detected in Phase 3 by reading a protected path; unknown until then.

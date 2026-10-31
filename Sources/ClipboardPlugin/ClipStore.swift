@@ -3,6 +3,7 @@ import Foundation
 import GRDB
 import PounceKit
 import PouncePersistence
+import Synchronization
 
 /// The encrypted clipboard history: `clipboard.sqlite` (SQLCipher) plus AES-GCM blob files in
 /// `blobs/`, both in `Plugins/clipboard/` (spec: Data Model).
@@ -27,12 +28,14 @@ final class ClipStore: Sendable {
     /// List rows carry only the start of the preview text.
     static let summaryPreviewLength = 300
 
-    let queue: DatabaseQueue
+    /// Every database access goes through this guard, so work still running in the background when the
+    /// plugin deactivates fails with `ClipStoreError.closed` instead of using a closed connection.
+    let queue: GuardedQueue
     let blobsDirectory: URL
     private let keys: ClipKeys
 
     init(queue: DatabaseQueue, keys: ClipKeys, blobsDirectory: URL) {
-        self.queue = queue
+        self.queue = GuardedQueue(queue)
         self.keys = keys
         self.blobsDirectory = blobsDirectory
     }
@@ -93,6 +96,8 @@ final class ClipStore: Sendable {
         return migrator
     }
 
+    /// Closes the database. Waits for an access in progress; any later access throws
+    /// `ClipStoreError.closed`.
     func close() throws {
         try queue.close()
     }
@@ -414,7 +419,54 @@ final class ClipStore: Sendable {
     }
 }
 
-enum ClipStoreError: Error, Sendable {
+enum ClipStoreError: Error, Equatable, Sendable {
     case cannotEncrypt
     case cannotWriteBlob
+    /// The history was closed (the plugin deactivated) while background work still used it.
+    case closed
+}
+
+/// A `DatabaseQueue` that can be closed while other threads may still call it: each access holds a lock
+/// and checks the closed flag first. GRDB treats using a closed queue as a programmer error.
+final class GuardedQueue: Sendable {
+    private let database: DatabaseQueue
+    private let lock = NSLock()
+    private let closed = Mutex(false)
+
+    init(_ database: DatabaseQueue) {
+        self.database = database
+    }
+
+    var isClosed: Bool { closed.withLock { $0 } }
+
+    func read<T>(_ value: (Database) throws -> T) throws -> T {
+        try access { try $0.read(value) }
+    }
+
+    func write<T>(_ updates: (Database) throws -> T) throws -> T {
+        try access { try $0.write(updates) }
+    }
+
+    func writeWithoutTransaction<T>(_ updates: (Database) throws -> T) throws -> T {
+        try access { try $0.writeWithoutTransaction(updates) }
+    }
+
+    func vacuum() throws {
+        try access { try $0.vacuum() }
+    }
+
+    func close() throws {
+        lock.lock()
+        defer { lock.unlock() }
+        guard !isClosed else { return }
+        closed.withLock { $0 = true }
+        try database.close()
+    }
+
+    private func access<T>(_ body: (DatabaseQueue) throws -> T) throws -> T {
+        lock.lock()
+        defer { lock.unlock() }
+        guard !isClosed else { throw ClipStoreError.closed }
+        return try body(database)
+    }
 }
