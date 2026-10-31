@@ -98,14 +98,14 @@ shortcut recorder (spec step 2.7, issue #5).
 
 ### Phase 1: Contracts and key store
 
-- [ ] 1.1 Additive PounceKit contracts
-- [ ] 1.2 ClipboardPlugin target and KeyStore
+- [x] 1.1 Additive PounceKit contracts — 357f114
+- [x] 1.2 ClipboardPlugin target and KeyStore — 761fa46
 
 ### Phase 2: Capture and storage
 
-- [ ] 2.1 Spike 2.2, PasteboardWatcher and CaptureFilter
-- [ ] 2.2 ClipStore
-- [ ] 2.3 RetentionJob
+- [x] 2.1 Spike 2.2, PasteboardWatcher and CaptureFilter — ff67617
+- [x] 2.2 ClipStore — 761fa46, a012704
+- [x] 2.3 RetentionJob — f546f1d
 
 ### Phase 3: Panel mode and paste
 
