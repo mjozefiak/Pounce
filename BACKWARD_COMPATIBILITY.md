@@ -30,7 +30,7 @@ Location: `~/Library/Application Support/Pounce/`. All files are `0600`; each pl
 | `Plugins/clipboard/clipboard.sqlite` + `Plugins/clipboard/blobs/` | `ClipboardPlugin` only, with its own migrator | SQLCipher database (`clip_item`, `clip_representation`, `clip_fts`) + AES-GCM encrypted blob files with random UUID names | It is the user's history and cannot be rebuilt. |
 | `Plugins/files/index.snapshot` | `FilesPlugin` | Versioned binary snapshot with `schema_version` | Rebuildable by rescanning, so only the "never error" rule is protected. |
 | `Plugins/<id>/` paths | Each plugin | Directory layout | Part of R4: existing installs look for their data there. |
-| `apps.json`, `icons/` in `Caches/` | `AppsPlugin` | Cache | Not protected; may change freely. |
+| `~/Library/Caches/Pounce/Plugins/apps/apps.json` and `~/Library/Caches/Pounce/icons/` | `AppsPlugin` (`apps.json`); the shell's `IconCache` (`icons/`, shared by every plugin's rows) | Cache | Not protected; may change freely. "Erase Data" removes a plugin's `Caches/Pounce/Plugins/<id>/`. |
 
 **Breaking:** dropping or renaming a table or column; changing a column's meaning or type; any migration that deletes or rewrites user rows; moving a store or renaming a `Plugins/<id>/` path; changing the encryption scheme, the key derivation (HKDF-SHA256 from the master key with `info` = `sqlcipher` for the database, `blob` for blob files, `content-hash` for the `content_hash` HMAC) or the Keychain item (file-based login keychain, `kSecClassGenericPassword`, `service = app.pounce.clipboard`) in a way an existing install cannot open or deduplicate against; changing the snapshot format without bumping `schema_version`.
 

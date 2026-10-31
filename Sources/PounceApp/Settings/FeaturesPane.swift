@@ -1,32 +1,59 @@
 import PounceKit
 import SwiftUI
 
+/// What the Features pane's controls do, kept out of the view so the binding to `PluginHost` is tested
+/// (spec step 1.2b).
+struct FeatureControls {
+    let host: PluginHost
+    /// Called after a plugin was turned on or off or erased, so shortcuts and menus follow.
+    let onChange: () -> Void
+
+    func isEnabled(_ id: PluginID) -> Bool {
+        host.isEnabled(id)
+    }
+
+    /// The switch: persists `plugins.<id>.enabled` and activates or deactivates the plugin.
+    func setEnabled(_ enabled: Bool, for id: PluginID) async {
+        await host.setEnabled(enabled, for: id)
+        onChange()
+    }
+
+    /// "Erase Data". Returns the error message to show, or `nil` when it worked.
+    func erase(_ id: PluginID) async -> String? {
+        defer { onChange() }
+        do {
+            try await host.eraseData(for: id)
+            return nil
+        } catch {
+            return error.localizedDescription
+        }
+    }
+}
+
 /// Settings → Features: every plugin with its switch, its state (an activation error included) and
 /// "Erase Data".
 struct FeaturesPane: View {
-    let host: PluginHost
-    /// Called after a plugin was turned on or off, so shortcuts and menus follow.
-    let onChange: () -> Void
+    let controls: FeatureControls
+
+    @State private var eraseError: String?
+
+    init(host: PluginHost, onChange: @escaping () -> Void) {
+        controls = FeatureControls(host: host, onChange: onChange)
+    }
 
     var body: some View {
         Form {
             Section {
-                ForEach(host.entries, id: \.manifest.id) { entry in
+                ForEach(controls.host.entries, id: \.manifest.id) { entry in
                     FeatureRow(
                         manifest: entry.manifest,
                         state: entry.state,
-                        isEnabled: host.isEnabled(entry.manifest.id),
+                        isEnabled: controls.isEnabled(entry.manifest.id),
                         setEnabled: { enabled in
-                            Task {
-                                await host.setEnabled(enabled, for: entry.manifest.id)
-                                onChange()
-                            }
+                            Task { await controls.setEnabled(enabled, for: entry.manifest.id) }
                         },
                         erase: {
-                            Task {
-                                try? await host.eraseData(for: entry.manifest.id)
-                                onChange()
-                            }
+                            Task { eraseError = await controls.erase(entry.manifest.id) }
                         }
                     )
                 }
@@ -44,6 +71,18 @@ struct FeaturesPane: View {
         .formStyle(.grouped)
         .frame(width: 600)
         .fixedSize(horizontal: false, vertical: true)
+        .alert(
+            Text("The data could not be erased.", comment: "Alert title when Erase Data fails"),
+            isPresented: Binding(get: { eraseError != nil }, set: { if !$0 { eraseError = nil } })
+        ) {
+            Button {
+                eraseError = nil
+            } label: {
+                Text("OK", comment: "Button that dismisses an alert")
+            }
+        } message: {
+            Text(eraseError ?? "")
+        }
     }
 }
 

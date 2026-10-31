@@ -29,6 +29,8 @@ final class PluginHost {
         let plugin: any PouncePlugin
         let storageDirectory: URL
         let cachesDirectory: URL
+        /// Where the plugin's ranking rows live (`ranking.sqlite`), erased with its data.
+        let usage: any UsageRecorder
         fileprivate(set) var state: PluginState
     }
 
@@ -76,6 +78,7 @@ final class PluginHost {
                     plugin: type.init(context: context),
                     storageDirectory: context.storageDirectory,
                     cachesDirectory: context.cachesDirectory,
+                    usage: context.usage,
                     state: .disabled
                 )
             )
@@ -140,11 +143,13 @@ final class PluginHost {
     }
 
     /// "Erase Data": deactivates the plugin, lets it erase what it keeps elsewhere, deletes
-    /// `Plugins/<id>/` and its caches, and activates it again when it is enabled.
+    /// `Plugins/<id>/`, its caches and its rows in `ranking.sqlite`, and activates it again when it is
+    /// enabled.
     func eraseData(for id: PluginID) async throws {
         guard let index = entries.firstIndex(where: { $0.manifest.id == id }) else { return }
         let plugin = entries[index].plugin
         let directories = [entries[index].storageDirectory, entries[index].cachesDirectory]
+        let usage = entries[index].usage
         var failure: (any Error)?
         await enqueue(id) { host in
             await host.deactivateNow(id)
@@ -153,6 +158,7 @@ final class PluginHost {
                 for directory in directories where host.fileManager.fileExists(atPath: directory.path) {
                     try host.fileManager.removeItem(at: directory)
                 }
+                try await usage.removeAll(pluginID: id)
             } catch {
                 failure = error
                 return

@@ -22,6 +22,7 @@ final class LifecycleLog {
 enum TestError: Error {
     case activationFailed
     case searchFailed
+    case eraseFailed
 }
 
 /// Answers immediately with one candidate.
@@ -187,5 +188,16 @@ struct TestEnvironment {
 
     func tearDown() {
         try? FileManager.default.removeItem(at: environment.dataRoot)
+    }
+}
+
+/// Cannot erase its data, to test how "Erase Data" reports a failure.
+final class UnerasablePlugin: PouncePlugin {
+    static let manifest = PluginManifest(id: "unerasable", displayName: "Unerasable", symbolName: "lock", order: 5)
+
+    init(context: PluginContext) {}
+
+    func eraseData() async throws {
+        throw TestError.eraseFailed
     }
 }

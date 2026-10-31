@@ -141,8 +141,18 @@ import Testing
         let file = directory.appending(path: "data.bin")
         let stale = directory.appending(path: "stale.bin")
         try Data("old".utf8).write(to: stale)
+        let usage = env.environment.usage
+        let own = ItemKey(pluginID: "storage", key: "item")
+        let other = ItemKey(pluginID: "alpha", key: "item")
+        try await usage.recordUse(of: own, queryPrefix: "it", at: Date())
+        try await usage.recordUse(of: other, queryPrefix: "it", at: Date())
 
         try await host.eraseData(for: "storage")
+
+        // The plugin's ranking rows go too; another plugin's stay.
+        let stats = try await usage.stats(for: [own, other], queryPrefix: "it")
+        #expect(stats[own] == nil)
+        #expect(stats[other]?.queryAssociationCount == 1)
 
         #expect(LifecycleLog.shared.events == ["storage.activate", "storage.erase", "storage.activate"])
         // The directory was deleted: the stale file is gone, re-activation wrote a fresh one.
@@ -152,6 +162,48 @@ import Testing
         #expect(throws: Never.self) {
             _ = try env.environment.keychain.readGenericPassword(service: "storage", account: "key")
         }
+    }
+
+    /// Spec step 1.2b: the Features switch drives `PluginHost` and the shell follows.
+    @MainActor
+    @Test func featuresSwitchAndEraseDriveTheHost() async throws {
+        defer { env.tearDown() }
+        let host = env.makeHost([AlphaPlugin.self, StorageWritingPlugin.self])
+        await host.start()
+        var changes = 0
+        let controls = FeatureControls(host: host) { changes += 1 }
+
+        await controls.setEnabled(false, for: "alpha")
+        #expect(!controls.isEnabled("alpha"))
+        #expect(host.state(of: "alpha").map(isDisabled) == true)
+        #expect(env.settings.value(forKey: "plugins.alpha.enabled") == .bool(false))
+        #expect(!host.activeCommands.contains { $0.id == "alpha.open" })
+        #expect(changes == 1)
+
+        await controls.setEnabled(true, for: "alpha")
+        #expect(controls.isEnabled("alpha"))
+        #expect(host.state(of: "alpha")?.isActive == true)
+        #expect(host.activeCommands.contains { $0.id == "alpha.open" })
+        #expect(changes == 2)
+
+        #expect(await controls.erase("storage") == nil)
+        #expect(LifecycleLog.shared.events.contains("storage.erase"))
+        #expect(changes == 3)
+    }
+
+    /// A failed "Erase Data" is reported to the pane instead of being swallowed.
+    @MainActor
+    @Test func failedEraseReturnsAMessage() async {
+        defer { env.tearDown() }
+        let host = env.makeHost([UnerasablePlugin.self])
+        await host.start()
+        var changes = 0
+        let controls = FeatureControls(host: host) { changes += 1 }
+
+        let message = await controls.erase("unerasable")
+
+        #expect(message?.isEmpty == false)
+        #expect(changes == 1)
     }
 
     @Test func stopDeactivatesEveryPlugin() async {

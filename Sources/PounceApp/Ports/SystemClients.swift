@@ -148,4 +148,11 @@ actor InMemoryUsageRecorder: UsageRecorder {
             .prefix(max(0, limit))
             .map(\.key)
     }
+
+    func removeAll(pluginID: PluginID) async throws {
+        uses = uses.filter { $0.key.pluginID != pluginID }
+        for prefix in associations.keys {
+            associations[prefix] = associations[prefix]?.filter { $0.key.pluginID != pluginID }
+        }
+    }
 }

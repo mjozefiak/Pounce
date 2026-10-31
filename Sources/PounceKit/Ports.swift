@@ -118,10 +118,14 @@ public protocol UsageRecorder: Sendable {
     /// One plugin's items with recorded uses, highest decayed frecency at `now` first. Sources use it to
     /// answer an empty query with recently used items. Added in Phase 1; the default knows no items.
     func mostUsed(pluginID: PluginID, limit: Int, now: Date) async throws -> [ItemKey]
+    /// Deletes every usage statistic and query association of one plugin's items (keys `<id>:…`), for
+    /// "Erase Data". Added in Phase 1; the default keeps nothing, so it has nothing to delete.
+    func removeAll(pluginID: PluginID) async throws
 }
 
 extension UsageRecorder {
     public func mostUsed(pluginID: PluginID, limit: Int, now: Date) async throws -> [ItemKey] { [] }
+    public func removeAll(pluginID: PluginID) async throws {}
 }
 
 /// Reads permission state with preflight APIs, never by triggering a prompt.

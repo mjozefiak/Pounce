@@ -19,7 +19,7 @@ public final class UsageRepository: UsageRecorder {
     /// Query associations older than this are deleted when the repository opens.
     public static let associationRetention: TimeInterval = 90 * 24 * 60 * 60
 
-    private let queue: DatabaseQueue
+    let queue: DatabaseQueue
     private let halfLife: TimeInterval
 
     /// - Parameter halfLife: frecency half-life; the `Ranker` decays with the same value.
@@ -161,10 +161,7 @@ public final class UsageRepository: UsageRecorder {
     public func mostUsed(pluginID: PluginID, limit: Int, now: Date) async throws -> [ItemKey] {
         guard limit > 0 else { return [] }
         let halfLife = halfLife
-        // `:` sorts right before `;`, so this range is exactly the keys starting with `<id>:` and it uses
-        // the primary key index.
-        let lower = pluginID.rawValue + ":"
-        let upper = pluginID.rawValue + ";"
+        let (lower, upper) = Self.keyRange(of: pluginID)
         let timestamp = now.timeIntervalSince1970
         let scored: [(ItemKey, Double)] = try await queue.read { db in
             let rows = try Row.fetchAll(
@@ -185,6 +182,26 @@ public final class UsageRepository: UsageRecorder {
         }
         let sorted = scored.sorted { $0.1 != $1.1 ? $0.1 > $1.1 : $0.0.rawValue < $1.0.rawValue }
         return sorted.prefix(limit).map(\.0)
+    }
+
+    public func removeAll(pluginID: PluginID) async throws {
+        let (lower, upper) = Self.keyRange(of: pluginID)
+        try await queue.write { db in
+            try db.execute(
+                sql: "DELETE FROM usage_stat WHERE item_key >= ? AND item_key < ?",
+                arguments: [lower, upper]
+            )
+            try db.execute(
+                sql: "DELETE FROM query_association WHERE item_key >= ? AND item_key < ?",
+                arguments: [lower, upper]
+            )
+        }
+    }
+
+    /// The half-open range of item keys that start with `<id>:`. `:` sorts right before `;`, so the range
+    /// holds exactly one plugin's keys and lookups use the primary key index.
+    static func keyRange(of pluginID: PluginID) -> (lower: String, upper: String) {
+        (pluginID.rawValue + ":", pluginID.rawValue + ";")
     }
 
     // MARK: Maintenance

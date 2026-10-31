@@ -156,3 +156,36 @@ private func candidate(_ title: String, _ query: NormalizedQuery) -> Candidate? 
         #expect(try await repository.mostUsed(pluginID: "apps", limit: 0, now: now).isEmpty)
     }
 }
+
+/// "Erase Data" removes one plugin's ranking rows and nothing else.
+@Suite struct RemoveAllTests {
+    @Test func deletesOnePluginsStatsAndAssociationsOnly() async throws {
+        let repository = try UsageRepository.inMemory(halfLife: Ranker.frecencyHalfLife)
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let app = ItemKey(pluginID: "apps", key: "com.example.notes")
+        let file = ItemKey(pluginID: "files", key: "/notes.txt")
+        let prefixed = ItemKey(pluginID: "appsx", key: "other")
+        for key in [app, file, prefixed] {
+            try await repository.recordUse(of: key, queryPrefix: "no", at: now)
+        }
+
+        try await repository.removeAll(pluginID: "apps")
+
+        let stats = try await repository.stats(for: [app, file, prefixed], queryPrefix: "no")
+        #expect(stats[app] == nil)
+        #expect(stats[file]?.queryAssociationCount == 1)
+        #expect(stats[prefixed]?.useCount == 1)
+        #expect(try await repository.mostUsed(pluginID: "apps", limit: 8, now: now).isEmpty)
+        let remainingAssociations = try await repository.associationKeys()
+        #expect(remainingAssociations == [prefixed.rawValue, file.rawValue])
+    }
+}
+
+extension UsageRepository {
+    /// Item keys that still have a query association (tests).
+    fileprivate func associationKeys() async throws -> [String] {
+        try await queue.read { db in
+            try String.fetchAll(db, sql: "SELECT DISTINCT item_key FROM query_association ORDER BY item_key")
+        }
+    }
+}
