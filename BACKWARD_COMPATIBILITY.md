@@ -42,6 +42,7 @@ Location: `~/Library/Application Support/Pounce/`. All files are `0600`; each pl
 - A crypto or key change must open existing databases with the old scheme and re-encrypt, never drop. The only permitted reset is the one in the spec: key definitively missing (`errSecItemNotFound`) with an existing database → archive to `clipboard.sqlite.unreadable-<date>`, keep it 30 days.
 - `index.snapshot`: bump `schema_version` on any format change; an unknown or older version, a different FSEvents device UUID or `complete = false` must trigger a full rescan, never an error or crash.
 - Downgrades are not supported, but a newer database must not be corrupted by an older build: an older build that sees a newer schema disables the feature with a message instead of migrating.
+- Since v1.0, Settings → Advanced → Reset Ranking deletes every row of `usage_stat` and `query_association` (`UsageRepository.removeAllUsage()`), after the user confirms. Like Erase Data, it is an explicit user action, not a migration; the schema is unchanged.
 
 ## 3. User settings keys (`UserDefaults`)
 
@@ -52,6 +53,8 @@ Keys in use since v0.1 (declared in `Sources/PounceApp/SettingsKeys.swift` and i
 Keys added in v0.2 (Phase 2, clipboard): `app.onboarding.completedSteps` ([String] of plugin `OnboardingStep.id`s finished or skipped), `plugins.clipboard.paused` (Bool), `plugins.clipboard.retentionDays` (Int, default 30), `plugins.clipboard.maximumEntries` (Int, default 1000), `plugins.clipboard.ignoredApps` ([String] of bundle identifiers; missing means the default list), `plugins.clipboard.historyResetNotice` (Bool); KeyboardShortcuts key `KeyboardShortcuts_command_clipboard_history` (default ⌘⇧V). `plugins.clipboard.qaSeed` exists only in DEBUG builds and is not a contract.
 
 Keys added in v0.3 (Phase 3, file search): `app.sectionOrder` ([String] of plugin ids, first section first; empty or missing means `manifest.order`; unknown ids are ignored), `plugins.files.roots` ([String] or String, absolute or `~/…`; missing or empty means the home folder and `/Applications`), `plugins.files.exclusions` ([String] of names, `*` patterns and `/…` or `~/…` paths, on top of the default exclusions), `plugins.files.protectedFolders` ([String] of `desktop`, `documents`, `downloads`, `icloud` added one at a time without Full Disk Access), `plugins.files.icloud` (Bool, default true: with Full Disk Access, iCloud Drive is indexed), `plugins.files.includeHidden` (Bool, default false), `plugins.files.setupCompleted` (Bool, default false: the first scan waits for it), `plugins.files.accessNoticeDismissed` (Bool, default false). `plugins.files.qaHome` exists only in DEBUG builds and is not a contract.
+
+v1.0 (Phase 4) adds no keys. The welcome screen reads and writes the existing `app.onboarding.shortcutCompleted` (covers the welcome and shortcut pages; set when the shortcut page is finished or skipped, or the window is closed) and `app.onboarding.completedSteps` (the plugin steps), with the same meaning as before, so an install that finished onboarding never sees the welcome screen again.
 
 **Breaking:** renaming or removing a key; moving a key to another namespace; changing its type or encoding; changing the meaning of a stored value; changing a default in a way that changes behaviour for users who never touched the setting (for example ignoring fewer apps by default, or capturing more types).
 
@@ -83,6 +86,7 @@ Not a hard contract, but changes need a release note:
 - **A user-chosen shortcut always wins** (`app.hotkey.userDefined`): no automatic switch (⌃⌥Space → ⌘Space) and no new default may override a shortcut the user has recorded.
 - **Result actions** (spec keyboard table): Return (first action; paste in clipboard mode), ⌘Return (second action), ⌘C / ⌘⇧C (copy path / file), ⌃X (delete a clipboard entry), ⌘1–⌘5 (clipboard type filter). ⌘⌫ stays the standard text-editing shortcut in the search field.
 - **Paste into the previous app** in clipboard mode, falling back to copy-only without Accessibility or under Secure Event Input.
+- **First launch** (v1.0): one welcome screen (welcome, shortcut, then each enabled plugin's steps, each skippable) replaces the separate shortcut window. **About Pounce** opens Pounce's own window with the third-party notices instead of the standard panel.
 
 ## Not protected
 

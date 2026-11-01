@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pounce — a fast, native launcher for macOS</title>
+<meta name="description" content="Pounce is a free, open-source macOS launcher: app search, file search with its own index, and an encrypted clipboard history that pastes into the previous app.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#101012" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://mjozefiak.github.io/Pounce/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23E2611B'/%3E%3Cg fill='%23fff'%3E%3Cellipse cx='32' cy='41' rx='12' ry='10'/%3E%3Cellipse cx='17' cy='29' rx='5' ry='6.5'/%3E%3Cellipse cx='26' cy='19' rx='5' ry='6.5'/%3E%3Cellipse cx='38' cy='19' rx='5' ry='6.5'/%3E%3Cellipse cx='47' cy='29' rx='5' ry='6.5'/%3E%3C/g%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Pounce">
+<meta property="og:title" content="Pounce — a fast, native launcher for macOS">
+<meta property="og:description" content="App search, file search with its own index, and an encrypted clipboard history. Free and open source.">
+<meta property="og:url" content="https://mjozefiak.github.io/Pounce/">
+<style>
+:root{
+  --bg:#ffffff; --surface:#f7f7f8; --surface-2:#efeff1;
+  --text:#111113; --muted:#5f5f66; --line:#e6e6ea; --line-strong:#d4d4da;
+  --accent:#C2410C; --accent-strong:#9A3412; --accent-text:#ffffff; --tint:#FFF1E8;
+  --sel:#0A64D8; --sel-text:#ffffff;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue",Inter,"Segoe UI",Roboto,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#101012; --surface:#17171a; --surface-2:#1e1e22;
+    --text:#f4f4f6; --muted:#a3a3ad; --line:#26262b; --line-strong:#34343a;
+    --accent:#FB923C; --accent-strong:#FDBA74; --accent-text:#1a0d05; --tint:#2a1a10;
+    --sel:#2F7FEA; --sel-text:#ffffff;
+    color-scheme:dark;
+  }
+}
+@media (prefers-contrast: more){
+  :root{ --muted:var(--text); --line:var(--line-strong); }
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;scroll-padding-top:72px}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+body{margin:0;background:var(--bg);color:var(--text);font:400 17px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+h1,h2,h3,p,ol,ul,figure,dl,dd{margin:0}
+ul,ol{padding:0}
+code,kbd{font-family:var(--mono);font-size:.88em}
+kbd{display:inline-block;min-width:1.6em;padding:1px 6px;border:1px solid var(--line-strong);border-bottom-width:2px;border-radius:6px;background:var(--surface);text-align:center}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.skip{position:absolute;left:12px;top:-60px;z-index:100;background:var(--text);color:var(--bg);padding:8px 14px;border-radius:6px;font-weight:600}
+.skip:focus{top:12px}
+:focus-visible{outline:3px solid var(--sel);outline-offset:2px;border-radius:6px}
+.wrap{width:min(1080px,calc(100% - 40px));margin-inline:auto}
+header.top{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:saturate(1.4) blur(14px);border-bottom:1px solid var(--line)}
+@media (prefers-reduced-transparency: reduce){header.top{background:var(--bg);backdrop-filter:none}}
+.bar{display:flex;align-items:center;gap:20px;height:60px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;text-decoration:none}
+.brand svg{width:28px;height:28px}
+.bar nav ul{display:flex;gap:18px;list-style:none}
+.bar nav a{text-decoration:none;color:var(--muted);font-size:15px}
+.bar nav a:hover{color:var(--text)}
+.spacer{flex:1}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden}
+.seg button{font:600 13px var(--sans);padding:5px 10px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--text);color:var(--bg)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:10px;font-weight:600;text-decoration:none;border:1px solid transparent}
+.btn-primary{background:var(--accent);color:var(--accent-text)}
+.btn-primary:hover{background:var(--accent-strong)}
+.btn-ghost{border-color:var(--line-strong)}
+.btn svg{width:18px;height:18px}
+@media (max-width:760px){.bar nav{display:none}}
+.hero{padding:72px 0 56px;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+@media (max-width:900px){.hero{grid-template-columns:1fr}}
+.pill{display:inline-block;font-size:13px;font-weight:600;color:var(--accent);background:var(--tint);padding:4px 10px;border-radius:999px;margin-bottom:18px}
+@media (prefers-color-scheme: dark){.pill{color:var(--accent-strong)}}
+h1{font-size:clamp(34px,5vw,52px);line-height:1.08;letter-spacing:-.02em}
+.lead{margin-top:18px;font-size:19px;color:var(--muted)}
+.ctas{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+.note{margin-top:14px;font-size:14px;color:var(--muted)}
+/* The panel mock-up: fixture data, drawn in HTML so the page ships no screenshots. */
+.mock{border:1px solid var(--line-strong);border-radius:18px;background:var(--surface);box-shadow:0 24px 60px -24px rgba(0,0,0,.35);overflow:hidden}
+.mock .field{display:flex;align-items:center;gap:12px;padding:16px 18px;font-size:22px;border-bottom:1px solid var(--line)}
+.mock .field svg{width:22px;height:22px;color:var(--muted)}
+.mock .caret{display:inline-block;width:2px;height:24px;background:var(--sel);vertical-align:middle;margin-left:1px}
+.mock .list{padding:8px}
+.mock .hdr{font-size:12px;font-weight:600;color:var(--muted);padding:8px 8px 4px;display:flex;gap:6px;align-items:center}
+.mock .hdr svg{width:13px;height:13px}
+.mock .row{display:flex;gap:10px;align-items:center;padding:6px 8px;border-radius:8px}
+.mock .row.sel{background:var(--sel);color:var(--sel-text)}
+.mock .ic{width:28px;height:28px;border-radius:7px;flex:none;display:grid;place-items:center;background:var(--surface-2);border:1px solid var(--line)}
+.mock .row.sel .ic{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.35)}
+.mock .ic svg{width:16px;height:16px}
+.mock .t{font-size:15px}
+.mock .t b{font-weight:700}
+.mock .row:not(.sel) .t b{color:var(--sel)}
+.mock .s{font-size:12.5px;color:var(--muted)}
+.mock .row.sel .s{color:rgba(255,255,255,.85)}
+.mock .foot{display:flex;justify-content:flex-end;gap:16px;padding:9px 14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+.mock .foot span span{margin-left:6px;padding:1px 6px;border-radius:999px;background:var(--surface-2)}
+figcaption{font-size:13px;color:var(--muted);margin-top:10px;text-align:center}
+section{padding:64px 0;border-top:1px solid var(--line)}
+h2{font-size:clamp(26px,3.4vw,36px);line-height:1.15;letter-spacing:-.015em}
+.sub{margin-top:12px;color:var(--muted);max-width:720px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:32px;list-style:none}
+@media (max-width:900px){.cards{grid-template-columns:1fr}}
+.card{border:1px solid var(--line);border-radius:14px;padding:22px;background:var(--surface)}
+.card svg{width:28px;height:28px;color:var(--accent)}
+@media (prefers-color-scheme: dark){.card svg{color:var(--accent-strong)}}
+.card h3{font-size:19px;margin-top:12px}
+.card p{margin-top:8px;color:var(--muted);font-size:15.5px}
+.card ul{margin-top:10px;padding-left:18px;color:var(--muted);font-size:15px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:28px}
+@media (max-width:900px){.grid2{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:15.5px}
+th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600}
+td:first-child{white-space:nowrap;width:1%}
+.perm{border:1px solid var(--line);border-radius:14px;padding:18px 20px;background:var(--surface)}
+.perm h3{font-size:17px}
+.perm p{margin-top:6px;color:var(--muted);font-size:15px}
+.perm .tag{display:inline-block;margin-top:10px;font-size:13px;font-weight:600;padding:2px 8px;border-radius:999px;border:1px solid var(--line-strong)}
+ol.steps{counter-reset:s;list-style:none;margin-top:18px;display:grid;gap:12px}
+ol.steps li{counter-increment:s;padding-left:40px;position:relative}
+ol.steps li::before{content:counter(s);position:absolute;left:0;top:0;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:14px;background:var(--text);color:var(--bg)}
+.callout{margin-top:22px;border:1px solid var(--line-strong);border-left:4px solid var(--accent);border-radius:10px;padding:16px 18px;background:var(--surface)}
+.callout h3{font-size:16px}
+.callout p,.callout ol{margin-top:8px;font-size:15px}
+.callout ol{padding-left:20px}
+pre{margin-top:10px;padding:12px 14px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);overflow-x:auto;font-size:14px}
+.sub.list{padding-left:20px;margin-top:10px}
+.faq dt{font-weight:600;margin-top:22px}
+.faq dd{margin-top:6px;color:var(--muted)}
+footer{padding:36px 0 56px;border-top:1px solid var(--line);color:var(--muted);font-size:14px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+footer ul{display:flex;gap:16px;list-style:none}
+</style>
+</head>
+<body>
+<a class="skip" href="#main" data-i18n="skip">Skip to content</a>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-paw" viewBox="0 0 64 64"><ellipse cx="32" cy="41" rx="12" ry="10" fill="currentColor"/><ellipse cx="17" cy="29" rx="5" ry="6.5" fill="currentColor"/><ellipse cx="26" cy="19" rx="5" ry="6.5" fill="currentColor"/><ellipse cx="38" cy="19" rx="5" ry="6.5" fill="currentColor"/><ellipse cx="47" cy="29" rx="5" ry="6.5" fill="currentColor"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-apps" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/></g></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z M14 3v5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="i-clip" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h4"/></g></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-github" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 3 .9.1-.7.4-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5a3.9 3.9 0 0 1 1-2.7 3.6 3.6 0 0 1 .1-2.7s.8-.3 2.8 1a9.6 9.6 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7a3.9 3.9 0 0 1 1 2.7c0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/></symbol>
+</svg>
+
+<header class="top">
+  <div class="wrap bar">
+    <a class="brand" href="#main"><svg aria-hidden="true"><use href="#i-paw"/></svg>Pounce</a>
+    <nav aria-label="Primary" data-i18n-aria="nav.label">
+      <ul>
+        <li><a href="#features" data-i18n="nav.features">Features</a></li>
+        <li><a href="#permissions" data-i18n="nav.permissions">Permissions</a></li>
+        <li><a href="#install" data-i18n="nav.install">Install</a></li>
+        <li><a href="#faq" data-i18n="nav.faq">FAQ</a></li>
+      </ul>
+    </nav>
+    <span class="spacer"></span>
+    <div class="seg" role="group" aria-label="Language" data-i18n-aria="lang.label">
+      <button type="button" data-lang="en" aria-pressed="true" lang="en">EN</button>
+      <button type="button" data-lang="pl" aria-pressed="false" lang="pl">PL</button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap hero">
+    <div>
+      <span class="pill" data-i18n="hero.pill">Free · Open source · MIT License</span>
+      <h1 data-i18n="hero.title">Find any app, file or clipboard entry in a keystroke.</h1>
+      <p class="lead" data-i18n="hero.lead">Pounce is a native macOS launcher with just three things: app search, file search with its own index, and an encrypted clipboard history that pastes straight into the app you were using.</p>
+      <div class="ctas">
+        <a class="btn btn-primary" href="https://github.com/mjozefiak/Pounce/releases/latest/download/Pounce.dmg"><svg aria-hidden="true"><use href="#i-download"/></svg><span data-i18n="cta.download">Download for macOS</span></a>
+        <a class="btn btn-ghost" href="https://github.com/mjozefiak/Pounce"><svg aria-hidden="true"><use href="#i-github"/></svg><span data-i18n="cta.github">Source on GitHub</span></a>
+      </div>
+      <p class="note" data-i18n="hero.note">macOS 26 or later · Apple silicon · No account, no telemetry</p>
+    </div>
+    <figure>
+      <div class="mock" role="img" aria-label="The Pounce panel searching for “rep”: the app Report Builder is selected, followed by two files, Quarterly Report.txt and report-draft.txt." data-i18n-aria="mock.label">
+        <div class="field" aria-hidden="true"><svg><use href="#i-search"/></svg><span>rep<span class="caret"></span></span></div>
+        <div class="list" aria-hidden="true">
+          <div class="hdr"><svg><use href="#i-apps"/></svg><span data-i18n="mock.apps">Applications</span></div>
+          <div class="row sel"><span class="ic"><svg><use href="#i-apps"/></svg></span><div><div class="t"><b>Rep</b>ort Builder</div><div class="s">/Applications</div></div></div>
+          <div class="hdr"><svg><use href="#i-doc"/></svg><span data-i18n="mock.files">Files</span></div>
+          <div class="row"><span class="ic"><svg><use href="#i-doc"/></svg></span><div><div class="t">Quarterly <b>Rep</b>ort.txt</div><div class="s">~/Projects</div></div></div>
+          <div class="row"><span class="ic"><svg><use href="#i-doc"/></svg></span><div><div class="t"><b>rep</b>ort-draft.txt</div><div class="s">~/Projects/Website</div></div></div>
+        </div>
+        <div class="foot" aria-hidden="true"><span><span data-i18n="mock.open">Open</span><span>⏎</span></span><span><span data-i18n="mock.reveal">Show in Finder</span><span>⌘⏎</span></span></div>
+      </div>
+      <figcaption data-i18n="mock.cap">The panel, illustrated with sample data</figcaption>
+    </figure>
+  </div>
+
+  <section id="features" aria-labelledby="features-title">
+    <div class="wrap">
+      <h2 id="features-title" data-i18n="feat.t">Three things, done fast.</h2>
+      <p class="sub" data-i18n="feat.sub">Press the shortcut and type. Results come from Pounce's own in-memory indexes, so the panel opens instantly and answers as you type.</p>
+      <ul class="cards">
+        <li class="card">
+          <svg aria-hidden="true"><use href="#i-apps"/></svg>
+          <h3 data-i18n="f1.t">App search</h3>
+          <p data-i18n="f1.d">Fuzzy matching finds apps by any part of the name: “vsc” finds Visual Studio Code. Pounce learns which results you pick and moves them up, without ever overruling a better match.</p>
+        </li>
+        <li class="card">
+          <svg aria-hidden="true"><use href="#i-doc"/></svg>
+          <h3 data-i18n="f2.t">File search</h3>
+          <p data-i18n="f2.d">Its own index of file and folder names in your home folder and Applications, kept fresh with FSEvents instead of Spotlight. Names only: Pounce never reads what is inside your files.</p>
+        </li>
+        <li class="card">
+          <svg aria-hidden="true"><use href="#i-clip"/></svg>
+          <h3 data-i18n="f3.t">Clipboard history</h3>
+          <p data-i18n="f3.d">Text, links, rich text, images and files from the last 30 days (up to 1000 entries), encrypted on disk with a key in your Keychain. Skips password managers and concealed items. Return pastes into the previous app.</p>
+        </li>
+      </ul>
+      <div class="grid2">
+        <div>
+          <h3 data-i18n="keys.t">Keyboard first</h3>
+          <table>
+            <caption class="vh" data-i18n="keys.cap">Keyboard shortcuts</caption>
+            <thead><tr><th scope="col" data-i18n="keys.key">Key</th><th scope="col" data-i18n="keys.action">Action</th></tr></thead>
+            <tbody>
+              <tr><td><kbd>⌘</kbd> <kbd>Space</kbd></td><td data-i18n="keys.open">Open Pounce (or <kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>Space</kbd> while Spotlight keeps <kbd>⌘</kbd> <kbd>Space</kbd>)</td></tr>
+              <tr><td><kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>V</kbd></td><td data-i18n="keys.clip">Clipboard history</td></tr>
+              <tr><td><kbd>⏎</kbd> / <kbd>⌘</kbd> <kbd>⏎</kbd></td><td data-i18n="keys.enter">Open or paste / show in Finder or copy only</td></tr>
+              <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td data-i18n="keys.move">Move through the results</td></tr>
+              <tr><td><kbd>Esc</kbd></td><td data-i18n="keys.esc">Clear the query, then close</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <h3 data-i18n="native.t">Native and accessible</h3>
+          <ul class="sub list">
+            <li data-i18n="native.1">Swift, AppKit and SwiftUI with the system's Liquid Glass; light and dark mode follow macOS.</li>
+            <li data-i18n="native.2">VoiceOver labels and announcements, Reduce Motion, Reduce Transparency, Increase Contrast and a text-size setting.</li>
+            <li data-i18n="native.3">Every feature can be turned off in Settings, and its data erased.</li>
+            <li data-i18n="native.4">English and Polish, following your system language.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="permissions" aria-labelledby="perm-title">
+    <div class="wrap">
+      <h2 id="perm-title" data-i18n="perm.t">Only the permissions a feature needs.</h2>
+      <p class="sub" data-i18n="perm.sub">Pounce never asks for a permission on its own. Settings → Permissions shows each one with its state and a button to System Settings. Nothing leaves your Mac.</p>
+      <div class="grid2">
+        <div class="perm">
+          <h3 data-i18n="p1.t">Accessibility</h3>
+          <p data-i18n="p1.d">Lets the clipboard history paste into the app you were using. Without it, Return copies the entry and you paste yourself.</p>
+          <span class="tag" data-i18n="opt">Optional</span>
+        </div>
+        <div class="perm">
+          <h3 data-i18n="p2.t">Full Disk Access</h3>
+          <p data-i18n="p2.d">Lets file search include Desktop, Documents, Downloads and iCloud Drive without asking about each folder. Without it, you can add those folders one at a time.</p>
+          <span class="tag" data-i18n="opt">Optional</span>
+        </div>
+        <div class="perm">
+          <h3 data-i18n="p3.t">Clipboard access</h3>
+          <p data-i18n="p3.d">macOS can ask before an app reads the clipboard. Allow Pounce in Privacy &amp; Security so the history keeps recording.</p>
+          <span class="tag" data-i18n="opt">Optional</span>
+        </div>
+        <div class="perm">
+          <h3 data-i18n="p4.t">Keychain</h3>
+          <p data-i18n="p4.d">The clipboard history's encryption key lives in your login keychain. No permission is needed; macOS may ask once to allow access.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="install" aria-labelledby="install-title">
+    <div class="wrap">
+      <h2 id="install-title" data-i18n="install.t">Install in a minute.</h2>
+      <ol class="steps">
+        <li data-i18n="i1">Download <a href="https://github.com/mjozefiak/Pounce/releases/latest/download/Pounce.dmg"><strong>Pounce.dmg</strong></a> and open it.</li>
+        <li data-i18n="i2">Drag <strong>Pounce</strong> onto the <strong>Applications</strong> folder.</li>
+        <li data-i18n="i3">Open Pounce from Applications. A paw appears in the menu bar and the welcome screen walks you through the shortcut and each feature; every step can be skipped.</li>
+      </ol>
+      <div class="callout">
+        <h3 data-i18n="gk.t">First launch: Gatekeeper</h3>
+        <p data-i18n="gk.p">Pounce is signed with its own stable certificate, so macOS keeps your permissions across updates, but it is not notarized by Apple. The first time you open it, macOS blocks it. To allow it once:</p>
+        <ol>
+          <li data-i18n="gk.1">Open Pounce and close the warning.</li>
+          <li data-i18n="gk.2">Open <strong>System Settings → Privacy &amp; Security</strong> and scroll down.</li>
+          <li data-i18n="gk.3">Click <strong>Open Anyway</strong> next to the message about Pounce, then confirm with your password or Touch ID.</li>
+        </ol>
+      </div>
+      <div class="callout">
+        <h3 data-i18n="src.t">Or build it from source</h3>
+        <p data-i18n="src.p">Requires Xcode 27 (Swift 6.4).</p>
+        <pre><code>git clone --recurse-submodules https://github.com/mjozefiak/Pounce.git
+cd Pounce
+swift package resolve --disable-keychain
+scripts/make-app.sh    # dist/Pounce.app</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq" aria-labelledby="faq-title">
+    <div class="wrap">
+      <h2 id="faq-title" data-i18n="faq.t">Questions.</h2>
+      <dl class="faq">
+        <dt data-i18n="q1">How do I use ⌘Space if Spotlight has it?</dt>
+        <dd data-i18n="a1">On first launch Pounce suggests ⌃⌥Space and shows how to turn off “Show Spotlight search” in System Settings → Keyboard → Keyboard Shortcuts → Spotlight. You can record any shortcut in Settings → General.</dd>
+        <dt data-i18n="q2">Does Pounce search inside files?</dt>
+        <dd data-i18n="a2">No. It matches file and folder names only, from its own index on your Mac. Folders like node_modules, .git, caches and ~/Library are left out by default.</dd>
+        <dt data-i18n="q3">What does the clipboard history keep?</dt>
+        <dd data-i18n="a3">Up to 30 days or 1000 entries, encrypted with SQLCipher. Entries copied in ignored apps (password managers by default) and items marked concealed are never recorded. You can pause recording or clear the history any time.</dd>
+        <dt data-i18n="q4">Does it send anything over the network?</dt>
+        <dd data-i18n="a4">No. There is no account, no analytics and no update check.</dd>
+        <dt data-i18n="q5">Why does macOS warn me when I open Pounce?</dt>
+        <dd data-i18n="a5">Notarization needs a paid Apple developer account, and Pounce is a free project. Allow it once with Open Anyway (see Install), or build it yourself from the source.</dd>
+      </dl>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span data-i18n="foot.c">© 2026 Mikołaj Józefiak · MIT License</span>
+    <span class="spacer"></span>
+    <nav aria-label="Footer" data-i18n-aria="foot.label">
+      <ul>
+        <li><a href="https://github.com/mjozefiak/Pounce" data-i18n="foot.src">Source</a></li>
+        <li><a href="https://github.com/mjozefiak/Pounce/releases" data-i18n="foot.rel">Releases</a></li>
+        <li><a href="https://github.com/mjozefiak/Pounce/blob/main/LICENSE" data-i18n="foot.lic">License</a></li>
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var PL = {
+    "skip": "Przejdź do treści",
+    "nav.features": "Funkcje",
+    "nav.permissions": "Uprawnienia",
+    "nav.install": "Instalacja",
+    "nav.faq": "FAQ",
+    "hero.pill": "Darmowy · Open source · Licencja MIT",
+    "hero.title": "Aplikacja, plik albo wpis ze schowka w jednym skrócie.",
+    "hero.lead": "Pounce to natywny launcher dla macOS z trzema funkcjami: wyszukiwanie aplikacji, wyszukiwanie plików po własnym indeksie i zaszyfrowana historia schowka, która wkleja prosto do aplikacji, której używałeś.",
+    "cta.download": "Pobierz na macOS",
+    "cta.github": "Kod na GitHubie",
+    "hero.note": "macOS 26 lub nowszy · Apple silicon · Bez konta i telemetrii",
+    "mock.apps": "Aplikacje",
+    "mock.files": "Pliki",
+    "mock.open": "Otwórz",
+    "mock.reveal": "Pokaż w Finderze",
+    "mock.cap": "Panel na przykładowych danych",
+    "feat.t": "Trzy rzeczy, szybko.",
+    "feat.sub": "Naciśnij skrót i pisz. Wyniki pochodzą z własnych indeksów Pounce w pamięci, więc panel otwiera się od razu i odpowiada w trakcie pisania.",
+    "f1.t": "Wyszukiwanie aplikacji",
+    "f1.d": "Dopasowanie rozmyte znajduje aplikacje po dowolnej części nazwy: „vsc” znajdzie Visual Studio Code. Pounce uczy się, co wybierasz, i przesuwa to wyżej, ale nigdy ponad lepsze dopasowanie.",
+    "f2.t": "Wyszukiwanie plików",
+    "f2.d": "Własny indeks nazw plików i folderów w katalogu domowym i Programach, aktualizowany przez FSEvents zamiast Spotlighta. Tylko nazwy: Pounce nigdy nie czyta zawartości plików.",
+    "f3.t": "Historia schowka",
+    "f3.d": "Tekst, linki, tekst sformatowany, obrazy i pliki z ostatnich 30 dni (do 1000 wpisów), zaszyfrowane na dysku kluczem z pęku kluczy. Pomija menedżery haseł i ukryte elementy. Return wkleja do poprzedniej aplikacji.",
+    "keys.t": "Najpierw klawiatura",
+    "keys.cap": "Skróty klawiszowe",
+    "keys.key": "Klawisz",
+    "keys.action": "Działanie",
+    "keys.open": "Otwórz Pounce (albo <kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>Spacja</kbd>, gdy <kbd>⌘</kbd> <kbd>Spacja</kbd> zajmuje Spotlight)",
+    "keys.clip": "Historia schowka",
+    "keys.enter": "Otwórz lub wklej / pokaż w Finderze lub tylko kopiuj",
+    "keys.move": "Poruszanie się po wynikach",
+    "keys.esc": "Wyczyść zapytanie, potem zamknij",
+    "native.t": "Natywny i dostępny",
+    "native.1": "Swift, AppKit i SwiftUI z systemowym Liquid Glass; tryb jasny i ciemny jak w macOS.",
+    "native.2": "Etykiety i komunikaty VoiceOver, Ogranicz ruch, Ogranicz przezroczystość, Zwiększ kontrast i ustawienie rozmiaru tekstu.",
+    "native.3": "Każdą funkcję można wyłączyć w Ustawieniach i usunąć jej dane.",
+    "native.4": "Angielski i polski, zgodnie z językiem systemu.",
+    "perm.t": "Tylko uprawnienia, których funkcja potrzebuje.",
+    "perm.sub": "Pounce nigdy sam nie prosi o uprawnienia. Ustawienia → Uprawnienia pokazują każde z nich, jego stan i przycisk do Ustawień systemowych. Nic nie opuszcza Twojego Maca.",
+    "p1.t": "Dostępność",
+    "p1.d": "Pozwala historii schowka wklejać do aplikacji, której używałeś. Bez niej Return kopiuje wpis, a wklejasz sam.",
+    "p2.t": "Pełny dostęp do dysku",
+    "p2.d": "Pozwala wyszukiwaniu plików obejmować Biurko, Dokumenty, Pobrane i iCloud Drive bez pytania o każdy folder. Bez niego możesz dodać te foldery pojedynczo.",
+    "p3.t": "Dostęp do schowka",
+    "p3.d": "macOS może pytać, zanim aplikacja odczyta schowek. Zezwól Pounce w Prywatności i ochronie, aby historia była dalej zapisywana.",
+    "p4.t": "Pęk kluczy",
+    "p4.d": "Klucz szyfrujący historię schowka jest w Twoim pęku kluczy logowania. Nie potrzeba uprawnienia; macOS może raz zapytać o zgodę na dostęp.",
+    "opt": "Opcjonalne",
+    "install.t": "Instalacja w minutę.",
+    "i1": "Pobierz <a href=\"https://github.com/mjozefiak/Pounce/releases/latest/download/Pounce.dmg\"><strong>Pounce.dmg</strong></a> i otwórz go.",
+    "i2": "Przeciągnij <strong>Pounce</strong> do folderu <strong>Programy</strong>.",
+    "i3": "Otwórz Pounce z Programów. W pasku menu pojawi się łapka, a ekran powitalny przeprowadzi Cię przez skrót i każdą funkcję; każdy krok można pominąć.",
+    "gk.t": "Pierwsze uruchomienie: Gatekeeper",
+    "gk.p": "Pounce jest podpisany własnym stałym certyfikatem, więc macOS zachowuje Twoje zgody między aktualizacjami, ale nie jest notaryzowany przez Apple. Przy pierwszym otwarciu macOS go zablokuje. Aby zezwolić raz:",
+    "gk.1": "Otwórz Pounce i zamknij ostrzeżenie.",
+    "gk.2": "Otwórz <strong>Ustawienia systemowe → Prywatność i ochrona</strong> i przewiń w dół.",
+    "gk.3": "Kliknij <strong>Otwórz mimo to</strong> przy komunikacie o Pounce i potwierdź hasłem lub Touch ID.",
+    "src.t": "Albo zbuduj ze źródeł",
+    "src.p": "Wymaga Xcode 27 (Swift 6.4).",
+    "faq.t": "Pytania.",
+    "q1": "Jak używać ⌘Spacja, skoro ma ją Spotlight?",
+    "a1": "Przy pierwszym uruchomieniu Pounce proponuje ⌃⌥Spacja i pokazuje, jak wyłączyć „Pokaż wyszukiwanie Spotlight” w Ustawieniach systemowych → Klawiatura → Skróty klawiszowe → Spotlight. Dowolny skrót nagrasz w Ustawieniach → Ogólne.",
+    "q2": "Czy Pounce szuka w treści plików?",
+    "a2": "Nie. Dopasowuje tylko nazwy plików i folderów z własnego indeksu na Twoim Macu. Foldery takie jak node_modules, .git, cache i ~/Library są domyślnie pomijane.",
+    "q3": "Co przechowuje historia schowka?",
+    "a3": "Do 30 dni lub 1000 wpisów, zaszyfrowanych SQLCipher. Wpisy skopiowane w ignorowanych aplikacjach (domyślnie menedżerach haseł) i elementy oznaczone jako ukryte nigdy nie są zapisywane. Zapisywanie możesz wstrzymać, a historię wyczyścić w dowolnej chwili.",
+    "q4": "Czy coś wysyła przez sieć?",
+    "a4": "Nie. Nie ma konta, analityki ani sprawdzania aktualizacji.",
+    "q5": "Dlaczego macOS ostrzega przy otwieraniu Pounce?",
+    "a5": "Notaryzacja wymaga płatnego konta deweloperskiego Apple, a Pounce jest darmowym projektem. Zezwól raz przyciskiem Otwórz mimo to (patrz Instalacja) albo zbuduj go sam ze źródeł.",
+    "foot.c": "© 2026 Mikołaj Józefiak · Licencja MIT",
+    "foot.src": "Kod źródłowy",
+    "foot.rel": "Wydania",
+    "foot.lic": "Licencja"
+  };
+  var PL_ARIA = {
+    "nav.label": "Główna",
+    "lang.label": "Język",
+    "mock.label": "Panel Pounce wyszukujący „rep”: zaznaczona jest aplikacja Report Builder, a pod nią dwa pliki, Quarterly Report.txt i report-draft.txt.",
+    "foot.label": "Stopka"
+  };
+  var META = {
+    en: { title: document.title, desc: document.querySelector('meta[name="description"]').content },
+    pl: {
+      title: "Pounce — szybki, natywny launcher dla macOS",
+      desc: "Pounce to darmowy launcher open source dla macOS: wyszukiwanie aplikacji, wyszukiwanie plików po własnym indeksie i zaszyfrowana historia schowka, która wkleja do poprzedniej aplikacji."
+    }
+  };
+
+  var nodes = Array.prototype.slice.call(document.querySelectorAll("[data-i18n]"));
+  var original = nodes.map(function (n) { return n.innerHTML; });
+  var ariaNodes = Array.prototype.slice.call(document.querySelectorAll("[data-i18n-aria]"));
+  var ariaOriginal = ariaNodes.map(function (n) { return n.getAttribute("aria-label"); });
+  var segButtons = Array.prototype.slice.call(document.querySelectorAll(".seg button"));
+  var current = "en";
+
+  function apply(lang) {
+    current = lang;
+    nodes.forEach(function (n, i) {
+      var k = n.getAttribute("data-i18n");
+      n.innerHTML = lang === "pl" && PL[k] ? PL[k] : original[i];
+    });
+    ariaNodes.forEach(function (n, i) {
+      var k = n.getAttribute("data-i18n-aria");
+      n.setAttribute("aria-label", lang === "pl" && PL_ARIA[k] ? PL_ARIA[k] : ariaOriginal[i]);
+    });
+    segButtons.forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-lang") === lang)); });
+    document.documentElement.lang = lang;
+    document.title = META[lang].title;
+    document.querySelector('meta[name="description"]').setAttribute("content", META[lang].desc);
+  }
+
+  var saved = null;
+  try { saved = localStorage.getItem("pounce-lang"); } catch (e) {}
+  var hashLang = location.hash === "#pl" ? "pl" : (location.hash === "#en" ? "en" : null);
+  var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+  var auto = String(langs[0] || "").toLowerCase().indexOf("pl") === 0 ? "pl" : "en";
+  var initial = hashLang || (saved === "pl" || saved === "en" ? saved : auto);
+  if (initial === "pl") apply("pl");
+
+  segButtons.forEach(function (b) {
+    b.addEventListener("click", function () {
+      var lang = b.getAttribute("data-lang");
+      if (lang === current) return;
+      apply(lang);
+      try { localStorage.setItem("pounce-lang", lang); } catch (e) {}
+    });
+  });
+})();
+</script>
+</body>
+</html>

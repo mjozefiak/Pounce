@@ -163,6 +163,24 @@
         }
       }
     },
+    "A fast launcher for apps, files and your clipboard history." : {
+      "comment" : "About window: one-line description",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A fast launcher for apps, files and your clipboard history."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szybki launcher aplikacji, plików i historii schowka."
+          }
+        }
+      }
+    },
     "About Pounce" : {
       "comment" : "Menu bar menu item that opens the About window",
       "extractionState" : "manual",
@@ -177,6 +195,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "O Pounce"
+          }
+        }
+      }
+    },
+    "Accessibility" : {
+      "comment" : "Permission name in Settings → Permissions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accessibility"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostępność"
           }
         }
       }
@@ -217,6 +253,24 @@
         }
       }
     },
+    "Add %@" : {
+      "comment" : "Accessibility label of the button that searches a protected folder",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodaj %@"
+          }
+        }
+      }
+    },
     "Add App…" : {
       "comment" : "Button that adds an app to the ignored apps",
       "extractionState" : "manual",
@@ -249,6 +303,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dodaj folder…"
+          }
+        }
+      }
+    },
+    "Advanced" : {
+      "comment" : "Settings pane title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Advanced"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaawansowane"
           }
         }
       }
@@ -289,6 +361,24 @@
         }
       }
     },
+    "Allowed" : {
+      "comment" : "Permission state",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allowed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dozwolone"
+          }
+        }
+      }
+    },
     "Allow…" : {
       "comment" : "Panel button that opens the Full Disk Access settings",
       "extractionState" : "manual",
@@ -303,6 +393,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zezwól…"
+          }
+        }
+      }
+    },
+    "Always allowed" : {
+      "comment" : "Clipboard access state",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Always allowed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zawsze dozwolony"
           }
         }
       }
@@ -343,6 +451,42 @@
         }
       }
     },
+    "Asks or follows the system default" : {
+      "comment" : "Clipboard access state",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Asks or follows the system default"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pyta lub działa jak domyślnie w systemie"
+          }
+        }
+      }
+    },
+    "Back" : {
+      "comment" : "Welcome screen button that shows the previous step",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wstecz"
+          }
+        }
+      }
+    },
     "Changes the size of text in the Pounce panel." : {
       "comment" : "Settings footer for text size",
       "extractionState" : "manual",
@@ -375,24 +519,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sprawdź ponownie"
-          }
-        }
-      }
-    },
-    "Choose a Shortcut" : {
-      "comment" : "Onboarding step title",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose a Shortcut"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wybierz skrót"
           }
         }
       }
@@ -451,6 +577,24 @@
         }
       }
     },
+    "Clipboard Access" : {
+      "comment" : "Permission name in Settings → Permissions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clipboard Access"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostęp do schowka"
+          }
+        }
+      }
+    },
     "Clipboard History" : {
       "comment" : "Plugin name of the clipboard history, and the menu command that opens it",
       "extractionState" : "manual",
@@ -487,6 +631,24 @@
         }
       }
     },
+    "Command" : {
+      "comment" : "Spoken name of the Command key",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command"
+          }
+        }
+      }
+    },
     "Command-%lld" : {
       "comment" : "Accessibility hint with a filter's shortcut",
       "extractionState" : "manual",
@@ -519,6 +681,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dalej"
+          }
+        }
+      }
+    },
+    "Control" : {
+      "comment" : "Spoken name of the Control key",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Control"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Control"
           }
         }
       }
@@ -667,6 +847,24 @@
         }
       }
     },
+    "Current" : {
+      "comment" : "Welcome screen: state of the step on screen",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bieżący"
+          }
+        }
+      }
+    },
     "Delete" : {
       "comment" : "Clipboard action that deletes the entry",
       "extractionState" : "manual",
@@ -685,6 +883,42 @@
         }
       }
     },
+    "Delete (key)" : {
+      "comment" : "Spoken name of the Delete key",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
+          }
+        }
+      }
+    },
+    "Denied" : {
+      "comment" : "Clipboard access state",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Denied"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zabroniony"
+          }
+        }
+      }
+    },
     "Desktop" : {
       "comment" : "Protected folder name",
       "extractionState" : "manual",
@@ -699,6 +933,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Biurko"
+          }
+        }
+      }
+    },
+    "Development build" : {
+      "comment" : "About window: version of an unbundled build",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Development build"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wersja deweloperska"
           }
         }
       }
@@ -807,6 +1059,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Usuń dane"
+          }
+        }
+      }
+    },
+    "Erase Data of %@…" : {
+      "comment" : "Accessibility label of a feature's Erase Data button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erase Data of %@…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń dane: %@…"
           }
         }
       }
@@ -1099,6 +1369,24 @@
         }
       }
     },
+    "Get Started" : {
+      "comment" : "Welcome screen button on the first page",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get Started"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaczynamy"
+          }
+        }
+      }
+    },
     "History" : {
       "comment" : "Settings section title",
       "extractionState" : "manual",
@@ -1369,6 +1657,42 @@
         }
       }
     },
+    "Lets Pounce paste into the app you were using. Without it, Pounce only copies." : {
+      "comment" : "Explanation of the Accessibility permission",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lets Pounce paste into the app you were using. Without it, Pounce only copies."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pozwala Pounce wklejać do aplikacji, której używałeś. Bez tego Pounce tylko kopiuje."
+          }
+        }
+      }
+    },
+    "Lets file search include Desktop, Documents, Downloads and iCloud Drive without asking about each folder." : {
+      "comment" : "Explanation of the Full Disk Access permission",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lets file search include Desktop, Documents, Downloads and iCloud Drive without asking about each folder."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pozwala wyszukiwaniu plików obejmować Biurko, Dokumenty, Pobrane i iCloud Drive bez pytania o każdy folder."
+          }
+        }
+      }
+    },
     "Link" : {
       "comment" : "Clipboard entry kind and filter",
       "extractionState" : "manual",
@@ -1513,6 +1837,24 @@
         }
       }
     },
+    "Needed by: %@" : {
+      "comment" : "Settings → Permissions: the features that need a permission",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needed by: %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Potrzebne dla: %@"
+          }
+        }
+      }
+    },
     "New exclusion" : {
       "comment" : "Accessibility label of the new exclusion field",
       "extractionState" : "manual",
@@ -1567,6 +1909,24 @@
         }
       }
     },
+    "Not allowed" : {
+      "comment" : "Permission state",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not allowed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niedozwolone"
+          }
+        }
+      }
+    },
     "Not running" : {
       "comment" : "File index status",
       "extractionState" : "manual",
@@ -1599,6 +1959,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nie przeszukiwany"
+          }
+        }
+      }
+    },
+    "Not started" : {
+      "comment" : "Welcome screen: state of a step not reached yet",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not started"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nierozpoczęty"
           }
         }
       }
@@ -1837,6 +2215,60 @@
         }
       }
     },
+    "Open System Settings…" : {
+      "comment" : "Button that opens a permission's page in System Settings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open System Settings…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz Ustawienia systemowe…"
+          }
+        }
+      }
+    },
+    "Opens %@ in System Settings" : {
+      "comment" : "Accessibility hint of the button that opens a permission's settings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens %@ in System Settings"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwiera %@ w Ustawieniach systemowych"
+          }
+        }
+      }
+    },
+    "Option" : {
+      "comment" : "Spoken name of the Option key",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Option"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Option"
+          }
+        }
+      }
+    },
     "Passwords, concealed content and apps like password managers are never recorded. You can pause recording from the menu bar." : {
       "comment" : "Clipboard onboarding text about privacy",
       "extractionState" : "manual",
@@ -1905,6 +2337,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wstrzymaj nagrywanie schowka"
+          }
+        }
+      }
+    },
+    "Permissions" : {
+      "comment" : "Settings section title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permissions"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uprawnienia"
           }
         }
       }
@@ -2017,6 +2467,60 @@
         }
       }
     },
+    "Pounce moves the results you pick often to the top. Resetting forgets what it learned; your apps, files and clipboard history stay." : {
+      "comment" : "Settings explanation of Reset Ranking",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce moves the results you pick often to the top. Resetting forgets what it learned; your apps, files and clipboard history stay."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce przesuwa na górę wyniki, które często wybierasz. Reset zapomina to, czego się nauczył; aplikacje, pliki i historia schowka zostają."
+          }
+        }
+      }
+    },
+    "Pounce never asks for a permission on its own. Changes in System Settings apply right away." : {
+      "comment" : "Settings → Permissions footer",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce never asks for a permission on its own. Changes in System Settings apply right away."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce nigdy sam nie prosi o uprawnienia. Zmiany w Ustawieniach systemowych działają od razu."
+          }
+        }
+      }
+    },
+    "Pounce opens with a shortcut from anywhere and lives in the menu bar. The next steps set it up; you can skip any of them and change everything later in Settings." : {
+      "comment" : "Welcome screen introduction",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce opens with a shortcut from anywhere and lives in the menu bar. The next steps set it up; you can skip any of them and change everything later in Settings."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce otwierasz skrótem z dowolnego miejsca, a mieszka w pasku menu. Kolejne kroki go skonfigurują; każdy możesz pominąć i wszystko zmienić później w Ustawieniach."
+          }
+        }
+      }
+    },
     "Pounce scans the searched folders again. Results stay available while it runs." : {
       "comment" : "Rebuild confirmation message",
       "extractionState" : "manual",
@@ -2067,6 +2571,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zakończ Pounce"
+          }
+        }
+      }
+    },
+    "Ranking" : {
+      "comment" : "Settings label of the ranking reset",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ranking"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ranking"
           }
         }
       }
@@ -2215,6 +2737,78 @@
         }
       }
     },
+    "Remove %@" : {
+      "comment" : "Accessibility label of the button that stops searching a protected folder",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń %@"
+          }
+        }
+      }
+    },
+    "Reset Ranking" : {
+      "comment" : "Confirmation button that clears the learned ranking",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Ranking"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zresetuj ranking"
+          }
+        }
+      }
+    },
+    "Reset Ranking…" : {
+      "comment" : "Settings button that clears the learned ranking",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Ranking…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zresetuj ranking…"
+          }
+        }
+      }
+    },
+    "Reset the ranking?" : {
+      "comment" : "Reset Ranking confirmation title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset the ranking?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zresetować ranking?"
+          }
+        }
+      }
+    },
     "Restore Default Order" : {
       "comment" : "Button that restores the default result order",
       "extractionState" : "manual",
@@ -2287,6 +2881,24 @@
         }
       }
     },
+    "Results go back to the order of how well they match. It cannot be undone." : {
+      "comment" : "Reset Ranking confirmation message",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Results go back to the order of how well they match. It cannot be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyniki wrócą do kolejności według dopasowania. Tego nie można cofnąć."
+          }
+        }
+      }
+    },
     "Results: %lld" : {
       "comment" : "Announced number of results",
       "extractionState" : "manual",
@@ -2337,6 +2949,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wznów nagrywanie schowka"
+          }
+        }
+      }
+    },
+    "Return" : {
+      "comment" : "Spoken name of the Return key",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Return"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Return"
           }
         }
       }
@@ -2485,6 +3115,24 @@
         }
       }
     },
+    "Shift" : {
+      "comment" : "Spoken name of the Shift key",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shift"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shift"
+          }
+        }
+      }
+    },
     "Shortcut" : {
       "comment" : "Settings section title",
       "extractionState" : "manual",
@@ -2575,6 +3223,24 @@
         }
       }
     },
+    "Skip this step. You can change it later in Settings." : {
+      "comment" : "Welcome screen: help of the Skip button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip this step. You can change it later in Settings."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pomiń ten krok. Możesz to zmienić później w Ustawieniach."
+          }
+        }
+      }
+    },
     "Small" : {
       "comment" : "Text size option, spoken",
       "extractionState" : "manual",
@@ -2589,6 +3255,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mały"
+          }
+        }
+      }
+    },
+    "Source Code" : {
+      "comment" : "About window: link to the GitHub repository",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source Code"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kod źródłowy"
+          }
+        }
+      }
+    },
+    "Space" : {
+      "comment" : "Spoken name of the Space bar",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Space"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spacja"
           }
         }
       }
@@ -2647,6 +3349,42 @@
         }
       }
     },
+    "Step %lld of %lld: %@" : {
+      "comment" : "Welcome screen: VoiceOver announcement of the current step",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Step %lld of %lld: %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Krok %1$lld z %2$lld: %3$@"
+          }
+        }
+      }
+    },
+    "Steps" : {
+      "comment" : "Welcome screen: accessibility label of the step list",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steps"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kroki"
+          }
+        }
+      }
+    },
     "Text" : {
       "comment" : "Clipboard entry kind and filter",
       "extractionState" : "manual",
@@ -2683,6 +3421,24 @@
         }
       }
     },
+    "The Keychain needs no permission. A feature that keeps a key there shows its state in its own pane." : {
+      "comment" : "Settings → Permissions note about the Keychain",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Keychain needs no permission. A feature that keeps a key there shows its state in its own pane."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pęk kluczy nie wymaga uprawnienia. Funkcja, która trzyma w nim klucz, pokazuje jego stan we własnym panelu."
+          }
+        }
+      }
+    },
     "The data could not be erased." : {
       "comment" : "Alert title when Erase Data fails",
       "extractionState" : "manual",
@@ -2697,6 +3453,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nie udało się usunąć danych."
+          }
+        }
+      }
+    },
+    "The features that are on need no system permissions." : {
+      "comment" : "Settings → Permissions when no enabled feature needs a permission",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The features that are on need no system permissions."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Włączone funkcje nie potrzebują uprawnień systemowych."
           }
         }
       }
@@ -2737,6 +3511,78 @@
         }
       }
     },
+    "The notices are in THIRD_PARTY_NOTICES.txt in the app bundle and in the source repository." : {
+      "comment" : "About window: shown when the notices file is missing from the bundle",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The notices are in THIRD_PARTY_NOTICES.txt in the app bundle and in the source repository."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Informacje są w pliku THIRD_PARTY_NOTICES.txt w pakiecie aplikacji i w repozytorium kodu."
+          }
+        }
+      }
+    },
+    "The ranking could not be reset." : {
+      "comment" : "Alert title when Reset Ranking fails",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The ranking could not be reset."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się zresetować rankingu."
+          }
+        }
+      }
+    },
+    "The ranking was reset." : {
+      "comment" : "Settings message after Reset Ranking",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The ranking was reset."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ranking został zresetowany."
+          }
+        }
+      }
+    },
+    "Third-Party Notices" : {
+      "comment" : "About window: section title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Third-Party Notices"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Informacje o oprogramowaniu firm trzecich"
+          }
+        }
+      }
+    },
     "This deletes everything the feature stored on this Mac. It cannot be undone." : {
       "comment" : "Erase confirmation message",
       "extractionState" : "manual",
@@ -2769,6 +3615,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tego wpisu nie ma już w historii."
+          }
+        }
+      }
+    },
+    "This ranking store cannot be reset." : {
+      "comment" : "Error when Reset Ranking is unavailable",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This ranking store cannot be reset."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tego rankingu nie można wyzerować."
           }
         }
       }
@@ -2863,6 +3727,24 @@
         }
       }
     },
+    "Unknown" : {
+      "comment" : "Permission state",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nieznany"
+          }
+        }
+      }
+    },
     "Use This Shortcut" : {
       "comment" : "Onboarding button that confirms the shortcut",
       "extractionState" : "manual",
@@ -2881,6 +3763,42 @@
         }
       }
     },
+    "Version %@" : {
+      "comment" : "About window: version without a build number",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wersja %@"
+          }
+        }
+      }
+    },
+    "Version %@ (%@)" : {
+      "comment" : "About window: version and build number",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version %@ (%@)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wersja %1$@ (%2$@)"
+          }
+        }
+      }
+    },
     "Waiting for setup" : {
       "comment" : "File index status before the first scan",
       "extractionState" : "manual",
@@ -2895,6 +3813,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Czeka na konfigurację"
+          }
+        }
+      }
+    },
+    "Website" : {
+      "comment" : "About window: link to the landing page",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Website"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strona internetowa"
+          }
+        }
+      }
+    },
+    "Welcome" : {
+      "comment" : "Welcome screen: title of the first page",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welcome"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Witaj"
           }
         }
       }
@@ -3039,6 +3993,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "macOS pyta przed każdym odczytem schowka, więc nic nie jest zapisywane. Aby nagrywać, zezwól Pounce w ustawieniach Prywatność i ochrona."
+          }
+        }
+      }
+    },
+    "macOS can ask before an app reads the clipboard. Allow Pounce so the history keeps recording." : {
+      "comment" : "Explanation of the clipboard access permission",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS can ask before an app reads the clipboard. Allow Pounce so the history keeps recording."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS może pytać, zanim aplikacja odczyta schowek. Zezwól Pounce, aby historia była dalej zapisywana."
           }
         }
       }

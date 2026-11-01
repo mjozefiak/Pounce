@@ -16,6 +16,7 @@ final class AppCoordinator {
     private(set) var panel: PanelController?
     private(set) var settingsWindow: SettingsWindowController?
     private(set) var onboarding: OnboardingController?
+    private(set) var about: AboutWindowController?
     private let search: SearchCoordinator
     private let icons: IconCache
     private let logger = Logger(subsystem: "app.pounce", category: "app")
@@ -65,8 +66,8 @@ final class AppCoordinator {
             diskDirectory: environment.cachesRoot.appending(path: "icons", directoryHint: .isDirectory))
     }
 
-    /// Builds the panel and windows, activates the enabled plugins, registers shortcuts and, on first
-    /// launch, shows the Shortcut step.
+    /// Builds the panel and windows, activates the enabled plugins, registers shortcuts and, while steps
+    /// are pending, shows the welcome screen.
     func start() async {
         let host = host
         statusItem = StatusItemController(
@@ -75,7 +76,8 @@ final class AppCoordinator {
                 openSettings: { [weak self] in self?.openSettings() },
                 mainShortcut: { [weak self] in self?.hotkeys.mainShortcut },
                 runCommand: { [weak self] command in self?.perform(command) },
-                commandShortcut: { [weak self] id in self?.hotkeys.commandShortcut(id) }
+                commandShortcut: { [weak self] id in self?.hotkeys.commandShortcut(id) },
+                showAbout: { [weak self] in self?.showAbout() }
             )
         ) { host.activeCommands }
 
@@ -104,6 +106,12 @@ final class AppCoordinator {
         panelModel.hide()
         hotkeys.refreshDefault()
         settingsWindow?.show(pane)
+    }
+
+    /// Hides the panel first and shows the About window with the third-party notices.
+    func showAbout() {
+        panelModel.hide()
+        about?.show()
     }
 
     /// Shows a plugin's own Settings pane.
@@ -160,6 +168,17 @@ final class AppCoordinator {
             features: { [weak self] in
                 AnyView(FeaturesPane(host: host, settings: settings) { self?.pluginsChanged() })
             },
+            permissions: { [environment] in
+                let model = PermissionsModel(host: host, reader: environment.permissionsReader) { url in
+                    NSWorkspace.shared.open(url)
+                }
+                return AnyView(PermissionsPane(model: model))
+            },
+            advanced: { [environment, weak self] in
+                AnyView(
+                    AdvancedPane(
+                        controls: AdvancedControls(usage: environment.usage) { self?.panelModel.resultsChanged() }))
+            },
             pluginPanes: {
                 host.entries.compactMap { entry in
                     guard entry.state.isActive, let view = entry.plugin.settingsPane() else { return nil }
@@ -180,6 +199,10 @@ final class AppCoordinator {
         }
         onboarding.activatesApp = environment.registersGlobalHotkeys
         self.onboarding = onboarding
+
+        let about = AboutWindowController()
+        about.activatesApp = environment.registersGlobalHotkeys
+        self.about = about
     }
 
     private func pluginsChanged() {
@@ -200,19 +223,20 @@ final class AppCoordinator {
     }
 
     #if DEBUG
-    /// QA: shows the onboarding step regardless of the first-launch flag.
+    /// QA: shows the whole welcome screen regardless of what was completed.
     func showOnboardingForQA() {
-        onboarding?.showShortcutStep()
+        onboarding?.showAllSteps()
     }
 
-    /// QA: shows one plugin onboarding step by id.
+    /// QA: shows the whole welcome screen on one page: `intro`, `shortcut` or a plugin step id.
     func showOnboardingStepForQA(_ id: String) {
         let steps = host.entries.filter(\.state.isActive).flatMap(\.plugin.onboardingSteps)
-        guard let step = steps.first(where: { $0.id == id }) else {
+        guard [WelcomePage.introID, WelcomePage.shortcutID].contains(id) || steps.contains(where: { $0.id == id })
+        else {
             logger.error("No active onboarding step \(id, privacy: .public)")
             return
         }
-        onboarding?.showPluginStep(step)
+        onboarding?.showAllSteps(startingAt: id)
     }
     #endif
 }

@@ -241,15 +241,20 @@ nonisolated struct SystemPermissionsReader: PermissionsReader {
     /// QA mode only: reports this Full Disk Access status instead of probing (QA never reads a protected
     /// path).
     let fullDiskAccessOverride: PermissionStatus?
+    /// QA mode only: reports the status for this pasteboard access behaviour (`--qa-pasteboard-access`),
+    /// the same one plugins see through `PasteboardClient.accessBehavior`.
+    let pasteboardAccessOverride: PasteboardAccess?
 
     init(
         pasteboardName: NSPasteboard.Name? = nil,
         accessibilityOverride: PermissionStatus? = nil,
-        fullDiskAccessOverride: PermissionStatus? = nil
+        fullDiskAccessOverride: PermissionStatus? = nil,
+        pasteboardAccessOverride: PasteboardAccess? = nil
     ) {
         self.pasteboardName = pasteboardName
         self.accessibilityOverride = accessibilityOverride
         self.fullDiskAccessOverride = fullDiskAccessOverride
+        self.pasteboardAccessOverride = pasteboardAccessOverride
     }
 
     @MainActor func status(of permission: Permission) -> PermissionStatus {
@@ -265,15 +270,19 @@ nonisolated struct SystemPermissionsReader: PermissionsReader {
             }
             return FullDiskAccessProbe(home: FileManager.default.homeDirectoryForCurrentUser.path).status()
         case .pasteboard:
-            let pasteboard = pasteboardName.map { NSPasteboard(name: $0) } ?? .general
-            switch pasteboard.accessBehavior {
-            case .alwaysAllow:
-                return .granted
-            case .alwaysDeny:
-                return .denied
-            default:
-                return .notDetermined
+            if let pasteboardAccessOverride {
+                return Self.status(for: pasteboardAccessOverride)
             }
+            let pasteboard = pasteboardName.map { NSPasteboard(name: $0) } ?? .general
+            return Self.status(for: SystemPasteboardClient.access(pasteboard.accessBehavior))
+        }
+    }
+
+    static func status(for access: PasteboardAccess) -> PermissionStatus {
+        switch access {
+        case .alwaysAllow: .granted
+        case .alwaysDeny: .denied
+        case .ask, .systemDefault: .notDetermined
         }
     }
 }
@@ -346,6 +355,12 @@ actor InMemoryUsageRecorder: UsageRecorder {
             }
             .prefix(max(0, limit))
             .map(\.key)
+    }
+
+    /// Forgets every use and association (Reset Ranking).
+    func removeEverything() {
+        uses = [:]
+        associations = [:]
     }
 
     func removeAll(pluginID: PluginID) async throws {

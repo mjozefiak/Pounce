@@ -139,6 +139,11 @@ struct FeatureRow: View {
             } label: {
                 Text("Erase Data…", comment: "Settings button that deletes a feature's data")
             }
+            // Every row has this button: VoiceOver needs the feature's name to tell them apart.
+            .accessibilityLabel(
+                Text(
+                    "Erase Data of \(String(localized: manifest.displayName))…",
+                    comment: "Accessibility label of a feature's Erase Data button"))
             Toggle(isOn: Binding(get: { isEnabled }, set: { setEnabled($0) })) {
                 Text(manifest.displayName)
             }

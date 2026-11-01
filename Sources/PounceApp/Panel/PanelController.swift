@@ -138,7 +138,7 @@ final class PanelController: NSObject, NSWindowDelegate, PanelPresenting, PanelP
     func showConfirmation(_ message: LocalizedStringResource) {
         let text = String(localized: message)
         model.announce(text)
-        confirmation.show(text, near: panel.frame)
+        confirmation.show(text, near: panel.frame, textSize: model.textSize)
     }
 
     // MARK: Window events

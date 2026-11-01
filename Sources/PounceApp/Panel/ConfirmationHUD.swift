@@ -10,11 +10,12 @@ final class ConfirmationHUD {
     private var hideTask: Task<Void, Never>?
     private(set) var message: String?
 
-    func show(_ message: String, near frame: NSRect) {
+    /// - Parameter textSize: the panel's text size (Settings → General), so the bubble matches the panel.
+    func show(_ message: String, near frame: NSRect, textSize: TextSize = .default) {
         self.message = message
         let panel = panel ?? makePanel()
         self.panel = panel
-        let hosting = NSHostingView(rootView: ConfirmationView(message: message))
+        let hosting = NSHostingView(rootView: ConfirmationView(message: message, textSize: textSize))
         let glass = NSGlassEffectView()
         glass.cornerRadius = 14
         glass.contentView = hosting
@@ -66,6 +67,7 @@ final class ConfirmationHUD {
 
 struct ConfirmationView: View {
     let message: String
+    var textSize: TextSize = .default
 
     var body: some View {
         Label {
@@ -73,8 +75,9 @@ struct ConfirmationView: View {
         } icon: {
             Image(systemName: "checkmark.circle")
                 .symbolRenderingMode(.hierarchical)
+                .accessibilityHidden(true)
         }
-        .font(.body.weight(.medium))
+        .font(textSize.font(.body, weight: .medium))
         .padding(.horizontal, 18)
         .padding(.vertical, 10)
         .fixedSize()

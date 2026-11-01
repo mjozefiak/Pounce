@@ -46,6 +46,8 @@ struct GeneralPane: View {
                     Text("Text size", comment: "Settings label of the panel text size")
                 }
                 .pickerStyle(.segmented)
+                // The segments show S, M, L and XL; VoiceOver reads the size in words.
+                .accessibilityValue(Text(settings.textSize.accessibilityName))
             } footer: {
                 Text("Changes the size of text in the Pounce panel.", comment: "Settings footer for text size")
                     .font(.callout)

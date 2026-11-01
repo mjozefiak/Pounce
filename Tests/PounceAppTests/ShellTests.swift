@@ -26,6 +26,17 @@ private let repositoryRoot = URL(filePath: #filePath)
         let version = try #require(plist["CFBundleShortVersionString"] as? String)
         #expect(version.split(separator: ".").count == 3)
     }
+
+    /// Spec step 4.5, memory at rest: without the allocator's large-allocation cache, the memory freed after
+    /// the first scan goes back to the system instead of staying in Pounce's footprint (`docs/perf.md`).
+    @Test func turnsOffTheLargeAllocationCache() throws {
+        let data = try Data(contentsOf: repositoryRoot.appending(path: "Resources/Info.plist"))
+        let plist = try #require(
+            try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
+        )
+        let environment = try #require(plist["LSEnvironment"] as? [String: String])
+        #expect(environment == ["MallocLargeCache": "0"])
+    }
 }
 
 /// The app bundle carries the license notices of the third-party code it embeds.

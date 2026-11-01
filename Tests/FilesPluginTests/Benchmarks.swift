@@ -70,7 +70,11 @@ struct FileBenchmarks {
     }
 
     /// Builds (once) a fixture tree of fake names: `folders` folders, each with `files` files.
-    static func fixtureTree(folders: Int = 2_000, files: Int = 100) throws -> String {
+    /// `POUNCE_BENCH_FOLDERS` overrides the folder count (5 000 gives about 505 000 entries, spec step 4.5).
+    static func fixtureTree(
+        folders: Int = ProcessInfo.processInfo.environment["POUNCE_BENCH_FOLDERS"].flatMap(Int.init) ?? 2_000,
+        files: Int = 100
+    ) throws -> String {
         let path = ProcessInfo.processInfo.environment["POUNCE_BENCH_TREE"] ?? "/tmp/pounce-p3-bench/tree"
         let marker = path + "/.complete"
         if FileManager.default.fileExists(atPath: marker) { return path }

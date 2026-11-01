@@ -120,6 +120,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let step = options.onboardingStep {
             coordinator?.showOnboardingStepForQA(step)
         }
+        if options.showsAbout {
+            coordinator?.showAbout()
+        }
         if let pane = options.settingsPane {
             if let shellPane = SettingsWindowController.Pane(rawValue: pane) {
                 coordinator?.openSettings(shellPane)
