@@ -22,6 +22,7 @@ final class LifecycleLog {
 enum TestError: Error {
     case activationFailed
     case searchFailed
+    case eraseFailed
 }
 
 /// Answers immediately with one candidate.
@@ -164,6 +165,7 @@ struct TestEnvironment {
         settings = InMemorySettingsStore()
         environment = AppEnvironment(
             dataRoot: root,
+            cachesRoot: root.appending(path: "Caches", directoryHint: .isDirectory),
             settings: settings,
             keychain: InMemoryKeychainClient(),
             pasteboardName: NSPasteboard.Name(name),
@@ -178,7 +180,7 @@ struct TestEnvironment {
     ) -> PluginHost {
         PluginHost(
             pluginTypes: types,
-            makeContext: environment.makeContext(for:),
+            makeContext: { environment.makeContext(for: $0) },
             settings: settings,
             sourceBudget: budget
         )
@@ -186,5 +188,16 @@ struct TestEnvironment {
 
     func tearDown() {
         try? FileManager.default.removeItem(at: environment.dataRoot)
+    }
+}
+
+/// Cannot erase its data, to test how "Erase Data" reports a failure.
+final class UnerasablePlugin: PouncePlugin {
+    static let manifest = PluginManifest(id: "unerasable", displayName: "Unerasable", symbolName: "lock", order: 5)
+
+    init(context: PluginContext) {}
+
+    func eraseData() async throws {
+        throw TestError.eraseFailed
     }
 }

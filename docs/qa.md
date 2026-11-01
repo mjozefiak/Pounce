@@ -33,7 +33,10 @@ Any `--qa…` argument turns QA mode on:
 | Settings | `UserDefaults` domain `app.pounce.Pounce` | in memory; no defaults domain is written |
 | Keychain | file-based login keychain | in memory; the real `app.pounce.clipboard` item is never created or read |
 | Pasteboard | `NSPasteboard.general` | private named pasteboard `app.pounce.qa.<pid>` |
-| Global hotkeys | registered | never registered, so ⌘Space and ⌘⇧V stay with the tester |
+| Global hotkeys | registered | never registered, so ⌘Space and ⌘⇧V stay with the tester; the shortcut recorders show the would-be shortcut from the volatile registration domain |
+| Caches | `~/Library/Caches/Pounce` | `Caches/` under the data root |
+| Focus | the panel and Settings activate Pounce | windows are ordered front without activating Pounce or taking key focus, and the panel does not close when another app has focus |
+| Launch at Login | `SMAppService.mainApp` | in memory; the toggle never registers anything |
 
 AppKit itself may still write window and status-item state to the `app.pounce.Pounce` defaults domain.
 If that domain did not exist before a QA session, remove it afterwards with
@@ -48,11 +51,40 @@ If that domain did not exist before a QA session, remove it afterwards with
 | `--qa-appearance light\|dark` | Phase 0 | Force the app's appearance (`NSApp.appearance`) without touching the system setting. |
 | `--qa-show-menu` | Phase 0 | Open the menu bar menu shortly after launch. |
 | `--qa-quit-after <seconds>` | Phase 0 | Close any open menu and quit after the delay. |
+| `--qa-setting <key>=<value>` | Phase 1 | Seed the in-memory settings (repeatable). `true`/`false` become booleans, integers integers, anything else a string. |
+| `--qa-panel <mode>` | Phase 1 | Open the panel after launch without the global hotkey: `search`, or a plugin's panel mode id. |
+| `--qa-query <text>` | Phase 1 | Type this query into the panel opened with `--qa-panel`. |
+| `--qa-record-use <item key>` | Phase 1 | Record a use of `<plugin id>:<key>` in the QA ranking database before launch (repeatable), so the empty query shows "Recently Used". |
+| `--qa-settings general\|features` | Phase 1 | Open the Settings window on that pane. |
+| `--qa-onboarding` | Phase 1 | Show the first-launch Shortcut step. |
+| `--qa-fail-action` | Phase 1 | With `--qa-panel`: once results load, show the failed-action message for the selected row's first action without running it. |
+| `--qa-spotlight on\|off` | Phase 1 | Pretend Spotlight does or does not hold ⌘Space instead of reading the system's symbolic hotkeys. |
 
 Unknown `--qa…` arguments stop the launch with an error, so a typo never silently falls back to real
-data. Later phases add, in the same file and this table: opening the panel in a given mode with a
-given query, seeding the private pasteboard with fake entries, and a fixture directory as the only
-file-index root.
+data. Later phases add, in the same file and this table: seeding the private pasteboard with fake
+entries and a fixture directory as the only file-index root.
+
+## App search with fixture apps
+
+The app index would otherwise list every app installed on the tester's Mac. For screenshots, point it
+at a directory of fake bundles and turn the Spotlight supplement off:
+
+```bash
+mkdir -p "$FIXTURES/Notes Demo.app/Contents"
+plutil -create xml1 "$FIXTURES/Notes Demo.app/Contents/Info.plist"
+plutil -insert CFBundleIdentifier -string com.example.notes "$FIXTURES/Notes Demo.app/Contents/Info.plist"
+# … more bundles …
+dist/Pounce.app/Contents/MacOS/Pounce --qa \
+  --qa-setting "plugins.apps.roots=$FIXTURES" --qa-setting plugins.apps.spotlight=false \
+  --qa-record-use apps:com.example.notes --qa-panel search --qa-query no --qa-appearance dark
+```
+
+`plugins.apps.roots` replaces the default roots (`/Applications`, `~/Applications`,
+`/System/Applications`, `/System/Library/CoreServices/Applications`). Fake bundles have the generic
+app icon.
+
+In QA mode the shortcut recorders are read-only. KeyboardShortcuts would write a recorded shortcut to
+the `app.pounce.Pounce` defaults domain and register it with the system, so a QA run cannot record one.
 
 ## Screenshots
 

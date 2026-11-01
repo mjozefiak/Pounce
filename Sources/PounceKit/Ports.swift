@@ -46,11 +46,45 @@ public protocol EventPoster: Sendable {
     @MainActor func postPaste() throws(EventPosterError)
 }
 
+/// How to open an application (mirrors the parts of `NSWorkspace.OpenConfiguration` plugins use).
+public struct ApplicationOpenOptions: Hashable, Sendable {
+    /// Bring the app to the front.
+    public var activates: Bool
+    /// Add the app to the Recent Items menu.
+    public var addsToRecentItems: Bool
+    /// Ask the user (for example about a quarantined app) instead of failing silently.
+    public var promptsUserIfNeeded: Bool
+    /// The bundle identifier to hand activation to before opening, so the app may come to the front while
+    /// Pounce never activates itself (macOS cooperative activation).
+    public var yieldsActivationTo: String?
+
+    public init(
+        activates: Bool = true,
+        addsToRecentItems: Bool = true,
+        promptsUserIfNeeded: Bool = true,
+        yieldsActivationTo: String? = nil
+    ) {
+        self.activates = activates
+        self.addsToRecentItems = addsToRecentItems
+        self.promptsUserIfNeeded = promptsUserIfNeeded
+        self.yieldsActivationTo = yieldsActivationTo
+    }
+}
+
 /// The parts of `NSWorkspace` plugins use.
 public protocol WorkspaceClient: Sendable {
     @MainActor var frontmostApplicationPID: pid_t? { get }
     @MainActor func open(_ url: URL) async throws
     @MainActor func revealInFinder(_ urls: [URL])
+    /// Opens (or activates) the application bundle at `url`. Added in Phase 1; the default opens it like
+    /// any other URL.
+    @MainActor func openApplication(at url: URL, options: ApplicationOpenOptions) async throws
+}
+
+extension WorkspaceClient {
+    @MainActor public func openApplication(at url: URL, options: ApplicationOpenOptions) async throws {
+        try await open(url)
+    }
 }
 
 /// Usage statistics for one item, read from `ranking.sqlite`.
@@ -81,6 +115,17 @@ public struct UsageStats: Hashable, Sendable {
 public protocol UsageRecorder: Sendable {
     func recordUse(of key: ItemKey, queryPrefix: String?, at date: Date) async throws
     func stats(for keys: [ItemKey], queryPrefix: String?) async throws -> [ItemKey: UsageStats]
+    /// One plugin's items with recorded uses, highest decayed frecency at `now` first. Sources use it to
+    /// answer an empty query with recently used items. Added in Phase 1; the default knows no items.
+    func mostUsed(pluginID: PluginID, limit: Int, now: Date) async throws -> [ItemKey]
+    /// Deletes every usage statistic and query association of one plugin's items (keys `<id>:…`), for
+    /// "Erase Data". Added in Phase 1; the default keeps nothing, so it has nothing to delete.
+    func removeAll(pluginID: PluginID) async throws
+}
+
+extension UsageRecorder {
+    public func mostUsed(pluginID: PluginID, limit: Int, now: Date) async throws -> [ItemKey] { [] }
+    public func removeAll(pluginID: PluginID) async throws {}
 }
 
 /// Reads permission state with preflight APIs, never by triggering a prompt.

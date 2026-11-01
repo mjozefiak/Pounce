@@ -39,10 +39,14 @@ public struct ActionContext: Sendable {
     /// The app that was frontmost before the panel opened, if any.
     public let previousApp: pid_t?
     public let panel: any PanelPresenter
+    /// The query the result was chosen for, so a source can record the query association through
+    /// `UsageRecorder`. `nil` when the action does not come from a search. Added in Phase 1.
+    public let query: NormalizedQuery?
 
-    public init(previousApp: pid_t?, panel: any PanelPresenter) {
+    public init(previousApp: pid_t?, panel: any PanelPresenter, query: NormalizedQuery? = nil) {
         self.previousApp = previousApp
         self.panel = panel
+        self.query = query
     }
 }
 

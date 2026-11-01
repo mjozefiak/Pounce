@@ -75,6 +75,13 @@ public struct PluginContext: Sendable {
     public let workspace: any WorkspaceClient
     public let permissions: any PermissionsReader
     public let clock: any Clock<Duration>
+    /// Rebuildable caches (`~/Library/Caches/Pounce/Plugins/<id>/`), created lazily by the plugin.
+    /// Defaults to `Caches/` inside the storage directory. Added in Phase 1.
+    public let cachesDirectory: URL
+    /// Tells the host that the plugin's results changed (its index finished loading, a new item arrived),
+    /// so an open panel searches again. Callable from any thread; the host coalesces calls. Added in
+    /// Phase 1; defaults to doing nothing.
+    public let resultsChanged: @Sendable () -> Void
 
     public init(
         storageDirectory: URL,
@@ -86,7 +93,9 @@ public struct PluginContext: Sendable {
         events: any EventPoster,
         workspace: any WorkspaceClient,
         permissions: any PermissionsReader,
-        clock: any Clock<Duration>
+        clock: any Clock<Duration>,
+        cachesDirectory: URL? = nil,
+        resultsChanged: @escaping @Sendable () -> Void = {}
     ) {
         self.storageDirectory = storageDirectory
         self.settings = settings
@@ -98,5 +107,8 @@ public struct PluginContext: Sendable {
         self.workspace = workspace
         self.permissions = permissions
         self.clock = clock
+        self.cachesDirectory =
+            cachesDirectory ?? storageDirectory.appending(path: "Caches", directoryHint: .isDirectory)
+        self.resultsChanged = resultsChanged
     }
 }

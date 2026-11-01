@@ -10,6 +10,9 @@ public struct PluginCommand: Identifiable, Sendable {
     public let defaultShortcut: KeyShortcut?
     /// Whether the command appears in the menu bar menu.
     public let showsInMenu: Bool
+    /// When set, the shell opens (or, when it is already open, closes) the panel in this plugin panel mode
+    /// instead of calling `run`. Added in Phase 1, so a plugin can bind a global shortcut to its own mode.
+    public let panelMode: PanelModeID?
     public let run: @MainActor @Sendable () async -> Void
 
     public init(
@@ -18,13 +21,15 @@ public struct PluginCommand: Identifiable, Sendable {
         symbolName: String? = nil,
         defaultShortcut: KeyShortcut? = nil,
         showsInMenu: Bool = true,
-        run: @escaping @MainActor @Sendable () async -> Void
+        panelMode: PanelModeID? = nil,
+        run: @escaping @MainActor @Sendable () async -> Void = {}
     ) {
         self.id = id
         self.title = title
         self.symbolName = symbolName
         self.defaultShortcut = defaultShortcut
         self.showsInMenu = showsInMenu
+        self.panelMode = panelMode
         self.run = run
     }
 }

@@ -30,7 +30,7 @@ Location: `~/Library/Application Support/Pounce/`. All files are `0600`; each pl
 | `Plugins/clipboard/clipboard.sqlite` + `Plugins/clipboard/blobs/` | `ClipboardPlugin` only, with its own migrator | SQLCipher database (`clip_item`, `clip_representation`, `clip_fts`) + AES-GCM encrypted blob files with random UUID names | It is the user's history and cannot be rebuilt. |
 | `Plugins/files/index.snapshot` | `FilesPlugin` | Versioned binary snapshot with `schema_version` | Rebuildable by rescanning, so only the "never error" rule is protected. |
 | `Plugins/<id>/` paths | Each plugin | Directory layout | Part of R4: existing installs look for their data there. |
-| `apps.json`, `icons/` in `Caches/` | `AppsPlugin` | Cache | Not protected; may change freely. |
+| `~/Library/Caches/Pounce/Plugins/apps/apps.json` and `~/Library/Caches/Pounce/icons/` | `AppsPlugin` (`apps.json`); the shell's `IconCache` (`icons/`, shared by every plugin's rows) | Cache | Not protected; may change freely. "Erase Data" removes a plugin's `Caches/Pounce/Plugins/<id>/`. |
 
 **Breaking:** dropping or renaming a table or column; changing a column's meaning or type; any migration that deletes or rewrites user rows; moving a store or renaming a `Plugins/<id>/` path; changing the encryption scheme, the key derivation (HKDF-SHA256 from the master key with `info` = `sqlcipher` for the database, `blob` for blob files, `content-hash` for the `content_hash` HMAC) or the Keychain item (file-based login keychain, `kSecClassGenericPassword`, `service = app.pounce.clipboard`) in a way an existing install cannot open or deduplicate against; changing the snapshot format without bumping `schema_version`.
 
@@ -46,6 +46,8 @@ Location: `~/Library/Application Support/Pounce/`. All files are `0600`; each pl
 ## 3. User settings keys (`UserDefaults`)
 
 **Surface:** every `UserDefaults` key and its value type and meaning, in the two namespaces from the spec: `app.*` (main shortcut, `app.hotkey.userDefined`, launch at login, text size, section order) and `plugins.<id>.*` (`plugins.<id>.enabled` and each plugin's settings: file index roots and exclusions, retention, ignored apps, recording paused), plus the shortcuts stored by KeyboardShortcuts and any key added later.
+
+Keys in use since v0.1 (declared in `Sources/PounceApp/SettingsKeys.swift` and in each plugin): `app.hotkey.userDefined` (Bool), `app.hotkey.commandDefaultsApplied` ([String] of command ids whose default shortcut was applied once), `app.onboarding.shortcutCompleted` (Bool), `app.textSize` (`s`/`m`/`l`/`xl`), `app.panelLevel` (`floating`/`statusBar`, the spike 1.2 fallback), `plugins.<id>.enabled` (Bool), `plugins.apps.roots` ([String] or String), `plugins.apps.spotlight` (Bool); KeyboardShortcuts keys `KeyboardShortcuts_mainHotkey` and `KeyboardShortcuts_command_<command id with dots as underscores>`.
 
 **Breaking:** renaming or removing a key; moving a key to another namespace; changing its type or encoding; changing the meaning of a stored value; changing a default in a way that changes behaviour for users who never touched the setting (for example ignoring fewer apps by default, or capturing more types).
 
