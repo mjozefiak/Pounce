@@ -127,9 +127,9 @@ Every PR passes the full validation gate before review sign-off, in this order:
 2. `swift test`
 3. `swift format lint --strict -r Sources Tests`
 
-> **Not live yet.** These commands need a `Package.swift`, which arrives with Phase 0 of the MVP spec (`feat/scaffold`). Until that PR merges, the gate is **expected to fail** on every branch, and **docs-only PRs (process docs, specs, `.ai/` config) are exempt**: they record "validation gate not applicable: no Swift package yet" in the PR body instead of a gate result. Once Phase 0 lands, the gate applies to every PR that touches Swift code, `Package.swift` or `Package.resolved`.
+> **Live since Phase 0** (`feat/scaffold`). The gate applies to every PR that touches Swift code, `Package.swift`, `Package.resolved` or `Packages/`. Docs-only PRs (process docs, specs, `.ai/` config) record "validation gate not applicable: docs-only" in the PR body instead of a gate result.
 >
-> CI (`.github/workflows/ci.yml`, planned in Phase 0) blocks merge on `swift test` only. `swift build` and `swift format lint` are run locally by the implementing skills before a PR is opened.
+> CI (`.github/workflows/ci.yml`) runs `swift build`, `swift test`, the `PluginHost` tests under `--sanitize=thread` and `swift format lint --strict -r Sources Tests` on every PR; `.github/workflows/release.yml` additionally builds and signs the DMG for PRs that touch the app. The implementing skills still run the gate locally before a PR is opened.
 
 Any non-zero exit fails the gate and blocks the PR. The implementing skills run the gate before opening a PR, and `om-check-and-commit` runs it before pushing a hand-worked branch. The command list lives in `.ai/agentic.config.json`; when it changes, update it there and in this section together.
 

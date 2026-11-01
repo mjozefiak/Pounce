@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	Pounce is signed with a self-signed certificate, which carries no Apple Team ID. Under the hardened
+	runtime, library validation only loads frameworks with the app's Team ID, so it would refuse the
+	embedded SQLCipher.framework even though it is signed with the same certificate. This entitlement
+	turns library validation off and keeps the rest of the hardened runtime (no DYLD_* variables, no
+	unsigned executable memory, no debugger attachment). See docs/signing.md.
+	-->
+	<key>com.apple.security.cs.disable-library-validation</key>
+	<true/>
+</dict>
+</plist>

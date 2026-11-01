@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Build, test and lint
+    # Xcode 27 (macOS 27 SDK, Swift 6.4) on Apple silicon. GitHub's Xcode 27 image is in public
+    # preview; if the label disappears, macos-26 with Xcode 26 is the fallback (the code avoids
+    # macOS 27-only APIs). See the Phase 0 PR for the decision.
+    runs-on: xcode-27
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Toolchain
+        run: |
+          echo "DEVELOPER_DIR=$(xcode-select -p)" >> "$GITHUB_ENV"
+          xcodebuild -version
+          swift --version
+          sw_vers
+
+      - name: Build
+        run: swift build
+
+      - name: Test
+        run: swift test
+
+      - name: Test PluginHost under Thread Sanitizer
+        run: swift test --sanitize=thread --filter PluginHostTests
+
+      - name: Format lint
+        run: swift format lint --strict -r Sources Tests

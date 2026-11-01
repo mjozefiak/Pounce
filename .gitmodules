@@ -1,0 +1,4 @@
+[submodule "Packages/GRDBCipher/upstream"]
+	path = Packages/GRDBCipher/upstream
+	url = https://github.com/groue/GRDB.swift.git
+	shallow = true
