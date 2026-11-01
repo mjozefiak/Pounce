@@ -53,12 +53,20 @@ struct QAOptions: Equatable {
     /// `--qa-accessibility granted|denied`: the Accessibility status plugins see. Without it the real
     /// status is read (never changed).
     var accessibility: PermissionStatus?
+    /// `--qa-full-disk-access granted|denied`: the Full Disk Access status plugins see. QA mode never
+    /// probes the real state; without the argument it is `denied`.
+    var fullDiskAccess: PermissionStatus?
     /// `--qa-spotlight on|off`: pretends Spotlight does or does not hold Command-Space, instead of reading
     /// the system's symbolic hotkeys.
     var spotlightHoldsCommandSpace: Bool?
     /// `--qa-record-use <item key>` (repeatable): records a use in the QA ranking database before the
     /// panel opens, so the empty-query "recently used" list has content.
     var recordedUses: [String] = []
+
+    /// The file plugin's DEBUG-only fake home and its roots, which QA mode always sets
+    /// (`AppEnvironment.qaFileIndexSettings`).
+    static let filesHomeKey = "plugins.files.qaHome"
+    static let filesRootsKey = "plugins.files.roots"
 
     enum ParseError: Error, Equatable {
         case missingValue(String)
@@ -99,7 +107,11 @@ struct QAOptions: Equatable {
                     throw .invalidValue(argument, value)
                 }
                 let key = String(value[..<separator])
-                options.settings[key] = settingValue(String(value[value.index(after: separator)...]))
+                let text = String(value[value.index(after: separator)...])
+                // A list setting takes comma-separated values.
+                options.settings[key] =
+                    key == SettingsKeys.sectionOrder
+                    ? .stringArray(text.split(separator: ",").map(String.init)) : settingValue(text)
             case "--qa-panel":
                 guard let value = iterator.next() else { throw .missingValue(argument) }
                 options.panelMode = value
@@ -129,6 +141,13 @@ struct QAOptions: Equatable {
                 switch value {
                 case "granted": options.accessibility = .granted
                 case "denied": options.accessibility = .denied
+                default: throw .invalidValue(argument, value)
+                }
+            case "--qa-full-disk-access":
+                guard let value = iterator.next() else { throw .missingValue(argument) }
+                switch value {
+                case "granted": options.fullDiskAccess = .granted
+                case "denied": options.fullDiskAccess = .denied
                 default: throw .invalidValue(argument, value)
                 }
             case "--qa-fail-action":

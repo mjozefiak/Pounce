@@ -238,10 +238,18 @@ nonisolated struct SystemPermissionsReader: PermissionsReader {
     let pasteboardName: NSPasteboard.Name?
     /// QA mode only: reports this Accessibility status instead of the system's.
     let accessibilityOverride: PermissionStatus?
+    /// QA mode only: reports this Full Disk Access status instead of probing (QA never reads a protected
+    /// path).
+    let fullDiskAccessOverride: PermissionStatus?
 
-    init(pasteboardName: NSPasteboard.Name? = nil, accessibilityOverride: PermissionStatus? = nil) {
+    init(
+        pasteboardName: NSPasteboard.Name? = nil,
+        accessibilityOverride: PermissionStatus? = nil,
+        fullDiskAccessOverride: PermissionStatus? = nil
+    ) {
         self.pasteboardName = pasteboardName
         self.accessibilityOverride = accessibilityOverride
+        self.fullDiskAccessOverride = fullDiskAccessOverride
     }
 
     @MainActor func status(of permission: Permission) -> PermissionStatus {
@@ -252,8 +260,10 @@ nonisolated struct SystemPermissionsReader: PermissionsReader {
             }
             return CGPreflightPostEventAccess() ? .granted : .denied
         case .fullDiskAccess:
-            // Detected in Phase 3 by reading a protected path; unknown until then.
-            return .notDetermined
+            if let fullDiskAccessOverride {
+                return fullDiskAccessOverride
+            }
+            return FullDiskAccessProbe(home: FileManager.default.homeDirectoryForCurrentUser.path).status()
         case .pasteboard:
             let pasteboard = pasteboardName.map { NSPasteboard(name: $0) } ?? .general
             switch pasteboard.accessBehavior {
@@ -265,6 +275,37 @@ nonisolated struct SystemPermissionsReader: PermissionsReader {
                 return .notDetermined
             }
         }
+    }
+}
+
+/// Detects Full Disk Access by reading a folder that only Full Disk Access unlocks (spec step 3.0).
+///
+/// These folders (Safari, Mail, Messages data) answer a read without Full Disk Access with a permission
+/// error and never show a prompt, unlike Desktop or Documents. One readable folder means access is
+/// granted; a permission error with none readable means it is not; when none of them exists the state is
+/// unknown.
+nonisolated struct FullDiskAccessProbe {
+    static let protectedFolders = ["Library/Safari", "Library/Mail", "Library/Messages", "Library/Suggestions"]
+
+    let home: String
+    var folders = Self.protectedFolders
+
+    func status() -> PermissionStatus {
+        var denied = false
+        for folder in folders {
+            let path = home + "/" + folder
+            guard let directory = opendir(path) else {
+                if errno == EPERM || errno == EACCES { denied = true }
+                continue
+            }
+            defer { closedir(directory) }
+            errno = 0
+            if readdir(directory) != nil || errno == 0 {
+                return .granted
+            }
+            if errno == EPERM || errno == EACCES { denied = true }
+        }
+        return denied ? .denied : .notDetermined
     }
 }
 

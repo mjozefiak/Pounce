@@ -52,9 +52,11 @@ final class AppCoordinator {
             },
             settings: environment.settings
         )
-        self.appSettings = AppSettings(store: environment.settings)
+        let appSettings = AppSettings(store: environment.settings)
+        self.appSettings = appSettings
         self.launchAtLogin = launchAtLogin
-        let search = SearchCoordinator(host: host, usage: environment.usage)
+        let search = SearchCoordinator(
+            host: host, usage: environment.usage, sectionOrder: { appSettings.sectionOrder })
         self.search = search
         let panelModel = PanelModel { query in await search.search(query) }
         self.panelModel = panelModel
@@ -134,6 +136,7 @@ final class AppCoordinator {
         panelModel.textSize = appSettings.textSize
         panelModel.previousApplication = { NSWorkspace.shared.frontmostApplication?.processIdentifier }
         panelModel.openSettings = { [weak self] in self?.openSettings(.features) }
+        panelModel.openPluginSettings = { [weak self] id in self?.openPluginSettings(id.rawValue) }
         let host = host
         panelModel.panelMode = { id in host.activePanelModes.first { $0.id == id } }
         let search = search
@@ -155,7 +158,7 @@ final class AppCoordinator {
                 AnyView(GeneralPane(hotkeys: hotkeys, settings: settings, launchAtLogin: launchAtLogin))
             },
             features: { [weak self] in
-                AnyView(FeaturesPane(host: host) { self?.pluginsChanged() })
+                AnyView(FeaturesPane(host: host, settings: settings) { self?.pluginsChanged() })
             },
             pluginPanes: {
                 host.entries.compactMap { entry in

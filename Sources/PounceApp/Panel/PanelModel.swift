@@ -34,6 +34,8 @@ final class PanelModel {
         static let footerHeight: CGFloat = 32
         static let listPadding: CGFloat = 8
         static let messageHeight: CGFloat = 64
+        /// One plugin status line (progress or notice) above the results.
+        static let statusHeight: CGFloat = 36
     }
 
     private(set) var isVisible = false
@@ -53,6 +55,8 @@ final class PanelModel {
     @ObservationIgnored weak var presenter: (any PanelPresenting)?
     @ObservationIgnored var panelPresenter: (any PanelPresenter)?
     @ObservationIgnored var openSettings: () -> Void = {}
+    /// Opens a plugin's own Settings pane (a status line's "Set Up…").
+    @ObservationIgnored var openPluginSettings: (PluginID) -> Void = { _ in }
     @ObservationIgnored var announce: (String) -> Void = { message in
         AccessibilityNotification.Announcement(message).post()
     }
@@ -373,6 +377,7 @@ final class PanelModel {
         }
         guard showsResultsArea else { return Metrics.fieldHeight }
         var content = Metrics.listPadding * 2
+        content += CGFloat(results.statuses.count) * Metrics.statusHeight * scale
         if showsNoResults {
             content += Metrics.messageHeight
         }
@@ -387,10 +392,21 @@ final class PanelModel {
         return min(total, Metrics.maximumHeight)
     }
 
-    /// The list area shows when there are results, when a typed query found nothing, or after a failed
-    /// action.
+    /// The list area shows when there are results or plugin status lines, when a typed query found
+    /// nothing, or after a failed action.
     var showsResultsArea: Bool {
-        errorMessage != nil || !results.sections.isEmpty || showsNoResults
+        errorMessage != nil || !results.sections.isEmpty || showsNoResults || !results.statuses.isEmpty
+    }
+
+    /// A status line's button: runs the plugin's closure, or opens the plugin's Settings pane.
+    func perform(_ action: SearchStatusAction, of status: PanelStatus) {
+        switch action.kind {
+        case .run(let run):
+            run()
+        case .openSettings:
+            hide()
+            openPluginSettings(status.pluginID)
+        }
     }
 
     var showsNoResults: Bool {

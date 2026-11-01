@@ -168,3 +168,55 @@ public enum PermissionStatus: Hashable, Sendable {
     /// The system has not asked yet, or asks every time.
     case notDetermined
 }
+
+/// A line the panel shows above the search results while a plugin has something to say about them, for
+/// example indexing progress or a missing permission. The panel asks for it on every search, so a plugin
+/// calls `PluginContext.resultsChanged` when it changes. Added in Phase 3.
+public struct SearchStatus: Identifiable, Sendable {
+    public enum Style: Hashable, Sendable {
+        /// Work in progress: an indeterminate progress bar beside the message.
+        case progress
+        /// Information with optional actions.
+        case notice
+    }
+
+    public let id: String
+    public let symbolName: String
+    public let message: LocalizedStringResource
+    public let style: Style
+    public let actions: [SearchStatusAction]
+
+    public init(
+        id: String,
+        symbolName: String,
+        message: LocalizedStringResource,
+        style: Style = .notice,
+        actions: [SearchStatusAction] = []
+    ) {
+        self.id = id
+        self.symbolName = symbolName
+        self.message = message
+        self.style = style
+        self.actions = actions
+    }
+}
+
+/// A button on a `SearchStatus` line. Added in Phase 3.
+public struct SearchStatusAction: Identifiable, Sendable {
+    public enum Kind: Sendable {
+        /// Runs the closure; the panel stays open.
+        case run(@MainActor @Sendable () -> Void)
+        /// Hides the panel and opens the plugin's Settings pane.
+        case openSettings
+    }
+
+    public let id: String
+    public let title: LocalizedStringResource
+    public let kind: Kind
+
+    public init(id: String, title: LocalizedStringResource, kind: Kind) {
+        self.id = id
+        self.title = title
+        self.kind = kind
+    }
+}

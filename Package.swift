@@ -2,7 +2,7 @@
 import PackageDescription
 
 // Dependency graph (one way only, see AGENTS.md):
-//   PounceApp -> plugins (AppsPlugin, ClipboardPlugin) -> PouncePersistence / PounceCore -> PounceKit
+//   PounceApp -> plugins (AppsPlugin, FilesPlugin, ClipboardPlugin) -> PouncePersistence / PounceCore -> PounceKit
 // Only PounceApp is MainActor by default; every other target stays nonisolated and declares
 // isolation explicitly.
 let package = Package(
@@ -36,6 +36,10 @@ let package = Package(
             dependencies: ["PounceKit", "PounceCore"]
         ),
         .target(
+            name: "FilesPlugin",
+            dependencies: ["PounceKit", "PounceCore", "PouncePersistence"]
+        ),
+        .target(
             name: "ClipboardPlugin",
             dependencies: [
                 "PounceKit",
@@ -53,6 +57,7 @@ let package = Package(
                 "PounceCore",
                 "PouncePersistence",
                 "AppsPlugin",
+                "FilesPlugin",
                 "ClipboardPlugin",
                 .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
             ],
@@ -69,6 +74,10 @@ let package = Package(
         .testTarget(
             name: "AppsPluginTests",
             dependencies: ["AppsPlugin", "PounceKit", "PounceCore"]
+        ),
+        .testTarget(
+            name: "FilesPluginTests",
+            dependencies: ["FilesPlugin", "PounceKit", "PounceCore", "PouncePersistence"]
         ),
         .testTarget(
             name: "ClipboardPluginTests",

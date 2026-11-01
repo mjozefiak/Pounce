@@ -1,6 +1,42 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@ items indexed" : {
+      "comment" : "File index status; item count",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ items indexed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaindeksowane elementy: %@"
+          }
+        }
+      }
+    },
+    "%@, position %lld of %lld" : {
+      "comment" : "Accessibility label of a result section in the order list",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, position %lld of %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, pozycja %2$lld z %3$lld"
+          }
+        }
+      }
+    },
     "%lld days" : {
       "comment" : "Clipboard retention choice, a number of days",
       "extractionState" : "manual",
@@ -109,6 +145,24 @@
         }
       }
     },
+    "%lld." : {
+      "comment" : "Position in the result order list",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld."
+          }
+        }
+      }
+    },
     "About Pounce" : {
       "comment" : "Menu bar menu item that opens the About window",
       "extractionState" : "manual",
@@ -145,6 +199,24 @@
         }
       }
     },
+    "Add" : {
+      "comment" : "Button that adds an item to a list",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodaj"
+          }
+        }
+      }
+    },
     "Add App…" : {
       "comment" : "Button that adds an app to the ignored apps",
       "extractionState" : "manual",
@@ -159,6 +231,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dodaj aplikację…"
+          }
+        }
+      }
+    },
+    "Add Folder…" : {
+      "comment" : "Button that adds a folder to the file index",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Folder…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodaj folder…"
           }
         }
       }
@@ -199,6 +289,42 @@
         }
       }
     },
+    "Allow…" : {
+      "comment" : "Panel button that opens the Full Disk Access settings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól…"
+          }
+        }
+      }
+    },
+    "Always left out: ~/Library, node_modules, .git, DerivedData and cache folders." : {
+      "comment" : "Settings footer listing the default exclusions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Always left out: ~/Library, node_modules, .git, DerivedData and cache folders."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zawsze pomijane: ~/Library, node_modules, .git, DerivedData i foldery pamięci podręcznej."
+          }
+        }
+      }
+    },
     "Applications" : {
       "comment" : "Results section and plugin name for apps",
       "extractionState" : "manual",
@@ -231,6 +357,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zmienia rozmiar tekstu w panelu Pounce."
+          }
+        }
+      }
+    },
+    "Check Again" : {
+      "comment" : "Button that re-reads the Full Disk Access state",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check Again"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprawdź ponownie"
           }
         }
       }
@@ -451,6 +595,24 @@
         }
       }
     },
+    "Copy File" : {
+      "comment" : "Result action that copies the file itself",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy File"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiuj plik"
+          }
+        }
+      }
+    },
     "Copy Only" : {
       "comment" : "Clipboard action that copies without pasting",
       "extractionState" : "manual",
@@ -465,6 +627,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tylko kopiuj"
+          }
+        }
+      }
+    },
+    "Copy Path" : {
+      "comment" : "Result action that copies the file's path",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy Path"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiuj ścieżkę"
           }
         }
       }
@@ -505,6 +685,24 @@
         }
       }
     },
+    "Desktop" : {
+      "comment" : "Protected folder name",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desktop"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biurko"
+          }
+        }
+      }
+    },
     "Dismiss" : {
       "comment" : "Button that dismisses a notice",
       "extractionState" : "manual",
@@ -523,6 +721,24 @@
         }
       }
     },
+    "Documents" : {
+      "comment" : "Protected folder name",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Documents"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dokumenty"
+          }
+        }
+      }
+    },
     "Done" : {
       "comment" : "Onboarding button on the last step",
       "extractionState" : "manual",
@@ -537,6 +753,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gotowe"
+          }
+        }
+      }
+    },
+    "Downloads" : {
+      "comment" : "Protected folder name",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloads"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobrane rzeczy"
           }
         }
       }
@@ -613,6 +847,24 @@
         }
       }
     },
+    "Exclusions" : {
+      "comment" : "Settings section title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exclusions"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wykluczenia"
+          }
+        }
+      }
+    },
     "Extra Large" : {
       "comment" : "Text size option, spoken",
       "extractionState" : "manual",
@@ -667,6 +919,60 @@
         }
       }
     },
+    "File Copied" : {
+      "comment" : "Confirmation after copying a file",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File Copied"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skopiowano plik"
+          }
+        }
+      }
+    },
+    "File Search" : {
+      "comment" : "Onboarding step title for file search",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File Search"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyszukiwanie plików"
+          }
+        }
+      }
+    },
+    "File search starts once you choose how Pounce may read your files." : {
+      "comment" : "Panel notice before file indexing was set up",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File search starts once you choose how Pounce may read your files."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyszukiwanie plików ruszy, gdy wybierzesz, jak Pounce może czytać Twoje pliki."
+          }
+        }
+      }
+    },
     "Files" : {
       "comment" : "Clipboard entry kind and filter",
       "extractionState" : "manual",
@@ -717,6 +1023,60 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tekst sformatowany"
+          }
+        }
+      }
+    },
+    "Full Disk Access" : {
+      "comment" : "Settings section title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Full Disk Access"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pełny dostęp do dysku"
+          }
+        }
+      }
+    },
+    "Full Disk Access is allowed." : {
+      "comment" : "Full Disk Access status",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Full Disk Access is allowed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pełny dostęp do dysku jest włączony."
+          }
+        }
+      }
+    },
+    "Full Disk Access is not allowed." : {
+      "comment" : "Full Disk Access status",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Full Disk Access is not allowed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pełny dostęp do dysku jest wyłączony."
           }
         }
       }
@@ -829,6 +1189,96 @@
         }
       }
     },
+    "Include hidden files" : {
+      "comment" : "Settings toggle that indexes hidden files",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Include hidden files"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uwzględniaj ukryte pliki"
+          }
+        }
+      }
+    },
+    "Index" : {
+      "comment" : "Settings section title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Index"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indeks"
+          }
+        }
+      }
+    },
+    "Indexing files… %@" : {
+      "comment" : "Panel progress while files are indexed; the number of items so far",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indexing files… %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indeksuję pliki… %@"
+          }
+        }
+      }
+    },
+    "Indexing starts when you continue. Folders like node_modules, .git, caches and ~/Library are left out." : {
+      "comment" : "File search onboarding note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indexing starts when you continue. Folders like node_modules, .git, caches and ~/Library are left out."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indeksowanie zacznie się po przejściu dalej. Foldery takie jak node_modules, .git, pamięć podręczna i ~/Library są pomijane."
+          }
+        }
+      }
+    },
+    "Indexing… %@" : {
+      "comment" : "File index status while scanning; item count",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indexing… %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indeksuję… %@"
+          }
+        }
+      }
+    },
     "Keep at most" : {
       "comment" : "Settings label of the maximum number of clipboard entries",
       "extractionState" : "manual",
@@ -937,6 +1387,42 @@
         }
       }
     },
+    "Loading the file index…" : {
+      "comment" : "Panel progress while the saved index loads",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading the file index…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wczytuję indeks plików…"
+          }
+        }
+      }
+    },
+    "Loading…" : {
+      "comment" : "File index status while the saved index loads",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wczytuję…"
+          }
+        }
+      }
+    },
     "M" : {
       "comment" : "Text size option: medium",
       "extractionState" : "manual",
@@ -973,6 +1459,78 @@
         }
       }
     },
+    "Move Down" : {
+      "comment" : "Button that moves a result section down",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move Down"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przesuń w dół"
+          }
+        }
+      }
+    },
+    "Move Up" : {
+      "comment" : "Button that moves a result section up",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move Up"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przesuń w górę"
+          }
+        }
+      }
+    },
+    "Name, *.pattern or ~/path" : {
+      "comment" : "Placeholder of the new exclusion field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name, *.pattern or ~/path"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nazwa, *.wzorzec lub ~/ścieżka"
+          }
+        }
+      }
+    },
+    "New exclusion" : {
+      "comment" : "Accessibility label of the new exclusion field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New exclusion"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nowe wykluczenie"
+          }
+        }
+      }
+    },
     "No Results" : {
       "comment" : "Panel state when nothing matches the query",
       "extractionState" : "manual",
@@ -1005,6 +1563,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Historia schowka jest pusta"
+          }
+        }
+      }
+    },
+    "Not running" : {
+      "comment" : "File index status",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not running"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie działa"
+          }
+        }
+      }
+    },
+    "Not searched" : {
+      "comment" : "Protected folder state",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not searched"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie przeszukiwany"
           }
         }
       }
@@ -1207,6 +1801,24 @@
         }
       }
     },
+    "Open Privacy Settings…" : {
+      "comment" : "Button that opens the Full Disk Access settings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Privacy Settings…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz ustawienia prywatności…"
+          }
+        }
+      }
+    },
     "Open Settings" : {
       "comment" : "Button that opens Settings from the panel",
       "extractionState" : "manual",
@@ -1257,6 +1869,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wklej"
+          }
+        }
+      }
+    },
+    "Path Copied" : {
+      "comment" : "Confirmation after copying a file's path",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Path Copied"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skopiowano ścieżkę"
           }
         }
       }
@@ -1333,6 +1963,24 @@
         }
       }
     },
+    "Pounce finds files and folders by name, using its own index that stays on this Mac. It never reads what is inside your files." : {
+      "comment" : "File search onboarding text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce finds files and folders by name, using its own index that stays on this Mac. It never reads what is inside your files."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce znajduje pliki i foldery po nazwie, korzystając z własnego indeksu, który zostaje na tym Macu. Nigdy nie czyta zawartości Twoich plików."
+          }
+        }
+      }
+    },
     "Pounce is not allowed to read the clipboard, so nothing is recorded." : {
       "comment" : "Clipboard banner when pasteboard access is denied in Privacy settings",
       "extractionState" : "manual",
@@ -1369,6 +2017,24 @@
         }
       }
     },
+    "Pounce scans the searched folders again. Results stay available while it runs." : {
+      "comment" : "Rebuild confirmation message",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce scans the searched folders again. Results stay available while it runs."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce ponownie przeskanuje przeszukiwane foldery. Wyniki pozostają dostępne w trakcie."
+          }
+        }
+      }
+    },
     "Press this shortcut anywhere to open Pounce. Keep the suggested one or record your own." : {
       "comment" : "Onboarding step explanation",
       "extractionState" : "manual",
@@ -1401,6 +2067,60 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zakończ Pounce"
+          }
+        }
+      }
+    },
+    "Rebuild Index" : {
+      "comment" : "Confirmation button that rebuilds the file index",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rebuild Index"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odbuduj indeks"
+          }
+        }
+      }
+    },
+    "Rebuild Index…" : {
+      "comment" : "Button that deletes the file index and scans again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rebuild Index…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odbuduj indeks…"
+          }
+        }
+      }
+    },
+    "Rebuild the file index?" : {
+      "comment" : "Rebuild confirmation title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rebuild the file index?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odbudować indeks plików?"
           }
         }
       }
@@ -1495,6 +2215,24 @@
         }
       }
     },
+    "Restore Default Order" : {
+      "comment" : "Button that restores the default result order",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore Default Order"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywróć domyślną kolejność"
+          }
+        }
+      }
+    },
     "Restore Defaults" : {
       "comment" : "Button that restores the default ignored apps",
       "extractionState" : "manual",
@@ -1509,6 +2247,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przywróć domyślne"
+          }
+        }
+      }
+    },
+    "Result Order" : {
+      "comment" : "Settings section title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Result Order"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kolejność wyników"
           }
         }
       }
@@ -1635,6 +2391,78 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Szukaj"
+          }
+        }
+      }
+    },
+    "Searched" : {
+      "comment" : "Protected folder state",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Searched"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przeszukiwany"
+          }
+        }
+      }
+    },
+    "Searched folders" : {
+      "comment" : "Settings section title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Searched folders"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przeszukiwane foldery"
+          }
+        }
+      }
+    },
+    "Sections appear in the panel in this order." : {
+      "comment" : "Settings footer of the result order",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sections appear in the panel in this order."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sekcje pojawiają się w panelu w tej kolejności."
+          }
+        }
+      }
+    },
+    "Set Up…" : {
+      "comment" : "Panel button that opens file search settings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set Up…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skonfiguruj…"
           }
         }
       }
@@ -1779,6 +2607,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Spotlight używa ⌘Spacji. Aby otwierać Pounce przez ⌘Spację, wyłącz „Pokaż wyszukiwanie Spotlight” w Ustawieniach systemowych → Klawiatura → Skróty klawiszowe → Spotlight."
+          }
+        }
+      }
+    },
+    "Start Indexing" : {
+      "comment" : "Button that starts the first file scan",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start Indexing"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozpocznij indeksowanie"
           }
         }
       }
@@ -2035,6 +2881,24 @@
         }
       }
     },
+    "Waiting for setup" : {
+      "comment" : "File index status before the first scan",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for setup"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Czeka na konfigurację"
+          }
+        }
+      }
+    },
     "Welcome to Pounce" : {
       "comment" : "Onboarding window title",
       "extractionState" : "manual",
@@ -2049,6 +2913,60 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Witaj w Pounce"
+          }
+        }
+      }
+    },
+    "With Full Disk Access, Pounce also searches Desktop, Documents, Downloads and iCloud Drive. Without it, those folders are skipped so macOS does not ask about each one. You can add them one at a time in Settings." : {
+      "comment" : "File search onboarding text about Full Disk Access",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With Full Disk Access, Pounce also searches Desktop, Documents, Downloads and iCloud Drive. Without it, those folders are skipped so macOS does not ask about each one. You can add them one at a time in Settings."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Z pełnym dostępem do dysku Pounce przeszukuje też Biurko, Dokumenty, Pobrane rzeczy i iCloud Drive. Bez niego te foldery są pomijane, żeby macOS nie pytał o każdy z nich. Możesz dodać je pojedynczo w Ustawieniach."
+          }
+        }
+      }
+    },
+    "Without Full Disk Access, Desktop, Documents and Downloads are not searched." : {
+      "comment" : "Panel notice when Full Disk Access is missing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Without Full Disk Access, Desktop, Documents and Downloads are not searched."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bez pełnego dostępu do dysku Biurko, Dokumenty i Pobrane rzeczy nie są przeszukiwane."
+          }
+        }
+      }
+    },
+    "Without Full Disk Access, adding a folder here makes macOS ask once for that folder." : {
+      "comment" : "Settings footer of the protected folders",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Without Full Disk Access, adding a folder here makes macOS ask once for that folder."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bez pełnego dostępu do dysku dodanie folderu tutaj sprawi, że macOS raz zapyta o ten folder."
           }
         }
       }
@@ -2085,6 +3003,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Możesz go później zmienić w Ustawieniach → Ogólne."
+          }
+        }
+      }
+    },
+    "iCloud Drive" : {
+      "comment" : "Protected folder name",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud Drive"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud Drive"
           }
         }
       }

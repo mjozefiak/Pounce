@@ -55,6 +55,9 @@ public protocol PouncePlugin: AnyObject {
     var onboardingSteps: [OnboardingStep] { get }
     var requiredPermissions: Set<Permission> { get }
     func settingsPane() -> AnyView?
+    /// Lines shown above the search results (progress, a missing permission). Added in Phase 3; the
+    /// default shows nothing.
+    var searchStatus: [SearchStatus] { get }
 
     /// Removes data the plugin keeps outside its storage directory (for example a Keychain item).
     /// "Erase Data" calls `deactivate()`, then this method, and then the host deletes the whole
@@ -71,5 +74,6 @@ extension PouncePlugin {
     public var onboardingSteps: [OnboardingStep] { [] }
     public var requiredPermissions: Set<Permission> { [] }
     public func settingsPane() -> AnyView? { nil }
+    public var searchStatus: [SearchStatus] { [] }
     public func eraseData() async throws {}
 }

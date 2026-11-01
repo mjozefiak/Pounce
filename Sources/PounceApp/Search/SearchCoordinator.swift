@@ -30,10 +30,20 @@ struct ResultSection: Identifiable {
     let items: [ResultItem]
 }
 
+/// A plugin's `SearchStatus` line in the panel.
+struct PanelStatus: Identifiable {
+    let pluginID: PluginID
+    let status: SearchStatus
+
+    var id: String { "\(pluginID.rawValue)|\(status.id)" }
+}
+
 /// What a query produced.
 struct SearchResults {
     let query: NormalizedQuery
     let sections: [ResultSection]
+    /// Status lines of the active plugins (search mode only). Added in Phase 3.
+    var statuses: [PanelStatus] = []
 
     static let empty = SearchResults(query: NormalizedQuery(raw: "", normalized: ""), sections: [])
 
@@ -41,8 +51,9 @@ struct SearchResults {
 }
 
 /// Sends a query to every active source (in parallel, each with its budget, through `PluginHost`),
-/// reads usage statistics once, and ranks each section with the `Ranker`. Sections follow
-/// `manifest.order`. An empty query shows the most recently used items across all sources.
+/// reads usage statistics once, and ranks each section with the `Ranker`. Sections follow the user's
+/// order (`app.sectionOrder`, issue #5), then `manifest.order`. An empty query shows the most recently
+/// used items across all sources. Every answer also carries the active plugins' status lines.
 final class SearchCoordinator {
     static let sourceLimit = 50
     static let sectionLimit = 20
@@ -54,9 +65,18 @@ final class SearchCoordinator {
     private let signposter = OSSignposter(subsystem: "app.pounce", category: "search")
     private let logger = Logger(subsystem: "app.pounce", category: "search")
 
-    init(host: PluginHost, usage: any UsageRecorder, now: @escaping () -> Date = { Date() }) {
+    /// The user's section order: plugin ids, first section first.
+    private let sectionOrder: () -> [String]
+
+    init(
+        host: PluginHost,
+        usage: any UsageRecorder,
+        sectionOrder: @escaping () -> [String] = { [] },
+        now: @escaping () -> Date = { Date() }
+    ) {
         self.host = host
         self.usage = usage
+        self.sectionOrder = sectionOrder
         self.now = now
     }
 
@@ -91,12 +111,14 @@ final class SearchCoordinator {
         guard !Task.isCancelled else { return nil }
 
         let ranker = Ranker(now: now())
+        let statuses = host.activeSearchStatuses.map { PanelStatus(pluginID: $0.pluginID, status: $0.status) }
         if query.isEmpty {
-            return SearchResults(query: query, sections: recentSection(groups, stats: stats, ranker: ranker))
+            return SearchResults(
+                query: query, sections: recentSection(groups, stats: stats, ranker: ranker), statuses: statuses)
         }
 
         var sections: [ResultSection] = []
-        for entry in host.entries {
+        for entry in SectionOrder.sorted(host.entries, saved: sectionOrder()) {
             let id = entry.manifest.id
             if case .failed = entry.state {
                 sections.append(
@@ -133,7 +155,7 @@ final class SearchCoordinator {
                 )
             }
         }
-        return SearchResults(query: query, sections: sections)
+        return SearchResults(query: query, sections: sections, statuses: statuses)
     }
 
     /// How long a list panel mode's source may take. Generous: the mode shows nothing else meanwhile.
