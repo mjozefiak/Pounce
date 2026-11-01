@@ -42,10 +42,17 @@ struct QAOptions: Equatable {
     /// `--qa-fail-action`: once the panel's results load, shows the failed-action message for the selected
     /// row's first action without running it (the state a moved or deleted app produces).
     var failsAction = false
-    /// `--qa-settings general|features`: opens the Settings window on that pane.
+    /// `--qa-settings general|features|<plugin id>`: opens the Settings window on that pane.
     var settingsPane: String?
     /// `--qa-onboarding`: shows the first-launch Shortcut step.
     var showsOnboarding = false
+    /// `--qa-onboarding-step <step id>`: shows a plugin's onboarding step (for example `clipboard.intro`).
+    var onboardingStep: String?
+    /// `--qa-pasteboard-access allow|default|ask|deny`: the pasteboard access behaviour plugins see.
+    var pasteboardAccess: PasteboardAccess?
+    /// `--qa-accessibility granted|denied`: the Accessibility status plugins see. Without it the real
+    /// status is read (never changed).
+    var accessibility: PermissionStatus?
     /// `--qa-spotlight on|off`: pretends Spotlight does or does not hold Command-Space, instead of reading
     /// the system's symbolic hotkeys.
     var spotlightHoldsCommandSpace: Bool?
@@ -101,10 +108,29 @@ struct QAOptions: Equatable {
                 options.query = value
             case "--qa-settings":
                 guard let value = iterator.next() else { throw .missingValue(argument) }
-                guard ["general", "features"].contains(value) else { throw .invalidValue(argument, value) }
+                guard !value.isEmpty, !value.hasPrefix("-") else { throw .invalidValue(argument, value) }
                 options.settingsPane = value
             case "--qa-onboarding":
                 options.showsOnboarding = true
+            case "--qa-onboarding-step":
+                guard let value = iterator.next() else { throw .missingValue(argument) }
+                options.onboardingStep = value
+            case "--qa-pasteboard-access":
+                guard let value = iterator.next() else { throw .missingValue(argument) }
+                switch value {
+                case "allow": options.pasteboardAccess = .alwaysAllow
+                case "default": options.pasteboardAccess = .systemDefault
+                case "ask": options.pasteboardAccess = .ask
+                case "deny": options.pasteboardAccess = .alwaysDeny
+                default: throw .invalidValue(argument, value)
+                }
+            case "--qa-accessibility":
+                guard let value = iterator.next() else { throw .missingValue(argument) }
+                switch value {
+                case "granted": options.accessibility = .granted
+                case "denied": options.accessibility = .denied
+                default: throw .invalidValue(argument, value)
+                }
             case "--qa-fail-action":
                 options.failsAction = true
             case "--qa-spotlight":

@@ -3,6 +3,7 @@ import Foundation
 import PounceCore
 import PounceKit
 import PouncePersistence
+import SwiftUI
 import os
 
 /// Where the app keeps its data and which port implementations plugins get. `live()` is the normal
@@ -19,6 +20,12 @@ struct AppEnvironment {
     let usage: any UsageRecorder
     /// False in QA mode, so a QA run never takes the user's global shortcuts.
     let registersGlobalHotkeys: Bool
+    /// QA mode only: the pasteboard access behaviour plugins see (`--qa-pasteboard-access`).
+    var pasteboardAccess: PasteboardAccess?
+    /// QA mode only: the Accessibility status plugins see (`--qa-accessibility`), instead of the system's.
+    var accessibility: PermissionStatus?
+    /// False in QA mode: a paste is logged instead of posting a real Command-V to the tester's apps.
+    var postsKeystrokes = true
 
     /// `Plugins/<id>/` under the data root.
     func storageDirectory(for id: PluginID) -> URL {
@@ -34,10 +41,13 @@ struct AppEnvironment {
             .appending(path: id.rawValue, directoryHint: .isDirectory)
     }
 
-    /// - Parameter resultsChanged: called by the plugin when its results change (see `PluginContext`).
+    /// - Parameters:
+    ///   - resultsChanged: called by the plugin when its results change (see `PluginContext`).
+    ///   - makeShortcutRecorder: the shell's recorder for one of the plugin's commands.
     func makeContext(
         for manifest: PluginManifest,
-        resultsChanged: @escaping @Sendable () -> Void = {}
+        resultsChanged: @escaping @Sendable () -> Void = {},
+        makeShortcutRecorder: @escaping @MainActor @Sendable (String) -> AnyView = { _ in AnyView(EmptyView()) }
     ) -> PluginContext {
         PluginContext(
             storageDirectory: storageDirectory(for: manifest.id),
@@ -45,13 +55,15 @@ struct AppEnvironment {
             usage: usage,
             logger: Logger(subsystem: "app.pounce", category: manifest.id.rawValue),
             keychain: keychain,
-            pasteboard: SystemPasteboardClient(name: pasteboardName),
-            events: SystemEventPoster(),
+            pasteboard: SystemPasteboardClient(name: pasteboardName, accessOverride: pasteboardAccess),
+            events: postsKeystrokes ? SystemEventPoster() : LoggingEventPoster(),
             workspace: SystemWorkspaceClient(),
-            permissions: SystemPermissionsReader(pasteboardName: pasteboardName),
+            permissions: SystemPermissionsReader(
+                pasteboardName: pasteboardName, accessibilityOverride: accessibility),
             clock: ContinuousClock(),
             cachesDirectory: cachesDirectory(for: manifest.id),
-            resultsChanged: resultsChanged
+            resultsChanged: resultsChanged,
+            makeShortcutRecorder: makeShortcutRecorder
         )
     }
 
@@ -98,7 +110,10 @@ struct AppEnvironment {
             keychain: InMemoryKeychainClient(),
             pasteboardName: NSPasteboard.Name("app.pounce.qa.\(ProcessInfo.processInfo.processIdentifier)"),
             usage: openRanking(in: root),
-            registersGlobalHotkeys: false
+            registersGlobalHotkeys: false,
+            pasteboardAccess: options.pasteboardAccess,
+            accessibility: options.accessibility,
+            postsKeystrokes: false
         )
     }
     #endif

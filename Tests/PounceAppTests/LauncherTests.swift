@@ -511,7 +511,6 @@ private func results(_ query: String, sections: [[String]], source: FixedSource)
         let view = LauncherView(
             model: model,
             icons: IconCache(loader: { _ in nil }),
-            modeView: { _ in nil },
             onFieldCreated: { field = $0 }
         )
         let hosting = NSHostingView(rootView: view)

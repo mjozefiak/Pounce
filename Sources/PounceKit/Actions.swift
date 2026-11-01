@@ -57,6 +57,10 @@ public struct ResultAction: Identifiable, Sendable {
     public let title: LocalizedStringResource
     public let symbolName: String
     public let shortcut: KeyShortcut?
+    /// The panel stays open while the action runs (for example deleting a clipboard entry); the plugin
+    /// calls `PluginContext.resultsChanged` so the list catches up. Added in Phase 2; `false` hides the
+    /// panel first, as before.
+    public let keepsPanelOpen: Bool
     public let perform: @Sendable (ActionContext) async throws -> Void
 
     public init(
@@ -64,12 +68,14 @@ public struct ResultAction: Identifiable, Sendable {
         title: LocalizedStringResource,
         symbolName: String,
         shortcut: KeyShortcut? = nil,
+        keepsPanelOpen: Bool = false,
         perform: @escaping @Sendable (ActionContext) async throws -> Void
     ) {
         self.id = id
         self.title = title
         self.symbolName = symbolName
         self.shortcut = shortcut
+        self.keepsPanelOpen = keepsPanelOpen
         self.perform = perform
     }
 }

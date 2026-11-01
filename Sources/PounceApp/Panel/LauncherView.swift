@@ -7,7 +7,6 @@ import SwiftUI
 struct LauncherView: View {
     let model: PanelModel
     let icons: IconCache
-    let modeView: (PanelModeID) -> AnyView?
     let onFieldCreated: (NSTextField) -> Void
 
     var body: some View {
@@ -23,9 +22,13 @@ struct LauncherView: View {
             .padding(.horizontal, 18)
             .frame(height: PanelModel.Metrics.fieldHeight)
 
-            if case .plugin(let id) = model.mode, let view = modeView(id) {
+            if let mode = model.currentPanelMode {
                 Divider()
-                view.frame(maxWidth: .infinity, maxHeight: .infinity)
+                if mode.isListMode {
+                    ListModeView(model: model, mode: mode, icons: icons)
+                } else {
+                    mode.makeView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             } else if model.showsResultsArea {
                 Divider()
                 ResultList(model: model, icons: icons)
@@ -44,6 +47,7 @@ struct LauncherView: View {
 struct ResultList: View {
     let model: PanelModel
     let icons: IconCache
+    var showsHeaders = true
 
     var body: some View {
         let indices = Dictionary(
@@ -63,7 +67,9 @@ struct ResultList: View {
                             .frame(maxWidth: .infinity, minHeight: PanelModel.Metrics.messageHeight)
                     }
                     ForEach(model.results.sections) { section in
-                        SectionHeader(section: section, textSize: model.textSize)
+                        if showsHeaders {
+                            SectionHeader(section: section, textSize: model.textSize)
+                        }
                         if case .unavailable = section.kind {
                             UnavailableRow(textSize: model.textSize, openSettings: model.openSettings)
                         }
@@ -328,5 +334,101 @@ struct ActionFooter: View {
         default: text += shortcut.key.uppercased()
         }
         return text
+    }
+}
+
+/// A plugin's list panel mode (for example the clipboard history): the plugin's status area, the
+/// filters, the list on the left with the selected candidate's preview on the right, and the footer.
+struct ListModeView: View {
+    static let listWidth: CGFloat = 320
+
+    let model: PanelModel
+    let mode: PanelMode
+    let icons: IconCache
+
+    var body: some View {
+        VStack(spacing: 0) {
+            mode.makeView()
+            if !mode.filters.isEmpty {
+                FilterBar(filters: mode.filters, selected: model.modeFilter, textSize: model.textSize) { index in
+                    model.toggleFilter(at: index)
+                }
+                Divider()
+            }
+            if model.showsModeEmptyState, let makeEmpty = mode.makeEmptyView {
+                makeEmpty()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                HStack(spacing: 0) {
+                    ResultList(model: model, icons: icons, showsHeaders: false)
+                        .frame(width: Self.listWidth)
+                    Divider()
+                    preview
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            }
+            Divider()
+            ActionFooter(actions: model.selectedActions, textSize: model.textSize)
+        }
+    }
+
+    @ViewBuilder private var preview: some View {
+        if let item = model.selectedItem, let makePreview = mode.makePreview {
+            makePreview(item.candidate)
+                .id(item.id)
+        } else {
+            Color.clear
+                .accessibilityHidden(true)
+        }
+    }
+}
+
+/// The list mode's filters as toggle chips, each with its Command-number shortcut.
+struct FilterBar: View {
+    let filters: [PanelModeFilter]
+    let selected: PanelModeFilter.ID?
+    let textSize: TextSize
+    let toggle: (Int) -> Void
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(Array(filters.enumerated()), id: \.element.id) { index, filter in
+                let isSelected = filter.id == selected
+                Button {
+                    toggle(index)
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: filter.symbolName)
+                            .symbolRenderingMode(.hierarchical)
+                            .accessibilityHidden(true)
+                        Text(filter.title)
+                        if index < 9 {
+                            Text(verbatim: "⌘\(index + 1)")
+                                .monospacedDigit()
+                                .foregroundStyle(
+                                    isSelected ? AnyShapeStyle(.white.opacity(0.8)) : AnyShapeStyle(.tertiary)
+                                )
+                                .accessibilityHidden(true)
+                        }
+                    }
+                    .font(textSize.font(.caption1, weight: isSelected ? .semibold : .regular))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .foregroundStyle(isSelected ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
+                    .background {
+                        Capsule().fill(isSelected ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.quaternary))
+                    }
+                    .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
+                .accessibilityHint(Text("Command-\(index + 1)", comment: "Accessibility hint with a filter's shortcut"))
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 6)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(Text("Filters", comment: "Accessibility label of the panel's filter bar"))
     }
 }

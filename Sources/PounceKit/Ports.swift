@@ -24,13 +24,127 @@ public protocol KeychainClient: Sendable {
     func deleteGenericPassword(service: String, account: String) throws(KeychainError)
 }
 
+/// One representation of a pasteboard item: its type identifier and its bytes. Added in Phase 2.
+public struct PasteboardRepresentation: Hashable, Sendable {
+    /// A uniform type identifier (`public.utf8-plain-text`, `public.png`, `public.file-url`, …).
+    public let type: String
+    public let data: Data
+
+    public init(type: String, data: Data) {
+        self.type = type
+        self.data = data
+    }
+
+    /// `public.utf8-plain-text`.
+    public static let plainTextType = "public.utf8-plain-text"
+}
+
+/// One item on the pasteboard with its representations, in the order the writer offered them. Added in
+/// Phase 2.
+public struct PasteboardItem: Hashable, Sendable {
+    public let representations: [PasteboardRepresentation]
+
+    public init(representations: [PasteboardRepresentation]) {
+        self.representations = representations
+    }
+
+    public var types: [String] { representations.map(\.type) }
+
+    /// The bytes of the first representation of `type`.
+    public func data(for type: String) -> Data? {
+        representations.first { $0.type == type }?.data
+    }
+}
+
+/// Everything one read of the pasteboard found. Added in Phase 2.
+public struct PasteboardContents: Hashable, Sendable {
+    /// The `changeCount` the read started at. The caller compares it again after the read and drops the
+    /// contents when the pasteboard changed in between.
+    public let changeCount: Int
+    public let items: [PasteboardItem]
+    /// True when the representations together exceeded the byte limit of the read. The items are then
+    /// incomplete and must not be stored.
+    public let exceedsLimit: Bool
+
+    public init(changeCount: Int, items: [PasteboardItem], exceedsLimit: Bool = false) {
+        self.changeCount = changeCount
+        self.items = items
+        self.exceedsLimit = exceedsLimit
+    }
+
+    /// The total size of every representation.
+    public var byteCount: Int {
+        items.reduce(0) { total, item in total + item.representations.reduce(0) { $0 + $1.data.count } }
+    }
+}
+
+/// Whether the system lets the app read the general pasteboard without asking (macOS pasteboard
+/// privacy, `NSPasteboard.accessBehavior`). Added in Phase 2.
+public enum PasteboardAccess: String, Hashable, Sendable, CaseIterable {
+    /// The user allowed Pounce to always read the pasteboard.
+    case alwaysAllow
+    /// The system default: no explicit choice for Pounce.
+    case systemDefault
+    /// The system asks the user every time a program reads the pasteboard.
+    case ask
+    /// The user denied Pounce access to the pasteboard.
+    case alwaysDeny
+}
+
 /// Access to the pasteboard the clipboard history watches.
+///
+/// `NSPasteboard` is not documented as safe off the main thread (spike 2.2,
+/// `docs/decisions/0002-pasteboard-reads.md`), so every member is main-actor isolated; callers copy
+/// what they read and process it in the background.
 public protocol PasteboardClient: Sendable {
     /// Increments whenever the pasteboard contents change.
     @MainActor var changeCount: Int { get }
     @MainActor func string() -> String?
     /// Replaces the contents with a string and returns the new `changeCount`.
     @MainActor @discardableResult func setString(_ string: String) -> Int
+    /// Every type currently on the pasteboard, read without any data (for example the nspasteboard.org
+    /// marker types). Added in Phase 2; the default reports the plain-text type when there is a string.
+    @MainActor func types() -> [String]
+    /// Reads every item with the representations whose type `includes` accepts; the data of any other
+    /// type is never requested (it may be large or produced lazily by the writing app). Stops reading
+    /// once the representations exceed `maxBytes` and reports `exceedsLimit`. Returns `nil` when the
+    /// pasteboard is empty. Added in Phase 2; the default reads the string only.
+    @MainActor func readContents(maxBytes: Int, including includes: (String) -> Bool) -> PasteboardContents?
+    /// Replaces the contents with these items and returns the new `changeCount`. Added in Phase 2; the
+    /// default writes the first plain-text representation through `setString`.
+    @MainActor @discardableResult func write(_ items: [PasteboardItem]) -> Int
+    /// The pasteboard privacy setting for Pounce. Added in Phase 2; the default is `.alwaysAllow`.
+    @MainActor var accessBehavior: PasteboardAccess { get }
+}
+
+extension PasteboardClient {
+    @MainActor public func types() -> [String] {
+        string() == nil ? [] : [PasteboardRepresentation.plainTextType]
+    }
+
+    /// Reads every type.
+    @MainActor public func readContents(maxBytes: Int) -> PasteboardContents? {
+        readContents(maxBytes: maxBytes) { _ in true }
+    }
+
+    @MainActor public func readContents(maxBytes: Int, including includes: (String) -> Bool) -> PasteboardContents? {
+        guard includes(PasteboardRepresentation.plainTextType), let string = string() else { return nil }
+        let data = Data(string.utf8)
+        guard data.count <= maxBytes else {
+            return PasteboardContents(changeCount: changeCount, items: [], exceedsLimit: true)
+        }
+        let item = PasteboardItem(representations: [
+            PasteboardRepresentation(type: PasteboardRepresentation.plainTextType, data: data)
+        ])
+        return PasteboardContents(changeCount: changeCount, items: [item])
+    }
+
+    @MainActor @discardableResult public func write(_ items: [PasteboardItem]) -> Int {
+        let text = items.lazy.compactMap { $0.data(for: PasteboardRepresentation.plainTextType) }.first
+        return setString(text.map { String(decoding: $0, as: UTF8.self) } ?? "")
+    }
+
+    @MainActor public var accessBehavior: PasteboardAccess { .alwaysAllow }
 }
 
 /// Why a synthetic paste could not be posted.
@@ -71,6 +185,20 @@ public struct ApplicationOpenOptions: Hashable, Sendable {
     }
 }
 
+/// A running application as plugins see it. Added in Phase 2.
+public struct RunningApplication: Hashable, Sendable {
+    public let processIdentifier: pid_t
+    public let bundleIdentifier: String?
+    /// The localized name shown to the user.
+    public let name: String?
+
+    public init(processIdentifier: pid_t, bundleIdentifier: String? = nil, name: String? = nil) {
+        self.processIdentifier = processIdentifier
+        self.bundleIdentifier = bundleIdentifier
+        self.name = name
+    }
+}
+
 /// The parts of `NSWorkspace` plugins use.
 public protocol WorkspaceClient: Sendable {
     @MainActor var frontmostApplicationPID: pid_t? { get }
@@ -79,11 +207,32 @@ public protocol WorkspaceClient: Sendable {
     /// Opens (or activates) the application bundle at `url`. Added in Phase 1; the default opens it like
     /// any other URL.
     @MainActor func openApplication(at url: URL, options: ApplicationOpenOptions) async throws
+    /// The frontmost application with its bundle identifier and name. Added in Phase 2; the default
+    /// knows only the process identifier.
+    @MainActor var frontmostApplication: RunningApplication? { get }
+    /// The application with this process identifier, or `nil` when it is no longer running. Added in
+    /// Phase 2; the default assumes it still runs.
+    @MainActor func runningApplication(processIdentifier: pid_t) -> RunningApplication?
+    /// Yields each time the user's session becomes active again (switching back to this user, unlocking
+    /// the screen), for example to retry a locked Keychain. Added in Phase 2; the default never yields.
+    func sessionActivations() -> AsyncStream<Void>
 }
 
 extension WorkspaceClient {
     @MainActor public func openApplication(at url: URL, options: ApplicationOpenOptions) async throws {
         try await open(url)
+    }
+
+    @MainActor public var frontmostApplication: RunningApplication? {
+        frontmostApplicationPID.map { RunningApplication(processIdentifier: $0) }
+    }
+
+    @MainActor public func runningApplication(processIdentifier: pid_t) -> RunningApplication? {
+        RunningApplication(processIdentifier: processIdentifier)
+    }
+
+    public func sessionActivations() -> AsyncStream<Void> {
+        AsyncStream { $0.finish() }
     }
 }
 

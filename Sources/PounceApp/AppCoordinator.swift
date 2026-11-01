@@ -32,22 +32,27 @@ final class AppCoordinator {
     ) {
         self.environment = environment
         let relay = ResultsChangedRelay()
-        self.host = PluginHost(
-            pluginTypes: pluginTypes,
-            makeContext: { manifest in
-                environment.makeContext(for: manifest) {
-                    Task { @MainActor in relay.signal() }
-                }
-            },
-            settings: environment.settings
-        )
-        self.appSettings = AppSettings(store: environment.settings)
-        self.hotkeys = HotkeyService(
+        let hotkeys = HotkeyService(
             registrar: registrar,
             settings: environment.settings,
             readOccupied: occupiedShortcuts,
             allowsRecording: environment.registersGlobalHotkeys
         )
+        self.hotkeys = hotkeys
+        self.host = PluginHost(
+            pluginTypes: pluginTypes,
+            makeContext: { manifest in
+                environment.makeContext(
+                    for: manifest,
+                    resultsChanged: { Task { @MainActor in relay.signal() } },
+                    makeShortcutRecorder: { commandID in
+                        AnyView(CommandShortcutRecorder(hotkeys: hotkeys, commandID: commandID))
+                    }
+                )
+            },
+            settings: environment.settings
+        )
+        self.appSettings = AppSettings(store: environment.settings)
         self.launchAtLogin = launchAtLogin
         let search = SearchCoordinator(host: host, usage: environment.usage)
         self.search = search
@@ -67,7 +72,8 @@ final class AppCoordinator {
                 openPanel: { [weak self] in self?.panelModel.show() },
                 openSettings: { [weak self] in self?.openSettings() },
                 mainShortcut: { [weak self] in self?.hotkeys.mainShortcut },
-                runCommand: { [weak self] command in self?.perform(command) }
+                runCommand: { [weak self] command in self?.perform(command) },
+                commandShortcut: { [weak self] id in self?.hotkeys.commandShortcut(id) }
             )
         ) { host.activeCommands }
 
@@ -80,8 +86,8 @@ final class AppCoordinator {
         statusItem?.rebuildMenu()
         logger.info("Started with \(host.entries.count, privacy: .public) plugins")
 
-        if environment.registersGlobalHotkeys, !appSettings.shortcutOnboardingCompleted {
-            onboarding?.showShortcutStep()
+        if environment.registersGlobalHotkeys {
+            onboarding?.showPendingSteps()
         }
     }
 
@@ -96,6 +102,13 @@ final class AppCoordinator {
         panelModel.hide()
         hotkeys.refreshDefault()
         settingsWindow?.show(pane)
+    }
+
+    /// Shows a plugin's own Settings pane.
+    func openPluginSettings(_ id: String) {
+        panelModel.hide()
+        hotkeys.refreshDefault()
+        settingsWindow?.showPluginPane(id)
     }
 
     /// A plugin command from its shortcut or the menu: open its panel mode, or run it.
@@ -122,13 +135,10 @@ final class AppCoordinator {
         panelModel.previousApplication = { NSWorkspace.shared.frontmostApplication?.processIdentifier }
         panelModel.openSettings = { [weak self] in self?.openSettings(.features) }
         let host = host
-        let controller = PanelController(
-            model: panelModel,
-            icons: icons,
-            level: appSettings.panelLevel
-        ) { id in
-            host.activePanelModes.first { $0.id == id }?.makeView()
-        }
+        panelModel.panelMode = { id in host.activePanelModes.first { $0.id == id } }
+        let search = search
+        panelModel.modeSearch = { mode, text, filter in await search.search(mode: mode, raw: text, filter: filter) }
+        let controller = PanelController(model: panelModel, icons: icons, level: appSettings.panelLevel)
         controller.takesKeyFocus = environment.registersGlobalHotkeys
         controller.onOpenSettings = { [weak self] in self?.openSettings() }
         panel = controller
@@ -162,7 +172,9 @@ final class AppCoordinator {
         window.activatesApp = environment.registersGlobalHotkeys
         settingsWindow = window
 
-        let onboarding = OnboardingController(hotkeys: hotkeys, settings: settings)
+        let onboarding = OnboardingController(hotkeys: hotkeys, settings: settings) {
+            host.entries.filter(\.state.isActive).flatMap(\.plugin.onboardingSteps)
+        }
         onboarding.activatesApp = environment.registersGlobalHotkeys
         self.onboarding = onboarding
     }
@@ -188,6 +200,16 @@ final class AppCoordinator {
     /// QA: shows the onboarding step regardless of the first-launch flag.
     func showOnboardingForQA() {
         onboarding?.showShortcutStep()
+    }
+
+    /// QA: shows one plugin onboarding step by id.
+    func showOnboardingStepForQA(_ id: String) {
+        let steps = host.entries.filter(\.state.isActive).flatMap(\.plugin.onboardingSteps)
+        guard let step = steps.first(where: { $0.id == id }) else {
+            logger.error("No active onboarding step \(id, privacy: .public)")
+            return
+        }
+        onboarding?.showPluginStep(step)
     }
     #endif
 }

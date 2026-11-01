@@ -37,6 +37,7 @@ Any `--qa…` argument turns QA mode on:
 | Caches | `~/Library/Caches/Pounce` | `Caches/` under the data root |
 | Focus | the panel and Settings activate Pounce | windows are ordered front without activating Pounce or taking key focus, and the panel does not close when another app has focus |
 | Launch at Login | `SMAppService.mainApp` | in memory; the toggle never registers anything |
+| Paste keystroke | ⌘V posted to the previous app (needs Accessibility) | never posted; the paste is only logged |
 
 AppKit itself may still write window and status-item state to the `app.pounce.Pounce` defaults domain.
 If that domain did not exist before a QA session, remove it afterwards with
@@ -55,14 +56,44 @@ If that domain did not exist before a QA session, remove it afterwards with
 | `--qa-panel <mode>` | Phase 1 | Open the panel after launch without the global hotkey: `search`, or a plugin's panel mode id. |
 | `--qa-query <text>` | Phase 1 | Type this query into the panel opened with `--qa-panel`. |
 | `--qa-record-use <item key>` | Phase 1 | Record a use of `<plugin id>:<key>` in the QA ranking database before launch (repeatable), so the empty query shows "Recently Used". |
-| `--qa-settings general\|features` | Phase 1 | Open the Settings window on that pane. |
+| `--qa-settings general\|features\|<plugin id>` | Phase 1, plugin panes Phase 2 | Open the Settings window on that pane, for example `clipboard`. |
 | `--qa-onboarding` | Phase 1 | Show the first-launch Shortcut step. |
 | `--qa-fail-action` | Phase 1 | With `--qa-panel`: once results load, show the failed-action message for the selected row's first action without running it. |
 | `--qa-spotlight on\|off` | Phase 1 | Pretend Spotlight does or does not hold ⌘Space instead of reading the system's symbolic hotkeys. |
+| `--qa-onboarding-step <step id>` | Phase 2 | Show one plugin onboarding step, for example `clipboard.intro`. |
+| `--qa-pasteboard-access allow\|default\|ask\|deny` | Phase 2 | The pasteboard access behaviour plugins see (`NSPasteboard.accessBehavior`), for the clipboard's permission banners. |
+| `--qa-accessibility granted\|denied` | Phase 2 | The Accessibility status plugins see. Without it the real status is read, never changed. |
 
 Unknown `--qa…` arguments stop the launch with an error, so a typo never silently falls back to real
-data. Later phases add, in the same file and this table: seeding the private pasteboard with fake
-entries and a fixture directory as the only file-index root.
+data. Phase 3 adds a fixture directory as the only file-index root.
+
+## Clipboard history with fake entries
+
+QA mode never reads the tester's clipboard: the plugin watches the private pasteboard
+`app.pounce.qa.<pid>`, and its key lives in the in-memory keychain, so no `app.pounce.clipboard` item is
+created. To fill the history with fake entries (text, a link, a note, two `/tmp/pounce-demo/` file
+paths, a generated picture), seed it with `plugins.clipboard.qaSeed=demo`. Seeding only fills an empty
+history and exists only in DEBUG builds. The same setting replaces the default ignored apps with fake
+ones (`com.example.*-demo`) and stops the settings pane from looking up installed apps, so a screenshot
+never shows which apps (for example which password manager) the tester has installed. Always pass it
+when capturing the Clipboard History settings pane.
+
+```bash
+dist/Pounce.app/Contents/MacOS/Pounce --qa --qa-setting plugins.clipboard.qaSeed=demo \
+  --qa-accessibility granted --qa-panel clipboard --qa-appearance light
+# Recording paused, Accessibility missing, access set to ask:
+dist/Pounce.app/Contents/MacOS/Pounce --qa --qa-setting plugins.clipboard.qaSeed=demo \
+  --qa-setting plugins.clipboard.paused=true --qa-accessibility denied --qa-pasteboard-access ask \
+  --qa-panel clipboard
+# Empty history, settings pane, onboarding step:
+dist/Pounce.app/Contents/MacOS/Pounce --qa --qa-accessibility granted --qa-panel clipboard
+dist/Pounce.app/Contents/MacOS/Pounce --qa --qa-setting plugins.clipboard.qaSeed=demo --qa-settings clipboard
+dist/Pounce.app/Contents/MacOS/Pounce --qa --qa-onboarding-step clipboard.intro
+```
+
+Pasting (Return posts ⌘V into the previous app) needs Accessibility and a real target app, so it is a
+manual check outside QA mode. In QA mode the keystroke is never posted: Return writes the entry to the
+private pasteboard and logs that ⌘V would have been sent.
 
 ## App search with fixture apps
 

@@ -8,6 +8,8 @@ struct ShellMenuActions {
     let openSettings: () -> Void
     let mainShortcut: () -> HotkeyShortcut?
     let runCommand: (PluginCommand) -> Void
+    /// A plugin command's current global shortcut, shown next to its menu item. Added in Phase 2.
+    var commandShortcut: (String) -> HotkeyShortcut? = { _ in nil }
 }
 
 /// The menu bar item: a template SF Symbol and a menu with "Open Pounce" (showing the current shortcut),
@@ -101,6 +103,9 @@ final class StatusMenuBuilder: NSObject {
             item.target = target
             if let symbolName = command.symbolName {
                 item.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)
+            }
+            if let shortcut = actions?.commandShortcut(command.id) {
+                Self.applyShortcut(shortcut, to: item)
             }
             menu.addItem(item)
         }
