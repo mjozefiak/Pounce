@@ -30,8 +30,8 @@ Użytkownik chce dyktować tekst w dowolnej aplikacji, jak w superwhisper, głó
 
 | Silnik | Polski | Auto-język | Rozmiar | Szybkość | Licencja | Werdykt |
 |---|---|---|---|---|---|---|
-| Parakeet Ultra (dotrenowany Parakeet TDT v3) przez FluidAudio | tak, WER FLEURS-pl 5,54% (v3: 6,70–7,31%) | tak (per wypowiedź), **bez możliwości przypięcia języka** | ~0,7 GB | ~110–190× czasu rzeczywistego (M4 Pro) | kod Apache-2.0, wagi CC-BY-4.0 | **domyślny** (ADR 0003) |
-| WhisperKit 1.1.x (`argmax-oss-swift`), `large-v3-turbo_632MB` | tak, WER FLEURS-pl 5,81% (Q8) | tak, albo **przypięty** `pl`/`en` | ~0,6–1 GB | wolniejszy od Parakeet | MIT | **drugi silnik** z przypiętym językiem, na wypadek „dryfu” Parakeeta do angielskiego (ADR 0003) |
+| Parakeet Ultra (dotrenowany Parakeet TDT v3) przez FluidAudio | tak, WER FLEURS-pl 5,54% wg karty modelu (v3: 6,70); w niezależnym pomiarze Handy (Q8) 6,16% (v3: 7,37%) | tak (per wypowiedź), **bez możliwości przypięcia języka** | ~0,7 GB | ~110–190× czasu rzeczywistego (M4 Pro) | kod Apache-2.0, wagi CC-BY-4.0 | **domyślny** (ADR 0003) |
+| WhisperKit 1.1.x (`argmax-oss-swift`), `large-v3-turbo_632MB` | tak, WER FLEURS-pl 5,81% (Handy, Q8) — po polsku nieco lepszy od Parakeet Ultra w tym samym pomiarze | tak, albo **przypięty** `pl`/`en` | ~0,6–1 GB | wolniejszy od Parakeet | MIT | **drugi silnik** z przypiętym językiem, na wypadek „dryfu” Parakeeta do angielskiego (ADR 0003) |
 | Apple `DictationTranscriber` (pl_PL) | tak | **nie** (jeden locale) | systemowy | — | system | odrzucony: brak mieszania języków |
 | Apple `SpeechTranscriber` | **nie** | — | — | — | — | odrzucony |
 | whisper.cpp 1.9.x | tak | tak | jak Whisper | dobra (Metal) | MIT | odrzucony: C++ bez Swift API, brak gotowego xcframework od 1.8 |
@@ -82,7 +82,7 @@ Nowy wewnętrzny plugin `DictationPlugin` (`PluginID` `dictation`, nowy target i
 5. **Wywołanie z menu paska:** zawsze startuje w trybie przełączania (menu nie zna puszczenia klawisza); kończy ponowny wybór w menu, skrót albo ✕ w HUD.
 
 **Alternatywy, które przegrały:**
-- **Wszystko przez serwery localhost** (whisper.cpp server do mowy): wymaga od użytkownika dwóch procesów i daje gorsze opóźnienie startu. Mowa jest mała (0,6 GB) i musi być natychmiastowa, więc należy do Pounce.
+- **Wszystko przez serwery localhost** (whisper.cpp server do mowy): wymaga od użytkownika dwóch procesów i daje gorsze opóźnienie startu. Mowa jest mała (~0,7 GB) i musi być natychmiastowa, więc należy do Pounce.
 - **Wbudowany LLM (mlx-swift-lm) już w v1:** nowa, duża zależność (MLX, swift-transformers) o niezweryfikowanym statusie Swift 6, do tego kilka GB modelu w procesie z budżetem 150 MB w spoczynku. Port `TextFormatter` zostawia na to miejsce na później.
 - **Jedno formatowanie całości po zakończeniu:** 30–70 s czekania na bazowym M-series, nie do przyjęcia.
 - **Wklejanie przez Accessibility API (`AXValue`) zamiast ⌘V:** nie działa w wielu aplikacjach Electron i webowych; ⌘V jest już sprawdzone w schowku.
@@ -152,7 +152,7 @@ Wniosek: cała logika żyje w `DictationPlugin`. Shell dostaje cztery addytywne 
   - odrzucane adresy `::ffff:` mapowane, liczbowe i ósemkowe formy IP, URL z userinfo (`http://127.0.0.1@evil`) i schematy inne niż `http`;
   - klient LLM używa sesji `.ephemeral` z `connectionProxyDictionary = [:]` (bez proxy, bez `URLCache` na dysku) i blokuje przekierowania w `willPerformHTTPRedirection`;
   - pobieranie modelu idzie osobną sesją, po HTTPS, wyłącznie do hostów z listy: `huggingface.co`, `cdn-lfs.hf.co` i `cdn-lfs-*.hf.co`, `cas-bridge.xethub.hf.co`. Ta sesja (inaczej niż sesja LLM) przyjmuje przekierowania, ale tylko na hosty z listy; każde inne przekierowanie przerywa pobieranie. Listę weryfikuje ręczny test pobierania w kroku 1.3.
-- `ModelManager` — katalog wkompilowanych modeli (`ModelCatalog`: id, pliki, przypięta rewizja Hugging Face, SHA-256 każdego pliku, rozmiar, licencja i atrybucja). Pakiet obejmuje **wszystko**, czego silnik potrzebuje: Parakeet (encoder, decoder, joint), słownik/tokenizer i model VAD Silero. Wbudowane pobieranie FluidAudio (`downloadAndLoad`, domyślny katalog modeli) **nigdy nie jest używane**: silnik ładuje modele wyłącznie z folderu wskazanego przez `ModelManager` (sprawdzane w kroku 1.5 z zablokowaną siecią). Skompilowane modele Core ML (`.mlmodelc`) to dane wag, nie kod wykonywalny, więc nie łamią zakazu ładowania kodu w runtime (`CODE_REVIEW.md`).
+- `ModelManager` — katalog wkompilowanych modeli (`ModelCatalog`: id, pliki, przypięta rewizja Hugging Face, SHA-256 każdego pliku, rozmiar, licencja i atrybucja). Pakiet obejmuje **wszystko**, czego silnik potrzebuje: Parakeet (encoder, decoder, joint), słownik/tokenizer i model VAD Silero. Wbudowane pobieranie FluidAudio (`downloadAndLoad`, domyślny katalog modeli) i WhisperKit (pobieranie z Hugging Face przy braku `modelFolder`, `download: true`) **nigdy nie jest używane**: każdy silnik ładuje modele wyłącznie z folderu wskazanego przez `ModelManager` (sprawdzane w krokach 1.5 i 1.10 z zablokowaną siecią). Skompilowane modele Core ML (`.mlmodelc`) to dane wag, nie kod wykonywalny, więc nie łamią zakazu ładowania kodu w runtime (`CODE_REVIEW.md`).
   `ModelManager`:
   - pobiera przez `URLSession` do `Plugins/dictation/Models/<model-id>.partial/` i weryfikuje sumy;
   - po weryfikacji wykonuje atomowy `rename`;
@@ -178,7 +178,7 @@ Wniosek: cała logika żyje w `DictationPlugin`. Shell dostaje cztery addytywne 
 - Ustawienia → Uprawnienia pokazują mikrofon z linkiem `x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone`.
 - `Resources/Info.plist`: `NSMicrophoneUsageDescription` (en + pl przez **nowy** katalog `Resources/InfoPlist.xcstrings`; `scripts/make-app.sh` dziś kompiluje tylko `Localizable.xcstrings`, więc krok 1.2 dodaje kompilację drugiego katalogu, a `StringCatalogTests` sprawdza oba); `Resources/Pounce.entitlements`: `com.apple.security.device.audio-input` (wymagane przy hardened runtime).
 - `scripts/make-app.sh` kopiuje zasoby FluidAudio, jeśli je ma (jak bundle KeyboardShortcuts).
-- `THIRD_PARTY_NOTICES.txt`: FluidAudio (Apache-2.0); atrybucja wag Parakeet (CC-BY-4.0) w Ustawieniach przy modelu i w notkach.
+- `THIRD_PARTY_NOTICES.txt`: FluidAudio (Apache-2.0), WhisperKit (MIT, krok 1.10); atrybucja wag Parakeet Ultra (CC-BY-4.0) w Ustawieniach przy modelu i w notkach.
 
 **Zależności:**
 - Nowa: **FluidAudio** (Apache-2.0, `from:` z dokładnym pinem jak KeyboardShortcuts) w `DictationPlugin`. Powód: natywny Swift 6, Parakeet Ultra + VAD + strumieniowanie, najlepszy wynik dla polskiego wśród szybkich modeli.
@@ -192,6 +192,7 @@ Wniosek: cała logika żyje w `DictationPlugin`. Shell dostaje cztery addytywne 
 |---|---|
 | Od naciśnięcia skrótu do startu nagrywania i widocznego HUD | < 150 ms (model nie musi być w pamięci; audio idzie do bufora) |
 | Załadowanie modelu Parakeet (zimny start) | < 3 s, w tle, bez utraty audio |
+| Załadowanie Whisper large-v3-turbo (zimny start) | mierzone w kroku 1.10; pierwsze ładowanie po pobraniu może trwać dłużej (specjalizacja Core ML), audio i tak idzie do bufora |
 | Tekst surowy gotowy po zakończeniu 5-minutowego nagrania | < 2 s |
 | Tekst sformatowany gotowy po zakończeniu, przy ogonie ≤ 60 słów (Qwen3.6-35B-A3B 4-bit, M-series Max/Ultra) | < 3 s. Rachunek: 60 słów × 2,69 tok ≈ 160 tok przy 78–91 tok/s ≈ 1,8–2,1 s + ~0,2 s prefill (ADR 0004). Na bazowym M-series z modelem 4B: < 8 s |
 | Pamięć w spoczynku (model zwolniony) | bez zmian: < 150 MB dla całej aplikacji |
@@ -282,7 +283,7 @@ KeyboardShortcuts: `KeyboardShortcuts_command_dictation_record`.
 - **Ustawienia → Dyktowanie:**
   - (plugin włącza się w Ustawienia → Funkcje, jak każdy inny; panel Dyktowania istnieje tylko dla aktywnego pluginu);
   - rejestrator skrótu (`makeShortcutRecorder`) z opisem „naciśnij, aby przełączyć; przytrzymaj, aby mówić”;
-  - **Model mowy:** karta modelu (rozmiar, licencja, atrybucja), „Pobierz (≈ 0,6 GB z huggingface.co)” z postępem i anulowaniem, „Wskaż folder…”, „Usuń model”;
+  - **Model mowy:** karta modelu (rozmiar, licencja, atrybucja), „Pobierz (≈ 0,7 GB z huggingface.co)” (rozmiar z `ModelCatalog` wybranego silnika) z postępem i anulowaniem, „Wskaż folder…”, „Usuń model”;
   - mikrofon (lista urządzeń, wskaźnik poziomu „Test”);
   - **Formatowanie:** tryb, status endpointu („Znaleziono Ollama na localhost:11434 – model bielik…”), pole adresu z walidacją loopback, wybór modelu z `/v1/models`, przycisk „Wypróbuj na przykładzie”, podpowiedź „Zalecany model: Qwen3.6-35B-A3B (4-bit); najlepszy polski: Bielik-11B-v3.0-Instruct; słabszy Mac: Qwen3-4B-Instruct-2507”;
   - **Prywatność:** przywracanie schowka, historia, retencja, „Wyczyść historię”.
@@ -349,7 +350,7 @@ KeyboardShortcuts: `KeyboardShortcuts_command_dictation_record`.
   Wycofanie: revert jednego kroku.
 - **Nowa zależność FluidAudio:**
   - wersja 0.x, szybkie zmiany API — pin dokładnej wersji;
-  - API schowane za `SpeechEngine`, więc wymiana na WhisperKit to jeden plik;
+  - API schowane za `SpeechEngine`; drugi silnik (WhisperKit, krok 1.10) jest za tym samym protokołem, więc problem z jedną biblioteką nie blokuje dyktowania;
   - licencja wag CC-BY-4.0 wymaga atrybucji (notki + karta modelu).
 - **Pamięć:** ~1 GB w trakcie dyktowania przekracza obecny budżet aplikacji; świadomie oddzielony budżet „w trakcie”, model zwalniany po `keepWarmMinutes`. `MallocLargeCache=0` w `Info.plist` zostaje.
 - **Jakość formatowania zależy od modelu użytkownika:** Pounce nie gwarantuje wyniku; strażnik i surowa wersja ograniczają szkodę. Zestaw tekstów (PL, EN, mieszane, z podyktowanymi pytaniami i poleceniami) trafia do repo jako test regresji promptu (krok 2.5).
@@ -428,9 +429,10 @@ Każda faza to osobna gałąź `feat/` i osobny PR do `main`.
   - Dogfooding: kilka dni dyktowania po polsku z angielskimi terminami; liczba wypowiedzi, w których Parakeet przeszedł na angielski, dopisana do ADR 0003.
   - Test: tabela w PR.
 - **1.10 `WhisperKitEngine`.**
-  - Zależność WhisperKit (pin), wpis `whisper-large-v3-turbo` w `ModelCatalog`, ustawienia `speechModel` i `speechLanguage`, wybór silnika w panelu Dyktowania.
+  - Zależność WhisperKit (pin), wpis `whisper-large-v3-turbo` w `ModelCatalog`, ustawienia `speechModel` i `speechLanguage`, wybór silnika w panelu Dyktowania; `THIRD_PARTY_NOTICES.txt`, lista zatwierdzonych pakietów w `AGENTS.md` i powód zależności w PR.
+  - WhisperKit ładuje model tylko z folderu `ModelManager` (`download: false`); nigdy nie pobiera sam.
   - Język zawsze przypięty (bez auto-wykrywania); segmenty VAD zamiast okien 30 s; odrzucanie powtórzonych fraz (zapętlenie Whispera) w wyniku segmentu.
-  - Test: `DictationSession` z fałszywym silnikiem dalej przechodzi; test jednostkowy filtra powtórzeń; lokalny test integracyjny (domyślnie wyłączony) na tym samym nagraniu co Parakeet; QA ręczne przełączenia silnika.
+  - Test: `DictationSession` z fałszywym silnikiem dalej przechodzi; test jednostkowy filtra powtórzeń; lokalny test integracyjny (domyślnie wyłączony) na tym samym nagraniu co Parakeet, także przy zablokowanej sieci; QA ręczne przełączenia silnika.
 
 ### Faza 2 — Formatowanie dla LLM
 - **2.1 `EndpointProbe` + `LoopbackPolicy`.**

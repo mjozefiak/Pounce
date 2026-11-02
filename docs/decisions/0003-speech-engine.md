@@ -16,15 +16,20 @@ often 1–5 minutes long.
 
 | Model | Polish WER | English WER | Speed on Apple silicon | Swift path | License | Size |
 |---|---|---|---|---|---|---|
-| **Parakeet Ultra** (post-trained Parakeet TDT v3, Sep 2026) | FLEURS 5.54 (v3: 6.70) [C] | FLEURS-en 3.55 (v3: 4.25) [C] | same architecture as v3: ~110× real time on M4 Pro [D], 190–210× per FluidAudio [E] | FluidAudio, CoreML/ANE; FluidAudio's recommended model [E] | weights CC-BY-4.0, SDK Apache-2.0 | ~0.7 GB [B] |
-| Parakeet TDT 0.6B v3 | FLEURS 7.31, MLS 7.28 [A] | Open ASR avg 6.32 [A] | as above | FluidAudio | CC-BY-4.0 | ~0.7 GB |
-| **Whisper large-v3-turbo** | FLEURS 5.81 (Q8) [B] | LibriSpeech 2.03 [G] | slower than Parakeet; no verified M-series RTF | WhisperKit (MIT) | MIT | ~0.6–1 GB CoreML [G] |
-| Whisper large-v3 | FLEURS 4.74, MLS 8.88 [A] | Open ASR avg 7.44 [A] | ~13× slower than Parakeet on GPU [A] | WhisperKit | MIT | 1.55 GB |
+| **Parakeet Ultra** (post-trained Parakeet TDT v3, Sep 2026) | FLEURS 5.54 (v3: 6.70) per model card [C]; 6.16 (v3: 7.37) on Handy, Q8 [B] | FLEURS-en 3.55 (v3: 4.25) [C] | same architecture as v3: ~110× real time on M4 Pro [D], 190–210× per FluidAudio [E] | FluidAudio, CoreML/ANE; FluidAudio's recommended model [E] | weights CC-BY-4.0, SDK Apache-2.0 | ~0.7 GB [B] |
+| Parakeet TDT 0.6B v3 | FLEURS 7.31, MLS 7.28 [A]; 7.37 (Q8) [B] | Open ASR avg 6.32 [A] | as above | FluidAudio | CC-BY-4.0 | ~0.7 GB |
+| **Whisper large-v3-turbo** | FLEURS 5.81 (Q8) [B] — ahead of Parakeet Ultra on the same benchmark | LibriSpeech 2.03 [G] | slower than Parakeet; no verified M-series RTF | WhisperKit (MIT) | MIT | ~0.6–1 GB CoreML [G] |
+| Whisper large-v3 | FLEURS 4.74, MLS 8.88 [A]; 4.69 (Q8) [B] | Open ASR avg 7.44 [A] | ~13× slower than Parakeet on GPU [A] | WhisperKit | MIT | 1.55 GB |
 | Canary-1B-v2 | FLEURS 6.64 [A] | Open ASR avg 7.15 [A] | no CoreML/MLX port | none | CC-BY-4.0 | 1.07 GB |
 | Cohere Transcribe 2B | FLEURS 6.15 (Q8) [B] | Open ASR avg 5.42 (vendor) [I] | not verified on Mac | no Swift SDK | Apache-2.0, gated download | 2.25 GB |
 | Qwen3-ASR 1.7B | FLEURS 12.50 (Q8) [B] | — | — | third-party MLX | Apache-2.0 | 2.0 GB |
 | Voxtral Mini 3B | no Polish [L] | — | — | — | Apache-2.0 | ~9.5 GB |
 | Apple `SpeechTranscriber` | Polish not supported [M][N] | — | — | native | system | — |
+
+Polish WER numbers from different sources are not directly comparable. On the one benchmark that
+measures all of them the same way [B], Polish accuracy goes Whisper large-v3 (4.69) > large-v3-turbo
+(5.81) > Cohere (6.15) ≈ Parakeet Ultra (6.16) > Parakeet v3 (7.37): Ultra closes most of the gap
+to Whisper turbo but does not beat it.
 
 Local dictation apps ship the same two families: VoiceInk offers Parakeet V2/V3/Ultra and Whisper
 large-v3/turbo and starts users on Parakeet [J][O]; superwhisper offers Whisper and Parakeet [O].
@@ -41,7 +46,8 @@ windows).
 
 1. **Default engine: Parakeet Ultra through FluidAudio** (`parakeet-ultra`, CoreML weights from
    `FluidInference/parakeet-ultra-coreml`, revision pinned in `ModelCatalog`). It is a drop-in for
-   v3 in the same SDK, has the best Polish WER of the fast models and runs over 100× real time.
+   v3 in the same SDK, is the most accurate Parakeet for Polish (within ~0.4 WER points of Whisper turbo on [B]) and
+   runs over 100× real time, which matters more for live segment transcription.
 2. **Second engine: Whisper large-v3-turbo through WhisperKit, with the language pinned** (Settings:
    „Polski” / „English”). It ships in Phase 1 (step 1.10) instead of waiting for a spike, because
    language drift is documented for spontaneous non-English speech and the user dictates exactly

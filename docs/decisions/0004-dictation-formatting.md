@@ -14,7 +14,8 @@ instead. Target machine: Mac Studio, 128 GB, so 30B-class models fit; per-chunk 
 ## Evidence (collected 2026-11-02)
 
 **Output tokens are the bottleneck.** Polish costs 2.69 tokens/word with the Qwen3 tokenizer and
-3.22 with Bielik's Mistral tokenizer, versus 1.17 for English [1]. Prefill is cheap (~1,700 tok/s for
+3.22 with Bielik's Mistral tokenizer, versus 1.17 for English [1] (measured on the formal Polish constitution preamble; spontaneous
+speech may differ, so the arithmetic below is an estimate checked in step 1.9/2.4 QA). Prefill is cheap (~1,700 tok/s for
 a 30B-A3B MoE on an M4 Max [2]); decode speed sets the time per chunk.
 
 | Model | Polish evidence | Decode on M-series | License |
@@ -35,7 +36,8 @@ transcript in tags under a fixed "transcription editor" system prompt [9].
 ## Decision
 
 1. **Recommended model in Settings: Qwen3.6-35B-A3B, 4-bit (MLX or Ollama), thinking off.** It is the
-   fastest strong multilingual model that fits comfortably in 128 GB and handles mixed PL/EN.
+   fastest strong multilingual model that fits comfortably in 128 GB and handles mixed PL/EN. The
+   published checkpoint is image-text-to-text; a text-only quantized build (MLX or Ollama) is enough.
 2. **Polish-first alternative: Bielik-11B-v3.0-Instruct (Q6/Q8)**, shown as „najlepszy polski”.
    It has the best Polish evidence, but it is slower per word (bigger tokenizer cost) and has no
    published English instruction-following score.
@@ -45,8 +47,9 @@ transcript in tags under a fixed "transcription editor" system prompt [9].
    is ~1.8–2.1 s plus ~0.2 s prefill. With Bielik: ≈ 195 tokens, ~3–3.5 s (estimated).
 5. **Tail budget: < 3 s** after recording stops, for a tail ≤ 60 words, with the recommended model on
    an M-series Max/Ultra. On a base M-series chip with a 4B model the old < 8 s budget still applies.
-6. **Request settings:** `temperature: 0`, `chat_template_kwargs: {"enable_thinking": false}` (Qwen3.5/3.6
-   no longer honour the `/no_think` soft switch [3]; servers that ignore the field are covered by
+6. **Request settings:** `temperature: 0`, `chat_template_kwargs: {"enable_thinking": false}` (Qwen recommends
+   0.7 for non-thinking chat; cleanup wants deterministic output, and the guard catches repetition;
+   Qwen3.5/3.6 no longer honour the `/no_think` soft switch [3]; servers that ignore the field are covered by
    `<think>` stripping), `max_tokens` = words × 4 + 64. The timeout stays `5 s + words × 0.1 s × 2`
    (17 s for 60 words).
 7. **Prompt guard techniques** (from [7][8][9], not benchmarked): the system prompt says the input
@@ -58,7 +61,7 @@ transcript in tags under a fixed "transcription editor" system prompt [9].
 ## Consequences
 
 - No new dependency: Pounce still talks to one OpenAI-compatible endpoint.
-- Whether Ollama's OpenAI endpoint honours `chat_template_kwargs` is checked in step 2.1; if not,
+- Whether Ollama's OpenAI endpoint honours `chat_template_kwargs` is checked in step 2.5; if not,
   `<think>` stripping and the guard handle it.
 - The prompt regression set (step 2.5) is written as text fixtures (PL, EN, mixed, with dictated
   questions and commands) instead of being transcribed from the user's recordings.
