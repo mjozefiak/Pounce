@@ -97,7 +97,7 @@ struct DictationHarness {
     let usage = NoUsage()
     let context: PluginContext
 
-    init(settings initial: [String: SettingValue] = [:]) throws {
+    init(settings initial: [String: SettingValue] = [:], keychain: any KeychainClient = NoKeychain()) throws {
         let directory = try TemporaryDirectory()
         let settings = MemorySettingsStore(initial)
         let pasteboard = pasteboard
@@ -112,7 +112,7 @@ struct DictationHarness {
             settings: PluginSettings(pluginID: "dictation", store: settings),
             usage: usage,
             logger: Logger(subsystem: "app.pounce.tests", category: "dictation"),
-            keychain: NoKeychain(),
+            keychain: keychain,
             pasteboard: pasteboard,
             events: events,
             workspace: workspace,
@@ -123,5 +123,35 @@ struct DictationHarness {
 
     func tearDown() {
         pasteboard.release()
+    }
+}
+
+/// A Keychain in memory whose reads can be made to fail.
+final class MemoryKeychain: KeychainClient {
+    struct State {
+        var items: [String: Data] = [:]
+        var readError: KeychainError?
+    }
+
+    let state = Mutex(State())
+
+    var itemNames: Set<String> { state.withLock { Set($0.items.keys) } }
+
+    func readGenericPassword(service: String, account: String) throws(KeychainError) -> Data {
+        let result: Result<Data, KeychainError> = state.withLock { state in
+            if let error = state.readError { return .failure(error) }
+            guard let data = state.items["\(service)/\(account)"] else { return .failure(.itemNotFound) }
+            return .success(data)
+        }
+        return try result.get()
+    }
+
+    func addGenericPassword(_ data: Data, service: String, account: String) throws(KeychainError) {
+        state.withLock { $0.items["\(service)/\(account)"] = data }
+    }
+
+    func deleteGenericPassword(service: String, account: String) throws(KeychainError) {
+        let found = state.withLock { $0.items.removeValue(forKey: "\(service)/\(account)") != nil }
+        if !found { throw .itemNotFound }
     }
 }

@@ -65,6 +65,8 @@ let package = Package(
                 "PouncePersistence",
                 .product(name: "FluidAudio", package: "FluidAudio"),
                 .product(name: "WhisperKit", package: "argmax-oss-swift"),
+                // The plugin owns dictation.sqlite and its migrator, like ClipboardPlugin owns clipboard.sqlite.
+                .product(name: "GRDB", package: "GRDBCipher"),
             ]
         ),
         .executableTarget(
@@ -110,7 +112,10 @@ let package = Package(
         ),
         .testTarget(
             name: "DictationPluginTests",
-            dependencies: ["DictationPlugin", "PounceKit", "PounceCore", "PouncePersistence"],
+            dependencies: [
+                "DictationPlugin", "PounceKit", "PounceCore", "PouncePersistence",
+                .product(name: "GRDB", package: "GRDBCipher"),
+            ],
             resources: [.copy("Fixtures")]
         ),
         .testTarget(
