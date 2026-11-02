@@ -21,6 +21,9 @@ struct ScannedEntry: Hashable, Sendable {
     let modified: UInt32
     /// For a directory the scanner enters: the id its own listing arrives under.
     let directoryID: Int32?
+    /// The name starts with a dot or the item carries the hidden flag (only reported when the rules
+    /// include hidden items; path mode uses it to filter its listing).
+    var isHidden = false
 }
 
 /// The listing of one directory. Directory `0` is the folder the scan started in; every other id was
@@ -77,12 +80,14 @@ struct BulkScanner: Sendable {
         return (kind, clampSeconds(info.st_mtimespec.tv_sec), Int32(info.st_dev))
     }
 
-    /// Lists one directory without descending (the watcher's reconcile). `nil` when it cannot be read.
-    /// `followsLink`: the path is a root, which may be a symbolic link to a folder.
-    func list(_ path: String, followsLink: Bool = false) -> [ScannedEntry]? {
+    /// Lists one directory without descending (the watcher's reconcile, path mode). `nil` when it cannot
+    /// be read. `followsLink`: the path is a root, which may be a symbolic link to a folder. `limit`: stop
+    /// after this many entries (path mode caps huge folders).
+    func list(_ path: String, followsLink: Bool = false, limit: Int = .max) -> [ScannedEntry]? {
         guard let device = Self.entry(at: path, followsLink: followsLink)?.device else { return nil }
         var buffer = ListingBuffer()
-        return buffer.list(path, device: device, rules: rules, followsLink: followsLink, nextID: { _ in nil })
+        return buffer.list(
+            path, device: device, rules: rules, followsLink: followsLink, limit: limit, nextID: { _ in nil })
     }
 
     /// Scans the tree below `path` (the folder itself is not reported). Returns `false` when cancelled.
@@ -179,6 +184,7 @@ private struct ListingBuffer {
         device: Int32,
         rules: IgnoreRules,
         followsLink: Bool = false,
+        limit: Int = .max,
         nextID: (String) -> Int32?
     ) -> [ScannedEntry]? {
         let descriptor = open(path, O_RDONLY | O_DIRECTORY | O_CLOEXEC | (followsLink ? 0 : O_NOFOLLOW))
@@ -193,7 +199,7 @@ private struct ListingBuffer {
         request.dirattr = Self.mountStatus
 
         var entries: [ScannedEntry] = []
-        while true {
+        while entries.count < limit {
             let count = storage.withUnsafeMutableBytes { raw in
                 getattrlistbulk(descriptor, &request, raw.baseAddress, raw.count, 0)
             }
@@ -204,7 +210,7 @@ private struct ListingBuffer {
             }
             storage.withUnsafeBytes { raw in
                 var offset = 0
-                for _ in 0..<count {
+                for _ in 0..<count where entries.count < limit {
                     guard offset + 4 <= raw.count else { return }
                     let length = Int(raw.loadUnaligned(fromByteOffset: offset, as: UInt32.self))
                     guard length > 0, offset + length <= raw.count else { return }
@@ -302,18 +308,23 @@ private struct ListingBuffer {
         if rules.excludes(name: parsed.name, path: path, hiddenFlag: hidden) {
             return nil
         }
+        let isHidden = hidden || parsed.name.hasPrefix(".")
         switch parsed.type {
         case directory:
             let isBundle = parsed.finderFlags & hasBundle != 0
             if PackageTypes.shared.isPackage(name: parsed.name, bundleBit: isBundle) {
-                return ScannedEntry(name: parsed.name, kind: .package, modified: parsed.modified, directoryID: nil)
+                return ScannedEntry(
+                    name: parsed.name, kind: .package, modified: parsed.modified, directoryID: nil, isHidden: isHidden)
             }
             return ScannedEntry(
-                name: parsed.name, kind: .directory, modified: parsed.modified, directoryID: nextID(path))
+                name: parsed.name, kind: .directory, modified: parsed.modified, directoryID: nextID(path),
+                isHidden: isHidden)
         case link:
-            return ScannedEntry(name: parsed.name, kind: .symlink, modified: parsed.modified, directoryID: nil)
+            return ScannedEntry(
+                name: parsed.name, kind: .symlink, modified: parsed.modified, directoryID: nil, isHidden: isHidden)
         default:
-            return ScannedEntry(name: parsed.name, kind: .file, modified: parsed.modified, directoryID: nil)
+            return ScannedEntry(
+                name: parsed.name, kind: .file, modified: parsed.modified, directoryID: nil, isHidden: isHidden)
         }
     }
 }
