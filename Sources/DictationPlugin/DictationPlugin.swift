@@ -37,6 +37,9 @@ public final class DictationPlugin: PouncePlugin {
     private let engine: SwitchingEngine
     private let authorizer = SystemMicrophoneAuthorizer()
     private let models: ModelManager
+    /// Downloads the built-in formatting models into `Plugins/dictation/llm/` (used by the settings in step 4.4).
+    let llmModels: ModelManager
+    nonisolated static let llmDirectoryName = "llm"
     private let hud: DictationHUDPanel
     private let settingsModel: DictationSettingsModel
     private let formattingModel: FormattingSettingsModel
@@ -59,6 +62,10 @@ public final class DictationPlugin: PouncePlugin {
             directory: context.storageDirectory.appending(path: "Models", directoryHint: .isDirectory),
             logger: context.logger)
         self.models = models
+        // Formatting models (ADR 0005) live next to the speech models and go with them on Erase Data.
+        llmModels = ModelManager(
+            directory: context.storageDirectory.appending(path: Self.llmDirectoryName, directoryHint: .isDirectory),
+            logger: context.logger)
         let workspace = context.workspace
         settingsModel = DictationSettingsModel(
             package: ModelCatalog.package(id: settings.speechModelID) ?? ModelCatalog.parakeetUltra, manager: models,
