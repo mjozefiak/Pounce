@@ -335,6 +335,18 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         #expect(HUDState.recording(.init()).detail == "Esc cancels")
     }
 
+    @Test func theSameAnnouncementIsNotSpokenAgainWhileTheLevelMoves() {
+        var gate = AnnouncementGate()
+        #expect(gate.announce(.recording(.init(level: 0.1))) != nil)
+        #expect(gate.announce(.recording(.init(level: 0.7))) == nil)
+        #expect(gate.announce(.recording(.init(loadingModel: true))) == nil)
+        #expect(gate.announce(.recording(.init(level: 0.3))) == nil)
+        #expect(gate.announce(.finishing) != nil)
+        #expect(gate.announce(.pasted) != nil)
+        gate.reset()
+        #expect(gate.announce(.recording(.init())) != nil)
+    }
+
     @Test func theTimerFormatsMinutesAndSeconds() {
         #expect(DictationHUDView.format(0) == "0:00")
         #expect(DictationHUDView.format(65.9) == "1:05")

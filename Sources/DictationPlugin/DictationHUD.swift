@@ -9,6 +9,22 @@ protocol HUDPresenter: AnyObject {
     func hide()
 }
 
+/// Decides which states VoiceOver hears. The HUD is shown again for every level update while recording, so
+/// an announcement is made only when its text differs from the last one spoken.
+struct AnnouncementGate {
+    private var last: String?
+
+    mutating func announce(_ state: HUDState) -> String? {
+        guard let text = state.announcement, text != last else { return nil }
+        last = text
+        return text
+    }
+
+    mutating func reset() {
+        last = nil
+    }
+}
+
 /// The state the HUD's view reads.
 @MainActor @Observable
 final class HUDModel {
@@ -27,6 +43,7 @@ final class DictationHUDPanel: HUDPresenter {
     private let model = HUDModel()
     private var panel: NSPanel?
     private var hideTask: Task<Void, Never>?
+    private var announcements = AnnouncementGate()
     private let reducesMotion: () -> Bool
 
     init(
@@ -51,7 +68,7 @@ final class DictationHUDPanel: HUDPresenter {
         self.panel = panel
         position(panel)
         panel.orderFrontRegardless()
-        if let announcement = state.announcement {
+        if let announcement = announcements.announce(state) {
             announce(announcement, from: panel)
         }
         if let delay = state.hidesAfter {
@@ -67,6 +84,7 @@ final class DictationHUDPanel: HUDPresenter {
         hideTask?.cancel()
         hideTask = nil
         model.recordingStartedAt = nil
+        announcements.reset()
         panel?.orderOut(nil)
     }
 
