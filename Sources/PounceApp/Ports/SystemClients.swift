@@ -206,6 +206,42 @@ nonisolated struct SystemWorkspaceClient: WorkspaceClient {
         }
     }
 
+    /// Regular applications (with a Dock icon) becoming active, observed on the workspace's own
+    /// notification centre. Agents, accessories and Pounce's own panel never appear.
+    func applicationActivations() -> AsyncStream<RunningApplication> {
+        AsyncStream(bufferingPolicy: .bufferingNewest(8)) { continuation in
+            let task = Task { @MainActor in
+                for await notification in NSWorkspace.shared.notificationCenter.notifications(
+                    named: NSWorkspace.didActivateApplicationNotification
+                ) {
+                    guard
+                        let application = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
+                            as? NSRunningApplication,
+                        application.activationPolicy == .regular
+                    else { continue }
+                    continuation.yield(Self.running(application))
+                }
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
+    @MainActor var runningApplicationBundleIDs: Set<String> {
+        Set(
+            NSWorkspace.shared.runningApplications.lazy
+                .filter { $0.activationPolicy == .regular && !$0.isTerminated }
+                .compactMap(\.bundleIdentifier)
+        )
+    }
+
+    /// Reads the idle time of the login session (no event tap, so no Input Monitoring or Accessibility
+    /// prompt). `kCGAnyInputEventType` is not imported into Swift, so it is rebuilt from its raw value.
+    @MainActor var secondsSinceLastUserInput: TimeInterval? {
+        guard let anyInput = CGEventType(rawValue: ~0) else { return nil }
+        let seconds = CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: anyInput)
+        return seconds.isFinite && seconds >= 0 ? seconds : nil
+    }
+
     @MainActor static func running(_ application: NSRunningApplication) -> RunningApplication {
         RunningApplication(
             processIdentifier: application.processIdentifier,
