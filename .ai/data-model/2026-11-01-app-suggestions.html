@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>App Suggestions Data Model</title>
+<style>
+  :root { --bg:#ffffff; --fg:#111; --new:#2f6feb; --newStroke:#1b4fb0; --old:#e5e7eb; --oldStroke:#9ca3af; --edge:#6b7280; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0d1117; --fg:#e6edf3; --old:#30363d; --oldStroke:#6e7681; --edge:#8b949e; } }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--fg); font:14px -apple-system, system-ui, sans-serif; }
+  header { padding:12px 16px; }
+  svg { width:100%; height:calc(100% - 60px); cursor:grab; display:block; }
+  .dim { opacity:.15; }
+</style>
+</head>
+<body>
+<header>App Suggestions — data model (blue: new, grey: existing). Drag to pan, wheel to zoom, click a node to focus.</header>
+<svg id="graph" xmlns="http://www.w3.org/2000/svg"><g id="view"></g></svg>
+<script>
+const data = JSON.parse("{\"nodes\":[{\"id\":\"entity_1\",\"label\":\"app_activity\",\"fields\":\"bundle_id PK · frecency · last_used_at · use_count\",\"isNew\":true,\"x\":80,\"y\":80},{\"id\":\"entity_2\",\"label\":\"activity_meta\",\"fields\":\"key PK · value\",\"isNew\":true,\"x\":80,\"y\":260},{\"id\":\"entity_3\",\"label\":\"AppRecord (in-memory, AppStore)\",\"fields\":\"bundleID\",\"isNew\":false,\"x\":520,\"y\":80}],\"edges\":[{\"from\":\"entity_1\",\"to\":\"entity_3\",\"label\":\"n-1 by bundle_id\"}]}");
+const NS = "http://www.w3.org/2000/svg", W = 320, H = 70;
+const svg = document.getElementById("graph"), view = document.getElementById("view");
+const el = (n, a) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
+const byId = Object.fromEntries(data.nodes.map(n => [n.id, n]));
+const parts = {}, edgeEls = [];
+for (const e of data.edges) {
+  const a = byId[e.from], b = byId[e.to], g = el("g", {});
+  g.appendChild(el("line", { x1:a.x+W, y1:a.y+H/2, x2:b.x, y2:b.y+H/2, stroke:"var(--edge)", "stroke-width":2 }));
+  const t = el("text", { x:(a.x+W+b.x)/2, y:a.y+H/2-8, "text-anchor":"middle", fill:"var(--fg)" }); t.textContent = e.label; g.appendChild(t);
+  view.appendChild(g); edgeEls.push(g);
+}
+for (const n of data.nodes) {
+  const g = el("g", { transform:`translate(${n.x},${n.y})`, style:"cursor:pointer" });
+  g.appendChild(el("rect", { width:W, height:H, rx:8, fill:n.isNew?"var(--new)":"var(--old)", stroke:n.isNew?"var(--newStroke)":"var(--oldStroke)" }));
+  const t1 = el("text", { x:12, y:28, fill:n.isNew?"#fff":"var(--fg)", "font-weight":"600" }); t1.textContent = n.label; g.appendChild(t1);
+  const t2 = el("text", { x:12, y:52, fill:n.isNew?"#fff":"var(--fg)", "font-size":"12" }); t2.textContent = n.fields; g.appendChild(t2);
+  g.dataset.id = n.id; view.appendChild(g); (parts[n.id] ||= []).push(g);
+}
+let focus = null;
+view.addEventListener("click", ev => {
+  const g = ev.target.closest("g[data-id]"); const id = g ? g.dataset.id : null;
+  focus = focus === id ? null : id;
+  for (const c of view.children) c.classList.toggle("dim", !!focus);
+  if (!focus) return;
+  // Keep the focused node, its neighbours and the edges between them.
+  for (const e of data.edges) {
+    if (e.from !== focus && e.to !== focus) continue;
+    for (const k of [e.from, e.to]) for (const p of parts[k] || []) if (p.dataset.id === k) p.classList.remove("dim");
+    edgeEls[data.edges.indexOf(e)].classList.remove("dim");
+  }
+  for (const p of parts[focus] || []) if (p.dataset.id === focus) p.classList.remove("dim");
+});
+let s = 1, tx = 0, ty = 0, drag = null;
+const apply = () => view.setAttribute("transform", `translate(${tx},${ty}) scale(${s})`);
+svg.addEventListener("wheel", e => { e.preventDefault(); s = Math.min(4, Math.max(.3, s * (e.deltaY < 0 ? 1.1 : .9))); apply(); }, { passive:false });
+svg.addEventListener("mousedown", e => drag = { x:e.clientX - tx, y:e.clientY - ty });
+window.addEventListener("mousemove", e => { if (drag) { tx = e.clientX - drag.x; ty = e.clientY - drag.y; apply(); } });
+window.addEventListener("mouseup", () => drag = null);
+</script>
+</body>
+</html>
