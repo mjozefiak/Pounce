@@ -35,6 +35,17 @@ actor DictationSession {
         let segmentCount: Int
         /// Segments the engine could not transcribe; their words are missing from `text`.
         let failedSegments: Int
+        /// The transcript as the speech engine heard it, without formatting (equal to `text` in raw mode).
+        let rawText: String
+        /// How many chunks went to the formatter and how many of them came back raw.
+        let formatting: FormattingSummary
+    }
+
+    struct FormattingSummary: Equatable, Sendable {
+        var chunks = 0
+        var fellBack = 0
+        var firstReason: FallbackReason?
+        var isPartial: Bool { fellBack > 0 }
     }
 
     /// A speech segment longer than this is cut, the speech model's window being 15 seconds.
@@ -45,6 +56,7 @@ actor DictationSession {
     private let audio: any AudioInput
     private let vad: any VoiceActivityDetector
     private let engine: any SpeechEngine
+    private let formatter: (any TextFormatter)?
     private let modelFolder: URL
     private let limit: Int
     private let warning: Int
@@ -54,6 +66,11 @@ actor DictationSession {
     private var store = SampleStore()
     private var speechStart: Int?
     private var segments: [Task<String?, Never>] = []
+    private var segmenter = Segmenter()
+    private var lastSegmentEnd: Int?
+    private var assembling: Task<Void, Never>?
+    private var chunks: [(chunk: Segmenter.Chunk, result: Task<FormatResult, Never>)] = []
+    private var lastChunkText: String?
     private var loadTask: Task<Bool, Never>?
     private var consumeTask: Task<Void, Never>?
     private var started = false
@@ -69,6 +86,7 @@ actor DictationSession {
         audio: any AudioInput,
         vad: any VoiceActivityDetector,
         engine: any SpeechEngine,
+        formatter: (any TextFormatter)? = nil,
         modelFolder: URL,
         maximumDuration: Duration = .seconds(20 * 60),
         warningBefore: Duration = .seconds(2 * 60),
@@ -78,6 +96,7 @@ actor DictationSession {
         self.audio = audio
         self.vad = vad
         self.engine = engine
+        self.formatter = formatter
         self.modelFolder = modelFolder
         self.limit = Self.samples(in: maximumDuration)
         self.warning = max(0, Self.samples(in: maximumDuration) - Self.samples(in: warningBefore))
@@ -153,11 +172,47 @@ actor DictationSession {
         guard !tasks.isEmpty else { throw Failure.silence }
         guard failed < tasks.count else { throw Failure.engine }
         guard !parts.isEmpty else { throw Failure.silence }
+        let raw = parts.joined(separator: " ")
+        var text = raw
+        var summary = FormattingSummary()
+        if formatter != nil {
+            await assembling?.value
+            for chunk in segmenter.flush() { startFormatting(chunk) }
+            let assembled = await assembleChunks()
+            if cancelled { throw Failure.cancelled }
+            if !assembled.text.isEmpty {
+                text = assembled.text
+                summary = assembled.summary
+            }
+        }
         return Output(
-            text: parts.joined(separator: " "),
+            text: text,
             duration: Double(store.count) / Double(AudioFormat.sampleRate),
             segmentCount: tasks.count,
-            failedSegments: failed)
+            failedSegments: failed,
+            rawText: raw,
+            formatting: summary)
+    }
+
+    /// The formatted chunks in the order they were said, whatever order the server answered in.
+    private func assembleChunks() async -> (text: String, summary: FormattingSummary) {
+        var summary = FormattingSummary()
+        var text = ""
+        var paragraphBreak = false
+        for (chunk, task) in chunks {
+            let result = await task.value
+            summary.chunks += 1
+            if case .fellBack(let reason) = result.outcome {
+                summary.fellBack += 1
+                summary.firstReason = summary.firstReason ?? reason
+            }
+            let piece = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !piece.isEmpty else { continue }
+            if !text.isEmpty { text += paragraphBreak ? "\n\n" : " " }
+            text += piece
+            paragraphBreak = chunk.endsParagraph
+        }
+        return (text, summary)
     }
 
     /// Drops the recording: nothing is transcribed or kept.
@@ -166,9 +221,12 @@ actor DictationSession {
         consumeTask?.cancel()
         loadTask?.cancel()
         for task in segments { task.cancel() }
+        assembling?.cancel()
+        for entry in chunks { entry.result.cancel() }
         await audio.stop()
         store = SampleStore()
         segments = []
+        chunks = []
         speechStart = nil
     }
 
@@ -221,17 +279,51 @@ actor DictationSession {
         let engine = engine
         let load = loadTask
         let logger = logger
-        segments.append(
-            Task {
-                guard await load?.value == true else { return nil }
-                do {
-                    return try await engine.transcribe(samples).text
-                } catch {
-                    if !Task.isCancelled {
-                        logger.error("A segment failed to transcribe: \(String(describing: error), privacy: .public)")
-                    }
-                    return nil
+        let task = Task<String?, Never> {
+            guard await load?.value == true else { return nil }
+            do {
+                return try await engine.transcribe(samples).text
+            } catch {
+                if !Task.isCancelled {
+                    logger.error("A segment failed to transcribe: \(String(describing: error), privacy: .public)")
                 }
-            })
+                return nil
+            }
+        }
+        segments.append(task)
+
+        let pause = lastSegmentEnd.map { Double(max(0, range.lowerBound - $0)) / Double(AudioFormat.sampleRate) } ?? 0
+        lastSegmentEnd = range.upperBound
+        if formatter != nil {
+            // One chain, so segments reach the segmenter in the order they were said even though they are
+            // transcribed in parallel.
+            let previous = assembling
+            assembling = Task { [weak self] in
+                await previous?.value
+                guard let text = await task.value else { return }
+                await self?.segmentTranscribed(text, pauseBefore: pause)
+            }
+        }
+    }
+
+    private func segmentTranscribed(_ text: String, pauseBefore: Double) {
+        guard !cancelled else { return }
+        for chunk in segmenter.add(text, pauseBefore: pauseBefore) { startFormatting(chunk) }
+    }
+
+    /// Sends one chunk to the formatter now, with the end of the previous chunk as context.
+    private func startFormatting(_ chunk: Segmenter.Chunk) {
+        guard let formatter else { return }
+        let context = lastChunkText.map { String($0.suffix(300)) }
+        lastChunkText = chunk.text
+        let result = Task<FormatResult, Never> {
+            do {
+                return try await formatter.format(chunk: chunk.text, previousContext: context)
+            } catch {
+                // Cancelled: the session is being dropped, the value is never used.
+                return FormatResult(text: chunk.text, outcome: .fellBack(.unreachable))
+            }
+        }
+        chunks.append((chunk, result))
     }
 }
