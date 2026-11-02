@@ -138,6 +138,9 @@ enum ModelCatalog {
                 ]),
         ])
 
+    /// The Silero model inside a package, relative to the package folder.
+    static let sileroVADPath = "vad/silero-vad-unified-256ms-v6.2.1.mlmodelc"
+
     static let all: [ModelPackage] = [parakeetUltra]
 
     static func package(id: String) -> ModelPackage? {

@@ -114,6 +114,9 @@ public struct PluginContext: Sendable {
     /// returns an inactive claim. Added with dictation; the default claims nothing.
     public let claimEscapeKey:
         @MainActor @Sendable (_ onEscape: @escaping @MainActor @Sendable () -> Void) -> EscapeKeyClaim
+    /// Opens this plugin's own pane in Settings, for example from a message that points the user there.
+    /// Added with dictation; the default does nothing.
+    public let openSettings: @MainActor @Sendable () -> Void
 
     public init(
         storageDirectory: URL,
@@ -133,7 +136,8 @@ public struct PluginContext: Sendable {
         },
         claimEscapeKey:
             @escaping @MainActor @Sendable (_ onEscape: @escaping @MainActor @Sendable () -> Void) ->
-            EscapeKeyClaim = { _ in .inactive }
+            EscapeKeyClaim = { _ in .inactive },
+        openSettings: @escaping @MainActor @Sendable () -> Void = {}
     ) {
         self.storageDirectory = storageDirectory
         self.settings = settings
@@ -150,5 +154,6 @@ public struct PluginContext: Sendable {
         self.resultsChanged = resultsChanged
         self.makeShortcutRecorder = makeShortcutRecorder
         self.claimEscapeKey = claimEscapeKey
+        self.openSettings = openSettings
     }
 }

@@ -74,12 +74,12 @@ final class StubProtocol: URLProtocol, @unchecked Sendable {
     override func stopLoading() {}
 }
 
-private func sha(_ data: Data) -> String {
+func sha(_ data: Data) -> String {
     SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
 }
 
 /// A tiny package of two files (one in a sub folder) on a repository name unique to the test.
-private struct Fixture {
+struct Fixture {
     let repository = "test/\(UUID().uuidString.lowercased())"
     let a = Data(repeating: 0x41, count: 100)
     let b = Data("second file, a little longer than the first".utf8)

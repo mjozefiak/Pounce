@@ -212,6 +212,15 @@ Capture only Pounce's own windows, never the full screen:
 3. Open every image before attaching it to a PR, and discard any that shows anything other than
    Pounce and the fake data of the run.
 
+## Dictation
+
+The microphone grant is tied to the app's code signature. Every ad-hoc rebuild (`scripts/make-app.sh`) has a
+new signature, so macOS asks for the microphone again (and the Accessibility grant also has to be renewed
+for Command-V to work). Both are manual QA items: the QA flags isolate settings, data and shortcuts, but the
+microphone permission, a real recording, the real model (about 630 MB, downloaded from the Settings pane) and
+pasting into another app cannot be faked. Check the HUD, the Settings pane and the setup step with
+`--qa --qa-panel`-style runs, and everything that records or pastes by hand.
+
 ## Never during QA
 
 - No synthetic key events, no `tccutil`, no edits to TCC databases or `com.apple.*` defaults.

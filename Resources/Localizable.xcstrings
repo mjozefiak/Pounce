@@ -181,6 +181,24 @@
         }
       }
     },
+    "A file does not match the expected checksum, so it was not used." : {
+      "comment" : "Dictation settings error after a failed checksum",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A file does not match the expected checksum, so it was not used."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plik nie zgadza się z oczekiwaną sumą kontrolną, więc nie został użyty."
+          }
+        }
+      }
+    },
     "About Pounce" : {
       "comment" : "Menu bar menu item that opens the About window",
       "extractionState" : "manual",
@@ -361,6 +379,42 @@
         }
       }
     },
+    "Allow Accessibility so Pounce can paste for you. Without it, the text is only copied." : {
+      "comment" : "Dictation onboarding step",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Accessibility so Pounce can paste for you. Without it, the text is only copied."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól na Dostępność, aby Pounce mógł wklejać za Ciebie. Bez tego tekst tylko się kopiuje."
+          }
+        }
+      }
+    },
+    "Allow Microphone" : {
+      "comment" : "Button that asks for microphone access",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Microphone"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól na mikrofon"
+          }
+        }
+      }
+    },
     "Allow the microphone" : {
       "comment" : "Dictation HUD while the microphone prompt is shown",
       "extractionState" : "manual",
@@ -375,6 +429,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zezwól na mikrofon"
+          }
+        }
+      }
+    },
+    "Allow the microphone. Pounce listens only while you dictate." : {
+      "comment" : "Dictation onboarding step",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow the microphone. Pounce listens only while you dictate."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól na mikrofon. Pounce słucha tylko wtedy, gdy dyktujesz."
           }
         }
       }
@@ -505,6 +577,24 @@
         }
       }
     },
+    "Cancel" : {
+      "comment" : "Button that cancels the model download",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anuluj"
+          }
+        }
+      }
+    },
     "Cancel dictation" : {
       "comment" : "Accessibility label of the HUD's ✕",
       "extractionState" : "manual",
@@ -555,6 +645,60 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sprawdź ponownie"
+          }
+        }
+      }
+    },
+    "Choose" : {
+      "comment" : "Button of the model folder picker",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybierz"
+          }
+        }
+      }
+    },
+    "Choose Folder…" : {
+      "comment" : "Button that picks a model folder",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Folder…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wskaż folder…"
+          }
+        }
+      }
+    },
+    "Choose the folder that contains the speech model's files." : {
+      "comment" : "Message of the model folder picker",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose the folder that contains the speech model's files."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybierz folder z plikami modelu mowy."
           }
         }
       }
@@ -1027,6 +1171,24 @@
         }
       }
     },
+    "Dictate in any app: press the shortcut, talk, and Pounce types the text where you are. The speech model runs on this Mac." : {
+      "comment" : "Dictation onboarding text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictate in any app: press the shortcut, talk, and Pounce types the text where you are. The speech model runs on this Mac."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dyktuj w dowolnej aplikacji: naciśnij skrót, mów, a Pounce wpisze tekst tam, gdzie jesteś. Model mowy działa na tym Macu."
+          }
+        }
+      }
+    },
     "Dictation" : {
       "comment" : "Plugin name of voice dictation",
       "extractionState" : "manual",
@@ -1099,6 +1261,24 @@
         }
       }
     },
+    "Download (≈ %@ from huggingface.co)" : {
+      "comment" : "Button that downloads the speech model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download (≈ %@ from huggingface.co)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobierz (≈ %@ z huggingface.co)"
+          }
+        }
+      }
+    },
     "Download a speech model in Settings" : {
       "comment" : "Dictation HUD when no speech model is installed",
       "extractionState" : "manual",
@@ -1113,6 +1293,60 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pobierz model mowy w Ustawieniach"
+          }
+        }
+      }
+    },
+    "Download interrupted. It continues where it stopped." : {
+      "comment" : "Dictation model status",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download interrupted. It continues where it stopped."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobieranie przerwane. Zostanie wznowione od miejsca przerwania."
+          }
+        }
+      }
+    },
+    "Downloaded" : {
+      "comment" : "Dictation model status",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloaded"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobrano"
+          }
+        }
+      }
+    },
+    "Downloading…" : {
+      "comment" : "Dictation settings progress label",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloading…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobieranie…"
           }
         }
       }
@@ -1423,6 +1657,24 @@
         }
       }
     },
+    "Folder unavailable: %@" : {
+      "comment" : "Dictation model status when the folder is gone",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder unavailable: %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder niedostępny: %@"
+          }
+        }
+      }
+    },
     "Formatted Text" : {
       "comment" : "Clipboard entry kind and filter (RTF or HTML)",
       "extractionState" : "manual",
@@ -1527,6 +1779,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zaczynamy"
+          }
+        }
+      }
+    },
+    "Get the speech model (about 0.7 GB), or point to one you already have." : {
+      "comment" : "Dictation onboarding step",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get the speech model (about 0.7 GB), or point to one you already have."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobierz model mowy (około 0,7 GB) albo wskaż ten, który już masz."
           }
         }
       }
@@ -1707,6 +1977,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Indeksuję… %@"
+          }
+        }
+      }
+    },
+    "Input device" : {
+      "comment" : "Dictation settings label",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Input device"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Urządzenie wejściowe"
+          }
+        }
+      }
+    },
+    "Input level" : {
+      "comment" : "Accessibility label of the level meter",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Input level"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poziom wejścia"
           }
         }
       }
@@ -1981,6 +2287,24 @@
         }
       }
     },
+    "Microphone allowed" : {
+      "comment" : "Dictation microphone status",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microphone allowed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon dozwolony"
+          }
+        }
+      }
+    },
     "Microphone not allowed" : {
       "comment" : "Dictation HUD when microphone access is denied",
       "extractionState" : "manual",
@@ -1995,6 +2319,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mikrofon niedozwolony"
+          }
+        }
+      }
+    },
+    "Microphone not asked yet" : {
+      "comment" : "Dictation microphone status",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microphone not asked yet"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon jeszcze nie był pytany"
           }
         }
       }
@@ -2157,6 +2499,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Niedozwolone"
+          }
+        }
+      }
+    },
+    "Not downloaded" : {
+      "comment" : "Dictation model status",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not downloaded"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie pobrano"
+          }
+        }
+      }
+    },
+    "Not enough free space. The model needs %@." : {
+      "comment" : "Dictation settings error when the disk is too full",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not enough free space. The model needs %@."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Za mało wolnego miejsca. Model potrzebuje %@."
           }
         }
       }
@@ -2391,6 +2769,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Otwórz ustawienia klawiatury"
+          }
+        }
+      }
+    },
+    "Open Microphone Settings" : {
+      "comment" : "Button that opens microphone privacy settings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Microphone Settings"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz ustawienia mikrofonu"
           }
         }
       }
@@ -2827,6 +3223,42 @@
         }
       }
     },
+    "Press to start and press again to stop. Or hold the keys while you talk. Esc cancels." : {
+      "comment" : "Dictation settings footer under the shortcut",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press to start and press again to stop. Or hold the keys while you talk. Esc cancels."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naciśnij, aby zacząć, i naciśnij ponownie, aby skończyć. Albo przytrzymaj klawisze, gdy mówisz. Esc anuluje."
+          }
+        }
+      }
+    },
+    "Privacy" : {
+      "comment" : "Dictation settings section title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prywatność"
+          }
+        }
+      }
+    },
     "Quit Pounce" : {
       "comment" : "Menu bar menu item that quits the app",
       "extractionState" : "manual",
@@ -3079,6 +3511,24 @@
         }
       }
     },
+    "Remove Model" : {
+      "comment" : "Button that deletes the downloaded speech model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove Model"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń model"
+          }
+        }
+      }
+    },
     "Reset Ranking" : {
       "comment" : "Confirmation button that clears the learned ranking",
       "extractionState" : "manual",
@@ -3165,6 +3615,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przywróć domyślne"
+          }
+        }
+      }
+    },
+    "Restore the clipboard after pasting" : {
+      "comment" : "Dictation settings toggle",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore the clipboard after pasting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywróć schowek po wklejeniu"
           }
         }
       }
@@ -3619,6 +4087,24 @@
         }
       }
     },
+    "Speech model" : {
+      "comment" : "Dictation settings section title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speech model"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model mowy"
+          }
+        }
+      }
+    },
     "Speech model unavailable" : {
       "comment" : "Dictation HUD when the model folder is gone",
       "extractionState" : "manual",
@@ -3745,6 +4231,42 @@
         }
       }
     },
+    "System default" : {
+      "comment" : "Dictation input device choice that follows the system",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System default"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Domyślne systemowe"
+          }
+        }
+      }
+    },
+    "Test" : {
+      "comment" : "Button that shows the microphone level for a moment",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test"
+          }
+        }
+      }
+    },
     "Text" : {
       "comment" : "Clipboard entry kind and filter",
       "extractionState" : "manual",
@@ -3817,6 +4339,42 @@
         }
       }
     },
+    "The download did not finish. Check the connection and try again." : {
+      "comment" : "Dictation settings error after a failed download",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The download did not finish. Check the connection and try again."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobieranie nie zakończyło się. Sprawdź połączenie i spróbuj ponownie."
+          }
+        }
+      }
+    },
+    "The download was refused by the server. Try again later." : {
+      "comment" : "Dictation settings error after the download server answered with an error",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The download was refused by the server. Try again later."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serwer odrzucił pobieranie. Spróbuj ponownie później."
+          }
+        }
+      }
+    },
     "The features that are on need no system permissions." : {
       "comment" : "Settings → Permissions when no enabled feature needs a permission",
       "extractionState" : "manual",
@@ -3867,6 +4425,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Brakowało klucza historii, więc zaczęto nową, pustą historię. Stara historia pozostaje zaszyfrowana i zostanie automatycznie usunięta po 30 dniach."
+          }
+        }
+      }
+    },
+    "The model is not installed." : {
+      "comment" : "Dictation settings error",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The model is not installed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model nie jest zainstalowany."
+          }
+        }
+      }
+    },
+    "The model runs on this Mac. Audio is never sent anywhere and never saved." : {
+      "comment" : "Dictation settings footer under the speech model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The model runs on this Mac. Audio is never sent anywhere and never saved."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model działa na tym Macu. Dźwięk nigdy nie jest nigdzie wysyłany ani zapisywany."
           }
         }
       }
@@ -3943,6 +4537,24 @@
         }
       }
     },
+    "The text is pasted through the clipboard. Pounce puts back what was there a second later, unless it was a password or you copied something else meanwhile." : {
+      "comment" : "Dictation settings footer under the clipboard restore toggle",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The text is pasted through the clipboard. Pounce puts back what was there a second later, unless it was a password or you copied something else meanwhile."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekst jest wklejany przez schowek. Pounce przywraca po sekundzie to, co w nim było, chyba że było to hasło albo w międzyczasie coś skopiowałeś."
+          }
+        }
+      }
+    },
     "Third-Party Notices" : {
       "comment" : "About window: section title",
       "extractionState" : "manual",
@@ -3993,6 +4605,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tego wpisu nie ma już w historii."
+          }
+        }
+      }
+    },
+    "This folder is missing %lld of the model's files." : {
+      "comment" : "Dictation settings error when a chosen model folder is incomplete",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This folder is missing %lld of the model's files."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W tym folderze brakuje plików modelu: %lld."
           }
         }
       }
@@ -4123,6 +4753,24 @@
         }
       }
     },
+    "Use Downloaded Model" : {
+      "comment" : "Button that stops using the chosen model folder",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use Downloaded Model"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Użyj pobranego modelu"
+          }
+        }
+      }
+    },
     "Use This Shortcut" : {
       "comment" : "Onboarding button that confirms the shortcut",
       "extractionState" : "manual",
@@ -4137,6 +4785,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Użyj tego skrótu"
+          }
+        }
+      }
+    },
+    "Using the folder %@" : {
+      "comment" : "Dictation model status with the folder path",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Using the folder %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Używam folderu %@"
           }
         }
       }

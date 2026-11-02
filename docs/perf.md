@@ -163,3 +163,24 @@ Also still to do by the owner for v1.0, because an agent cannot do them:
   it at launch and never registers a hotkey). Run
   `/usr/bin/log stream --predicate 'subsystem == "app.pounce"' --info` and press the shortcut ten
   times; read "Panel ordered front in … ms".
+
+## Dictation (spec: Dyktowanie głosowe, Phase 1)
+
+Budgets of the spec. Rows marked "manual" are measured on a real Mac with the downloaded model in step 1.9
+and filled in then; nothing here is estimated.
+
+| Budget | Target | Measured | Status |
+|---|---|---|---|
+| Shortcut to recording started and HUD visible | < 150 ms (the model need not be in memory; audio goes to a buffer) | – | Manual (1.9) |
+| Parakeet Ultra cold load | < 3 s, in the background, without losing audio | – | Manual (1.9) |
+| Raw text ready after a 5-minute recording | < 2 s | – | Manual (1.9) |
+| Memory at rest (model unloaded) | unchanged, < 150 MB for the whole app | – | Manual (1.9) |
+| Memory while dictating | measured, about 0.8–1.2 GB expected | – | Manual (1.9) |
+| Whisper large-v3-turbo cold load | measured in step 1.10 | – | Manual (1.10) |
+
+Run the local integration tests with the model installed (they are off by default):
+
+```sh
+POUNCE_DICTATION_MODEL_FOLDER=~/Library/Application\ Support/Pounce/Plugins/dictation/Models/parakeet-ultra \
+  swift test --filter RealModelTests
+```

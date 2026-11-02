@@ -311,7 +311,9 @@ scripts/make-app.sh    # dist/Pounce.app</code></pre>
         <dt data-i18n="q3">What does the clipboard history keep?</dt>
         <dd data-i18n="a3">Up to 30 days or 1000 entries, encrypted with SQLCipher. Entries copied in ignored apps (password managers by default) and items marked concealed are never recorded. You can pause recording or clear the history any time.</dd>
         <dt data-i18n="q4">Does it send anything over the network?</dt>
-        <dd data-i18n="a4">No. There is no account, no analytics and no update check.</dd>
+        <dd data-i18n="a4">Only when you download the speech model for dictation, from huggingface.co, after you click Download. Otherwise no: there is no account, no analytics and no update check. Audio and dictated text never leave your Mac.</dd>
+        <dt data-i18n="q6">How does dictation work?</dt>
+        <dd data-i18n="a6">Turn on Dictation in Settings → Features, download the speech model (about 0.7 GB) and press ⌃⌥D. Pounce records while you talk, turns it into text with a model that runs on your Mac, and pastes it into the app you are in. Audio is never saved.</dd>
         <dt data-i18n="q5">Why does macOS warn me when I open Pounce?</dt>
         <dd data-i18n="a5">Notarization needs a paid Apple developer account, and Pounce is a free project. Allow it once with Open Anyway (see Install), or build it yourself from the source.</dd>
       </dl>
@@ -405,7 +407,9 @@ scripts/make-app.sh    # dist/Pounce.app</code></pre>
     "q3": "Co przechowuje historia schowka?",
     "a3": "Do 30 dni lub 1000 wpisów, zaszyfrowanych SQLCipher. Wpisy skopiowane w ignorowanych aplikacjach (domyślnie menedżerach haseł) i elementy oznaczone jako ukryte nigdy nie są zapisywane. Zapisywanie możesz wstrzymać, a historię wyczyścić w dowolnej chwili.",
     "q4": "Czy coś wysyła przez sieć?",
-    "a4": "Nie. Nie ma konta, analityki ani sprawdzania aktualizacji.",
+    "a4": "Tylko wtedy, gdy pobierasz model mowy do dyktowania z huggingface.co, po kliknięciu Pobierz. Poza tym nie: nie ma konta, analityki ani sprawdzania aktualizacji. Dźwięk i podyktowany tekst nigdy nie opuszczają Maca.",
+    "q6": "Jak działa dyktowanie?",
+    "a6": "Włącz Dyktowanie w Ustawienia → Funkcje, pobierz model mowy (około 0,7 GB) i naciśnij ⌃⌥D. Pounce nagrywa, gdy mówisz, zamienia mowę na tekst modelem działającym na Twoim Macu i wkleja go do aplikacji, w której jesteś. Dźwięk nigdy nie jest zapisywany.",
     "q5": "Dlaczego macOS ostrzega przy otwieraniu Pounce?",
     "a5": "Notaryzacja wymaga płatnego konta deweloperskiego Apple, a Pounce jest darmowym projektem. Zezwól raz przyciskiem Otwórz mimo to (patrz Instalacja) albo zbuduj go sam ze źródeł.",
     "foot.c": "© 2026 Mikołaj Józefiak · Licencja MIT",
