@@ -72,6 +72,8 @@ actor DictationSession {
     private var chunks: [(chunk: Segmenter.Chunk, result: Task<FormatResult, Never>)] = []
     private var lastChunkText: String?
     private var loadTask: Task<Bool, Never>?
+    /// The formatter's own warm-up; left running on cancel, a warm model is wanted for the next dictation.
+    private var prepareTask: Task<Void, Never>?
     private var consumeTask: Task<Void, Never>?
     private var started = false
     private var finishing = false
@@ -129,6 +131,10 @@ actor DictationSession {
                 logger.error("Speech model failed to load: \(String(describing: error), privacy: .public)")
                 return false
             }
+        }
+        if let formatter {
+            // A formatter with a model of its own loads it while the user speaks.
+            prepareTask = Task { await formatter.prepare() }
         }
         let onLevel = { @Sendable (level: Float) in onEvent(.level(level)) }
         let stream: AsyncStream<[Float]>

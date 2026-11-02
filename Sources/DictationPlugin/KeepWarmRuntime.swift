@@ -4,14 +4,18 @@ import Foundation
 /// The first request after the pause loads it again; `warmUp()` does that ahead of time, when recording starts.
 actor KeepWarmRuntime {
     private let runtime: any LLMRuntime
-    private let modelURL: URL
+    private let modelURL: @Sendable () async throws -> URL
     private let keepWarm: @Sendable () -> Duration
     private let sleep: @Sendable (Duration) async throws -> Void
     private var inFlight = 0
     private var timer: Task<Void, Never>?
+    private var loadedURL: URL?
 
+    /// - Parameter modelURL: the GGUF file to use, asked for at every request so a model chosen in Settings
+    ///   applies at once; it throws (`LlamaError.modelNotFound`) when the model is not installed.
     init(
-        runtime: any LLMRuntime, modelURL: URL, keepWarm: @escaping @Sendable () -> Duration,
+        runtime: any LLMRuntime, modelURL: @escaping @Sendable () async throws -> URL,
+        keepWarm: @escaping @Sendable () -> Duration,
         sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     ) {
         self.runtime = runtime
@@ -20,12 +24,19 @@ actor KeepWarmRuntime {
         self.sleep = sleep
     }
 
+    init(
+        runtime: any LLMRuntime, modelURL: URL, keepWarm: @escaping @Sendable () -> Duration,
+        sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+    ) {
+        self.init(runtime: runtime, modelURL: { modelURL }, keepWarm: keepWarm, sleep: sleep)
+    }
+
     /// Loads the model if it is not loaded and starts the keep-warm timer.
     func warmUp() async throws {
         timer?.cancel()
         timer = nil
         defer { scheduleUnload() }
-        if await !runtime.isLoaded { try await runtime.load(modelAt: modelURL) }
+        try await ensureLoaded()
     }
 
     func generate(messages: [CleanupPrompt.Message], maxTokens: Int) async throws -> String {
@@ -36,7 +47,7 @@ actor KeepWarmRuntime {
             inFlight -= 1
             scheduleUnload()
         }
-        if await !runtime.isLoaded { try await runtime.load(modelAt: modelURL) }
+        try await ensureLoaded()
         return try await runtime.generate(messages: messages, maxTokens: maxTokens)
     }
 
@@ -44,7 +55,17 @@ actor KeepWarmRuntime {
     func unload() async {
         timer?.cancel()
         timer = nil
+        loadedURL = nil
         await runtime.unload()
+    }
+
+    /// Loads the model, or loads another one when Settings now name a different file.
+    private func ensureLoaded() async throws {
+        let url = try await modelURL()
+        if await runtime.isLoaded, loadedURL == url { return }
+        loadedURL = nil
+        try await runtime.load(modelAt: url)
+        loadedURL = url
     }
 
     private func scheduleUnload() {
@@ -59,6 +80,7 @@ actor KeepWarmRuntime {
 
     private func unloadIfIdle(_ runtime: any LLMRuntime) async {
         guard inFlight == 0, !Task.isCancelled else { return }
+        loadedURL = nil
         await runtime.unload()
     }
 }

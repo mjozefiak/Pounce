@@ -40,6 +40,8 @@ public final class DictationPlugin: PouncePlugin {
     /// Downloads the built-in formatting models into `Plugins/dictation/llm/` (used by the settings in step 4.4).
     let llmModels: ModelManager
     nonisolated static let llmDirectoryName = "llm"
+    /// The built-in formatting model, loaded on demand and freed after the keep-warm time.
+    private let builtInLLM: KeepWarmRuntime
     private let hud: DictationHUDPanel
     private let settingsModel: DictationSettingsModel
     private let formattingModel: FormattingSettingsModel
@@ -63,9 +65,20 @@ public final class DictationPlugin: PouncePlugin {
             logger: context.logger)
         self.models = models
         // Formatting models (ADR 0005) live next to the speech models and go with them on Erase Data.
-        llmModels = ModelManager(
+        let llmModels = ModelManager(
             directory: context.storageDirectory.appending(path: Self.llmDirectoryName, directoryHint: .isDirectory),
             logger: context.logger)
+        self.llmModels = llmModels
+        builtInLLM = KeepWarmRuntime(
+            runtime: LlamaRuntime(),
+            modelURL: {
+                let model = settings.builtInLLMModel
+                guard let folder = await llmModels.location(of: model.package).folder,
+                    let file = model.fileURL(in: folder)
+                else { throw LlamaError.modelNotFound }
+                return file
+            },
+            keepWarm: { settings.keepWarm })
         let workspace = context.workspace
         settingsModel = DictationSettingsModel(
             package: ModelCatalog.package(id: settings.speechModelID) ?? ModelCatalog.parakeetUltra, manager: models,
@@ -102,6 +115,19 @@ public final class DictationPlugin: PouncePlugin {
         return panel.runModal() == .OK ? panel.url : nil
     }
 
+    /// The formatter for a new session: none in raw mode, else the user's server or the built-in model.
+    private static func formatter(
+        settings: DictationSettings, transport: any HTTPTransport, builtIn: KeepWarmRuntime, logger: Logger
+    ) -> (any TextFormatter)? {
+        guard settings.mode == .cleanup else { return nil }
+        switch settings.llmSource {
+        case .server:
+            return LocalLLMFormatter(transport: transport, target: { settings.llmTarget }, logger: logger)
+        case .builtIn:
+            return BuiltInFormatter(runtime: builtIn, logger: logger)
+        }
+    }
+
     // MARK: Lifecycle
 
     public func activate() async throws {
@@ -110,6 +136,7 @@ public final class DictationPlugin: PouncePlugin {
         let engine = engine
         let transport = transport
         let history = history
+        let builtInLLM = builtInLLM
         let controller = DictationController(
             .init(
                 authorizer: authorizer, models: models,
@@ -120,10 +147,8 @@ public final class DictationPlugin: PouncePlugin {
                         audio: MicrophoneCapture(deviceUID: settings.inputDevice),
                         vad: LazyVAD(modelFolder: folder.appending(path: ModelCatalog.sileroVADPath)),
                         engine: engine,
-                        formatter: settings.mode == .cleanup
-                            ? LocalLLMFormatter(
-                                transport: transport, target: { settings.llmTarget }, logger: context.logger)
-                            : nil,
+                        formatter: Self.formatter(
+                            settings: settings, transport: transport, builtIn: builtInLLM, logger: context.logger),
                         modelFolder: folder, logger: context.logger, onEvent: onEvent)
                 },
                 engine: engine,
@@ -137,7 +162,7 @@ public final class DictationPlugin: PouncePlugin {
                 frontmostBundleID: { context.workspace.frontmostApplication?.bundleIdentifier },
                 formatMode: { settings.mode == .cleanup ? .clean : .raw },
                 speechModelID: { settings.speechModelID },
-                formatterModel: { settings.llmModel }))
+                formatterModel: { settings.llmSource == .builtIn ? settings.builtInLLMModel.id : settings.llmModel }))
         self.controller = controller
         relay.controller = controller
         history.open()
@@ -145,6 +170,7 @@ public final class DictationPlugin: PouncePlugin {
 
     public func deactivate() async {
         await controller?.shutDown()
+        await builtInLLM.unload()
         history.close()
         controller = nil
         relay.controller = nil

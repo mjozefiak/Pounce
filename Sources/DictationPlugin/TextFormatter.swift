@@ -19,6 +19,10 @@ enum FallbackReason: Equatable, Sendable {
     /// The server did not answer in time, refused the connection or answered with an error.
     case unreachable
     case badResponse
+    /// The built-in model is not installed or failed to load.
+    case modelUnavailable
+    /// The built-in model did not finish in time.
+    case timedOut
     case rejected(FormatterGuard.Reason)
 }
 
@@ -26,6 +30,12 @@ enum FallbackReason: Equatable, Sendable {
 /// a chunk that cannot be formatted comes back raw. Only cancellation throws.
 protocol TextFormatter: Sendable {
     func format(chunk: String, previousContext: String?) async throws -> FormatResult
+    /// Called when a recording starts, so a formatter that has to load a model can do it while the user speaks.
+    func prepare() async
+}
+
+extension TextFormatter {
+    func prepare() async {}
 }
 
 /// Raw mode: the chunk as it is.

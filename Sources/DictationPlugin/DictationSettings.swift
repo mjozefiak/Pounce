@@ -15,6 +15,8 @@ struct DictationSettings: Sendable {
         static let mode = "mode"
         static let llmEndpoint = "llmEndpoint"
         static let llmModel = "llmModel"
+        static let llmSource = "llmSource"
+        static let builtInLLMModel = "builtInLLMModel"
         static let historyEnabled = "historyEnabled"
         static let retentionDays = "retentionDays"
         static let maximumEntries = "maximumEntries"
@@ -31,6 +33,14 @@ struct DictationSettings: Sendable {
         case raw
         /// Cleaned up by the user's local language model ("Porządkuj").
         case cleanup
+    }
+
+    /// Where the cleanup model runs.
+    enum LLMSource: String, Sendable, CaseIterable {
+        /// The user's own server on this Mac (Ollama, LM Studio, llama-server).
+        case server
+        /// The model Pounce downloaded and runs itself (ADR 0005).
+        case builtIn
     }
 
     static let defaultSpeechModel = "parakeet-ultra"
@@ -82,6 +92,17 @@ struct DictationSettings: Sendable {
         guard let url = llmEndpoint, let model = llmModel else { return nil }
         return .init(baseURL: url, model: model)
     }
+
+    var llmSource: LLMSource { settings.string(Key.llmSource).flatMap(LLMSource.init(rawValue:)) ?? .server }
+
+    /// The built-in model chosen in Settings; the default one until another is chosen or when the stored id is
+    /// no longer in the catalog.
+    var builtInLLMModel: LLMModel {
+        settings.string(Key.builtInLLMModel).flatMap { LLMModelCatalog.model(id: $0) } ?? LLMModelCatalog.defaultModel
+    }
+
+    func setLLMSource(_ source: LLMSource) { settings.set(source.rawValue, for: Key.llmSource) }
+    func setBuiltInLLMModel(_ model: LLMModel) { settings.set(model.id, for: Key.builtInLLMModel) }
 
     /// Whether finished dictations are kept (encrypted) in the history.
     var historyEnabled: Bool { settings.bool(Key.historyEnabled, default: true) }
