@@ -254,3 +254,19 @@ nonisolated struct ModeSourceAdapter: SearchSource {
         source.actions(for: candidate)
     }
 }
+
+/// Presents a plugin's `SuggestionSource` as a `SearchSource`, so the runner's budget and the panel's
+/// action handling apply unchanged. The query is always empty.
+nonisolated struct SuggestionSourceAdapter: SearchSource {
+    let source: any SuggestionSource
+
+    var id: SourceID { source.id }
+
+    func search(_ query: NormalizedQuery, limit: Int) async throws -> [Candidate] {
+        try await source.suggestions(limit: limit)
+    }
+
+    func actions(for candidate: Candidate) -> [ResultAction] {
+        source.actions(for: candidate)
+    }
+}

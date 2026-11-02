@@ -58,6 +58,8 @@ public protocol PouncePlugin: AnyObject {
     /// Lines shown above the search results (progress, a missing permission). Added in Phase 3; the
     /// default shows nothing.
     var searchStatus: [SearchStatus] { get }
+    /// Suggestions for the empty search panel. Added with app suggestions; the default suggests nothing.
+    var suggestionSources: [any SuggestionSource] { get }
 
     /// Removes data the plugin keeps outside its storage directory (for example a Keychain item).
     /// "Erase Data" calls `deactivate()`, then this method, and then the host deletes the whole
@@ -75,5 +77,6 @@ extension PouncePlugin {
     public var requiredPermissions: Set<Permission> { [] }
     public func settingsPane() -> AnyView? { nil }
     public var searchStatus: [SearchStatus] { [] }
+    public var suggestionSources: [any SuggestionSource] { [] }
     public func eraseData() async throws {}
 }
