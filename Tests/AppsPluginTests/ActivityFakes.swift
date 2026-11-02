@@ -116,6 +116,15 @@ final class ScriptedWorkspace: WorkspaceClient {
     var secondsSinceLastUserInput: TimeInterval? { idle(time.elapsed) }
 }
 
+/// Spotlight's used dates, by bundle path.
+struct FakeUsageDatesReader: UsageDatesReader {
+    let dates: [String: [Date]]
+
+    func usedDates(of url: URL) -> [Date] {
+        dates[url.path] ?? dates[url.path + "/"] ?? []
+    }
+}
+
 /// Polls `condition` until it holds or about two seconds pass.
 func eventually(_ condition: @Sendable () async -> Bool) async -> Bool {
     for _ in 0..<200 {
