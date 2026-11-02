@@ -254,12 +254,13 @@ struct Fixture {
     @Test func downloadHostsAreTheHuggingFaceAllowList() {
         for host in [
             "huggingface.co", "cdn-lfs.hf.co", "cdn-lfs-us-1.hf.co", "cas-bridge.xethub.hf.co", "HuggingFace.co",
+            "us.aws.cdn.hf.co",
         ] {
             #expect(ModelCatalog.isAllowedDownloadHost(host), "\(host)")
         }
         for host in [
             "example.com", "hf.co", "evil-huggingface.co", "huggingface.co.evil.com", "cdn-lfs.hf.co.evil.com",
-            "cdn-lfs-.evil.com", "",
+            "cdn-lfs-.evil.com", "", "cdn.hf.co", ".cdn.hf.co", "us.aws.cdn.hf.co.evil.com",
         ] {
             #expect(!ModelCatalog.isAllowedDownloadHost(host), "\(host)")
         }

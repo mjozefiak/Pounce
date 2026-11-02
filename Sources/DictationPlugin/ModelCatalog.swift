@@ -271,6 +271,8 @@ enum ModelCatalog {
         if host == "huggingface.co" || host == "cdn-lfs.hf.co" || host == "cas-bridge.xethub.hf.co" {
             return true
         }
+        // Hugging Face's CDN hosts, e.g. `us.aws.cdn.hf.co` (the Xet bridge that the `resolve` URLs redirect to).
+        if host.hasSuffix(".cdn.hf.co"), !host.hasPrefix("."), !host.contains("..") { return true }
         return host.hasPrefix("cdn-lfs-") && host.hasSuffix(".hf.co") && !host.contains("..")
     }
 }
