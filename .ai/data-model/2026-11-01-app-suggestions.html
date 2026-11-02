@@ -17,7 +17,7 @@
 <header>App Suggestions — data model (blue: new, grey: existing). Drag to pan, wheel to zoom, click a node to focus.</header>
 <svg id="graph" xmlns="http://www.w3.org/2000/svg"><g id="view"></g></svg>
 <script>
-const data = JSON.parse("{\"nodes\":[{\"id\":\"entity_1\",\"label\":\"app_activity\",\"fields\":\"bundle_id PK · frecency · last_used_at · use_count\",\"isNew\":true,\"x\":80,\"y\":80},{\"id\":\"entity_2\",\"label\":\"activity_meta\",\"fields\":\"key PK · value\",\"isNew\":true,\"x\":80,\"y\":260},{\"id\":\"entity_3\",\"label\":\"AppRecord (in-memory, AppStore)\",\"fields\":\"bundleID\",\"isNew\":false,\"x\":520,\"y\":80}],\"edges\":[{\"from\":\"entity_1\",\"to\":\"entity_3\",\"label\":\"n-1 by bundle_id\"}]}");
+const data = JSON.parse("{\"nodes\": [{\"id\": \"entity_1\", \"label\": \"activity.json: apps entry\", \"fields\": \"bundleID key · frecency · lastUsedAt · useCount\", \"isNew\": true, \"x\": 520, \"y\": 80}, {\"id\": \"entity_2\", \"label\": \"activity.json: header\", \"fields\": \"version · seededAt\", \"isNew\": true, \"x\": 80, \"y\": 80}, {\"id\": \"entity_3\", \"label\": \"AppRecord (in-memory, AppStore)\", \"fields\": \"bundleIdentifier\", \"isNew\": false, \"x\": 960, \"y\": 80}], \"edges\": [{\"from\": \"entity_2\", \"to\": \"entity_1\", \"label\": \"1-n\"}, {\"from\": \"entity_1\", \"to\": \"entity_3\", \"label\": \"n-1 by bundleIdentifier\"}]}");
 const NS = "http://www.w3.org/2000/svg", W = 320, H = 70;
 const svg = document.getElementById("graph"), view = document.getElementById("view");
 const el = (n, a) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
