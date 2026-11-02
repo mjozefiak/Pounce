@@ -26,6 +26,13 @@ let package = Package(
         .package(url: "https://github.com/argmaxinc/argmax-oss-swift.git", exact: "1.1.1"),
     ],
     targets: [
+        // llama.cpp (MIT) as the project's own prebuilt XCFramework, pinned to a release and its checksum
+        // (ADR 0005). Used by DictationPlugin only, behind the `LLMRuntime` port.
+        .binaryTarget(
+            name: "llama",
+            url: "https://github.com/ggml-org/llama.cpp/releases/download/b11600/llama-b11600-xcframework.zip",
+            checksum: "a44f73ae282a7dc38c73107dd646d22d2463a442c7d2a36d8c9c373764759e68"
+        ),
         .target(name: "PounceKit"),
         .target(
             name: "PounceCore",
@@ -65,6 +72,7 @@ let package = Package(
                 "PouncePersistence",
                 .product(name: "FluidAudio", package: "FluidAudio"),
                 .product(name: "WhisperKit", package: "argmax-oss-swift"),
+                "llama",
                 // The plugin owns dictation.sqlite and its migrator, like ClipboardPlugin owns clipboard.sqlite.
                 .product(name: "GRDB", package: "GRDBCipher"),
             ]

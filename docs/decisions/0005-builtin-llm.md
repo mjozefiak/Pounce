@@ -64,9 +64,10 @@ Quality on this one sample (a single transcript, so an anecdote, not a benchmark
 
 Caveats:
 - The model files were in the OS file cache, so the ready times exclude a cold read from disk.
-- The numbers are from `llama-server` over loopback, not from an in-process `LlamaRuntime`; step 4.1 re-measures in process.
-- The latest llama.cpp release did not list an XCFramework asset under that tag, so the framework's size in the app is not measured; step 4.1 records it.
+- The numbers above are from `llama-server` over loopback; the in-process check is below.
 - The tail budget of ADR 0004 (< 3 s for a 60-word tail) is met by all three models on this Mac; Bielik's first request (3.22 s) is on the edge.
+
+In-process check (step 4.1, `LlamaRuntime` on the llama.cpp `b11600` XCFramework, a debug build of the tests, Qwen3-4B-Instruct-2507 Q4_K_M, the 13-word sentence "yyy no więc jutro mamy spotkanie…"): load 0.28 s, first request 0.77 s, second 0.55 s, so the in-process engine is in line with `llama-server`. The embedded `llama.framework` (arm64 slice only) is 12 MB and the whole app is 35 MB.
 
 Proposal for the catalog, to confirm in step 4.5 on the regression set:
 - **Default: Qwen3-4B-Instruct-2507 Q4_K_M** (2.3 GB file, about 3.3 GB resident, about 1 s per chunk).
