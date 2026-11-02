@@ -112,7 +112,8 @@ struct PathSearchSource: SearchSource {
         let base = candidate(path: folder, kind: .directory, match: MatchResult(tier: .exact, score: 1))
         guard let note else { return base }
         return Candidate(
-            itemKey: base.itemKey, title: base.title, subtitle: [base.subtitle, note].compactMap(\.self).joined(separator: " · "),
+            itemKey: base.itemKey, title: base.title,
+            subtitle: [base.subtitle, note].compactMap(\.self).joined(separator: " · "),
             icon: base.icon, match: base.match, boost: base.boost)
     }
 

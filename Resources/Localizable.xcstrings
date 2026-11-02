@@ -667,6 +667,24 @@
         }
       }
     },
+    "Contents need Full Disk Access" : {
+      "comment" : "Subtitle of a folder result whose contents Pounce may not read without Full Disk Access",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contents need Full Disk Access"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zawartość wymaga pełnego dostępu do dysku"
+          }
+        }
+      }
+    },
     "Continue" : {
       "comment" : "Onboarding button that goes to the next step",
       "extractionState" : "manual",
@@ -1887,6 +1905,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Brak wyników"
+          }
+        }
+      }
+    },
+    "No access to contents" : {
+      "comment" : "Subtitle of a folder result whose contents cannot be read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No access to contents"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak dostępu do zawartości"
           }
         }
       }

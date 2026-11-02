@@ -1,8 +1,8 @@
 import Foundation
 import Observation
-import Synchronization
 import PounceKit
 import SwiftUI
+import Synchronization
 import os
 
 /// What the views show about the index and access.

@@ -17,6 +17,7 @@ Machine for every row: Apple M4 Max, 16 cores, macOS 27.0.1, 2026-10-31. An M1 r
 | First scan of `~` | < 30 s | 1.6–1.9 s for 510 k entries of a synthetic tree on the SSD | Met on the synthetic tree; a real home folder is a manual item |
 | Start from the saved index until ready | < 2 s | 0.19 s from process start to "Loaded 510020 index entries" | Met |
 | Index memory per entry (R6) | about 100 B | 67–70 B (synthetic), 83 B (fixture tree, 204 k entries) | Met |
+| Path mode query, folder of 1 000 entries (file path search spec) | p95 < 20 ms | p95 8.3 ms read cold, 11.4 ms while typing a filter (release build, SSD; `PathModeBenchmarks`) | Met |
 
 ### How the app-level rows were measured
 
@@ -163,3 +164,19 @@ Also still to do by the owner for v1.0, because an agent cannot do them:
   it at launch and never registers a hotkey). Run
   `/usr/bin/log stream --predicate 'subsystem == "app.pounce"' --info` and press the shortcut ten
   times; read "Panel ordered front in … ms".
+
+## Path mode (file path search)
+
+A query that starts with `/` or `~` reads one folder from disk instead of the index
+(`PathSearchSource`, `DirectoryLister`). `PathModeBenchmarks.thousandEntryFolder` lists a generated
+folder of 1 000 entries 50 times with a new lister (nothing cached) and then types five filters ten
+times each against a cached listing; run it with
+`POUNCE_BENCHMARKS=1 swift test -c release --filter PathModeBenchmarks`.
+
+- Typing is slower than the cold read because every keystroke runs `FuzzyMatcher` on each name; the
+  folder itself is read only when its modification time changes.
+- One folder is read up to 20 000 entries (`DirectoryLister.entryLimit`). A larger folder is cut, and the
+  filter narrows within those entries; the shell shows 20 results per section.
+- A slow volume (network share, sleeping disk) can exceed the 150 ms source budget; the host then drops
+  the source's answer for that keystroke and the rest of the panel works.
+

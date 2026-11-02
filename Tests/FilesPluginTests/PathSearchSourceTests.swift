@@ -25,10 +25,12 @@ struct PathSearchSourceTests {
             "home/Projects/ng/.ai/runs/2026-10-27-qa-fixes/.checkpoints/",
         ])
         let folder = harness.directory.sub("home/Projects/ng/.ai/runs/2026-10-27-qa-fixes")
-        #expect(try await titles(harness, folder + "/") == ["2026-10-27-qa-fixes", "screenshots", "HANDOFF.md", "PLAN.md"])
-        #expect(try await titles(harness, "~/Projects/ng/.ai/runs/2026-10-27-qa-fixes/") == [
-            "2026-10-27-qa-fixes", "screenshots", "HANDOFF.md", "PLAN.md",
-        ])
+        #expect(
+            try await titles(harness, folder + "/") == ["2026-10-27-qa-fixes", "screenshots", "HANDOFF.md", "PLAN.md"])
+        #expect(
+            try await titles(harness, "~/Projects/ng/.ai/runs/2026-10-27-qa-fixes/") == [
+                "2026-10-27-qa-fixes", "screenshots", "HANDOFF.md", "PLAN.md",
+            ])
     }
 
     @Test func textAfterTheLastSlashFiltersAndAnExactNameComesFirst() async throws {

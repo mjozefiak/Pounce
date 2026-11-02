@@ -69,7 +69,9 @@ final class DirectoryLister: Sendable {
         } else {
             listing = .denied
         }
-        cache.withLock { $0 = Cached(folder: real, fullDiskAccess: fullDiskAccess, modified: modified, listing: listing) }
+        cache.withLock {
+            $0 = Cached(folder: real, fullDiskAccess: fullDiskAccess, modified: modified, listing: listing)
+        }
         return listing
     }
 }
