@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import Synchronization
 import PounceKit
 import SwiftUI
 import os
@@ -43,6 +44,9 @@ public final class FilesPlugin: PouncePlugin {
     let settings: FilesSettings
     let state = FilesState()
     let index = FileIndex()
+    /// The Full Disk Access state and the hidden-items setting, readable off the main actor by path mode.
+    let access = AccessFlags()
+    private(set) lazy var lister = DirectoryLister(home: settings.home)
     private(set) var controller: IndexController?
     private var runTask: Task<Void, Never>?
     private var isActive = false
@@ -51,6 +55,7 @@ public final class FilesPlugin: PouncePlugin {
     public init(context: PluginContext) {
         self.context = context
         self.settings = FilesSettings(context.settings)
+        access.includesHidden = settings.includesHidden
         settings.onChange = { [weak self] in self?.settingsChanged() }
     }
 
@@ -82,10 +87,15 @@ public final class FilesPlugin: PouncePlugin {
     // MARK: Contributions
 
     public var searchSources: [any SearchSource] {
-        [
+        let access = access
+        return [
             FileSearchSource(
                 index: index, usage: context.usage, workspace: context.workspace, pasteboard: context.pasteboard,
-                home: settings.home)
+                home: settings.home),
+            PathSearchSource(
+                lister: lister, usage: context.usage, workspace: context.workspace, pasteboard: context.pasteboard,
+                home: settings.home, fullDiskAccess: { access.fullDiskAccess },
+                includesHidden: { access.includesHidden }),
         ]
     }
 
@@ -251,6 +261,7 @@ public final class FilesPlugin: PouncePlugin {
     }
 
     private func settingsChanged() {
+        access.includesHidden = settings.includesHidden
         startIfReady()
         context.resultsChanged()
     }
@@ -261,6 +272,7 @@ public final class FilesPlugin: PouncePlugin {
     func refreshAccess() {
         lastAccessCheck = .now
         let status = context.permissions.status(of: .fullDiskAccess)
+        access.fullDiskAccess = status == .granted
         guard status != state.fullDiskAccess else { return }
         state.fullDiskAccess = status
         startIfReady()
@@ -305,4 +317,20 @@ struct FilesViewModel {
     let checkAccess: () -> Void
     let completeSetup: () -> Void
     let rebuild: () -> Void
+}
+
+/// Values path mode reads from its search task: the Full Disk Access state (updated with every access
+/// check) and the hidden-items setting.
+final class AccessFlags: Sendable {
+    private let values = Mutex((fullDiskAccess: false, includesHidden: false))
+
+    var fullDiskAccess: Bool {
+        get { values.withLock { $0.fullDiskAccess } }
+        set { values.withLock { $0.fullDiskAccess = newValue } }
+    }
+
+    var includesHidden: Bool {
+        get { values.withLock { $0.includesHidden } }
+        set { values.withLock { $0.includesHidden = newValue } }
+    }
 }

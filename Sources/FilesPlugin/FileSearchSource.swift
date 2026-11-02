@@ -37,6 +37,8 @@ struct FileSearchSource: SearchSource {
     }
 
     func search(_ query: NormalizedQuery, limit: Int) async throws -> [Candidate] {
+        // A path is answered by `PathSearchSource`; names never contain `/`, so the index has no match.
+        if PathQuery.isPath(query.raw) { return [] }
         let snapshot = index.snapshot
         guard !query.isEmpty else {
             let keys = try await usage.mostUsed(pluginID: FilesPlugin.manifest.id, limit: limit, now: clock())
@@ -98,13 +100,15 @@ struct FileActions: Sendable {
     let workspace: any WorkspaceClient
     let pasteboard: any PasteboardClient
     let clock: @Sendable () -> Date
+    /// Whether a use also associates the query with the item. Path mode turns it off (spec A9).
+    var recordsQueryPrefix = true
 
     var url: URL { URL(filePath: path) }
 
     var all: [ResultAction] { [open, reveal, copyPath, copyFile] }
 
     private func record(_ context: ActionContext) async throws {
-        let prefix = context.query.flatMap { Ranker.queryPrefix($0.normalized) }
+        let prefix = recordsQueryPrefix ? context.query.flatMap { Ranker.queryPrefix($0.normalized) } : nil
         try await usage.recordUse(of: itemKey, queryPrefix: prefix, at: clock())
     }
 
