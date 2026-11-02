@@ -106,7 +106,7 @@ public final class AppsPlugin: PouncePlugin {
 
     public func deactivate() async {
         isActive = false
-        stopCollecting()
+        let stopping = stopCollecting()
         watcherTask?.cancel()
         watcherTask = nil
         watcher?.stop()
@@ -120,6 +120,11 @@ public final class AppsPlugin: PouncePlugin {
         }
         localeObserver = nil
         spotlightPaths = []
+        // A check or seed past its last cancellation point may still write; let it land before closing,
+        // so nothing schedules a save after the plugin is off (for example after Erase Data).
+        for task in stopping {
+            await task.value
+        }
         await activity.close()
     }
 

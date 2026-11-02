@@ -320,6 +320,17 @@ actor NumberedUsage: UsageRecorder {
         model.moveSelection(by: 4)
         #expect(model.selectedSection?.kind == .recent)
         #expect(model.footerActionLimit == 2)
+
+        // A blank query still shows the section, so Command-n still opens it; a typed one does not.
+        model.updateQuery(" ")
+        await model.waitForSearch()
+        #expect(model.performSuggestion(at: 0))
+        await model.waitForAction()
+        #expect(SuggestionLog.shared.all.contains("open k1"))
+        model.show()
+        model.updateQuery("k")
+        await model.waitForSearch()
+        #expect(!model.performSuggestion(at: 0))
         await host.stop()
     }
 

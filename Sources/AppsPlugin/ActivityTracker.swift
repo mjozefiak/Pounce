@@ -59,11 +59,16 @@ final class ActivityTracker {
     }
 
     /// Stops listening and cancels the pending checks. Idempotent.
-    func stop() {
+    /// Stops listening and cancels the pending check. Returns the cancelled check, so a caller can wait
+    /// until a use it may still be recording has landed.
+    @discardableResult
+    func stop() -> Task<Void, Never>? {
         listener?.cancel()
         listener = nil
+        let cancelled = check
         check?.cancel()
         check = nil
+        return cancelled
     }
 
     /// A new frontmost app: cancels the checks of the previous one and schedules this one's.

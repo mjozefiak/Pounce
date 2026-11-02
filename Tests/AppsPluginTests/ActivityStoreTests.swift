@@ -151,6 +151,28 @@ import Testing
             !FileManager.default.fileExists(atPath: directory.url.appending(path: ActivityStore.corruptFileName).path))
     }
 
+    @Test func anUnreadableFileIsNeverReplaced() async throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        let time = VirtualTime()
+        let file = directory.url.appending(path: ActivityStore.fileName)
+        let original = Data(#"{"version":1,"apps":{}}"#.utf8)
+        try original.write(to: file)
+        try FileManager.default.setAttributes([.posixPermissions: 0], ofItemAtPath: file.path)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path) }
+        let store = makeStore(directory, time: time)
+        await store.load()
+        // Suggestions still work from memory for this session…
+        await store.recordUse(of: "com.example.notes", at: time.date)
+        #expect(store.snapshot.apps["com.example.notes"]?.useCount == 1)
+        await store.close()
+        // …but the file is left as it was.
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
+        #expect(try Data(contentsOf: file) == original)
+        #expect(
+            !FileManager.default.fileExists(atPath: directory.url.appending(path: ActivityStore.corruptFileName).path))
+    }
+
     @Test func clearingKeepsTheSeedFromComingBack() async throws {
         let directory = try TemporaryDirectory()
         defer { directory.remove() }

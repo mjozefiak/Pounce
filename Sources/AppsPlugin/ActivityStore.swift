@@ -73,6 +73,8 @@ actor ActivityStore {
     private let published = Mutex(ActivitySnapshot.empty)
     private var state = ActivitySnapshot.empty
     private var isDirty = false
+    /// The file exists but could not be read: nothing is written this session.
+    private var isWriteBlocked = false
     private var saveTask: Task<Void, Never>?
 
     init(
@@ -99,14 +101,17 @@ actor ActivityStore {
     /// Reads the file. A missing file starts empty, a corrupt one is set aside, a newer one makes the
     /// store read-only.
     func load() {
+        isWriteBlocked = false
         let data: Data
         do {
             data = try Data(contentsOf: fileURL)
         } catch {
-            if (error as NSError).code != NSFileReadNoSuchFileError {
-                logger.error("Cannot read activity.json: \(String(describing: error), privacy: .private)")
-            }
             replace(.empty)
+            if (error as NSError).code != NSFileReadNoSuchFileError {
+                // An unreadable file is never replaced: this session keeps its activity in memory only.
+                logger.error("Cannot read activity.json: \(String(describing: error), privacy: .private)")
+                isWriteBlocked = true
+            }
             return
         }
         switch Self.decode(data) {
@@ -258,7 +263,7 @@ actor ActivityStore {
 
     /// Writes the file. On failure the state stays in memory and the next change tries again.
     private func save() {
-        guard !state.isReadOnly else { return }
+        guard !state.isReadOnly, !isWriteBlocked else { return }
         Self.prune(&state.apps, now: now())
         publish()
         let file = FileContents(version: Self.version, seededAt: state.seededAt, apps: state.apps)

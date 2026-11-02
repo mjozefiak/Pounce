@@ -37,11 +37,15 @@ extension AppsPlugin {
         }
     }
 
-    /// Stops the tracker and cancels the seed; the store stays open. Idempotent.
-    func stopCollecting() {
-        tracker?.stop()
+    /// Stops the tracker and cancels the seed; the store stays open. Idempotent. Returns the cancelled
+    /// tasks, which may still be finishing a write to the store.
+    @discardableResult
+    func stopCollecting() -> [Task<Void, Never>] {
+        let check = tracker?.stop()
         tracker = nil
+        let seed = seedTask
         cancelSeed()
+        return [check, seed].compactMap(\.self)
     }
 
     /// The "Suggest Apps" toggle.

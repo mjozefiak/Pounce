@@ -1,5 +1,6 @@
 import Foundation
 import PounceKit
+import Synchronization
 import Testing
 
 @testable import AppsPlugin
@@ -27,6 +28,36 @@ import Testing
         #expect(changes == [false])
         model.setSpotlightEnabled(false)
         #expect(settings.value(forKey: "plugins.apps.spotlight") == .bool(false))
+    }
+
+    /// Blocks in the first read until the reading task is cancelled.
+    final class BlockingReader: UsageDatesReader {
+        let started = Mutex(false)
+
+        func usedDates(of url: URL) -> [Date] {
+            started.withLock { $0 = true }
+            while !Task.isCancelled {
+                usleep(1_000)
+            }
+            return [Date(timeIntervalSince1970: 1_800_000_000)]
+        }
+    }
+
+    @Test func clearingDuringTheSeedCancelsIt() async throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        let time = VirtualTime()
+        let model = await makeModel(directory)
+        let reader = BlockingReader()
+        let seeder = ActivitySeeder(store: model.store, reader: reader, now: time.now)
+        let apps = [AppRecord(bundleIdentifier: "com.example.mail", path: "/Applications/Mail.app", name: "Mail")]
+        let seed = Task.detached { try await seeder.run(apps: apps, spotlightEnabled: true) }
+        #expect(await eventually { reader.started.withLock { $0 } })
+        model.willClearActivity = { seed.cancel() }
+        await model.clearActivity()
+        await #expect(throws: CancellationError.self) { try await seed.value }
+        #expect(model.store.snapshot.apps.isEmpty)
+        #expect(model.store.snapshot.seededAt == ActivityStore.seedCleared)
     }
 
     @Test func clearingEmptiesTheStoreAndKeepsTheSeedAway() async throws {

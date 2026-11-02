@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import PounceCore
 import PounceKit
 import SwiftUI
 import os
@@ -225,12 +226,13 @@ final class PanelModel {
         return true
     }
 
-    /// Command-1…Command-5 in the search mode with an empty query: runs the first action of the n-th
+    /// Command-1…Command-5 in the search mode with an empty (or blank) query: runs the first action of the n-th
     /// suggestion (app suggestions). Returns whether there was such a suggestion; a typed query or a
     /// plugin mode leaves the shortcut alone (a list mode's filters keep it).
     @discardableResult
     func performSuggestion(at index: Int) -> Bool {
-        guard mode == .search, query.isEmpty, index >= 0, index < SearchCoordinator.suggestionLimit,
+        guard mode == .search, TextNormalizer.query(query).isEmpty, index >= 0,
+            index < SearchCoordinator.suggestionLimit,
             let section = results.sections.first(where: { $0.kind == .suggested }),
             section.items.indices.contains(index),
             let position = results.items.firstIndex(where: { $0.id == section.items[index].id })
