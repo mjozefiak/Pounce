@@ -213,10 +213,11 @@ final class PluginHost {
         return results
     }
 
-    /// Runs every active suggestion source concurrently with the per-source budget; the query is empty.
-    func querySuggestions(limit: Int) async -> [SourceResult] {
+    /// Runs suggestion sources (by default every active one) concurrently with the per-source budget;
+    /// the query is empty.
+    func querySuggestions(_ sources: [RegisteredSource]? = nil, limit: Int) async -> [SourceResult] {
         let results = await SourceRunner.run(
-            activeSuggestionSources,
+            sources ?? activeSuggestionSources,
             query: NormalizedQuery(raw: "", normalized: ""),
             limit: limit,
             budget: sourceBudget,

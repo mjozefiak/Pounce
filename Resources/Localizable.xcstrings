@@ -3637,6 +3637,24 @@
         }
       }
     },
+    "Suggested" : {
+      "comment" : "Panel section with suggested apps",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggested"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sugerowane"
+          }
+        }
+      }
+    },
     "Suggestions" : {
       "comment" : "Settings section title",
       "extractionState" : "manual",
