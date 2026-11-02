@@ -15,7 +15,15 @@ struct DictationSettings: Sendable {
         static let mode = "mode"
         static let llmEndpoint = "llmEndpoint"
         static let llmModel = "llmModel"
+        static let historyEnabled = "historyEnabled"
+        static let retentionDays = "retentionDays"
+        static let maximumEntries = "maximumEntries"
     }
+
+    static let defaultRetentionDays = 30
+    static let defaultMaximumEntries = 500
+    static let retentionDayChoices = [1, 7, 30, 90]
+    static let maximumEntryChoices = [100, 250, 500, 1000]
 
     /// What happens to the transcript before it is pasted.
     enum Mode: String, Sendable, CaseIterable {
@@ -74,6 +82,15 @@ struct DictationSettings: Sendable {
         guard let url = llmEndpoint, let model = llmModel else { return nil }
         return .init(baseURL: url, model: model)
     }
+
+    /// Whether finished dictations are kept (encrypted) in the history.
+    var historyEnabled: Bool { settings.bool(Key.historyEnabled, default: true) }
+    var retentionDays: Int { max(1, settings.integer(Key.retentionDays, default: Self.defaultRetentionDays)) }
+    var maximumEntries: Int { max(1, settings.integer(Key.maximumEntries, default: Self.defaultMaximumEntries)) }
+
+    func setHistoryEnabled(_ value: Bool) { settings.set(value, for: Key.historyEnabled) }
+    func setRetentionDays(_ days: Int) { settings.set(days, for: Key.retentionDays) }
+    func setMaximumEntries(_ count: Int) { settings.set(count, for: Key.maximumEntries) }
 
     func setMode(_ mode: Mode) { settings.set(mode.rawValue, for: Key.mode) }
     func setLLMModel(_ model: String?) {

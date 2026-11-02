@@ -196,3 +196,98 @@ import Testing
         #expect(settings.inputDevice == nil)
     }
 }
+
+@MainActor
+@Suite struct DictationHistoryPluginTests {
+    @Test func theHistoryModeAndCommandAreContributed() throws {
+        let harness = try DictationHarness()
+        defer { harness.tearDown() }
+        let plugin = DictationPlugin(context: harness.context)
+        let mode = try #require(plugin.panelModes.first)
+        #expect(mode.id == "dictation.history")
+        #expect(mode.source != nil)
+        #expect(mode.filters.map(\.id) == ["all", "formatted", "raw"])
+        let command = try #require(plugin.commands.first { $0.id == "dictation.history" })
+        #expect(command.panelMode == "dictation.history")
+        #expect(command.defaultShortcut == nil)
+    }
+
+    @Test func activatingOpensTheHistoryWithItsOwnKeychainItem() async throws {
+        let keychain = MemoryKeychain()
+        let harness = try DictationHarness(keychain: keychain)
+        defer { harness.tearDown() }
+        let plugin = DictationPlugin(context: harness.context)
+        try await plugin.activate()
+        #expect(plugin.history.status == .ready)
+        #expect(keychain.itemNames == ["app.pounce.dictation/master-key"])
+        await plugin.deactivate()
+        #expect(plugin.history.status == .closed)
+    }
+
+    @Test func aDisabledHistoryTouchesNeitherTheKeychainNorTheDisk() async throws {
+        let keychain = MemoryKeychain()
+        let harness = try DictationHarness(
+            settings: ["plugins.dictation.historyEnabled": .bool(false)], keychain: keychain)
+        defer { harness.tearDown() }
+        let plugin = DictationPlugin(context: harness.context)
+        try await plugin.activate()
+        #expect(keychain.itemNames.isEmpty)
+        #expect(
+            !FileManager.default.fileExists(
+                atPath: harness.directory.url.appending(path: "Plugins/dictation/dictation.sqlite").path))
+        await plugin.deactivate()
+    }
+
+    @Test func eraseDataRemovesTheKeychainItem() async throws {
+        let keychain = MemoryKeychain()
+        let harness = try DictationHarness(keychain: keychain)
+        defer { harness.tearDown() }
+        let plugin = DictationPlugin(context: harness.context)
+        try await plugin.activate()
+        try await plugin.eraseData()
+        #expect(keychain.itemNames.isEmpty)
+        try await plugin.eraseData()
+        await plugin.deactivate()
+    }
+
+    @Test func historySettingsDefaultsAndChoices() throws {
+        let harness = try DictationHarness()
+        defer { harness.tearDown() }
+        let settings = DictationSettings(harness.context.settings)
+        #expect(settings.historyEnabled)
+        #expect(settings.retentionDays == 30)
+        #expect(settings.maximumEntries == 500)
+        settings.setRetentionDays(7)
+        settings.setMaximumEntries(100)
+        settings.setHistoryEnabled(false)
+        #expect(settings.retentionDays == 7)
+        #expect(settings.maximumEntries == 100)
+        #expect(!settings.historyEnabled)
+        #expect(HistorySettingsModel.choices([1, 7, 30], including: 45) == [1, 7, 30, 45])
+        #expect(HistorySettingsModel.choices([1, 7, 30], including: 7) == [1, 7, 30])
+    }
+
+    @Test func theSettingsModelSwitchesTheHistoryAndClearsIt() async throws {
+        let keychain = MemoryKeychain()
+        let harness = try DictationHarness(keychain: keychain)
+        defer { harness.tearDown() }
+        let plugin = DictationPlugin(context: harness.context)
+        try await plugin.activate()
+        let settings = DictationSettings(harness.context.settings)
+        let model = HistorySettingsModel(settings: settings, history: plugin.history)
+        plugin.history.record(
+            DictationEntry(
+                createdAt: Date(), durationMs: 1000, rawText: "tekst", formattedText: nil, formatMode: .raw,
+                formatStatus: .none, detectedLanguages: "", speechModelID: "x", formatterModel: nil,
+                targetBundleID: nil, pasteResult: .pasted))
+        for _ in 0..<200 where plugin.history.entryCount == 0 { try await Task.sleep(for: .milliseconds(10)) }
+        #expect(plugin.history.entryCount == 1)
+        model.clear()
+        #expect(plugin.history.entryCount == 0)
+        model.isEnabled = false
+        #expect(plugin.history.status == .closed)
+        model.isEnabled = true
+        #expect(plugin.history.status == .ready)
+        await plugin.deactivate()
+    }
+}

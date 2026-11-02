@@ -91,6 +91,24 @@
         }
       }
     },
+    "%lld entries" : {
+      "comment" : "Dictation settings entry limit choice",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld entries"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld wpisów"
+          }
+        }
+      }
+    },
     "%lld entries in the history" : {
       "comment" : "Number of clipboard entries in the settings",
       "extractionState" : "manual",
@@ -577,6 +595,24 @@
         }
       }
     },
+    "At most" : {
+      "comment" : "Dictation settings label of the entry limit",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "At most"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Najwyżej"
+          }
+        }
+      }
+    },
     "Back" : {
       "comment" : "Welcome screen button that shows the previous step",
       "extractionState" : "manual",
@@ -789,6 +825,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wyczyścić historię schowka?"
+          }
+        }
+      }
+    },
+    "Clear the dictation history?" : {
+      "comment" : "Dictation settings confirmation title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear the dictation history?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyczyścić historię dyktowania?"
           }
         }
       }
@@ -1239,6 +1293,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dyktowanie"
+          }
+        }
+      }
+    },
+    "Dictation History" : {
+      "comment" : "Menu item and command that opens the dictation history",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictation History"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historia dyktowania"
           }
         }
       }
@@ -1747,6 +1819,24 @@
         }
       }
     },
+    "Formatted" : {
+      "comment" : "Dictation history filter",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formatted"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sformatowane"
+          }
+        }
+      }
+    },
     "Formatted Text" : {
       "comment" : "Clipboard entry kind and filter (RTF or HTML)",
       "extractionState" : "manual",
@@ -2107,6 +2197,24 @@
         }
       }
     },
+    "Keep a history of dictations" : {
+      "comment" : "Dictation settings toggle for the history",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep a history of dictations"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisuj historię dyktowania"
+          }
+        }
+      }
+    },
     "Keep at most" : {
       "comment" : "Settings label of the maximum number of clipboard entries",
       "extractionState" : "manual",
@@ -2139,6 +2247,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przechowuj wpisy przez"
+          }
+        }
+      }
+    },
+    "Keep for" : {
+      "comment" : "Dictation settings label of the retention period",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep for"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przechowuj przez"
           }
         }
       }
@@ -2625,6 +2751,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nie ma jeszcze dyktowania do wklejenia"
+          }
+        }
+      }
+    },
+    "No dictations yet." : {
+      "comment" : "Dictation history empty state",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No dictations yet."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak dyktowań."
           }
         }
       }
@@ -3151,6 +3295,24 @@
         }
       }
     },
+    "Paste Raw" : {
+      "comment" : "Dictation history action that pastes the raw transcript",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste Raw"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wklej surowy"
+          }
+        }
+      }
+    },
     "Paste raw version of the last dictation" : {
       "comment" : "Menu item and command that pastes the last dictation without formatting",
       "extractionState" : "manual",
@@ -3579,6 +3741,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ranking"
+          }
+        }
+      }
+    },
+    "Raw" : {
+      "comment" : "Dictation history filter",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raw"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Surowe"
           }
         }
       }
@@ -4681,6 +4861,24 @@
         }
       }
     },
+    "The dictation history is off. Turn it on in Settings → Dictation." : {
+      "comment" : "Dictation history empty state when the history is off",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The dictation history is off. Turn it on in Settings → Dictation."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historia dyktowania jest wyłączona. Włącz ją w Ustawieniach → Dyktowanie."
+          }
+        }
+      }
+    },
     "The download did not finish. Check the connection and try again." : {
       "comment" : "Dictation settings error after a failed download",
       "extractionState" : "manual",
@@ -4749,6 +4947,60 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nie udało się wyczyścić historii."
+          }
+        }
+      }
+    },
+    "The history could not be opened." : {
+      "comment" : "Dictation history banner when the database could not be opened",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The history could not be opened."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się otworzyć historii."
+          }
+        }
+      }
+    },
+    "The history could not be read and was started again. The old file was kept for 30 days as %@." : {
+      "comment" : "Dictation history banner after a reset",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The history could not be read and was started again. The old file was kept for 30 days as %@."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historii nie dało się odczytać i zaczęto ją od nowa. Stary plik zachowano na 30 dni jako %@."
+          }
+        }
+      }
+    },
+    "The history is unavailable because the Keychain could not be read. Nothing was deleted." : {
+      "comment" : "Dictation history banner when the Keychain key is unavailable",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The history is unavailable because the Keychain could not be read. Nothing was deleted."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historia jest niedostępna, bo nie udało się odczytać Pęku kluczy. Nic nie zostało usunięte."
           }
         }
       }
@@ -4915,6 +5167,24 @@
         }
       }
     },
+    "The text of every dictation is stored on this Mac, encrypted with a key in your Keychain. Audio is never stored. Open it from the menu bar: Dictation History." : {
+      "comment" : "Dictation settings footer under the history toggle",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The text of every dictation is stored on this Mac, encrypted with a key in your Keychain. Audio is never stored. Open it from the menu bar: Dictation History."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekst każdego dyktowania jest zapisany na tym Macu, zaszyfrowany kluczem z Pęku kluczy. Dźwięk nigdy nie jest zapisywany. Otwórz go z paska menu: Historia dyktowania."
+          }
+        }
+      }
+    },
     "Third-Party Notices" : {
       "comment" : "About window: section title",
       "extractionState" : "manual",
@@ -4929,6 +5199,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Informacje o oprogramowaniu firm trzecich"
+          }
+        }
+      }
+    },
+    "This deletes every saved dictation. It cannot be undone." : {
+      "comment" : "Dictation settings confirmation text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This deletes every saved dictation. It cannot be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuwa wszystkie zapisane dyktowania. Tego nie można cofnąć."
           }
         }
       }
@@ -5185,6 +5473,24 @@
         }
       }
     },
+    "Version" : {
+      "comment" : "Dictation history preview switch label",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wersja"
+          }
+        }
+      }
+    },
     "Version %@" : {
       "comment" : "About window: version without a build number",
       "extractionState" : "manual",
@@ -5397,6 +5703,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Możesz go później zmienić w Ustawieniach → Ogólne."
+          }
+        }
+      }
+    },
+    "copied only" : {
+      "comment" : "Dictation history metadata: not pasted",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "copied only"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "tylko skopiowano"
           }
         }
       }

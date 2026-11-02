@@ -5,6 +5,7 @@ import SwiftUI
 struct DictationSettingsPane: View {
     @Bindable var model: DictationSettingsModel
     @Bindable var formatting: FormattingSettingsModel
+    @Bindable var history: HistorySettingsModel
     let recorder: AnyView
 
     var body: some View {
@@ -78,6 +79,8 @@ struct DictationSettingsPane: View {
                 )
                 .font(.callout).foregroundStyle(.secondary)
             }
+
+            HistorySection(model: history)
         }
         .formStyle(.grouped)
         .task {
@@ -440,5 +443,113 @@ struct FormattingSection: View {
                 }
             }
         }
+    }
+}
+
+/// Settings → Dictation → History: keep finished dictations (encrypted), for how long, and clear them.
+struct HistorySection: View {
+    @Bindable var model: HistorySettingsModel
+    @State private var confirmsClear = false
+
+    var body: some View {
+        Section {
+            Toggle(isOn: $model.isEnabled) {
+                Text("Keep a history of dictations", comment: "Dictation settings toggle for the history")
+            }
+            if model.isEnabled {
+                Picker(selection: $model.retentionDays) {
+                    ForEach(model.dayChoices(), id: \.self) { days in
+                        Text("\(days) days", comment: "Dictation settings retention choice").tag(days)
+                    }
+                } label: {
+                    Text("Keep for", comment: "Dictation settings label of the retention period")
+                }
+                Picker(selection: $model.maximumEntries) {
+                    ForEach(model.entryChoices(), id: \.self) { count in
+                        Text("\(count) entries", comment: "Dictation settings entry limit choice").tag(count)
+                    }
+                } label: {
+                    Text("At most", comment: "Dictation settings label of the entry limit")
+                }
+                LabeledContent {
+                    Button(role: .destructive) {
+                        confirmsClear = true
+                    } label: {
+                        Text("Clear History…", comment: "Dictation settings button that deletes the history")
+                    }
+                    .disabled(model.history.entryCount == 0)
+                } label: {
+                    Text(
+                        "\(model.history.entryCount) entries",
+                        comment: "Dictation settings count of saved dictations")
+                }
+                historyStatus
+            }
+            if let message = model.errorMessage {
+                Text(message).font(.callout).foregroundStyle(.red)
+            }
+        } header: {
+            Text("History", comment: "Dictation settings section title")
+        } footer: {
+            Text(
+                "The text of every dictation is stored on this Mac, encrypted with a key in your Keychain. Audio is never stored. Open it from the menu bar: Dictation History.",
+                comment: "Dictation settings footer under the history toggle"
+            )
+            .font(.callout).foregroundStyle(.secondary)
+        }
+        .confirmationDialog(
+            Text("Clear the dictation history?", comment: "Dictation settings confirmation title"),
+            isPresented: $confirmsClear
+        ) {
+            Button(role: .destructive) {
+                model.clear()
+            } label: {
+                Text("Clear History", comment: "Dictation settings confirmation button")
+            }
+        } message: {
+            Text(
+                "This deletes every saved dictation. It cannot be undone.",
+                comment: "Dictation settings confirmation text")
+        }
+    }
+
+    @ViewBuilder private var historyStatus: some View {
+        switch model.history.status {
+        case .unavailable:
+            Text(
+                "The history is unavailable because the Keychain could not be read. Nothing was deleted.",
+                comment: "Dictation history banner when the Keychain key is unavailable"
+            )
+            .font(.callout).foregroundStyle(.orange)
+        case .failed:
+            Text(
+                "The history could not be opened.",
+                comment: "Dictation history banner when the database could not be opened"
+            )
+            .font(.callout).foregroundStyle(.orange)
+        default:
+            EmptyView()
+        }
+    }
+}
+
+/// The history list when nothing is saved yet (or the history is off).
+struct DictationHistoryEmptyView: View {
+    let history: DictationHistory
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Image(systemName: "clock.arrow.circlepath").font(.largeTitle).foregroundStyle(.secondary)
+            Text(
+                history.status == .closed
+                    ? String(
+                        localized: "The dictation history is off. Turn it on in Settings → Dictation.",
+                        comment: "Dictation history empty state when the history is off")
+                    : String(
+                        localized: "No dictations yet.", comment: "Dictation history empty state")
+            )
+            .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
