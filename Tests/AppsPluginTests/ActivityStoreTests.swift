@@ -229,4 +229,49 @@ import Testing
         #expect(written)
         #expect(await eventually { !(await store.hasPendingWrite) })
     }
+
+    @Test func aFutureLastUseIsClampedOnLoad() async throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        let time = VirtualTime()
+        let start = time.date.timeIntervalSince1970
+        // The file was written before the clock moved back by a day.
+        let file = ActivityStore.FileContents(
+            version: 1,
+            seededAt: nil,
+            apps: ["com.example.notes": ActivityEntry(frecency: 2, lastUsedAt: start + Self.day, useCount: 2)]
+        )
+        try JSONEncoder().encode(file).write(to: directory.url.appending(path: ActivityStore.fileName))
+        let store = makeStore(directory, time: time)
+        await store.load()
+        let entry = try #require(store.snapshot.apps["com.example.notes"])
+        #expect(entry.lastUsedAt == start)
+        #expect(entry.frecency == 2)
+        #expect(await store.hasPendingWrite)
+
+        // 90 days later the entry expires instead of staying forever.
+        time.advance(to: 90 * Self.day + 1)
+        await store.recordUse(of: "com.example.mail", at: time.date)
+        await store.close()
+        let saved = try JSONDecoder().decode(
+            ActivityStore.FileContents.self,
+            from: Data(contentsOf: directory.url.appending(path: ActivityStore.fileName)))
+        #expect(Set(saved.apps.keys) == ["com.example.mail"])
+    }
+
+    @Test func aUseAfterTheClockMovedBackIsNeverInTheFuture() async throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        let time = VirtualTime()
+        let store = makeStore(directory, time: time)
+        await store.load()
+        time.advance(to: Self.hour)
+        await store.recordUse(of: "com.example.notes", at: time.date)
+        time.advance(by: -2 * Self.hour)
+        await store.recordUse(of: "com.example.notes", at: time.date)
+        #expect(store.snapshot.apps["com.example.notes"]?.lastUsedAt == time.date.timeIntervalSince1970)
+        #expect(store.snapshot.apps["com.example.notes"]?.useCount == 2)
+        await store.merge(seed: [:], seededAt: "seeded")
+        #expect(store.snapshot.apps["com.example.notes"]?.lastUsedAt == time.date.timeIntervalSince1970)
+    }
 }

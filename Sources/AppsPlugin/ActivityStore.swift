@@ -76,6 +76,8 @@ actor ActivityStore {
     /// The file exists but could not be read: nothing is written this session.
     private var isWriteBlocked = false
     private var saveTask: Task<Void, Never>?
+    /// Identifies the current `saveTask`, so a deferred save that woke up late never clears a newer one.
+    private var saveGeneration = 0
 
     init(
         directory: URL,
@@ -117,10 +119,13 @@ actor ActivityStore {
         switch Self.decode(data) {
         case .current(let file):
             var loaded = ActivitySnapshot(apps: file.apps, seededAt: file.seededAt)
-            let before = loaded.apps.count
-            Self.prune(&loaded.apps, now: now())
+            let before = loaded.apps
+            let date = now()
+            // The clock may have moved back since the file was written: a use is never in the future.
+            Self.clampToNow(&loaded.apps, now: date)
+            Self.prune(&loaded.apps, now: date)
             replace(loaded)
-            if loaded.apps.count != before {
+            if loaded.apps != before {
                 markChanged()
             }
         case .newer:
@@ -176,8 +181,10 @@ actor ActivityStore {
     /// Records one use of an app.
     func recordUse(of bundleID: String, at date: Date) {
         guard !state.isReadOnly else { return }
-        let time = min(date, now()).timeIntervalSince1970
+        let latest = now().timeIntervalSince1970
+        let time = min(date.timeIntervalSince1970, latest)
         if var entry = state.apps[bundleID] {
+            entry.lastUsedAt = min(entry.lastUsedAt, latest)
             entry.addUse(at: time, halfLife: halfLife)
             state.apps[bundleID] = entry
         } else {
@@ -192,6 +199,7 @@ actor ActivityStore {
     func merge(seed: [String: [Date]], seededAt: String) {
         guard !state.isReadOnly, state.seededAt == nil else { return }
         let latest = now().timeIntervalSince1970
+        Self.clampToNow(&state.apps, now: Date(timeIntervalSince1970: latest))
         for (bundleID, dates) in seed {
             for date in dates {
                 let time = min(date.timeIntervalSince1970, latest)
@@ -243,6 +251,8 @@ actor ActivityStore {
         guard !state.isReadOnly else { return }
         isDirty = true
         saveTask?.cancel()
+        saveGeneration += 1
+        let generation = saveGeneration
         let clock = clock
         saveTask = Task { [weak self] in
             do {
@@ -250,12 +260,14 @@ actor ActivityStore {
             } catch {
                 return
             }
-            await self?.deferredSave()
+            await self?.deferredSave(generation: generation)
         }
     }
 
-    private func deferredSave() {
-        saveTask = nil
+    private func deferredSave(generation: Int) {
+        if generation == saveGeneration {
+            saveTask = nil
+        }
         if isDirty {
             save()
         }
@@ -282,6 +294,14 @@ actor ActivityStore {
     }
 
     // MARK: Helpers
+
+    /// Moves every last use that lies after `now` (the clock moved back) to `now`, keeping the frecency.
+    static func clampToNow(_ apps: inout [String: ActivityEntry], now: Date) {
+        let latest = now.timeIntervalSince1970
+        for (bundleID, entry) in apps where entry.lastUsedAt > latest {
+            apps[bundleID]?.lastUsedAt = latest
+        }
+    }
 
     static func prune(_ apps: inout [String: ActivityEntry], now: Date) {
         let cutoff = now.timeIntervalSince1970 - retention

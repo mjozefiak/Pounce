@@ -15,6 +15,8 @@ struct AppSuggestionSource: SuggestionSource {
     let workspace: any WorkspaceClient
     let ownBundleIdentifier: String?
     let resultsChanged: @Sendable () -> Void
+    /// Called after "Hide from Suggestions" changed the hidden list, so an open Settings pane catches up.
+    let hiddenChanged: @MainActor @Sendable () -> Void
     let now: @Sendable () -> Date
 
     init(
@@ -25,6 +27,7 @@ struct AppSuggestionSource: SuggestionSource {
         workspace: any WorkspaceClient,
         ownBundleIdentifier: String?,
         resultsChanged: @escaping @Sendable () -> Void,
+        hiddenChanged: @escaping @MainActor @Sendable () -> Void = {},
         now: @escaping @Sendable () -> Date = { Date() }
     ) {
         self.store = store
@@ -34,6 +37,7 @@ struct AppSuggestionSource: SuggestionSource {
         self.workspace = workspace
         self.ownBundleIdentifier = ownBundleIdentifier
         self.resultsChanged = resultsChanged
+        self.hiddenChanged = hiddenChanged
         self.now = now
     }
 
@@ -77,6 +81,7 @@ struct AppSuggestionSource: SuggestionSource {
     private func hide(_ bundleID: String) -> ResultAction {
         let settings = settings
         let resultsChanged = resultsChanged
+        let hiddenChanged = hiddenChanged
         return ResultAction(
             id: Self.hideID,
             title: LocalizedStringResource(
@@ -87,6 +92,7 @@ struct AppSuggestionSource: SuggestionSource {
         ) { _ in
             HiddenSuggestions.add(bundleID, to: settings)
             resultsChanged()
+            await hiddenChanged()
         }
     }
 }

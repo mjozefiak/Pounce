@@ -155,4 +155,34 @@ import Testing
         try await Task.sleep(for: .milliseconds(50))
         #expect(store.snapshot.apps.isEmpty)
     }
+
+    @Test func aLastUseInTheFutureDoesNotDelayCounting() async throws {
+        let harness = try await makeHarness()
+        defer { harness.directory.remove() }
+        // X was used at one hour, then the clock moved back to the origin.
+        harness.time.advance(to: 3600)
+        await harness.store.recordUse(of: x, at: harness.time.date)
+        harness.time.advance(by: -3600)
+        front(harness, x, until: 6 * Self.minute)
+        await harness.tracker.track(x)
+        #expect(harness.uses(of: x) == 2)
+        #expect(harness.store.snapshot.apps[x]?.lastUsedAt == harness.time.origin.timeIntervalSince1970 + 5)
+    }
+
+    @Test func startTracksTheFrontmostAppOnlyWhenItIsRegular() async throws {
+        let harness = try await makeHarness()
+        defer { harness.directory.remove() }
+        front(harness, x, until: 6 * Self.minute)
+        // X in front is not among the running regular apps (an agent or accessory).
+        harness.tracker.start()
+        await harness.tracker.waitForChecks()
+        #expect(harness.uses == 0)
+        harness.tracker.stop()
+
+        harness.workspace.running = [x]
+        harness.tracker.start()
+        await harness.tracker.waitForChecks()
+        #expect(harness.uses(of: x) == 1)
+        harness.tracker.stop()
+    }
 }

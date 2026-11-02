@@ -71,7 +71,8 @@ public final class AppsPlugin: PouncePlugin {
                 usage: context.usage,
                 workspace: context.workspace,
                 ownBundleIdentifier: ownBundleIdentifier,
-                resultsChanged: context.resultsChanged
+                resultsChanged: context.resultsChanged,
+                hiddenChanged: { [weak self] in self?.settingsModel?.reload() }
             )
         ]
     }

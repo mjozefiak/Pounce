@@ -53,12 +53,15 @@ final class ActivityTracker {
                 self?.activated(application)
             }
         }
-        if let current = workspace.frontmostApplication {
+        // The activation stream carries regular apps only; the frontmost app gets the same filter through
+        // the running regular apps, so an agent or accessory in front at start is not tracked either.
+        if let current = workspace.frontmostApplication, let bundleID = current.bundleIdentifier,
+            workspace.runningApplicationBundleIDs.contains(bundleID)
+        {
             activated(current)
         }
     }
 
-    /// Stops listening and cancels the pending checks. Idempotent.
     /// Stops listening and cancels the pending check. Returns the cancelled check, so a caller can wait
     /// until a use it may still be recording has landed.
     @discardableResult
@@ -89,8 +92,12 @@ final class ActivityTracker {
 
     /// Runs the checks of one activation until the app leaves the front or the task is cancelled.
     func track(_ bundleID: String) async {
-        let lastUsed = store.snapshot.apps[bundleID].map { Date(timeIntervalSince1970: $0.lastUsedAt) }
         let start = now()
+        // A last use after `start` (the clock moved back) cannot be trusted and is ignored, so it never
+        // pushes the first check out; the store clamps it to now when it records the next use.
+        let lastUsed = store.snapshot.apps[bundleID]
+            .map { Date(timeIntervalSince1970: $0.lastUsedAt) }
+            .flatMap { $0 <= start ? $0 : nil }
         var due = max(
             start.addingTimeInterval(Self.threshold),
             lastUsed?.addingTimeInterval(Self.interval) ?? .distantPast
@@ -107,8 +114,12 @@ final class ActivityTracker {
             let idle = workspace.secondsSinceLastUserInput
             let checkTime = now()
             let previous = store.snapshot.apps[bundleID]?.lastUsedAt
+            // Likewise a last use after the check.
             let gapIsLongEnough =
-                previous.map { checkTime.timeIntervalSince1970 - $0 >= Self.interval - Self.tolerance } ?? true
+                previous.map {
+                    $0 > checkTime.timeIntervalSince1970
+                        || checkTime.timeIntervalSince1970 - $0 >= Self.interval - Self.tolerance
+                } ?? true
             if let idle {
                 if idle < Self.idleLimit, gapIsLongEnough {
                     await store.recordUse(of: bundleID, at: checkTime)

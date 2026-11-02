@@ -1,5 +1,6 @@
 import Foundation
 import PounceKit
+import Synchronization
 import Testing
 import os
 
@@ -133,5 +134,54 @@ import os
         await harness.plugin.deactivate()
         let file = harness.fixture.url("Storage").appending(path: ActivityStore.fileName)
         #expect(FileManager.default.fileExists(atPath: file.path))
+    }
+
+    /// Records which apps the seed read.
+    final class RecordingUsageDatesReader: UsageDatesReader {
+        let paths = Mutex<[String]>([])
+
+        func usedDates(of url: URL) -> [Date] {
+            paths.withLock { $0.append(url.lastPathComponent) }
+            return []
+        }
+    }
+
+    @Test func theSeedWaitsForTheFirstFinishedScan() async throws {
+        let harness = try makeHarness { settings in
+            settings.setValue(.bool(true), forKey: "plugins.apps.spotlight")
+        }
+        defer { harness.fixture.remove() }
+        // A cached list is published at activation, before the scan.
+        let cached = try AppScanner(roots: [harness.fixture.url("Apps")]).scan()
+        try AppCache(directory: harness.plugin.context.cachesDirectory).save(cached)
+        let reader = RecordingUsageDatesReader()
+        harness.plugin.usageDatesReader = reader
+        try await harness.plugin.activate()
+        #expect(!harness.plugin.store.apps.isEmpty)
+        #expect(harness.plugin.seedPending)
+        #expect(harness.plugin.seedTask == nil)
+        #expect(reader.paths.withLock { $0 }.isEmpty)
+
+        await harness.plugin.waitForRefresh()
+        await harness.plugin.waitForSeed()
+        #expect(reader.paths.withLock { Set($0) } == ["Mail.app", "Notes.app"])
+        let seededAt = harness.plugin.activity.snapshot.seededAt
+        #expect(seededAt != nil && seededAt != ActivityStore.seedSkipped)
+        await harness.plugin.deactivate()
+    }
+
+    @Test func hidingAnAppUpdatesAnOpenSettingsPane() async throws {
+        let harness = try makeHarness()
+        defer { harness.fixture.remove() }
+        try await harness.plugin.activate()
+        await harness.plugin.waitForRefresh()
+        let model = harness.plugin.makeSettingsModel()
+        await harness.plugin.activity.recordUse(of: "com.example.notes", at: harness.time.date)
+        let source = try #require(harness.plugin.suggestionSources.first)
+        let candidate = try #require(try await source.suggestions(limit: 5).first)
+        let hide = try #require(source.actions(for: candidate).first { $0.id == AppSuggestionSource.hideID })
+        try await hide.perform(ActionContext(previousApp: nil, panel: NoPanel()))
+        #expect(model.hidden == ["com.example.notes"])
+        await harness.plugin.deactivate()
     }
 }
