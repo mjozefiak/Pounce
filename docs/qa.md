@@ -153,6 +153,30 @@ are skipped and the panel shows the "no Full Disk Access" notice; `granted` inde
 order (Settings → Features → Result Order) is seeded with a comma-separated list, for example
 `--qa-setting app.sectionOrder=files,apps`.
 
+### Path mode
+
+A query that starts with `/` or `~` lists that folder straight from disk, including hidden and excluded
+folders (file path search spec). In QA mode `~` is the fake home, so build the folders there:
+
+```bash
+mkdir -p "$FIX/home/Projects/ng/.ai/runs/2026-10-27-qa-fixes/screenshots" "$FIX/home/Documents/Invoices"
+touch "$FIX/home/Projects/ng/.ai/runs/2026-10-27-qa-fixes/plan.txt" \
+  "$FIX/home/Projects/ng/.ai/runs/2026-10-27-qa-fixes/.hidden.txt" "$FIX/home/Documents/Invoices/march.txt"
+dist/Pounce.app/Contents/MacOS/Pounce --qa \
+  --qa-setting "plugins.files.qaHome=$FIX/home" --qa-setting "plugins.files.roots=$FIX/home" \
+  --qa-setting plugins.files.setupCompleted=true --qa-full-disk-access denied \
+  --qa-panel search --qa-query "~/Projects/ng/.ai/runs/2026-10-27-qa-fixes/"
+# Filter after the last slash, and a protected folder without Full Disk Access (only its row, with a note):
+#   --qa-query "~/Projects/ng/.ai/runs/2026"      --qa-query "~/Documents/Invoices/"
+```
+
+Hidden items inside the listed folder appear only when the filter starts with a dot or "Include hidden
+files" is on (Settings → Files). Without Full Disk Access, path mode never opens Desktop, Documents, Downloads, iCloud
+Drive, `/Volumes/*` or `~/Library/(Group )Containers`; check by hand that typing
+`/Volumes/<USB stick>/`, `~/Pictures/Photos Library.photoslibrary/` and `~/Library/Containers/<app>/`
+shows no privacy prompt. Known limit: a file opened through path mode in a hidden or excluded folder
+is recorded, but it does not appear in "Recently Used" (an empty query), which lists indexed items only.
+
 ## Welcome screen, Permissions, Advanced and About (Phase 4)
 
 Settings → Permissions lists the permissions of the enabled plugins with the states QA mode reports, so
