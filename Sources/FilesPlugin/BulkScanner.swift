@@ -21,8 +21,9 @@ struct ScannedEntry: Hashable, Sendable {
     let modified: UInt32
     /// For a directory the scanner enters: the id its own listing arrives under.
     let directoryID: Int32?
-    /// The name starts with a dot or the item carries the hidden flag (only reported when the rules
-    /// include hidden items; path mode uses it to filter its listing).
+    /// The name starts with a dot or the item carries the hidden flag. Set for every entry the rules keep
+    /// (with the default rules hidden entries are excluded, so it is only ever `true` when the rules
+    /// include hidden items); path mode uses it to filter its listing.
     var isHidden = false
 }
 

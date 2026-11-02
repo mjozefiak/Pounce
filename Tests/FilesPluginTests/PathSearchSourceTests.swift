@@ -110,4 +110,20 @@ struct PathSearchSourceTests {
         #expect(uses.first?.1 == nil)
         #expect(harness.workspace.opened.map(\.path) == [harness.directory.sub("home/p/a.txt")])
     }
+
+    @Test func protectedEntriesGetAGenericIconWithoutFullDiskAccess() async throws {
+        let harness = try PluginHarness()
+        try harness.directory.make(["home/Documents/a.txt", "home/Projects/"])
+        let results = try await source(harness).search(TextNormalizer.query("~/"), limit: 50)
+        let documents = try #require(results.first { $0.title == "Documents" })
+        let projects = try #require(results.first { $0.title == "Projects" })
+        #expect(documents.icon == .symbol("folder"))
+        #expect(
+            projects.icon == .file(URL(filePath: harness.directory.sub("home/Projects"), directoryHint: .isDirectory)))
+
+        harness.permissions.fullDiskAccess = .granted
+        harness.plugin.refreshAccess()
+        let granted = try await source(harness).search(TextNormalizer.query("~/"), limit: 50)
+        #expect(granted.first { $0.title == "Documents" }?.icon != .symbol("folder"))
+    }
 }

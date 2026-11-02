@@ -72,4 +72,17 @@ struct DirectoryListerTests {
             [.modificationDate: Date(timeIntervalSinceNow: 60)], ofItemAtPath: directory.sub("home/d"))
         #expect(names(lister.list(directory.sub("home/d"), fullDiskAccess: false)).keys.sorted() == ["a.txt", "b.txt"])
     }
+
+    @Test func queuedListingReadsOffTheCallingTaskAndHonoursCancellation() async throws {
+        let directory = try TemporaryDirectory().make(["home/d/a.txt"])
+        let lister = DirectoryLister(home: directory.sub("home"))
+        let listing = try await lister.listing(directory.sub("home/d"), fullDiskAccess: false)
+        #expect(names(listing) == ["a.txt": false])
+
+        let task = Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            return try await lister.listing(directory.sub("home/d"), fullDiskAccess: false)
+        }
+        await #expect(throws: CancellationError.self) { try await task.value }
+    }
 }

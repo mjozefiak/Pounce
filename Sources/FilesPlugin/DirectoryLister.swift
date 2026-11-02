@@ -22,6 +22,8 @@ enum DirectoryListing: Hashable, Sendable {
 ///   checks every path on the way, links included, before touching it.
 /// - The last folder read is cached by its modification time, so typing a filter does not read the disk
 ///   again for every key.
+/// - `listing(_:fullDiskAccess:)` reads on a serial queue of its own, so a slow volume never holds a Swift
+///   concurrency thread; a request cancelled while it waits (the user typed on) is skipped.
 final class DirectoryLister: Sendable {
     /// The most entries read from one folder (A8).
     static let entryLimit = 20_000
@@ -37,13 +39,33 @@ final class DirectoryLister: Sendable {
     private let limit: Int
     private let scanner = BulkScanner(rules: IgnoreRules(includesHidden: true), workerCount: 1)
     private let cache = Mutex<Cached?>(nil)
+    private let queue = DispatchQueue(label: "app.pounce.files.path-mode", qos: .userInitiated)
 
     init(home: String, limit: Int = DirectoryLister.entryLimit) {
         self.home = home
         self.limit = max(1, limit)
     }
 
-    /// Lists `folder` (absolute, standardised).
+    /// Lists `folder` on the lister's own queue. Throws `CancellationError` when the task was cancelled
+    /// before the read started.
+    func listing(_ folder: String, fullDiskAccess: Bool) async throws -> DirectoryListing {
+        let cancelled = CancellationFlag()
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                queue.async {
+                    if cancelled.isSet {
+                        continuation.resume(throwing: CancellationError())
+                    } else {
+                        continuation.resume(returning: self.list(folder, fullDiskAccess: fullDiskAccess))
+                    }
+                }
+            }
+        } onCancel: {
+            cancelled.set()
+        }
+    }
+
+    /// Lists `folder` (absolute, standardised) on the calling thread.
     func list(_ folder: String, fullDiskAccess: Bool) -> DirectoryListing {
         let real: String
         switch TCCProtectedLocations.resolve(folder, home: home, fullDiskAccess: fullDiskAccess) {
@@ -74,4 +96,11 @@ final class DirectoryLister: Sendable {
         }
         return listing
     }
+}
+
+/// Set once when a waiting read is no longer wanted.
+private final class CancellationFlag: Sendable {
+    private let value = Mutex(false)
+    var isSet: Bool { value.withLock { $0 } }
+    func set() { value.withLock { $0 = true } }
 }

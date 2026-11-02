@@ -12,7 +12,14 @@ import Foundation
 ///
 /// Places that answer `EPERM` without a prompt (`~/Library/Mail`) are not listed: reading them simply
 /// fails, which path mode shows as "no access".
+///
+/// Paths are compared without regard to case or Unicode normalisation (the boot volume is
+/// case-insensitive, so `~/documents` is `~/Documents`), with the `/System/Volumes/Data` firmlink prefix
+/// removed. `resolve` also compares each component it reaches by device and inode with the protected
+/// folders, which catches any other spelling.
 enum TCCProtectedLocations {
+    /// The firmlink prefix under which the data volume (and so the home folder) is also reachable.
+    static let dataVolumePrefix = "/System/Volumes/Data"
     /// The protected places below the home folder.
     static func homeLocations(home: String) -> [String] {
         ProtectedFolder.allCases.map { $0.path(home: home) } + [
@@ -23,10 +30,44 @@ enum TCCProtectedLocations {
 
     /// Whether `path` (absolute, standardised) is a protected place or inside one.
     static func requiresFullDiskAccess(_ path: String, home: String) -> Bool {
-        if path.hasPrefix("/Volumes/") {
+        let folded = fold(withoutDataPrefix(path))
+        if folded.hasPrefix("/volumes/") {
             return true
         }
-        return homeLocations(home: home).contains { PathText.contains($0, path) }
+        return homeLocations(home: home).contains { PathText.contains(fold(withoutDataPrefix($0)), folded) }
+    }
+
+    /// Case- and normalisation-insensitive form of a path, for comparisons only.
+    static func fold(_ path: String) -> String {
+        path.precomposedStringWithCanonicalMapping.lowercased()
+    }
+
+    /// The path without a leading `/System/Volumes/Data` (any case).
+    static func withoutDataPrefix(_ path: String) -> String {
+        let prefix = dataVolumePrefix.lowercased()
+        let lowered = path.lowercased()
+        guard lowered == prefix || lowered.hasPrefix(prefix + "/") else { return path }
+        let rest = String(path.dropFirst(dataVolumePrefix.count))
+        return rest.isEmpty ? "/" : rest
+    }
+
+    /// Device and inode of a file system object.
+    struct Identity: Hashable {
+        let device: dev_t
+        let inode: ino_t
+    }
+
+    /// The identities of the protected places below the home folder that exist. Statting a protected
+    /// folder itself reads only its entry in the home folder, never its contents, so it shows no prompt.
+    static func protectedIdentities(home: String) -> Set<Identity> {
+        var result = Set<Identity>()
+        for path in homeLocations(home: home) {
+            var info = stat()
+            if lstat(path, &info) == 0 {
+                result.insert(Identity(device: info.st_dev, inode: info.st_ino))
+            }
+        }
+        return result
     }
 
     /// Where a path leads once symbolic links are followed.
@@ -54,6 +95,7 @@ enum TCCProtectedLocations {
         func isProtected(_ candidate: String) -> Bool {
             !fullDiskAccess && homes.contains { requiresFullDiskAccess(candidate, home: $0) }
         }
+        let identities = fullDiskAccess ? [] : protectedIdentities(home: home)
         var pending = path.split(separator: "/").map(String.init)
         pending.reverse()
         var current = "/"
@@ -70,6 +112,11 @@ enum TCCProtectedLocations {
             }
             var info = stat()
             guard lstat(candidate, &info) == 0 else { return .missing }
+            // Any other spelling of a protected folder (an odd case or normalisation, a hard-to-guess
+            // firmlink) is the same object: stop on it before listing or entering it.
+            if identities.contains(Identity(device: info.st_dev, inode: info.st_ino)) {
+                return .protected(candidate)
+            }
             guard info.st_mode & S_IFMT == S_IFLNK else {
                 current = candidate
                 continue

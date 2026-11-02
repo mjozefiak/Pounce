@@ -58,3 +58,17 @@ struct PathQueryTests {
         #expect(query.wantsHidden)
     }
 }
+
+@Suite("Path query, parent folders")
+struct PathQueryParentTests {
+    @Test func trailingDotDotListsTheParentAndALoneDotFiltersHidden() throws {
+        let home = "/Users/tester"
+        #expect(
+            PathQuery.parse("~/a/b/..", home: home) == PathQuery(folder: "/Users/tester/a", filter: "", usesTilde: true)
+        )
+        let dot = try #require(PathQuery.parse("~/a/.", home: home))
+        #expect(dot.folder == "/Users/tester/a")
+        #expect(dot.filter == ".")
+        #expect(dot.wantsHidden)
+    }
+}

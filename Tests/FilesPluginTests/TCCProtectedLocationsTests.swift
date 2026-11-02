@@ -66,4 +66,49 @@ struct TCCProtectedLocationsTests {
         #expect(
             TCCProtectedLocations.resolve(directory.sub("a"), home: directory.path, fullDiskAccess: false) == .missing)
     }
+
+    @Test func otherSpellingsOfAProtectedFolderAreProtected() {
+        let home = "/Users/tester"
+        for path in [
+            "/Users/tester/documents", "/Users/tester/DESKTOP/x", "/users/TESTER/Downloads",
+            "/volumes/USB", "/System/Volumes/Data/Users/tester/Documents/a",
+            "/system/volumes/data/Volumes/USB",
+        ] {
+            #expect(TCCProtectedLocations.requiresFullDiskAccess(path, home: home), "\(path)")
+        }
+        // A home folder name typed in another Unicode normalisation (NFD) is the same folder.
+        let accented = "/Users/z\u{00F3}sia"
+        #expect(TCCProtectedLocations.requiresFullDiskAccess("/Users/zo\u{0301}sia/Documents", home: accented))
+        #expect(!TCCProtectedLocations.requiresFullDiskAccess("/System/Volumes/Data/Users/tester/Projects", home: home))
+    }
+
+    @Test func caseVariantOnDiskStopsAtTheFolder() throws {
+        let directory = try TemporaryDirectory().make(["home/Documents/secret/"])
+        let home = directory.sub("home")
+        let real = try #require(TCCProtectedLocations.realPath(home))
+        // The temporary volume is case-insensitive like the boot volume, so `documents` is `Documents`.
+        let result = TCCProtectedLocations.resolve(home + "/documents/secret", home: home, fullDiskAccess: false)
+        #expect(result == .protected(real + "/documents"))
+    }
+
+    @Test func relativeLinkWithDotDotIntoAProtectedFolderIsProtected() throws {
+        let directory = try TemporaryDirectory().make(["home/Projects/", "home/Documents/x/"])
+        let home = directory.sub("home")
+        let real = try #require(TCCProtectedLocations.realPath(home))
+        try FileManager.default.createSymbolicLink(
+            atPath: directory.sub("home/Projects/docs"), withDestinationPath: "../Documents/x")
+        #expect(
+            TCCProtectedLocations.resolve(home + "/Projects/docs", home: home, fullDiskAccess: false)
+                == .protected(real + "/Documents"))
+    }
+
+    @Test func homeReachedThroughALinkKeepsItsProtection() throws {
+        let directory = try TemporaryDirectory().make(["realhome/Documents/x/"])
+        try FileManager.default.createSymbolicLink(atPath: directory.sub("home"), withDestinationPath: "realhome")
+        let home = directory.sub("home")
+        let realHome = try #require(TCCProtectedLocations.realPath(directory.sub("realhome")))
+        #expect(
+            TCCProtectedLocations.resolve(home + "/Documents/x", home: home, fullDiskAccess: false)
+                == .protected(realHome + "/Documents"))
+    }
 }

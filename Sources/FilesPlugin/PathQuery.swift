@@ -40,8 +40,13 @@ struct PathQuery: Hashable, Sendable {
             return nil
         }
         guard let slash = text.lastIndex(of: "/") else { return nil }
-        let folderText = String(text[...slash])
-        let filter = String(text[text.index(after: slash)...])
+        var folderText = String(text[...slash])
+        var filter = String(text[text.index(after: slash)...])
+        // `~/x/..` names the parent folder, not a filter. A lone `.` stays a filter: it asks for hidden items.
+        if filter == ".." {
+            folderText += filter
+            filter = ""
+        }
         guard let folder = PathText.expand(folderText, home: home) else { return nil }
         return PathQuery(folder: folder, filter: filter, usesTilde: usesTilde)
     }
