@@ -105,7 +105,8 @@ let package = Package(
                 "PounceCore",
                 "PouncePersistence",
                 .product(name: "GRDB", package: "GRDBCipher"),
-            ]
+            ],
+            resources: [.copy("Fixtures")]
         ),
         .testTarget(
             name: "DictationPluginTests",
