@@ -18,6 +18,8 @@ Machine for every row: Apple M4 Max, 16 cores, macOS 27.0.1, 2026-10-31. An M1 r
 | Start from the saved index until ready | < 2 s | 0.19 s from process start to "Loaded 510020 index entries" | Met |
 | Index memory per entry (R6) | about 100 B | 67–70 B (synthetic), 83 B (fixture tree, 204 k entries) | Met |
 | Path mode query, folder of 1 000 entries (file path search spec) | p95 < 20 ms | p95 8.3 ms read cold, 11.4 ms while typing a filter (release build, SSD; `PathModeBenchmarks`) | Met |
+| App suggestions query, empty panel (app suggestions spec, 2026-11-02) | < 5 ms (source budget 150 ms) | p95 0.51 ms with 300 apps, p95 2.22 ms with 1 000 apps, every app with activity (max 2.57 ms; release build; `AppBenchmarks/suggestApps`) | Met |
+| One-time Spotlight seed of app activity (app suggestions spec, 2026-11-02) | in the background, no budget | 57 ms for the 43 apps in `/Applications` of the measurement Mac, 24 of them with used dates (`AppBenchmarks/seedFromSpotlight`, reads real Spotlight metadata, writes only to a temporary directory) | Measured |
 
 ### How the app-level rows were measured
 

@@ -216,6 +216,15 @@ public protocol WorkspaceClient: Sendable {
     /// Yields each time the user's session becomes active again (switching back to this user, unlocking
     /// the screen), for example to retry a locked Keychain. Added in Phase 2; the default never yields.
     func sessionActivations() -> AsyncStream<Void>
+    /// Yields each regular application (one with a Dock icon) that becomes the active application, for
+    /// app suggestions. Added with app suggestions; the default never yields.
+    func applicationActivations() -> AsyncStream<RunningApplication>
+    /// The bundle identifiers of the running regular applications. Added with app suggestions; the
+    /// default knows none.
+    @MainActor var runningApplicationBundleIDs: Set<String> { get }
+    /// Seconds since the last keyboard, mouse or trackpad input in this login session; `nil` when
+    /// unknown. Added with app suggestions; the default is `nil`.
+    @MainActor var secondsSinceLastUserInput: TimeInterval? { get }
 }
 
 extension WorkspaceClient {
@@ -234,6 +243,14 @@ extension WorkspaceClient {
     public func sessionActivations() -> AsyncStream<Void> {
         AsyncStream { $0.finish() }
     }
+
+    public func applicationActivations() -> AsyncStream<RunningApplication> {
+        AsyncStream { $0.finish() }
+    }
+
+    @MainActor public var runningApplicationBundleIDs: Set<String> { [] }
+
+    @MainActor public var secondsSinceLastUserInput: TimeInterval? { nil }
 }
 
 /// Usage statistics for one item, read from `ranking.sqlite`.

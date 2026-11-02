@@ -33,7 +33,8 @@ let package = Package(
         ),
         .target(
             name: "AppsPlugin",
-            dependencies: ["PounceKit", "PounceCore"]
+            // PouncePersistence only for AtomicFile (activity.json, app suggestions spec); no GRDB.
+            dependencies: ["PounceKit", "PounceCore", "PouncePersistence"]
         ),
         .target(
             name: "FilesPlugin",
@@ -73,7 +74,7 @@ let package = Package(
         ),
         .testTarget(
             name: "AppsPluginTests",
-            dependencies: ["AppsPlugin", "PounceKit", "PounceCore"]
+            dependencies: ["AppsPlugin", "PounceKit", "PounceCore", "PouncePersistence"]
         ),
         .testTarget(
             name: "FilesPluginTests",

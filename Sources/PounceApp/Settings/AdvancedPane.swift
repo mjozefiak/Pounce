@@ -76,6 +76,13 @@ struct AdvancedPane: View {
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                        Text(
+                            "App suggestions keep their own history; clear it in Settings → Applications.",
+                            comment: "Settings note that Reset Ranking does not clear app activity"
+                        )
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 if resetDone {

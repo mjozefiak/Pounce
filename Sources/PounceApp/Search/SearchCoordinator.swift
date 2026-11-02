@@ -18,6 +18,8 @@ struct ResultItem: Identifiable {
 struct ResultSection: Identifiable {
     enum Kind: Equatable {
         case results
+        /// Plugins' suggestions for the empty panel (app suggestions), above "Recently Used".
+        case suggested
         case recent
         /// The plugin is in the `failed` state; the row links to Settings.
         case unavailable(PluginID)
@@ -58,6 +60,8 @@ final class SearchCoordinator {
     static let sourceLimit = 50
     static let sectionLimit = 20
     static let recentLimit = 8
+    /// The "Suggested" section's size (app suggestions spec).
+    static let suggestionLimit = 5
 
     private let host: PluginHost
     private let usage: any UsageRecorder
@@ -87,7 +91,10 @@ final class SearchCoordinator {
         defer { signposter.endInterval("query", state) }
 
         let sources = host.activeSources
+        let suggestionSources = query.isEmpty ? host.activeSuggestionSources : []
+        async let suggestionResults = suggestions(from: suggestionSources)
         let results = await host.query(query, limit: Self.sourceLimit)
+        let suggested = await suggestionResults
         guard !Task.isCancelled else { return nil }
 
         var groups: [(pluginID: PluginID, source: any SearchSource, candidates: [Candidate])] = []
@@ -113,8 +120,11 @@ final class SearchCoordinator {
         let ranker = Ranker(now: now())
         let statuses = host.activeSearchStatuses.map { PanelStatus(pluginID: $0.pluginID, status: $0.status) }
         if query.isEmpty {
+            let suggestedSection = suggestedSection(suggested, sources: suggestionSources)
+            let suggestedKeys = Set(suggestedSection?.items.map(\.candidate.itemKey) ?? [])
+            let recent = recentSection(groups, stats: stats, ranker: ranker, excluding: suggestedKeys)
             return SearchResults(
-                query: query, sections: recentSection(groups, stats: stats, ranker: ranker), statuses: statuses)
+                query: query, sections: (suggestedSection.map { [$0] } ?? []) + recent, statuses: statuses)
         }
 
         var sections: [ResultSection] = []
@@ -206,10 +216,47 @@ final class SearchCoordinator {
         )
     }
 
+    /// Runs the suggestion sources (an empty list for a typed query) with the per-source budget.
+    private func suggestions(from sources: [RegisteredSource]) async -> [SourceResult] {
+        guard !sources.isEmpty else { return [] }
+        return await host.querySuggestions(sources, limit: Self.suggestionLimit)
+    }
+
+    /// The "Suggested" section: the sources' candidates in plugin order (`app.sectionOrder`, then
+    /// `manifest.order`), each source's order kept, duplicates dropped, at most `suggestionLimit`. Never
+    /// ranked and never looked up in `ranking.sqlite`. `nil` when nothing is suggested.
+    private func suggestedSection(_ results: [SourceResult], sources: [RegisteredSource]) -> ResultSection? {
+        guard !results.isEmpty else { return nil }
+        let kind = LocalizedStringResource("Suggested", comment: "Panel section with suggested apps")
+        var seen = Set<ItemKey>()
+        var items: [ResultItem] = []
+        for entry in SectionOrder.sorted(host.entries, saved: sectionOrder()) {
+            for result in results where result.pluginID == entry.manifest.id {
+                guard case .results(let candidates) = result.outcome,
+                    let registered = sources.first(where: {
+                        $0.pluginID == result.pluginID && $0.source.id == result.sourceID
+                    })
+                else { continue }
+                for candidate in candidates where items.count < Self.suggestionLimit {
+                    guard seen.insert(candidate.itemKey).inserted else { continue }
+                    items.append(
+                        ResultItem(
+                            id: "suggested|\(candidate.itemKey.rawValue)", candidate: candidate,
+                            source: registered.source, kind: kind))
+                }
+            }
+        }
+        guard !items.isEmpty else { return nil }
+        return ResultSection(id: "suggested", title: kind, symbolName: "sparkles", kind: .suggested, items: items)
+    }
+
+    /// "Recently Used": up to `recentLimit` items by frecency, without the suggested ones. The `Ranker` is
+    /// asked for more, so the section stays full after the suggestions are removed.
     private func recentSection(
         _ groups: [(pluginID: PluginID, source: any SearchSource, candidates: [Candidate])],
         stats: [ItemKey: UsageStats],
-        ranker: Ranker
+        ranker: Ranker,
+        excluding excluded: Set<ItemKey> = []
     ) -> [ResultSection] {
         var sourceByKey: [ItemKey: (any SearchSource, LocalizedStringResource)] = [:]
         var candidates: [Candidate] = []
@@ -220,7 +267,9 @@ final class SearchCoordinator {
                 candidates.append(candidate)
             }
         }
-        let recent = ranker.recent(candidates, stats: stats, limit: Self.recentLimit)
+        let recent = ranker.recent(candidates, stats: stats, limit: Self.recentLimit + excluded.count)
+            .filter { !excluded.contains($0.itemKey) }
+            .prefix(Self.recentLimit)
         guard !recent.isEmpty else { return [] }
         let items = recent.compactMap { candidate -> ResultItem? in
             guard let (source, kind) = sourceByKey[candidate.itemKey] else { return nil }
@@ -248,6 +297,22 @@ nonisolated struct ModeSourceAdapter: SearchSource {
 
     func search(_ query: NormalizedQuery, limit: Int) async throws -> [Candidate] {
         try await source.search(query, filter: filter, limit: limit)
+    }
+
+    func actions(for candidate: Candidate) -> [ResultAction] {
+        source.actions(for: candidate)
+    }
+}
+
+/// Presents a plugin's `SuggestionSource` as a `SearchSource`, so the runner's budget and the panel's
+/// action handling apply unchanged. The query is always empty.
+nonisolated struct SuggestionSourceAdapter: SearchSource {
+    let source: any SuggestionSource
+
+    var id: SourceID { source.id }
+
+    func search(_ query: NormalizedQuery, limit: Int) async throws -> [Candidate] {
+        try await source.suggestions(limit: limit)
     }
 
     func actions(for candidate: Candidate) -> [ResultAction] {

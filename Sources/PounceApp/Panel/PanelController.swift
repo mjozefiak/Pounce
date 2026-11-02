@@ -187,7 +187,8 @@ final class PanelController: NSObject, NSWindowDelegate, PanelPresenting, PanelP
 
     // MARK: Keyboard
 
-    /// Command shortcuts: Command-Return (second action), Command-W (clear, then close), Command-,
+    /// Command shortcuts: Command-1… (a list mode's filters, or the n-th suggestion in the empty search
+    /// panel), Command-Return (second action), Command-W (clear, then close), Command-,
     /// (Settings), standard text editing (the app has no Edit menu), and any result action's shortcut.
     /// Command-C copies the field's selection when there is one, before any result action sees it.
     func handleKeyEquivalent(_ event: NSEvent) -> Bool {
@@ -198,6 +199,12 @@ final class PanelController: NSObject, NSWindowDelegate, PanelPresenting, PanelP
 
         // Command-1… pick a list mode's filter.
         if flags == .command, let digit = Int(key), (1...9).contains(digit), model.toggleFilter(at: digit - 1) {
+            return true
+        }
+        // Command-1…5 in the empty search panel open the n-th suggestion.
+        if flags == .command, let digit = Int(key), (1...9).contains(digit),
+            model.performSuggestion(at: digit - 1)
+        {
             return true
         }
         if flags == .control, editor?.hasMarkedText() == true {

@@ -1,5 +1,6 @@
 import Foundation
 import PounceKit
+import SwiftUI
 import os
 
 /// App search: the first plugin (spec Phase 1).
@@ -13,6 +14,10 @@ import os
 /// - `roots` (`[String]`, or one path as a `String`): index roots in priority order, replacing the
 ///   defaults. QA runs point it at a fixture directory.
 /// - `spotlight` (`Bool`, default `true`): whether the Spotlight query supplements the scan.
+/// - `suggestions.enabled` (`Bool`, default `true`): learn which apps the user keeps in front
+///   (`ActivityTracker`, `ActivitySeeder`, `Plugins/apps/activity.json`) and suggest them in the empty
+///   panel (`AppSuggestionSource`).
+/// - `suggestions.hidden` (`[String]`): bundle identifiers hidden from suggestions.
 @MainActor
 public final class AppsPlugin: PouncePlugin {
     public nonisolated static let manifest = PluginManifest(
@@ -22,15 +27,10 @@ public final class AppsPlugin: PouncePlugin {
         order: 10
     )
 
-    enum SettingsKey {
-        static let roots = "roots"
-        static let spotlight = "spotlight"
-    }
-
     /// Spotlight updates arrive in bursts; one rescan follows each quiet period of this length.
     static let refreshDelay: Duration = .seconds(2)
 
-    private let context: PluginContext
+    let context: PluginContext
     let store = AppStore()
     private var watcher: AppMetadataWatcher?
     private var watcherTask: Task<Void, Never>?
@@ -38,16 +38,55 @@ public final class AppsPlugin: PouncePlugin {
     private var pendingRefresh: Task<Void, Never>?
     private var localeObserver: (any NSObjectProtocol)?
     private var spotlightPaths: [String] = []
+    /// `Plugins/apps/activity.json`: app activity behind suggestions.
+    let activity: ActivityStore
+    private var settingsModel: AppsSettingsModel?
+    private(set) var isActive = false
+    /// Wall-clock time for the tracker and the seed (tests inject a fake one).
+    var now: @Sendable () -> Date = { Date() }
+    /// Where the seed reads Spotlight's used dates (tests inject a fake one).
+    var usageDatesReader: any UsageDatesReader = SpotlightUsageDatesReader()
+    var tracker: ActivityTracker?
+    var seedTask: Task<Void, Never>?
+    /// The seed waits for the first finished scan of this activation.
+    var seedPending = false
+    var hasRefreshed = false
 
     public init(context: PluginContext) {
         self.context = context
+        self.activity = ActivityStore(
+            directory: context.storageDirectory, clock: context.clock, logger: context.logger)
     }
 
     public var searchSources: [any SearchSource] {
         [AppSearchSource(store: store, usage: context.usage, workspace: context.workspace)]
     }
 
+    public var suggestionSources: [any SuggestionSource] {
+        [
+            AppSuggestionSource(
+                store: store,
+                activity: activity,
+                settings: context.settings,
+                usage: context.usage,
+                workspace: context.workspace,
+                ownBundleIdentifier: ownBundleIdentifier,
+                resultsChanged: context.resultsChanged,
+                hiddenChanged: { [weak self] in self?.settingsModel?.reload() }
+            )
+        ]
+    }
+
+    /// Pounce's own bundle identifier, never tracked or suggested.
+    var ownBundleIdentifier: String? { Bundle.main.bundleIdentifier }
+
     public func activate() async throws {
+        await activity.load()
+        isActive = true
+        hasRefreshed = false
+        #if DEBUG
+        await seedActivityForQA()
+        #endif
         if let cached = cache.load() {
             store.publish(cached)
             context.resultsChanged()
@@ -59,13 +98,16 @@ public final class AppsPlugin: PouncePlugin {
         ) { [weak self] _ in
             MainActor.assumeIsolated { self?.refresh() }
         }
-        if context.settings.bool(SettingsKey.spotlight, default: true) {
+        if context.settings.bool(AppsSettingsKey.spotlight, default: true) {
             startSpotlight()
         }
+        startCollectingIfAllowed()
         refresh()
     }
 
     public func deactivate() async {
+        isActive = false
+        let stopping = stopCollecting()
         watcherTask?.cancel()
         watcherTask = nil
         watcher?.stop()
@@ -79,6 +121,49 @@ public final class AppsPlugin: PouncePlugin {
         }
         localeObserver = nil
         spotlightPaths = []
+        // A check or seed past its last cancellation point may still write; let it land before closing,
+        // so nothing schedules a save after the plugin is off (for example after Erase Data).
+        for task in stopping {
+            await task.value
+        }
+        await activity.close()
+    }
+
+    public func settingsPane() -> AnyView? {
+        AnyView(AppsSettingsPane(model: makeSettingsModel()))
+    }
+
+    func makeSettingsModel() -> AppsSettingsModel {
+        if let settingsModel {
+            settingsModel.reload()
+            return settingsModel
+        }
+        let model = AppsSettingsModel(settings: context.settings, store: activity)
+        model.roots = { [weak self] in self?.roots ?? [] }
+        model.appName = { [weak self] bundleID in
+            self?.store.app(for: ItemKey(pluginID: Self.manifest.id, key: bundleID))?.record.name
+        }
+        model.spotlightChanged = { [weak self] enabled in self?.setSpotlight(enabled) }
+        model.suggestionsChanged = { [weak self] enabled in self?.setSuggestionsEnabled(enabled) }
+        model.willClearActivity = { [weak self] in self?.cancelSeed() }
+        let resultsChanged = context.resultsChanged
+        model.resultsChanged = { resultsChanged() }
+        settingsModel = model
+        return model
+    }
+
+    /// The Spotlight toggle: starts or stops the supplement and rescans.
+    private func setSpotlight(_ enabled: Bool) {
+        guard isActive else { return }
+        watcherTask?.cancel()
+        watcherTask = nil
+        watcher?.stop()
+        watcher = nil
+        spotlightPaths = []
+        if enabled {
+            startSpotlight()
+        }
+        refresh()
     }
 
     /// Waits for the scan that is running, if any (tests).
@@ -90,7 +175,7 @@ public final class AppsPlugin: PouncePlugin {
 
     var roots: [URL] {
         let settings = context.settings
-        let paths = settings.stringArray(SettingsKey.roots) ?? settings.string(SettingsKey.roots).map { [$0] }
+        let paths = settings.stringArray(AppsSettingsKey.roots) ?? settings.string(AppsSettingsKey.roots).map { [$0] }
         guard let paths, !paths.isEmpty else {
             return AppScanner.defaultRoots(home: FileManager.default.homeDirectoryForCurrentUser)
         }
@@ -110,7 +195,7 @@ public final class AppsPlugin: PouncePlugin {
         let cache = cache
         let logger = context.logger
         let resultsChanged = context.resultsChanged
-        refreshTask = Task.detached(priority: .utility) {
+        refreshTask = Task.detached(priority: .utility) { [weak self] in
             do {
                 var records = try scanner.scan()
                 let scanned = Set(records.map(\.path))
@@ -124,6 +209,7 @@ public final class AppsPlugin: PouncePlugin {
                 let apps = AppCatalog.deduplicate(records)
                 store.publish(apps)
                 resultsChanged()
+                await self?.appsRefreshed(apps)
                 try cache.save(apps)
                 logger.info("Indexed \(apps.count, privacy: .public) apps")
             } catch is CancellationError {

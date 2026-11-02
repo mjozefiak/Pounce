@@ -65,11 +65,21 @@ struct QAOptions: Equatable {
     /// `--qa-record-use <item key>` (repeatable): records a use in the QA ranking database before the
     /// panel opens, so the empty-query "recently used" list has content.
     var recordedUses: [String] = []
+    /// `--qa-activity <bundleID>[=<uses>]` (repeatable): app activity written into the empty QA activity
+    /// store before the panel opens, so the "Suggested" section has content (app suggestions).
+    var appActivity: [String] = []
+    /// `--qa-activity-live`: lets the real activity tracker and Spotlight seed run in QA mode.
+    var liveAppActivity = false
 
     /// The file plugin's DEBUG-only fake home and its roots, which QA mode always sets
     /// (`AppEnvironment.qaFileIndexSettings`).
     static let filesHomeKey = "plugins.files.qaHome"
     static let filesRootsKey = "plugins.files.roots"
+    /// The app plugin's DEBUG-only activity keys (`AppEnvironment.qaAppActivitySettings`).
+    static let appsActivityKey = "plugins.apps.qaActivity"
+    static let appsLiveActivityKey = "plugins.apps.qaLiveActivity"
+    /// Settings that `--qa-setting` reads as comma-separated lists.
+    static let listSettingKeys: Set<String> = [SettingsKeys.sectionOrder, "plugins.apps.suggestions.hidden"]
 
     enum ParseError: Error, Equatable {
         case missingValue(String)
@@ -113,7 +123,7 @@ struct QAOptions: Equatable {
                 let text = String(value[value.index(after: separator)...])
                 // A list setting takes comma-separated values.
                 options.settings[key] =
-                    key == SettingsKeys.sectionOrder
+                    Self.listSettingKeys.contains(key)
                     ? .stringArray(text.split(separator: ",").map(String.init)) : settingValue(text)
             case "--qa-panel":
                 guard let value = iterator.next() else { throw .missingValue(argument) }
@@ -168,11 +178,27 @@ struct QAOptions: Equatable {
                 guard let value = iterator.next() else { throw .missingValue(argument) }
                 guard ItemKey(rawValue: value) != nil else { throw .invalidValue(argument, value) }
                 options.recordedUses.append(value)
+            case "--qa-activity":
+                guard let value = iterator.next() else { throw .missingValue(argument) }
+                guard Self.isActivityEntry(value) else { throw .invalidValue(argument, value) }
+                options.appActivity.append(value)
+            case "--qa-activity-live":
+                options.liveAppActivity = true
             default:
                 throw .unknownArgument(argument)
             }
         }
         return options
+    }
+
+    /// `<bundleID>` or `<bundleID>=<uses>` with a positive number of uses.
+    static func isActivityEntry(_ value: String) -> Bool {
+        let parts = value.split(separator: "=", omittingEmptySubsequences: false)
+        guard let bundleID = parts.first, !bundleID.isEmpty, !bundleID.contains(","), !bundleID.hasPrefix("-"),
+            parts.count <= 2
+        else { return false }
+        guard parts.count == 2 else { return true }
+        return Int(parts[1]).map { $0 > 0 } ?? false
     }
 
     private static func settingValue(_ text: String) -> SettingValue {
