@@ -22,6 +22,14 @@ final class DictationController {
         var keepWarm: () -> Duration
         var clock: any Clock<Duration>
         var now: () -> ContinuousClock.Instant = { ContinuousClock.now }
+        /// Saves a finished dictation in the history (a no-op when it is off or unavailable).
+        var recordHistory: @MainActor (DictationEntry) -> Void = { _ in }
+        /// The bundle id of the app in front, read just before pasting.
+        var frontmostBundleID: () -> String? = { nil }
+        var formatMode: () -> FormatMode = { .raw }
+        var speechModelID: () -> String = { "" }
+        var formatterModel: () -> String? = { nil }
+        var wallClock: () -> Date = { Date() }
     }
 
     private let deps: Dependencies
@@ -161,8 +169,10 @@ final class DictationController {
             logger.info(
                 "Dictated \(output.segmentCount, privacy: .public) segments, \(output.duration, privacy: .public) s")
             lastRawText = output.rawText
+            let target = deps.frontmostBundleID()
             let outcome = await deps.paster.paste(output.text)
             self.session = nil
+            recordHistory(output, outcome: outcome, target: target)
             switch outcome {
             case .pasted:
                 if output.formatting.isPartial {
@@ -182,6 +192,48 @@ final class DictationController {
             gesture.finished()
         } catch {
             end(with: .modelFailedToLoad)
+        }
+    }
+
+    /// Saves the dictation after it was pasted (or copied), with what became of it.
+    private func recordHistory(_ output: DictationSession.Output, outcome: TextPaster.Outcome, target: String?) {
+        let mode = deps.formatMode()
+        let summary = output.formatting
+        let status: FormatStatus
+        if mode == .raw || summary.chunks == 0 {
+            status = .none
+        } else if summary.fellBack == 0 {
+            status = .ok
+        } else if summary.fellBack == summary.chunks {
+            status = .failed
+        } else {
+            status = .partial
+        }
+        let raw = output.rawText
+        let languages: String
+        switch Language.dominant(in: raw) {
+        case .polish: languages = "pl"
+        case .english: languages = "en"
+        case .unknown: languages = ""
+        }
+        let pasted: Bool
+        if case .pasted = outcome { pasted = true } else { pasted = false }
+        deps.recordHistory(
+            DictationEntry(
+                createdAt: deps.wallClock(), durationMs: Int(output.duration * 1000), rawText: raw,
+                formattedText: mode == .clean && status != .failed && status != .none ? output.text : nil,
+                formatMode: mode, formatStatus: status, detectedLanguages: languages,
+                speechModelID: deps.speechModelID(), formatterModel: mode == .clean ? deps.formatterModel() : nil,
+                targetBundleID: pasted ? target : nil, pasteResult: pasted ? .pasted : .copied))
+    }
+
+    /// Pastes text from the history into the app in front (the panel has just closed).
+    func pasteFromHistory(_ text: String) async {
+        guard !isBusy else { return }
+        try? await deps.clock.sleep(for: .milliseconds(200))
+        switch await deps.paster.paste(text) {
+        case .pasted: deps.hud.show(.pasted)
+        case .copied(let reason): deps.hud.show(.copied(reason))
         }
     }
 

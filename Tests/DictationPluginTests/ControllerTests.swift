@@ -60,6 +60,8 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         var ranges = [(1 * AudioFormat.sampleRate)..<(2 * AudioFormat.sampleRate)]
         var audioStarted = 0
         var formatter: (any TextFormatter)?
+        var recorded: [DictationEntry] = []
+        var mode = FormatMode.raw
         var now = ContinuousClock.now
         var installed = true
 
@@ -105,7 +107,10 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
                         return EscapeKeyClaim(isActive: true) { rig.escapeReleases += 1 }
                     },
                     openSettings: { rig.settingsOpened += 1 },
-                    keepWarm: { keepWarm }, clock: paste.clock, now: { rig.now }))
+                    keepWarm: { keepWarm }, clock: paste.clock, now: { rig.now },
+                    recordHistory: { rig.recorded.append($0) },
+                    frontmostBundleID: { "com.example.target" },
+                    formatMode: { rig.mode }, speechModelID: { "fixture" }, formatterModel: { "qwen" }))
         }
 
         func tearDown() { paste.pasteboard.release() }
@@ -359,6 +364,95 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         controller.pasteLastRaw()
         #expect(rig.hud.last == .problem(.nothingToPaste))
         #expect(rig.paste.events.posts == 0)
+    }
+
+    // MARK: History
+
+    private func dictate(_ rig: Rig, _ controller: DictationController) async throws {
+        controller.menu()
+        try await Task.sleep(for: .milliseconds(100))
+        controller.menu()
+        await settle(rig)
+    }
+
+    @Test func aRawDictationIsRecordedAfterThePaste() async throws {
+        let rig = try Rig()
+        defer { rig.tearDown() }
+        let controller = rig.controller()
+        try await dictate(rig, controller)
+
+        let entry = try #require(rig.recorded.first)
+        #expect(rig.recorded.count == 1)
+        #expect(entry.rawText == "segment 1")
+        #expect(entry.formattedText == nil)
+        #expect(entry.formatMode == .raw)
+        #expect(entry.formatStatus == .none)
+        #expect(entry.pasteResult == .pasted)
+        #expect(entry.targetBundleID == "com.example.target")
+        #expect(entry.speechModelID == "fixture")
+        #expect(entry.formatterModel == nil)
+    }
+
+    @Test func aCleanedDictationKeepsBothVersions() async throws {
+        let rig = try Rig()
+        defer { rig.tearDown() }
+        rig.mode = .clean
+        rig.formatter = StubFormatter { chunk, _ in FormatResult(text: "Clean \(chunk)", outcome: .formatted) }
+        let controller = rig.controller()
+        try await dictate(rig, controller)
+
+        let entry = try #require(rig.recorded.first)
+        #expect(entry.rawText == "segment 1")
+        #expect(entry.formattedText == "Clean segment 1")
+        #expect(entry.formatMode == .clean)
+        #expect(entry.formatStatus == .ok)
+        #expect(entry.formatterModel == "qwen")
+    }
+
+    @Test func aFailedFormattingIsRecordedAsFailedWithoutAFormattedText() async throws {
+        let rig = try Rig()
+        defer { rig.tearDown() }
+        rig.mode = .clean
+        rig.formatter = StubFormatter { chunk, _ in FormatResult(text: chunk, outcome: .fellBack(.unreachable)) }
+        let controller = rig.controller()
+        try await dictate(rig, controller)
+
+        let entry = try #require(rig.recorded.first)
+        #expect(entry.formatStatus == .failed)
+        #expect(entry.formattedText == nil)
+        #expect(entry.bestText == "segment 1")
+    }
+
+    @Test func aCopyOnlyResultIsRecordedWithoutATarget() async throws {
+        let rig = try Rig()
+        defer { rig.tearDown() }
+        rig.paste.permissions.states[.accessibility] = .denied
+        let controller = rig.controller()
+        try await dictate(rig, controller)
+
+        let entry = try #require(rig.recorded.first)
+        #expect(entry.pasteResult == .copied)
+        #expect(entry.targetBundleID == nil)
+    }
+
+    @Test func aCancelledOrSilentRecordingLeavesNoEntry() async throws {
+        let rig = try Rig()
+        defer { rig.tearDown() }
+        let controller = rig.controller()
+        controller.menu()
+        try await Task.sleep(for: .milliseconds(50))
+        controller.cancel()
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(rig.recorded.isEmpty)
+    }
+
+    @Test func pastingFromTheHistoryDoesNotRecordAgain() async throws {
+        let rig = try Rig()
+        defer { rig.tearDown() }
+        let controller = rig.controller()
+        await controller.pasteFromHistory("from the history")
+        #expect(rig.paste.pasteboard.string() == "from the history")
+        #expect(rig.recorded.isEmpty)
     }
 }
 

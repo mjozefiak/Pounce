@@ -28,6 +28,8 @@ public final class DictationPlugin: PouncePlugin {
 
     static let recordCommandID = "dictation.record"
     static let pasteLastRawCommandID = "dictation.pasteLastRaw"
+    static let historyCommandID = "dictation.history"
+    static let historyModeID: PanelModeID = "dictation.history"
     static let onboardingStepID = "dictation.setup"
 
     let context: PluginContext
@@ -39,6 +41,8 @@ public final class DictationPlugin: PouncePlugin {
     private let settingsModel: DictationSettingsModel
     private let formattingModel: FormattingSettingsModel
     private let transport: any HTTPTransport
+    let history: DictationHistory
+    private let historyModel: HistorySettingsModel
     private(set) var controller: DictationController?
 
     public init(context: PluginContext) {
@@ -62,6 +66,10 @@ public final class DictationPlugin: PouncePlugin {
             authorizer: authorizer,
             pickFolder: { Self.chooseModelFolder() },
             openURL: { url in Task { try? await workspace.open(url) } })
+        history = DictationHistory(
+            directory: context.storageDirectory, keychain: context.keychain, settings: settings,
+            clock: context.clock, logger: context.logger, changed: context.resultsChanged)
+        historyModel = HistorySettingsModel(settings: settings, history: history)
         let transport = LoopbackTransport()
         self.transport = transport
         formattingModel = FormattingSettingsModel(settings: settings, transport: transport)
@@ -94,6 +102,7 @@ public final class DictationPlugin: PouncePlugin {
         let settings = settings
         let engine = engine
         let transport = transport
+        let history = history
         let controller = DictationController(
             .init(
                 authorizer: authorizer, models: models,
@@ -116,19 +125,29 @@ public final class DictationPlugin: PouncePlugin {
                     permissions: context.permissions, clock: context.clock,
                     restoresClipboard: { settings.restoresClipboard }, logger: context.logger),
                 hud: hud, claimEscape: context.claimEscapeKey, openSettings: context.openSettings,
-                keepWarm: { settings.keepWarm }, clock: context.clock))
+                keepWarm: { settings.keepWarm }, clock: context.clock,
+                recordHistory: { history.record($0) },
+                frontmostBundleID: { context.workspace.frontmostApplication?.bundleIdentifier },
+                formatMode: { settings.mode == .cleanup ? .clean : .raw },
+                speechModelID: { settings.speechModelID },
+                formatterModel: { settings.llmModel }))
         self.controller = controller
         relay.controller = controller
+        history.open()
     }
 
     public func deactivate() async {
         await controller?.shutDown()
+        history.close()
         controller = nil
         relay.controller = nil
     }
 
     /// "Erase Data": the host deletes `Plugins/dictation/` (models and, later, the history) after this.
-    public func eraseData() async throws {}
+    /// Removes the history's Keychain item; the folder (models, `dictation.sqlite`) is deleted by the host.
+    public func eraseData() async throws {
+        try history.erase()
+    }
 
     // MARK: Contributions
 
@@ -149,6 +168,51 @@ public final class DictationPlugin: PouncePlugin {
                     comment: "Menu item and command that pastes the last dictation without formatting"),
                 symbolName: "text.badge.minus",
                 run: { relay.controller?.pasteLastRaw() }),
+            PluginCommand(
+                id: Self.historyCommandID,
+                title: LocalizedStringResource(
+                    "Dictation History", comment: "Menu item and command that opens the dictation history"),
+                symbolName: "clock.arrow.circlepath",
+                panelMode: Self.historyModeID),
+        ]
+    }
+
+    public var panelModes: [PanelMode] {
+        let history = history
+        let relay = relay
+        let source = DictationHistorySource(
+            store: { history.storeBox.value },
+            paste: { text in await relay.pasteFromHistory(text) },
+            delete: { id in try await history.delete([id]) })
+        return [
+            PanelMode(
+                id: Self.historyModeID,
+                title: LocalizedStringResource(
+                    "Dictation History", comment: "Menu item and command that opens the dictation history"),
+                symbolName: "clock.arrow.circlepath",
+                source: source,
+                filters: [
+                    PanelModeFilter(
+                        id: HistoryFilter.all.rawValue,
+                        title: LocalizedStringResource("All", comment: "Dictation history filter"),
+                        symbolName: "list.bullet"),
+                    PanelModeFilter(
+                        id: HistoryFilter.formatted.rawValue,
+                        title: LocalizedStringResource("Formatted", comment: "Dictation history filter"),
+                        symbolName: "wand.and.stars"),
+                    PanelModeFilter(
+                        id: HistoryFilter.raw.rawValue,
+                        title: LocalizedStringResource("Raw", comment: "Dictation history filter"),
+                        symbolName: "text.alignleft"),
+                ],
+                makeStatus: { AnyView(DictationHistoryStatusView(history: history)) },
+                makePreview: { candidate in
+                    AnyView(
+                        DictationPreview(
+                            id: DictationPresentation.entryID(candidate.itemKey),
+                            load: { id in try? history.storeBox.value?.entry(id) }))
+                },
+                makeEmptyView: { AnyView(DictationHistoryEmptyView(history: history)) })
         ]
     }
 
@@ -174,7 +238,7 @@ public final class DictationPlugin: PouncePlugin {
     public func settingsPane() -> AnyView? {
         AnyView(
             DictationSettingsPane(
-                model: settingsModel, formatting: formattingModel,
+                model: settingsModel, formatting: formattingModel, history: historyModel,
                 recorder: context.makeShortcutRecorder(Self.recordCommandID)))
     }
 }
@@ -183,6 +247,10 @@ public final class DictationPlugin: PouncePlugin {
 @MainActor
 final class ControllerRelay {
     var controller: DictationController?
+
+    func pasteFromHistory(_ text: String) async {
+        await controller?.pasteFromHistory(text)
+    }
 }
 
 /// Creates the Silero detector when the first audio arrives, so a missing VAD file fails the recording and not
