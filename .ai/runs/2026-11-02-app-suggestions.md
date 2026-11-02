@@ -35,6 +35,7 @@ Steps follow the spec's Implementation Plan 1–12 one to one.
 ## Review fixes
 
 - Review pass (inline om-code-review): no blockers; minors 1–3 fixed in 1910468, Clear-during-seed test added; deferred: test that the seed waits for the first scan, `.regular` filter for the frontmost app at tracker start, shell-side QA list key.
+- Independent review (approved, 2 minors + 4 nits, review 5738753225): all six fixed in 26a1156 — future `lastUsedAt` clamped on load/record/merge (tracker ignores a future last use), test that the seed waits for the first finished scan, `.regular` filter for the frontmost app at tracker start (via `runningApplicationBundleIDs`, no contract change), duplicate doc summary dropped, deferred save keeps a newer `saveTask`, hiding an app reloads an open Settings pane.
 
 ## Progress
 
