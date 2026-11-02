@@ -2,7 +2,7 @@
 import PackageDescription
 
 // Dependency graph (one way only, see AGENTS.md):
-//   PounceApp -> plugins (AppsPlugin, FilesPlugin, ClipboardPlugin) -> PouncePersistence / PounceCore -> PounceKit
+//   PounceApp -> plugins (AppsPlugin, FilesPlugin, ClipboardPlugin, DictationPlugin) -> PouncePersistence / PounceCore -> PounceKit
 // Only PounceApp is MainActor by default; every other target stays nonisolated and declares
 // isolation explicitly.
 let package = Package(
@@ -17,6 +17,10 @@ let package = Package(
         .package(path: "Packages/GRDBCipher"),
         // Global shortcuts and the shortcut recorder (MIT), used by PounceApp only.
         .package(url: "https://github.com/sindresorhus/KeyboardShortcuts.git", exact: "1.10.0"),
+        // Local speech to text (Parakeet) and voice activity detection through Core ML (Apache-2.0), used by
+        // DictationPlugin only. 0.x: its API stays behind the SpeechEngine port (ADR 0003). `traits: []` leaves out
+        // text to speech, diarization and the bundled Rust text engine: dictation needs ASR and VAD only.
+        .package(url: "https://github.com/FluidInference/FluidAudio.git", exact: "0.18.2", traits: []),
     ],
     targets: [
         .target(name: "PounceKit"),
@@ -50,6 +54,15 @@ let package = Package(
                 .product(name: "GRDB", package: "GRDBCipher"),
             ]
         ),
+        .target(
+            name: "DictationPlugin",
+            dependencies: [
+                "PounceKit",
+                "PounceCore",
+                "PouncePersistence",
+                .product(name: "FluidAudio", package: "FluidAudio"),
+            ]
+        ),
         .executableTarget(
             name: "PounceApp",
             dependencies: [
@@ -59,6 +72,7 @@ let package = Package(
                 "AppsPlugin",
                 "FilesPlugin",
                 "ClipboardPlugin",
+                "DictationPlugin",
                 .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
             ],
             swiftSettings: [.defaultIsolation(MainActor.self)]
@@ -88,6 +102,10 @@ let package = Package(
                 "PouncePersistence",
                 .product(name: "GRDB", package: "GRDBCipher"),
             ]
+        ),
+        .testTarget(
+            name: "DictationPluginTests",
+            dependencies: ["DictationPlugin", "PounceKit", "PounceCore", "PouncePersistence"]
         ),
         .testTarget(
             name: "PouncePersistenceTests",

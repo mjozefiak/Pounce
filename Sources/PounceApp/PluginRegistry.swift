@@ -1,5 +1,6 @@
 import AppsPlugin
 import ClipboardPlugin
+import DictationPlugin
 import FilesPlugin
 import PounceKit
 
@@ -10,5 +11,6 @@ enum PluginRegistry {
         AppsPlugin.self,
         FilesPlugin.self,
         ClipboardPlugin.self,
+        DictationPlugin.self,
     ]
 }

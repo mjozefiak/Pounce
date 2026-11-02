@@ -955,6 +955,42 @@
         }
       }
     },
+    "Dictate" : {
+      "comment" : "Menu item and command that starts dictation",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictate"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dyktuj"
+          }
+        }
+      }
+    },
+    "Dictation" : {
+      "comment" : "Plugin name of voice dictation",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictation"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dyktowanie"
+          }
+        }
+      }
+    },
     "Dismiss" : {
       "comment" : "Button that dismisses a notice",
       "extractionState" : "manual",

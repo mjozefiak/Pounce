@@ -54,6 +54,8 @@ fi
 
 # Localizations: compile the String Catalog into <lang>.lproj/Localizable.strings.
 xcrun xcstringstool compile Resources/Localizable.xcstrings --output-directory "$OUT/Contents/Resources"
+# The microphone usage description is looked up in InfoPlist.strings of the user's language.
+xcrun xcstringstool compile Resources/InfoPlist.xcstrings --output-directory "$OUT/Contents/Resources"
 
 plutil -lint "$OUT/Contents/Info.plist" >/dev/null
 
