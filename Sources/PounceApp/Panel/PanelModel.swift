@@ -225,6 +225,33 @@ final class PanelModel {
         return true
     }
 
+    /// Command-1…Command-5 in the search mode with an empty query: runs the first action of the n-th
+    /// suggestion (app suggestions). Returns whether there was such a suggestion; a typed query or a
+    /// plugin mode leaves the shortcut alone (a list mode's filters keep it).
+    @discardableResult
+    func performSuggestion(at index: Int) -> Bool {
+        guard mode == .search, query.isEmpty, index >= 0, index < SearchCoordinator.suggestionLimit,
+            let section = results.sections.first(where: { $0.kind == .suggested }),
+            section.items.indices.contains(index),
+            let position = results.items.firstIndex(where: { $0.id == section.items[index].id })
+        else { return false }
+        select(position)
+        performPrimary()
+        return true
+    }
+
+    /// The section of the selected row.
+    var selectedSection: ResultSection? {
+        guard let item = selectedItem else { return nil }
+        return results.sections.first { section in section.items.contains { $0.id == item.id } }
+    }
+
+    /// How many of the selected row's actions the footer lists: a suggestion also shows its third action
+    /// (Hide from Suggestions); every other row its first two.
+    var footerActionLimit: Int {
+        selectedSection?.kind == .suggested ? 3 : 2
+    }
+
     /// Waits for the current search (tests).
     func waitForSearch() async {
         await searchTask?.value

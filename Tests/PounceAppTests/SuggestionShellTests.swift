@@ -273,3 +273,84 @@ actor NumberedUsage: UsageRecorder {
     }
 }
 #endif
+
+@MainActor
+@Suite struct SuggestionKeyboardTests {
+    func makeModel(_ test: TestEnvironment) async -> (PanelModel, PluginHost, FakePresenter) {
+        let host = test.makeHost([RecentAndSuggestingPlugin.self])
+        await host.start()
+        let coordinator = SearchCoordinator(host: host, usage: NumberedUsage())
+        let model = PanelModel { await coordinator.search($0) }
+        let presenter = FakePresenter()
+        model.presenter = presenter
+        model.panelPresenter = presenter
+        model.announce = { _ in }
+        return (model, host, presenter)
+    }
+
+    @Test func commandNumbersOpenTheNthSuggestion() async throws {
+        let test = try TestEnvironment()
+        defer { test.tearDown() }
+        let (model, host, presenter) = await makeModel(test)
+        model.show()
+        await model.waitForSearch()
+        #expect(model.selectedItem?.id == "suggested|lib:k1")
+        #expect(model.footerActionLimit == 3)
+
+        #expect(model.performSuggestion(at: 1))
+        await model.waitForAction()
+        #expect(SuggestionLog.shared.all.contains("open k2"))
+        #expect(!model.isVisible)
+        #expect(presenter.dismissed == 1)
+
+        // There is no fourth suggestion; Command-6 and later are never suggestions.
+        model.show()
+        await model.waitForSearch()
+        #expect(!model.performSuggestion(at: 3))
+        #expect(!model.performSuggestion(at: 5))
+        model.moveSelection(by: 4)
+        #expect(model.selectedSection?.kind == .recent)
+        #expect(model.footerActionLimit == 2)
+        await host.stop()
+    }
+
+    @Test func aTypedQueryLeavesCommandNumbersAlone() async throws {
+        let test = try TestEnvironment()
+        defer { test.tearDown() }
+        let (model, host, _) = await makeModel(test)
+        model.show()
+        await model.waitForSearch()
+        model.updateQuery("item")
+        await model.waitForSearch()
+        #expect(!model.performSuggestion(at: 0))
+        #expect(model.isVisible)
+        await host.stop()
+    }
+
+    @Test func listModeFiltersKeepCommandNumbers() async throws {
+        let test = try TestEnvironment()
+        defer { test.tearDown() }
+        let coordinator = SearchCoordinator(host: test.makeHost([]), usage: SpyUsageRecorder())
+        let model = PanelModel { _ in .empty }
+        let mode = notesMode(log: ActionLog(), opened: ActionLog())
+        model.panelMode = { $0 == "notes" ? mode : nil }
+        model.modeSearch = { mode, text, filter in await coordinator.search(mode: mode, raw: text, filter: filter) }
+        model.announce = { _ in }
+        model.show(mode: .plugin("notes"))
+        await model.waitForSearch()
+        #expect(!model.performSuggestion(at: 0))
+        #expect(model.toggleFilter(at: 0))
+    }
+
+    @Test func rowsSpeakTheBadgeKindAndShortcut() {
+        let candidate = Candidate(
+            itemKey: ItemKey(pluginID: "apps", key: "com.example.chat"), title: "Chat", icon: .symbol("app"),
+            match: MatchResult(tier: .exact, score: 0), badge: "Running")
+        let item = ResultItem(
+            id: "suggested|apps:com.example.chat", candidate: candidate,
+            source: SuggestionSourceAdapter(source: FixedSuggestions(id: "x", pluginID: "apps", keys: [])),
+            kind: "Suggested")
+        #expect(ResultRow.accessibilityValue(item, shortcutNumber: 1) == "Running, Suggested, Command-1")
+        #expect(ResultRow.accessibilityValue(item, shortcutNumber: nil) == "Running, Suggested")
+    }
+}

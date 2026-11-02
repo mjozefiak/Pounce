@@ -34,7 +34,8 @@ struct LauncherView: View {
                 ResultList(model: model, icons: icons)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 Divider()
-                ActionFooter(actions: model.selectedActions, textSize: model.textSize)
+                ActionFooter(
+                    actions: model.selectedActions, textSize: model.textSize, limit: model.footerActionLimit)
             }
         }
         .frame(width: PanelModel.Metrics.width, height: model.preferredHeight, alignment: .top)
@@ -80,13 +81,16 @@ struct ResultList: View {
                         if case .unavailable = section.kind {
                             UnavailableRow(textSize: model.textSize, openSettings: model.openSettings)
                         }
-                        ForEach(section.items) { item in
+                        ForEach(Array(section.items.enumerated()), id: \.element.id) { position, item in
                             let index = indices[item.id] ?? 0
                             ResultRow(
                                 item: item,
                                 isSelected: model.selectedIndex == index,
                                 textSize: model.textSize,
-                                icons: icons
+                                icons: icons,
+                                shortcutNumber: section.kind == .suggested
+                                    && position < SearchCoordinator.suggestionLimit
+                                    ? position + 1 : nil
                             )
                             .id(item.id)
                             .onTapGesture(count: 2) {
@@ -235,6 +239,8 @@ struct ResultRow: View {
     let isSelected: Bool
     let textSize: TextSize
     let icons: IconCache
+    /// The n of the row's Command-n shortcut (suggestions), shown on the right.
+    var shortcutNumber: Int?
 
     @Environment(\.colorSchemeContrast) private var contrast
 
@@ -244,10 +250,27 @@ struct ResultRow: View {
         HStack(spacing: 10) {
             IconView(ref: item.candidate.icon, icons: icons)
             VStack(alignment: .leading, spacing: 1) {
-                Text(Self.highlighted(item.candidate, isSelected: isSelected, textSize: textSize))
-                    .font(textSize.font(.body))
-                    .lineLimit(textSize == .extraLarge ? 3 : 1)
-                    .fixedSize(horizontal: false, vertical: textSize == .extraLarge)
+                HStack(spacing: 8) {
+                    Text(Self.highlighted(item.candidate, isSelected: isSelected, textSize: textSize))
+                        .font(textSize.font(.body))
+                        .lineLimit(textSize == .extraLarge ? 3 : 1)
+                        .fixedSize(horizontal: false, vertical: textSize == .extraLarge)
+                    if let badge = item.candidate.badge {
+                        Text(badge)
+                            .font(textSize.font(.caption1))
+                            .foregroundStyle(
+                                isSelected ? AnyShapeStyle(selectedText.opacity(0.85)) : AnyShapeStyle(.secondary)
+                            )
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 1)
+                            .background(
+                                Capsule().strokeBorder(
+                                    isSelected ? AnyShapeStyle(selectedText.opacity(0.6)) : AnyShapeStyle(.tertiary))
+                            )
+                            .lineLimit(1)
+                            .fixedSize()
+                    }
+                }
                 if let subtitle = item.candidate.subtitle {
                     Text(subtitle)
                         .font(textSize.font(.subheadline))
@@ -259,6 +282,12 @@ struct ResultRow: View {
                 }
             }
             Spacer(minLength: 0)
+            if let shortcutNumber {
+                Text(verbatim: "⌘\(shortcutNumber)")
+                    .font(textSize.font(.subheadline))
+                    .monospacedDigit()
+                    .foregroundStyle(isSelected ? AnyShapeStyle(selectedText.opacity(0.85)) : AnyShapeStyle(.tertiary))
+            }
         }
         .padding(.horizontal, 8)
         .frame(minHeight: PanelModel.Metrics.rowHeight * textSize.scale)
@@ -283,9 +312,23 @@ struct ResultRow: View {
     }
 
     private var accessibilityValue: String {
-        let kind = String(localized: item.kind)
-        guard let subtitle = item.candidate.subtitle else { return kind }
-        return "\(kind), \(subtitle)"
+        Self.accessibilityValue(item, shortcutNumber: shortcutNumber)
+    }
+
+    /// Badge, kind, subtitle and the Command-n shortcut, in words: "Running, Suggested, Command-1".
+    static func accessibilityValue(_ item: ResultItem, shortcutNumber: Int?) -> String {
+        var parts: [String] = []
+        if let badge = item.candidate.badge {
+            parts.append(badge)
+        }
+        parts.append(String(localized: item.kind))
+        if let subtitle = item.candidate.subtitle {
+            parts.append(subtitle)
+        }
+        if let shortcutNumber {
+            parts.append(ActionFooter.spokenKeys(KeyShortcut(key: "\(shortcutNumber)", modifiers: .command)))
+        }
+        return parts.joined(separator: ", ")
     }
 
     /// Matched characters are bold, and also accent-coloured when the row is not selected, so a match
@@ -347,11 +390,13 @@ struct IconView: View {
 struct ActionFooter: View {
     let actions: [ResultAction]
     let textSize: TextSize
+    /// How many actions are listed (the first ones).
+    var limit = 2
 
     var body: some View {
         HStack(spacing: 16) {
             Spacer(minLength: 0)
-            ForEach(actions.prefix(2)) { action in
+            ForEach(actions.prefix(limit)) { action in
                 HStack(spacing: 6) {
                     Text(action.title)
                     if let shortcut = action.shortcut {
