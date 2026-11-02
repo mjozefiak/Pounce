@@ -32,6 +32,10 @@ Steps follow the spec's Implementation Plan 1–12 one to one.
 - Local/manual checks (steps 1, 4, 5, 6, 11) need a GUI session; anything not run is reported as such in the PR body.
 - Open dictation PRs (#15–#19) also extend `PounceKit`; whichever merges second resolves additive conflicts.
 
+## Review fixes
+
+- Review pass (inline om-code-review): no blockers; minors 1–3 fixed in 1910468, Clear-during-seed test added; deferred: test that the seed waits for the first scan, `.regular` filter for the frontmost app at tracker start, shell-side QA list key.
+
 ## Progress
 
 PR: #20
