@@ -1,5 +1,6 @@
 import Foundation
 import PounceKit
+import SwiftUI
 import os
 
 /// App search: the first plugin (spec Phase 1).
@@ -22,11 +23,6 @@ public final class AppsPlugin: PouncePlugin {
         order: 10
     )
 
-    enum SettingsKey {
-        static let roots = "roots"
-        static let spotlight = "spotlight"
-    }
-
     /// Spotlight updates arrive in bursts; one rescan follows each quiet period of this length.
     static let refreshDelay: Duration = .seconds(2)
 
@@ -38,9 +34,15 @@ public final class AppsPlugin: PouncePlugin {
     private var pendingRefresh: Task<Void, Never>?
     private var localeObserver: (any NSObjectProtocol)?
     private var spotlightPaths: [String] = []
+    /// `Plugins/apps/activity.json`: app activity behind suggestions.
+    let activity: ActivityStore
+    private var settingsModel: AppsSettingsModel?
+    private var isActive = false
 
     public init(context: PluginContext) {
         self.context = context
+        self.activity = ActivityStore(
+            directory: context.storageDirectory, clock: context.clock, logger: context.logger)
     }
 
     public var searchSources: [any SearchSource] {
@@ -48,6 +50,8 @@ public final class AppsPlugin: PouncePlugin {
     }
 
     public func activate() async throws {
+        await activity.load()
+        isActive = true
         if let cached = cache.load() {
             store.publish(cached)
             context.resultsChanged()
@@ -59,13 +63,14 @@ public final class AppsPlugin: PouncePlugin {
         ) { [weak self] _ in
             MainActor.assumeIsolated { self?.refresh() }
         }
-        if context.settings.bool(SettingsKey.spotlight, default: true) {
+        if context.settings.bool(AppsSettingsKey.spotlight, default: true) {
             startSpotlight()
         }
         refresh()
     }
 
     public func deactivate() async {
+        isActive = false
         watcherTask?.cancel()
         watcherTask = nil
         watcher?.stop()
@@ -79,6 +84,42 @@ public final class AppsPlugin: PouncePlugin {
         }
         localeObserver = nil
         spotlightPaths = []
+        await activity.close()
+    }
+
+    public func settingsPane() -> AnyView? {
+        AnyView(AppsSettingsPane(model: makeSettingsModel()))
+    }
+
+    func makeSettingsModel() -> AppsSettingsModel {
+        if let settingsModel {
+            settingsModel.reload()
+            return settingsModel
+        }
+        let model = AppsSettingsModel(settings: context.settings, store: activity)
+        model.roots = { [weak self] in self?.roots ?? [] }
+        model.appName = { [weak self] bundleID in
+            self?.store.app(for: ItemKey(pluginID: Self.manifest.id, key: bundleID))?.record.name
+        }
+        model.spotlightChanged = { [weak self] enabled in self?.setSpotlight(enabled) }
+        let resultsChanged = context.resultsChanged
+        model.resultsChanged = { resultsChanged() }
+        settingsModel = model
+        return model
+    }
+
+    /// The Spotlight toggle: starts or stops the supplement and rescans.
+    private func setSpotlight(_ enabled: Bool) {
+        guard isActive else { return }
+        watcherTask?.cancel()
+        watcherTask = nil
+        watcher?.stop()
+        watcher = nil
+        spotlightPaths = []
+        if enabled {
+            startSpotlight()
+        }
+        refresh()
     }
 
     /// Waits for the scan that is running, if any (tests).
@@ -90,7 +131,7 @@ public final class AppsPlugin: PouncePlugin {
 
     var roots: [URL] {
         let settings = context.settings
-        let paths = settings.stringArray(SettingsKey.roots) ?? settings.string(SettingsKey.roots).map { [$0] }
+        let paths = settings.stringArray(AppsSettingsKey.roots) ?? settings.string(AppsSettingsKey.roots).map { [$0] }
         guard let paths, !paths.isEmpty else {
             return AppScanner.defaultRoots(home: FileManager.default.homeDirectoryForCurrentUser)
         }

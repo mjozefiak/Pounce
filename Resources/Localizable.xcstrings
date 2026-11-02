@@ -397,6 +397,24 @@
         }
       }
     },
+    "Also lists apps outside the searched folders that Spotlight knows." : {
+      "comment" : "Settings description of the Spotlight app supplement",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Also lists apps outside the searched folders that Spotlight knows."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuje też aplikacje spoza przeszukiwanych folderów, które zna Spotlight."
+          }
+        }
+      }
+    },
     "Always allowed" : {
       "comment" : "Clipboard access state",
       "extractionState" : "manual",
@@ -429,6 +447,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zawsze pomijane: ~/Library, node_modules, .git, DerivedData i foldery pamięci podręcznej."
+          }
+        }
+      }
+    },
+    "App activity was saved by a newer version of Pounce. Suggestions are off until you update." : {
+      "comment" : "Settings message when activity.json comes from a newer version",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App activity was saved by a newer version of Pounce. Suggestions are off until you update."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktywność aplikacji zapisała nowsza wersja Pounce. Sugestie są wyłączone do czasu aktualizacji."
+          }
+        }
+      }
+    },
+    "App index" : {
+      "comment" : "Settings section title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App index"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indeks aplikacji"
           }
         }
       }
@@ -523,6 +577,42 @@
         }
       }
     },
+    "Clear App Activity" : {
+      "comment" : "Clear App Activity confirmation button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear App Activity"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyczyść aktywność aplikacji"
+          }
+        }
+      }
+    },
+    "Clear App Activity…" : {
+      "comment" : "Button that deletes the recorded app activity",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear App Activity…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyczyść aktywność aplikacji…"
+          }
+        }
+      }
+    },
     "Clear History" : {
       "comment" : "Clear History confirmation button",
       "extractionState" : "manual",
@@ -555,6 +645,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wyczyść historię…"
+          }
+        }
+      }
+    },
+    "Clear the app activity?" : {
+      "comment" : "Clear App Activity confirmation title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear the app activity?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyczyścić aktywność aplikacji?"
           }
         }
       }
@@ -1293,6 +1401,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Filtry"
+          }
+        }
+      }
+    },
+    "Find apps with Spotlight" : {
+      "comment" : "Settings toggle for the Spotlight app supplement",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find apps with Spotlight"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Znajduj aplikacje przez Spotlight"
           }
         }
       }
@@ -2557,6 +2683,24 @@
         }
       }
     },
+    "Pounce records on this Mac which apps you use and how often, to suggest them. Nothing leaves your Mac." : {
+      "comment" : "Settings description of what app suggestions record",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce records on this Mac which apps you use and how often, to suggest them. Nothing leaves your Mac."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce zapisuje na tym Macu, których aplikacji używasz i jak często, żeby je sugerować. Nic nie opuszcza Twojego Maca."
+          }
+        }
+      }
+    },
     "Pounce scans the searched folders again. Results stay available while it runs." : {
       "comment" : "Rebuild confirmation message",
       "extractionState" : "manual",
@@ -2715,6 +2859,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nagrywaj historię schowka"
+          }
+        }
+      }
+    },
+    "Recorded activity" : {
+      "comment" : "Settings label next to Clear App Activity",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recorded activity"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisana aktywność"
           }
         }
       }
@@ -3417,6 +3579,60 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kroki"
+          }
+        }
+      }
+    },
+    "Suggest Apps" : {
+      "comment" : "Settings toggle that turns app suggestions on",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggest Apps"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sugeruj aplikacje"
+          }
+        }
+      }
+    },
+    "Suggestions" : {
+      "comment" : "Settings section title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggestions"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sugestie"
+          }
+        }
+      }
+    },
+    "Suggestions start again from the apps you use next. This cannot be undone." : {
+      "comment" : "Clear App Activity confirmation message",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggestions start again from the apps you use next. This cannot be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sugestie zaczną się od nowa od aplikacji, których użyjesz. Tej operacji nie można cofnąć."
           }
         }
       }
