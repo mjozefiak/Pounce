@@ -109,7 +109,8 @@ let package = Package(
         ),
         .testTarget(
             name: "DictationPluginTests",
-            dependencies: ["DictationPlugin", "PounceKit", "PounceCore", "PouncePersistence"]
+            dependencies: ["DictationPlugin", "PounceKit", "PounceCore", "PouncePersistence"],
+            resources: [.copy("Fixtures")]
         ),
         .testTarget(
             name: "PouncePersistenceTests",
