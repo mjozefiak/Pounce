@@ -179,4 +179,8 @@ times each against a cached listing; run it with
   filter narrows within those entries; the shell shows 20 results per section.
 - A slow volume (network share, sleeping disk) can exceed the 150 ms source budget; the host then drops
   the source's answer for that keystroke and the rest of the panel works.
+- Folders are read on one serial queue (`DirectoryLister`), never on a Swift concurrency thread. A read
+  that hangs (an unreachable network volume) makes later path queries time out until it returns;
+  requests cancelled while waiting are skipped. Volumes mounted outside `/Volumes` are not treated as
+  protected.
 

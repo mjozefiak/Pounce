@@ -129,8 +129,9 @@ struct PathSearchSource: SearchSource {
         let isFolder = kind == .directory || kind == .package
         let name = path == "/" ? "/" : PathText.name(path)
         let icon: PounceKit.IconRef =
-            !fullDiskAccess && TCCProtectedLocations.requiresFullDiskAccess(path, home: home)
-            ? .symbol(isFolder ? "folder" : "doc")
+            // A link may point into a protected place, and loading its icon follows it.
+            !fullDiskAccess && (kind == .symlink || TCCProtectedLocations.requiresFullDiskAccess(path, home: home))
+            ? .symbol(kind == .symlink ? "arrowshape.turn.up.right" : isFolder ? "folder" : "doc")
             : .file(URL(filePath: path, directoryHint: isFolder ? .isDirectory : .notDirectory))
         return Candidate(
             itemKey: FileSearchSource.itemKey(path),
