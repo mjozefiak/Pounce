@@ -40,6 +40,7 @@ Any `--qa…` argument turns QA mode on:
 | Paste keystroke | ⌘V posted to the previous app (needs Accessibility) | never posted; the paste is only logged |
 | File index | the home folder and `/Applications` | only `plugins.files.roots`, resolved against the fake home `plugins.files.qaHome`; both default to an empty `files-home/` folder in the data root, so the real home and `/Applications` are never scanned |
 | Full Disk Access | read by listing `~/Library/Safari` and similar folders | `--qa-full-disk-access`, default `denied`; the real state is never read |
+| App activity (suggestions) | `Plugins/apps/activity.json`, filled by app switches and a one-time Spotlight seed | `activity.json` under the QA data root, filled only from `--qa-activity`; the tracker and the seed run only with `--qa-activity-live` |
 
 AppKit itself may still write window and status-item state to the `app.pounce.Pounce` defaults domain.
 If that domain did not exist before a QA session, remove it afterwards with
@@ -67,6 +68,8 @@ If that domain did not exist before a QA session, remove it afterwards with
 | `--qa-accessibility granted\|denied` | Phase 2 | The Accessibility status plugins see. Without it the real status is read, never changed. |
 | `--qa-full-disk-access granted\|denied` | Phase 3 | The Full Disk Access status plugins see (default `denied` in QA mode). Never read from, or changed in, the system. |
 | `--qa-about` | Phase 4 | Open the About window. |
+| `--qa-activity <bundle ID>[=<uses>]` | App suggestions | Record `<uses>` (default 1) app uses of that bundle ID, at launch time, in the empty QA activity store (repeatable), so the empty panel shows "Suggested". The bundle ID must belong to an app under `plugins.apps.roots`. |
+| `--qa-activity-live` | App suggestions | Run the real activity tracker and the one-time Spotlight seed in QA mode (off by default, so a QA run never records the tester's app switches). |
 
 Unknown `--qa…` arguments stop the launch with an error, so a typo never silently falls back to real
 data.
@@ -120,6 +123,41 @@ app icon.
 
 In QA mode the shortcut recorders are read-only. KeyboardShortcuts would write a recorded shortcut to
 the `app.pounce.Pounce` defaults domain and register it with the system, so a QA run cannot record one.
+
+## App suggestions
+
+The "Suggested" section lists apps from the activity store, and only apps the index knows. Give QA
+mode fixture bundles (as above) and record uses of their bundle IDs with `--qa-activity`; uses of a
+bundle ID that is not under `plugins.apps.roots` are kept but never suggested. More uses rank higher;
+all uses are recorded at launch time.
+
+```bash
+FIX=/tmp/pounce-sugg-qa/apps
+for app in Mail:com.example.mail Notes:com.example.notes Maps:com.example.maps Music:com.example.music; do
+  mkdir -p "$FIX/${app%%:*} Demo.app/Contents"
+  plutil -create xml1 "$FIX/${app%%:*} Demo.app/Contents/Info.plist"
+  plutil -insert CFBundleIdentifier -string "${app#*:}" "$FIX/${app%%:*} Demo.app/Contents/Info.plist"
+done
+COMMON=(--qa --qa-setting "plugins.apps.roots=$FIX" --qa-setting plugins.apps.spotlight=false
+  --qa-activity com.example.mail=5 --qa-activity com.example.notes=3 --qa-activity com.example.maps)
+# The empty panel with "Suggested" (⌘1–⌘3 open the rows, ⌃X hides the selected one):
+dist/Pounce.app/Contents/MacOS/Pounce "${COMMON[@]}" --qa-panel search --qa-appearance dark
+# Suggested and "Recently Used" without duplicates:
+dist/Pounce.app/Contents/MacOS/Pounce "${COMMON[@]}" --qa-record-use apps:com.example.mail \
+  --qa-record-use apps:com.example.music --qa-panel search
+# Settings → Applications (Suggest Apps, hidden apps, Clear App Activity…), with one hidden app:
+dist/Pounce.app/Contents/MacOS/Pounce "${COMMON[@]}" \
+  --qa-setting plugins.apps.suggestions.hidden=com.example.maps --qa-settings apps
+# Suggestions turned off: no section, the history stays:
+dist/Pounce.app/Contents/MacOS/Pounce "${COMMON[@]}" --qa-setting plugins.apps.suggestions.enabled=false \
+  --qa-panel search
+```
+
+The "Running" badge comes from the real running apps, so fixture bundles never show it; check it by
+hand with a real app (for example `--qa-setting plugins.apps.roots=/System/Applications --qa-activity
+com.apple.Notes` while Notes is open). With `--qa-activity-live` the tracker records the tester's real
+app switches into the QA data root only. The newer-version message in Settings → Applications needs an
+`activity.json` with `"version": 2` in `<data root>/Plugins/apps/` (pass `--qa-data-root`).
 
 ## File search with a fixture folder
 

@@ -487,6 +487,24 @@
         }
       }
     },
+    "App suggestions keep their own history; clear it in Settings → Applications." : {
+      "comment" : "Settings note that Reset Ranking does not clear app activity",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App suggestions keep their own history; clear it in Settings → Applications."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sugestie aplikacji mają własną historię; wyczyścisz ją w Ustawieniach → Aplikacje."
+          }
+        }
+      }
+    },
     "Applications" : {
       "comment" : "Results section and plugin name for apps",
       "extractionState" : "manual",
@@ -1527,6 +1545,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zaczynamy"
+          }
+        }
+      }
+    },
+    "Hidden from suggestions" : {
+      "comment" : "Settings label above the list of hidden apps",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hidden from suggestions"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukryte w sugestiach"
           }
         }
       }
@@ -3399,6 +3435,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Skrót otwierający Pounce"
+          }
+        }
+      }
+    },
+    "Show %@ Again" : {
+      "comment" : "Accessibility label of the button that shows a hidden app in suggestions again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show %@ Again"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż ponownie: %@"
+          }
+        }
+      }
+    },
+    "Show Again" : {
+      "comment" : "Button that shows a hidden app in suggestions again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Again"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż ponownie"
           }
         }
       }

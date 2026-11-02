@@ -252,6 +252,15 @@ actor NumberedUsage: UsageRecorder {
         #expect(settings["plugins.apps.qaLiveActivity"] == .bool(false))
     }
 
+    @Test func hiddenSuggestionsSettingIsAList() throws {
+        let options = try QAOptions.parse([
+            "--qa-setting", "plugins.apps.suggestions.hidden=com.example.maps,com.example.mail",
+        ])
+        #expect(
+            options?.settings["plugins.apps.suggestions.hidden"]
+                == .stringArray(["com.example.maps", "com.example.mail"]))
+    }
+
     @Test func liveActivityIsOffUnlessAsked() throws {
         #expect(
             AppEnvironment.qaAppActivitySettings([:], activity: [], live: false) == [

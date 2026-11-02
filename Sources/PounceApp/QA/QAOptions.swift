@@ -78,6 +78,8 @@ struct QAOptions: Equatable {
     /// The app plugin's DEBUG-only activity keys (`AppEnvironment.qaAppActivitySettings`).
     static let appsActivityKey = "plugins.apps.qaActivity"
     static let appsLiveActivityKey = "plugins.apps.qaLiveActivity"
+    /// Settings that `--qa-setting` reads as comma-separated lists.
+    static let listSettingKeys: Set<String> = [SettingsKeys.sectionOrder, "plugins.apps.suggestions.hidden"]
 
     enum ParseError: Error, Equatable {
         case missingValue(String)
@@ -121,7 +123,7 @@ struct QAOptions: Equatable {
                 let text = String(value[value.index(after: separator)...])
                 // A list setting takes comma-separated values.
                 options.settings[key] =
-                    key == SettingsKeys.sectionOrder
+                    Self.listSettingKeys.contains(key)
                     ? .stringArray(text.split(separator: ",").map(String.init)) : settingValue(text)
             case "--qa-panel":
                 guard let value = iterator.next() else { throw .missingValue(argument) }

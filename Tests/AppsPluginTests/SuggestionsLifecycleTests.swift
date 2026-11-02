@@ -86,6 +86,7 @@ import os
         await harness.plugin.deactivate()
     }
 
+    #if DEBUG
     @Test func qaActivityFillsAnEmptyStore() async throws {
         let harness = try makeHarness { settings in
             settings.setValue(.string("com.example.mail=3,com.example.notes"), forKey: "plugins.apps.qaActivity")
@@ -108,6 +109,7 @@ import os
         #expect(parsed.map(\.0) == ["com.example.a", "com.example.b", "com.example.c"])
         #expect(parsed.map(\.1) == [3, 1, 1])
     }
+    #endif
 
     @Test func aNewerActivityFileStartsNothing() async throws {
         let harness = try makeHarness()

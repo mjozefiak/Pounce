@@ -117,6 +117,7 @@ final class AppsSettingsModel {
 
     /// Hides an app from suggestions.
     func hide(_ bundleID: String) {
+        guard !hidden.contains(bundleID) else { return }
         hidden = HiddenSuggestions.add(bundleID, to: settings)
         resultsChanged()
     }
@@ -227,7 +228,32 @@ struct AppsSettingsPane: View {
         }
     }
 
+    /// The apps hidden with "Hide from Suggestions", each with a button that shows it again.
     @ViewBuilder private var hiddenApps: some View {
-        EmptyView()
+        if !model.hidden.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Hidden from suggestions", comment: "Settings label above the list of hidden apps")
+                ForEach(model.hidden, id: \.self) { bundleID in
+                    let name = model.displayName(of: bundleID)
+                    HStack {
+                        Text(name)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Spacer()
+                        Button {
+                            model.restore(bundleID)
+                        } label: {
+                            Text("Show Again", comment: "Button that shows a hidden app in suggestions again")
+                        }
+                        .accessibilityLabel(
+                            Text(
+                                "Show \(name) Again",
+                                comment:
+                                    "Accessibility label of the button that shows a hidden app in suggestions again"
+                            ))
+                    }
+                }
+            }
+        }
     }
 }

@@ -62,4 +62,65 @@ struct AppBenchmarks {
                 format: "BENCH apps: apps=%d p50=%.2f ms p95=%.2f ms max=%.2f ms queries=%d", count, p50, p95,
                 Self.ms(sorted[sorted.count - 1]), timings.count))
     }
+
+    /// The suggestion query (app suggestions spec): `count` apps in the index, every one with activity.
+    @Test(arguments: [300, 1_000])
+    func suggestApps(count: Int) async throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        let activity = ActivityStore(directory: directory.url, clock: NeverClock())
+        await activity.load()
+        let records = Self.records(count: count)
+        let now = Date()
+        for (index, record) in records.enumerated() {
+            for use in 0..<(index % 7 + 1) {
+                await activity.recordUse(of: record.bundleIdentifier, at: now.addingTimeInterval(-Double(use) * 3_600))
+            }
+        }
+        let store = AppStore()
+        store.publish(records)
+        let source = AppSuggestionSource(
+            store: store, activity: activity, settings: PluginSettings(pluginID: "apps", store: MemorySettings()),
+            usage: RecordingUsage(), workspace: RecordingWorkspace(), ownBundleIdentifier: nil,
+            resultsChanged: {})
+        let clock = ContinuousClock()
+        var timings: [Duration] = []
+        for _ in 0..<200 {
+            timings.append(try await clock.measure { _ = try await source.suggestions(limit: 5) })
+        }
+        let sorted = timings.sorted()
+        print(
+            String(
+                format: "BENCH suggestions: apps=%d p50=%.2f ms p95=%.2f ms max=%.2f ms", count,
+                Self.ms(sorted[sorted.count / 2]), Self.ms(sorted[Int(Double(sorted.count) * 0.95)]),
+                Self.ms(sorted[sorted.count - 1])))
+        await activity.close()
+    }
+
+    /// The one-time seed from Spotlight over the real `/Applications` of this Mac (reads only; the store
+    /// lives in a temporary directory).
+    @Test func seedFromSpotlight() async throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        let root = URL(filePath: "/Applications")
+        let apps = (try FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil))
+            .filter { $0.pathExtension == "app" }
+            .compactMap { url -> AppRecord? in
+                guard let id = Bundle(url: url)?.bundleIdentifier else { return nil }
+                return AppRecord(
+                    bundleIdentifier: id, path: url.path(percentEncoded: false),
+                    name: url.deletingPathExtension().lastPathComponent)
+            }
+        let activity = ActivityStore(directory: directory.url, clock: NeverClock())
+        await activity.load()
+        let seeder = ActivitySeeder(store: activity, reader: SpotlightUsageDatesReader(), now: { Date() })
+        let elapsed = try await ContinuousClock().measure {
+            try await seeder.run(apps: apps, spotlightEnabled: true)
+        }
+        print(
+            String(
+                format: "BENCH seed: apps=%d seeded=%d time=%.1f ms", apps.count, activity.snapshot.apps.count,
+                Self.ms(elapsed)))
+        await activity.close()
+    }
 }

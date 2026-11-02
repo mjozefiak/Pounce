@@ -57,4 +57,26 @@ import Testing
         await model.clearActivity()
         #expect(try Data(contentsOf: file) == original)
     }
+
+    @Test func hiddenAppsCanBeShownAgain() async throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        let settings = MemorySettings()
+        let model = await makeModel(directory, settings: settings)
+        model.appName = { $0 == "com.example.mail" ? "Mail" : nil }
+        var changes = 0
+        model.resultsChanged = { changes += 1 }
+        model.hide("com.example.mail")
+        model.hide("com.example.gone")
+        model.hide("com.example.mail")
+        #expect(model.hidden == ["com.example.mail", "com.example.gone"])
+        #expect(model.displayName(of: "com.example.mail") == "Mail")
+        #expect(model.displayName(of: "com.example.gone") == "com.example.gone")
+        model.restore("com.example.mail")
+        #expect(settings.value(forKey: "plugins.apps.suggestions.hidden") == .stringArray(["com.example.gone"]))
+        model.restore("com.example.gone")
+        #expect(settings.value(forKey: "plugins.apps.suggestions.hidden") == nil)
+        #expect(model.hidden.isEmpty)
+        #expect(changes == 4)
+    }
 }
