@@ -38,4 +38,4 @@ A launcher query that starts with `/` or `~` lists that folder straight from dis
 - [x] 1.2 TCCProtectedLocations — f7baf34
 - [x] 1.3 DirectoryLister and shared one-directory reader — f5e65d3
 - [x] 1.4 PathSearchSource and FileSearchSource changes — 0dc936f
-- [ ] 1.5 Strings, docs and QA
+- [x] 1.5 Strings, docs and QA — 45858c6
