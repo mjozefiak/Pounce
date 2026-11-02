@@ -123,6 +123,10 @@ public protocol PasteboardClient: Sendable {
     /// Every type currently on the pasteboard, read without any data (for example the nspasteboard.org
     /// marker types). Added in Phase 2; the default reports the plain-text type when there is a string.
     @MainActor func types() -> [String]
+    /// The types of each item, without any data. `types()` is the union and also lists legacy synonyms that
+    /// no item holds, so only this tells whether a read of the items was complete. Added with dictation;
+    /// the default reports the union as one item.
+    @MainActor func itemTypes() -> [[String]]
     /// Reads every item with the representations whose type `includes` accepts; the data of any other
     /// type is never requested (it may be large or produced lazily by the writing app). Stops reading
     /// once the representations exceed `maxBytes` and reports `exceedsLimit`. Returns `nil` when the
@@ -138,6 +142,11 @@ public protocol PasteboardClient: Sendable {
 extension PasteboardClient {
     @MainActor public func types() -> [String] {
         string() == nil ? [] : [PasteboardRepresentation.plainTextType]
+    }
+
+    @MainActor public func itemTypes() -> [[String]] {
+        let all = types()
+        return all.isEmpty ? [] : [all]
     }
 
     /// Reads every type.

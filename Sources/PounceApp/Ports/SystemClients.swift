@@ -40,6 +40,10 @@ nonisolated struct SystemPasteboardClient: PasteboardClient {
         pasteboard.types?.map(\.rawValue) ?? []
     }
 
+    @MainActor func itemTypes() -> [[String]] {
+        pasteboard.pasteboardItems?.map { $0.types.map(\.rawValue) } ?? []
+    }
+
     /// Copies the accepted representations of every item. Data the writer promised lazily is produced
     /// now, on the main actor (spike 2.2: `NSPasteboard` is not safe to read elsewhere), so types the
     /// caller does not keep are never requested.

@@ -26,6 +26,10 @@ import Testing
         let after = client.write(items)
         #expect(after != before)
         #expect(client.changeCount == after)
+        #expect(
+            client.itemTypes().map(Set.init) == [
+                ["public.utf8-plain-text", "public.html"], ["public.file-url"],
+            ])
         #expect(Set(client.types()).isSuperset(of: ["public.utf8-plain-text", "public.html", "public.file-url"]))
 
         let contents = try #require(client.readContents(maxBytes: 1 << 20))
