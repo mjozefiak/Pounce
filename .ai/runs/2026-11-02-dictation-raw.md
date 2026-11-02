@@ -32,7 +32,7 @@ measurements and the days of dogfooding (1.9), and the VoiceOver pass.
 
 ### Phase 1: Raw dictation
 
-- [ ] 1.2 Szkielet pluginu
+- [x] 1.2 Szkielet pluginu — aa14b7f
 - [ ] 1.3 ModelCatalog + ModelManager
 - [ ] 1.4 RecordingGesture
 - [ ] 1.5 AudioCapture + SpeechEngine/ParakeetEngine + DictationSession
