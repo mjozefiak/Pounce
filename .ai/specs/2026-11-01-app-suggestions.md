@@ -21,6 +21,7 @@ Użytkownik chce szybciej uruchamiać aplikacje, których używa najczęściej, 
 | Q6 | Skrót | Oba warianty: ⌘1–⌘5 w panelu oraz opcjonalny skrót globalny (domyślnie bez przypisania), który otwiera tryb sugestii. |
 | Q7 | Wpływ na ranking wyszukiwania | Brak. Dane trafiają do osobnego magazynu, a `ranking.sqlite` i `Ranker` się nie zmieniają. |
 | R1 | Format magazynu (kierunek z review, M4) | Wersjonowany plik JSON zapisywany atomowo przez `AtomicFile`, a nie nowa baza SQLite. Przy setkach wierszy baza dokłada GRDB do `AppsPlugin`, migrator i obsługę uszkodzonej bazy bez żadnej korzyści. Decyzję może odwrócić właściciel w review. |
+| D1 | Domyślne zbieranie aktywności (`plugins.apps.suggestions.enabled = true`, `BACKWARD_COMPATIBILITY.md` §3) | Funkcja polega na zbieraniu, więc domyślnie włączone, z wyłącznikiem, czyszczeniem i opisem w Ustawieniach. **Zgoda właściciela wymaga potwierdzenia w tym PR (approve review = zgoda).** PR fazy 1 powołuje się na to potwierdzenie. |
 
 ## 📝 Proposed Solution
 1. **Zbieranie.** `ActivityTracker` w `AppsPlugin` słucha aktywacji aplikacji przez port `WorkspaceClient`. Gdy aplikacja jest na pierwszym planie bez przerwy przez 5 s, zapisuje jedno użycie. Potem, dopóki aplikacja zostaje z przodu, zapisuje kolejne co 10 min. Szybkie przełączenia nie dodają nic ponad to: od ostatniego użycia danej aplikacji musi minąć co najmniej 10 min.
@@ -44,7 +45,7 @@ Użytkownik chce szybciej uruchamiać aplikacje, których używa najczęściej, 
 |---|---|---|
 | Spotlight (Siri Suggestions) | Sugestie aplikacji z kontekstu (pora dnia, miejsce, urządzenia), liczone przez model na urządzeniu, nieprzejrzyste | Kontekst czasu poprawia trafność, ale kosztuje (Q3: później). Bierzemy prostotę i przejrzystość: użytkownik wie, skąd się wzięła sugestia. |
 | GNOME Shell (`shell-app-usage`) | „Frequent apps” liczone z czasu fokusu z zanikiem | Potwierdza wybór fokusu i ważenia czasem (Q2, heartbeat co 10 min). |
-| Windows Start „Most used” | Liczba uruchomień | Słaby sygnał dla aplikacji otwartych cały dzień, stąd odrzucenie wariantu Q2a. |
+| Windows Start „Most used” | Liczba uruchomień | Słaby sygnał dla aplikacji otwartych cały dzień, stąd liczymy czas fokusu (Q2), a nie same uruchomienia. |
 | Alfred | ⌘1–⌘9 uruchamia n-ty wynik, a numer jest widoczny przy rzędzie | Przejmujemy wzorzec ⌘1–⌘5 z widoczną podpowiedzią. |
 | Raycast | Sekcja sugestii w root search z użycia samego Raycast, z możliwością ukrycia elementu | Przejmujemy akcję „Ukryj w sugestiach”. Nie przejmujemy ograniczenia do użyć w launcherze. |
 
@@ -225,6 +226,7 @@ Prototype: brak zaakceptowanej makiety. Schemat ASCII powyżej to propozycja.
 | Szybkie przełączenia ⌘Tab (< 5 s) | Nie liczą się. Aplikacja zostawiona z przodu przy uśpieniu ekranu w ciągu 5 s może dostać jedno użycie. To akceptowalne. |
 | Aplikacja z przodu przez wiele godzin | Dostaje użycie co 10 min. Frecency rośnie z czasem fokusu, ale nie szybciej niż 6 użyć na godzinę. |
 | Ekran zablokowany, aplikacja formalnie z przodu | Aktywacja `loginwindow` nie jest `.regular`, więc nie przerywa sekwencji. Heartbeat sprawdza `frontmostApplication`, który przy blokadzie nie wskazuje już aplikacji użytkownika, więc sekwencja się kończy. Do potwierdzenia testem lokalnym w kroku 4. |
+| Uśpienie Maca przy aplikacji na pierwszym planie | Jeśli zegar heartbeatu liczy czas uśpienia (`ContinuousClock`), po wybudzeniu aplikacja z przodu dostałaby użycie za czas, gdy użytkownika nie było. Heartbeat używa więc zegara, który nie liczy uśpienia (`SuspendingClock`), albo sekwencja kończy się na powiadomieniu o uśpieniu. Do potwierdzenia testem lokalnym w kroku 4, razem z blokadą ekranu. |
 | Plik nie daje się zapisać (pełny dysk, uprawnienia) | Stan w pamięci zostaje, a zapis jest ponawiany przy następnej zmianie. Błąd trafia do logu bez bundle ID. Sugestie działają do końca sesji. |
 | Plik uszkodzony | Archiwizacja do `activity.json.corrupt-<data>` i pusty magazyn (definicja w sekcji Data Model). |
 | Plik w nowszej wersji (downgrade) | Sugestie są wyłączone z komunikatem, a plik nietknięty. |
@@ -262,7 +264,7 @@ Każda faza to osobny branch `feat/` i osobny PR zgodnie z `SDLC.md`. Kroki fazy
 9. **Sekcja w `SearchCoordinator`.** Przy pustym inpucie w trybie wyszukiwania: zapytanie sugestii przez `SuggestionSourceAdapter` i `SourceRunner` (z budżetem); sekcja `.suggested` (najwyżej 5 pozycji, kolejność `app.sectionOrder`, potem `manifest.order`) nad `.recent`; deduplikacja kluczy z dopełnieniem „Recently Used” do 8; brak wywołań `Ranker` i `usage.stats` dla sugestii; brak sekcji przy 0 wynikach. Testy z fake'owym hostem: kolejność sekcji; deduplikacja i dopełnienie do 8; przekroczony budżet albo błąd źródła pomija tylko sugestie.
 10. **Włączenie zbierania.** `AppsPlugin.activate()` uruchamia `ActivityTracker` i `ActivitySeeder`, gdy `plugins.apps.suggestions.enabled` jest włączone. Przełącznik i `deactivate()` je zatrzymują, a `deactivate()` dodatkowo zamyka magazyn (cykl życia jak wyżej). W trybie QA oba są domyślnie wyłączone, chyba że podano `--qa-activity-live`. Dochodzą `--qa-activity` w `QAOptions` i parsowanie w `AppEnvironment`. Testy na fake'u portu: aktywacja → wpis w magazynie → aplikacja w sugestiach; wyłączenie przełącznika zatrzymuje zapis; dwukrotne `deactivate()` jest bezpieczne; parsowanie `--qa-activity`.
 11. **⌘1–⌘5 i wygląd rzędu.** `PanelController`: ⌘n w trybie wyszukiwania przy pustym inpucie uruchamia pierwszą akcję n-tej sugestii. `LauncherView`: podpowiedź „⌘n”, `badge` i etykiety VoiceOver. Test jednostkowy modelu panelu: mapowanie ⌘n; brak efektu przy wpisanym tekście; ⌘1–⌘5 w schowku dalej przełącza filtry. Lokalnie: zrzuty w jasnym i ciemnym motywie oraz test z VoiceOver.
-12. **Lista ukrytych, lokalizacja i dokumentacja.** Przywracanie ukrytych aplikacji w panelu Aplikacje. Nowe stringi `en` i `pl` (`StringCatalogTests`). Do zaktualizowania:
+12. **Lista ukrytych, lokalizacja i dokumentacja.** Przywracanie ukrytych aplikacji w panelu Aplikacje. Opis „Reset Ranking” w `AdvancedPane.swift` informuje, że historię aktywności aplikacji czyści się w panelu Aplikacje (nowy string `en` i `pl`). Nowe stringi `en` i `pl` (`StringCatalogTests`). Do zaktualizowania:
     - `BACKWARD_COMPATIBILITY.md`: §1 (kontrakt i reguła równości `Candidate`), §2 (format `activity.json`), §3 (klucze `enabled` i `hidden` z adnotacją o zgodzie właściciela), §5 (⌘1–⌘5 i ⌃X na sugestiach);
     - nota do release notes;
     - wiersz Apps w `AGENTS.md`;
