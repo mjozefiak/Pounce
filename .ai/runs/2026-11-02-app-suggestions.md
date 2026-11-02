@@ -34,19 +34,21 @@ Steps follow the spec's Implementation Plan 1–12 one to one.
 
 ## Progress
 
+PR: #20
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: app suggestions in the panel
 
-- [ ] 1.1 Activation and idle port
-- [ ] 1.2 ActivityStore
-- [ ] 1.3 SuggestionEngine
-- [ ] 1.4 ActivityTracker
-- [ ] 1.5 ActivitySeeder
-- [ ] 1.6 Settings → Applications pane (UI only)
-- [ ] 1.7 Contract
-- [ ] 1.8 AppSuggestionSource
-- [ ] 1.9 Suggested section in SearchCoordinator
-- [ ] 1.10 Turn on collection
-- [ ] 1.11 ⌘1–⌘5 and row appearance
-- [ ] 1.12 Hidden list, localization and documentation
+- [x] 1.1 Activation and idle port — d251da7
+- [x] 1.2 ActivityStore — ba4640c
+- [x] 1.3 SuggestionEngine — a3e486d
+- [x] 1.4 ActivityTracker — 46e9c85
+- [x] 1.5 ActivitySeeder — a0d5b90
+- [x] 1.6 Settings → Applications pane (UI only) — 9cc0b4c
+- [x] 1.7 Contract — 4486645
+- [x] 1.8 AppSuggestionSource — 1b76b55
+- [x] 1.9 Suggested section in SearchCoordinator — 2a73e6e
+- [x] 1.10 Turn on collection — 12b52a6
+- [x] 1.11 ⌘1–⌘5 and row appearance — ebf8edf
+- [x] 1.12 Hidden list, localization and documentation — 9f29952
