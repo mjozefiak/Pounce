@@ -27,6 +27,7 @@ public final class DictationPlugin: PouncePlugin {
     )
 
     static let recordCommandID = "dictation.record"
+    static let pasteLastRawCommandID = "dictation.pasteLastRaw"
     static let onboardingStepID = "dictation.setup"
 
     let context: PluginContext
@@ -36,6 +37,8 @@ public final class DictationPlugin: PouncePlugin {
     private let models: ModelManager
     private let hud: DictationHUDPanel
     private let settingsModel: DictationSettingsModel
+    private let formattingModel: FormattingSettingsModel
+    private let transport: any HTTPTransport
     private(set) var controller: DictationController?
 
     public init(context: PluginContext) {
@@ -59,6 +62,9 @@ public final class DictationPlugin: PouncePlugin {
             authorizer: authorizer,
             pickFolder: { Self.chooseModelFolder() },
             openURL: { url in Task { try? await workspace.open(url) } })
+        let transport = LoopbackTransport()
+        self.transport = transport
+        formattingModel = FormattingSettingsModel(settings: settings, transport: transport)
         let openSettings = context.openSettings
         // The HUD's buttons call back into the controller, which exists once the plugin is active.
         let relay = ControllerRelay()
@@ -87,6 +93,7 @@ public final class DictationPlugin: PouncePlugin {
         let context = context
         let settings = settings
         let engine = engine
+        let transport = transport
         let controller = DictationController(
             .init(
                 authorizer: authorizer, models: models,
@@ -96,7 +103,12 @@ public final class DictationPlugin: PouncePlugin {
                     DictationSession(
                         audio: MicrophoneCapture(deviceUID: settings.inputDevice),
                         vad: LazyVAD(modelFolder: folder.appending(path: ModelCatalog.sileroVADPath)),
-                        engine: engine, modelFolder: folder, logger: context.logger, onEvent: onEvent)
+                        engine: engine,
+                        formatter: settings.mode == .cleanup
+                            ? LocalLLMFormatter(
+                                transport: transport, target: { settings.llmTarget }, logger: context.logger)
+                            : nil,
+                        modelFolder: folder, logger: context.logger, onEvent: onEvent)
                 },
                 engine: engine,
                 paster: TextPaster(
@@ -129,7 +141,14 @@ public final class DictationPlugin: PouncePlugin {
                 symbolName: "mic",
                 defaultShortcut: KeyShortcut(key: "d", modifiers: [.control, .option]),
                 run: { relay.controller?.menu() },
-                onKeyEvent: { phase in relay.controller?.keyEvent(phase) })
+                onKeyEvent: { phase in relay.controller?.keyEvent(phase) }),
+            PluginCommand(
+                id: Self.pasteLastRawCommandID,
+                title: LocalizedStringResource(
+                    "Paste raw version of the last dictation",
+                    comment: "Menu item and command that pastes the last dictation without formatting"),
+                symbolName: "text.badge.minus",
+                run: { relay.controller?.pasteLastRaw() }),
         ]
     }
 
@@ -154,7 +173,9 @@ public final class DictationPlugin: PouncePlugin {
 
     public func settingsPane() -> AnyView? {
         AnyView(
-            DictationSettingsPane(model: settingsModel, recorder: context.makeShortcutRecorder(Self.recordCommandID)))
+            DictationSettingsPane(
+                model: settingsModel, formatting: formattingModel,
+                recorder: context.makeShortcutRecorder(Self.recordCommandID)))
     }
 }
 

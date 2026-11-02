@@ -4,6 +4,7 @@ import SwiftUI
 /// Settings → Dictation.
 struct DictationSettingsPane: View {
     @Bindable var model: DictationSettingsModel
+    @Bindable var formatting: FormattingSettingsModel
     let recorder: AnyView
 
     var body: some View {
@@ -56,6 +57,8 @@ struct DictationSettingsPane: View {
                 .font(.callout).foregroundStyle(.secondary)
             }
 
+            FormattingSection(model: formatting)
+
             Section {
                 MicrophoneRows(model: model)
             } header: {
@@ -77,7 +80,10 @@ struct DictationSettingsPane: View {
             }
         }
         .formStyle(.grouped)
-        .task { await model.refresh() }
+        .task {
+            await model.refresh()
+            await formatting.refresh()
+        }
     }
 }
 
@@ -330,6 +336,109 @@ struct DictationSetupView: View {
             }
         } icon: {
             Image(systemName: symbol).accessibilityHidden(true)
+        }
+    }
+}
+
+/// Settings → Dictation → Formatting: the optional clean-up by the user's local language model.
+struct FormattingSection: View {
+    @Bindable var model: FormattingSettingsModel
+
+    var body: some View {
+        Section {
+            Toggle(isOn: Binding(get: { model.isCleanupOn }, set: { model.mode = $0 ? .cleanup : .raw })) {
+                Text("Clean up the text with a local model", comment: "Dictation settings toggle for formatting")
+            }
+            if model.isCleanupOn {
+                serverRows
+                if model.hasTarget {
+                    tryRows
+                }
+            }
+        } header: {
+            Text("Formatting", comment: "Dictation settings section title")
+        } footer: {
+            Text(
+                "Pounce sends the text only to a server on this Mac (Ollama, LM Studio, llama-server). The server may keep prompts in its own log. If it does not answer, the raw text is pasted.",
+                comment: "Dictation settings footer under the formatting toggle"
+            )
+            .font(.callout).foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder private var serverRows: some View {
+        if model.endpoints.isEmpty {
+            LabeledContent {
+                if model.isProbing {
+                    ProgressView().controlSize(.small)
+                }
+            } label: {
+                Text(
+                    model.isProbing ? "Looking for a server…" : "No server found on this Mac",
+                    comment: "Dictation settings status of the formatting server")
+            }
+        } else {
+            Picker(
+                selection: Binding(
+                    get: { model.selectedEndpoint }, set: { if let url = $0 { model.chooseEndpoint(url) } })
+            ) {
+                ForEach(model.endpoints) { endpoint in
+                    Text(endpoint.name).tag(Optional(endpoint.baseURL))
+                }
+            } label: {
+                Text("Server", comment: "Dictation settings label of the formatting server")
+            }
+            Picker(selection: Binding(get: { model.selectedModel }, set: { model.chooseModel($0) })) {
+                ForEach(model.models, id: \.self) { name in
+                    Text(name).tag(Optional(name))
+                }
+            } label: {
+                Text("Model", comment: "Dictation settings label of the formatting model")
+            }
+        }
+        TextField(text: $model.address, prompt: Text(verbatim: "http://127.0.0.1:11434")) {
+            Text("Address", comment: "Dictation settings label of the formatting server address")
+        }
+        .onSubmit { model.checkAddress() }
+        if model.addressError {
+            Text(
+                "Only addresses on this Mac are allowed: localhost, 127.x.x.x or [::1].",
+                comment: "Dictation settings error for a server address that is not on this Mac"
+            )
+            .font(.callout).foregroundStyle(.red)
+        }
+        Text(
+            "Recommended: Qwen3.6-35B-A3B (4-bit). Best Polish: Bielik-11B-v3.0-Instruct. Light: Qwen3-4B-Instruct-2507.",
+            comment: "Dictation settings recommendation of formatting models"
+        )
+        .font(.callout).foregroundStyle(.secondary)
+    }
+
+    @ViewBuilder private var tryRows: some View {
+        LabeledContent {
+            Button {
+                model.tryIt()
+            } label: {
+                Text("Try it", comment: "Dictation settings button that cleans up a sample text")
+            }
+            .disabled(model.tryState == .running)
+        } label: {
+            Text(FormattingSettingsModel.sample).font(.callout).foregroundStyle(.secondary)
+        }
+        switch model.tryState {
+        case .idle: EmptyView()
+        case .running: ProgressView().controlSize(.small)
+        case .result(_, let text, let cleaned):
+            VStack(alignment: .leading, spacing: 4) {
+                Text(text).textSelection(.enabled)
+                if !cleaned {
+                    Text(
+                        "The server did not give a usable answer, so this is the raw text.",
+                        comment: "Dictation settings note when Try it fell back to the raw text"
+                    )
+                    .font(.callout).foregroundStyle(.orange)
+                }
+            }
         }
     }
 }

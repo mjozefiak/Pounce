@@ -9,6 +9,8 @@ enum HUDState: Equatable, Sendable {
     /// Recording ended; the text is being produced.
     case finishing
     case pasted
+    /// Pasted, but some or all of the text is the raw transcript because formatting failed.
+    case pastedUnformatted(all: Bool)
     case copied(TextPaster.CopyReason)
     case problem(Problem)
 
@@ -30,6 +32,8 @@ enum HUDState: Equatable, Sendable {
         case microphoneDenied
         case noMicrophone
         case nothingHeard
+        /// "Paste the raw version" with nothing dictated yet.
+        case nothingToPaste
     }
 }
 
@@ -46,6 +50,14 @@ extension HUDState {
             String(localized: "Finishing…", comment: "Dictation HUD while the text is produced")
         case .pasted:
             String(localized: "Pasted", comment: "Dictation HUD after the text was pasted")
+        case .pastedUnformatted(let all):
+            all
+                ? String(
+                    localized: "Pasted – not cleaned up",
+                    comment: "Dictation HUD when formatting failed and the raw text was pasted")
+                : String(
+                    localized: "Pasted – partly cleaned up",
+                    comment: "Dictation HUD when formatting failed for some parts of the text")
         case .copied(.noAccessibility):
             String(
                 localized: "Copied – allow Accessibility to paste",
@@ -66,6 +78,10 @@ extension HUDState {
             String(localized: "No microphone found", comment: "Dictation HUD when there is no input device")
         case .problem(.nothingHeard):
             String(localized: "Nothing heard", comment: "Dictation HUD when the recording had no speech")
+        case .problem(.nothingToPaste):
+            String(
+                localized: "No dictation to paste yet",
+                comment: "Dictation HUD when there is no earlier dictation to paste again")
         }
     }
 
@@ -80,6 +96,10 @@ extension HUDState {
             return recording.escapeCancels
                 ? String(localized: "Esc cancels", comment: "Dictation HUD hint")
                 : String(localized: "✕ cancels", comment: "Dictation HUD hint when Escape could not be claimed")
+        case .pastedUnformatted:
+            return String(
+                localized: "Raw version: Dictation → Paste raw version",
+                comment: "Dictation HUD hint that the raw transcript can be pasted again")
         case .problem(.modelMissing), .problem(.modelUnavailable), .problem(.modelFailedToLoad),
             .problem(.microphoneDenied):
             return String(localized: "Open Settings", comment: "Dictation HUD button that opens Settings")
@@ -94,6 +114,7 @@ extension HUDState {
         case .recording: "mic.fill"
         case .finishing: "ellipsis"
         case .pasted: "checkmark"
+        case .pastedUnformatted: "exclamationmark.circle"
         case .copied: "doc.on.clipboard"
         case .problem(.nothingHeard): "waveform.slash"
         case .problem: "exclamationmark.triangle"
@@ -121,7 +142,7 @@ extension HUDState {
     var hidesAfter: Duration? {
         switch self {
         case .pasted: .milliseconds(800)
-        case .copied, .problem: .seconds(3)
+        case .pastedUnformatted, .copied, .problem: .seconds(3)
         default: nil
         }
     }
@@ -134,7 +155,7 @@ extension HUDState {
             String(localized: "Recording started", comment: "VoiceOver announcement when dictation starts")
         case .finishing:
             String(localized: "Recording stopped", comment: "VoiceOver announcement when dictation stops")
-        case .pasted, .copied, .problem:
+        case .pasted, .pastedUnformatted, .copied, .problem:
             title
         default:
             nil

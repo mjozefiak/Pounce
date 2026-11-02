@@ -1,0 +1,168 @@
+import Foundation
+import PounceKit
+import Testing
+
+@testable import DictationPlugin
+
+@MainActor
+@Suite(.serialized) struct FormattingSettingsTests {
+    private func model(
+        _ store: MemorySettingsStore = MemorySettingsStore(), transport: any HTTPTransport
+    ) -> (FormattingSettingsModel, DictationSettings) {
+        let settings = DictationSettings(PluginSettings(pluginID: "dictation", store: store))
+        return (FormattingSettingsModel(settings: settings, transport: transport), settings)
+    }
+
+    private func listing() -> LoopbackTransport {
+        LoopbackStub.reset()
+        LoopbackStub.register("127.0.0.1:11434/v1/models", .json(#"{"data":[{"id":"qwen"},{"id":"bielik"}]}"#))
+        LoopbackStub.register("127.0.0.1:1234/v1/models", .json(#"{"data":[{"id":"lm"}]}"#))
+        return LoopbackTransport(protocolClasses: [LoopbackStub.self])
+    }
+
+    @Test func formattingIsOffByDefault() {
+        let (model, settings) = model(transport: ScriptedTransport(.content("x")))
+        #expect(model.mode == .raw)
+        #expect(settings.mode == .raw)
+        #expect(settings.llmTarget == nil)
+    }
+
+    @Test func switchingItOnTakesTheFirstServerAndModel() async {
+        let (model, settings) = model(transport: listing())
+        model.mode = .cleanup
+        await model.refresh()
+        #expect(model.endpoints.map(\.name) == ["Ollama", "LM Studio"])
+        #expect(settings.mode == .cleanup)
+        #expect(settings.llmTarget?.baseURL.absoluteString == "http://127.0.0.1:11434")
+        #expect(settings.llmTarget?.model == "qwen")
+    }
+
+    @Test func choosingAnotherServerPicksItsModel() async throws {
+        let (model, settings) = model(transport: listing())
+        model.mode = .cleanup
+        await model.refresh()
+        model.chooseEndpoint(try #require(URL(string: "http://127.0.0.1:1234")))
+        #expect(settings.llmTarget?.model == "lm")
+        model.chooseModel(nil)
+        #expect(settings.llmTarget == nil)
+    }
+
+    @Test func aModelThatDisappearedIsReplaced() async {
+        let store = MemorySettingsStore([
+            "plugins.dictation.llmEndpoint": .string("http://127.0.0.1:11434"),
+            "plugins.dictation.llmModel": .string("gone"),
+            "plugins.dictation.mode": .string("cleanup"),
+        ])
+        let (model, settings) = model(store, transport: listing())
+        await model.refresh()
+        #expect(settings.llmModel == "qwen")
+    }
+
+    @Test func anAddressOffThisMacIsRefusedAndNotStored() {
+        let (model, settings) = model(transport: ScriptedTransport(.content("x")))
+        model.address = "http://example.com:11434"
+        #expect(model.addressError)
+        #expect(settings.llmEndpoint == nil)
+        model.address = "localhost:8080"
+        #expect(!model.addressError)
+        #expect(settings.llmEndpoint?.absoluteString == "http://127.0.0.1:8080")
+    }
+
+    @Test func aStoredNonLoopbackAddressIsNeverUsed() {
+        let store = MemorySettingsStore([
+            "plugins.dictation.llmEndpoint": .string("http://192.168.1.5:11434"),
+            "plugins.dictation.llmModel": .string("m"),
+        ])
+        let (_, settings) = model(store, transport: ScriptedTransport(.content("x")))
+        #expect(settings.llmEndpoint == nil)
+        #expect(settings.llmTarget == nil)
+    }
+
+    @Test func tryItShowsTheCleanedSample() async throws {
+        let store = MemorySettingsStore([
+            "plugins.dictation.llmEndpoint": .string("http://127.0.0.1:11434"),
+            "plugins.dictation.llmModel": .string("qwen"),
+        ])
+        let transport = ScriptedTransport(
+            .content("Jutro mamy spotkanie o dziesiątej, nie, to znaczy o jedenastej w biurze."))
+        let (model, _) = model(store, transport: transport)
+        model.tryIt()
+        for _ in 0..<200 where model.tryState == .running { try await Task.sleep(for: .milliseconds(10)) }
+        #expect(
+            model.tryState
+                == .result(
+                    original: FormattingSettingsModel.sample,
+                    text: "Jutro mamy spotkanie o dziesiątej, nie, to znaczy o jedenastej w biurze.",
+                    cleaned: true))
+    }
+
+    @Test func tryItReportsAFallbackWhenTheServerIsDown() async throws {
+        let store = MemorySettingsStore([
+            "plugins.dictation.llmEndpoint": .string("http://127.0.0.1:11434"),
+            "plugins.dictation.llmModel": .string("qwen"),
+        ])
+        let (model, _) = model(store, transport: ScriptedTransport(.failure(.cannotConnectToHost)))
+        model.tryIt()
+        for _ in 0..<200 where model.tryState == .running { try await Task.sleep(for: .milliseconds(10)) }
+        guard case .result(_, let text, let cleaned) = model.tryState else {
+            Issue.record("no result")
+            return
+        }
+        #expect(!cleaned)
+        #expect(text == FormattingSettingsModel.sample)
+    }
+}
+
+/// The text fixtures of the prompt regression (step 2.5), and the optional run against a real server.
+@Suite struct CleanupFixtureTests {
+    struct Case: Decodable, Sendable {
+        let id: String
+        let language: String
+        let raw: String
+        let mustContain: [String]
+        let mustNotContain: [String]
+        let isQuestionOrCommand: Bool
+    }
+
+    static func load() throws -> [Case] {
+        let url = try #require(Bundle.module.url(forResource: "Fixtures/cleanup/cases", withExtension: "json"))
+        return try JSONDecoder().decode([Case].self, from: Data(contentsOf: url))
+    }
+
+    @Test func fixturesCoverPolishEnglishMixedAndDictatedQuestionsAndCommands() throws {
+        let cases = try Self.load()
+        #expect(Set(cases.map(\.id)).count == cases.count)
+        #expect(cases.contains { $0.language == "pl" })
+        #expect(cases.contains { $0.language == "en" })
+        #expect(cases.contains { $0.id.hasPrefix("mixed") })
+        #expect(cases.filter(\.isQuestionOrCommand).count >= 4)
+        #expect(cases.allSatisfy { !$0.raw.isEmpty && !$0.mustContain.isEmpty })
+    }
+
+    /// Runs every fixture against the server in `POUNCE_LLM_URL` with the model in `POUNCE_LLM_MODEL` and
+    /// prints a table for the PR body. Off by default, like the benchmarks.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["POUNCE_LLM_URL"] != nil))
+    func realServer() async throws {
+        let env = ProcessInfo.processInfo.environment
+        let base = try #require(env["POUNCE_LLM_URL"].flatMap { LoopbackPolicy.parse($0) })
+        let model = try #require(env["POUNCE_LLM_MODEL"])
+        let formatter = LocalLLMFormatter(
+            transport: LoopbackTransport(), target: { .init(baseURL: base, model: model) })
+        var failures: [String] = []
+        for fixture in try Self.load() {
+            let started = ContinuousClock.now
+            let result = try await formatter.format(chunk: fixture.raw, previousContext: nil)
+            let elapsed = ContinuousClock.now - started
+            print("[cleanup] \(fixture.id) \(result.outcome == .formatted ? "formatted" : "RAW") \(elapsed)")
+            print("[cleanup]   in:  \(fixture.raw)\n[cleanup]   out: \(result.text)")
+            if result.outcome != .formatted { failures.append("\(fixture.id): fell back \(result.outcome)") }
+            for needle in fixture.mustContain where !result.text.localizedCaseInsensitiveContains(needle) {
+                failures.append("\(fixture.id): missing \(needle)")
+            }
+            for needle in fixture.mustNotContain where result.text.localizedCaseInsensitiveContains(needle) {
+                failures.append("\(fixture.id): contains \(needle)")
+            }
+        }
+        #expect(failures.isEmpty, "\(failures.joined(separator: "\n"))")
+    }
+}

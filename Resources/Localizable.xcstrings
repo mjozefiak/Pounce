@@ -325,6 +325,24 @@
         }
       }
     },
+    "Address" : {
+      "comment" : "Dictation settings label of the formatting server address",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Address"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adres"
+          }
+        }
+      }
+    },
     "Advanced" : {
       "comment" : "Settings pane title",
       "extractionState" : "manual",
@@ -699,6 +717,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wybierz folder z plikami modelu mowy."
+          }
+        }
+      }
+    },
+    "Clean up the text with a local model" : {
+      "comment" : "Dictation settings toggle for formatting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clean up the text with a local model"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Porządkuj tekst lokalnym modelem"
           }
         }
       }
@@ -1729,6 +1765,24 @@
         }
       }
     },
+    "Formatting" : {
+      "comment" : "Dictation settings section title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formatting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formatowanie"
+          }
+        }
+      }
+    },
     "Full Disk Access" : {
       "comment" : "Settings section title",
       "extractionState" : "manual",
@@ -2287,6 +2341,24 @@
         }
       }
     },
+    "Looking for a server…" : {
+      "comment" : "Dictation settings status of the formatting server",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Looking for a server…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szukam serwera…"
+          }
+        }
+      }
+    },
     "M" : {
       "comment" : "Text size option: medium",
       "extractionState" : "manual",
@@ -2391,6 +2463,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mikrofon jeszcze nie był pytany"
+          }
+        }
+      }
+    },
+    "Model" : {
+      "comment" : "Dictation settings label of the formatting model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model"
           }
         }
       }
@@ -2521,6 +2611,24 @@
         }
       }
     },
+    "No dictation to paste yet" : {
+      "comment" : "Dictation HUD when there is no earlier dictation to paste again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No dictation to paste yet"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie ma jeszcze dyktowania do wklejenia"
+          }
+        }
+      }
+    },
     "No microphone found" : {
       "comment" : "Dictation HUD when there is no input device",
       "extractionState" : "manual",
@@ -2535,6 +2643,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nie znaleziono mikrofonu"
+          }
+        }
+      }
+    },
+    "No server found on this Mac" : {
+      "comment" : "Dictation settings status of the formatting server",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No server found on this Mac"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie znaleziono serwera na tym Macu"
           }
         }
       }
@@ -2751,6 +2877,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Włączona"
+          }
+        }
+      }
+    },
+    "Only addresses on this Mac are allowed: localhost, 127.x.x.x or [::1]." : {
+      "comment" : "Dictation settings error for a server address that is not on this Mac",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only addresses on this Mac are allowed: localhost, 127.x.x.x or [::1]."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dozwolone są tylko adresy na tym Macu: localhost, 127.x.x.x lub [::1]."
           }
         }
       }
@@ -3007,6 +3151,24 @@
         }
       }
     },
+    "Paste raw version of the last dictation" : {
+      "comment" : "Menu item and command that pastes the last dictation without formatting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste raw version of the last dictation"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wklej surową wersję ostatniego dyktowania"
+          }
+        }
+      }
+    },
     "Pasted" : {
       "comment" : "Dictation HUD after the text was pasted",
       "extractionState" : "manual",
@@ -3021,6 +3183,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wklejono"
+          }
+        }
+      }
+    },
+    "Pasted – not cleaned up" : {
+      "comment" : "Dictation HUD when formatting failed and the raw text was pasted",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pasted – not cleaned up"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wklejono – bez porządkowania"
+          }
+        }
+      }
+    },
+    "Pasted – partly cleaned up" : {
+      "comment" : "Dictation HUD when formatting failed for some parts of the text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pasted – partly cleaned up"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wklejono – częściowo uporządkowane"
           }
         }
       }
@@ -3277,6 +3475,24 @@
         }
       }
     },
+    "Pounce sends the text only to a server on this Mac (Ollama, LM Studio, llama-server). The server may keep prompts in its own log. If it does not answer, the raw text is pasted." : {
+      "comment" : "Dictation settings footer under the formatting toggle",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce sends the text only to a server on this Mac (Ollama, LM Studio, llama-server). The server may keep prompts in its own log. If it does not answer, the raw text is pasted."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce wysyła tekst tylko do serwera na tym Macu (Ollama, LM Studio, llama-server). Serwer może zapisywać prompty we własnym logu. Jeśli nie odpowie, wklejany jest surowy tekst."
+          }
+        }
+      }
+    },
     "Press this shortcut anywhere to open Pounce. Keep the suggested one or record your own." : {
       "comment" : "Onboarding step explanation",
       "extractionState" : "manual",
@@ -3367,6 +3583,24 @@
         }
       }
     },
+    "Raw version: Dictation → Paste raw version" : {
+      "comment" : "Dictation HUD hint that the raw transcript can be pasted again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raw version: Dictation → Paste raw version"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Surowy tekst: Dyktowanie → Wklej surową wersję"
+          }
+        }
+      }
+    },
     "Rebuild Index" : {
       "comment" : "Confirmation button that rebuilds the file index",
       "extractionState" : "manual",
@@ -3435,6 +3669,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ostatnio używane"
+          }
+        }
+      }
+    },
+    "Recommended: Qwen3.6-35B-A3B (4-bit). Best Polish: Bielik-11B-v3.0-Instruct. Light: Qwen3-4B-Instruct-2507." : {
+      "comment" : "Dictation settings recommendation of formatting models",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recommended: Qwen3.6-35B-A3B (4-bit). Best Polish: Bielik-11B-v3.0-Instruct. Light: Qwen3-4B-Instruct-2507."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polecany: Qwen3.6-35B-A3B (4-bit). Najlepszy polski: Bielik-11B-v3.0-Instruct. Lekki: Qwen3-4B-Instruct-2507."
           }
         }
       }
@@ -3939,6 +4191,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sekcje pojawiają się w panelu w tej kolejności."
+          }
+        }
+      }
+    },
+    "Server" : {
+      "comment" : "Dictation settings label of the formatting server",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serwer"
           }
         }
       }
@@ -4591,6 +4861,24 @@
         }
       }
     },
+    "The server did not give a usable answer, so this is the raw text." : {
+      "comment" : "Dictation settings note when Try it fell back to the raw text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The server did not give a usable answer, so this is the raw text."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serwer nie dał użytecznej odpowiedzi, więc to jest surowy tekst."
+          }
+        }
+      }
+    },
     "The speech model failed to load" : {
       "comment" : "Dictation HUD when loading the model failed",
       "extractionState" : "manual",
@@ -4749,6 +5037,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Spróbuj ponownie"
+          }
+        }
+      }
+    },
+    "Try it" : {
+      "comment" : "Dictation settings button that cleans up a sample text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try it"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wypróbuj"
           }
         }
       }

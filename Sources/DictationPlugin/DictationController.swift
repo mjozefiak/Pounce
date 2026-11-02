@@ -32,8 +32,9 @@ final class DictationController {
     private var finishTask: Task<Void, Never>?
     private let logger = Logger(subsystem: "app.pounce", category: "dictation")
 
-    /// The text of the last dictation, kept in memory only, for "paste the raw version again".
-    private(set) var lastText: String?
+    /// The raw transcript of the last dictation (before any formatting), kept in memory only, for "paste the
+    /// raw version of the last dictation".
+    private(set) var lastRawText: String?
 
     init(_ dependencies: Dependencies) {
         deps = dependencies
@@ -159,11 +160,17 @@ final class DictationController {
             let output = try await session.finish()
             logger.info(
                 "Dictated \(output.segmentCount, privacy: .public) segments, \(output.duration, privacy: .public) s")
-            lastText = output.text
+            lastRawText = output.rawText
             let outcome = await deps.paster.paste(output.text)
             self.session = nil
             switch outcome {
-            case .pasted: deps.hud.show(.pasted)
+            case .pasted:
+                if output.formatting.isPartial {
+                    deps.hud.show(
+                        .pastedUnformatted(all: output.formatting.fellBack == output.formatting.chunks))
+                } else {
+                    deps.hud.show(.pasted)
+                }
             case .copied(let reason): deps.hud.show(.copied(reason))
             }
             scheduleUnload()
@@ -175,6 +182,23 @@ final class DictationController {
             gesture.finished()
         } catch {
             end(with: .modelFailedToLoad)
+        }
+    }
+
+    // MARK: Raw version
+
+    /// "Paste the raw version of the last dictation": the transcript before formatting, into the app in front.
+    func pasteLastRaw() {
+        guard !isBusy, let text = lastRawText else {
+            if !isBusy { deps.hud.show(.problem(.nothingToPaste)) }
+            return
+        }
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            switch await deps.paster.paste(text) {
+            case .pasted: deps.hud.show(.pasted)
+            case .copied(let reason): deps.hud.show(.copied(reason))
+            }
         }
     }
 

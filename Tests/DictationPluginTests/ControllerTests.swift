@@ -20,6 +20,7 @@ import os
             case .recording: "recording"
             case .finishing: "finishing"
             case .pasted: "pasted"
+            case .pastedUnformatted(let all): "pastedUnformatted:\(all)"
             case .copied: "copied"
             case .problem(let problem): "problem:\(problem)"
             case .allowMicrophone: "allow"
@@ -58,6 +59,7 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         var audioSeconds = 5.0
         var ranges = [(1 * AudioFormat.sampleRate)..<(2 * AudioFormat.sampleRate)]
         var audioStarted = 0
+        var formatter: (any TextFormatter)?
         var now = ContinuousClock.now
         var installed = true
 
@@ -93,7 +95,8 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
                         rig.audioStarted += 1
                         return DictationSession(
                             audio: ScriptedAudioInput(seconds: rig.audioSeconds), vad: RangeVAD(rig.ranges),
-                            engine: engine, modelFolder: folder, onEvent: onEvent)
+                            engine: engine, formatter: rig.formatter, modelFolder: folder,
+                            onEvent: onEvent)
                     },
                     engine: engine, paster: paste.paster(), hud: hud,
                     claimEscape: { handler in
@@ -132,7 +135,7 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         #expect(rig.paste.pasteboard.string() == "segment 1")
         #expect(rig.paste.events.posts == 1)
         #expect(rig.escapeReleases == 1)
-        #expect(controller.lastText == "segment 1")
+        #expect(controller.lastRawText == "segment 1")
         #expect(!controller.isBusy)
     }
 
@@ -254,7 +257,7 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         await settle(rig)
         #expect(rig.hud.milestones == ["recording", "finishing", "problem:nothingHeard"])
         #expect(rig.paste.events.posts == 0)
-        #expect(controller.lastText == nil)
+        #expect(controller.lastRawText == nil)
     }
 
     @Test func aSecondPressWhileFinishingIsIgnored() async throws {
@@ -300,6 +303,63 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         #expect(rig.paste.events.posts == 0)
         #expect(rig.engine.state.withLock { $0.unloads } == 1)
     }
+
+    // MARK: Formatting
+
+    @Test func formattedTextIsPastedAndTheRawTextIsKept() async throws {
+        let rig = try Rig()
+        defer { rig.tearDown() }
+        rig.formatter = StubFormatter { chunk, _ in FormatResult(text: "Clean: \(chunk)", outcome: .formatted) }
+        let controller = rig.controller()
+        controller.menu()
+        try await Task.sleep(for: .milliseconds(100))
+        controller.menu()
+        await settle(rig)
+
+        #expect(rig.paste.pasteboard.string() == "Clean: segment 1")
+        #expect(controller.lastRawText == "segment 1")
+        #expect(rig.hud.milestones == ["recording", "finishing", "pasted"])
+    }
+
+    @Test func aFallbackIsAnnouncedAndTheRawTextIsPasted() async throws {
+        let rig = try Rig()
+        defer { rig.tearDown() }
+        rig.formatter = StubFormatter { chunk, _ in FormatResult(text: chunk, outcome: .fellBack(.unreachable)) }
+        let controller = rig.controller()
+        controller.menu()
+        try await Task.sleep(for: .milliseconds(100))
+        controller.menu()
+        await settle(rig)
+
+        #expect(rig.paste.pasteboard.string() == "segment 1")
+        #expect(rig.hud.last == .pastedUnformatted(all: true))
+    }
+
+    @Test func pasteLastRawPastesTheTranscriptWithoutFormatting() async throws {
+        let rig = try Rig()
+        defer { rig.tearDown() }
+        rig.formatter = StubFormatter { _, _ in FormatResult(text: "Formatted", outcome: .formatted) }
+        let controller = rig.controller()
+        controller.menu()
+        try await Task.sleep(for: .milliseconds(100))
+        controller.menu()
+        await settle(rig)
+        #expect(rig.paste.pasteboard.string() == "Formatted")
+
+        controller.pasteLastRaw()
+        for _ in 0..<200 where rig.paste.events.posts < 2 { try await Task.sleep(for: .milliseconds(10)) }
+        #expect(rig.paste.pasteboard.string() == "segment 1")
+        #expect(rig.paste.events.posts == 2)
+    }
+
+    @Test func pasteLastRawWithNothingDictatedSaysSo() throws {
+        let rig = try Rig()
+        defer { rig.tearDown() }
+        let controller = rig.controller()
+        controller.pasteLastRaw()
+        #expect(rig.hud.last == .problem(.nothingToPaste))
+        #expect(rig.paste.events.posts == 0)
+    }
 }
 
 @Suite struct HUDStateTests {
@@ -308,7 +368,8 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
             .allowMicrophone, .recording(.init()), .recording(.init(loadingModel: true)), .finishing, .pasted,
             .copied(.noAccessibility), .copied(.secureEventInput), .problem(.modelMissing),
             .problem(.modelUnavailable), .problem(.modelFailedToLoad), .problem(.microphoneDenied),
-            .problem(.noMicrophone), .problem(.nothingHeard),
+            .problem(.noMicrophone), .problem(.nothingHeard), .problem(.nothingToPaste),
+            .pastedUnformatted(all: true), .pastedUnformatted(all: false),
         ]
         for state in states {
             #expect(!state.title.isEmpty)

@@ -12,6 +12,17 @@ struct DictationSettings: Sendable {
         static let inputDevice = "inputDevice"
         static let keepWarmMinutes = "keepWarmMinutes"
         static let restoreClipboard = "restoreClipboard"
+        static let mode = "mode"
+        static let llmEndpoint = "llmEndpoint"
+        static let llmModel = "llmModel"
+    }
+
+    /// What happens to the transcript before it is pasted.
+    enum Mode: String, Sendable, CaseIterable {
+        /// The transcript as the speech model wrote it.
+        case raw
+        /// Cleaned up by the user's local language model ("Porządkuj").
+        case cleanup
     }
 
     static let defaultSpeechModel = "parakeet-ultra"
@@ -45,6 +56,45 @@ struct DictationSettings: Sendable {
     }
 
     var restoresClipboard: Bool { settings.bool(Key.restoreClipboard, default: true) }
+
+    var mode: Mode { settings.string(Key.mode).flatMap(Mode.init(rawValue:)) ?? .raw }
+
+    /// The formatting server's address, always a loopback one (the setter refuses anything else).
+    var llmEndpoint: URL? {
+        settings.string(Key.llmEndpoint).flatMap { LoopbackPolicy.parse($0) }
+    }
+
+    var llmModel: String? {
+        guard let model = settings.string(Key.llmModel), !model.isEmpty else { return nil }
+        return model
+    }
+
+    /// The server and model to format with, or `nil` until both are chosen.
+    var llmTarget: LocalLLMFormatter.Target? {
+        guard let url = llmEndpoint, let model = llmModel else { return nil }
+        return .init(baseURL: url, model: model)
+    }
+
+    func setMode(_ mode: Mode) { settings.set(mode.rawValue, for: Key.mode) }
+    func setLLMModel(_ model: String?) {
+        if let model, !model.isEmpty {
+            settings.set(model, for: Key.llmModel)
+        } else {
+            settings.removeValue(for: Key.llmModel)
+        }
+    }
+
+    /// Returns false (and stores nothing) when the address is not on this Mac.
+    @discardableResult
+    func setLLMEndpoint(_ text: String) -> Bool {
+        if text.trimmingCharacters(in: .whitespaces).isEmpty {
+            settings.removeValue(for: Key.llmEndpoint)
+            return true
+        }
+        guard let url = LoopbackPolicy.parse(text) else { return false }
+        settings.set(url.absoluteString, for: Key.llmEndpoint)
+        return true
+    }
 
     func setSpeechModelFolder(_ url: URL?) {
         if let url {
