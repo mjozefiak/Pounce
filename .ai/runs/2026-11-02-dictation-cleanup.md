@@ -34,4 +34,4 @@ Steps 2.1 to 2.5 of the spec. Whatever needs a real server stays manual and is l
 - [x] 2.2 LocalLLMFormatter + CleanupPrompt + FormatterGuard
 - [x] 2.3 Segmenter and formatting while recording
 - [x] 2.4 Settings and HUD for formatting, dictation.pasteLastRaw
-- [ ] 2.5 Prompt regression fixtures (the run against a real server is manual)
+- [x] 2.5 Prompt regression fixtures (the run against a real server is manual)

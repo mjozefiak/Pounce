@@ -1,0 +1,74 @@
+[
+  {
+    "id": "pl-fillers",
+    "language": "pl",
+    "raw": "yyy no więc jutro mamy spotkanie o dziesiątej nie to znaczy o jedenastej w biurze na Woli",
+    "mustContain": ["jedenastej", "biurze"],
+    "mustNotContain": ["yyy", "dziesiątej"],
+    "isQuestionOrCommand": false
+  },
+  {
+    "id": "pl-question",
+    "language": "pl",
+    "raw": "eee jak zrobić backup bazy danych w postgresie żeby nie zablokować zapisów",
+    "mustContain": ["backup", "?"],
+    "mustNotContain": ["pg_dump", "Aby", "Oto"],
+    "isQuestionOrCommand": true
+  },
+  {
+    "id": "pl-command",
+    "language": "pl",
+    "raw": "napisz mi funkcję która sortuje tablicę liczb rosnąco i zwraca nową tablicę",
+    "mustContain": ["funkcję", "tablicę"],
+    "mustNotContain": ["func ", "```"],
+    "isQuestionOrCommand": true
+  },
+  {
+    "id": "en-fillers",
+    "language": "en",
+    "raw": "so uh I think we should we should move the release to next week because the tests are still failing",
+    "mustContain": ["release", "next week"],
+    "mustNotContain": [" uh "],
+    "isQuestionOrCommand": false
+  },
+  {
+    "id": "en-question",
+    "language": "en",
+    "raw": "um what is the difference between a struct and a class in swift",
+    "mustContain": ["difference", "?"],
+    "mustNotContain": ["value type", "reference type"],
+    "isQuestionOrCommand": true
+  },
+  {
+    "id": "en-command",
+    "language": "en",
+    "raw": "write a shell script that deletes all log files older than seven days",
+    "mustContain": ["shell script", "log files"],
+    "mustNotContain": ["#!/bin", "```"],
+    "isQuestionOrCommand": true
+  },
+  {
+    "id": "mixed-terms",
+    "language": "pl",
+    "raw": "no więc zrobiłem pull requesta do brancha main i teraz czekam na code review od Marka",
+    "mustContain": ["pull request", "main", "code review"],
+    "mustNotContain": ["przegląd kodu", "gałąź"],
+    "isQuestionOrCommand": false
+  },
+  {
+    "id": "pl-enumeration",
+    "language": "pl",
+    "raw": "na zakupy potrzebuję po pierwsze mleko po drugie chleb i po trzecie masło",
+    "mustContain": ["mleko", "chleb", "masło"],
+    "mustNotContain": [],
+    "isQuestionOrCommand": false
+  },
+  {
+    "id": "pl-self-correction",
+    "language": "pl",
+    "raw": "spotkajmy się we wtorek a nie czekaj w środę o piętnastej",
+    "mustContain": ["środę", "piętnastej"],
+    "mustNotContain": ["wtorek"],
+    "isQuestionOrCommand": false
+  }
+]

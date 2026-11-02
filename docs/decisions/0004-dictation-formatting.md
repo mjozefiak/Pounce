@@ -63,6 +63,9 @@ transcript in tags under a fixed "transcription editor" system prompt [9].
 - No new dependency: Pounce still talks to one OpenAI-compatible endpoint.
 - Whether Ollama's OpenAI endpoint honours `chat_template_kwargs` is checked in step 2.5; if not,
   `<think>` stripping and the guard handle it.
+- Ollama's `/v1/chat/completions` ignores `chat_template_kwargs` in some versions; Pounce always sends it and
+  relies on `<think>` stripping and the guard. The result of the check on the user's Ollama is recorded in the
+  PR of step 2.5.
 - The prompt regression set (step 2.5) is written as text fixtures (PL, EN, mixed, with dictated
   questions and commands) instead of being transcribed from the user's recordings.
 

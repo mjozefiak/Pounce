@@ -178,6 +178,14 @@ and filled in then; nothing here is estimated.
 | Memory while dictating | measured, about 0.8–1.2 GB expected | – | Manual (1.9) |
 | Whisper large-v3-turbo cold load | measured in step 1.10 | – | Manual (1.10) |
 
+### Formatting (Phase 2)
+
+| Budget | Target | Measured | Status |
+|---|---|---|---|
+| Formatted text ready after stopping, tail ≤ 60 words (Qwen3.6-35B-A3B 4-bit, M-series Max/Ultra) | < 3 s (ADR 0004) | – | Manual (QA with Ollama) |
+| Same with a 4B model on a base M-series | < 8 s | – | Manual (QA with Ollama) |
+| Time of one chunk request | printed by `POUNCE_LLM_URL=… swift test --filter CleanupFixtureTests/realServer` | – | Manual |
+
 Run the local integration tests with the model installed (they are off by default):
 
 ```sh

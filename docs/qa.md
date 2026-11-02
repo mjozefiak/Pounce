@@ -221,6 +221,25 @@ microphone permission, a real recording, the real model (about 630 MB, downloade
 pasting into another app cannot be faked. Check the HUD, the Settings pane and the setup step with
 `--qa --qa-panel`-style runs, and everything that records or pastes by hand.
 
+### Dictation formatting (Phase 2)
+
+The formatting server is the user's own, so it cannot be faked in CI. With Ollama (or LM Studio,
+llama-server) running and a model pulled, turn on Settings → Dictation → Formatting and check:
+
+- the server and model are found and chosen by themselves, "Try it" shows a cleaned sample;
+- an address such as `http://example.com` or `192.168.1.5` is refused in the Address field;
+- dictate a long text in Polish, English and mixed; spoken questions and commands come back as cleaned
+  questions and commands, never answered;
+- stop the server and dictate: the raw text is pasted and the HUD says "Pasted – not cleaned up";
+- "Paste raw version of the last dictation" (menu bar) pastes the transcript without formatting.
+
+Run the prompt fixtures against a server (prints the input, output and time of each case):
+
+```sh
+POUNCE_LLM_URL=http://127.0.0.1:11434 POUNCE_LLM_MODEL=qwen3:4b \
+  swift test --filter CleanupFixtureTests/realServer
+```
+
 ## Never during QA
 
 - No synthetic key events, no `tccutil`, no edits to TCC databases or `com.apple.*` defaults.
