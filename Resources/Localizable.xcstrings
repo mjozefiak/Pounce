@@ -1657,6 +1657,24 @@
         }
       }
     },
+    "Lets Pounce hear you while you dictate. Audio stays on this Mac and is never saved." : {
+      "comment" : "Explanation of the Microphone permission",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lets Pounce hear you while you dictate. Audio stays on this Mac and is never saved."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pozwala Pounce słuchać, gdy dyktujesz. Dźwięk zostaje na tym Macu i nigdy nie jest zapisywany."
+          }
+        }
+      }
+    },
     "Lets Pounce paste into the app you were using. Without it, Pounce only copies." : {
       "comment" : "Explanation of the Accessibility permission",
       "extractionState" : "manual",
@@ -1779,6 +1797,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Średni"
+          }
+        }
+      }
+    },
+    "Microphone" : {
+      "comment" : "Permission name in Settings → Permissions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microphone"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon"
           }
         }
       }

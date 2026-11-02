@@ -13,6 +13,10 @@ public struct PluginCommand: Identifiable, Sendable {
     /// When set, the shell opens (or, when it is already open, closes) the panel in this plugin panel mode
     /// instead of calling `run`. Added in Phase 1, so a plugin can bind a global shortcut to its own mode.
     public let panelMode: PanelModeID?
+    /// When set, the shortcut delivers both its key-down and its key-up here, synchronously and in order,
+    /// instead of calling `run` (the menu still calls `run`). Added with dictation, so a plugin can tell a
+    /// tap from a hold; the default is `nil`.
+    public let onKeyEvent: (@MainActor @Sendable (KeyPhase) -> Void)?
     public let run: @MainActor @Sendable () async -> Void
 
     public init(
@@ -22,7 +26,8 @@ public struct PluginCommand: Identifiable, Sendable {
         defaultShortcut: KeyShortcut? = nil,
         showsInMenu: Bool = true,
         panelMode: PanelModeID? = nil,
-        run: @escaping @MainActor @Sendable () async -> Void = {}
+        run: @escaping @MainActor @Sendable () async -> Void = {},
+        onKeyEvent: (@MainActor @Sendable (KeyPhase) -> Void)? = nil
     ) {
         self.id = id
         self.title = title
@@ -30,8 +35,15 @@ public struct PluginCommand: Identifiable, Sendable {
         self.defaultShortcut = defaultShortcut
         self.showsInMenu = showsInMenu
         self.panelMode = panelMode
+        self.onKeyEvent = onKeyEvent
         self.run = run
     }
+}
+
+/// The two halves of a global shortcut press.
+public enum KeyPhase: Hashable, Sendable {
+    case down
+    case up
 }
 
 /// A filter of a list panel mode, chosen with Command-1 to Command-9 in the order given (for example the
@@ -159,6 +171,8 @@ public enum Permission: String, Hashable, Sendable, CaseIterable {
     case fullDiskAccess
     /// Reading the general pasteboard (pasteboard privacy, `NSPasteboard.accessBehavior`).
     case pasteboard
+    /// Recording from the microphone. Added with dictation.
+    case microphone
 }
 
 /// What the host knows about a permission.

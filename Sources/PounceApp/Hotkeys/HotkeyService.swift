@@ -10,7 +10,13 @@ protocol HotkeyRegistrar: AnyObject {
     func setShortcut(_ shortcut: HotkeyShortcut?, for name: HotkeyName)
     /// Calls `action` on every key-down of the shortcut until `removeHandler(for:)`.
     func setHandler(for name: HotkeyName, _ action: @escaping @MainActor () -> Void)
+    /// Calls `handler` with every key-down and key-up of the shortcut, in order, until `removeHandler(for:)`.
+    /// Replaces a handler set with `setHandler(for:_:)` for the same name, and the other way round.
+    func setKeyEventHandler(for name: HotkeyName, _ handler: @escaping @MainActor (KeyPhase) -> Void)
     func removeHandler(for name: HotkeyName)
+    /// Registers Escape without modifiers until the claim is released. An inactive claim when the system
+    /// (or another app) refuses.
+    func claimEscape(_ action: @escaping @MainActor () -> Void) -> EscapeKeyClaim
 }
 
 /// A shortcut's storage name. KeyboardShortcuts keeps it under `KeyboardShortcuts_<rawValue>`, and the
@@ -40,6 +46,7 @@ final class HotkeyService {
     @ObservationIgnored private let settings: any SettingsStore
     @ObservationIgnored private let readOccupied: () -> Set<HotkeyShortcut>
     @ObservationIgnored private var commandNames: Set<HotkeyName> = []
+    @ObservationIgnored private var escapeHeld = false
     @ObservationIgnored private let logger = Logger(subsystem: "app.pounce", category: "hotkeys")
     /// False in QA mode: the recorders are read-only, because KeyboardShortcuts writes a recorded shortcut
     /// to the real defaults domain and registers it with the system.
@@ -108,7 +115,14 @@ final class HotkeyService {
 
     /// Registers the shortcuts of active plugins' commands and drops those of commands that are gone. A
     /// command's default shortcut is applied once; after that the stored value (possibly none) is kept.
-    func syncCommands(_ commands: [PluginCommand], perform: @escaping @MainActor (PluginCommand) -> Void) {
+    ///
+    /// A command with `onKeyEvent` gets both phases through `deliver`, called synchronously from the
+    /// registrar's event stream; any other command calls `perform` on key-down.
+    func syncCommands(
+        _ commands: [PluginCommand],
+        perform: @escaping @MainActor (PluginCommand) -> Void,
+        deliver: @escaping @MainActor (PluginCommand, KeyPhase) -> Void = { _, _ in }
+    ) {
         var applied = Set(stringArray(SettingsKeys.commandShortcutDefaultsApplied))
         var active = Set<HotkeyName>()
         for command in commands {
@@ -122,7 +136,11 @@ final class HotkeyService {
                 }
                 applied.insert(command.id)
             }
-            registrar.setHandler(for: name) { perform(command) }
+            if command.onKeyEvent != nil {
+                registrar.setKeyEventHandler(for: name) { phase in deliver(command, phase) }
+            } else {
+                registrar.setHandler(for: name) { perform(command) }
+            }
         }
         for name in commandNames.subtracting(active) {
             registrar.removeHandler(for: name)
@@ -133,6 +151,18 @@ final class HotkeyService {
 
     func shortcut(for name: HotkeyName) -> HotkeyShortcut? {
         registrar.shortcut(for: name)
+    }
+
+    /// Hands out the one Escape claim. A second claim while one is held is inactive; releasing frees it.
+    func claimEscape(_ onEscape: @escaping @MainActor () -> Void) -> EscapeKeyClaim {
+        guard !escapeHeld else { return .inactive }
+        let claim = registrar.claimEscape(onEscape)
+        guard claim.isActive else { return claim }
+        escapeHeld = true
+        return EscapeKeyClaim(isActive: true) { [weak self] in
+            claim.release()
+            self?.escapeHeld = false
+        }
     }
 
     /// The current shortcut of a plugin command, for menus.
@@ -158,12 +188,38 @@ final class HotkeyService {
 final class InMemoryHotkeyRegistrar: HotkeyRegistrar {
     private(set) var shortcuts: [HotkeyName: HotkeyShortcut] = [:]
     private(set) var handlers: [HotkeyName: @MainActor () -> Void] = [:]
+    private(set) var keyEventHandlers: [HotkeyName: @MainActor (KeyPhase) -> Void] = [:]
+    private(set) var escapeAction: (@MainActor () -> Void)?
+    /// Tests set this to false to simulate another app holding Escape.
+    var escapeAvailable = true
+    private(set) var escapeReleases = 0
 
     func shortcut(for name: HotkeyName) -> HotkeyShortcut? { shortcuts[name] }
 
     func setShortcut(_ shortcut: HotkeyShortcut?, for name: HotkeyName) { shortcuts[name] = shortcut }
 
-    func setHandler(for name: HotkeyName, _ action: @escaping @MainActor () -> Void) { handlers[name] = action }
+    func setHandler(for name: HotkeyName, _ action: @escaping @MainActor () -> Void) {
+        keyEventHandlers[name] = nil
+        handlers[name] = action
+    }
 
-    func removeHandler(for name: HotkeyName) { handlers[name] = nil }
+    func setKeyEventHandler(for name: HotkeyName, _ handler: @escaping @MainActor (KeyPhase) -> Void) {
+        handlers[name] = nil
+        keyEventHandlers[name] = handler
+    }
+
+    func removeHandler(for name: HotkeyName) {
+        handlers[name] = nil
+        keyEventHandlers[name] = nil
+    }
+
+    func claimEscape(_ action: @escaping @MainActor () -> Void) -> EscapeKeyClaim {
+        guard escapeAvailable else { return .inactive }
+        escapeAction = action
+        return EscapeKeyClaim(isActive: true) { [weak self] in
+            guard let self, self.escapeAction != nil else { return }
+            self.escapeAction = nil
+            self.escapeReleases += 1
+        }
+    }
 }

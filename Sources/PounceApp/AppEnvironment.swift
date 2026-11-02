@@ -58,10 +58,14 @@ struct AppEnvironment {
     /// - Parameters:
     ///   - resultsChanged: called by the plugin when its results change (see `PluginContext`).
     ///   - makeShortcutRecorder: the shell's recorder for one of the plugin's commands.
+    ///   - claimEscapeKey: the shell's temporary Escape claim.
     func makeContext(
         for manifest: PluginManifest,
         resultsChanged: @escaping @Sendable () -> Void = {},
-        makeShortcutRecorder: @escaping @MainActor @Sendable (String) -> AnyView = { _ in AnyView(EmptyView()) }
+        makeShortcutRecorder: @escaping @MainActor @Sendable (String) -> AnyView = { _ in AnyView(EmptyView()) },
+        claimEscapeKey:
+            @escaping @MainActor @Sendable (_ onEscape: @escaping @MainActor @Sendable () -> Void) ->
+            EscapeKeyClaim = { _ in .inactive }
     ) -> PluginContext {
         PluginContext(
             storageDirectory: storageDirectory(for: manifest.id),
@@ -76,7 +80,8 @@ struct AppEnvironment {
             clock: ContinuousClock(),
             cachesDirectory: cachesDirectory(for: manifest.id),
             resultsChanged: resultsChanged,
-            makeShortcutRecorder: makeShortcutRecorder
+            makeShortcutRecorder: makeShortcutRecorder,
+            claimEscapeKey: claimEscapeKey
         )
     }
 

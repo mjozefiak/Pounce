@@ -60,6 +60,29 @@ public struct PluginSettings: Sendable {
     }
 }
 
+/// A hold on the Escape key, returned by `PluginContext.claimEscapeKey`. While `isActive`, the host
+/// registers a global Escape shortcut that swallows the key and calls the plugin's handler; `release()`
+/// gives the key back. Added with dictation.
+public struct EscapeKeyClaim: Sendable {
+    /// Whether Escape is really claimed. False for the empty claim, a second claim while one is held, and a
+    /// registration another app blocked, so the UI shows "✕ cancels" instead of "Esc cancels".
+    public let isActive: Bool
+    private let onRelease: @MainActor @Sendable () -> Void
+
+    public init(isActive: Bool, release: @escaping @MainActor @Sendable () -> Void = {}) {
+        self.isActive = isActive
+        self.onRelease = release
+    }
+
+    /// A claim that holds nothing.
+    public static let inactive = EscapeKeyClaim(isActive: false)
+
+    /// Gives Escape back. Safe to call more than once.
+    @MainActor public func release() {
+        onRelease()
+    }
+}
+
 /// Everything a plugin receives from the host. Plugins never reach for globals
 /// (`NSPasteboard.general`, `NSWorkspace.shared`, the real Keychain) directly.
 public struct PluginContext: Sendable {
@@ -87,6 +110,10 @@ public struct PluginContext: Sendable {
     /// a settings pane can let the user change the command's global shortcut. Added in Phase 2; the
     /// default shows nothing.
     public let makeShortcutRecorder: @MainActor @Sendable (_ commandID: String) -> AnyView
+    /// Claims the Escape key for a short session (dictation). Only one claim exists at a time; a second one
+    /// returns an inactive claim. Added with dictation; the default claims nothing.
+    public let claimEscapeKey:
+        @MainActor @Sendable (_ onEscape: @escaping @MainActor @Sendable () -> Void) -> EscapeKeyClaim
 
     public init(
         storageDirectory: URL,
@@ -103,7 +130,10 @@ public struct PluginContext: Sendable {
         resultsChanged: @escaping @Sendable () -> Void = {},
         makeShortcutRecorder: @escaping @MainActor @Sendable (_ commandID: String) -> AnyView = { _ in
             AnyView(EmptyView())
-        }
+        },
+        claimEscapeKey:
+            @escaping @MainActor @Sendable (_ onEscape: @escaping @MainActor @Sendable () -> Void) ->
+            EscapeKeyClaim = { _ in .inactive }
     ) {
         self.storageDirectory = storageDirectory
         self.settings = settings
@@ -119,5 +149,6 @@ public struct PluginContext: Sendable {
             cachesDirectory ?? storageDirectory.appending(path: "Caches", directoryHint: .isDirectory)
         self.resultsChanged = resultsChanged
         self.makeShortcutRecorder = makeShortcutRecorder
+        self.claimEscapeKey = claimEscapeKey
     }
 }
