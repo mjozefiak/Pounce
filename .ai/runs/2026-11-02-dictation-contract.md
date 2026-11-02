@@ -35,4 +35,4 @@ implementations, as its own `risk-high` PR (`BACKWARD_COMPATIBILITY.md` section 
 
 ### Phase 1: Contract
 
-- [ ] 1.1 Kontrakt (PounceKit additions, shell implementations, tests)
+- [x] 1.1 Kontrakt (PounceKit additions, shell implementations, tests) — 2b1cc0e
