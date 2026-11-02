@@ -63,14 +63,14 @@ Użytkownik chce dyktować tekst w dowolnej aplikacji, jak w superwhisper, głó
 Nowy wewnętrzny plugin `DictationPlugin` (`PluginID` `dictation`, nowy target i jedna linia w `PluginRegistry`). Przepływ:
 
 1. **Skrót naciśnięty:**
-   - shell chowa panel Pounce, jeśli jest widoczny;
+   - shell chowa panel Pounce, jeśli jest widoczny (w `AppCoordinator`, bez kontraktu);
    - plugin przejmuje na czas sesji klawisz Esc (krótkotrwały globalny skrót przez shell);
    - startuje `AVAudioEngine` (16 kHz mono, tylko w pamięci);
    - pokazuje mały HUD u dołu aktywnego ekranu: poziom dźwięku, czas, „Esc anuluje”;
    - jeśli model mowy nie jest w pamięci, ładuje go równolegle, a audio czeka w buforze, więc żadne słowo nie ginie.
 2. **W trakcie mówienia:**
    - VAD (Silero, w FluidAudio) tnie mowę na segmenty i każdy zamknięty segment od razu idzie do transkrypcji;
-   - w trybie „Porządkuj” złożone z segmentów **akapity** (≥ ~120 słów zakończone pauzą ≥ 1,5 s) od razu trafiają do lokalnego LLM;
+   - w trybie „Porządkuj” złożone z segmentów **akapity** (≥ ~80 słów zakończone pauzą ≥ 1,5 s, najwyżej N słów (domyślnie 120, ustala spike 0.2), z wymuszonym podziałem na końcu zdania wskazanym przez VAD) od razu trafiają do lokalnego LLM;
    - dzięki temu po zakończeniu zostaje do przetworzenia tylko ostatni kawałek.
 3. **Skrót puszczony albo naciśnięty ponownie:**
    - plugin transkrybuje i formatuje ogon nagrania, skleja akapity;
@@ -117,7 +117,7 @@ flowchart LR
     session --> hud
 ```
 
-Wniosek: cała logika żyje w `DictationPlugin`. Shell dostaje cztery addytywne rozszerzenia kontraktu (fazy naciśnięcia skrótu, uprawnienie mikrofonu, tymczasowe przejęcie Esc, schowanie panelu) oraz opis użycia i entitlement mikrofonu w bundlu. Aplikację na pierwszym planie plugin czyta z istniejącego `WorkspaceClient.frontmostApplication`.
+Wniosek: cała logika żyje w `DictationPlugin`. Shell dostaje cztery addytywne rozszerzenia kontraktu (fazy naciśnięcia skrótu, uprawnienie mikrofonu, tymczasowe przejęcie Esc, wspólne typy znaczników schowka) oraz opis użycia i entitlement mikrofonu w bundlu. Aplikację na pierwszym planie plugin czyta z istniejącego `WorkspaceClient.frontmostApplication`.
 
 **Wyjątek od zasady „pluginy nie sięgają po globalne obiekty”:** `AVAudioEngine`, `AVCaptureDevice.requestAccess`, `URLSession` i własny `NSPanel` są używane w pluginie, ale każdy za **wewnętrznym** (nie w `PounceKit`) protokołem wstrzykiwanym w inicjalizatorze: `AudioSource` (testy: plik WAV), `MicrophoneAuthorizer`, `HTTPTransport` (testy: `URLProtocol` stub), `HUDPresenter` (testy: rejestrujący stan). Nie dodajemy ich do `PounceKit`, bo potrzebuje ich jeden plugin; trafią tam, gdy pojawi się drugi. Jedyny proces poza Pounce to opcjonalny serwer LLM użytkownika.
 
@@ -140,7 +140,7 @@ Wniosek: cała logika żyje w `DictationPlugin`. Shell dostaje cztery addytywne 
   - `load(modelFolder:)`, `transcribe(segment:) async throws -> TranscriptSegment`, `unload()`;
   - model zostaje w pamięci przez `keepWarm` (domyślnie 10 min od ostatniego dyktowania), potem jest zwalniany;
   - `WhisperKitEngine` powstanie tylko, jeśli spike 0.1 tego wymaga.
-- `Segmenter` — czysta logika: z segmentów VAD składa akapity do formatowania (próg słów, długość pauzy, maks. 400 słów na kawałek).
+- `Segmenter` — czysta logika: z segmentów VAD składa akapity do formatowania (próg ~80 słów, pauza ≥ 1,5 s, twardy limit N słów, domyślnie 120 z podziałem na końcu zdania). Ogon po zakończeniu nagrania też jest dzielony tym samym limitem, więc po zatrzymaniu czeka się najwyżej na jeden kawałek ≤ N słów (kolejne kawałki ogona idą równolegle, jeśli serwer na to pozwala, inaczej po kolei). Dokładny limit `N` ustala spike 0.2.
 - `TextFormatter` (protokół): `format(chunk:previousContext:) async throws -> String`. Implementacje:
   - `RawFormatter` — tylko złożenie segmentów i spacje;
   - `LocalLLMFormatter` — klient `/v1/chat/completions` (`URLSession`, `stream: false`, `temperature: 0`) z promptem systemowym `CleanupPrompt` (zasoby pluginu, wersjonowany), z transkrypcją w `<transcript>…</transcript>` i z ogonem poprzedniego akapitu jako kontekstem tylko do odczytu;
@@ -151,7 +151,7 @@ Wniosek: cała logika żyje w `DictationPlugin`. Shell dostaje cztery addytywne 
   - akceptowane tylko dosłowne `127.x.x.x` (forma kropkowa dziesiętna) i `[::1]`;
   - odrzucane adresy `::ffff:` mapowane, liczbowe i ósemkowe formy IP, URL z userinfo (`http://127.0.0.1@evil`) i schematy inne niż `http`;
   - klient LLM używa sesji `.ephemeral` z `connectionProxyDictionary = [:]` (bez proxy, bez `URLCache` na dysku) i blokuje przekierowania w `willPerformHTTPRedirection`;
-  - pobieranie modelu idzie osobną sesją, wyłącznie do `huggingface.co` i jego CDN, po HTTPS.
+  - pobieranie modelu idzie osobną sesją, po HTTPS, wyłącznie do hostów z listy: `huggingface.co`, `cdn-lfs.hf.co` i `cdn-lfs-*.hf.co`, `cas-bridge.xethub.hf.co`. Ta sesja (inaczej niż sesja LLM) przyjmuje przekierowania, ale tylko na hosty z listy; każde inne przekierowanie przerywa pobieranie. Listę weryfikuje spike 0.1.
 - `ModelManager` — katalog wkompilowanych modeli (`ModelCatalog`: id, pliki, przypięta rewizja Hugging Face, SHA-256 każdego pliku, rozmiar, licencja i atrybucja). Pakiet obejmuje **wszystko**, czego silnik potrzebuje: Parakeet (encoder, decoder, joint), słownik/tokenizer i model VAD Silero. Wbudowane pobieranie FluidAudio (`downloadAndLoad`, domyślny katalog modeli) **nigdy nie jest używane**: silnik ładuje modele wyłącznie z folderu wskazanego przez `ModelManager` (sprawdzane w spike 0.1 z zablokowaną siecią). Skompilowane modele Core ML (`.mlmodelc`) to dane wag, nie kod wykonywalny, więc nie łamią zakazu ładowania kodu w runtime (`CODE_REVIEW.md`).
   `ModelManager`:
   - pobiera przez `URLSession` do `Plugins/dictation/Models/<model-id>.partial/` i weryfikuje sumy;
@@ -162,7 +162,8 @@ Wniosek: cała logika żyje w `DictationPlugin`. Shell dostaje cztery addytywne 
   - robi ⌘V przez `EventPoster`, z decyzją jak `PasteDecision` w schowku: brak Accessibility, Secure Event Input albo brak celu → tylko kopia, bez przywracania schowka;
   - **przywracanie** poprzedniej zawartości odbywa się tylko wtedy, gdy:
     - dostęp do schowka jest dozwolony (`accessBehavior`; inaczej plugin nie czyta schowka i nie przywraca, żeby nie wywołać monitu macOS);
-    - odczyt przed wklejeniem był kompletny (żadnych pominiętych typów `dyn.*`, obietnic ani elementów ponad limit rozmiaru);
+    - obecne typy schowka nie zawierają **żadnego** typu z `PasteboardRepresentation.markerTypes` (hasło z menedżera haseł, dane tymczasowe). Wtedy plugin w ogóle nie czyta schowka i nie przywraca: przywrócenie podbiłoby `changeCount` i wyłączyło automatyczne czyszczenie hasła przez menedżer haseł;
+    - odczyt przed wklejeniem był kompletny: dla **każdego elementu** zbiór odczytanych typów jest równy typom tego elementu (`readContents` po cichu pomija dane nieudane i obiecane, więc liczy się porównanie), a wynik nie ma `exceedsLimit`. `maxBytes` = `CaptureFilter.maximumEntryBytes` (20 MB, liczone dla całego schowka); po przekroczeniu odczyt jest niekompletny. `maxBytes` nie chroni przed leniwymi obietnicami (`data(forType:)` generuje dane przed sprawdzeniem rozmiaru), więc odczyt może krótko zablokować main actor, tak samo jak dziś w `PasteboardWatcher`; spike 0.1 mierzy to na typowych aplikacjach;
     - `changeCount` nie zmienił się od wklejenia.
     
     Przywrócony zapis też dostaje znacznik transient, więc `ClipboardPlugin` nie łapie go ponownie i nie podbija starego wpisu.
@@ -170,11 +171,12 @@ Wniosek: cała logika żyje w `DictationPlugin`. Shell dostaje cztery addytywne 
 - `DictationStore` + `DictationKeyStore` (Faza 3) — patrz Data Model.
 
 **Zmiany w shellu (`PounceApp`):**
-- `HotkeyRegistrar` dostaje `setKeyUpHandler(for:_:)` (KeyboardShortcuts ma `onKeyUp`) oraz tymczasową rejestrację Esc bez modyfikatorów (Carbon hotkey, połyka klawisz tylko na czas sesji); `KeyboardShortcutsRegistrar` i rejestratory QA/testowe dostają implementację.
-- `HotkeyService.syncCommands` i `AppCoordinator.perform`: dla komendy z `onKeyEvent` oba zdarzenia (`.down`, `.up`) są dostarczane **synchronicznie na main actorze, w kolejności**, bez owijania w `Task` (dziś `perform` robi `Task { await run() }`, co przy szybkim tapnięciu mogłoby odwrócić kolejność). Wywołanie z menu nadal woła `run`.
+- `HotkeyRegistrar` dostaje `setKeyEventHandler(for:_:)`: dla komendy z `onKeyEvent` rejestrator konsumuje **jedną** sekwencję `KeyboardShortcuts.events(for:)` (key-down i key-up w jednym strumieniu) w jednej pętli na main actorze, więc kolejność zdarzeń wynika z samego strumienia; `removeHandler` anuluje tę pętlę (bez osobnego callbacku `onKeyUp`, który mógłby przeciec). Dziś `setHandler` słucha tylko `events(.keyDown, …)` we własnym `Task` (`KeyboardShortcutsRegistrar.swift:35-37`). Dochodzi też tymczasowa rejestracja Esc bez modyfikatorów (Carbon hotkey, połyka klawisz tylko na czas sesji). `KeyboardShortcutsRegistrar` i rejestratory QA/testowe dostają implementację.
+- `HotkeyService.syncCommands` i `AppCoordinator`: zdarzenia z tej pętli trafiają do `onKeyEvent` **synchronicznie**, bez owijania w `Task` (dziś `perform` robi `Task { await run() }`, co przy szybkim tapnięciu mogłoby odwrócić kolejność). Przed dostarczeniem `.down` `AppCoordinator` sam chowa panel launchera, jeśli jest widoczny (inaczej ⌘V trafiłoby do pola wyszukiwania panelu). Wywołanie z menu nadal woła `run`.
+- `AppCoordinator` po włączeniu pluginu (Ustawienia → Funkcje, dziś tylko `host.setEnabled`) wywołuje `onboarding.showPendingSteps()`, żeby kroki onboardingu włączonego pluginu pokazały się od razu, a nie dopiero przy następnym uruchomieniu (dziś `showPendingSteps()` działa tylko w `start()`, `AppCoordinator.swift:94`).
 - `PermissionsReader` obsługuje `.microphone` (`AVCaptureDevice.authorizationStatus(for: .audio)`).
 - Ustawienia → Uprawnienia pokazują mikrofon z linkiem `x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone`.
-- `Resources/Info.plist`: `NSMicrophoneUsageDescription` (en + pl przez `InfoPlist.xcstrings`); `Resources/Pounce.entitlements`: `com.apple.security.device.audio-input` (wymagane przy hardened runtime).
+- `Resources/Info.plist`: `NSMicrophoneUsageDescription` (en + pl przez **nowy** katalog `Resources/InfoPlist.xcstrings`; `scripts/make-app.sh` dziś kompiluje tylko `Localizable.xcstrings`, więc krok 1.2 dodaje kompilację drugiego katalogu, a `StringCatalogTests` sprawdza oba); `Resources/Pounce.entitlements`: `com.apple.security.device.audio-input` (wymagane przy hardened runtime).
 - `scripts/make-app.sh` kopiuje zasoby FluidAudio, jeśli je ma (jak bundle KeyboardShortcuts).
 - `THIRD_PARTY_NOTICES.txt`: FluidAudio (Apache-2.0); atrybucja wag Parakeet (CC-BY-4.0) w Ustawieniach przy modelu i w notkach.
 
@@ -190,7 +192,7 @@ Wniosek: cała logika żyje w `DictationPlugin`. Shell dostaje cztery addytywne 
 | Od naciśnięcia skrótu do startu nagrywania i widocznego HUD | < 150 ms (model nie musi być w pamięci; audio idzie do bufora) |
 | Załadowanie modelu Parakeet (zimny start) | < 3 s, w tle, bez utraty audio |
 | Tekst surowy gotowy po zakończeniu 5-minutowego nagrania | < 2 s |
-| Tekst sformatowany gotowy po zakończeniu (ostatni akapit ≤ 400 słów, Bielik 4.5B Q4, bazowy M-series) | < 8 s (cel do potwierdzenia w spike 0.2) |
+| Tekst sformatowany gotowy po zakończeniu, przy ogonie ≤ N słów (N domyślnie 120, ustala spike 0.2; Bielik 4.5B Q4, bazowy M-series) | < 8 s. Rachunek: 31–38 tok/s i 1,2–2,9 tok/słowo dają ~3,8–11 s na 120 słów, więc N może wyjść niżej |
 | Pamięć w spoczynku (model zwolniony) | bez zmian: < 150 MB dla całej aplikacji |
 | Pamięć w trakcie dyktowania | budżet osobny, mierzony w spike 0.1 (oczekiwane ~0,8–1,2 GB) |
 
@@ -218,20 +220,19 @@ Trzy magazyny w `Application Support/Pounce/Plugins/dictation/` (katalog 0700, p
 | `target_bundle_id` | TEXT NULL | gdzie wklejono; NULL przy samej kopii |
 | `paste_result` | TEXT | `pasted` / `copied` / `failed` |
 
-Wirtualna tabela **`dictation_fts`** (FTS5, `content=dictation_entry`, kolumny `raw_text`, `formatted_text`) służy do wyszukiwania w historii.
+Wirtualna tabela **`dictation_fts`** (FTS5, `content=dictation_entry`, kolumny `raw_text`, `formatted_text`) służy do wyszukiwania w historii; migracja `v1-history` tworzy też wyzwalacze `AFTER INSERT/UPDATE/DELETE` synchronizujące indeks (jak w `clipboard.sqlite`).
 
 **Retencja:** `RetentionJob` usuwa wpisy starsze niż `plugins.dictation.retentionDays` (domyślnie 30) i ponad `plugins.dictation.maximumEntries` (domyślnie 500); przy usunięciu robi `VACUUM` co najwyżej raz dziennie.
 
-**Wrażliwe dane:** treść dyktowania nigdy nie trafia do logów (tylko długości i czasy), do `ranking.sqlite` (plugin nie wywołuje `PluginContext.usage`) ani do schowka systemowego na dłużej niż do przywrócenia. Audio istnieje wyłącznie w pamięci sesji i jest zerowane po transkrypcji segmentu.
+**Wrażliwe dane:** treść dyktowania nigdy nie trafia do logów (tylko długości i czasy), do `ranking.sqlite` (plugin nie wywołuje `PluginContext.usage`) ani do schowka systemowego na dłużej niż do przywrócenia. Audio istnieje wyłącznie w pamięci sesji; bufory Pounce są zwalniane po transkrypcji segmentu (nie obiecujemy zerowania, bo FluidAudio i Core ML mogą trzymać własne kopie).
 
 Graf modelu danych pominięty: `dictation_entry` i jej indeks FTS nie mają relacji z żadną istniejącą encją (osobna baza, jak `clipboard.sqlite`), więc diagram byłby trywialny.
 
 ## 📝 API Contracts (addytywne zmiany `PounceKit`, `BACKWARD_COMPATIBILITY.md` §1)
 - `Permission.microphone` — nowy przypadek enuma (`CaseIterable`; wszystkie `switch` w drzewie aktualizowane w tym samym PR).
 - `PluginCommand.onKeyEvent: (@MainActor @Sendable (KeyPhase) -> Void)?` z `enum KeyPhase { case down, up }` — gdy ustawione, skrót dostarcza oba zdarzenia synchronicznie i w kolejności zamiast wołać `run`; menu dalej woła `run`. Domyślnie `nil`, nowy parametr inicjalizatora z wartością domyślną; dotychczasowe komendy działają bez zmian.
-- `PluginContext.claimEscapeKey: @MainActor @Sendable (_ onEscape: @escaping @MainActor @Sendable () -> Void) -> EscapeKeyClaim` — shell rejestruje tymczasowy globalny skrót Esc i zwraca uchwyt z `release()`; naraz może istnieć jedno przejęcie (kolejne zwraca uchwyt pusty). Domyślnie uchwyt pusty, bez rejestracji (Esc wtedy nie działa, zostaje ✕ i ponowne naciśnięcie skrótu).
-- `PluginContext.hidePanel: @MainActor @Sendable () -> Void` — chowa panel launchera, jeśli jest widoczny (inaczej ⌘V trafiłoby do pola wyszukiwania panelu). Domyślnie nic nie robi.
-- `PasteboardRepresentation.transientMarkerType` — publiczna stała `org.nspasteboard.TransientType`, współdzielona przez schowek i dyktowanie.
+- `PluginContext.claimEscapeKey: @MainActor @Sendable (_ onEscape: @escaping @MainActor @Sendable () -> Void) -> EscapeKeyClaim` — shell rejestruje tymczasowy globalny skrót Esc i zwraca uchwyt z `release()`; naraz może istnieć jedno przejęcie (kolejne zwraca uchwyt pusty). Domyślnie uchwyt pusty, bez rejestracji (Esc wtedy nie działa, zostaje ✕ i ponowne naciśnięcie skrótu). Uchwyt ma `isActive: Bool` — czy Esc rzeczywiście jest przejęty (pusty uchwyt i nieudana rejestracja dają `false`), żeby HUD wiedział, czy pokazać „Esc anuluje”, czy „✕ anuluje”.
+- `PasteboardRepresentation.transientMarkerType` (`org.nspasteboard.TransientType`) i `PasteboardRepresentation.markerTypes` (cały dzisiejszy zbiór `CaptureFilter.markerTypes`: Concealed, Transient, AutoGenerated i znaczniki menedżerów haseł) — publiczne stałe współdzielone przez schowek i dyktowanie; `CaptureFilter` przechodzi na nie bez zmiany zachowania.
 - Wszystkie zmiany są addytywne i mają wartości domyślne. Aplikację docelową plugin czyta z istniejącego `WorkspaceClient.frontmostApplication`.
 
 **Komendy pluginu:**
@@ -261,7 +262,7 @@ KeyboardShortcuts: `KeyboardShortcuts_command_dictation_record`.
 **Kontrakt endpointu LLM:**
 - `POST {endpoint}/v1/chat/completions` z ciałem `{model, temperature: 0, stream: false, messages: [system: CleanupPrompt, user: "<previous>…</previous><transcript>…</transcript>"]}`;
 - odpowiedź `choices[0].message.content`;
-- timeout 20 s na kawałek;
+- timeout proporcjonalny do wejścia: `5 s + słowa × zmierzony czas na słowo × 2` (współczynnik ze spike'u 0.2, domyślnie 0,1 s/słowo, czyli 29 s dla 120 słów);
 - bez klucza API (opcjonalny nagłówek `Authorization` dla llama-server `--api-key`, trzymany w Keychain — poza v1, chyba że spike pokaże potrzebę).
 
 ## 📝 UI/UX
@@ -276,7 +277,7 @@ KeyboardShortcuts: `KeyboardShortcuts_command_dictation_record`.
   
   Esc i przycisk ✕ anulują. Bez dźwięków w v1; tylko „Zmniejsz ruch” wyłącza animację poziomu.
 - **Ustawienia → Dyktowanie:**
-  - włącznik;
+  - (plugin włącza się w Ustawienia → Funkcje, jak każdy inny; panel Dyktowania istnieje tylko dla aktywnego pluginu);
   - rejestrator skrótu (`makeShortcutRecorder`) z opisem „naciśnij, aby przełączyć; przytrzymaj, aby mówić”;
   - **Model mowy:** karta modelu (rozmiar, licencja, atrybucja), „Pobierz (≈ 0,6 GB z huggingface.co)” z postępem i anulowaniem, „Wskaż folder…”, „Usuń model”;
   - mikrofon (lista urządzeń, wskaźnik poziomu „Test”);
@@ -309,8 +310,11 @@ KeyboardShortcuts: `KeyboardShortcuts_command_dictation_record`.
 | Pole docelowe to pole hasła (Secure Event Input) | Tylko kopia, komunikat; wpis w historii z `paste_result = copied`. |
 | Brak Accessibility | Tylko kopia do schowka, bez przywracania poprzedniej zawartości. |
 | Użytkownik skopiował coś w trakcie przywracania schowka | `changeCount` się zmienił → nie przywracamy. |
-| Skrót naciśnięty, gdy otwarty jest panel Pounce | `PluginContext.hidePanel` zamyka panel, wynik idzie do aplikacji pod spodem. |
-| Inna aplikacja trzyma już Esc jako globalny skrót | Rejestracja się nie udaje → anulowanie tylko przez ✕ w HUD; HUD pokazuje „✕ anuluje” zamiast „Esc anuluje”. |
+| Skrót naciśnięty, gdy otwarty jest panel Pounce | `AppCoordinator` chowa panel przed dostarczeniem `.down`, wynik idzie do aplikacji pod spodem. |
+| Inna aplikacja trzyma już Esc jako globalny skrót | Rejestracja się nie udaje (`EscapeKeyClaim.isActive == false`) → anulowanie tylko przez ✕ w HUD; HUD pokazuje „✕ anuluje” zamiast „Esc anuluje”. |
+| Mikrofon `notDetermined` przy naciśnięciu skrótu | Naciśnięcie to działanie użytkownika, więc plugin prosi o dostęp (`MicrophoneAuthorizer`); nagrywanie startuje dopiero po zgodzie, a HUD w tym czasie pokazuje „Zezwól na mikrofon”. Odmowa → komunikat z linkiem do Uprawnień; nic nie jest nagrywane. |
+| Na końcu nagrania na pierwszym planie jest Pounce (Ustawienia, „Wypróbuj”) | Tylko kopia do schowka i podgląd wyniku w Ustawieniach; brak ⌘V. |
+| Push-to-talk: modyfikatory skrótu (⌃⌥) wciąż wciśnięte przy wklejaniu | `TextPaster` czeka do 500 ms, aż `CGEventSource.flagsState(.hidSystemState)` nie pokazuje modyfikatorów; po czasie i tak wkleja (`postPaste` ustawia własne flagi ⌘). Sprawdzane w spike 0.1. |
 | Schowek zawierał typy, których nie da się wiernie odtworzyć | Brak przywracania; zawartość schowka po dyktowaniu to dyktowany tekst (jak w superwhisper). |
 | Bardzo długie nagranie (> 15 min) | Twardy limit 20 min; od 18 min HUD pokazuje odliczanie, potem automatyczne zakończenie. |
 | Cisza / sam szum | Brak segmentów VAD → komunikat „Nic nie usłyszano”, brak wpisu. |
@@ -324,9 +328,9 @@ KeyboardShortcuts: `KeyboardShortcuts_command_dictation_record`.
   - pobieranie modelu z huggingface.co to pierwsze połączenie sieciowe Pounce, wyłącznie na wyraźne kliknięcie;
   - endpoint LLM jest tylko loopback;
   - w Fazie 1 aktualizujemy `docs/index.html` (en + pl): „Pounce łączy się z siecią tylko wtedy, gdy sam pobierasz model mowy; audio i tekst nigdy nie opuszczają Maca”.
-- **Kontrakt `PounceKit`:** pięć zmian addytywnych z wartościami domyślnymi; PR kroku 1.1 jest `risk-high` zgodnie z §1 i idzie osobno, przed resztą Fazy 1.
+- **Kontrakt `PounceKit`:** cztery zmiany addytywne z wartościami domyślnymi; PR kroku 1.1 jest `risk-high` zgodnie z §1 i idzie osobno, przed resztą Fazy 1.
 - **Polityka sieci i ładowania kodu:**
-  - `CODE_REVIEW.md` traktuje każde połączenie sieciowe jako blocker, chyba że wprowadza je spec. Ten spec wprowadza dokładnie dwa: pobieranie modelu (HTTPS, `huggingface.co`, na kliknięcie) oraz klienta LLM (tylko loopback).
+  - `CODE_REVIEW.md` traktuje każde połączenie sieciowe jako blocker, chyba że wprowadza je spec. Ten spec wprowadza dokładnie dwa: pobieranie modelu (HTTPS, tylko hosty z listy `huggingface.co` / `*.hf.co` z sekcji `LoopbackPolicy`, na kliknięcie) oraz klienta LLM (tylko loopback).
   - Krok 1.8 aktualizuje `CODE_REVIEW.md` i `AGENTS.md`: oba wyjątki zostają nazwane, a pliki `.mlmodelc` uznane za dane, nie kod.
   - Logi serwera LLM użytkownika (Ollama, LM Studio) mogą zapisywać prompty jawnym tekstem; Ustawienia mówią o tym przy włączaniu formatowania.
 - **Entitlement i `Info.plist`:**
@@ -382,22 +386,22 @@ Każda faza to osobna gałąź `feat/` i osobny PR do `main`.
   - Wynik: `docs/decisions/0003-speech-engine.md`.
   - Test: tabela wyników w ADR; decyzja Parakeet vs WhisperKit.
 - **0.2 Spike formatowania.**
-  - Na transkrypcjach z 0.1: `CleanupPrompt` v1 przez Ollama z Bielik-4.5B Q4 i Qwen3-4B, kawałki 120–400 słów.
+  - Na transkrypcjach z 0.1: `CleanupPrompt` v1 przez Ollama z Bielik-4.5B Q4 i Qwen3-4B, kawałki 60–200 słów (żeby wyznaczyć limit `N`).
   - Mierzymy czas na kawałek (bazowy M-series), oceniamy zachowanie treści (ręcznie, 3 kryteria: nic nie dodane, nic nie zgubione, język zachowany) i liczbę fałszywych odrzuceń strażnika.
   - Wynik: `docs/decisions/0004-dictation-formatting.md` + zestaw tekstów w `Tests/DictationPluginTests/Fixtures/cleanup/` (tylko tekst, za zgodą użytkownika).
-  - Test: ADR z tabelą; potwierdzony albo skorygowany budżet „< 8 s”.
+  - Test: ADR z tabelą: zmierzony czas na słowo, wybrany limit `N` kawałka i ogona oraz współczynnik timeoutu; potwierdzony budżet „< 8 s dla ogona ≤ N słów”.
 
 ### Faza 1 — Dyktowanie surowe
 - **1.1 Kontrakt (osobny PR, `risk-high`).**
-  - Zmiany: `Permission.microphone`, `PluginCommand.onKeyEvent` + `KeyPhase`, `PluginContext.claimEscapeKey` + `EscapeKeyClaim`, `PluginContext.hidePanel`, `PasteboardRepresentation.transientMarkerType`, wszystkie z wartościami domyślnymi.
-  - Implementacje w shellu: `PermissionsReader`, `HotkeyRegistrar` (key-up, tymczasowy Esc), synchroniczne dostarczanie faz w `AppCoordinator`. `CaptureFilter` schowka przechodzi na wspólną stałą. Uprawnienia pokazują mikrofon tylko, gdy wymaga go włączony plugin.
+  - Zmiany: `Permission.microphone`, `PluginCommand.onKeyEvent` + `KeyPhase`, `PluginContext.claimEscapeKey` + `EscapeKeyClaim` (z `isActive`), `PasteboardRepresentation.transientMarkerType` + `markerTypes`, wszystkie z wartościami domyślnymi.
+  - Implementacje w shellu: `PermissionsReader`, `HotkeyRegistrar` (jedna sekwencja zdarzeń down/up, tymczasowy Esc), synchroniczne dostarczanie faz i chowanie panelu w `AppCoordinator`, `showPendingSteps()` po włączeniu pluginu. `CaptureFilter` schowka przechodzi na wspólne stałe. Uprawnienia pokazują mikrofon tylko, gdy wymaga go włączony plugin.
   - Test:
     - `PounceKitTests`: domyślne wartości;
-    - `PounceAppTests`: `.down` i `.up` dostarczone w kolejności, także gdy przychodzą w tym samym przebiegu pętli zdarzeń; komenda bez `onKeyEvent` dalej woła `run`; drugie przejęcie Esc zwraca pusty uchwyt; `release()` wyrejestrowuje; mapowanie statusu mikrofonu;
-    - `ClipboardPluginTests`: znacznik transient z `PounceKit` jest pomijany.
+    - `PounceAppTests`: rejestrator testowy emituje `.down` i `.up` w jednym strumieniu, także w tym samym przebiegu pętli zdarzeń, a `onKeyEvent` dostaje je w kolejności; `removeHandler` kończy pętlę (brak zdarzeń po usunięciu); komenda bez `onKeyEvent` dalej woła `run`; widoczny panel jest chowany przed `.down`; drugie przejęcie Esc zwraca uchwyt z `isActive == false`; `release()` wyrejestrowuje; włączenie pluginu z krokiem onboardingu wywołuje `showPendingSteps()`; mapowanie statusu mikrofonu;
+    - `ClipboardPluginTests`: wszystkie znaczniki z `PounceKit` są pomijane jak dotąd.
 - **1.2 Szkielet pluginu.**
   - Target `DictationPlugin` + `DictationPluginTests`, zależność FluidAudio (pin), rejestracja w `PluginRegistry`, manifest z `defaultEnabled: false`.
-  - `Info.plist` (`NSMicrophoneUsageDescription` en/pl), entitlement audio-input, `make-app.sh` (zasoby), notki licencyjne.
+  - `Info.plist` (`NSMicrophoneUsageDescription` en/pl w nowym `InfoPlist.xcstrings`), entitlement audio-input, `make-app.sh` (zasoby FluidAudio i kompilacja `InfoPlist.xcstrings`), notki licencyjne.
   - Test: `swift build`, test rejestru pluginów, `StringCatalogTests`, `codesign -d --entitlements -` na zbudowanej aplikacji.
 - **1.3 `ModelCatalog` + `ModelManager`.**
   - Pobieranie z wznawianiem i SHA-256, atomowe przeniesienie, wskazany folder, usuwanie, sprawdzenie miejsca.
@@ -416,7 +420,8 @@ Każda faza to osobna gałąź `feat/` i osobny PR do `main`.
     - Secure Event Input;
     - cel zniknął;
     - zmieniony `changeCount`;
-    - niekompletny odczyt → brak przywracania;
+    - niekompletny odczyt (odczytane typy ≠ `types()`) → brak przywracania;
+    - schowek zawiera `ConcealedType` albo inny znacznik → brak odczytu i brak przywracania;
     - dostęp niedozwolony → brak odczytu;
     - przywrócony zapis ma znacznik transient.
 - **1.7 `DictationHUD`.**
@@ -464,4 +469,5 @@ Każda faza to osobna gałąź `feat/` i osobny PR do `main`.
   - Test: `PanelModeSource` (kolejność, filtry, akcje); QA ręczne ze zrzutami.
 - **3.4 Prywatność i Erase Data.**
   - Ustawienia historii, „Wyczyść historię”, `eraseData()` usuwa element Keychain.
+  - `BACKWARD_COMPATIBILITY.md` §2: nowy wiersz `Plugins/dictation/dictation.sqlite` (SQLCipher, `dictation_entry`, `dictation_fts`), element Keychain `service = app.pounce.dictation` oraz dopuszczony reset `dictation.sqlite.unreadable-<data>` przy `errSecItemNotFound` (dziś §2 dopuszcza go tylko dla schowka); §3: klucze `plugins.dictation.*`.
   - Test: `eraseData` z `InMemoryKeychainClient`; QA ręczne.
