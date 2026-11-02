@@ -39,5 +39,5 @@ measurements and the days of dogfooding (1.9), and the VoiceOver pass.
 - [x] 1.6 TextPaster
 - [x] 1.7 DictationHUD
 - [x] 1.8 Ustawienia + onboarding + strona WWW
-- [ ] 1.9 Pomiary
-- [ ] 1.10 WhisperKitEngine
+- [ ] 1.9 Pomiary (manual: needs the downloaded model and days of dogfooding; see PR)
+- [x] 1.10 WhisperKitEngine

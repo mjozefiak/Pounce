@@ -31,7 +31,7 @@ public final class DictationPlugin: PouncePlugin {
 
     let context: PluginContext
     let settings: DictationSettings
-    private let engine = ParakeetEngine()
+    private let engine: SwitchingEngine
     private let authorizer = SystemMicrophoneAuthorizer()
     private let models: ModelManager
     private let hud: DictationHUDPanel
@@ -42,13 +42,20 @@ public final class DictationPlugin: PouncePlugin {
         self.context = context
         let settings = DictationSettings(context.settings)
         self.settings = settings
+        engine = SwitchingEngine(
+            engines: [
+                ModelCatalog.parakeetUltra.id: ParakeetEngine(),
+                ModelCatalog.whisperLargeV3Turbo.id: WhisperKitEngine(language: { settings.speechLanguage }),
+            ],
+            selected: { settings.speechModelID })
         let models = ModelManager(
             directory: context.storageDirectory.appending(path: "Models", directoryHint: .isDirectory),
             logger: context.logger)
         self.models = models
         let workspace = context.workspace
         settingsModel = DictationSettingsModel(
-            package: ModelCatalog.parakeetUltra, manager: models, settings: settings,
+            package: ModelCatalog.package(id: settings.speechModelID) ?? ModelCatalog.parakeetUltra, manager: models,
+            settings: settings,
             authorizer: authorizer,
             pickFolder: { Self.chooseModelFolder() },
             openURL: { url in Task { try? await workspace.open(url) } })
@@ -83,7 +90,7 @@ public final class DictationPlugin: PouncePlugin {
         let controller = DictationController(
             .init(
                 authorizer: authorizer, models: models,
-                package: { ModelCatalog.parakeetUltra },
+                package: { ModelCatalog.package(id: settings.speechModelID) ?? ModelCatalog.parakeetUltra },
                 customFolder: { settings.speechModelFolder },
                 makeSession: { folder, onEvent in
                     DictationSession(

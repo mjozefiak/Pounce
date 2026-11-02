@@ -1369,6 +1369,42 @@
         }
       }
     },
+    "Engine" : {
+      "comment" : "Dictation settings label of the speech engine choice",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Engine"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Silnik"
+          }
+        }
+      }
+    },
+    "English" : {
+      "comment" : "Dictation language choice",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "English"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Angielski"
+          }
+        }
+      }
+    },
     "Entries are encrypted and stay on this Mac. Concealed content, such as passwords, is never recorded." : {
       "comment" : "Settings footer of clipboard recording",
       "extractionState" : "manual",
@@ -2067,6 +2103,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "L"
+          }
+        }
+      }
+    },
+    "Language" : {
+      "comment" : "Dictation settings label of the pinned language",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Language"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Język"
           }
         }
       }
@@ -3021,6 +3075,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uprawnienia"
+          }
+        }
+      }
+    },
+    "Polish" : {
+      "comment" : "Dictation language choice",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polish"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polski"
           }
         }
       }
@@ -4911,6 +4983,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Witaj w Pounce"
+          }
+        }
+      }
+    },
+    "Whisper does not guess the language: it listens for the one you choose. If Parakeet turns your Polish into English, switch to Whisper." : {
+      "comment" : "Dictation settings note about the pinned language",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Whisper does not guess the language: it listens for the one you choose. If Parakeet turns your Polish into English, switch to Whisper."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Whisper nie zgaduje języka: słucha tego, który wybierzesz. Jeśli Parakeet zamienia Twój polski na angielski, przełącz się na Whisper."
           }
         }
       }

@@ -78,3 +78,30 @@ private final class BufferAudioInput: AudioInput, @unchecked Sendable {
 
     func stop() async { continuation?.finish() }
 }
+
+/// Step 1.10, local only: Whisper large-v3-turbo from an installed folder, with the language pinned. Run with
+/// the network off to confirm WhisperKit fetches nothing (the tokenizer is in the folder).
+///
+/// `POUNCE_DICTATION_WHISPER_FOLDER=.../Models/whisper-large-v3-turbo swift test --filter RealWhisperTests`
+@Suite(.enabled(if: ProcessInfo.processInfo.environment["POUNCE_DICTATION_WHISPER_FOLDER"] != nil))
+struct RealWhisperTests {
+    @Test func whisperTranscribesEnglishSpeechWithThePinnedLanguage() async throws {
+        let folder = URL(
+            filePath: ProcessInfo.processInfo.environment["POUNCE_DICTATION_WHISPER_FOLDER"] ?? "",
+            directoryHint: .isDirectory)
+        let engine = WhisperKitEngine(language: { "en" })
+        try await engine.load(modelFolder: folder)
+        let file = FileManager.default.temporaryDirectory.appending(path: "pounce-say-\(UUID().uuidString).aiff")
+        defer { try? FileManager.default.removeItem(at: file) }
+        let say = Process()
+        say.executableURL = URL(filePath: "/usr/bin/say")
+        say.arguments = ["-v", "Samantha", "-o", file.path, "Please write a short summary of the meeting notes."]
+        try say.run()
+        say.waitUntilExit()
+        let samples = try AudioConverter().resampleAudioFile(file)
+        let segment = try await engine.transcribe(samples)
+        print("WHISPER:", segment.text)
+        #expect(segment.text.lowercased().contains("summary"))
+        await engine.unload()
+    }
+}

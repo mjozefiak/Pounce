@@ -25,6 +25,26 @@ struct DictationSettingsPane: View {
             }
 
             Section {
+                Picker(selection: Binding(get: { model.speechModelID }, set: { model.selectSpeechModel($0) })) {
+                    ForEach(model.packages) { package in
+                        Text(package.title).tag(package.id)
+                    }
+                } label: {
+                    Text("Engine", comment: "Dictation settings label of the speech engine choice")
+                }
+                if model.usesPinnedLanguage {
+                    Picker(selection: $model.speechLanguage) {
+                        Text("Polish", comment: "Dictation language choice").tag("pl")
+                        Text("English", comment: "Dictation language choice").tag("en")
+                    } label: {
+                        Text("Language", comment: "Dictation settings label of the pinned language")
+                    }
+                    Text(
+                        "Whisper does not guess the language: it listens for the one you choose. If Parakeet turns your Polish into English, switch to Whisper.",
+                        comment: "Dictation settings note about the pinned language"
+                    )
+                    .font(.callout).foregroundStyle(.secondary)
+                }
                 SpeechModelCard(model: model)
             } header: {
                 Text("Speech model", comment: "Dictation settings section title")

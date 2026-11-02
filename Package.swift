@@ -21,6 +21,9 @@ let package = Package(
         // DictationPlugin only. 0.x: its API stays behind the SpeechEngine port (ADR 0003). `traits: []` leaves out
         // text to speech, diarization and the bundled Rust text engine: dictation needs ASR and VAD only.
         .package(url: "https://github.com/FluidInference/FluidAudio.git", exact: "0.18.2", traits: []),
+        // Whisper large-v3-turbo through Core ML (MIT), the second speech engine with a pinned language
+        // (ADR 0003), used by DictationPlugin only.
+        .package(url: "https://github.com/argmaxinc/argmax-oss-swift.git", exact: "1.1.1"),
     ],
     targets: [
         .target(name: "PounceKit"),
@@ -61,6 +64,7 @@ let package = Package(
                 "PounceCore",
                 "PouncePersistence",
                 .product(name: "FluidAudio", package: "FluidAudio"),
+                .product(name: "WhisperKit", package: "argmax-oss-swift"),
             ]
         ),
         .executableTarget(

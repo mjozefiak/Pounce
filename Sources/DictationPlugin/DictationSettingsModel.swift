@@ -21,7 +21,10 @@ final class DictationSettingsModel {
         didSet { settings.setRestoresClipboard(restoresClipboard) }
     }
 
-    let package: ModelPackage
+    /// The package of the engine chosen in Settings.
+    private(set) var package: ModelPackage
+    /// The speech models to choose from.
+    let packages: [ModelPackage]
     @ObservationIgnored private let manager: ModelManager
     @ObservationIgnored private let settings: DictationSettings
     @ObservationIgnored private let authorizer: any MicrophoneAuthorizer
@@ -34,12 +37,13 @@ final class DictationSettingsModel {
     @ObservationIgnored private let logger = Logger(subsystem: "app.pounce", category: "dictation")
 
     init(
-        package: ModelPackage, manager: ModelManager, settings: DictationSettings,
+        package: ModelPackage, packages: [ModelPackage]? = nil, manager: ModelManager, settings: DictationSettings,
         authorizer: any MicrophoneAuthorizer,
         listDevices: @escaping () -> [MicrophoneCapture.InputDevice] = MicrophoneCapture.inputDevices,
         pickFolder: @escaping @MainActor () -> URL?, openURL: @escaping @MainActor (URL) -> Void,
         makeCapture: @escaping (String?) -> any AudioInput = { MicrophoneCapture(deviceUID: $0) }
     ) {
+        self.packages = packages ?? ModelCatalog.all
         self.package = package
         self.manager = manager
         self.settings = settings
@@ -50,6 +54,28 @@ final class DictationSettingsModel {
         self.makeCapture = makeCapture
         inputDevice = settings.inputDevice
         restoresClipboard = settings.restoresClipboard
+    }
+
+    /// The Whisper engine needs a pinned language; the Parakeet engine detects it.
+    var usesPinnedLanguage: Bool { package.id == ModelCatalog.whisperLargeV3Turbo.id }
+
+    var speechLanguage: String {
+        get { settings.speechLanguage }
+        set {
+            settings.setSpeechLanguage(newValue)
+        }
+    }
+
+    /// The speech model's id as chosen in Settings; choosing another one shows that model's own status.
+    var speechModelID: String { package.id }
+
+    func selectSpeechModel(_ id: String) {
+        guard id != package.id, let chosen = packages.first(where: { $0.id == id }) else { return }
+        cancelDownload()
+        package = chosen
+        settings.setSpeechModelID(id)
+        errorMessage = nil
+        Task { await refresh() }
     }
 
     var isDownloading: Bool { progress != nil }
