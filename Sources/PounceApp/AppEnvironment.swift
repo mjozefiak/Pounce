@@ -117,7 +117,13 @@ struct AppEnvironment {
         try createPrivateDirectory(root, fileManager: fileManager)
         let fileHome = root.appending(path: "files-home", directoryHint: .isDirectory)
         try createPrivateDirectory(fileHome, fileManager: fileManager)
-        let settings = InMemorySettingsStore(qaFileIndexSettings(options.settings, emptyHome: fileHome.path))
+        let settings = InMemorySettingsStore(
+            qaAppActivitySettings(
+                qaFileIndexSettings(options.settings, emptyHome: fileHome.path),
+                activity: options.appActivity,
+                live: options.liveAppActivity
+            )
+        )
         return AppEnvironment(
             dataRoot: root,
             cachesRoot: root.appending(path: "Caches", directoryHint: .isDirectory),
@@ -142,6 +148,25 @@ struct AppEnvironment {
         result[QAOptions.filesHomeKey] = home
         if settings[QAOptions.filesRootsKey] == nil {
             result[QAOptions.filesRootsKey] = home
+        }
+        return result
+    }
+
+    /// App suggestions in QA mode never learn from the tester's real activity: unless the run passes
+    /// `--qa-activity-live`, `plugins.apps.qaLiveActivity` is `false`, so the tracker and the Spotlight
+    /// seed do not start. `--qa-activity` entries become `plugins.apps.qaActivity`, which the plugin writes
+    /// into its empty QA store (`docs/qa.md`). The shell never reads `activity.json` itself.
+    static func qaAppActivitySettings(
+        _ settings: [String: SettingValue], activity: [String], live: Bool
+    ) -> [String: SettingValue] {
+        var result = settings
+        if !activity.isEmpty {
+            result[QAOptions.appsActivityKey] = .string(activity.joined(separator: ","))
+        }
+        if live {
+            result[QAOptions.appsLiveActivityKey] = .bool(true)
+        } else if result[QAOptions.appsLiveActivityKey] == nil {
+            result[QAOptions.appsLiveActivityKey] = .bool(false)
         }
         return result
     }

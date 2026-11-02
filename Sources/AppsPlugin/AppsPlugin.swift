@@ -14,6 +14,10 @@ import os
 /// - `roots` (`[String]`, or one path as a `String`): index roots in priority order, replacing the
 ///   defaults. QA runs point it at a fixture directory.
 /// - `spotlight` (`Bool`, default `true`): whether the Spotlight query supplements the scan.
+/// - `suggestions.enabled` (`Bool`, default `true`): learn which apps the user keeps in front
+///   (`ActivityTracker`, `ActivitySeeder`, `Plugins/apps/activity.json`) and suggest them in the empty
+///   panel (`AppSuggestionSource`).
+/// - `suggestions.hidden` (`[String]`): bundle identifiers hidden from suggestions.
 @MainActor
 public final class AppsPlugin: PouncePlugin {
     public nonisolated static let manifest = PluginManifest(
@@ -26,7 +30,7 @@ public final class AppsPlugin: PouncePlugin {
     /// Spotlight updates arrive in bursts; one rescan follows each quiet period of this length.
     static let refreshDelay: Duration = .seconds(2)
 
-    private let context: PluginContext
+    let context: PluginContext
     let store = AppStore()
     private var watcher: AppMetadataWatcher?
     private var watcherTask: Task<Void, Never>?
@@ -37,7 +41,16 @@ public final class AppsPlugin: PouncePlugin {
     /// `Plugins/apps/activity.json`: app activity behind suggestions.
     let activity: ActivityStore
     private var settingsModel: AppsSettingsModel?
-    private var isActive = false
+    private(set) var isActive = false
+    /// Wall-clock time for the tracker and the seed (tests inject a fake one).
+    var now: @Sendable () -> Date = { Date() }
+    /// Where the seed reads Spotlight's used dates (tests inject a fake one).
+    var usageDatesReader: any UsageDatesReader = SpotlightUsageDatesReader()
+    var tracker: ActivityTracker?
+    var seedTask: Task<Void, Never>?
+    /// The seed waits for the first finished scan of this activation.
+    var seedPending = false
+    var hasRefreshed = false
 
     public init(context: PluginContext) {
         self.context = context
@@ -69,6 +82,10 @@ public final class AppsPlugin: PouncePlugin {
     public func activate() async throws {
         await activity.load()
         isActive = true
+        hasRefreshed = false
+        #if DEBUG
+        await seedActivityForQA()
+        #endif
         if let cached = cache.load() {
             store.publish(cached)
             context.resultsChanged()
@@ -83,11 +100,13 @@ public final class AppsPlugin: PouncePlugin {
         if context.settings.bool(AppsSettingsKey.spotlight, default: true) {
             startSpotlight()
         }
+        startCollectingIfAllowed()
         refresh()
     }
 
     public func deactivate() async {
         isActive = false
+        stopCollecting()
         watcherTask?.cancel()
         watcherTask = nil
         watcher?.stop()
@@ -119,6 +138,8 @@ public final class AppsPlugin: PouncePlugin {
             self?.store.app(for: ItemKey(pluginID: Self.manifest.id, key: bundleID))?.record.name
         }
         model.spotlightChanged = { [weak self] enabled in self?.setSpotlight(enabled) }
+        model.suggestionsChanged = { [weak self] enabled in self?.setSuggestionsEnabled(enabled) }
+        model.willClearActivity = { [weak self] in self?.cancelSeed() }
         let resultsChanged = context.resultsChanged
         model.resultsChanged = { resultsChanged() }
         settingsModel = model
@@ -168,7 +189,7 @@ public final class AppsPlugin: PouncePlugin {
         let cache = cache
         let logger = context.logger
         let resultsChanged = context.resultsChanged
-        refreshTask = Task.detached(priority: .utility) {
+        refreshTask = Task.detached(priority: .utility) { [weak self] in
             do {
                 var records = try scanner.scan()
                 let scanned = Set(records.map(\.path))
@@ -182,6 +203,7 @@ public final class AppsPlugin: PouncePlugin {
                 let apps = AppCatalog.deduplicate(records)
                 store.publish(apps)
                 resultsChanged()
+                await self?.appsRefreshed(apps)
                 try cache.save(apps)
                 logger.info("Indexed \(apps.count, privacy: .public) apps")
             } catch is CancellationError {

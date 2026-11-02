@@ -60,6 +60,8 @@ final class AppsSettingsModel {
     @ObservationIgnored var suggestionsChanged: (Bool) -> Void = { _ in }
     /// Called after the Spotlight toggle changed.
     @ObservationIgnored var spotlightChanged: (Bool) -> Void = { _ in }
+    /// Called before the activity is cleared, so a running seed stops first.
+    @ObservationIgnored var willClearActivity: () -> Void = {}
     /// Called after the hidden list or the activity changed, so an open panel catches up.
     @ObservationIgnored var resultsChanged: () -> Void = {}
 
@@ -106,6 +108,7 @@ final class AppsSettingsModel {
     /// "Clear App Activity…": empties the store; does nothing for a file from a newer version.
     func clearActivity() async {
         guard !isReadOnly else { return }
+        willClearActivity()
         await store.removeAll()
         await store.close()
         reload()

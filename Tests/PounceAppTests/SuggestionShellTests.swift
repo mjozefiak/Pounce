@@ -236,3 +236,40 @@ actor NumberedUsage: UsageRecorder {
         await host.stop()
     }
 }
+
+#if DEBUG
+@Suite struct QAAppActivityTests {
+    @Test func activityArgumentsBecomePluginSettingKeys() throws {
+        let options = try #require(
+            try QAOptions.parse([
+                "Pounce", "--qa-activity", "com.example.notes=4", "--qa-activity", "com.example.mail",
+            ]))
+        #expect(options.appActivity == ["com.example.notes=4", "com.example.mail"])
+        #expect(!options.liveAppActivity)
+        let settings = AppEnvironment.qaAppActivitySettings(
+            [:], activity: options.appActivity, live: options.liveAppActivity)
+        #expect(settings["plugins.apps.qaActivity"] == .string("com.example.notes=4,com.example.mail"))
+        #expect(settings["plugins.apps.qaLiveActivity"] == .bool(false))
+    }
+
+    @Test func liveActivityIsOffUnlessAsked() throws {
+        #expect(
+            AppEnvironment.qaAppActivitySettings([:], activity: [], live: false) == [
+                "plugins.apps.qaLiveActivity": .bool(false)
+            ])
+        let live = try #require(try QAOptions.parse(["Pounce", "--qa-activity-live"]))
+        #expect(live.liveAppActivity)
+        #expect(
+            AppEnvironment.qaAppActivitySettings([:], activity: [], live: true) == [
+                "plugins.apps.qaLiveActivity": .bool(true)
+            ])
+    }
+
+    @Test(arguments: ["", "=3", "com.example.a=0", "com.example.a=x", "a,b", "--qa"])
+    func rejectsMalformedActivity(_ value: String) {
+        #expect(throws: QAOptions.ParseError.invalidValue("--qa-activity", value)) {
+            try QAOptions.parse(["Pounce", "--qa-activity", value])
+        }
+    }
+}
+#endif
