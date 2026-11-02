@@ -1531,6 +1531,24 @@
         }
       }
     },
+    "Hide from Suggestions" : {
+      "comment" : "Result action that stops suggesting the selected app",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide from Suggestions"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukryj w sugestiach"
+          }
+        }
+      }
+    },
     "History" : {
       "comment" : "Settings section title",
       "extractionState" : "manual",
@@ -3183,6 +3201,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wklejanie wyłączone: Return tylko kopiuje. Zezwól na Dostępność, aby wklejać do poprzedniej aplikacji."
+          }
+        }
+      }
+    },
+    "Running" : {
+      "comment" : "Badge on a suggested app that is running",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Running"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uruchomiona"
           }
         }
       }

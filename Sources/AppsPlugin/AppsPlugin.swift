@@ -49,6 +49,23 @@ public final class AppsPlugin: PouncePlugin {
         [AppSearchSource(store: store, usage: context.usage, workspace: context.workspace)]
     }
 
+    public var suggestionSources: [any SuggestionSource] {
+        [
+            AppSuggestionSource(
+                store: store,
+                activity: activity,
+                settings: context.settings,
+                usage: context.usage,
+                workspace: context.workspace,
+                ownBundleIdentifier: ownBundleIdentifier,
+                resultsChanged: context.resultsChanged
+            )
+        ]
+    }
+
+    /// Pounce's own bundle identifier, never tracked or suggested.
+    var ownBundleIdentifier: String? { Bundle.main.bundleIdentifier }
+
     public func activate() async throws {
         await activity.load()
         isActive = true

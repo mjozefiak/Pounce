@@ -17,6 +17,35 @@ enum AppsSettingsKey {
     static let qaLiveActivity = "qaLiveActivity"
 }
 
+/// The apps hidden from suggestions (`plugins.apps.suggestions.hidden`).
+enum HiddenSuggestions {
+    static func list(_ settings: PluginSettings) -> [String] {
+        settings.stringArray(AppsSettingsKey.suggestionsHidden) ?? []
+    }
+
+    /// Adds an app; returns the new list.
+    @discardableResult
+    static func add(_ bundleID: String, to settings: PluginSettings) -> [String] {
+        var list = list(settings)
+        guard !list.contains(bundleID) else { return list }
+        list.append(bundleID)
+        settings.set(list, for: AppsSettingsKey.suggestionsHidden)
+        return list
+    }
+
+    /// Removes an app; returns the new list.
+    @discardableResult
+    static func remove(_ bundleID: String, from settings: PluginSettings) -> [String] {
+        let list = list(settings).filter { $0 != bundleID }
+        if list.isEmpty {
+            settings.removeValue(for: AppsSettingsKey.suggestionsHidden)
+        } else {
+            settings.set(list, for: AppsSettingsKey.suggestionsHidden)
+        }
+        return list
+    }
+}
+
 /// State and actions behind Settings → Applications.
 @MainActor
 @Observable
@@ -45,7 +74,7 @@ final class AppsSettingsModel {
         self.store = store
         suggestionsEnabled = settings.bool(AppsSettingsKey.suggestionsEnabled, default: true)
         spotlightEnabled = settings.bool(AppsSettingsKey.spotlight, default: true)
-        hidden = settings.stringArray(AppsSettingsKey.suggestionsHidden) ?? []
+        hidden = HiddenSuggestions.list(settings)
         let snapshot = store.snapshot
         isReadOnly = snapshot.isReadOnly
         hasActivity = !snapshot.apps.isEmpty
@@ -55,7 +84,7 @@ final class AppsSettingsModel {
     func reload() {
         suggestionsEnabled = settings.bool(AppsSettingsKey.suggestionsEnabled, default: true)
         spotlightEnabled = settings.bool(AppsSettingsKey.spotlight, default: true)
-        hidden = settings.stringArray(AppsSettingsKey.suggestionsHidden) ?? []
+        hidden = HiddenSuggestions.list(settings)
         let snapshot = store.snapshot
         isReadOnly = snapshot.isReadOnly
         hasActivity = !snapshot.apps.isEmpty
@@ -85,23 +114,13 @@ final class AppsSettingsModel {
 
     /// Hides an app from suggestions.
     func hide(_ bundleID: String) {
-        var list = settings.stringArray(AppsSettingsKey.suggestionsHidden) ?? []
-        guard !list.contains(bundleID) else { return }
-        list.append(bundleID)
-        settings.set(list, for: AppsSettingsKey.suggestionsHidden)
-        hidden = list
+        hidden = HiddenSuggestions.add(bundleID, to: settings)
         resultsChanged()
     }
 
     /// Shows a hidden app in suggestions again.
     func restore(_ bundleID: String) {
-        let list = (settings.stringArray(AppsSettingsKey.suggestionsHidden) ?? []).filter { $0 != bundleID }
-        if list.isEmpty {
-            settings.removeValue(for: AppsSettingsKey.suggestionsHidden)
-        } else {
-            settings.set(list, for: AppsSettingsKey.suggestionsHidden)
-        }
-        hidden = list
+        hidden = HiddenSuggestions.remove(bundleID, from: settings)
         resultsChanged()
     }
 
