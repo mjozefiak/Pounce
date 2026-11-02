@@ -159,7 +159,11 @@ final class HotkeyService {
         let claim = registrar.claimEscape(onEscape)
         guard claim.isActive else { return claim }
         escapeHeld = true
+        // A stale handle released twice must not free a claim someone else took in between.
+        var released = false
         return EscapeKeyClaim(isActive: true) { [weak self] in
+            guard !released else { return }
+            released = true
             claim.release()
             self?.escapeHeld = false
         }

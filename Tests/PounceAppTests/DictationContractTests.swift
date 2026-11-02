@@ -118,6 +118,18 @@ final class PhaseLog {
         #expect(service.claimEscape {}.isActive)
     }
 
+    @Test func aStaleHandleReleasedAgainDoesNotFreeTheNewClaim() {
+        let registrar = InMemoryHotkeyRegistrar()
+        let service = service(registrar)
+        let first = service.claimEscape {}
+        first.release()
+        let second = service.claimEscape {}
+        first.release()
+        #expect(second.isActive)
+        #expect(!service.claimEscape {}.isActive)
+        second.release()
+    }
+
     @Test func aBlockedRegistrationGivesAnInactiveClaim() {
         let registrar = InMemoryHotkeyRegistrar()
         registrar.escapeAvailable = false
