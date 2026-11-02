@@ -361,6 +361,24 @@
         }
       }
     },
+    "Allow the microphone" : {
+      "comment" : "Dictation HUD while the microphone prompt is shown",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow the microphone"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól na mikrofon"
+          }
+        }
+      }
+    },
     "Allowed" : {
       "comment" : "Permission state",
       "extractionState" : "manual",
@@ -483,6 +501,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wstecz"
+          }
+        }
+      }
+    },
+    "Cancel dictation" : {
+      "comment" : "Accessibility label of the HUD's ✕",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel dictation"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anuluj dyktowanie"
           }
         }
       }
@@ -735,6 +771,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Skopiowano z"
+          }
+        }
+      }
+    },
+    "Copied – allow Accessibility to paste" : {
+      "comment" : "Dictation HUD when the text was only copied because Accessibility is missing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied – allow Accessibility to paste"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skopiowano – zezwól na Dostępność, aby wklejać"
           }
         }
       }
@@ -1045,6 +1099,24 @@
         }
       }
     },
+    "Download a speech model in Settings" : {
+      "comment" : "Dictation HUD when no speech model is installed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download a speech model in Settings"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobierz model mowy w Ustawieniach"
+          }
+        }
+      }
+    },
     "Downloads" : {
       "comment" : "Protected folder name",
       "extractionState" : "manual",
@@ -1149,6 +1221,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Usunąć wszystkie dane funkcji „%@”?"
+          }
+        }
+      }
+    },
+    "Esc cancels" : {
+      "comment" : "Dictation HUD hint",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esc cancels"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esc anuluje"
           }
         }
       }
@@ -1311,6 +1401,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Filtry"
+          }
+        }
+      }
+    },
+    "Finishing…" : {
+      "comment" : "Dictation HUD while the text is produced",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finishing…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kończenie…"
           }
         }
       }
@@ -1765,6 +1873,24 @@
         }
       }
     },
+    "Loading model…" : {
+      "comment" : "Dictation HUD while the speech model loads",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading model…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ładowanie modelu…"
+          }
+        }
+      }
+    },
     "Loading the file index…" : {
       "comment" : "Panel progress while the saved index loads",
       "extractionState" : "manual",
@@ -1851,6 +1977,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mikrofon"
+          }
+        }
+      }
+    },
+    "Microphone not allowed" : {
+      "comment" : "Dictation HUD when microphone access is denied",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microphone not allowed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon niedozwolony"
           }
         }
       }
@@ -1981,6 +2125,24 @@
         }
       }
     },
+    "No microphone found" : {
+      "comment" : "Dictation HUD when there is no input device",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No microphone found"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie znaleziono mikrofonu"
+          }
+        }
+      }
+    },
     "Not allowed" : {
       "comment" : "Permission state",
       "extractionState" : "manual",
@@ -2067,6 +2229,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nic, co skopiujesz w tych aplikacjach, nie jest zapisywane."
+          }
+        }
+      }
+    },
+    "Nothing heard" : {
+      "comment" : "Dictation HUD when the recording had no speech",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing heard"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nic nie usłyszano"
           }
         }
       }
@@ -2373,6 +2553,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wklej"
+          }
+        }
+      }
+    },
+    "Pasted" : {
+      "comment" : "Dictation HUD after the text was pasted",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pasted"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wklejono"
           }
         }
       }
@@ -2755,6 +2953,24 @@
         }
       }
     },
+    "Recording" : {
+      "comment" : "Dictation HUD while recording",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywanie"
+          }
+        }
+      }
+    },
     "Recording is off, so nothing new is added." : {
       "comment" : "Empty state message of the clipboard history while not recording",
       "extractionState" : "manual",
@@ -2787,6 +3003,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nagrywanie wstrzymane."
+          }
+        }
+      }
+    },
+    "Recording started" : {
+      "comment" : "VoiceOver announcement when dictation starts",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording started"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozpoczęto nagrywanie"
+          }
+        }
+      }
+    },
+    "Recording stopped" : {
+      "comment" : "VoiceOver announcement when dictation stops",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording stopped"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zakończono nagrywanie"
           }
         }
       }
@@ -3367,6 +3619,24 @@
         }
       }
     },
+    "Speech model unavailable" : {
+      "comment" : "Dictation HUD when the model folder is gone",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speech model unavailable"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model mowy niedostępny"
+          }
+        }
+      }
+    },
     "Spotlight uses ⌘Space. To open Pounce with ⌘Space, turn off “Show Spotlight search” in System Settings → Keyboard → Keyboard Shortcuts → Spotlight." : {
       "comment" : "Banner explaining how to free Command-Space from Spotlight",
       "extractionState" : "manual",
@@ -3453,6 +3723,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kroki"
+          }
+        }
+      }
+    },
+    "Stops in %lld s" : {
+      "comment" : "Dictation HUD countdown before the recording limit",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stops in %lld s"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koniec za %lld s"
           }
         }
       }
@@ -3633,6 +3921,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ranking został zresetowany."
+          }
+        }
+      }
+    },
+    "The speech model failed to load" : {
+      "comment" : "Dictation HUD when loading the model failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The speech model failed to load"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się załadować modelu mowy"
           }
         }
       }
@@ -4119,6 +4425,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nie udało się wykonać akcji „%@”."
+          }
+        }
+      }
+    },
+    "✕ cancels" : {
+      "comment" : "Dictation HUD hint when Escape could not be claimed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "✕ cancels"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "✕ anuluje"
           }
         }
       }

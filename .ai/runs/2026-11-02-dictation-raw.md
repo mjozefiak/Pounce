@@ -37,7 +37,7 @@ measurements and the days of dogfooding (1.9), and the VoiceOver pass.
 - [x] 1.4 RecordingGesture
 - [x] 1.5 AudioCapture + SpeechEngine/ParakeetEngine + DictationSession — 761b2b4
 - [x] 1.6 TextPaster
-- [ ] 1.7 DictationHUD
+- [x] 1.7 DictationHUD
 - [ ] 1.8 Ustawienia + onboarding + strona WWW
 - [ ] 1.9 Pomiary
 - [ ] 1.10 WhisperKitEngine
