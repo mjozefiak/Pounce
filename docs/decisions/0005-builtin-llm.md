@@ -1,6 +1,6 @@
 # ADR 0005: Built-in LLM for dictation formatting (llama.cpp)
 
-- Status: proposed (measurements of step 4.0 pending; the engine choice is the product owner's, 2026-11-02)
+- Status: proposed (step 4.0 measured on 2026-11-02; the engine choice is the product owner's)
 - Date: 2026-11-02
 - Spec: `.ai/specs/2026-11-01-voice-dictation.md`, Phase 4 (Q9)
 
@@ -44,16 +44,34 @@ formatter needs an engine inside Pounce.
 5. **Lifecycle:** loaded in the background when recording starts (warm-up), released after
    `keepWarmMinutes`, decoding on its own thread with a cancellation flag checked every token.
    Disabled by default; the local server stays available and unchanged.
-6. **Candidate models for step 4.0** (the ADR 0004 shortlist as GGUF): Qwen3-4B-Instruct-2507,
-   Bielik-11B-v3.0-Instruct, Qwen3-30B-A3B-Instruct-2507. The default and the recommended list are
-   fixed after the measurements below.
+6. **Candidate models** (the ADR 0004 shortlist as GGUF): Qwen3-4B-Instruct-2507,
+   Bielik-11B-v3.0-Instruct, Qwen3-30B-A3B-Instruct-2507. See the proposal after the measurements.
 
-## Measurements still to take (step 4.0)
+## Measurements (step 4.0, 2026-11-02)
 
-On the user's Mac, same cleanup request as step 2.5 (Polish, about 60 words), each model at Q4_K_M
-(Bielik also Q6_K): load time, prefill and decode tokens/s, peak memory while loaded, XCFramework
-size in the app, tail latency against the < 3 s budget of ADR 0004. Ollama on the same model is the
-reference. No numbers are recorded here until they are measured.
+Machine: Apple M4 Max, 128 GB. Engine: a local llama.cpp build (commit `77d6ae4ac`, 2026-02-19, Metal, tensor API off on this chip), all layers on the GPU. Models: Q4_K_M GGUF from Hugging Face. Speeds from `llama-bench` (200-token prefill, 160-token decode, 2 runs); end-to-end from `llama-server` with Pounce's real `CleanupPrompt` (system prompt, four few-shot pairs, one 60-word Polish transcript with a self-correction), `temperature` 0, non-thinking.
+
+| Model (Q4_K_M) | File | Peak RSS | Prefill | Decode | Server ready | First request | Warm request | Words out / in |
+|---|---|---|---|---|---|---|---|---|
+| Qwen3-4B-Instruct-2507 | 2.33 GB | 3.3 GB | 1298 tok/s | 114.7 tok/s | 1.4 s | 1.33 s | 0.77 s | 50 / 60 |
+| Bielik-11B-v3.0-Instruct | 6.26 GB | 7.0 GB | 475 tok/s | 53.8 tok/s | 2.9 s | 3.22 s | 1.85 s | 40 / 60 |
+| Qwen3-30B-A3B-Instruct-2507 | 17.28 GB | 18.9 GB | 991 tok/s | 95.2 tok/s | 1.6 s | 1.32 s | 0.70 s | 42 / 60 |
+
+Quality on this one sample (a single transcript, so an anecdote, not a benchmark; the real comparison is step 4.5):
+- The speaker said "deployment on staging, actually on production, not on staging" and "at ten, no, at eleven".
+- Qwen3-30B-A3B applied both corrections (11 o'clock, production). Qwen3-4B applied the production correction but kept "o dziesiątej, nie to znaczy o jedenastej". Bielik-11B applied the time correction but kept the wrong environment (staging).
+- All three outputs pass `FormatterGuard` (ratio 0.67 to 0.83); Bielik and Qwen3-30B are close to the 0.6 lower bound on a text with many fillers.
+
+Caveats:
+- The model files were in the OS file cache, so the ready times exclude a cold read from disk.
+- The numbers are from `llama-server` over loopback, not from an in-process `LlamaRuntime`; step 4.1 re-measures in process.
+- The latest llama.cpp release did not list an XCFramework asset under that tag, so the framework's size in the app is not measured; step 4.1 records it.
+- The tail budget of ADR 0004 (< 3 s for a 60-word tail) is met by all three models on this Mac; Bielik's first request (3.22 s) is on the edge.
+
+Proposal for the catalog, to confirm in step 4.5 on the regression set:
+- **Default: Qwen3-4B-Instruct-2507 Q4_K_M** (2.3 GB file, about 3.3 GB resident, about 1 s per chunk).
+- **Best quality for 32 GB Macs and up: Qwen3-30B-A3B-Instruct-2507 Q4_K_M** (17 GB file, about 19 GB resident). It was as fast as the 4B model on this machine because it is a mixture of experts with 3B active parameters.
+- **Bielik-11B-v3.0-Instruct stays listed only if step 4.5 shows a Polish gain**: here it was the slowest and the least accurate on the corrections.
 
 ## Consequences
 

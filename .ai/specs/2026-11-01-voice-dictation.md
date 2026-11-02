@@ -484,7 +484,7 @@ Każda faza to osobna gałąź `feat/` i osobny PR do `main`.
 
 ### Faza 4 — Wbudowany LLM (llama.cpp)
 Cel: formatowanie działa bez Ollamy; model instaluje się w Ustawieniach tak samo jak model mowy. Zależy od Fazy 2 (port `TextFormatter`, `CleanupPrompt`, `FormatterGuard`, `Segmenter`) i od `ModelManager` z Fazy 1. Domyślnie wyłączona; serwer lokalny działa bez zmian.
-- **4.0 Pomiary (spike) i uzupełnienie ADR 0005.**
+- **4.0 Pomiary (spike) i uzupełnienie ADR 0005 (zrobione 2026-11-02, wyniki w ADR).**
   - Na Macu użytkownika: czas ładowania, tok/s dekodowania, szczytowa pamięć i rozmiar xcframework dla Qwen3-4B-Instruct-2507 (Q4_K_M), Bielik-11B-v3.0-Instruct (Q4_K_M/Q6_K) i Qwen3-30B-A3B-Instruct-2507 (Q4_K_M); to samo zapytanie czyszczące co w kroku 2.5; porównanie z Ollamą.
   - Wynik: tabela w ADR 0005, wybór polecanych modeli i domyślnego, sprawdzenie budżetu ogona < 3 s. Bez dodawania zależności do `main`.
 - **4.1 `LlamaRuntime`.**
