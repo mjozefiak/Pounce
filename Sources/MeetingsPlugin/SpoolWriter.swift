@@ -7,6 +7,9 @@ import Synchronization
 /// repeat a (key, nonce) pair. After a crash the meeting is `incomplete` and recording does not resume.
 final class SpoolWriter: Sendable {
     typealias FreeSpaceProvider = @Sendable (URL) throws -> Int64
+    /// `write(2)`; a seam so tests can make a write fail or stop half way.
+    typealias WriteFunction = @Sendable (Int32, UnsafeRawPointer, Int) -> Int
+    static let systemWrite: WriteFunction = { Darwin.write($0, $1, $2) }
 
     private struct State {
         var descriptor: Int32
@@ -20,11 +23,13 @@ final class SpoolWriter: Sendable {
     private let header: Data
     private let key: SymmetricKey
     private let state: Mutex<State>
+    private let rawWrite: WriteFunction
 
-    private init(url: URL, descriptor: Int32, header: Data, key: SymmetricKey) {
+    private init(url: URL, descriptor: Int32, header: Data, key: SymmetricKey, write: @escaping WriteFunction) {
         self.url = url
         self.header = header
         self.key = key
+        rawWrite = write
         state = Mutex(State(descriptor: descriptor))
     }
 
@@ -33,27 +38,61 @@ final class SpoolWriter: Sendable {
     static func create(
         in storage: SpoolStorage, meeting: UUID, track: SpoolTrack, keys: MeetingKeys,
         minimumFreeBytes: Int64 = SpoolFormat.minimumFreeBytes,
-        freeSpace: FreeSpaceProvider = { try SpoolStorage.systemFreeSpace(at: $0) }
+        freeSpace: FreeSpaceProvider = { try SpoolStorage.systemFreeSpace(at: $0) },
+        write: @escaping WriteFunction = SpoolWriter.systemWrite
     ) throws -> SpoolWriter {
-        let available = try freeSpace(storage.root)
-        guard available >= minimumFreeBytes else {
-            throw SpoolError.insufficientDiskSpace(available: available, required: minimumFreeBytes)
+        try checkFreeSpace(in: storage, required: minimumFreeBytes, freeSpace: freeSpace)
+        return try createFile(in: storage, meeting: meeting, track: track, keys: keys, write: write)
+    }
+
+    /// Creates the microphone and the system track of one meeting after one free-space check that counts both
+    /// (twice `minimumFreeBytes`). If the second file cannot be created, the first is removed again.
+    static func createPair(
+        in storage: SpoolStorage, meeting: UUID, keys: MeetingKeys,
+        minimumFreeBytes: Int64 = SpoolFormat.minimumFreeBytes,
+        freeSpace: FreeSpaceProvider = { try SpoolStorage.systemFreeSpace(at: $0) },
+        write: @escaping WriteFunction = SpoolWriter.systemWrite
+    ) throws -> (mic: SpoolWriter, system: SpoolWriter) {
+        try checkFreeSpace(in: storage, required: minimumFreeBytes * 2, freeSpace: freeSpace)
+        let mic = try createFile(in: storage, meeting: meeting, track: .mic, keys: keys, write: write)
+        do {
+            let system = try createFile(in: storage, meeting: meeting, track: .system, keys: keys, write: write)
+            return (mic, system)
+        } catch {
+            try? mic.abandon()
+            throw error
         }
+    }
+
+    private static func checkFreeSpace(in storage: SpoolStorage, required: Int64, freeSpace: FreeSpaceProvider) throws {
+        let available = try freeSpace(storage.root)
+        guard available >= required else {
+            throw SpoolError.insufficientDiskSpace(available: available, required: required)
+        }
+    }
+
+    private static func createFile(
+        in storage: SpoolStorage, meeting: UUID, track: SpoolTrack, keys: MeetingKeys,
+        write: @escaping WriteFunction
+    ) throws -> SpoolWriter {
         try storage.prepare(meeting: meeting)
         let url = storage.file(for: meeting, track: track)
         let descriptor = open(url.path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0o600)
         guard descriptor >= 0 else {
             throw errno == EEXIST ? SpoolError.alreadyExists : SpoolError.ioFailure(errno: errno)
         }
+        let salt = SpoolFormat.randomSalt()
         let writer = SpoolWriter(
-            url: url, descriptor: descriptor, header: SpoolFormat.header(meeting: meeting, track: track),
-            key: keys.spoolKey(meeting: meeting, track: track))
+            url: url, descriptor: descriptor, header: SpoolFormat.header(meeting: meeting, track: track, salt: salt),
+            key: keys.spoolKey(meeting: meeting, track: track, salt: salt), write: write)
         do {
             fchmod(descriptor, 0o600)
             try writer.state.withLock { state in
                 try writer.writeAll(writer.header, to: &state)
                 try writer.sync(&state)
             }
+            // The new directory entry must survive a crash too.
+            try SpoolStorage.syncDirectory(url.deletingLastPathComponent())
         } catch {
             try? writer.abandon()
             throw error
@@ -95,7 +134,7 @@ final class SpoolWriter: Sendable {
         }
     }
 
-    private func abandon() throws {
+    func abandon() throws {
         state.withLock { state in
             if state.descriptor >= 0 { Darwin.close(state.descriptor) }
             state.descriptor = -1
@@ -134,13 +173,18 @@ final class SpoolWriter: Sendable {
 
     private func writeAll(_ data: Data, to state: inout State) throws {
         try data.withUnsafeBytes { buffer in
+            guard let base = buffer.baseAddress else { return }
             var offset = 0
             while offset < buffer.count {
-                let written = write(state.descriptor, buffer.baseAddress! + offset, buffer.count - offset)
+                let written = rawWrite(state.descriptor, base + offset, buffer.count - offset)
                 if written < 0 {
                     if errno == EINTR { continue }
                     state.failed = true
                     throw SpoolError.ioFailure(errno: errno)
+                }
+                if written == 0 {
+                    state.failed = true
+                    throw SpoolError.ioFailure(errno: EIO)
                 }
                 offset += written
             }
@@ -148,7 +192,7 @@ final class SpoolWriter: Sendable {
     }
 
     private func sync(_ state: inout State) throws {
-        if fsync(state.descriptor) != 0 {
+        if !SpoolStorage.flush(state.descriptor) {
             state.failed = true
             throw SpoolError.ioFailure(errno: errno)
         }
