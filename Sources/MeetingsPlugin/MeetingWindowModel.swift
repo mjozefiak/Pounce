@@ -21,8 +21,14 @@ struct SavePanelFileSaver: FileSaver {
         panel.canCreateDirectories = true
         panel.prompt = String(localized: "Save", comment: "Button of the Markdown save panel")
         guard panel.runModal() == .OK, let url = panel.url else { return nil }
-        try contents.write(to: url, atomically: true, encoding: .utf8)
+        try Self.write(contents, to: url)
         return url
+    }
+
+    /// UTF-8, atomically, then readable by the user only: a meeting is private.
+    static func write(_ contents: String, to url: URL) throws {
+        try contents.write(to: url, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
     }
 }
 
@@ -56,12 +62,27 @@ final class MeetingWindowModel {
         case saveFailed
         case finishUnavailable
         case actionFailed
+        /// The meeting is still there: its audio could not be removed, or it is being processed.
+        case deleteFailed
+    }
+
+    /// What "Dokończ" found that needs the user's decision: closing the meeting from its transcript leaves a
+    /// gap where the audio could not be read.
+    enum GapOffer: Equatable {
+        /// The spool cannot be read for good.
+        case audioUnreadable
+        /// This many segments could not be transcribed or read.
+        case unfinished(Int)
     }
 
     private(set) var phase = Phase.loading
     private(set) var document: MeetingDocument?
     private(set) var feedback: Feedback?
     private(set) var isFinishing = false
+    private(set) var isDeleting = false
+    private(set) var gapOffer: GapOffer?
+    /// The title as typed in the field, not committed yet; `commitPendingTitle()` (window close) saves it.
+    var pendingTitle: String?
     var isConfirmingDelete = false
     private(set) var isDeleted = false
 
@@ -71,21 +92,25 @@ final class MeetingWindowModel {
     @ObservationIgnored private let spool: any SpoolMaintenance
     @ObservationIgnored private let pasteboard: any PasteboardClient
     @ObservationIgnored private let saver: any FileSaver
-    @ObservationIgnored private let finishMeeting: @MainActor (Int64) -> MeetingFinishHandle?
+    @ObservationIgnored private let finishMeeting: @MainActor (Int64, Bool) -> MeetingFinishHandle?
     @ObservationIgnored private let regenerate: (@MainActor (Int64) -> Void)?
     @ObservationIgnored private let onDeleted: @MainActor () -> Void
     @ObservationIgnored private let announce: @MainActor (String) -> Void
     @ObservationIgnored private let labels: MarkdownExporter.Labels
     @ObservationIgnored private let timeZone: TimeZone
+    /// Bumped by every `load()`: a snapshot read before a newer one started never replaces it.
+    @ObservationIgnored private var loadGeneration = 0
+    /// Edits in flight; only the last one to finish reloads, after all of them are in the database.
+    @ObservationIgnored private var pendingMutations = 0
 
     /// - Parameters:
-    ///   - finish: "Dokończ" (`MeetingsLibrary.finish`); `nil` handle when nothing can be finished now.
+    ///   - finish: "Dokończ" (`MeetingsLibrary.finish(meetingID:acceptGap:)`); `nil` handle when nothing can be finished now.
     ///   - regenerate: "Regeneruj notatki"; `nil` until the notes pipeline exists (Phase 2), which keeps the
     ///     button disabled with an explanation.
     init(
         meetingID: Int64, store: MeetingsStore, spool: any SpoolMaintenance, pasteboard: any PasteboardClient,
         saver: any FileSaver = SavePanelFileSaver(),
-        finish: @escaping @MainActor (Int64) -> MeetingFinishHandle? = { _ in nil },
+        finish: @escaping @MainActor (Int64, Bool) -> MeetingFinishHandle? = { _, _ in nil },
         regenerate: (@MainActor (Int64) -> Void)? = nil, onDeleted: @escaping @MainActor () -> Void = {},
         announce: @escaping @MainActor (String) -> Void = { _ in },
         labels: MarkdownExporter.Labels = .localized, timeZone: TimeZone = .current
@@ -105,13 +130,18 @@ final class MeetingWindowModel {
 
     // MARK: Reading
 
-    /// Loads the meeting off the main actor.
+    /// Loads the meeting off the main actor. Overlapping loads: the newest one wins, an older snapshot that
+    /// arrives late is dropped. (Nothing signals store changes to the window yet; the library calls `load()`
+    /// again when it needs the window to follow, for example after step 1.10 wires the list.)
     func load() async {
+        loadGeneration += 1
+        let generation = loadGeneration
         let store = store
         let id = meetingID
         let result = await Task.detached { () -> Result<MeetingDocument?, any Error> in
             Result { try store.loadDocument(id: id) }
         }.value
+        guard generation == loadGeneration, !isDeleted else { return }
         switch result {
         case .success(let loaded?):
             document = loaded
@@ -127,7 +157,7 @@ final class MeetingWindowModel {
 
     var title: String {
         guard let document else { return String(localized: "Meeting", comment: "Meeting window title while loading") }
-        if let title = document.title, !title.isEmpty { return title }
+        if let title = document.title.map(Self.visible), !title.isEmpty { return title }
         return Self.defaultTitle(for: document.startedAt, timeZone: timeZone)
     }
 
@@ -164,8 +194,15 @@ final class MeetingWindowModel {
     }
 
     func speakerName(for segment: MeetingDocument.Segment) -> String {
-        document?.speaker(id: segment.speakerID)?.label
-            ?? String(localized: "Unknown speaker", comment: "Meeting window: segment without a speaker")
+        if let label = document?.speaker(id: segment.speakerID).map({ Self.visible($0.label) }), !label.isEmpty {
+            return label
+        }
+        return String(localized: "Unknown speaker", comment: "Meeting window: segment without a speaker")
+    }
+
+    /// The text without invisible characters, trimmed: empty when nothing visible is left.
+    static func visible(_ text: String) -> String {
+        MarkdownExporter.cleaned(text, keepNewlines: false).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// "To ja" needs a speaker who is not "Ja" yet, and a meeting that is not in `channels` mode.
@@ -188,13 +225,13 @@ final class MeetingWindowModel {
 
     var canDelete: Bool {
         guard let status = document?.status else { return false }
-        return !status.isActive
+        return !status.isActive && !isFinishing && !isDeleting
     }
 
     // MARK: Editing
 
     func renameSpeaker(_ speakerID: Int64, to name: String) async {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = Self.visible(name)
         guard let current = document?.speaker(id: speakerID), !trimmed.isEmpty, trimmed != current.label else {
             return
         }
@@ -208,16 +245,31 @@ final class MeetingWindowModel {
 
     func renameTitle(_ title: String) async {
         let id = meetingID
-        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        pendingTitle = nil
+        let trimmed = Self.visible(title)
         guard trimmed != (document?.title ?? "") else { return }
         await mutate { try $0.renameMeeting(id, title: trimmed) }
     }
 
+    /// Saves a title that was typed but not submitted (the window is closing).
+    func commitPendingTitle() async {
+        guard let pending = pendingTitle else { return }
+        await renameTitle(pending)
+    }
+
+    /// Runs an edit off the main actor. Edits may overlap (a rename while another is still writing); each
+    /// one counts itself in, and the last to finish reloads, so the screen shows the result of all of them.
     private func mutate(_ change: @escaping @Sendable (MeetingsStore) throws -> Void) async {
         let store = store
+        pendingMutations += 1
         let succeeded = await Task.detached { (try? change(store)) != nil }.value
-        feedback = succeeded ? nil : .actionFailed
-        await load()
+        pendingMutations -= 1
+        if !succeeded {
+            feedback = .actionFailed
+        } else if pendingMutations == 0 {
+            feedback = nil
+        }
+        if pendingMutations == 0 { await load() }
     }
 
     // MARK: Export
@@ -230,13 +282,27 @@ final class MeetingWindowModel {
     /// "Kopiuj Markdown": the only place the pasteboard is touched, and only on this explicit action.
     func copyMarkdown() {
         guard canCopy, let text = markdown() else { return }
-        pasteboard.setString(text)
+        // Marked transient and concealed: Pounce's own clipboard history (and other managers that honour
+        // nspasteboard.org) skip it, so a meeting transcript is not stored a second time.
+        pasteboard.write([
+            PasteboardItem(representations: [
+                PasteboardRepresentation(type: PasteboardRepresentation.plainTextType, data: Data(text.utf8)),
+                PasteboardRepresentation(type: PasteboardRepresentation.transientMarkerType, data: Data()),
+                PasteboardRepresentation(type: PasteboardRepresentation.concealedMarkerType, data: Data()),
+            ])
+        ])
         feedback = .copied
         announce(String(localized: "Copied Markdown", comment: "VoiceOver announcement after copying"))
     }
 
+    static let maxFileNameScalars = 100
+
     func suggestedFileName() -> String {
-        let base = title.replacing(/[\/:\\\n\r\t ]+/, with: " ").trimmingCharacters(in: .whitespaces)
+        var base = Self.visible(title).replacing(/[\/:\\*?"<>| ]+/, with: " ")
+        base = String(base.drop { $0 == "." || $0 == " " })
+        base = String(base.unicodeScalars.prefix(Self.maxFileNameScalars))
+        base = base.trimmingCharacters(in: .whitespaces)
+        while base.hasSuffix(".") { base.removeLast() }
         return (base.isEmpty ? "Meeting" : base) + ".md"
     }
 
@@ -260,18 +326,28 @@ final class MeetingWindowModel {
 
     // MARK: Finishing and deleting
 
-    /// "Dokończ": finishes an `incomplete` meeting from its spool, then reloads.
-    func finish() async {
-        guard !isFinishing else { return }
-        guard let handle = finishMeeting(meetingID) else {
+    /// "Dokończ": finishes an `incomplete` meeting from its spool, then reloads. When some audio cannot be read
+    /// the meeting stays `incomplete` and `gapOffer` says so; `finish(acceptGap: true)` ("Zakończ z luką")
+    /// closes it from the transcript anyway.
+    func finish(acceptGap: Bool = false) async {
+        guard !isFinishing, !isDeleting else { return }
+        guard let handle = finishMeeting(meetingID, acceptGap) else {
             feedback = .finishUnavailable
             return
         }
         feedback = nil
+        gapOffer = nil
         isFinishing = true
         for await _ in handle.events {}
-        _ = await handle.outcome
+        let outcome = await handle.outcome
         isFinishing = false
+        switch outcome {
+        case .incomplete(.audioUnreadable): gapOffer = .audioUnreadable
+        case .incomplete(.unfinished(let count)): gapOffer = .unfinished(count)
+        case .incomplete(.modelUnavailable), .unavailable, .databaseUnwritable, .failed, .notResumable:
+            feedback = .finishUnavailable
+        default: break
+        }
         await load()
     }
 
@@ -280,19 +356,25 @@ final class MeetingWindowModel {
         isConfirmingDelete = true
     }
 
-    /// Deletes after the confirmation: the rows and the spool folder if one is left.
+    /// Deletes after the confirmation: the rows and the spool folder if one is left, in one step. When the
+    /// audio cannot be removed, or the meeting became active meanwhile, nothing is deleted and `deleteFailed`
+    /// says so.
     func confirmDelete() async {
         isConfirmingDelete = false
         guard canDelete else { return }
+        isDeleting = true
         let store = store
         let spool = spool
         let id = meetingID
         let succeeded = await Task.detached { (try? store.deleteMeeting(id, spool: spool)) != nil }.value
+        isDeleting = false
         guard succeeded else {
-            feedback = .actionFailed
+            feedback = .deleteFailed
+            await load()
             return
         }
         isDeleted = true
+        loadGeneration += 1
         document = nil
         phase = .missing
         onDeleted()

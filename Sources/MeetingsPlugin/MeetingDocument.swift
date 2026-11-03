@@ -42,6 +42,8 @@ struct MeetingDocument: Sendable, Equatable {
 enum MeetingActionError: Error, Equatable {
     /// The meeting is being recorded or processed; deleting it would pull the data from under the session.
     case active
+    /// The audio spool folder could not be removed; the meeting was left as it was.
+    case spoolNotRemoved
 }
 
 extension MeetingsStore {
@@ -78,25 +80,41 @@ extension MeetingsStore {
         }
     }
 
-    /// Sets the title of a meeting; a blank title clears it (the library shows the date instead). The title is
-    /// not part of the notes text, so the notes stay current.
+    /// Sets the title of a meeting; a blank title (also one of invisible characters only) clears it (the
+    /// library shows the date instead). The title is not part of the notes text, so the notes stay current.
     func renameMeeting(_ id: Int64, title: String) throws {
-        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        try setTitle(id, title: trimmed.isEmpty ? nil : trimmed)
+        let cleaned = MarkdownExporter.cleaned(title, keepNewlines: false)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        try setTitle(id, title: cleaned.isEmpty ? nil : cleaned)
     }
 
     /// Deletes a meeting (its speakers and segments go with it) and its audio spool folder, if one is left.
-    /// A meeting that is still being recorded or processed is refused. Returns false when it does not exist.
+    ///
+    /// One write transaction: the row is deleted only while the meeting is not `recording` or `processing`
+    /// (so a "Dokończ" that claimed it a moment ago wins and nothing is lost), the spool folder is removed
+    /// next and the transaction commits only when the folder is really gone. If it cannot be removed the
+    /// whole delete is rolled back (`spoolNotRemoved`): the meeting stays, with its audio, and the user can
+    /// try again. A spool folder without a row (a crash in between) is swept by `OrphanSpoolSweep`.
+    /// Returns false when the meeting does not exist.
     @discardableResult
     func deleteMeeting(_ id: Int64, spool: any SpoolMaintenance) throws -> Bool {
-        let found: (uuid: String, status: String)? = try read { db in
-            try Row.fetchOne(db, sql: "SELECT uuid, status FROM meeting WHERE id = ?", arguments: [id])
-                .map { (uuid: $0["uuid"], status: $0["status"]) }
+        try write { db in
+            guard
+                let uuid = try String.fetchOne(
+                    db, sql: "SELECT uuid FROM meeting WHERE id = ?", arguments: [id])
+            else { return false }
+            try db.execute(
+                sql: "DELETE FROM meeting WHERE id = ? AND status NOT IN ('recording', 'processing')",
+                arguments: [id])
+            guard db.changesCount == 1 else { throw MeetingActionError.active }
+            _ = spool.removeSpools(forMeetings: [uuid])
+            if spool.hasSpool(forMeeting: uuid) { throw MeetingActionError.spoolNotRemoved }
+            return true
         }
-        guard let found else { return false }
-        if MeetingStatus(rawValue: found.status)?.isActive == true { throw MeetingActionError.active }
-        try deleteMeetings([id])
-        _ = spool.removeSpools(forMeetings: [found.uuid])
-        return true
+    }
+
+    /// The `uuid` of every meeting row (what `OrphanSpoolSweep` compares the spool folders with).
+    func allMeetingUUIDs() throws -> Set<String> {
+        try read { db in Set(try String.fetchAll(db, sql: "SELECT uuid FROM meeting")) }
     }
 }

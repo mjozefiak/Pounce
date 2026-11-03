@@ -144,6 +144,9 @@ final class RecordingSpool: SpoolMaintenance {
         }
     }
 
+    func hasSpool(forMeeting uuid: String) -> Bool { state.withLock { $0.existing.contains(uuid) } }
+    func spoolFolderNames() -> [String] { state.withLock { $0.existing.sorted() } }
+
     func removeSpools(olderThan cutoff: Date, among candidates: Set<String>) -> [String] {
         state.withLock { state in
             state.sweeps.append((cutoff, candidates))

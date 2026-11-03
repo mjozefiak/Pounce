@@ -6,13 +6,13 @@
 
 ## Notes
 
-## Decisions
+### Decisions
 
 - Ship on **Friday**
 
-## Tasks
+### Tasks
 
-- Anna: update the plan
+- Anna\: update the plan
 
 ## Transcript
 

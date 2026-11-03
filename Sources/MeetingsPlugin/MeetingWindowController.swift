@@ -7,6 +7,7 @@ import SwiftUI
 @MainActor
 final class MeetingWindowController: NSObject, NSWindowDelegate {
     private var windows: [Int64: NSWindow] = [:]
+    private var models: [Int64: MeetingWindowModel] = [:]
     private let makeModel: @MainActor (Int64) -> MeetingWindowModel
 
     /// The app's text size, when the host passes it; the view uses text styles, so it scales.
@@ -35,10 +36,12 @@ final class MeetingWindowController: NSObject, NSWindowDelegate {
         window.isReleasedWhenClosed = false
         window.delegate = self
         window.tabbingMode = .disallowed
-        window.setFrameAutosaveName("MeetingWindow")
         window.center()
+        // One frame per meeting: two open meetings do not share a position, and a reopened one comes back.
+        window.setFrameAutosaveName("MeetingWindow-\(meetingID)")
         window.identifier = NSUserInterfaceItemIdentifier(String(meetingID))
         windows[meetingID] = window
+        models[meetingID] = model
         keepTitle(of: window, in: model)
         bringForward(window)
     }
@@ -74,6 +77,10 @@ final class MeetingWindowController: NSObject, NSWindowDelegate {
             let key = windows.first(where: { $0.value === window })?.key
         else { return }
         windows[key] = nil
+        // A title typed but not submitted is saved; the model outlives the window for this one task.
+        if let model = models.removeValue(forKey: key) {
+            Task { @MainActor in await model.commitPendingTitle() }
+        }
     }
 
     /// Posts a VoiceOver announcement from the window (used for the model's `announce`).

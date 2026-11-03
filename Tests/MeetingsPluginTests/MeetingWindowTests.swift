@@ -11,11 +11,19 @@ import Testing
 @MainActor final class RecordingPasteboard: PasteboardClient {
     nonisolated init() {}
     private(set) var strings: [String] = []
+    private(set) var written: [[PasteboardItem]] = []
     var changeCount: Int { strings.count }
     func string() -> String? { strings.last }
     func setString(_ string: String) -> Int {
         strings.append(string)
         return strings.count
+    }
+    func write(_ items: [PasteboardItem]) -> Int {
+        written.append(items)
+        let text = items.first?.data(for: PasteboardRepresentation.plainTextType).flatMap {
+            String(data: $0, encoding: .utf8)
+        }
+        return setString(text ?? "")
     }
 }
 
@@ -84,7 +92,7 @@ struct WindowHarness {
     let deleted = Box(0)
 
     init(
-        _ rig: WindowRig, finish: @escaping @MainActor (Int64) -> MeetingFinishHandle? = { _ in nil },
+        _ rig: WindowRig, finish: @escaping @MainActor (Int64, Bool) -> MeetingFinishHandle? = { _, _ in nil },
         regenerate: (@MainActor (Int64) -> Void)? = nil
     ) {
         self.rig = rig
@@ -283,6 +291,10 @@ struct WindowHarness {
         let copied = try #require(harness.pasteboard.strings.first)
         #expect(copied.contains("Notes body"))
         #expect(copied.contains("[00:00:01] Mówca 1: Dzień dobry"))
+        let types = try #require(harness.pasteboard.written.first?.first?.types)
+        #expect(types.contains(PasteboardRepresentation.transientMarkerType))
+        #expect(types.contains(PasteboardRepresentation.concealedMarkerType))
+        #expect(!PasteboardRepresentation.markerTypes.isDisjoint(with: types), "Pounce's history skips it")
         #expect(harness.model.feedback == .copied)
     }
 
@@ -325,7 +337,7 @@ struct WindowHarness {
     @Test func finishRunsTheInjectedActionAndReloads() async throws {
         let rig = try WindowRig(status: .incomplete)
         let asked = Box<[Int64]>([])
-        let harness = WindowHarness(rig) { id in
+        let harness = WindowHarness(rig) { id, _ in
             asked.withLock { $0.append(id) }
             try? rig.store.setStatus(id, status: .ready)
             let (events, continuation) = AsyncStream.makeStream(of: ResumeEvent.self)

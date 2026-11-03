@@ -15,6 +15,18 @@ protocol SpoolMaintenance: Sendable {
     /// spool into an `incomplete` meeting; a spool without a row is not a candidate and stays.
     @discardableResult
     func removeSpools(olderThan cutoff: Date, among candidates: Set<String>) -> [String]
+
+    /// True when the meeting's spool folder is still on disk (a real folder). Lets a delete tell "nothing to
+    /// remove" from "could not remove". Default: false.
+    func hasSpool(forMeeting uuid: String) -> Bool
+
+    /// The names of every spool folder on disk, for `OrphanSpoolSweep`. Default: none.
+    func spoolFolderNames() -> [String]
+}
+
+extension SpoolMaintenance {
+    func hasSpool(forMeeting uuid: String) -> Bool { false }
+    func spoolFolderNames() -> [String] { [] }
 }
 
 struct NoSpoolMaintenance: SpoolMaintenance {

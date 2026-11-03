@@ -5,11 +5,12 @@ import Foundation
 ///
 /// Everything that comes from people or from a model is untrusted (a speaker may say "![x](http://…)"):
 /// - titles, speaker names and transcript text are plain text. Their Markdown control characters are
-///   escaped with a backslash, line breaks become spaces and invisible or bidirectional control characters
-///   are removed, so they can never become a heading, a link, an image or HTML.
-/// - the notes are Markdown that code composed from model output (Phase 2). Their structure (headings,
-///   lists, emphasis) stays, but images and links are reduced to their text, reference definitions, comments,
-///   HTML tags and autolinks are removed, so neither the export nor a viewer loads anything from the network.
+///   escaped with a backslash (per unicode scalar), line breaks and control characters become spaces and
+///   invisible or bidirectional control characters are removed, so they can never become a heading, a link,
+///   an image or HTML.
+/// - the notes are re-rendered through an allow-list (`NotesMarkdown`): headings (below the document's `##`
+///   sections), paragraphs, lists and emphasis stay; everything else, links, images, HTML and URLs included,
+///   is kept only as escaped text. Nothing renders as a link and nothing loads from the network.
 enum MarkdownExporter {
     /// The words of the export. The app passes `localized`; golden tests use `english`.
     struct Labels: Sendable, Equatable {
@@ -116,22 +117,35 @@ enum MarkdownExporter {
 
     // MARK: Escaping
 
-    /// Characters that can start Markdown or HTML structure inside a line.
-    private static let markdownSpecials: Set<Character> = [
-        "\\", "`", "*", "_", "[", "]", "(", ")", "<", ">", "#", "~", "|", "&", "!",
+    /// Characters that can start Markdown or HTML structure, or help a viewer build a link, inside a line.
+    /// `:` and `@` keep `scheme://`, `mailto:` and e-mail addresses from becoming autolinks.
+    private static let markdownSpecials: Set<Unicode.Scalar> = [
+        "\\", "`", "*", "_", "[", "]", "(", ")", "<", ">", "#", "~", "|", "&", "!", ":", "@",
     ]
 
     /// Plain text on one line, safe to put anywhere in the document.
     static func plain(_ text: String) -> String {
-        var result = ""
-        for character in cleaned(text, keepNewlines: false) {
-            if markdownSpecials.contains(character) { result.append("\\") }
-            result.append(character)
-        }
-        return result.trimmingCharacters(in: .whitespaces)
+        escape(cleaned(text, keepNewlines: false).trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
-    /// Removes invisible and bidirectional control characters; line breaks become spaces unless kept.
+    /// Backslash-escapes every Markdown special. Works on unicode scalars, not characters: a combining mark
+    /// after a special must not hide it from the escape.
+    static func escape(_ text: String) -> String {
+        var result = String.UnicodeScalarView()
+        for scalar in text.unicodeScalars {
+            if markdownSpecials.contains(scalar) { result.append("\\") }
+            result.append(scalar)
+        }
+        return breakAutolinks(String(result))
+    }
+
+    /// `www.` starts an autolink in GitHub flavoured Markdown; the escape of its dot ends that.
+    static func breakAutolinks(_ text: String) -> String {
+        text.replacing(/(?i)www\./) { "\($0.output.dropLast())\\." }
+    }
+
+    /// Removes invisible and bidirectional control characters; control characters and line breaks become
+    /// spaces (line breaks stay when kept). The zero-width (non-)joiner stay: scripts and emoji need them.
     static func cleaned(_ text: String, keepNewlines: Bool) -> String {
         var result = String.UnicodeScalarView()
         var previousWasSpace = false
@@ -146,9 +160,11 @@ enum MarkdownExporter {
                 }
                 continue
             }
-            if scalar == "\t" {
-                result.append(" ")
-                previousWasSpace = true
+            if scalar.value < 0x20 || (0x7F...0x9F).contains(scalar.value) {
+                if !previousWasSpace {
+                    result.append(" ")
+                    previousWasSpace = true
+                }
                 continue
             }
             if isInvisible(scalar) { continue }
@@ -158,37 +174,19 @@ enum MarkdownExporter {
         return String(result)
     }
 
+    /// Characters that draw nothing or reorder text. U+200C and U+200D (joiners) are not among them.
     private static func isInvisible(_ scalar: Unicode.Scalar) -> Bool {
         switch scalar.value {
-        case 0x00...0x1F, 0x7F...0x9F: true
-        case 0x00AD, 0x061C, 0x180E: true
-        case 0x200B...0x200F, 0x202A...0x202E, 0x2060...0x2064, 0x2066...0x206F, 0xFEFF: true
-        case 0xFFF9...0xFFFB: true
-        case 0xE0000...0xE007F: true
+        case 0x00AD, 0x034F, 0x061C, 0x115F, 0x1160, 0x17B4, 0x17B5, 0x180B...0x180F: true
+        case 0x200B, 0x200E, 0x200F, 0x202A...0x202E, 0x2060...0x2064, 0x2066...0x206F: true
+        case 0x2800, 0x3164, 0xFEFF, 0xFFA0, 0xFFF9...0xFFFB: true
+        case 0xFE00...0xFE0D, 0xE0000...0xE007F: true
         default: false
         }
     }
 
-    /// Model-composed notes: structure stays, everything that can load a resource or run markup goes.
+    /// Model-composed notes, re-rendered through an allow-list (`NotesMarkdown`).
     static func modelMarkdown(_ text: String) -> String {
-        var result = cleaned(text, keepNewlines: true)
-        result = result.replacing(/<!--[\s\S]*?-->/, with: "")
-        // Images and links keep only their text. Repeated, so `[![a](u)](v)` ends as `a`.
-        for _ in 0..<4 {
-            let before = result
-            result = result.replacing(/!?\[([^\]\n]*)\]\([^)\n]*\)/) { String($0.1) }
-            result = result.replacing(/!?\[([^\]\n]*)\]\[[^\]\n]*\]/) { String($0.1) }
-            if result == before { break }
-        }
-        result = result.replacing(/(?m)^[ ]{0,3}\[[^\]\n]+\]:[ \t]*\S.*$/, with: "")
-        result = result.replacing(/<[A-Za-z][A-Za-z0-9+.\-]*:[^>\s]*>/, with: "")
-        result = result.replacing(/<[^<>\s@]+@[^<>\s]+>/, with: "")
-        result = result.replacing(/<\/?[A-Za-z!?][^>]*>/, with: "")
-        result = result.replacing("<", with: "\\<")
-        return result.split(separator: "\n", omittingEmptySubsequences: false)
-            .map { String($0).replacing(/[ \t]+$/, with: "") }
-            .joined(separator: "\n")
-            .replacing(/\n{3,}/, with: "\n\n")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+        NotesMarkdown.render(text)
     }
 }

@@ -45,7 +45,7 @@ struct MeetingWindowView: View {
             }
         } message: {
             Text(
-                "The transcript and notes are removed from this Mac. This cannot be undone.",
+                "The transcript, notes and any saved audio are removed from this Mac. This cannot be undone.",
                 comment: "Meeting window: delete confirmation message")
         }
     }
@@ -56,6 +56,9 @@ struct MeetingWindowView: View {
             Divider()
             ForEach(Array(model.banners.enumerated()), id: \.offset) { _, banner in
                 BannerView(banner: banner, model: model)
+            }
+            if let offer = model.gapOffer, !model.isFinishing {
+                GapOfferView(offer: offer, model: model)
             }
             if model.isEmpty {
                 MessageView(
@@ -94,6 +97,7 @@ struct MeetingWindowView: View {
                 .focused($titleFocused)
                 .onSubmit { commitTitle() }
                 .onChange(of: titleFocused) { _, focused in if !focused { commitTitle() } }
+                .onChange(of: titleDraft) { _, draft in model.pendingTitle = draft }
                 .accessibilityLabel(Text("Title", comment: "Meeting window: label of the title field"))
                 .accessibilityHint(
                     Text("Edit the meeting title, then press Return", comment: "Hint of the title field"))
@@ -108,7 +112,10 @@ struct MeetingWindowView: View {
         .padding(.horizontal, 16).padding(.vertical, 12)
         .onAppear { titleDraft = model.document?.title ?? "" }
         .onChange(of: model.document?.title) { _, title in
-            if !titleFocused { titleDraft = title ?? "" }
+            if !titleFocused {
+                titleDraft = title ?? ""
+                model.pendingTitle = nil
+            }
         }
     }
 
@@ -177,7 +184,10 @@ struct MeetingWindowView: View {
             }
         }
         .disabled(!model.canCopy)
-        .accessibilityHint(Text("Copies the meeting as Markdown to the clipboard", comment: "Hint of Copy Markdown"))
+        .accessibilityHint(
+            Text(
+                "Copies the meeting as Markdown. Pounce's clipboard history does not keep it.",
+                comment: "Hint of Copy Markdown"))
         Button {
             Task { await model.saveMarkdown() }
         } label: {
@@ -272,15 +282,18 @@ private struct SpeakerRow: View {
             }
         }
         .onAppear { draft = speaker.label }
+        // The row is lazy and can scroll away with a half-typed name: save it then.
+        .onDisappear { commit() }
         .onChange(of: speaker.label) { _, label in if !focused { draft = label } }
     }
 
     private func commit() {
         let value = draft
-        if value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if MeetingWindowModel.visible(value).isEmpty {
             draft = speaker.label
             return
         }
+        if value == speaker.label { return }
         Task { await model.renameSpeaker(speaker.id, to: value) }
     }
 }
@@ -385,6 +398,46 @@ private struct BannerView: View {
     }
 }
 
+/// "Dokończ" could not read some audio: the user decides whether to close the meeting with a gap.
+private struct GapOfferView: View {
+    let offer: MeetingWindowModel.GapOffer
+    let model: MeetingWindowModel
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Image(systemName: "exclamationmark.triangle").foregroundStyle(.secondary).accessibilityHidden(true)
+            message.fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+            Button {
+                Task { await model.finish(acceptGap: true) }
+            } label: {
+                Text("Finish with a Gap", comment: "Meeting window button: close the meeting although audio is missing")
+            }
+            .accessibilityHint(
+                Text(
+                    "Closes the meeting from the transcript that exists, without the unreadable audio",
+                    comment: "Hint of Finish with a Gap"))
+        }
+        .padding(.horizontal, 16).padding(.vertical, 8)
+        .background(.quaternary)
+        .accessibilityElement(children: .contain)
+    }
+
+    @ViewBuilder
+    private var message: some View {
+        switch offer {
+        case .audioUnreadable:
+            Text(
+                "The recording cannot be read, so the rest of it cannot be transcribed.",
+                comment: "Meeting window: the saved audio of an interrupted meeting is unreadable")
+        case .unfinished:
+            Text(
+                "Some of the recording could not be transcribed.",
+                comment: "Meeting window: part of the audio of an interrupted meeting failed")
+        }
+    }
+}
+
 private struct FeedbackLine: View {
     let feedback: MeetingWindowModel.Feedback
 
@@ -401,6 +454,10 @@ private struct FeedbackLine: View {
         case .finishUnavailable:
             Text("This meeting cannot be finished now.", comment: "Meeting window feedback when Finish is refused")
         case .actionFailed: Text("The change could not be saved.", comment: "Meeting window feedback")
+        case .deleteFailed:
+            Text(
+                "The meeting was not deleted: its audio could not be removed. Try again.",
+                comment: "Meeting window feedback when deleting failed")
         }
     }
 }

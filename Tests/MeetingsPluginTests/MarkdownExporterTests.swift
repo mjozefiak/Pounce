@@ -110,33 +110,29 @@ enum ExportFixtures {
 
     @Test func hostileTextNeverProducesLinksImagesOrHTML() {
         let output = ExportFixtures.export(ExportFixtures.hostile())
-        // No unescaped markup characters survive anywhere in the transcript or the heading.
-        for line in output.split(separator: "\n") where line.hasPrefix("[0") || line.hasPrefix("# ") {
-            var previous: Character = " "
-            for character in line.dropFirst(line.hasPrefix("# ") ? 2 : 0) {
-                if "<>![]()".contains(character), !"[0123456789:]".contains(character) || line.hasPrefix("# ") {
-                    #expect(previous == "\\", "unescaped \(character) in \(line)")
-                }
-                previous = character == "\\" && previous == "\\" ? " " : character
-            }
-        }
-        // Every `<` is escaped, so no tag can start.
-        #expect(output.replacing(/\\</, with: "").contains("<") == false)
-        #expect(!output.contains("](http"))
-        #expect(!output.contains("](https"))
-        #expect(!output.contains("](javascript"))
-        // The notes lose every URL that could be fetched; only the visible text stays.
-        let notes = output.components(separatedBy: "## Notes")[1].components(separatedBy: "## Transcript")[0]
-        #expect(!notes.contains("evil.example"))
+        // Structural, independent of the golden file: no markup character is left unescaped anywhere (the
+        // exporter's own timestamp brackets aside), no scheme is followed by an unescaped colon, no `www.`.
+        #expect(MarkdownHardeningTests.unescapedStructure(in: output).isEmpty)
+        let schemes = output.firstMatch(of: MarkdownHardeningTests.scheme) != nil
+        #expect(!schemes)
+        let www = output.firstMatch(of: MarkdownHardeningTests.www) != nil
+        #expect(!www)
+        for needle in ["](http", "](https", "](javascript", "](http\\"] { #expect(!output.contains(needle)) }
         for scalar in output.unicodeScalars {
             #expect(![0x200B, 0x202E, 0xFEFF].contains(scalar.value))
         }
+        // The hostile fixture's notes keep their one ordinary bullet and heading, demoted below `##`.
+        #expect(output.contains("\n### Summary\n"))
+        #expect(output.contains("\n- kept bullet with *emphasis*\n"))
     }
 
-    @Test func notesKeepTheirStructureButLoseLinksImagesAndHTML() {
+    @Test func notesAreRenderedThroughTheAllowList() {
         let cleaned = MarkdownExporter.modelMarkdown(
             "## Tasks\n\n- [Anna](http://x.example) sends ![chart](http://y.example/c.png)\n<div>hi</div> a < b")
-        #expect(cleaned == "## Tasks\n\n- Anna sends chart\nhi a \\< b")
+        #expect(
+            cleaned
+                == "### Tasks\n\n- \\[Anna\\]\\(http\\://x.example\\) sends \\!\\[chart\\]\\(http\\://y.example/c.png\\) \\<div\\>hi\\</div\\> a \\< b"
+        )
     }
 
     @Test func clockFormatsHoursMinutesAndSeconds() {

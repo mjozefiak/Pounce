@@ -6499,20 +6499,20 @@
         }
       }
     },
-    "Copies the meeting as Markdown to the clipboard" : {
+    "Copies the meeting as Markdown. Pounce's clipboard history does not keep it." : {
       "comment" : "Hint of Copy Markdown",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Copies the meeting as Markdown to the clipboard"
+            "value" : "Copies the meeting as Markdown. Pounce's clipboard history does not keep it."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kopiuje spotkanie jako Markdown do schowka"
+            "value" : "Kopiuje spotkanie jako Markdown. Historia schowka Pounce go nie zapisuje."
           }
         }
       }
@@ -6854,7 +6854,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Regeneruj notatki"
+            "value" : "Wygeneruj notatki ponownie"
           }
         }
       }
@@ -7075,20 +7075,20 @@
         }
       }
     },
-    "The transcript and notes are removed from this Mac. This cannot be undone." : {
+    "The transcript, notes and any saved audio are removed from this Mac. This cannot be undone." : {
       "comment" : "Meeting window: delete confirmation message",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The transcript and notes are removed from this Mac. This cannot be undone."
+            "value" : "The transcript, notes and any saved audio are removed from this Mac. This cannot be undone."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Transkrypt i notatki zostaną usunięte z tego Maca. Tej operacji nie można cofnąć."
+            "value" : "Transkrypt, notatki i zapisany dźwięk zostaną usunięte z tego Maca. Tej operacji nie można cofnąć."
           }
         }
       }
@@ -7322,7 +7322,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pisze notatki od nowa na podstawie transkryptu"
+            "value" : "Generuje notatki jeszcze raz na podstawie transkryptu"
           }
         }
       }
@@ -7340,7 +7340,97 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ty"
+            "value" : "To ja"
+          }
+        }
+      }
+    },
+    "Finish with a Gap" : {
+      "comment" : "Meeting window button: close the meeting although audio is missing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish with a Gap"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zakończ z luką"
+          }
+        }
+      }
+    },
+    "Closes the meeting from the transcript that exists, without the unreadable audio" : {
+      "comment" : "Hint of Finish with a Gap",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Closes the meeting from the transcript that exists, without the unreadable audio"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zamyka spotkanie na podstawie istniejącego transkryptu, bez nieczytelnego dźwięku"
+          }
+        }
+      }
+    },
+    "The recording cannot be read, so the rest of it cannot be transcribed." : {
+      "comment" : "Meeting window: the saved audio of an interrupted meeting is unreadable",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The recording cannot be read, so the rest of it cannot be transcribed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrania nie da się odczytać, więc reszty nie można przepisać."
+          }
+        }
+      }
+    },
+    "Some of the recording could not be transcribed." : {
+      "comment" : "Meeting window: part of the audio of an interrupted meeting failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some of the recording could not be transcribed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się przepisać części nagrania."
+          }
+        }
+      }
+    },
+    "The meeting was not deleted: its audio could not be removed. Try again." : {
+      "comment" : "Meeting window feedback when deleting failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The meeting was not deleted: its audio could not be removed. Try again."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spotkanie nie zostało usunięte: nie udało się usunąć jego dźwięku. Spróbuj ponownie."
           }
         }
       }

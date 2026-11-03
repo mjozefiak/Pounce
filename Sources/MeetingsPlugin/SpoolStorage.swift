@@ -117,6 +117,18 @@ struct SpoolStorage: SpoolMaintenance {
         }
     }
 
+    func hasSpool(forMeeting uuid: String) -> Bool {
+        guard let parsed = UUID(uuidString: uuid) else { return false }
+        return isRealDirectory(directory(for: parsed))
+    }
+
+    func spoolFolderNames() -> [String] {
+        let entries = (try? FileManager.default.contentsOfDirectory(atPath: root.path)) ?? []
+        return entries.filter { name in
+            UUID(uuidString: name) != nil && isRealDirectory(root.appending(path: name, directoryHint: .isDirectory))
+        }
+    }
+
     private func isRealDirectory(_ url: URL) -> Bool {
         guard let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey]) else { return false }
         return values.isDirectory == true && values.isSymbolicLink != true
