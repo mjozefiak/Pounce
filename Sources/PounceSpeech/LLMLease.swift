@@ -69,14 +69,17 @@ public final class LLMLease: Sendable {
     }
 
     fileprivate func generate(
-        _ held: Held<any LLMRuntime>, priority: LeasePriority, messages: [ChatMessage], maxTokens: Int
+        _ held: Held<any LLMRuntime>, priority: LeasePriority, messages: [ChatMessage], maxTokens: Int,
+        onPhase: (@Sendable (GenerationPhase) -> Void)?
     ) async throws -> GenerationResult {
         // Already counted by the handle; the model is not unloaded before this call returns.
         defer { held.inFlight.end() }
         let runtime = held.base
         while true {
             let preemption = Preemption()
+            onPhase?(.queued)
             try await turnstile.enter(priority, preempt: { preemption.fire() })
+            onPhase?(.running)
             let run = Task { try await runtime.generateResult(messages: messages, maxTokens: maxTokens) }
             preemption.attach(run)
             let result = await withTaskCancellationHandler {
@@ -85,6 +88,7 @@ public final class LLMLease: Sendable {
                 run.cancel()
             }
             turnstile.leave()
+            onPhase?(.queued)
             switch result {
             case .success(let value):
                 return value
@@ -125,6 +129,11 @@ final class Preemption: Sendable {
     }
 }
 
+/// Where a request of a lease is: waiting for its turn, or generating.
+public enum GenerationPhase: Sendable, Equatable {
+    case queued, running
+}
+
 public final class LLMHandle: Sendable {
     public let key: LLMLease.Key
     public let priority: LeasePriority
@@ -144,14 +153,19 @@ public final class LLMHandle: Sendable {
         self.keepWarm = keepWarm
     }
 
-    public func generateResult(messages: [ChatMessage], maxTokens: Int) async throws -> GenerationResult {
+    /// `onPhase` reports `.queued` while the request waits for its turn (and again after a preemption) and
+    /// `.running` while the model generates, so a caller can time only the generation.
+    public func generateResult(
+        messages: [ChatMessage], maxTokens: Int, onPhase: (@Sendable (GenerationPhase) -> Void)? = nil
+    ) async throws -> GenerationResult {
         let allowed = released.withLock { released -> Bool in
             guard !released else { return false }
             runtime.inFlight.begin()
             return true
         }
         guard allowed else { throw ModelLeaseError.released }
-        return try await owner.generate(runtime, priority: priority, messages: messages, maxTokens: maxTokens)
+        return try await owner.generate(
+            runtime, priority: priority, messages: messages, maxTokens: maxTokens, onPhase: onPhase)
     }
 
     public func release() async {

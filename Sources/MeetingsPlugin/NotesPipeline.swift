@@ -52,6 +52,12 @@ struct NotesResult: Equatable, Sendable {
     var rejectedIDs: Int
     var language: NotesLanguage
     var promptVersion: String
+    /// Points whose text said more than the quote and was replaced by the transcript's own words.
+    var repairedCount = 0
+    /// Decisions and tasks that were questions in the transcript and became open questions.
+    var downgradedCount = 0
+    /// Verified points the REDUCE answer left out that were added back.
+    var backfilledCount = 0
 }
 
 enum NotesFailure: Error, Equatable {
@@ -166,20 +172,22 @@ struct NotesPipeline: Sendable {
 
         func result(
             status: NotesResult.Status, markdown: String?, dropped: Int = 0, points: Int = 0,
-            reduceFailed: Bool = false, replaced: Bool = false, rejected: Int = 0
+            reduceFailed: Bool = false, replaced: Bool = false, rejected: Int = 0, repaired: Int = 0,
+            downgraded: Int = 0, backfilled: Int = 0
         ) -> NotesResult {
             NotesResult(
                 status: status, markdown: markdown, droppedCount: dropped, failedChunks: failed,
                 chunkCount: chunks.count, verifiedPointCount: points, reduceFailed: reduceFailed,
                 summaryReplaced: replaced, rejectedIDs: rejected, language: verifier.language,
-                promptVersion: String(NotesPrompt.version))
+                promptVersion: String(NotesPrompt.version), repairedCount: repaired, downgradedCount: downgraded,
+                backfilledCount: backfilled)
         }
         if failedWhole == chunks.count { return result(status: .failed, markdown: nil) }
 
         // The code, not the model, names the points.
         for index in proposed.indices { proposed[index].id = "p\(index + 1)" }
         let verdict = verifier.verifyPoints(proposed)
-        let points = Self.deduplicated(verdict.verified).sorted { $0.timeMs < $1.timeMs }
+        let points = Self.ordered(Self.deduplicated(verdict.verified))
 
         onEvent(.reduce)
         let participants = Self.participants(of: utterances)
@@ -192,7 +200,9 @@ struct NotesPipeline: Sendable {
             let empty = NotesGuard.ReduceVerdict(
                 decisions: [], tasks: [], questions: [], summary: nil, summaryReplaced: false, rejectedIDs: 0)
             let markdown = NotesComposer.markdown(verdict: empty, participants: participants, labels: labels)
-            return result(status: .ok, markdown: markdown, dropped: verdict.dropped)
+            return result(
+                status: .ok, markdown: markdown, dropped: verdict.dropped, repaired: verdict.repaired,
+                downgraded: verdict.downgraded)
         }
 
         let reduced = try await reduce(points: points, handle: handle)
@@ -202,16 +212,28 @@ struct NotesPipeline: Sendable {
         return result(
             status: reduced.failed ? .partial : flowStatus, markdown: markdown, dropped: verdict.dropped,
             points: points.count, reduceFailed: reduced.failed, replaced: final.summaryReplaced,
-            rejected: final.rejectedIDs)
+            rejected: final.rejectedIDs, repaired: verdict.repaired, downgraded: verdict.downgraded,
+            backfilled: final.backfilled)
     }
 
-    /// Chunk overlap and a model that says a thing twice give the same point twice; the first one stays.
+    /// Chunk overlap and a model that says a thing twice give the same point twice; the first one stays. Two
+    /// points are the same when they have the same kind and the same quoted sentence (the utterance and the
+    /// sentence in it, not the span the model happened to quote); two tasks in one sentence stay apart when
+    /// they have different people.
     static func deduplicated(_ points: [NotesPoint]) -> [NotesPoint] {
         var seen = Set<String>()
         return points.filter { point in
-            let key = point.kind.rawValue + "|" + NotesText.words(point.quote).joined(separator: " ")
-            return seen.insert(key).inserted
+            let place =
+                point.utterance.map { "\($0).\(point.sentence ?? -1)" }
+                ?? NotesText.words(point.quote).joined(separator: " ")
+            let who = point.kind == .task ? NotesText.words(point.person ?? "").joined(separator: " ") : ""
+            return seen.insert(point.kind.rawValue + "|" + place + "|" + who).inserted
         }
+    }
+
+    /// Time order; points of the same time keep the order they were found in (an explicit, stable sort).
+    static func ordered(_ points: [NotesPoint]) -> [NotesPoint] {
+        points.enumerated().sorted { ($0.element.timeMs, $0.offset) < ($1.element.timeMs, $1.offset) }.map(\.element)
     }
 
     static func participants(of utterances: [NotesUtterance]) -> [String] {
@@ -329,10 +351,19 @@ struct NotesPipeline: Sendable {
         return result
     }
 
-    /// Merges partial summaries into one paragraph, a level at a time while they do not fit one request.
-    private func mergeSummaries(_ summaries: [String], handle: LLMHandle) async throws -> (text: String?, failed: Bool)
-    {
-        let texts = summaries.map(NotesGuard.plain).filter { !$0.isEmpty }
+    /// The deepest merge of partial summaries; each level at least halves their number, so this is never reached
+    /// with a sane budget, and a budget too small for two summaries gives up at once.
+    private static let maxMergeDepth = 8
+
+    /// Merges partial summaries into one paragraph, a level at a time while they do not fit one request. When
+    /// two of them do not fit together (or the levels run out) it gives up with `failed`, and the guard composes
+    /// the paragraph from the points.
+    private func mergeSummaries(
+        _ summaries: [String], handle: LLMHandle, depth: Int = 0
+    ) async throws -> (text: String?, failed: Bool) {
+        let texts = summaries.map(NotesGuard.plain).filter { !$0.isEmpty }.map {
+            NotesText.truncated($0, limit: NotesGuard.maxSummaryLength)
+        }
         if texts.isEmpty { return (nil, false) }
         if texts.count == 1 { return (texts[0], false) }
         let total = texts.reduce(0) { $0 + NotesText.estimateTokens($1, fallback: .unknown) + 4 }
@@ -344,19 +375,20 @@ struct NotesPipeline: Sendable {
             if case .value(let text) = completion { return (text, false) }
             return (nil, true)
         }
-        var size = texts.count
+        if texts.count <= 2 || depth >= Self.maxMergeDepth { return (nil, true) }
+        var size = texts.count - 1
         var used = 0
         for (index, text) in texts.enumerated() {
             used += NotesText.estimateTokens(text, fallback: .unknown) + 4
             if used > configuration.reduceInputTokens {
-                size = max(index, 2)
+                size = min(max(index, 2), texts.count - 1)
                 break
             }
         }
-        return try await mergeInBatches(texts, size: size, handle: handle)
+        return try await mergeInBatches(texts, size: size, handle: handle, depth: depth + 1)
     }
 
-    private func mergeInBatches(_ texts: [String], size: Int, handle: LLMHandle) async throws -> (
+    private func mergeInBatches(_ texts: [String], size: Int, handle: LLMHandle, depth: Int) async throws -> (
         text: String?, failed: Bool
     ) {
         var next: [String] = []
@@ -365,12 +397,12 @@ struct NotesPipeline: Sendable {
         while start < texts.count {
             let batch = Array(texts[start..<min(start + size, texts.count)])
             start += size
-            let merged = try await mergeSummaries(batch, handle: handle)
+            let merged = try await mergeSummaries(batch, handle: handle, depth: depth)
             failed = failed || merged.failed
             if let text = merged.text { next.append(text) }
         }
         if next.count <= 1 { return (next.first, failed) }
-        let final = try await mergeSummaries(next, handle: handle)
+        let final = try await mergeSummaries(next, handle: handle, depth: depth)
         return (final.text, failed || final.failed)
     }
 
@@ -384,9 +416,19 @@ struct NotesPipeline: Sendable {
 
     private enum AttemptError: Error { case truncated, malformed, timedOut }
 
+    /// Tokens kept free in the context for the chat template around the messages.
+    private static let templateMargin = 64
+
+    /// The tokens a prompt takes (the ADR 0004 heuristic, which errs high for Polish).
+    static func promptTokens(_ messages: [ChatMessage]) -> Int {
+        messages.reduce(0) { $0 + NotesText.estimateTokens($1.content, fallback: .unknown) + 8 }
+    }
+
     /// One request with the retry rules: a failure, a timeout or an answer that does not parse is tried once more
-    /// (with a format reminder); an answer cut off by the token limit once more with twice the limit and is never
-    /// used as it is. A prompt that does not fit the context is reported to the caller, which splits its input.
+    /// (with a format reminder); an answer cut off by the token limit once more with a larger limit (twice, but
+    /// never so large that prompt and answer exceed the context; when there is no room to grow, the cut-off
+    /// answer is a failure) and is never used as it is. A prompt that does not fit the context is reported to
+    /// the caller, which splits its input. The time limit counts generation only (`NotesDeadline`).
     private func complete<Value: Sendable>(
         _ handle: LLMHandle, maxTokens: Int, timeout: Duration, messages: (Bool) -> [ChatMessage],
         parse: (String) -> Value?
@@ -394,14 +436,20 @@ struct NotesPipeline: Sendable {
         var limit = maxTokens
         var reminder = false
         var retried = false
+        let context = model.key.contextLength
+        let sleep = self.sleep
         while true {
             try Task.checkCancellation()
+            let prompt = messages(reminder)
+            let room = context - Self.promptTokens(prompt) - Self.templateMargin
+            guard room > 0 else { return .promptTooLong }
+            limit = min(limit, room)
+            let tokens = limit
             do {
-                let prompt = messages(reminder)
-                let tokens = limit
-                let result = try await Self.withTimeout(timeout, sleep: sleep) {
-                    try await handle.generateResult(messages: prompt, maxTokens: tokens)
+                let generated = try await NotesDeadline.run(limit: timeout, sleep: sleep) { phase in
+                    try await handle.generateResult(messages: prompt, maxTokens: tokens, onPhase: phase)
                 }
+                guard let result = generated else { throw AttemptError.timedOut }
                 if result.stoppedByTokenLimit { throw AttemptError.truncated }
                 guard let value = parse(result.text) else { throw AttemptError.malformed }
                 return .value(value)
@@ -416,28 +464,14 @@ struct NotesPipeline: Sendable {
                 if retried { return .failed }
                 retried = true
                 switch error as? AttemptError {
-                case .truncated?: limit *= 2
+                case .truncated?:
+                    let larger = min(limit * 2, room)
+                    if larger <= limit { return .failed }
+                    limit = larger
                 case .malformed?: reminder = true
                 default: break
                 }
             }
-        }
-    }
-
-    private static func withTimeout<T: Sendable>(
-        _ timeout: Duration, sleep: @escaping @Sendable (Duration) async throws -> Void,
-        operation: @escaping @Sendable () async throws -> T
-    ) async throws -> T {
-        try await withThrowingTaskGroup(of: T?.self) { group in
-            group.addTask { try await operation() }
-            group.addTask {
-                try await sleep(timeout)
-                return nil
-            }
-            defer { group.cancelAll() }
-            guard let first = try await group.next() else { throw AttemptError.timedOut }
-            guard let value = first else { throw AttemptError.timedOut }
-            return value
         }
     }
 }

@@ -24,9 +24,9 @@ struct NotesUtterance: Equatable, Sendable {
 
     static func sanitized(_ text: String) -> String {
         var result = MarkdownExporter.cleaned(text, keepNewlines: false)
-        for tag in ["<transcript>", "</transcript>", "<points>", "</points>"] {
-            result = result.replacingOccurrences(of: tag, with: "", options: .caseInsensitive)
-        }
+        // A bar would make a sentence of the transcript look like a point line (`TASK | …`) to the model.
+        result = result.replacingOccurrences(of: "|", with: "/")
+        result = NotesText.strippingPromptTags(result)
         return result.split(separator: " ", omittingEmptySubsequences: true).joined(separator: " ")
     }
 
@@ -61,7 +61,9 @@ struct TranscriptChunk: Equatable, Sendable, Identifiable {
     }
 
     static func cost(of utterance: NotesUtterance, fallback: NotesLanguage) -> Int {
-        lineOverheadTokens + NotesText.estimateTokens(utterance.text, fallback: fallback)
+        // The overhead covers a label of a short name; a longer one costs its extra tokens.
+        let label = max(0, (utterance.speaker.count + 2) / 3 - 2)
+        return lineOverheadTokens + label + NotesText.estimateTokens(utterance.text, fallback: fallback)
     }
 
     /// The two halves of the chunk (by utterance, or by words for a single utterance), for a request that did

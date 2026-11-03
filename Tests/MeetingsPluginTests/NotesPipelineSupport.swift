@@ -29,9 +29,9 @@ enum NotesFake {
             let quote = line.text.trimmingCharacters(in: CharacterSet(charactersIn: ".?!"))
             let lower = line.text.lowercased()
             if lower.contains("zatwierdzamy") {
-                lines.append("DEC | \(line.time) | \"\(quote)\" | \(quote).")
+                lines.append("DEC | \(line.time) | \"\(quote)\" | Ustalono: \(quote).")
             } else if lower.contains("wyśle") {
-                lines.append("TASK | \(line.time) | \"\(quote)\" | \(quote). | Marek | piątek")
+                lines.append("TASK | \(line.time) | \"\(quote)\" | Do zrobienia: \(quote). | Marek | piątek")
             } else if line.text.contains("?") {
                 lines.append("ASK | \(line.time) | \"\(quote)\" | \(quote)?")
             } else if index == 0 {

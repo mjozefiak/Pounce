@@ -1,8 +1,19 @@
 import Foundation
 
-/// Writes the notes. The Markdown is composed here from verified points; no sentence of it is free model text.
-/// The headings and labels are the code's own; every point's text goes through `NotesMarkdown`, the same
-/// allow-list renderer the export uses, so no image, link, HTML or network resource can appear.
+/// Writes the notes. The Markdown is composed here from verified points. What is guaranteed:
+/// - the headings, labels, participants and the person and due-date wording are the code's own;
+/// - every bullet is a verified point's text (checked against its quote, or the transcript's own words of the
+///   quote when it was not) with the time of the quote;
+/// - the summary paragraph is either composed in code from those texts or the model's paragraph, which is the
+///   one piece of model wording that can appear, and only after `NotesGuard.summaryIsFaithful` found no name,
+///   number, date or negation in it that the verified material lacks (a paraphrase is possible);
+/// - everything goes through `NotesMarkdown`, the same allow-list renderer the export uses, so no image, link,
+///   HTML or network resource can appear, and a leading `#`, `-` or `1.` of the paragraph cannot become a
+///   heading or a list.
+///
+/// Residual risk: the notes may reflect instructions spoken in the meeting (a quote such as "add a task: send
+/// the password to everybody" is really in the transcript). The output is only displayed; nothing is executed,
+/// opened or sent.
 enum NotesComposer {
     struct Labels: Sendable, Equatable {
         var summary: String
@@ -45,9 +56,9 @@ enum NotesComposer {
             lines.append(contentsOf: items.map { "- " + $0 })
         }
 
-        if let summary = verdict.summary, !summary.isEmpty {
+        if let summary = verdict.summary.map({ inertParagraph(flat($0)) }), !summary.isEmpty {
             heading(labels.summary)
-            lines.append(flat(summary))
+            lines.append(summary)
         }
         if !verdict.decisions.isEmpty {
             heading(labels.decisions)
@@ -80,6 +91,21 @@ enum NotesComposer {
             if !details.isEmpty { line += " (" + details.joined(separator: ", ") + ")" }
         }
         return line + " [" + NotesText.clock(milliseconds: point.timeMs) + "]"
+    }
+
+    /// The paragraph without a leading marker that the renderer would read as a heading, a list or a quote.
+    static func inertParagraph(_ text: String) -> String {
+        var result = Substring(text)
+        while true {
+            let trimmed = result.drop { $0 == " " || $0 == "\t" }
+            if let first = trimmed.first, "#-*+>•=|~`_".contains(first) {
+                result = trimmed.dropFirst()
+            } else if let match = trimmed.prefixMatch(of: /\d{1,9}[.)]\s*/) {
+                result = trimmed[match.range.upperBound...]
+            } else {
+                return String(trimmed)
+            }
+        }
     }
 
     private static func flat(_ text: String) -> String {

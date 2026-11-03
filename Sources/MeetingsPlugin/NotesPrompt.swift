@@ -23,6 +23,9 @@ struct NotesPoint: Equatable, Sendable, Identifiable {
     var due: String?
     /// The speaker of the quoted utterance; set by the guard.
     var speaker: String?
+    /// Index of the quoted utterance and the sentence in the transcript; set by the guard.
+    var utterance: Int?
+    var sentence: Int?
 }
 
 /// The instructions that turn a transcript chunk into points, and a list of points into the structure of the
