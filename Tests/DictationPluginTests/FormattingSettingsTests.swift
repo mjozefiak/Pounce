@@ -165,6 +165,34 @@ import Testing
         }
         #expect(failures.isEmpty, "\(failures.joined(separator: "\n"))")
     }
+
+    /// Runs every fixture against the built-in engine with the GGUF file in `POUNCE_LLAMA_MODEL` (step 4.5) and
+    /// prints a table for the PR body. Off by default, like the benchmarks.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["POUNCE_LLAMA_MODEL"] != nil))
+    func builtInModel() async throws {
+        let path = try #require(ProcessInfo.processInfo.environment["POUNCE_LLAMA_MODEL"])
+        let warm = KeepWarmRuntime(
+            runtime: LlamaRuntime(), modelURL: URL(fileURLWithPath: path), keepWarm: { .seconds(300) })
+        let formatter = BuiltInFormatter(runtime: warm)
+        await formatter.prepare()
+        var failures: [String] = []
+        for fixture in try Self.load() {
+            let started = ContinuousClock.now
+            let result = try await formatter.format(chunk: fixture.raw, previousContext: nil)
+            let elapsed = ContinuousClock.now - started
+            print("[cleanup-builtin] \(fixture.id) \(result.outcome == .formatted ? "formatted" : "RAW") \(elapsed)")
+            print("[cleanup-builtin]   in:  \(fixture.raw)\n[cleanup-builtin]   out: \(result.text)")
+            if result.outcome != .formatted { failures.append("\(fixture.id): fell back \(result.outcome)") }
+            for needle in fixture.mustContain where !result.text.localizedCaseInsensitiveContains(needle) {
+                failures.append("\(fixture.id): missing \(needle)")
+            }
+            for needle in fixture.mustNotContain where result.text.localizedCaseInsensitiveContains(needle) {
+                failures.append("\(fixture.id): contains \(needle)")
+            }
+        }
+        await warm.unload()
+        #expect(failures.isEmpty, "\(failures.joined(separator: "\n"))")
+    }
 }
 
 /// The built-in source of the Formatting section (step 4.4).

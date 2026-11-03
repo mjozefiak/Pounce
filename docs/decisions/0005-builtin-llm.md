@@ -74,6 +74,26 @@ Proposal for the catalog, to confirm in step 4.5 on the regression set:
 - **Best quality for 32 GB Macs and up: Qwen3-30B-A3B-Instruct-2507 Q4_K_M** (17 GB file, about 19 GB resident). It was as fast as the 4B model on this machine because it is a mixture of experts with 3B active parameters.
 - **Bielik-11B-v3.0-Instruct stays listed only if step 4.5 shows a Polish gain**: here it was the slowest and the least accurate on the corrections.
 
+## Prompt regression on the built-in engine (step 4.5, 2026-11-03)
+
+The nine cleanup fixtures of step 2.5 run through `BuiltInFormatter` and `LlamaRuntime` with Qwen3-4B-Instruct-2507
+Q4_K_M (SHA-256 verified), model already loaded, M-series Mac:
+`POUNCE_LLAMA_MODEL=<gguf> swift test --filter CleanupFixtureTests/builtInModel`.
+
+| Fixture | Result | Time |
+|---|---|---|
+| pl-fillers | fillers gone, but the corrected-away "dziesiątej" stays: "…o dziesiątej, nie o jedenastej…" | 0.80 s |
+| pl-question, pl-command | question and command only cleaned, not answered or run | 0.60 s |
+| en-fillers, en-question, en-command | pass | 0.44–0.47 s |
+| mixed-terms | pass (pull requesta, branch, code review kept) | 0.53 s |
+| pl-enumeration | pass, but "po pierwsze/po drugie" words are dropped | 0.53 s |
+| pl-self-correction | fail: "spotkajmy się we wtorek a nie czekaj w środę" came back as "Zajmijmy się we wtorek, a nie czekaj w środę" (wrong word, correction not applied) | 0.54 s |
+
+7 of 9 pass, no fallbacks to raw, 0.4 to 0.8 s per chunk. Both failures are spoken self-corrections in Polish: the
+4B model keeps both versions and once changed a word. Questions and commands are never answered, which was the
+main risk. Not measured here: the 30B-A3B model and Bielik (large downloads); the catalog keeps Qwen3-4B as the
+default and Bielik stays out until a run shows a Polish gain on these two cases.
+
 ## Consequences
 
 - Formatting works without installing anything else; the first-dictation cold start is ours to
