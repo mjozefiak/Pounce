@@ -61,13 +61,13 @@ public final class DictationPlugin: PouncePlugin {
                 ModelCatalog.whisperLargeV3Turbo.id: WhisperKitEngine(language: { settings.speechLanguage }),
             ],
             selected: { settings.speechModelID })
-        let models = ModelManager(
-            directory: context.modelsDirectory.appending(path: Self.speechDirectoryName, directoryHint: .isDirectory),
+        let models = ModelManagers.shared.manager(
+            for: context.modelsDirectory.appending(path: Self.speechDirectoryName, directoryHint: .isDirectory),
             logger: context.logger)
         self.models = models
         // Formatting models (ADR 0005) live next to the speech models in the shared `Models/` folder (ADR 0006).
-        let llmModels = ModelManager(
-            directory: context.modelsDirectory.appending(path: Self.llmDirectoryName, directoryHint: .isDirectory),
+        let llmModels = ModelManagers.shared.manager(
+            for: context.modelsDirectory.appending(path: Self.llmDirectoryName, directoryHint: .isDirectory),
             logger: context.logger)
         self.llmModels = llmModels
         builtInLLM = KeepWarmRuntime(
@@ -79,7 +79,7 @@ public final class DictationPlugin: PouncePlugin {
                 else { throw LlamaError.modelNotFound }
                 return file
             },
-            keepWarm: { settings.keepWarm })
+            keepWarm: { settings.keepWarm }, lease: .shared)
         let workspace = context.workspace
         settingsModel = DictationSettingsModel(
             package: ModelCatalog.package(id: settings.speechModelID) ?? ModelCatalog.parakeetUltra, manager: models,
@@ -136,6 +136,7 @@ public final class DictationPlugin: PouncePlugin {
         let context = context
         let settings = settings
         let engine = engine
+        let lease = SpeechEngineLease.shared
         let transport = transport
         let history = history
         let builtInLLM = builtInLLM
@@ -151,15 +152,16 @@ public final class DictationPlugin: PouncePlugin {
                         engine: engine,
                         formatter: Self.formatter(
                             settings: settings, transport: transport, builtIn: builtInLLM, logger: context.logger),
-                        modelFolder: folder, logger: context.logger, onEvent: onEvent)
+                        modelFolder: folder, lease: lease, modelID: settings.speechModelID,
+                        keepWarm: { settings.keepWarm }, logger: context.logger, onEvent: onEvent)
                 },
-                engine: engine,
+                lease: lease,
                 paster: TextPaster(
                     pasteboard: context.pasteboard, events: context.events, workspace: context.workspace,
                     permissions: context.permissions, clock: context.clock,
                     restoresClipboard: { settings.restoresClipboard }, logger: context.logger),
                 hud: hud, claimEscape: context.claimEscapeKey, openSettings: context.openSettings,
-                keepWarm: { settings.keepWarm }, clock: context.clock,
+                clock: context.clock,
                 recordHistory: { history.record($0) },
                 frontmostBundleID: { context.workspace.frontmostApplication?.bundleIdentifier },
                 formatMode: { settings.mode == .cleanup ? .clean : .raw },

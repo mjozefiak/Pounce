@@ -15,12 +15,11 @@ final class DictationController {
         var customFolder: () -> URL?
         /// Builds the recording for the model folder to load from.
         var makeSession: (URL, @escaping @Sendable (DictationSession.Event) -> Void) -> DictationSession
-        var engine: any SpeechEngine
+        var lease: SpeechEngineLease
         var paster: TextPaster
         var hud: any HUDPresenter
         var claimEscape: (@escaping @MainActor @Sendable () -> Void) -> EscapeKeyClaim
         var openSettings: () -> Void
-        var keepWarm: () -> Duration
         var clock: any Clock<Duration>
         var now: () -> ContinuousClock.Instant = { ContinuousClock.now }
         /// Saves a finished dictation in the history (a no-op when it is off or unavailable).
@@ -37,7 +36,6 @@ final class DictationController {
     private var gesture: RecordingGesture
     private var session: DictationSession?
     private var escapeClaim: EscapeKeyClaim?
-    private var warmTask: Task<Void, Never>?
     private var finishTask: Task<Void, Never>?
     private let logger = Logger(subsystem: "app.pounce", category: "dictation")
 
@@ -81,8 +79,6 @@ final class DictationController {
     // MARK: Start
 
     private func begin() {
-        warmTask?.cancel()
-        warmTask = nil
         finishTask = Task { [weak self] in await self?.prepareAndStart() }
     }
 
@@ -184,7 +180,6 @@ final class DictationController {
                 }
             case .copied(let reason): deps.hud.show(.copied(reason))
             }
-            scheduleUnload()
             gesture.finished()
         } catch DictationSession.Failure.silence {
             end(with: .nothingHeard)
@@ -265,7 +260,6 @@ final class DictationController {
         releaseEscape()
         deps.hud.hide()
         Task { await session?.cancel() }
-        scheduleUnload()
     }
 
     private func fail(_ problem: HUDState.Problem) {
@@ -281,7 +275,6 @@ final class DictationController {
     private func end(with problem: HUDState.Problem) {
         session = nil
         deps.hud.show(.problem(problem))
-        scheduleUnload()
         gesture.finished()
     }
 
@@ -290,28 +283,13 @@ final class DictationController {
         escapeClaim = nil
     }
 
-    /// The model stays in memory for the keep-warm time after the last dictation, then goes (the app's
-    /// memory at rest stays small).
-    private func scheduleUnload() {
-        warmTask?.cancel()
-        let delay = deps.keepWarm()
-        let engine = deps.engine
-        let clock = deps.clock
-        warmTask = Task {
-            try? await clock.sleep(for: delay)
-            guard !Task.isCancelled else { return }
-            await engine.unload()
-        }
-    }
-
     /// The plugin is being switched off: drop everything.
     func shutDown() async {
-        warmTask?.cancel()
         finishTask?.cancel()
         releaseEscape()
         deps.hud.hide()
         await session?.cancel()
         session = nil
-        await deps.engine.unload()
+        await deps.lease.evictIdle()
     }
 }

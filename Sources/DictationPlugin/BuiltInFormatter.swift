@@ -77,9 +77,10 @@ struct BuiltInFormatter: TextFormatter {
     }
 
     private static func reason(for error: any Error) -> FallbackReason {
+        if error as? ModelLeaseError == .busy { return .modelUnavailable }
         switch error as? LlamaError {
-        case .modelNotFound, .loadFailed, .contextFailed, .notLoaded: .modelUnavailable
-        default: .badResponse
+        case .modelNotFound, .loadFailed, .contextFailed, .notLoaded: return .modelUnavailable
+        default: return .badResponse
         }
     }
 }

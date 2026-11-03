@@ -1,5 +1,6 @@
 import Foundation
 import PounceSpeech
+import Synchronization
 import os
 
 /// One recording, from the first sample to the finished text (spec: `DictationSession`).
@@ -57,6 +58,9 @@ actor DictationSession {
     private let audio: any AudioInput
     private let vad: any VoiceActivityDetector
     private let engine: any SpeechEngine
+    private let lease: SpeechEngineLease
+    private let modelID: String
+    private let keepWarm: @Sendable () -> Duration
     private let formatter: (any TextFormatter)?
     private let modelFolder: URL
     private let limit: Int
@@ -72,7 +76,7 @@ actor DictationSession {
     private var assembling: Task<Void, Never>?
     private var chunks: [(chunk: Segmenter.Chunk, result: Task<FormatResult, Never>)] = []
     private var lastChunkText: String?
-    private var loadTask: Task<Bool, Never>?
+    private var loadTask: Task<SpeechLease?, Never>?
     /// The formatter's own warm-up; left running on cancel, a warm model is wanted for the next dictation.
     private var prepareTask: Task<Void, Never>?
     private var consumeTask: Task<Void, Never>?
@@ -91,6 +95,9 @@ actor DictationSession {
         engine: any SpeechEngine,
         formatter: (any TextFormatter)? = nil,
         modelFolder: URL,
+        lease: SpeechEngineLease = SpeechEngineLease(),
+        modelID: String = "dictation",
+        keepWarm: @escaping @Sendable () -> Duration = { .seconds(600) },
         maximumDuration: Duration = .seconds(20 * 60),
         warningBefore: Duration = .seconds(2 * 60),
         logger: Logger = Logger(subsystem: "app.pounce", category: "dictation"),
@@ -99,6 +106,9 @@ actor DictationSession {
         self.audio = audio
         self.vad = vad
         self.engine = engine
+        self.lease = lease
+        self.modelID = modelID
+        self.keepWarm = keepWarm
         self.formatter = formatter
         self.modelFolder = modelFolder
         self.limit = Self.samples(in: maximumDuration)
@@ -118,19 +128,26 @@ actor DictationSession {
         guard !started else { return }
         started = true
         let engine = engine
+        let lease = lease
+        let modelID = modelID
+        let keepWarm = keepWarm
         let folder = modelFolder
         let onEvent = onEvent
         let logger = logger
         loadTask = Task {
-            if await engine.isLoaded { return true }
-            onEvent(.loadingModel)
+            let loading = Mutex(false)
             do {
-                try await engine.load(modelFolder: folder)
-                onEvent(.modelLoaded)
-                return true
+                let handle = try await lease.acquire(
+                    modelID: modelID, folder: folder, engine: engine, priority: .interactive, keepWarm: keepWarm,
+                    onLoading: {
+                        loading.withLock { $0 = true }
+                        onEvent(.loadingModel)
+                    })
+                if loading.withLock({ $0 }) { onEvent(.modelLoaded) }
+                return handle
             } catch {
                 logger.error("Speech model failed to load: \(String(describing: error), privacy: .public)")
-                return false
+                return nil
             }
         }
         if let formatter {
@@ -143,6 +160,7 @@ actor DictationSession {
             stream = try await audio.start(onLevel: onLevel)
         } catch {
             loadTask?.cancel()
+            await releaseLease()
             throw error
         }
         consumeTask = Task { [weak self] in
@@ -155,6 +173,25 @@ actor DictationSession {
 
     /// Stops recording and returns the text of everything said.
     func finish() async throws -> Output {
+        do {
+            let output = try await produce()
+            await releaseLease()
+            return output
+        } catch {
+            await releaseLease()
+            throw error
+        }
+    }
+
+    /// Gives the engine lease back (once), whenever it was or is still being acquired. The engine then stays
+    /// loaded for the keep-warm time.
+    private func releaseLease() async {
+        guard let load = loadTask else { return }
+        loadTask = nil
+        await load.value?.release()
+    }
+
+    private func produce() async throws -> Output {
         guard started else { throw Failure.notStarted }
         if cancelled { throw Failure.cancelled }
         finishing = true
@@ -175,6 +212,8 @@ actor DictationSession {
                 failed += 1
             }
         }
+        // Every segment is transcribed: the engine is not needed any more while the text is formatted.
+        await releaseLease()
         if cancelled { throw Failure.cancelled }
         guard !tasks.isEmpty else { throw Failure.silence }
         guard failed < tasks.count else { throw Failure.engine }
@@ -235,6 +274,7 @@ actor DictationSession {
         segments = []
         chunks = []
         speechStart = nil
+        await releaseLease()
     }
 
     // MARK: Audio
@@ -283,13 +323,13 @@ actor DictationSession {
     private func closeSegment(_ range: Range<Int>) {
         let samples = store.slice(range)
         guard !samples.isEmpty else { return }
-        let engine = engine
         let load = loadTask
         let logger = logger
         let task = Task<String?, Never> {
-            guard await load?.value == true else { return nil }
+            guard let handle = await load?.value else { return nil }
             do {
-                return try await engine.transcribe(samples).text
+                guard case .transcript(let segment) = try await handle.transcribe(samples) else { return nil }
+                return segment.text
             } catch {
                 if !Task.isCancelled {
                     logger.error("A segment failed to transcribe: \(String(describing: error), privacy: .public)")
