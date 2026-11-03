@@ -62,7 +62,8 @@ import Testing
             return .done("dictation")
         }
         let log = NotesEventLog()
-        let pipeline = rig.pipeline({ $0.busyPoll = .milliseconds(20) })
+        let stepper = NotesStepper()
+        let pipeline = rig.pipeline({ $0.busyPoll = .seconds(7) }, sleep: rig.pollSleep(.seconds(7), stepper))
         let notes = Task { try await pipeline.run(utterances: NotesFixtures.meeting(), onEvent: log.add) }
         await notesEventually { started.isSet }
 
@@ -76,6 +77,11 @@ import Testing
         #expect(answer.text == "dictation")
         #expect(!both.isSet)
         await dictation.release()
+        // The notes wait for dictation's grace period (it may speak again), then take the model back.
+        await spin { stepper.pending == 1 }
+        #expect(log.all.last == .waitingForModel)
+        rig.clock.advance(.seconds(15))
+        stepper.fire()
 
         let result = try await notes.value
         // The interrupted request is repeated: not a failure, not a retry, no format reminder.
@@ -127,6 +133,7 @@ import Testing
             sleep: { duration in
                 if duration == .seconds(7) {
                     await dictation.release()  // dictation is done by the time we ask again
+                    rig.clock.advance(.seconds(15))  // and its grace period is over
                 } else {
                     try await Task.sleep(for: duration)
                 }

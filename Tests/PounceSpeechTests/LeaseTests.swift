@@ -417,12 +417,15 @@ private let folder = URL(filePath: "/models/speech/a")
 @Suite struct LLMLeaseTests {
     let sleeper = ManualSleeper()
     let tracker = MemoryTracker()
+    let clock = FakeClock()
     let lease: LLMLease
     let model = URL(filePath: "/models/llm/m.gguf")
+    let grace = Duration.seconds(15)
 
     init() {
         let sleeper = sleeper
-        lease = LLMLease(sleep: { try await sleeper.sleep($0) })
+        let clock = clock
+        lease = LLMLease(sleep: { try await sleeper.sleep($0) }, backgroundGrace: .seconds(15), now: { clock.now() })
     }
 
     private func take(
@@ -463,6 +466,7 @@ private let folder = URL(filePath: "/models/speech/a")
         #expect(dictation.isLoaded)
 
         await a.release()
+        // `take` is interactive here: the grace period only holds back `background`.
         let b = try await take(notes)
         #expect(dictation.unloads == 1)
         #expect(notes.loads == [model])
@@ -519,6 +523,7 @@ private let folder = URL(filePath: "/models/speech/a")
         await #expect(throws: ModelLeaseError.busy) { try await take(notes, priority: .background) }
         #expect(try await ask(interactive, "int").text == "int#1")
         await interactive.release()
+        clock.advance(grace)
         let again = try await take(notes, priority: .background)
         #expect(notes.loads.count == 2)
         #expect(dictation.unloads == 1)

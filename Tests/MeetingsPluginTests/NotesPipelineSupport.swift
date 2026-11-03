@@ -1,6 +1,7 @@
 import Foundation
 import PounceSpeech
 import Synchronization
+import Testing
 
 @testable import MeetingsPlugin
 
@@ -89,12 +90,27 @@ final class Flag: @unchecked Sendable {
 }
 
 struct NotesRig {
-    let lease = LLMLease(sleep: { _ in try await Task.sleep(for: .seconds(3600)) })
+    let lease: LLMLease
+    /// The lease's clock (its grace period after an interactive lease): the tests move it by hand.
+    let clock = NotesFakeClock()
     let url = URL(filePath: "/models/llm/test-model.gguf")
     let llm: ScriptedLLM
 
     init(contextLength: Int = 8192, _ handler: @escaping ScriptedLLM.Handler = NotesFake.standard) {
+        let clock = clock
+        lease = LLMLease(sleep: { _ in try await Task.sleep(for: .seconds(3600)) }, now: { clock.now() })
         llm = ScriptedLLM(contextLength: contextLength, handler: handler)
+    }
+
+    /// A `sleep` for the pipeline: the busy poll waits for the test (`stepper.fire()`), every other wait is real.
+    func pollSleep(_ poll: Duration, _ stepper: NotesStepper) -> @Sendable (Duration) async throws -> Void {
+        { duration in
+            if duration == poll {
+                try await stepper.sleep(duration)
+            } else {
+                try await Task.sleep(for: duration)
+            }
+        }
     }
 
     var model: NotesModel { NotesModel(lease: lease, runtime: llm, modelURL: url) }
@@ -124,4 +140,71 @@ func decisionLines(count: Int) -> [NotesUtterance] {
         NotesUtterance(
             startMs: $0 * 10_000, speaker: "Anna", text: "Zatwierdzamy punkt numer \($0) harmonogramu projektu.")
     }
+}
+
+/// A clock the test moves by hand.
+final class NotesFakeClock: Sendable {
+    private let base = ContinuousClock.now
+    private let offset = Mutex(Duration.zero)
+
+    func now() -> ContinuousClock.Instant { base + offset.withLock { $0 } }
+    func advance(_ duration: Duration) { offset.withLock { $0 += duration } }
+}
+
+/// A sleep that ends when the test says so (or when its task is cancelled).
+final class NotesStepper: Sendable {
+    private struct Pending {
+        let id: Int
+        let continuation: CheckedContinuation<Void, any Error>
+    }
+
+    private struct State {
+        var next = 0
+        var pending: [Pending] = []
+    }
+
+    private let state = Mutex(State())
+
+    var pending: Int { state.withLock { $0.pending.count } }
+
+    func sleep(_ duration: Duration) async throws {
+        let id = state.withLock { state -> Int in
+            state.next += 1
+            return state.next
+        }
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+                let cancelled = state.withLock { state -> Bool in
+                    if Task.isCancelled { return true }
+                    state.pending.append(Pending(id: id, continuation: continuation))
+                    return false
+                }
+                if cancelled { continuation.resume(throwing: CancellationError()) }
+            }
+        } onCancel: {
+            let entry = state.withLock { state -> Pending? in
+                guard let index = state.pending.firstIndex(where: { $0.id == id }) else { return nil }
+                return state.pending.remove(at: index)
+            }
+            entry?.continuation.resume(throwing: CancellationError())
+        }
+    }
+
+    /// Ends every sleep that is waiting.
+    func fire() {
+        let entries = state.withLock { state -> [Pending] in
+            defer { state.pending = [] }
+            return state.pending
+        }
+        for entry in entries { entry.continuation.resume() }
+    }
+}
+
+/// Yields to the other tasks until `condition` holds (bounded; records an issue when it never does).
+func spin(sourceLocation: SourceLocation = #_sourceLocation, _ condition: @Sendable () async -> Bool) async {
+    for _ in 0..<200_000 {
+        if await condition() { return }
+        await Task.yield()
+    }
+    Issue.record("The condition was not met", sourceLocation: sourceLocation)
 }

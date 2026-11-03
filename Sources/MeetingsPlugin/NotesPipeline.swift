@@ -77,7 +77,7 @@ enum NotesFailure: Error, Equatable {
 /// on the same model file even though its context length (4096) is not the notes' (8192): the lease then takes
 /// the notes' lease away (`ModelLeaseError.yielded`), the running generation is cancelled between two tokens,
 /// dictation's model is loaded, and `NotesLease` takes a new lease after dictation released it and repeats the
-/// interrupted request (it is not a failure and not a retry; the notes' time limit does not run meanwhile). A
+/// interrupted request (it is not a failure and not a retry; the notes' time limit does not run meanwhile). The notes wait out the lease's grace period after dictation (15 s), their waits add up to `busyLimit` for the whole job, and one request gives up (`NotesFailure.modelBusy`, which ends the job, never a chunk retry) after 20 takeovers. A
 /// different model file in use makes the job wait ("Czeka na model"). A chunk gets one retry (a failed or
 /// malformed answer, a timeout, or a doubled token limit when the answer was cut off; a cut-off answer is never
 /// taken as a result) and, when the prompt does not fit the context, one split into halves. Whatever cannot be
@@ -91,6 +91,8 @@ struct NotesPipeline: Sendable {
         var mapTimeout: Duration = .seconds(300)
         var reduceTimeout: Duration = .seconds(600)
         var busyPoll: Duration = .seconds(5)
+        /// How long the whole job may wait for the model, summed over every wait (the start and each time
+        /// dictation took the model over); it is not restarted by a yield.
         var busyLimit: Duration = .seconds(1800)
         /// The language of the headings when the transcript does not tell.
         var fallbackLanguage: NotesLanguage = .english
@@ -441,6 +443,9 @@ struct NotesPipeline: Sendable {
                 return .value(value)
             } catch is CancellationError {
                 throw CancellationError()
+            } catch let error as NotesFailure {
+                // The model cannot be had (busy for too long, or gone): the job ends, nothing is retried.
+                throw error
             } catch let error as LlamaError {
                 if case .promptTooLong = error { return .promptTooLong }
                 if retried { return .failed }
@@ -470,6 +475,12 @@ final class NotesLease: Sendable {
     private let sleep: @Sendable (Duration) async throws -> Void
     private let onEvent: @Sendable (NotesEvent) -> Void
     private let current = Mutex<LLMHandle?>(nil)
+    /// The time the job spent waiting for the model so far.
+    private let waited = Mutex(Duration.zero)
+
+    /// How many times dictation may take the model from one request before the job gives up (`modelBusy`): a
+    /// yield is not a failure and not a retry, but it must not go on for ever.
+    static let maxYieldsPerRequest = 20
 
     init(
         model: NotesModel, configuration: NotesPipeline.Configuration,
@@ -496,6 +507,7 @@ final class NotesLease: Sendable {
     func generateResult(
         messages: [ChatMessage], maxTokens: Int, onPhase: (@Sendable (GenerationPhase) -> Void)?
     ) async throws -> GenerationResult {
+        var yields = 0
         while true {
             let held = try await handle()
             do {
@@ -505,13 +517,16 @@ final class NotesLease: Sendable {
                 onPhase?(.queued)
                 current.withLock { if $0 === held { $0 = nil } }
                 await held.release()
+                yields += 1
+                if yields > Self.maxYieldsPerRequest { throw NotesFailure.modelBusy }
+            } catch ModelLeaseError.busy {
+                throw NotesFailure.modelBusy
             }
         }
     }
 
     private func handle() async throws -> LLMHandle {
         if let existing = current.withLock({ $0 }) { return existing }
-        var waited = Duration.zero
         while true {
             try Task.checkCancellation()
             do {
@@ -521,10 +536,10 @@ final class NotesLease: Sendable {
                 current.withLock { $0 = handle }
                 return handle
             } catch let error as ModelLeaseError where error == .busy {
-                if waited >= configuration.busyLimit { throw NotesFailure.modelBusy }
+                if waited.withLock({ $0 }) >= configuration.busyLimit { throw NotesFailure.modelBusy }
                 onEvent(.waitingForModel)
                 try await sleep(configuration.busyPoll)
-                waited += configuration.busyPoll
+                waited.withLock { $0 += configuration.busyPoll }
             } catch is CancellationError {
                 throw CancellationError()
             } catch {

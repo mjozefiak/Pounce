@@ -223,6 +223,8 @@ final class LeaseLLM: LLMRuntime, @unchecked Sendable {
         var log: [String] = []
         var attempts: [String: Int] = [:]
         var loadFails = false
+        var loadGate: Latch?
+        var loadsStarted = 0
     }
 
     let state = Mutex(State())
@@ -239,7 +241,20 @@ final class LeaseLLM: LLMRuntime, @unchecked Sendable {
     var unloads: Int { state.withLock { $0.unloads } }
     var log: [String] { state.withLock { $0.log } }
 
+    func gateLoad() -> Latch {
+        let latch = Latch()
+        state.withLock { $0.loadGate = latch }
+        return latch
+    }
+
+    var loadsStarted: Int { state.withLock { $0.loadsStarted } }
+
     func load(modelAt url: URL) async throws {
+        let gate = state.withLock { state -> Latch? in
+            state.loadsStarted += 1
+            return state.loadGate
+        }
+        await gate?.wait()
         if state.withLock({ $0.loadFails }) { throw LeaseEngine.LoadFailure() }
         state.withLock {
             $0.loaded = true
@@ -280,4 +295,13 @@ final class LeaseLLM: LLMRuntime, @unchecked Sendable {
         state.withLock { $0.log.append("done \(label)") }
         return GenerationResult(text: "\(label)#\(attempt)", stoppedByTokenLimit: false)
     }
+}
+
+/// A clock the test moves by hand.
+final class FakeClock: Sendable {
+    private let base = ContinuousClock.now
+    private let offset = Mutex(Duration.zero)
+
+    func now() -> ContinuousClock.Instant { base + offset.withLock { $0 } }
+    func advance(_ duration: Duration) { offset.withLock { $0 += duration } }
 }

@@ -12,6 +12,15 @@ import Synchronization
 /// interactive key (one copy in memory at any time) and the background handle reports `ModelLeaseError.yielded`,
 /// so its owner takes a new lease after the interactive one is released and repeats the interrupted request.
 /// A different model file is never taken away: that is still `busy`.
+///
+/// The other way round, `background` does not take the model back at once: for `backgroundGrace` (15 s) after
+/// the last `interactive` lease on a model file was released, a `background` request for the same file under
+/// another key is refused with `busy`, so the notes wait for dictation's keep-warm window to pass instead of
+/// evicting dictation's model in the gaps between two dictations (they poll again, see `NotesLease`).
+///
+/// Every handle must be released: a leaked handle keeps its lease active for ever (there is no finalizer), the
+/// keep-warm timer never starts and an `interactive` request for another key waits for nothing (it gets
+/// `busy` when the leak is `interactive`, or takes the lease away when it is `background`).
 public final class LLMLease: Sendable {
     public static let shared = LLMLease()
 
@@ -28,15 +37,25 @@ public final class LLMLease: Sendable {
     private let residency: Residency<Key, Held<any LLMRuntime>>
     private let turnstile = Turnstile()
     private let registry = Mutex(Registry())
+    private let backgroundGrace: Duration
+    private let now: @Sendable () -> ContinuousClock.Instant
 
     private struct Registry {
         /// Background leases that exist (pending, held), so an interactive request can ask them to yield.
         var background: [ObjectIdentifier: LeaseTicket] = [:]
         /// Model files an interactive request is taking over right now: no background request takes one back.
         var takingOver: [String: Int] = [:]
+        /// The last `interactive` lease released per model file: its key and when.
+        var interactiveIdle: [String: (key: Key, since: ContinuousClock.Instant)] = [:]
     }
 
-    public init(sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }) {
+    public init(
+        sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) },
+        backgroundGrace: Duration = .seconds(15),
+        now: @escaping @Sendable () -> ContinuousClock.Instant = { .now }
+    ) {
+        self.backgroundGrace = backgroundGrace
+        self.now = now
         residency = Residency(
             ops: .init(
                 isLoaded: { await $0.base.isLoaded },
@@ -55,6 +74,7 @@ public final class LLMLease: Sendable {
     ) async throws -> LLMHandle {
         let ticket = LeaseTicket(key: key, priority: priority, keepWarm: keepWarm)
         if priority == .background {
+            if await withinGrace(of: key) { throw ModelLeaseError.busy }
             let refused = registry.withLock { registry -> Bool in
                 if registry.takingOver[key.modelID, default: 0] > 0 { return true }
                 registry.background[ObjectIdentifier(ticket)] = ticket
@@ -66,7 +86,7 @@ public final class LLMLease: Sendable {
         let load: @Sendable (Held<any LLMRuntime>) async throws -> Void = { try await $0.base.load(modelAt: modelURL) }
         let shared: Held<any LLMRuntime>
         do {
-            shared = try await take(key: key, held: held, priority: priority, load: load)
+            shared = try await take(ticket: ticket, held: held, load: load)
         } catch {
             await forget(ticket)
             throw error
@@ -77,13 +97,21 @@ public final class LLMLease: Sendable {
         return handle
     }
 
+    /// Whether a `background` request for `key` falls into the grace period of an idle `interactive` resident.
+    private func withinGrace(of key: Key) async -> Bool {
+        let idle = registry.withLock { $0.interactiveIdle[key.modelID] }
+        guard let idle, idle.key != key, now() - idle.since < backgroundGrace else { return false }
+        return await residency.residentKey == idle.key
+    }
+
     private func take(
-        key: Key, held: Held<any LLMRuntime>, priority: LeasePriority,
+        ticket: LeaseTicket, held: Held<any LLMRuntime>,
         load: @escaping @Sendable (Held<any LLMRuntime>) async throws -> Void
     ) async throws -> Held<any LLMRuntime> {
+        let key = ticket.key
         do {
             return try await residency.acquire(key: key, model: held, load: load)
-        } catch ModelLeaseError.busy where priority == .interactive {
+        } catch ModelLeaseError.busy where ticket.priority == .interactive {
             guard !yieldingVictims(of: key).isEmpty else { throw ModelLeaseError.busy }
         }
         registry.withLock { $0.takingOver[key.modelID, default: 0] += 1 }
@@ -95,9 +123,16 @@ public final class LLMLease: Sendable {
         }
         while true {
             let victims = yieldingVictims(of: key)
-            for victim in victims { await yield(victim) }
+            for victim in victims { try await yield(victim) }
+            // Cancelled while the victims gave the model back: no handle, and nothing is left held.
+            try Task.checkCancellation()
             do {
-                return try await residency.acquire(key: key, model: held, load: load)
+                let shared = try await residency.acquire(key: key, model: held, load: load)
+                if Task.isCancelled {
+                    await residency.release(key: key, keepWarm: ticket.keepWarm())
+                    throw CancellationError()
+                }
+                return shared
             } catch ModelLeaseError.busy {
                 if victims.isEmpty { throw ModelLeaseError.busy }
             }
@@ -113,9 +148,9 @@ public final class LLMLease: Sendable {
 
     /// Asks the ticket's holder to stop: its generation is cancelled, its lease is given back, and this returns
     /// when that is done (a lease that is still loading is given back as soon as the load ends).
-    private func yield(_ ticket: LeaseTicket) async {
+    private func yield(_ ticket: LeaseTicket) async throws {
         if ticket.requestYield() { await giveBack(ticket) }
-        await ticket.whenFinished()
+        try await ticket.whenFinished()
     }
 
     private func forget(_ ticket: LeaseTicket) async {
@@ -144,12 +179,21 @@ public final class LLMLease: Sendable {
     /// Generations waiting for their turn.
     var queued: Int { turnstile.waiting }
 
-    /// Gives the ticket's lease back once (a release after a yield does nothing more).
+    /// Interactive takeovers in progress (for the tests).
+    var takeovers: Int { registry.withLock { $0.takingOver.values.reduce(0, +) } }
+
+    /// Gives the ticket's lease back once (a release after a yield does nothing more). Whoever gives it back
+    /// also reports it finished, after the residency has it: a second caller (a release racing with a yield)
+    /// returns at once and waits for nothing, so a waiter never sees the lease still held.
     fileprivate func giveBack(_ ticket: LeaseTicket) async {
-        if ticket.takeLease() {
-            await residency.release(key: ticket.key, keepWarm: ticket.keepWarm())
+        guard ticket.takeLease() else { return }
+        await residency.release(key: ticket.key, keepWarm: ticket.keepWarm())
+        registry.withLock { registry in
+            registry.background.removeValue(forKey: ObjectIdentifier(ticket))
+            if ticket.priority == .interactive {
+                registry.interactiveIdle[ticket.key.modelID] = (ticket.key, now())
+            }
         }
-        registry.withLock { _ = $0.background.removeValue(forKey: ObjectIdentifier(ticket)) }
         ticket.finish()
     }
 
@@ -164,8 +208,8 @@ public final class LLMLease: Sendable {
         while true {
             if ticket.yieldRequested { throw ModelLeaseError.yielded }
             let preemption = Preemption()
-            ticket.setPreemption(preemption)
-            defer { ticket.setPreemption(nil) }
+            let token = ticket.addPreemption(preemption)
+            defer { ticket.removePreemption(token) }
             onPhase?(.queued)
             try await turnstile.enter(priority, preempt: { preemption.fire() })
             if ticket.yieldRequested {
@@ -288,9 +332,10 @@ final class LeaseTicket: Sendable {
     private struct State {
         var lease = Lease.pending
         var yieldRequested = false
-        var preemption: Preemption?
+        var preemptions: [Int: Preemption] = [:]
+        var nextToken = 0
         var finished = false
-        var waiters: [CheckedContinuation<Void, Never>] = []
+        var waiters: [Int: CheckedContinuation<Void, any Error>] = [:]
     }
 
     private let state = Mutex(State())
@@ -303,12 +348,20 @@ final class LeaseTicket: Sendable {
 
     var yieldRequested: Bool { state.withLock { $0.yieldRequested } }
 
-    func setPreemption(_ preemption: Preemption?) {
-        let fire = state.withLock { state -> Bool in
-            state.preemption = preemption
-            return preemption != nil && state.yieldRequested
+    /// Registers a request's preemption (a handle may have several requests, one running, the others queued);
+    /// fires it at once when the holder was asked to yield already.
+    func addPreemption(_ preemption: Preemption) -> Int {
+        let (token, fire) = state.withLock { state -> (Int, Bool) in
+            state.nextToken += 1
+            state.preemptions[state.nextToken] = preemption
+            return (state.nextToken, state.yieldRequested)
         }
-        if fire { preemption?.fire() }
+        if fire { preemption.fire() }
+        return token
+    }
+
+    func removePreemption(_ token: Int) {
+        state.withLock { _ = $0.preemptions.removeValue(forKey: token) }
     }
 
     /// The lease is loaded and held. True when a yield was requested meanwhile (the caller gives it back).
@@ -321,11 +374,11 @@ final class LeaseTicket: Sendable {
 
     /// Asks the holder to stop; true when the lease is held and the caller must give it back.
     func requestYield() -> Bool {
-        let (preemption, held) = state.withLock { state -> (Preemption?, Bool) in
+        let (preemptions, held) = state.withLock { state -> ([Preemption], Bool) in
             state.yieldRequested = true
-            return (state.preemption, state.lease == .held)
+            return (Array(state.preemptions.values), state.lease == .held)
         }
-        preemption?.fire()
+        for preemption in preemptions { preemption.fire() }
         return held
     }
 
@@ -345,22 +398,34 @@ final class LeaseTicket: Sendable {
     }
 
     func finish() {
-        let waiters = state.withLock { state -> [CheckedContinuation<Void, Never>] in
+        let waiters = state.withLock { state -> [CheckedContinuation<Void, any Error>] in
             state.finished = true
-            defer { state.waiters = [] }
-            return state.waiters
+            defer { state.waiters = [:] }
+            return Array(state.waiters.values)
         }
         for waiter in waiters { waiter.resume() }
     }
 
-    func whenFinished() async {
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            let resume = state.withLock { state -> Bool in
-                if state.finished { return true }
-                state.waiters.append(continuation)
-                return false
+    /// Returns when the ticket is finished; throws `CancellationError` when the caller is cancelled first.
+    func whenFinished() async throws {
+        let id = state.withLock { state -> Int in
+            state.nextToken += 1
+            return state.nextToken
+        }
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+                let outcome = state.withLock { state -> Int in
+                    if state.finished { return 1 }
+                    if Task.isCancelled { return 2 }
+                    state.waiters[id] = continuation
+                    return 0
+                }
+                if outcome == 1 { continuation.resume() }
+                if outcome == 2 { continuation.resume(throwing: CancellationError()) }
             }
-            if resume { continuation.resume() }
+        } onCancel: {
+            let waiter = state.withLock { $0.waiters.removeValue(forKey: id) }
+            waiter?.resume(throwing: CancellationError())
         }
     }
 }
