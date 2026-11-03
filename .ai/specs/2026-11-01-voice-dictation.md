@@ -502,4 +502,4 @@ Cel: formatowanie działa bez Ollamy; model instaluje się w Ustawieniach tak sa
   - W sekcji Formatowanie wybór „Wbudowany (Pounce)” obok serwerów; lista modeli z rozmiarem, „Pobierz”, pasek postępu, usunięcie, informacja o pamięci; „Wypróbuj”.
   - Klucze `plugins.dictation.llm.*` w `BACKWARD_COMPATIBILITY.md` §3, nowa zależność w `AGENTS.md`, budżety w `docs/perf.md`, strona WWW (en + pl): model pobierany z huggingface.co tylko na kliknięcie.
   - Test: modele widoków; QA ręczne ze zrzutami.
-- **4.5 Test regresji promptu na wbudowanym silniku.** Zestaw z kroku 2.5 uruchamiany przeciw `LlamaRuntime` (opt-in), wynik w PR i w ADR 0005 (7/9 na Qwen3-4B; dwa błędy to polskie samopoprawki).
+- **4.5 Test regresji promptu na wbudowanym silniku.** Zestaw z kroku 2.5 uruchamiany przeciw `LlamaRuntime` (opt-in), wynik w PR i w ADR 0005 (Qwen3-4B 7/9, 30B 7/9, Bielik 4/9; samopoprawki to problem promptu, nie rozmiaru).
