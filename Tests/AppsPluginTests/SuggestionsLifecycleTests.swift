@@ -162,8 +162,14 @@ import os
         #expect(harness.plugin.seedTask == nil)
         #expect(reader.paths.withLock { $0 }.isEmpty)
 
-        await harness.plugin.waitForRefresh()
-        await harness.plugin.waitForSeed()
+        // Spotlight is on, so its first answer may replace the scan that is running: wait until a scan that
+        // was not replaced has seeded.
+        for _ in 0..<500 {
+            await harness.plugin.waitForRefresh()
+            await harness.plugin.waitForSeed()
+            if !reader.paths.withLock({ $0 }).isEmpty { break }
+            try await Task.sleep(for: .milliseconds(10))
+        }
         #expect(reader.paths.withLock { Set($0) } == ["Mail.app", "Notes.app"])
         let seededAt = harness.plugin.activity.snapshot.seededAt
         #expect(seededAt != nil && seededAt != ActivityStore.seedSkipped)
