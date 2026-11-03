@@ -844,7 +844,10 @@ actor MeetingSession {
         let unresolved = deferredCount + failedSegments + writeFailures
         if unresolved == 0 {
             await beforeReady?(id, meetingUUID)
-            if markReady(id, endedAt: endedAt, durationMs: durationMs) {
+            if Task.isCancelled {
+                // The hook was cut short (e.g. diarization on quit): the audio stays for a later run.
+                outcome.result = settleUnfinished(id, endedAt: endedAt, durationMs: durationMs, recoverable: true)
+            } else if markReady(id, endedAt: endedAt, durationMs: durationMs) {
                 setState(.ready)
             } else {
                 // The meeting could not be marked ready, so the audio stays: it is not finished.

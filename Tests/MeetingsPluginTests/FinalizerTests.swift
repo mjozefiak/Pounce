@@ -154,14 +154,124 @@ private func span(_ cluster: String, _ start: Int, _ end: Int) -> DiarizedSpan {
 
     @Test func aFailingDiarizerFallsBackToChannelsAndKeepsTheTranscript() async throws {
         let rig = try Rig()
-        let diarizer = ScriptedDiarizer([.success([span("S1", 0, 4_000)]), .failure(DiarizationError.failed)])
+        // The microphone track succeeds, the system track fails twice (one retry): the mic result is dropped.
+        let diarizer = ScriptedDiarizer([
+            .success([span("S1", 0, 4_000)]), .failure(DiarizationError.failed), .failure(DiarizationError.failed),
+        ])
         let outcome = await rig.finalizer(diarizer: diarizer).run(meetingID: rig.meetingID, uuid: rig.uuid)
         #expect(outcome == .fallback(.failed))
+        #expect(diarizer.calls == 3)
         #expect(try rig.store.speakerMode(of: rig.meetingID) == .channels)
         #expect(try rig.store.diarizationModelID(of: rig.meetingID) == nil)
         #expect(try rig.store.speakers(meetingID: rig.meetingID).map(\.label) == ["Ja", "Inni"])
         #expect(try rig.store.segmentCount(meetingID: rig.meetingID) == 2)
         #expect(diarizer.releases == 1)
+    }
+
+    @Test func aTransientFailureIsRetriedOnceAndThenSucceeds() async throws {
+        let rig = try Rig()
+        let diarizer = ScriptedDiarizer([
+            .failure(DiarizationError.failed), .success([span("S1", 0, 4_000)]), .success([span("S1", 5_000, 9_000)]),
+        ])
+        let outcome = await rig.finalizer(diarizer: diarizer).run(meetingID: rig.meetingID, uuid: rig.uuid)
+        #expect(outcome == .diarized(speakers: 2))
+        #expect(diarizer.calls == 3)
+        #expect(try rig.store.speakerMode(of: rig.meetingID) == .diarized)
+    }
+
+    @Test func aTrackOverTheBudgetIsNotRetried() async throws {
+        let rig = try Rig()
+        let diarizer = ScriptedDiarizer([])
+        let budget = DiarizationBudget(maximumSamplesPerTrack: 5 * SpoolFormat.sampleRate)
+        _ = await rig.finalizer(diarizer: diarizer, budget: budget).run(meetingID: rig.meetingID, uuid: rig.uuid)
+        #expect(diarizer.maximums.count == 1)
+    }
+
+    @Test func aMicrophoneOnlyMeetingThatFallsBackGetsOneNeutralLabelInChannelsMode() async throws {
+        let rig = try Rig(mic: [(0, 3_000), (4_000, 8_000)], system: [])
+        let diarizer = ScriptedDiarizer([.failure(DiarizationError.failed), .failure(DiarizationError.failed)])
+        let outcome = await rig.finalizer(diarizer: diarizer).run(meetingID: rig.meetingID, uuid: rig.uuid)
+        #expect(outcome == .fallback(.failed))
+        #expect(try rig.store.speakerMode(of: rig.meetingID) == .channels)
+        let speakers = try rig.store.speakers(meetingID: rig.meetingID)
+        #expect(speakers.map(\.label) == ["Mówca 1"])
+        #expect(speakers.map(\.isSelf) == [false])
+    }
+
+    @Test func cancellationLeavesTheMeetingAndTheSpoolAlone() async throws {
+        let rig = try Rig()
+        let diarizer = ScriptedDiarizer([.failure(CancellationError())])
+        let log = OutcomeLog()
+        let outcome = await rig.finalizer(diarizer: diarizer, outcomes: log).run(
+            meetingID: rig.meetingID, uuid: rig.uuid)
+        #expect(outcome == .cancelled)
+        #expect(log.outcomes == [.cancelled])
+        // Nothing was written: no fallback labels, no mode, the spool is still there, the diarizer was released.
+        #expect(try rig.store.speakerMode(of: rig.meetingID) == SpeakerMode.none)
+        #expect(try rig.store.speakers(meetingID: rig.meetingID).isEmpty)
+        #expect(FileManager.default.fileExists(atPath: rig.spool.directory(for: rig.uuid).path))
+        #expect(diarizer.calls == 1)  // the system track was not started
+        #expect(diarizer.releases == 1)
+    }
+
+    @Test func aCancelledTaskIsNotTurnedIntoAFallback() async throws {
+        let rig = try Rig()
+        let diarizer = ScriptedDiarizer([.success([span("S1", 0, 4_000)]), .success([span("S1", 5_000, 9_000)])])
+        let finalizer = rig.finalizer(diarizer: diarizer)
+        let task = Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            return await finalizer.run(meetingID: rig.meetingID, uuid: rig.uuid)
+        }
+        let outcome = await task.value
+        #expect(outcome == .cancelled)
+        #expect(try rig.store.speakerMode(of: rig.meetingID) == SpeakerMode.none)
+        #expect(try rig.store.speakers(meetingID: rig.meetingID).isEmpty)
+        #expect(FileManager.default.fileExists(atPath: rig.spool.directory(for: rig.uuid).path))
+    }
+
+    @Test func markSelfIsRefusedInChannelsMode() async throws {
+        let rig = try Rig()
+        let diarizer = ScriptedDiarizer([.failure(DiarizationError.failed), .failure(DiarizationError.failed)])
+        _ = await rig.finalizer(diarizer: diarizer).run(meetingID: rig.meetingID, uuid: rig.uuid)
+        #expect(try rig.store.speakerMode(of: rig.meetingID) == .channels)
+        let before = try rig.store.speakers(meetingID: rig.meetingID)
+        #expect(before.map(\.label) == ["Ja", "Inni"])
+        #expect(try !rig.store.markSelf(speakerID: before[1].id))
+        #expect(try rig.store.speakers(meetingID: rig.meetingID) == before)
+        // Renaming still works.
+        try rig.store.renameSpeaker(before[1].id, label: "Zespół")
+        #expect(try rig.store.speakers(meetingID: rig.meetingID).map(\.label) == ["Ja", "Zespół"])
+    }
+
+    @Test func aFailedSpeakerPlanRollsBackToTheEarlierOne() async throws {
+        let rig = try Rig()
+        let diarizer = ScriptedDiarizer([.success([span("S1", 0, 4_000)]), .success([span("S1", 5_000, 9_000)])])
+        _ = await rig.finalizer(diarizer: diarizer).run(meetingID: rig.meetingID, uuid: rig.uuid)
+        let before = try rig.store.speakers(meetingID: rig.meetingID)
+        // The last statement of the transaction fails; everything before it must be undone.
+        try rig.store.write { db in
+            try db.execute(
+                sql: """
+                    CREATE TRIGGER fail_mode BEFORE UPDATE OF speaker_mode ON meeting
+                    BEGIN SELECT RAISE(ABORT, 'no'); END
+                    """)
+        }
+        #expect(throws: (any Error).self) {
+            try rig.store.applySpeakerPlan(
+                SpeakerAssigner.channels(
+                    segments: [
+                        SegmentRef(id: 1, channel: .mic, startMs: 0, endMs: 1),
+                        SegmentRef(id: 2, channel: .system, startMs: 0, endMs: 1),
+                    ]),
+                meetingID: rig.meetingID, diarizationModelID: nil)
+        }
+        #expect(try rig.store.speakers(meetingID: rig.meetingID) == before)
+        #expect(try rig.store.speakerMode(of: rig.meetingID) == .diarized)
+        #expect(try rig.store.diarizationModelID(of: rig.meetingID) == "diarization-test")
+        let linked = try rig.store.read { db in
+            try Int.fetchOne(db, sql: "SELECT count(*) FROM meeting_segment WHERE speaker_id IS NOT NULL") ?? 0
+        }
+        #expect(linked == 2)
     }
 
     @Test func aTrackOverTheBudgetSkipsDiarizationAndFallsBackToChannels() async throws {

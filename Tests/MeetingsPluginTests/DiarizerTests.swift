@@ -76,9 +76,20 @@ final class CountingSource: AudioSampleSource {
         #expect(try DiarizationAudioBuffer.read(from: quiet, maximumSamples: 2).samples == [-32_768, -32_768])
     }
 
-    @Test func theDefaultBudgetCoversTheLongestMeetingPlusTenMinutes() {
-        #expect(DiarizationBudget().maximumSamplesPerTrack == (3 * 3_600 + 600) * 16_000)
+    @Test func theDefaultBudgetIsTheUnmeasuredNinetyMinuteCap() {
+        #expect(DiarizationBudget.unmeasuredMaximumDuration == .seconds(90 * 60))
+        #expect(DiarizationBudget().maximumSamplesPerTrack == 90 * 60 * 16_000)
         #expect(DiarizationBudget(maximumSamplesPerTrack: -5).maximumSamplesPerTrack == 0)
+    }
+
+    @Test func aCancelledTaskStopsTheReadBetweenChunks() async {
+        let source = CountingSource(chunks: 1_000, chunkSamples: 100)
+        let task = Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            return try await DiarizationAudioBuffer.readOffTheCaller(from: source, maximumSamples: 1_000_000)
+        }
+        await #expect(throws: CancellationError.self) { _ = try await task.value }
+        #expect(source.chunksRead <= 1)
     }
 
     // MARK: Models load from the folder only
@@ -134,7 +145,10 @@ final class CountingSource: AudioSampleSource {
     }
 
     /// The download paths of FluidAudio (`OfflineDiarizerModels.load`, `prepareModels`, `ModelHub`, `DownloadUtils`)
-    /// would fetch and delete files by themselves; no source file of the plugin may name them.
+    /// would fetch and delete files by themselves; no source file of the plugin may name them. Comments and
+    /// string literals are stripped first, so a guard comment that names a forbidden call does not count and a
+    /// call that merely follows a comment on the same line does. (A source scan is a tripwire, not a proof: the
+    /// `NetworkTripwire` test above is the behavioural guarantee.)
     @Test func noPluginSourceUsesAFluidAudioDownloadPath() throws {
         let root = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
             .deletingLastPathComponent().appending(path: "Sources/MeetingsPlugin", directoryHint: .isDirectory)
@@ -146,22 +160,59 @@ final class CountingSource: AudioSampleSource {
             "URLSession",
         ]
         for file in files {
-            // The guard comments in FluidDiarizer.swift name the forbidden calls; only code lines count.
-            let code = try String(contentsOf: file, encoding: .utf8).split(separator: "\n")
-                .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
-                .joined(separator: "\n")
+            let code = Self.strippingCommentsAndStrings(try String(contentsOf: file, encoding: .utf8))
             for word in forbidden {
                 #expect(!code.contains(word), "\(file.lastPathComponent) uses \(word)")
             }
         }
+        #expect(Self.strippingCommentsAndStrings("a // URLSession\nb \"URLSession\" /* x */ c") == "a \nb \"\"  c")
+        #expect(Self.strippingCommentsAndStrings("URLSession.shared // tail").contains("URLSession"))
+    }
+
+    static func strippingCommentsAndStrings(_ source: String) -> String {
+        var out = ""
+        let chars = Array(source)
+        var index = 0
+        func hasPrefix(_ text: String, at i: Int) -> Bool {
+            let t = Array(text)
+            return i + t.count <= chars.count && Array(chars[i..<(i + t.count)]) == t
+        }
+        while index < chars.count {
+            if hasPrefix("//", at: index) {
+                while index < chars.count, chars[index] != "\n" { index += 1 }
+            } else if hasPrefix("/*", at: index) {
+                index += 2
+                while index < chars.count, !hasPrefix("*/", at: index) { index += 1 }
+                index += 2
+            } else if hasPrefix("\"\"\"", at: index) {
+                index += 3
+                while index < chars.count, !hasPrefix("\"\"\"", at: index) { index += 1 }
+                index += 3
+                out += "\"\""
+            } else if chars[index] == "\"" {
+                index += 1
+                while index < chars.count, chars[index] != "\"", chars[index] != "\n" {
+                    index += chars[index] == "\\" ? 2 : 1
+                }
+                index += 1
+                out += "\"\""
+            } else {
+                out.append(chars[index])
+                index += 1
+            }
+        }
+        return out
     }
 
     // MARK: Release
 
-    @Test func releaseDropsTheLoadedManager() async throws {
+    @Test func aCancelledDiarizeThrowsCancellationAndLoadsNothing() async {
         let diarizer = FluidDiarizer(modelFolder: URL(filePath: "/nonexistent"))
-        #expect(await !diarizer.isLoaded)
-        await diarizer.release()
+        let task = Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            return try await diarizer.diarize(CountingSource(chunks: 3, chunkSamples: 1_000), maximumSamples: 100_000)
+        }
+        await #expect(throws: CancellationError.self) { _ = try await task.value }
         #expect(await !diarizer.isLoaded)
     }
 }

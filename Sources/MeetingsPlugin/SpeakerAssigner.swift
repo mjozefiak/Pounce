@@ -62,7 +62,7 @@ enum SpeakerAssigner {
             let (a, b) = (stats[lhs]?.first ?? 0, stats[rhs]?.first ?? 0)
             if a != b { return a < b }
             if lhs.channel != rhs.channel { return lhs.channel == .mic }
-            return lhs.id < rhs.id
+            return precedes(lhs.id, rhs.id)
         }
 
         let systemHasSpeech =
@@ -94,18 +94,34 @@ enum SpeakerAssigner {
         return plan
     }
 
-    /// The fallback: "Ja" for the microphone and "Inni" for the system track, only when both tracks have
-    /// speech. Without system speech the microphone track is the whole room, so a track label would only
-    /// mislead and the mode is `none`.
+    /// The fallback (diarization failed, was skipped or was over budget): the mode is always `channels`, so the
+    /// meeting window shows its banner, and the labels follow the tracks.
+    /// - Both tracks have speech: the microphone is "Ja" and the system track "Inni".
+    /// - Only the microphone has speech: it may be the whole room (a meeting held live), so no claim of self is
+    ///   made and the track gets one neutral "Mówca 1".
+    /// - Only the system track has speech: "Inni" (it is by definition what the others said).
+    /// `none` is reserved for the setting `diarization` being off (`none()`). Spec discrepancy resolved in
+    /// ADR 0007: the spec says `channels` for every fallback.
     static func channels(segments: [SegmentRef]) -> SpeakerPlan {
-        guard segments.contains(where: { $0.channel == .system }), segments.contains(where: { $0.channel == .mic })
-        else { return none() }
+        let hasMic = segments.contains { $0.channel == .mic }
+        let hasSystem = segments.contains { $0.channel == .system }
         var plan = SpeakerPlan(mode: .channels)
-        plan.speakers = [
-            .init(label: SpeakerLabels.me, isSelf: true, channel: .mic),
-            .init(label: SpeakerLabels.others, isSelf: false, channel: .system),
-        ]
-        for segment in segments { plan.assignments[segment.id] = segment.channel == .mic ? 0 : 1 }
+        switch (hasMic, hasSystem) {
+        case (true, true):
+            plan.speakers = [
+                .init(label: SpeakerLabels.me, isSelf: true, channel: .mic),
+                .init(label: SpeakerLabels.others, isSelf: false, channel: .system),
+            ]
+            for segment in segments { plan.assignments[segment.id] = segment.channel == .mic ? 0 : 1 }
+        case (true, false):
+            plan.speakers = [.init(label: SpeakerLabels.numbered(1), isSelf: false, channel: .mic)]
+            for segment in segments { plan.assignments[segment.id] = 0 }
+        case (false, true):
+            plan.speakers = [.init(label: SpeakerLabels.others, isSelf: false, channel: .system)]
+            for segment in segments { plan.assignments[segment.id] = 0 }
+        case (false, false):
+            break
+        }
         return plan
     }
 
@@ -132,7 +148,7 @@ enum SpeakerAssigner {
         if let best = overlap.min(by: { lhs, rhs in
             if lhs.value.total != rhs.value.total { return lhs.value.total > rhs.value.total }
             if lhs.value.first != rhs.value.first { return lhs.value.first < rhs.value.first }
-            return lhs.key < rhs.key
+            return precedes(lhs.key, rhs.key)
         }) {
             return Cluster(channel: segment.channel, id: best.key)
         }
@@ -141,9 +157,14 @@ enum SpeakerAssigner {
             let (a, b) = (gap(segment, lhs), gap(segment, rhs))
             if a != b { return a < b }
             if lhs.startMs != rhs.startMs { return lhs.startMs < rhs.startMs }
-            return lhs.cluster < rhs.cluster
+            return precedes(lhs.cluster, rhs.cluster)
         }
         return nearest.map { Cluster(channel: segment.channel, id: $0.cluster) }
+    }
+
+    /// Cluster ids compare numerically where they hold numbers, so "S2" comes before "S10".
+    private static func precedes(_ lhs: String, _ rhs: String) -> Bool {
+        lhs.compare(rhs, options: .numeric) == .orderedAscending
     }
 
     private static func gap(_ segment: SegmentRef, _ span: DiarizedSpan) -> Int {

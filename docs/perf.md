@@ -216,3 +216,15 @@ times each against a cached listing; run it with
   that hangs (an unreachable network volume) makes later path queries time out until it returns;
   requests cancelled while waiting are skipped. Volumes mounted outside `/Volumes` are not treated as
   protected.
+
+## Meeting diarization (spec: Notatki ze spotkań, step 1.6)
+
+| Budget | Target | Measured | Status |
+|---|---|---|---|
+| Peak memory of offline diarization, one track | not set | **not measured** for 1 h, 90 min or 3 h (needs the model files and a real recording; `DiarizationBenchmarks`, `POUNCE_DIARIZATION_MODEL_FOLDER` + `POUNCE_DIARIZATION_BENCH_AUDIO`) | Open |
+
+Until it is measured, `DiarizationBudget.unmeasuredMaximumDuration` caps a track at 90 minutes (the clustering
+memory grows roughly with the square of the duration, not linearly). **3 h diarization is NOT yet measured**:
+a track longer than the cap skips diarization and the meeting gets the channel labels ("Ja" / "Inni", or one
+neutral "Mówca 1" when only the microphone spoke; `speaker_mode = channels`). Tighten or raise the cap after
+the benchmark has run (ADR 0007).

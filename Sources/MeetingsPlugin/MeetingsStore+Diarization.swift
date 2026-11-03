@@ -84,7 +84,9 @@ extension MeetingsStore {
     /// "To ja": makes this speaker the one `is_self` speaker of its meeting. A speaker still named by the
     /// default ("Mówca N") becomes "Ja"; one the user renamed keeps its name. The speaker who was "Ja" before
     /// loses the flag and, if still labelled "Ja", gets the lowest free "Mówca N". Notes that exist become
-    /// `stale`, like after a rename. Returns false when the speaker does not exist.
+    /// `stale`, like after a rename. Returns false when the speaker does not exist **or when the meeting is in
+    /// `channels` mode**: there the speakers are tracks ("Ja" / "Inni", or one neutral "Mówca 1"), not people,
+    /// and moving the flag would break the track-to-label rule the banner promises. Renaming still works.
     @discardableResult
     func markSelf(speakerID: Int64) throws -> Bool {
         try write { db in
@@ -94,6 +96,9 @@ extension MeetingsStore {
             else { return false }
             let meetingID: Int64 = row["meeting_id"]
             let label: String = row["label"]
+            let mode = try String.fetchOne(
+                db, sql: "SELECT speaker_mode FROM meeting WHERE id = ?", arguments: [meetingID])
+            if mode == SpeakerMode.channels.rawValue { return false }
             let labels = try String.fetchAll(
                 db, sql: "SELECT label FROM meeting_speaker WHERE meeting_id = ?", arguments: [meetingID])
             let previous = try Row.fetchAll(

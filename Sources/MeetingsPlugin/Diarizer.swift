@@ -16,17 +16,24 @@ enum DiarizationError: Error, Equatable {
     case failed
 }
 
-/// The memory a diarization run may use. FluidAudio's offline pipeline reads its input at random positions
-/// (windows overlap and embeddings are taken from spans), so a sequential stream cannot feed it; the samples
-/// of **one track at a time** are therefore held in memory as 16-bit integers (2 bytes a sample, half of the
-/// `Float32` an array source would need). See ADR 0007.
+/// The longest track a diarization run accepts, and so what its memory use is bounded by.
 ///
-/// The default allows the longest meeting (3 h) plus ten minutes, about 365 MB of samples. **The value is not
-/// measured**: FluidAudio's own working memory on top of the samples (segmentation batches, embeddings per
-/// window) is unknown for 3 h and is the open item of spike 0.0 (ADR 0007); the benchmark test
-/// (`POUNCE_DIARIZATION_BENCH_AUDIO`) is where it is measured.
+/// FluidAudio's offline pipeline reads its input at random positions (windows overlap and embeddings are taken
+/// from spans), so a sequential stream cannot feed it; the samples of **one track at a time** are held in
+/// memory as 16-bit integers (2 bytes a sample, half of the `Float32` an array source would need). The samples
+/// are the smaller part, though: the clustering (AHC and VBx) works on the embeddings of the whole track,
+/// about one per two seconds per slot, and its distance matrices grow roughly with the square of that number.
+/// The budget is therefore a **duration**, not a sample count.
+///
+/// **UNMEASURED, tighten after the benchmark.** 90 minutes is a conservative guess, not a measurement: the
+/// peak memory of FluidAudio for 1 h and 3 h is the open item of spike 0.0 (ADR 0007, `docs/perf.md`) and is
+/// what `DiarizationBenchmarks` (`POUNCE_DIARIZATION_BENCH_AUDIO`) measures. Until it has run, a track longer
+/// than this falls back to the channel labels instead of risking the process.
 struct DiarizationBudget: Equatable, Sendable {
-    static let defaultMaximumSamples = (3 * 3_600 + 10 * 60) * SpoolFormat.sampleRate
+    /// UNMEASURED, tighten (or raise) after the benchmark. See the type's comment.
+    static let unmeasuredMaximumDuration: Duration = .seconds(90 * 60)
+
+    static let defaultMaximumSamples = Int(unmeasuredMaximumDuration.components.seconds) * SpoolFormat.sampleRate
 
     var maximumSamplesPerTrack: Int
 
@@ -53,19 +60,33 @@ protocol Diarizer: Sendable {
 struct DiarizationAudioBuffer: Sendable {
     let samples: [Int16]
 
-    /// Reads the whole source. Throws `overBudget` as soon as a chunk would take the buffer past `maximumSamples`.
+    /// Reads the whole source. Throws `overBudget` as soon as a chunk would take the buffer past `maximumSamples`
+    /// and `CancellationError` between chunks when the task is cancelled. Blocking: call it through
+    /// `readOffTheCaller` from async code.
     static func read(from source: any AudioSampleSource, maximumSamples: Int) throws -> DiarizationAudioBuffer {
         var samples: [Int16] = []
         while let chunk = try source.nextChunk() {
+            try Task.checkCancellation()
             if samples.count + chunk.count > maximumSamples {
                 throw DiarizationError.overBudget(maximumSamples: maximumSamples)
             }
-            samples.reserveCapacity(samples.count + chunk.count)
+            // Appended without `reserveCapacity` per chunk: that would copy the array on every chunk; the
+            // geometric growth of `append` keeps the copying linear.
             for value in chunk {
                 samples.append(Int16(max(-32_768, min(32_767, (value * 32_768).rounded()))))
             }
         }
+        try Task.checkCancellation()
         return DiarizationAudioBuffer(samples: samples)
+    }
+
+    /// `read` on the global executor, so that the blocking read and decryption of a long spool never occupy
+    /// the caller's actor. Cancellation of the calling task reaches the loop (same task).
+    @concurrent
+    static func readOffTheCaller(from source: any AudioSampleSource, maximumSamples: Int) async throws
+        -> DiarizationAudioBuffer
+    {
+        try read(from: source, maximumSamples: maximumSamples)
     }
 
     var durationMs: Int { samples.count * 1_000 / SpoolFormat.sampleRate }

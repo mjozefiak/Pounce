@@ -6,12 +6,15 @@ import PounceSpeech
 enum DiarizationOutcome: Equatable, Sendable {
     /// Speakers were recognised (`speaker_mode = diarized`).
     case diarized(speakers: Int)
-    /// The recognition did not run or did not finish; the transcript got "Ja / Inni" by track
-    /// (`speaker_mode = channels`; the meeting window shows the banner for that mode) or, when only one side
-    /// spoke, no labels. `reason` says why.
+    /// The recognition did not run or did not finish; the transcript got "Ja / Inni" by track, or the one
+    /// neutral "Mówca 1" when only the microphone spoke (`speaker_mode = channels` either way; the meeting
+    /// window shows the banner for that mode). `reason` says why.
     case fallback(Reason)
     /// Diarization is off in Settings (`speaker_mode = none`).
     case disabled
+    /// The task was cancelled (the app is quitting). Nothing was written; the meeting stays `processing` and
+    /// its spool is kept so that a later run can finish the job.
+    case cancelled
     /// Nothing to label (no segments).
     case nothingToLabel
 
@@ -27,7 +30,9 @@ enum DiarizationOutcome: Equatable, Sendable {
 /// `MeetingSession`): diarize each track from its spool, assign speakers, write them. Whatever happens, the
 /// transcript stays: a failure, a missing model or a track over the memory budget end in a fallback plan, never
 /// in an error that would stop the meeting from becoming `ready`. The session deletes the spool afterwards, so
-/// the spool goes only after a success or a deliberate fallback.
+/// the spool goes only after a success or a deliberate fallback. A cancelled task is neither: it returns
+/// `.cancelled`, writes nothing, and the session leaves the meeting `processing`/`incomplete` with its spool.
+/// A track that fails with `failed` is retried once (a transient Core ML error) before the fallback.
 struct MeetingFinalizer: Sendable {
     let store: MeetingsStore
     let keys: MeetingKeys
@@ -93,9 +98,12 @@ struct MeetingFinalizer: Sendable {
         let diarizer = makeDiarizer(folder)
         var spans: [AudioChannel: [DiarizedSpan]] = [:]
         var failure: DiarizationOutcome.Reason?
+        var cancelled = false
         for channel in [AudioChannel.mic, .system] where segments.contains(where: { $0.channel == channel }) {
             do {
-                spans[channel] = try await diarize(channel, uuid: uuid, with: diarizer)
+                spans[channel] = try await diarizeWithRetry(channel, uuid: uuid, with: diarizer)
+            } catch is CancellationError {
+                cancelled = true
             } catch let error as DiarizationError {
                 logger.error("Diarization of the \(channel.rawValue, privacy: .public) track failed")
                 failure = error == .modelsUnavailable ? .modelMissing : error.isOverBudget ? .overBudget : .failed
@@ -106,12 +114,15 @@ struct MeetingFinalizer: Sendable {
                 logger.error("Diarization of the \(channel.rawValue, privacy: .public) track failed")
                 failure = .failed
             }
-            if failure != nil || Task.isCancelled { break }
+            if failure != nil || cancelled || Task.isCancelled { break }
         }
         // Released right after use, on every path: the models are the large part of the memory.
         await diarizer.release()
+        if cancelled || Task.isCancelled {
+            logger.notice("Diarization cancelled; the meeting and its audio are left as they are")
+            return .cancelled
+        }
         if let failure { return fallback(failure, segments: segments, meetingID: meetingID) }
-        if Task.isCancelled { return fallback(.failed, segments: segments, meetingID: meetingID) }
 
         let plan = SpeakerAssigner.diarized(segments: segments, spans: spans)
         guard apply(plan, meetingID: meetingID, modelID: diarizer.modelID) else {
@@ -119,6 +130,19 @@ struct MeetingFinalizer: Sendable {
         }
         logger.notice("Diarization finished: \(plan.speakers.count, privacy: .public) speakers")
         return .diarized(speakers: plan.speakers.count)
+    }
+
+    /// One retry of a `failed` run (a transient Core ML error); every other error is final.
+    private func diarizeWithRetry(_ channel: AudioChannel, uuid: UUID, with diarizer: any Diarizer) async throws
+        -> [DiarizedSpan]
+    {
+        do {
+            return try await diarize(channel, uuid: uuid, with: diarizer)
+        } catch DiarizationError.failed {
+            try Task.checkCancellation()
+            logger.notice("Diarization of the \(channel.rawValue, privacy: .public) track failed; trying once more")
+            return try await diarize(channel, uuid: uuid, with: diarizer)
+        }
     }
 
     private func diarize(_ channel: AudioChannel, uuid: UUID, with diarizer: any Diarizer) async throws

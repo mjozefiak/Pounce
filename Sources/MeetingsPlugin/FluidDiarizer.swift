@@ -15,17 +15,24 @@ actor FluidDiarizer: Diarizer {
     nonisolated let modelID: String
     private let modelFolder: URL
     private var manager: OfflineDiarizerManager?
+    private let makeManager: @Sendable (URL) throws -> OfflineDiarizerManager
 
-    init(modelFolder: URL, modelID: String = "diarization-community-1") {
+    /// - Parameter makeManager: builds the manager from the model folder; tests replace it with a fake.
+    init(
+        modelFolder: URL, modelID: String = "diarization-community-1",
+        makeManager: @escaping @Sendable (URL) throws -> OfflineDiarizerManager = FluidDiarizer.loadManager(from:)
+    ) {
         self.modelFolder = modelFolder
         self.modelID = modelID
+        self.makeManager = makeManager
     }
 
     var isLoaded: Bool { manager != nil }
 
     func diarize(_ source: any AudioSampleSource, maximumSamples: Int) async throws -> [DiarizedSpan] {
-        let buffer = try DiarizationAudioBuffer.read(from: source, maximumSamples: maximumSamples)
+        let buffer = try await DiarizationAudioBuffer.readOffTheCaller(from: source, maximumSamples: maximumSamples)
         guard !buffer.samples.isEmpty else { return [] }
+        try Task.checkCancellation()
         // The manager is a non-Sendable class that only this actor holds and that runs one request at a time
         // (the actor is not re-entered by a second `diarize` before this one returns its result).
         nonisolated(unsafe) let manager = try loadedManager()
@@ -33,9 +40,12 @@ actor FluidDiarizer: Diarizer {
         do {
             result = try await manager.process(
                 audioSource: PCM16SampleSource(samples: buffer.samples), audioLoadingSeconds: 0)
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
             throw DiarizationError.failed
         }
+        try Task.checkCancellation()
         return result.segments.map {
             DiarizedSpan(
                 cluster: $0.speakerId, startMs: Int(($0.startTimeSeconds * 1_000).rounded()),
@@ -47,12 +57,22 @@ actor FluidDiarizer: Diarizer {
         manager = nil
     }
 
+    /// Loads the manager when it is not loaded yet (also what `diarize` does first).
+    func loadIfNeeded() throws {
+        _ = try loadedManager()
+    }
+
     private func loadedManager() throws -> OfflineDiarizerManager {
         if let manager { return manager }
-        let models = try Self.loadModels(from: modelFolder)
+        let created = try makeManager(modelFolder)
+        manager = created
+        return created
+    }
+
+    @Sendable static func loadManager(from folder: URL) throws -> OfflineDiarizerManager {
+        let models = try loadModels(from: folder)
         let created = OfflineDiarizerManager(config: .default)
         created.initialize(models: models)
-        manager = created
         return created
     }
 
@@ -70,6 +90,8 @@ actor FluidDiarizer: Diarizer {
             func open(_ name: String, units: MLComputeUnits) throws -> MLModel {
                 let configuration = MLModelConfiguration()
                 configuration.computeUnits = units
+                // As FluidAudio's ModelHub sets it for every model it loads.
+                configuration.allowLowPrecisionAccumulationOnGPU = true
                 return try MLModel(contentsOf: folder.appending(path: name), configuration: configuration)
             }
             // The same compute units FluidAudio uses: FBank on the CPU, the rest wherever Core ML decides.
