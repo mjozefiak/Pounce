@@ -276,7 +276,7 @@ final class ControllerRig {
     init(
         settings: [String: SettingValue] = [:], access: MicrophoneAccess = .granted,
         keychainError: KeychainError? = nil,
-        shutdownTimeout: Duration = .seconds(5)
+        shutdownTimeout: Duration = .seconds(5), observer: (any MeetingRecordingObserver)? = nil
     ) throws {
         harness = try MeetingsHarness(settings: settings)
         library = harness.library()
@@ -296,7 +296,7 @@ final class ControllerRig {
                 }, hud: hud, clock: clock, openSettings: { [unowned self] in self.settingsOpened += 1 },
                 openURL: { [unowned self] url in self.openedURLs.append(url) },
                 changed: { changes.update { $0 += 1 } }, shutdownTimeout: shutdownTimeout,
-                stateChanged: { ChangeSignal.shared.fire() }))
+                stateChanged: { ChangeSignal.shared.fire() }, recordingObserver: observer))
     }
 
     /// Starts and waits until the recording runs.

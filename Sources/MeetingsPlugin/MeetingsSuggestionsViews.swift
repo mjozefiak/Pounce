@@ -22,6 +22,14 @@ struct MeetingsSuggestionsSection: View {
                 }
                 .foregroundStyle(.orange)
                 .accessibilityElement(children: .combine)
+            } else if model.suggestionStatus == .noData {
+                Label {
+                    Text(Self.noDataMessage).fixedSize(horizontal: false, vertical: true)
+                } icon: {
+                    Image(systemName: "questionmark.circle").accessibilityHidden(true)
+                }
+                .foregroundStyle(.orange)
+                .accessibilityElement(children: .combine)
             }
             if !model.mutedApps.isEmpty {
                 Text("Apps you muted", comment: "Meetings settings: list of apps with suggestions turned off")
@@ -62,11 +70,19 @@ struct MeetingsSuggestionsSection: View {
             Text("Meeting suggestions", comment: "Meetings settings section title")
         } footer: {
             Text(
-                "Pounce only checks which app is using the microphone, never what it hears. It knows Zoom, Teams, Slack, FaceTime, Webex and Discord, and asks before recording; it never starts by itself. A browser counts only if you add it above, because a web page using the microphone can be a false alarm. Only these lists and, for a meeting you start from a suggestion, the app's ID are stored.",
+                "Pounce only checks which app is using the microphone, never what it hears. It knows Zoom, Teams, Slack, FaceTime, Webex and Discord, and asks before recording; it never starts by itself. A browser counts only if you add it above, because a web page using the microphone can be a false alarm. Only these lists and, for a meeting you start from a suggestion, the app's ID are stored. Apps built on Safari's engine (WebKit helpers) may not be detected, and the pill cannot be operated from the keyboard; VoiceOver reads it and can press its buttons.",
                 comment: "Meetings settings footer under the meeting suggestions"
             )
             .font(.callout).foregroundStyle(.secondary)
         }
+    }
+
+    /// Honest and harmless: nothing answered yet, so Pounce cannot tell whether detection works here.
+    static var noDataMessage: String {
+        String(
+            localized:
+                "Pounce cannot confirm that detection works on this Mac: no app has reported microphone use yet.",
+            comment: "Meetings settings: the process audio API listens but no process has answered")
     }
 
     private func add() {
@@ -121,6 +137,8 @@ struct MeetingsSuggestionsSetupPart: View {
                         comment: "Meetings settings: the process audio API is unavailable"
                     )
                     .foregroundStyle(.orange)
+                } else if model.suggestionStatus == .noData {
+                    Text(MeetingsSuggestionsSection.noDataMessage).foregroundStyle(.orange)
                 }
             }
         } icon: {

@@ -229,7 +229,7 @@ private func mode(_ url: URL) throws -> Int {
             "plugins.meetings.notesReduceInputTokens": .integer(3_000),
             "plugins.meetings.suggestMeetings": .bool(true),
             "plugins.meetings.suggestMutedBundleIDs": .stringArray(["a.b"]),
-            "plugins.meetings.suggestExtraBundleIDs": .stringArray(["c.d"]),
+            "plugins.meetings.suggestExtraBundleIDs": .stringArray(["c.d.e"]),
             "plugins.meetings.retentionDays": .integer(0),
             "plugins.meetings.orphanAudioDays": .integer(3),
         ])
@@ -248,7 +248,7 @@ private func mode(_ url: URL) throws -> Int {
         #expect(settings.notesReduceInputTokens == 3_000)
         #expect(settings.suggestMeetings)
         #expect(settings.suggestMutedBundleIDs == ["a.b"])
-        #expect(settings.suggestExtraBundleIDs == ["c.d"])
+        #expect(settings.suggestExtraBundleIDs == ["c.d.e"])
         #expect(settings.retentionDays == 0)
         #expect(settings.orphanAudioDays == 3)
     }

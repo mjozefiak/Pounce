@@ -318,18 +318,34 @@ import Testing
         #expect(claims.get() == 0)
     }
 
-    @Test func theSuggestionSourcesTakeNoKeysAndRegisterNoShortcuts() throws {
-        let forbidden = [
-            "claimEscapeKey", "addGlobalMonitorForEvents", "addLocalMonitorForEvents", "RegisterEventHotKey",
-            "keyboardShortcut", "KeyboardShortcuts", "CGEventTap", "performKeyEquivalent", "keyDown",
-        ]
+    private func sourceFiles() throws -> [(name: String, text: String)] {
         let directory = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
             .deletingLastPathComponent().appending(path: "Sources/MeetingsPlugin", directoryHint: .isDirectory)
-        for name in [
-            "SuggestionHUD.swift", "SuggestionPrompt.swift", "MeetingDetector.swift", "SuggestionPolicy.swift",
-            "ProcessAudioObserver.swift", "MeetingsPlugin+Suggestions.swift", "MeetingsSuggestionsViews.swift",
-        ] {
-            let source = try String(contentsOf: directory.appending(path: name), encoding: .utf8)
+        let names = try FileManager.default.contentsOfDirectory(atPath: directory.path()).filter {
+            $0.hasSuffix(".swift")
+        }
+        #expect(names.count > 30)
+        return try names.sorted().map {
+            ($0, try String(contentsOf: directory.appending(path: $0), encoding: .utf8))
+        }
+    }
+
+    /// The source without comments (a comment may say "no keyDown"), so only code is judged.
+    private func code(_ text: String) -> String {
+        text.components(separatedBy: "\n").filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
+            .joined(separator: "\n")
+    }
+
+    @Test func noFileOfThePluginTakesKeysOrRegistersShortcuts() throws {
+        // The whole plugin, not a list of files: no part of the meetings feature claims a key.
+        let forbidden = [
+            "claimEscapeKey", "addGlobalMonitorForEvents", "addLocalMonitorForEvents", "RegisterEventHotKey",
+            "keyboardShortcut", "KeyboardShortcuts", "CGEventTap", "performKeyEquivalent", "keyDown", "keyUp",
+            "NSEvent.addMonitor", "onKeyPress", "onKeyEvent", "defaultAction", "cancelAction", "keyEquivalent",
+            "CGEvent.tapCreate", "makeShortcutRecorder",
+        ]
+        for (name, text) in try sourceFiles() where name != "MeetingsPlugin+Settings.swift" {
+            let source = code(text)
             for word in forbidden {
                 #expect(!source.contains(word), "\(name) mentions \(word)")
             }
@@ -337,27 +353,60 @@ import Testing
     }
 
     @Test func theHUDIsHiddenFromScreenSharingAndDoesNotActivate() throws {
-        let directory = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-            .deletingLastPathComponent().appending(path: "Sources/MeetingsPlugin", directoryHint: .isDirectory)
-        let source = try String(contentsOf: directory.appending(path: "SuggestionHUD.swift"), encoding: .utf8)
+        let source = try #require(try sourceFiles().first { $0.name == "SuggestionHUD.swift" }).text
         #expect(source.contains("panel.sharingType = .none"))
         #expect(source.contains(".nonactivatingPanel"))
         #expect(source.contains("announcementRequested"))
         #expect(source.contains("accessibilityReduceMotion"))
     }
 
-    @Test func detectionOnlyReadsMetadataAndNeverTouchesAudioOrLogsIt() throws {
-        let directory = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-            .deletingLastPathComponent().appending(path: "Sources/MeetingsPlugin", directoryHint: .isDirectory)
-        let observer = try String(
-            contentsOf: directory.appending(path: "CoreAudioProcessObserver.swift"), encoding: .utf8)
-        for word in ["AudioHardwareCreateProcessTap", "AudioDeviceStart", "AVAudioEngine", "AudioDeviceCreateIOProc"] {
+    @Test func detectionNeverTouchesAudioAndLogsNothingAboutAppsOrProcesses() throws {
+        let files = try sourceFiles()
+        let observer = code(try #require(files.first { $0.name == "CoreAudioProcessObserver.swift" }).text)
+        for word in [
+            "AudioHardwareCreateProcessTap", "AudioDeviceStart", "AVAudioEngine", "AudioDeviceCreateIOProc",
+            "AudioUnit", "AVCaptureDevice", "kAudioProcessPropertyBundleID" + "Name",
+        ] {
             #expect(!observer.contains(word), "\(word)")
         }
-        let detector = try String(contentsOf: directory.appending(path: "MeetingDetector.swift"), encoding: .utf8)
-        // The one log line has no app or process in it.
-        let logs = detector.components(separatedBy: "\n").filter { $0.contains("logger.") }
-        #expect(logs.count == 1)
-        #expect(!logs[0].contains("bundle") && !logs[0].contains("event"))
+        // Every logger call in the detection files, however it is wrapped over lines, uses a literal without
+        // an interpolation.
+        for name in [
+            "MeetingDetector.swift", "SuggestionPolicy.swift", "CoreAudioProcessObserver.swift",
+            "ProcessAudioObserver.swift", "MeetingsPlugin+Suggestions.swift", "SuggestionHUD.swift",
+            "SuggestionPrompt.swift", "MeetingsSettingsModel+Suggestions.swift",
+        ] {
+            let text = code(try #require(files.first { $0.name == name }).text)
+            for call in loggerCalls(in: text) {
+                #expect(!call.contains("\\("), "\(name): \(call)")
+            }
+        }
+        let detector = code(try #require(files.first { $0.name == "MeetingDetector.swift" }).text)
+        #expect(loggerCalls(in: detector).count >= 2)
+    }
+
+    /// The text of every `logger.<level>(...)` call, parentheses balanced across lines.
+    private func loggerCalls(in text: String) -> [String] {
+        var calls: [String] = []
+        var rest = Substring(text)
+        while let range = rest.range(of: "logger.") {
+            let after = rest[range.upperBound...]
+            guard let open = after.firstIndex(of: "(") else { break }
+            var depth = 0
+            var end = open
+            for index in after[open...].indices {
+                if after[index] == "(" { depth += 1 }
+                if after[index] == ")" {
+                    depth -= 1
+                    if depth == 0 {
+                        end = index
+                        break
+                    }
+                }
+            }
+            calls.append(String(after[open...end]))
+            rest = after[end...]
+        }
+        return calls
     }
 }

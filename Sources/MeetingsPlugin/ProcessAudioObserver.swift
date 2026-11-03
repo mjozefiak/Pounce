@@ -20,15 +20,22 @@ enum ProcessAudioError: Error, Equatable, Sendable {
 /// A running observation: events in the order Core Audio reported them, and the way to stop.
 struct ProcessAudioSubscription: Sendable {
     let events: AsyncStream<ProcessAudioEvent>
-    /// Removes every listener. Safe to call more than once; ends `events`.
+    /// Removes every listener. Safe to call more than once; ends `events`. Never blocks the caller.
     let stop: @Sendable () -> Void
+    /// Resolves when the listeners are installed (off the caller's thread): `nil` when they are, the error
+    /// when the API cannot be used (the events then end). The default has nothing to wait for.
+    var installed: @Sendable () async -> ProcessAudioError? = { nil }
+    /// Whether any process has ever answered the "uses an input" question. `nil` when the observer cannot
+    /// tell; the detector then does not check.
+    var hasAnswered: (@Sendable () -> Bool)?
 }
 
 /// Watches which processes use an audio input. `CoreAudioProcessObserver` is the real one (event-driven, no
 /// polling); tests use a scripted fake and never reach Core Audio, so they cannot show a prompt or read real
 /// processes.
 protocol ProcessAudioObserver: Sendable {
-    /// Starts listening. The first events describe processes that already use an input. Throws
-    /// `.unavailable` when the API cannot be used on this Mac.
+    /// Starts listening and returns at once. The first events describe processes that already use an input.
+    /// Throws `.unavailable` when the API cannot be used on this Mac and that is known without waiting;
+    /// otherwise a failure comes through `ProcessAudioSubscription.installed`.
     func start() throws(ProcessAudioError) -> ProcessAudioSubscription
 }

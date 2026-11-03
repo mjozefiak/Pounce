@@ -12,14 +12,25 @@ final class ScriptedProcessObserver: ProcessAudioObserver {
         var starts = 0
         var stops = 0
         var failure: ProcessAudioError?
+        var installFailure: ProcessAudioError?
+        /// `nil`: the observer cannot tell whether any process answered.
+        var answered: Bool?
         var continuation: AsyncStream<ProcessAudioEvent>.Continuation?
     }
 
     private let state = Mutex(State())
 
-    init(failure: ProcessAudioError? = nil) {
-        state.withLock { $0.failure = failure }
+    init(
+        failure: ProcessAudioError? = nil, installFailure: ProcessAudioError? = nil, answered: Bool? = nil
+    ) {
+        state.withLock {
+            $0.failure = failure
+            $0.installFailure = installFailure
+            $0.answered = answered
+        }
     }
+
+    func setAnswered(_ value: Bool) { state.withLock { $0.answered = value } }
 
     var startCount: Int { state.withLock { $0.starts } }
     var stopCount: Int { state.withLock { $0.stops } }
@@ -33,15 +44,18 @@ final class ScriptedProcessObserver: ProcessAudioObserver {
         if let failure { throw failure }
         let (events, continuation) = AsyncStream.makeStream(of: ProcessAudioEvent.self, bufferingPolicy: .unbounded)
         state.withLock { $0.continuation = continuation }
-        return ProcessAudioSubscription(
-            events: events,
-            stop: { [self] in
-                state.withLock { state in
-                    state.stops += 1
-                    state.continuation?.finish()
-                    state.continuation = nil
-                }
-            })
+        let hasAnswers = state.withLock { $0.answered != nil }
+        let stop: @Sendable () -> Void = { [self] in
+            state.withLock { state in
+                state.stops += 1
+                state.continuation?.finish()
+                state.continuation = nil
+            }
+        }
+        let installed: @Sendable () async -> ProcessAudioError? = { [self] in state.withLock { $0.installFailure } }
+        let ask: @Sendable () -> Bool = { [self] in state.withLock { $0.answered ?? false } }
+        let answered: (@Sendable () -> Bool)? = hasAnswers ? ask : nil
+        return ProcessAudioSubscription(events: events, stop: stop, installed: installed, hasAnswered: answered)
     }
 
     func send(_ event: ProcessAudioEvent) {
@@ -87,13 +101,14 @@ final class DetectorRig {
 
     init(
         settings: [String: SettingValue] = ["plugins.meetings.suggestMeetings": .bool(true)],
-        failure: ProcessAudioError? = nil, ownBundleID: String? = "app.pounce"
+        failure: ProcessAudioError? = nil, ownBundleID: String? = "app.pounce",
+        observer: ScriptedProcessObserver? = nil
     ) throws {
         harness = try MeetingsHarness(settings: settings)
-        observer = ScriptedProcessObserver(failure: failure)
+        self.observer = observer ?? ScriptedProcessObserver(failure: failure)
         detector = MeetingDetector(
             .init(
-                observer: observer, presenter: presenter, clock: DetectorClock(clock),
+                observer: self.observer, presenter: presenter, clock: DetectorClock(clock),
                 settings: harness.meetingsSettings,
                 isBusy: { [unowned self] in self.busy },
                 startRecording: { [unowned self] in self.startedFor.append($0) },

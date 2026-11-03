@@ -11,6 +11,8 @@ extension MeetingsPlugin {
     /// Builds the detector for this activation. It does not listen yet: `startDetector` decides that from the
     /// setting.
     func makeDetector() -> MeetingDetector {
+        // An earlier detector (activate twice without a deactivate) must not go on listening.
+        stopDetector()
         var dependencies = MeetingDetector.Dependencies(
             observer: CoreAudioProcessObserver(), presenter: suggestionHUD, clock: DetectorClock(context.clock),
             settings: settings,

@@ -18,7 +18,9 @@ struct KnownMeetingApp: Equatable, Sendable {
         KnownMeetingApp(bundleID: "com.hnc.Discord", name: "Discord"),
     ]
 
-    static func name(of bundleID: String) -> String? { all.first { $0.bundleID == bundleID }?.name }
+    static func name(of bundleID: String) -> String? {
+        all.first { $0.bundleID.caseInsensitiveCompare(bundleID) == .orderedSame }?.name
+    }
 }
 
 /// What the policy needs from the settings at the moment it decides. Read fresh each time, so a change in
@@ -39,8 +41,15 @@ struct SuggestionConfig: Equatable, Sendable {
         return candidates.filter { Self.belongs(bundleID, to: $0) }.max { $0.count < $1.count }
     }
 
+    /// Whether `app` is in the muted list (bundle IDs are case-insensitive).
+    func isMuted(_ app: String) -> Bool {
+        mutedBundleIDs.contains { $0.caseInsensitiveCompare(app) == .orderedSame }
+    }
+
     private static func belongs(_ bundleID: String, to app: String) -> Bool {
-        bundleID == app || bundleID.hasPrefix(app + ".")
+        let id = bundleID.lowercased()
+        let app = app.lowercased()
+        return id == app || id.hasPrefix(app + ".")
     }
 }
 
@@ -55,6 +64,9 @@ struct SuggestionConfig: Equatable, Sendable {
 struct SuggestionPolicy: Sendable {
     static let inputThreshold: Duration = .seconds(10)
     static let quietThreshold: Duration = .seconds(60)
+    /// A mic-use session that ends and restarts within this long (a Bluetooth headset switching profiles, a
+    /// mute, a reconnect) is the same session: it is not suggested again and a refused one stays refused.
+    static let flapGrace: Duration = .seconds(30)
     /// A track louder than this counts as sound for the end-of-meeting question (the level is 0...1).
     static let soundLevel: Float = 0.01
 
@@ -71,6 +83,9 @@ struct SuggestionPolicy: Sendable {
         var since: Duration?
         /// The 10 s mark of this session has been reached (a suggestion was made, or refused).
         var decided = false
+        /// When the last process stopped while `decided` was set: the session is only forgotten after
+        /// `flapGrace`.
+        var endedAt: Duration?
     }
 
     private struct Recording {
@@ -94,7 +109,12 @@ struct SuggestionPolicy: Sendable {
             var use = uses[app] ?? Use()
             if use.processes.isEmpty {
                 use.since = now
-                use.decided = false
+                if let endedAt = use.endedAt, use.decided, now - endedAt < Self.flapGrace {
+                    // The same session after a flap: `decided` stays.
+                } else {
+                    use.decided = false
+                }
+                use.endedAt = nil
             }
             use.processes.insert(event.processObjectID)
             uses[app] = use
@@ -105,7 +125,11 @@ struct SuggestionPolicy: Sendable {
             use.processes.remove(event.processObjectID)
             if use.processes.isEmpty {
                 use.since = nil
-                use.decided = false
+                if use.decided {
+                    use.endedAt = now
+                } else {
+                    use.endedAt = nil
+                }
             }
             uses[app] = use
         }
@@ -137,13 +161,30 @@ struct SuggestionPolicy: Sendable {
 
     // MARK: Decisions
 
-    /// What to do now. `isBusy`: Pounce records a meeting or is still finishing one.
-    mutating func evaluate(now: Duration, config: SuggestionConfig, isBusy: Bool) -> [Effect] {
+    /// What to do now. `isBusy`: Pounce records a meeting or is still finishing one. `canSuggest`: false while
+    /// a pill is showing; an app that reaches its 10 s then stays undecided and is offered by a later call
+    /// (at most one suggestion per call).
+    mutating func evaluate(
+        now: Duration, config: SuggestionConfig, isBusy: Bool, canSuggest: Bool = true
+    ) -> [Effect] {
         var effects: [Effect] = []
+        var offered = !canSuggest
         for (app, use) in uses.sorted(by: { $0.key < $1.key }) {
+            // An app taken off the lists (or whose listing changed) since its session began is forgotten.
+            if config.listedApp(for: app)?.lowercased() != app.lowercased() {
+                uses[app] = nil
+                continue
+            }
+            if use.processes.isEmpty, let endedAt = use.endedAt, now - endedAt >= Self.flapGrace {
+                uses[app]?.decided = false
+                uses[app]?.endedAt = nil
+            }
             guard let since = use.since, !use.decided, now - since >= Self.inputThreshold else { continue }
+            let wouldSuggest = config.enabled && !isBusy && !config.isMuted(app)
+            if wouldSuggest, offered { continue }
             uses[app]?.decided = true
-            guard config.enabled, !isBusy, !config.mutedBundleIDs.contains(app) else { continue }
+            guard wouldSuggest else { continue }
+            offered = true
             effects.append(.suggest(bundleID: app))
         }
         if let recording, !recording.asked, config.enabled,

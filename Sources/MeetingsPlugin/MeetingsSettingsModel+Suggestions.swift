@@ -13,8 +13,7 @@ enum ExtraAppError: Equatable, Sendable {
 }
 
 extension MeetingsSettingsModel {
-    /// More than this many added apps is not a list a person edits by hand.
-    static let maximumExtraApps = 50
+    static let maximumExtraApps = MeetingsSettings.maximumExtraApps
 
     func detectorStatusChanged(_ status: MeetingDetector.Status) {
         suggestionStatus = status
@@ -43,7 +42,7 @@ extension MeetingsSettingsModel {
             return false
         }
         var extra = settings.suggestExtraBundleIDs
-        guard !extra.contains(bundleID) else {
+        guard !extra.contains(where: { $0.caseInsensitiveCompare(bundleID) == .orderedSame }) else {
             extraAppError = .duplicate
             return false
         }
@@ -65,13 +64,5 @@ extension MeetingsSettingsModel {
         suggestionsChanged()
     }
 
-    /// A reverse-DNS identifier: letters, digits, `.`, `-` and `_`, at least one dot, at most 255 characters.
-    static func isValidBundleID(_ text: String) -> Bool {
-        guard !text.isEmpty, text.count <= 255, text.contains("."), !text.hasPrefix("."), !text.hasSuffix(".")
-        else { return false }
-        return text.unicodeScalars.allSatisfy {
-            ($0.isASCII && ($0.properties.isAlphabetic || ("0"..."9").contains(Character($0))))
-                || $0 == "." || $0 == "-" || $0 == "_"
-        }
-    }
+    static func isValidBundleID(_ text: String) -> Bool { MeetingsSettings.isValidBundleID(text) }
 }

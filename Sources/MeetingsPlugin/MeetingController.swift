@@ -107,8 +107,8 @@ final class MeetingController {
     private(set) var watcherFirings = 0
     private var session: (any RecordingSession)?
     private var meetingID: Int64?
-    /// Set only by `start(sourceBundleID:)`, i.e. by a click on the suggestion HUD.
-    private var pendingSource: String?
+    /// The app of the suggestion the user accepted for the attempt that is running; set by `begin` once its
+    /// guards have passed, so a refused start never leaves it behind.
     private var sourceBundleID: String?
     /// Whether this controller holds one `MeetingActivity.begin()` (taken at the start, given back at the end).
     private var holdsActivity = false
@@ -151,8 +151,7 @@ final class MeetingController {
     /// recording runs or is being processed, and then nothing is stored.
     func start(fromSuggestionOf bundleID: String) {
         guard phase == .idle else { return }
-        pendingSource = bundleID
-        begin(systemOnly: false)
+        begin(systemOnly: false, source: bundleID)
     }
 
     /// Ends the recording; the meeting is processed and saved. While the recording is still being prepared
@@ -208,7 +207,8 @@ final class MeetingController {
         case .recordSystemAudioOnly:
             guard phase == .awaitingMicrophoneDecision else { return }
             phase = .idle
-            begin(systemOnly: true)
+            // The app of the suggestion (if any) stays with a system-audio-only recording.
+            begin(systemOnly: true, source: sourceBundleID)
         case .dismiss:
             if phase == .preparing, session == nil { return cancelPreparation() }
             guard phase == .awaitingMicrophoneDecision else { return }
@@ -234,19 +234,14 @@ final class MeetingController {
 
     // MARK: Start
 
-    private func begin(systemOnly: Bool) {
+    private func begin(systemOnly: Bool, source: String? = nil) {
         // The activity is held from here until the meeting is over: before the model check, the spool folder,
         // the row and any lease exist (the contract of `MeetingActivity`).
         guard !deps.activity.isRemovingModel else { return fail(.modelBeingRemoved) }
         acquireActivity()
-        if let pending = pendingSource {
-            sourceBundleID = pending
-            pendingSource = nil
-        } else if !systemOnly {
-            // "Record the system audio only" after a denied microphone keeps the app of the suggestion.
-            sourceBundleID = nil
-        }
+        sourceBundleID = source
         phase = .preparing
+        deps.recordingObserver?.recordingPreparing()
         runToken += 1
         let token = runToken
         runTask = Task { [weak self] in await self?.run(systemOnly: systemOnly, token: token) }
@@ -548,6 +543,7 @@ final class MeetingController {
             runTask = nil
             releaseActivity()
             sourceBundleID = nil
+            deps.recordingObserver?.recordingEnded()
             if phase != .idle {
                 phase = .idle
                 deps.hud.hide()

@@ -26,6 +26,8 @@ protocol SuggestionPresenter: AnyObject {
 /// detector's type, only this).
 @MainActor
 protocol MeetingRecordingObserver: AnyObject {
+    /// A recording is being prepared (the checks, the microphone prompt): any suggestion still up is moot.
+    func recordingPreparing()
     /// A recording is running. `sourceBundleID` is set only when it was started from a suggestion.
     func recordingStarted(sourceBundleID: String?)
     func recordingLevel(_ channel: AudioChannel, _ level: Float)
@@ -47,7 +49,13 @@ final class MeetingDetector: MeetingRecordingObserver {
         case listening
         /// The Core Audio process API cannot be used here: suggestions are off, nothing else is affected.
         case unavailable
+        /// Listening, but no process has answered the "uses an input" question for a while: Pounce cannot
+        /// confirm that detection works on this Mac. Harmless; events that do arrive are still handled.
+        case noData
     }
+
+    /// How long the detector listens before it admits that no process answered.
+    static let verificationDelay: Duration = .seconds(30)
 
     struct Dependencies {
         var observer: any ProcessAudioObserver
@@ -79,6 +87,7 @@ final class MeetingDetector: MeetingRecordingObserver {
     private var wakeTask: Task<Void, Never>?
     private var scheduledWake: Duration?
     private var hideTask: Task<Void, Never>?
+    private var verifyTask: Task<Void, Never>?
     private var shown: SuggestionPrompt?
     /// How many events and timer wakes were handled (tests).
     private(set) var processedCount = 0
@@ -89,13 +98,20 @@ final class MeetingDetector: MeetingRecordingObserver {
         deps = dependencies
     }
 
-    var isListening: Bool { status == .listening }
+    /// Listening to the observer (also while the status says it cannot confirm detection).
+    var isListening: Bool { subscription != nil }
 
     // MARK: Listening
 
     /// Starts or stops listening to match `enabled`. Idempotent.
     func reconcile(enabled: Bool) {
-        if enabled { start() } else { stop() }
+        if enabled {
+            start()
+            // The lists may have changed: an app taken off them cancels its pending suggestion.
+            if isListening { evaluate() }
+        } else {
+            stop()
+        }
     }
 
     func start() {
@@ -111,6 +127,20 @@ final class MeetingDetector: MeetingRecordingObserver {
                     self.handle(event)
                 }
             }
+            let generation = startCount
+            let sleep = deps.clock.sleep
+            verifyTask = Task { [weak self] in
+                if let error = await subscription.installed() {
+                    guard !Task.isCancelled, let self, self.startCount == generation else { return }
+                    return self.installFailed(error)
+                }
+                guard let hasAnswered = subscription.hasAnswered else { return }
+                try? await sleep(Self.verificationDelay)
+                guard !Task.isCancelled, let self, self.startCount == generation, self.status == .listening
+                else { return }
+                if !hasAnswered() { self.status = .noData }
+                self.deps.didProcess()
+            }
         } catch {
             // Not an error to show: the feature is off on this Mac.
             deps.logger.notice("Meeting suggestions are unavailable on this Mac")
@@ -118,18 +148,32 @@ final class MeetingDetector: MeetingRecordingObserver {
         }
     }
 
+    /// The listeners could not be installed (the observer says so after `start` returned).
+    private func installFailed(_ error: ProcessAudioError) {
+        deps.logger.notice("Meeting suggestions are unavailable on this Mac")
+        tearDown()
+        status = .unavailable
+        deps.didProcess()
+    }
+
     /// Stops listening, removes the HUD and forgets everything the policy saw.
     func stop() {
+        tearDown()
+        status = .off
+    }
+
+    private func tearDown() {
         subscription?.stop()
         subscription = nil
         eventsTask?.cancel()
         eventsTask = nil
+        verifyTask?.cancel()
+        verifyTask = nil
         wakeTask?.cancel()
         wakeTask = nil
         scheduledWake = nil
         policy.reset()
         dismiss()
-        status = .off
     }
 
     // MARK: Events
@@ -142,6 +186,8 @@ final class MeetingDetector: MeetingRecordingObserver {
 
     private func handle(_ event: ProcessAudioEvent) {
         guard isListening else { return }
+        // Something answered after all.
+        if status == .noData { status = .listening }
         policy.handle(event, now: deps.clock.now(), config: config())
         evaluate()
         processedCount += 1
@@ -150,7 +196,7 @@ final class MeetingDetector: MeetingRecordingObserver {
 
     private func evaluate() {
         let now = deps.clock.now()
-        let effects = policy.evaluate(now: now, config: config(), isBusy: deps.isBusy())
+        let effects = policy.evaluate(now: now, config: config(), isBusy: deps.isBusy(), canSuggest: shown == nil)
         for effect in effects {
             switch effect {
             case .suggest(let bundleID):
@@ -188,6 +234,10 @@ final class MeetingDetector: MeetingRecordingObserver {
 
     // MARK: Recording (MeetingRecordingObserver)
 
+    func recordingPreparing() {
+        if case .meeting? = shown { dismiss() }
+    }
+
     func recordingStarted(sourceBundleID: String?) {
         guard isListening else { return }
         policy.recordingStarted(source: sourceBundleID, now: deps.clock.now())
@@ -219,6 +269,8 @@ final class MeetingDetector: MeetingRecordingObserver {
             try? await sleep(SuggestionPrompt.lifetime)
             guard !Task.isCancelled, let self, self.shown == prompt else { return }
             self.dismiss()
+            // An app that reached its 10 s while this pill was up is offered now.
+            if self.isListening { self.evaluate() }
             self.processedCount += 1
             self.deps.didProcess()
         }
@@ -247,11 +299,13 @@ final class MeetingDetector: MeetingRecordingObserver {
         default:
             break
         }
+        // An app that reached its 10 s while this pill was up is offered after it is answered.
+        if isListening { evaluate() }
     }
 
     private func mute(_ bundleID: String) {
         var muted = deps.settings.suggestMutedBundleIDs
-        guard !muted.contains(bundleID) else { return }
+        guard !muted.contains(where: { $0.caseInsensitiveCompare(bundleID) == .orderedSame }) else { return }
         muted.append(bundleID)
         deps.settings.setSuggestMutedBundleIDs(muted)
     }

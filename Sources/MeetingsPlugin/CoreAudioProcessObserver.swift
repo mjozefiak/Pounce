@@ -1,5 +1,6 @@
 import CoreAudio
 import Foundation
+import Synchronization
 
 /// The real `ProcessAudioObserver`: the Core Audio process objects (macOS 14.2+), event-driven through
 /// property listeners, no polling. It reads three properties and nothing else: whether a process uses an
@@ -9,26 +10,29 @@ import Foundation
 ///
 /// Compiled but never run by tests (the API needs real processes). Whether the properties are available and
 /// reliable on a given Mac, Bluetooth headsets included, is unverified: when the process list cannot be read,
-/// or no process answers the input property, `start()` throws `.unavailable` and suggestions switch
-/// themselves off (`docs/qa.md`, "Meetings detection").
+/// or processes exist but none answers the input property, the install fails with `.unavailable`; when no
+/// process ever answers (`hasAnswered`) the detector reports that it cannot confirm detection. Either way
+/// suggestions only stay quiet (`docs/qa.md`, "Meetings detection"). Nothing here blocks the main actor.
 struct CoreAudioProcessObserver: ProcessAudioObserver {
     func start() throws(ProcessAudioError) -> ProcessAudioSubscription {
         let (events, continuation) = AsyncStream.makeStream(
             of: ProcessAudioEvent.self, bufferingPolicy: .unbounded)
         let observation = ProcessObservation(continuation: continuation)
-        do {
-            try observation.install()
-        } catch {
-            observation.stop()
-            continuation.finish()
-            throw error
-        }
+        // Installing reads the process list and every process's properties: that happens on the
+        // observation's queue, never on the caller (the main actor).
+        let install = Task.detached { await observation.install() }
         return ProcessAudioSubscription(
             events: events,
             stop: {
                 observation.stop()
                 continuation.finish()
-            })
+            },
+            installed: {
+                let failure = await install.value
+                if failure != nil { continuation.finish() }
+                return failure
+            },
+            hasAnswered: { observation.hasAnswered })
     }
 }
 
@@ -39,7 +43,7 @@ private func address(
 }
 
 /// A property listener on one audio object, delivered on the observation's queue.
-private final class ObjectListener {
+private final class ObjectListener: @unchecked Sendable {
     private let object: AudioObjectID
     private let selector: AudioObjectPropertySelector
     private let queue: DispatchQueue
@@ -68,8 +72,9 @@ private final class ObjectListener {
     }
 }
 
-/// All state lives on `queue` (listener blocks arrive there too); `install()` and `stop()` enter it with
-/// `sync`, and nothing on the queue calls them.
+/// All state lives on `queue` (listener blocks arrive there too). `install()` and `stop()` hop onto it
+/// asynchronously: nothing here blocks the caller, and nothing waits on the queue from the queue (the last
+/// reference may drop inside a listener block).
 private final class ProcessObservation: @unchecked Sendable {
     private struct Watched {
         var listener: ObjectListener
@@ -83,34 +88,56 @@ private final class ProcessObservation: @unchecked Sendable {
     private var listListener: ObjectListener?
     private var watched: [AudioObjectID: Watched] = [:]
     private var stopped = false
+    private let stopRequested = Mutex(false)
+    private let answered = Mutex(false)
 
     init(continuation: AsyncStream<ProcessAudioEvent>.Continuation) {
         self.continuation = continuation
     }
 
-    deinit { queue.sync { removeAll() } }
-
-    func install() throws(ProcessAudioError) {
-        let failure: Int32? = queue.sync {
-            let listener = ObjectListener(
-                object: AudioObjectID(kAudioObjectSystemObject), selector: kAudioHardwarePropertyProcessObjectList,
-                queue: queue)
-            let status = listener.install { [weak self] in self?.refresh() }
-            guard status == noErr else { return status }
-            listListener = listener
-            guard let objects = Self.processObjects() else { return Int32(kAudioHardwareUnknownPropertyError) }
-            refresh(objects)
-            // Processes exist but none answers the input property: the API is not usable here.
-            if !objects.isEmpty, watched.isEmpty, !objects.contains(where: { Self.isOwn($0, pid: ownPID) }) {
-                return Int32(kAudioHardwareUnknownPropertyError)
-            }
-            return nil
-        }
-        if let failure { throw ProcessAudioError.unavailable(failure) }
+    /// `stop()` removes the listeners; this only covers an observation dropped without it, and never waits.
+    deinit {
+        var leftover = watched.values.map(\.listener)
+        if let listListener { leftover.append(listListener) }
+        guard !leftover.isEmpty else { return }
+        let listeners = leftover
+        queue.async { for listener in listeners { listener.remove() } }
     }
 
+    /// Whether any process has ever answered the input property.
+    var hasAnswered: Bool { answered.withLock { $0 } }
+
+    func install() async -> ProcessAudioError? {
+        let failure: Int32? = await withCheckedContinuation { continuation in
+            queue.async { continuation.resume(returning: self.installOnQueue()) }
+        }
+        guard let failure else { return nil }
+        queue.async { self.removeAll() }
+        return .unavailable(failure)
+    }
+
+    private func installOnQueue() -> Int32? {
+        guard !stopped, !stopRequested.withLock({ $0 }) else { return nil }
+        let listener = ObjectListener(
+            object: AudioObjectID(kAudioObjectSystemObject), selector: kAudioHardwarePropertyProcessObjectList,
+            queue: queue)
+        let status = listener.install { [weak self] in self?.refresh() }
+        guard status == noErr else { return status }
+        listListener = listener
+        guard let objects = Self.processObjects() else { return Int32(kAudioHardwareUnknownPropertyError) }
+        refresh(objects)
+        // Processes exist but none answers the input property: the API is not usable here. (An empty list is
+        // not a failure; the detector reports "cannot confirm" when nothing ever answers.)
+        if !objects.isEmpty, watched.isEmpty, !objects.contains(where: { Self.isOwn($0, pid: ownPID) }) {
+            return Int32(kAudioHardwareUnknownPropertyError)
+        }
+        return nil
+    }
+
+    /// Returns at once: no further event is delivered, and the listeners are removed on the queue.
     func stop() {
-        queue.sync { removeAll() }
+        stopRequested.withLock { $0 = true }
+        queue.async { self.removeAll() }
     }
 
     private func removeAll() {
@@ -140,6 +167,7 @@ private final class ProcessObservation: @unchecked Sendable {
         }
         for object in objects where watched[object] == nil {
             guard !Self.isOwn(object, pid: ownPID), let running = Self.isRunningInput(object) else { continue }
+            answered.withLock { $0 = true }
             let listener = ObjectListener(object: object, selector: kAudioProcessPropertyIsRunningInput, queue: queue)
             guard listener.install({ [weak self] in self?.inputChanged(object) }) == noErr else { continue }
             let bundleID = Self.bundleID(object)

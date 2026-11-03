@@ -132,6 +132,7 @@ import Testing
         #expect(rig.startedFor.isEmpty)
         // The mute is in the settings store: a new detector over the same settings honours it.
         await rig.send(1, nil, running: false)
+        rig.clock.advance(by: SuggestionPolicy.flapGrace)
         await rig.send(2, "us.zoom.xos")
         await rig.waitForTimer()
         await rig.advance(by: .seconds(10))

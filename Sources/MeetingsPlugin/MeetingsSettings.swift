@@ -109,8 +109,41 @@ struct MeetingsSettings: Sendable {
     // MARK: Meeting suggestions
 
     var suggestMeetings: Bool { settings.bool(Key.suggestMeetings, default: false) }
-    var suggestMutedBundleIDs: [String] { settings.stringArray(Key.suggestMutedBundleIDs) ?? [] }
-    var suggestExtraBundleIDs: [String] { settings.stringArray(Key.suggestExtraBundleIDs) ?? [] }
+    /// Read through the validation, so a hand-edited preference cannot put junk or an endless list in the
+    /// detector.
+    var suggestMutedBundleIDs: [String] {
+        Self.sanitized(settings.stringArray(Key.suggestMutedBundleIDs), minimumDots: 1, limit: Self.maximumMutedApps)
+    }
+    var suggestExtraBundleIDs: [String] {
+        Self.sanitized(settings.stringArray(Key.suggestExtraBundleIDs), minimumDots: 2, limit: Self.maximumExtraApps)
+    }
+
+    /// More than this many added apps is not a list a person edits by hand.
+    static let maximumExtraApps = 50
+    static let maximumMutedApps = 100
+
+    /// A reverse-DNS identifier: ASCII letters, digits, `.`, `-` and `_`, at least `minimumDots` dots (two for
+    /// an added app, so `com.apple` does not match every Apple app), no empty label, at most 255 characters.
+    static func isValidBundleID(_ text: String, minimumDots: Int = 2) -> Bool {
+        guard !text.isEmpty, text.count <= 255, !text.hasPrefix("."), !text.hasSuffix("."),
+            !text.contains(".."), text.filter({ $0 == "." }).count >= minimumDots
+        else { return false }
+        return text.unicodeScalars.allSatisfy {
+            ($0.isASCII && ($0.properties.isAlphabetic || ("0"..."9").contains(Character($0))))
+                || $0 == "." || $0 == "-" || $0 == "_"
+        }
+    }
+
+    private static func sanitized(_ ids: [String]?, minimumDots: Int, limit: Int) -> [String] {
+        var seen = Set<String>()
+        var result: [String] = []
+        for id in ids ?? [] where isValidBundleID(id, minimumDots: minimumDots) {
+            guard seen.insert(id.lowercased()).inserted else { continue }
+            result.append(id)
+            if result.count == limit { break }
+        }
+        return result
+    }
 
     // MARK: Retention
 

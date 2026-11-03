@@ -479,6 +479,12 @@ run only for the detection itself (use the QA data root so the library is isolat
 - After a recording started from a pill: leave the call and stay quiet; about 60 s later the pill asks "End the
   recording?" (End recording / Keep recording); it never ends the recording by itself.
 - Turn the setting off while a pill is showing: the pill disappears and no further pills come.
+- Honest limits to confirm: a Safari/WebKit-helper-based app may not be detected; the pill is not operable from the
+  keyboard (it claims no keys on purpose) but VoiceOver reads it and can press its buttons.
+- If no app reports microphone use for 30 s after turning the setting on, the pane says "Pounce cannot confirm that
+  detection works on this Mac" (not "Not available"); starting a call then clears it.
+- A headset or mute flap (mic use stops and restarts within 30 s) gives no second pill; a pill answered "Not now" does
+  not come back for the same call. Two apps joining together give one pill, the second after the first is answered.
 
 ## Never during QA
 
