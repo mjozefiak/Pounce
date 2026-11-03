@@ -5940,6 +5940,384 @@
           }
         }
       }
+    },
+    "Also lists apps outside the searched folders that Spotlight knows." : {
+      "comment" : "Settings description of the Spotlight app supplement",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Also lists apps outside the searched folders that Spotlight knows."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuje też aplikacje spoza przeszukiwanych folderów, które zna Spotlight."
+          }
+        }
+      }
+    },
+    "App activity was saved by a newer version of Pounce. Suggestions are off until you update." : {
+      "comment" : "Settings message when activity.json comes from a newer version",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App activity was saved by a newer version of Pounce. Suggestions are off until you update."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktywność aplikacji zapisała nowsza wersja Pounce. Sugestie są wyłączone do czasu aktualizacji."
+          }
+        }
+      }
+    },
+    "App index" : {
+      "comment" : "Settings section title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App index"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indeks aplikacji"
+          }
+        }
+      }
+    },
+    "App suggestions keep their own history; clear it in Settings → Applications." : {
+      "comment" : "Settings note that Reset Ranking does not clear app activity",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App suggestions keep their own history; clear it in Settings → Applications."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sugestie aplikacji mają własną historię; wyczyścisz ją w Ustawieniach → Aplikacje."
+          }
+        }
+      }
+    },
+    "Clear App Activity" : {
+      "comment" : "Clear App Activity confirmation button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear App Activity"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyczyść aktywność aplikacji"
+          }
+        }
+      }
+    },
+    "Clear App Activity…" : {
+      "comment" : "Button that deletes the recorded app activity",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear App Activity…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyczyść aktywność aplikacji…"
+          }
+        }
+      }
+    },
+    "Clear the app activity?" : {
+      "comment" : "Clear App Activity confirmation title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear the app activity?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyczyścić aktywność aplikacji?"
+          }
+        }
+      }
+    },
+    "Contents need Full Disk Access" : {
+      "comment" : "Subtitle of a folder result whose contents Pounce may not read without Full Disk Access",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contents need Full Disk Access"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zawartość wymaga pełnego dostępu do dysku"
+          }
+        }
+      }
+    },
+    "Find apps with Spotlight" : {
+      "comment" : "Settings toggle for the Spotlight app supplement",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find apps with Spotlight"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Znajduj aplikacje przez Spotlight"
+          }
+        }
+      }
+    },
+    "Hidden from suggestions" : {
+      "comment" : "Settings label above the list of hidden apps",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hidden from suggestions"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukryte w sugestiach"
+          }
+        }
+      }
+    },
+    "Hide from Suggestions" : {
+      "comment" : "Result action that stops suggesting the selected app",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide from Suggestions"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukryj w sugestiach"
+          }
+        }
+      }
+    },
+    "No access to contents" : {
+      "comment" : "Subtitle of a folder result whose contents cannot be read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No access to contents"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak dostępu do zawartości"
+          }
+        }
+      }
+    },
+    "Pounce records on this Mac which apps you use and how often, to suggest them. Nothing leaves your Mac." : {
+      "comment" : "Settings description of what app suggestions record",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce records on this Mac which apps you use and how often, to suggest them. Nothing leaves your Mac."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce zapisuje na tym Macu, których aplikacji używasz i jak często, żeby je sugerować. Nic nie opuszcza Twojego Maca."
+          }
+        }
+      }
+    },
+    "Recorded activity" : {
+      "comment" : "Settings label next to Clear App Activity",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recorded activity"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisana aktywność"
+          }
+        }
+      }
+    },
+    "Running" : {
+      "comment" : "Badge on a suggested app that is running",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Running"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uruchomiona"
+          }
+        }
+      }
+    },
+    "Show %@ Again" : {
+      "comment" : "Accessibility label of the button that shows a hidden app in suggestions again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show %@ Again"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż ponownie: %@"
+          }
+        }
+      }
+    },
+    "Show Again" : {
+      "comment" : "Button that shows a hidden app in suggestions again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Again"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż ponownie"
+          }
+        }
+      }
+    },
+    "Suggest Apps" : {
+      "comment" : "Settings toggle that turns app suggestions on",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggest Apps"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sugeruj aplikacje"
+          }
+        }
+      }
+    },
+    "Suggested" : {
+      "comment" : "Panel section with suggested apps",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggested"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sugerowane"
+          }
+        }
+      }
+    },
+    "Suggestions" : {
+      "comment" : "Settings section title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggestions"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sugestie"
+          }
+        }
+      }
+    },
+    "Suggestions start again from the apps you use next. This cannot be undone." : {
+      "comment" : "Clear App Activity confirmation message",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggestions start again from the apps you use next. This cannot be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sugestie zaczną się od nowa od aplikacji, których użyjesz. Tej operacji nie można cofnąć."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

@@ -17,6 +17,9 @@ Machine for every row: Apple M4 Max, 16 cores, macOS 27.0.1, 2026-10-31. An M1 r
 | First scan of `~` | < 30 s | 1.6–1.9 s for 510 k entries of a synthetic tree on the SSD | Met on the synthetic tree; a real home folder is a manual item |
 | Start from the saved index until ready | < 2 s | 0.19 s from process start to "Loaded 510020 index entries" | Met |
 | Index memory per entry (R6) | about 100 B | 67–70 B (synthetic), 83 B (fixture tree, 204 k entries) | Met |
+| Path mode query, folder of 1 000 entries (file path search spec) | p95 < 20 ms | p95 8.3 ms read cold, 11.4 ms while typing a filter (release build, SSD; `PathModeBenchmarks`) | Met |
+| App suggestions query, empty panel (app suggestions spec, 2026-11-02) | < 5 ms (source budget 150 ms) | p95 0.51 ms with 300 apps, p95 2.22 ms with 1 000 apps, every app with activity (max 2.57 ms; release build; `AppBenchmarks/suggestApps`) | Met |
+| One-time Spotlight seed of app activity (app suggestions spec, 2026-11-02) | in the background, no budget | 57 ms for the 43 apps in `/Applications` of the measurement Mac, 24 of them with used dates (`AppBenchmarks/seedFromSpotlight`, reads real Spotlight metadata, writes only to a temporary directory) | Measured |
 
 ### How the app-level rows were measured
 
@@ -194,3 +197,22 @@ Run the local integration tests with the model installed (they are off by defaul
 POUNCE_DICTATION_MODEL_FOLDER=~/Library/Application\ Support/Pounce/Plugins/dictation/Models/parakeet-ultra \
   swift test --filter RealModelTests
 ```
+
+## Path mode (file path search)
+
+A query that starts with `/` or `~` reads one folder from disk instead of the index
+(`PathSearchSource`, `DirectoryLister`). `PathModeBenchmarks.thousandEntryFolder` lists a generated
+folder of 1 000 entries 50 times with a new lister (nothing cached) and then types five filters ten
+times each against a cached listing; run it with
+`POUNCE_BENCHMARKS=1 swift test -c release --filter PathModeBenchmarks`.
+
+- Typing is slower than the cold read because every keystroke runs `FuzzyMatcher` on each name; the
+  folder itself is read only when its modification time changes.
+- One folder is read up to 20 000 entries (`DirectoryLister.entryLimit`). A larger folder is cut, and the
+  filter narrows within those entries; the shell shows 20 results per section.
+- A slow volume (network share, sleeping disk) can exceed the 150 ms source budget; the host then drops
+  the source's answer for that keystroke and the rest of the panel works.
+- Folders are read on one serial queue (`DirectoryLister`), never on a Swift concurrency thread. A read
+  that hangs (an unreachable network volume) makes later path queries time out until it returns;
+  requests cancelled while waiting are skipped. Volumes mounted outside `/Volumes` are not treated as
+  protected.

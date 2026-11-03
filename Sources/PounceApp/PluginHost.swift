@@ -118,6 +118,16 @@ final class PluginHost {
         }
     }
 
+    /// Suggestion sources of active plugins, in plugin order, each presented as a `SearchSource` so the
+    /// runner's budget and the panel's action handling apply unchanged.
+    var activeSuggestionSources: [RegisteredSource] {
+        activeEntries.flatMap { entry in
+            entry.plugin.suggestionSources.map {
+                RegisteredSource(pluginID: entry.manifest.id, source: SuggestionSourceAdapter(source: $0))
+            }
+        }
+    }
+
     // MARK: Lifecycle
 
     /// Activates every enabled plugin, in `manifest.order`.
@@ -196,6 +206,31 @@ final class PluginHost {
                 )
             case .timedOut:
                 logger.notice("Source \(result.sourceID.rawValue, privacy: .public) exceeded its budget")
+            case .results, .cancelled:
+                break
+            }
+        }
+        return results
+    }
+
+    /// Runs suggestion sources (by default every active one) concurrently with the per-source budget;
+    /// the query is empty.
+    func querySuggestions(_ sources: [RegisteredSource]? = nil, limit: Int) async -> [SourceResult] {
+        let results = await SourceRunner.run(
+            sources ?? activeSuggestionSources,
+            query: NormalizedQuery(raw: "", normalized: ""),
+            limit: limit,
+            budget: sourceBudget,
+            clock: clock
+        )
+        for result in results {
+            switch result.outcome {
+            case .failed(let error):
+                logger.error(
+                    "Suggestion source \(result.sourceID.rawValue, privacy: .public) failed: \(String(describing: error), privacy: .private)"
+                )
+            case .timedOut:
+                logger.notice("Suggestion source \(result.sourceID.rawValue, privacy: .public) exceeded its budget")
             case .results, .cancelled:
                 break
             }

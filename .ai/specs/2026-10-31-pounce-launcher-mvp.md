@@ -295,7 +295,7 @@ Pole wyszukiwania ma fokus przez cały czas. Strzałki i skróty obsługuje `onK
 
 ### Tryby i stany
 - **Tryb wyszukiwania:**
-  - Pusty input pokazuje 8 ostatnio używanych elementów według frecency.
+  - Pusty input pokazuje 8 ostatnio używanych elementów według frecency. *(Po v1.0: nad nimi sekcja „Suggested” z 5 sugerowanymi aplikacjami, ⌘1–⌘5; zob. `.ai/specs/2026-11-01-app-suggestions.md`.)*
   - Przy wpisanym tekście sekcje pluginów (najpierw „Aplikacje”, potem „Pliki”) z podświetleniem dopasowanych znaków.
   - Stopka pokazuje akcje zaznaczonego wyniku z `actions(for:)` (⏎ Otwórz, ⌘⏎ Pokaż w Finderze).
 - **Tryb schowka** (`PanelMode` z `ClipboardPlugin`):

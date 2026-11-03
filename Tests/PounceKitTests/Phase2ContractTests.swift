@@ -70,6 +70,17 @@ import Testing
         }
         #expect(activations == 0)
     }
+
+    @Test func appSuggestionDefaultsReportNothing() async {
+        let workspace: any WorkspaceClient = PIDOnlyWorkspace()
+        var activations = 0
+        for await _ in workspace.applicationActivations() {
+            activations += 1
+        }
+        #expect(activations == 0)
+        #expect(workspace.runningApplicationBundleIDs.isEmpty)
+        #expect(workspace.secondsSinceLastUserInput == nil)
+    }
 }
 
 @Suite @MainActor struct PanelModeTests {

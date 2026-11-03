@@ -93,7 +93,27 @@ import Testing
         #expect(plugin.onboardingSteps.isEmpty)
         #expect(plugin.requiredPermissions.isEmpty)
         #expect(plugin.settingsPane() == nil)
+        #expect(plugin.suggestionSources.isEmpty)
         #expect(MinimalPlugin.manifest.defaultEnabled)
+    }
+
+    struct MinimalSuggestions: SuggestionSource {
+        let id: SourceID = "minimal.suggestions"
+
+        func suggestions(limit: Int) async throws -> [Candidate] { [] }
+    }
+
+    @Test func aBadgeIsOptionalAndPartOfEquality() {
+        let plain = Candidate(
+            itemKey: ItemKey(pluginID: "minimal", key: "x"), title: "X", icon: .symbol("circle"),
+            match: MatchResult(tier: .exact, score: 1))
+        let badged = Candidate(
+            itemKey: ItemKey(pluginID: "minimal", key: "x"), title: "X", icon: .symbol("circle"),
+            match: MatchResult(tier: .exact, score: 1), badge: "Running")
+        #expect(plain.badge == nil)
+        #expect(badged.badge == "Running")
+        #expect(plain != badged)
+        #expect(MinimalSuggestions().actions(for: badged).isEmpty)
     }
 
     @Test func sourcesHaveNoActionsByDefault() {

@@ -130,3 +130,47 @@ struct FileBenchmarks {
             """)
     }
 }
+
+/// Path mode budget (spec: file path search): one query on a folder of 1 000 entries, p95 < 20 ms, read cold
+/// (a new lister, so nothing is cached) and while typing a filter (the folder listing is cached).
+/// Run with `POUNCE_BENCHMARKS=1 swift test -c release --filter PathModeBenchmarks`.
+@Suite(
+    "PathModeBenchmarks", .serialized,
+    .enabled(if: ProcessInfo.processInfo.environment["POUNCE_BENCHMARKS"] != nil))
+struct PathModeBenchmarks {
+    @Test func thousandEntryFolder() async throws {
+        let directory = try TemporaryDirectory()
+        try directory.make((0..<1_000).map { $0 % 10 == 0 ? "home/big/folder-\($0)/" : "home/big/file-\($0).txt" })
+        let home = directory.sub("home")
+        let usage = RecordingUsage()
+        func source(_ lister: DirectoryLister) -> PathSearchSource {
+            PathSearchSource(
+                lister: lister, usage: usage, workspace: RecordingWorkspace(), pasteboard: MemoryPasteboard(),
+                home: home, fullDiskAccess: { false }, includesHidden: { false })
+        }
+        let clock = ContinuousClock()
+        var cold: [Duration] = []
+        for _ in 0..<50 {
+            let path = source(DirectoryLister(home: home))
+            let start = clock.now
+            _ = try await path.search(TextNormalizer.query("~/big/"), limit: 50)
+            cold.append(clock.now - start)
+        }
+        let warmSource = source(DirectoryLister(home: home))
+        var warm: [Duration] = []
+        for query in ["~/big/f", "~/big/fi", "~/big/fil", "~/big/file-9", "~/big/folder"] {
+            for _ in 0..<10 {
+                let start = clock.now
+                _ = try await warmSource.search(TextNormalizer.query(query), limit: 50)
+                warm.append(clock.now - start)
+            }
+        }
+        let p95Cold = FileBenchmarks.percentile(cold, 0.95)
+        let p95Warm = FileBenchmarks.percentile(warm, 0.95)
+        print(
+            "Path mode, 1 000 entries: cold p95 \(FileBenchmarks.ms(p95Cold)), typing p95 \(FileBenchmarks.ms(p95Warm))"
+        )
+        #expect(p95Cold < .milliseconds(20))
+        #expect(p95Warm < .milliseconds(20))
+    }
+}

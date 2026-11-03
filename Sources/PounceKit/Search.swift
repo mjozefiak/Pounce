@@ -64,6 +64,10 @@ public struct Candidate: Hashable, Sendable {
     public let match: MatchResult
     /// Source signal applied within the tier (for example depth penalty or recent mtime).
     public let boost: Double
+    /// A short label beside the title, already localised by the source (for example "Running"). Added
+    /// with app suggestions; `nil` shows nothing. Part of the synthesised `Hashable`: the same item with
+    /// and without a badge are two different candidates (the shell identifies rows by `ResultItem.id`).
+    public let badge: String?
 
     public init(
         itemKey: ItemKey,
@@ -71,7 +75,8 @@ public struct Candidate: Hashable, Sendable {
         subtitle: String? = nil,
         icon: IconRef,
         match: MatchResult,
-        boost: Double = 0
+        boost: Double = 0,
+        badge: String? = nil
     ) {
         self.itemKey = itemKey
         self.title = title
@@ -79,6 +84,7 @@ public struct Candidate: Hashable, Sendable {
         self.icon = icon
         self.match = match
         self.boost = boost
+        self.badge = badge
     }
 }
 
@@ -97,5 +103,23 @@ public protocol SearchSource: Sendable {
 }
 
 extension SearchSource {
+    public func actions(for candidate: Candidate) -> [ResultAction] { [] }
+}
+
+/// Ranked suggestions for the empty search panel (for example the apps used most). The shell shows them
+/// in order above "Recently Used", never re-ranks them and never records them in `ranking.sqlite`.
+/// Added with app suggestions.
+public protocol SuggestionSource: Sendable {
+    var id: SourceID { get }
+
+    /// Runs off the main actor, reacts to `Task` cancellation, best first, at most `limit`.
+    func suggestions(limit: Int) async throws -> [Candidate]
+
+    /// Actions for a candidate: the first one runs on Return, the second on Command-Return, any other by
+    /// its shortcut.
+    func actions(for candidate: Candidate) -> [ResultAction]
+}
+
+extension SuggestionSource {
     public func actions(for candidate: Candidate) -> [ResultAction] { [] }
 }

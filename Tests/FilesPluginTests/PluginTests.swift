@@ -168,7 +168,7 @@ struct FilesPluginTests {
         #expect(FilesPlugin.manifest.id == "files")
         #expect(harness.plugin.requiredPermissions == [.fullDiskAccess])
         #expect(harness.plugin.onboardingSteps.map(\.id) == ["files.fullDiskAccess"])
-        #expect(harness.plugin.searchSources.map(\.id) == ["files.names"])
+        #expect(harness.plugin.searchSources.map(\.id) == ["files.names", "files.path"])
         #expect(harness.plugin.settingsPane() != nil)
     }
 }
