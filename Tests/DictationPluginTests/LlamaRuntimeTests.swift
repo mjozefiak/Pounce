@@ -39,6 +39,14 @@ actor StubRuntime: LLMRuntime {
 
 private let sampleMessages = CleanupPrompt.messages(transcript: "yyy no więc jutro mamy spotkanie", context: nil)
 
+/// Polls until the stub has unloaded `count` times, for at most ten seconds (a fixed sleep flakes on a loaded runner).
+private func waitForUnloads(_ stub: StubRuntime, _ count: Int) async {
+    for _ in 0..<1000 {
+        if await stub.unloads >= count { return }
+        try? await Task.sleep(for: .milliseconds(10))
+    }
+}
+
 @Suite struct KeepWarmRuntimeTests {
     private let model = URL(fileURLWithPath: "/models/test.gguf")
 
@@ -60,7 +68,7 @@ private let sampleMessages = CleanupPrompt.messages(transcript: "yyy no więc ju
         let stub = StubRuntime()
         let runtime = make(stub)
         _ = try await runtime.generate(messages: sampleMessages, maxTokens: 8)
-        try await Task.sleep(for: .milliseconds(250))
+        await waitForUnloads(stub, 1)
         #expect(await stub.isLoaded == false)
         #expect(await stub.unloads == 1)
         // The next request loads it again.
@@ -71,11 +79,11 @@ private let sampleMessages = CleanupPrompt.messages(transcript: "yyy no więc ju
 
     @Test func aNewRequestRestartsTheTimer() async throws {
         let stub = StubRuntime()
-        let runtime = make(stub, keepWarm: .milliseconds(150))
+        let runtime = make(stub, keepWarm: .seconds(3))
         _ = try await runtime.generate(messages: sampleMessages, maxTokens: 8)
-        try await Task.sleep(for: .milliseconds(90))
+        try await Task.sleep(for: .milliseconds(1800))
         _ = try await runtime.generate(messages: sampleMessages, maxTokens: 8)
-        try await Task.sleep(for: .milliseconds(90))
+        try await Task.sleep(for: .milliseconds(1800))
         #expect(await stub.isLoaded)
         await runtime.unload()
     }
@@ -86,7 +94,7 @@ private let sampleMessages = CleanupPrompt.messages(transcript: "yyy no więc ju
         let runtime = make(stub, keepWarm: .milliseconds(20))
         _ = try await runtime.generate(messages: sampleMessages, maxTokens: 8)
         #expect(await stub.unloads == 0)
-        try await Task.sleep(for: .milliseconds(200))
+        await waitForUnloads(stub, 1)
         #expect(await stub.unloads == 1)
     }
 

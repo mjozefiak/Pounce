@@ -281,7 +281,7 @@ private actor PrepareSpy: TextFormatter {
         let spy = PrepareSpy()
         let session = session(formatter: spy)
         try await session.start()
-        try await Task.sleep(for: .milliseconds(100))
+        for _ in 0..<1000 where await spy.prepared == 0 { try await Task.sleep(for: .milliseconds(10)) }
         #expect(await spy.prepared == 1)
         _ = try await session.finish()
     }
@@ -293,7 +293,7 @@ private actor PrepareSpy: TextFormatter {
             runtime: runtime, modelURL: URL(fileURLWithPath: "/models/test.gguf"), keepWarm: { .seconds(60) })
         let session = session(formatter: BuiltInFormatter(runtime: warm))
         try await session.start()
-        try await Task.sleep(for: .milliseconds(150))
+        for _ in 0..<1000 where await !runtime.isLoaded { try await Task.sleep(for: .milliseconds(10)) }
         #expect(await runtime.isLoaded)
         let output = try await session.finish()
         #expect(output.text == "Segment 1.")
