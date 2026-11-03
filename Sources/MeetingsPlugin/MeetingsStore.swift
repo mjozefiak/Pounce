@@ -56,7 +56,6 @@ final class MeetingsStore: Sendable {
     static let fileName = "meetings.sqlite"
 
     private let database: DatabaseQueue
-    private let lock = NSLock()
     private let closed = Mutex(false)
 
     init(database: DatabaseQueue) {
@@ -77,21 +76,28 @@ final class MeetingsStore: Sendable {
         try access { try $0.vacuum() }
     }
 
-    /// Closes the database. Waits for an access in progress; any later access throws
-    /// `MeetingsStoreError.closed`.
+    /// Closes the database. `DatabaseQueue` serializes the close behind an access in progress; any later access
+    /// throws `MeetingsStoreError.closed`. No lock is held across an access, so a long one (`VACUUM`) blocks
+    /// only the queue, not `isClosed` or a second `close()`.
     func close() throws {
-        lock.lock()
-        defer { lock.unlock() }
-        guard !isClosed else { return }
-        closed.withLock { $0 = true }
+        let alreadyClosed = closed.withLock { flag -> Bool in
+            let was = flag
+            flag = true
+            return was
+        }
+        guard !alreadyClosed else { return }
         try database.close()
     }
 
     private func access<T>(_ body: (DatabaseQueue) throws -> T) throws -> T {
-        lock.lock()
-        defer { lock.unlock() }
         guard !isClosed else { throw MeetingsStoreError.closed }
-        return try body(database)
+        do {
+            return try body(database)
+        } catch {
+            // An access that lost the race with `close()` reports GRDB's misuse error; it is "closed" to callers.
+            if isClosed, error is DatabaseError { throw MeetingsStoreError.closed }
+            throw error
+        }
     }
 
     /// Opens (or creates) the encrypted database in `directory` (mode 0700; the file is 0600).

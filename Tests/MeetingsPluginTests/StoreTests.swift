@@ -100,6 +100,67 @@ private let day: TimeInterval = 86_400
         #expect(throws: (any Error).self) { _ = try MeetingsStore.open(in: directory.url, keys: testKeys(1)) }
     }
 
+    @Test func rowsWrittenUnderV1SurviveTheRealMigratorAndKeepBothIndexes() throws {
+        // `v1` applied on its own, rows inserted with plain SQL (the way an earlier build left them), then the
+        // full migrator: the rows and the full-text indexes must be intact, and no migration may run twice.
+        let queue = try DatabaseQueue()
+        let migrator = MeetingsStore.migrator
+        try migrator.migrate(queue, upTo: "v1-meetings")
+        try queue.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO meeting (uuid, started_at, title, status, notes_markdown, notes_status)
+                    VALUES ('u1', 1000, 'Łódź budżet', 'ready', '- Decyzja: żółć', 'ok');
+                    INSERT INTO meeting_speaker (meeting_id, label, is_self, source_channel) VALUES (1, 'Ja', 1, 'mic');
+                    INSERT INTO meeting_segment (meeting_id, channel, start_ms, end_ms, speaker_id, text)
+                    VALUES (1, 'mic', 0, 900, 1, 'Zatwierdzamy żółć'), (1, 'mic', 1000, 1900, 1, 'Drugi segment');
+                    """
+            )
+        }
+        try migrator.migrate(queue)
+        let applied = try queue.read { try migrator.appliedIdentifiers($0) }
+        #expect(applied == ["v1-meetings"])
+        let counts = try queue.read { db in
+            [
+                try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM meeting") ?? -1,
+                try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM meeting_speaker") ?? -1,
+                try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM meeting_segment") ?? -1,
+                try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM meeting_fts WHERE meeting_fts MATCH 'zolc'") ?? -1,
+                try Int.fetchOne(
+                    db, sql: "SELECT COUNT(*) FROM meeting_notes_fts WHERE meeting_notes_fts MATCH 'lodz'") ?? -1,
+            ]
+        }
+        #expect(counts == [1, 1, 2, 1, 1])
+        let notes = try queue.read { try String.fetchOne($0, sql: "SELECT notes_markdown FROM meeting") }
+        #expect(notes == "- Decyzja: żółć")
+    }
+
+    @Test func aReopenedStoreStillFindsFoldedTextInBothIndexes() throws {
+        let directory = try TemporaryDirectory()
+        let first = try MeetingsStore.open(in: directory.url, keys: testKeys())
+        let id = try first.insertMeeting(uuid: "a", startedAt: Date(), speechModelID: "m")
+        try first.insertSpeaker(meetingID: id, label: "Ja", isSelf: true, channel: .mic)
+        try first.insertSegment(meetingID: id, channel: .mic, startMs: 0, end: 500, text: "Łódź żółć")
+        try first.setTitle(id, title: "Spotkanie w Łodzi")
+        try first.setNotes(id, markdown: "- Budżet: żółć", status: .ok)
+        try first.close()
+        let second = try MeetingsStore.open(in: directory.url, keys: testKeys())
+        #expect(try second.searchSegments("lodz zolc", limit: 5) == [id])
+        #expect(try second.searchNotes("lodzi", limit: 5) == [id])
+        #expect(try second.searchNotes("zolc", limit: 5) == [id])
+        #expect(try second.speakers(meetingID: id).count == 1)
+    }
+
+    @Test func aClosedStoreThrowsClosedAndClosesOnlyOnce() throws {
+        let (store, directory) = try openStore()
+        defer { withExtendedLifetime(directory) {} }
+        try store.close()
+        try store.close()
+        #expect(store.isClosed)
+        #expect(throws: MeetingsStoreError.closed) { _ = try store.meetingCount() }
+        #expect(throws: MeetingsStoreError.closed) { try store.vacuum() }
+    }
+
     @Test func theFrozenFoldingOfTheMigrationMatchesFullTextFolding() throws {
         let (store, directory) = try openStore()
         defer { withExtendedLifetime(directory) {} }
