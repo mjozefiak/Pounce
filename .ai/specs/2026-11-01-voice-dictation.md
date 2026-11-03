@@ -1,8 +1,6 @@
 # Dyktowanie głosowe (Voice to Text)
 
 > Status: **projekt** — odpowiedzi na Open Questions przyjęte 2026-11-02, czeka na review. Proza po polsku, identyfikatory po angielsku (jak spec MVP).
->
-> **Zmiana 2026-11-03 (zob. `2026-11-03-meeting-notes.md`):** kod wspólny z funkcją spotkań powstaje od początku w nowym targecie `PounceSpeech` (między pluginami a `PouncePersistence`), a nie w `DictationPlugin`: `SpeechEngine` + `ParakeetEngine`, `ModelCatalog`/`ModelManager`, `LoopbackPolicy`, `HTTPTransport`, klient LLM + `EndpointProbe`, `MicrophoneAuthorizer`, `AudioSource` + `MicrophoneSource` (dawne `AudioCapture`), `SleepAssertion`, protokół `HUDPresenter` i `SpeechEngineLease` (jedna rezydentna instancja modelu na proces). `DictationPlugin` zawiera resztę (sesja, gest, `Segmenter`, formatowanie, `TextPaster`, HUD, historia). Modele leżą we wspólnym `Application Support/Pounce/Models/<model-id>/` zamiast `Plugins/dictation/Models/`. Reguła zależności w `AGENTS.md` dostaje warstwę `plugins → PounceSpeech → PouncePersistence / PounceCore → PounceKit` (decyzja w ADR 0005 „Warstwa PounceSpeech”, pisanym w kroku 1.2). Numeracja kroków bez zmian; komponenty `PounceSpeech` powstają w krokach 1.2 (target, reguła w `AGENTS.md`, wiersz `Models/` w `BACKWARD_COMPATIBILITY.md`), 1.3 (`ModelManager`, `DownloadHostPolicy`, `HTTPTransport`), 1.5 (mikrofon, `VADSegmenter`, silnik, `SpeechEngineLease`, `SleepAssertion`), 1.7 (`HUDPresenter`), 1.10 (WhisperKit) i 2.1 (`LoopbackPolicy`, `EndpointProbe`, `ChatCompletionsClient`, `ConfirmedEndpoint`). Wybór modelu mowy jest wspólny dla pluginów (klucze `app.speech.*`).
 
 ## 📝 TLDR
 Użytkownik chce dyktować tekst w dowolnej aplikacji, jak w superwhisper, głównie przy pisaniu promptów do LLM (często 2–5 minut mówienia, po polsku z angielskimi terminami). Dziś Pounce nie obsługuje mowy, a dyktowanie systemowe macOS daje jeden blok tekstu z „yyy” i poprawkami w locie. Proponowane przyszłe zachowanie: nowy plugin `DictationPlugin` nagrywa pod globalnym skrótem, transkrybuje **modelem mowy działającym w procesie Pounce** (audio nie opuszcza Maca), **porządkuje** tekst przez **lokalny serwer LLM użytkownika** (Ollama / LM Studio / llama-server, tylko loopback) i wkleja wynik do aplikacji, w której użytkownik pisze. Tekst (surowy i sformatowany) trafia do zaszyfrowanej historii; audio nigdy nie jest zapisywane.
@@ -101,14 +99,14 @@ flowchart LR
     hk["HotkeyService (shell): key-down + key-up"]:::existing
     gesture["RecordingGesture (tap / hold)"]:::new
     session["DictationSession (actor)"]:::new
-    capture["MicrophoneSource (PounceSpeech)"]:::new
-    stt["SpeechEngine: ParakeetEngine (PounceSpeech, FluidAudio)"]:::new
+    capture["AudioCapture (AVAudioEngine)"]:::new
+    stt["SpeechEngine: ParakeetEngine (FluidAudio)"]:::new
     fmt["TextFormatter: RawFormatter / LocalLLMFormatter"]:::new
-    llm["Ollama / LM Studio / llama-server (loopback, ChatCompletionsClient w PounceSpeech)"]:::external
+    llm["Ollama / LM Studio / llama-server (loopback)"]:::external
     store["DictationStore (SQLCipher)"]:::new
     paste["TextPaster (PasteboardClient + EventPoster)"]:::new
     hud["DictationHUD (NSPanel non-activating)"]:::new
-    models["ModelManager (PounceSpeech: download / folder / SHA-256)"]:::new
+    models["ModelManager (download / folder / SHA-256)"]:::new
 
     hk --> gesture --> session
     session --> capture
@@ -120,15 +118,11 @@ flowchart LR
     session --> hud
 ```
 
-Wniosek: logika dyktowania (sesja, gest, segmentacja, formatowanie, wklejanie, HUD, historia) żyje w `DictationPlugin`, a klocki wspólne z funkcją spotkań (`2026-11-03-meeting-notes.md`) w nowym targecie `PounceSpeech`. Shell dostaje cztery addytywne rozszerzenia kontraktu (fazy naciśnięcia skrótu, uprawnienie mikrofonu, tymczasowe przejęcie Esc, wspólne typy znaczników schowka) oraz opis użycia i entitlement mikrofonu w bundlu. Aplikację na pierwszym planie plugin czyta z istniejącego `WorkspaceClient.frontmostApplication`.
+Wniosek: cała logika żyje w `DictationPlugin`. Shell dostaje cztery addytywne rozszerzenia kontraktu (fazy naciśnięcia skrótu, uprawnienie mikrofonu, tymczasowe przejęcie Esc, wspólne typy znaczników schowka) oraz opis użycia i entitlement mikrofonu w bundlu. Aplikację na pierwszym planie plugin czyta z istniejącego `WorkspaceClient.frontmostApplication`.
 
-**Wyjątek od zasady „pluginy nie sięgają po globalne obiekty”:** `AVAudioEngine`, `AVCaptureDevice.requestAccess`, `URLSession` i własny `NSPanel` są używane w pluginie, ale każdy za **wewnętrznym** (nie w `PounceKit`) protokołem wstrzykiwanym w inicjalizatorze: `AudioSource` (testy: plik WAV), `MicrophoneAuthorizer`, `HTTPTransport` (testy: `URLProtocol` stub), `HUDPresenter` (testy: rejestrujący stan). `AudioSource`, `MicrophoneAuthorizer`, `HTTPTransport` i `HUDPresenter` leżą w `PounceSpeech`, bo używają ich dwa pluginy; do `PounceKit` nie trafiają. Jedyny proces poza Pounce to opcjonalny serwer LLM użytkownika.
+**Wyjątek od zasady „pluginy nie sięgają po globalne obiekty”:** `AVAudioEngine`, `AVCaptureDevice.requestAccess`, `URLSession` i własny `NSPanel` są używane w pluginie, ale każdy za **wewnętrznym** (nie w `PounceKit`) protokołem wstrzykiwanym w inicjalizatorze: `AudioSource` (testy: plik WAV), `MicrophoneAuthorizer`, `HTTPTransport` (testy: `URLProtocol` stub), `HUDPresenter` (testy: rejestrujący stan). Nie dodajemy ich do `PounceKit`, bo potrzebuje ich jeden plugin; trafią tam, gdy pojawi się drugi. Jedyny proces poza Pounce to opcjonalny serwer LLM użytkownika.
 
-**Komponenty `Sources/PounceSpeech/` (nowy target, wspólny z `MeetingsPlugin`; zależy od `PouncePersistence` i `PounceCore`, nie importuje żadnego pluginu; regułę dopisuje krok 1.2):**
-- `SpeechEngine` + `ParakeetEngine` (+ `WhisperKitEngine`, krok 1.10), `ModelCatalog` + `ModelManager`, `DownloadHostPolicy` (lista hostów pobierania), `LoopbackPolicy`, `HTTPTransport`, `EndpointProbe`, `ChatCompletionsClient` (żądanie `/v1/chat/completions`, timeout, `finish_reason`; bez logiki czyszczenia tekstu; inicjalizator przyjmuje wyłącznie `ConfirmedEndpoint`), `MicrophoneAuthorizer`, `AudioSource` + `MicrophoneSource`, `SleepAssertion`, `VADSegmenter` (Silero przez FluidAudio; instancja na strumień audio), `EndpointConfirmation` + `ConfirmedEndpoint`, protokół `HUDPresenter`.
-- `SpeechEngineLease` — jedna rezydentna instancja modelu mowy na proces, współbieżnie dla wielu użytkowników: (a) dzierżawa tego samego klucza `(model-id, folder)` jest współdzielona (licznik, `keepWarm` liczy się od zwolnienia ostatniej); (b) wybór modelu jest wspólny (`app.speech.model`), więc obie funkcje zwykle chcą tego samego silnika; naraz załadowany jest najwyżej jeden silnik (budżet pamięci), a prośba o inny klucz, gdy poprzedni ma **aktywną** dzierżawę, kończy się błędem `busy` z komunikatem w HUD; model rozgrzany bez aktywnej dzierżawy (tylko `keepWarm`) jest natychmiast zwalniany i zastępowany, więc nie blokuje startu; (c) żądania transkrypcji idą jedną kolejką z priorytetem `interactive` (dyktowanie) przed `background` (segmenty spotkania), więc budżet ogona dyktowania < 3 s nie zależy od trwającego spotkania. Kolejka `background` ma limit 60 s niezakończonego audio; powyżej segmenty czekają w spoolu spotkania i są dotranskrybowane po jego końcu.
-
-**Komponenty `Sources/DictationPlugin/` (to, co zostaje w pluginie; pozycje oznaczone **`PounceSpeech`** poniżej mieszkają we wspólnym targecie):**
+**Komponenty `Sources/DictationPlugin/`:**
 - `DictationPlugin` — manifest (`id: dictation`, `order` po schowku, `defaultEnabled: false`, bo funkcja wymaga pobrania modelu i mikrofonu), `commands`, `onboardingSteps`, `requiredPermissions = [.microphone, .accessibility]`, `settingsPane()`, `panelModes` (historia, Faza 3), `eraseData()` (klucz w Keychain).
 - `RecordingGesture` — czysta maszyna stanów (bez I/O), z pełną tabelą stan × zdarzenie:
 
@@ -141,27 +135,27 @@ Wniosek: logika dyktowania (sesja, gest, segmentacja, formatowanie, wklejanie, H
   | `finishing` | ignoruj | ignoruj | ignoruj | ignoruj (tekst już powstaje) |
 
   Kończenie w `toggle` następuje dopiero przy key-up drugiego naciśnięcia, żeby puszczenie klawisza nie trafiło do nowej sesji.
-- `DictationSession` (`actor`) — jedno nagranie (z blokadą uśpienia `SleepAssertion`, **`PounceSpeech`**): bufor audio, kolejka segmentów, kolejność akapitów, anulowanie przez `Task` cancellation. Naraz istnieje najwyżej jedna sesja.
-- `AudioSource` + `MicrophoneSource` (**`PounceSpeech`**, dawne `AudioCapture`) — `AVAudioEngine` z tapem na wejściu, konwersja do 16 kHz mono `Float32`, poziom RMS dla HUD; wybrane urządzenie wejściowe albo systemowe.
-- `SpeechEngine` (protokół) + `ParakeetEngine` (**`PounceSpeech`**, dzierżawa przez `SpeechEngineLease`):
+- `DictationSession` (`actor`) — jedno nagranie: bufor audio, kolejka segmentów, kolejność akapitów, anulowanie przez `Task` cancellation. Naraz istnieje najwyżej jedna sesja.
+- `AudioCapture` — `AVAudioEngine` z tapem na wejściu, konwersja do 16 kHz mono `Float32`, poziom RMS dla HUD; wybrane urządzenie wejściowe albo systemowe.
+- `SpeechEngine` (protokół) + `ParakeetEngine`:
   - `load(modelFolder:)`, `transcribe(segment:) async throws -> TranscriptSegment`, `unload()`;
   - model zostaje w pamięci przez `keepWarm` (domyślnie 10 min od ostatniego dyktowania), potem jest zwalniany;
-  - `WhisperKitEngine` (krok 1.10): Whisper large-v3-turbo z językiem przypiętym do `app.speech.language`; ten sam protokół, ten sam `ModelManager`.
+  - `WhisperKitEngine` (krok 1.10): Whisper large-v3-turbo z językiem przypiętym do `speechLanguage`; ten sam protokół, ten sam `ModelManager`.
 - `Segmenter` — czysta logika: z segmentów VAD składa akapity do formatowania (próg ~40 słów, pauza ≥ 1,5 s, twardy limit N = 60 słów z podziałem na końcu zdania). Ogon po zakończeniu nagrania też jest dzielony tym samym limitem, więc po zatrzymaniu czeka się najwyżej na jeden kawałek ≤ N słów (kolejne kawałki ogona idą równolegle, jeśli serwer na to pozwala, inaczej po kolei). Limit `N` = 60 wynika z rachunku w ADR 0004.
 - `TextFormatter` (protokół): `format(chunk:previousContext:) async throws -> String`. Implementacje:
   - `RawFormatter` — tylko złożenie segmentów i spacje;
-  - `LocalLLMFormatter` — używa `ChatCompletionsClient` z `PounceSpeech` (`URLSession`, `stream: false`, `temperature: 0`) z promptem systemowym `CleanupPrompt` (zasoby pluginu, wersjonowany), z transkrypcją w `<transcript>…</transcript>` i z ogonem poprzedniego akapitu jako kontekstem tylko do odczytu;
+  - `LocalLLMFormatter` — klient `/v1/chat/completions` (`URLSession`, `stream: false`, `temperature: 0`) z promptem systemowym `CleanupPrompt` (zasoby pluginu, wersjonowany), z transkrypcją w `<transcript>…</transcript>` i z ogonem poprzedniego akapitu jako kontekstem tylko do odczytu;
   - `FormatterGuard` — wycina `<think>…</think>`; jeśli liczba słów wyjścia jest poza 0,6–1,15× wejścia albo zmienił się dominujący język, odrzuca kawałek i wstawia surowy.
-- `EndpointProbe` (**`PounceSpeech`**) — wykrywa serwery przez `GET /v1/models` na `127.0.0.1:11434`, `:1234`, `:9931` oraz pod adresem z Ustawień. Wynik tylko **proponuje** endpoint: tekst jest wysyłany dopiero po potwierdzeniu przez użytkownika (host, port i nazwa modelu w Ustawieniach), zapamiętane jako `ConfirmedEndpoint`, jedyny typ, który przyjmuje `ChatCompletionsClient`; przed każdą sesją klient sprawdza przez `GET /v1/models`, że model jest nadal tym potwierdzonym, a zmiana hosta, portu lub modelu wymaga ponownego potwierdzenia; okno potwierdzenia mówi wprost, że cały tekst zostanie wysłany do procesu pod danym adresem, bo pod znanym portem może nasłuchiwać dowolny proces.
-- `LoopbackPolicy` (**`PounceSpeech`**; lista hostów pobierania jako `DownloadHostPolicy` powstaje w kroku 1.3, walidacja loopback w kroku 2.1) — czysta funkcja walidująca każdy URL przed żądaniem:
+- `EndpointProbe` — wykrywa serwery przez `GET /v1/models` na `127.0.0.1:11434`, `:1234`, `:9931` oraz pod adresem z Ustawień.
+- `LoopbackPolicy` — czysta funkcja walidująca każdy URL przed żądaniem:
   - `localhost` zamieniany na `127.0.0.1` przez Pounce, bez DNS i `/etc/hosts`;
   - akceptowane tylko dosłowne `127.x.x.x` (forma kropkowa dziesiętna) i `[::1]`;
   - odrzucane adresy `::ffff:` mapowane, liczbowe i ósemkowe formy IP, URL z userinfo (`http://127.0.0.1@evil`) i schematy inne niż `http`;
   - klient LLM używa sesji `.ephemeral` z `connectionProxyDictionary = [:]` (bez proxy, bez `URLCache` na dysku) i blokuje przekierowania w `willPerformHTTPRedirection`;
   - pobieranie modelu idzie osobną sesją, po HTTPS, wyłącznie do hostów z listy: `huggingface.co`, `cdn-lfs.hf.co` i `cdn-lfs-*.hf.co`, `cas-bridge.xethub.hf.co`. Ta sesja (inaczej niż sesja LLM) przyjmuje przekierowania, ale tylko na hosty z listy; każde inne przekierowanie przerywa pobieranie. Listę weryfikuje ręczny test pobierania w kroku 1.3.
-- `ModelManager` (**`PounceSpeech`**) — katalog wkompilowanych modeli (`ModelCatalog`: id, pliki, przypięta rewizja Hugging Face, SHA-256 każdego pliku, rozmiar, licencja i atrybucja). Pakiet obejmuje **wszystko**, czego silnik potrzebuje: Parakeet (encoder, decoder, joint), słownik/tokenizer i model VAD Silero. Wbudowane pobieranie FluidAudio (`downloadAndLoad`, domyślny katalog modeli) i WhisperKit (pobieranie z Hugging Face przy braku `modelFolder`, `download: true`) **nigdy nie jest używane**: każdy silnik ładuje modele wyłącznie z folderu wskazanego przez `ModelManager` (sprawdzane w krokach 1.5 i 1.10 z zablokowaną siecią). Skompilowane modele Core ML (`.mlmodelc`) to dane wag, nie kod wykonywalny, więc nie łamią zakazu ładowania kodu w runtime (`CODE_REVIEW.md`).
+- `ModelManager` — katalog wkompilowanych modeli (`ModelCatalog`: id, pliki, przypięta rewizja Hugging Face, SHA-256 każdego pliku, rozmiar, licencja i atrybucja). Pakiet obejmuje **wszystko**, czego silnik potrzebuje: Parakeet (encoder, decoder, joint), słownik/tokenizer i model VAD Silero. Wbudowane pobieranie FluidAudio (`downloadAndLoad`, domyślny katalog modeli) i WhisperKit (pobieranie z Hugging Face przy braku `modelFolder`, `download: true`) **nigdy nie jest używane**: każdy silnik ładuje modele wyłącznie z folderu wskazanego przez `ModelManager` (sprawdzane w krokach 1.5 i 1.10 z zablokowaną siecią). Skompilowane modele Core ML (`.mlmodelc`) to dane wag, nie kod wykonywalny, więc nie łamią zakazu ładowania kodu w runtime (`CODE_REVIEW.md`).
   `ModelManager`:
-  - pobiera przez `URLSession` do `Models/<model-id>.partial/` (wspólny katalog modeli, `PounceSpeech`) i weryfikuje sumy;
+  - pobiera przez `URLSession` do `Plugins/dictation/Models/<model-id>.partial/` i weryfikuje sumy;
   - po weryfikacji wykonuje atomowy `rename`;
   - obsługuje wskazany folder (sprawdzenie listy plików i sum, bez kopiowania), wznawianie i anulowanie.
 - `TextPaster`:
@@ -174,7 +168,7 @@ Wniosek: logika dyktowania (sesja, gest, segmentacja, formatowanie, wklejanie, H
     - `changeCount` nie zmienił się od wklejenia.
     
     Przywrócony zapis też dostaje znacznik transient, więc `ClipboardPlugin` nie łapie go ponownie i nie podbija starego wpisu.
-- `DictationHUD` (implementuje `HUDPresenter` z **`PounceSpeech`**) — własny `NSPanel` (`.nonactivatingPanel`, poziom `.statusBar`, nigdy nie przejmuje fokusu, ignoruje mysz poza przyciskiem anulowania), SwiftUI w środku. Własne okno pluginu, bo panel launchera shella jest aktywowany skrótem i zasłania pole tekstowe; nie dodajemy kontraktu „overlay”, dopóki potrzebuje go jeden plugin.
+- `DictationHUD` — własny `NSPanel` (`.nonactivatingPanel`, poziom `.statusBar`, nigdy nie przejmuje fokusu, ignoruje mysz poza przyciskiem anulowania), SwiftUI w środku. Własne okno pluginu, bo panel launchera shella jest aktywowany skrótem i zasłania pole tekstowe; nie dodajemy kontraktu „overlay”, dopóki potrzebuje go jeden plugin.
 - `DictationStore` + `DictationKeyStore` (Faza 3) — patrz Data Model.
 
 **Zmiany w shellu (`PounceApp`):**
@@ -188,9 +182,9 @@ Wniosek: logika dyktowania (sesja, gest, segmentacja, formatowanie, wklejanie, H
 - `THIRD_PARTY_NOTICES.txt`: FluidAudio (Apache-2.0), WhisperKit (MIT, krok 1.10); atrybucja wag Parakeet Ultra (CC-BY-4.0) w Ustawieniach przy modelu i w notkach.
 
 **Zależności:**
-- Nowa: **FluidAudio** (Apache-2.0, `from:` z dokładnym pinem jak KeyboardShortcuts) w `PounceSpeech`. Powód: natywny Swift 6, Parakeet Ultra + VAD + strumieniowanie, najlepszy wynik dla polskiego wśród szybkich modeli.
-- Nowa (krok 1.10): **WhisperKit** (MIT, dokładny pin) w `PounceSpeech`. Powód: jedyny szybki silnik z przypinanym językiem, zabezpieczenie przed dryfem Parakeeta (ADR 0003).
-- `DictationPlugin` zależy od `PounceSpeech`, `PouncePersistence` i produktu GRDB (jak `ClipboardPlugin`); `PounceSpeech` zależy od `PouncePersistence` i `PounceCore`.
+- Nowa: **FluidAudio** (Apache-2.0, `from:` z dokładnym pinem jak KeyboardShortcuts) w `DictationPlugin`. Powód: natywny Swift 6, Parakeet Ultra + VAD + strumieniowanie, najlepszy wynik dla polskiego wśród szybkich modeli.
+- Nowa (krok 1.10): **WhisperKit** (MIT, dokładny pin) w `DictationPlugin`. Powód: jedyny szybki silnik z przypinanym językiem, zabezpieczenie przed dryfem Parakeeta (ADR 0003).
+- `DictationPlugin` zależy też od `PouncePersistence` i produktu GRDB (jak `ClipboardPlugin`).
 - Brak nowych zależności dla LLM (`URLSession`).
 
 **Pamięć i budżety (nowe wiersze w `docs/perf.md`):**
@@ -206,9 +200,9 @@ Wniosek: logika dyktowania (sesja, gest, segmentacja, formatowanie, wklejanie, H
 | Pamięć w trakcie dyktowania | budżet osobny, mierzony w kroku 1.9 (oczekiwane ~0,8–1,2 GB) |
 
 ## 📝 Data Model
-Trzy elementy: katalog modeli `Models/` we wspólnym korzeniu (wyjątek od zasady „dane pluginu w `Plugins/<id>/`”) oraz, prywatne dla pluginu w `Application Support/Pounce/Plugins/dictation/` (katalog 0700, pliki 0600), baza i klucz.
+Trzy magazyny w `Application Support/Pounce/Plugins/dictation/` (katalog 0700, pliki 0600), wszystkie prywatne dla pluginu.
 
-1. **`Models/<model-id>/`** (w `Application Support/Pounce/`, wspólny dla pluginów, katalog 0700, pliki 0600) — pliki modelu mowy (Faza 1). Odtwarzalne (ponowne pobranie), więc nie są chronionym formatem; chroniona jest tylko ścieżka katalogu `Models/` (R4). „Usuń model” w Ustawieniach usuwa pliki tylko wtedy, gdy żadna dzierżawa `SpeechEngineLease` ich nie trzyma, i ostrzega, gdy ten sam model jest wybrany też przez inną funkcję (np. Spotkania). Folder wskazany przez użytkownika nie jest kopiowany; jego ścieżka siedzi w ustawieniach.
+1. **`Models/<model-id>/`** — pliki modelu mowy (Faza 1). Odtwarzalne (ponowne pobranie), więc nie są chronionym formatem; chroniona jest tylko ścieżka katalogu pluginu (R4). Folder wskazany przez użytkownika nie jest kopiowany; jego ścieżka siedzi w ustawieniach.
 2. **`dictation.sqlite`** — SQLCipher (Faza 3), własny `DatabaseMigrator` (migracja `v1-history`), otwierany przez `DatabaseFactory.openQueue` z `DatabaseKey`.
 3. **Klucz** — element Keychain `service = app.pounce.dictation` (ten sam schemat co schowek: losowy klucz główny 256 bit, HKDF-SHA256, `info = sqlcipher`). Logika `KeyStore`/`HistoryOpener` zostaje **przeniesiona** z `ClipboardPlugin` do `PouncePersistence` jako `MasterKeyStore(service:)` i `EncryptedDatabaseOpener`, z niezmienionym zachowaniem dla schowka (krok 3.1); pluginy nie mogą importować się nawzajem, a kopia logiki kluczy to gorszy wybór. Tylko `errSecItemNotFound` może zresetować bazę (archiwum `dictation.sqlite.unreadable-<data>`, 30 dni); każdy inny błąd Keychain wyłącza historię bez kasowania.
 
@@ -254,9 +248,9 @@ Graf modelu danych pominięty: `dictation_entry` i jej indeks FTS nie mają rela
 | Klucz | Typ | Domyślnie |
 |---|---|---|
 | `enabled` | Bool | false |
-| `app.speech.model` | String | `parakeet-ultra` (albo `whisper-large-v3-turbo`); **wspólny z funkcją spotkań** (ten sam wybór w panelach obu pluginów), więc nie ma `plugins.dictation.speechModel` |
-| `app.speech.language` | `pl`/`en` | `pl`; używane tylko przez Whisper; wspólne |
-| `app.speech.modelFolder` | String? | brak (= pobrany model); wspólne |
+| `speechModel` | String | `parakeet-ultra` (albo `whisper-large-v3-turbo`) |
+| `speechLanguage` | `pl`/`en` | `pl`; używane tylko przez Whisper |
+| `speechModelFolder` | String? | brak (= pobrany model) |
 | `inputDevice` | String? (UID) | brak (= systemowe) |
 | `keepWarmMinutes` | Int | 10 |
 | `formatMode` | `raw`/`clean` | `raw`; `clean` zapisywane wyłącznie po wyraźnym wyborze użytkownika (wykrycie serwera nigdy nie przełącza trybu samo) |
@@ -369,7 +363,7 @@ KeyboardShortcuts: `KeyboardShortcuts_command_dictation_record`.
 - **Prompt formatujący jako zachowanie widoczne dla użytkownika:** wersjonowany (`CleanupPrompt.version`, widoczny w logach diagnostycznych, nie w bazie); zmiana promptu = notka w wydaniu (§5).
 - **Odwracalność:**
   - wyłączenie pluginu zatrzymuje wszystko;
-  - „Erase Data” usuwa `Plugins/dictation/` (bazę) i element Keychain; modele we wspólnym `Models/` zostają, usuwa je tylko „Usuń model”;
+  - „Erase Data” usuwa `Plugins/dictation/` (modele, bazę) i element Keychain;
   - klucze ustawień zostają do ponownego włączenia;
   - żadna zmiana nie dotyka `ranking.sqlite` ani danych innych pluginów, z wyjątkiem refaktoru kluczy (powyżej).
 - **Poza zakresem:**
@@ -388,7 +382,7 @@ KeyboardShortcuts: `KeyboardShortcuts_command_dictation_record`.
   - **0.2:** formatowanie — `docs/decisions/0004-dictation-formatting.md`: zalecane modele, `N` = 60 słów, budżet ogona < 3 s, parametry zapytania.
 - **Faza 1 — Dyktowanie surowe (samodzielnie użyteczne):** kontrakt, plugin, model (pobieranie / folder), nagrywanie z gestem tap/hold, transkrypcja w trakcie (Parakeet Ultra, drugi silnik Whisper), HUD, wklejanie, Ustawienia, onboarding, Uprawnienia, strona WWW.
 - **Faza 2 — Formatowanie dla LLM:** klient endpointu, autodetekcja, kawałkowanie w trakcie nagrania, prompt, strażnik, tryb „Porządkuj”, komenda „Wklej surową wersję ostatniego dyktowania”.
-- **Faza 3 — Historia:** przeniesienie logiki kluczy do `PouncePersistence` (krok 3.1 może wejść wcześniej jako samodzielny PR `risk-high`, bo korzysta z niego też funkcja spotkań), zaszyfrowana baza, retencja, list mode historii, Erase Data.
+- **Faza 3 — Historia:** przeniesienie logiki kluczy do `PouncePersistence`, zaszyfrowana baza, retencja, list mode historii, Erase Data.
 
 - **Faza 4 — Wbudowany LLM (llama.cpp):** pomiary na Macu użytkownika, `LlamaRuntime`, pobieranie modeli GGUF, `BuiltInFormatter`, Ustawienia z wyborem „Wbudowany”.
 
@@ -408,19 +402,17 @@ Każda faza to osobna gałąź `feat/` i osobny PR do `main`.
     - `PounceKitTests`: domyślne wartości;
     - `PounceAppTests`: rejestrator testowy emituje `.down` i `.up` w jednym strumieniu, także w tym samym przebiegu pętli zdarzeń, a `onKeyEvent` dostaje je w kolejności; `removeHandler` kończy pętlę (brak zdarzeń po usunięciu); komenda bez `onKeyEvent` dalej woła `run`; widoczny panel jest chowany przed `.down`; drugie przejęcie Esc zwraca uchwyt z `isActive == false`; `release()` wyrejestrowuje; włączenie pluginu z krokiem onboardingu wywołuje `showPendingSteps()`; mapowanie statusu mikrofonu;
     - `ClipboardPluginTests`: wszystkie znaczniki z `PounceKit` są pomijane jak dotąd.
-- **1.2 `PounceSpeech` i szkielet pluginu (dwa PR-y: 1.2a `risk-high` z targetem `PounceSpeech`, regułą zależności i ADR 0005; 1.2b szkielet pluginu).**
-  - Nowy target `PounceSpeech` + `PounceSpeechTests` (zależność FluidAudio z pinem trafia tu), target `DictationPlugin` + `DictationPluginTests` zależny od `PounceSpeech`, rejestracja w `PluginRegistry`, manifest z `defaultEnabled: false`.
-  - Dokumenty tego kroku: `AGENTS.md` (reguła zależności `plugins → PounceSpeech → PouncePersistence / PounceCore → PounceKit`, tabela routingu), `CODE_REVIEW.md` §1 (plugin może importować `PounceSpeech`, nigdy innego pluginu), `docs/decisions/0005-shared-speech-layer.md` (powód warstwy; `PounceSpeech` zależy od `PouncePersistence` tylko dla `AtomicFile`, czyli atomowego zapisu pobranych modeli i stanu pobierania; odrzucone: kopia kodu w każdym pluginie, wszystko w jednym pluginie), `BACKWARD_COMPATIBILITY.md` §2 (wiersz `Models/` w korzeniu Application Support: katalog 0700, pliki 0600, odtwarzalne, nieusuwane przez Erase Data pluginu; zdanie „na korzeniu tylko `ranking.sqlite`” poprawione). Reguła wymaga zgody właściciela w PR-ze.
+- **1.2 Szkielet pluginu.**
+  - Target `DictationPlugin` + `DictationPluginTests`, zależność FluidAudio (pin), rejestracja w `PluginRegistry`, manifest z `defaultEnabled: false`.
   - `Info.plist` (`NSMicrophoneUsageDescription` en/pl w nowym `InfoPlist.xcstrings`), entitlement audio-input, `make-app.sh` (zasoby FluidAudio i kompilacja `InfoPlist.xcstrings`), notki licencyjne.
-  - Test: `swift build` ze strict concurrency, test rejestru pluginów, graf SwiftPM nie pozwala `PounceSpeech` importować pluginu ani `PounceApp`, `StringCatalogTests`, `codesign -d --entitlements -` na zbudowanej aplikacji; aplikacja podpisana ad-hoc z hardened runtime ładuje FluidAudio i startuje.
-- **1.3 `ModelCatalog` + `ModelManager` + `DownloadHostPolicy` + `HTTPTransport` (w `PounceSpeech`).**
+  - Test: `swift build` ze strict concurrency, test rejestru pluginów, `StringCatalogTests`, `codesign -d --entitlements -` na zbudowanej aplikacji; aplikacja podpisana ad-hoc z hardened runtime ładuje FluidAudio i startuje.
+- **1.3 `ModelCatalog` + `ModelManager`.**
   - Pobieranie z wznawianiem i SHA-256, atomowe przeniesienie, wskazany folder, usuwanie, sprawdzenie miejsca.
   - Test: jednostkowy z `URLProtocol` stubem (dobra suma, zła suma, przerwanie, wznowienie, brak miejsca, przekierowanie poza listę hostów) i tymczasowymi katalogami; ręcznie jedno prawdziwe pobranie Parakeet Ultra (pełna lista plików z VAD i tokenizerem, rzeczywiste hosty przekierowań).
 - **1.4 `RecordingGesture`.**
   - Czysta maszyna stanów tap/hold/menu/Esc z wstrzykiwanym zegarem.
   - Test: każda komórka tabeli stan × zdarzenie (w tym autorepeat key-down, menu w każdym stanie, Esc w każdym stanie, zdarzenia w `finishing`).
-- **1.5 `AudioSource`/`MicrophoneSource` + `MicrophoneAuthorizer` + `VADSegmenter` + `SpeechEngine`/`ParakeetEngine` + `SpeechEngineLease` + `SleepAssertion` (w `PounceSpeech`) i `DictationSession` (w pluginie).**
-  - Test `SpeechEngineLease`: współdzielenie tego samego klucza `(model-id, folder)`, eksmisja modelu rozgrzanego bez aktywnej dzierżawy, `busy` tylko przy aktywnej dzierżawie innego klucza, zwolnienie po `keepWarm`, priorytet `interactive` przed `background`, limit 60 s kolejki `background`.
+- **1.5 `AudioCapture` + `SpeechEngine`/`ParakeetEngine` + `DictationSession`.**
   - Bufor podczas ładowania modelu, segmenty VAD transkrybowane w trakcie, sklejanie, `keepWarm`/unload, limit 20 min.
   - Test: `DictationSession` z fałszywym `SpeechEngine` i źródłem audio z pliku (kolejność segmentów, anulowanie, cisza, limit); test integracyjny z prawdziwym modelem tylko lokalnie (jak benchmarki, domyślnie wyłączony), także przy zablokowanej sieci: FluidAudio niczego nie pobiera samo.
 - **1.6 `TextPaster`.**
@@ -435,7 +427,7 @@ Każda faza to osobna gałąź `feat/` i osobny PR do `main`.
     - schowek zawiera `ConcealedType` albo inny znacznik → brak odczytu i brak przywracania;
     - dostęp niedozwolony → brak odczytu;
     - przywrócony zapis ma znacznik transient.
-- **1.7 `DictationHUD` + protokół `HUDPresenter` (w `PounceSpeech`).**
+- **1.7 `DictationHUD`.**
   - Stany, dostępność, „Zmniejsz ruch”.
   - Test: testy modelu widoku stanów; QA ręczne ze zrzutami (jasny/ciemny) w PR.
 - **1.8 Ustawienia + onboarding + strona WWW.**
@@ -445,15 +437,15 @@ Każda faza to osobna gałąź `feat/` i osobny PR do `main`.
   - Budżety z sekcji Architecture zmierzone i wpisane do `docs/perf.md` (w tym pamięć w trakcie dyktowania); ręczne przejście VoiceOverem.
   - Dogfooding: kilka dni dyktowania po polsku z angielskimi terminami; liczba wypowiedzi, w których Parakeet przeszedł na angielski, dopisana do ADR 0003.
   - Test: tabela w PR.
-- **1.10 `WhisperKitEngine` (w `PounceSpeech`).**
-  - Zależność WhisperKit (pin), wpis `whisper-large-v3-turbo` w `ModelCatalog`, ustawienia `app.speech.model` i `app.speech.language`, wybór silnika w panelu Dyktowania; `THIRD_PARTY_NOTICES.txt`, lista zatwierdzonych pakietów w `AGENTS.md` i powód zależności w PR.
+- **1.10 `WhisperKitEngine`.**
+  - Zależność WhisperKit (pin), wpis `whisper-large-v3-turbo` w `ModelCatalog`, ustawienia `speechModel` i `speechLanguage`, wybór silnika w panelu Dyktowania; `THIRD_PARTY_NOTICES.txt`, lista zatwierdzonych pakietów w `AGENTS.md` i powód zależności w PR.
   - WhisperKit ładuje model tylko z folderu `ModelManager` (`download: false`); nigdy nie pobiera sam.
   - Język zawsze przypięty (bez auto-wykrywania); segmenty VAD zamiast okien 30 s; odrzucanie powtórzonych fraz (zapętlenie Whispera) w wyniku segmentu.
   - Test: `DictationSession` z fałszywym silnikiem dalej przechodzi; test jednostkowy filtra powtórzeń; lokalny test integracyjny (domyślnie wyłączony) na tym samym nagraniu co Parakeet, także przy zablokowanej sieci; QA ręczne przełączenia silnika.
 
 ### Faza 2 — Formatowanie dla LLM
-- **2.1 `EndpointProbe` + `LoopbackPolicy` + `ChatCompletionsClient` + `ConfirmedEndpoint` (w `PounceSpeech`).**
-  - Test: stub `URLProtocol` dla trzech portów; `ChatCompletionsClient` nie da się zainicjować bez `ConfirmedEndpoint`; zmiana modelu na serwerze (`/v1/models`) wymaga ponownego potwierdzenia; wykryty endpoint nie dostaje tekstu bez potwierdzenia; `finish_reason = length` zgłoszone jako błąd kawałka.
+- **2.1 `EndpointProbe` + `LoopbackPolicy`.**
+  - Test: stub `URLProtocol` dla trzech portów.
   - Odrzucane przez `LoopbackPolicy`:
     - `example.com`, `192.168.x`, `0.0.0.0`;
     - `[::ffff:127.0.0.1]`;
@@ -476,7 +468,7 @@ Każda faza to osobna gałąź `feat/` i osobny PR do `main`.
   - Sprawdzenie, czy Ollama przez `/v1/chat/completions` honoruje `chat_template_kwargs`; jeśli nie, notatka w ADR 0004.
 
 ### Faza 3 — Historia
-- **3.1 Przeniesienie logiki kluczy (samodzielny PR `risk-high`, może wejść przed resztą Fazy 3).**
+- **3.1 Przeniesienie logiki kluczy.**
   - `MasterKeyStore(service:)` i `EncryptedDatabaseOpener` w `PouncePersistence`; `ClipboardPlugin` przechodzi na nie bez zmiany zachowania.
   - Test: istniejące testy schowka bez zmian + nowy test „baza schowka z poprzedniego wydania otwiera się po refaktorze”.
 - **3.2 `DictationStore`.**
