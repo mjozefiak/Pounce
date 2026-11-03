@@ -378,7 +378,12 @@ States to screenshot, in light and dark mode (and once in Polish):
 
 - the HUD while recording (both tracks, the level, the hint after 20 s of a silent system track) and while finishing;
 - the meeting window (transcript with times, speakers, a rename, the banners for `incomplete`, `failed` and stale notes);
-- the library: all meetings, the three filters (⌘1 to ⌘3), a search by a word from a title and from a transcript (also
+- the library: ⌃X asks first ("Press ⌃X again to delete this meeting", within 3 s; for an unfinished meeting that
+  still has audio, "... and its audio") and a meeting being recorded or processed says it cannot be deleted; the
+  "Needs Attention" filter shows incomplete and failed meetings, and also meetings whose notes failed or are
+  outdated (a deliberate extension of the spec's incomplete/failed/stale list); the audio claim on the landing page
+  and in Settings → Permissions matches the behaviour (deleted once the transcript is ready; an interrupted
+  meeting keeps its audio up to 7 days so it can be finished); all meetings, the three filters (⌘1 to ⌘3), a search by a word from a title and from a transcript (also
   without Polish letters: `budzet` finds `budżet`), the preview (transcript; notes once Phase 2 exists), the empty
   library, and the "unavailable" banner (cannot be forced in QA mode: the Keychain is the in-memory one; covered by
   unit tests, manual check below);

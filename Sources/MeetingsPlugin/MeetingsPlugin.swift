@@ -89,6 +89,7 @@ public final class MeetingsPlugin: PouncePlugin {
         let ended = await controller.shutDown()
         relay.controller = nil
         self.controller = nil
+        libraryActions.closeWindows()
         if ended {
             library.close()
             return
@@ -105,6 +106,7 @@ public final class MeetingsPlugin: PouncePlugin {
     /// "Erase Data": removes the library's Keychain item and the plugin's folder (`meetings.sqlite`, its
     /// archives and the spool). Models live in the shared `Models/` folder and stay.
     public func eraseData() async throws {
+        libraryActions.closeWindows()
         try library.erase()
     }
 

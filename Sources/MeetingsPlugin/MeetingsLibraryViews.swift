@@ -97,57 +97,89 @@ enum MeetingPreviewBuilder {
     }
 }
 
-/// The preview beside the list. Loads the meeting off the main actor when the selection changes.
+/// How a preview load ended.
+enum MeetingPreviewLoad: Sendable, Equatable {
+    case content(MeetingPreviewContent)
+    /// The meeting is not in the library (deleted) or the library is not open.
+    case missing
+    /// The database could not be read.
+    case failed
+}
+
+/// The preview beside the list. Loads the meeting off the main actor when the selection changes, and again
+/// when the row's state changes (`refreshToken`: its badge and subtitle, so finished notes or a new status show).
 struct MeetingLibraryPreview: View {
     let id: Int64?
-    let load: @Sendable (Int64) async -> MeetingPreviewContent?
+    var refreshToken = ""
+    let load: @Sendable (Int64) async -> MeetingPreviewLoad
 
-    @State private var content: MeetingPreviewContent?
+    @State private var result: MeetingPreviewLoad?
     @State private var loadedID: Int64?
+
+    private struct LoadKey: Hashable {
+        var id: Int64?
+        var token: String
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if let content, loadedID == id {
-                if let notice = content.notice {
-                    Text(verbatim: notice).font(.callout).foregroundStyle(.secondary)
+            if loadedID == id, id != nil, let result {
+                switch result {
+                case .content(let content): contentView(content)
+                case .missing:
+                    message(
+                        String(
+                            localized: "This meeting is no longer in the library.",
+                            comment: "Meeting library preview of a deleted meeting"))
+                case .failed:
+                    message(
+                        String(
+                            localized: "This meeting cannot be loaded right now.",
+                            comment: "Meeting library preview when the database could not be read"))
                 }
-                ScrollView {
-                    Text(verbatim: content.text)
-                        .foregroundStyle(content.kind == .placeholder ? .secondary : .primary)
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .topLeading)
-                    if content.isTruncated {
-                        Text(
-                            "The text is shortened here. Open the meeting to read all of it.",
-                            comment: "Meeting library preview: the text was cut"
-                        )
-                        .font(.callout).foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .topLeading).padding(.top, 8)
-                    }
-                }
-                Divider()
-                Text(verbatim: content.metadata).font(.callout).foregroundStyle(.secondary)
-            } else if loadedID == id, id != nil {
-                Text(
-                    "This meeting is no longer in the library.", comment: "Meeting library preview of a deleted meeting"
-                )
-                .foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 Color.clear
             }
         }
         .padding(12)
-        .task(id: id) {
+        .task(id: LoadKey(id: id, token: refreshToken)) {
             guard let id else {
-                content = nil
+                result = nil
                 loadedID = nil
                 return
             }
             let loaded = await load(id)
             guard !Task.isCancelled else { return }
-            content = loaded
+            result = loaded
             loadedID = id
         }
+    }
+
+    private func message(_ text: String) -> some View {
+        Text(verbatim: text).foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    @ViewBuilder
+    private func contentView(_ content: MeetingPreviewContent) -> some View {
+        if let notice = content.notice {
+            Text(verbatim: notice).font(.callout).foregroundStyle(.secondary)
+        }
+        ScrollView {
+            Text(verbatim: content.text)
+                .foregroundStyle(content.kind == .placeholder ? .secondary : .primary)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+            if content.isTruncated {
+                Text(
+                    "The text is shortened here. Open the meeting to read all of it.",
+                    comment: "Meeting library preview: the text was cut"
+                )
+                .font(.callout).foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .topLeading).padding(.top, 8)
+            }
+        }
+        Divider()
+        Text(verbatim: content.metadata).font(.callout).foregroundStyle(.secondary)
     }
 }
 

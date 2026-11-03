@@ -43,19 +43,53 @@ private let repositoryRoot = URL(filePath: #filePath)
         }
     }
 
-    @Test func theMeetingsCopySaysWhereTheAudioGoesInBothLanguages() throws {
+    /// The English text of an element (`data-i18n="key"`) and its Polish string.
+    private func texts(_ key: String, in page: String) throws -> (en: String, pl: String) {
+        let element = try #require(
+            try matches("data-i18n=\"\(key)\">([^<]*)<", in: page).first, "No element for \(key)")
+        let polish = try #require(
+            try matches("\"\(key)\": \"((?:[^\"\\\\]|\\\\.)*)\"", in: page).first, "No Polish string for \(key)")
+        return (element[1], polish[1])
+    }
+
+    @Test func theAudioClaimIsTruthfulInBothLanguages() throws {
         let page = try page()
-        // The privacy promises of the spec: system audio, other people's voices, encrypted until the transcript
-        // is ready, nothing leaves the Mac but the model download.
+        let (en, pl) = try texts("a7", in: page)
+        // Other people's voices are processed, only on this Mac, and nothing leaves it but the model download.
+        #expect(en.contains("other people are processed too, but only on your Mac"))
+        #expect(en.contains("Nothing leaves your Mac except the model download"))
+        // The audio is encrypted and deleted once the transcript is ready; an interrupted meeting keeps it for
+        // up to 7 days so it can be finished, then it is deleted too.
+        #expect(en.contains("stored encrypted until the transcript is ready, then deleted"))
+        #expect(en.contains("If a meeting is interrupted, its audio is kept for up to 7 days so you can finish it"))
+        #expect(en.contains("7 days so you can finish it, then deleted"))
+        #expect(pl.contains("zaszyfrowany do czasu gotowego transkryptu, potem kasowany"))
+        #expect(pl.contains("Jeśli spotkanie zostanie przerwane, jego dźwięk jest zachowany do 7 dni"))
+        #expect(pl.contains("dokończyć, a potem kasowany"))
+        let (_, general) = try texts("a4", in: page)
+        #expect(general.contains("dyktowania albo spotkań"))
         #expect(page.contains("System audio recording"))
-        #expect(page.contains("other people are processed too, but only on your Mac"))
-        #expect(page.contains("stored encrypted until the transcript is ready, then deleted"))
-        #expect(page.contains("Nothing leaves your Mac except the model download"))
-        #expect(page.contains("Audio, dictated text and meeting transcripts never leave your Mac"))
         #expect(page.contains("Nagrywanie dźwięku systemu"))
-        #expect(page.contains("tylko na Twoim Macu"))
+        // No claim that audio is never kept: that is true of dictation only.
+        let meetingCopy = try texts("f5.d", in: page)
+        #expect(!meetingCopy.en.localizedCaseInsensitiveContains("never saved"))
         // Notes are Phase 2: the page promises a transcript with speakers only.
         #expect(!page.localizedCaseInsensitiveContains("meeting notes"))
         #expect(!page.localizedCaseInsensitiveContains("notatki ze spotka"))
+    }
+
+    @Test func theFeatureCountMatchesTheCards() throws {
+        let page = try page()
+        let cards = try matches(#"<li class="card">"#, in: page).count
+        #expect(cards == 4)
+        let words = [2: "Two", 3: "Three", 4: "Four", 5: "Five"]
+        let polishWords = [2: "Dwie", 3: "Trzy", 4: "Cztery", 5: "Pięć"]
+        let heading = try texts("feat.t", in: page)
+        #expect(heading.en.hasPrefix(words[cards] ?? "?"))
+        #expect(heading.pl.hasPrefix(polishWords[cards] ?? "?"))
+        let lead = try texts("hero.lead", in: page)
+        #expect(lead.en.contains("\(words[cards]?.lowercased() ?? "?") things"))
+        #expect(!lead.en.contains("three things"))
+        #expect(lead.pl.contains("czterema funkcjami"))
     }
 }

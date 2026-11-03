@@ -9360,6 +9360,78 @@
           }
         }
       }
+    },
+    "Press ⌃X again to delete this meeting." : {
+      "comment" : "Meeting library: asks to press Delete a second time",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press ⌃X again to delete this meeting."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naciśnij ponownie ⌃X, aby usunąć to spotkanie."
+          }
+        }
+      }
+    },
+    "Press ⌃X again to delete this meeting and its audio." : {
+      "comment" : "Meeting library: asks to press Delete again; the unfinished meeting's audio goes too",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press ⌃X again to delete this meeting and its audio."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naciśnij ponownie ⌃X, aby usunąć to spotkanie i jego nagranie."
+          }
+        }
+      }
+    },
+    "A meeting that is being recorded or processed cannot be deleted." : {
+      "comment" : "Meeting library: Delete refused for a live meeting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A meeting that is being recorded or processed cannot be deleted."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spotkania, które jest nagrywane lub przetwarzane, nie można usunąć."
+          }
+        }
+      }
+    },
+    "This meeting cannot be loaded right now." : {
+      "comment" : "Meeting library preview when the database could not be read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This meeting cannot be loaded right now."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie można teraz wczytać tego spotkania."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

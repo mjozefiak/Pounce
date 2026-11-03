@@ -44,18 +44,23 @@ extension MeetingsPlugin {
                     AnyView(
                         MeetingLibraryPreview(
                             id: MeetingLibraryPresentation.meetingID(candidate.itemKey),
+                            refreshToken: "\(candidate.badge ?? "")|\(candidate.subtitle ?? "")",
                             load: { id in await Self.previewContent(of: id, library: library) }))
                 },
                 makeEmptyView: { AnyView(MeetingLibraryEmptyView(library: library)) })
         ]
     }
 
-    /// Reads the meeting off the main actor; `nil` when it is gone or the library is not open.
-    private static func previewContent(of id: Int64, library: MeetingsLibrary) async -> MeetingPreviewContent? {
-        guard let store = library.store else { return nil }
-        return await Task.detached { () -> MeetingPreviewContent? in
-            guard let document = try? store.loadDocument(id: id) else { return nil }
-            return MeetingPreviewBuilder.build(document)
-        }.value
+    /// Reads the meeting off the main actor and stops when the selection moves on.
+    static func previewContent(of id: Int64, library: MeetingsLibrary) async -> MeetingPreviewLoad {
+        guard let store = library.store else { return .missing }
+        do {
+            guard let document = try await MeetingLibraryIO.document(store: store, id: id) else { return .missing }
+            return .content(MeetingPreviewBuilder.build(document))
+        } catch is CancellationError {
+            return .missing
+        } catch {
+            return .failed
+        }
     }
 }

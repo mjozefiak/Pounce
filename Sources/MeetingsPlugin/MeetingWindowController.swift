@@ -2,10 +2,10 @@ import AppKit
 import Observation
 import SwiftUI
 
-/// Opens meeting windows: one per meeting, reused when it is already open. Not wired to anything yet (the
-/// library and the command come with step 1.10).
+/// Opens meeting windows: one per meeting, reused when it is already open. Only `MeetingsLibraryActions`
+/// creates it (one per plugin); nothing else, the record flow and the HUD included, opens a meeting window.
 @MainActor
-final class MeetingWindowController: NSObject, NSWindowDelegate {
+final class MeetingWindowController: NSObject, NSWindowDelegate, MeetingWindowPresenting {
     private var windows: [Int64: NSWindow] = [:]
     private var models: [Int64: MeetingWindowModel] = [:]
     private let makeModel: @MainActor (Int64) -> MeetingWindowModel
@@ -61,6 +61,10 @@ final class MeetingWindowController: NSObject, NSWindowDelegate {
 
     func close(meetingID: Int64) {
         windows[meetingID]?.close()
+    }
+
+    func closeAll() {
+        for window in Array(windows.values) { window.close() }
     }
 
     private func bringForward(_ window: NSWindow) {

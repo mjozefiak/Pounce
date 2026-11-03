@@ -32,6 +32,9 @@ enum MeetingLibraryFilter: String, Sendable, CaseIterable {
 }
 
 extension MeetingsStore {
+    /// The most words of a library query that take part in the search.
+    static let maxQueryWords = 20
+
     /// The most recent meetings first, optionally filtered, optionally only those whose title, notes or
     /// transcript match `text`.
     ///
@@ -45,7 +48,9 @@ extension MeetingsStore {
         var arguments: StatementArguments = ["limit": max(0, limit)]
         if let clause = filter.clause { conditions.append(clause) }
         if let text {
-            guard let pattern = FTS5Pattern(matchingAllPrefixesIn: FullTextFolding.fold(text)) else { return [] }
+            // A pasted page is not a search: only the first words count.
+            let words = FullTextFolding.fold(text).split(whereSeparator: \.isWhitespace).prefix(Self.maxQueryWords)
+            guard let pattern = FTS5Pattern(matchingAllPrefixesIn: words.joined(separator: " ")) else { return [] }
             arguments += ["pattern": pattern]
             conditions.append(
                 """

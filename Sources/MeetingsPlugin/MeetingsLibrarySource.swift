@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import PounceKit
+import os
 
 /// The meeting library's results (spec step 1.11): newest first, optionally narrowed by a filter and by a
 /// query that matches the title, the notes and the transcript through the two FTS5 indexes. The shell keeps
@@ -78,7 +79,7 @@ struct MeetingsLibrarySource: PanelModeSource {
                 symbolName: "trash",
                 shortcut: KeyShortcut(key: "x", modifiers: .control),
                 keepsPanelOpen: true
-            ) { _ in try await actions.delete(id) })
+            ) { context in try await actions.requestDelete(id, panel: context.panel) })
         return result
     }
 }
@@ -102,8 +103,7 @@ enum MeetingLibraryPresentation {
     /// The title as typed, or "Meeting 3 Nov, 2:05 PM" (in the system language) when there is none.
     static func title(_ entry: MeetingLibraryEntry, timeZone: TimeZone = .current) -> String {
         if let title = entry.title.map(visible), !title.isEmpty { return title }
-        let formatted = entry.startedAt.formatted(
-            Date.FormatStyle(date: .abbreviated, time: .shortened, timeZone: timeZone))
+        let formatted = entry.startedAt.formatted(dateStyle(locale: nil, timeZone: timeZone))
         return String(localized: "Meeting \(formatted)", comment: "Title of a meeting without one; the date and time")
     }
 
@@ -121,8 +121,27 @@ enum MeetingLibraryPresentation {
     }
 
     static func date(_ date: Date, locale: Locale = .current, timeZone: TimeZone = .current) -> String {
-        date.formatted(
-            Date.FormatStyle(date: .abbreviated, time: .shortened, locale: locale, timeZone: timeZone))
+        date.formatted(dateStyle(locale: locale, timeZone: timeZone))
+    }
+
+    private struct StyleKey: Hashable {
+        var locale: String?
+        var timeZone: String
+    }
+
+    private static let dateStyles = OSAllocatedUnfairLock(initialState: [StyleKey: Date.FormatStyle]())
+
+    /// One format style per locale and time zone: a list of a thousand rows builds it once, not a thousand times.
+    private static func dateStyle(locale: Locale?, timeZone: TimeZone) -> Date.FormatStyle {
+        let key = StyleKey(locale: locale?.identifier, timeZone: timeZone.identifier)
+        return dateStyles.withLock { styles in
+            if let style = styles[key] { return style }
+            let style =
+                locale.map { Date.FormatStyle(date: .abbreviated, time: .shortened, locale: $0, timeZone: timeZone) }
+                ?? Date.FormatStyle(date: .abbreviated, time: .shortened, timeZone: timeZone)
+            styles[key] = style
+            return style
+        }
     }
 
     /// Whole minutes and hours ("1 hr, 5 min"), seconds under a minute, `nil` when nothing was recorded.
@@ -171,8 +190,17 @@ enum MeetingLibraryPresentation {
     }
 
     /// The display name of the installed app with that bundle ID, without `.app`; `nil` when it is not installed.
+    ///
+    /// Asked once per bundle ID while the process runs (the list asks for every row on every keystroke and
+    /// Launch Services is not free); an app installed later shows up after the next launch of Pounce.
     static func installedAppName(_ bundleID: String) -> String? {
-        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return nil }
-        return url.deletingPathExtension().lastPathComponent
+        if let cached = appNames.withLock({ $0[bundleID] }) { return cached.name }
+        let name = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
+            .map { $0.deletingPathExtension().lastPathComponent }
+        appNames.withLock { $0[bundleID] = CachedName(name: name) }
+        return name
     }
+
+    private struct CachedName: Sendable { var name: String? }
+    private static let appNames = OSAllocatedUnfairLock(initialState: [String: CachedName]())
 }
