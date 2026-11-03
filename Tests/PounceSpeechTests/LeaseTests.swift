@@ -148,6 +148,7 @@ private let folder = URL(filePath: "/models/speech/a")
         await a.release()
         await #expect(throws: ModelLeaseError.released) { try await a.transcribe(audio(1)) }
         // Releasing twice gave back one lease, not two.
+        await until { sleeper.durations.count == 1 }
         #expect(sleeper.durations.count == 1)
     }
 
