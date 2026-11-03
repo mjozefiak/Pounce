@@ -54,7 +54,7 @@ private func collect(_ handle: MeetingFinishHandle) async -> (events: [ResumeEve
         #expect(try rig.rows(library, meeting.id).map(\.text) == [words[11]!, words[12]!])
         #expect(rig.engine.heard == [12])
         #expect(
-            rig.finalizations.calls == [.init(meetingID: meeting.id, statusDuringCall: .incomplete, spoolExisted: true)]
+            rig.finalizations.calls == [.init(meetingID: meeting.id, statusDuringCall: .processing, spoolExisted: true)]
         )
         // A finished meeting cannot be finished again.
         #expect(library.finish(meetingID: meeting.id) == nil)
@@ -167,7 +167,8 @@ private func collect(_ handle: MeetingFinishHandle) async -> (events: [ResumeEve
         #expect(rig.engine.loads == 0)
     }
 
-    @Test func aSpoolThatTheDiskCannotAnswerChangesNothing() async throws {
+    @Test(.enabled(if: getuid() != 0, "root ignores file permissions"))
+    func aSpoolThatTheDiskCannotAnswerChangesNothing() async throws {
         let rig = try RecoveryRig(texts: words)
         let meeting = try rig.seed(.incomplete, mic: mic())
         let library = rig.library(resumer: rig.resumerFactory(mic: mic()))

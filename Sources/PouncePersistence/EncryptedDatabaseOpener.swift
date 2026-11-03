@@ -39,20 +39,28 @@ public struct EncryptedDatabaseOpener: Sendable {
     public func open<Store>(
         now: Date, fileManager: FileManager = .default, openStore: (MasterKeys) throws -> Store
     ) throws -> Outcome<Store> {
+        try openReportingKey(now: now, fileManager: fileManager, openStore: openStore).outcome
+    }
+
+    /// Like `open`, and also says whether this call created a new key (the previous one was definitely
+    /// missing). One Keychain lookup serves both, so the answer cannot disagree with what was opened.
+    public func openReportingKey<Store>(
+        now: Date, fileManager: FileManager = .default, openStore: (MasterKeys) throws -> Store
+    ) throws -> (outcome: Outcome<Store>, keyWasCreated: Bool) {
         switch keyStore.lookup() {
         case .found(let keys):
-            return .opened(try openStore(keys), resetArchive: nil)
+            return (.opened(try openStore(keys), resetArchive: nil), false)
         case .failed(let error):
-            return .unavailable(error)
+            return (.unavailable(error), false)
         case .missing:
             let keys: MasterKeys
             do {
                 keys = try keyStore.create()
             } catch {
-                return .unavailable(error)
+                return (.unavailable(error), false)
             }
             let archive = try archiveExistingStore(now: now, fileManager: fileManager)
-            return .opened(try openStore(keys), resetArchive: archive)
+            return (.opened(try openStore(keys), resetArchive: archive), true)
         }
     }
 

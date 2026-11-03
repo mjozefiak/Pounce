@@ -323,18 +323,68 @@ private let texts: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
     @Test func recoveryNeverLogsTranscriptText() throws {
         let sources = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
             .deletingLastPathComponent().appending(path: "Sources/MeetingsPlugin")
+        var inspected = 0
         for name in [
             "RecoveryJob.swift", "MeetingResumer.swift", "SpoolRecovery.swift", "MeetingsStore+Recovery.swift",
+            "MeetingsLibrary.swift",
         ] {
             let source = try String(contentsOf: sources.appending(path: name), encoding: .utf8)
-            let logCalls = source.split(separator: "\n").filter { $0.contains("logger.") }
-            #expect(!logCalls.isEmpty || !name.hasPrefix("Recovery") && !name.hasPrefix("MeetingResumer"))
-            for line in logCalls {
-                #expect(!line.contains("text"), "\(name): \(line)")
-                #expect(!line.contains("segment."), "\(name): \(line)")
-                #expect(!line.contains("uuid"), "\(name): \(line)")
+            let calls = Self.loggerCalls(in: source)
+            if name == "RecoveryJob.swift" || name == "MeetingResumer.swift" { #expect(calls.count > 3, "\(name)") }
+            for call in calls {
+                inspected += 1
+                for interpolation in Self.interpolations(in: call) {
+                    for forbidden in ["text", "segment", "uuid", "title", "notes", "name"] {
+                        #expect(
+                            interpolation.range(of: "\\b\(forbidden)\\b", options: .regularExpression) == nil,
+                            "\(name): \(call)")
+                    }
+                }
             }
         }
+        #expect(inspected > 10)
+    }
+
+    /// Every `logger.<level>( ... )` call, however many lines it spans (parentheses are balanced by hand).
+    private static func loggerCalls(in source: String) -> [String] {
+        var calls: [String] = []
+        var rest = Substring(source)
+        while let found = rest.range(of: "logger.") {
+            let tail = rest[found.lowerBound...]
+            guard let open = tail.firstIndex(of: "(") else { break }
+            var depth = 0
+            var end = open
+            for index in tail[open...].indices {
+                if tail[index] == "(" { depth += 1 }
+                if tail[index] == ")" {
+                    depth -= 1
+                    if depth == 0 {
+                        end = index
+                        break
+                    }
+                }
+            }
+            calls.append(String(tail[tail.startIndex...end]))
+            rest = tail[tail.index(after: end)...]
+        }
+        return calls
+    }
+
+    private static func interpolations(in call: String) -> [String] {
+        var result: [String] = []
+        var rest = Substring(call)
+        while let start = rest.range(of: "\\(") {
+            var depth = 1
+            var index = start.upperBound
+            while index < rest.endIndex, depth > 0 {
+                if rest[index] == "(" { depth += 1 }
+                if rest[index] == ")" { depth -= 1 }
+                index = rest.index(after: index)
+            }
+            result.append(String(rest[start.upperBound..<rest.index(before: index)]))
+            rest = rest[index...]
+        }
+        return result
     }
 }
 

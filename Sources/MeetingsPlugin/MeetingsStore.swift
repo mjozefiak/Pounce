@@ -144,7 +144,9 @@ final class MeetingsStore: Sendable {
                         notes_prompt_version TEXT,
                         notes_model TEXT,
                         notes_dropped_count INTEGER NOT NULL DEFAULT 0,
-                        notes_generated_at DOUBLE
+                        notes_generated_at DOUBLE,
+                        resume_attempts INTEGER NOT NULL DEFAULT 0,
+                        audio_gap INTEGER NOT NULL DEFAULT 0
                     );
                     CREATE INDEX meeting_on_started_at ON meeting(started_at);
                     CREATE TABLE meeting_speaker (
@@ -338,15 +340,17 @@ extension MeetingsStore {
         try write { db in try db.execute(sql: "DELETE FROM meeting") }
     }
 
-    /// Deletes the meetings that started before `cutoff`, except those still being recorded or processed.
-    /// Returns the `uuid`s of the deleted meetings (their spool folders).
+    /// Deletes the meetings that started before `cutoff`, except those still being recorded or processed and
+    /// those in `excluding` (being finished right now). Returns the `uuid`s of the deleted meetings (their
+    /// spool folders).
     @discardableResult
-    func applyRetention(cutoff: Date) throws -> [String] {
+    func applyRetention(cutoff: Date, excluding: Set<Int64> = []) throws -> [String] {
         try write { db in
             let rows = try Row.fetchAll(
                 db,
                 sql: "SELECT id, uuid FROM meeting WHERE started_at < ? AND status NOT IN ('recording', 'processing')",
-                arguments: [cutoff.timeIntervalSince1970])
+                arguments: [cutoff.timeIntervalSince1970]
+            ).filter { !excluding.contains($0["id"] as Int64) }
             for row in rows {
                 try db.execute(sql: "DELETE FROM meeting WHERE id = ?", arguments: [row["id"] as Int64])
             }
@@ -366,11 +370,15 @@ extension MeetingsStore {
 
     // MARK: Reading
 
-    /// The `uuid`s of interrupted meetings whose audio is still in the spool: the only spools that may age out.
-    func incompleteSpoolUUIDs() throws -> [String] {
+    /// The `uuid`s of interrupted (`incomplete` or `failed`) meetings whose audio is still in the spool: the only
+    /// spools that may age out.
+    /// Meetings in `excluding` (being finished right now) are left out.
+    func incompleteSpoolUUIDs(excluding: Set<Int64> = []) throws -> [String] {
         try read { db in
-            try String.fetchAll(
-                db, sql: "SELECT uuid FROM meeting WHERE status = 'incomplete' AND audio_state = 'spool'")
+            try Row.fetchAll(
+                db,
+                sql: "SELECT id, uuid FROM meeting WHERE status IN ('incomplete', 'failed') AND audio_state = 'spool'"
+            ).filter { !excluding.contains($0["id"] as Int64) }.map { $0["uuid"] as String }
         }
     }
 

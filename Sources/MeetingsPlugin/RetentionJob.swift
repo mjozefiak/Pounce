@@ -29,6 +29,10 @@ final class RetentionJob {
     private let logger: Logger
     private var task: Task<Void, Never>?
     private(set) var lastVacuum: Date?
+    /// Meetings that must not be touched right now: live sessions and meetings being finished. Read on the
+    /// main actor at the start of each pass; a finishing meeting is also `processing` in the library and its
+    /// spool is freshly touched, which closes the gap between this snapshot and the deletes.
+    var protectedMeetingIDs: @MainActor () -> Set<Int64> = { [] }
 
     init(
         clock: any Clock<Duration>, now: @escaping () -> Date = { Date() },
@@ -78,15 +82,17 @@ final class RetentionJob {
         let vacuums = lastVacuum.map { now.timeIntervalSince($0) >= Self.vacuumInterval } ?? true
         let spool = spool
         let logger = logger
+        let protected = protectedMeetingIDs()
         let outcome = await Task.detached(priority: .utility) { () -> (deleted: Int, vacuumed: Bool) in
             do {
                 var uuids: [String] = []
                 if let cutoff = policy.cutoff(now: now) {
-                    uuids = try store.applyRetention(cutoff: cutoff)
+                    uuids = try store.applyRetention(cutoff: cutoff, excluding: protected)
                     spool.removeSpools(forMeetings: uuids)
                 }
-                // Only interrupted meetings age out; the sweep never sees a recording or processing one.
-                let candidates = Set(try store.incompleteSpoolUUIDs())
+                // Only interrupted meetings age out; the sweep never sees a recording or processing one, nor one
+                // that is being finished.
+                let candidates = Set(try store.incompleteSpoolUUIDs(excluding: protected))
                 let orphans = spool.removeSpools(olderThan: policy.orphanCutoff(now: now), among: candidates)
                 try store.markAudioDeleted(uuids: orphans)
                 if !uuids.isEmpty || !orphans.isEmpty {

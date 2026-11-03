@@ -49,6 +49,14 @@ extension SpoolStorage {
         return sawUnreadable ? .unreadable : .absent
     }
 
+    /// Removes a meeting's spool and says whether nothing of it is left. Only a removal that the result
+    /// confirms (or a spool that is gone anyway) may be recorded as `audio_state = deleted`.
+    func removeConfirmed(meeting: UUID, keys: MeetingKeys) -> Bool {
+        let name = Self.name(of: meeting)
+        if removeSpools(forMeetings: [name]).contains(name) { return true }
+        return condition(of: meeting, keys: keys) == .absent
+    }
+
     func hasTrackFile(of meeting: UUID, _ track: SpoolTrack) -> Bool {
         Self.presence(of: file(for: meeting, track: track)) != .missing
     }

@@ -41,6 +41,9 @@ public final class MeetingsPlugin: PouncePlugin {
         library.open()
     }
 
+    /// Sessions that are recording or finalizing must be stopped (or stay registered through
+    /// `MeetingsLibrary.registerLive`) **before** this runs: closing the library does not end them, and
+    /// registered meetings are the only ones a later `activate()` leaves alone.
     public func deactivate() async {
         library.close()
     }

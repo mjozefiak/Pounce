@@ -32,15 +32,30 @@ enum ResumeOutcome: Equatable, Sendable {
     enum Reason: Equatable, Sendable {
         /// The speech model is not installed or busy; `busy` when another model is in use.
         case modelUnavailable(busy: Bool)
-        /// This many segments could not be transcribed or read back from the spool.
+        /// This many segments could not be transcribed or read back from the spool (or tracks could not be
+        /// opened). `finish(meetingID:acceptGap: true)` closes the meeting anyway, with the gap recorded.
         case unfinished(Int)
+        /// The spool exists but cannot be read for good (for example the Keychain key was recreated). It is
+        /// kept, not deleted; "finish anyway" (`acceptGap`) closes the meeting from its transcript.
+        case audioUnreadable
     }
 }
 
 /// What the recovery job and the library need from the thing that finishes a meeting.
 protocol MeetingResuming: Sendable {
+    /// `acceptGap`: the user agreed to close the meeting although some audio could not be transcribed or read
+    /// (the meeting is marked as having a gap). Automatic recovery never sets it.
+    func resume(
+        _ meeting: RecoverableMeeting, acceptGap: Bool, events: @escaping @Sendable (ResumeEvent) -> Void
+    ) async -> ResumeOutcome
+}
+
+extension MeetingResuming {
     func resume(_ meeting: RecoverableMeeting, events: @escaping @Sendable (ResumeEvent) -> Void) async
         -> ResumeOutcome
+    {
+        await resume(meeting, acceptGap: false, events: events)
+    }
 }
 
 /// The speech engine to use for the replay.
@@ -99,28 +114,30 @@ struct MeetingResumer: MeetingResuming {
         self.logger = logger
     }
 
-    func resume(_ meeting: RecoverableMeeting, events: @escaping @Sendable (ResumeEvent) -> Void) async
-        -> ResumeOutcome
-    {
-        let outcome = await run(meeting, events: events)
+    func resume(
+        _ meeting: RecoverableMeeting, acceptGap: Bool, events: @escaping @Sendable (ResumeEvent) -> Void
+    ) async -> ResumeOutcome {
+        let outcome = await run(meeting, acceptGap: acceptGap, events: events)
         events(.finished(outcome))
         return outcome
     }
 
     // MARK: Run
 
-    private func run(_ meeting: RecoverableMeeting, events: @escaping @Sendable (ResumeEvent) -> Void) async
-        -> ResumeOutcome
-    {
+    private func run(
+        _ meeting: RecoverableMeeting, acceptGap: Bool, events: @escaping @Sendable (ResumeEvent) -> Void
+    ) async -> ResumeOutcome {
         guard meeting.status == .processing || meeting.status == .incomplete else { return .notResumable }
-        guard let uuid = meeting.uuid else { return await closeWithoutAudio(meeting, uuid: nil, condition: .absent) }
+        guard let uuid = meeting.uuid else {
+            return await closeWithoutAudio(meeting, uuid: nil, condition: .absent, acceptGap: acceptGap)
+        }
         let condition = spool.condition(of: uuid, keys: keys)
         switch condition {
         case .indeterminate:
             logger.error("The spool of a meeting could not be checked; nothing was changed")
             return .unavailable
         case .absent, .unreadable:
-            return await closeWithoutAudio(meeting, uuid: uuid, condition: condition)
+            return await closeWithoutAudio(meeting, uuid: uuid, condition: condition, acceptGap: acceptGap)
         case .readable:
             break
         }
@@ -136,7 +153,7 @@ struct MeetingResumer: MeetingResuming {
             return .databaseUnwritable
         }
         var missing: [AudioChannel: [Range<Int>]] = [:]
-        var unfinished = 0
+        var gaps = 0
         for channel in [AudioChannel.system, .mic] {
             guard let track = SpoolTrack(rawValue: channel.rawValue), spool.hasTrackFile(of: uuid, track) else {
                 continue
@@ -145,13 +162,18 @@ struct MeetingResumer: MeetingResuming {
             do {
                 let scan = try await scan(track, uuid: uuid)
                 scans[channel] = scan
-                if scan.damaged { unfinished += 1 }
+                if scan.damaged { gaps += 1 }
                 missing[channel] = Self.uncovered(scan.ranges, by: stored[channel] ?? [])
             } catch is CancellationError {
                 return .cancelled
+            } catch is ScanFailure {
+                // The detector (a model) failed, not the audio: nothing is concluded about the track.
+                logger.error("Recovery: the voice activity detector failed")
+                return await settle(
+                    meeting, uuid: uuid, outcome: .incomplete(.modelUnavailable(busy: false)), scans: scans)
             } catch {
-                // The track cannot be opened at all (the other one could): its audio is lost.
-                unfinished += 1
+                // The track cannot be opened at all (the other one could, or a 0-byte file): its audio is lost.
+                gaps += 1
             }
         }
 
@@ -160,24 +182,27 @@ struct MeetingResumer: MeetingResuming {
         if total > 0 {
             switch await replay(meeting, uuid: uuid, missing: missing, total: total, events: events) {
             case .done(let lost):
-                unfinished += lost
+                gaps += lost
             case .stop(let outcome):
                 return await settle(meeting, uuid: uuid, outcome: outcome, scans: scans)
             }
         }
         if Task.isCancelled { return .cancelled }
-        guard unfinished == 0 else {
-            return await settle(meeting, uuid: uuid, outcome: .incomplete(.unfinished(unfinished)), scans: scans)
+        guard gaps == 0 || acceptGap else {
+            return await settle(meeting, uuid: uuid, outcome: .incomplete(.unfinished(gaps)), scans: scans)
         }
 
         // 3. Speakers, then ready, then (and only then) the audio goes.
         events(.finalizing)
         await finalize(meeting.id, uuid)
         if Task.isCancelled { return .cancelled }
-        return markReady(meeting, uuid: uuid, scans: scans)
+        return markReady(meeting, uuid: uuid, scans: scans, gap: gaps > 0)
     }
 
     // MARK: Scan
+
+    /// The voice activity detector failed (as opposed to the spool being damaged).
+    private struct ScanFailure: Error {}
 
     private struct TrackScan {
         var ranges: [Range<Int>] = []
@@ -217,9 +242,11 @@ struct MeetingResumer: MeetingResuming {
             }
         } catch is CancellationError {
             throw CancellationError()
-        } catch {
+        } catch is SpoolError {
             scan.damaged = true
             logger.error("A spool track is damaged; the audio after the damage is lost")
+        } catch {
+            throw ScanFailure()
         }
         if let begin = start { close(begin..<max(begin, scan.samples)) }
         return scan
@@ -227,7 +254,7 @@ struct MeetingResumer: MeetingResuming {
 
     /// The ranges that stored segments cover by less than half. Stored segments come from the same kind of
     /// range (a segment is stored only when it had text), so a range is "known" when it mostly overlaps one.
-    private static func uncovered(_ ranges: [Range<Int>], by stored: [(start: Int, end: Int)]) -> [Range<Int>] {
+    static func uncovered(_ ranges: [Range<Int>], by stored: [(start: Int, end: Int)]) -> [Range<Int>] {
         ranges.filter { range in
             let start = range.lowerBound * 1_000 / AudioFormat.sampleRate
             let end = range.upperBound * 1_000 / AudioFormat.sampleRate
@@ -414,29 +441,35 @@ struct MeetingResumer: MeetingResuming {
         return outcome
     }
 
-    /// The spool is missing or unreadable for good. With segments the user decides ("Dokończ"): the labels
-    /// fall back to the tracks, the meeting becomes `ready` and the useless spool goes. Without segments
-    /// nothing is left to build on.
-    private func closeWithoutAudio(_ meeting: RecoverableMeeting, uuid: UUID?, condition: SpoolCondition) async
-        -> ResumeOutcome
-    {
+    /// The spool is missing or unreadable for good.
+    /// - Nothing stored: nothing is left to build on (`failed`); an unreadable spool is kept to age out.
+    /// - `absent` spool with segments: the transcript is all there is, so the meeting becomes `ready` with the
+    ///   gap recorded (completeness cannot be verified).
+    /// - `unreadable` spool with segments: **the spool is kept** and the meeting is not reported ready (the
+    ///   user may fix the Keychain, and Q7 deletes audio only after successful processing). Only when the user
+    ///   accepts the gap does the meeting close from its transcript, and the spool goes only if its removal is
+    ///   confirmed.
+    private func closeWithoutAudio(
+        _ meeting: RecoverableMeeting, uuid: UUID?, condition: SpoolCondition, acceptGap: Bool
+    ) async -> ResumeOutcome {
         do {
             guard meeting.segmentCount > 0 else {
-                try store.setStatus(meeting.id, status: .failed)
-                if meeting.audioState != .deleted, condition == .absent {
-                    try store.setAudioState(meeting.id, state: .deleted)
-                }
+                try store.setRecovered(
+                    meeting.id, status: .failed, endedAt: nil, durationMs: meeting.durationMs,
+                    audioDeleted: condition == .absent && meeting.audioState != .deleted)
                 return .failed
+            }
+            if condition == .unreadable, !acceptGap, let uuid {
+                return await settle(meeting, uuid: uuid, outcome: .incomplete(.audioUnreadable), scans: [:])
             }
             if let uuid { await finalize(meeting.id, uuid) }
             if Task.isCancelled { return .cancelled }
             let duration = max(meeting.durationMs, try store.lastSegmentEndMs(meetingID: meeting.id))
-            try store.setStatus(
+            let removed = uuid.map { spool.removeConfirmed(meeting: $0, keys: keys) } ?? true
+            try store.setRecovered(
                 meeting.id, status: .ready,
                 endedAt: meeting.endedAt ?? meeting.startedAt.addingTimeInterval(Double(duration) / 1_000),
-                durationMs: duration)
-            if let uuid { _ = spool.removeSpools(forMeetings: [SpoolStorage.name(of: uuid)]) }
-            try store.setAudioState(meeting.id, state: .deleted)
+                durationMs: duration, audioDeleted: removed, gap: true)
             return .ready
         } catch {
             logger.error("A meeting without readable audio could not be closed")
@@ -444,7 +477,7 @@ struct MeetingResumer: MeetingResuming {
         }
     }
 
-    private func markReady(_ meeting: RecoverableMeeting, uuid: UUID, scans: [AudioChannel: TrackScan])
+    private func markReady(_ meeting: RecoverableMeeting, uuid: UUID, scans: [AudioChannel: TrackScan], gap: Bool)
         -> ResumeOutcome
     {
         let scanned = scans.values.map { $0.samples * 1_000 / AudioFormat.sampleRate }.max() ?? 0
@@ -452,12 +485,16 @@ struct MeetingResumer: MeetingResuming {
         let duration = max(meeting.durationMs, scanned, stored)
         let endedAt = meeting.endedAt ?? meeting.startedAt.addingTimeInterval(Double(duration) / 1_000)
         do {
-            try store.setStatus(meeting.id, status: .ready, endedAt: endedAt, durationMs: duration)
+            try store.setRecovered(meeting.id, status: .ready, endedAt: endedAt, durationMs: duration, gap: gap)
         } catch {
             logger.error("The meeting could not be marked ready; the audio is kept")
             return .databaseUnwritable
         }
-        _ = spool.removeSpools(forMeetings: [SpoolStorage.name(of: uuid)])
+        // `deleted` is recorded only when the removal is confirmed; otherwise the next recovery pass retries.
+        guard spool.removeConfirmed(meeting: uuid, keys: keys) else {
+            logger.error("The spool could not be removed; it stays and is retried")
+            return .ready
+        }
         do {
             try store.setAudioState(meeting.id, state: .deleted)
         } catch {

@@ -10,6 +10,8 @@ struct RecoveryReport: Equatable, Sendable {
     /// `processing` meetings with a readable spool: finalization continues in the background; they stay
     /// `processing`, so neither retention nor "Dokończ" touches them meanwhile.
     var toResume: [RecoverableMeeting] = []
+    /// `ready` meetings whose spool was still on disk (a delete that never finished) and has now been removed.
+    var leftoverSpoolsRemoved = 0
     /// Library writes that failed (the meeting keeps its status and is looked at again next time).
     var writeFailures = 0
 
@@ -17,9 +19,13 @@ struct RecoveryReport: Equatable, Sendable {
 }
 
 /// Crash recovery, run once at activation **before** the retention job's first pass (spec step 1.7). The
-/// library hands the report to `startRetention(after:)`, so the order is structural, not a convention: a
-/// leftover spool must first become an `incomplete` meeting that the age-out sweep may look at (a spool with
-/// no row, or a meeting still `recording`, is never swept).
+/// library calls it from `open()` and only then starts the retention job, so the order is structural, not a
+/// convention: a leftover spool must first become an `incomplete` meeting that the age-out sweep may look at
+/// (a spool with no row, or a meeting still `recording`, is never swept).
+///
+/// A meeting that is **live in this process** (`liveMeetingIDs`: a recording or finalizing session that
+/// survived a disable and re-enable of the plugin) is never touched. A `processing` meeting that keeps
+/// failing to resume is tried `MeetingsStore.maximumResumeAttempts` times, then becomes `incomplete`.
 ///
 /// Rules, by the state the app died in:
 ///
@@ -54,7 +60,7 @@ final class RecoveryJob {
     /// One synchronous pass. Cheap: it reads the first frame of each interrupted meeting's spool, nothing more.
     /// Running it again changes nothing (no meeting is `recording` or `processing` any more, except those
     /// still being resumed, which resolve the same way).
-    func recover(store: MeetingsStore, canResume: Bool) -> RecoveryReport {
+    func recover(store: MeetingsStore, canResume: Bool, liveMeetingIDs: Set<Int64> = []) -> RecoveryReport {
         var report = RecoveryReport()
         let meetings: [RecoverableMeeting]
         do {
@@ -64,13 +70,23 @@ final class RecoveryJob {
             report.writeFailures += 1
             return report
         }
-        for meeting in meetings {
+        for meeting in meetings where !liveMeetingIDs.contains(meeting.id) {
             let condition = meeting.uuid.map { spool.condition(of: $0, keys: keys) } ?? .absent
             let readable = condition == .readable
             let usable = readable || condition == .indeterminate
             switch (meeting.status, usable) {
             case (.processing, true) where readable && canResume:
-                report.toResume.append(meeting)
+                guard let attempts = try? store.bumpResumeAttempts(meeting.id) else {
+                    logger.error("Recovery could not count a resume attempt")
+                    report.writeFailures += 1
+                    continue
+                }
+                if attempts > MeetingsStore.maximumResumeAttempts {
+                    logger.notice("Recovery gave up resuming a meeting after repeated attempts")
+                    apply(.incomplete, to: meeting, condition: condition, store: store, report: &report)
+                } else {
+                    report.toResume.append(meeting)
+                }
             case (_, true):
                 apply(.incomplete, to: meeting, condition: condition, store: store, report: &report)
             default:
@@ -78,12 +94,28 @@ final class RecoveryJob {
                 apply(status, to: meeting, condition: condition, store: store, report: &report)
             }
         }
-        if !report.incomplete.isEmpty || !report.failed.isEmpty || !report.toResume.isEmpty {
+        removeLeftovers(store: store, report: &report, liveMeetingIDs: liveMeetingIDs)
+        if report.leftoverSpoolsRemoved > 0 || !report.incomplete.isEmpty || !report.failed.isEmpty
+            || !report.toResume.isEmpty
+        {
             logger.notice(
-                "Recovery: \(report.incomplete.count, privacy: .public) incomplete, \(report.failed.count, privacy: .public) failed, \(report.toResume.count, privacy: .public) to resume"
+                "Recovery: \(report.incomplete.count, privacy: .public) incomplete, \(report.failed.count, privacy: .public) failed, \(report.toResume.count, privacy: .public) to resume, \(report.leftoverSpoolsRemoved, privacy: .public) leftover spools"
             )
         }
         return report
+    }
+
+    /// A `ready` meeting never needs its audio: a spool still there is a delete that was interrupted.
+    private func removeLeftovers(store: MeetingsStore, report: inout RecoveryReport, liveMeetingIDs: Set<Int64>) {
+        guard let leftovers = try? store.readyMeetingsWithSpool() else { return }
+        for leftover in leftovers where !liveMeetingIDs.contains(leftover.id) {
+            guard spool.removeConfirmed(meeting: leftover.uuid, keys: keys) else { continue }
+            if (try? store.setAudioState(leftover.id, state: .deleted)) != nil {
+                report.leftoverSpoolsRemoved += 1
+            } else {
+                report.writeFailures += 1
+            }
+        }
     }
 
     private func apply(
@@ -92,13 +124,11 @@ final class RecoveryJob {
     ) {
         do {
             let duration = max(meeting.durationMs, try store.lastSegmentEndMs(meetingID: meeting.id))
-            try store.setStatus(
+            // One write: a crash between two could leave `incomplete` meetings that claim audio they lack.
+            try store.setRecovered(
                 meeting.id, status: status,
                 endedAt: meeting.endedAt ?? meeting.startedAt.addingTimeInterval(Double(duration) / 1_000),
-                durationMs: duration)
-            if condition == .absent, meeting.audioState == .spool {
-                try store.setAudioState(meeting.id, state: .deleted)
-            }
+                durationMs: duration, audioDeleted: condition == .absent && meeting.audioState == .spool)
         } catch {
             logger.error("Recovery could not update a meeting")
             report.writeFailures += 1

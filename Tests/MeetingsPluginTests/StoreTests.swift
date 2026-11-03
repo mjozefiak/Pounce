@@ -38,7 +38,7 @@ private let day: TimeInterval = 86_400
                 "id", "uuid", "started_at", "ended_at", "duration_ms", "title", "source_bundle_id", "status",
                 "speaker_mode", "languages", "speech_model_id", "diarization_model_id", "audio_state",
                 "notes_markdown", "notes_status", "notes_prompt_version", "notes_model", "notes_dropped_count",
-                "notes_generated_at",
+                "notes_generated_at", "resume_attempts", "audio_gap",
             ])
         let speakerColumns = try store.read { db in
             try Row.fetchAll(db, sql: "PRAGMA table_info(meeting_speaker)").map { $0["name"] as String }
