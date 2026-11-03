@@ -2521,6 +2521,60 @@
         }
       }
     },
+    "System Audio Recording" : {
+      "comment" : "Permission name in Settings → Permissions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System Audio Recording"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywanie dźwięku systemu"
+          }
+        }
+      }
+    },
+    "Lets Pounce capture what other people say in a meeting, only while a meeting is recorded. Audio is processed on this Mac and never uploaded." : {
+      "comment" : "Explanation of the System Audio Recording permission",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lets Pounce capture what other people say in a meeting, only while a meeting is recorded. Audio is processed on this Mac and never uploaded."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pozwala Pounce przechwytywać to, co mówią inni uczestnicy spotkania, tylko podczas nagrywania spotkania. Dźwięk jest przetwarzany na tym Macu i nigdy nie jest wysyłany."
+          }
+        }
+      }
+    },
+    "Can't be checked" : {
+      "comment" : "System Audio Recording state: macOS does not tell apps",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't be checked"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie można sprawdzić"
+          }
+        }
+      }
+    },
     "Microphone" : {
       "comment" : "Permission name in Settings → Permissions",
       "extractionState" : "manual",

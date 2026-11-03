@@ -325,6 +325,9 @@ nonisolated struct SystemPermissionsReader: PermissionsReader {
                 return microphoneOverride
             }
             return Self.status(for: AVCaptureDevice.authorizationStatus(for: .audio))
+        case .systemAudioRecording:
+            // macOS has no API to read this permission; callers learn only when a tap fails to start.
+            return .notDetermined
         }
     }
 

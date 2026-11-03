@@ -1,6 +1,24 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "NSAudioCaptureUsageDescription" : {
+      "comment" : "Shown in the system audio recording permission prompt",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce captures the audio playing on this Mac, such as the other people in a call, only while a meeting is recorded. It is processed on this Mac and never uploaded."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce przechwytuje dźwięk odtwarzany na tym Macu, na przykład głosy innych osób w rozmowie, tylko wtedy, gdy nagrywane jest spotkanie. Jest przetwarzany na tym Macu i nigdy nie jest wysyłany."
+          }
+        }
+      }
+    },
     "NSMicrophoneUsageDescription" : {
       "comment" : "Shown in the system microphone permission prompt",
       "extractionState" : "manual",

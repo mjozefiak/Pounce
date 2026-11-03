@@ -70,6 +70,9 @@ extension Permission {
             // The pasteboard setting has no documented anchor: open Privacy & Security itself.
             case .pasteboard: ""
             case .microphone: "?Privacy_Microphone"
+            // Unconfirmed: the System Audio Recording pane id is a manual test item (ADR 0007, item 4).
+            // If it does not exist, System Settings still opens on Privacy & Security.
+            case .systemAudioRecording: "?Privacy_AudioCapture"
             }
         return URL(string: "x-apple.systempreferences:com.apple.preference.security" + anchor)
             ?? URL(filePath: "/System/Applications/System Settings.app")
@@ -81,6 +84,7 @@ extension Permission {
         case .fullDiskAccess: "externaldrive"
         case .pasteboard: "doc.on.clipboard"
         case .microphone: "mic"
+        case .systemAudioRecording: "speaker.wave.2"
         }
     }
 
@@ -94,6 +98,8 @@ extension Permission {
             String(localized: "Clipboard Access", comment: "Permission name in Settings → Permissions")
         case .microphone:
             String(localized: "Microphone", comment: "Permission name in Settings → Permissions")
+        case .systemAudioRecording:
+            String(localized: "System Audio Recording", comment: "Permission name in Settings → Permissions")
         }
     }
 
@@ -117,12 +123,20 @@ extension Permission {
             String(
                 localized: "Lets Pounce hear you while you dictate. Audio stays on this Mac and is never saved.",
                 comment: "Explanation of the Microphone permission")
+        case .systemAudioRecording:
+            String(
+                localized:
+                    "Lets Pounce capture what other people say in a meeting, only while a meeting is recorded. Audio is processed on this Mac and never uploaded.",
+                comment: "Explanation of the System Audio Recording permission")
         }
     }
 
     /// The state in words, so it never depends on the symbol's colour.
     func statusText(_ status: PermissionStatus) -> String {
         switch (self, status) {
+        case (.systemAudioRecording, .notDetermined):
+            // macOS cannot report this permission, so this is not a denial.
+            String(localized: "Can't be checked", comment: "System Audio Recording state: macOS does not tell apps")
         case (.pasteboard, .granted):
             String(localized: "Always allowed", comment: "Clipboard access state")
         case (.pasteboard, .denied):

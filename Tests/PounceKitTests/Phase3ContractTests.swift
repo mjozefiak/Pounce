@@ -36,6 +36,13 @@ import Testing
         EscapeKeyClaim.inactive.release()
         #expect(Permission.allCases.contains(.microphone))
         #expect(Permission.microphone.rawValue == "microphone")
+        #expect(Permission.allCases.contains(.systemAudioRecording))
+        #expect(Permission.systemAudioRecording.rawValue == "systemAudioRecording")
+        #expect(Permission(rawValue: "systemAudioRecording") == .systemAudioRecording)
+        // Additive: every earlier case keeps its raw value.
+        #expect(
+            Set(Permission.allCases.map(\.rawValue))
+                == ["accessibility", "fullDiskAccess", "pasteboard", "microphone", "systemAudioRecording"])
     }
 
     @Test func releaseRunsTheClaimsAction() {

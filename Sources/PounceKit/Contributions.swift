@@ -173,13 +173,19 @@ public enum Permission: String, Hashable, Sendable, CaseIterable {
     case pasteboard
     /// Recording from the microphone. Added with dictation.
     case microphone
+    /// Recording the system's audio output (a Core Audio process tap, "System Audio Recording" in
+    /// Privacy & Security). macOS offers no way to read this permission's state, so `PermissionsReader`
+    /// always answers `PermissionStatus.notDetermined` for it and a plugin finds out only when the tap
+    /// fails to start. Added with meeting notes.
+    case systemAudioRecording
 }
 
 /// What the host knows about a permission.
 public enum PermissionStatus: Hashable, Sendable {
     case granted
     case denied
-    /// The system has not asked yet, or asks every time.
+    /// The system has not asked yet, asks every time, or (`Permission.systemAudioRecording`) the state
+    /// cannot be read at all. It is never a denial: nothing may block on it.
     case notDetermined
 }
 
