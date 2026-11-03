@@ -496,3 +496,47 @@ run only for the detection itself (use the QA data root so the library is isolat
 Checks that need TCC grants (Accessibility for paste, a real Full Disk Access grant, the privacy prompt
 for a folder added one at a time), a full-screen app, a second display or Space switching are manual
 QA items listed in the PR body.
+
+## Meetings: owner manual test plan (hardware, permissions, real apps)
+
+Nothing below was run by the implementing agents: they have no microphone, no System Audio Recording consent,
+no real meeting apps, no Bluetooth gear and no long-running soak. Always launch with the isolating `--qa…`
+options from this file unless the item says it needs real data (then use a throwaway macOS user or accept
+that the test touches your real Pounce data). Remember that ad-hoc builds lose the System Audio Recording
+grant after every rebuild.
+
+1. **Microphone and system audio, real calls.** Record a Zoom, a Google Meet and a Teams call: the HUD shows
+   both meters, the transcript has both sides, "Ja"/"Mówca N" labels are plausible. Check the macOS consent
+   prompt wording and that `Privacy_AudioCapture` really opens the right pane (ADR 0007 item 4).
+2. **Denials.** Deny the microphone (offer "system audio only"), deny System Audio Recording (HUD hint after
+   20 s, "Test System Audio" says "silent"), revoke it after an update.
+3. **Speakers without headphones (echo).** The same sentence must not appear twice; measure
+   `EchoSuppressor` thresholds on real ASR output; compare `voiceProcessing` on/off (not wired yet).
+4. **Bluetooth.** Switch output A2DP/HFP mid-recording: tap recreated, timeline continuous, no second
+   suggestion pill.
+5. **Soak 3 h.** Memory during and after (idle < 150 MB once models are released), disk (spool <= ~700 MB,
+   deleted at `ready`), CPU < 15% average, the 2 h 50 min countdown and automatic stop; fill the disk to
+   test the 1.5 GB / 300 MB guards.
+6. **Diarization.** Quality for Polish (one online, one live meeting); memory and time for 1 h and 3 h
+   (`docs/perf.md`; the 90 min per-track cap is unmeasured), the fallback to "Ja / Inni" and its banner;
+   real model load through `FluidDiarizer.loadModels` (never exercised by tests); binary size delta.
+7. **Notes.** Run `RealNotesTests` with a real GGUF (see "Notes" above) on a strong and a weak Mac; timings,
+   8192-context memory, quality of the Polish map/reduce output, "N punktów bez pokrycia" counts; dictate
+   while notes run (takeover/resume, reload cost, 15 s grace).
+8. **Crash and quit.** Kill Pounce during a recording and during processing; relaunch: `incomplete`,
+   "Dokończ", resume to `ready`, spool deleted; Keychain item deleted by hand; ⌘Q mid-recording.
+9. **Coexistence with dictation.** Same speech model (shared lease) and different models ("Another speech
+   model is in use"); whether macOS lets both use the input device ("Trwa nagrywanie spotkania" is not
+   implemented on the dictation side).
+10. **Meeting suggestions.** Zoom, Teams, FaceTime, Slack, Discord, Webex; a browser added by hand; WebKit
+    helper apps; whether `kAudioProcessPropertyIsRunningInput` exists and is reliable (including Bluetooth);
+    pill in a real screen share (must be invisible); the "no data yet" status.
+11. **Updates.** Update from the previous release with downloaded models (migration `Plugins/dictation/{Models,llm}`
+    → `Models/{speech,llm}`), and Accessibility / Full Disk Access / Keychain surviving an in-place update
+    (`codesign -dr -` identical, BC §4). Roll back to the old build: models must be downloaded again.
+12. **Visual and accessibility pass** in light/dark and S–XL text: HUD, meeting window, library list mode and
+    preview, Settings → Meetings (audio, models, notes, suggestions, privacy), onboarding step
+    `meetings.setup`, Permissions row with the "Test" accessory; VoiceOver, keyboard-only, Reduce Motion.
+13. **Shortcuts.** ⌃⌥M (VoiceOver modifier clash), ⌃⌥D; the status-bar menu entries.
+14. **Known unrelated flake:** `AppsPluginTests` `SuggestionsLifecycleTests/theSeedWaitsForTheFirstFinishedScan`
+    depends on live Spotlight on the test machine.
