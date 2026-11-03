@@ -5131,6 +5131,42 @@
         }
       }
     },
+    "Another speech model is in use" : {
+      "comment" : "Dictation HUD when a meeting uses a different speech model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another speech model is in use"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inny model mowy jest w użyciu"
+          }
+        }
+      }
+    },
+    "The model is in use right now. Try again in a moment." : {
+      "comment" : "Dictation settings error when the built-in model is being used and cannot be removed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The model is in use right now. Try again in a moment."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model jest teraz używany. Spróbuj ponownie za chwilę."
+          }
+        }
+      }
+    },
     "The speech model failed to load" : {
       "comment" : "Dictation HUD when loading the model failed",
       "extractionState" : "manual",

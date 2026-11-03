@@ -136,6 +136,13 @@ final class DictationController {
             recordingState.loadingModel = false
         case .limitApproaching(let seconds):
             recordingState.secondsLeft = seconds
+        case .loadFailed(let busy):
+            // No point in recording for a model that will not come: tell the user now.
+            let session = session
+            releaseEscape()
+            end(with: busy ? .speechModelBusy : .modelFailedToLoad)
+            Task { await session?.cancel() }
+            return
         case .limitReached, .audioLost:
             // What was said so far is still finished and pasted.
             menu()
@@ -186,6 +193,8 @@ final class DictationController {
         } catch DictationSession.Failure.cancelled {
             self.session = nil
             gesture.finished()
+        } catch DictationSession.Failure.busy {
+            end(with: .speechModelBusy)
         } catch {
             end(with: .modelFailedToLoad)
         }

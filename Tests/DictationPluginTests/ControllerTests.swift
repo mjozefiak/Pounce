@@ -482,6 +482,7 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
             .copied(.noAccessibility), .copied(.secureEventInput), .problem(.modelMissing),
             .problem(.modelUnavailable), .problem(.modelFailedToLoad), .problem(.microphoneDenied),
             .problem(.noMicrophone), .problem(.nothingHeard), .problem(.nothingToPaste),
+            .problem(.speechModelBusy),
             .pastedUnformatted(all: true), .pastedUnformatted(all: false),
         ]
         for state in states {

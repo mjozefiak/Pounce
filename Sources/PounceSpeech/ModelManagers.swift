@@ -19,7 +19,8 @@ public final class ModelManagers: Sendable {
         self.factory = factory
     }
 
-    /// The manager of `directory`, created on first use. `logger` is used only by that first creation.
+    /// The manager of `directory`, created on first use. `logger` is used only by that first creation: a later
+    /// caller with another logger gets the existing manager, which keeps logging with the first caller's category.
     public func manager(
         for directory: URL, logger: Logger = Logger(subsystem: "app.pounce", category: "speech")
     ) -> ModelManager {

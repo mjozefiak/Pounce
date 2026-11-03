@@ -17,6 +17,51 @@ public enum ModelLeaseError: Error, Equatable, Sendable {
     case released
 }
 
+/// Counts the calls that are using a model right now, so an unload can wait for them: a Core ML transcription
+/// cannot be cancelled and must not find its model unloaded under it.
+final class InFlight: Sendable {
+    private struct State {
+        var count = 0
+        var waiters: [CheckedContinuation<Void, Never>] = []
+    }
+
+    private let state = Mutex(State())
+
+    var count: Int { state.withLock { $0.count } }
+
+    func begin() { state.withLock { $0.count += 1 } }
+
+    func end() {
+        let waiters = state.withLock { state -> [CheckedContinuation<Void, Never>] in
+            state.count -= 1
+            guard state.count == 0 else { return [] }
+            defer { state.waiters = [] }
+            return state.waiters
+        }
+        for waiter in waiters { waiter.resume() }
+    }
+
+    /// Returns when no call is in flight.
+    func idle() async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            let resume = state.withLock { state -> Bool in
+                if state.count == 0 { return true }
+                state.waiters.append(continuation)
+                return false
+            }
+            if resume { continuation.resume() }
+        }
+    }
+}
+
+/// A model together with the count of calls using it; what `Residency` keeps for the lease types.
+final class Held<Base: Sendable>: Sendable {
+    let base: Base
+    let inFlight = InFlight()
+
+    init(_ base: Base) { self.base = base }
+}
+
 /// Keeps at most one model resident and hands it out under a key. The same key is shared (a counter); a
 /// different key while any lease is active is refused with `busy`; a different key while the resident model is
 /// idle replaces it at once. The keep-warm time runs from the release of the last lease.
@@ -50,6 +95,12 @@ actor Residency<Key: Hashable & Sendable, Model: Sendable> {
 
     var residentKey: Key? { resident?.key }
     var activeLeases: Int { resident?.leases ?? 0 }
+
+    /// Leases held on a resident key that satisfies `predicate`.
+    func leases(where predicate: (Key) -> Bool) -> Int {
+        guard let resident, predicate(resident.key) else { return 0 }
+        return resident.leases
+    }
 
     /// Takes a lease on `key`. Returns the model to use: the resident one when the key is already held,
     /// otherwise `model` after `load` ran (skipped when it reports loaded).
@@ -123,9 +174,12 @@ actor Residency<Key: Hashable & Sendable, Model: Sendable> {
     private func evict(_ current: Resident) {
         current.timer?.cancel()
         resident = nil
+        scheduleUnload(current.model)
+    }
+
+    private func scheduleUnload(_ model: Model) {
         let previous = tail
         let ops = ops
-        let model = current.model
         tail = Task {
             await previous?.value
             await ops.unload(model)
@@ -135,7 +189,13 @@ actor Residency<Key: Hashable & Sendable, Model: Sendable> {
     private func giveBack(_ key: Key) {
         guard var current = resident, current.key == key else { return }
         current.leases = max(0, current.leases - 1)
-        resident = current.leases == 0 ? nil : current
+        if current.leases == 0 {
+            // Nobody holds the model: free whatever the failed load left in memory.
+            resident = nil
+            scheduleUnload(current.model)
+        } else {
+            resident = current
+        }
     }
 }
 

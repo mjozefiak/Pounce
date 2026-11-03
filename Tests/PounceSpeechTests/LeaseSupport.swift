@@ -1,15 +1,26 @@
 import Foundation
 import Synchronization
+import Testing
 
 @testable import PounceSpeech
 
-/// Yields to the other tasks until `condition` holds. Bounded, so a broken test fails instead of hanging; no
-/// real time passes.
-func until(_ condition: @Sendable () async -> Bool) async {
-    for _ in 0..<500_000 {
-        if await condition() { return }
+/// Yields to the other tasks until `condition` holds. Bounded, so a broken test fails instead of hanging, and
+/// it records an issue when the condition is never met; no real time passes.
+@discardableResult
+func until(
+    sourceLocation: SourceLocation = #_sourceLocation, _ condition: @Sendable () async -> Bool
+) async -> Bool {
+    for _ in 0..<200_000 {
+        if await condition() { return true }
         await Task.yield()
     }
+    Issue.record("The condition was not met", sourceLocation: sourceLocation)
+    return false
+}
+
+/// Lets the other tasks run for a while; used after a negative check has a positive control to follow.
+func settle() async {
+    for _ in 0..<200 { await Task.yield() }
 }
 
 /// A one-shot gate a fake waits on until the test opens it.
@@ -52,11 +63,14 @@ final class ManualSleeper: Sendable {
     private struct State {
         var next = 0
         var pending: [Pending] = []
+        var cancelled = 0
     }
 
     private let state = Mutex(State())
 
     var durations: [Duration] { state.withLock { $0.pending.map(\.duration) } }
+    /// Sleeps that ended because their task was cancelled.
+    var cancelled: Int { state.withLock { $0.cancelled } }
 
     func sleep(_ duration: Duration) async throws {
         let id = state.withLock { state -> Int in
@@ -75,6 +89,7 @@ final class ManualSleeper: Sendable {
         } onCancel: {
             let entry = state.withLock { state -> Pending? in
                 guard let index = state.pending.firstIndex(where: { $0.id == id }) else { return nil }
+                state.cancelled += 1
                 return state.pending.remove(at: index)
             }
             entry?.continuation.resume(throwing: CancellationError())
@@ -117,6 +132,10 @@ final class LeaseEngine: SpeechEngine, @unchecked Sendable {
         var finished: [Int] = []
         var held: [Int: Latch] = [:]
         var failsToLoad = false
+        var loadGate: Latch?
+        var unloadGate: Latch?
+        var unloadsStarted = 0
+        var loadsStarted = 0
     }
 
     struct LoadFailure: Error {}
@@ -139,7 +158,19 @@ final class LeaseEngine: SpeechEngine, @unchecked Sendable {
         latch?.open()
     }
 
+    func gateLoad() { state.withLock { $0.loadGate = Latch() } }
+    func openLoad() { state.withLock { $0.loadGate }?.open() }
+    func gateUnload() { state.withLock { $0.unloadGate = Latch() } }
+    func openUnload() { state.withLock { $0.unloadGate }?.open() }
+    var loadsStarted: Int { state.withLock { $0.loadsStarted } }
+    var unloadsStarted: Int { state.withLock { $0.unloadsStarted } }
+
     func load(modelFolder: URL) async throws {
+        let gate = state.withLock { state -> Latch? in
+            state.loadsStarted += 1
+            return state.loadGate
+        }
+        await gate?.wait()
         if state.withLock({ $0.failsToLoad }) { throw LoadFailure() }
         state.withLock {
             $0.loaded = true
@@ -149,6 +180,11 @@ final class LeaseEngine: SpeechEngine, @unchecked Sendable {
     }
 
     func unload() async {
+        let gate = state.withLock { state -> Latch? in
+            state.unloadsStarted += 1
+            return state.unloadGate
+        }
+        await gate?.wait()
         let was = state.withLock { state -> Bool in
             let was = state.loaded
             state.loaded = false
@@ -186,6 +222,7 @@ final class LeaseLLM: LLMRuntime, @unchecked Sendable {
         var unloads = 0
         var log: [String] = []
         var attempts: [String: Int] = [:]
+        var loadFails = false
     }
 
     let state = Mutex(State())
@@ -203,6 +240,7 @@ final class LeaseLLM: LLMRuntime, @unchecked Sendable {
     var log: [String] { state.withLock { $0.log } }
 
     func load(modelAt url: URL) async throws {
+        if state.withLock({ $0.loadFails }) { throw LeaseEngine.LoadFailure() }
         state.withLock {
             $0.loaded = true
             $0.loads.append(url)

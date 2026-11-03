@@ -18,12 +18,17 @@ public final class LLMLease: Sendable {
         }
     }
 
-    private let residency: Residency<Key, any LLMRuntime>
+    private let residency: Residency<Key, Held<any LLMRuntime>>
     private let turnstile = Turnstile()
 
     public init(sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }) {
         residency = Residency(
-            ops: .init(isLoaded: { await $0.isLoaded }, unload: { await $0.unload() }), sleep: sleep)
+            ops: .init(
+                isLoaded: { await $0.base.isLoaded },
+                unload: { held in
+                    await held.inFlight.idle()
+                    await held.base.unload()
+                }), sleep: sleep)
     }
 
     /// Takes a lease on the model. When `key` is resident its runtime is shared and `runtime` is ignored;
@@ -32,8 +37,8 @@ public final class LLMLease: Sendable {
         key: Key, runtime: any LLMRuntime, modelURL: URL, priority: LeasePriority,
         keepWarm: @escaping @Sendable () -> Duration
     ) async throws -> LLMHandle {
-        let shared = try await residency.acquire(key: key, model: runtime) { runtime in
-            try await runtime.load(modelAt: modelURL)
+        let shared = try await residency.acquire(key: key, model: Held(runtime)) { held in
+            try await held.base.load(modelAt: modelURL)
         }
         return LLMHandle(owner: self, key: key, runtime: shared, priority: priority, keepWarm: keepWarm)
     }
@@ -51,6 +56,11 @@ public final class LLMLease: Sendable {
         get async { await residency.activeLeases }
     }
 
+    /// Whether any lease is active on the model file `modelID` (its path), whatever the context length.
+    public func isInUse(modelID: String) async -> Bool {
+        await residency.leases(where: { $0.modelID == modelID }) > 0
+    }
+
     /// Generations waiting for their turn.
     var queued: Int { turnstile.waiting }
 
@@ -59,8 +69,11 @@ public final class LLMLease: Sendable {
     }
 
     fileprivate func generate(
-        _ runtime: any LLMRuntime, priority: LeasePriority, messages: [ChatMessage], maxTokens: Int
+        _ held: Held<any LLMRuntime>, priority: LeasePriority, messages: [ChatMessage], maxTokens: Int
     ) async throws -> GenerationResult {
+        // Already counted by the handle; the model is not unloaded before this call returns.
+        defer { held.inFlight.end() }
+        let runtime = held.base
         while true {
             let preemption = Preemption()
             try await turnstile.enter(priority, preempt: { preemption.fire() })
@@ -85,7 +98,7 @@ public final class LLMLease: Sendable {
 }
 
 /// Lets the turnstile cancel a generation that may not have started yet.
-private final class Preemption: Sendable {
+final class Preemption: Sendable {
     private struct State {
         var fired = false
         var task: Task<GenerationResult, any Error>?
@@ -116,12 +129,12 @@ public final class LLMHandle: Sendable {
     public let key: LLMLease.Key
     public let priority: LeasePriority
     private let owner: LLMLease
-    private let runtime: any LLMRuntime
+    private let runtime: Held<any LLMRuntime>
     private let keepWarm: @Sendable () -> Duration
     private let released = Mutex(false)
 
     fileprivate init(
-        owner: LLMLease, key: LLMLease.Key, runtime: any LLMRuntime, priority: LeasePriority,
+        owner: LLMLease, key: LLMLease.Key, runtime: Held<any LLMRuntime>, priority: LeasePriority,
         keepWarm: @escaping @Sendable () -> Duration
     ) {
         self.owner = owner
@@ -132,7 +145,12 @@ public final class LLMHandle: Sendable {
     }
 
     public func generateResult(messages: [ChatMessage], maxTokens: Int) async throws -> GenerationResult {
-        guard !released.withLock({ $0 }) else { throw ModelLeaseError.released }
+        let allowed = released.withLock { released -> Bool in
+            guard !released else { return false }
+            runtime.inFlight.begin()
+            return true
+        }
+        guard allowed else { throw ModelLeaseError.released }
         return try await owner.generate(runtime, priority: priority, messages: messages, maxTokens: maxTokens)
     }
 

@@ -48,7 +48,8 @@ public actor ModelManager {
     /// Installs and deletions run one at a time: the actor is re-entered while a download awaits, and two of
     /// them on one package would write the same `.partial` folder.
     private var exclusiveBusy = false
-    private var exclusiveWaiters: [CheckedContinuation<Void, Never>] = []
+    private var exclusiveWaiters: [(id: Int, continuation: CheckedContinuation<Void, any Error>)] = []
+    private var nextWaiterID = 0
 
     /// - Parameters:
     ///   - directory: the folder the packages live in.
@@ -142,8 +143,18 @@ public actor ModelManager {
 
     /// Runs `body` after every earlier install or delete has finished.
     private func exclusive<T>(_ body: () async throws -> T) async throws -> T {
+        try Task.checkCancellation()
         if exclusiveBusy {
-            await withCheckedContinuation { exclusiveWaiters.append($0) }
+            nextWaiterID += 1
+            let id = nextWaiterID
+            // A queued call that is cancelled leaves the queue at once and throws; it never holds the turn.
+            try await withTaskCancellationHandler {
+                try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+                    exclusiveWaiters.append((id, continuation))
+                }
+            } onCancel: {
+                Task { await self.dropWaiter(id) }
+            }
         } else {
             exclusiveBusy = true
         }
@@ -151,11 +162,16 @@ public actor ModelManager {
             if exclusiveWaiters.isEmpty {
                 exclusiveBusy = false
             } else {
-                exclusiveWaiters.removeFirst().resume()
+                exclusiveWaiters.removeFirst().continuation.resume()
             }
         }
         try Task.checkCancellation()
         return try await body()
+    }
+
+    private func dropWaiter(_ id: Int) {
+        guard let index = exclusiveWaiters.firstIndex(where: { $0.id == id }) else { return }
+        exclusiveWaiters.remove(at: index).continuation.resume(throwing: CancellationError())
     }
 
     private func performInstall(

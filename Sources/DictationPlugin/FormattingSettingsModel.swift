@@ -155,6 +155,13 @@ final class FormattingSettingsModel {
         guard let llmModels else { return }
         let package = builtInModel.package
         Task {
+            // The file is open while a request uses the model: wait for the user to try again.
+            if await runtime?.isInUse() == true {
+                builtInError = String(
+                    localized: "The model is in use right now. Try again in a moment.",
+                    comment: "Dictation settings error when the built-in model is being used and cannot be removed")
+                return
+            }
             await runtime?.unload()
             do {
                 try await llmModels.delete(package)

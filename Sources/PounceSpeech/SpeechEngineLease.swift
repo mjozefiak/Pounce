@@ -26,21 +26,29 @@ public final class SpeechEngineLease: Sendable {
 
         public init(modelID: String, folder: URL) {
             self.modelID = modelID
-            self.folder = folder.standardizedFileURL
+            // One spelling per folder: "..", a trailing slash and /var against /private/var all name one key.
+            self.folder = URL(
+                fileURLWithPath: folder.standardizedFileURL.resolvingSymlinksInPath().path, isDirectory: true)
         }
     }
 
     /// The most unfinished audio the `background` queue holds, in samples (60 s).
     public static let backgroundLimit = 60 * AudioFormat.sampleRate
 
-    private let residency: Residency<Key, any SpeechEngine>
+    private let residency: Residency<Key, Held<any SpeechEngine>>
     private let turnstile = Turnstile()
     private let pendingBackground = Mutex(0)
 
     /// - Parameter sleep: waits out the keep-warm time; tests replace it.
     public init(sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }) {
         residency = Residency(
-            ops: .init(isLoaded: { await $0.isLoaded }, unload: { await $0.unload() }), sleep: sleep)
+            ops: .init(
+                isLoaded: { await $0.base.isLoaded },
+                unload: { held in
+                    // A transcription that is running cannot be stopped: the engine goes after it.
+                    await held.inFlight.idle()
+                    await held.base.unload()
+                }), sleep: sleep)
     }
 
     /// Takes a lease on the engine for `modelID` in `folder`. When that key is resident, its engine is shared and
@@ -53,9 +61,9 @@ public final class SpeechEngineLease: Sendable {
         keepWarm: @escaping @Sendable () -> Duration, onLoading: @escaping @Sendable () -> Void = {}
     ) async throws -> SpeechLease {
         let key = Key(modelID: modelID, folder: folder)
-        let shared = try await residency.acquire(key: key, model: engine) { engine in
+        let shared = try await residency.acquire(key: key, model: Held(engine)) { held in
             onLoading()
-            try await engine.load(modelFolder: key.folder)
+            try await held.base.load(modelFolder: key.folder)
         }
         return SpeechLease(owner: self, key: key, engine: shared, priority: priority, keepWarm: keepWarm)
     }
@@ -81,9 +89,11 @@ public final class SpeechEngineLease: Sendable {
         await residency.release(key: key, keepWarm: keepWarm)
     }
 
+    /// `inFlight` was already counted by the lease (see `SpeechLease.transcribe`) and is ended here.
     fileprivate func transcribe(
-        _ samples: [Float], with engine: any SpeechEngine, priority: LeasePriority
+        _ samples: [Float], with held: Held<any SpeechEngine>, priority: LeasePriority
     ) async throws -> SpeechOutcome {
+        defer { held.inFlight.end() }
         if priority == .background {
             let accepted = pendingBackground.withLock { pending -> Bool in
                 // An empty queue always takes a segment, so one long piece cannot be refused forever.
@@ -98,7 +108,7 @@ public final class SpeechEngineLease: Sendable {
         }
         try await turnstile.enter(priority)
         defer { turnstile.leave() }
-        return .transcript(try await engine.transcribe(samples))
+        return .transcript(try await held.base.transcribe(samples))
     }
 }
 
@@ -107,12 +117,12 @@ public final class SpeechLease: Sendable {
     public let key: SpeechEngineLease.Key
     public let priority: LeasePriority
     private let owner: SpeechEngineLease
-    private let engine: any SpeechEngine
+    private let engine: Held<any SpeechEngine>
     private let keepWarm: @Sendable () -> Duration
     private let released = Mutex(false)
 
     fileprivate init(
-        owner: SpeechEngineLease, key: SpeechEngineLease.Key, engine: any SpeechEngine, priority: LeasePriority,
+        owner: SpeechEngineLease, key: SpeechEngineLease.Key, engine: Held<any SpeechEngine>, priority: LeasePriority,
         keepWarm: @escaping @Sendable () -> Duration
     ) {
         self.owner = owner
@@ -124,7 +134,14 @@ public final class SpeechLease: Sendable {
 
     /// Transcribes one segment in turn. A `background` lease may get `.spool` back.
     public func transcribe(_ samples: [Float]) async throws -> SpeechOutcome {
-        guard !released.withLock({ $0 }) else { throw ModelLeaseError.released }
+        // Checked and counted together: once released, no new call starts, and one that did start keeps the
+        // engine loaded until it returns, even when the lease is released (or the plugin shut down) meanwhile.
+        let allowed = released.withLock { released -> Bool in
+            guard !released else { return false }
+            engine.inFlight.begin()
+            return true
+        }
+        guard allowed else { throw ModelLeaseError.released }
         return try await owner.transcribe(samples, with: engine, priority: priority)
     }
 

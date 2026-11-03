@@ -68,6 +68,12 @@ public actor KeepWarmRuntime {
         await lease.evictIdle()
     }
 
+    /// Whether the model file now named by Settings is leased by a request (not merely kept warm).
+    public func isInUse() async -> Bool {
+        guard let url = try? await modelURL() else { return false }
+        return await lease.isInUse(modelID: url.path)
+    }
+
     /// Takes a lease on the model, or on another one when Settings now name a different file.
     private func acquire() async throws -> LLMHandle {
         let url = try await modelURL()
