@@ -212,7 +212,8 @@ private let words: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
     /// Lets the started task run until it is verifying. One `Task.yield()` is not enough under parallel load,
     /// when the task has not been scheduled yet.
     private static func untilVerifying(_ card: MeetingsModelCardModel) async {
-        for _ in 0..<100_000 where !card.isVerifying { await Task.yield() }
+        let deadline = ContinuousClock.now + .seconds(30)
+        while !card.isVerifying, ContinuousClock.now < deadline { try? await Task.sleep(for: .milliseconds(2)) }
     }
 
     @Test func aResultForAnotherPackageIsDropped() async throws {

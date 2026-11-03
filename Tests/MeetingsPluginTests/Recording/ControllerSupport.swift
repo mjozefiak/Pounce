@@ -238,7 +238,7 @@ final class ScriptedSession: RecordingSession {
 /// timeout only keeps a broken test from hanging.
 @MainActor
 func eventually(
-    _ message: Comment = "condition", timeout: Duration = .seconds(10), _ condition: @MainActor () -> Bool
+    _ message: Comment = "condition", timeout: Duration = .seconds(60), _ condition: @MainActor () -> Bool
 ) async {
     let deadline = ContinuousClock.now + timeout
     let timer = Task { @MainActor in

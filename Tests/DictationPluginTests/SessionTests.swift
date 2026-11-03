@@ -267,7 +267,11 @@ private func session(
         let session = session(
             ScriptedAudioInput(seconds: 5), vad: RangeVAD([second..<(2 * second)]), engine: engine)
         try await session.start()
-        try await Task.sleep(for: .milliseconds(100))
+        // Cancel only once the engine call is in flight; on a loaded runner the segment arrives late.
+        let started = ContinuousClock.now + .seconds(10)
+        while engine.state.withLock({ $0.calls }) == 0, ContinuousClock.now < started {
+            try await Task.sleep(for: .milliseconds(10))
+        }
         await session.cancel()
         await #expect(throws: DictationSession.Failure.cancelled) { try await session.finish() }
         // The engine is told asynchronously: wait for it instead of guessing a delay (a loaded runner needs more).
