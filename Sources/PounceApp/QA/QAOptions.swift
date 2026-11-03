@@ -70,6 +70,14 @@ struct QAOptions: Equatable {
     var appActivity: [String] = []
     /// `--qa-activity-live`: lets the real activity tracker and Spotlight seed run in QA mode.
     var liveAppActivity = false
+    /// `--qa-meeting-mic-wav <path>` / `--qa-meeting-system-wav <path>`: 16 kHz mono WAV files played back as
+    /// the meeting's microphone and system tracks instead of real audio (meeting notes, step 1.5). Real
+    /// capture is never started in QA mode.
+    var meetingMicWAV: URL?
+    var meetingSystemWAV: URL?
+    /// `--qa-meeting-spool-dir <path>`: folder for the encrypted spool of QA meetings instead of
+    /// `<data root>/Plugins/meetings/Spool`. The Keychain is the in-memory one in QA mode anyway.
+    var meetingSpoolDirectory: URL?
 
     /// The file plugin's DEBUG-only fake home and its roots, which QA mode always sets
     /// (`AppEnvironment.qaFileIndexSettings`).
@@ -184,11 +192,24 @@ struct QAOptions: Equatable {
                 options.appActivity.append(value)
             case "--qa-activity-live":
                 options.liveAppActivity = true
+            case "--qa-meeting-mic-wav":
+                options.meetingMicWAV = URL(filePath: try Self.pathValue(argument, iterator.next()))
+            case "--qa-meeting-system-wav":
+                options.meetingSystemWAV = URL(filePath: try Self.pathValue(argument, iterator.next()))
+            case "--qa-meeting-spool-dir":
+                options.meetingSpoolDirectory = URL(
+                    filePath: try Self.pathValue(argument, iterator.next()), directoryHint: .isDirectory)
             default:
                 throw .unknownArgument(argument)
             }
         }
         return options
+    }
+
+    private static func pathValue(_ argument: String, _ value: String?) throws(ParseError) -> String {
+        guard let value else { throw .missingValue(argument) }
+        guard !value.isEmpty, !value.hasPrefix("--") else { throw .invalidValue(argument, value) }
+        return value
     }
 
     /// `<bundleID>` or `<bundleID>=<uses>` with a positive number of uses.
