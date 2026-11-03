@@ -12,6 +12,12 @@ enum SystemAudioError: Error, Equatable, Sendable {
     case tapUnavailable(Int32)
     /// The tap delivers a format the converter cannot handle.
     case unsupportedFormat
+    /// The self-test's tap delivered no buffer at all (neither signal nor zeros).
+    case noData
+    /// The self-test's tone player did not finish in time.
+    case timedOut
+    /// The self-test's tone player failed (`NSError` code, 0 when unknown).
+    case tonePlayerFailed(Int32)
 }
 
 /// One buffer from the tap: interleaved `Float32` frames and the host time of the first frame.
@@ -21,6 +27,9 @@ struct TapBuffer: Sendable, Equatable {
     var sampleRate: Double
     /// `mach_absolute_time` ticks of the first frame (the IO proc's input time).
     var hostTime: UInt64
+    /// False when the IO proc's time stamp did not have `kAudioTimeStampHostTimeValid`; the source then
+    /// stamps the buffer from its own clock.
+    var hostTimeValid = true
 }
 
 /// A running tap; stopping is idempotent and releases the tap, the aggregate device and the IO proc.
@@ -37,11 +46,14 @@ protocol OutputChangeObservation: Sendable {
 /// (`CoreAudioProcessTapBackend`) is compiled but exercised only by hand; tests use a scripted fake.
 protocol ProcessTapBackend: Sendable {
     /// Creates a tap of all processes (except Pounce's own when `excludingOwnProcess`), an aggregate device
-    /// around it and an IO proc that calls `onBuffer` on the audio thread.
+    /// around it and an IO proc that calls `onBuffer` (on a worker queue, never on the audio thread itself).
     func startTap(
         excludingOwnProcess: Bool, onBuffer: @escaping @Sendable (TapBuffer) -> Void
     ) throws(SystemAudioError) -> any ProcessTapSession
 
-    /// Calls `handler` whenever the default output device changes.
-    func observeOutputDeviceChanges(_ handler: @escaping @Sendable () -> Void) -> any OutputChangeObservation
+    /// Calls `handler` whenever the default output device changes. Throws when the listener cannot be
+    /// installed, so the caller can report that device changes will go unnoticed.
+    func observeOutputDeviceChanges(
+        _ handler: @escaping @Sendable () -> Void
+    ) throws(SystemAudioError) -> any OutputChangeObservation
 }

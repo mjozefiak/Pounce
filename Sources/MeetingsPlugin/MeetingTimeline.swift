@@ -32,8 +32,10 @@ struct HostTimeConverter: Sendable, Equatable {
     }
 
     func nanoseconds(_ ticks: UInt64) -> UInt64 {
-        // 128-bit intermediate: ticks * numer can overflow 64 bits after long uptimes.
+        // 128-bit intermediate: ticks * numer can overflow 64 bits after long uptimes. The division traps
+        // when the quotient does not fit, so a result beyond 64 bits saturates instead.
         let (high, low) = ticks.multipliedFullWidth(by: numer)
+        guard high < denom else { return UInt64.max }
         return denom.dividingFullWidth((high, low)).quotient
     }
 }

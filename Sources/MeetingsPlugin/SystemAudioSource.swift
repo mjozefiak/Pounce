@@ -8,6 +8,14 @@ enum SystemAudioEvent: Equatable, Sendable {
     case recreated
     /// The tap could not be recreated; the track continues as silence until the next chance.
     case recreateFailed(SystemAudioError)
+    /// The tap's sample rate or channel count changed (a Bluetooth headset switching profile, say); the
+    /// conversion was reconfigured and the timeline continues.
+    case formatChanged
+    /// Implausible time stamps (a huge gap or a clock far behind) were absorbed: at most a few seconds of
+    /// silence were inserted and the timeline was re-based on the new stamps.
+    case timelineResynced
+    /// The default-output listener could not be installed; device changes will go unnoticed.
+    case outputChangesNotObserved(SystemAudioError)
 }
 
 /// The timeline logic of one system-audio track, without Core Audio: converts buffers to 16 kHz mono and
@@ -16,13 +24,25 @@ enum SystemAudioEvent: Equatable, Sendable {
 /// `anchor + n / 16000` seconds.
 struct SystemAudioPipeline: Sendable {
     static let sampleRate = AudioFormat.sampleRate
+    /// The most silence one buffer may add (5 s). A larger jump is a bad stamp, not a real stall: it is
+    /// absorbed by re-basing the timeline instead of allocating without bound.
+    static let maxGapSamples = 5 * AudioFormat.sampleRate
+    /// A stamp this far behind the output (1 s) is stale, not jitter.
+    static let maxBackstepSamples = AudioFormat.sampleRate
 
     let converter: HostTimeConverter
     /// Host time of output sample 0; set from the first buffer unless given.
     private(set) var anchorHostTime: UInt64?
     private(set) var emittedSamples = 0
+    /// How often the sample rate or channel count changed mid-stream.
+    private(set) var formatChanges = 0
+    /// How often implausible stamps forced a re-base of the timeline.
+    private(set) var resyncs = 0
     private var resampler: MonoResampler?
     private var resamplerKey: String?
+    /// Samples subtracted from stamp-derived positions after a re-base.
+    private var shiftSamples = 0
+    private var lastHostTime: UInt64?
     /// Differences below this many samples are jitter, not a gap (about 20 ms).
     private let toleranceSamples = AudioFormat.sampleRate / 50
 
@@ -33,9 +53,10 @@ struct SystemAudioPipeline: Sendable {
 
     /// The output for `buffer`: leading silence for a gap, then the converted samples.
     mutating func ingest(_ buffer: TapBuffer) -> [Float] {
-        guard buffer.channels > 0, buffer.sampleRate > 0 else { return [] }
+        guard buffer.channels > 0, buffer.sampleRate > 0, buffer.sampleRate.isFinite else { return [] }
         let key = "\(buffer.channels)@\(buffer.sampleRate)"
         if key != resamplerKey {
+            if resamplerKey != nil { formatChanges += 1 }
             resampler = MonoResampler(
                 inputRate: buffer.sampleRate, outputRate: Double(Self.sampleRate), channels: buffer.channels)
             resamplerKey = key
@@ -45,13 +66,27 @@ struct SystemAudioPipeline: Sendable {
         var converted = resampler?.process(interleaved: buffer.samples) ?? []
         guard !converted.isEmpty else { return [] }
 
-        let start = sampleIndex(forHostTime: buffer.hostTime, anchor: anchor)
         var output: [Float] = []
-        if start > emittedSamples + toleranceSamples {
-            output = [Float](repeating: 0, count: start - emittedSamples)
-        } else if start < emittedSamples - toleranceSamples {
-            // A buffer from the past (the clock stepped back): drop the part that was already covered.
-            converted.removeFirst(min(converted.count, emittedSamples - start))
+        if let last = lastHostTime, buffer.hostTime <= last {
+            // A stamp that does not advance is stale (host time is monotonic): follow the previous buffer.
+        } else {
+            lastHostTime = buffer.hostTime
+            let start = sampleIndex(forHostTime: buffer.hostTime, anchor: anchor) - shiftSamples
+            if start > emittedSamples + toleranceSamples {
+                var gap = start - emittedSamples
+                if gap > Self.maxGapSamples {
+                    shiftSamples += gap - Self.maxGapSamples
+                    resyncs += 1
+                    gap = Self.maxGapSamples
+                }
+                output = [Float](repeating: 0, count: gap)
+            } else if start < emittedSamples - Self.maxBackstepSamples {
+                shiftSamples += start - emittedSamples
+                resyncs += 1
+            } else if start < emittedSamples - toleranceSamples {
+                // A buffer from the past (the clock stepped back): drop the part that was already covered.
+                converted.removeFirst(min(converted.count, emittedSamples - start))
+            }
         }
         output.append(contentsOf: converted)
         emittedSamples += output.count
@@ -61,7 +96,7 @@ struct SystemAudioPipeline: Sendable {
     /// Silence up to `hostTime`, for the end of the recording or a tap that stays down.
     mutating func padding(upTo hostTime: UInt64) -> [Float] {
         guard let anchor = anchorHostTime else { return [] }
-        let target = sampleIndex(forHostTime: hostTime, anchor: anchor)
+        let target = sampleIndex(forHostTime: hostTime, anchor: anchor) - shiftSamples
         guard target > emittedSamples else { return [] }
         let silence = [Float](repeating: 0, count: target - emittedSamples)
         emittedSamples = target
@@ -103,6 +138,7 @@ final class SystemAudioSource: AudioInput, @unchecked Sendable {
     private let clock: any HostClock
     private let enabled: Bool
     private let excludeOwnProcess: Bool
+    private let configuredAnchor: UInt64?
     private let onEvent: @Sendable (SystemAudioEvent) -> Void
     private let restartDelay: Duration
     private let sleeper: @Sendable (Duration) async -> Void
@@ -123,6 +159,7 @@ final class SystemAudioSource: AudioInput, @unchecked Sendable {
         self.clock = clock
         self.enabled = enabled
         self.excludeOwnProcess = excludeOwnProcess
+        configuredAnchor = anchorHostTime
         self.restartDelay = restartDelay
         self.sleeper = sleeper
         self.maxRecreateAttempts = max(1, maxRecreateAttempts)
@@ -145,27 +182,50 @@ final class SystemAudioSource: AudioInput, @unchecked Sendable {
             state.running = true
             state.continuation = continuation
             state.onLevel = onLevel
-            // Without an explicit anchor, the timeline starts when capture is requested, so audio that
-            // arrives late is preceded by silence instead of shifting the track.
-            if state.pipeline.anchorHostTime == nil {
-                state.pipeline = SystemAudioPipeline(converter: state.pipeline.converter, anchorHostTime: clock.now())
-            }
+            // A fresh timeline for every start, so a source that was stopped begins from zero again. Without
+            // an explicit anchor it starts when capture is requested, so audio that arrives late is
+            // preceded by silence instead of shifting the track.
+            state.pipeline = SystemAudioPipeline(
+                converter: state.pipeline.converter, anchorHostTime: configuredAnchor ?? clock.now())
+            state.recreation = nil
             return false
         }
         guard !alreadyRunning else {
             continuation.finish()
             return stream
         }
+        let session: any ProcessTapSession
         do {
-            let session = try openTap()
-            let observation = backend.observeOutputDeviceChanges { [weak self] in self?.outputDeviceChanged() }
-            state.withLock { state in
-                state.session = session
-                state.observation = observation
-            }
+            session = try openTap()
         } catch {
             shutdown(finishWith: nil)
             throw error
+        }
+        // The session is stored before the output observation exists, so a device change can never find the
+        // tap missing and open a second one that this assignment would then overwrite.
+        let (kept, previous) = state.withLock { state -> (Bool, (any ProcessTapSession)?) in
+            guard state.running else { return (false, nil) }
+            let previous = state.session
+            state.session = session
+            return (true, previous)
+        }
+        previous?.stop()
+        guard kept else {
+            // stop() ran while the tap was opening.
+            session.stop()
+            continuation.finish()
+            return stream
+        }
+        do throws(SystemAudioError) {
+            let observation = try backend.observeOutputDeviceChanges { [weak self] in self?.outputDeviceChanged() }
+            let stored = state.withLock { state -> Bool in
+                guard state.running else { return false }
+                state.observation = observation
+                return true
+            }
+            if !stored { observation.cancel() }
+        } catch {
+            onEvent(.outputChangesNotObserved(error))
         }
         return stream
     }
@@ -187,12 +247,24 @@ final class SystemAudioSource: AudioInput, @unchecked Sendable {
     }
 
     private func receive(_ buffer: TapBuffer, generation: Int) {
-        let (chunk, continuation, onLevel) = state.withLock {
-            state -> ([Float], AsyncStream<[Float]>.Continuation?, (@Sendable (Float) -> Void)?) in
-            guard state.running, state.generation == generation else { return ([], nil, nil) }
-            return (state.pipeline.ingest(buffer), state.continuation, state.onLevel)
+        var buffer = buffer
+        if !buffer.hostTimeValid || buffer.hostTime == 0 {
+            // No usable stamp from the IO proc: place the buffer by the clock instead.
+            buffer.hostTime = clock.now()
+        }
+        let (chunk, continuation, onLevel, events) = state.withLock {
+            state -> ([Float], AsyncStream<[Float]>.Continuation?, (@Sendable (Float) -> Void)?, [SystemAudioEvent]) in
+            guard state.running, state.generation == generation else { return ([], nil, nil, []) }
+            let formatChanges = state.pipeline.formatChanges
+            let resyncs = state.pipeline.resyncs
+            let chunk = state.pipeline.ingest(buffer)
+            var events: [SystemAudioEvent] = []
+            if state.pipeline.formatChanges != formatChanges { events.append(.formatChanged) }
+            if state.pipeline.resyncs != resyncs { events.append(.timelineResynced) }
+            return (chunk, state.continuation, state.onLevel, events)
         }
         emit(chunk, to: continuation, onLevel: onLevel)
+        for event in events { onEvent(event) }
     }
 
     private func emit(
@@ -235,11 +307,14 @@ final class SystemAudioSource: AudioInput, @unchecked Sendable {
             guard state.withLock({ $0.running }) else { return }
             do {
                 let session = try openTap()
-                let keep = state.withLock { state -> Bool in
-                    guard state.running else { return false }
+                let (keep, previous) = state.withLock { state -> (Bool, (any ProcessTapSession)?) in
+                    guard state.running else { return (false, nil) }
+                    // Never overwrite a live session: it would leak.
+                    let previous = state.session
                     state.session = session
-                    return true
+                    return (true, previous)
                 }
+                previous?.stop()
                 if keep {
                     onEvent(.recreated)
                 } else {

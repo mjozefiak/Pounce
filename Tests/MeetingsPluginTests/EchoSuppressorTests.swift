@@ -88,8 +88,8 @@ import Testing
 
     @Test func theSystemTrackIsNeverDroppedAndOrderIsKept() {
         let segments = [
-            mic("hello there", 0, 1_000),
-            system("hello there", 0, 1_000),
+            mic("hello there everyone welcome to the call", 0, 1_000),
+            system("hello there everyone welcome to the call", 0, 1_000),
             system("second line", 2_000, 3_000),
             mic("my own words entirely", 4_000, 5_000),
         ]
@@ -111,7 +111,56 @@ import Testing
         #expect(suppressor.suppressing(segments) == segments)
     }
 
+    @Test func shortExactUtterancesAreKept() {
+        for text in ["tak", "Thank you.", "Tak, tak", "ok dobrze"] {
+            let segments = [system(text, 1_000, 2_000), mic(text, 1_050, 2_050)]
+            #expect(suppressor.suppressing(segments) == segments, "\(text)")
+        }
+    }
+
+    @Test func aLongerPhraseOfFourWordsCanStillBeAnEcho() {
+        let result = suppressor.suppressing([
+            system("thank you very much", 1_000, 2_500),
+            mic("thank you very much", 1_050, 2_550),
+        ])
+        #expect(result.map(\.track) == [.system])
+    }
+
+    @Test func doubleTalkWithTheSameOpeningIsKept() {
+        let segments = [
+            system("we should ship on thursday", 1_000, 4_000),
+            mic("we should ship on thursday but I think friday is safer for the whole team", 1_000, 6_000),
+        ]
+        #expect(suppressor.suppressing(segments) == segments)
+    }
+
+    @Test func aMicRemarkThatOnlyTouchesALongSystemSegmentIsKept() {
+        // The mic segment overlaps 30 % of the shorter segment's length but only a sliver of itself.
+        let segments = [
+            system("and that is why the quarterly numbers look better than we expected", 0, 20_000),
+            mic("and that is why the quarterly numbers look better than we expected", 19_000, 25_000),
+        ]
+        #expect(suppressor.suppressing(segments) == segments)
+    }
+
+    @Test func theSameWordsInAnotherOrderAreNotAnEcho() {
+        let segments = [
+            system("alpha beta gamma delta epsilon zeta", 1_000, 4_000),
+            mic("zeta epsilon delta gamma beta alpha", 1_000, 4_000),
+        ]
+        #expect(suppressor.suppressing(segments) == segments)
+    }
+
+    @Test func aTrueEchoWithOneDroppedWordIsStillDropped() {
+        let result = suppressor.suppressing([
+            system("we need to finish the migration before the end of the month", 1_000, 5_000),
+            mic("we need to finish the migration before end of the month", 1_100, 5_100),
+        ])
+        #expect(result.map(\.track) == [.system])
+    }
+
     @Test func similarityBasics() {
+        #expect(EchoSuppressor.similarity("one two three four", "four three two one") < 0.5)
         #expect(EchoSuppressor.similarity("a b c", "a b c") == 1)
         #expect(EchoSuppressor.similarity("", "a") == 0)
         #expect(EchoSuppressor.similarity("hello world", "completely different") < 0.5)

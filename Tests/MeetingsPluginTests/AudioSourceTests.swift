@@ -61,6 +61,25 @@ import Testing
         #expect(HostTimeConverter(numer: 125, denom: 3).nanoseconds(UInt64.max / 100) > 0)
     }
 
+    @Test func hugeTickCountsSaturateInsteadOfTrapping() {
+        // numer 125 / denom 3 with UInt64.max ticks: the quotient needs more than 64 bits.
+        #expect(HostTimeConverter(numer: 125, denom: 3).nanoseconds(UInt64.max) == UInt64.max)
+        #expect(HostTimeConverter.identity.nanoseconds(UInt64.max) == UInt64.max)
+        #expect(HostTimeConverter(numer: UInt64.max, denom: 1).nanoseconds(UInt64.max) == UInt64.max)
+        // The boundary: high word equal to the denominator would overflow the quotient.
+        #expect(HostTimeConverter(numer: 2, denom: 2).nanoseconds(UInt64.max) == UInt64.max)
+        #expect(HostTimeConverter(numer: UInt64.max, denom: UInt64.max).nanoseconds(UInt64.max) == UInt64.max)
+        #expect(HostTimeConverter(numer: 0, denom: 7).nanoseconds(UInt64.max) == 0)
+    }
+
+    @Test func aHugeStampAgainstAnAlignmentDoesNotTrap() {
+        let alignment = TimelineAlignment(originHostTime: 0, converter: HostTimeConverter(numer: 125, denom: 3))
+        #expect(alignment.milliseconds(forHostTime: UInt64.max) > 0)
+        #expect(alignment.sampleOffset(forHostTime: UInt64.max, sampleRate: 16_000) > 0)
+        let late = TimelineAlignment(originHostTime: UInt64.max, converter: HostTimeConverter(numer: 125, denom: 3))
+        #expect(late.milliseconds(forHostTime: 0) < 0)
+    }
+
     @Test func tracksAlignToTheEarliestStart() throws {
         let micStart: UInt64 = 5_000_000_000
         let systemStart: UInt64 = 5_250_000_000
@@ -124,7 +143,9 @@ import Testing
         var floating = SystemAudioPipeline(converter: .identity)
         let out = floating.ingest(buffer(frames: 4_800, at: 1_000))
         #expect(floating.anchorHostTime == 1_000_000_000)
-        #expect(out.first != 0 || Synth.rms(out) > 0.3)
+        #expect(abs(out.count - 1_600) <= 3)
+        #expect(Synth.rms(out) > 0.3)
+        #expect(floating.emittedSamples == out.count)
 
         // Capture asked at 1000 ms, first audio at 1250 ms: 250 ms of leading silence.
         var anchored = SystemAudioPipeline(converter: .identity, anchorHostTime: 1_000_000_000)
@@ -139,6 +160,74 @@ import Testing
         #expect(abs(pipeline.emittedSamples - 16_000) <= 3)
         #expect(silence.allSatisfy { $0 == 0 })
         #expect(pipeline.padding(upTo: 1_500_000_000).isEmpty)
+    }
+
+    @Test func aZeroOrStaleStampDoesNotDropTheFollowingBuffers() {
+        var pipeline = SystemAudioPipeline(converter: .identity)
+        var all = pipeline.ingest(buffer(frames: 4_800, at: 1_000))
+        for index in 1...4 {
+            // The stamp is stuck at 0 (or stale): the buffers follow each other instead of being dropped.
+            all += pipeline.ingest(
+                TapBuffer(
+                    samples: Synth.sine(frequency: 440, rate: 48_000, frames: 4_800, startFrame: index * 4_800),
+                    channels: 2, sampleRate: 48_000, hostTime: 0))
+        }
+        #expect(abs(all.count - 8_000) <= 8)  // five 100 ms buffers
+        #expect(Synth.rms(all) > 0.3)
+        #expect(pipeline.resyncs == 0)
+    }
+
+    @Test func aHugeFutureStampIsCappedAndTheTimelineRebased() {
+        var pipeline = SystemAudioPipeline(converter: .identity)
+        _ = pipeline.ingest(buffer(frames: 4_800, at: 1_000))
+        // A stamp one hour ahead: at most five seconds of silence, never an hour.
+        let jump = pipeline.ingest(buffer(frames: 4_800, at: 1_000 + 3_600_000, startFrame: 4_800))
+        #expect(jump.count <= SystemAudioPipeline.maxGapSamples + 1_700)
+        #expect(jump.prefix(while: { $0 == 0 }).count == SystemAudioPipeline.maxGapSamples)
+        #expect(pipeline.resyncs == 1)
+        // The next buffer is contiguous with the new timeline, not another capped gap.
+        let next = pipeline.ingest(buffer(frames: 4_800, at: 1_000 + 3_600_100, startFrame: 9_600))
+        #expect(abs(next.count - 1_600) <= 3)
+        #expect(pipeline.resyncs == 1)
+        // And a stamp near UInt64.max neither traps nor allocates without bound.
+        let extreme = pipeline.ingest(
+            TapBuffer(
+                samples: Synth.sine(frequency: 440, rate: 48_000, frames: 4_800), channels: 2, sampleRate: 48_000,
+                hostTime: UInt64.max))
+        #expect(extreme.count <= SystemAudioPipeline.maxGapSamples + 1_700)
+    }
+
+    @Test func aStampFarBehindTheOutputIsRebasedNotDropped() {
+        var pipeline = SystemAudioPipeline(converter: .identity)
+        _ = pipeline.ingest(buffer(frames: 4_800, at: 1_000))
+        // The tap stayed down and the timeline was padded ten seconds ahead; then a buffer arrives whose
+        // advancing stamp is still far behind that.
+        _ = pipeline.padding(upTo: 11_000_000_000)
+        let before = pipeline.emittedSamples
+        let late = pipeline.ingest(buffer(frames: 4_800, at: 1_100, startFrame: 4_800))
+        #expect(abs(late.count - 1_600) <= 3)
+        #expect(pipeline.emittedSamples == before + late.count)
+        #expect(pipeline.resyncs == 1)
+    }
+
+    @Test func aFormatChangeAfterAGapFillsTheGapAndIsCounted() {
+        var pipeline = SystemAudioPipeline(converter: .identity)
+        _ = pipeline.ingest(buffer(frames: 4_800, at: 1_000))
+        #expect(pipeline.formatChanges == 0)
+        // Bluetooth A2DP -> HFP: 48 kHz stereo to 16 kHz mono, 400 ms later than contiguous.
+        let hfp = TapBuffer(
+            samples: Synth.sine(frequency: 440, rate: 16_000, frames: 1_600, channels: 1), channels: 1,
+            sampleRate: 16_000, hostTime: 1_500_000_000)
+        let out = pipeline.ingest(hfp)
+        #expect(pipeline.formatChanges == 1)
+        #expect(abs(out.prefix(while: { $0 == 0 }).count - 6_400) <= 4)
+        #expect(abs(out.count - 8_000) <= 4)
+        // The same format again is not a change.
+        _ = pipeline.ingest(
+            TapBuffer(
+                samples: Synth.sine(frequency: 440, rate: 16_000, frames: 1_600, channels: 1), channels: 1,
+                sampleRate: 16_000, hostTime: 1_600_000_000))
+        #expect(pipeline.formatChanges == 1)
     }
 
     @Test func aFormatChangeKeepsTheTimeline() {
@@ -198,7 +287,105 @@ import Testing
         let source = source(backend, clock: FakeClock())
         await #expect(throws: SystemAudioError.permissionDenied) { _ = try await source.start { _ in } }
         #expect(backend.tapCount == 0)
-        #expect(!backend.observationCancelled || backend.tapCount == 0)
+        // Nothing was ever observed or left behind.
+        #expect(backend.observationCount == 0)
+        #expect(!backend.observationCancelled)
+    }
+
+    @Test func aBufferWithoutAValidStampIsPlacedByTheClock() async throws {
+        let backend = FakeBackend()
+        let clock = FakeClock(1_000_000_000)
+        let source = source(backend, clock: clock, anchor: 1_000_000_000)
+        let collector = StreamCollector(try await source.start { _ in })
+        clock.set(1_250_000_000)
+        var invalid = buffer(at: 0)
+        invalid.hostTimeValid = false
+        backend.deliver(invalid)
+        // A zero stamp counts as invalid too, and the next buffer is not dropped.
+        clock.set(1_350_000_000)
+        backend.deliver(buffer(at: 0, startFrame: 4_800))
+        clock.set(1_450_000_000)
+        await source.stop()
+        let samples = await collector.finished()
+        #expect(abs(samples.count - 7_200) <= 8)  // 450 ms
+        #expect(abs(samples.prefix(while: { $0 == 0 }).count - 4_000) <= 8)
+        #expect(Synth.rms(Array(samples.suffix(3_000))) > 0.3)
+    }
+
+    @Test func aDeviceChangeDuringStartDoesNotLeakATap() async throws {
+        let backend = FakeBackend()
+        backend.fireChangeWhileObserving()
+        let source = source(backend, clock: FakeClock(1_000_000_000))
+        _ = try await source.start { _ in }
+        try await waitUntil { backend.tapCount == 2 }
+        // The first tap was found by the recreation and stopped; only the second one runs.
+        try await waitUntil { backend.stoppedFlags == [true, false] }
+        await source.stop()
+        #expect(backend.stoppedFlags == [true, true])
+    }
+
+    @Test func recreatingNeverLeavesALiveSessionBehind() async throws {
+        let backend = FakeBackend()
+        let source = source(backend, clock: FakeClock(1_000_000_000))
+        _ = try await source.start { _ in }
+        for expected in 2...4 {
+            backend.changeOutputDevice()
+            try await waitUntil { backend.tapCount == expected }
+        }
+        await source.stop()
+        try await waitUntil { backend.stoppedFlags.allSatisfy { $0 } }
+    }
+
+    @Test func aSourceCanBeStartedAgainAfterStopWithAFreshTimeline() async throws {
+        let backend = FakeBackend()
+        let clock = FakeClock(1_000_000_000)
+        let source = source(backend, clock: clock)
+        let first = StreamCollector(try await source.start { _ in })
+        backend.deliver(buffer(at: 1_000))
+        clock.set(1_500_000_000)
+        await source.stop()
+        #expect(abs(await first.finished().count - 8_000) <= 6)
+
+        clock.set(5_000_000_000)
+        #expect(source.anchorHostTime != 5_000_000_000)
+        let second = StreamCollector(try await source.start { _ in })
+        #expect(source.anchorHostTime == 5_000_000_000)
+        backend.deliver(buffer(at: 5_000))
+        clock.set(5_100_000_000)
+        await source.stop()
+        let samples = await second.finished()
+        #expect(abs(samples.count - 1_600) <= 4)  // no padding carried over from the first run
+        #expect(backend.tapCount == 2)
+        #expect(backend.stoppedFlags == [true, true])
+    }
+
+    @Test func aListenerThatCannotBeInstalledIsReportedAndCaptureContinues() async throws {
+        let backend = FakeBackend()
+        backend.failObservation(.tapUnavailable(-7))
+        let events = EventLog()
+        let source = source(backend, clock: FakeClock(1_000_000_000), events: events)
+        let collector = StreamCollector(try await source.start { _ in })
+        #expect(events.value == [.outputChangesNotObserved(.tapUnavailable(-7))])
+        backend.deliver(buffer(at: 1_000))
+        await source.stop()
+        #expect(!(await collector.finished()).isEmpty)
+        #expect(backend.stoppedFlags == [true])
+    }
+
+    @Test func aFormatChangeAndAResyncAreReportedAsEvents() async throws {
+        let backend = FakeBackend()
+        let events = EventLog()
+        let source = source(backend, clock: FakeClock(1_000_000_000), events: events)
+        _ = try await source.start { _ in }
+        backend.deliver(buffer(at: 1_000))
+        backend.deliver(
+            TapBuffer(
+                samples: Synth.sine(frequency: 440, rate: 16_000, frames: 1_600, channels: 1), channels: 1,
+                sampleRate: 16_000, hostTime: 1_100_000_000))
+        #expect(events.value == [.formatChanged])
+        backend.deliver(buffer(at: 1_100 + 3_600_000))
+        #expect(events.value == [.formatChanged, .formatChanged, .timelineResynced])
+        await source.stop()
     }
 
     @Test func aDeviceChangeRecreatesTheTapAndFillsTheGapWithSilence() async throws {
@@ -309,8 +496,44 @@ import Testing
         #expect(backend.stoppedFlags == [true])
     }
 
-    @Test func noBuffersAtAllMeanSilent() async {
-        #expect(await run(backend: FakeBackend(), player: FakeTonePlayer()) == .silent)
+    @Test func noBuffersAtAllMeanTheTapNeverRan() async {
+        let backend = FakeBackend()
+        #expect(await run(backend: backend, player: FakeTonePlayer()) == .unavailable(.noData))
+        #expect(backend.stoppedFlags == [true])
+    }
+
+    @Test func nonFiniteSamplesNeverCountAsASignal() async {
+        let backend = FakeBackend()
+        let player = FakeTonePlayer {
+            backend.deliver(
+                TapBuffer(samples: [.nan, .infinity, 0, 0], channels: 2, sampleRate: 48_000, hostTime: 1))
+        }
+        #expect(await run(backend: backend, player: player) == .silent)
+    }
+
+    @Test func aPlayerThatNeverReturnsTimesOutInsteadOfHanging() async throws {
+        let backend = FakeBackend()
+        let player = HangingTonePlayer()
+        let test = SystemAudioSelfTest(
+            backend: backend, player: player, settle: .zero, sleeper: { _ in }, timeoutSleeper: { _ in })
+        #expect(await test.run() == .unavailable(.timedOut))
+        #expect(backend.stoppedFlags == [true])
+        try await waitUntil { player.isWaiting }
+        player.release()
+    }
+
+    @Test func aPlayerErrorIsKeptNotFlattened() async {
+        struct Boom: Error {}
+        let backend = FakeBackend()
+        let verdict = await run(backend: backend, player: FakeTonePlayer(error: Boom()))
+        guard case .unavailable(.tonePlayerFailed) = verdict else {
+            Issue.record("expected tonePlayerFailed, got \(verdict)")
+            return
+        }
+        let coded = await run(
+            backend: FakeBackend(),
+            player: FakeTonePlayer(error: NSError(domain: "com.apple.coreaudio.avfaudio", code: -10_868)))
+        #expect(coded == .unavailable(.tonePlayerFailed(-10_868)))
     }
 
     @Test func aTapFailureIsReportedNotSilent() async {
@@ -322,7 +545,7 @@ import Testing
     @Test func aPlayerFailureStopsTheTap() async {
         let backend = FakeBackend()
         let verdict = await run(backend: backend, player: FakeTonePlayer(failure: true))
-        #expect(verdict == .unavailable(.tapUnavailable(-1)))
+        #expect(verdict == .unavailable(.unsupportedFormat))
         #expect(backend.stoppedFlags == [true])
     }
 }
@@ -353,6 +576,193 @@ import Testing
         #expect(throws: WAVError.self) { _ = try WAVFile.samples(from: Synth.wav16([0, 0], rate: 48_000)) }
         #expect(throws: WAVError.self) { _ = try WAVFile.samples(from: Synth.wav16([0, 0], channels: 2)) }
         #expect(throws: WAVError.notWAV) { _ = try WAVFile.samples(from: Data("hello".utf8)) }
+    }
+}
+
+@Suite struct HostileWAVTests {
+    private func riff(_ chunks: [(String, [UInt8])], declaredSizes: [UInt32?] = []) -> Data {
+        var data = Data("RIFF".utf8)
+        data.append(contentsOf: [0, 0, 0, 0])
+        data.append(contentsOf: Array("WAVE".utf8))
+        for (index, chunk) in chunks.enumerated() {
+            data.append(contentsOf: Array(chunk.0.utf8))
+            let size = (index < declaredSizes.count ? declaredSizes[index] : nil) ?? UInt32(chunk.1.count)
+            withUnsafeBytes(of: size.littleEndian) { data.append(contentsOf: $0) }
+            data.append(contentsOf: chunk.1)
+            if chunk.1.count % 2 == 1 { data.append(0) }
+        }
+        return data
+    }
+
+    private let goodFormat: [UInt8] = [1, 0, 1, 0, 0x80, 0x3E, 0, 0, 0, 0x7D, 0, 0, 2, 0, 16, 0]
+
+    @Test func aFormatChunkShorterThanSixteenBytesIsRejected() {
+        // 8 declared bytes: the old check read 16 bytes into the following chunk.
+        let short = riff([("fmt ", Array(goodFormat.prefix(8))), ("data", [0, 0, 0, 0])])
+        #expect(throws: WAVError.notWAV) { _ = try WAVFile.samples(from: short) }
+        let empty = riff([("fmt ", []), ("data", [0, 0])])
+        #expect(throws: WAVError.notWAV) { _ = try WAVFile.samples(from: empty) }
+    }
+
+    @Test func aDataChunkBeforeTheFormatIsRejected() {
+        #expect(throws: WAVError.notWAV) {
+            _ = try WAVFile.samples(from: riff([("data", [0, 0]), ("fmt ", goodFormat)]))
+        }
+    }
+
+    @Test func aMissingDataChunkIsRejected() {
+        #expect(throws: WAVError.notWAV) { _ = try WAVFile.samples(from: riff([("fmt ", goodFormat)])) }
+    }
+
+    @Test func truncatedHeadersAreRejectedWithoutTrapping() {
+        let whole = riff([("fmt ", goodFormat), ("data", [1, 0, 2, 0])])
+        for length in 0..<whole.count - 1 where length < 36 {
+            #expect(throws: WAVError.self) { _ = try WAVFile.samples(from: whole.prefix(length)) }
+        }
+    }
+
+    @Test func aDataSizeBeyondTheFileIsClampedToWhatExists() throws {
+        let data = riff([("fmt ", goodFormat), ("data", [1, 0, 2, 0])], declaredSizes: [nil, 0xFFFF_FFFF])
+        let samples = try WAVFile.samples(from: data)
+        #expect(samples.count == 2)
+    }
+
+    @Test func aHugeUnknownChunkSizeEndsTheScanCleanly() {
+        let data = riff([("junk", [1, 2, 3]), ("fmt ", goodFormat)], declaredSizes: [0xFFFF_FFFF, nil])
+        #expect(throws: WAVError.notWAV) { _ = try WAVFile.samples(from: data) }
+    }
+
+    @Test func anEmptyDataChunkIsEmptyAudio() throws {
+        #expect(try WAVFile.samples(from: riff([("fmt ", goodFormat), ("data", [])])).isEmpty)
+    }
+
+    @Test func nonFiniteFloatSamplesBecomeSilence() throws {
+        var format = goodFormat
+        format[0] = 3
+        format[14] = 32
+        var body: [UInt8] = []
+        for value in [Float.nan, .infinity, 0.5] {
+            withUnsafeBytes(of: value.bitPattern.littleEndian) { body.append(contentsOf: $0) }
+        }
+        let samples = try WAVFile.samples(from: riff([("fmt ", format), ("data", body)]))
+        #expect(samples == [0, 0, 0.5])
+    }
+}
+
+@Suite struct TapRingTests {
+    @Test func buffersComeOutInOrderWithTheirMetadata() throws {
+        let ring = TapRing(slotCount: 4, slotCapacity: 8)
+        for index in 0..<3 {
+            let slot = try #require(ring.reserve())
+            for position in 0..<4 { slot[position] = Float(index * 10 + position) }
+            ring.commit(count: 4, channels: 2, sampleRate: 48_000, hostTime: UInt64(index), hostTimeValid: index != 1)
+        }
+        for index in 0..<3 {
+            let buffer = try #require(ring.pop())
+            #expect(buffer.samples == (0..<4).map { Float(index * 10 + $0) })
+            #expect(buffer.channels == 2)
+            #expect(buffer.sampleRate == 48_000)
+            #expect(buffer.hostTime == UInt64(index))
+            #expect(buffer.hostTimeValid == (index != 1))
+        }
+        #expect(ring.pop() == nil)
+    }
+
+    @Test func aFullRingDropsInsteadOfBlockingOrOverwriting() throws {
+        let ring = TapRing(slotCount: 2, slotCapacity: 4)
+        for index in 0..<2 {
+            let slot = try #require(ring.reserve())
+            slot[0] = Float(index)
+            ring.commit(count: 1, channels: 1, sampleRate: 16_000, hostTime: 0, hostTimeValid: true)
+        }
+        #expect(ring.reserve() == nil)
+        #expect(ring.dropped == 1)
+        #expect(try #require(ring.pop()).samples == [0])
+        // A slot is free again, and the surviving buffers keep their order.
+        let slot = try #require(ring.reserve())
+        slot[0] = 2
+        ring.commit(count: 1, channels: 1, sampleRate: 16_000, hostTime: 0, hostTimeValid: true)
+        #expect(try #require(ring.pop()).samples == [1])
+        #expect(try #require(ring.pop()).samples == [2])
+    }
+
+    @Test func aProducerAndAConsumerOnTwoThreadsLoseNothingThatWasAccepted() async {
+        let ring = TapRing(slotCount: 8, slotCapacity: 4)
+        let total = 20_000
+        let producer = Task.detached {
+            var accepted = 0
+            for value in 0..<total {
+                if let slot = ring.reserve() {
+                    slot[0] = Float(value)
+                    ring.commit(count: 1, channels: 1, sampleRate: 1, hostTime: UInt64(value), hostTimeValid: true)
+                    accepted += 1
+                }
+            }
+            return accepted
+        }
+        let consumer = Task.detached {
+            var received: [Float] = []
+            while !Task.isCancelled {
+                if let buffer = ring.pop() { received.append(buffer.samples[0]) } else { await Task.yield() }
+            }
+            while let buffer = ring.pop() { received.append(buffer.samples[0]) }
+            return received
+        }
+        let accepted = await producer.value
+        consumer.cancel()
+        let received = await consumer.value
+        #expect(received.count == accepted)
+        #expect(zip(received, received.dropFirst()).allSatisfy { $0 < $1 })
+        #expect(accepted + ring.dropped == total)
+    }
+}
+
+@Suite struct TapLayoutTests {
+    private typealias Buffer = (channels: Int, bytes: Int)
+
+    private func select(_ buffers: [Buffer], channels: Int, planar: Bool = false) -> TapLayout.Selection? {
+        TapLayout.select(count: buffers.count, tapChannels: channels, nonInterleaved: planar) { buffers[$0] }
+    }
+
+    @Test func theTapStreamIsMatchedByChannelsNotByPosition() {
+        // A device input stream (1 channel) first, the stereo tap last.
+        let selection = select([(1, 400), (2, 960)], channels: 2)
+        #expect(selection == TapLayout.Selection(firstBuffer: 1, bufferCount: 1, frames: 120))
+    }
+
+    @Test func theLastMatchingStreamWins() {
+        let selection = select([(2, 800), (2, 1_600)], channels: 2)
+        #expect(selection?.firstBuffer == 1)
+        #expect(selection?.frames == 200)
+    }
+
+    @Test func noMatchingStreamIsNoSelection() {
+        #expect(select([(1, 400)], channels: 2) == nil)
+        #expect(select([], channels: 2) == nil)
+        #expect(select([(2, 4)], channels: 2) == nil)  // less than one frame
+        #expect(select([(2, 800)], channels: 0) == nil)
+    }
+
+    @Test func nonInterleavedUsesTheTrailingBuffersAndTheShortestFrameCount() {
+        // Three buffers for a stereo tap: the first one belongs to something else.
+        let selection = select([(1, 4_000), (1, 400), (1, 392)], channels: 2, planar: true)
+        #expect(selection == TapLayout.Selection(firstBuffer: 1, bufferCount: 2, frames: 98))
+    }
+
+    @Test func nonInterleavedNeverReadsMoreFramesThanTheSmallestBufferHolds() {
+        let selection = select([(1, 400), (1, 40)], channels: 2, planar: true)
+        #expect(selection?.frames == 10)
+    }
+
+    @Test func nonInterleavedNeedsOneMonoBufferPerChannel() {
+        #expect(select([(1, 400)], channels: 2, planar: true) == nil)
+        #expect(select([(2, 400), (2, 400)], channels: 2, planar: true) == nil)
+    }
+
+    @Test func aMonoPlanarTapIsTheSameAsInterleaved() {
+        #expect(
+            select([(1, 400)], channels: 1, planar: true)
+                == TapLayout.Selection(firstBuffer: 0, bufferCount: 1, frames: 100))
     }
 }
 

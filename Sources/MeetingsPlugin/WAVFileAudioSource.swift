@@ -19,7 +19,7 @@ enum WAVFile {
             let id = String(decoding: bytes[offset..<offset + 4], as: UTF8.self)
             let size = Int(le32(bytes, offset + 4))
             let body = offset + 8
-            if id == "fmt ", body + 16 <= bytes.count {
+            if id == "fmt ", size >= 16, body + 16 <= bytes.count {
                 format = (le16(bytes, body), le16(bytes, body + 2), le32(bytes, body + 4), le16(bytes, body + 14))
             } else if id == "data" {
                 guard let format else { throw WAVError.notWAV }
@@ -40,7 +40,10 @@ enum WAVFile {
         case (1, 16):
             return (0..<array.count / 2).map { Float(Int16(bitPattern: le16(array, $0 * 2))) / 32_768 }
         case (3, 32):
-            return (0..<array.count / 4).map { Float(bitPattern: le32(array, $0 * 4)) }
+            return (0..<array.count / 4).map {
+                let value = Float(bitPattern: le32(array, $0 * 4))
+                return value.isFinite ? value : 0
+            }
         default:
             throw WAVError.unsupported("format \(tag), \(bits) bits")
         }

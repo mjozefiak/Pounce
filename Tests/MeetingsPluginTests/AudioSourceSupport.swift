@@ -22,6 +22,9 @@ final class FakeBackend: ProcessTapBackend {
         var failures: [SystemAudioError] = []
         var changeHandler: (@Sendable () -> Void)?
         var observationCancelled = false
+        var observations = 0
+        var fireChangeWhileObserving = false
+        var observeFailure: SystemAudioError?
     }
 
     let state = Mutex(State())
@@ -30,6 +33,13 @@ final class FakeBackend: ProcessTapBackend {
     var excludingFlags: [Bool] { state.withLock { $0.excluding } }
     var stoppedFlags: [Bool] { state.withLock { $0.stopped } }
     var observationCancelled: Bool { state.withLock { $0.observationCancelled } }
+    /// How many output observations were ever installed.
+    var observationCount: Int { state.withLock { $0.observations } }
+
+    /// The device change fires inside `observeOutputDeviceChanges`, the order in which a real change can race
+    /// the end of `start`.
+    func fireChangeWhileObserving() { state.withLock { $0.fireChangeWhileObserving = true } }
+    func failObservation(_ error: SystemAudioError) { state.withLock { $0.observeFailure = error } }
 
     /// The next `startTap` calls throw these, in order.
     func failNext(_ errors: [SystemAudioError]) { state.withLock { $0.failures = errors } }
@@ -50,8 +60,18 @@ final class FakeBackend: ProcessTapBackend {
         return FakeSession(backend: self, index: index ?? 0)
     }
 
-    func observeOutputDeviceChanges(_ handler: @escaping @Sendable () -> Void) -> any OutputChangeObservation {
-        state.withLock { $0.changeHandler = handler }
+    func observeOutputDeviceChanges(
+        _ handler: @escaping @Sendable () -> Void
+    ) throws(SystemAudioError) -> any OutputChangeObservation {
+        let (failure, fire) = state.withLock { state -> (SystemAudioError?, Bool) in
+            if state.observeFailure == nil {
+                state.changeHandler = handler
+                state.observations += 1
+            }
+            return (state.observeFailure, state.fireChangeWhileObserving)
+        }
+        if let failure { throw failure }
+        if fire { handler() }
         return FakeObservation(backend: self)
     }
 
@@ -83,14 +103,17 @@ final class FakeTonePlayer: TonePlayer {
     let played = Mutex<[TimeInterval]>([])
     let whilePlaying: @Sendable () -> Void
     let failure: Bool
+    let error: (any Error)?
 
-    init(failure: Bool = false, whilePlaying: @escaping @Sendable () -> Void = {}) {
+    init(failure: Bool = false, error: (any Error)? = nil, whilePlaying: @escaping @Sendable () -> Void = {}) {
         self.failure = failure
+        self.error = error
         self.whilePlaying = whilePlaying
     }
 
     func play(duration: TimeInterval) async throws {
         played.withLock { $0.append(duration) }
+        if let error { throw error }
         if failure { throw SystemAudioError.unsupportedFormat }
         whilePlaying()
     }
@@ -185,4 +208,25 @@ func waitUntil(_ condition: @Sendable () -> Bool) async throws {
         try await Task.sleep(for: .milliseconds(5))
     }
     throw WaitTimeout()
+}
+
+/// A tone player that never returns until released, and ignores cancellation like a stuck audio engine.
+final class HangingTonePlayer: TonePlayer {
+    private let continuation = Mutex<CheckedContinuation<Void, Never>?>(nil)
+
+    var isWaiting: Bool { continuation.withLock { $0 != nil } }
+
+    func play(duration: TimeInterval) async throws {
+        await withCheckedContinuation { (waiting: CheckedContinuation<Void, Never>) in
+            continuation.withLock { $0 = waiting }
+        }
+    }
+
+    func release() {
+        let waiting = continuation.withLock { value -> CheckedContinuation<Void, Never>? in
+            defer { value = nil }
+            return value
+        }
+        waiting?.resume()
+    }
 }

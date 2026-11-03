@@ -94,6 +94,7 @@ let package = Package(
             // Not registered in `PluginRegistry` yet (registration comes with the record command, spec step 1.10).
             dependencies: [
                 "PounceKit",
+                "PounceCore",
                 "PouncePersistence",
                 "PounceSpeech",
                 // The plugin owns meetings.sqlite and its migrator, like ClipboardPlugin owns clipboard.sqlite.
