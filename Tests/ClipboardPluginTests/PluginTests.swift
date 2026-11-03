@@ -181,7 +181,7 @@ struct ClipboardPluginLifecycleTests {
             (try? await source.search(TextNormalizer.query(""), filter: nil, limit: 10).count) == 1
         }
         #expect(stored)
-        #expect(harness.changes.value >= 1)
+        #expect(await eventually { harness.changes.value >= 1 })
         #expect(await eventually { harness.plugin.state.entryCount == 1 })
         await harness.tearDown()
     }
