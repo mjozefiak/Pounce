@@ -1,6 +1,8 @@
 # Dyktowanie głosowe (Voice to Text)
 
 > Status: **projekt** — odpowiedzi na Open Questions przyjęte 2026-11-02, czeka na review. Proza po polsku, identyfikatory po angielsku (jak spec MVP).
+>
+> **Zmiana 2026-11-03 (zob. `2026-11-03-meeting-notes.md`):** kod wspólny z funkcją spotkań powstaje od początku w nowym targecie `PounceSpeech` (między pluginami a `PouncePersistence`), a nie w `DictationPlugin`: `SpeechEngine` + `ParakeetEngine`, `ModelCatalog`/`ModelManager`, `LoopbackPolicy`, `HTTPTransport`, klient LLM + `EndpointProbe`, `MicrophoneAuthorizer`, `AudioSource` + `MicrophoneSource` (dawne `AudioCapture`), `SleepAssertion`, protokół `HUDPresenter` i `SpeechEngineLease` (jedna rezydentna instancja modelu na proces). `DictationPlugin` zawiera resztę (sesja, gest, `Segmenter`, formatowanie, `TextPaster`, HUD, historia). Modele leżą we wspólnym `Application Support/Pounce/Models/<model-id>/` zamiast `Plugins/dictation/Models/`. Reguła zależności w `AGENTS.md` dostaje warstwę `plugins → PounceSpeech → PouncePersistence / PounceCore → PounceKit` (zmiana w PR z ADR 0005). Numeracja kroków poniżej bez zmian; kroki 1.2–1.5 tworzą wymienione komponenty w `PounceSpeech`.
 
 ## 📝 TLDR
 Użytkownik chce dyktować tekst w dowolnej aplikacji, jak w superwhisper, głównie przy pisaniu promptów do LLM (często 2–5 minut mówienia, po polsku z angielskimi terminami). Dziś Pounce nie obsługuje mowy, a dyktowanie systemowe macOS daje jeden blok tekstu z „yyy” i poprawkami w locie. Proponowane przyszłe zachowanie: nowy plugin `DictationPlugin` nagrywa pod globalnym skrótem, transkrybuje **modelem mowy działającym w procesie Pounce** (audio nie opuszcza Maca), **porządkuje** tekst przez **lokalny serwer LLM użytkownika** (Ollama / LM Studio / llama-server, tylko loopback) i wkleja wynik do aplikacji, w której użytkownik pisze. Tekst (surowy i sformatowany) trafia do zaszyfrowanej historii; audio nigdy nie jest zapisywane.
@@ -154,7 +156,7 @@ Wniosek: cała logika żyje w `DictationPlugin`. Shell dostaje cztery addytywne 
   - pobieranie modelu idzie osobną sesją, po HTTPS, wyłącznie do hostów z listy: `huggingface.co`, `cdn-lfs.hf.co` i `cdn-lfs-*.hf.co`, `cas-bridge.xethub.hf.co`. Ta sesja (inaczej niż sesja LLM) przyjmuje przekierowania, ale tylko na hosty z listy; każde inne przekierowanie przerywa pobieranie. Listę weryfikuje ręczny test pobierania w kroku 1.3.
 - `ModelManager` — katalog wkompilowanych modeli (`ModelCatalog`: id, pliki, przypięta rewizja Hugging Face, SHA-256 każdego pliku, rozmiar, licencja i atrybucja). Pakiet obejmuje **wszystko**, czego silnik potrzebuje: Parakeet (encoder, decoder, joint), słownik/tokenizer i model VAD Silero. Wbudowane pobieranie FluidAudio (`downloadAndLoad`, domyślny katalog modeli) i WhisperKit (pobieranie z Hugging Face przy braku `modelFolder`, `download: true`) **nigdy nie jest używane**: każdy silnik ładuje modele wyłącznie z folderu wskazanego przez `ModelManager` (sprawdzane w krokach 1.5 i 1.10 z zablokowaną siecią). Skompilowane modele Core ML (`.mlmodelc`) to dane wag, nie kod wykonywalny, więc nie łamią zakazu ładowania kodu w runtime (`CODE_REVIEW.md`).
   `ModelManager`:
-  - pobiera przez `URLSession` do `Plugins/dictation/Models/<model-id>.partial/` i weryfikuje sumy;
+  - pobiera przez `URLSession` do `Models/<model-id>.partial/` (wspólny katalog modeli, `PounceSpeech`) i weryfikuje sumy;
   - po weryfikacji wykonuje atomowy `rename`;
   - obsługuje wskazany folder (sprawdzenie listy plików i sum, bez kopiowania), wznawianie i anulowanie.
 - `TextPaster`:
@@ -201,7 +203,7 @@ Wniosek: cała logika żyje w `DictationPlugin`. Shell dostaje cztery addytywne 
 ## 📝 Data Model
 Trzy magazyny w `Application Support/Pounce/Plugins/dictation/` (katalog 0700, pliki 0600), wszystkie prywatne dla pluginu.
 
-1. **`Models/<model-id>/`** — pliki modelu mowy (Faza 1). Odtwarzalne (ponowne pobranie), więc nie są chronionym formatem; chroniona jest tylko ścieżka katalogu pluginu (R4). Folder wskazany przez użytkownika nie jest kopiowany; jego ścieżka siedzi w ustawieniach.
+1. **`Models/<model-id>/`** (w `Application Support/Pounce/`, wspólny dla pluginów, katalog 0700, pliki 0600) — pliki modelu mowy (Faza 1). Odtwarzalne (ponowne pobranie), więc nie są chronionym formatem; chroniona jest tylko ścieżka katalogu pluginu (R4). Folder wskazany przez użytkownika nie jest kopiowany; jego ścieżka siedzi w ustawieniach.
 2. **`dictation.sqlite`** — SQLCipher (Faza 3), własny `DatabaseMigrator` (migracja `v1-history`), otwierany przez `DatabaseFactory.openQueue` z `DatabaseKey`.
 3. **Klucz** — element Keychain `service = app.pounce.dictation` (ten sam schemat co schowek: losowy klucz główny 256 bit, HKDF-SHA256, `info = sqlcipher`). Logika `KeyStore`/`HistoryOpener` zostaje **przeniesiona** z `ClipboardPlugin` do `PouncePersistence` jako `MasterKeyStore(service:)` i `EncryptedDatabaseOpener`, z niezmienionym zachowaniem dla schowka (krok 3.1); pluginy nie mogą importować się nawzajem, a kopia logiki kluczy to gorszy wybór. Tylko `errSecItemNotFound` może zresetować bazę (archiwum `dictation.sqlite.unreadable-<data>`, 30 dni); każdy inny błąd Keychain wyłącza historię bez kasowania.
 
