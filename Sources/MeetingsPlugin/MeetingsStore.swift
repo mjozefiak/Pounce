@@ -103,8 +103,19 @@ final class MeetingsStore: Sendable {
         let queue = try DatabaseFactory.openQueue(
             at: directory.appending(path: fileName), key: keys.database, migrator: migrator, fileManager: fileManager)
         // Deleted rows are overwritten instead of lingering in free pages.
-        try queue.writeWithoutTransaction { db in try db.execute(sql: "PRAGMA secure_delete = ON") }
+        do {
+            try queue.writeWithoutTransaction { db in try db.execute(sql: "PRAGMA secure_delete = ON") }
+        } catch {
+            try? queue.close()
+            throw error
+        }
         return MeetingsStore(database: queue)
+    }
+
+    /// The frozen folding expression of migration `v1-meetings`: nested `replace()` calls for ł, Ł, đ, Đ, ø, Ø
+    /// (NULL stays NULL). Never edit; a new folding needs a new migration.
+    static func frozenFoldingSQL(_ expression: String) -> String {
+        "replace(replace(replace(replace(replace(replace(\(expression), 'ł', 'l'), 'Ł', 'L'), 'đ', 'd'), 'Đ', 'D'), 'ø', 'o'), 'Ø', 'O')"
     }
 
     /// `meetings.sqlite`'s own migrator. Additive only, never edited once released
@@ -158,16 +169,20 @@ final class MeetingsStore: Sendable {
                     """
             )
             // "zolc" finds "żółć": `remove_diacritics 2` folds ż, ó and ć but not ł, which has no decomposition.
-            // The index therefore reads the text through a view that folds the few letters SQLite leaves alone
-            // (`FullTextFolding`); the triggers fold the same way, and queries are folded in Swift.
-            let segmentText = FullTextFolding.sql("text")
-            let newSegmentText = FullTextFolding.sql("new.text")
-            let oldSegmentText = FullTextFolding.sql("old.text")
-            let notes = FullTextFolding.sql("notes_markdown")
-            let newTitle = FullTextFolding.sql("new.title")
-            let oldTitle = FullTextFolding.sql("old.title")
-            let newNotes = FullTextFolding.sql("new.notes_markdown")
-            let oldNotes = FullTextFolding.sql("old.notes_markdown")
+            // The index therefore reads the text through a view that folds the few letters SQLite leaves alone;
+            // the triggers fold the same way, and queries are folded in Swift (`FullTextFolding`).
+            // The folding below is FROZEN: this migration never changes after release, so the letters are
+            // written out here instead of being read from `FullTextFolding.pairs`. A test compares both; adding
+            // a letter to `pairs` later fails it and needs a NEW migration that rebuilds the views, triggers
+            // and indexes.
+            let segmentText = frozenFoldingSQL("text")
+            let newSegmentText = frozenFoldingSQL("new.text")
+            let oldSegmentText = frozenFoldingSQL("old.text")
+            let notes = frozenFoldingSQL("notes_markdown")
+            let newTitle = frozenFoldingSQL("new.title")
+            let oldTitle = frozenFoldingSQL("old.title")
+            let newNotes = frozenFoldingSQL("new.notes_markdown")
+            let oldNotes = frozenFoldingSQL("old.notes_markdown")
             try db.execute(
                 sql: """
                     CREATE VIEW meeting_segment_indexed AS SELECT id, \(segmentText) AS text FROM meeting_segment;
@@ -185,7 +200,7 @@ final class MeetingsStore: Sendable {
                         INSERT INTO meeting_fts(rowid, text) VALUES (new.id, \(newSegmentText));
                     END;
                     CREATE VIEW meeting_notes_indexed AS
-                        SELECT id, \(FullTextFolding.sql("title")) AS title, \(notes) AS notes_markdown FROM meeting;
+                        SELECT id, \(frozenFoldingSQL("title")) AS title, \(notes) AS notes_markdown FROM meeting;
                     CREATE VIRTUAL TABLE meeting_notes_fts USING fts5(
                         title, notes_markdown, content='meeting_notes_indexed', content_rowid='id',
                         tokenize='unicode61 remove_diacritics 2');
@@ -339,7 +354,32 @@ extension MeetingsStore {
         }
     }
 
+    /// Marks the audio of these meetings as removed (their spool folders were deleted).
+    func markAudioDeleted(uuids: [String]) throws {
+        guard !uuids.isEmpty else { return }
+        try write { db in
+            for uuid in uuids {
+                try db.execute(sql: "UPDATE meeting SET audio_state = 'deleted' WHERE uuid = ?", arguments: [uuid])
+            }
+        }
+    }
+
     // MARK: Reading
+
+    /// The `uuid`s of interrupted meetings whose audio is still in the spool: the only spools that may age out.
+    func incompleteSpoolUUIDs() throws -> [String] {
+        try read { db in
+            try String.fetchAll(
+                db, sql: "SELECT uuid FROM meeting WHERE status = 'incomplete' AND audio_state = 'spool'")
+        }
+    }
+
+    func audioState(of id: Int64) throws -> AudioState? {
+        try read { db in
+            try String.fetchOne(db, sql: "SELECT audio_state FROM meeting WHERE id = ?", arguments: [id])
+                .flatMap(AudioState.init(rawValue:))
+        }
+    }
 
     func meetingCount() throws -> Int {
         try read { db in try Int.fetchOne(db, sql: "SELECT count(*) FROM meeting") ?? 0 }
@@ -404,17 +444,13 @@ extension MeetingsStore {
 }
 
 /// The letters `unicode61 remove_diacritics 2` leaves alone because they do not decompose: they are replaced
-/// by their plain letter before indexing (in SQL, by the view and triggers) and before searching (in Swift).
-/// Everything else (ż, ó, ć, ę, ą, ś, ź, ń, accents) the tokenizer folds itself.
+/// by their plain letter before indexing (in SQL, by the frozen view and triggers of `v1-meetings`) and before searching (in Swift).
+/// Everything else (ż, ó, ć, ę, ą, ś, ź, ń, accents) the tokenizer folds itself. The migration's SQL is a frozen
+/// copy of `pairs`; changing `pairs` needs a new migration.
 enum FullTextFolding {
     static let pairs: [(from: String, to: String)] = [
         ("ł", "l"), ("Ł", "L"), ("đ", "d"), ("Đ", "D"), ("ø", "o"), ("Ø", "O"),
     ]
-
-    /// `expression` with the letters replaced, as nested `replace()` calls (NULL stays NULL).
-    static func sql(_ expression: String) -> String {
-        pairs.reduce(expression) { "replace(\($0), '\($1.from)', '\($1.to)')" }
-    }
 
     static func fold(_ text: String) -> String {
         pairs.reduce(text) { $0.replacingOccurrences(of: $1.from, with: $1.to) }

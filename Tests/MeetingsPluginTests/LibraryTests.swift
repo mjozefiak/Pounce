@@ -202,6 +202,16 @@ private func mode(_ url: URL) throws -> Int {
         #expect(settings.orphanAudioDays == 7)
     }
 
+    @Test func aStoredLargeModelFallsBackToTheDefaultWhenTheMemoryIsTooSmall() throws {
+        let harness = try MeetingsHarness(settings: [
+            "plugins.meetings.builtInLLMModel": .string(LLMModelCatalog.qwen3Large.id)
+        ])
+        let big = MeetingsSettings(harness.context.settings, physicalMemory: 64 << 30)
+        let small = MeetingsSettings(harness.context.settings, physicalMemory: 16 << 30)
+        #expect(big.builtInLLMModel.id == LLMModelCatalog.qwen3Large.id)
+        #expect(small.builtInLLMModel.id == LLMModelCatalog.defaultModel.id)
+    }
+
     @Test func storedValuesAreReadUnderTheMeetingsPrefix() throws {
         let harness = try MeetingsHarness(settings: [
             "plugins.meetings.speechModel": .string("whisper"),

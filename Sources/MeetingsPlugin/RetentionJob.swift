@@ -85,10 +85,13 @@ final class RetentionJob {
                     uuids = try store.applyRetention(cutoff: cutoff)
                     spool.removeSpools(forMeetings: uuids)
                 }
-                let orphans = spool.removeSpools(olderThan: policy.orphanCutoff(now: now))
-                if !uuids.isEmpty || orphans > 0 {
+                // Only interrupted meetings age out; the sweep never sees a recording or processing one.
+                let candidates = Set(try store.incompleteSpoolUUIDs())
+                let orphans = spool.removeSpools(olderThan: policy.orphanCutoff(now: now), among: candidates)
+                try store.markAudioDeleted(uuids: orphans)
+                if !uuids.isEmpty || !orphans.isEmpty {
                     logger.info(
-                        "Retention deleted \(uuids.count, privacy: .public) meetings and \(orphans, privacy: .public) old spools"
+                        "Retention deleted \(uuids.count, privacy: .public) meetings and \(orphans.count, privacy: .public) old spools"
                     )
                 }
                 var vacuumed = false
@@ -97,6 +100,9 @@ final class RetentionJob {
                     vacuumed = true
                 }
                 return (uuids.count, vacuumed)
+            } catch MeetingsStoreError.closed {
+                // The plugin deactivated while the pass ran: a quiet cancel.
+                return (0, false)
             } catch {
                 logger.error("Retention failed: \(String(describing: type(of: error)), privacy: .public)")
                 return (0, false)

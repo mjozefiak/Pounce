@@ -122,23 +122,35 @@ final class NoUsage: UsageRecorder {
     func status(of permission: Permission) -> PermissionStatus { .granted }
 }
 
-/// Records what the retention job asks of the spool.
+/// Records what the retention job asks of the spool. `existing` is what is on "disk": only those uuids are
+/// reported as removed.
 final class RecordingSpool: SpoolMaintenance {
     struct State {
         var removedForMeetings: [String] = []
-        var olderThanCutoffs: [Date] = []
+        var sweeps: [(cutoff: Date, candidates: Set<String>)] = []
+        var existing: Set<String> = []
     }
 
     let state = Mutex(State())
 
-    func removeSpools(forMeetings uuids: [String]) -> Int {
-        state.withLock { $0.removedForMeetings += uuids }
-        return uuids.count
+    init(existing: Set<String> = []) {
+        state.withLock { $0.existing = existing }
     }
 
-    func removeSpools(olderThan cutoff: Date) -> Int {
-        state.withLock { $0.olderThanCutoffs.append(cutoff) }
-        return 0
+    func removeSpools(forMeetings uuids: [String]) -> [String] {
+        state.withLock { state in
+            state.removedForMeetings += uuids
+            return uuids.filter { state.existing.remove($0) != nil }
+        }
+    }
+
+    func removeSpools(olderThan cutoff: Date, among candidates: Set<String>) -> [String] {
+        state.withLock { state in
+            state.sweeps.append((cutoff, candidates))
+            let removed = candidates.intersection(state.existing)
+            state.existing.subtract(removed)
+            return removed.sorted()
+        }
     }
 }
 

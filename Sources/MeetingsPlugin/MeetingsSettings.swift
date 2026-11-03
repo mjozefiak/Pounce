@@ -33,9 +33,11 @@ struct MeetingsSettings: Sendable {
     static let retentionDayChoices = [7, 30, 90, 180, 365, 0]
 
     private let settings: PluginSettings
+    private let physicalMemory: UInt64
 
-    init(_ settings: PluginSettings) {
+    init(_ settings: PluginSettings, physicalMemory: UInt64 = ProcessInfo.processInfo.physicalMemory) {
         self.settings = settings
+        self.physicalMemory = physicalMemory
     }
 
     // MARK: Speech and audio
@@ -65,9 +67,12 @@ struct MeetingsSettings: Sendable {
 
     var notesEnabled: Bool { settings.bool(Key.notesEnabled, default: false) }
 
-    /// The built-in notes model; the default one when none is chosen or the stored id left the catalog.
+    /// The built-in notes model; the default one (the smallest) when none is chosen, the stored id left the
+    /// catalog or the model no longer fits this Mac's memory.
     var builtInLLMModel: LLMModel {
-        settings.string(Key.builtInLLMModel).flatMap { LLMModelCatalog.model(id: $0) } ?? LLMModelCatalog.defaultModel
+        let offered = LLMModelCatalog.available(physicalMemory: physicalMemory)
+        return settings.string(Key.builtInLLMModel).flatMap { LLMModelCatalog.model(id: $0) }
+            .flatMap { model in offered.contains { $0.id == model.id } ? model : nil } ?? LLMModelCatalog.defaultModel
     }
 
     var notesChunkTokens: Int {
