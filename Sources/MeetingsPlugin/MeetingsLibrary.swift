@@ -26,6 +26,10 @@ final class MeetingsLibrary {
     /// Set when this open reset an unreadable library; the archive is kept for 30 days.
     private(set) var resetArchive: URL?
     private(set) var store: MeetingsStore?
+    /// The working keys of the open library, for the session that records into it.
+    private(set) var keys: MeetingKeys?
+    /// Meetings being recorded or finished by a live session right now; "Dokończ" never touches them.
+    private(set) var liveMeetingIDs: Set<Int64> = []
 
     @ObservationIgnored private let directory: URL
     @ObservationIgnored private let keychain: any KeychainClient
@@ -35,7 +39,7 @@ final class MeetingsLibrary {
     @ObservationIgnored private let changed: @Sendable () -> Void
     @ObservationIgnored private let runsRetentionJob: Bool
     @ObservationIgnored let retention: RetentionJob
-    @ObservationIgnored private let spoolStorage: SpoolStorage
+    @ObservationIgnored let spoolStorage: SpoolStorage
     @ObservationIgnored private let makeResumer:
         @MainActor (MeetingsStore, MeetingKeys, SpoolStorage) -> (any MeetingResuming)?
     @ObservationIgnored private var recovery: RecoveryJob?
@@ -117,6 +121,7 @@ final class MeetingsLibrary {
             switch outcome {
             case .opened(let opened, let archive):
                 store = opened
+                keys = openedKeys
                 resetArchive = archive
                 status = .ready
                 // The key was definitely missing and has been recreated: nothing in the spool can be read with it.
@@ -157,6 +162,8 @@ final class MeetingsLibrary {
         resumer = nil
         try? store?.close()
         store = nil
+        keys = nil
+        liveMeetingIDs = []
         status = .closed
     }
 
@@ -223,6 +230,11 @@ final class MeetingsLibrary {
             }
         }
     }
+
+    /// The session owner names the meeting it records, so nothing else tries to finish or resume it.
+    func registerLive(meetingID: Int64) { liveMeetingIDs.insert(meetingID) }
+
+    func unregisterLive(meetingID: Int64) { liveMeetingIDs.remove(meetingID) }
 
     /// "Dokończ": finishes an `incomplete` meeting from its spool on demand (the missing speech is
     /// transcribed, speakers are assigned, the meeting becomes `ready`, the spool goes). `nil` when the

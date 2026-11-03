@@ -127,7 +127,8 @@ extension Permission {
                 comment: "Explanation of the clipboard access permission")
         case .microphone:
             String(
-                localized: "Lets Pounce hear you while you dictate. Audio stays on this Mac and is never saved.",
+                localized:
+                    "Lets Pounce hear you while you dictate or record a meeting. Dictation audio is never saved; meeting audio is stored encrypted on this Mac only until the transcript is ready.",
                 comment: "Explanation of the Microphone permission")
         case .systemAudioRecording:
             String(

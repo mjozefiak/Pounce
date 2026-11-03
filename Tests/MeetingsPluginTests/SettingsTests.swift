@@ -435,8 +435,8 @@ import Testing
         #expect(plugin.permissionAccessory(for: .systemAudioRecording) != nil)
         #expect(plugin.permissionAccessory(for: .microphone) == nil)
         #expect(plugin.permissionAccessory(for: .accessibility) == nil)
-        // Step 1.10 adds the command; until then the shortcut row is disabled.
-        #expect(!plugin.commands.contains { $0.id == MeetingsUI.recordCommandID })
+        // Step 1.10 added the command, so the shortcut row has its recorder.
+        #expect(plugin.commands.contains { $0.id == MeetingsUI.recordCommandID })
     }
 
     @Test func everyMeetingsSettingsStringHasEnglishAndValidPolishForms() throws {

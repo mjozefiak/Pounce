@@ -2,7 +2,7 @@
 import PackageDescription
 
 // Dependency graph (one way only, see AGENTS.md):
-//   PounceApp -> plugins (AppsPlugin, FilesPlugin, ClipboardPlugin, DictationPlugin; MeetingsPlugin once registered) -> PouncePersistence / PounceCore -> PounceKit
+//   PounceApp -> plugins (AppsPlugin, FilesPlugin, ClipboardPlugin, DictationPlugin, MeetingsPlugin) -> PouncePersistence / PounceCore -> PounceKit
 //   plugins that use speech (DictationPlugin, MeetingsPlugin) -> PounceSpeech, which depends on no repository target
 //   (docs/decisions/0006-shared-speech-layer.md)
 // Only PounceApp is MainActor by default; every other target stays nonisolated and declares
@@ -92,7 +92,6 @@ let package = Package(
         ),
         .target(
             name: "MeetingsPlugin",
-            // Not registered in `PluginRegistry` yet (registration comes with the record command, spec step 1.10).
             dependencies: [
                 "PounceKit",
                 "PounceCore",
@@ -115,6 +114,7 @@ let package = Package(
                 "FilesPlugin",
                 "ClipboardPlugin",
                 "DictationPlugin",
+                "MeetingsPlugin",
                 .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
             ],
             swiftSettings: [.defaultIsolation(MainActor.self)]

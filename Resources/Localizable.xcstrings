@@ -8424,6 +8424,582 @@
           }
         }
       }
+    },
+    "Recording a meeting" : {
+      "comment" : "Meeting HUD while recording",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording a meeting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywanie spotkania"
+          }
+        }
+      }
+    },
+    "Processing: transcribing (%lld left)" : {
+      "comment" : "Meeting HUD while segments are transcribed after the meeting; the number is what is left",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Processing: transcribing (%lld left)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przetwarzanie: rozpoznawanie mowy (zostało: %lld)"
+          }
+        }
+      }
+    },
+    "Processing: recognising speakers…" : {
+      "comment" : "Meeting HUD while the speakers are recognised after the meeting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Processing: recognising speakers…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przetwarzanie: rozpoznawanie mówców…"
+          }
+        }
+      }
+    },
+    "Processing…" : {
+      "comment" : "Meeting HUD while the meeting is being closed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Processing…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przetwarzanie…"
+          }
+        }
+      }
+    },
+    "Meeting saved" : {
+      "comment" : "Meeting HUD after the meeting was saved",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meeting saved"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spotkanie zapisane"
+          }
+        }
+      }
+    },
+    "Meeting saved – not complete" : {
+      "comment" : "Meeting HUD when the transcript could not be finished",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meeting saved – not complete"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spotkanie zapisane – niekompletne"
+          }
+        }
+      }
+    },
+    "The meetings library is unavailable" : {
+      "comment" : "Meeting HUD when the library could not be opened (Keychain or database)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The meetings library is unavailable"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biblioteka spotkań jest niedostępna"
+          }
+        }
+      }
+    },
+    "Microphone not allowed. Record the system audio only?" : {
+      "comment" : "Meeting HUD when the microphone is denied but system audio can still be recorded",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microphone not allowed. Record the system audio only?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon niedozwolony. Nagrywać tylko dźwięk systemu?"
+          }
+        }
+      }
+    },
+    "No audio source could be started" : {
+      "comment" : "Meeting HUD when no track could start",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No audio source could be started"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się uruchomić żadnego źródła dźwięku"
+          }
+        }
+      }
+    },
+    "Not enough free disk space to record" : {
+      "comment" : "Meeting HUD when the disk has less than 1.5 GB free",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not enough free disk space to record"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Za mało wolnego miejsca na dysku, by nagrywać"
+          }
+        }
+      }
+    },
+    "The previous meeting is still being processed" : {
+      "comment" : "Meeting HUD when a new recording is requested while one is being processed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The previous meeting is still being processed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poprzednie spotkanie jest jeszcze przetwarzane"
+          }
+        }
+      }
+    },
+    "The recording could not start" : {
+      "comment" : "Meeting HUD when starting failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The recording could not start"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się rozpocząć nagrywania"
+          }
+        }
+      }
+    },
+    "The meeting could not be saved" : {
+      "comment" : "Meeting HUD when nothing of the meeting could be kept",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The meeting could not be saved"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się zapisać spotkania"
+          }
+        }
+      }
+    },
+    "Low disk space – the recording will end soon" : {
+      "comment" : "Meeting HUD notice when free disk space runs low",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Low disk space – the recording will end soon"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mało miejsca na dysku – nagrywanie wkrótce się zakończy"
+          }
+        }
+      }
+    },
+    "Some text could not be saved – you can finish it later" : {
+      "comment" : "Meeting HUD notice when the library or the spool failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some text could not be saved – you can finish it later"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się zapisać części tekstu – możesz go dokończyć później"
+          }
+        }
+      }
+    },
+    "Microphone disconnected" : {
+      "comment" : "Meeting HUD notice when the microphone track ended",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microphone disconnected"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon odłączony"
+          }
+        }
+      }
+    },
+    "System audio stopped" : {
+      "comment" : "Meeting HUD notice when the system track ended",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System audio stopped"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dźwięk systemu przerwany"
+          }
+        }
+      }
+    },
+    "Check the system audio recording permission" : {
+      "comment" : "Meeting HUD notice when the system track stays silent for the first 20 seconds",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check the system audio recording permission"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprawdź uprawnienie nagrywania dźwięku systemu"
+          }
+        }
+      }
+    },
+    "Recording ends in %@" : {
+      "comment" : "Meeting HUD countdown before the 3 hour limit; minutes and seconds",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording ends in %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywanie zakończy się za %@"
+          }
+        }
+      }
+    },
+    "Another speech model is in use – the text comes after the meeting" : {
+      "comment" : "Meeting HUD notice when dictation uses a different speech model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another speech model is in use – the text comes after the meeting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Używany jest inny model mowy – tekst powstanie po spotkaniu"
+          }
+        }
+      }
+    },
+    "Speech model unavailable – the text comes after the meeting" : {
+      "comment" : "Meeting HUD notice when the speech model could not be loaded",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speech model unavailable – the text comes after the meeting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model mowy niedostępny – tekst powstanie po spotkaniu"
+          }
+        }
+      }
+    },
+    "Loading the speech model – recording continues" : {
+      "comment" : "Meeting HUD notice while the model loads",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading the speech model – recording continues"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ładowanie modelu mowy – nagrywanie trwa"
+          }
+        }
+      }
+    },
+    "Tell the participants you are recording" : {
+      "comment" : "Meeting HUD consent reminder in the first seconds",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tell the participants you are recording"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poinformuj uczestników, że nagrywasz"
+          }
+        }
+      }
+    },
+    "End recording" : {
+      "comment" : "Meeting HUD button that ends the recording",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End recording"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zakończ"
+          }
+        }
+      }
+    },
+    "Open Privacy settings" : {
+      "comment" : "Meeting HUD button that opens the microphone privacy pane",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Privacy settings"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz ustawienia prywatności"
+          }
+        }
+      }
+    },
+    "Record system audio only" : {
+      "comment" : "Meeting HUD button that records without the microphone",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record system audio only"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywaj tylko dźwięk systemu"
+          }
+        }
+      }
+    },
+    "Meeting recording started" : {
+      "comment" : "VoiceOver announcement when a meeting recording starts",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meeting recording started"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozpoczęto nagrywanie spotkania"
+          }
+        }
+      }
+    },
+    "Meeting recording stopped" : {
+      "comment" : "VoiceOver announcement when a meeting recording stops",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meeting recording stopped"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zakończono nagrywanie spotkania"
+          }
+        }
+      }
+    },
+    "Me" : {
+      "comment" : "Meeting HUD level meter of the microphone",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Me"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ja"
+          }
+        }
+      }
+    },
+    "System" : {
+      "comment" : "Meeting HUD level meter of the system audio",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System"
+          }
+        }
+      }
+    },
+    "Record Meeting / Stop Recording" : {
+      "comment" : "Menu item and command that starts or ends a meeting recording",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record Meeting / Stop Recording"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywaj spotkanie / Zakończ nagrywanie"
+          }
+        }
+      }
+    },
+    "Lets Pounce hear you while you dictate or record a meeting. Dictation audio is never saved; meeting audio is stored encrypted on this Mac only until the transcript is ready." : {
+      "comment" : "Explanation of the Microphone permission",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lets Pounce hear you while you dictate or record a meeting. Dictation audio is never saved; meeting audio is stored encrypted on this Mac only until the transcript is ready."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pozwala Pounce słyszeć Cię podczas dyktowania i nagrywania spotkania. Dźwięk dyktowania nigdy nie jest zapisywany; dźwięk spotkania jest zapisywany w zaszyfrowanej postaci na tym Macu tylko do czasu, aż transkrypt będzie gotowy."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

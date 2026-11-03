@@ -13,11 +13,12 @@ import Testing
         #expect(manifest.order > 40)
     }
 
-    @Test func theSkeletonContributesTheSetupAndTheSettingsOnly() throws {
+    @Test func thePluginContributesTheRecordCommandTheSetupAndTheSettings() throws {
         let harness = try MeetingsHarness()
         let plugin = MeetingsPlugin(context: harness.context)
         #expect(plugin.requiredPermissions == [.microphone, .systemAudioRecording])
-        #expect(plugin.commands.isEmpty)
+        // `meetings.library` and the list mode come with step 1.11.
+        #expect(plugin.commands.map(\.id) == ["meetings.record"])
         #expect(plugin.panelModes.isEmpty)
         #expect(plugin.onboardingSteps.map(\.id) == ["meetings.setup"])
         #expect(plugin.searchSources.isEmpty)
@@ -71,5 +72,44 @@ import Testing
         try plugin.library.store?.insertMeeting(uuid: "a", startedAt: Date(), speechModelID: "m")
         await plugin.deactivate()
         #expect(harness.usage.callCount == 0)
+    }
+}
+
+@MainActor
+@Suite struct MeetingsCommandTests {
+    @Test func theRecordCommandHasTheContractedShortcutAndAppearsInTheMenu() throws {
+        let harness = try MeetingsHarness()
+        let plugin = MeetingsPlugin(context: harness.context)
+        let command = try #require(plugin.commands.first)
+        #expect(command.id == "meetings.record")
+        #expect(command.defaultShortcut == KeyShortcut(key: "m", modifiers: [.control, .option]))
+        #expect(command.showsInMenu)
+        #expect(command.panelMode == nil)
+        #expect(command.onKeyEvent == nil)
+        #expect(command.symbolName != nil)
+        // The settings pane has its recorder now that the command exists.
+        #expect(plugin.settingsPane() != nil)
+    }
+
+    @Test func runningTheCommandBeforeActivationDoesNothing() async throws {
+        let harness = try MeetingsHarness()
+        let plugin = MeetingsPlugin(context: harness.context)
+        await plugin.commands.first?.run()
+        #expect(plugin.controller == nil)
+        #expect(!plugin.activity.isActive)
+    }
+
+    @Test func activationCreatesTheControllerAndDeactivationDropsIt() async throws {
+        let harness = try MeetingsHarness()
+        let plugin = MeetingsPlugin(context: harness.context)
+        try await plugin.activate()
+        #expect(plugin.controller?.phase == .idle)
+        await plugin.deactivate()
+        #expect(plugin.controller == nil)
+        #expect(plugin.library.status == .closed)
+        // Reactivating works, and the library is not recording anything.
+        try await plugin.activate()
+        #expect(plugin.controller != nil)
+        await plugin.deactivate()
     }
 }
