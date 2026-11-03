@@ -72,6 +72,11 @@ private let repositoryRoot = URL(filePath: #filePath)
         for key in ["NSMicrophoneUsageDescription", "NSAudioCaptureUsageDescription"] {
             #expect((plist[key] as? String)?.isEmpty == false, "\(key) missing from Info.plist")
         }
+        // The prompt is shown for meetings too, and meeting audio is stored for a while.
+        let microphoneText = try #require(plist["NSMicrophoneUsageDescription"] as? String)
+        #expect(microphoneText.contains("meeting"))
+        #expect(microphoneText.contains("stored encrypted"))
+        #expect(microphoneText.contains("limited time"))
         let entitlements = try #require(
             try PropertyListSerialization.propertyList(
                 from: Data(contentsOf: repositoryRoot.appending(path: "Resources/Pounce.entitlements")), format: nil)
@@ -143,6 +148,13 @@ private let repositoryRoot = URL(filePath: #filePath)
                 #expect(unit?.value.isEmpty == false, "\(key) \(language)")
             }
         }
+        // The English catalog value and the base string of Info.plist tell the same story.
+        let plist = try #require(
+            try PropertyListSerialization.propertyList(
+                from: Data(contentsOf: repositoryRoot.appending(path: "Resources/Info.plist")), format: nil)
+                as? [String: Any])
+        let english = catalog.strings["NSMicrophoneUsageDescription"]?.localizations?["en"]?.stringUnit?.value
+        #expect(english == plist["NSMicrophoneUsageDescription"] as? String)
     }
 
     @Test func menuStringsAreInTheCatalog() throws {

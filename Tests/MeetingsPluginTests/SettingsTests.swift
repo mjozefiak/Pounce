@@ -278,6 +278,28 @@ import Testing
         #expect(player.played.withLock { $0 }.count == 1)
     }
 
+    @Test func theSystemAudioTestIsOffWhileAMeetingIsActive() async throws {
+        let activity = MeetingActivity()
+        let backend = FakeBackend()
+        let player = FakeTonePlayer {}
+        let test = SystemAudioTestModel(
+            makeTest: { SystemAudioSelfTest(backend: backend, player: player, settle: .zero, sleeper: { _ in }) },
+            blocked: { activity.isActive })
+        activity.begin()
+        #expect(test.isBlocked)
+        test.begin()
+        #expect(test.state == .idle)
+        activity.end()
+        test.begin()
+        #expect(test.state == .awaitingConfirmation)
+        // A meeting that starts between the two clicks keeps the signal from playing.
+        activity.begin()
+        test.playSignal()
+        #expect(test.state == .awaitingConfirmation)
+        #expect(player.played.withLock { $0 }.isEmpty)
+        activity.end()
+    }
+
     @Test func zerosMeanSilentAndNoBufferMeansUnavailable() async throws {
         let silentBackend = FakeBackend()
         let silent = SystemAudioTestModel(makeTest: {

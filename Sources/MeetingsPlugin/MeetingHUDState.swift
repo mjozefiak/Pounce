@@ -53,8 +53,9 @@ enum MeetingHUDState: Equatable, Sendable {
             if unavailable.contains(.system) || noSystemAudio, recordsSystem { return .noSystemAudio }
             if let secondsLeft { return .limitCountdown(secondsLeft) }
             if let busy = modelUnavailable { return .modelUnavailable(busy: busy) }
-            if loadingModel { return .loadingModel }
+            // The consent reminder has its window; the model-load notice must not hide it.
             if showsConsent { return .consent }
+            if loadingModel { return .loadingModel }
             return nil
         }
     }
@@ -241,6 +242,8 @@ extension MeetingHUDState {
             case .noSystemAudio?: [.openSettings, .stop]
             default: [.stop]
             }
+        case .allowMicrophone:
+            [.dismiss]
         case .problem(.modelMissing), .problem(.modelUnavailable), .problem(.libraryUnavailable):
             [.openSettings]
         case .problem(.microphoneDenied(let offersSystemOnly)):

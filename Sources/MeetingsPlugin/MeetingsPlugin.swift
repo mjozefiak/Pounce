@@ -32,6 +32,11 @@ public final class MeetingsPlugin: PouncePlugin {
     private let hud: MeetingHUDPanel
     /// Exists while the plugin is active.
     private(set) var controller: MeetingController?
+    /// A controller whose session was still processing when the plugin was switched off. It keeps the library
+    /// open until the session ends (`deactivate()`).
+    private(set) var lingeringController: MeetingController?
+    /// Changes the controller's dependencies before it is built (tests give it fakes).
+    var adjustControllerDependencies: ((inout MeetingController.Dependencies) -> Void)?
 
     public init(context: PluginContext) {
         self.context = context
@@ -56,26 +61,42 @@ public final class MeetingsPlugin: PouncePlugin {
         library.open()
         let workspace = context.workspace
         let runtime = runtime
-        let controller = MeetingController(
-            .init(
-                library: library, settings: settings, authorizer: SystemMicrophoneAuthorizer(), activity: activity,
-                speechModel: { await runtime.speechLookup() }, makeSession: { runtime.makeSession($0) },
-                hud: hud, clock: context.clock, openSettings: context.openSettings,
-                openURL: { url in Task { try? await workspace.open(url) } }, changed: context.resultsChanged,
-                logger: context.logger))
+        var dependencies = MeetingController.Dependencies(
+            library: library, settings: settings, authorizer: SystemMicrophoneAuthorizer(), activity: activity,
+            speechModel: { await runtime.speechLookup() }, makeSession: { runtime.makeSession($0) },
+            hud: hud, clock: context.clock, openSettings: context.openSettings,
+            openURL: { url in Task { try? await workspace.open(url) } }, changed: context.resultsChanged,
+            logger: context.logger)
+        adjustControllerDependencies?(&dependencies)
+        let controller = MeetingController(dependencies)
         self.controller = controller
         relay.controller = controller
     }
 
-    /// Sessions that are recording or finalizing must be stopped (or stay registered through
-    /// `MeetingsLibrary.registerLive`) **before** this runs: closing the library does not end them, and
-    /// registered meetings are the only ones a later `activate()` leaves alone.
+    /// Switches the plugin off. A recording in progress is finished first, for at most the controller's
+    /// shutdown timeout (20 s). If its session is still processing after that, **the library stays open**: the
+    /// meeting is registered as live (recovery, retention and "Dokończ" leave it alone) and the library is
+    /// closed by a background task as soon as the session ends, unless the plugin was activated again by then.
+    /// So after `deactivate()` returns, `library.status` is `.closed` only when nothing was still running.
     public func deactivate() async {
-        // A recording in progress is finished first (bounded), then the library closes.
-        await controller?.shutDown()
+        guard let controller else {
+            library.close()
+            return
+        }
+        let ended = await controller.shutDown()
         relay.controller = nil
-        controller = nil
-        library.close()
+        self.controller = nil
+        if ended {
+            library.close()
+            return
+        }
+        lingeringController = controller
+        Task { [weak self] in
+            await controller.waitUntilEnded()
+            guard let self, self.lingeringController === controller else { return }
+            self.lingeringController = nil
+            if self.controller == nil { self.library.close() }
+        }
     }
 
     /// "Erase Data": removes the library's Keychain item and the plugin's folder (`meetings.sqlite`, its

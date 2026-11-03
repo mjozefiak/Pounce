@@ -25,6 +25,9 @@ import Testing
         value.showsConsent = true
         #expect(value.notice == .consent)
         value.loadingModel = true
+        // The consent reminder keeps its window; the load notice shows once it is over.
+        #expect(value.notice == .consent)
+        value.showsConsent = false
         #expect(value.notice == .loadingModel)
         value.modelUnavailable = false
         #expect(value.notice == .modelUnavailable(busy: false))
@@ -38,6 +41,21 @@ import Testing
         #expect(value.notice == .writeProblem)
         value.lowDisk = true
         #expect(value.notice == .lowDisk)
+    }
+
+    @Test func theMicrophonePromptCanBeCancelled() {
+        #expect(MeetingHUDState.allowMicrophone.actions == [.dismiss])
+        #expect(MeetingHUDState.allowMicrophone.title(for: .dismiss) == "Cancel")
+    }
+
+    @MainActor @Test func eachProblemIsItsOwnScreenForTheHideTimerButTheRecordingIsOne() {
+        let a = MeetingHUDPanel.screen(.problem(.modelMissing))
+        let b = MeetingHUDPanel.screen(.problem(.couldNotStart))
+        #expect(a != b)
+        #expect(a == MeetingHUDPanel.screen(.problem(.modelMissing)))
+        var moved = MeetingHUDState.Recording()
+        moved.elapsedSeconds = 5
+        #expect(MeetingHUDPanel.screen(.recording(.init())) == MeetingHUDPanel.screen(.recording(moved)))
     }
 
     @Test func aTrackThatIsOffNeverRaisesItsOwnNotice() {

@@ -67,19 +67,29 @@ final class FakeAuthorizer: MicrophoneAuthorizer {
         var access = MicrophoneAccess.notDetermined
         var requests = 0
         var grants = true
+        var gate: Latch?
+        var answers = 0
     }
 
     private let state = Mutex(State())
 
     var requests: Int { state.withLock { $0.requests } }
     func deny() { state.withLock { $0.grants = false } }
+    /// The next `requestAccess()` waits for this latch (the permission prompt is on screen).
+    func holdAnswers(until gate: Latch) { state.withLock { $0.gate = gate } }
+    var answers: Int { state.withLock { $0.answers } }
 
     func status() -> MicrophoneAccess { state.withLock { $0.access } }
 
     func requestAccess() async -> Bool {
-        state.withLock { state in
+        let gate = state.withLock { state -> Latch? in
             state.requests += 1
+            return state.gate
+        }
+        await gate?.wait()
+        return state.withLock { state in
             state.access = state.grants ? .granted : .denied
+            state.answers += 1
             return state.grants
         }
     }

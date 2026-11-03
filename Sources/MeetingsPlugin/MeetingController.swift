@@ -64,6 +64,12 @@ final class MeetingController {
         var silentSystemAfter: Duration = .seconds(20)
         /// How long `shutDown()` waits for a running recording to finish.
         var shutdownTimeout: Duration = .seconds(20)
+        /// How long a stop waits for the session's own `.finished` event after `finish()` returned, before it
+        /// concludes from the returned outcome.
+        var finishGrace: Duration = .seconds(2)
+        /// Told about every change of the phase and every ignored late `start()` (tests wait on it instead of
+        /// polling).
+        var stateChanged: @MainActor () -> Void = {}
     }
 
     enum Phase: Equatable {
@@ -83,7 +89,17 @@ final class MeetingController {
         string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")
 
     private let deps: Dependencies
-    private(set) var phase = Phase.idle
+    private(set) var phase = Phase.idle {
+        didSet { if phase != oldValue { deps.stateChanged() } }
+    }
+    /// One per recording attempt. A task of an earlier attempt (a slow `start()`, a permission prompt that
+    /// returns late) must not touch the state of a later one.
+    private var runToken = 0
+    private var finishTask: Task<Void, Never>?
+    /// How often a `start()` returned after its attempt was over (tests).
+    private(set) var ignoredStaleStarts = 0
+    /// How many watcher timers ran out (tests wait on it instead of sleeping).
+    private(set) var watcherFirings = 0
     private var session: (any RecordingSession)?
     private var meetingID: Int64?
     /// Whether this controller holds one `MeetingActivity.begin()` (taken at the start, given back at the end).
@@ -107,12 +123,12 @@ final class MeetingController {
     func toggle() {
         switch phase {
         case .idle: start()
-        case .recording: stop()
+        case .recording, .preparing: stop()
         case .awaitingMicrophoneDecision:
             // Pressing again retries from the top (the permission may have been granted meanwhile).
             phase = .idle
             start()
-        case .preparing, .finishing: break
+        case .finishing: break
         }
     }
 
@@ -122,13 +138,46 @@ final class MeetingController {
         begin(systemOnly: false)
     }
 
-    /// Ends the recording; the meeting is processed and saved.
+    /// Ends the recording; the meeting is processed and saved. While the recording is still being prepared
+    /// (the checks, the microphone prompt) nothing exists yet and the attempt is cancelled; once the session
+    /// exists, it is asked to finish (a session still starting finishes as soon as its start is done).
     func stop() {
-        guard phase == .recording, let session else { return }
+        switch phase {
+        case .recording: break
+        case .preparing:
+            guard session != nil else { return cancelPreparation() }
+        default: return
+        }
+        guard let session else { return }
         phase = .finishing
         cancelWatchers()
         deps.hud.show(.finishing)
-        Task { _ = await session.finish() }
+        requestFinish(session, token: runToken)
+    }
+
+    /// Gives back an attempt that has no session yet.
+    private func cancelPreparation() {
+        runToken += 1
+        runTask?.cancel()
+        releaseActivity()
+        phase = .idle
+        deps.hud.hide()
+    }
+
+    /// Asks the session to finish, once. When the session returns without having sent `.finished` (it never
+    /// started, or the stream broke), the controller concludes from the returned outcome after a short grace.
+    private func requestFinish(_ session: any RecordingSession, token: Int) {
+        guard finishTask == nil else { return }
+        let consumer = eventsTask
+        finishTask = Task { [weak self] in
+            let outcome = await session.finish()
+            guard let self, self.runToken == token, self.session != nil else { return }
+            if let consumer {
+                await Self.wait(for: consumer, upTo: self.deps.finishGrace, on: self.deps.clock)
+            }
+            guard self.runToken == token, self.session != nil else { return }
+            self.conclude(outcome)
+        }
     }
 
     /// A button of the HUD.
@@ -143,6 +192,7 @@ final class MeetingController {
             phase = .idle
             begin(systemOnly: true)
         case .dismiss:
+            if phase == .preparing, session == nil { return cancelPreparation() }
             guard phase == .awaitingMicrophoneDecision else { return }
             phase = .idle
             deps.hud.hide()
@@ -171,39 +221,50 @@ final class MeetingController {
         guard !deps.activity.isRemovingModel else { return fail(.modelBeingRemoved) }
         acquireActivity()
         phase = .preparing
-        runTask = Task { [weak self] in await self?.run(systemOnly: systemOnly) }
+        runToken += 1
+        let token = runToken
+        runTask = Task { [weak self] in await self?.run(systemOnly: systemOnly, token: token) }
     }
 
-    private func run(systemOnly: Bool) async {
+    /// Whether the attempt `token` is still the one being prepared.
+    private func isPreparing(_ token: Int) -> Bool { token == runToken && phase == .preparing }
+
+    /// Whether the session of attempt `token` is still this controller's (not concluded, not replaced).
+    private func holdsSession(_ token: Int) -> Bool { token == runToken && session != nil }
+
+    private func run(systemOnly: Bool, token: Int) async {
+        guard isPreparing(token) else { return }
         let library = deps.library
+        // Read once: the same answer decides the denied-microphone offer, the request and the pill.
+        let recordsSystem = deps.settings.systemAudio
         guard library.canRecord, let store = library.store, let keys = library.keys else {
             return fail(.libraryUnavailable)
         }
         let modelID: String
         let folder: URL
-        switch await deps.speechModel() {
+        let lookup = await deps.speechModel()
+        guard isPreparing(token) else { return }
+        switch lookup {
         case .ready(let id, let url):
             modelID = id
             folder = url
         case .missing: return fail(.modelMissing)
         case .unavailable: return fail(.modelUnavailable)
         }
-        guard phase == .preparing, !Task.isCancelled else { return }
 
         if !systemOnly {
             switch deps.authorizer.status() {
             case .granted: break
-            case .denied: return microphoneDenied()
+            case .denied: return microphoneDenied(offersSystemOnly: recordsSystem)
             case .notDetermined:
                 // The shortcut is the user's action: the prompt is allowed now.
                 deps.hud.show(.allowMicrophone)
                 let granted = await deps.authorizer.requestAccess()
-                guard phase == .preparing, !Task.isCancelled else { return }
-                if !granted { return microphoneDenied() }
+                guard isPreparing(token) else { return }
+                if !granted { return microphoneDenied(offersSystemOnly: recordsSystem) }
             }
         }
 
-        let recordsSystem = deps.settings.systemAudio
         let session = deps.makeSession(
             MeetingSessionRequest(
                 store: store, keys: keys, spool: library.spoolStorage,
@@ -229,9 +290,13 @@ final class MeetingController {
         do {
             id = try await session.start()
         } catch {
+            // A session that already concluded (or a newer attempt) is none of this task's business.
+            guard holdsSession(token) else { return ignoredStaleStart() }
             consumer.cancel()
             return abortStart(error)
         }
+        // The session may have finished while it was still starting: then nothing is registered.
+        guard holdsSession(token) else { return ignoredStaleStart() }
         meetingID = id
         library.registerLive(meetingID: id)
         if phase == .preparing {
@@ -243,8 +308,13 @@ final class MeetingController {
         await consumer.value
     }
 
-    private func microphoneDenied() {
-        if deps.settings.systemAudio {
+    private func ignoredStaleStart() {
+        ignoredStaleStarts += 1
+        deps.stateChanged()
+    }
+
+    private func microphoneDenied(offersSystemOnly: Bool) {
+        if offersSystemOnly {
             // Waiting for the user's decision holds nothing; `begin` takes the activity again.
             releaseActivity()
             phase = .awaitingMicrophoneDecision
@@ -255,7 +325,8 @@ final class MeetingController {
     }
 
     private func abortStart(_ error: Error) {
-        deps.logger.error("Meeting recording could not start: \(String(describing: error), privacy: .public)")
+        deps.logger.error(
+            "Meeting recording could not start: \(String(describing: type(of: error)), privacy: .public)")
         let problem: MeetingHUDState.Problem
         switch error {
         case MeetingSessionError.anotherSessionActive: problem = .stillProcessing
@@ -365,7 +436,9 @@ final class MeetingController {
             watchers.append(
                 Task { [weak self] in
                     try? await clock.sleep(for: delay)
-                    guard !Task.isCancelled, let self, self.phase == .recording else { return }
+                    guard !Task.isCancelled, let self else { return }
+                    defer { self.watcherFired() }
+                    guard self.phase == .recording else { return }
                     self.recording.showsConsent = false
                     self.refresh()
                 })
@@ -375,13 +448,19 @@ final class MeetingController {
             watchers.append(
                 Task { [weak self] in
                     try? await clock.sleep(for: delay)
-                    guard !Task.isCancelled, let self, self.phase == .recording, !self.sawSystemSignal,
-                        !self.recording.lost.contains(.system)
+                    guard !Task.isCancelled, let self else { return }
+                    defer { self.watcherFired() }
+                    guard self.phase == .recording, !self.sawSystemSignal, !self.recording.lost.contains(.system)
                     else { return }
                     self.recording.noSystemAudio = true
                     self.refresh()
                 })
         }
+    }
+
+    private func watcherFired() {
+        watcherFirings += 1
+        deps.stateChanged()
     }
 
     private func cancelWatchers() {
@@ -392,6 +471,7 @@ final class MeetingController {
     // MARK: End
 
     private func conclude(_ outcome: MeetingSessionOutcome) {
+        guard session != nil else { return }
         endSession()
         deps.library.refreshCount()
         deps.changed()
@@ -412,16 +492,25 @@ final class MeetingController {
         releaseActivity()
         meetingID = nil
         session = nil
+        eventsTask?.cancel()
         eventsTask = nil
+        finishTask = nil
         phase = .idle
     }
 
     // MARK: Shut down
 
-    /// The plugin is switched off or the app quits: a running recording is finished (bounded by
-    /// `shutdownTimeout`), anything else is dropped.
-    func shutDown() async {
+    /// The plugin is switched off or the app quits: a running recording is finished, bounded by
+    /// `shutdownTimeout`; anything else is dropped. Returns whether nothing is left running.
+    ///
+    /// `false` means the session is still processing after the timeout. The controller does **not** forget it:
+    /// the live meeting id and the activity stay until the session's own `.finished` arrives (so recovery,
+    /// retention and Settings leave the meeting and its models alone), and `waitUntilEnded()` resolves then.
+    /// The caller must keep the library open until that.
+    @discardableResult
+    func shutDown() async -> Bool {
         guard let session else {
+            runToken += 1
             runTask?.cancel()
             runTask = nil
             releaseActivity()
@@ -429,21 +518,26 @@ final class MeetingController {
                 phase = .idle
                 deps.hud.hide()
             }
-            return
+            return true
         }
         cancelWatchers()
-        Task { _ = await session.finish() }
+        enterFinishing()
+        requestFinish(session, token: runToken)
         if let runTask {
             await Self.wait(for: runTask, upTo: deps.shutdownTimeout, on: deps.clock)
         }
         if self.session != nil {
-            // Not done in time: the meeting stays for the recovery of the next start.
-            deps.logger.notice("A meeting was still being finished at shutdown; recovery completes it")
-            eventsTask?.cancel()
-            endSession()
+            deps.logger.notice("A meeting was still being finished at shutdown; it stays registered until it ends")
+            return false
         }
         runTask = nil
         deps.hud.hide()
+        return true
+    }
+
+    /// Resolves when the recording that is running (or being finished) is over.
+    func waitUntilEnded() async {
+        await runTask?.value
     }
 
     /// Waits for `task` or the timeout, whichever comes first. The task itself is not cancelled.

@@ -41,6 +41,91 @@ import Testing
         await plugin.deactivate()
     }
 
+    /// A plugin whose controller records with scripted sessions and a manual clock.
+    private func scriptedPlugin(
+        _ harness: MeetingsHarness, behaviour: ScriptedSession.Behaviour, clock: ManualClock
+    ) -> MeetingsPlugin {
+        let plugin = MeetingsPlugin(context: harness.context)
+        plugin.adjustControllerDependencies = { dependencies in
+            dependencies.authorizer = FakeAuthorizer(.granted)
+            dependencies.speechModel = { .ready(modelID: "parakeet-ultra", folder: URL(filePath: "/tmp/pounce-model")) }
+            dependencies.makeSession = { _ in ScriptedSession(behaviour) }
+            dependencies.clock = clock
+            dependencies.shutdownTimeout = .seconds(5)
+            dependencies.stateChanged = { ChangeSignal.shared.fire() }
+        }
+        return plugin
+    }
+
+    @Test func deactivatingWhileASessionOutlivesTheTimeoutKeepsTheLibraryOpenUntilItEnds() async throws {
+        let harness = try MeetingsHarness()
+        let clock = ManualClock()
+        let release = Latch()
+        var behaviour = ScriptedSession.Behaviour()
+        behaviour.finishLatch = release
+        let plugin = scriptedPlugin(harness, behaviour: behaviour, clock: clock)
+        try await plugin.activate()
+        let controller = try #require(plugin.controller)
+        controller.start()
+        await eventually("recording") { controller.phase == .recording }
+
+        let deactivation = Task { @MainActor in await plugin.deactivate() }
+        await eventually("waiting on the shutdown timeout") { clock.sleepers == 1 }
+        clock.advance(by: .seconds(5))
+        await deactivation.value
+
+        // The session is still processing: the library stays open and the meeting stays registered.
+        #expect(plugin.library.status == .ready)
+        #expect(plugin.library.liveMeetingIDs == [7])
+        #expect(plugin.activity.isActive)
+        #expect(plugin.controller == nil)
+        #expect(plugin.lingeringController === controller)
+
+        release.open()
+        await eventually("the library closes once the session ended") { plugin.library.status == .closed }
+        #expect(plugin.library.liveMeetingIDs.isEmpty)
+        #expect(!plugin.activity.isActive)
+        #expect(plugin.lingeringController == nil)
+    }
+
+    @Test func reactivatingWhileASessionLingersKeepsTheLibraryOpenAfterItEnds() async throws {
+        let harness = try MeetingsHarness()
+        let clock = ManualClock()
+        let release = Latch()
+        var behaviour = ScriptedSession.Behaviour()
+        behaviour.finishLatch = release
+        let plugin = scriptedPlugin(harness, behaviour: behaviour, clock: clock)
+        try await plugin.activate()
+        let first = try #require(plugin.controller)
+        first.start()
+        await eventually("recording") { first.phase == .recording }
+        let deactivation = Task { @MainActor in await plugin.deactivate() }
+        await eventually("waiting on the shutdown timeout") { clock.sleepers == 1 }
+        clock.advance(by: .seconds(5))
+        await deactivation.value
+
+        try await plugin.activate()
+        release.open()
+        await first.waitUntilEnded()
+        await eventually("the lingering controller was released") { plugin.lingeringController == nil }
+        #expect(plugin.library.status == .ready)
+        await plugin.deactivate()
+        #expect(plugin.library.status == .closed)
+    }
+
+    @Test func deactivatingWhileASessionEndsInTimeClosesTheLibrary() async throws {
+        let harness = try MeetingsHarness()
+        let plugin = scriptedPlugin(harness, behaviour: .init(), clock: ManualClock())
+        try await plugin.activate()
+        let controller = try #require(plugin.controller)
+        controller.start()
+        await eventually("recording") { controller.phase == .recording }
+        await plugin.deactivate()
+        #expect(plugin.library.status == .closed)
+        #expect(plugin.lingeringController == nil)
+        #expect(plugin.library.liveMeetingIDs.isEmpty)
+    }
+
     @Test func eraseDataRemovesTheFolderAndTheKeychainItem() async throws {
         let harness = try MeetingsHarness()
         let plugin = MeetingsPlugin(context: harness.context)

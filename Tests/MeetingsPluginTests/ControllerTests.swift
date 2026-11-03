@@ -164,7 +164,7 @@ import Testing
         await rig.startRecording()
         rig.controller.start()
         rig.controller.perform(.recordSystemAudioOnly)
-        await rig.settle()
+        await rig.drainEvents()
         #expect(rig.sessions.count == 1)
         #expect(rig.controller.phase == .recording)
     }
@@ -202,8 +202,9 @@ import Testing
         await eventually { rig.controller.phase == .finishing }
         rig.controller.start()
         rig.controller.toggle()
-        await rig.settle()
+        #expect(rig.controller.phase == .finishing)
         #expect(rig.sessions.count == 1)
+        #expect(rig.session?.finishCount == 0)
     }
 
     @Test(arguments: [
@@ -264,28 +265,199 @@ import Testing
         #expect(rig.sessions.isEmpty)
     }
 
-    @Test func quittingWhileRecordingGivesUpAfterTheTimeoutAndLeavesTheRestToRecovery() async throws {
+    @Test func quittingWhileRecordingStopsWaitingAfterTheTimeoutButKeepsTheSession() async throws {
         let rig = try ControllerRig(shutdownTimeout: .seconds(5))
-        rig.behaviour.hangsOnFinish = true
+        let release = Latch()
+        rig.behaviour.finishLatch = release
         await rig.startRecording()
-        let done = Shared(false)
+        let result = Shared<Bool?>(nil)
         let task = Task { @MainActor in
-            await rig.controller.shutDown()
-            done.update { $0 = true }
+            let ended = await rig.controller.shutDown()
+            result.update { $0 = ended }
         }
         // The watchers are cancelled, so the only sleeper left is the shutdown timeout.
         await eventually("the shutdown waits on the clock") {
             rig.session?.finishCount == 1 && rig.clock.sleepers == 1
         }
-        #expect(!done.get())
+        #expect(result.get() == nil)
         rig.clock.advance(by: .seconds(5))
         await task.value
-        #expect(done.get())
-        // Everything the controller held is given back; the meeting stays for `RecoveryJob`.
+        #expect(result.get() == false)
+        // Not forgotten: the meeting is still registered and the activity held until `.finished` arrives.
+        #expect(rig.controller.phase == .finishing)
+        #expect(rig.activity.isActive)
+        #expect(rig.library.liveMeetingIDs == [7])
+        #expect(rig.library.finish(meetingID: 7) == nil)
+        // A closed and reopened library leaves the meeting alone too.
+        rig.library.close()
+        rig.library.open()
+        #expect(rig.library.lastRecovery?.toResume.contains { $0.id == 7 } != true)
+        #expect(rig.library.liveMeetingIDs == [7])
+        // A new recording waits.
+        rig.controller.start()
+        #expect(rig.sessions.count == 1)
+
+        release.open()
+        await rig.controller.waitUntilEnded()
         #expect(rig.controller.phase == .idle)
         #expect(!rig.activity.isActive)
         #expect(rig.library.liveMeetingIDs.isEmpty)
-        #expect(rig.hud.hides >= 1)
+        #expect(rig.hud.last == .saved)
+    }
+
+    @Test func shutDownReportsTrueWhenTheSessionEndsInTime() async throws {
+        let rig = try ControllerRig()
+        await rig.startRecording()
+        let ended = await rig.controller.shutDown()
+        #expect(ended)
+    }
+
+    // MARK: Stop while preparing
+
+    @Test func stopWhileTheSessionIsStartingFinishesItRightAfterTheStart() async throws {
+        let rig = try ControllerRig()
+        let startLatch = Latch()
+        rig.behaviour.startLatch = startLatch
+        rig.controller.start()
+        await eventually("the session is starting") { rig.session?.startCount == 1 }
+        #expect(rig.controller.phase == .preparing)
+
+        rig.controller.toggle()
+        #expect(rig.controller.phase == .finishing)
+        #expect(rig.hud.last == .finishing)
+        startLatch.open()
+        await eventually { rig.hud.last == .saved }
+        #expect(rig.session?.finishCount == 1)
+        #expect(rig.controller.phase == .idle)
+        #expect(!rig.activity.isActive)
+        #expect(rig.library.liveMeetingIDs.isEmpty)
+    }
+
+    @Test func stopWhileTheSessionIsStartingThatFailsShowsTheProblem() async throws {
+        let rig = try ControllerRig()
+        let startLatch = Latch()
+        rig.behaviour.startLatch = startLatch
+        rig.behaviour.startError = MeetingSessionError.noAudioInput
+        rig.controller.start()
+        await eventually("the session is starting") { rig.session?.startCount == 1 }
+        rig.controller.stop()
+        startLatch.open()
+        await eventually { rig.controller.phase == .idle }
+        #expect(!rig.activity.isActive)
+        #expect(rig.library.liveMeetingIDs.isEmpty)
+    }
+
+    @Test func cancellingDuringTheMicrophonePromptGivesEverythingBackAndIgnoresALateAnswer() async throws {
+        let rig = try ControllerRig(access: .notDetermined)
+        let answer = Latch()
+        rig.authorizer.holdAnswers(until: answer)
+        rig.controller.start()
+        await eventually("the prompt") { rig.hud.last == .allowMicrophone }
+        #expect(rig.hud.last?.actions == [.dismiss])
+        rig.controller.perform(.dismiss)
+        #expect(rig.controller.phase == .idle)
+        #expect(!rig.activity.isActive)
+        #expect(rig.hud.hides == 1)
+        // The prompt is answered afterwards: nothing starts.
+        answer.open()
+        await rig.controller.waitUntilEnded()
+        #expect(rig.authorizer.answers == 1)
+        #expect(rig.controller.phase == .idle)
+        #expect(rig.sessions.isEmpty)
+        // And the next attempt works.
+        await rig.startRecording()
+    }
+
+    @Test func theShortcutDuringTheMicrophonePromptCancelsIt() async throws {
+        let rig = try ControllerRig(access: .notDetermined)
+        rig.authorizer.holdAnswers(until: Latch())
+        rig.controller.start()
+        await eventually("the prompt") { rig.hud.last == .allowMicrophone }
+        rig.controller.toggle()
+        #expect(rig.controller.phase == .idle)
+        #expect(!rig.activity.isActive)
+    }
+
+    // MARK: Session lifecycle edge cases
+
+    @Test func aSessionThatEndsWhileStartingRegistersNoLiveMeeting() async throws {
+        let rig = try ControllerRig()
+        let startLatch = Latch()
+        rig.behaviour.startLatch = startLatch
+        rig.behaviour.eventsBeforeStart = [
+            .stateChanged(.finishing), .finished(MeetingSessionOutcome(result: .incomplete, meetingID: 7)),
+        ]
+        rig.controller.start()
+        // The session has ended before its start returns.
+        await eventually { rig.hud.last == .savedIncomplete }
+        #expect(rig.controller.phase == .idle)
+        startLatch.open()
+        await rig.controller.waitUntilEnded()
+        #expect(rig.controller.ignoredStaleStarts == 1)
+        #expect(rig.library.liveMeetingIDs.isEmpty)
+        #expect(rig.controller.phase == .idle)
+        #expect(!rig.activity.isActive)
+    }
+
+    @Test func aLateStartResultDoesNotTouchANewerRecording() async throws {
+        let rig = try ControllerRig()
+        let startLatch = Latch()
+        rig.behaviour.startLatch = startLatch
+        rig.controller.start()
+        await eventually("starting") { rig.session?.startCount == 1 }
+        // The first session ends by itself while its start is still pending.
+        let first = try #require(rig.session)
+        first.send(.stateChanged(.finishing))
+        first.send(.finished(MeetingSessionOutcome(result: .ready, meetingID: 7)))
+        await eventually { rig.controller.phase == .idle }
+
+        rig.behaviour = ScriptedSession.Behaviour(meetingID: 9)
+        await rig.startRecording()
+        #expect(rig.library.liveMeetingIDs == [9])
+        startLatch.open()
+        await first.waitForStartToReturn()
+        await eventually("the late result was ignored") { rig.controller.ignoredStaleStarts == 1 }
+        #expect(rig.library.liveMeetingIDs == [9])
+        #expect(rig.controller.phase == .recording)
+    }
+
+    @Test func eventsBeforeTheStartReturnsAreShownOnceTheRecordingRuns() async throws {
+        let rig = try ControllerRig()
+        rig.behaviour.eventsBeforeStart = [.loadingModel, .lowDisk]
+        await rig.startRecording()
+        await rig.drainEvents()
+        #expect(rig.hud.lastRecording?.loadingModel == true)
+        #expect(rig.hud.lastRecording?.lowDisk == true)
+        #expect(rig.controller.phase == .recording)
+    }
+
+    @Test func stopConcludesFromTheReturnedOutcomeWhenTheStreamEndsWithoutFinished() async throws {
+        let rig = try ControllerRig()
+        rig.behaviour.omitsFinished = true
+        rig.behaviour.outcome = MeetingSessionOutcome(result: .ready, meetingID: 7)
+        await rig.startRecording()
+        rig.controller.stop()
+        await eventually { rig.hud.last == .saved }
+        #expect(rig.controller.phase == .idle)
+        #expect(!rig.activity.isActive)
+        #expect(rig.library.liveMeetingIDs.isEmpty)
+    }
+
+    @Test func stopConcludesAfterTheGraceWhenTheStreamStaysOpen() async throws {
+        let rig = try ControllerRig()
+        rig.behaviour.omitsFinished = true
+        rig.behaviour.endsStreamWithoutFinished = false
+        rig.behaviour.outcome = MeetingSessionOutcome(result: .notStarted)
+        await rig.startRecording()
+        rig.controller.stop()
+        await eventually("waiting out the grace") { rig.session?.finishCount == 1 && rig.clock.sleepers == 1 }
+        #expect(rig.controller.phase == .finishing)
+        let hidesBefore = rig.hud.hides
+        rig.clock.advance(by: .seconds(2))
+        await eventually { rig.controller.phase == .idle }
+        #expect(rig.hud.hides == hidesBefore + 1)
+        #expect(!rig.activity.isActive)
+        #expect(rig.library.liveMeetingIDs.isEmpty)
     }
 
     // MARK: HUD content
@@ -296,8 +468,23 @@ import Testing
         #expect(rig.hud.lastRecording?.showsConsent == true)
         #expect(rig.hud.last?.detail == "Tell the participants you are recording")
         await eventually("the watchers") { rig.clock.sleepers >= 2 }
-        rig.clock.advance(by: .seconds(8))
-        await eventually { rig.hud.lastRecording?.showsConsent == false }
+        await rig.advance(by: .seconds(8), firing: 1)
+        #expect(rig.hud.lastRecording?.showsConsent == false)
+        #expect(rig.hud.last?.detail == nil)
+    }
+
+    @Test func theModelLoadNoticeDoesNotHideTheConsentLine() async throws {
+        let rig = try ControllerRig()
+        await rig.startRecording()
+        rig.session?.send(.loadingModel)
+        await rig.drainEvents()
+        #expect(rig.hud.lastRecording?.loadingModel == true)
+        #expect(rig.hud.last?.detail == "Tell the participants you are recording")
+        // Once the consent window is over the load notice shows, as long as the model is loading.
+        await rig.advance(by: .seconds(8), firing: 1)
+        #expect(rig.hud.last?.detail == "Loading the speech model – recording continues")
+        rig.session?.send(.modelLoaded)
+        await rig.drainEvents()
         #expect(rig.hud.last?.detail == nil)
     }
 
@@ -330,11 +517,11 @@ import Testing
         await eventually("the watchers") { rig.clock.sleepers >= 2 }
         rig.session?.send(.level(.mic, 0.4))
         rig.session?.send(.level(.system, 0))
-        rig.clock.advance(by: .seconds(19))
-        await rig.settle()
+        await rig.drainEvents()
+        await rig.advance(by: .seconds(19), firing: 1)
         #expect(rig.hud.lastRecording?.noSystemAudio == false)
-        rig.clock.advance(by: .seconds(1))
-        await eventually { rig.hud.lastRecording?.noSystemAudio == true }
+        await rig.advance(by: .seconds(1), firing: 1)
+        #expect(rig.hud.lastRecording?.noSystemAudio == true)
         #expect(rig.hud.lastRecording?.notice == .noSystemAudio)
         #expect(rig.hud.last?.detail == "Check the system audio recording permission")
         #expect(rig.hud.last?.actions == [.openSettings, .stop])
@@ -350,19 +537,18 @@ import Testing
         await rig.startRecording()
         await eventually("the watchers") { rig.clock.sleepers >= 2 }
         rig.session?.send(.level(.system, 0.2))
-        await rig.settle()
-        rig.clock.advance(by: .seconds(30))
-        await rig.settle()
+        await rig.drainEvents()
+        await rig.advance(by: .seconds(30), firing: 2)
         #expect(rig.hud.lastRecording?.noSystemAudio == false)
     }
 
     @Test func noSystemWatcherWhenOnlyTheMicrophoneIsRecorded() async throws {
         let rig = try ControllerRig(settings: ["plugins.meetings.systemAudio": .bool(false)])
         await rig.startRecording()
-        rig.clock.advance(by: .seconds(60))
-        await rig.settle()
+        await rig.advance(by: .seconds(60), firing: 1)
         #expect(rig.hud.lastRecording?.noSystemAudio == false)
         #expect(rig.hud.lastRecording?.notice != .noSystemAudio)
+        #expect(rig.clock.sleepers == 0)
     }
 
     @Test func theLimitCountdownIsShown() async throws {

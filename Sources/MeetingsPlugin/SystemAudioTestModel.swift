@@ -67,13 +67,21 @@ final class SystemAudioTestModel {
     @ObservationIgnored private let makeTest: @MainActor () -> SystemAudioSelfTest
     @ObservationIgnored private var task: Task<Void, Never>?
 
-    init(makeTest: @escaping @MainActor () -> SystemAudioSelfTest) {
+    /// True while a meeting is recorded or processed: the test taps the output, which a meeting already does.
+    @ObservationIgnored private let blocked: @MainActor () -> Bool
+
+    init(makeTest: @escaping @MainActor () -> SystemAudioSelfTest, blocked: @escaping @MainActor () -> Bool = { false })
+    {
         self.makeTest = makeTest
+        self.blocked = blocked
     }
+
+    /// Whether the test cannot start now (a meeting is active). Reads observable state, so views update.
+    var isBlocked: Bool { blocked() }
 
     /// "Test system audio": explains the test, plays nothing.
     func begin() {
-        guard state == .idle || isFinished else { return }
+        guard !isBlocked, state == .idle || isFinished else { return }
         state = .awaitingConfirmation
     }
 
@@ -84,7 +92,7 @@ final class SystemAudioTestModel {
 
     /// "Play test signal": the explicit step. Taps the output, plays the tone, listens, reports.
     func playSignal() {
-        guard state == .awaitingConfirmation else { return }
+        guard state == .awaitingConfirmation, !isBlocked else { return }
         state = .running
         let test = makeTest()
         task = Task { [weak self] in

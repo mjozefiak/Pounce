@@ -341,6 +341,10 @@ isolates the Keychain; audio permissions are per app, not per `--qa` data folder
   forgets the system-audio consent: after rebuilding, the self-test goes back to "no audio" until the prompt is accepted
   again (remove the stale Pounce entry first if the prompt does not come back). Release builds signed with the stable
   "Pounce Release" certificate keep it.
+- **Default shortcut and VoiceOver (manual).** The default ⌃⌥M is also VoiceOver's modifier (⌃⌥ = VO). With
+  VoiceOver on, ⌃⌥M may be consumed by VoiceOver instead of reaching Pounce. Check once with VoiceOver running
+  that the command starts and stops a recording, and if it does not, record the finding in the PR (the shortcut
+  can be changed in Settings → Meetings; the spec'd default stays).
 - **Setting.** `plugins.meetings.systemAudio` off records the microphone only and never creates a tap (no prompt).
 - **Cleanup.** After stopping a recording, `Audio MIDI Setup` shows no leftover "Pounce meeting tap" aggregate device.
 

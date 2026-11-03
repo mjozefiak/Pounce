@@ -257,6 +257,14 @@ struct SystemAudioTestRows: View {
                 } label: {
                     Text("Test System Audio", comment: "Meetings button that starts the system audio test")
                 }
+                .disabled(test.isBlocked)
+                if test.isBlocked {
+                    Text(
+                        "Not available while a meeting is being recorded or processed.",
+                        comment: "Meetings: why the system audio test is switched off during a meeting"
+                    )
+                    .font(.callout).foregroundStyle(.secondary)
+                }
                 if let outcome = test.lastOutcome {
                     verdict(outcome)
                 }
@@ -273,6 +281,7 @@ struct SystemAudioTestRows: View {
                     } label: {
                         Text("Play Test Signal", comment: "Meetings button that plays the system audio test tone")
                     }
+                    .disabled(test.isBlocked)
                     Button {
                         test.cancel()
                     } label: {
@@ -293,6 +302,7 @@ struct SystemAudioTestRows: View {
                     } label: {
                         Text("Test Again", comment: "Meetings button that repeats the system audio test")
                     }
+                    .disabled(test.isBlocked)
                     if outcome != .works {
                         Button {
                             openSettings()

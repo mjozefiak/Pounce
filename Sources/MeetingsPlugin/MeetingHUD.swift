@@ -60,14 +60,15 @@ final class MeetingHUDPanel: HUDPresenter {
     }
 
     func show(_ state: MeetingHUDState) {
-        // Only a different state restarts the hide timer; the recording refreshes every second.
-        let changedKind = shownState.map { Self.kind($0) != Self.kind(state) } ?? true
+        // A different screen (or a different problem) restarts the hide timer; the recording refreshes every
+        // second and must not.
+        let changedKind = shownState.map { Self.screen($0) != Self.screen(state) } ?? true
         shownState = state
         model.reducesMotion = reducesMotion()
         model.state = state
         let panel = panel ?? makePanel()
         self.panel = panel
-        resize(panel, for: state)
+        layout(panel, for: state)
         panel.orderFrontRegardless()
         if let announcement = announcements.announce(state) {
             announce(announcement, from: panel)
@@ -93,16 +94,16 @@ final class MeetingHUDPanel: HUDPresenter {
         panel?.orderOut(nil)
     }
 
-    /// Which screen the state is: the recording and its updates are one kind.
-    private static func kind(_ state: MeetingHUDState) -> Int {
+    /// Which screen the state is: the recording and its updates are one screen, every problem its own.
+    static func screen(_ state: MeetingHUDState) -> String {
         switch state {
-        case .allowMicrophone: 0
-        case .recording: 1
-        case .finishing: 2
-        case .processing: 3
-        case .saved: 4
-        case .savedIncomplete: 5
-        case .problem: 6
+        case .allowMicrophone: "allowMicrophone"
+        case .recording: "recording"
+        case .finishing: "finishing"
+        case .processing: "processing"
+        case .saved: "saved"
+        case .savedIncomplete: "savedIncomplete"
+        case .problem(let problem): "problem.\(problem)"
         }
     }
 
@@ -122,9 +123,19 @@ final class MeetingHUDPanel: HUDPresenter {
         return panel
     }
 
-    /// Top centre of the screen the mouse is on, under the menu bar; the dictation HUD sits at the bottom.
-    private func resize(_ panel: NSPanel, for state: MeetingHUDState) {
+    /// Positions the panel when it appears; afterwards only the height may change, with the top edge fixed, so
+    /// the pill does not jump to another screen when the mouse moves.
+    private func layout(_ panel: NSPanel, for state: MeetingHUDState) {
         let height = state.hasDetailLine ? Self.twoLineHeight : Self.singleLineHeight
+        guard panel.isVisible else { return place(panel, height: height) }
+        let current = panel.frame
+        guard abs(current.height - height) > 0.5 else { return }
+        panel.setContentSize(NSSize(width: Self.width, height: height))
+        panel.setFrameOrigin(NSPoint(x: current.minX, y: current.maxY - panel.frame.height))
+    }
+
+    /// Top centre of the screen the mouse is on, under the menu bar; the dictation HUD sits at the bottom.
+    private func place(_ panel: NSPanel, height: CGFloat) {
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main
         guard let frame = screen?.visibleFrame else { return }

@@ -26,8 +26,9 @@ import Testing
         defer { env.tearDown() }
         let host = env.makeHost(PluginRegistry.all)
         #expect(host.isEnabled("meetings") == false)
-        // A disabled plugin registers no command, so ⌃⌥M stays free for other apps.
-        #expect(host.activeCommands.isEmpty || !host.activeCommands.contains { $0.id == "meetings.record" })
+        // The plugin has the command, but a disabled plugin registers none, so ⌃⌥M stays free for other apps.
+        #expect(try registeredCommands().contains { $0.command.id == "meetings.record" })
+        #expect(!host.activeCommands.contains { $0.id == "meetings.record" })
     }
 
     @Test func everyDefaultShortcutIsUnique() throws {

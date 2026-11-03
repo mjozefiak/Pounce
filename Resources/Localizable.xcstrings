@@ -2341,6 +2341,24 @@
         }
       }
     },
+    "Lets Pounce hear you while you dictate or record a meeting. Dictation audio is never saved; meeting audio is stored encrypted on this Mac until the transcript is complete, and the audio of unfinished meetings is kept for a limited time." : {
+      "comment" : "Explanation of the Microphone permission",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lets Pounce hear you while you dictate or record a meeting. Dictation audio is never saved; meeting audio is stored encrypted on this Mac until the transcript is complete, and the audio of unfinished meetings is kept for a limited time."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pozwala Pounce słyszeć Cię podczas dyktowania i nagrywania spotkania. Dźwięk dyktowania nigdy nie jest zapisywany; dźwięk spotkania jest przechowywany w zaszyfrowanej postaci na tym Macu, dopóki transkrypt nie będzie kompletny, a dźwięk niedokończonych spotkań jest przechowywany przez ograniczony czas."
+          }
+        }
+      }
+    },
     "Lets Pounce hear you while you dictate. Audio stays on this Mac and is never saved." : {
       "comment" : "Explanation of the Microphone permission",
       "extractionState" : "manual",
@@ -2535,6 +2553,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Średni"
+          }
+        }
+      }
+    },
+    "Not available while a meeting is being recorded or processed." : {
+      "comment" : "Meetings: why the system audio test is switched off during a meeting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not available while a meeting is being recorded or processed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niedostępne, gdy spotkanie jest nagrywane lub przetwarzane."
           }
         }
       }
@@ -8979,24 +9015,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nagrywaj spotkanie / Zakończ nagrywanie"
-          }
-        }
-      }
-    },
-    "Lets Pounce hear you while you dictate or record a meeting. Dictation audio is never saved; meeting audio is stored encrypted on this Mac only until the transcript is ready." : {
-      "comment" : "Explanation of the Microphone permission",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lets Pounce hear you while you dictate or record a meeting. Dictation audio is never saved; meeting audio is stored encrypted on this Mac only until the transcript is ready."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pozwala Pounce słyszeć Cię podczas dyktowania i nagrywania spotkania. Dźwięk dyktowania nigdy nie jest zapisywany; dźwięk spotkania jest zapisywany w zaszyfrowanej postaci na tym Macu tylko do czasu, aż transkrypt będzie gotowy."
           }
         }
       }

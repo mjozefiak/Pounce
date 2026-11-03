@@ -47,7 +47,8 @@ final class MeetingsUI {
             privacy: MeetingsPrivacyActions(
                 library: library, spool: SpoolStorage(pluginDirectory: context.storageDirectory),
                 activity: activity, changed: context.resultsChanged),
-            speech: speech, diarization: diarization, systemAudioTest: SystemAudioTestModel(makeTest: makeSelfTest),
+            speech: speech, diarization: diarization,
+            systemAudioTest: SystemAudioTestModel(makeTest: makeSelfTest, blocked: { activity.isActive }),
             authorizer: authorizer, openURL: { url in Task { try? await workspace.open(url) } })
     }
 

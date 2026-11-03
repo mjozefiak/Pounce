@@ -80,6 +80,57 @@ final class ManualClock: Clock, @unchecked Sendable {
     }
 }
 
+/// Wakes tests that wait for a change instead of polling for it. Fired by the HUD, the controller's phase and
+/// the scripted sessions; a woken test re-checks its condition.
+@MainActor
+final class ChangeSignal {
+    static let shared = ChangeSignal()
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    func fire() {
+        let current = waiters
+        waiters = []
+        for waiter in current { waiter.resume() }
+    }
+
+    func wait() async {
+        await withCheckedContinuation { waiters.append($0) }
+    }
+
+    nonisolated static func fireFromAnywhere() {
+        Task { @MainActor in shared.fire() }
+    }
+}
+
+/// A one-way latch a test opens to let a scripted session go on.
+final class Latch: Sendable {
+    private struct State {
+        var open = false
+        var waiters: [CheckedContinuation<Void, Never>] = []
+    }
+    private let state = Mutex(State())
+
+    func open() {
+        let waiters = state.withLock { state -> [CheckedContinuation<Void, Never>] in
+            state.open = true
+            defer { state.waiters = [] }
+            return state.waiters
+        }
+        for waiter in waiters { waiter.resume() }
+    }
+
+    func wait() async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            let resumeNow = state.withLock { state -> Bool in
+                if state.open { return true }
+                state.waiters.append(continuation)
+                return false
+            }
+            if resumeNow { continuation.resume() }
+        }
+    }
+}
+
 /// Records what the HUD was asked to show.
 @MainActor
 final class RecordingHUD: HUDPresenter {
@@ -95,8 +146,15 @@ final class RecordingHUD: HUDPresenter {
         return nil
     }
 
-    func show(_ state: MeetingHUDState) { states.append(state) }
-    func hide() { hides += 1 }
+    func show(_ state: MeetingHUDState) {
+        states.append(state)
+        ChangeSignal.shared.fire()
+    }
+
+    func hide() {
+        hides += 1
+        ChangeSignal.shared.fire()
+    }
 }
 
 /// A recording the test drives by hand: it sends events and decides how `start()` and `finish()` end.
@@ -107,35 +165,65 @@ final class ScriptedSession: RecordingSession {
         var outcome = MeetingSessionOutcome(result: .ready, meetingID: 7)
         /// `finish()` waits forever (a shutdown that does not complete in time).
         var hangsOnFinish = false
+        /// Sent before anything else in `start()`.
+        var eventsBeforeStart: [MeetingSessionEvent] = []
+        /// `start()` waits for this latch (a slow start: spool, row, audio).
+        var startLatch: Latch?
+        /// `finish()` waits for this latch, then finishes normally (a slow processing).
+        var finishLatch: Latch?
+        /// `start()` sends `.finished` (and ends the stream) before it returns: the session ended while starting.
+        var finishesDuringStart = false
+        /// `finish()` returns the outcome but sends no `.finished`.
+        var omitsFinished = false
+        /// With `omitsFinished`: the stream still ends.
+        var endsStreamWithoutFinished = true
     }
 
     let events: AsyncStream<MeetingSessionEvent>
     private let continuation: AsyncStream<MeetingSessionEvent>.Continuation
-    private let state = Mutex(0)
-    private let finishes = Mutex(0)
+    private let counts = Mutex((starts: 0, finishes: 0))
     private let behaviour: Behaviour
+    private let startReturned = Latch()
 
     init(_ behaviour: Behaviour = Behaviour()) {
         self.behaviour = behaviour
         (events, continuation) = AsyncStream.makeStream(of: MeetingSessionEvent.self, bufferingPolicy: .unbounded)
     }
 
-    var startCount: Int { state.withLock { $0 } }
-    var finishCount: Int { finishes.withLock { $0 } }
+    var startCount: Int { counts.withLock { $0.starts } }
+    var finishCount: Int { counts.withLock { $0.finishes } }
 
     func send(_ event: MeetingSessionEvent) { continuation.yield(event) }
 
+    func waitForStartToReturn() async { await startReturned.wait() }
+
     func start() async throws -> Int64 {
-        state.withLock { $0 += 1 }
+        defer { startReturned.open() }
+        counts.withLock { $0.starts += 1 }
+        ChangeSignal.fireFromAnywhere()
+        for event in behaviour.eventsBeforeStart { continuation.yield(event) }
+        await behaviour.startLatch?.wait()
         if let error = behaviour.startError { throw error }
+        if behaviour.finishesDuringStart {
+            continuation.yield(.stateChanged(.finishing))
+            continuation.yield(.finished(behaviour.outcome))
+            continuation.finish()
+            return behaviour.meetingID
+        }
         continuation.yield(.stateChanged(.recording))
         return behaviour.meetingID
     }
 
     func finish() async -> MeetingSessionOutcome {
-        finishes.withLock { $0 += 1 }
+        counts.withLock { $0.finishes += 1 }
+        ChangeSignal.fireFromAnywhere()
         if behaviour.hangsOnFinish {
             try? await Task.sleep(for: .seconds(3600))
+            return behaviour.outcome
+        }
+        await behaviour.finishLatch?.wait()
+        if behaviour.omitsFinished {
+            if behaviour.endsStreamWithoutFinished { continuation.finish() }
             return behaviour.outcome
         }
         continuation.yield(.stateChanged(.finishing))
@@ -146,15 +234,21 @@ final class ScriptedSession: RecordingSession {
     }
 }
 
-/// Polls the main actor until `condition` holds or a few seconds pass.
+/// Waits until `condition` holds, woken by the HUD, the phase and the sessions instead of polling. A real-time
+/// timeout only keeps a broken test from hanging.
 @MainActor
 func eventually(
-    _ message: Comment = "condition", timeout: Duration = .seconds(5), _ condition: @MainActor () -> Bool
+    _ message: Comment = "condition", timeout: Duration = .seconds(10), _ condition: @MainActor () -> Bool
 ) async {
     let deadline = ContinuousClock.now + timeout
-    while !condition(), ContinuousClock.now < deadline {
-        try? await Task.sleep(for: .milliseconds(5))
+    let timer = Task { @MainActor in
+        try? await Task.sleep(for: timeout)
+        ChangeSignal.shared.fire()
     }
+    while !condition(), ContinuousClock.now < deadline {
+        await ChangeSignal.shared.wait()
+    }
+    timer.cancel()
     #expect(condition(), message)
 }
 
@@ -175,6 +269,7 @@ final class ControllerRig {
     private(set) var settingsOpened = 0
     private(set) var changes = Shared(0)
     private(set) var controller: MeetingController!
+    private var markers = 0
 
     var session: ScriptedSession? { sessions.last }
 
@@ -200,7 +295,8 @@ final class ControllerRig {
                     return session
                 }, hud: hud, clock: clock, openSettings: { [unowned self] in self.settingsOpened += 1 },
                 openURL: { [unowned self] url in self.openedURLs.append(url) },
-                changed: { changes.update { $0 += 1 } }, shutdownTimeout: shutdownTimeout))
+                changed: { changes.update { $0 += 1 } }, shutdownTimeout: shutdownTimeout,
+                stateChanged: { ChangeSignal.shared.fire() }))
     }
 
     /// Starts and waits until the recording runs.
@@ -209,9 +305,21 @@ final class ControllerRig {
         await eventually("recording") { controller.phase == .recording }
     }
 
-    /// Waits until the controller has handled everything the session sent so far.
-    func settle() async {
-        for _ in 0..<20 { await Task.yield() }
-        try? await Task.sleep(for: .milliseconds(20))
+    /// Sends a marker event and waits until the controller has shown it: everything the session sent before is
+    /// handled by then (one ordered stream).
+    func drainEvents(through session: ScriptedSession? = nil) async {
+        markers += 1
+        let marker = 100_000 + markers
+        let target = session ?? self.session
+        target?.send(.elapsed(seconds: marker))
+        await eventually("the marker event") { hud.lastRecording?.elapsedSeconds == marker }
+    }
+
+    /// Advances the clock and waits until `firing` controller timers have run out because of it.
+    func advance(by duration: Duration, firing: Int) async {
+        let before = controller.watcherFirings
+        await eventually("the timers are waiting") { clock.sleepers >= firing }
+        clock.advance(by: duration)
+        await eventually("\(firing) timer(s) fire") { controller.watcherFirings >= before + firing }
     }
 }

@@ -26,13 +26,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce listens to the microphone while you dictate (the audio is never saved) and while you record a meeting. Meeting audio is stored encrypted on this Mac only until the transcript is ready."
+            "value" : "Pounce listens to the microphone while you dictate (the audio is never saved) and while you record a meeting. Meeting audio is stored encrypted on this Mac until the transcript is complete; the audio of unfinished meetings is kept for a limited time."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce słucha mikrofonu, gdy dyktujesz (dźwięk nigdy nie jest zapisywany) oraz gdy nagrywasz spotkanie. Dźwięk spotkania jest przechowywany w zaszyfrowanej postaci na tym Macu tylko do czasu, aż transkrypt będzie gotowy."
+            "value" : "Pounce słucha mikrofonu, gdy dyktujesz (dźwięk nigdy nie jest zapisywany) oraz gdy nagrywasz spotkanie. Dźwięk spotkania jest przechowywany w zaszyfrowanej postaci na tym Macu, dopóki transkrypt nie będzie kompletny; dźwięk niedokończonych spotkań jest przechowywany przez ograniczony czas."
           }
         }
       }
