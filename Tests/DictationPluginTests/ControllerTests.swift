@@ -116,12 +116,22 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         func tearDown() { paste.pasteboard.release() }
     }
 
+    /// Polls until `condition` holds, for at most ten seconds. A fixed sleep is not enough on a loaded runner.
+    private func waitUntil(_ condition: () -> Bool) async {
+        for _ in 0..<1000 where !condition() { try? await Task.sleep(for: .milliseconds(10)) }
+    }
+
     /// Waits until the HUD shows a final state.
     private func settle(_ rig: Rig) async {
-        for _ in 0..<200 {
-            if let last = rig.hud.last, last.hidesAfter != nil { return }
-            try? await Task.sleep(for: .milliseconds(10))
+        await waitUntil {
+            if let last = rig.hud.last, last.hidesAfter != nil { return true }
+            return false
         }
+    }
+
+    /// Waits until recording has started (the controller starts it asynchronously).
+    private func recording(_ rig: Rig) async {
+        await waitUntil { rig.hud.milestones.contains("recording") }
     }
 
     @Test func tapToStartTapToStopPastesTheText() async throws {
@@ -131,7 +141,7 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         controller.keyEvent(.down)
         rig.now += .milliseconds(100)
         controller.keyEvent(.up)
-        try await Task.sleep(for: .milliseconds(100))
+        await recording(rig)
         controller.keyEvent(.down)
         controller.keyEvent(.up)
         await settle(rig)
@@ -149,7 +159,7 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         defer { rig.tearDown() }
         let controller = rig.controller()
         controller.keyEvent(.down)
-        try await Task.sleep(for: .milliseconds(100))
+        await recording(rig)
         rig.now += .milliseconds(900)
         controller.keyEvent(.up)
         await settle(rig)
@@ -162,10 +172,10 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         defer { rig.tearDown() }
         let controller = rig.controller()
         controller.keyEvent(.down)
-        try await Task.sleep(for: .milliseconds(100))
+        await recording(rig)
         let escape = try #require(rig.escapeHandler)
         escape()
-        try await Task.sleep(for: .milliseconds(100))
+        await waitUntil { rig.hud.hidden >= 1 }
         #expect(rig.hud.hidden == 1)
         #expect(rig.paste.events.posts == 0)
         #expect(rig.paste.pasteboard.string() == nil)
@@ -182,7 +192,7 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         rig.escapeAvailable = false
         let controller = rig.controller()
         controller.menu()
-        try await Task.sleep(for: .milliseconds(100))
+        await recording(rig)
         guard case .recording(let recording)? = rig.hud.states.first(where: { $0.offersCancel }) else {
             Issue.record("no recording state")
             return
@@ -197,7 +207,7 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         defer { rig.tearDown() }
         let controller = rig.controller()
         controller.menu()
-        try await Task.sleep(for: .milliseconds(100))
+        await recording(rig)
         controller.menu()
         await settle(rig)
         #expect(rig.hud.milestones == ["recording", "finishing", "pasted"])
@@ -234,7 +244,7 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         rig.authorizer.access.withLock { $0 = .notDetermined }
         let controller = rig.controller()
         controller.menu()
-        try await Task.sleep(for: .milliseconds(150))
+        await recording(rig)
         #expect(rig.authorizer.asked.withLock { $0 } == 1)
         #expect(rig.hud.milestones.first == "allow")
         #expect(rig.hud.milestones.contains("recording"))
@@ -257,7 +267,7 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         rig.ranges = []
         let controller = rig.controller()
         controller.menu()
-        try await Task.sleep(for: .milliseconds(100))
+        await recording(rig)
         controller.menu()
         await settle(rig)
         #expect(rig.hud.milestones == ["recording", "finishing", "problem:nothingHeard"])
@@ -271,9 +281,9 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         rig.engine.delays = [1: .milliseconds(200)]
         let controller = rig.controller()
         controller.menu()
-        try await Task.sleep(for: .milliseconds(100))
+        await recording(rig)
         controller.menu()
-        try await Task.sleep(for: .milliseconds(30))
+        await waitUntil { rig.hud.milestones.contains("finishing") }
         controller.keyEvent(.down)
         controller.keyEvent(.up)
         controller.menu()
@@ -288,11 +298,11 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         defer { rig.tearDown() }
         let controller = rig.controller(keepWarm: .seconds(600))
         controller.menu()
-        try await Task.sleep(for: .milliseconds(100))
+        await recording(rig)
         controller.menu()
         await settle(rig)
-        // The test clock returns at once, so the keep-warm timer has already fired.
-        try await Task.sleep(for: .milliseconds(100))
+        // The test clock returns at once, so the keep-warm timer fires right away.
+        await waitUntil { rig.engine.state.withLock { $0.unloads } >= 1 }
         #expect(rig.engine.state.withLock { $0.unloads } >= 1)
         #expect(rig.paste.clock.sleeps.contains(.seconds(600)))
     }
@@ -302,7 +312,7 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         defer { rig.tearDown() }
         let controller = rig.controller()
         controller.menu()
-        try await Task.sleep(for: .milliseconds(100))
+        await recording(rig)
         await controller.shutDown()
         #expect(rig.escapeReleases == 1)
         #expect(rig.paste.events.posts == 0)
@@ -317,7 +327,7 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         rig.formatter = StubFormatter { chunk, _ in FormatResult(text: "Clean: \(chunk)", outcome: .formatted) }
         let controller = rig.controller()
         controller.menu()
-        try await Task.sleep(for: .milliseconds(100))
+        await recording(rig)
         controller.menu()
         await settle(rig)
 
@@ -332,7 +342,7 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         rig.formatter = StubFormatter { chunk, _ in FormatResult(text: chunk, outcome: .fellBack(.unreachable)) }
         let controller = rig.controller()
         controller.menu()
-        try await Task.sleep(for: .milliseconds(100))
+        await recording(rig)
         controller.menu()
         await settle(rig)
 
@@ -346,13 +356,13 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         rig.formatter = StubFormatter { _, _ in FormatResult(text: "Formatted", outcome: .formatted) }
         let controller = rig.controller()
         controller.menu()
-        try await Task.sleep(for: .milliseconds(100))
+        await recording(rig)
         controller.menu()
         await settle(rig)
         #expect(rig.paste.pasteboard.string() == "Formatted")
 
         controller.pasteLastRaw()
-        for _ in 0..<200 where rig.paste.events.posts < 2 { try await Task.sleep(for: .milliseconds(10)) }
+        await waitUntil { rig.paste.events.posts >= 2 }
         #expect(rig.paste.pasteboard.string() == "segment 1")
         #expect(rig.paste.events.posts == 2)
     }
@@ -370,7 +380,7 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
 
     private func dictate(_ rig: Rig, _ controller: DictationController) async throws {
         controller.menu()
-        try await Task.sleep(for: .milliseconds(100))
+        await recording(rig)
         controller.menu()
         await settle(rig)
     }
@@ -381,6 +391,7 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         let controller = rig.controller()
         try await dictate(rig, controller)
 
+        await waitUntil { !rig.recorded.isEmpty }
         let entry = try #require(rig.recorded.first)
         #expect(rig.recorded.count == 1)
         #expect(entry.rawText == "segment 1")
@@ -401,6 +412,7 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         let controller = rig.controller()
         try await dictate(rig, controller)
 
+        await waitUntil { !rig.recorded.isEmpty }
         let entry = try #require(rig.recorded.first)
         #expect(entry.rawText == "segment 1")
         #expect(entry.formattedText == "Clean segment 1")
@@ -417,6 +429,7 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         let controller = rig.controller()
         try await dictate(rig, controller)
 
+        await waitUntil { !rig.recorded.isEmpty }
         let entry = try #require(rig.recorded.first)
         #expect(entry.formatStatus == .failed)
         #expect(entry.formattedText == nil)
@@ -430,6 +443,7 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         let controller = rig.controller()
         try await dictate(rig, controller)
 
+        await waitUntil { !rig.recorded.isEmpty }
         let entry = try #require(rig.recorded.first)
         #expect(entry.pasteResult == .copied)
         #expect(entry.targetBundleID == nil)
@@ -440,9 +454,9 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         defer { rig.tearDown() }
         let controller = rig.controller()
         controller.menu()
-        try await Task.sleep(for: .milliseconds(50))
+        await recording(rig)
         controller.cancel()
-        try await Task.sleep(for: .milliseconds(100))
+        await waitUntil { rig.hud.hidden >= 1 }
         #expect(rig.recorded.isEmpty)
     }
 
