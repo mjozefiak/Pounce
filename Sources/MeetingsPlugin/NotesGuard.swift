@@ -228,6 +228,11 @@ struct NotesGuard: Sendable {
                 })
             trusted = Self.isFaithful(outcome.point.text, vocabulary: vocabulary, strictStart: false)
         }
+        // A point must not turn a negation around: "nie zatwierdzamy" restated as "zatwierdzono", or the other
+        // way round, keeps every word faithful and still flips the meaning.
+        if trusted, Self.hasNegation(NotesText.words(outcome.point.text)) != Self.hasNegation(quoteWords) {
+            trusted = false
+        }
         if !trusted {
             // The model's wording is not shown; the transcript's is.
             outcome.point.text = excerpt
@@ -515,6 +520,10 @@ struct NotesGuard: Sendable {
 
     static let maxSummaryLength = 1500
     static let maxSummaryWords = 160
+
+    private static func hasNegation(_ words: [String]) -> Bool {
+        words.contains { negations.contains($0) }
+    }
 
     private static let negations: Set<String> = [
         "nie", "nigdy", "nikt", "nic", "zaden", "zadna", "zadne", "not", "no", "never", "nobody", "nothing", "none",
