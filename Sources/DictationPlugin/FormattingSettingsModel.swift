@@ -32,15 +32,46 @@ final class FormattingSettingsModel {
     private(set) var selectedEndpoint: URL?
     private(set) var selectedModel: String?
 
+    /// Where the clean-up runs: the user's server or the model Pounce downloaded.
+    var source: DictationSettings.LLMSource {
+        didSet {
+            settings.setLLMSource(source)
+            tryState = .idle
+            Task { await refresh() }
+        }
+    }
+    /// The built-in models this Mac has the memory for.
+    let builtInModels: [LLMModel]
+    private(set) var builtInModel: LLMModel
+    private(set) var builtInLocation = ModelLocation.missing
+    private(set) var builtInProgress: ModelProgress?
+    private(set) var builtInError: String?
+
     @ObservationIgnored private let settings: DictationSettings
     @ObservationIgnored private let probe: EndpointProbe
     @ObservationIgnored private let formatter: LocalLLMFormatter
+    @ObservationIgnored private let llmModels: ModelManager?
+    @ObservationIgnored private let runtime: KeepWarmRuntime?
     @ObservationIgnored private var tryTask: Task<Void, Never>?
+    @ObservationIgnored private var downloadTask: Task<Void, Never>?
 
-    init(settings: DictationSettings, transport: any HTTPTransport) {
+    /// - Parameters:
+    ///   - llmModels: the manager of the built-in models; `nil` hides the built-in source.
+    ///   - physicalMemory: decides which catalog models are offered.
+    init(
+        settings: DictationSettings, transport: any HTTPTransport, llmModels: ModelManager? = nil,
+        runtime: KeepWarmRuntime? = nil, physicalMemory: UInt64 = ProcessInfo.processInfo.physicalMemory
+    ) {
         self.settings = settings
+        self.llmModels = llmModels
+        self.runtime = runtime
         probe = EndpointProbe(transport: transport)
         formatter = LocalLLMFormatter(transport: transport, target: { settings.llmTarget })
+        let offered = LLMModelCatalog.available(physicalMemory: physicalMemory)
+        builtInModels = offered.isEmpty ? [LLMModelCatalog.defaultModel] : offered
+        let chosen = settings.builtInLLMModel
+        builtInModel = builtInModels.contains(chosen) ? chosen : (builtInModels.first ?? chosen)
+        source = llmModels == nil ? .server : settings.llmSource
         mode = settings.mode
         address = settings.llmEndpoint?.absoluteString ?? ""
         selectedEndpoint = settings.llmEndpoint
@@ -54,11 +85,20 @@ final class FormattingSettingsModel {
         endpoints.first { $0.baseURL == selectedEndpoint }?.models ?? []
     }
 
-    var hasTarget: Bool { selectedEndpoint != nil && selectedModel != nil }
+    var offersBuiltIn: Bool { llmModels != nil }
+    var isBuiltIn: Bool { source == .builtIn && offersBuiltIn }
+    var isBuiltInInstalled: Bool { builtInLocation.folder != nil }
+    var isDownloadingBuiltIn: Bool { builtInProgress != nil }
+
+    var hasTarget: Bool {
+        isBuiltIn ? isBuiltInInstalled : (selectedEndpoint != nil && selectedModel != nil)
+    }
 
     /// Looks for servers again (the pane calls it when it appears and when the mode is switched on).
     func refresh() async {
         guard isCleanupOn else { return }
+        await refreshBuiltIn()
+        guard !isBuiltIn else { return }
         isProbing = true
         endpoints = await probe.discover(custom: settings.llmEndpoint)
         isProbing = false
@@ -67,6 +107,61 @@ final class FormattingSettingsModel {
             chooseEndpoint(first.baseURL)
         } else if let model = selectedModel, !models.isEmpty, !models.contains(model) {
             chooseModel(models.first)
+        }
+    }
+
+    func refreshBuiltIn() async {
+        guard let llmModels else { return }
+        builtInLocation = await llmModels.location(of: builtInModel.package)
+    }
+
+    func chooseBuiltInModel(_ id: String) {
+        guard id != builtInModel.id, let chosen = builtInModels.first(where: { $0.id == id }) else { return }
+        cancelDownload()
+        builtInModel = chosen
+        settings.setBuiltInLLMModel(chosen)
+        builtInError = nil
+        tryState = .idle
+        Task { await refreshBuiltIn() }
+    }
+
+    func downloadBuiltIn() {
+        guard let llmModels, downloadTask == nil else { return }
+        builtInError = nil
+        let package = builtInModel.package
+        builtInProgress = ModelProgress(bytesDone: 0, bytesTotal: package.totalBytes)
+        downloadTask = Task { [weak self] in
+            do {
+                try await llmModels.install(package) { value in
+                    Task { @MainActor in self?.builtInProgress = value }
+                }
+            } catch is CancellationError {
+            } catch {
+                self?.builtInError = DictationSettingsModel.message(for: error)
+            }
+            self?.builtInProgress = nil
+            self?.downloadTask = nil
+            await self?.refreshBuiltIn()
+        }
+    }
+
+    func cancelDownload() {
+        downloadTask?.cancel()
+    }
+
+    /// Deletes the downloaded model; the loaded copy is freed first so the file is not held open.
+    func removeBuiltIn() {
+        guard let llmModels else { return }
+        let package = builtInModel.package
+        Task {
+            await runtime?.unload()
+            do {
+                try await llmModels.delete(package)
+                builtInError = nil
+            } catch {
+                builtInError = DictationSettingsModel.message(for: error)
+            }
+            await refreshBuiltIn()
         }
     }
 
@@ -107,7 +202,12 @@ final class FormattingSettingsModel {
     func tryIt() {
         guard tryTask == nil, hasTarget else { return }
         tryState = .running
-        let formatter = formatter
+        let formatter: any TextFormatter
+        if isBuiltIn, let runtime {
+            formatter = BuiltInFormatter(runtime: runtime)
+        } else {
+            formatter = self.formatter
+        }
         tryTask = Task { [weak self] in
             let sample = Self.sample
             let result = try? await formatter.format(chunk: sample, previousContext: nil)

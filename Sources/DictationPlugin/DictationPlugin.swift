@@ -92,7 +92,8 @@ public final class DictationPlugin: PouncePlugin {
         historyModel = HistorySettingsModel(settings: settings, history: history)
         let transport = LoopbackTransport()
         self.transport = transport
-        formattingModel = FormattingSettingsModel(settings: settings, transport: transport)
+        formattingModel = FormattingSettingsModel(
+            settings: settings, transport: transport, llmModels: llmModels, runtime: builtInLLM)
         let openSettings = context.openSettings
         // The HUD's buttons call back into the controller, which exists once the plugin is active.
         let relay = ControllerRelay()

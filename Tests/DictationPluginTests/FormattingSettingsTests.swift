@@ -166,3 +166,89 @@ import Testing
         #expect(failures.isEmpty, "\(failures.joined(separator: "\n"))")
     }
 }
+
+/// The built-in source of the Formatting section (step 4.4).
+@MainActor
+@Suite(.serialized) struct BuiltInFormattingSettingsTests {
+    private func make(
+        _ store: MemorySettingsStore = MemorySettingsStore(), memory: UInt64 = UInt64(16) << 30, offered: Bool = true
+    ) throws -> (FormattingSettingsModel, DictationSettings, TemporaryDirectory) {
+        let directory = try TemporaryDirectory()
+        let settings = DictationSettings(PluginSettings(pluginID: "dictation", store: store))
+        let manager = ModelManager(directory: directory.url, availableSpace: { _ in Int.max })
+        let model = FormattingSettingsModel(
+            settings: settings, transport: ScriptedTransport(.content("x")), llmModels: offered ? manager : nil,
+            physicalMemory: memory)
+        return (model, settings, directory)
+    }
+
+    @Test func theServerStaysTheDefaultSource() throws {
+        let (model, settings, directory) = try make()
+        withExtendedLifetime(directory) {
+            #expect(model.source == .server)
+            #expect(settings.llmSource == .server)
+            #expect(!model.isBuiltIn)
+        }
+    }
+
+    @Test func choosingTheBuiltInSourceIsStoredAndNeedsTheDownload() async throws {
+        let (model, settings, directory) = try make()
+        defer { withExtendedLifetime(directory) {} }
+        model.mode = .cleanup
+        model.source = .builtIn
+        await model.refreshBuiltIn()
+        #expect(settings.llmSource == .builtIn)
+        #expect(model.isBuiltIn)
+        #expect(!model.isBuiltInInstalled)
+        #expect(!model.hasTarget)
+    }
+
+    @Test func withoutAModelManagerTheBuiltInSourceIsHiddenAndIgnored() throws {
+        let store = MemorySettingsStore(["plugins.dictation.llmSource": .string("builtIn")])
+        let (model, _, directory) = try make(store, offered: false)
+        withExtendedLifetime(directory) {
+            #expect(!model.offersBuiltIn)
+            #expect(!model.isBuiltIn)
+            #expect(model.source == .server)
+        }
+    }
+
+    @Test func theLargeModelIsOfferedOnlyWithEnoughMemory() throws {
+        let (small, _, first) = try make(memory: UInt64(16) << 30)
+        let (large, _, second) = try make(memory: UInt64(64) << 30)
+        withExtendedLifetime((first, second)) {
+            #expect(small.builtInModels == [LLMModelCatalog.qwen3Small])
+            #expect(large.builtInModels == LLMModelCatalog.all)
+        }
+    }
+
+    @Test func aStoredModelThisMacCannotHoldFallsBackToTheOfferedOne() throws {
+        let store = MemorySettingsStore([
+            "plugins.dictation.builtInLLMModel": .string(LLMModelCatalog.qwen3Large.id)
+        ])
+        let (model, _, directory) = try make(store, memory: UInt64(16) << 30)
+        withExtendedLifetime(directory) {
+            #expect(model.builtInModel == LLMModelCatalog.qwen3Small)
+        }
+    }
+
+    @Test func choosingAnotherBuiltInModelIsStored() throws {
+        let (model, settings, directory) = try make(memory: UInt64(64) << 30)
+        withExtendedLifetime(directory) {
+            model.chooseBuiltInModel(LLMModelCatalog.qwen3Large.id)
+            #expect(model.builtInModel == LLMModelCatalog.qwen3Large)
+            #expect(settings.builtInLLMModel == LLMModelCatalog.qwen3Large)
+            model.chooseBuiltInModel("unknown")
+            #expect(model.builtInModel == LLMModelCatalog.qwen3Large)
+        }
+    }
+
+    @Test func removingAMissingModelIsHarmless() async throws {
+        let (model, _, directory) = try make()
+        defer { withExtendedLifetime(directory) {} }
+        model.removeBuiltIn()
+        await model.refreshBuiltIn()
+        #expect(model.builtInError == nil)
+        #expect(!model.isBuiltInInstalled)
+    }
+}

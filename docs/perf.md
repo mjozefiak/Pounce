@@ -184,6 +184,8 @@ and filled in then; nothing here is estimated.
 |---|---|---|---|
 | Formatted text ready after stopping, tail ≤ 60 words (Qwen3.6-35B-A3B 4-bit, M-series Max/Ultra) | < 3 s (ADR 0004) | – | Manual (QA with Ollama) |
 | Same with a 4B model on a base M-series | < 8 s | – | Manual (QA with Ollama) |
+| Built-in model (Qwen3-4B Q4_K_M) loaded while recording, ready before the user stops | < 3 s load on M-series (ADR 0005) | – | Manual (QA, step 4.4) |
+| Resident memory with the built-in 4B model loaded / after keep-warm unload | ≈ 3.3 GB / back to the baseline | – | Manual (Activity Monitor) |
 | Time of one chunk request | printed by `POUNCE_LLM_URL=… swift test --filter CleanupFixtureTests/realServer` | – | Manual |
 
 Run the local integration tests with the model installed (they are off by default):

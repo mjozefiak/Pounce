@@ -5832,6 +5832,114 @@
           }
         }
       }
+    },
+    "Built-in (Pounce)" : {
+      "comment" : "Dictation settings choice of the built-in formatting model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Built-in (Pounce)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wbudowany (Pounce)"
+          }
+        }
+      }
+    },
+    "My server" : {
+      "comment" : "Dictation settings choice of the user's formatting server",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My server"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mój serwer"
+          }
+        }
+      }
+    },
+    "Run on" : {
+      "comment" : "Dictation settings label of the formatting source",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run on"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Działa na"
+          }
+        }
+      }
+    },
+    "The model runs inside Pounce on this Mac. Nothing is sent anywhere. It loads while you talk and is freed after a while. If it is not ready in time, the raw text is pasted." : {
+      "comment" : "Dictation settings footer under the built-in formatting model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The model runs inside Pounce on this Mac. Nothing is sent anywhere. It loads while you talk and is freed after a while. If it is not ready in time, the raw text is pasted."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model działa wewnątrz Pounce na tym Macu. Nic nie jest nigdzie wysyłane. Ładuje się, gdy mówisz, i po jakimś czasie jest zwalniany z pamięci. Jeśli nie jest gotowy na czas, wklejany jest surowy tekst."
+          }
+        }
+      }
+    },
+    "Download %@, about %@ of memory while loaded. %@ licence." : {
+      "comment" : "Dictation settings size and memory of the built-in model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download %1$@, about %2$@ of memory while loaded. %3$@ licence."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobranie %1$@, około %2$@ pamięci po załadowaniu. Licencja %3$@."
+          }
+        }
+      }
+    },
+    "Download (≈ %@)" : {
+      "comment" : "Button that downloads the built-in formatting model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download (≈ %@)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobierz (≈ %@)"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

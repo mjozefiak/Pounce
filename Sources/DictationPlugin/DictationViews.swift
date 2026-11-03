@@ -353,7 +353,21 @@ struct FormattingSection: View {
                 Text("Clean up the text with a local model", comment: "Dictation settings toggle for formatting")
             }
             if model.isCleanupOn {
-                serverRows
+                if model.offersBuiltIn {
+                    Picker(selection: $model.source) {
+                        Text("Built-in (Pounce)", comment: "Dictation settings choice of the built-in formatting model")
+                            .tag(DictationSettings.LLMSource.builtIn)
+                        Text("My server", comment: "Dictation settings choice of the user's formatting server")
+                            .tag(DictationSettings.LLMSource.server)
+                    } label: {
+                        Text("Run on", comment: "Dictation settings label of the formatting source")
+                    }
+                }
+                if model.isBuiltIn {
+                    BuiltInModelRows(model: model)
+                } else {
+                    serverRows
+                }
                 if model.hasTarget {
                     tryRows
                 }
@@ -361,11 +375,19 @@ struct FormattingSection: View {
         } header: {
             Text("Formatting", comment: "Dictation settings section title")
         } footer: {
-            Text(
-                "Pounce sends the text only to a server on this Mac (Ollama, LM Studio, llama-server). The server may keep prompts in its own log. If it does not answer, the raw text is pasted.",
-                comment: "Dictation settings footer under the formatting toggle"
-            )
-            .font(.callout).foregroundStyle(.secondary)
+            if model.isBuiltIn {
+                Text(
+                    "The model runs inside Pounce on this Mac. Nothing is sent anywhere. It loads while you talk and is freed after a while. If it is not ready in time, the raw text is pasted.",
+                    comment: "Dictation settings footer under the built-in formatting model"
+                )
+                .font(.callout).foregroundStyle(.secondary)
+            } else {
+                Text(
+                    "Pounce sends the text only to a server on this Mac (Ollama, LM Studio, llama-server). The server may keep prompts in its own log. If it does not answer, the raw text is pasted.",
+                    comment: "Dictation settings footer under the formatting toggle"
+                )
+                .font(.callout).foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -442,6 +464,79 @@ struct FormattingSection: View {
                     .font(.callout).foregroundStyle(.orange)
                 }
             }
+        }
+    }
+}
+
+/// The built-in formatting model: the list of catalog models, their size and memory, and download or remove.
+struct BuiltInModelRows: View {
+    @Bindable var model: FormattingSettingsModel
+
+    private func bytes(_ value: Int) -> String {
+        ByteCountFormatter.string(fromByteCount: Int64(value), countStyle: .file)
+    }
+
+    var body: some View {
+        Picker(selection: Binding(get: { model.builtInModel.id }, set: { model.chooseBuiltInModel($0) })) {
+            ForEach(model.builtInModels) { entry in
+                Text(entry.package.title).tag(entry.id)
+            }
+        } label: {
+            Text("Model", comment: "Dictation settings label of the formatting model")
+        }
+        Text(
+            "Download \(bytes(model.builtInModel.package.totalBytes)), about \(bytes(model.builtInModel.residentBytes)) of memory while loaded. \(model.builtInModel.package.license) licence.",
+            comment: "Dictation settings size and memory of the built-in model"
+        )
+        .font(.callout).foregroundStyle(.secondary)
+        if let progress = model.builtInProgress {
+            ProgressView(value: progress.fraction) {
+                Text("Downloading…", comment: "Dictation settings progress label")
+            }
+            .accessibilityValue(Text(progress.fraction, format: .percent.precision(.fractionLength(0))))
+            Button {
+                model.cancelDownload()
+            } label: {
+                Text("Cancel", comment: "Button that cancels the model download")
+            }
+        } else if model.isBuiltInInstalled {
+            LabeledContent {
+                Button(role: .destructive) {
+                    model.removeBuiltIn()
+                } label: {
+                    Text("Remove", comment: "Button that deletes the downloaded model")
+                }
+            } label: {
+                Label {
+                    Text("Downloaded", comment: "Dictation model status")
+                } icon: {
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityHidden(true)
+                }
+            }
+        } else {
+            LabeledContent {
+                Button {
+                    model.downloadBuiltIn()
+                } label: {
+                    Text(
+                        "Download (≈ \(bytes(model.builtInModel.package.totalBytes)))",
+                        comment: "Button that downloads the built-in formatting model")
+                }
+            } label: {
+                Label {
+                    Text("Not downloaded", comment: "Dictation model status")
+                } icon: {
+                    Image(systemName: "arrow.down.circle").accessibilityHidden(true)
+                }
+            }
+        }
+        if let message = model.builtInError {
+            Label {
+                Text(message).fixedSize(horizontal: false, vertical: true)
+            } icon: {
+                Image(systemName: "exclamationmark.triangle").accessibilityHidden(true)
+            }
+            .foregroundStyle(.orange)
         }
     }
 }
