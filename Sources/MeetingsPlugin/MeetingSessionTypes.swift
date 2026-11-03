@@ -51,6 +51,9 @@ enum MeetingSessionEvent: Equatable, Sendable {
     case lowDisk
     case limitApproaching(secondsLeft: Int)
     case limitReached
+    /// A microphone segment was written without the system track being known up to its end (the system
+    /// transcription was late or missing), so an echo of the speakers may remain in the transcript.
+    case echoMayRemain
     /// Segments are being transcribed from the spool after the meeting; `remaining` is how many are left.
     case replaying(remaining: Int)
     /// The meeting was too short and silent: nothing was stored (message "Nic nie usłyszano").
@@ -79,6 +82,12 @@ struct MeetingSessionOutcome: Equatable, Sendable {
     var replayedSegments = 0
     /// Microphone segments dropped as echoes of the system track.
     var echoesDropped = 0
+    /// Segments that could not be written to the library (the spool is kept, the meeting is `incomplete`).
+    var writeFailures = 0
+    /// Segments still waiting in the spool for a later run ("Dokończ"): refused, failed or not yet transcribed.
+    var unfinishedSegments = 0
+    /// Microphone segments written without the echo check having the whole system track (possible duplicates).
+    var echoesUnchecked = 0
 }
 
 enum MeetingSessionError: Error, Equatable {
@@ -104,6 +113,18 @@ struct MeetingSessionLimits: Sendable {
     var stopFreeBytes: Int64 = 300 * 1_024 * 1_024
     /// The free space is read after every this much recorded audio.
     var diskCheckEvery: Duration = .seconds(5)
+    /// A microphone segment waits for the system track at most this long (media time) before it is written
+    /// without the echo check, so a crash loses only the last seconds of the microphone.
+    var micHoldLimit: Duration = .seconds(30)
+    /// The wall-clock heartbeat that enforces the limits and notices a stalled stream.
+    var heartbeat: Duration = .seconds(1)
+    /// A track that delivers no audio for this long (wall clock) is treated as lost.
+    var stallTimeout: Duration = .seconds(10)
+
+    static func seconds(_ duration: Duration) -> Double {
+        let parts = duration.components
+        return Double(parts.seconds) + Double(parts.attoseconds) / 1e18
+    }
 
     static func samples(in duration: Duration) -> Int {
         let parts = duration.components

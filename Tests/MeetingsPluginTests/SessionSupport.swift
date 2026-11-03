@@ -16,6 +16,7 @@ final class ControlledInput: AudioInput {
         var starts = 0
         var stops = 0
         var failStart = false
+        var endOnStart = false
     }
 
     private let state = Mutex(State())
@@ -23,9 +24,14 @@ final class ControlledInput: AudioInput {
     var starts: Int { state.withLock { $0.starts } }
     var stops: Int { state.withLock { $0.stops } }
 
-    init(failStart: Bool = false) {
-        state.withLock { $0.failStart = failStart }
+    init(failStart: Bool = false, endOnStart: Bool = false) {
+        state.withLock {
+            $0.failStart = failStart
+            $0.endOnStart = endOnStart
+        }
     }
+
+    func setFailStart(_ fail: Bool) { state.withLock { $0.failStart = fail } }
 
     struct StartFailure: Error {}
 
@@ -36,6 +42,7 @@ final class ControlledInput: AudioInput {
             $0.continuation = continuation
             $0.starts += 1
         }
+        if state.withLock({ $0.endOnStart }) { continuation.finish() }
         return stream
     }
 
@@ -59,6 +66,134 @@ final class ControlledInput: AudioInput {
 
     /// The device went away.
     func end() { state.withLock { $0.continuation }?.finish() }
+}
+
+/// An input whose `start` waits at a gate, so a test can act while the session is still starting.
+final class SlowStartInput: AudioInput {
+    let inner = ControlledInput()
+    let gate = Gate()
+    let entered = Signal()
+    private let count = Mutex(0)
+
+    init() { gate.close() }
+
+    func start(onLevel: @escaping @Sendable (Float) -> Void) async throws -> AsyncStream<[Float]> {
+        count.withLock { $0 += 1 }
+        entered.poke()
+        await gate.pass()
+        return try await inner.start(onLevel: onLevel)
+    }
+
+    func stop() async { await inner.stop() }
+    var isEntered: Bool { count.withLock { $0 } > 0 }
+}
+
+/// Wakes tasks that wait for a condition the test cannot observe through events. Whoever changes the state
+/// calls `poke()`. The timeout is only a safety net against a hung test.
+final class Signal: Sendable {
+    private struct Waiter {
+        let id: Int
+        let predicate: @Sendable () -> Bool
+        let continuation: CheckedContinuation<Bool, Never>
+    }
+
+    private let state = Mutex((next: 0, waiters: [Waiter]()))
+
+    func poke() {
+        let ready = state.withLock { state -> [Waiter] in
+            let ready = state.waiters.filter { $0.predicate() }
+            state.waiters.removeAll { waiter in ready.contains { $0.id == waiter.id } }
+            return ready
+        }
+        for waiter in ready { waiter.continuation.resume(returning: true) }
+    }
+
+    func wait(timeout: Duration = .seconds(20), until predicate: @escaping @Sendable () -> Bool) async -> Bool {
+        if predicate() { return true }
+        let id = state.withLock { state -> Int in
+            state.next += 1
+            return state.next
+        }
+        return await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+            let immediate = state.withLock { state -> Bool in
+                if predicate() { return true }
+                state.waiters.append(Waiter(id: id, predicate: predicate, continuation: continuation))
+                return false
+            }
+            if immediate {
+                continuation.resume(returning: true)
+                return
+            }
+            Task {
+                try? await Task.sleep(for: timeout)
+                let expired = state.withLock { state -> Waiter? in
+                    guard let index = state.waiters.firstIndex(where: { $0.id == id }) else { return nil }
+                    return state.waiters.remove(at: index)
+                }
+                expired?.continuation.resume(returning: false)
+            }
+        }
+    }
+}
+
+/// Lets the test run the session's wall-clock heartbeat by hand: `tick` moves the clock and wakes one wait.
+final class TestClock: Sendable {
+    private struct State {
+        var date = Date(timeIntervalSince1970: 1_000_000)
+        var pending = 0
+        var waiter: (id: Int, continuation: CheckedContinuation<Void, Error>)?
+        var next = 0
+    }
+
+    private let state = Mutex(State())
+
+    var now: @Sendable () -> Date { { self.state.withLock { $0.date } } }
+    var sleeper: @Sendable (Duration) async throws -> Void { { _ in try await self.sleepOnce() } }
+
+    func tick(advancing seconds: Double) {
+        let waiter = state.withLock { state -> CheckedContinuation<Void, Error>? in
+            state.date = state.date.addingTimeInterval(seconds)
+            guard let waiter = state.waiter else {
+                state.pending += 1
+                return nil
+            }
+            state.waiter = nil
+            return waiter.continuation
+        }
+        waiter?.resume()
+    }
+
+    private func sleepOnce() async throws {
+        let id = state.withLock { state -> Int in
+            state.next += 1
+            return state.next
+        }
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                let result = state.withLock { state -> Bool? in
+                    if Task.isCancelled { return false }
+                    if state.pending > 0 {
+                        state.pending -= 1
+                        return true
+                    }
+                    state.waiter = (id, continuation)
+                    return nil
+                }
+                switch result {
+                case true: continuation.resume()
+                case false: continuation.resume(throwing: CancellationError())
+                default: break
+                }
+            }
+        } onCancel: {
+            let waiter = state.withLock { state -> CheckedContinuation<Void, Error>? in
+                guard let waiter = state.waiter, waiter.id == id else { return nil }
+                state.waiter = nil
+                return waiter.continuation
+            }
+            waiter?.resume(throwing: CancellationError())
+        }
+    }
 }
 
 /// A voice activity detector that knows where the speech is (sample ranges) and reports it as the samples pass.
@@ -147,8 +282,9 @@ final class ScriptedEngine: SpeechEngine {
         var loads = 0
         var unloads = 0
         var texts: [Int: String] = [:]
-        var failing: Set<Int> = []
+        var failures: [Int: Int] = [:]
         var heard: [Int] = []
+        var entered = 0
     }
 
     private let state = Mutex(State())
@@ -159,7 +295,11 @@ final class ScriptedEngine: SpeechEngine {
     var loads: Int { state.withLock { $0.loads } }
     var unloads: Int { state.withLock { $0.unloads } }
     var heard: [Int] { state.withLock { $0.heard } }
-    func fail(_ code: Int) { state.withLock { _ = $0.failing.insert(code) } }
+    /// The next `times` transcriptions of this utterance throw (all of them by default).
+    func fail(_ code: Int, times: Int = .max) { state.withLock { $0.failures[code] = times } }
+    let unloaded = Signal()
+    let transcribing = Signal()
+    var entered: Int { state.withLock { $0.entered } }
 
     var isLoaded: Bool { state.withLock { $0.loaded } }
 
@@ -171,11 +311,16 @@ final class ScriptedEngine: SpeechEngine {
     }
 
     func transcribe(_ samples: [Float]) async throws -> TranscriptSegment {
+        state.withLock { $0.entered += 1 }
+        transcribing.poke()
         await gate.pass()
         let code = Int(((samples.first ?? 0) * 100).rounded())
         let result: String? = state.withLock { state in
             state.heard.append(code)
-            if state.failing.contains(code) { return nil }
+            if let left = state.failures[code], left > 0 {
+                if left != .max { state.failures[code] = left - 1 }
+                return nil
+            }
             return state.texts[code] ?? "?\(code)"
         }
         guard let result else { throw Failure() }
@@ -187,6 +332,7 @@ final class ScriptedEngine: SpeechEngine {
             $0.loaded = false
             $0.unloads += 1
         }
+        unloaded.poke()
     }
 }
 
@@ -221,12 +367,25 @@ final class SessionEventLog: Sendable {
     }
 
     private let box = Box()
+    private let signal = Signal()
     private let task: Task<Void, Never>
 
     init(_ session: MeetingSession) {
         let stream = session.events
         let box = box
-        task = Task { for await event in stream { box.items.withLock { $0.append(event) } } }
+        let signal = signal
+        task = Task {
+            for await event in stream {
+                box.items.withLock { $0.append(event) }
+                signal.poke()
+            }
+        }
+    }
+
+    /// Waits until an event satisfies `predicate` (events arrive from other tasks).
+    func wait(_ predicate: @escaping @Sendable (MeetingSessionEvent) -> Bool) async -> Bool {
+        let box = box
+        return await signal.wait { box.items.withLock { $0.contains(where: predicate) } }
     }
 
     var all: [MeetingSessionEvent] { box.items.withLock { $0 } }
@@ -237,14 +396,13 @@ final class SessionEventLog: Sendable {
     func drain() async { await task.value }
 }
 
-/// Polls until `condition` holds (a test waits for work that runs on other tasks).
-func eventually(timeout: Duration = .seconds(10), _ condition: () -> Bool) async -> Bool {
-    let deadline = ContinuousClock.now.advanced(by: timeout)
-    while ContinuousClock.now < deadline {
-        if condition() { return true }
-        try? await Task.sleep(for: .milliseconds(5))
+/// Yields to other tasks until `condition` holds (actor state that has no event).
+func spin(_ condition: () async -> Bool) async -> Bool {
+    for _ in 0..<200_000 {
+        if await condition() { return true }
+        await Task.yield()
     }
-    return condition()
+    return await condition()
 }
 
 struct SegmentRow: Equatable {
@@ -274,9 +432,11 @@ struct SessionRig {
         private let durations = Mutex<[Duration]>([])
         private let gate = Gate()
         var recorded: [Duration] { durations.withLock { $0 } }
+        let slept = Signal()
         init() { gate.close() }
         func sleep(_ duration: Duration) async throws {
             durations.withLock { $0.append(duration) }
+            slept.poke()
             await gate.pass()
         }
         func expire() { gate.open() }
@@ -298,16 +458,24 @@ struct SessionRig {
         freeSpace: @escaping SpoolWriter.FreeSpaceProvider = { _ in Int64.max }, systemInput: ControlledInput? = nil,
         micInput: ControlledInput? = nil, gate: MeetingSessionGate? = nil, uuid: UUID = UUID(),
         modelID: String = "test-model", lease: SpeechEngineLease? = nil, engine: (any SpeechEngine)? = nil,
-        withSystem: Bool = true, beforeReady: (@Sendable (Int64, UUID) async -> Void)? = nil
+        withSystem: Bool = true, clock: TestClock? = nil, micAudio: (any AudioInput)? = nil,
+        beforeReady: (@Sendable (Int64, UUID) async -> Void)? = nil
     ) -> MeetingSession {
+        var nowFn: @Sendable () -> Date = { Date() }
+        var sleepFn: @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+        if let clock {
+            nowFn = clock.now
+            sleepFn = clock.sleeper
+        }
         let vads = Mutex<[ScriptedVAD]>([micScript.vad] + (systemScript.map { [$0.vad] } ?? []))
         return MeetingSession(
-            store: store, keys: keys, spool: spool, mic: micInput ?? mic,
+            store: store, keys: keys, spool: spool, mic: micAudio ?? micInput ?? mic,
             system: withSystem ? (systemInput ?? system) : nil,
             makeVAD: { vads.withLock { $0.isEmpty ? ScriptedVAD([]) : $0.removeFirst() } },
             engine: engine ?? self.engine, modelID: modelID, modelFolder: directory.url.appending(path: "model"),
             lease: lease ?? self.lease, keepWarm: { .seconds(321) }, sleepAssertion: sleepAssertion,
             gate: gate ?? self.gate, limits: limits ?? shortLimits, freeSpace: freeSpace, uuid: uuid,
+            now: nowFn, sleep: sleepFn,
             beforeReady: beforeReady)
     }
 
