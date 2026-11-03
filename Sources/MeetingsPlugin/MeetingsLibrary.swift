@@ -90,6 +90,9 @@ final class MeetingsLibrary {
             keyStore: MeetingKeyStore(keychain: keychain).master)
     }
 
+    /// Whether a recovery or "Dokończ" pass is transcribing a meeting from its spool right now.
+    var isProcessing: Bool { !activeResumes.isEmpty }
+
     /// Recording needs somewhere to write.
     var canRecord: Bool { status == .ready }
 

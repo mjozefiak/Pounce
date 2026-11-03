@@ -41,6 +41,12 @@ final class PermissionsModel {
         }
     }
 
+    /// The controls the enabled plugins that need `permission` offer under its row (a "Test" button).
+    func accessories(for permission: Permission) -> [AnyView] {
+        host.entries.filter { host.isEnabled($0.manifest.id) && $0.plugin.requiredPermissions.contains(permission) }
+            .compactMap { $0.plugin.permissionAccessory(for: permission) }
+    }
+
     func status(of permission: Permission) -> PermissionStatus {
         statuses[permission] ?? .notDetermined
     }
@@ -183,6 +189,7 @@ struct PermissionsPane: View {
                     PermissionRow(
                         requirement: requirement,
                         status: model.status(of: requirement.permission),
+                        accessories: model.accessories(for: requirement.permission),
                         open: { model.openSettings(for: requirement.permission) }
                     )
                 }
@@ -227,6 +234,7 @@ struct PermissionsPane: View {
 struct PermissionRow: View {
     let requirement: PermissionRequirement
     let status: PermissionStatus
+    var accessories: [AnyView] = []
     let open: () -> Void
 
     var body: some View {
@@ -258,6 +266,7 @@ struct PermissionRow: View {
                 )
                 .font(.callout)
                 .foregroundStyle(.secondary)
+                ForEach(accessories.indices, id: \.self) { accessories[$0] }
             }
             Spacer(minLength: 12)
             Button(action: open) {

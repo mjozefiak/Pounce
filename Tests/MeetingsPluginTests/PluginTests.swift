@@ -13,15 +13,15 @@ import Testing
         #expect(manifest.order > 40)
     }
 
-    @Test func theSkeletonContributesNothingButPermissions() throws {
+    @Test func theSkeletonContributesTheSetupAndTheSettingsOnly() throws {
         let harness = try MeetingsHarness()
         let plugin = MeetingsPlugin(context: harness.context)
         #expect(plugin.requiredPermissions == [.microphone, .systemAudioRecording])
         #expect(plugin.commands.isEmpty)
         #expect(plugin.panelModes.isEmpty)
-        #expect(plugin.onboardingSteps.isEmpty)
+        #expect(plugin.onboardingSteps.map(\.id) == ["meetings.setup"])
         #expect(plugin.searchSources.isEmpty)
-        #expect(plugin.settingsPane() == nil)
+        #expect(plugin.settingsPane() != nil)
     }
 
     @Test func activatingOpensTheLibraryAndDeactivatingClosesIt() async throws {

@@ -23,6 +23,9 @@ public final class MeetingsPlugin: PouncePlugin {
     let context: PluginContext
     let settings: MeetingsSettings
     let library: MeetingsLibrary
+    /// True while a session records or processes; the session owner (step 1.10) calls `begin()` / `end()`.
+    let activity = MeetingActivity()
+    let ui: MeetingsUI
 
     public init(context: PluginContext) {
         self.context = context
@@ -33,6 +36,7 @@ public final class MeetingsPlugin: PouncePlugin {
             clock: context.clock,
             spool: SpoolStorage(pluginDirectory: context.storageDirectory), logger: context.logger,
             changed: context.resultsChanged)
+        ui = MeetingsUI(context: context, settings: settings, library: library, activity: activity)
     }
 
     // MARK: Lifecycle

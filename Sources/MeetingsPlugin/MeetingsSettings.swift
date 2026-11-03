@@ -9,6 +9,7 @@ struct MeetingsSettings: Sendable {
         static let speechModel = "speechModel"
         static let speechLanguage = "speechLanguage"
         static let speechModelFolder = "speechModelFolder"
+        static let diarizationModelFolder = "diarizationModelFolder"
         static let inputDevice = "inputDevice"
         static let voiceProcessing = "voiceProcessing"
         static let systemAudio = "systemAudio"
@@ -51,6 +52,12 @@ struct MeetingsSettings: Sendable {
     /// A folder the user downloaded the speech model into by hand.
     var speechModelFolder: URL? {
         guard let path = settings.string(Key.speechModelFolder), !path.isEmpty else { return nil }
+        return URL(filePath: path, directoryHint: .isDirectory)
+    }
+
+    /// A folder the user downloaded the diarization model into by hand.
+    var diarizationModelFolder: URL? {
+        guard let path = settings.string(Key.diarizationModelFolder), !path.isEmpty else { return nil }
         return URL(filePath: path, directoryHint: .isDirectory)
     }
 
@@ -110,6 +117,14 @@ struct MeetingsSettings: Sendable {
             settings.set(url.path, for: Key.speechModelFolder)
         } else {
             settings.removeValue(for: Key.speechModelFolder)
+        }
+    }
+
+    func setDiarizationModelFolder(_ url: URL?) {
+        if let url {
+            settings.set(url.path, for: Key.diarizationModelFolder)
+        } else {
+            settings.removeValue(for: Key.diarizationModelFolder)
         }
     }
 

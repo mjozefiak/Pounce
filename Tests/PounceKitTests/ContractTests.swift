@@ -94,6 +94,7 @@ import Testing
         #expect(plugin.requiredPermissions.isEmpty)
         #expect(plugin.settingsPane() == nil)
         #expect(plugin.suggestionSources.isEmpty)
+        #expect(Permission.allCases.allSatisfy { plugin.permissionAccessory(for: $0) == nil })
         #expect(MinimalPlugin.manifest.defaultEnabled)
     }
 
