@@ -1,3 +1,4 @@
+import AVFoundation
 import AppKit
 import ApplicationServices
 import Carbon.HIToolbox
@@ -37,6 +38,10 @@ nonisolated struct SystemPasteboardClient: PasteboardClient {
 
     @MainActor func types() -> [String] {
         pasteboard.types?.map(\.rawValue) ?? []
+    }
+
+    @MainActor func itemTypes() -> [[String]] {
+        pasteboard.pasteboardItems?.map { $0.types.map(\.rawValue) } ?? []
     }
 
     /// Copies the accepted representations of every item. Data the writer promised lazily is produced
@@ -280,17 +285,21 @@ nonisolated struct SystemPermissionsReader: PermissionsReader {
     /// QA mode only: reports the status for this pasteboard access behaviour (`--qa-pasteboard-access`),
     /// the same one plugins see through `PasteboardClient.accessBehavior`.
     let pasteboardAccessOverride: PasteboardAccess?
+    /// QA mode only: reports this microphone status instead of asking the system.
+    let microphoneOverride: PermissionStatus?
 
     init(
         pasteboardName: NSPasteboard.Name? = nil,
         accessibilityOverride: PermissionStatus? = nil,
         fullDiskAccessOverride: PermissionStatus? = nil,
-        pasteboardAccessOverride: PasteboardAccess? = nil
+        pasteboardAccessOverride: PasteboardAccess? = nil,
+        microphoneOverride: PermissionStatus? = nil
     ) {
         self.pasteboardName = pasteboardName
         self.accessibilityOverride = accessibilityOverride
         self.fullDiskAccessOverride = fullDiskAccessOverride
         self.pasteboardAccessOverride = pasteboardAccessOverride
+        self.microphoneOverride = microphoneOverride
     }
 
     @MainActor func status(of permission: Permission) -> PermissionStatus {
@@ -311,6 +320,20 @@ nonisolated struct SystemPermissionsReader: PermissionsReader {
             }
             let pasteboard = pasteboardName.map { NSPasteboard(name: $0) } ?? .general
             return Self.status(for: SystemPasteboardClient.access(pasteboard.accessBehavior))
+        case .microphone:
+            if let microphoneOverride {
+                return microphoneOverride
+            }
+            return Self.status(for: AVCaptureDevice.authorizationStatus(for: .audio))
+        }
+    }
+
+    static func status(for authorization: AVAuthorizationStatus) -> PermissionStatus {
+        switch authorization {
+        case .authorized: .granted
+        case .denied, .restricted: .denied
+        case .notDetermined: .notDetermined
+        @unknown default: .notDetermined
         }
     }
 

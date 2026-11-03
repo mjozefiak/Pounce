@@ -36,7 +36,7 @@ explain "Open Anyway". The app is not notarized.
    runner image refuses to sign with it, the workflow trusts it in that ephemeral runner's System
    keychain only.
 3. Runs `scripts/make-dmg.sh` with `SIGN_IDENTITY="Pounce Release"` and `SIGN_KEYCHAIN`. The embedded
-   `SQLCipher.framework` is signed first, then the app with the hardened runtime and
+   `SQLCipher.framework` and `llama.framework` are signed first, then the app with the hardened runtime and
    `Resources/Pounce.entitlements`, then the DMG.
 4. Checks that the designated requirement names the identifier and the certificate hash (not a cdhash),
    matches `Resources/designated-requirement.txt`, and is identical after a second, independent build.

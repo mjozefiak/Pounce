@@ -17,7 +17,10 @@ final class AppCoordinator {
     private(set) var settingsWindow: SettingsWindowController?
     private(set) var onboarding: OnboardingController?
     private(set) var about: AboutWindowController?
+    /// Shows the welcome screen's pending steps. Set in `start()` outside QA mode; tests replace it.
+    var presentPendingOnboarding: (@MainActor () -> Void)?
     private let search: SearchCoordinator
+    private let settingsRelay: PluginSettingsRelay
     private let icons: IconCache
     private let logger = Logger(subsystem: "app.pounce", category: "app")
 
@@ -33,6 +36,8 @@ final class AppCoordinator {
     ) {
         self.environment = environment
         let relay = ResultsChangedRelay()
+        let settingsRelay = PluginSettingsRelay()
+        self.settingsRelay = settingsRelay
         let hotkeys = HotkeyService(
             registrar: registrar,
             settings: environment.settings,
@@ -48,7 +53,9 @@ final class AppCoordinator {
                     resultsChanged: { Task { @MainActor in relay.signal() } },
                     makeShortcutRecorder: { commandID in
                         AnyView(CommandShortcutRecorder(hotkeys: hotkeys, commandID: commandID))
-                    }
+                    },
+                    claimEscapeKey: { onEscape in hotkeys.claimEscape(onEscape) },
+                    openSettings: { settingsRelay.open(manifest.id.rawValue) }
                 )
             },
             settings: environment.settings
@@ -64,6 +71,7 @@ final class AppCoordinator {
         relay.handler = { [weak panelModel] in panelModel?.resultsChanged() }
         self.icons = IconCache(
             diskDirectory: environment.cachesRoot.appending(path: "icons", directoryHint: .isDirectory))
+        settingsRelay.handler = { [weak self] id in self?.openPluginSettings(id) }
     }
 
     /// Builds the panel and windows, activates the enabled plugins, registers shortcuts and, while steps
@@ -91,7 +99,8 @@ final class AppCoordinator {
         logger.info("Started with \(host.entries.count, privacy: .public) plugins")
 
         if environment.registersGlobalHotkeys {
-            onboarding?.showPendingSteps()
+            presentPendingOnboarding = { [weak self] in self?.onboarding?.showPendingSteps() }
+            presentPendingOnboarding?()
         }
     }
 
@@ -136,8 +145,20 @@ final class AppCoordinator {
         Task { await run() }
     }
 
+    /// A phase of a command's shortcut, delivered synchronously from the key event stream. Before the
+    /// key-down the launcher panel is hidden, so the plugin's Command-V does not land in its search field.
+    func deliver(_ command: PluginCommand, phase: KeyPhase) {
+        if phase == .down {
+            panelModel.hide()
+        }
+        command.onKeyEvent?(phase)
+    }
+
     private func syncCommands() {
-        hotkeys.syncCommands(host.activeCommands) { [weak self] command in self?.perform(command) }
+        hotkeys.syncCommands(
+            host.activeCommands,
+            perform: { [weak self] command in self?.perform(command) },
+            deliver: { [weak self] command, phase in self?.deliver(command, phase: phase) })
     }
 
     private func buildPanel() {
@@ -205,9 +226,12 @@ final class AppCoordinator {
         self.about = about
     }
 
-    private func pluginsChanged() {
+    /// A plugin was turned on or off or erased: shortcuts and the menu follow, and a plugin that was just
+    /// enabled shows its pending onboarding steps now instead of at the next launch.
+    func pluginsChanged() {
         syncCommands()
         statusItem?.rebuildMenu()
+        presentPendingOnboarding?()
     }
 
     private func observeTextSize() {
@@ -255,5 +279,14 @@ final class ResultsChangedRelay {
             self?.pending = nil
             self?.handler()
         }
+    }
+}
+
+/// Lets a plugin ask for its own Settings pane before the coordinator exists.
+final class PluginSettingsRelay {
+    var handler: @MainActor (String) -> Void = { _ in }
+
+    @MainActor func open(_ pluginID: String) {
+        handler(pluginID)
     }
 }

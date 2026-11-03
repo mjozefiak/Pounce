@@ -80,6 +80,9 @@ public final class AppsPlugin: PouncePlugin {
     /// Pounce's own bundle identifier, never tracked or suggested.
     var ownBundleIdentifier: String? { Bundle.main.bundleIdentifier }
 
+    /// Tests turn this off to read the cached list without a scan replacing it.
+    var scansOnActivation = true
+
     public func activate() async throws {
         await activity.load()
         isActive = true
@@ -102,7 +105,7 @@ public final class AppsPlugin: PouncePlugin {
             startSpotlight()
         }
         startCollectingIfAllowed()
-        refresh()
+        if scansOnActivation { refresh() }
     }
 
     public func deactivate() async {

@@ -36,6 +36,14 @@ printf 'APPL????' > "$OUT/Contents/PkgInfo"
 
 # SQLCipher is a dynamic framework (docs/decisions/0001-sqlite.md): embed it next to the binary.
 ditto "$BIN_DIR/SQLCipher.framework" "$OUT/Contents/Frameworks/SQLCipher.framework"
+
+# llama.cpp (docs/decisions/0005-builtin-llm.md): the XCFramework's macOS slice is universal, Pounce is arm64 only,
+# so the embedded copy keeps the arm64 slice (half the size).
+ditto "$BIN_DIR/llama.framework" "$OUT/Contents/Frameworks/llama.framework"
+lipo -thin arm64 "$OUT/Contents/Frameworks/llama.framework/Versions/A/llama" \
+  -output "$OUT/Contents/Frameworks/llama.framework/Versions/A/llama.arm64"
+mv "$OUT/Contents/Frameworks/llama.framework/Versions/A/llama.arm64" \
+  "$OUT/Contents/Frameworks/llama.framework/Versions/A/llama"
 install_name_tool -add_rpath "@executable_path/../Frameworks" "$OUT/Contents/MacOS/$APP_NAME"
 
 # License notices of the bundled third-party code (SQLCipher's BSD license requires them in binary
@@ -54,6 +62,8 @@ fi
 
 # Localizations: compile the String Catalog into <lang>.lproj/Localizable.strings.
 xcrun xcstringstool compile Resources/Localizable.xcstrings --output-directory "$OUT/Contents/Resources"
+# The microphone usage description is looked up in InfoPlist.strings of the user's language.
+xcrun xcstringstool compile Resources/InfoPlist.xcstrings --output-directory "$OUT/Contents/Resources"
 
 plutil -lint "$OUT/Contents/Info.plist" >/dev/null
 
@@ -63,6 +73,7 @@ plutil -lint "$OUT/Contents/Info.plist" >/dev/null
 SIGN_ARGS=(--force --sign "$SIGN_IDENTITY" --timestamp=none --options runtime)
 [[ -n "$SIGN_KEYCHAIN" ]] && SIGN_ARGS+=(--keychain "$SIGN_KEYCHAIN")
 codesign "${SIGN_ARGS[@]}" "$OUT/Contents/Frameworks/SQLCipher.framework"
+codesign "${SIGN_ARGS[@]}" "$OUT/Contents/Frameworks/llama.framework"
 codesign "${SIGN_ARGS[@]}" --identifier app.pounce.Pounce --entitlements Resources/Pounce.entitlements "$OUT"
 codesign --verify --strict --deep "$OUT"
 

@@ -1,5 +1,6 @@
 import Foundation
 import KeyboardShortcuts
+import PounceKit
 
 extension KeyboardShortcuts.Name {
     init(_ name: HotkeyName) {
@@ -40,6 +41,30 @@ final class KeyboardShortcutsRegistrar: HotkeyRegistrar {
         }
     }
 
+    func setKeyEventHandler(for name: HotkeyName, _ handler: @escaping @MainActor (KeyPhase) -> Void) {
+        listeners[name]?.cancel()
+        // One stream carries both phases, consumed by one loop on the main actor, so their order is the
+        // stream's order.
+        listeners[name] = Self.forward(KeyboardShortcuts.events(for: .init(name)), to: handler)
+    }
+
+    /// Hands each event of the stream to `handler` on the main actor, one at a time, in stream order.
+    /// Cancelling the task ends the stream.
+    static func forward(
+        _ events: AsyncStream<KeyboardShortcuts.EventType>,
+        to handler: @escaping @MainActor (KeyPhase) -> Void
+    ) -> Task<Void, Never> {
+        Task { @MainActor in
+            for await event in events {
+                handler(event == .keyDown ? .down : .up)
+            }
+        }
+    }
+
+    func claimEscape(_ action: @escaping @MainActor () -> Void) -> EscapeKeyClaim {
+        CarbonEscapeRegistration.claim(action)
+    }
+
     func removeHandler(for name: HotkeyName) {
         // Cancelling ends the event stream, which removes the handler and unregisters the shortcut.
         listeners.removeValue(forKey: name)?.cancel()
@@ -65,6 +90,11 @@ final class PreviewHotkeyRegistrar: HotkeyRegistrar {
     }
 
     func setHandler(for name: HotkeyName, _ action: @escaping @MainActor () -> Void) {}
+
+    func setKeyEventHandler(for name: HotkeyName, _ handler: @escaping @MainActor (KeyPhase) -> Void) {}
+
+    /// QA mode never takes the tester's Escape key.
+    func claimEscape(_ action: @escaping @MainActor () -> Void) -> EscapeKeyClaim { .inactive }
 
     func removeHandler(for name: HotkeyName) {}
 }

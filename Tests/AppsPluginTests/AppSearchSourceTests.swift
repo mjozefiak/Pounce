@@ -186,6 +186,8 @@ private func makeSource(usage: RecordingUsage = RecordingUsage(), workspace: Rec
 
         // A new instance answers from the cache before its first scan.
         let cached = AppsPlugin(context: context)
+        // No scan on activation: it would publish the empty "Missing" root and race the cache read.
+        cached.scansOnActivation = false
         settings.setValue(.string(fixture.url("Missing").path), forKey: "plugins.apps.roots")
         try await cached.activate()
         let fromCache = try await cached.searchSources[0].search(TextNormalizer.query("notes"), limit: 5)

@@ -50,11 +50,32 @@ private let repositoryRoot = URL(filePath: #filePath)
         #expect(notices.contains("Redistributions in binary form must reproduce the above copyright"))
         #expect(notices.contains("Copyright (C) 2015-2025 Gwendal Roué"))
         #expect(notices.contains("Copyright (c) Sindre Sorhus"))
+        #expect(notices.contains("FluidAudio 0.18.2"))
+        #expect(notices.contains("WhisperKit 1.1.1"))
+        #expect(notices.contains("Creative Commons Attribution 4.0"))
 
         let script = try String(contentsOf: repositoryRoot.appending(path: "scripts/make-app.sh"), encoding: .utf8)
         #expect(script.contains("Resources/THIRD_PARTY_NOTICES.txt \"$OUT/Contents/Resources/"))
         // KeyboardShortcuts' `Bundle.module` traps when its resource bundle is missing from the app.
         #expect(script.contains("KeyboardShortcuts_KeyboardShortcuts.bundle"))
+        // The microphone prompt text is localized through InfoPlist.strings.
+        #expect(script.contains("Resources/InfoPlist.xcstrings"))
+    }
+
+    /// Dictation records from the microphone: the usage description and, for the hardened runtime, the
+    /// audio-input entitlement.
+    @Test func declaresTheMicrophoneUsageAndEntitlement() throws {
+        let plist = try #require(
+            try PropertyListSerialization.propertyList(
+                from: Data(contentsOf: repositoryRoot.appending(path: "Resources/Info.plist")), format: nil)
+                as? [String: Any])
+        #expect((plist["NSMicrophoneUsageDescription"] as? String)?.isEmpty == false)
+        let entitlements = try #require(
+            try PropertyListSerialization.propertyList(
+                from: Data(contentsOf: repositoryRoot.appending(path: "Resources/Pounce.entitlements")), format: nil)
+                as? [String: Any])
+        #expect(entitlements["com.apple.security.device.audio-input"] as? Bool == true)
+        #expect(entitlements["com.apple.security.cs.disable-library-validation"] as? Bool == true)
     }
 }
 
@@ -106,6 +127,17 @@ private let repositoryRoot = URL(filePath: #filePath)
             if let plural = entry.localizations?["pl"]?.variations?.plural {
                 #expect(Set(plural.keys) == ["one", "few", "many", "other"], "\(key) needs every Polish plural form")
             }
+        }
+    }
+
+    @Test func infoPlistCatalogHasEnglishAndPolish() throws {
+        let data = try Data(contentsOf: repositoryRoot.appending(path: "Resources/InfoPlist.xcstrings"))
+        let catalog = try JSONDecoder().decode(Catalog.self, from: data)
+        let entry = try #require(catalog.strings["NSMicrophoneUsageDescription"])
+        for language in ["en", "pl"] {
+            let unit = entry.localizations?[language]?.stringUnit
+            #expect(unit?.state == "translated")
+            #expect(unit?.value.isEmpty == false)
         }
     }
 

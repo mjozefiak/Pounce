@@ -59,7 +59,7 @@ import os
         #expect(log.captures.isEmpty)
     }
 
-    @Test(arguments: CaptureFilter.markerTypes.filter { !$0.contains(" ") })
+    @Test(arguments: PasteboardRepresentation.markerTypes.filter { !$0.contains(" ") })
     func markerTypesAreNeverCaptured(marker: String) {
         let pasteboard = NamedPasteboard()
         defer { pasteboard.release() }

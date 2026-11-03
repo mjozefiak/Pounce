@@ -274,6 +274,44 @@ Capture only Pounce's own windows, never the full screen:
 3. Open every image before attaching it to a PR, and discard any that shows anything other than
    Pounce and the fake data of the run.
 
+## Dictation
+
+The microphone grant is tied to the app's code signature. Every ad-hoc rebuild (`scripts/make-app.sh`) has a
+new signature, so macOS asks for the microphone again (and the Accessibility grant also has to be renewed
+for Command-V to work). Both are manual QA items: the QA flags isolate settings, data and shortcuts, but the
+microphone permission, a real recording, the real model (about 630 MB, downloaded from the Settings pane) and
+pasting into another app cannot be faked. Check the HUD, the Settings pane and the setup step with
+`--qa --qa-panel`-style runs, and everything that records or pastes by hand.
+
+### Dictation formatting (Phase 2)
+
+The formatting server is the user's own, so it cannot be faked in CI. With Ollama (or LM Studio,
+llama-server) running and a model pulled, turn on Settings → Dictation → Formatting and check:
+
+- the server and model are found and chosen by themselves, "Try it" shows a cleaned sample;
+- an address such as `http://example.com` or `192.168.1.5` is refused in the Address field;
+- dictate a long text in Polish, English and mixed; spoken questions and commands come back as cleaned
+  questions and commands, never answered;
+- stop the server and dictate: the raw text is pasted and the HUD says "Pasted – not cleaned up";
+- "Paste raw version of the last dictation" (menu bar) pastes the transcript without formatting.
+
+Run the prompt fixtures against a server (prints the input, output and time of each case):
+
+```sh
+POUNCE_LLM_URL=http://127.0.0.1:11434 POUNCE_LLM_MODEL=qwen3:4b \
+  swift test --filter CleanupFixtureTests/realServer
+```
+
+### Dictation history (Phase 3)
+
+Needs a real Keychain and the app built by `scripts/make-app.sh` (not `--qa`, which isolates the Keychain):
+
+- dictate a few times (raw and cleaned); menu bar → Dictation History lists them newest first, with the first sentence and the age; the preview switches between Formatted and Raw;
+- Return pastes the cleaned text into the app you came from, ⌘Return the raw one, ⌃X deletes; ⌘1/⌘2/⌘3 filter All/Formatted/Raw; a word only in the raw transcript ("yyy") is found;
+- Settings → Dictation → History: switch it off (new dictations are not saved, the list says it is off), change "Keep for" and "At most", "Clear History…" asks first and empties the list;
+- Keychain Access shows one `app.pounce.dictation` item; Settings → Features → Dictation → Erase Data removes it and the `Plugins/dictation` folder;
+- delete the `app.pounce.dictation` item by hand and relaunch: the old file is renamed `dictation.sqlite.unreadable-<date>` and the history starts empty.
+
 ## Never during QA
 
 - No synthetic key events, no `tccutil`, no edits to TCC databases or `com.apple.*` defaults.
