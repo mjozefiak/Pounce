@@ -1,0 +1,105 @@
+import Foundation
+
+/// Writes the notes. The Markdown is composed here from verified points; no sentence of it is free model text.
+/// The headings and labels are the code's own; every point's text goes through `NotesMarkdown`, the same
+/// allow-list renderer the export uses, so no image, link, HTML or network resource can appear.
+enum NotesComposer {
+    struct Labels: Sendable, Equatable {
+        var summary: String
+        var decisions: String
+        var tasks: String
+        var questions: String
+        var participants: String
+        var person: String
+        var due: String
+        var nothing: String
+
+        static let polish = Labels(
+            summary: "Podsumowanie", decisions: "Decyzje", tasks: "Zadania", questions: "Otwarte pytania",
+            participants: "Uczestnicy", person: "osoba", due: "termin",
+            nothing: "W nagraniu nie znaleziono decyzji, zadań ani otwartych pytań.")
+        static let english = Labels(
+            summary: "Summary", decisions: "Decisions", tasks: "Action items", questions: "Open questions",
+            participants: "Participants", person: "owner", due: "due",
+            nothing: "No decisions, action items or open questions were found in the recording.")
+
+        /// Labels in the language of the transcript; `fallback` when the text does not tell.
+        static func forLanguage(_ language: NotesLanguage, fallback: NotesLanguage = .english) -> Labels {
+            switch language == .unknown ? fallback : language {
+            case .polish: .polish
+            default: .english
+            }
+        }
+    }
+
+    static func markdown(
+        verdict: NotesGuard.ReduceVerdict, participants: [String], labels: Labels
+    ) -> String {
+        var lines: [String] = []
+        func heading(_ title: String) {
+            if !lines.isEmpty { lines.append("") }
+            lines.append("## " + title)
+            lines.append("")
+        }
+        func bullets(_ items: [String]) {
+            lines.append(contentsOf: items.map { "- " + $0 })
+        }
+
+        if let summary = verdict.summary, !summary.isEmpty {
+            heading(labels.summary)
+            lines.append(flat(summary))
+        }
+        if !verdict.decisions.isEmpty {
+            heading(labels.decisions)
+            bullets(verdict.decisions.map { item($0, labels: labels) })
+        }
+        if !verdict.tasks.isEmpty {
+            heading(labels.tasks)
+            bullets(verdict.tasks.map { item($0, labels: labels) })
+        }
+        if !verdict.questions.isEmpty {
+            heading(labels.questions)
+            bullets(verdict.questions.map { item($0, labels: labels) })
+        }
+        if lines.isEmpty { lines.append(labels.nothing) }
+        let names = participants.map(flat).filter { !$0.isEmpty && $0 != "?" }
+        if !names.isEmpty {
+            heading(labels.participants)
+            bullets(names)
+        }
+        return NotesMarkdown.render(lines.joined(separator: "\n"))
+    }
+
+    /// The point's text, the person and the date of a task, and the time of the quote, on one line.
+    private static func item(_ point: NotesPoint, labels: Labels) -> String {
+        var line = flat(point.text)
+        if point.kind == .task {
+            var details: [String] = []
+            if let person = point.person.map(flat), !person.isEmpty { details.append("\(labels.person): \(person)") }
+            if let due = point.due.map(flat), !due.isEmpty { details.append("\(labels.due): \(due)") }
+            if !details.isEmpty { line += " (" + details.joined(separator: ", ") + ")" }
+        }
+        return line + " [" + NotesText.clock(milliseconds: point.timeMs) + "]"
+    }
+
+    private static func flat(_ text: String) -> String {
+        MarkdownExporter.cleaned(text, keepNewlines: false).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// "3 punkty bez pokrycia w nagraniu pominięto" and its English twin, for the library.
+    static func droppedNote(count: Int, language: NotesLanguage) -> String? {
+        guard count > 0 else { return nil }
+        if language == .polish {
+            let noun: String
+            if count == 1 {
+                noun = "punkt"
+            } else if (2...4).contains(count % 10), !(12...14).contains(count % 100) {
+                noun = "punkty"
+            } else {
+                noun = "punktów"
+            }
+            return "\(count) \(noun) bez pokrycia w nagraniu pominięto"
+        }
+        return "\(count) \(count == 1 ? "point" : "points") not backed by the recording left out"
+    }
+}
