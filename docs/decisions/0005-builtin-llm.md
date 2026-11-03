@@ -91,8 +91,21 @@ Q4_K_M (SHA-256 verified), model already loaded, M-series Mac:
 
 7 of 9 pass, no fallbacks to raw, 0.4 to 0.8 s per chunk. Both failures are spoken self-corrections in Polish: the
 4B model keeps both versions and once changed a word. Questions and commands are never answered, which was the
-main risk. Not measured here: the 30B-A3B model and Bielik (large downloads); the catalog keeps Qwen3-4B as the
-default and Bielik stays out until a run shows a Polish gain on these two cases.
+main risk.
+
+The same fixtures on the two other candidates (GGUF SHA-256 verified, same machine, model loaded):
+
+| Model | Passing | Raw fallbacks | Time per chunk | Notes |
+|---|---|---|---|---|
+| Qwen3-4B-Instruct-2507 Q4_K_M (default) | 7 / 9 | 0 | 0.44 to 0.80 s | fails `pl-fillers`, `pl-self-correction` |
+| Qwen3-30B-A3B-Instruct-2507 Q4_K_M | 7 / 9 | 1 | 0.41 to 0.82 s | `pl-fillers` rejected by the guard (too short, so pasted raw); `pl-self-correction` keeps "wtorek"; the enumeration gets a colon and keeps "po pierwsze" |
+| Bielik-11B-v3.0-Instruct Q4_K_M | 4 / 9 | 3 | 1.3 to 1.6 s | translated the English command into Polish; `pl-fillers`, `pl-enumeration`, `pl-self-correction` rejected by the guard |
+
+Decision: Qwen3-4B stays the default. Bielik is not added to the catalog (worse on every case, slower, and it
+changed the language). The 30B model is no better on the cases that fail, so it stays only as the optional
+choice for Macs with 32 GB or more, and its benefit is slightly better punctuation, not the self-corrections.
+Spoken self-corrections are a prompt problem, not a model-size problem; a prompt change is a separate,
+versioned `CleanupPrompt` change with its own snapshot test.
 
 ## Consequences
 
