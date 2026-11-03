@@ -29,6 +29,8 @@ final class MeetingsLibraryActions {
     private let timeZone: TimeZone
     private let regenerateNotes: (@MainActor (Int64) -> Void)?
     private let changed: @Sendable () -> Void
+    private let notes: NotesBoard?
+    private let openNotesSettings: @MainActor () -> Void
     /// The meeting windows belong to the store they were opened for: a library that was closed and opened
     /// again has a new store, and its windows start over (the old ones are closed first). The plugin owns the
     /// one `MeetingsLibraryActions`, so there is one window per meeting for the whole plugin.
@@ -49,6 +51,7 @@ final class MeetingsLibraryActions {
         library: MeetingsLibrary, pasteboard: any PasteboardClient, labels: MarkdownExporter.Labels = .localized,
         timeZone: TimeZone = .current, regenerate: (@MainActor (Int64) -> Void)? = nil,
         changed: @escaping @Sendable () -> Void = {}, now: @escaping () -> Date = { Date() },
+        notes: NotesBoard? = nil, openNotesSettings: @escaping @MainActor () -> Void = {},
         makeWindows:
             @escaping @MainActor (@escaping @MainActor (Int64) -> MeetingWindowModel) -> any MeetingWindowPresenting =
             { MeetingWindowController(makeModel: $0) }
@@ -62,6 +65,8 @@ final class MeetingsLibraryActions {
         regenerateNotes = regenerate
         canRegenerate = regenerate != nil
         self.changed = changed
+        self.notes = notes
+        self.openNotesSettings = openNotesSettings
     }
 
     /// Return: puts the meeting on the pasteboard as Markdown, marked transient and concealed so clipboard
@@ -89,6 +94,8 @@ final class MeetingsLibraryActions {
             let timeZone = timeZone
             let regenerate = regenerateNotes
             let changed = changed
+            let notes = notes
+            let openNotesSettings = openNotesSettings
             let controller = makeWindows { meetingID in
                 MeetingWindowModel(
                     meetingID: meetingID, store: store, spool: library.spoolStorage, pasteboard: pasteboard,
@@ -97,7 +104,8 @@ final class MeetingsLibraryActions {
                     onDeleted: {
                         library.refreshCount()
                         changed()
-                    }, announce: MeetingWindowController.announce, labels: labels, timeZone: timeZone)
+                    }, announce: MeetingWindowController.announce, labels: labels, timeZone: timeZone,
+                    notes: notes, openNotesSettings: openNotesSettings)
             }
             controller.activatesApp = activatesApp
             windows = (store, controller)
@@ -105,7 +113,7 @@ final class MeetingsLibraryActions {
         windows?.controller.show(meetingID: id)
     }
 
-    /// ⌘R. Does nothing without a notes pipeline (the action is not offered then).
+    /// ⌘R: writes the notes again (also stale and failed ones). Does nothing without a notes service.
     func regenerate(_ id: Int64) {
         regenerateNotes?(id)
     }

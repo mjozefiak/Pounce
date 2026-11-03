@@ -29,6 +29,8 @@ public final class MeetingsPlugin: PouncePlugin {
     let ui: MeetingsUI
     let runtime: MeetingsRuntime
     let libraryActions: MeetingsLibraryActions
+    /// Writes the notes of finished meetings in the background (Phase 2).
+    let notes: NotesService
     private let relay = MeetingControllerRelay()
     private let hud: MeetingHUDPanel
     /// Exists while the plugin is active.
@@ -51,9 +53,22 @@ public final class MeetingsPlugin: PouncePlugin {
             spool: SpoolStorage(pluginDirectory: context.storageDirectory),
             makeResumer: { store, keys, spool in runtime.makeResumer(store: store, keys: keys, spool: spool) },
             logger: context.logger, changed: context.resultsChanged)
+        let llmManager = ModelManagers.shared.manager(
+            for: context.modelsDirectory.appending(path: MeetingsUI.llmDirectoryName, directoryHint: .isDirectory),
+            logger: context.logger)
+        let notes = NotesService(
+            NotesService.Dependencies(
+                library: library, settings: settings,
+                modelFile: { model in
+                    await llmManager.location(of: model.package).folder.flatMap { model.fileURL(in: $0) }
+                },
+                openSettings: context.openSettings, changed: context.resultsChanged, logger: context.logger))
+        self.notes = notes
+        library.onMeetingReady = { [weak notes] id in notes?.meetingBecameReady(id) }
         libraryActions = MeetingsLibraryActions(
-            library: library, pasteboard: context.pasteboard, changed: context.resultsChanged)
-        ui = MeetingsUI(context: context, settings: settings, library: library, activity: activity)
+            library: library, pasteboard: context.pasteboard, regenerate: { notes.regenerate($0) },
+            changed: context.resultsChanged, notes: notes.board, openNotesSettings: context.openSettings)
+        ui = MeetingsUI(context: context, settings: settings, library: library, activity: activity, notes: notes)
         let relay = relay
         hud = MeetingHUDPanel(onAction: { relay.controller?.perform($0) })
     }
@@ -62,6 +77,7 @@ public final class MeetingsPlugin: PouncePlugin {
 
     public func activate() async throws {
         library.open()
+        await notes.start()
         let workspace = context.workspace
         let runtime = runtime
         var dependencies = MeetingController.Dependencies(
@@ -82,6 +98,8 @@ public final class MeetingsPlugin: PouncePlugin {
     /// closed by a background task as soon as the session ends, unless the plugin was activated again by then.
     /// So after `deactivate()` returns, `library.status` is `.closed` only when nothing was still running.
     public func deactivate() async {
+        // A running notes job is cancelled and puts its status back before the library can close.
+        await notes.shutDown()
         guard let controller else {
             library.close()
             return

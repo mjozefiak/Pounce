@@ -163,6 +163,60 @@
         }
       }
     },
+    "%lld points not backed by the recording were left out" : {
+      "comment" : "Notes: how many points had no quote in the transcript and were left out",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld point not backed by the recording was left out"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld points not backed by the recording were left out"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld punkt bez pokrycia w nagraniu pominięto"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld punkty bez pokrycia w nagraniu pominięto"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld punktów bez pokrycia w nagraniu pominięto"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld punktu bez pokrycia w nagraniu pominięto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld." : {
       "comment" : "Position in the result order list",
       "extractionState" : "manual",
@@ -375,6 +429,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zaawansowane"
+          }
+        }
+      }
+    },
+    "After a meeting, a model that runs on this Mac writes a summary, decisions, action items and open questions in the background. Every point is checked against the recording; points it cannot find there are left out. Nothing is sent anywhere." : {
+      "comment" : "Meetings settings footer under the notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After a meeting, a model that runs on this Mac writes a summary, decisions, action items and open questions in the background. Every point is checked against the recording; points it cannot find there are left out. Nothing is sent anywhere."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Po spotkaniu model działający na tym Macu pisze w tle podsumowanie, decyzje, zadania i otwarte pytania. Każdy punkt jest sprawdzany z nagraniem; punkty, których tam nie ma, są pomijane. Nic nie jest nigdzie wysyłane."
           }
         }
       }
@@ -1423,6 +1495,42 @@
         }
       }
     },
+    "Download Notes Model" : {
+      "comment" : "Meeting library action that opens the notes model settings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download Notes Model"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobierz model notatek"
+          }
+        }
+      }
+    },
+    "Download the model first." : {
+      "comment" : "Meetings settings: the notes example needs the model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download the model first."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Najpierw pobierz model."
+          }
+        }
+      }
+    },
     "Downloaded" : {
       "comment" : "Dictation model status",
       "extractionState" : "manual",
@@ -1621,6 +1729,24 @@
         }
       }
     },
+    "Example" : {
+      "comment" : "Meetings settings label of the notes example",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Example"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przykład"
+          }
+        }
+      }
+    },
     "Exclusions" : {
       "comment" : "Settings section title",
       "extractionState" : "manual",
@@ -1779,6 +1905,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Filtry"
+          }
+        }
+      }
+    },
+    "Finishing notes" : {
+      "comment" : "Meeting library badge: the last step of the notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finishing notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kończenie notatek"
           }
         }
       }
@@ -2571,6 +2715,96 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Niedostępne, gdy spotkanie jest nagrywane lub przetwarzane."
+          }
+        }
+      }
+    },
+    "Notes are on, but their model is not downloaded." : {
+      "comment" : "Meeting window banner when the notes model is missing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes are on, but their model is not downloaded."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki są włączone, ale ich model nie jest pobrany."
+          }
+        }
+      }
+    },
+    "Notes for a made-up meeting. Nothing was saved." : {
+      "comment" : "Meetings settings: caption above the example notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes for a made-up meeting. Nothing was saved."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki z wymyślonego spotkania. Nic nie zostało zapisane."
+          }
+        }
+      }
+    },
+    "Notes model needed" : {
+      "comment" : "Meeting library badge: notes are on but the model is missing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes model needed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Potrzebny model notatek"
+          }
+        }
+      }
+    },
+    "Notes queued" : {
+      "comment" : "Meeting library badge: notes wait for their turn",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes queued"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki w kolejce"
+          }
+        }
+      }
+    },
+    "Optional: let a model on this Mac write notes after each meeting. It is a large download that starts only when you press the button." : {
+      "comment" : "Meetings onboarding step about the notes model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optional: let a model on this Mac write notes after each meeting. It is a large download that starts only when you press the button."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opcjonalnie: pozwól modelowi na tym Macu pisać notatki po każdym spotkaniu. To duże pobranie, które zaczyna się dopiero po naciśnięciu przycisku."
           }
         }
       }
@@ -4933,6 +5167,24 @@
         }
       }
     },
+    "The example did not work. Try again in a moment." : {
+      "comment" : "Meetings settings: the notes example failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The example did not work. Try again in a moment."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przykład się nie udał. Spróbuj ponownie za chwilę."
+          }
+        }
+      }
+    },
     "The Keychain needs no permission. A feature that keeps a key there shows its state in its own pane." : {
       "comment" : "Settings → Permissions note about the Keychain",
       "extractionState" : "manual",
@@ -5167,6 +5419,78 @@
         }
       }
     },
+    "The model you chose does not fit this Mac, so %@ is used." : {
+      "comment" : "Meetings settings: the stored notes model is replaced by the default one",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The model you chose does not fit this Mac, so %@ is used."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybrany model nie mieści się w pamięci tego Maca, więc używany jest %@."
+          }
+        }
+      }
+    },
+    "The notes could not be written. The transcript is unchanged; try Regenerate Notes." : {
+      "comment" : "Meeting window banner when the notes failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The notes could not be written. The transcript is unchanged; try Regenerate Notes."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się napisać notatek. Transkrypt jest bez zmian; spróbuj „Regeneruj notatki”."
+          }
+        }
+      }
+    },
+    "The notes miss some parts of the recording that could not be read. Regenerate Notes to try again." : {
+      "comment" : "Meeting window banner for partial notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The notes miss some parts of the recording that could not be read. Regenerate Notes to try again."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W notatkach brakuje fragmentów nagrania, których nie udało się odczytać. „Regeneruj notatki” spróbuje ponownie."
+          }
+        }
+      }
+    },
+    "The notes model is in use right now. Try again when the notes are written." : {
+      "comment" : "Meetings settings: the notes model cannot be removed while it is used",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The notes model is in use right now. Try again when the notes are written."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model notatek jest teraz używany. Spróbuj ponownie, gdy notatki będą gotowe."
+          }
+        }
+      }
+    },
     "The notices are in THIRD_PARTY_NOTICES.txt in the app bundle and in the source repository." : {
       "comment" : "About window: shown when the notices file is missing from the bundle",
       "extractionState" : "manual",
@@ -5329,6 +5653,24 @@
         }
       }
     },
+    "These notes miss parts of the recording that could not be read." : {
+      "comment" : "Meeting library preview: notice above partial notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These notes miss parts of the recording that could not be read."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W tych notatkach brakuje fragmentów nagrania, których nie udało się odczytać."
+          }
+        }
+      }
+    },
     "Third-Party Notices" : {
       "comment" : "About window: section title",
       "extractionState" : "manual",
@@ -5487,6 +5829,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wypróbuj"
+          }
+        }
+      }
+    },
+    "Try it on an example" : {
+      "comment" : "Meetings settings button that writes notes for a sample meeting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try it on an example"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wypróbuj na przykładzie"
           }
         }
       }
@@ -5689,6 +6049,24 @@
         }
       }
     },
+    "Waiting for the model" : {
+      "comment" : "Meeting library badge: another model is in use",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for the model"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Czeka na model"
+          }
+        }
+      }
+    },
     "Website" : {
       "comment" : "About window: link to the landing page",
       "extractionState" : "manual",
@@ -5811,6 +6189,96 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bez pełnego dostępu do dysku dodanie folderu tutaj sprawi, że macOS raz zapyta o ten folder."
+          }
+        }
+      }
+    },
+    "Write notes after each meeting" : {
+      "comment" : "Meetings settings toggle of automatic notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write notes after each meeting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pisz notatki po każdym spotkaniu"
+          }
+        }
+      }
+    },
+    "Writing notes %lld of %lld" : {
+      "comment" : "Meeting library badge: notes in progress, the part being read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Writing notes %lld of %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pisanie notatek %lld z %lld"
+          }
+        }
+      }
+    },
+    "Writing notes is not available." : {
+      "comment" : "Meeting window: why Regenerate notes is disabled",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Writing notes is not available."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pisanie notatek jest niedostępne."
+          }
+        }
+      }
+    },
+    "Writing notes…" : {
+      "comment" : "Meeting window banner while the notes are being written",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Writing notes…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pisanie notatek…"
+          }
+        }
+      }
+    },
+    "Writing the notes failed. The notes below are from an earlier run." : {
+      "comment" : "Meeting library preview: notice above older notes after a failed run",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Writing the notes failed. The notes below are from an earlier run."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się napisać notatek. Poniższe notatki pochodzą z wcześniejszego zapisu."
           }
         }
       }
@@ -6801,24 +7269,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Notatki"
-          }
-        }
-      }
-    },
-    "Notes are generated in a later version of Pounce." : {
-      "comment" : "Meeting window: why Regenerate notes is disabled",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Notes are generated in a later version of Pounce."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Notatki pojawią się w jednej z kolejnych wersji Pounce."
           }
         }
       }

@@ -54,6 +54,15 @@ final class MeetingWindowModel {
         case failed
         case processing
         case notesStale
+        /// The notes are being written; `phase` says how far (`nil` when only the stored status is known).
+        case notesWriting(NotesJobPhase?)
+        case notesFailed
+        /// Some parts of the recording could not be read, so the notes miss them.
+        case notesPartial
+        /// This many points of the model had no backing in the recording and were left out.
+        case notesDropped(Int)
+        /// Notes are on but their model is not downloaded.
+        case notesNeedsModel
     }
 
     enum Feedback: Equatable {
@@ -94,6 +103,11 @@ final class MeetingWindowModel {
     @ObservationIgnored private let saver: any FileSaver
     @ObservationIgnored private let finishMeeting: @MainActor (Int64, Bool) -> MeetingFinishHandle?
     @ObservationIgnored private let regenerate: (@MainActor (Int64) -> Void)?
+    @ObservationIgnored private let notes: NotesBoard?
+    @ObservationIgnored private let openNotesSettings: @MainActor () -> Void
+    @ObservationIgnored private let pollInterval: Duration
+    @ObservationIgnored private let sleep: @Sendable (Duration) async throws -> Void
+    @ObservationIgnored private var followTask: Task<Void, Never>?
     @ObservationIgnored private let onDeleted: @MainActor () -> Void
     @ObservationIgnored private let announce: @MainActor (String) -> Void
     @ObservationIgnored private let labels: MarkdownExporter.Labels
@@ -105,16 +119,24 @@ final class MeetingWindowModel {
 
     /// - Parameters:
     ///   - finish: "Dokończ" (`MeetingsLibrary.finish(meetingID:acceptGap:)`); `nil` handle when nothing can be finished now.
-    ///   - regenerate: "Regeneruj notatki"; `nil` until the notes pipeline exists (Phase 2), which keeps the
-    ///     button disabled with an explanation.
+    ///   - regenerate: "Regeneruj notatki" (`NotesService.regenerate`); `nil` keeps the button disabled with an
+    ///     explanation.
+    ///   - notes: what the notes service does and whether its model is missing; the window follows a running
+    ///     job by reloading while it lasts.
     init(
         meetingID: Int64, store: MeetingsStore, spool: any SpoolMaintenance, pasteboard: any PasteboardClient,
         saver: any FileSaver = SavePanelFileSaver(),
         finish: @escaping @MainActor (Int64, Bool) -> MeetingFinishHandle? = { _, _ in nil },
         regenerate: (@MainActor (Int64) -> Void)? = nil, onDeleted: @escaping @MainActor () -> Void = {},
         announce: @escaping @MainActor (String) -> Void = { _ in },
-        labels: MarkdownExporter.Labels = .localized, timeZone: TimeZone = .current
+        labels: MarkdownExporter.Labels = .localized, timeZone: TimeZone = .current, notes: NotesBoard? = nil,
+        openNotesSettings: @escaping @MainActor () -> Void = {}, pollInterval: Duration = .seconds(2),
+        sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     ) {
+        self.notes = notes
+        self.openNotesSettings = openNotesSettings
+        self.pollInterval = pollInterval
+        self.sleep = sleep
         self.meetingID = meetingID
         self.store = store
         self.spool = spool
@@ -180,7 +202,22 @@ final class MeetingWindowModel {
         case .recording, .ready: break
         }
         if document.speakerMode == .channels { result.append(.speakersUnavailable) }
-        if document.notesStatus == .stale, document.notesMarkdown != nil { result.append(.notesStale) }
+        let phase = notes?.phase(of: meetingID)
+        if phase != nil || document.notesStatus == .running {
+            result.append(.notesWriting(phase))
+        } else {
+            switch document.notesStatus {
+            case .failed: result.append(.notesFailed)
+            case .partial: result.append(.notesPartial)
+            case .stale where document.notesMarkdown != nil: result.append(.notesStale)
+            case .none where document.status == .ready && notes?.snapshot.needsModel == true:
+                result.append(.notesNeedsModel)
+            default: break
+            }
+        }
+        if document.notesDroppedCount > 0, document.notesMarkdown != nil, phase == nil {
+            result.append(.notesDropped(document.notesDroppedCount))
+        }
         return result
     }
 
@@ -214,14 +251,20 @@ final class MeetingWindowModel {
     var canCopy: Bool { document != nil && !isEmpty }
     var canSave: Bool { document != nil && !isEmpty }
 
-    /// The button is always there; it works once the notes pipeline is wired (Phase 2).
-    var canRegenerate: Bool { regenerate != nil && document?.status == .ready }
+    /// Works for a `ready` meeting whose notes are not being written right now (also stale and failed ones).
+    var canRegenerate: Bool {
+        guard regenerate != nil, document?.status == .ready else { return false }
+        return document?.notesStatus != .running && notes?.phase(of: meetingID) == nil
+    }
     var regenerateExplanation: String? {
         regenerate == nil
             ? String(
-                localized: "Notes are generated in a later version of Pounce.",
+                localized: "Writing notes is not available.",
                 comment: "Meeting window: why Regenerate notes is disabled") : nil
     }
+
+    /// "Pobierz model notatek": opens the Settings of the notes.
+    func downloadNotesModel() { openNotesSettings() }
 
     var canDelete: Bool {
         guard let status = document?.status else { return false }
@@ -322,6 +365,32 @@ final class MeetingWindowModel {
     func regenerateNotes() {
         guard canRegenerate, let regenerate else { return }
         regenerate(meetingID)
+        follow()
+    }
+
+    /// Reloads the meeting while its notes are written, so the banner and the status follow the job. Ends when
+    /// the job has ended (or the window goes away).
+    func followNotes() async {
+        while !Task.isCancelled {
+            guard notes?.phase(of: meetingID) != nil || document?.notesStatus == .running else { return }
+            do { try await sleep(pollInterval) } catch { return }
+            if Task.isCancelled { return }
+            await load()
+        }
+    }
+
+    /// Starts `followNotes()` once; the window's own task and a regenerate request both call it.
+    func follow() {
+        guard followTask == nil else { return }
+        followTask = Task { [weak self] in
+            await self?.followNotes()
+            self?.followTask = nil
+        }
+    }
+
+    func stopFollowing() {
+        followTask?.cancel()
+        followTask = nil
     }
 
     // MARK: Finishing and deleting

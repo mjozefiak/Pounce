@@ -477,7 +477,9 @@ final class MeetingController {
         deps.changed()
         deps.logger.info("Meeting recording ended")
         switch outcome.result {
-        case .ready: deps.hud.show(.saved)
+        case .ready:
+            deps.hud.show(.saved)
+            if let id = outcome.meetingID { deps.library.meetingReady(id) }
         case .incomplete: deps.hud.show(.savedIncomplete)
         case .failed: deps.hud.show(.problem(.failed))
         case .discarded: deps.hud.show(.problem(.nothingHeard))

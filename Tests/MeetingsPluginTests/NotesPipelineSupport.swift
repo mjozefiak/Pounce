@@ -84,6 +84,7 @@ final class NotesEventLog: @unchecked Sendable {
 final class Flag: @unchecked Sendable {
     private let value = Mutex(false)
     func set() { value.withLock { $0 = true } }
+    func clear() { value.withLock { $0 = false } }
     var isSet: Bool { value.withLock { $0 } }
 }
 

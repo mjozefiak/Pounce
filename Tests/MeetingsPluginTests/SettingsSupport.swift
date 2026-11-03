@@ -111,6 +111,8 @@ final class SettingsRig {
     let picked = Shared<URL?>(nil)
     let changes = Shared(0)
     let activity = MeetingActivity()
+    let notesService: NotesService
+    let llmModels: ModelRig
 
     init(
         settings: [String: SettingValue] = [:], access: MicrophoneAccess = .notDetermined,
@@ -122,6 +124,10 @@ final class SettingsRig {
         authorizer = FakeAuthorizer(access)
         library = harness.library()
         spool = SpoolStorage(pluginDirectory: harness.pluginDirectory)
+        llmModels = try ModelRig(id: "rig-llm")
+        notesService = NotesService(
+            NotesService.Dependencies(
+                library: library, settings: harness.meetingsSettings, lease: LLMLease(), modelFile: { _ in nil }))
         let busy = busy
         let usage = MeetingsModelUsage { _ in busy.get() }
         let meetingsSettings = harness.meetingsSettings
@@ -145,7 +151,10 @@ final class SettingsRig {
             speech: speech, diarization: diarization,
             systemAudioTest: SystemAudioTestModel(makeTest: {
                 SystemAudioSelfTest(backend: backend, player: tone, settle: .zero, sleeper: { _ in })
-            }), speechPackages: [models.package], authorizer: authorizer,
+            }),
+            notes: NotesSettingsModel(
+                settings: meetingsSettings, service: notesService, manager: llmModels.manager, lease: LLMLease()),
+            speechPackages: [models.package], authorizer: authorizer,
             listDevices: { [.init(uid: "usb-1", name: "USB mic")] }, openURL: openURL)
     }
 

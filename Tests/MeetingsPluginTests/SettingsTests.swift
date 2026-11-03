@@ -136,7 +136,8 @@ import Testing
             settings: rig.harness.meetingsSettings, library: rig.library,
             privacy: MeetingsPrivacyActions(library: rig.library, spool: rig.spool, changed: {}),
             speech: rig.model.speech, diarization: rig.model.diarization, systemAudioTest: rig.model.systemAudioTest,
-            speechPackages: [rig.models.package, other.package], authorizer: rig.authorizer, listDevices: { [] },
+            notes: rig.model.notes, speechPackages: [rig.models.package, other.package], authorizer: rig.authorizer,
+            listDevices: { [] },
             openURL: { _ in })
         model.selectSpeechModel("other-engine")
         #expect(model.speech.package.id == "other-engine")

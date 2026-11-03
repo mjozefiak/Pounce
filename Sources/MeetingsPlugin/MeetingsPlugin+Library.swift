@@ -17,7 +17,8 @@ extension MeetingsPlugin {
 
     public var panelModes: [PanelMode] {
         let library = library
-        let source = MeetingsLibrarySource(store: { library.store }, actions: libraryActions)
+        let source = MeetingsLibrarySource(
+            store: { library.store }, actions: libraryActions, notes: notes.board, openSettings: context.openSettings)
         return [
             PanelMode(
                 id: Self.libraryModeID,

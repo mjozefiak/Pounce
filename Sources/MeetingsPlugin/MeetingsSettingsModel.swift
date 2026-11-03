@@ -30,6 +30,7 @@ final class MeetingsSettingsModel {
     let speech: MeetingsModelCardModel
     let diarization: MeetingsModelCardModel
     let systemAudioTest: SystemAudioTestModel
+    let notes: NotesSettingsModel
     /// The speech models to choose from.
     let speechPackages: [ModelPackage]
     private(set) var speechPackageID: String
@@ -44,7 +45,8 @@ final class MeetingsSettingsModel {
     init(
         settings: MeetingsSettings, library: MeetingsLibrary, privacy: MeetingsPrivacyActions,
         speech: MeetingsModelCardModel, diarization: MeetingsModelCardModel, systemAudioTest: SystemAudioTestModel,
-        speechPackages: [ModelPackage] = ModelCatalog.all, authorizer: any MicrophoneAuthorizer,
+        notes: NotesSettingsModel, speechPackages: [ModelPackage] = ModelCatalog.all,
+        authorizer: any MicrophoneAuthorizer,
         listDevices: @escaping () -> [MicrophoneCapture.InputDevice] = MicrophoneCapture.inputDevices,
         openURL: @escaping @MainActor (URL) -> Void
     ) {
@@ -54,6 +56,7 @@ final class MeetingsSettingsModel {
         self.speech = speech
         self.diarization = diarization
         self.systemAudioTest = systemAudioTest
+        self.notes = notes
         self.speechPackages = speechPackages
         self.authorizer = authorizer
         self.listDevices = listDevices
@@ -73,6 +76,7 @@ final class MeetingsSettingsModel {
         devices = listDevices()
         await speech.refresh()
         await diarization.refresh()
+        await notes.refresh()
     }
 
     // MARK: Speech engine

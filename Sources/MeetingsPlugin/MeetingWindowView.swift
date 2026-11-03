@@ -29,7 +29,11 @@ struct MeetingWindowView: View {
             }
         }
         .frame(minWidth: 480, minHeight: 360)
-        .task { await model.load() }
+        .task {
+            await model.load()
+            model.follow()
+        }
+        .onDisappear { model.stopFollowing() }
         .confirmationDialog(
             Text("Delete this meeting?", comment: "Meeting window: delete confirmation title"),
             isPresented: $model.isConfirmingDelete
@@ -349,6 +353,14 @@ private struct BannerView: View {
                     Text("Transcribes the rest of the recording", comment: "Hint of the Finish button"))
             }
             if banner == .finishing { ProgressView().controlSize(.small) }
+            if case .notesWriting = banner { ProgressView().controlSize(.small) }
+            if banner == .notesNeedsModel {
+                Button {
+                    model.downloadNotesModel()
+                } label: {
+                    Text("Download Notes Model", comment: "Meeting window button that opens the notes model settings")
+                }
+            }
         }
         .padding(.horizontal, 16).padding(.vertical, 8)
         .background(.quaternary)
@@ -362,6 +374,11 @@ private struct BannerView: View {
         case .failed: "xmark.octagon"
         case .processing: "hourglass"
         case .notesStale: "clock.arrow.circlepath"
+        case .notesWriting: "text.badge.checkmark"
+        case .notesFailed: "exclamationmark.triangle"
+        case .notesPartial: "exclamationmark.circle"
+        case .notesDropped: "checkmark.shield"
+        case .notesNeedsModel: "arrow.down.circle"
         }
     }
 
@@ -394,6 +411,22 @@ private struct BannerView: View {
             Text(
                 "A speaker was renamed, so the notes may be out of date.",
                 comment: "Meeting window banner when notes are stale")
+        case .notesWriting(let phase):
+            Text(verbatim: phase.map(MeetingLibraryPresentation.notesBadge(for:)) ?? NotesMessages.writing)
+        case .notesFailed:
+            Text(
+                "The notes could not be written. The transcript is unchanged; try Regenerate Notes.",
+                comment: "Meeting window banner when the notes failed")
+        case .notesPartial:
+            Text(
+                "The notes miss some parts of the recording that could not be read. Regenerate Notes to try again.",
+                comment: "Meeting window banner for partial notes")
+        case .notesDropped(let count):
+            Text(verbatim: NotesMessages.dropped(count))
+        case .notesNeedsModel:
+            Text(
+                "Notes are on, but their model is not downloaded.",
+                comment: "Meeting window banner when the notes model is missing")
         }
     }
 }

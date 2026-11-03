@@ -55,6 +55,9 @@ final class MeetingsLibrary {
     @ObservationIgnored private(set) var liveMeetingIDs: Set<Int64> = []
     /// What the recovery pass of the last `open()` did.
     @ObservationIgnored private(set) var lastRecovery: RecoveryReport?
+    /// Told when a meeting becomes `ready` (a recording that ended, a recovered or finished one): the notes
+    /// service queues it. Set by the plugin.
+    @ObservationIgnored var onMeetingReady: (@MainActor (Int64) -> Void)?
 
     init(
         directory: URL, keychain: any KeychainClient, settings: MeetingsSettings, clock: any Clock<Duration>,
@@ -87,6 +90,9 @@ final class MeetingsLibrary {
     func registerLive(meetingID: Int64) { liveMeetingIDs.insert(meetingID) }
 
     func unregisterLive(meetingID: Int64) { liveMeetingIDs.remove(meetingID) }
+
+    /// A meeting became `ready`: the notes may be written (the service decides whether they are wanted).
+    func meetingReady(_ id: Int64) { onMeetingReady?(id) }
 
     private var opener: EncryptedDatabaseOpener {
         EncryptedDatabaseOpener(
@@ -127,6 +133,7 @@ final class MeetingsLibrary {
                     logger.notice("The Keychain key was recreated; the unreadable audio spools were deleted")
                 }
                 if let openedKeys {
+                    NotesRecovery.run(store: opened, logger: logger)
                     recoverInterruptedMeetings(store: opened, keys: openedKeys)
                     refreshCount()
                     startRetention()
@@ -219,11 +226,12 @@ final class MeetingsLibrary {
         resumeTask = Task { [weak self] in
             for meeting in meetings {
                 if Task.isCancelled { return }
-                _ = await resumer.resume(meeting, events: { _ in })
+                let outcome = await resumer.resume(meeting, events: { _ in })
                 guard let self, self.generation == generation else { return }
                 self.activeResumes.remove(meeting.id)
                 self.refreshCount()
                 self.changed()
+                if outcome == .ready { self.meetingReady(meeting.id) }
             }
         }
     }
@@ -260,6 +268,7 @@ final class MeetingsLibrary {
                 self.finishTasks[meetingID] = nil
                 self.refreshCount()
                 self.changed()
+                if outcome == .ready { self.meetingReady(meetingID) }
             }
             return outcome
         }

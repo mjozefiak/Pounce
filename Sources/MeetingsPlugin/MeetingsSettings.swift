@@ -85,6 +85,19 @@ struct MeetingsSettings: Sendable {
             .flatMap { model in offered.contains { $0.id == model.id } ? model : nil } ?? LLMModelCatalog.defaultModel
     }
 
+    /// The stored model is not the one in use: it left the catalog or does not fit this Mac's memory (the
+    /// settings pane says so; the stored value stays, so it applies again on a Mac that fits it).
+    var builtInLLMModelWasReplaced: Bool {
+        guard let stored = settings.string(Key.builtInLLMModel) else { return false }
+        return stored != builtInLLMModel.id
+    }
+
+    /// The models this Mac has the memory for; the default one alone when none qualifies.
+    var offeredLLMModels: [LLMModel] {
+        let offered = LLMModelCatalog.available(physicalMemory: physicalMemory)
+        return offered.isEmpty ? [LLMModelCatalog.defaultModel] : offered
+    }
+
     var notesChunkTokens: Int {
         max(1, settings.integer(Key.notesChunkTokens, default: Self.defaultNotesChunkTokens))
     }

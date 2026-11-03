@@ -17,6 +17,10 @@ struct MeetingsLibrarySource: PanelModeSource {
     var locale: Locale = .current
     /// The display name of an installed app for the bundle ID a meeting was started from.
     var appName: @Sendable (String) -> String? = MeetingLibraryPresentation.installedAppName
+    /// What the notes service is doing and whether its model is missing; `nil` shows the stored status only.
+    var notes: NotesBoard?
+    /// Opens Settings ("Download Notes Model").
+    var openSettings: @MainActor @Sendable () -> Void = {}
 
     func search(_ query: NormalizedQuery, filter: PanelModeFilter.ID?, limit: Int) async throws -> [Candidate] {
         guard let store = await store() else { return [] }
@@ -25,6 +29,7 @@ struct MeetingsLibrarySource: PanelModeSource {
         let entries = try store.libraryEntries(
             matching: query.isEmpty ? nil : query.raw, filter: filter, limit: min(max(0, limit), Self.maxRows))
         try Task.checkCancellation()
+        let snapshot = notes?.snapshot
         return entries.map { entry in
             Candidate(
                 itemKey: MeetingLibraryPresentation.itemKey(entry.id),
@@ -33,12 +38,13 @@ struct MeetingsLibrarySource: PanelModeSource {
                     entry, locale: locale, timeZone: timeZone, appName: appName),
                 icon: .symbol(MeetingLibraryPresentation.symbol(entry)),
                 match: MatchResult(tier: .exact, score: 0),
-                badge: MeetingLibraryPresentation.badge(entry))
+                badge: MeetingLibraryPresentation.badge(
+                    entry, phase: snapshot?.phases[entry.id], needsNotesModel: snapshot?.needsModel ?? false))
         }
     }
 
-    /// Return copies the Markdown, ⌘Return (and ⌘O) opens the meeting window, ⌘R regenerates the notes (only
-    /// when the notes pipeline is wired, Phase 2) and ⌃X deletes the meeting.
+    /// Return copies the Markdown, ⌘Return (and ⌘O) opens the meeting window, ⌘R writes the notes again,
+    /// "Download Notes Model" appears on a meeting that waits for the model, and ⌃X deletes the meeting.
     func actions(for candidate: Candidate) -> [ResultAction] {
         guard let id = MeetingLibraryPresentation.meetingID(candidate.itemKey) else { return [] }
         let actions = actions
@@ -71,6 +77,16 @@ struct MeetingsLibrarySource: PanelModeSource {
                     symbolName: "arrow.triangle.2.circlepath",
                     shortcut: KeyShortcut(key: "r", modifiers: .command)
                 ) { _ in await actions.regenerate(id) })
+        }
+        if notes?.snapshot.needsModel == true, candidate.badge == MeetingLibraryPresentation.needsModelBadge {
+            let openSettings = openSettings
+            result.append(
+                ResultAction(
+                    id: "meetings.library.notesModel",
+                    title: LocalizedStringResource(
+                        "Download Notes Model", comment: "Meeting library action that opens the notes model settings"),
+                    symbolName: "arrow.down.circle"
+                ) { _ in await openSettings() })
         }
         result.append(
             ResultAction(
@@ -156,9 +172,17 @@ enum MeetingLibraryPresentation {
             .units(allowed: [.hours, .minutes], width: .abbreviated, maximumUnitCount: 2).locale(locale))
     }
 
+    /// The badge of a meeting that waits for the notes model.
+    static var needsModelBadge: String {
+        String(localized: "Notes model needed", comment: "Meeting library badge: notes are on but the model is missing")
+    }
+
     /// One short label: the state of an unfinished meeting, else the state of its notes (nothing before notes
-    /// exist).
-    static func badge(_ entry: MeetingLibraryEntry) -> String? {
+    /// exist). `phase` is what a running notes job does right now; `needsNotesModel` says that notes are on and
+    /// their model is not downloaded.
+    static func badge(
+        _ entry: MeetingLibraryEntry, phase: NotesJobPhase? = nil, needsNotesModel: Bool = false
+    ) -> String? {
         switch entry.status {
         case .recording: return String(localized: "Recording", comment: "Meeting library badge: being recorded")
         case .processing: return String(localized: "Processing", comment: "Meeting library badge: being transcribed")
@@ -167,8 +191,9 @@ enum MeetingLibraryPresentation {
         case .failed: return String(localized: "Failed", comment: "Meeting library badge: meeting could not be made")
         case .ready: break
         }
+        if let phase { return notesBadge(for: phase) }
         switch entry.notesStatus {
-        case .none: return nil
+        case .none: return needsNotesModel ? needsModelBadge : nil
         case .running: return String(localized: "Writing notes", comment: "Meeting library badge: notes in progress")
         case .ok: return String(localized: "Notes", comment: "Meeting library badge: the meeting has notes")
         case .partial:
@@ -176,6 +201,25 @@ enum MeetingLibraryPresentation {
         case .failed: return String(localized: "Notes failed", comment: "Meeting library badge: notes failed")
         case .stale:
             return String(localized: "Notes outdated", comment: "Meeting library badge: a speaker was renamed")
+        }
+    }
+
+    /// "Czeka na model", "Pisanie notatek 2 z 8" and the like.
+    static func notesBadge(for phase: NotesJobPhase) -> String {
+        switch phase {
+        case .queued:
+            String(localized: "Notes queued", comment: "Meeting library badge: notes wait for their turn")
+        case .waitingForModel:
+            String(
+                localized: "Waiting for the model", comment: "Meeting library badge: another model is in use")
+        case .mapping(let done, let total):
+            total > 0
+                ? String(
+                    localized: "Writing notes \(min(done + 1, total)) of \(total)",
+                    comment: "Meeting library badge: notes in progress, the part being read")
+                : String(localized: "Writing notes", comment: "Meeting library badge: notes in progress")
+        case .reducing:
+            String(localized: "Finishing notes", comment: "Meeting library badge: the last step of the notes")
         }
     }
 

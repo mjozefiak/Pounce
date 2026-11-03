@@ -41,8 +41,17 @@ enum MeetingPreviewBuilder {
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             if !text.isEmpty {
                 let (shown, truncated) = truncate(text)
-                let stale = document.notesStatus == .stale ? labels.staleNotes : nil
-                return .init(kind: .notes, notice: stale, text: shown, metadata: metadata, isTruncated: truncated)
+                var notices: [String] = []
+                switch document.notesStatus {
+                case .stale: notices.append(labels.staleNotes)
+                case .partial: notices.append(NotesMessages.partialNotice)
+                case .failed: notices.append(NotesMessages.failedNotice)
+                case .none, .running, .ok: break
+                }
+                if document.notesDroppedCount > 0 { notices.append(NotesMessages.dropped(document.notesDroppedCount)) }
+                return .init(
+                    kind: .notes, notice: notices.isEmpty ? nil : notices.joined(separator: "\n"), text: shown,
+                    metadata: metadata, isTruncated: truncated)
             }
         }
         let transcript = transcript(document, unknown: labels.unknownSpeaker)

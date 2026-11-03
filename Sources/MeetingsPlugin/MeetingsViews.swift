@@ -2,8 +2,7 @@ import PounceKit
 import PounceSpeech
 import SwiftUI
 
-/// Settings → Meetings. The notes (a built-in model card, Phase 2) and the meeting suggestions (Phase 3) get
-/// their sections here when those steps exist; nothing is shown for them now.
+/// Settings → Meetings. The meeting suggestions (Phase 3) get their section here when that step exists.
 struct MeetingsSettingsPane: View {
     @Bindable var model: MeetingsSettingsModel
     /// The shortcut recorder, or `nil` while the `meetings.record` command does not exist.
@@ -80,6 +79,18 @@ struct MeetingsSettingsPane: View {
                 Text(
                     "The models run on this Mac. Audio is never sent anywhere. The speech model is shared with dictation.",
                     comment: "Meetings settings footer under the models"
+                )
+                .font(.callout).foregroundStyle(.secondary)
+            }
+
+            Section {
+                NotesSettingsRows(model: model.notes)
+            } header: {
+                Text("Notes", comment: "Meetings settings section title of the notes")
+            } footer: {
+                Text(
+                    "After a meeting, a model that runs on this Mac writes a summary, decisions, action items and open questions in the background. Every point is checked against the recording; points it cannot find there are left out. Nothing is sent anywhere.",
+                    comment: "Meetings settings footer under the notes"
                 )
                 .font(.callout).foregroundStyle(.secondary)
             }
@@ -539,6 +550,20 @@ struct MeetingsSetupView: View {
                     MeetingsModelCard(card: model.speech)
                     MeetingsModelCard(card: model.diarization)
                 }
+            }
+
+            // Optional and never counted in the checkmarks: notes are off until the user turns them on.
+            Label {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(
+                        "Optional: let a model on this Mac write notes after each meeting. It is a large download that starts only when you press the button.",
+                        comment: "Meetings onboarding step about the notes model"
+                    )
+                    .fixedSize(horizontal: false, vertical: true)
+                    NotesSettingsRows(model: model.notes, showsTryIt: false)
+                }
+            } icon: {
+                Image(systemName: "text.badge.checkmark").accessibilityHidden(true)
             }
         }
         .task { await model.refresh() }

@@ -11,6 +11,8 @@ final class MeetingsUI {
     /// `Models/speech` is shared with dictation (ADR 0006); the diarization model has a folder of its own.
     static let speechDirectoryName = "speech"
     static let diarizationDirectoryName = "diarization"
+    /// The built-in language models are shared with dictation's formatting (`Models/llm/`).
+    static let llmDirectoryName = "llm"
 
     let model: MeetingsSettingsModel
 
@@ -24,7 +26,7 @@ final class MeetingsUI {
             SystemAudioSelfTest(backend: CoreAudioProcessTapBackend(), player: AVAudioEngineTonePlayer())
         },
         pickFolder: @escaping @MainActor () -> URL? = { MeetingsUI.chooseModelFolder() },
-        usage: MeetingsModelUsage? = nil
+        usage: MeetingsModelUsage? = nil, notes service: NotesService
     ) {
         let usage =
             usage
@@ -41,6 +43,8 @@ final class MeetingsUI {
             package: ModelCatalog.diarizationCommunity1, manager: diarizationManager, usage: usage,
             customFolder: { settings.diarizationModelFolder },
             setCustomFolder: { settings.setDiarizationModelFolder($0) }, pickFolder: pickFolder)
+        let llmManager = manager(
+            context.modelsDirectory.appending(path: Self.llmDirectoryName, directoryHint: .isDirectory))
         let workspace = context.workspace
         model = MeetingsSettingsModel(
             settings: settings, library: library,
@@ -49,6 +53,7 @@ final class MeetingsUI {
                 activity: activity, changed: context.resultsChanged),
             speech: speech, diarization: diarization,
             systemAudioTest: SystemAudioTestModel(makeTest: makeSelfTest, blocked: { activity.isActive }),
+            notes: NotesSettingsModel(settings: settings, service: service, manager: llmManager),
             authorizer: authorizer, openURL: { url in Task { try? await workspace.open(url) } })
     }
 
