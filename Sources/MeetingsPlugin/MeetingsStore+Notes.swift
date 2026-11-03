@@ -31,25 +31,39 @@ extension MeetingsStore {
         }
     }
 
-    /// The finished notes, `running` → `ok` / `partial`. A `nil` text keeps the earlier one. Returns false when
-    /// the notes were no longer `running` (the meeting was deleted, or the notes marked `stale` meanwhile).
+    /// What `finishNotes` did.
+    enum NotesFinish: Equatable, Sendable {
+        /// The text and the status were written.
+        case stored
+        /// The text was written but the status stays `stale`: a speaker was renamed (or "To ja" moved) while the
+        /// notes were being written, so they use the old names.
+        case storedStale
+        /// Nothing was written: the meeting is gone or its notes were not being written.
+        case discarded
+    }
+
+    /// The finished notes, `running` → `ok` / `partial`, or → `stale` when a rename marked them `stale` while they
+    /// were written (the text is kept all the same). A `nil` text keeps the earlier one.
     @discardableResult
     func finishNotes(
         _ id: Int64, markdown: String?, status: NotesStatus, promptVersion: String, model: String,
         droppedCount: Int, generatedAt: Date
-    ) throws -> Bool {
+    ) throws -> NotesFinish {
         try write { db in
             try db.execute(
                 sql: """
-                    UPDATE meeting SET notes_markdown = COALESCE(?, notes_markdown), notes_status = ?,
+                    UPDATE meeting SET notes_markdown = COALESCE(?, notes_markdown),
+                        notes_status = CASE WHEN notes_status = 'stale' THEN 'stale' ELSE ? END,
                         notes_prompt_version = ?, notes_model = ?, notes_dropped_count = ?, notes_generated_at = ?
-                    WHERE id = ? AND notes_status = 'running'
+                    WHERE id = ? AND notes_status IN ('running', 'stale')
                     """,
                 arguments: [
                     markdown, status.rawValue, promptVersion, model, max(0, droppedCount),
                     generatedAt.timeIntervalSince1970, id,
                 ])
-            return db.changesCount == 1
+            guard db.changesCount == 1 else { return .discarded }
+            let now = try String.fetchOne(db, sql: "SELECT notes_status FROM meeting WHERE id = ?", arguments: [id])
+            return now == NotesStatus.stale.rawValue ? .storedStale : .stored
         }
     }
 

@@ -5,7 +5,7 @@ import SwiftUI
 /// and the `meetings.setup` step.
 struct NotesSettingsRows: View {
     @Bindable var model: NotesSettingsModel
-    /// The setup step shows the model rows only after the switch is on, and keeps the example out.
+    /// "Try it on an example" follows the rows; the setup step keeps it out.
     var showsTryIt = true
 
     private func bytes(_ value: Int) -> String {

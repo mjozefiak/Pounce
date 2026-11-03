@@ -21,9 +21,17 @@ final class NotesBoard: Sendable {
         /// Notes are wanted but the chosen model is not downloaded.
         var modelMissing = false
         var phases: [Int64: NotesJobPhase] = [:]
+        /// Meetings that became `ready` in this session while notes were on and the model was missing. Only they
+        /// show "Notes model needed": older meetings and meetings recorded while notes were off show nothing,
+        /// and nothing is written for them when the model arrives ("Regenerate" does it on request). In memory:
+        /// a restart forgets the badge.
+        var awaitingModel: Set<Int64> = []
 
-        /// "Pobierz model notatek" is offered.
+        /// Notes are wanted and their model is missing.
         var needsModel: Bool { enabled && modelMissing }
+
+        /// "Pobierz model notatek" is offered for this meeting.
+        func needsModel(for meetingID: Int64) -> Bool { needsModel && awaitingModel.contains(meetingID) }
     }
 
     private let state = Mutex(Snapshot())
@@ -55,7 +63,9 @@ enum NotesSampleOutcome: Equatable, Sendable {
 /// - After a meeting becomes `ready` and only when `notesEnabled` was switched on by the user, the meeting is
 ///   queued; "Regenerate" queues it whatever the switch says (the user asked). One job runs at a time.
 /// - A job loads nothing itself: it asks `NotesPipeline`, which takes the shared `LLMLease` at `background`
-///   priority (dictation always goes first, and a different model in use makes the job wait: "Czeka na model").
+///   priority (dictation always goes first, also on the same model file at another context length: the notes'
+///   lease is taken away and they continue after dictation; a different model file in use makes the job wait:
+///   "Czeka na model").
 /// - `notes_status` goes `none`/`ok`/`partial`/`failed`/`stale` → `running` → `ok`/`partial`/`failed`. The
 ///   transcript is never written. A cancelled job (the plugin is switched off, the app quits) puts the status
 ///   back as it was and writes nothing else; the one documented partial result is the pipeline's own `partial`.
@@ -77,6 +87,8 @@ final class NotesService {
         var configure: @Sendable (inout NotesPipeline.Configuration) -> Void = { _ in }
         var sleep: @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
         var now: @Sendable () -> Date = { Date() }
+        /// How long `shutDown` waits for a job that does not stop (a model load cannot be cancelled).
+        var shutdownLimit: Duration = .seconds(5)
         var openSettings: @MainActor () -> Void = {}
         var changed: @Sendable () -> Void = {}
         var logger = Logger(subsystem: "app.pounce", category: "meetings")
@@ -95,6 +107,12 @@ final class NotesService {
     private var queue: [Job] = []
     private var current: Job?
     private var worker: Task<Void, Never>?
+    private var jobTask: Task<Void, Never>?
+    /// Meetings whose notes must be written again right after the running job (a regenerate request, or a rename
+    /// that made the finished notes `stale`).
+    private var rerun: Set<Int64> = []
+    /// Bumped by `shutDown`: a job that did not stop in time must not touch the state of a later start.
+    private var epoch = 0
     private var sampleTask: Task<NotesSampleOutcome, Never>?
     private var accepting = false
 
@@ -111,17 +129,58 @@ final class NotesService {
     }
 
     /// The plugin is switched off or the app quits: queued jobs are dropped, the running one is cancelled and
-    /// has put its status back when this returns.
+    /// has put its status back when this returns. A job that does not stop within `shutdownLimit` (a model
+    /// load cannot be cancelled) is left to finish by itself: it finds the library closed and writes nothing,
+    /// and the status it left `running` becomes `failed` at the next open (`NotesRecovery`).
     func shutDown() async {
         accepting = false
         queue = []
+        rerun = []
+        epoch += 1
         sampleTask?.cancel()
+        jobTask?.cancel()
         worker?.cancel()
-        await worker?.value
-        _ = await sampleTask?.value
-        worker = nil
-        sampleTask = nil
-        board.update { $0.phases = [:] }
+        let worker = worker
+        let sampleTask = sampleTask
+        _ = await Self.within(deps.shutdownLimit, sleep: deps.sleep) {
+            await worker?.value
+            _ = await sampleTask?.value
+        }
+        self.worker = nil
+        self.sampleTask = nil
+        jobTask = nil
+        current = nil
+        board.update {
+            $0.phases = [:]
+            $0.awaitingModel = []
+        }
+    }
+
+    /// The library is closing or erased: the queue is dropped and the running job is cancelled, but the service
+    /// keeps accepting jobs (the plugin may stay on after "Erase Data").
+    func cancelJobs() {
+        let dropped = queue.map(\.meetingID)
+        queue = []
+        if !dropped.isEmpty {
+            board.update { for id in dropped { $0.phases[id] = nil } }
+            deps.changed()
+        }
+        rerun = []
+        jobTask?.cancel()
+        sampleTask?.cancel()
+    }
+
+    /// True when `operation` finished within `limit`; false when the limit came first (the operation is
+    /// not waited for).
+    private static func within(
+        _ limit: Duration, sleep: @escaping @Sendable (Duration) async throws -> Void,
+        _ operation: @escaping @Sendable () async -> Void
+    ) async -> Bool {
+        let outcome: ()? = try? await NotesDeadline.run(limit: limit, sleep: sleep) { phase in
+            phase(.running)
+            await operation()
+        }
+        return outcome != nil
     }
 
     /// Whether any job is queued or running (the model's file is in use then).
@@ -153,23 +212,38 @@ final class NotesService {
     }
 
     private func enqueue(_ job: Job) {
-        guard accepting, current?.meetingID != job.meetingID, !queue.contains(where: { $0.meetingID == job.meetingID })
-        else { return }
+        guard accepting else { return }
+        if current?.meetingID == job.meetingID {
+            // The user asked while the job runs: it is not a no-op, the notes are written again right after.
+            if job.requested { rerun.insert(job.meetingID) }
+            return
+        }
+        guard !queue.contains(where: { $0.meetingID == job.meetingID }) else { return }
         queue.append(job)
         setPhase(.queued, for: job.meetingID)
         if worker == nil { worker = Task { await self.drain() } }
     }
 
     private func drain() async {
-        while !Task.isCancelled, !queue.isEmpty {
+        let epoch = epoch
+        while !Task.isCancelled, epoch == self.epoch, !queue.isEmpty {
             let job = queue.removeFirst()
             current = job
-            await process(job)
+            let task = Task { await self.process(job) }
+            jobTask = task
+            await withTaskCancellationHandler {
+                await task.value
+            } onCancel: {
+                task.cancel()
+            }
+            guard epoch == self.epoch else { return }
+            jobTask = nil
             current = nil
             board.update { $0.phases[job.meetingID] = nil }
             deps.changed()
+            if rerun.remove(job.meetingID) != nil { enqueue(Job(meetingID: job.meetingID, requested: true)) }
         }
-        worker = nil
+        if epoch == self.epoch { worker = nil }
     }
 
     private func setPhase(_ phase: NotesJobPhase, for id: Int64) {
@@ -190,11 +264,19 @@ final class NotesService {
         let model = deps.settings.builtInLLMModel
         guard let file = await deps.modelFile(model) else {
             // Nothing is written: the notes stay as they were, and the library offers the download.
-            if board.update({ $0.modelMissing = true }) { deps.changed() }
+            if board.update({
+                $0.modelMissing = true
+                if !job.requested { $0.awaitingModel.insert(id) }
+            }) {
+                deps.changed()
+            }
             if job.requested { deps.openSettings() }
             return
         }
-        board.update { $0.modelMissing = false }
+        board.update {
+            $0.modelMissing = false
+            $0.awaitingModel = []
+        }
         guard let previous = try? store.beginNotes(id) else { return }
         setPhase(.queued, for: id)
 
@@ -215,7 +297,10 @@ final class NotesService {
         } catch {
             outcome = .failure(error)
         }
-        conclude(outcome, job: job, previous: previous, model: model, store: store)
+        let epoch = epoch
+        if conclude(outcome, job: job, previous: previous, model: model, store: store), epoch == self.epoch {
+            rerun.insert(id)
+        }
     }
 
     private func apply(_ event: NotesEvent, to id: Int64) {
@@ -228,11 +313,14 @@ final class NotesService {
         }
     }
 
+    /// Writes what the job ended with. True when the notes were stored `stale` (a rename came while they were
+    /// written) and must be written again.
     private func conclude(
         _ outcome: Result<NotesResult, any Error>, job: Job, previous: NotesStatus, model: LLMModel,
         store: MeetingsStore
-    ) {
+    ) -> Bool {
         let id = job.meetingID
+        var again = false
         let logger = deps.logger
         switch outcome {
         case .failure(let error):
@@ -253,18 +341,31 @@ final class NotesService {
             }
             if status == .failed || result.markdown == nil {
                 _ = try? store.settleNotes(id, status: status == .failed ? .failed : previous)
+            } else if status == .partial, previous == .ok {
+                // A worse result never replaces complete notes: they stay, and the status says the new run failed
+                // ("Writing the notes failed. The notes below are from an earlier run.").
+                _ = try? store.settleNotes(id, status: .failed)
+                logger.notice("Partial notes were not stored over complete ones")
             } else {
-                let written =
+                let outcome =
                     (try? store.finishNotes(
                         id, markdown: result.markdown, status: status, promptVersion: result.promptVersion,
-                        model: model.id, droppedCount: result.droppedCount, generatedAt: deps.now())) ?? false
-                if !written { logger.notice("Notes finished after the meeting changed; they were not stored") }
+                        model: model.id, droppedCount: result.droppedCount, generatedAt: deps.now())) ?? .discarded
+                switch outcome {
+                case .stored: break
+                case .storedStale:
+                    // A speaker was renamed while the notes were written: write them again with the new names.
+                    again = true
+                    logger.notice("Notes finished after a rename; they are written again")
+                case .discarded: logger.notice("Notes finished after the meeting changed; they were not stored")
+                }
             }
             logger.notice(
                 "Notes \(String(describing: result.status), privacy: .public): \(result.chunkCount, privacy: .public) chunks, \(result.verifiedPointCount, privacy: .public) points, \(result.droppedCount, privacy: .public) dropped"
             )
         }
         deps.library.refreshCount()
+        return again
     }
 
     // MARK: Try it

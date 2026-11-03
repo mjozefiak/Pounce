@@ -411,10 +411,16 @@ Flow to check, in light and dark mode and once in Polish (`-AppleLanguages '(pl)
 - The `meetings.setup` step has an optional notes row: nothing is downloaded until the button is pressed.
 - With the switch on and the model present, stop a recording: the library row shows "Writing notes 1 of N", then
   "Notes". With the model missing it shows "Notes model needed" and the row has a "Download Notes Model" action (also a
-  banner and button in the meeting window) that opens Settings. Dictate while notes run: the dictation is not slowed
-  and the notes resume (or the badge says "Waiting for the model" when dictation uses another model).
+  banner and button in the meeting window) that opens Settings; only meetings that finished in this session with notes on
+  and the model missing get it, older ones show nothing, and downloading the model does not write notes for old
+  meetings by itself (use Regenerate Notes). Dictate with the built-in model while notes run: the notes' generation is
+  cancelled between two tokens, the model is reloaded for dictation (a few seconds the first time; at most one copy
+  is in memory), the dictation is formatted, and the notes take the model again afterwards and repeat the interrupted
+  step (the badge may say "Waiting for the model" for up to a few seconds meanwhile). Dictating with another model file
+  while notes run gives the raw text (the model is busy) and the notes keep running.
 - ⌘R and "Regenerate Notes" work on `ok`, `partial`, `failed` and `stale` notes; renaming a speaker marks them
-  outdated; a failed run keeps the earlier text and says so in the preview; "N points not backed by the recording were
+  outdated (also during the first generation: the notes then appear outdated and are written again by themselves);
+  a partial run never replaces complete notes (they stay, marked as from an earlier run); a failed run keeps the earlier text and says so in the preview; "N points not backed by the recording were
   left out" shows in the preview and the window (check 1, 2, 5 and 12 points in Polish for the plural forms).
 - Quit during a run and open again: the meeting shows "Notes failed" (never "Writing notes" for ever); the transcript is intact.
 

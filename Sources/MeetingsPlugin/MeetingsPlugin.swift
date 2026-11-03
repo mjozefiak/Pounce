@@ -65,6 +65,7 @@ public final class MeetingsPlugin: PouncePlugin {
                 openSettings: context.openSettings, changed: context.resultsChanged, logger: context.logger))
         self.notes = notes
         library.onMeetingReady = { [weak notes] id in notes?.meetingBecameReady(id) }
+        library.onWillClose = { [weak notes] in notes?.cancelJobs() }
         libraryActions = MeetingsLibraryActions(
             library: library, pasteboard: context.pasteboard, regenerate: { notes.regenerate($0) },
             changed: context.resultsChanged, notes: notes.board, openNotesSettings: context.openSettings)

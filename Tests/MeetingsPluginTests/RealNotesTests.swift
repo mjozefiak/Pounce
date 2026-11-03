@@ -73,8 +73,8 @@ struct RealNotesTests {
             for text in corpus.expect.drop {
                 #expect(!lowered.contains(text.lowercased()), "\(corpus.name): \(text) got into the notes")
             }
-            // The dropped count is part of the result whatever it is (the library shows it).
-            #expect(finished.droppedCount >= 0)
+            // The model answered something usable: the dropped count is reported next to real notes.
+            #expect(finished.status != .failed, "\(corpus.name): the notes failed")
         }
     }
 

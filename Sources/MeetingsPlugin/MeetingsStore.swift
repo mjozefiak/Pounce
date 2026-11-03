@@ -312,14 +312,15 @@ extension MeetingsStore {
         }
     }
 
-    /// Renames a speaker. The notes of the meeting become `stale`, but only when there are notes.
+    /// Renames a speaker. The notes of the meeting become `stale` when there are notes or they are being written
+    /// for the first time (`running`, no text yet); the job then stores its text as `stale`.
     func renameSpeaker(_ id: Int64, label: String) throws {
         try write { db in
             try db.execute(sql: "UPDATE meeting_speaker SET label = ? WHERE id = ?", arguments: [label, id])
             try db.execute(
                 sql: """
                     UPDATE meeting SET notes_status = 'stale'
-                    WHERE notes_markdown IS NOT NULL
+                    WHERE (notes_markdown IS NOT NULL OR notes_status = 'running')
                         AND id = (SELECT meeting_id FROM meeting_speaker WHERE id = ?)
                     """,
                 arguments: [id])

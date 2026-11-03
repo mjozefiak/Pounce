@@ -58,6 +58,8 @@ final class MeetingsLibrary {
     /// Told when a meeting becomes `ready` (a recording that ended, a recovered or finished one): the notes
     /// service queues it. Set by the plugin.
     @ObservationIgnored var onMeetingReady: (@MainActor (Int64) -> Void)?
+    /// Told at the start of `close()` (and so of `erase()`): the notes service stops its running job.
+    @ObservationIgnored var onWillClose: (@MainActor () -> Void)?
 
     init(
         directory: URL, keychain: any KeychainClient, settings: MeetingsSettings, clock: any Clock<Duration>,
@@ -156,6 +158,7 @@ final class MeetingsLibrary {
     /// meeting being `processing`). Sessions are **not** stopped here: the plugin must stop them before
     /// deactivating, or leave them registered with `registerLive`.
     func close() {
+        onWillClose?()
         generation += 1
         retention.stop()
         resumeTask?.cancel()

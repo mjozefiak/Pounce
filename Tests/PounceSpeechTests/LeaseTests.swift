@@ -497,6 +497,79 @@ private let folder = URL(filePath: "/models/speech/a")
         await interactive.release()
     }
 
+    @Test func anInteractiveRequestForAnotherContextLengthTakesTheModelFromABackgroundLease() async throws {
+        let dictation = LeaseLLM(contextLength: 4096, tracker: tracker)
+        let notes = LeaseLLM(contextLength: 8192, tracker: tracker)
+        let background = try await take(notes, priority: .background)
+        let running = Task { try await ask(background, "bg") }
+        await until { notes.log == ["start bg"] }
+
+        let interactive = try await take(dictation, priority: .interactive)
+        #expect(notes.log == ["start bg", "cancelled bg"])
+        #expect(notes.unloads == 1)
+        #expect(dictation.loads == [model])
+        #expect(tracker.peak == 1)
+        await #expect(throws: ModelLeaseError.yielded) { try await running.value }
+        #expect(background.wasYielded)
+        await #expect(throws: ModelLeaseError.yielded) { try await ask(background, "later") }
+        #expect(await lease.residentKey == .init(modelID: model.path, contextLength: 4096))
+        #expect(await lease.activeLeases == 1)
+
+        // The notes cannot take the model back while dictation holds it; after the release they can.
+        await #expect(throws: ModelLeaseError.busy) { try await take(notes, priority: .background) }
+        #expect(try await ask(interactive, "int").text == "int#1")
+        await interactive.release()
+        let again = try await take(notes, priority: .background)
+        #expect(notes.loads.count == 2)
+        #expect(dictation.unloads == 1)
+        #expect(try await ask(again, "bg").text == "bg#2")
+        #expect(tracker.peak == 1)
+        await again.release()
+        await background.release()
+        #expect(await lease.activeLeases == 0)
+    }
+
+    @Test func anIdleBackgroundLeaseIsAlsoGivenUpForAnInteractiveRequest() async throws {
+        let dictation = LeaseLLM(contextLength: 4096, tracker: tracker)
+        let notes = LeaseLLM(contextLength: 8192, tracker: tracker)
+        let background = try await take(notes, priority: .background)
+        let interactive = try await take(dictation, priority: .interactive)
+        #expect(background.wasYielded)
+        #expect(tracker.peak == 1)
+        await interactive.release()
+        await background.release()
+        #expect(await lease.activeLeases == 0)
+    }
+
+    @Test func anotherModelFileIsStillBusyAndTheBackgroundGenerationKeepsRunning() async throws {
+        let notes = LeaseLLM(contextLength: 8192, tracker: tracker)
+        let other = LeaseLLM(contextLength: 4096, tracker: tracker)
+        let background = try await take(notes, priority: .background)
+        let running = Task { try await ask(background, "bg") }
+        await until { notes.log == ["start bg"] }
+        await #expect(throws: ModelLeaseError.busy) {
+            try await lease.acquire(
+                key: .init(modelID: "/models/llm/other.gguf", contextLength: 4096), runtime: other,
+                modelURL: URL(filePath: "/models/llm/other.gguf"), priority: .interactive, keepWarm: { .seconds(60) })
+        }
+        #expect(!background.wasYielded)
+        #expect(notes.log == ["start bg"])
+        #expect(other.loads.isEmpty)
+        running.cancel()
+        _ = try? await running.value
+        await background.release()
+    }
+
+    @Test func aBackgroundRequestCannotTakeTheModelBackFromAnInteractiveHolder() async throws {
+        let dictation = LeaseLLM(contextLength: 4096, tracker: tracker)
+        let notes = LeaseLLM(contextLength: 8192, tracker: tracker)
+        let interactive = try await take(dictation, priority: .interactive)
+        await #expect(throws: ModelLeaseError.busy) { try await take(notes, priority: .background) }
+        #expect(!interactive.wasYielded)
+        #expect(notes.loads.isEmpty)
+        await interactive.release()
+    }
+
     @Test func aBackgroundRequestDoesNotInterruptAnotherBackgroundOne() async throws {
         let runtime = LeaseLLM(tracker: tracker)
         let background = try await take(runtime, priority: .background)

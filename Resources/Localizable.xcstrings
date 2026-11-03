@@ -433,20 +433,20 @@
         }
       }
     },
-    "After a meeting, a model that runs on this Mac writes a summary, decisions, action items and open questions in the background. Every point is checked against the recording; points it cannot find there are left out. Nothing is sent anywhere." : {
+    "After a meeting, a model that runs on this Mac writes a summary, decisions, action items and open questions in the background. Every point must quote the recording, and points without a matching quote are left out. The notes can still contain mistakes. Nothing is sent anywhere." : {
       "comment" : "Meetings settings footer under the notes",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "After a meeting, a model that runs on this Mac writes a summary, decisions, action items and open questions in the background. Every point is checked against the recording; points it cannot find there are left out. Nothing is sent anywhere."
+            "value" : "After a meeting, a model that runs on this Mac writes a summary, decisions, action items and open questions in the background. Every point must quote the recording, and points without a matching quote are left out. The notes can still contain mistakes. Nothing is sent anywhere."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Po spotkaniu model działający na tym Macu pisze w tle podsumowanie, decyzje, zadania i otwarte pytania. Każdy punkt jest sprawdzany z nagraniem; punkty, których tam nie ma, są pomijane. Nic nie jest nigdzie wysyłane."
+            "value" : "Po spotkaniu model działający na tym Macu pisze w tle podsumowanie, decyzje, zadania i otwarte pytania. Każdy punkt musi cytować nagranie, a punkty bez pasującego cytatu są pomijane. Notatki nadal mogą zawierać błędy. Nic nie jest nigdzie wysyłane."
           }
         }
       }

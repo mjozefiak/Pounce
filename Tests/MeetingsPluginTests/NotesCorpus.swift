@@ -85,7 +85,8 @@ struct NotesCorpusCase: Decodable, Sendable {
 }
 
 /// The invariants the notes must keep whatever the model said. Shared by the offline corpus tests and
-/// `RealNotesTests`.
+/// `RealNotesTests`. The marker list is deliberately crude: a legitimate link or URL in the notes would fail
+/// it, which is fine, because the notes are composed by code and must not contain any.
 enum NotesInvariants {
     static let forbiddenMarkup = ["![", "](", "<img", "<a ", "http://", "https://", "www."]
 

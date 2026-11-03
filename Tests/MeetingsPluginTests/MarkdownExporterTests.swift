@@ -90,6 +90,23 @@ enum ExportFixtures {
         try Golden.check(ExportFixtures.export(ExportFixtures.hostile()), named: "export-hostile.md")
     }
 
+    @Test func partialAndFailedNotesCarryACaveatLikeStaleOnesAndOkNotesDoNot() {
+        var document = ExportFixtures.plain()
+        document.notesMarkdown = "- one point"
+        let labels = MarkdownExporter.Labels.english
+        func export(_ status: NotesStatus) -> String { MarkdownExporter.export(document, labels: labels) }
+        document.notesStatus = .partial
+        #expect(export(.partial).contains("> _" + labels.partialNotes + "_\n"))
+        document.notesStatus = .failed
+        #expect(export(.failed).contains("> _" + labels.failedNotes + "_\n"))
+        document.notesStatus = .stale
+        #expect(export(.stale).contains("> _These notes may be out of date"))
+        document.notesStatus = .ok
+        let ok = export(.ok)
+        #expect(!ok.contains("> _"))
+        #expect(!labels.partialNotes.isEmpty && !labels.failedNotes.isEmpty)
+    }
+
     @Test func aMeetingWithoutTitleNotesOrSegmentsIsStillValid() throws {
         var document = ExportFixtures.plain()
         document.title = nil

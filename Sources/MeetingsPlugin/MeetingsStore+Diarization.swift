@@ -83,8 +83,8 @@ extension MeetingsStore {
 
     /// "To ja": makes this speaker the one `is_self` speaker of its meeting. A speaker still named by the
     /// default ("Mówca N") becomes "Ja"; one the user renamed keeps its name. The speaker who was "Ja" before
-    /// loses the flag and, if still labelled "Ja", gets the lowest free "Mówca N". Notes that exist become
-    /// `stale`, like after a rename. Returns false when the speaker does not exist **or when the meeting is in
+    /// loses the flag and, if still labelled "Ja", gets the lowest free "Mówca N". Notes that exist (or are being
+    /// written) become `stale`, like after a rename. Returns false when the speaker does not exist **or when the meeting is in
     /// `channels` mode**: there the speakers are tracks ("Ja" / "Inni", or one neutral "Mówca 1"), not people,
     /// and moving the flag would break the track-to-label rule the banner promises. Renaming still works.
     @discardableResult
@@ -127,7 +127,10 @@ extension MeetingsStore {
                 sql: "UPDATE meeting_speaker SET is_self = 1, label = ? WHERE id = ?",
                 arguments: [isDefault ? SpeakerLabels.me : label, speakerID])
             try db.execute(
-                sql: "UPDATE meeting SET notes_status = 'stale' WHERE id = ? AND notes_markdown IS NOT NULL",
+                sql: """
+                    UPDATE meeting SET notes_status = 'stale'
+                    WHERE id = ? AND (notes_markdown IS NOT NULL OR notes_status = 'running')
+                    """,
                 arguments: [meetingID])
             return true
         }

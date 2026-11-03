@@ -47,6 +47,74 @@ import Testing
         #expect(await rig.waitUntilReleased())
     }
 
+    @Test func dictationWithItsOwnContextLengthTakesTheModelAndTheNotesResumeAfterIt() async throws {
+        let started = Flag()
+        let rig = NotesRig { call, messages, _ in
+            if call == 1 {
+                started.set()
+                return try await hang()  // cancelled between two tokens
+            }
+            return .done(NotesFake.answer(messages))
+        }
+        let both = Flag()
+        let dictationLLM = ScriptedLLM(contextLength: 4096) { [llm = rig.llm] _, _, _ in
+            if llm.isLoaded { both.set() }  // two copies of the model in memory would show here
+            return .done("dictation")
+        }
+        let log = NotesEventLog()
+        let pipeline = rig.pipeline({ $0.busyPoll = .milliseconds(20) })
+        let notes = Task { try await pipeline.run(utterances: NotesFixtures.meeting(), onEvent: log.add) }
+        await notesEventually { started.isSet }
+
+        let dictation = try await rig.lease.acquire(
+            key: .init(modelID: rig.url.path, contextLength: 4096), runtime: dictationLLM, modelURL: rig.url,
+            priority: .interactive, keepWarm: { .seconds(60) })
+        #expect(!rig.llm.isLoaded)
+        #expect(dictationLLM.isLoaded)
+        let answer = try await dictation.generateResult(
+            messages: [ChatMessage(role: "system", content: "interactive")], maxTokens: 8)
+        #expect(answer.text == "dictation")
+        #expect(!both.isSet)
+        await dictation.release()
+
+        let result = try await notes.value
+        // The interrupted request is repeated: not a failure, not a retry, no format reminder.
+        #expect(result.status == .ok)
+        #expect(result.failedChunks.isEmpty)
+        let calls = rig.llm.calls
+        #expect(calls.count == 3)
+        #expect(NotesFake.isMap(calls[0].messages))
+        #expect(NotesFake.isMap(calls[1].messages))
+        #expect(!NotesFake.lastUser(calls[1].messages).contains(NotesPrompt.formatReminder))
+        #expect(NotesFake.isReduce(calls[2].messages))
+        #expect(await rig.waitUntilReleased())
+        #expect(rig.llm.isLoaded)
+        #expect(!dictationLLM.isLoaded)
+    }
+
+    @Test func aDifferentModelFileOfDictationDoesNotInterruptTheNotes() async throws {
+        let started = Flag()
+        let proceed = Flag()
+        let rig = NotesRig { _, messages, _ in
+            started.set()
+            while !proceed.isSet { try await Task.sleep(for: .milliseconds(5)) }
+            return .done(NotesFake.answer(messages))
+        }
+        let other = ScriptedLLM(contextLength: 4096) { _, _, _ in .done("") }
+        let notes = Task { try await rig.pipeline().run(utterances: NotesFixtures.meeting()) }
+        await notesEventually { started.isSet }
+        await #expect(throws: ModelLeaseError.busy) {
+            _ = try await rig.lease.acquire(
+                key: .init(modelID: "/models/llm/other.gguf", contextLength: 4096), runtime: other,
+                modelURL: URL(filePath: "/models/llm/other.gguf"), priority: .interactive, keepWarm: { .seconds(60) })
+        }
+        proceed.set()
+        let result = try await notes.value
+        #expect(result.status == .ok)
+        #expect(rig.llm.calls.count == 2)
+        #expect(await rig.waitUntilReleased())
+    }
+
     @Test func aBusyModelMakesTheNotesWaitAndThenRun() async throws {
         let rig = NotesRig()
         let other = ScriptedLLM(contextLength: 4096) { _, _, _ in .done("") }

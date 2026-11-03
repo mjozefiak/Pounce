@@ -1,5 +1,6 @@
 import Foundation
 import PounceSpeech
+import Synchronization
 
 /// The built-in model the notes run on: the shared `LLMLease` (key: model file, context length 8192), the
 /// runtime that loads the file when nobody else did, and the keep-warm time after the last release.
@@ -72,11 +73,15 @@ enum NotesFailure: Error, Equatable {
 
 /// MAP → REDUCE over the transcript on the built-in model (spec: Architecture → Notatki).
 ///
-/// Every request goes through the `LLMLease` at `background` priority: when dictation asks for the model the
-/// running generation is cancelled between two tokens by the lease and starts again afterwards, so this code
-/// just waits. A chunk gets one retry (a failed or malformed answer, a timeout, or a doubled token limit when the
-/// answer was cut off; a cut-off answer is never taken as a result) and, when the prompt does not fit the
-/// context, one split into halves. Whatever cannot be done leaves the notes `partial`, never wrong.
+/// Every request goes through the `LLMLease` at `background` priority. Dictation always goes first, and it wins
+/// on the same model file even though its context length (4096) is not the notes' (8192): the lease then takes
+/// the notes' lease away (`ModelLeaseError.yielded`), the running generation is cancelled between two tokens,
+/// dictation's model is loaded, and `NotesLease` takes a new lease after dictation released it and repeats the
+/// interrupted request (it is not a failure and not a retry; the notes' time limit does not run meanwhile). A
+/// different model file in use makes the job wait ("Czeka na model"). A chunk gets one retry (a failed or
+/// malformed answer, a timeout, or a doubled token limit when the answer was cut off; a cut-off answer is never
+/// taken as a result) and, when the prompt does not fit the context, one split into halves. Whatever cannot be
+/// done leaves the notes `partial`, never wrong.
 struct NotesPipeline: Sendable {
     struct Configuration: Sendable {
         var chunkTokens = TranscriptChunker.defaultChunkTokens
@@ -119,45 +124,23 @@ struct NotesPipeline: Sendable {
                 reduceFailed: false, summaryReplaced: false, rejectedIDs: 0, language: verifier.language,
                 promptVersion: String(NotesPrompt.version))
         }
-        let handle = try await acquire(onEvent: onEvent)
+        let lease = NotesLease(model: model, configuration: configuration, sleep: sleep, onEvent: onEvent)
+        try await lease.open()
         do {
             let result = try await work(
-                chunks: chunks, utterances: utterances, verifier: verifier, handle: handle, onEvent: onEvent)
-            await handle.release()
+                chunks: chunks, utterances: utterances, verifier: verifier, lease: lease, onEvent: onEvent)
+            await lease.release()
             return result
         } catch {
-            await handle.release()
+            await lease.release()
             throw error
-        }
-    }
-
-    // MARK: Lease
-
-    private func acquire(onEvent: @Sendable (NotesEvent) -> Void) async throws -> LLMHandle {
-        var waited = Duration.zero
-        while true {
-            try Task.checkCancellation()
-            do {
-                return try await model.lease.acquire(
-                    key: model.key, runtime: model.runtime, modelURL: model.modelURL, priority: .background,
-                    keepWarm: model.keepWarm)
-            } catch let error as ModelLeaseError where error == .busy {
-                if waited >= configuration.busyLimit { throw NotesFailure.modelBusy }
-                onEvent(.waitingForModel)
-                try await sleep(configuration.busyPoll)
-                waited += configuration.busyPoll
-            } catch is CancellationError {
-                throw CancellationError()
-            } catch {
-                throw NotesFailure.modelUnavailable
-            }
         }
     }
 
     // MARK: Flow
 
     private func work(
-        chunks: [TranscriptChunk], utterances: [NotesUtterance], verifier: NotesGuard, handle: LLMHandle,
+        chunks: [TranscriptChunk], utterances: [NotesUtterance], verifier: NotesGuard, lease: NotesLease,
         onEvent: @Sendable (NotesEvent) -> Void
     ) async throws -> NotesResult {
         var proposed: [NotesPoint] = []
@@ -166,7 +149,7 @@ struct NotesPipeline: Sendable {
         for (index, chunk) in chunks.enumerated() {
             try Task.checkCancellation()
             onEvent(.map(done: index, total: chunks.count))
-            let outcome = try await mapChunk(chunk, handle: handle, canSplit: true)
+            let outcome = try await mapChunk(chunk, lease: lease, canSplit: true)
             proposed.append(contentsOf: outcome.points)
             failed.append(contentsOf: outcome.failed)
             if outcome.failed.contains(chunk.id) { failedWhole += 1 }
@@ -208,7 +191,7 @@ struct NotesPipeline: Sendable {
                 downgraded: verdict.downgraded)
         }
 
-        let reduced = try await reduce(points: points, handle: handle)
+        let reduced = try await reduce(points: points, lease: lease)
         onEvent(.finishing)
         let final = verifier.verifyReduce(reduced.output, points: points)
         let markdown = NotesComposer.markdown(verdict: final, participants: participants, labels: labels)
@@ -251,9 +234,9 @@ struct NotesPipeline: Sendable {
         var failed: [String] = []
     }
 
-    private func mapChunk(_ chunk: TranscriptChunk, handle: LLMHandle, canSplit: Bool) async throws -> MapOutcome {
+    private func mapChunk(_ chunk: TranscriptChunk, lease: NotesLease, canSplit: Bool) async throws -> MapOutcome {
         let completion = try await complete(
-            handle, maxTokens: configuration.mapMaxTokens, timeout: configuration.mapTimeout,
+            lease, maxTokens: configuration.mapMaxTokens, timeout: configuration.mapTimeout,
             messages: { NotesPrompt.mapMessages(chunk: chunk, reminder: $0) },
             parse: { raw -> [NotesPoint]? in
                 if case .points(let points) = NotesParser.parseMap(raw) { points } else { nil }
@@ -267,7 +250,7 @@ struct NotesPipeline: Sendable {
             guard canSplit, let halves = chunk.split() else { return MapOutcome(failed: [chunk.id]) }
             var merged = MapOutcome()
             for half in halves {
-                let outcome = try await mapChunk(half, handle: handle, canSplit: false)
+                let outcome = try await mapChunk(half, lease: lease, canSplit: false)
                 merged.points.append(contentsOf: outcome.points)
                 merged.failed.append(contentsOf: outcome.failed)
             }
@@ -286,35 +269,35 @@ struct NotesPipeline: Sendable {
         NotesText.estimateTokens(NotesPrompt.reduceLine(point), fallback: .unknown) + 4
     }
 
-    private func reduce(points: [NotesPoint], handle: LLMHandle) async throws -> Reduced {
+    private func reduce(points: [NotesPoint], lease: NotesLease) async throws -> Reduced {
         if points.count <= 1 || points.reduce(0, { $0 + cost(of: $1) }) <= configuration.reduceInputTokens {
-            return try await reduceSingle(points, handle: handle)
+            return try await reduceSingle(points, lease: lease)
         }
         let batches = Self.batches(points, budget: configuration.reduceInputTokens, cost: { cost(of: $0) })
-        return try await reduceBatches(batches, handle: handle)
+        return try await reduceBatches(batches, lease: lease)
     }
 
     /// One request per batch, then the sections joined in order and the partial summaries merged into one.
-    private func reduceBatches(_ batches: [[NotesPoint]], handle: LLMHandle) async throws -> Reduced {
+    private func reduceBatches(_ batches: [[NotesPoint]], lease: NotesLease) async throws -> Reduced {
         var merged = Reduced()
         var summaries: [String] = []
         for batch in batches {
-            let part = try await reduceSingle(batch, handle: handle)
+            let part = try await reduceSingle(batch, lease: lease)
             merged.output.decisions.append(contentsOf: part.output.decisions)
             merged.output.tasks.append(contentsOf: part.output.tasks)
             merged.output.questions.append(contentsOf: part.output.questions)
             if let summary = part.output.summary { summaries.append(summary) }
             merged.failed = merged.failed || part.failed
         }
-        let summary = try await mergeSummaries(summaries, handle: handle)
+        let summary = try await mergeSummaries(summaries, lease: lease)
         merged.output.summary = summary.text
         merged.failed = merged.failed || summary.failed
         return merged
     }
 
-    private func reduceSingle(_ points: [NotesPoint], handle: LLMHandle) async throws -> Reduced {
+    private func reduceSingle(_ points: [NotesPoint], lease: NotesLease) async throws -> Reduced {
         let completion = try await complete(
-            handle, maxTokens: configuration.reduceMaxTokens, timeout: configuration.reduceTimeout,
+            lease, maxTokens: configuration.reduceMaxTokens, timeout: configuration.reduceTimeout,
             messages: { NotesPrompt.reduceMessages(points: points, reminder: $0) },
             parse: { NotesParser.parseReduce($0) })
         switch completion {
@@ -322,7 +305,7 @@ struct NotesPipeline: Sendable {
             return Reduced(output: output)
         case .promptTooLong where points.count > 1:
             let middle = points.count / 2
-            return try await reduceBatches([Array(points[..<middle]), Array(points[middle...])], handle: handle)
+            return try await reduceBatches([Array(points[..<middle]), Array(points[middle...])], lease: lease)
         case .promptTooLong, .failed:
             return Reduced(output: Self.codeOrder(points), failed: true)
         }
@@ -362,7 +345,7 @@ struct NotesPipeline: Sendable {
     /// two of them do not fit together (or the levels run out) it gives up with `failed`, and the guard composes
     /// the paragraph from the points.
     private func mergeSummaries(
-        _ summaries: [String], handle: LLMHandle, depth: Int = 0
+        _ summaries: [String], lease: NotesLease, depth: Int = 0
     ) async throws -> (text: String?, failed: Bool) {
         let texts = summaries.map(NotesGuard.plain).filter { !$0.isEmpty }.map {
             NotesText.truncated($0, limit: NotesGuard.maxSummaryLength)
@@ -372,7 +355,7 @@ struct NotesPipeline: Sendable {
         let total = texts.reduce(0) { $0 + NotesText.estimateTokens($1, fallback: .unknown) + 4 }
         if total <= configuration.reduceInputTokens {
             let completion = try await complete(
-                handle, maxTokens: configuration.reduceMaxTokens, timeout: configuration.reduceTimeout,
+                lease, maxTokens: configuration.reduceMaxTokens, timeout: configuration.reduceTimeout,
                 messages: { NotesPrompt.summaryMessages(summaries: texts, reminder: $0) },
                 parse: { NotesParser.parseSummary($0) })
             if case .value(let text) = completion { return (text, false) }
@@ -388,10 +371,10 @@ struct NotesPipeline: Sendable {
                 break
             }
         }
-        return try await mergeInBatches(texts, size: size, handle: handle, depth: depth + 1)
+        return try await mergeInBatches(texts, size: size, lease: lease, depth: depth + 1)
     }
 
-    private func mergeInBatches(_ texts: [String], size: Int, handle: LLMHandle, depth: Int) async throws -> (
+    private func mergeInBatches(_ texts: [String], size: Int, lease: NotesLease, depth: Int) async throws -> (
         text: String?, failed: Bool
     ) {
         var next: [String] = []
@@ -400,12 +383,12 @@ struct NotesPipeline: Sendable {
         while start < texts.count {
             let batch = Array(texts[start..<min(start + size, texts.count)])
             start += size
-            let merged = try await mergeSummaries(batch, handle: handle, depth: depth)
+            let merged = try await mergeSummaries(batch, lease: lease, depth: depth)
             failed = failed || merged.failed
             if let text = merged.text { next.append(text) }
         }
         if next.count <= 1 { return (next.first, failed) }
-        let final = try await mergeSummaries(next, handle: handle, depth: depth)
+        let final = try await mergeSummaries(next, lease: lease, depth: depth)
         return (final.text, failed || final.failed)
     }
 
@@ -433,7 +416,7 @@ struct NotesPipeline: Sendable {
     /// answer is a failure) and is never used as it is. A prompt that does not fit the context is reported to
     /// the caller, which splits its input. The time limit counts generation only (`NotesDeadline`).
     private func complete<Value: Sendable>(
-        _ handle: LLMHandle, maxTokens: Int, timeout: Duration, messages: (Bool) -> [ChatMessage],
+        _ lease: NotesLease, maxTokens: Int, timeout: Duration, messages: (Bool) -> [ChatMessage],
         parse: (String) -> Value?
     ) async throws -> Completion<Value> {
         var limit = maxTokens
@@ -450,7 +433,7 @@ struct NotesPipeline: Sendable {
             let tokens = limit
             do {
                 let generated = try await NotesDeadline.run(limit: timeout, sleep: sleep) { phase in
-                    try await handle.generateResult(messages: prompt, maxTokens: tokens, onPhase: phase)
+                    try await lease.generateResult(messages: prompt, maxTokens: tokens, onPhase: phase)
                 }
                 guard let result = generated else { throw AttemptError.timedOut }
                 if result.stoppedByTokenLimit { throw AttemptError.truncated }
@@ -474,6 +457,78 @@ struct NotesPipeline: Sendable {
                 case .malformed?: reminder = true
                 default: break
                 }
+            }
+        }
+    }
+}
+
+/// The notes' lease on the model: takes it (waiting while another model is in use) and, when dictation took
+/// the model over (`ModelLeaseError.yielded`), takes it again once dictation is done and repeats the request.
+final class NotesLease: Sendable {
+    private let model: NotesModel
+    private let configuration: NotesPipeline.Configuration
+    private let sleep: @Sendable (Duration) async throws -> Void
+    private let onEvent: @Sendable (NotesEvent) -> Void
+    private let current = Mutex<LLMHandle?>(nil)
+
+    init(
+        model: NotesModel, configuration: NotesPipeline.Configuration,
+        sleep: @escaping @Sendable (Duration) async throws -> Void, onEvent: @escaping @Sendable (NotesEvent) -> Void
+    ) {
+        self.model = model
+        self.configuration = configuration
+        self.sleep = sleep
+        self.onEvent = onEvent
+    }
+
+    func open() async throws {
+        _ = try await handle()
+    }
+
+    func release() async {
+        let handle = current.withLock { handle -> LLMHandle? in
+            defer { handle = nil }
+            return handle
+        }
+        await handle?.release()
+    }
+
+    func generateResult(
+        messages: [ChatMessage], maxTokens: Int, onPhase: (@Sendable (GenerationPhase) -> Void)?
+    ) async throws -> GenerationResult {
+        while true {
+            let held = try await handle()
+            do {
+                return try await held.generateResult(messages: messages, maxTokens: maxTokens, onPhase: onPhase)
+            } catch ModelLeaseError.yielded {
+                // Dictation has the model: the time limit stops (queued) until a new lease is taken.
+                onPhase?(.queued)
+                current.withLock { if $0 === held { $0 = nil } }
+                await held.release()
+            }
+        }
+    }
+
+    private func handle() async throws -> LLMHandle {
+        if let existing = current.withLock({ $0 }) { return existing }
+        var waited = Duration.zero
+        while true {
+            try Task.checkCancellation()
+            do {
+                let handle = try await model.lease.acquire(
+                    key: model.key, runtime: model.runtime, modelURL: model.modelURL, priority: .background,
+                    keepWarm: model.keepWarm)
+                current.withLock { $0 = handle }
+                return handle
+            } catch let error as ModelLeaseError where error == .busy {
+                if waited >= configuration.busyLimit { throw NotesFailure.modelBusy }
+                onEvent(.waitingForModel)
+                try await sleep(configuration.busyPoll)
+                waited += configuration.busyPoll
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                throw NotesFailure.modelUnavailable
             }
         }
     }

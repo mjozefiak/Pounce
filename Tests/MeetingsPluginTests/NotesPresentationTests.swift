@@ -49,6 +49,7 @@ private func windowModel(
         wanting.update {
             $0.enabled = true
             $0.modelMissing = true
+            $0.awaitingModel = [needs.meetingID]
         }
         #expect(await banners(needs, board: wanting) == [.notesNeedsModel])
         // Notes that are off do not nag.

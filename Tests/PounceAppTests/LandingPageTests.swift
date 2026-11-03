@@ -73,11 +73,16 @@ private let repositoryRoot = URL(filePath: #filePath)
         // No claim that audio is never kept: that is true of dictation only.
         let meetingCopy = try texts("f5.d", in: page)
         #expect(!meetingCopy.en.localizedCaseInsensitiveContains("never saved"))
-        // Notes (Phase 2) are local, optional and checked against the recording; the model download is the only network use.
+        // Notes (Phase 2) are local, optional and quote the recording; the model download is the only network use.
         #expect(meetingCopy.en.contains("also runs on your Mac"))
-        #expect(meetingCopy.en.contains("checked against the recording"))
+        // Not a guarantee: the points must quote the recording, and the notes can still contain mistakes.
+        #expect(meetingCopy.en.contains("must quote the recording"))
+        #expect(meetingCopy.en.contains("can still contain mistakes"))
+        #expect(!meetingCopy.en.contains("checked against"))
         #expect(meetingCopy.pl.contains("też działa na Twoim Macu"))
-        #expect(meetingCopy.pl.contains("sprawdzany z nagraniem"))
+        #expect(meetingCopy.pl.contains("musi cytować nagranie"))
+        #expect(meetingCopy.pl.contains("mogą zawierać błędy"))
+        #expect(!meetingCopy.pl.contains("sprawdzany"))
         #expect(general.contains("językowy"))
         #expect(general.contains("notatki ze spotkań nigdy nie opuszczają Maca"))
         let (generalEn, _) = try texts("a4", in: page)

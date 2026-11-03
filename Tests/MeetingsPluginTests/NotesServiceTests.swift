@@ -346,7 +346,7 @@ import Testing
         #expect(try #require(try rig.document(id).notesMarkdown).contains("Marek Kowalski"))
     }
 
-    @Test func aRenameDuringARegenerationKeepsTheStaleMark() async throws {
+    @Test func aRenameDuringARegenerationStoresTheTextStaleAndWritesItAgainWithTheNewName() async throws {
         let hold = Flag()
         let reached = Flag()
         let rig = try NotesServiceRig { _, messages, _ in
@@ -364,13 +364,16 @@ import Testing
         hold.set()
         rig.service.regenerate(id)
         #expect(await waitFor { reached.isSet })
-        // A rename marks the notes stale; the finishing job must not overwrite that.
-        try rig.store.write { db in
-            try db.execute(sql: "UPDATE meeting SET notes_status = 'stale' WHERE id = ?", arguments: [id])
-        }
+        // A real rename marks the notes stale while the job runs; the finishing job must not hide that.
+        try rig.store.renameSpeaker(rig.speakerID(of: id, named: "Marek"), label: "Marek Kowalski")
+        #expect(try rig.record(id).status == .stale)
+        let callsBefore = rig.llm.calls.count
         hold.clear()
         #expect(await rig.settle())
-        #expect(try rig.record(id).status == .stale)
+        // The job wrote its text as stale and was queued again by itself: the second run has the new name.
+        #expect(rig.llm.calls.count > callsBefore + 2)
+        #expect(try rig.record(id).status == .ok)
+        #expect(try #require(try rig.document(id).notesMarkdown).contains("Marek Kowalski"))
     }
 
     @Test func aBusyModelMakesTheJobWaitAndThenItRuns() async throws {

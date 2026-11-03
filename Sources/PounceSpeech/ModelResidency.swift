@@ -15,6 +15,9 @@ public enum ModelLeaseError: Error, Equatable, Sendable {
     case busy
     /// The handle was released already.
     case released
+    /// A `background` lease was taken away for an `interactive` request of the same model (another context
+    /// length): take a new lease later and repeat the request.
+    case yielded
 }
 
 /// Counts the calls that are using a model right now, so an unload can wait for them: a Core ML transcription

@@ -210,7 +210,7 @@ final class MeetingWindowModel {
             case .failed: result.append(.notesFailed)
             case .partial: result.append(.notesPartial)
             case .stale where document.notesMarkdown != nil: result.append(.notesStale)
-            case .none where document.status == .ready && notes?.snapshot.needsModel == true:
+            case .none where document.status == .ready && notes?.snapshot.needsModel(for: meetingID) == true:
                 result.append(.notesNeedsModel)
             default: break
             }

@@ -89,7 +89,7 @@ struct MeetingsSettingsPane: View {
                 Text("Notes", comment: "Meetings settings section title of the notes")
             } footer: {
                 Text(
-                    "After a meeting, a model that runs on this Mac writes a summary, decisions, action items and open questions in the background. Every point is checked against the recording; points it cannot find there are left out. Nothing is sent anywhere.",
+                    "After a meeting, a model that runs on this Mac writes a summary, decisions, action items and open questions in the background. Every point must quote the recording, and points without a matching quote are left out. The notes can still contain mistakes. Nothing is sent anywhere.",
                     comment: "Meetings settings footer under the notes"
                 )
                 .font(.callout).foregroundStyle(.secondary)

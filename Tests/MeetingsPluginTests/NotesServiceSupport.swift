@@ -39,6 +39,7 @@ final class NotesServiceRig {
         settings initial: [String: SettingValue] = ["plugins.meetings.notesEnabled": .bool(true)],
         physicalMemory: UInt64 = 16 * NotesServiceRig.gibibyte,
         handler: @escaping ScriptedLLM.Handler = NotesFake.standard,
+        runtime custom: (any LLMRuntime)? = nil, shutdownLimit: Duration = .milliseconds(200),
         configure: @escaping @Sendable (inout NotesPipeline.Configuration) -> Void = { _ in }
     ) throws {
         harness = try MeetingsHarness(settings: initial)
@@ -54,13 +55,14 @@ final class NotesServiceRig {
         service = NotesService(
             NotesService.Dependencies(
                 library: library, settings: settings, lease: lease, modelFile: { _ in file.get() },
-                makeRuntime: { llm },
+                makeRuntime: { custom ?? llm },
                 configure: { configuration in
                     configuration.busyPoll = .milliseconds(10)
                     configure(&configuration)
-                }, now: { now },
+                }, now: { now }, shutdownLimit: shutdownLimit,
                 openSettings: { opened.update { $0 += 1 } }, changed: { changes.update { $0 += 1 } }))
         library.onMeetingReady = { [service] id in service?.meetingBecameReady(id) }
+        library.onWillClose = { [service] in service?.cancelJobs() }
     }
 
     /// A `ready` meeting with this transcript (one speaker per name).

@@ -22,11 +22,15 @@ enum MarkdownExporter {
         var untitled: String
         var unknownSpeaker: String
         var staleNotes: String
+        var partialNotes: String
+        var failedNotes: String
 
         static let english = Labels(
             date: "Date", duration: "Duration", participants: "Participants", notes: "Notes",
             transcript: "Transcript", untitled: "Meeting", unknownSpeaker: "Unknown speaker",
-            staleNotes: "These notes may be out of date: a speaker was renamed after they were written.")
+            staleNotes: "These notes may be out of date: a speaker was renamed after they were written.",
+            partialNotes: "These notes miss parts of the recording that could not be read.",
+            failedNotes: "Writing the notes failed. The notes below are from an earlier run.")
 
         static var localized: Labels {
             Labels(
@@ -40,7 +44,8 @@ enum MarkdownExporter {
                     localized: "Unknown speaker", comment: "Markdown export: segment without a speaker"),
                 staleNotes: String(
                     localized: "These notes may be out of date: a speaker was renamed after they were written.",
-                    comment: "Markdown export: note under the notes heading when a speaker was renamed"))
+                    comment: "Markdown export: note under the notes heading when a speaker was renamed"),
+                partialNotes: NotesMessages.partialNotice, failedNotes: NotesMessages.failedNotice)
         }
     }
 
@@ -64,8 +69,15 @@ enum MarkdownExporter {
             lines.append("")
             lines.append("## " + plain(labels.notes))
             lines.append("")
-            if meeting.notesStatus == .stale {
-                lines.append("> _" + plain(labels.staleNotes) + "_")
+            let caveat: String? =
+                switch meeting.notesStatus {
+                case .stale: labels.staleNotes
+                case .partial: labels.partialNotes
+                case .failed: labels.failedNotes
+                case .none, .running, .ok: nil
+                }
+            if let caveat {
+                lines.append("> _" + plain(caveat) + "_")
                 lines.append("")
             }
             lines.append(notes)

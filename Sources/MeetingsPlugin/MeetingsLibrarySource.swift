@@ -39,7 +39,8 @@ struct MeetingsLibrarySource: PanelModeSource {
                 icon: .symbol(MeetingLibraryPresentation.symbol(entry)),
                 match: MatchResult(tier: .exact, score: 0),
                 badge: MeetingLibraryPresentation.badge(
-                    entry, phase: snapshot?.phases[entry.id], needsNotesModel: snapshot?.needsModel ?? false))
+                    entry, phase: snapshot?.phases[entry.id],
+                    needsNotesModel: snapshot?.needsModel(for: entry.id) ?? false))
         }
     }
 
@@ -78,7 +79,7 @@ struct MeetingsLibrarySource: PanelModeSource {
                     shortcut: KeyShortcut(key: "r", modifiers: .command)
                 ) { _ in await actions.regenerate(id) })
         }
-        if notes?.snapshot.needsModel == true, candidate.badge == MeetingLibraryPresentation.needsModelBadge {
+        if notes?.snapshot.needsModel(for: id) == true, candidate.badge == MeetingLibraryPresentation.needsModelBadge {
             let openSettings = openSettings
             result.append(
                 ResultAction(
