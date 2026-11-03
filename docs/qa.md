@@ -312,6 +312,35 @@ Needs a real Keychain and the app built by `scripts/make-app.sh` (not `--qa`, wh
 - Keychain Access shows one `app.pounce.dictation` item; Settings → Features → Dictation → Erase Data removes it and the `Plugins/dictation` folder (downloaded models in `Models/` stay; "Remove model" deletes them);
 - delete the `app.pounce.dictation` item by hand and relaunch: the old file is renamed `dictation.sqlite.unreadable-<date>` and the history starts empty.
 
+## Meetings audio sources (manual)
+
+The real Core Audio tap (`CoreAudioProcessTapBackend`) is compiled but never exercised by `swift test`: a tap shows the
+system-audio consent prompt and captures real audio. Everything around it (conversion to 16 kHz mono, gap filling,
+device-change handling, timeline alignment, the self-test verdicts, echo suppression) is covered by unit tests with a
+scripted fake backend. Check the real thing by hand with the app built by `scripts/make-app.sh` (not `--qa`, which
+isolates the Keychain; audio permissions are per app, not per `--qa` data folder):
+
+- **Denial yields zero buffers.** Start a tap (Settings, test button, or the record command once it exists) and deny the
+  consent prompt (or remove Pounce from System Settings, Privacy & Security, "System Audio Recording Only"). The tap
+  still starts, but every buffer is zeros. The self-test must say there is no audio ("check the permission") and the
+  meeting HUD must show the hint after 20 s of a silent system track while the microphone keeps recording. Granting the
+  permission again and re-running the self-test says it works.
+- **Bluetooth headphones.** Record while playing audio; connect or disconnect AirPods (or switch the default output in
+  System Settings, Sound) mid-recording. The system track must continue within about a second, the gap is silent, and
+  the transcript times of the microphone and system tracks stay aligned (speak a clap or a count on both sides). Do it
+  twice in a row and with the headset connecting while no audio plays.
+- **Echo.** Listen through the speakers (no headphones) to a remote speaker and check that the same sentence does not
+  appear on both tracks (`EchoSuppressor`).
+- **Confirm the privacy pane id.** ADR 0007 item 4 leaves `Privacy_AudioCapture` unconfirmed. Open
+  `x-apple.systempreferences:com.apple.preference.security?Privacy_AudioCapture` and note whether it lands on the "System
+  Audio Recording" list. If it does not, record the correct id in the ADR and in the Permissions deep link.
+- **Permission lost after an ad-hoc rebuild.** With ad-hoc signing the code signature changes on every build, so macOS
+  forgets the system-audio consent: after rebuilding, the self-test goes back to "no audio" until the prompt is accepted
+  again (remove the stale Pounce entry first if the prompt does not come back). Release builds signed with the stable
+  "Pounce Release" certificate keep it.
+- **Setting.** `plugins.meetings.systemAudio` off records the microphone only and never creates a tap (no prompt).
+- **Cleanup.** After stopping a recording, `Audio MIDI Setup` shows no leftover "Pounce meeting tap" aggregate device.
+
 ## Never during QA
 
 - No synthetic key events, no `tccutil`, no edits to TCC databases or `com.apple.*` defaults.

@@ -11,6 +11,7 @@ struct MeetingsSettings: Sendable {
         static let speechModelFolder = "speechModelFolder"
         static let inputDevice = "inputDevice"
         static let voiceProcessing = "voiceProcessing"
+        static let systemAudio = "systemAudio"
         static let diarization = "diarization"
         static let consentReminder = "consentReminder"
         static let notesEnabled = "notesEnabled"
@@ -59,6 +60,8 @@ struct MeetingsSettings: Sendable {
         return uid
     }
 
+    /// Capture system audio (the remote side of a call) next to the microphone; off records the microphone only.
+    var systemAudio: Bool { settings.bool(Key.systemAudio, default: true) }
     var voiceProcessing: Bool { settings.bool(Key.voiceProcessing, default: false) }
     var diarization: Bool { settings.bool(Key.diarization, default: true) }
     var consentReminder: Bool { settings.bool(Key.consentReminder, default: true) }
@@ -115,6 +118,7 @@ struct MeetingsSettings: Sendable {
     }
 
     func setVoiceProcessing(_ value: Bool) { settings.set(value, for: Key.voiceProcessing) }
+    func setSystemAudio(_ value: Bool) { settings.set(value, for: Key.systemAudio) }
     func setDiarization(_ value: Bool) { settings.set(value, for: Key.diarization) }
     func setConsentReminder(_ value: Bool) { settings.set(value, for: Key.consentReminder) }
     func setNotesEnabled(_ value: Bool) { settings.set(value, for: Key.notesEnabled) }
