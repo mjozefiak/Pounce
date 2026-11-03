@@ -104,8 +104,18 @@ The same fixtures on the two other candidates (GGUF SHA-256 verified, same machi
 Decision: Qwen3-4B stays the default. Bielik is not added to the catalog (worse on every case, slower, and it
 changed the language). The 30B model is no better on the cases that fail, so it stays only as the optional
 choice for Macs with 32 GB or more, and its benefit is slightly better punctuation, not the self-corrections.
-Spoken self-corrections are a prompt problem, not a model-size problem; a prompt change is a separate,
-versioned `CleanupPrompt` change with its own snapshot test.
+Prompt v2 tried (not shipped): a rule to keep only the last version after a correction marker ("nie, to znaczy",
+"a nie, czekaj", "I mean"), two Polish examples, and a guard lower bound of 0.5 instead of 0.6. Same fixtures:
+
+| Model | `pl-fillers` | `pl-self-correction` |
+|---|---|---|
+| Qwen3-30B-A3B | correct ("o jedenastej") | rejected by the guard, pasted raw |
+| Qwen3-4B | "o dziesiątej": keeps the **wrong** version | rejected by the guard, pasted raw |
+
+v2 fixes the 30B model but makes the default 4B model silently drop the correction, which is worse than v1
+(v1 keeps both times, so nothing is lost). It was reverted: prompt v1 and the guard range 0.6 to 1.15 stay.
+Self-corrections remain a known limit of the 4B model; the raw transcript is always available through
+`dictation.pasteLastRaw`. A better fix is likely a two-step prompt or a larger default model, not more rules.
 
 ## Consequences
 
