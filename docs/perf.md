@@ -244,3 +244,40 @@ permission granted and real meetings, none of which `swift test` or a `--qa…` 
 | Memory at rest after models are released | unchanged: < 150 MB | not yet measured | After the meeting is `ready` and the keep-warm time has passed, `footprint Pounce`. |
 | Disk for a 3 h meeting | at most about 700 MB of spool, deleted once processed | not yet measured | Record 3 h; `du -sh ~/Library/Application\ Support/Pounce/Plugins/meetings/Spool` during and after (use `--qa-meeting-spool-dir` in a QA run with the WAV options for a repeatable check). |
 | Library list: query and preview | no budget in the spec; the panel budget applies (a keystroke answers in a frame) | not yet measured | `--qa` run with a library of 1 000 meetings of 1 000 segments each; time `libraryEntries` for an empty and a two-word query (XCTest `measure` or `ContinuousClock` around the call). |
+
+## Meeting notes (spec: Notatki ze spotkań, step 2.5)
+
+**Not yet measured.** Nothing here has been run: it needs a downloaded GGUF model (`LLMModelCatalog`), real meeting
+transcripts and, for the weaker-Mac rows, a second machine. The tests in `swift test` use a scripted model and prove
+the logic, not the speed. The targets are the spec's; the numbers behind them are ADR 0005's (M4 Max: prefill about
+1 000 tok/s, decode about 95 to 115 tok/s).
+
+Configuration the measurements are made with (the values of the code; change a value only together with this table):
+
+| Setting | Value | Where |
+|---|---|---|
+| Context length | 8192 (`LlamaRuntime(contextLength: 8192)`, a lease key of its own next to dictation's 4096) | `NotesModel.contextLength` |
+| `plugins.meetings.notesChunkTokens` | 3 000 input tokens per MAP chunk (a few utterances of overlap) | `MeetingsSettings.defaultNotesChunkTokens` |
+| `plugins.meetings.notesReduceInputTokens` | 4 500 input tokens per REDUCE request, one more level above that | `MeetingsSettings.defaultNotesReduceInputTokens` |
+| Answer limits | 700 tokens (MAP), 1 500 tokens (REDUCE), a cut-off answer is retried once with double the limit | `NotesPipeline.Configuration` |
+| Time limits | 300 s per MAP request, 600 s per REDUCE request (generation only); one retry; a busy model is waited for up to 30 min | `NotesPipeline.Configuration` |
+| Sampling | greedy, the model's chat template, cancelled between two tokens | `LlamaRuntime` |
+
+| Budget | Target | Measured | How to measure |
+|---|---|---|---|
+| Notes for a 1 h meeting (about 8 MAP chunks and a REDUCE; built-in Qwen3 30B-A3B or 4B) | about 1 to 2 min in the background on an M4 Max; a weaker Mac: to be measured, aim for 8 min or less | not yet measured | Release build. `POUNCE_NOTES_LLM_MODEL=<gguf> POUNCE_NOTES_LONG_REPEAT=20 swift test -c release --filter RealNotesTests` (20 repeats of the bundled long meeting are about 9 000 words, the volume of one hour of speech; or `POUNCE_NOTES_TRANSCRIPT=<file>` with a real transcript in the `[mm:ss] Speaker: text` format). Read the `NOTES-BENCH … seconds=` line: it is the wall time of `NotesPipeline.run` including the model load. Run each model twice (cold file cache, then warm) and on the target and on a weaker Mac; report both numbers and the chunk count. |
+| Peak memory with the 8192 context | model residency (3.3 GB for the 4B, 18.9 GB for the 30B-A3B, ADR 0005) plus the KV cache and compute buffers of an 8192 context; not set separately | not yet measured | The same run: `footprintBeforeMB` and `footprintAfterMB` of the `NOTES-BENCH` line are `phys_footprint`; also sample `footprint <pid>` every 10 s during the run in a second terminal and report the peak. Compare with a dictation-only run (context 4096) of the same model. |
+| Memory at rest after the notes | unchanged: < 150 MB | not yet measured | After the job, wait the keep-warm time (60 s for notes) and run `footprint <pid>` on the app. |
+| Dictation tail while notes are written | < 3 s (the dictation budget does not depend on the notes) | not yet measured | In the app, with notes running on a long meeting, dictate a sentence with the built-in formatting; time from release of the key to the paste. The `background` generation is cancelled between two tokens by the lease and resumes after the dictation. |
+| Waiting for a busy model | notes wait ("Czeka na model") and then run | not yet measured | Start dictation with another formatting model during a notes job (or the other way round) and watch the library badge. |
+| Quality of the notes | no figure promised (`NotesGuard` limits invention, it does not remove errors) | not yet measured | `RealNotesTests` on the corpus and on three real meetings in Polish; record the dropped counts and read the notes against the recording. |
+
+Measurement checklist (copy into the PR that records the numbers):
+
+- [ ] Machine, macOS version, memory, build (`release`), model file and its SHA-256 (from the catalog).
+- [ ] `NOTES-BENCH` lines of `theCorpusOnARealModel` (five short cases) and `aLongMeetingOnARealModel` (about 1 h).
+- [ ] Cold and warm time for the 1 h case; chunk count; `status`, `dropped`, `failedChunks`, `reduceFailed`.
+- [ ] Peak `footprint`, with and without the notes (dictation only), the same model.
+- [ ] The weaker Mac (8 or 16 GB): the 4B model only, 1 h case, and whether the 8 minute aim holds.
+- [ ] Dictation tail with a notes job running.
+- [ ] If a figure differs from the table above by a large factor, change `notesChunkTokens` / `notesReduceInputTokens` here and in `MeetingsSettings`, and record why.

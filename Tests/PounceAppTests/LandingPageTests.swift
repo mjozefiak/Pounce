@@ -73,9 +73,15 @@ private let repositoryRoot = URL(filePath: #filePath)
         // No claim that audio is never kept: that is true of dictation only.
         let meetingCopy = try texts("f5.d", in: page)
         #expect(!meetingCopy.en.localizedCaseInsensitiveContains("never saved"))
-        // Notes are Phase 2: the page promises a transcript with speakers only.
-        #expect(!page.localizedCaseInsensitiveContains("meeting notes"))
-        #expect(!page.localizedCaseInsensitiveContains("notatki ze spotka"))
+        // Notes (Phase 2) are local, optional and checked against the recording; the model download is the only network use.
+        #expect(meetingCopy.en.contains("also runs on your Mac"))
+        #expect(meetingCopy.en.contains("checked against the recording"))
+        #expect(meetingCopy.pl.contains("też działa na Twoim Macu"))
+        #expect(meetingCopy.pl.contains("sprawdzany z nagraniem"))
+        #expect(general.contains("językowy"))
+        #expect(general.contains("notatki ze spotkań nigdy nie opuszczają Maca"))
+        let (generalEn, _) = try texts("a4", in: page)
+        #expect(generalEn.contains("meeting transcripts and notes never leave your Mac"))
     }
 
     @Test func theFeatureCountMatchesTheCards() throws {

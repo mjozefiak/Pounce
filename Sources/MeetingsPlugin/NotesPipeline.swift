@@ -58,6 +58,9 @@ struct NotesResult: Equatable, Sendable {
     var downgradedCount = 0
     /// Verified points the REDUCE answer left out that were added back.
     var backfilledCount = 0
+    /// The decisions, tasks and open questions that stand in the notes, with their quotes (for the regression
+    /// tests; nothing stores or shows them).
+    var points: [NotesPoint] = []
 }
 
 enum NotesFailure: Error, Equatable {
@@ -173,14 +176,14 @@ struct NotesPipeline: Sendable {
         func result(
             status: NotesResult.Status, markdown: String?, dropped: Int = 0, points: Int = 0,
             reduceFailed: Bool = false, replaced: Bool = false, rejected: Int = 0, repaired: Int = 0,
-            downgraded: Int = 0, backfilled: Int = 0
+            downgraded: Int = 0, backfilled: Int = 0, kept: [NotesPoint] = []
         ) -> NotesResult {
             NotesResult(
                 status: status, markdown: markdown, droppedCount: dropped, failedChunks: failed,
                 chunkCount: chunks.count, verifiedPointCount: points, reduceFailed: reduceFailed,
                 summaryReplaced: replaced, rejectedIDs: rejected, language: verifier.language,
                 promptVersion: String(NotesPrompt.version), repairedCount: repaired, downgradedCount: downgraded,
-                backfilledCount: backfilled)
+                backfilledCount: backfilled, points: kept)
         }
         if failedWhole == chunks.count { return result(status: .failed, markdown: nil) }
 
@@ -213,7 +216,7 @@ struct NotesPipeline: Sendable {
             status: reduced.failed ? .partial : flowStatus, markdown: markdown, dropped: verdict.dropped,
             points: points.count, reduceFailed: reduced.failed, replaced: final.summaryReplaced,
             rejected: final.rejectedIDs, repaired: verdict.repaired, downgraded: verdict.downgraded,
-            backfilled: final.backfilled)
+            backfilled: final.backfilled, kept: final.decisions + final.tasks + final.questions)
     }
 
     /// Chunk overlap and a model that says a thing twice give the same point twice; the first one stays. Two

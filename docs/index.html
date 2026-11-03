@@ -172,7 +172,7 @@ footer ul{display:flex;gap:16px;list-style:none}
     <div>
       <span class="pill" data-i18n="hero.pill">Free · Open source · MIT License</span>
       <h1 data-i18n="hero.title">Find any app, file or clipboard entry in a keystroke.</h1>
-      <p class="lead" data-i18n="hero.lead">Pounce is a native macOS launcher with four things: app search, file search with its own index, an encrypted clipboard history that pastes straight into the app you were using, and optional meeting transcripts.</p>
+      <p class="lead" data-i18n="hero.lead">Pounce is a native macOS launcher with four things: app search, file search with its own index, an encrypted clipboard history that pastes straight into the app you were using, and optional meeting transcripts with notes.</p>
       <div class="ctas">
         <a class="btn btn-primary" href="https://github.com/mjozefiak/Pounce/releases/latest/download/Pounce.dmg"><svg aria-hidden="true"><use href="#i-download"/></svg><span data-i18n="cta.download">Download for macOS</span></a>
         <a class="btn btn-ghost" href="https://github.com/mjozefiak/Pounce"><svg aria-hidden="true"><use href="#i-github"/></svg><span data-i18n="cta.github">Source on GitHub</span></a>
@@ -218,8 +218,8 @@ footer ul{display:flex;gap:16px;list-style:none}
         </li>
         <li class="card">
           <svg aria-hidden="true"><use href="#i-doc"/></svg>
-          <h3 data-i18n="f5.t">Meeting transcripts</h3>
-          <p data-i18n="f5.d">Optional. Record a meeting with the microphone and, if you allow it, the system audio, and get a transcript with speakers from models that run on your Mac. Meetings are kept in an encrypted library you can search and export as Markdown.</p>
+          <h3 data-i18n="f5.t">Meeting transcripts and notes</h3>
+          <p data-i18n="f5.d">Optional. Record a meeting with the microphone and, if you allow it, the system audio, and get a transcript with speakers from models that run on your Mac. After the meeting a language model that also runs on your Mac can write notes in the background: a summary, decisions, action items and open questions. Every point is checked against the recording, and points it cannot find there are left out. Meetings are kept in an encrypted library you can search and export as Markdown.</p>
         </li>
       </ul>
       <div class="grid2">
@@ -322,7 +322,7 @@ scripts/make-app.sh    # dist/Pounce.app</code></pre>
         <dt data-i18n="q3">What does the clipboard history keep?</dt>
         <dd data-i18n="a3">Up to 30 days or 1000 entries, encrypted with SQLCipher. Entries copied in ignored apps (password managers by default) and items marked concealed are never recorded. You can pause recording or clear the history any time.</dd>
         <dt data-i18n="q4">Does it send anything over the network?</dt>
-        <dd data-i18n="a4">Only when you download a speech or speaker model for dictation or meetings, from huggingface.co, after you click Download. Otherwise no: there is no account, no analytics and no update check. Audio, dictated text and meeting transcripts never leave your Mac.</dd>
+        <dd data-i18n="a4">Only when you download a speech, speaker or language model for dictation or meetings, from huggingface.co, after you click Download. Otherwise no: there is no account, no analytics and no update check. Audio, dictated text, meeting transcripts and notes never leave your Mac.</dd>
         <dt data-i18n="q6">How does dictation work?</dt>
         <dd data-i18n="a6">Turn on Dictation in Settings → Features, download the speech model (about 0.7 GB) and press ⌃⌥D. Pounce records while you talk, turns it into text with a model that runs on your Mac, and pastes it into the app you are in. Audio is never saved. To tidy up the text you can use a model that Pounce downloads and runs itself, or your own local server.</dd>
         <dt data-i18n="q7">Does Pounce record other people in a meeting?</dt>
@@ -359,7 +359,7 @@ scripts/make-app.sh    # dist/Pounce.app</code></pre>
     "nav.faq": "FAQ",
     "hero.pill": "Darmowy · Open source · Licencja MIT",
     "hero.title": "Aplikacja, plik albo wpis ze schowka w jednym skrócie.",
-    "hero.lead": "Pounce to natywny launcher dla macOS z czterema funkcjami: wyszukiwanie aplikacji, wyszukiwanie plików po własnym indeksie, zaszyfrowana historia schowka, która wkleja prosto do aplikacji, której używałeś, i opcjonalne transkrypty spotkań.",
+    "hero.lead": "Pounce to natywny launcher dla macOS z czterema funkcjami: wyszukiwanie aplikacji, wyszukiwanie plików po własnym indeksie, zaszyfrowana historia schowka, która wkleja prosto do aplikacji, której używałeś, i opcjonalne transkrypty spotkań z notatkami.",
     "cta.download": "Pobierz na macOS",
     "cta.github": "Kod na GitHubie",
     "hero.note": "macOS 26 lub nowszy · Apple silicon · Bez konta i telemetrii",
@@ -377,8 +377,8 @@ scripts/make-app.sh    # dist/Pounce.app</code></pre>
     "f2.d": "Własny indeks nazw plików i folderów w katalogu domowym i Programach, aktualizowany przez FSEvents zamiast Spotlighta. Tylko nazwy: Pounce nigdy nie czyta zawartości plików.",
     "f3.t": "Historia schowka",
     "f3.d": "Tekst, linki, tekst sformatowany, obrazy i pliki z ostatnich 30 dni (do 1000 wpisów), zaszyfrowane na dysku kluczem z pęku kluczy. Pomija menedżery haseł i ukryte elementy. Return wkleja do poprzedniej aplikacji.",
-    "f5.t": "Transkrypcje spotkań",
-    "f5.d": "Opcjonalne. Nagrywaj spotkanie mikrofonem i, jeśli pozwolisz, dźwiękiem systemu, a dostaniesz transkrypt z podziałem na mówców z modeli działających na Twoim Macu. Spotkania trafiają do zaszyfrowanej biblioteki, którą można przeszukiwać i eksportować do Markdown.",
+    "f5.t": "Transkrypcje i notatki ze spotkań",
+    "f5.d": "Opcjonalne. Nagrywaj spotkanie mikrofonem i, jeśli pozwolisz, dźwiękiem systemu, a dostaniesz transkrypt z podziałem na mówców z modeli działających na Twoim Macu. Po spotkaniu model językowy, który też działa na Twoim Macu, może w tle napisać notatki: podsumowanie, decyzje, zadania i otwarte pytania. Każdy punkt jest sprawdzany z nagraniem, a punkty, których tam nie ma, są pomijane. Spotkania trafiają do zaszyfrowanej biblioteki, którą można przeszukiwać i eksportować do Markdown.",
     "keys.t": "Najpierw klawiatura",
     "keys.cap": "Skróty klawiszowe",
     "keys.key": "Klawisz",
@@ -425,7 +425,7 @@ scripts/make-app.sh    # dist/Pounce.app</code></pre>
     "q3": "Co przechowuje historia schowka?",
     "a3": "Do 30 dni lub 1000 wpisów, zaszyfrowanych SQLCipher. Wpisy skopiowane w ignorowanych aplikacjach (domyślnie menedżerach haseł) i elementy oznaczone jako ukryte nigdy nie są zapisywane. Zapisywanie możesz wstrzymać, a historię wyczyścić w dowolnej chwili.",
     "q4": "Czy coś wysyła przez sieć?",
-    "a4": "Tylko wtedy, gdy pobierasz model mowy lub mówców do dyktowania albo spotkań z huggingface.co, po kliknięciu Pobierz. Poza tym nie: nie ma konta, analityki ani sprawdzania aktualizacji. Dźwięk, podyktowany tekst i transkrypty spotkań nigdy nie opuszczają Maca.",
+    "a4": "Tylko wtedy, gdy pobierasz model mowy, mówców lub językowy do dyktowania albo spotkań z huggingface.co, po kliknięciu Pobierz. Poza tym nie: nie ma konta, analityki ani sprawdzania aktualizacji. Dźwięk, podyktowany tekst, transkrypty i notatki ze spotkań nigdy nie opuszczają Maca.",
     "q6": "Jak działa dyktowanie?",
     "a6": "Włącz Dyktowanie w Ustawienia → Funkcje, pobierz model mowy (około 0,7 GB) i naciśnij ⌃⌥D. Pounce nagrywa, gdy mówisz, zamienia mowę na tekst modelem działającym na Twoim Macu i wkleja go do aplikacji, w której jesteś. Dźwięk nigdy nie jest zapisywany. Do porządkowania tekstu możesz użyć modelu, który Pounce sam pobiera i uruchamia, albo własnego lokalnego serwera.",
     "q7": "Czy Pounce nagrywa innych uczestników spotkania?",

@@ -384,7 +384,7 @@ States to screenshot, in light and dark mode (and once in Polish):
   outdated (a deliberate extension of the spec's incomplete/failed/stale list); the audio claim on the landing page
   and in Settings → Permissions matches the behaviour (deleted once the transcript is ready; an interrupted
   meeting keeps its audio up to 7 days so it can be finished); all meetings, the three filters (⌘1 to ⌘3), a search by a word from a title and from a transcript (also
-  without Polish letters: `budzet` finds `budżet`), the preview (transcript; notes once Phase 2 exists), the empty
+  without Polish letters: `budzet` finds `budżet`), the preview (notes when there are any, else the transcript), the empty
   library, and the "unavailable" banner (cannot be forced in QA mode: the Keychain is the in-memory one; covered by
   unit tests, manual check below);
 - Settings → Meetings (models, retention, privacy actions) and Settings → Permissions with the system-audio test.
@@ -395,6 +395,47 @@ prompts and denial; real Zoom, Meet and Teams meetings; speakers without headpho
 rebuild; the library with a locked or denied Keychain (lock the login keychain, open the library: the banner says it is
 unavailable and nothing is deleted; unlock and reopen); ⌃X in the library on a real meeting; the landing page in a
 browser (`.ai/browsers/agent-browser.md`), in English and Polish.
+
+### Meeting notes (Phase 2): the flow, the corpus and the real-model run
+
+Notes need a downloaded GGUF model from `LLMModelCatalog` (2.5 GB for the default one), so a `--qa…` run of the notes
+is manual and uses a real model; nothing in `swift test` loads one.
+
+Flow to check, in light and dark mode and once in Polish (`-AppleLanguages '(pl)'`):
+
+- Settings → Meetings → Notes: the switch is off on a fresh profile and `plugins.meetings.notesEnabled` stays unset until
+  you flip it; the model list shows only models that fit this Mac's memory (an 8 GB Mac lists the small one only), with
+  the download size and the memory; with a stored model that does not fit, the pane says which one is used instead;
+  Download shows progress and can be cancelled, Remove is refused while notes are being written or dictation uses the
+  model, "Try it on an example" shows notes for the bundled made-up meeting and stores nothing.
+- The `meetings.setup` step has an optional notes row: nothing is downloaded until the button is pressed.
+- With the switch on and the model present, stop a recording: the library row shows "Writing notes 1 of N", then
+  "Notes". With the model missing it shows "Notes model needed" and the row has a "Download Notes Model" action (also a
+  banner and button in the meeting window) that opens Settings. Dictate while notes run: the dictation is not slowed
+  and the notes resume (or the badge says "Waiting for the model" when dictation uses another model).
+- ⌘R and "Regenerate Notes" work on `ok`, `partial`, `failed` and `stale` notes; renaming a speaker marks them
+  outdated; a failed run keeps the earlier text and says so in the preview; "N points not backed by the recording were
+  left out" shows in the preview and the window (check 1, 2, 5 and 12 points in Polish for the plural forms).
+- Quit during a run and open again: the meeting shows "Notes failed" (never "Writing notes" for ever); the transcript is intact.
+
+Corpus (`Tests/MeetingsPluginTests/Fixtures/notes/`): five short transcripts (Polish, English, Polish with English terms,
+spoken instructions to the model with markup, a chat in which nobody decides anything) and a long plain transcript.
+`NotesRegressionTests` feeds each case's `modelAnswer` (a model that invents) through the real pipeline and guard and
+checks what must stay and what must not. `RealNotesTests` runs the same transcripts on a real model; it is **off by
+default** and must be run by hand:
+
+```sh
+POUNCE_NOTES_LLM_MODEL=/path/to/Qwen3-4B-Instruct-2507-Q4_K_M.gguf \
+  swift test -c release --filter RealNotesTests
+# the volume of a one hour meeting (20 x the bundled long one, about 9 000 words) or your own transcript, one "[mm:ss] Speaker: text" per line:
+POUNCE_NOTES_LLM_MODEL=… POUNCE_NOTES_LONG_REPEAT=20 swift test -c release --filter RealNotesTests
+POUNCE_NOTES_LLM_MODEL=… POUNCE_NOTES_TRANSCRIPT=/path/to/transcript.txt swift test -c release --filter RealNotesTests
+```
+
+It asserts the guard's invariants for any model (no image, link or HTML in the notes; every decision, task and question
+stands on a quote that is in the recording; no task owner nobody named; none of the corpus's bait text) and prints
+`NOTES-BENCH` lines with the timings, chunk count, dropped count and memory (`docs/perf.md`). It prints no transcript
+text. Record the lines in the PR body together with the model and the Mac.
 
 ### Meeting notes: what the guard does and does not promise (Phase 2)
 
