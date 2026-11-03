@@ -19,10 +19,11 @@ let package = Package(
         .package(path: "Packages/GRDBCipher"),
         // Global shortcuts and the shortcut recorder (MIT), used by PounceApp only.
         .package(url: "https://github.com/sindresorhus/KeyboardShortcuts.git", exact: "1.10.0"),
-        // Local speech to text (Parakeet) and voice activity detection through Core ML (Apache-2.0), used by
-        // PounceSpeech only. 0.x: its API stays behind the SpeechEngine port (ADR 0003). `traits: []` leaves out
-        // text to speech, diarization and the bundled Rust text engine: dictation needs ASR and VAD only.
-        .package(url: "https://github.com/FluidInference/FluidAudio.git", exact: "0.18.2", traits: []),
+        // Local speech to text (Parakeet), voice activity detection and offline speaker diarization through
+        // Core ML (Apache-2.0), used by PounceSpeech and, for diarization, by MeetingsPlugin. 0.x: its API stays
+        // behind the SpeechEngine and Diarizer ports (ADR 0003, ADR 0007). `traits: ["Diarizer"]` leaves out text
+        // to speech and the bundled Rust text engine (the trait is opt-out upstream, which is why Pounce names it).
+        .package(url: "https://github.com/FluidInference/FluidAudio.git", exact: "0.18.2", traits: ["Diarizer"]),
         // Whisper large-v3-turbo through Core ML (MIT), the second speech engine with a pinned language
         // (ADR 0003), used by PounceSpeech only.
         .package(url: "https://github.com/argmaxinc/argmax-oss-swift.git", exact: "1.1.1"),
@@ -97,6 +98,9 @@ let package = Package(
                 "PounceCore",
                 "PouncePersistence",
                 "PounceSpeech",
+                // `FluidDiarizer` uses the offline diarizer directly (spec: Dependencies); models load only from
+                // the folder `ModelManager` owns.
+                .product(name: "FluidAudio", package: "FluidAudio"),
                 // The plugin owns meetings.sqlite and its migrator, like ClipboardPlugin owns clipboard.sqlite.
                 .product(name: "GRDB", package: "GRDBCipher"),
             ]
