@@ -40,6 +40,14 @@ public final class MeetingsPlugin: PouncePlugin {
     private(set) var lingeringController: MeetingController?
     /// Changes the controller's dependencies before it is built (tests give it fakes).
     var adjustControllerDependencies: ((inout MeetingController.Dependencies) -> Void)?
+    /// Exists while the plugin is active (`MeetingsPlugin+Suggestions.swift`); it listens only while
+    /// `plugins.meetings.suggestMeetings` is on.
+    var detector: MeetingDetector?
+    /// Changes the detector's dependencies before it is built (tests give it fakes, so no test reaches
+    /// Core Audio).
+    var adjustDetectorDependencies: ((inout MeetingDetector.Dependencies) -> Void)?
+    let suggestionRelay = SuggestionRelay()
+    let suggestionHUD: SuggestionHUDPanel
 
     public init(context: PluginContext) {
         self.context = context
@@ -72,6 +80,9 @@ public final class MeetingsPlugin: PouncePlugin {
         ui = MeetingsUI(context: context, settings: settings, library: library, activity: activity, notes: notes)
         let relay = relay
         hud = MeetingHUDPanel(onAction: { relay.controller?.perform($0) })
+        let suggestionRelay = suggestionRelay
+        suggestionHUD = SuggestionHUDPanel(onAction: { suggestionRelay.detector?.perform($0) })
+        wireSuggestionSettings()
     }
 
     // MARK: Lifecycle
@@ -79,6 +90,7 @@ public final class MeetingsPlugin: PouncePlugin {
     public func activate() async throws {
         library.open()
         await notes.start()
+        let detector = makeDetector()
         let workspace = context.workspace
         let runtime = runtime
         var dependencies = MeetingController.Dependencies(
@@ -87,10 +99,12 @@ public final class MeetingsPlugin: PouncePlugin {
             hud: hud, clock: context.clock, openSettings: context.openSettings,
             openURL: { url in Task { try? await workspace.open(url) } }, changed: context.resultsChanged,
             logger: context.logger)
+        dependencies.recordingObserver = detector
         adjustControllerDependencies?(&dependencies)
         let controller = MeetingController(dependencies)
         self.controller = controller
         relay.controller = controller
+        startDetector(detector)
     }
 
     /// Switches the plugin off. A recording in progress is finished first, for at most the controller's
@@ -99,6 +113,7 @@ public final class MeetingsPlugin: PouncePlugin {
     /// closed by a background task as soon as the session ends, unless the plugin was activated again by then.
     /// So after `deactivate()` returns, `library.status` is `.closed` only when nothing was still running.
     public func deactivate() async {
+        stopDetector()
         // A running notes job is cancelled and puts its status back before the library can close.
         await notes.shutDown()
         guard let controller else {

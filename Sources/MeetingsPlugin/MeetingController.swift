@@ -23,6 +23,9 @@ struct MeetingSessionRequest {
     /// False records the system audio only (the microphone was denied and the user chose to go on).
     let recordsMicrophone: Bool
     let recordsSystemAudio: Bool
+    /// The app whose suggestion the user accepted, stored as `meeting.source_bundle_id`. `nil` for a recording
+    /// started any other way.
+    var sourceBundleID: String?
 }
 
 /// Where the speech model for the next recording is.
@@ -70,6 +73,8 @@ final class MeetingController {
         /// Told about every change of the phase and every ignored late `start()` (tests wait on it instead of
         /// polling).
         var stateChanged: @MainActor () -> Void = {}
+        /// The meeting detector (Phase 3), told when a recording runs, how loud it is and when it ends.
+        var recordingObserver: (any MeetingRecordingObserver)?
     }
 
     enum Phase: Equatable {
@@ -102,6 +107,9 @@ final class MeetingController {
     private(set) var watcherFirings = 0
     private var session: (any RecordingSession)?
     private var meetingID: Int64?
+    /// Set only by `start(sourceBundleID:)`, i.e. by a click on the suggestion HUD.
+    private var pendingSource: String?
+    private var sourceBundleID: String?
     /// Whether this controller holds one `MeetingActivity.begin()` (taken at the start, given back at the end).
     private var holdsActivity = false
     private var recording = MeetingHUDState.Recording()
@@ -138,6 +146,15 @@ final class MeetingController {
         begin(systemOnly: false)
     }
 
+    /// Starts a recording the user accepted from the meeting suggestion; `bundleID` is stored with the meeting
+    /// (`meeting.source_bundle_id`) and nothing else is stored about the app. Ignored like `start()` while a
+    /// recording runs or is being processed, and then nothing is stored.
+    func start(fromSuggestionOf bundleID: String) {
+        guard phase == .idle else { return }
+        pendingSource = bundleID
+        begin(systemOnly: false)
+    }
+
     /// Ends the recording; the meeting is processed and saved. While the recording is still being prepared
     /// (the checks, the microphone prompt) nothing exists yet and the attempt is cancelled; once the session
     /// exists, it is asked to finish (a session still starting finishes as soon as its start is done).
@@ -160,6 +177,7 @@ final class MeetingController {
         runToken += 1
         runTask?.cancel()
         releaseActivity()
+        sourceBundleID = nil
         phase = .idle
         deps.hud.hide()
     }
@@ -194,6 +212,7 @@ final class MeetingController {
         case .dismiss:
             if phase == .preparing, session == nil { return cancelPreparation() }
             guard phase == .awaitingMicrophoneDecision else { return }
+            sourceBundleID = nil
             phase = .idle
             deps.hud.hide()
         }
@@ -220,6 +239,13 @@ final class MeetingController {
         // the row and any lease exist (the contract of `MeetingActivity`).
         guard !deps.activity.isRemovingModel else { return fail(.modelBeingRemoved) }
         acquireActivity()
+        if let pending = pendingSource {
+            sourceBundleID = pending
+            pendingSource = nil
+        } else if !systemOnly {
+            // "Record the system audio only" after a denied microphone keeps the app of the suggestion.
+            sourceBundleID = nil
+        }
         phase = .preparing
         runToken += 1
         let token = runToken
@@ -269,7 +295,7 @@ final class MeetingController {
             MeetingSessionRequest(
                 store: store, keys: keys, spool: library.spoolStorage,
                 modelID: modelID, modelFolder: folder, recordsMicrophone: !systemOnly,
-                recordsSystemAudio: recordsSystem))
+                recordsSystemAudio: recordsSystem, sourceBundleID: sourceBundleID))
         self.session = session
         recording = MeetingHUDState.Recording()
         recording.recordsMicrophone = !systemOnly
@@ -302,6 +328,7 @@ final class MeetingController {
         if phase == .preparing {
             phase = .recording
             startWatchers(recordsSystem: recordsSystem)
+            deps.recordingObserver?.recordingStarted(sourceBundleID: sourceBundleID)
         }
         deps.logger.info("Meeting recording started")
         // Until `.finished` arrives (or the stream is cancelled by a forced shutdown).
@@ -340,6 +367,7 @@ final class MeetingController {
 
     private func fail(_ problem: MeetingHUDState.Problem) {
         releaseActivity()
+        sourceBundleID = nil
         phase = .idle
         deps.hud.show(.problem(problem))
     }
@@ -405,6 +433,7 @@ final class MeetingController {
     }
 
     private func handleLevel(_ channel: AudioChannel, _ level: Float) {
+        deps.recordingObserver?.recordingLevel(channel, level)
         switch channel {
         case .mic: recording.micLevel = level
         case .system:
@@ -492,7 +521,9 @@ final class MeetingController {
         cancelWatchers()
         if let id = meetingID { deps.library.unregisterLive(meetingID: id) }
         releaseActivity()
+        deps.recordingObserver?.recordingEnded()
         meetingID = nil
+        sourceBundleID = nil
         session = nil
         eventsTask?.cancel()
         eventsTask = nil
@@ -516,6 +547,7 @@ final class MeetingController {
             runTask?.cancel()
             runTask = nil
             releaseActivity()
+            sourceBundleID = nil
             if phase != .idle {
                 phase = .idle
                 deps.hud.hide()

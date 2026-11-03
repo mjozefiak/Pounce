@@ -2,7 +2,8 @@ import PounceKit
 import PounceSpeech
 import SwiftUI
 
-/// Settings → Meetings. The meeting suggestions (Phase 3) get their section here when that step exists.
+/// Settings → Meetings: the notes (a built-in model card, Phase 2) and the meeting suggestions (Phase 3,
+/// `MeetingsSuggestionsSection`) have their own sections.
 struct MeetingsSettingsPane: View {
     @Bindable var model: MeetingsSettingsModel
     /// The shortcut recorder, or `nil` while the `meetings.record` command does not exist.
@@ -94,6 +95,8 @@ struct MeetingsSettingsPane: View {
                 )
                 .font(.callout).foregroundStyle(.secondary)
             }
+
+            MeetingsSuggestionsSection(model: model)
 
             Section {
                 Toggle(isOn: $model.consentReminder) {
@@ -565,6 +568,8 @@ struct MeetingsSetupView: View {
             } icon: {
                 Image(systemName: "text.badge.checkmark").accessibilityHidden(true)
             }
+
+            MeetingsSuggestionsSetupPart(model: model)
         }
         .task { await model.refresh() }
     }

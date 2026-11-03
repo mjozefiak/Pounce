@@ -63,6 +63,8 @@ actor MeetingSession {
     /// A `finish()` arrived while `start()` was still running (tests wait for it).
     var isFinishPending: Bool { pendingFinish }
 
+    /// `meeting.source_bundle_id`: the app of the accepted suggestion, `nil` otherwise.
+    private let sourceBundleID: String?
     private var tracks: [AudioChannel: TrackState] = [:]
     private var loadTask: Task<SpeechLease?, Never>?
     private var leaseHandle: SpeechLease?
@@ -114,8 +116,10 @@ actor MeetingSession {
         echo: EchoSuppressor = EchoSuppressor(), uuid: UUID = UUID(), now: @escaping @Sendable () -> Date = { Date() },
         sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) },
         beforeReady: (@Sendable (Int64, UUID) async -> Void)? = nil,
+        sourceBundleID: String? = nil,
         logger: Logger = Logger(subsystem: "app.pounce", category: "meetings")
     ) {
+        self.sourceBundleID = sourceBundleID
         (events, continuation) = AsyncStream.makeStream(of: Event.self, bufferingPolicy: .unbounded)
         self.store = store
         self.keys = keys
@@ -198,7 +202,8 @@ actor MeetingSession {
     private func insertMeeting(cleaningUp writers: [AudioChannel: SpoolWriter]) throws -> Int64 {
         do {
             return try store.insertMeeting(
-                uuid: SpoolStorage.name(of: meetingUUID), startedAt: now(), speechModelID: modelID)
+                uuid: SpoolStorage.name(of: meetingUUID), startedAt: now(), speechModelID: modelID,
+                sourceBundleID: sourceBundleID)
         } catch {
             for writer in writers.values { try? writer.abandon() }
             _ = spoolStorage.removeSpools(forMeetings: [SpoolStorage.name(of: meetingUUID)])

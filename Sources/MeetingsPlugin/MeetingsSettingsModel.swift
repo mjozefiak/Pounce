@@ -26,6 +26,24 @@ final class MeetingsSettingsModel {
     private(set) var pendingRetention: PendingRetention?
     private(set) var privacyMessage: String?
     private(set) var privacyFailed = false
+    /// "Podpowiedzi spotkań" (Phase 3). Turning it on or off starts or stops the detector
+    /// (`suggestionsChanged`); the lists are edited through the methods in `MeetingsSettingsModel+Suggestions`.
+    var suggestMeetings: Bool {
+        didSet {
+            guard suggestMeetings != oldValue else { return }
+            settings.setSuggestMeetings(suggestMeetings)
+            suggestionsChanged()
+        }
+    }
+    /// Whether the detector listens, cannot (the Core Audio process API is missing here) or is off.
+    internal(set) var suggestionStatus = MeetingDetector.Status.off
+    internal(set) var mutedApps: [SuggestionApp] = []
+    internal(set) var extraApps: [SuggestionApp] = []
+    internal(set) var extraAppError: ExtraAppError?
+    @ObservationIgnored var suggestionsChanged: () -> Void = {}
+    @ObservationIgnored var appName: @MainActor (String) -> String = {
+        KnownMeetingApp.name(of: $0) ?? MeetingLibraryPresentation.installedAppName($0) ?? $0
+    }
 
     let speech: MeetingsModelCardModel
     let diarization: MeetingsModelCardModel
@@ -35,7 +53,7 @@ final class MeetingsSettingsModel {
     let speechPackages: [ModelPackage]
     private(set) var speechPackageID: String
 
-    @ObservationIgnored private let settings: MeetingsSettings
+    @ObservationIgnored let settings: MeetingsSettings
     @ObservationIgnored private let library: MeetingsLibrary
     @ObservationIgnored private let privacy: MeetingsPrivacyActions
     @ObservationIgnored private let authorizer: any MicrophoneAuthorizer
@@ -66,6 +84,8 @@ final class MeetingsSettingsModel {
         voiceProcessing = settings.voiceProcessing
         consentReminder = settings.consentReminder
         retentionDays = settings.retentionDays
+        suggestMeetings = settings.suggestMeetings
+        reloadSuggestionLists()
     }
 
     // MARK: Refresh
@@ -74,6 +94,7 @@ final class MeetingsSettingsModel {
     func refresh() async {
         microphone = authorizer.status()
         devices = listDevices()
+        reloadSuggestionLists()
         await speech.refresh()
         await diarization.refresh()
         await notes.refresh()

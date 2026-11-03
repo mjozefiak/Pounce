@@ -457,6 +457,29 @@ password to everybody" gets a task with that real quote in the notes, and the gu
 opened, sent or fetched, and links, images and HTML in it are shown as inert text. Check this with a transcript
 that contains such a sentence; the task may appear, with its quote, and nothing else may happen.
 
+### Meeting suggestions (Phase 3, manual)
+
+Meeting suggestions are off by default and cannot be tested by an agent: the Core Audio process objects need real
+apps. Whether `kAudioProcessPropertyIsRunningInput` works and is reliable (Bluetooth headsets included) is **not
+verified** (`docs/decisions/0007-meeting-spike.md` item 5). Check on a real Mac, with a build that is not a `--qa…`
+run only for the detection itself (use the QA data root so the library is isolated):
+
+- Settings → Meetings → Meeting suggestions: turn it on. If macOS does not report processes, the pane says "Not
+  available on this Mac"; record that in ADR 0007 and drop Phase 3.
+- Zoom, Teams, FaceTime, Slack, Discord, Webex: join a call. About 10 s after the microphone is in use the pill "Looks
+  like a meeting in …" appears at the top of the screen with Record, Not now and "Don't ask for this app". It must
+  not appear in a screen share, must not take the focus from the call, must disappear after 15 s, and Return/Esc must
+  keep going to the app you type in.
+- Record starts the normal recording (and the meeting shows the app in the library). Nothing starts without a click.
+- A browser (Meet): no pill until the browser's bundle ID (for example `com.google.Chrome`) is added in the pane.
+- Bluetooth headset: the call app is detected both with the headset and the built-in microphone; a headset switching
+  from A2DP to HFP does not make a second pill in the same call.
+- Dictation (⌃⌥D) and recording a meeting never make a pill. Leaving and rejoining a call gives one new pill.
+- Muted app: "Don't ask for this app" stops pills for it; Settings → Meetings lists it and "Ask again" brings it back.
+- After a recording started from a pill: leave the call and stay quiet; about 60 s later the pill asks "End the
+  recording?" (End recording / Keep recording); it never ends the recording by itself.
+- Turn the setting off while a pill is showing: the pill disappears and no further pills come.
+
 ## Never during QA
 
 - No synthetic key events, no `tccutil`, no edits to TCC databases or `com.apple.*` defaults.

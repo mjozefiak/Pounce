@@ -9882,6 +9882,348 @@
           }
         }
       }
+    },
+    "Suggest recording when a meeting starts" : {
+      "comment" : "Meetings settings toggle of suggestions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggest recording when a meeting starts"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podpowiadaj nagrywanie, gdy zaczyna się spotkanie"
+          }
+        }
+      }
+    },
+    "Not available on this Mac: macOS does not report which apps use the microphone here." : {
+      "comment" : "Meetings settings: the process audio API is unavailable",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not available on this Mac: macOS does not report which apps use the microphone here."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niedostępne na tym Macu: macOS nie podaje tutaj, które aplikacje używają mikrofonu."
+          }
+        }
+      }
+    },
+    "Apps you muted" : {
+      "comment" : "Meetings settings: list of apps with suggestions turned off",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps you muted"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyciszone aplikacje"
+          }
+        }
+      }
+    },
+    "Ask again" : {
+      "comment" : "Button that unmutes an app",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ask again"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pytaj ponownie"
+          }
+        }
+      }
+    },
+    "Other apps that count as meetings" : {
+      "comment" : "Meetings settings: list of apps added by the user",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other apps that count as meetings"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inne aplikacje uznawane za spotkania"
+          }
+        }
+      }
+    },
+    "e.g. com.google.Chrome" : {
+      "comment" : "Placeholder of the bundle ID field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "e.g. com.google.Chrome"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "np. com.google.Chrome"
+          }
+        }
+      }
+    },
+    "Bundle ID" : {
+      "comment" : "Label of the field that adds an app to the meeting suggestions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundle ID"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Identyfikator pakietu"
+          }
+        }
+      }
+    },
+    "That is not a valid bundle ID." : {
+      "comment" : "Error of the bundle ID field of the suggestions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That is not a valid bundle ID."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To nie jest poprawny identyfikator pakietu."
+          }
+        }
+      }
+    },
+    "Already in the list." : {
+      "comment" : "Error of the bundle ID field of the suggestions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Already in the list."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Już jest na liście."
+          }
+        }
+      }
+    },
+    "The list is full." : {
+      "comment" : "Error of the bundle ID field of the suggestions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The list is full."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lista jest pełna."
+          }
+        }
+      }
+    },
+    "Meeting suggestions" : {
+      "comment" : "Meetings settings section title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meeting suggestions"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podpowiedzi spotkań"
+          }
+        }
+      }
+    },
+    "Pounce only checks which app is using the microphone, never what it hears. It knows Zoom, Teams, Slack, FaceTime, Webex and Discord, and asks before recording; it never starts by itself. A browser counts only if you add it above, because a web page using the microphone can be a false alarm. Only these lists and, for a meeting you start from a suggestion, the app's ID are stored." : {
+      "comment" : "Meetings settings footer under the meeting suggestions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce only checks which app is using the microphone, never what it hears. It knows Zoom, Teams, Slack, FaceTime, Webex and Discord, and asks before recording; it never starts by itself. A browser counts only if you add it above, because a web page using the microphone can be a false alarm. Only these lists and, for a meeting you start from a suggestion, the app's ID are stored."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce sprawdza tylko, która aplikacja używa mikrofonu, nigdy co słyszy. Zna Zoom, Teams, Slack, FaceTime, Webex i Discord i pyta, zanim zacznie nagrywać; sam nigdy nie zaczyna. Przeglądarka liczy się tylko, jeśli dodasz ją powyżej, bo strona używająca mikrofonu może dać fałszywy alarm. Zapisywane są tylko te listy oraz, dla spotkania rozpoczętego z podpowiedzi, identyfikator aplikacji."
+          }
+        }
+      }
+    },
+    "Optional: Pounce can suggest recording when Zoom, Teams or another meeting app starts using the microphone. It only checks which app uses the microphone, never what it hears, and never records without your click." : {
+      "comment" : "Meetings onboarding step about meeting suggestions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optional: Pounce can suggest recording when Zoom, Teams or another meeting app starts using the microphone. It only checks which app uses the microphone, never what it hears, and never records without your click."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opcjonalnie: Pounce może podpowiedzieć nagrywanie, gdy Zoom, Teams lub inna aplikacja do spotkań zacznie używać mikrofonu. Sprawdza tylko, która aplikacja używa mikrofonu, nigdy co słyszy, i nigdy nie nagrywa bez Twojego kliknięcia."
+          }
+        }
+      }
+    },
+    "Looks like a meeting in %@" : {
+      "comment" : "Meeting suggestion HUD; the placeholder is the name of the app that uses the microphone",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Looks like a meeting in %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wygląda na spotkanie w %@"
+          }
+        }
+      }
+    },
+    "End the recording?" : {
+      "comment" : "Meeting suggestion HUD: the meeting seems to be over",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End the recording?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zakończyć nagranie?"
+          }
+        }
+      }
+    },
+    "Record" : {
+      "comment" : "Meeting suggestion HUD button that starts a recording",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywaj"
+          }
+        }
+      }
+    },
+    "Not now" : {
+      "comment" : "Meeting suggestion HUD button that dismisses the suggestion",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not now"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie teraz"
+          }
+        }
+      }
+    },
+    "Don't ask for this app" : {
+      "comment" : "Meeting suggestion HUD button that stops suggestions for the app for good",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Don't ask for this app"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie pytaj dla tej aplikacji"
+          }
+        }
+      }
+    },
+    "Keep recording" : {
+      "comment" : "Meeting suggestion HUD button that keeps the recording going",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep recording"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywaj dalej"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
