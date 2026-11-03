@@ -1,7 +1,7 @@
 import AppKit
-import FluidAudio
 import Foundation
 import PounceKit
+import PounceSpeech
 import SwiftUI
 import os
 
@@ -286,23 +286,5 @@ final class ControllerRelay {
 
     func pasteFromHistory(_ text: String) async {
         await controller?.pasteFromHistory(text)
-    }
-}
-
-/// Creates the Silero detector when the first audio arrives, so a missing VAD file fails the recording and not
-/// the plugin.
-actor LazyVAD: VoiceActivityDetector {
-    private let modelFolder: URL
-    private var detector: SileroVAD?
-
-    init(modelFolder: URL) {
-        self.modelFolder = modelFolder
-    }
-
-    func process(_ samples: [Float]) async throws -> [VADEvent] {
-        if detector == nil {
-            detector = try SileroVAD(modelFolder: modelFolder)
-        }
-        return try await detector?.process(samples) ?? []
     }
 }

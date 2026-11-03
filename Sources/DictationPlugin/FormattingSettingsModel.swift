@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import PounceSpeech
 
 /// What the "Formatting" section of the Dictation pane shows and does: the mode, the servers found on this Mac,
 /// the model to use, and a "Try it" button. Nothing here leaves the Mac: every address goes through

@@ -1,30 +1,44 @@
 import Foundation
 
 /// One file of a model package: its path inside the package, its size and its SHA-256.
-struct ModelFile: Hashable, Sendable {
-    let path: String
-    let size: Int
-    let sha256: String
+public struct ModelFile: Hashable, Sendable {
+    public let path: String
+    public let size: Int
+    public let sha256: String
+
+    public init(path: String, size: Int, sha256: String) {
+        self.path = path
+        self.size = size
+        self.sha256 = sha256
+    }
 }
 
 /// One repository on Hugging Face at a pinned revision, with the files taken from it. `into` is the folder
 /// inside the model package the files go to ("" for the package root).
-struct ModelSource: Hashable, Sendable {
-    let repository: String
-    let revision: String
-    let into: String
-    let files: [ModelFile]
+public struct ModelSource: Hashable, Sendable {
+    public let repository: String
+    public let revision: String
+    public let into: String
+    public let files: [ModelFile]
     /// A folder of the repository that is dropped from the local path (the package keeps one model's files at
     /// its root, while the repository holds many).
-    var stripPrefix = ""
+    public var stripPrefix = ""
+
+    public init(repository: String, revision: String, into: String, files: [ModelFile], stripPrefix: String = "") {
+        self.repository = repository
+        self.revision = revision
+        self.into = into
+        self.files = files
+        self.stripPrefix = stripPrefix
+    }
 
     /// Where a file goes inside the package, below `into`.
-    func localPath(of file: ModelFile) -> String {
+    public func localPath(of file: ModelFile) -> String {
         stripPrefix.isEmpty || !file.path.hasPrefix(stripPrefix)
             ? file.path : String(file.path.dropFirst(stripPrefix.count))
     }
 
-    func url(for file: ModelFile) -> URL? {
+    public func url(for file: ModelFile) -> URL? {
         var components = URLComponents()
         components.scheme = "https"
         components.host = "huggingface.co"
@@ -36,28 +50,36 @@ struct ModelSource: Hashable, Sendable {
 /// A downloadable speech model package: everything the engine needs, and nothing it would download by
 /// itself (spec: `ModelManager`). The catalog is compiled in, so a download can only ever fetch these files
 /// from these revisions, and every file is checked against its SHA-256.
-struct ModelPackage: Hashable, Sendable, Identifiable {
-    let id: String
-    let title: String
-    let license: String
-    let attribution: String
-    let sources: [ModelSource]
+public struct ModelPackage: Hashable, Sendable, Identifiable {
+    public let id: String
+    public let title: String
+    public let license: String
+    public let attribution: String
+    public let sources: [ModelSource]
 
-    var files: [(source: ModelSource, file: ModelFile)] {
+    public init(id: String, title: String, license: String, attribution: String, sources: [ModelSource]) {
+        self.id = id
+        self.title = title
+        self.license = license
+        self.attribution = attribution
+        self.sources = sources
+    }
+
+    public var files: [(source: ModelSource, file: ModelFile)] {
         sources.flatMap { source in source.files.map { (source, $0) } }
     }
 
-    var totalBytes: Int { files.reduce(0) { $0 + $1.file.size } }
+    public var totalBytes: Int { files.reduce(0) { $0 + $1.file.size } }
 
     /// Where a file lives inside the package folder.
-    func relativePath(of file: ModelFile, in source: ModelSource) -> String {
+    public func relativePath(of file: ModelFile, in source: ModelSource) -> String {
         source.into.isEmpty ? source.localPath(of: file) : source.into + "/" + source.localPath(of: file)
     }
 }
 
-enum ModelCatalog {
+public enum ModelCatalog {
     /// The Silero voice activity model, part of every package (the recording is cut into speech segments with it).
-    static let sileroVAD = ModelSource(
+    public static let sileroVAD = ModelSource(
         repository: "FluidInference/silero-vad-coreml",
         revision: "b419383c55c110e2c9271fa6ee0ea83d03c70d96",
         into: "vad",
@@ -80,10 +102,10 @@ enum ModelCatalog {
         ])
 
     /// The Silero model inside a package, relative to the package folder.
-    static let sileroVADPath = "vad/silero-vad-unified-256ms-v6.2.1.mlmodelc"
+    public static let sileroVADPath = "vad/silero-vad-unified-256ms-v6.2.1.mlmodelc"
 
     /// Parakeet Ultra (Core ML) with the Silero VAD model, ADR 0003.
-    static let parakeetUltra = ModelPackage(
+    public static let parakeetUltra = ModelPackage(
         id: "parakeet-ultra",
         title: "Parakeet Ultra",
         license: "CC-BY-4.0",
@@ -155,7 +177,7 @@ enum ModelCatalog {
 
     /// Whisper large-v3-turbo (Core ML, 632 MB build) with the tokenizer WhisperKit needs next to it. WhisperKit
     /// downloads a missing tokenizer by itself, so the tokenizer files are part of the package (ADR 0003).
-    static let whisperLargeV3Turbo = ModelPackage(
+    public static let whisperLargeV3Turbo = ModelPackage(
         id: "whisper-large-v3-turbo",
         title: "Whisper large-v3-turbo",
         license: "MIT",
@@ -259,14 +281,14 @@ enum ModelCatalog {
             sileroVAD,
         ])
 
-    static let all: [ModelPackage] = [parakeetUltra, whisperLargeV3Turbo]
+    public static let all: [ModelPackage] = [parakeetUltra, whisperLargeV3Turbo]
 
-    static func package(id: String) -> ModelPackage? {
+    public static func package(id: String) -> ModelPackage? {
         all.first { $0.id == id }
     }
 
     /// The only hosts a model download may talk to or be redirected to (spec: `LoopbackPolicy`).
-    static func isAllowedDownloadHost(_ host: String) -> Bool {
+    public static func isAllowedDownloadHost(_ host: String) -> Bool {
         let host = host.lowercased()
         if host == "huggingface.co" || host == "cdn-lfs.hf.co" || host == "cas-bridge.xethub.hf.co" {
             return true

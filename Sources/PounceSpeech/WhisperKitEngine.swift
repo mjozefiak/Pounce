@@ -4,8 +4,8 @@ import WhisperKit
 /// Whisper large-v3-turbo through WhisperKit, with the language pinned to what the user chose (ADR 0003: the
 /// answer to Parakeet drifting into English). It loads only from the folder `ModelManager` gives it, with
 /// `download: false`, and the tokenizer files sit in that folder, so WhisperKit has nothing to fetch.
-actor WhisperKitEngine: SpeechEngine {
-    enum EngineError: Error {
+public actor WhisperKitEngine: SpeechEngine {
+    public enum EngineError: Error {
         case notLoaded
     }
 
@@ -13,13 +13,13 @@ actor WhisperKitEngine: SpeechEngine {
     private let language: @Sendable () -> String
 
     /// - Parameter language: `pl` or `en`, read for every segment so a change in Settings applies at once.
-    init(language: @escaping @Sendable () -> String) {
+    public init(language: @escaping @Sendable () -> String) {
         self.language = language
     }
 
-    var isLoaded: Bool { kit != nil }
+    public var isLoaded: Bool { kit != nil }
 
-    func load(modelFolder: URL) async throws {
+    public func load(modelFolder: URL) async throws {
         let config = WhisperKitConfig(
             modelFolder: modelFolder.path,
             tokenizerFolder: modelFolder,
@@ -31,7 +31,7 @@ actor WhisperKitEngine: SpeechEngine {
         kit = try await WhisperKit(config)
     }
 
-    func transcribe(_ samples: [Float]) async throws -> TranscriptSegment {
+    public func transcribe(_ samples: [Float]) async throws -> TranscriptSegment {
         guard let kit else { throw EngineError.notLoaded }
         // The language is always pinned (no detection), and a VAD segment is one window, not 30 s chunks.
         let options = DecodingOptions(
@@ -48,7 +48,7 @@ actor WhisperKitEngine: SpeechEngine {
         return TranscriptSegment(text: RepetitionFilter.clean(text))
     }
 
-    func unload() async {
+    public func unload() async {
         await kit?.unloadModels()
         kit = nil
     }
@@ -56,14 +56,14 @@ actor WhisperKitEngine: SpeechEngine {
 
 /// Whisper sometimes loops on one phrase ("thank you, thank you, thank you, ..."). A phrase repeated that
 /// many times in a row is cut down to its first occurrence; ordinary repetition in speech is left alone.
-enum RepetitionFilter {
+public enum RepetitionFilter {
     /// A single word has to repeat this many times in a row to count as a loop ("no no no" is speech).
     static let wordRepeats = 5
     /// A phrase of two to eight words has to repeat this many times.
     static let phraseRepeats = 3
     static let longestPhrase = 8
 
-    static func clean(_ text: String) -> String {
+    public static func clean(_ text: String) -> String {
         var words = text.split(whereSeparator: \.isWhitespace).map(String.init)
         var changed = true
         while changed {
@@ -103,17 +103,17 @@ enum RepetitionFilter {
 
 /// Presents the two engines as one: the model chosen in Settings is loaded and used, and the other one is
 /// unloaded the moment the choice changes, so only one model sits in memory.
-actor SwitchingEngine: SpeechEngine {
+public actor SwitchingEngine: SpeechEngine {
     private let engines: [String: any SpeechEngine]
     private let selected: @Sendable () -> String
     private var active: String?
 
-    init(engines: [String: any SpeechEngine], selected: @escaping @Sendable () -> String) {
+    public init(engines: [String: any SpeechEngine], selected: @escaping @Sendable () -> String) {
         self.engines = engines
         self.selected = selected
     }
 
-    enum SwitchingError: Error {
+    public enum SwitchingError: Error {
         case unknownEngine(String)
     }
 
@@ -123,14 +123,14 @@ actor SwitchingEngine: SpeechEngine {
         return (id, engine)
     }
 
-    var isLoaded: Bool {
+    public var isLoaded: Bool {
         get async {
             guard let (id, engine) = try? current(), active == id else { return false }
             return await engine.isLoaded
         }
     }
 
-    func load(modelFolder: URL) async throws {
+    public func load(modelFolder: URL) async throws {
         let (id, engine) = try current()
         if let previous = active, previous != id, let old = engines[previous] {
             await old.unload()
@@ -139,11 +139,11 @@ actor SwitchingEngine: SpeechEngine {
         try await engine.load(modelFolder: modelFolder)
     }
 
-    func transcribe(_ samples: [Float]) async throws -> TranscriptSegment {
+    public func transcribe(_ samples: [Float]) async throws -> TranscriptSegment {
         try await current().engine.transcribe(samples)
     }
 
-    func unload() async {
+    public func unload() async {
         for engine in engines.values {
             await engine.unload()
         }

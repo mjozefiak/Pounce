@@ -1,4 +1,5 @@
 import Foundation
+import PounceSpeech
 import os
 
 /// One recording, from the first sample to the finished text (spec: `DictationSession`).

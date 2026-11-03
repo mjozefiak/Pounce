@@ -1,6 +1,6 @@
 import Foundation
 
-enum ModelError: Error, Equatable {
+public enum ModelError: Error, Equatable {
     case insufficientSpace(needed: Int, available: Int)
     case checksumMismatch(path: String)
     case sizeMismatch(path: String)
@@ -11,7 +11,7 @@ enum ModelError: Error, Equatable {
 }
 
 /// Downloads one file, appending to a partial file so an interrupted download resumes.
-protocol FileDownloading: Sendable {
+public protocol FileDownloading: Sendable {
     /// Downloads `url` into `file`. When `file` already has bytes, asks the server to continue after them.
     /// `progress` gets the number of bytes in `file` so far.
     func download(_ url: URL, to file: URL, progress: @escaping @Sendable (Int) -> Void) async throws
@@ -19,16 +19,22 @@ protocol FileDownloading: Sendable {
 
 /// The live downloader: an ephemeral `URLSession` (no cache on disk) that talks HTTPS to the allowed model
 /// hosts only, and follows a redirect only to another allowed host (spec: `LoopbackPolicy`).
-struct SessionDownloader: FileDownloading {
+public struct SessionDownloader: FileDownloading {
     /// Tests put a `URLProtocol` stub in here.
-    var makeConfiguration: @Sendable () -> URLSessionConfiguration = {
+    public var makeConfiguration: @Sendable () -> URLSessionConfiguration
+
+    public init(makeConfiguration: @escaping @Sendable () -> URLSessionConfiguration = Self.ephemeralConfiguration) {
+        self.makeConfiguration = makeConfiguration
+    }
+
+    @Sendable public static func ephemeralConfiguration() -> URLSessionConfiguration {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.urlCache = nil
         configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
         return configuration
     }
 
-    func download(_ url: URL, to file: URL, progress: @escaping @Sendable (Int) -> Void) async throws {
+    public func download(_ url: URL, to file: URL, progress: @escaping @Sendable (Int) -> Void) async throws {
         guard url.scheme == "https", let host = url.host, ModelCatalog.isAllowedDownloadHost(host) else {
             throw ModelError.disallowedHost(url.host ?? "")
         }

@@ -4,8 +4,10 @@ import Foundation
 import os
 
 /// The microphone permission, read without a prompt and asked for only on request.
-struct SystemMicrophoneAuthorizer: MicrophoneAuthorizer {
-    func status() -> MicrophoneAccess {
+public struct SystemMicrophoneAuthorizer: MicrophoneAuthorizer {
+    public init() {}
+
+    public func status() -> MicrophoneAccess {
         switch AVCaptureDevice.authorizationStatus(for: .audio) {
         case .authorized: .granted
         case .denied, .restricted: .denied
@@ -14,12 +16,12 @@ struct SystemMicrophoneAuthorizer: MicrophoneAuthorizer {
         }
     }
 
-    func requestAccess() async -> Bool {
+    public func requestAccess() async -> Bool {
         await AVCaptureDevice.requestAccess(for: .audio)
     }
 }
 
-enum CaptureError: Error {
+public enum CaptureError: Error {
     case noInputDevice
     case converterUnavailable
     case engineFailed(String)
@@ -27,7 +29,7 @@ enum CaptureError: Error {
 
 /// `AVAudioEngine` on the chosen input (or the system's), converted to 16 kHz mono `Float32` and handed out
 /// in memory; nothing is written to disk. The stream ends when the device goes away or the Mac sleeps.
-final class MicrophoneCapture: AudioInput, @unchecked Sendable {
+public final class MicrophoneCapture: AudioInput, @unchecked Sendable {
     private let deviceUID: String?
     private let lock = NSLock()
     private var engine: AVAudioEngine?
@@ -35,11 +37,11 @@ final class MicrophoneCapture: AudioInput, @unchecked Sendable {
     private var continuation: AsyncStream<[Float]>.Continuation?
 
     /// - Parameter deviceUID: the input device's UID from Settings, or `nil` for the system's input.
-    init(deviceUID: String? = nil) {
+    public init(deviceUID: String? = nil) {
         self.deviceUID = deviceUID
     }
 
-    func start(onLevel: @escaping @Sendable (Float) -> Void) async throws -> AsyncStream<[Float]> {
+    public func start(onLevel: @escaping @Sendable (Float) -> Void) async throws -> AsyncStream<[Float]> {
         let engine = AVAudioEngine()
         if let deviceUID {
             try Self.select(deviceUID: deviceUID, on: engine)
@@ -97,7 +99,7 @@ final class MicrophoneCapture: AudioInput, @unchecked Sendable {
         return stream
     }
 
-    func stop() async {
+    public func stop() async {
         let (engine, observer, continuation) = lock.withLock {
             () -> (AVAudioEngine?, (any NSObjectProtocol)?, AsyncStream<[Float]>.Continuation?) in
             defer {
@@ -119,7 +121,7 @@ final class MicrophoneCapture: AudioInput, @unchecked Sendable {
     }
 
     /// A 0...1 loudness for the HUD from the RMS, on a log scale so quiet speech still moves it.
-    static func level(of samples: [Float]) -> Float {
+    public static func level(of samples: [Float]) -> Float {
         guard !samples.isEmpty else { return 0 }
         let meanSquare = samples.reduce(Float(0)) { $0 + $1 * $1 } / Float(samples.count)
         let decibels = 10 * log10(max(meanSquare, 1e-9))
@@ -128,14 +130,19 @@ final class MicrophoneCapture: AudioInput, @unchecked Sendable {
 
     // MARK: Input devices
 
-    struct InputDevice: Identifiable, Equatable, Sendable {
-        let uid: String
-        let name: String
-        var id: String { uid }
+    public struct InputDevice: Identifiable, Equatable, Sendable {
+        public let uid: String
+        public let name: String
+        public var id: String { uid }
+
+        public init(uid: String, name: String) {
+            self.uid = uid
+            self.name = name
+        }
     }
 
     /// Every device that can record.
-    static func inputDevices() -> [InputDevice] {
+    public static func inputDevices() -> [InputDevice] {
         var address = AudioObjectPropertyAddress(
             mSelector: kAudioHardwarePropertyDevices, mScope: kAudioObjectPropertyScopeGlobal,
             mElement: kAudioObjectPropertyElementMain)

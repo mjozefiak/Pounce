@@ -2,17 +2,23 @@ import Foundation
 
 /// A formatting model the user can download in Settings (ADR 0005). A GGUF file is a one-file `ModelPackage`,
 /// so `ModelManager` downloads, verifies, resumes and deletes it exactly like a speech model.
-struct LLMModel: Hashable, Sendable, Identifiable {
-    let package: ModelPackage
+public struct LLMModel: Hashable, Sendable, Identifiable {
+    public let package: ModelPackage
     /// Memory the loaded model takes, measured with llama.cpp on an M4 Max (ADR 0005), for the Settings hint.
-    let residentBytes: Int
+    public let residentBytes: Int
     /// The least installed memory the model is offered on.
-    let minimumMemoryBytes: Int
+    public let minimumMemoryBytes: Int
 
-    var id: String { package.id }
+    public init(package: ModelPackage, residentBytes: Int, minimumMemoryBytes: Int) {
+        self.package = package
+        self.residentBytes = residentBytes
+        self.minimumMemoryBytes = minimumMemoryBytes
+    }
+
+    public var id: String { package.id }
 
     /// The GGUF file inside the installed folder.
-    func fileURL(in folder: URL) -> URL? {
+    public func fileURL(in folder: URL) -> URL? {
         guard let entry = package.files.first else { return nil }
         return folder.appending(path: package.relativePath(of: entry.file, in: entry.source))
     }
@@ -20,11 +26,11 @@ struct LLMModel: Hashable, Sendable, Identifiable {
 
 /// The formatting models Pounce can download. Compiled in: only these files, from these revisions, with these
 /// hashes, are ever fetched (an arbitrary GGUF is parsed in the Pounce process, so v1 offers none).
-enum LLMModelCatalog {
+public enum LLMModelCatalog {
     private static let gibibyte = 1 << 30
 
     /// Qwen3-4B-Instruct-2507, Q4_K_M: the default, fast and small.
-    static let qwen3Small = LLMModel(
+    public static let qwen3Small = LLMModel(
         package: ModelPackage(
             id: "llm-qwen3-4b-instruct-2507-q4km",
             title: "Qwen3 4B Instruct 2507",
@@ -45,7 +51,7 @@ enum LLMModelCatalog {
         minimumMemoryBytes: 8 * gibibyte)
 
     /// Qwen3-30B-A3B-Instruct-2507, Q4_K_M: the best quality measured, for Macs with plenty of memory.
-    static let qwen3Large = LLMModel(
+    public static let qwen3Large = LLMModel(
         package: ModelPackage(
             id: "llm-qwen3-30b-a3b-instruct-2507-q4km",
             title: "Qwen3 30B-A3B Instruct 2507",
@@ -66,16 +72,16 @@ enum LLMModelCatalog {
         residentBytes: 18_893_225_984,
         minimumMemoryBytes: 32 * gibibyte)
 
-    static let all: [LLMModel] = [qwen3Small, qwen3Large]
+    public static let all: [LLMModel] = [qwen3Small, qwen3Large]
 
-    static let defaultModel = qwen3Small
+    public static let defaultModel = qwen3Small
 
-    static func model(id: String) -> LLMModel? {
+    public static func model(id: String) -> LLMModel? {
         all.first { $0.id == id }
     }
 
     /// The models offered on a Mac with this much memory, smallest first.
-    static func available(physicalMemory: UInt64) -> [LLMModel] {
+    public static func available(physicalMemory: UInt64) -> [LLMModel] {
         all.filter { physicalMemory >= UInt64($0.minimumMemoryBytes) }
     }
 }

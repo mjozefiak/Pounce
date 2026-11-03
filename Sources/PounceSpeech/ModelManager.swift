@@ -3,7 +3,7 @@ import Foundation
 import os
 
 /// Where a speech model package is, as far as the settings and the disk say.
-enum ModelLocation: Equatable, Sendable {
+public enum ModelLocation: Equatable, Sendable {
     /// Downloaded by Pounce into `Plugins/dictation/Models/<id>/`.
     case installed(URL)
     /// The folder the user pointed at (never copied).
@@ -14,7 +14,7 @@ enum ModelLocation: Equatable, Sendable {
     case partial(bytes: Int)
     case missing
 
-    var folder: URL? {
+    public var folder: URL? {
         switch self {
         case .installed(let url), .customFolder(let url): url
         default: nil
@@ -22,33 +22,39 @@ enum ModelLocation: Equatable, Sendable {
     }
 }
 
-struct ModelProgress: Equatable, Sendable {
-    var bytesDone: Int
-    var bytesTotal: Int
+public struct ModelProgress: Equatable, Sendable {
+    public var bytesDone: Int
+    public var bytesTotal: Int
 
-    var fraction: Double { bytesTotal == 0 ? 0 : min(1, Double(bytesDone) / Double(bytesTotal)) }
+    public init(bytesDone: Int, bytesTotal: Int) {
+        self.bytesDone = bytesDone
+        self.bytesTotal = bytesTotal
+    }
+
+    public var fraction: Double { bytesTotal == 0 ? 0 : min(1, Double(bytesDone) / Double(bytesTotal)) }
 }
 
-/// Downloads, verifies, locates and deletes speech model packages under `Plugins/dictation/Models/`. It is the
+/// Downloads, verifies, locates and deletes model packages under one folder of the shared `Models/` folder. It is the
 /// only thing that fetches model files; the engines load from the folder it returns and never download.
 ///
 /// A download goes into `<id>.partial/`, every file is checked against the catalog's SHA-256, and the folder
 /// is renamed to `<id>/` only when all of them match. A failed file is deleted; the rest stay, so the next
 /// attempt continues instead of starting over.
-actor ModelManager {
+public actor ModelManager {
     private let directory: URL
     private let downloader: any FileDownloading
     private let availableSpace: @Sendable (URL) -> Int
     private let logger: Logger
 
     /// - Parameters:
-    ///   - directory: `Plugins/dictation/Models/`.
+    ///   - directory: the folder the packages live in.
     ///   - availableSpace: free bytes on the volume of a URL; tests replace it.
-    init(
+    ///   - logger: the caller's logger, so the messages carry the caller's category.
+    public init(
         directory: URL,
         downloader: any FileDownloading = SessionDownloader(),
         availableSpace: @escaping @Sendable (URL) -> Int = ModelManager.systemAvailableSpace,
-        logger: Logger = Logger(subsystem: "app.pounce", category: "dictation")
+        logger: Logger = Logger(subsystem: "app.pounce", category: "speech")
     ) {
         self.directory = directory
         self.downloader = downloader
@@ -56,7 +62,7 @@ actor ModelManager {
         self.logger = logger
     }
 
-    nonisolated static func systemAvailableSpace(_ url: URL) -> Int {
+    public nonisolated static func systemAvailableSpace(_ url: URL) -> Int {
         var probe = url
         while !FileManager.default.fileExists(atPath: probe.path), probe.pathComponents.count > 1 {
             probe.deleteLastPathComponent()
@@ -78,7 +84,7 @@ actor ModelManager {
     /// The folder to load `package` from, preferring the user's own folder when the settings name one.
     /// This is a quick check (files exist with the right sizes); checksums run when the model is installed or
     /// the folder is chosen.
-    func location(of package: ModelPackage, customFolder: URL? = nil) -> ModelLocation {
+    public func location(of package: ModelPackage, customFolder: URL? = nil) -> ModelLocation {
         if let customFolder {
             return isComplete(package, in: customFolder)
                 ? .customFolder(customFolder) : .customFolderUnavailable(customFolder)
@@ -124,7 +130,7 @@ actor ModelManager {
     /// Downloads and verifies `package`, then moves it into place. Cancelling the task keeps the partial
     /// folder so the next call resumes. Returns the installed folder.
     @discardableResult
-    func install(
+    public func install(
         _ package: ModelPackage, progress: @escaping @Sendable (ModelProgress) -> Void = { _ in }
     ) async throws -> URL {
         let installed = installedFolder(package)
@@ -195,7 +201,7 @@ actor ModelManager {
 
     /// Checks a folder the user downloaded by hand: every file present with its size and SHA-256. Nothing is
     /// copied; the settings keep the folder's path.
-    func verify(folder: URL, for package: ModelPackage) throws {
+    public func verify(folder: URL, for package: ModelPackage) throws {
         let missing = missingFiles(package, in: folder)
         guard missing.isEmpty else { throw ModelError.folderIncomplete(missing: missing) }
         for entry in package.files {
@@ -209,7 +215,7 @@ actor ModelManager {
     // MARK: Delete
 
     /// Removes the downloaded package and any partial download. The user's own folder is never touched.
-    func delete(_ package: ModelPackage) throws {
+    public func delete(_ package: ModelPackage) throws {
         for url in [installedFolder(package), partialFolder(package)]
         where FileManager.default.fileExists(atPath: url.path) {
             try FileManager.default.removeItem(at: url)
@@ -228,7 +234,7 @@ actor ModelManager {
     }
 
     /// SHA-256 of a file, read in 1 MB pieces.
-    nonisolated static func sha256(of file: URL) throws -> String {
+    public nonisolated static func sha256(of file: URL) throws -> String {
         let handle = try FileHandle(forReadingFrom: file)
         defer { try? handle.close() }
         var hasher = SHA256()

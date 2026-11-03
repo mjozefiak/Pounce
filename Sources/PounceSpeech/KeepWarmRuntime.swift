@@ -2,7 +2,7 @@ import Foundation
 
 /// Keeps a model loaded for a while after its last use and frees it afterwards (spec: `keepWarmMinutes`).
 /// The first request after the pause loads it again; `warmUp()` does that ahead of time, when recording starts.
-actor KeepWarmRuntime {
+public actor KeepWarmRuntime {
     private let runtime: any LLMRuntime
     private let modelURL: @Sendable () async throws -> URL
     private let keepWarm: @Sendable () -> Duration
@@ -13,7 +13,7 @@ actor KeepWarmRuntime {
 
     /// - Parameter modelURL: the GGUF file to use, asked for at every request so a model chosen in Settings
     ///   applies at once; it throws (`LlamaError.modelNotFound`) when the model is not installed.
-    init(
+    public init(
         runtime: any LLMRuntime, modelURL: @escaping @Sendable () async throws -> URL,
         keepWarm: @escaping @Sendable () -> Duration,
         sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
@@ -24,7 +24,7 @@ actor KeepWarmRuntime {
         self.sleep = sleep
     }
 
-    init(
+    public init(
         runtime: any LLMRuntime, modelURL: URL, keepWarm: @escaping @Sendable () -> Duration,
         sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     ) {
@@ -32,14 +32,18 @@ actor KeepWarmRuntime {
     }
 
     /// Loads the model if it is not loaded and starts the keep-warm timer.
-    func warmUp() async throws {
+    public func warmUp() async throws {
         timer?.cancel()
         timer = nil
         defer { scheduleUnload() }
         try await ensureLoaded()
     }
 
-    func generate(messages: [CleanupPrompt.Message], maxTokens: Int) async throws -> String {
+    public func generate(messages: [ChatMessage], maxTokens: Int) async throws -> String {
+        try await generateResult(messages: messages, maxTokens: maxTokens).text
+    }
+
+    public func generateResult(messages: [ChatMessage], maxTokens: Int) async throws -> GenerationResult {
         timer?.cancel()
         timer = nil
         inFlight += 1
@@ -48,11 +52,11 @@ actor KeepWarmRuntime {
             scheduleUnload()
         }
         try await ensureLoaded()
-        return try await runtime.generate(messages: messages, maxTokens: maxTokens)
+        return try await runtime.generateResult(messages: messages, maxTokens: maxTokens)
     }
 
     /// Frees the model now (plugin disabled, model deleted, Erase Data).
-    func unload() async {
+    public func unload() async {
         timer?.cancel()
         timer = nil
         loadedURL = nil

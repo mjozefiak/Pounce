@@ -1,7 +1,7 @@
 import Foundation
 import llama
 
-enum LlamaError: Error, Equatable, Sendable {
+public enum LlamaError: Error, Equatable, Sendable {
     case modelNotFound
     case loadFailed
     case contextFailed
@@ -13,30 +13,71 @@ enum LlamaError: Error, Equatable, Sendable {
     case decodeFailed(Int)
 }
 
+/// One message of a chat, in the model's roles (`system`, `user`, `assistant`). Neutral: the callers build
+/// their own prompts and map them to this.
+public struct ChatMessage: Equatable, Sendable {
+    public let role: String
+    public let content: String
+
+    public init(role: String, content: String) {
+        self.role = role
+        self.content = content
+    }
+}
+
+/// A completion and whether the model was cut off by the token limit instead of finishing by itself.
+public struct GenerationResult: Equatable, Sendable {
+    public let text: String
+    /// `true` when `maxTokens` was reached before the model produced its end-of-generation token.
+    public let stoppedByTokenLimit: Bool
+
+    public init(text: String, stoppedByTokenLimit: Bool) {
+        self.text = text
+        self.stoppedByTokenLimit = stoppedByTokenLimit
+    }
+}
+
 /// The built-in language model behind one narrow port (ADR 0005): load a file, produce a completion for a chat,
 /// free the memory. The formatter and its tests only see this protocol.
-protocol LLMRuntime: Sendable {
+public protocol LLMRuntime: Sendable {
     var isLoaded: Bool { get async }
     func load(modelAt url: URL) async throws
     func unload() async
     /// Greedy completion of `messages`. Cancelling the calling task stops it between two tokens.
-    func generate(messages: [CleanupPrompt.Message], maxTokens: Int) async throws -> String
+    func generate(messages: [ChatMessage], maxTokens: Int) async throws -> String
+    /// Like `generate`, and also says whether the token limit ended the completion.
+    func generateResult(messages: [ChatMessage], maxTokens: Int) async throws -> GenerationResult
+}
+
+extension LLMRuntime {
+    /// A runtime that cannot tell reports a completion that finished by itself.
+    public func generateResult(messages: [ChatMessage], maxTokens: Int) async throws -> GenerationResult {
+        GenerationResult(text: try await generate(messages: messages, maxTokens: maxTokens), stoppedByTokenLimit: false)
+    }
 }
 
 /// llama.cpp in this process. The actor runs on its own serial queue, so a decode never blocks the main thread
 /// or the cooperative pool. Nothing here logs the prompt or the answer.
-actor LlamaRuntime: LLMRuntime {
-    /// The longest prompt plus answer: the cleanup prompt with its examples, a 60-word chunk and its answer.
-    static let contextLength = 4096
+public actor LlamaRuntime: LLMRuntime {
+    /// The default for the longest prompt plus answer: the cleanup prompt with its examples, a 60-word chunk and
+    /// its answer.
+    public static let defaultContextLength = 4096
+
+    /// The longest prompt plus answer this runtime takes.
+    public let contextLength: Int
 
     private let queue = DispatchSerialQueue(label: "app.pounce.dictation.llama", qos: .userInitiated)
-    nonisolated var unownedExecutor: UnownedSerialExecutor { queue.asUnownedSerialExecutor() }
+    public nonisolated var unownedExecutor: UnownedSerialExecutor { queue.asUnownedSerialExecutor() }
 
     private var engine: Engine?
 
-    var isLoaded: Bool { engine != nil }
+    public init(contextLength: Int = LlamaRuntime.defaultContextLength) {
+        self.contextLength = contextLength
+    }
 
-    func load(modelAt url: URL) async throws {
+    public var isLoaded: Bool { engine != nil }
+
+    public func load(modelAt url: URL) async throws {
         guard FileManager.default.fileExists(atPath: url.path) else { throw LlamaError.modelNotFound }
         engine = nil
         Self.prepareBackend()
@@ -44,7 +85,7 @@ actor LlamaRuntime: LLMRuntime {
         modelParameters.n_gpu_layers = -1
         guard let model = llama_model_load_from_file(url.path, modelParameters) else { throw LlamaError.loadFailed }
         var contextParameters = llama_context_default_params()
-        contextParameters.n_ctx = UInt32(Self.contextLength)
+        contextParameters.n_ctx = UInt32(max(1, contextLength))
         contextParameters.no_perf = true
         guard let context = llama_init_from_model(model, contextParameters) else {
             llama_model_free(model)
@@ -58,15 +99,19 @@ actor LlamaRuntime: LLMRuntime {
         engine = Engine(model: model, context: context, vocabulary: vocabulary)
     }
 
-    func unload() {
+    public func unload() {
         engine = nil
     }
 
-    func generate(messages: [CleanupPrompt.Message], maxTokens: Int) async throws -> String {
+    public func generate(messages: [ChatMessage], maxTokens: Int) async throws -> String {
+        try await generateResult(messages: messages, maxTokens: maxTokens).text
+    }
+
+    public func generateResult(messages: [ChatMessage], maxTokens: Int) async throws -> GenerationResult {
         guard let engine else { throw LlamaError.notLoaded }
         let tokens = try Self.tokens(of: try Self.prompt(for: messages, in: engine), in: engine)
-        guard tokens.count + maxTokens <= Self.contextLength else {
-            throw LlamaError.promptTooLong(tokens: tokens.count, limit: Self.contextLength - maxTokens)
+        guard tokens.count + maxTokens <= contextLength else {
+            throw LlamaError.promptTooLong(tokens: tokens.count, limit: contextLength - maxTokens)
         }
         llama_memory_clear(llama_get_memory(engine.context), true)
         try Self.decodePrompt(tokens, in: engine)
@@ -86,7 +131,7 @@ actor LlamaRuntime: LLMRuntime {
     }
 
     /// The messages in the model's own chat format, ready for the next assistant turn.
-    private static func prompt(for messages: [CleanupPrompt.Message], in engine: Engine) throws -> String {
+    private static func prompt(for messages: [ChatMessage], in engine: Engine) throws -> String {
         guard let template = llama_model_chat_template(engine.model, nil) else { throw LlamaError.unsupportedTemplate }
         var strings: [UnsafeMutablePointer<CChar>] = []
         defer {
@@ -141,7 +186,7 @@ actor LlamaRuntime: LLMRuntime {
         }
     }
 
-    private static func sample(maxTokens: Int, in engine: Engine) throws -> String {
+    private static func sample(maxTokens: Int, in engine: Engine) throws -> GenerationResult {
         guard let sampler = llama_sampler_chain_init(llama_sampler_chain_default_params()) else {
             throw LlamaError.contextFailed
         }
@@ -149,17 +194,21 @@ actor LlamaRuntime: LLMRuntime {
         llama_sampler_chain_add(sampler, llama_sampler_init_greedy())
 
         var output: [UInt8] = []
+        var finished = false
         for _ in 0..<maxTokens {
             try Task.checkCancellation()
             var token = llama_sampler_sample(sampler, engine.context, -1)
-            if llama_vocab_is_eog(engine.vocabulary, token) { break }
+            if llama_vocab_is_eog(engine.vocabulary, token) {
+                finished = true
+                break
+            }
             output.append(contentsOf: piece(of: token, in: engine))
             let status = withUnsafeMutablePointer(to: &token) {
                 llama_decode(engine.context, llama_batch_get_one($0, 1))
             }
             guard status == 0 else { throw LlamaError.decodeFailed(Int(status)) }
         }
-        return String(decoding: output, as: UTF8.self)
+        return GenerationResult(text: String(decoding: output, as: UTF8.self), stoppedByTokenLimit: !finished)
     }
 
     private static func piece(of token: llama_token, in engine: Engine) -> [UInt8] {

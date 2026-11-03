@@ -1,5 +1,6 @@
 import Foundation
 import PounceKit
+import PounceSpeech
 import os
 
 /// Runs one dictation from the shortcut to the pasted text: the gesture, the microphone permission, the
