@@ -750,12 +750,14 @@ private let micOnly: TrackScript? = nil
         let log = SessionEventLog(session)
         let id = try await session.start()
         #expect(await log.wait { $0 == .modelUnavailable(busy: true) })
+        // The model is free again for the replay and the spool file is gone before the track ends: the session
+        // finishes by itself as soon as its last track is lost, so this cannot wait for `trackLost`. The
+        // writer keeps its open handle, the reader finds no file.
+        await held.release()
+        try FileManager.default.removeItem(at: rig.spool.file(for: uuid, track: .mic))
         rig.mic.push(mic.samples)
         rig.mic.end()
         #expect(await log.wait { $0 == .trackLost(.mic) })
-        // The model is free again for the replay, but the spool file is gone.
-        await held.release()
-        try FileManager.default.removeItem(at: rig.spool.file(for: uuid, track: .mic))
         let outcome = await session.finish()
         #expect(outcome.result == .failed)
         #expect(outcome.failedSegments == 1)
@@ -783,13 +785,15 @@ private let micOnly: TrackScript? = nil
         let log = SessionEventLog(session)
         let id = try await session.start()
         #expect(await log.wait { $0 == .modelUnavailable(busy: true) })
+        // Free the model and lose the mic spool before the tracks end: the session finishes by itself as soon
+        // as its last track is lost.
+        await held.release()
+        try FileManager.default.removeItem(at: rig.spool.file(for: uuid, track: .mic))
         rig.mic.push(mic.samples)
         rig.system.push(system.samples)
         rig.mic.end()
         rig.system.end()
         #expect(await log.wait { $0 == .trackLost(.system) })
-        await held.release()
-        try FileManager.default.removeItem(at: rig.spool.file(for: uuid, track: .mic))
         let outcome = await session.finish()
         #expect(outcome.result == .incomplete)
         #expect(outcome.failedSegments == 1)

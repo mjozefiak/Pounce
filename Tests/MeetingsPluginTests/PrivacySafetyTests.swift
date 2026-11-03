@@ -209,12 +209,18 @@ private let words: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
         return (rig, folder)
     }
 
+    /// Lets the started task run until it is verifying. One `Task.yield()` is not enough under parallel load,
+    /// when the task has not been scheduled yet.
+    private static func untilVerifying(_ card: MeetingsModelCardModel) async {
+        for _ in 0..<100_000 where !card.isVerifying { await Task.yield() }
+    }
+
     @Test func aResultForAnotherPackageIsDropped() async throws {
         let (rig, _) = try rig(picks: Shared(0))
         let card = rig.model.speech
         let other = rig.diarizationModels.package
         let task = Task { await card.chooseFolder() }
-        await Task.yield()
+        await Self.untilVerifying(card)
         #expect(card.isVerifying)
         card.use(other)
         await task.value
@@ -227,7 +233,7 @@ private let words: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
         let (rig, folder) = try rig(picks: Shared(0))
         let card = rig.model.speech
         let first = Task { await card.chooseFolder() }
-        await Task.yield()
+        await Self.untilVerifying(card)
         #expect(card.isVerifying)
         rig.pick(nil)
         await card.chooseFolder()
