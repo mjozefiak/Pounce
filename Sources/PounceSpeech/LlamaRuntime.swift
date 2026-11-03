@@ -40,6 +40,8 @@ public struct GenerationResult: Equatable, Sendable {
 /// The built-in language model behind one narrow port (ADR 0005): load a file, produce a completion for a chat,
 /// free the memory. The formatter and its tests only see this protocol.
 public protocol LLMRuntime: Sendable {
+    /// The longest prompt plus answer; part of the key under which `LLMLease` shares a loaded model.
+    var contextLength: Int { get }
     var isLoaded: Bool { get async }
     func load(modelAt url: URL) async throws
     func unload() async
@@ -50,6 +52,8 @@ public protocol LLMRuntime: Sendable {
 }
 
 extension LLMRuntime {
+    public var contextLength: Int { LlamaRuntime.defaultContextLength }
+
     /// A runtime that cannot tell reports a completion that finished by itself.
     public func generateResult(messages: [ChatMessage], maxTokens: Int) async throws -> GenerationResult {
         GenerationResult(text: try await generate(messages: messages, maxTokens: maxTokens), stoppedByTokenLimit: false)

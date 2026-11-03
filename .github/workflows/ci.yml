@@ -48,5 +48,8 @@ jobs:
       - name: Test FileIndex and FilesPlugin under Thread Sanitizer
         run: swift test --sanitize=thread --filter FilesPluginTests
 
+      - name: Test model leases under Thread Sanitizer
+        run: swift test --sanitize=thread --filter "SpeechEngineLeaseTests|LLMLeaseTests|ModelManagerRegistryTests"
+
       - name: Format lint
         run: swift format lint --strict -r Sources Tests

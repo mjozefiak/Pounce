@@ -45,6 +45,10 @@ public actor ModelManager {
     private let downloader: any FileDownloading
     private let availableSpace: @Sendable (URL) -> Int
     private let logger: Logger
+    /// Installs and deletions run one at a time: the actor is re-entered while a download awaits, and two of
+    /// them on one package would write the same `.partial` folder.
+    private var exclusiveBusy = false
+    private var exclusiveWaiters: [CheckedContinuation<Void, Never>] = []
 
     /// - Parameters:
     ///   - directory: the folder the packages live in.
@@ -133,6 +137,30 @@ public actor ModelManager {
     public func install(
         _ package: ModelPackage, progress: @escaping @Sendable (ModelProgress) -> Void = { _ in }
     ) async throws -> URL {
+        try await exclusive { try await performInstall(package, progress: progress) }
+    }
+
+    /// Runs `body` after every earlier install or delete has finished.
+    private func exclusive<T>(_ body: () async throws -> T) async throws -> T {
+        if exclusiveBusy {
+            await withCheckedContinuation { exclusiveWaiters.append($0) }
+        } else {
+            exclusiveBusy = true
+        }
+        defer {
+            if exclusiveWaiters.isEmpty {
+                exclusiveBusy = false
+            } else {
+                exclusiveWaiters.removeFirst().resume()
+            }
+        }
+        try Task.checkCancellation()
+        return try await body()
+    }
+
+    private func performInstall(
+        _ package: ModelPackage, progress: @escaping @Sendable (ModelProgress) -> Void
+    ) async throws -> URL {
         let installed = installedFolder(package)
         if isComplete(package, in: installed) { return installed }
 
@@ -215,10 +243,12 @@ public actor ModelManager {
     // MARK: Delete
 
     /// Removes the downloaded package and any partial download. The user's own folder is never touched.
-    public func delete(_ package: ModelPackage) throws {
-        for url in [installedFolder(package), partialFolder(package)]
-        where FileManager.default.fileExists(atPath: url.path) {
-            try FileManager.default.removeItem(at: url)
+    public func delete(_ package: ModelPackage) async throws {
+        try await exclusive {
+            for url in [installedFolder(package), partialFolder(package)]
+            where FileManager.default.fileExists(atPath: url.path) {
+                try FileManager.default.removeItem(at: url)
+            }
         }
     }
 
