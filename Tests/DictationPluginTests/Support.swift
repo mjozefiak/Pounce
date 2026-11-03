@@ -117,7 +117,8 @@ struct DictationHarness {
             events: events,
             workspace: workspace,
             permissions: permissions,
-            clock: ContinuousClock()
+            clock: ContinuousClock(),
+            modelsDirectory: directory.url.appending(path: "Models", directoryHint: .isDirectory)
         )
     }
 

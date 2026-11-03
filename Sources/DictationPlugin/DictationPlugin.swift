@@ -37,9 +37,10 @@ public final class DictationPlugin: PouncePlugin {
     private let engine: SwitchingEngine
     private let authorizer = SystemMicrophoneAuthorizer()
     private let models: ModelManager
-    /// Downloads the built-in formatting models into `Plugins/dictation/llm/` (used by the settings in step 4.4).
+    /// Downloads the built-in formatting models into `Models/llm/` (used by the settings in step 4.4).
     let llmModels: ModelManager
     nonisolated static let llmDirectoryName = "llm"
+    nonisolated static let speechDirectoryName = "speech"
     /// The built-in formatting model, loaded on demand and freed after the keep-warm time.
     private let builtInLLM: KeepWarmRuntime
     private let hud: DictationHUDPanel
@@ -61,12 +62,12 @@ public final class DictationPlugin: PouncePlugin {
             ],
             selected: { settings.speechModelID })
         let models = ModelManager(
-            directory: context.storageDirectory.appending(path: "Models", directoryHint: .isDirectory),
+            directory: context.modelsDirectory.appending(path: Self.speechDirectoryName, directoryHint: .isDirectory),
             logger: context.logger)
         self.models = models
-        // Formatting models (ADR 0005) live next to the speech models and go with them on Erase Data.
+        // Formatting models (ADR 0005) live next to the speech models in the shared `Models/` folder (ADR 0006).
         let llmModels = ModelManager(
-            directory: context.storageDirectory.appending(path: Self.llmDirectoryName, directoryHint: .isDirectory),
+            directory: context.modelsDirectory.appending(path: Self.llmDirectoryName, directoryHint: .isDirectory),
             logger: context.logger)
         self.llmModels = llmModels
         builtInLLM = KeepWarmRuntime(

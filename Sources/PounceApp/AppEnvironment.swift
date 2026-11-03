@@ -37,6 +37,23 @@ struct AppEnvironment {
             .appending(path: id.rawValue, directoryHint: .isDirectory)
     }
 
+    /// `Models/` under the data root: downloaded speech and language models shared by all plugins.
+    var modelsDirectory: URL {
+        dataRoot.appending(path: "Models", directoryHint: .isDirectory)
+    }
+
+    /// Creates `Models/` (0700) and moves the models of the previous layout into it. Runs at launch before any
+    /// plugin activates, whether or not the plugin that owns the models is enabled.
+    func prepareModelsDirectory(fileManager: FileManager = .default) {
+        do {
+            try Self.createPrivateDirectory(modelsDirectory, fileManager: fileManager)
+        } catch {
+            Logger(subsystem: "app.pounce", category: "app")
+                .error("Cannot create Models: \(String(describing: error), privacy: .public)")
+        }
+        ModelsMigration(dataRoot: dataRoot, fileManager: fileManager).run()
+    }
+
     /// `Plugins/<id>/` under the caches root.
     func cachesDirectory(for id: PluginID) -> URL {
         cachesRoot
@@ -84,7 +101,8 @@ struct AppEnvironment {
             resultsChanged: resultsChanged,
             makeShortcutRecorder: makeShortcutRecorder,
             claimEscapeKey: claimEscapeKey,
-            openSettings: openSettings
+            openSettings: openSettings,
+            modelsDirectory: modelsDirectory
         )
     }
 
@@ -103,7 +121,7 @@ struct AppEnvironment {
             appropriateFor: nil,
             create: true
         )
-        return AppEnvironment(
+        let environment = AppEnvironment(
             dataRoot: root,
             cachesRoot: caches.appending(path: "Pounce", directoryHint: .isDirectory),
             settings: UserDefaultsSettingsStore(),
@@ -112,6 +130,8 @@ struct AppEnvironment {
             usage: openRanking(in: root),
             registersGlobalHotkeys: true
         )
+        environment.prepareModelsDirectory(fileManager: fileManager)
+        return environment
     }
 
     #if DEBUG
@@ -132,7 +152,7 @@ struct AppEnvironment {
                 live: options.liveAppActivity
             )
         )
-        return AppEnvironment(
+        let environment = AppEnvironment(
             dataRoot: root,
             cachesRoot: root.appending(path: "Caches", directoryHint: .isDirectory),
             settings: settings,
@@ -145,6 +165,8 @@ struct AppEnvironment {
             fullDiskAccess: options.fullDiskAccess ?? .denied,
             postsKeystrokes: false
         )
+        environment.prepareModelsDirectory(fileManager: fileManager)
+        return environment
     }
 
     /// The file index in QA mode never sees the tester's folders: unless the run names a fake home

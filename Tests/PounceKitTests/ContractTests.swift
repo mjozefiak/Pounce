@@ -175,7 +175,7 @@ enum TestContext {
         @MainActor func status(of permission: Permission) -> PermissionStatus { .notDetermined }
     }
 
-    static func make() -> PluginContext {
+    static func make(modelsDirectory: URL? = nil) -> PluginContext {
         PluginContext(
             storageDirectory: FileManager.default.temporaryDirectory.appending(path: "pounce-kit-tests"),
             settings: PluginSettings(pluginID: "minimal", store: MemorySettings()),
@@ -186,7 +186,8 @@ enum TestContext {
             events: NoEvents(),
             workspace: NoWorkspace(),
             permissions: NoPermissions(),
-            clock: ContinuousClock()
+            clock: ContinuousClock(),
+            modelsDirectory: modelsDirectory
         )
     }
 }
