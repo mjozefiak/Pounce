@@ -91,6 +91,24 @@
         }
       }
     },
+    "%lld entries" : {
+      "comment" : "Dictation settings entry limit choice",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld entries"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld wpisów"
+          }
+        }
+      }
+    },
     "%lld entries in the history" : {
       "comment" : "Number of clipboard entries in the settings",
       "extractionState" : "manual",
@@ -177,6 +195,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Szybki launcher aplikacji, plików i historii schowka."
+          }
+        }
+      }
+    },
+    "A file does not match the expected checksum, so it was not used." : {
+      "comment" : "Dictation settings error after a failed checksum",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A file does not match the expected checksum, so it was not used."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plik nie zgadza się z oczekiwaną sumą kontrolną, więc nie został użyty."
           }
         }
       }
@@ -307,6 +343,24 @@
         }
       }
     },
+    "Address" : {
+      "comment" : "Dictation settings label of the formatting server address",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Address"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adres"
+          }
+        }
+      }
+    },
     "Advanced" : {
       "comment" : "Settings pane title",
       "extractionState" : "manual",
@@ -361,6 +415,78 @@
         }
       }
     },
+    "Allow Accessibility so Pounce can paste for you. Without it, the text is only copied." : {
+      "comment" : "Dictation onboarding step",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Accessibility so Pounce can paste for you. Without it, the text is only copied."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól na Dostępność, aby Pounce mógł wklejać za Ciebie. Bez tego tekst tylko się kopiuje."
+          }
+        }
+      }
+    },
+    "Allow Microphone" : {
+      "comment" : "Button that asks for microphone access",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Microphone"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól na mikrofon"
+          }
+        }
+      }
+    },
+    "Allow the microphone" : {
+      "comment" : "Dictation HUD while the microphone prompt is shown",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow the microphone"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól na mikrofon"
+          }
+        }
+      }
+    },
+    "Allow the microphone. Pounce listens only while you dictate." : {
+      "comment" : "Dictation onboarding step",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow the microphone. Pounce listens only while you dictate."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól na mikrofon. Pounce słucha tylko wtedy, gdy dyktujesz."
+          }
+        }
+      }
+    },
     "Allowed" : {
       "comment" : "Permission state",
       "extractionState" : "manual",
@@ -393,24 +519,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zezwól…"
-          }
-        }
-      }
-    },
-    "Also lists apps outside the searched folders that Spotlight knows." : {
-      "comment" : "Settings description of the Spotlight app supplement",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Also lists apps outside the searched folders that Spotlight knows."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pokazuje też aplikacje spoza przeszukiwanych folderów, które zna Spotlight."
           }
         }
       }
@@ -451,60 +559,6 @@
         }
       }
     },
-    "App activity was saved by a newer version of Pounce. Suggestions are off until you update." : {
-      "comment" : "Settings message when activity.json comes from a newer version",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "App activity was saved by a newer version of Pounce. Suggestions are off until you update."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aktywność aplikacji zapisała nowsza wersja Pounce. Sugestie są wyłączone do czasu aktualizacji."
-          }
-        }
-      }
-    },
-    "App index" : {
-      "comment" : "Settings section title",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "App index"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Indeks aplikacji"
-          }
-        }
-      }
-    },
-    "App suggestions keep their own history; clear it in Settings → Applications." : {
-      "comment" : "Settings note that Reset Ranking does not clear app activity",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "App suggestions keep their own history; clear it in Settings → Applications."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sugestie aplikacji mają własną historię; wyczyścisz ją w Ustawieniach → Aplikacje."
-          }
-        }
-      }
-    },
     "Applications" : {
       "comment" : "Results section and plugin name for apps",
       "extractionState" : "manual",
@@ -541,6 +595,24 @@
         }
       }
     },
+    "At most" : {
+      "comment" : "Dictation settings label of the entry limit",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "At most"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Najwyżej"
+          }
+        }
+      }
+    },
     "Back" : {
       "comment" : "Welcome screen button that shows the previous step",
       "extractionState" : "manual",
@@ -555,6 +627,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wstecz"
+          }
+        }
+      }
+    },
+    "Cancel" : {
+      "comment" : "Button that cancels the model download",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anuluj"
+          }
+        }
+      }
+    },
+    "Cancel dictation" : {
+      "comment" : "Accessibility label of the HUD's ✕",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel dictation"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anuluj dyktowanie"
           }
         }
       }
@@ -595,38 +703,74 @@
         }
       }
     },
-    "Clear App Activity" : {
-      "comment" : "Clear App Activity confirmation button",
+    "Choose" : {
+      "comment" : "Button of the model folder picker",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Clear App Activity"
+            "value" : "Choose"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wyczyść aktywność aplikacji"
+            "value" : "Wybierz"
           }
         }
       }
     },
-    "Clear App Activity…" : {
-      "comment" : "Button that deletes the recorded app activity",
+    "Choose Folder…" : {
+      "comment" : "Button that picks a model folder",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Clear App Activity…"
+            "value" : "Choose Folder…"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wyczyść aktywność aplikacji…"
+            "value" : "Wskaż folder…"
+          }
+        }
+      }
+    },
+    "Choose the folder that contains the speech model's files." : {
+      "comment" : "Message of the model folder picker",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose the folder that contains the speech model's files."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybierz folder z plikami modelu mowy."
+          }
+        }
+      }
+    },
+    "Clean up the text with a local model" : {
+      "comment" : "Dictation settings toggle for formatting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clean up the text with a local model"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Porządkuj tekst lokalnym modelem"
           }
         }
       }
@@ -667,24 +811,6 @@
         }
       }
     },
-    "Clear the app activity?" : {
-      "comment" : "Clear App Activity confirmation title",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clear the app activity?"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wyczyścić aktywność aplikacji?"
-          }
-        }
-      }
-    },
     "Clear the clipboard history?" : {
       "comment" : "Clear History confirmation title",
       "extractionState" : "manual",
@@ -699,6 +825,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wyczyścić historię schowka?"
+          }
+        }
+      }
+    },
+    "Clear the dictation history?" : {
+      "comment" : "Dictation settings confirmation title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear the dictation history?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyczyścić historię dyktowania?"
           }
         }
       }
@@ -793,24 +937,6 @@
         }
       }
     },
-    "Contents need Full Disk Access" : {
-      "comment" : "Subtitle of a folder result whose contents Pounce may not read without Full Disk Access",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Contents need Full Disk Access"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zawartość wymaga pełnego dostępu do dysku"
-          }
-        }
-      }
-    },
     "Continue" : {
       "comment" : "Onboarding button that goes to the next step",
       "extractionState" : "manual",
@@ -879,6 +1005,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Skopiowano z"
+          }
+        }
+      }
+    },
+    "Copied – allow Accessibility to paste" : {
+      "comment" : "Dictation HUD when the text was only copied because Accessibility is missing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied – allow Accessibility to paste"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skopiowano – zezwól na Dostępność, aby wklejać"
           }
         }
       }
@@ -1099,6 +1243,78 @@
         }
       }
     },
+    "Dictate" : {
+      "comment" : "Menu item and command that starts dictation",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictate"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dyktuj"
+          }
+        }
+      }
+    },
+    "Dictate in any app: press the shortcut, talk, and Pounce types the text where you are. The speech model runs on this Mac." : {
+      "comment" : "Dictation onboarding text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictate in any app: press the shortcut, talk, and Pounce types the text where you are. The speech model runs on this Mac."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dyktuj w dowolnej aplikacji: naciśnij skrót, mów, a Pounce wpisze tekst tam, gdzie jesteś. Model mowy działa na tym Macu."
+          }
+        }
+      }
+    },
+    "Dictation" : {
+      "comment" : "Plugin name of voice dictation",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictation"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dyktowanie"
+          }
+        }
+      }
+    },
+    "Dictation History" : {
+      "comment" : "Menu item and command that opens the dictation history",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictation History"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historia dyktowania"
+          }
+        }
+      }
+    },
     "Dismiss" : {
       "comment" : "Button that dismisses a notice",
       "extractionState" : "manual",
@@ -1153,6 +1369,96 @@
         }
       }
     },
+    "Download (≈ %@ from huggingface.co)" : {
+      "comment" : "Button that downloads the speech model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download (≈ %@ from huggingface.co)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobierz (≈ %@ z huggingface.co)"
+          }
+        }
+      }
+    },
+    "Download a speech model in Settings" : {
+      "comment" : "Dictation HUD when no speech model is installed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download a speech model in Settings"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobierz model mowy w Ustawieniach"
+          }
+        }
+      }
+    },
+    "Download interrupted. It continues where it stopped." : {
+      "comment" : "Dictation model status",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download interrupted. It continues where it stopped."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobieranie przerwane. Zostanie wznowione od miejsca przerwania."
+          }
+        }
+      }
+    },
+    "Downloaded" : {
+      "comment" : "Dictation model status",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloaded"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobrano"
+          }
+        }
+      }
+    },
+    "Downloading…" : {
+      "comment" : "Dictation settings progress label",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloading…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobieranie…"
+          }
+        }
+      }
+    },
     "Downloads" : {
       "comment" : "Protected folder name",
       "extractionState" : "manual",
@@ -1167,6 +1473,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pobrane rzeczy"
+          }
+        }
+      }
+    },
+    "Engine" : {
+      "comment" : "Dictation settings label of the speech engine choice",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Engine"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Silnik"
+          }
+        }
+      }
+    },
+    "English" : {
+      "comment" : "Dictation language choice",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "English"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Angielski"
           }
         }
       }
@@ -1257,6 +1599,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Usunąć wszystkie dane funkcji „%@”?"
+          }
+        }
+      }
+    },
+    "Esc cancels" : {
+      "comment" : "Dictation HUD hint",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esc cancels"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esc anuluje"
           }
         }
       }
@@ -1423,20 +1783,56 @@
         }
       }
     },
-    "Find apps with Spotlight" : {
-      "comment" : "Settings toggle for the Spotlight app supplement",
+    "Finishing…" : {
+      "comment" : "Dictation HUD while the text is produced",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Find apps with Spotlight"
+            "value" : "Finishing…"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Znajduj aplikacje przez Spotlight"
+            "value" : "Kończenie…"
+          }
+        }
+      }
+    },
+    "Folder unavailable: %@" : {
+      "comment" : "Dictation model status when the folder is gone",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder unavailable: %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder niedostępny: %@"
+          }
+        }
+      }
+    },
+    "Formatted" : {
+      "comment" : "Dictation history filter",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formatted"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sformatowane"
           }
         }
       }
@@ -1455,6 +1851,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tekst sformatowany"
+          }
+        }
+      }
+    },
+    "Formatting" : {
+      "comment" : "Dictation settings section title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formatting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formatowanie"
           }
         }
       }
@@ -1549,38 +1963,20 @@
         }
       }
     },
-    "Hidden from suggestions" : {
-      "comment" : "Settings label above the list of hidden apps",
+    "Get the speech model (about 0.7 GB), or point to one you already have." : {
+      "comment" : "Dictation onboarding step",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hidden from suggestions"
+            "value" : "Get the speech model (about 0.7 GB), or point to one you already have."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ukryte w sugestiach"
-          }
-        }
-      }
-    },
-    "Hide from Suggestions" : {
-      "comment" : "Result action that stops suggesting the selected app",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hide from Suggestions"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ukryj w sugestiach"
+            "value" : "Pobierz model mowy (około 0,7 GB) albo wskaż ten, który już masz."
           }
         }
       }
@@ -1765,6 +2161,60 @@
         }
       }
     },
+    "Input device" : {
+      "comment" : "Dictation settings label",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Input device"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Urządzenie wejściowe"
+          }
+        }
+      }
+    },
+    "Input level" : {
+      "comment" : "Accessibility label of the level meter",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Input level"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poziom wejścia"
+          }
+        }
+      }
+    },
+    "Keep a history of dictations" : {
+      "comment" : "Dictation settings toggle for the history",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep a history of dictations"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisuj historię dyktowania"
+          }
+        }
+      }
+    },
     "Keep at most" : {
       "comment" : "Settings label of the maximum number of clipboard entries",
       "extractionState" : "manual",
@@ -1801,6 +2251,24 @@
         }
       }
     },
+    "Keep for" : {
+      "comment" : "Dictation settings label of the retention period",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep for"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przechowuj przez"
+          }
+        }
+      }
+    },
     "L" : {
       "comment" : "Text size option: large",
       "extractionState" : "manual",
@@ -1815,6 +2283,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "L"
+          }
+        }
+      }
+    },
+    "Language" : {
+      "comment" : "Dictation settings label of the pinned language",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Language"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Język"
           }
         }
       }
@@ -1851,6 +2337,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uruchamiaj przy logowaniu"
+          }
+        }
+      }
+    },
+    "Lets Pounce hear you while you dictate. Audio stays on this Mac and is never saved." : {
+      "comment" : "Explanation of the Microphone permission",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lets Pounce hear you while you dictate. Audio stays on this Mac and is never saved."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pozwala Pounce słuchać, gdy dyktujesz. Dźwięk zostaje na tym Macu i nigdy nie jest zapisywany."
           }
         }
       }
@@ -1909,6 +2413,24 @@
         }
       }
     },
+    "Loading model…" : {
+      "comment" : "Dictation HUD while the speech model loads",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading model…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ładowanie modelu…"
+          }
+        }
+      }
+    },
     "Loading the file index…" : {
       "comment" : "Panel progress while the saved index loads",
       "extractionState" : "manual",
@@ -1945,6 +2467,24 @@
         }
       }
     },
+    "Looking for a server…" : {
+      "comment" : "Dictation settings status of the formatting server",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Looking for a server…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szukam serwera…"
+          }
+        }
+      }
+    },
     "M" : {
       "comment" : "Text size option: medium",
       "extractionState" : "manual",
@@ -1977,6 +2517,96 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Średni"
+          }
+        }
+      }
+    },
+    "Microphone" : {
+      "comment" : "Permission name in Settings → Permissions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microphone"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon"
+          }
+        }
+      }
+    },
+    "Microphone allowed" : {
+      "comment" : "Dictation microphone status",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microphone allowed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon dozwolony"
+          }
+        }
+      }
+    },
+    "Microphone not allowed" : {
+      "comment" : "Dictation HUD when microphone access is denied",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microphone not allowed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon niedozwolony"
+          }
+        }
+      }
+    },
+    "Microphone not asked yet" : {
+      "comment" : "Dictation microphone status",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microphone not asked yet"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon jeszcze nie był pytany"
+          }
+        }
+      }
+    },
+    "Model" : {
+      "comment" : "Dictation settings label of the formatting model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model"
           }
         }
       }
@@ -2089,24 +2719,6 @@
         }
       }
     },
-    "No access to contents" : {
-      "comment" : "Subtitle of a folder result whose contents cannot be read",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No access to contents"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Brak dostępu do zawartości"
-          }
-        }
-      }
-    },
     "No clipboard history yet" : {
       "comment" : "Empty state title of the clipboard history",
       "extractionState" : "manual",
@@ -2125,6 +2737,78 @@
         }
       }
     },
+    "No dictation to paste yet" : {
+      "comment" : "Dictation HUD when there is no earlier dictation to paste again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No dictation to paste yet"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie ma jeszcze dyktowania do wklejenia"
+          }
+        }
+      }
+    },
+    "No dictations yet." : {
+      "comment" : "Dictation history empty state",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No dictations yet."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak dyktowań."
+          }
+        }
+      }
+    },
+    "No microphone found" : {
+      "comment" : "Dictation HUD when there is no input device",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No microphone found"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie znaleziono mikrofonu"
+          }
+        }
+      }
+    },
+    "No server found on this Mac" : {
+      "comment" : "Dictation settings status of the formatting server",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No server found on this Mac"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie znaleziono serwera na tym Macu"
+          }
+        }
+      }
+    },
     "Not allowed" : {
       "comment" : "Permission state",
       "extractionState" : "manual",
@@ -2139,6 +2823,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Niedozwolone"
+          }
+        }
+      }
+    },
+    "Not downloaded" : {
+      "comment" : "Dictation model status",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not downloaded"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie pobrano"
+          }
+        }
+      }
+    },
+    "Not enough free space. The model needs %@." : {
+      "comment" : "Dictation settings error when the disk is too full",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not enough free space. The model needs %@."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Za mało wolnego miejsca. Model potrzebuje %@."
           }
         }
       }
@@ -2215,6 +2935,24 @@
         }
       }
     },
+    "Nothing heard" : {
+      "comment" : "Dictation HUD when the recording had no speech",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing heard"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nic nie usłyszano"
+          }
+        }
+      }
+    },
     "OK" : {
       "comment" : "Button that dismisses an alert",
       "extractionState" : "manual",
@@ -2287,6 +3025,24 @@
         }
       }
     },
+    "Only addresses on this Mac are allowed: localhost, 127.x.x.x or [::1]." : {
+      "comment" : "Dictation settings error for a server address that is not on this Mac",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only addresses on this Mac are allowed: localhost, 127.x.x.x or [::1]."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dozwolone są tylko adresy na tym Macu: localhost, 127.x.x.x lub [::1]."
+          }
+        }
+      }
+    },
     "Open" : {
       "comment" : "Result action that opens the selected app",
       "extractionState" : "manual",
@@ -2355,6 +3111,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Otwórz ustawienia klawiatury"
+          }
+        }
+      }
+    },
+    "Open Microphone Settings" : {
+      "comment" : "Button that opens microphone privacy settings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Microphone Settings"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz ustawienia mikrofonu"
           }
         }
       }
@@ -2521,6 +3295,96 @@
         }
       }
     },
+    "Paste Raw" : {
+      "comment" : "Dictation history action that pastes the raw transcript",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste Raw"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wklej surowy"
+          }
+        }
+      }
+    },
+    "Paste raw version of the last dictation" : {
+      "comment" : "Menu item and command that pastes the last dictation without formatting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste raw version of the last dictation"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wklej surową wersję ostatniego dyktowania"
+          }
+        }
+      }
+    },
+    "Pasted" : {
+      "comment" : "Dictation HUD after the text was pasted",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pasted"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wklejono"
+          }
+        }
+      }
+    },
+    "Pasted – not cleaned up" : {
+      "comment" : "Dictation HUD when formatting failed and the raw text was pasted",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pasted – not cleaned up"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wklejono – bez porządkowania"
+          }
+        }
+      }
+    },
+    "Pasted – partly cleaned up" : {
+      "comment" : "Dictation HUD when formatting failed for some parts of the text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pasted – partly cleaned up"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wklejono – częściowo uporządkowane"
+          }
+        }
+      }
+    },
     "Path Copied" : {
       "comment" : "Confirmation after copying a file's path",
       "extractionState" : "manual",
@@ -2571,6 +3435,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uprawnienia"
+          }
+        }
+      }
+    },
+    "Polish" : {
+      "comment" : "Dictation language choice",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polish"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polski"
           }
         }
       }
@@ -2737,24 +3619,6 @@
         }
       }
     },
-    "Pounce records on this Mac which apps you use and how often, to suggest them. Nothing leaves your Mac." : {
-      "comment" : "Settings description of what app suggestions record",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pounce records on this Mac which apps you use and how often, to suggest them. Nothing leaves your Mac."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pounce zapisuje na tym Macu, których aplikacji używasz i jak często, żeby je sugerować. Nic nie opuszcza Twojego Maca."
-          }
-        }
-      }
-    },
     "Pounce scans the searched folders again. Results stay available while it runs." : {
       "comment" : "Rebuild confirmation message",
       "extractionState" : "manual",
@@ -2773,6 +3637,24 @@
         }
       }
     },
+    "Pounce sends the text only to a server on this Mac (Ollama, LM Studio, llama-server). The server may keep prompts in its own log. If it does not answer, the raw text is pasted." : {
+      "comment" : "Dictation settings footer under the formatting toggle",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce sends the text only to a server on this Mac (Ollama, LM Studio, llama-server). The server may keep prompts in its own log. If it does not answer, the raw text is pasted."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce wysyła tekst tylko do serwera na tym Macu (Ollama, LM Studio, llama-server). Serwer może zapisywać prompty we własnym logu. Jeśli nie odpowie, wklejany jest surowy tekst."
+          }
+        }
+      }
+    },
     "Press this shortcut anywhere to open Pounce. Keep the suggested one or record your own." : {
       "comment" : "Onboarding step explanation",
       "extractionState" : "manual",
@@ -2787,6 +3669,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Naciśnij ten skrót w dowolnym miejscu, aby otworzyć Pounce. Zostaw proponowany albo nagraj własny."
+          }
+        }
+      }
+    },
+    "Press to start and press again to stop. Or hold the keys while you talk. Esc cancels." : {
+      "comment" : "Dictation settings footer under the shortcut",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press to start and press again to stop. Or hold the keys while you talk. Esc cancels."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naciśnij, aby zacząć, i naciśnij ponownie, aby skończyć. Albo przytrzymaj klawisze, gdy mówisz. Esc anuluje."
+          }
+        }
+      }
+    },
+    "Privacy" : {
+      "comment" : "Dictation settings section title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prywatność"
           }
         }
       }
@@ -2823,6 +3741,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ranking"
+          }
+        }
+      }
+    },
+    "Raw" : {
+      "comment" : "Dictation history filter",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raw"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Surowe"
+          }
+        }
+      }
+    },
+    "Raw version: Dictation → Paste raw version" : {
+      "comment" : "Dictation HUD hint that the raw transcript can be pasted again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raw version: Dictation → Paste raw version"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Surowy tekst: Dyktowanie → Wklej surową wersję"
           }
         }
       }
@@ -2899,6 +3853,24 @@
         }
       }
     },
+    "Recommended: Qwen3.6-35B-A3B (4-bit). Best Polish: Bielik-11B-v3.0-Instruct. Light: Qwen3-4B-Instruct-2507." : {
+      "comment" : "Dictation settings recommendation of formatting models",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recommended: Qwen3.6-35B-A3B (4-bit). Best Polish: Bielik-11B-v3.0-Instruct. Light: Qwen3-4B-Instruct-2507."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polecany: Qwen3.6-35B-A3B (4-bit). Najlepszy polski: Bielik-11B-v3.0-Instruct. Lekki: Qwen3-4B-Instruct-2507."
+          }
+        }
+      }
+    },
     "Record clipboard history" : {
       "comment" : "Settings toggle that pauses or resumes recording",
       "extractionState" : "manual",
@@ -2917,20 +3889,20 @@
         }
       }
     },
-    "Recorded activity" : {
-      "comment" : "Settings label next to Clear App Activity",
+    "Recording" : {
+      "comment" : "Dictation HUD while recording",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Recorded activity"
+            "value" : "Recording"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zapisana aktywność"
+            "value" : "Nagrywanie"
           }
         }
       }
@@ -2971,6 +3943,42 @@
         }
       }
     },
+    "Recording started" : {
+      "comment" : "VoiceOver announcement when dictation starts",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording started"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozpoczęto nagrywanie"
+          }
+        }
+      }
+    },
+    "Recording stopped" : {
+      "comment" : "VoiceOver announcement when dictation stops",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording stopped"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zakończono nagrywanie"
+          }
+        }
+      }
+    },
     "Remove" : {
       "comment" : "Button that removes the selected ignored app",
       "extractionState" : "manual",
@@ -3003,6 +4011,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Usuń %@"
+          }
+        }
+      }
+    },
+    "Remove Model" : {
+      "comment" : "Button that deletes the downloaded speech model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove Model"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń model"
           }
         }
       }
@@ -3093,6 +4119,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przywróć domyślne"
+          }
+        }
+      }
+    },
+    "Restore the clipboard after pasting" : {
+      "comment" : "Dictation settings toggle",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore the clipboard after pasting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywróć schowek po wklejeniu"
           }
         }
       }
@@ -3241,24 +4285,6 @@
         }
       }
     },
-    "Running" : {
-      "comment" : "Badge on a suggested app that is running",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Running"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uruchomiona"
-          }
-        }
-      }
-    },
     "S" : {
       "comment" : "Text size option: small",
       "extractionState" : "manual",
@@ -3349,6 +4375,24 @@
         }
       }
     },
+    "Server" : {
+      "comment" : "Dictation settings label of the formatting server",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serwer"
+          }
+        }
+      }
+    },
     "Set Up…" : {
       "comment" : "Panel button that opens file search settings",
       "extractionState" : "manual",
@@ -3435,42 +4479,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Skrót otwierający Pounce"
-          }
-        }
-      }
-    },
-    "Show %@ Again" : {
-      "comment" : "Accessibility label of the button that shows a hidden app in suggestions again",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show %@ Again"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pokaż ponownie: %@"
-          }
-        }
-      }
-    },
-    "Show Again" : {
-      "comment" : "Button that shows a hidden app in suggestions again",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show Again"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pokaż ponownie"
           }
         }
       }
@@ -3601,6 +4609,42 @@
         }
       }
     },
+    "Speech model" : {
+      "comment" : "Dictation settings section title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speech model"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model mowy"
+          }
+        }
+      }
+    },
+    "Speech model unavailable" : {
+      "comment" : "Dictation HUD when the model folder is gone",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speech model unavailable"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model mowy niedostępny"
+          }
+        }
+      }
+    },
     "Spotlight uses ⌘Space. To open Pounce with ⌘Space, turn off “Show Spotlight search” in System Settings → Keyboard → Keyboard Shortcuts → Spotlight." : {
       "comment" : "Banner explaining how to free Command-Space from Spotlight",
       "extractionState" : "manual",
@@ -3691,74 +4735,56 @@
         }
       }
     },
-    "Suggest Apps" : {
-      "comment" : "Settings toggle that turns app suggestions on",
+    "Stops in %lld s" : {
+      "comment" : "Dictation HUD countdown before the recording limit",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Suggest Apps"
+            "value" : "Stops in %lld s"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sugeruj aplikacje"
+            "value" : "Koniec za %lld s"
           }
         }
       }
     },
-    "Suggested" : {
-      "comment" : "Panel section with suggested apps",
+    "System default" : {
+      "comment" : "Dictation input device choice that follows the system",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Suggested"
+            "value" : "System default"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sugerowane"
+            "value" : "Domyślne systemowe"
           }
         }
       }
     },
-    "Suggestions" : {
-      "comment" : "Settings section title",
+    "Test" : {
+      "comment" : "Button that shows the microphone level for a moment",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Suggestions"
+            "value" : "Test"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sugestie"
-          }
-        }
-      }
-    },
-    "Suggestions start again from the apps you use next. This cannot be undone." : {
-      "comment" : "Clear App Activity confirmation message",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Suggestions start again from the apps you use next. This cannot be undone."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sugestie zaczną się od nowa od aplikacji, których użyjesz. Tej operacji nie można cofnąć."
+            "value" : "Test"
           }
         }
       }
@@ -3835,6 +4861,60 @@
         }
       }
     },
+    "The dictation history is off. Turn it on in Settings → Dictation." : {
+      "comment" : "Dictation history empty state when the history is off",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The dictation history is off. Turn it on in Settings → Dictation."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historia dyktowania jest wyłączona. Włącz ją w Ustawieniach → Dyktowanie."
+          }
+        }
+      }
+    },
+    "The download did not finish. Check the connection and try again." : {
+      "comment" : "Dictation settings error after a failed download",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The download did not finish. Check the connection and try again."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobieranie nie zakończyło się. Sprawdź połączenie i spróbuj ponownie."
+          }
+        }
+      }
+    },
+    "The download was refused by the server. Try again later." : {
+      "comment" : "Dictation settings error after the download server answered with an error",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The download was refused by the server. Try again later."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serwer odrzucił pobieranie. Spróbuj ponownie później."
+          }
+        }
+      }
+    },
     "The features that are on need no system permissions." : {
       "comment" : "Settings → Permissions when no enabled feature needs a permission",
       "extractionState" : "manual",
@@ -3871,6 +4951,60 @@
         }
       }
     },
+    "The history could not be opened." : {
+      "comment" : "Dictation history banner when the database could not be opened",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The history could not be opened."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się otworzyć historii."
+          }
+        }
+      }
+    },
+    "The history could not be read and was started again. The old file was kept for 30 days as %@." : {
+      "comment" : "Dictation history banner after a reset",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The history could not be read and was started again. The old file was kept for 30 days as %@."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historii nie dało się odczytać i zaczęto ją od nowa. Stary plik zachowano na 30 dni jako %@."
+          }
+        }
+      }
+    },
+    "The history is unavailable because the Keychain could not be read. Nothing was deleted." : {
+      "comment" : "Dictation history banner when the Keychain key is unavailable",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The history is unavailable because the Keychain could not be read. Nothing was deleted."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historia jest niedostępna, bo nie udało się odczytać Pęku kluczy. Nic nie zostało usunięte."
+          }
+        }
+      }
+    },
     "The history key was missing, so a new, empty history was started. The old history stays encrypted and is deleted automatically after 30 days." : {
       "comment" : "Clipboard banner after the history was reset because its key was missing",
       "extractionState" : "manual",
@@ -3885,6 +5019,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Brakowało klucza historii, więc zaczęto nową, pustą historię. Stara historia pozostaje zaszyfrowana i zostanie automatycznie usunięta po 30 dniach."
+          }
+        }
+      }
+    },
+    "The model is not installed." : {
+      "comment" : "Dictation settings error",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The model is not installed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model nie jest zainstalowany."
+          }
+        }
+      }
+    },
+    "The model runs on this Mac. Audio is never sent anywhere and never saved." : {
+      "comment" : "Dictation settings footer under the speech model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The model runs on this Mac. Audio is never sent anywhere and never saved."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model działa na tym Macu. Dźwięk nigdy nie jest nigdzie wysyłany ani zapisywany."
           }
         }
       }
@@ -3943,6 +5113,78 @@
         }
       }
     },
+    "The server did not give a usable answer, so this is the raw text." : {
+      "comment" : "Dictation settings note when Try it fell back to the raw text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The server did not give a usable answer, so this is the raw text."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serwer nie dał użytecznej odpowiedzi, więc to jest surowy tekst."
+          }
+        }
+      }
+    },
+    "The speech model failed to load" : {
+      "comment" : "Dictation HUD when loading the model failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The speech model failed to load"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się załadować modelu mowy"
+          }
+        }
+      }
+    },
+    "The text is pasted through the clipboard. Pounce puts back what was there a second later, unless it was a password or you copied something else meanwhile." : {
+      "comment" : "Dictation settings footer under the clipboard restore toggle",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The text is pasted through the clipboard. Pounce puts back what was there a second later, unless it was a password or you copied something else meanwhile."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekst jest wklejany przez schowek. Pounce przywraca po sekundzie to, co w nim było, chyba że było to hasło albo w międzyczasie coś skopiowałeś."
+          }
+        }
+      }
+    },
+    "The text of every dictation is stored on this Mac, encrypted with a key in your Keychain. Audio is never stored. Open it from the menu bar: Dictation History." : {
+      "comment" : "Dictation settings footer under the history toggle",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The text of every dictation is stored on this Mac, encrypted with a key in your Keychain. Audio is never stored. Open it from the menu bar: Dictation History."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekst każdego dyktowania jest zapisany na tym Macu, zaszyfrowany kluczem z Pęku kluczy. Dźwięk nigdy nie jest zapisywany. Otwórz go z paska menu: Historia dyktowania."
+          }
+        }
+      }
+    },
     "Third-Party Notices" : {
       "comment" : "About window: section title",
       "extractionState" : "manual",
@@ -3957,6 +5199,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Informacje o oprogramowaniu firm trzecich"
+          }
+        }
+      }
+    },
+    "This deletes every saved dictation. It cannot be undone." : {
+      "comment" : "Dictation settings confirmation text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This deletes every saved dictation. It cannot be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuwa wszystkie zapisane dyktowania. Tego nie można cofnąć."
           }
         }
       }
@@ -3993,6 +5253,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tego wpisu nie ma już w historii."
+          }
+        }
+      }
+    },
+    "This folder is missing %lld of the model's files." : {
+      "comment" : "Dictation settings error when a chosen model folder is incomplete",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This folder is missing %lld of the model's files."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W tym folderze brakuje plików modelu: %lld."
           }
         }
       }
@@ -4047,6 +5325,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Spróbuj ponownie"
+          }
+        }
+      }
+    },
+    "Try it" : {
+      "comment" : "Dictation settings button that cleans up a sample text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try it"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wypróbuj"
           }
         }
       }
@@ -4123,6 +5419,24 @@
         }
       }
     },
+    "Use Downloaded Model" : {
+      "comment" : "Button that stops using the chosen model folder",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use Downloaded Model"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Użyj pobranego modelu"
+          }
+        }
+      }
+    },
     "Use This Shortcut" : {
       "comment" : "Onboarding button that confirms the shortcut",
       "extractionState" : "manual",
@@ -4137,6 +5451,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Użyj tego skrótu"
+          }
+        }
+      }
+    },
+    "Using the folder %@" : {
+      "comment" : "Dictation model status with the folder path",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Using the folder %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Używam folderu %@"
+          }
+        }
+      }
+    },
+    "Version" : {
+      "comment" : "Dictation history preview switch label",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wersja"
           }
         }
       }
@@ -4249,6 +5599,24 @@
         }
       }
     },
+    "Whisper does not guess the language: it listens for the one you choose. If Parakeet turns your Polish into English, switch to Whisper." : {
+      "comment" : "Dictation settings note about the pinned language",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Whisper does not guess the language: it listens for the one you choose. If Parakeet turns your Polish into English, switch to Whisper."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Whisper nie zgaduje języka: słucha tego, który wybierzesz. Jeśli Parakeet zamienia Twój polski na angielski, przełącz się na Whisper."
+          }
+        }
+      }
+    },
     "With Full Disk Access, Pounce also searches Desktop, Documents, Downloads and iCloud Drive. Without it, those folders are skipped so macOS does not ask about each one. You can add them one at a time in Settings." : {
       "comment" : "File search onboarding text about Full Disk Access",
       "extractionState" : "manual",
@@ -4339,6 +5707,24 @@
         }
       }
     },
+    "copied only" : {
+      "comment" : "Dictation history metadata: not pasted",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "copied only"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "tylko skopiowano"
+          }
+        }
+      }
+    },
     "iCloud Drive" : {
       "comment" : "Protected folder name",
       "extractionState" : "manual",
@@ -4425,6 +5811,510 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nie udało się wykonać akcji „%@”."
+          }
+        }
+      }
+    },
+    "✕ cancels" : {
+      "comment" : "Dictation HUD hint when Escape could not be claimed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "✕ cancels"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "✕ anuluje"
+          }
+        }
+      }
+    },
+    "Built-in (Pounce)" : {
+      "comment" : "Dictation settings choice of the built-in formatting model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Built-in (Pounce)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wbudowany (Pounce)"
+          }
+        }
+      }
+    },
+    "My server" : {
+      "comment" : "Dictation settings choice of the user's formatting server",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My server"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mój serwer"
+          }
+        }
+      }
+    },
+    "Run on" : {
+      "comment" : "Dictation settings label of the formatting source",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run on"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Działa na"
+          }
+        }
+      }
+    },
+    "The model runs inside Pounce on this Mac. Nothing is sent anywhere. It loads while you talk and is freed after a while. If it is not ready in time, the raw text is pasted." : {
+      "comment" : "Dictation settings footer under the built-in formatting model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The model runs inside Pounce on this Mac. Nothing is sent anywhere. It loads while you talk and is freed after a while. If it is not ready in time, the raw text is pasted."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model działa wewnątrz Pounce na tym Macu. Nic nie jest nigdzie wysyłane. Ładuje się, gdy mówisz, i po jakimś czasie jest zwalniany z pamięci. Jeśli nie jest gotowy na czas, wklejany jest surowy tekst."
+          }
+        }
+      }
+    },
+    "Download %@, about %@ of memory while loaded. %@ licence." : {
+      "comment" : "Dictation settings size and memory of the built-in model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download %1$@, about %2$@ of memory while loaded. %3$@ licence."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobranie %1$@, około %2$@ pamięci po załadowaniu. Licencja %3$@."
+          }
+        }
+      }
+    },
+    "Download (≈ %@)" : {
+      "comment" : "Button that downloads the built-in formatting model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download (≈ %@)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobierz (≈ %@)"
+          }
+        }
+      }
+    },
+    "Also lists apps outside the searched folders that Spotlight knows." : {
+      "comment" : "Settings description of the Spotlight app supplement",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Also lists apps outside the searched folders that Spotlight knows."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuje też aplikacje spoza przeszukiwanych folderów, które zna Spotlight."
+          }
+        }
+      }
+    },
+    "App activity was saved by a newer version of Pounce. Suggestions are off until you update." : {
+      "comment" : "Settings message when activity.json comes from a newer version",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App activity was saved by a newer version of Pounce. Suggestions are off until you update."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktywność aplikacji zapisała nowsza wersja Pounce. Sugestie są wyłączone do czasu aktualizacji."
+          }
+        }
+      }
+    },
+    "App index" : {
+      "comment" : "Settings section title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App index"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indeks aplikacji"
+          }
+        }
+      }
+    },
+    "App suggestions keep their own history; clear it in Settings → Applications." : {
+      "comment" : "Settings note that Reset Ranking does not clear app activity",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App suggestions keep their own history; clear it in Settings → Applications."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sugestie aplikacji mają własną historię; wyczyścisz ją w Ustawieniach → Aplikacje."
+          }
+        }
+      }
+    },
+    "Clear App Activity" : {
+      "comment" : "Clear App Activity confirmation button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear App Activity"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyczyść aktywność aplikacji"
+          }
+        }
+      }
+    },
+    "Clear App Activity…" : {
+      "comment" : "Button that deletes the recorded app activity",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear App Activity…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyczyść aktywność aplikacji…"
+          }
+        }
+      }
+    },
+    "Clear the app activity?" : {
+      "comment" : "Clear App Activity confirmation title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear the app activity?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyczyścić aktywność aplikacji?"
+          }
+        }
+      }
+    },
+    "Contents need Full Disk Access" : {
+      "comment" : "Subtitle of a folder result whose contents Pounce may not read without Full Disk Access",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contents need Full Disk Access"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zawartość wymaga pełnego dostępu do dysku"
+          }
+        }
+      }
+    },
+    "Find apps with Spotlight" : {
+      "comment" : "Settings toggle for the Spotlight app supplement",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find apps with Spotlight"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Znajduj aplikacje przez Spotlight"
+          }
+        }
+      }
+    },
+    "Hidden from suggestions" : {
+      "comment" : "Settings label above the list of hidden apps",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hidden from suggestions"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukryte w sugestiach"
+          }
+        }
+      }
+    },
+    "Hide from Suggestions" : {
+      "comment" : "Result action that stops suggesting the selected app",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide from Suggestions"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukryj w sugestiach"
+          }
+        }
+      }
+    },
+    "No access to contents" : {
+      "comment" : "Subtitle of a folder result whose contents cannot be read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No access to contents"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak dostępu do zawartości"
+          }
+        }
+      }
+    },
+    "Pounce records on this Mac which apps you use and how often, to suggest them. Nothing leaves your Mac." : {
+      "comment" : "Settings description of what app suggestions record",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce records on this Mac which apps you use and how often, to suggest them. Nothing leaves your Mac."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce zapisuje na tym Macu, których aplikacji używasz i jak często, żeby je sugerować. Nic nie opuszcza Twojego Maca."
+          }
+        }
+      }
+    },
+    "Recorded activity" : {
+      "comment" : "Settings label next to Clear App Activity",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recorded activity"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisana aktywność"
+          }
+        }
+      }
+    },
+    "Running" : {
+      "comment" : "Badge on a suggested app that is running",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Running"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uruchomiona"
+          }
+        }
+      }
+    },
+    "Show %@ Again" : {
+      "comment" : "Accessibility label of the button that shows a hidden app in suggestions again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show %@ Again"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż ponownie: %@"
+          }
+        }
+      }
+    },
+    "Show Again" : {
+      "comment" : "Button that shows a hidden app in suggestions again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Again"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż ponownie"
+          }
+        }
+      }
+    },
+    "Suggest Apps" : {
+      "comment" : "Settings toggle that turns app suggestions on",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggest Apps"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sugeruj aplikacje"
+          }
+        }
+      }
+    },
+    "Suggested" : {
+      "comment" : "Panel section with suggested apps",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggested"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sugerowane"
+          }
+        }
+      }
+    },
+    "Suggestions" : {
+      "comment" : "Settings section title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggestions"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sugestie"
+          }
+        }
+      }
+    },
+    "Suggestions start again from the apps you use next. This cannot be undone." : {
+      "comment" : "Clear App Activity confirmation message",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggestions start again from the apps you use next. This cannot be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sugestie zaczną się od nowa od aplikacji, których użyjesz. Tej operacji nie można cofnąć."
           }
         }
       }

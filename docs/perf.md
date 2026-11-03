@@ -167,6 +167,37 @@ Also still to do by the owner for v1.0, because an agent cannot do them:
   `/usr/bin/log stream --predicate 'subsystem == "app.pounce"' --info` and press the shortcut ten
   times; read "Panel ordered front in … ms".
 
+## Dictation (spec: Dyktowanie głosowe, Phase 1)
+
+Budgets of the spec. Rows marked "manual" are measured on a real Mac with the downloaded model in step 1.9
+and filled in then; nothing here is estimated.
+
+| Budget | Target | Measured | Status |
+|---|---|---|---|
+| Shortcut to recording started and HUD visible | < 150 ms (the model need not be in memory; audio goes to a buffer) | – | Manual (1.9) |
+| Parakeet Ultra cold load | < 3 s, in the background, without losing audio | – | Manual (1.9) |
+| Raw text ready after a 5-minute recording | < 2 s | – | Manual (1.9) |
+| Memory at rest (model unloaded) | unchanged, < 150 MB for the whole app | – | Manual (1.9) |
+| Memory while dictating | measured, about 0.8–1.2 GB expected | – | Manual (1.9) |
+| Whisper large-v3-turbo cold load | measured in step 1.10 | – | Manual (1.10) |
+
+### Formatting (Phase 2)
+
+| Budget | Target | Measured | Status |
+|---|---|---|---|
+| Formatted text ready after stopping, tail ≤ 60 words (Qwen3.6-35B-A3B 4-bit, M-series Max/Ultra) | < 3 s (ADR 0004) | – | Manual (QA with Ollama) |
+| Same with a 4B model on a base M-series | < 8 s | – | Manual (QA with Ollama) |
+| Built-in model (Qwen3-4B Q4_K_M) loaded while recording, ready before the user stops | < 3 s load on M-series (ADR 0005) | – | Manual (QA, step 4.4) |
+| Resident memory with the built-in 4B model loaded / after keep-warm unload | ≈ 3.3 GB / back to the baseline | – | Manual (Activity Monitor) |
+| Time of one chunk request | printed by `POUNCE_LLM_URL=… swift test --filter CleanupFixtureTests/realServer` | – | Manual |
+
+Run the local integration tests with the model installed (they are off by default):
+
+```sh
+POUNCE_DICTATION_MODEL_FOLDER=~/Library/Application\ Support/Pounce/Plugins/dictation/Models/parakeet-ultra \
+  swift test --filter RealModelTests
+```
+
 ## Path mode (file path search)
 
 A query that starts with `/` or `~` reads one folder from disk instead of the index
@@ -185,4 +216,3 @@ times each against a cached listing; run it with
   that hangs (an unreachable network volume) makes later path queries time out until it returns;
   requests cancelled while waiting are skipped. Volumes mounted outside `/Volumes` are not treated as
   protected.
-

@@ -1,0 +1,306 @@
+import AppKit
+import FluidAudio
+import Foundation
+import PounceKit
+import SwiftUI
+import os
+
+/// Voice dictation (spec: Dyktowanie głosowe): records under a global shortcut, transcribes with a speech
+/// model that runs inside Pounce, and pastes the text into the app in front. Audio never leaves the Mac
+/// and is never written to disk.
+///
+/// - The shortcut's key-down and key-up go to `DictationController` (tap to toggle, hold to talk), which
+///   runs `DictationSession`, the HUD and `TextPaster`.
+/// - Models: `Plugins/dictation/Models/<id>/`, downloaded by `ModelManager` on the user's click, or a
+///   folder the user points at. The engines never download.
+///
+/// Settings: `plugins.dictation.*` (see `DictationSettings.Key`). Disabled by default: the feature needs a
+/// model download and the microphone.
+@MainActor
+public final class DictationPlugin: PouncePlugin {
+    public nonisolated static let manifest = PluginManifest(
+        id: "dictation",
+        displayName: LocalizedStringResource("Dictation", comment: "Plugin name of voice dictation"),
+        symbolName: "mic",
+        order: 40,
+        defaultEnabled: false
+    )
+
+    static let recordCommandID = "dictation.record"
+    static let pasteLastRawCommandID = "dictation.pasteLastRaw"
+    static let historyCommandID = "dictation.history"
+    static let historyModeID: PanelModeID = "dictation.history"
+    static let onboardingStepID = "dictation.setup"
+
+    let context: PluginContext
+    let settings: DictationSettings
+    private let engine: SwitchingEngine
+    private let authorizer = SystemMicrophoneAuthorizer()
+    private let models: ModelManager
+    /// Downloads the built-in formatting models into `Plugins/dictation/llm/` (used by the settings in step 4.4).
+    let llmModels: ModelManager
+    nonisolated static let llmDirectoryName = "llm"
+    /// The built-in formatting model, loaded on demand and freed after the keep-warm time.
+    private let builtInLLM: KeepWarmRuntime
+    private let hud: DictationHUDPanel
+    private let settingsModel: DictationSettingsModel
+    private let formattingModel: FormattingSettingsModel
+    private let transport: any HTTPTransport
+    let history: DictationHistory
+    private let historyModel: HistorySettingsModel
+    private(set) var controller: DictationController?
+
+    public init(context: PluginContext) {
+        self.context = context
+        let settings = DictationSettings(context.settings)
+        self.settings = settings
+        engine = SwitchingEngine(
+            engines: [
+                ModelCatalog.parakeetUltra.id: ParakeetEngine(),
+                ModelCatalog.whisperLargeV3Turbo.id: WhisperKitEngine(language: { settings.speechLanguage }),
+            ],
+            selected: { settings.speechModelID })
+        let models = ModelManager(
+            directory: context.storageDirectory.appending(path: "Models", directoryHint: .isDirectory),
+            logger: context.logger)
+        self.models = models
+        // Formatting models (ADR 0005) live next to the speech models and go with them on Erase Data.
+        let llmModels = ModelManager(
+            directory: context.storageDirectory.appending(path: Self.llmDirectoryName, directoryHint: .isDirectory),
+            logger: context.logger)
+        self.llmModels = llmModels
+        builtInLLM = KeepWarmRuntime(
+            runtime: LlamaRuntime(),
+            modelURL: {
+                let model = settings.builtInLLMModel
+                guard let folder = await llmModels.location(of: model.package).folder,
+                    let file = model.fileURL(in: folder)
+                else { throw LlamaError.modelNotFound }
+                return file
+            },
+            keepWarm: { settings.keepWarm })
+        let workspace = context.workspace
+        settingsModel = DictationSettingsModel(
+            package: ModelCatalog.package(id: settings.speechModelID) ?? ModelCatalog.parakeetUltra, manager: models,
+            settings: settings,
+            authorizer: authorizer,
+            pickFolder: { Self.chooseModelFolder() },
+            openURL: { url in Task { try? await workspace.open(url) } })
+        history = DictationHistory(
+            directory: context.storageDirectory, keychain: context.keychain, settings: settings,
+            clock: context.clock, logger: context.logger, changed: context.resultsChanged)
+        historyModel = HistorySettingsModel(settings: settings, history: history)
+        let transport = LoopbackTransport()
+        self.transport = transport
+        formattingModel = FormattingSettingsModel(
+            settings: settings, transport: transport, llmModels: llmModels, runtime: builtInLLM)
+        let openSettings = context.openSettings
+        // The HUD's buttons call back into the controller, which exists once the plugin is active.
+        let relay = ControllerRelay()
+        hud = DictationHUDPanel(
+            onCancel: { relay.controller?.cancel() }, onOpenSettings: { openSettings() })
+        self.relay = relay
+    }
+
+    private let relay: ControllerRelay
+
+    private static func chooseModelFolder() -> URL? {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.prompt = String(localized: "Choose", comment: "Button of the model folder picker")
+        panel.message = String(
+            localized: "Choose the folder that contains the speech model's files.",
+            comment: "Message of the model folder picker")
+        return panel.runModal() == .OK ? panel.url : nil
+    }
+
+    /// The formatter for a new session: none in raw mode, else the user's server or the built-in model.
+    private static func formatter(
+        settings: DictationSettings, transport: any HTTPTransport, builtIn: KeepWarmRuntime, logger: Logger
+    ) -> (any TextFormatter)? {
+        guard settings.mode == .cleanup else { return nil }
+        switch settings.llmSource {
+        case .server:
+            return LocalLLMFormatter(transport: transport, target: { settings.llmTarget }, logger: logger)
+        case .builtIn:
+            return BuiltInFormatter(runtime: builtIn, logger: logger)
+        }
+    }
+
+    // MARK: Lifecycle
+
+    public func activate() async throws {
+        let context = context
+        let settings = settings
+        let engine = engine
+        let transport = transport
+        let history = history
+        let builtInLLM = builtInLLM
+        let controller = DictationController(
+            .init(
+                authorizer: authorizer, models: models,
+                package: { ModelCatalog.package(id: settings.speechModelID) ?? ModelCatalog.parakeetUltra },
+                customFolder: { settings.speechModelFolder },
+                makeSession: { folder, onEvent in
+                    DictationSession(
+                        audio: MicrophoneCapture(deviceUID: settings.inputDevice),
+                        vad: LazyVAD(modelFolder: folder.appending(path: ModelCatalog.sileroVADPath)),
+                        engine: engine,
+                        formatter: Self.formatter(
+                            settings: settings, transport: transport, builtIn: builtInLLM, logger: context.logger),
+                        modelFolder: folder, logger: context.logger, onEvent: onEvent)
+                },
+                engine: engine,
+                paster: TextPaster(
+                    pasteboard: context.pasteboard, events: context.events, workspace: context.workspace,
+                    permissions: context.permissions, clock: context.clock,
+                    restoresClipboard: { settings.restoresClipboard }, logger: context.logger),
+                hud: hud, claimEscape: context.claimEscapeKey, openSettings: context.openSettings,
+                keepWarm: { settings.keepWarm }, clock: context.clock,
+                recordHistory: { history.record($0) },
+                frontmostBundleID: { context.workspace.frontmostApplication?.bundleIdentifier },
+                formatMode: { settings.mode == .cleanup ? .clean : .raw },
+                speechModelID: { settings.speechModelID },
+                formatterModel: { settings.llmSource == .builtIn ? settings.builtInLLMModel.id : settings.llmModel }))
+        self.controller = controller
+        relay.controller = controller
+        history.open()
+    }
+
+    public func deactivate() async {
+        await controller?.shutDown()
+        await builtInLLM.unload()
+        history.close()
+        controller = nil
+        relay.controller = nil
+    }
+
+    /// "Erase Data": the host deletes `Plugins/dictation/` (models and, later, the history) after this.
+    /// Removes the history's Keychain item; the folder (models, `dictation.sqlite`) is deleted by the host.
+    public func eraseData() async throws {
+        try history.erase()
+    }
+
+    // MARK: Contributions
+
+    public var commands: [PluginCommand] {
+        let relay = relay
+        return [
+            PluginCommand(
+                id: Self.recordCommandID,
+                title: LocalizedStringResource("Dictate", comment: "Menu item and command that starts dictation"),
+                symbolName: "mic",
+                defaultShortcut: KeyShortcut(key: "d", modifiers: [.control, .option]),
+                run: { relay.controller?.menu() },
+                onKeyEvent: { phase in relay.controller?.keyEvent(phase) }),
+            PluginCommand(
+                id: Self.pasteLastRawCommandID,
+                title: LocalizedStringResource(
+                    "Paste raw version of the last dictation",
+                    comment: "Menu item and command that pastes the last dictation without formatting"),
+                symbolName: "text.badge.minus",
+                run: { relay.controller?.pasteLastRaw() }),
+            PluginCommand(
+                id: Self.historyCommandID,
+                title: LocalizedStringResource(
+                    "Dictation History", comment: "Menu item and command that opens the dictation history"),
+                symbolName: "clock.arrow.circlepath",
+                panelMode: Self.historyModeID),
+        ]
+    }
+
+    public var panelModes: [PanelMode] {
+        let history = history
+        let relay = relay
+        let source = DictationHistorySource(
+            store: { history.storeBox.value },
+            paste: { text in await relay.pasteFromHistory(text) },
+            delete: { id in try await history.delete([id]) })
+        return [
+            PanelMode(
+                id: Self.historyModeID,
+                title: LocalizedStringResource(
+                    "Dictation History", comment: "Menu item and command that opens the dictation history"),
+                symbolName: "clock.arrow.circlepath",
+                source: source,
+                filters: [
+                    PanelModeFilter(
+                        id: HistoryFilter.all.rawValue,
+                        title: LocalizedStringResource("All", comment: "Dictation history filter"),
+                        symbolName: "list.bullet"),
+                    PanelModeFilter(
+                        id: HistoryFilter.formatted.rawValue,
+                        title: LocalizedStringResource("Formatted", comment: "Dictation history filter"),
+                        symbolName: "wand.and.stars"),
+                    PanelModeFilter(
+                        id: HistoryFilter.raw.rawValue,
+                        title: LocalizedStringResource("Raw", comment: "Dictation history filter"),
+                        symbolName: "text.alignleft"),
+                ],
+                makeStatus: { AnyView(DictationHistoryStatusView(history: history)) },
+                makePreview: { candidate in
+                    AnyView(
+                        DictationPreview(
+                            id: DictationPresentation.entryID(candidate.itemKey),
+                            load: { id in try? history.storeBox.value?.entry(id) }))
+                },
+                makeEmptyView: { AnyView(DictationHistoryEmptyView(history: history)) })
+        ]
+    }
+
+    public var requiredPermissions: Set<Permission> { [.microphone, .accessibility] }
+
+    public var onboardingSteps: [OnboardingStep] {
+        let model = settingsModel
+        let permissions = context.permissions
+        return [
+            OnboardingStep(
+                id: Self.onboardingStepID,
+                title: LocalizedStringResource("Dictation", comment: "Plugin name of voice dictation"),
+                symbolName: "mic"
+            ) {
+                AnyView(
+                    DictationSetupView(
+                        model: model, accessibilityAllowed: { permissions.status(of: .accessibility) == .granted })
+                )
+            }
+        ]
+    }
+
+    public func settingsPane() -> AnyView? {
+        AnyView(
+            DictationSettingsPane(
+                model: settingsModel, formatting: formattingModel, history: historyModel,
+                recorder: context.makeShortcutRecorder(Self.recordCommandID)))
+    }
+}
+
+/// Lets the HUD and the command reach the controller, which is created when the plugin activates.
+@MainActor
+final class ControllerRelay {
+    var controller: DictationController?
+
+    func pasteFromHistory(_ text: String) async {
+        await controller?.pasteFromHistory(text)
+    }
+}
+
+/// Creates the Silero detector when the first audio arrives, so a missing VAD file fails the recording and not
+/// the plugin.
+actor LazyVAD: VoiceActivityDetector {
+    private let modelFolder: URL
+    private var detector: SileroVAD?
+
+    init(modelFolder: URL) {
+        self.modelFolder = modelFolder
+    }
+
+    func process(_ samples: [Float]) async throws -> [VADEvent] {
+        if detector == nil {
+            detector = try SileroVAD(modelFolder: modelFolder)
+        }
+        return try await detector?.process(samples) ?? []
+    }
+}

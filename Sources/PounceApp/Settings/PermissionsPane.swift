@@ -69,6 +69,7 @@ extension Permission {
             case .fullDiskAccess: "?Privacy_AllFiles"
             // The pasteboard setting has no documented anchor: open Privacy & Security itself.
             case .pasteboard: ""
+            case .microphone: "?Privacy_Microphone"
             }
         return URL(string: "x-apple.systempreferences:com.apple.preference.security" + anchor)
             ?? URL(filePath: "/System/Applications/System Settings.app")
@@ -79,6 +80,7 @@ extension Permission {
         case .accessibility: "accessibility"
         case .fullDiskAccess: "externaldrive"
         case .pasteboard: "doc.on.clipboard"
+        case .microphone: "mic"
         }
     }
 
@@ -90,6 +92,8 @@ extension Permission {
             String(localized: "Full Disk Access", comment: "Permission name in Settings → Permissions")
         case .pasteboard:
             String(localized: "Clipboard Access", comment: "Permission name in Settings → Permissions")
+        case .microphone:
+            String(localized: "Microphone", comment: "Permission name in Settings → Permissions")
         }
     }
 
@@ -109,6 +113,10 @@ extension Permission {
                 localized:
                     "macOS can ask before an app reads the clipboard. Allow Pounce so the history keeps recording.",
                 comment: "Explanation of the clipboard access permission")
+        case .microphone:
+            String(
+                localized: "Lets Pounce hear you while you dictate. Audio stays on this Mac and is never saved.",
+                comment: "Explanation of the Microphone permission")
         }
     }
 

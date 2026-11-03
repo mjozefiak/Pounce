@@ -12,13 +12,14 @@ Użytkownik chce dyktować tekst w dowolnej aplikacji, jak w superwhisper, głó
 | # | Decyzja |
 |---|---|
 | Q1 | Jeden spec; formatowanie dla LLM to osobna faza. |
-| Q2 | Użytkownikowi obojętne, czy model uruchamia Pounce, czy on sam — ma działać lokalnie i jak najlepiej. Na podstawie badań (sekcja Research): **mowa → tekst w procesie Pounce** (Parakeet Ultra przez FluidAudio, drugi silnik Whisper large-v3-turbo przez WhisperKit; ADR 0003), **formatowanie przez lokalny endpoint zgodny z OpenAI** (Ollama, LM Studio, llama-server; tylko adresy loopback). Wbudowany LLM (mlx-swift-lm) poza zakresem tego specu, możliwy później za tym samym portem. |
+| Q2 | Użytkownikowi obojętne, czy model uruchamia Pounce, czy on sam — ma działać lokalnie i jak najlepiej. Na podstawie badań (sekcja Research): **mowa → tekst w procesie Pounce** (Parakeet Ultra przez FluidAudio, drugi silnik Whisper large-v3-turbo przez WhisperKit; ADR 0003), **formatowanie przez lokalny endpoint zgodny z OpenAI** (Ollama, LM Studio, llama-server; tylko adresy loopback). Wbudowany LLM poza Fazami 1–3; **od 2026-11-02 jest Fazą 4** (Q9, poniżej). |
 | Q3 | Polski i angielski z automatycznym wykrywaniem, także mieszane w zdaniu. |
 | Q4 | Tryb „Porządkuj” (interpunkcja, akapity, listy, usunięcie wtrąceń, zastosowanie poprawek w locie; treść, kolejność i język bez zmian) + tryb „Surowy” bez LLM. Przepisywanie w strukturalny prompt i własne tryby — poza zakresem. |
 | Q5 | Krótkie naciśnięcie skrótu przełącza nagrywanie, przytrzymanie działa jako push-to-talk; Esc anuluje. |
 | Q6 | Wynik wklejany od razu do aplikacji aktywnej w chwili zakończenia nagrania; bez Accessibility — tylko kopia do schowka. |
 | Q7 | Zaszyfrowana historia samego tekstu (surowy + sformatowany), nigdy audio. |
 | Q8 | Model pobierany w Ustawieniach po zgodzie użytkownika (zweryfikowany SHA-256) albo wskazany folder z modelem pobranym ręcznie. |
+| Q9 | (2026-11-02) Formatowanie dostaje drugą opcję: **wbudowany silnik llama.cpp w procesie Pounce** (modele GGUF pobierane w Ustawieniach tak jak model mowy: lista polecanych, rozmiar, pasek postępu, SHA-256). Serwer lokalny (Ollama, LM Studio, llama-server) zostaje. Silnik: llama.cpp, nie MLX Swift (szerszy wybór modeli GGUF, w tym polskich); `docs/decisions/0005-builtin-llm.md`. Faza 4, osobny PR, domyślnie wyłączona. |
 
 ## 📝 Problem Statement
 - Pisanie długich promptów jest wolne; mówienie jest kilka razy szybsze, ale tylko gdy narzędzie nie gubi polskiego ani angielskich terminów i nie zostawia „ściany tekstu”.
@@ -85,7 +86,7 @@ Nowy wewnętrzny plugin `DictationPlugin` (`PluginID` `dictation`, nowy target i
 
 **Alternatywy, które przegrały:**
 - **Wszystko przez serwery localhost** (whisper.cpp server do mowy): wymaga od użytkownika dwóch procesów i daje gorsze opóźnienie startu. Mowa jest mała (~0,7 GB) i musi być natychmiastowa, więc należy do Pounce.
-- **Wbudowany LLM (mlx-swift-lm) już w v1:** nowa, duża zależność (MLX, swift-transformers) o niezweryfikowanym statusie Swift 6, do tego kilka GB modelu w procesie z budżetem 150 MB w spoczynku. Port `TextFormatter` zostawia na to miejsce na później.
+- **Wbudowany LLM już w Fazach 1–3:** nowa, duża zależność i kilka GB modelu w procesie z budżetem 150 MB w spoczynku. Port `TextFormatter` zostawił na to miejsce; wbudowany silnik wchodzi w Fazie 4 (Q9, ADR 0005).
 - **Jedno formatowanie całości po zakończeniu:** 30–70 s czekania na bazowym M-series, nie do przyjęcia.
 - **Wklejanie przez Accessibility API (`AXValue`) zamiast ⌘V:** nie działa w wielu aplikacjach Electron i webowych; ⌘V jest już sprawdzone w schowku.
 
@@ -333,6 +334,11 @@ KeyboardShortcuts: `KeyboardShortcuts_command_dictation_record`.
 | Uśpienie Maca w trakcie nagrania | Silnik audio zatrzymany → jak odłączenie urządzenia. |
 
 ## 📝 Risks & Impact Review
+- **Faza 4 (wbudowany LLM):**
+  - model w procesie to kilka GB pamięci (Metal) obok modelu mowy: osobny budżet „w trakcie”, zwalnianie po `keepWarmMinutes`, wyłączony domyślnie;
+  - parser GGUF to nowa powierzchnia ataku w procesie: tylko pliki z katalogu z SHA-256 (§4.2), brak własnych plików w v1;
+  - nowa zależność binarna (xcframework): przypięta wersja i suma kontrolna, MIT, aktualizacja świadomym PR-em;
+  - dalej brak ruchu sieciowego poza pobraniem modelu na kliknięcie.
 - **Obietnica „nic nie idzie przez sieć” (decyzja produktowa, zatwierdzona w Q8):**
   - FAQ na stronie mówi dziś „No… no update check”;
   - pobieranie modelu z huggingface.co to pierwsze połączenie sieciowe Pounce, wyłącznie na wyraźne kliknięcie;
@@ -367,7 +373,8 @@ KeyboardShortcuts: `KeyboardShortcuts_command_dictation_record`.
   - klucze ustawień zostają do ponownego włączenia;
   - żadna zmiana nie dotyka `ranking.sqlite` ani danych innych pluginów, z wyjątkiem refaktoru kluczy (powyżej).
 - **Poza zakresem:**
-  - wbudowany LLM (mlx-swift-lm) — osobny spec;
+  - wbudowany LLM na MLX Swift (Faza 4 używa llama.cpp, ADR 0005);
+  - ładowanie modeli GGUF wskazanych przez użytkownika (tylko pliki z listy, SHA-256);
   - własne tryby i prompty;
   - słownik własnych słów;
   - tekst na żywo w trakcie mówienia;
@@ -382,6 +389,8 @@ KeyboardShortcuts: `KeyboardShortcuts_command_dictation_record`.
 - **Faza 1 — Dyktowanie surowe (samodzielnie użyteczne):** kontrakt, plugin, model (pobieranie / folder), nagrywanie z gestem tap/hold, transkrypcja w trakcie (Parakeet Ultra, drugi silnik Whisper), HUD, wklejanie, Ustawienia, onboarding, Uprawnienia, strona WWW.
 - **Faza 2 — Formatowanie dla LLM:** klient endpointu, autodetekcja, kawałkowanie w trakcie nagrania, prompt, strażnik, tryb „Porządkuj”, komenda „Wklej surową wersję ostatniego dyktowania”.
 - **Faza 3 — Historia:** przeniesienie logiki kluczy do `PouncePersistence` (krok 3.1 może wejść wcześniej jako samodzielny PR `risk-high`, bo korzysta z niego też funkcja spotkań), zaszyfrowana baza, retencja, list mode historii, Erase Data.
+
+- **Faza 4 — Wbudowany LLM (llama.cpp):** pomiary na Macu użytkownika, `LlamaRuntime`, pobieranie modeli GGUF, `BuiltInFormatter`, Ustawienia z wyborem „Wbudowany”.
 
 Każda faza to osobna gałąź `feat/` i osobny PR do `main`.
 
@@ -480,3 +489,25 @@ Każda faza to osobna gałąź `feat/` i osobny PR do `main`.
   - Ustawienia historii, „Wyczyść historię”, `eraseData()` usuwa element Keychain.
   - `BACKWARD_COMPATIBILITY.md` §2: nowy wiersz `Plugins/dictation/dictation.sqlite` (SQLCipher, `dictation_entry`, `dictation_fts`), element Keychain `service = app.pounce.dictation` oraz dopuszczony reset `dictation.sqlite.unreadable-<data>` przy `errSecItemNotFound` (dziś §2 dopuszcza go tylko dla schowka); §3: klucze `plugins.dictation.*`.
   - Test: `eraseData` z `InMemoryKeychainClient`; QA ręczne.
+
+### Faza 4 — Wbudowany LLM (llama.cpp)
+Cel: formatowanie działa bez Ollamy; model instaluje się w Ustawieniach tak samo jak model mowy. Zależy od Fazy 2 (port `TextFormatter`, `CleanupPrompt`, `FormatterGuard`, `Segmenter`) i od `ModelManager` z Fazy 1. Domyślnie wyłączona; serwer lokalny działa bez zmian.
+- **4.0 Pomiary (spike) i uzupełnienie ADR 0005 (zrobione 2026-11-02, wyniki w ADR).**
+  - Na Macu użytkownika: czas ładowania, tok/s dekodowania, szczytowa pamięć i rozmiar xcframework dla Qwen3-4B-Instruct-2507 (Q4_K_M), Bielik-11B-v3.0-Instruct (Q4_K_M/Q6_K) i Qwen3-30B-A3B-Instruct-2507 (Q4_K_M); to samo zapytanie czyszczące co w kroku 2.5; porównanie z Ollamą.
+  - Wynik: tabela w ADR 0005, wybór polecanych modeli i domyślnego, sprawdzenie budżetu ogona < 3 s. Bez dodawania zależności do `main`.
+- **4.1 `LlamaRuntime`.**
+  - Zależność: oficjalny `llama` xcframework jako `binaryTarget` w `Package.swift` (przypięta wersja wydania i suma kontrolna), wąski wrapper Swift w `DictationPlugin`; licencja MIT i modeli (Apache-2.0) w `THIRD_PARTY_NOTICES.txt`.
+  - Aktor na własnym wątku (nie MainActor): ładowanie, zwalnianie po `keepWarmMinutes`, `generate(messages:maxTokens:)` z samplerem zachłannym (`temperature` 0), przerwanie w pętli dekodowania, szablon czatu z metadanych modelu; modele bez trybu myślenia (Instruct-2507, Bielik), `<think>` nadal usuwane przez `FormatterGuard`.
+  - Test: protokół `LLMRuntime` z atrapą (kolejność, anulowanie, zwalnianie, błąd ładowania); test z prawdziwym modelem wyłączony domyślnie (`POUNCE_LLAMA_MODEL`).
+- **4.2 Katalog i pobieranie modeli GGUF.**
+  - `ModelCatalog`/`ModelManager`: nowe źródła z jednym plikiem, ta sama lista hostów Hugging Face, przypięta rewizja, SHA-256, wznawianie, atomowe przeniesienie do `Plugins/dictation/llm/`; Erase Data usuwa pliki.
+  - Tylko pliki z katalogu (parser GGUF przetwarza dane niezaufane w procesie Pounce); wskazanie własnego pliku poza zakresem.
+  - Test: jak dla modelu mowy (stub `URLProtocol`: poprawny, zły SHA, ucięty, wznowienie, za mało miejsca).
+- **4.3 `BuiltInFormatter`.**
+  - `TextFormatter` nad `LlamaRuntime`: ten sam `CleanupPrompt`, `Segmenter` i `FormatterGuard`; rozgrzanie modelu przy starcie nagrania; HUD „Loading model…”; nieudane ładowanie lub przekroczenie limitu → surowy kawałek z `FallbackReason`.
+  - Test: wynik jak dla `LocalLLMFormatter` na tych samych odpowiedziach atrapy; kolejność i anulowanie; limit czasu.
+- **4.4 Ustawienia.**
+  - W sekcji Formatowanie wybór „Wbudowany (Pounce)” obok serwerów; lista modeli z rozmiarem, „Pobierz”, pasek postępu, usunięcie, informacja o pamięci; „Wypróbuj”.
+  - Klucze `plugins.dictation.llm.*` w `BACKWARD_COMPATIBILITY.md` §3, nowa zależność w `AGENTS.md`, budżety w `docs/perf.md`, strona WWW (en + pl): model pobierany z huggingface.co tylko na kliknięcie.
+  - Test: modele widoków; QA ręczne ze zrzutami.
+- **4.5 Test regresji promptu na wbudowanym silniku.** Zestaw z kroku 2.5 uruchamiany przeciw `LlamaRuntime` (opt-in), wynik w PR i w ADR 0005 (Qwen3-4B 7/9, 30B 7/9, Bielik 4/9; prompt v2 poprawił 30B, ale pogorszył 4B, więc zostaje v1; samopoprawki to znane ograniczenie 4B).

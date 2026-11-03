@@ -1,5 +1,6 @@
 import Foundation
 import PounceKit
+import PouncePersistence
 
 /// Opens the clipboard history with the key from the Keychain, applying the spec's reset policy.
 ///
@@ -11,8 +12,8 @@ import PounceKit
 /// - Any other Keychain outcome (locked, denied, malformed, unexpected): history is unavailable, every
 ///   file stays as it is, and the plugin retries later.
 struct HistoryOpener {
-    static let archiveRetention: TimeInterval = 30 * 24 * 60 * 60
-    static let archiveMarker = ".unreadable-"
+    static let archiveRetention = EncryptedDatabaseOpener.archiveRetention
+    static let archiveMarker = EncryptedDatabaseOpener.archiveMarker
 
     enum Outcome {
         /// `resetArchive` is the archived database when this open reset the history.
@@ -26,77 +27,35 @@ struct HistoryOpener {
 
     var databaseURL: URL { directory.appending(path: ClipStore.fileName) }
 
+    private var opener: EncryptedDatabaseOpener {
+        EncryptedDatabaseOpener(
+            directory: directory, databaseFileName: ClipStore.fileName, extraNames: [ClipStore.blobsDirectoryName],
+            keyStore: keyStore.master)
+    }
+
     func open(now: Date) throws -> Outcome {
-        switch keyStore.lookup() {
-        case .found(let keys):
-            return .opened(try ClipStore.open(in: directory, keys: keys, fileManager: fileManager), resetArchive: nil)
-        case .failed(let error):
-            return .unavailable(error)
-        case .missing:
-            let keys: ClipKeys
-            do {
-                keys = try keyStore.create()
-            } catch {
-                return .unavailable(error)
-            }
-            let archive = try archiveExistingHistory(now: now)
-            return .opened(
-                try ClipStore.open(in: directory, keys: keys, fileManager: fileManager), resetArchive: archive)
+        let outcome = try opener.open(now: now, fileManager: fileManager) { keys in
+            try ClipStore.open(in: directory, keys: ClipKeys(keys), fileManager: fileManager)
+        }
+        switch outcome {
+        case .opened(let store, let archive): return .opened(store, resetArchive: archive)
+        case .unavailable(let error): return .unavailable(error)
         }
     }
 
     /// Moves an unreadable database (and its journal files and blobs) aside. Returns the archived
     /// database, or `nil` when there was none.
     func archiveExistingHistory(now: Date) throws -> URL? {
-        guard fileManager.fileExists(atPath: databaseURL.path) else { return nil }
-        let suffix = Self.archiveMarker + Self.stamp(now)
-        var archived: URL?
-        for name in [
-            ClipStore.fileName, ClipStore.fileName + "-wal", ClipStore.fileName + "-shm",
-            ClipStore.fileName + "-journal", ClipStore.blobsDirectoryName,
-        ] {
-            let source = directory.appending(path: name)
-            guard fileManager.fileExists(atPath: source.path) else { continue }
-            let target = directory.appending(path: name + suffix)
-            try fileManager.moveItem(at: source, to: target)
-            if name == ClipStore.fileName {
-                archived = target
-            }
-        }
-        return archived
+        try opener.archiveExistingStore(now: now, fileManager: fileManager)
     }
 
     /// Deletes archives older than 30 days (at activation and then hourly, from `RetentionJob`). Returns how
     /// many were deleted.
     @discardableResult
     func purgeOldArchives(now: Date) -> Int {
-        let names = (try? fileManager.contentsOfDirectory(atPath: directory.path)) ?? []
-        var removed = 0
-        for name in names {
-            guard let range = name.range(of: Self.archiveMarker),
-                let date = Self.date(String(name[range.upperBound...]))
-            else { continue }
-            guard now.timeIntervalSince(date) > Self.archiveRetention else { continue }
-            if (try? fileManager.removeItem(at: directory.appending(path: name))) != nil {
-                removed += 1
-            }
-        }
-        return removed
+        opener.purgeOldArchives(now: now, fileManager: fileManager)
     }
 
-    private static func formatter() -> DateFormatter {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(identifier: "UTC")
-        formatter.dateFormat = "yyyyMMdd-HHmmss"
-        return formatter
-    }
-
-    static func stamp(_ date: Date) -> String {
-        formatter().string(from: date)
-    }
-
-    static func date(_ stamp: String) -> Date? {
-        formatter().date(from: stamp)
-    }
+    static func stamp(_ date: Date) -> String { EncryptedDatabaseOpener.stamp(date) }
+    static func date(_ stamp: String) -> Date? { EncryptedDatabaseOpener.date(stamp) }
 }

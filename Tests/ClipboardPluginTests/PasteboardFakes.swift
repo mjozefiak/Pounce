@@ -28,6 +28,7 @@ import PounceKit
     }
 
     func types() -> [String] { pasteboard.types?.map(\.rawValue) ?? [] }
+    func itemTypes() -> [[String]] { pasteboard.pasteboardItems?.map { $0.types.map(\.rawValue) } ?? [] }
 
     /// Types whose data was requested by the last read.
     private(set) var requestedTypes: [String] = []
@@ -94,6 +95,7 @@ import PounceKit
     func string() -> String? { base.string() }
     func setString(_ string: String) -> Int { base.setString(string) }
     func types() -> [String] { base.types() }
+    func itemTypes() -> [[String]] { base.itemTypes() }
 
     func readContents(maxBytes: Int, including includes: (String) -> Bool) -> PasteboardContents? {
         let contents = base.readContents(maxBytes: maxBytes, including: includes)

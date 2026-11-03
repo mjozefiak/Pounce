@@ -2,6 +2,7 @@ import CryptoKit
 import Foundation
 import GRDB
 import PounceKit
+import PouncePersistence
 import Testing
 
 @testable import ClipboardPlugin
@@ -209,5 +210,44 @@ import Testing
         #expect(opener.purgeOldArchives(now: now) == 2)
         let left = try FileManager.default.contentsOfDirectory(atPath: temporary.url.path).sorted()
         #expect(left == ["clipboard.sqlite", recent].sorted())
+    }
+}
+
+/// A clipboard database written by the release before the key logic moved to `PouncePersistence`
+/// (`Fixtures/previous-release`, master key = 32 bytes of 0x07) still opens, with the same Keychain item.
+@Suite struct PreviousReleaseCompatibilityTests {
+    private func copyFixture() throws -> TemporaryDirectory {
+        let temporary = try TemporaryDirectory()
+        let fixture = try #require(Bundle.module.url(forResource: "Fixtures/previous-release", withExtension: nil))
+        try FileManager.default.copyItem(
+            at: fixture.appending(path: "clipboard.sqlite"), to: temporary.url.appending(path: "clipboard.sqlite"))
+        return temporary
+    }
+
+    private func keychainWithOldKey() throws -> FakeKeychain {
+        let keychain = FakeKeychain()
+        try keychain.addGenericPassword(
+            Data(repeating: 7, count: 32), service: "app.pounce.clipboard", account: "master-key")
+        return keychain
+    }
+
+    @Test func theDatabaseOfThePreviousReleaseOpensAndKeepsItsEntry() throws {
+        let temporary = try copyFixture()
+        let keychain = try keychainWithOldKey()
+        let opener = HistoryOpener(directory: temporary.url, keyStore: KeyStore(keychain: keychain))
+        guard case .opened(let store, let archive) = try opener.open(now: Date()) else {
+            Issue.record("expected .opened")
+            return
+        }
+        #expect(archive == nil)
+        #expect(try store.count() == 1)
+        #expect(try store.recent(limit: 5).first?.previewText == "entry written by the previous release")
+        #expect(keychain.storedKeyCount == 1)
+        try store.close()
+    }
+
+    @Test func theServiceAndAccountAreUnchanged() {
+        #expect(KeyStore.service == "app.pounce.clipboard")
+        #expect(KeyStore.account == "master-key")
     }
 }
