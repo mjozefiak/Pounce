@@ -150,10 +150,7 @@ final class CountingSource: AudioSampleSource {
     /// call that merely follows a comment on the same line does. (A source scan is a tripwire, not a proof: the
     /// `NetworkTripwire` test above is the behavioural guarantee.)
     @Test func noPluginSourceUsesAFluidAudioDownloadPath() throws {
-        let root = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-            .deletingLastPathComponent().appending(path: "Sources/MeetingsPlugin", directoryHint: .isDirectory)
-        let files = try FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)
-            .filter { $0.pathExtension == "swift" }
+        let files = TestPaths.meetingsSourceFiles()
         #expect(!files.isEmpty)
         let forbidden = [
             "prepareModels", "OfflineDiarizerModels.load", "ModelHub", "DownloadUtils", "downloadAndLoad",

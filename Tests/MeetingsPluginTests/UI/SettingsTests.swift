@@ -463,8 +463,7 @@ import Testing
     }
 
     @Test func everyMeetingsSettingsStringHasEnglishAndValidPolishForms() throws {
-        let root = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = TestPaths.repoRoot
         let data = try Data(contentsOf: root.appending(path: "Resources/Localizable.xcstrings"))
         let catalog = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
         let strings = try #require(catalog["strings"] as? [String: [String: Any]])

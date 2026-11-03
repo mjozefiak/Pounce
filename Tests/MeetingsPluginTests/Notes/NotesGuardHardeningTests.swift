@@ -112,7 +112,8 @@ import Testing
             NotesUtterance(startMs: 0, speaker: "Anna", text: "Nie zatwierdzamy budżetu marketingowego.")
         ])
         let flipped = GuardFixtures.point(
-            "p1", .decision, quote: "Nie zatwierdzamy budżetu marketingowego", text: "Zatwierdzono budżet marketingowy.")
+            "p1", .decision, quote: "Nie zatwierdzamy budżetu marketingowego", text: "Zatwierdzono budżet marketingowy."
+        )
         let point = guardrail.verifyPoints([flipped]).verified.first
         #expect(point?.text == "Nie zatwierdzamy budżetu marketingowego.")
     }
@@ -122,7 +123,8 @@ import Testing
             NotesUtterance(startMs: 0, speaker: "Anna", text: "Zatwierdzamy budżet marketingowy.")
         ])
         let flipped = GuardFixtures.point(
-            "p1", .decision, quote: "Zatwierdzamy budżet marketingowy", text: "Nie zatwierdzono budżetu marketingowego.")
+            "p1", .decision, quote: "Zatwierdzamy budżet marketingowy", text: "Nie zatwierdzono budżetu marketingowego."
+        )
         #expect(guardrail.verifyPoints([flipped]).verified.first?.text == "Zatwierdzamy budżet marketingowy.")
     }
 

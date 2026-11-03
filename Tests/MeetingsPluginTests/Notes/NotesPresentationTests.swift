@@ -171,8 +171,7 @@ extension Database {
     }
 
     private func load() throws -> Catalog {
-        let root = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = TestPaths.repoRoot
         return try JSONDecoder().decode(
             Catalog.self, from: Data(contentsOf: root.appending(path: "Resources/Localizable.xcstrings")))
     }

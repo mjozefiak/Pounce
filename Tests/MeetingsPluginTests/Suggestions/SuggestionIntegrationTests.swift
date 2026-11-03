@@ -319,15 +319,9 @@ import Testing
     }
 
     private func sourceFiles() throws -> [(name: String, text: String)] {
-        let directory = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-            .deletingLastPathComponent().appending(path: "Sources/MeetingsPlugin", directoryHint: .isDirectory)
-        let names = try FileManager.default.contentsOfDirectory(atPath: directory.path()).filter {
-            $0.hasSuffix(".swift")
-        }
-        #expect(names.count > 30)
-        return try names.sorted().map {
-            ($0, try String(contentsOf: directory.appending(path: $0), encoding: .utf8))
-        }
+        let files = TestPaths.meetingsSourceFiles()
+        #expect(files.count > 30)
+        return try files.map { ($0.lastPathComponent, try String(contentsOf: $0, encoding: .utf8)) }
     }
 
     /// The source without comments (a comment may say "no keyDown"), so only code is judged.

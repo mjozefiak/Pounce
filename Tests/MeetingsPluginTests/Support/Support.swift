@@ -203,3 +203,31 @@ struct MeetingsHarness {
 func testKeys(_ byte: UInt8 = 9) throws -> MeetingKeys {
     try MeetingKeys(#require(MasterKeys(master: Data(repeating: byte, count: 32))))
 }
+
+/// Locations in the source tree, found by walking up from this file, so a test file can live in any folder.
+enum TestPaths {
+    static let repoRoot: URL = {
+        var url = URL(filePath: #filePath).deletingLastPathComponent()
+        while url.path != "/", !FileManager.default.fileExists(atPath: url.appending(path: "Package.swift").path) {
+            url = url.deletingLastPathComponent()
+        }
+        return url
+    }()
+
+    static let meetingsSources = repoRoot.appending(path: "Sources/MeetingsPlugin", directoryHint: .isDirectory)
+
+    /// Every `.swift` file under `Sources/MeetingsPlugin`, in any subfolder, sorted by name.
+    static func meetingsSourceFiles() -> [URL] {
+        let walker = FileManager.default.enumerator(at: meetingsSources, includingPropertiesForKeys: nil)
+        var files: [URL] = []
+        while let url = walker?.nextObject() as? URL {
+            if url.pathExtension == "swift" { files.append(url) }
+        }
+        return files.sorted { $0.lastPathComponent < $1.lastPathComponent }
+    }
+
+    /// The one source file called `name` (names are unique across the plugin's folders).
+    static func meetingsSource(named name: String) -> URL {
+        meetingsSourceFiles().first { $0.lastPathComponent == name } ?? meetingsSources.appending(path: name)
+    }
+}

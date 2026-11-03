@@ -321,14 +321,12 @@ private let texts: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
     // MARK: Logs
 
     @Test func recoveryNeverLogsTranscriptText() throws {
-        let sources = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-            .deletingLastPathComponent().appending(path: "Sources/MeetingsPlugin")
         var inspected = 0
         for name in [
             "RecoveryJob.swift", "MeetingResumer.swift", "SpoolRecovery.swift", "MeetingsStore+Recovery.swift",
             "MeetingsLibrary.swift",
         ] {
-            let source = try String(contentsOf: sources.appending(path: name), encoding: .utf8)
+            let source = try String(contentsOf: TestPaths.meetingsSource(named: name), encoding: .utf8)
             let calls = Self.loggerCalls(in: source)
             if name == "RecoveryJob.swift" || name == "MeetingResumer.swift" { #expect(calls.count > 3, "\(name)") }
             for call in calls {

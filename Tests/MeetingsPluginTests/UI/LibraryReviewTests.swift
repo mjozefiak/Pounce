@@ -163,8 +163,7 @@ final class FakeWindows: MeetingWindowPresenting {
     }
 
     @Test func noOtherCodeBuildsAWindowController() throws {
-        let sources = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-            .deletingLastPathComponent().appending(path: "Sources")
+        let sources = TestPaths.repoRoot.appending(path: "Sources")
         let files = try #require(FileManager.default.enumerator(at: sources, includingPropertiesForKeys: nil))
         for case let url as URL in files where url.pathExtension == "swift" {
             let name = url.lastPathComponent
