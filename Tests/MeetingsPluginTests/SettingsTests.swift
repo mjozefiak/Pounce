@@ -153,10 +153,10 @@ import Testing
         let rig = try SettingsRig()
         #expect(rig.model.retentionDays == 90)
         #expect(MeetingsSettings.retentionDayChoices == [7, 30, 90, 180, 365, 0])
-        rig.model.retentionDays = 30
+        rig.model.selectRetention(30)
         #expect(rig.harness.settings.value(forKey: "plugins.meetings.retentionDays") == .integer(30))
         #expect(rig.harness.meetingsSettings.retentionDays == 30)
-        rig.model.retentionDays = 0
+        rig.model.selectRetention(0)
         #expect(rig.harness.meetingsSettings.retentionDays == 0)
     }
 
@@ -439,19 +439,39 @@ import Testing
         #expect(!plugin.commands.contains { $0.id == MeetingsUI.recordCommandID })
     }
 
-    @Test func theSettingsStringsAreTranslatedToPolish() throws {
+    @Test func everyMeetingsSettingsStringHasEnglishAndValidPolishForms() throws {
         let root = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
             .deletingLastPathComponent()
         let data = try Data(contentsOf: root.appending(path: "Resources/Localizable.xcstrings"))
         let catalog = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
         let strings = try #require(catalog["strings"] as? [String: [String: Any]])
-        for key in [
+        let keys = [
             "Test System Audio", "Play Test Signal", "Clear Library…", "Delete Temporary Recordings…",
             "Remove Model", "Until I delete them", "Removed %lld meetings and their audio.",
-            "System audio works. Pounce heard its own test signal.",
-        ] {
+            "System audio works. Pounce heard its own test signal.", "Delete older meetings?",
+            "Delete Older Meetings", "%lld recordings could not be deleted. Close anything using them and try again.",
+            "%lld meetings are older than the new limit and are deleted now. This cannot be undone.",
+            "Meetings older than the period you choose are deleted, together with their transcripts and notes.",
+            "Deleted the audio of %lld interrupted meetings.", "%lld days",
+        ]
+        for key in keys {
             let localizations = try #require(strings[key]?["localizations"] as? [String: Any], "\(key)")
             #expect(localizations["en"] != nil && localizations["pl"] != nil, "\(key)")
+            func text(_ language: String) -> [String: String] {
+                guard let entry = localizations[language] as? [String: Any] else { return [:] }
+                if let unit = (entry["stringUnit"] as? [String: Any])?["value"] as? String { return ["": unit] }
+                let plural = ((entry["variations"] as? [String: Any])?["plural"] as? [String: [String: Any]]) ?? [:]
+                return plural.compactMapValues { ($0["stringUnit"] as? [String: Any])?["value"] as? String }
+            }
+            let english = text("en")
+            let polish = text("pl")
+            #expect(!english.isEmpty && !polish.isEmpty && !polish.values.contains(""), "\(key)")
+            if key.contains("%lld"), Set(polish.keys) != [""] {
+                // Polish needs one, few, many and other; every form keeps the number.
+                #expect(Set(polish.keys) == ["one", "few", "many", "other"], "\(key)")
+                #expect(polish.values.allSatisfy { $0.contains("%lld") }, "\(key)")
+                #expect(Set(english.keys) == ["one", "other"], "\(key)")
+            }
         }
     }
 
@@ -472,4 +492,74 @@ func waitForMainActor(_ condition: () -> Bool) async throws {
 @MainActor
 final class OpenedURLs {
     var urls: [URL] = []
+}
+
+@MainActor
+@Suite struct RetentionPickerTests {
+    private func seed(_ rig: SettingsRig, ageDays: [Double]) throws -> [Int64] {
+        rig.library.open()
+        let store = try #require(rig.library.store)
+        return try ageDays.enumerated().map { index, days in
+            try store.insertMeeting(
+                uuid: Sample.ids[index], startedAt: Date().addingTimeInterval(-days * 86_400), speechModelID: "m",
+                status: .ready)
+        }
+    }
+
+    @Test func aShorterPeriodThatDeletesMeetingsWaitsForConfirmationAndThenAppliesAtOnce() async throws {
+        let rig = try SettingsRig()
+        _ = try seed(rig, ageDays: [100, 40, 2])
+        let store = try #require(rig.library.store)
+        rig.model.selectRetention(30)
+        #expect(rig.model.pendingRetention == .init(days: 30, affected: 2))
+        #expect(rig.model.retentionDays == 90)
+        #expect(try store.meetingCount() == 3)
+
+        rig.model.cancelRetention()
+        #expect(rig.model.pendingRetention == nil)
+        #expect(rig.harness.meetingsSettings.retentionDays == 90)
+
+        rig.model.selectRetention(30)
+        await rig.model.confirmRetention()?.value
+        #expect(rig.harness.meetingsSettings.retentionDays == 30)
+        #expect(try store.meetingCount() == 1)
+        #expect(rig.library.meetingCount == 1)
+        #expect(rig.model.privacyMessage != nil)
+        rig.library.close()
+    }
+
+    @Test func aLongerOrHarmlessPeriodAppliesWithoutAsking() throws {
+        let rig = try SettingsRig()
+        _ = try seed(rig, ageDays: [100, 2])
+        rig.model.selectRetention(365)
+        #expect(rig.model.pendingRetention == nil && rig.model.retentionDays == 365)
+        rig.model.selectRetention(0)
+        #expect(rig.model.retentionDays == 0)
+        // From "never" to a period that expires one meeting asks; one that expires none does not.
+        rig.model.selectRetention(180)
+        #expect(rig.model.pendingRetention == nil && rig.model.retentionDays == 180)
+        rig.model.selectRetention(30)
+        #expect(rig.model.pendingRetention?.affected == 1)
+        rig.library.close()
+    }
+
+    @Test func aMeetingBeingFinishedIsNotCountedOrDeleted() async throws {
+        let rig = try SettingsRig()
+        let ids = try seed(rig, ageDays: [100])
+        let store = try #require(rig.library.store)
+        try store.setStatus(ids[0], status: .incomplete)
+        #expect(rig.library.meetingsExpiring(afterDays: 30) == 1)
+        let protected: Set<Int64> = Set(ids)
+        #expect(try store.expiredMeetingCount(cutoff: Date(), excluding: protected) == 0)
+        #expect(try store.applyRetention(cutoff: Date(), excluding: protected).isEmpty)
+        #expect(try store.meetingCount() == 1)
+        rig.library.close()
+    }
+
+    @Test func aStoredValueOutsideTheChoicesIsAddedInOrder() throws {
+        let rig = try SettingsRig(settings: ["plugins.meetings.retentionDays": .integer(45)])
+        #expect(rig.model.retentionChoices() == [7, 30, 45, 90, 180, 365, 0])
+        #expect(MeetingsSettingsModel.choices([7, 30, 0], including: 30) == [7, 30, 0])
+        #expect(MeetingsSettingsModel.choices([7, 30], including: 400) == [7, 30, 400])
+    }
 }

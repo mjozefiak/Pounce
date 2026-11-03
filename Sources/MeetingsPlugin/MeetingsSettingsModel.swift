@@ -17,10 +17,13 @@ final class MeetingsSettingsModel {
     var consentReminder: Bool {
         didSet { settings.setConsentReminder(consentReminder) }
     }
-    /// 0 keeps meetings until the user deletes them.
-    var retentionDays: Int {
+    /// 0 keeps meetings until the user deletes them. Change it through `selectRetention(_:)`: a shorter
+    /// period that would delete meetings waits for a confirmation.
+    private(set) var retentionDays: Int {
         didSet { settings.setRetentionDays(retentionDays) }
     }
+    /// A shorter retention waiting for the user's confirmation, with how many meetings it deletes now.
+    private(set) var pendingRetention: PendingRetention?
     private(set) var privacyMessage: String?
     private(set) var privacyFailed = false
 
@@ -111,18 +114,67 @@ final class MeetingsSettingsModel {
         }
     }
 
+    // MARK: Retention
+
+    struct PendingRetention: Equatable {
+        var days: Int
+        var affected: Int
+    }
+
+    /// The picker's choices, with the stored value added when it came from an older or hand-edited setting
+    /// (the picker would show nothing selected otherwise). "Until I delete them" (0) stays last.
+    func retentionChoices() -> [Int] {
+        Self.choices(MeetingsSettings.retentionDayChoices, including: retentionDays)
+    }
+
+    static func choices(_ base: [Int], including value: Int) -> [Int] {
+        guard !base.contains(value) else { return base }
+        let finite = (base.filter { $0 > 0 } + [value]).sorted()
+        return base.contains(0) ? finite + [0] : finite
+    }
+
+    /// The picker's action. A longer period (or none) applies at once; a shorter one that would delete
+    /// meetings is held until `confirmRetention()`.
+    func selectRetention(_ days: Int) {
+        pendingRetention = nil
+        guard days != retentionDays else { return }
+        let shorter = days > 0 && (retentionDays == 0 || days < retentionDays)
+        let affected = shorter ? library.meetingsExpiring(afterDays: days) : 0
+        if affected > 0 {
+            pendingRetention = PendingRetention(days: days, affected: affected)
+        } else {
+            retentionDays = days
+        }
+    }
+
+    func cancelRetention() { pendingRetention = nil }
+
+    /// Saves the shorter period and deletes the meetings it expires now.
+    /// The setting changes at once (synchronously, so the dialog closing cannot cancel it); the deletion runs
+    /// in the returned task.
+    @discardableResult
+    func confirmRetention() -> Task<Void, Never>? {
+        guard let pending = pendingRetention else { return nil }
+        pendingRetention = nil
+        retentionDays = pending.days
+        return Task {
+            let deleted = await library.applyRetention()
+            privacyMessage = Self.removedMessage(deleted)
+            privacyFailed = false
+        }
+    }
+
     // MARK: Privacy
 
-    /// Both destructive actions need an open library.
-    var canChangeLibrary: Bool { library.status == .ready }
+    /// Both destructive actions need an open library, and wait while a meeting is being finished (its row and
+    /// audio are in use).
+    var canChangeLibrary: Bool { library.status == .ready && !library.isProcessing }
 
     /// Called after the pane's confirmation.
     func clearLibrary() {
         run {
             let report = try privacy.clearLibrary()
-            return String(
-                localized: "Removed \(report.removed) meetings and their audio.",
-                comment: "Meetings settings: result of Clear Library")
+            return (Self.removedMessage(report.removed), report.failed)
         }
     }
 
@@ -130,16 +182,34 @@ final class MeetingsSettingsModel {
     func deleteTemporaryRecordings() {
         run {
             let report = try privacy.deleteTemporaryRecordings()
-            return String(
-                localized: "Deleted the audio of \(report.removed) interrupted meetings.",
-                comment: "Meetings settings: result of Delete Temporary Recordings")
+            return (
+                String(
+                    localized: "Deleted the audio of \(report.removed) interrupted meetings.",
+                    comment: "Meetings settings: result of Delete Temporary Recordings"), report.failed
+            )
         }
     }
 
-    private func run(_ action: () throws -> String) {
+    private static func removedMessage(_ count: Int) -> String {
+        String(
+            localized: "Removed \(count) meetings and their audio.",
+            comment: "Meetings settings: result of Clear Library")
+    }
+
+    /// `failed` counts audio folders that are still on the disk; the result then says so instead of success.
+    private func run(_ action: () throws -> (message: String, failed: Int)) {
         do {
-            privacyMessage = try action()
-            privacyFailed = false
+            let result = try action()
+            if result.failed > 0 {
+                privacyMessage = String(
+                    localized:
+                        "\(result.failed) recordings could not be deleted. Close anything using them and try again.",
+                    comment: "Meetings settings: some audio folders could not be removed")
+                privacyFailed = true
+            } else {
+                privacyMessage = result.message
+                privacyFailed = false
+            }
         } catch {
             privacyMessage = String(
                 localized: "The library could not be changed. Nothing was lost; try again.",

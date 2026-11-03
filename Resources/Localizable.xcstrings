@@ -8262,6 +8262,168 @@
           }
         }
       }
+    },
+    "Delete older meetings?" : {
+      "comment" : "Meetings settings confirmation title of a shorter retention",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete older meetings?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunąć starsze spotkania?"
+          }
+        }
+      }
+    },
+    "Delete Older Meetings" : {
+      "comment" : "Meetings settings confirmation button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Older Meetings"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń starsze spotkania"
+          }
+        }
+      }
+    },
+    "Meetings older than the period you choose are deleted, together with their transcripts and notes." : {
+      "comment" : "Meetings settings footer under the retention choice",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meetings older than the period you choose are deleted, together with their transcripts and notes."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spotkania starsze niż wybrany okres są usuwane razem z transkrypcjami i notatkami."
+          }
+        }
+      }
+    },
+    "%lld meetings are older than the new limit and are deleted now. This cannot be undone." : {
+      "comment" : "Meetings settings confirmation text of a shorter retention",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld meeting is older than the new limit and is deleted now. This cannot be undone."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld meetings are older than the new limit and are deleted now. This cannot be undone."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld spotkanie jest starsze niż nowy limit i zostanie teraz usunięte. Tej operacji nie można cofnąć."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld spotkania są starsze niż nowy limit i zostaną teraz usunięte. Tej operacji nie można cofnąć."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld spotkań jest starszych niż nowy limit i zostanie teraz usuniętych. Tej operacji nie można cofnąć."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld spotkania jest starszych niż nowy limit i zostanie teraz usuniętych. Tej operacji nie można cofnąć."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld recordings could not be deleted. Close anything using them and try again." : {
+      "comment" : "Meetings settings: some audio folders could not be removed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld recording could not be deleted. Close anything using it and try again."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld recordings could not be deleted. Close anything using them and try again."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Nie udało się usunąć %lld nagrania. Zamknij wszystko, co go używa, i spróbuj ponownie."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Nie udało się usunąć %lld nagrań. Zamknij wszystko, co ich używa, i spróbuj ponownie."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Nie udało się usunąć %lld nagrań. Zamknij wszystko, co ich używa, i spróbuj ponownie."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Nie udało się usunąć %lld nagrania. Zamknij wszystko, co go używa, i spróbuj ponownie."
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

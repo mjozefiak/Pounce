@@ -43,7 +43,9 @@ final class MeetingsLibrary {
     @ObservationIgnored private var resumeTask: Task<Void, Never>?
     /// "Dokończ" runs by meeting id; `close()` cancels them.
     @ObservationIgnored private var finishTasks: [Int64: Task<ResumeOutcome, Never>] = [:]
-    @ObservationIgnored private var activeResumes: Set<Int64> = []
+    /// The meetings a recovery or "Dokończ" pass is working on right now (their rows and spools are in use).
+    /// Observed, so the privacy buttons switch off while it is not empty.
+    private(set) var activeResumes: Set<Int64> = []
     /// Bumped by every `close()`: a task of an earlier open must not touch the state of a later one.
     @ObservationIgnored private var generation = 0
     /// Meetings a session in this process is recording or finalizing. Survives `close()` and `open()` (a
@@ -163,15 +165,6 @@ final class MeetingsLibrary {
         meetingCount = (try? store.meetingCount()) ?? 0
     }
 
-    /// "Clear library": every meeting goes; the key and the database stay.
-    func clear() throws {
-        guard let store else { return }
-        try store.deleteAll()
-        try? store.vacuum()
-        refreshCount()
-        changed()
-    }
-
     /// One retention pass now.
     @discardableResult
     func applyRetention() async -> Int {
@@ -182,6 +175,14 @@ final class MeetingsLibrary {
             changed()
         }
         return deleted
+    }
+
+    /// How many meetings a retention of `days` would delete now (0 keeps everything, so none).
+    func meetingsExpiring(afterDays days: Int) -> Int {
+        guard let store, days > 0 else { return 0 }
+        let cutoff = RetentionJob.Policy(retentionDays: days, orphanAudioDays: 1).cutoff(now: now())
+        guard let cutoff else { return 0 }
+        return (try? store.expiredMeetingCount(cutoff: cutoff, excluding: protectedMeetingIDs)) ?? 0
     }
 
     /// "Erase Data": closes the library, removes the Keychain item and the plugin's folder (the database, its

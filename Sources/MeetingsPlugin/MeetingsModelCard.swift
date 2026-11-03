@@ -21,6 +21,8 @@ final class MeetingsModelCardModel {
     @ObservationIgnored private let pickFolder: @MainActor () -> URL?
     @ObservationIgnored private let usage: MeetingsModelUsage
     @ObservationIgnored private var downloadTask: Task<Void, Never>?
+    /// Tells a progress report of the running download from a late one of an earlier download.
+    @ObservationIgnored private var downloadGeneration = 0
 
     init(
         package: ModelPackage, manager: ModelManager, usage: MeetingsModelUsage, customFolder: @escaping () -> URL?,
@@ -55,12 +57,18 @@ final class MeetingsModelCardModel {
         guard downloadTask == nil else { return }
         errorMessage = nil
         progress = ModelProgress(bytesDone: 0, bytesTotal: package.totalBytes)
+        downloadGeneration += 1
+        let generation = downloadGeneration
         let package = package
         let manager = manager
         downloadTask = Task { [weak self] in
             do {
                 try await manager.install(package) { value in
-                    Task { @MainActor in self?.progress = value }
+                    Task { @MainActor in
+                        // A report that arrives after the download ended must not bring the bar back.
+                        guard let self, self.downloadGeneration == generation, self.downloadTask != nil else { return }
+                        self.progress = value
+                    }
                 }
                 self?.setCustomFolder(nil)
             } catch is CancellationError {
@@ -82,19 +90,27 @@ final class MeetingsModelCardModel {
         await downloadTask?.value
     }
 
-    /// "Choose Folder…": checks the files and sums of a model the user downloaded by hand.
+    /// "Choose Folder…": checks the files and sums of a model the user downloaded by hand. One check at a
+    /// time; a result that arrives after the card shows another package is dropped.
     func chooseFolder() async {
-        guard let folder = pickFolder() else { return }
+        guard !isVerifying, let folder = pickFolder() else { return }
+        let chosenFor = package.id
         errorMessage = nil
         isVerifying = true
         do {
             try await manager.verify(folder: folder, for: package)
-            setCustomFolder(folder)
+            if package.id == chosenFor { setCustomFolder(folder) }
         } catch {
-            errorMessage = MeetingsModelMessages.message(for: error)
+            if package.id == chosenFor { errorMessage = MeetingsModelMessages.message(for: error) }
         }
         isVerifying = false
         await refresh()
+    }
+
+    /// The folder to load the model from, checked now. The load path (step 1.10) must use this and not the
+    /// stored setting: a folder the user chose earlier can have been moved, emptied or changed since.
+    func loadableFolder() async -> URL? {
+        await manager.location(of: package, customFolder: customFolder()).folder
     }
 
     /// Goes back to the downloaded model.
@@ -103,16 +119,25 @@ final class MeetingsModelCardModel {
         await refresh()
     }
 
-    /// Deletes the downloaded model (never the user's own folder). Refused while a session holds it.
+    /// Deletes the downloaded model (never the user's own folder). Refused while a session holds it: asked
+    /// here for the message, and again by the manager right before the files go. A reservation on `usage`
+    /// keeps a new session from starting in between.
     func removeModel() async {
         isInUse = await usage.isInUse(package)
         guard !isInUse else {
             errorMessage = MeetingsModelMessages.inUse
             return
         }
+        let release = usage.reserveRemoval()
+        defer { release() }
+        let package = package
+        let usage = usage
         do {
-            try await manager.delete(package)
-            errorMessage = nil
+            if try await manager.delete(package, unless: { await usage.isInUse(package) }) {
+                errorMessage = nil
+            } else {
+                errorMessage = MeetingsModelMessages.inUse
+            }
         } catch {
             errorMessage = MeetingsModelMessages.message(for: error)
         }

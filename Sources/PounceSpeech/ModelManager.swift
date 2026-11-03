@@ -268,6 +268,21 @@ public actor ModelManager {
         }
     }
 
+    /// Like `delete(_:)`, but asks `isInUse` once the turn is held and again right before the files go, with
+    /// nothing in between that can suspend: a user that took the model after the caller's own check still
+    /// stops the removal. Returns `false` (nothing removed) when the package is in use.
+    @discardableResult
+    public func delete(_ package: ModelPackage, unless isInUse: @Sendable () async -> Bool) async throws -> Bool {
+        try await exclusive {
+            if await isInUse() { return false }
+            for url in [installedFolder(package), partialFolder(package)]
+            where FileManager.default.fileExists(atPath: url.path) {
+                try FileManager.default.removeItem(at: url)
+            }
+            return true
+        }
+    }
+
     // MARK: Helpers
 
     private func fileSize(_ url: URL) -> Int {

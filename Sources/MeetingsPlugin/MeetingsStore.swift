@@ -382,6 +382,17 @@ extension MeetingsStore {
         }
     }
 
+    /// How many meetings a retention pass with `cutoff` would delete (the confirmation shows it).
+    func expiredMeetingCount(cutoff: Date, excluding protected: Set<Int64> = []) throws -> Int {
+        try read { db in
+            try Row.fetchAll(
+                db,
+                sql: "SELECT id FROM meeting WHERE started_at < ? AND status NOT IN ('recording', 'processing')",
+                arguments: [cutoff.timeIntervalSince1970]
+            ).filter { !protected.contains($0["id"] as Int64) }.count
+        }
+    }
+
     func audioState(of id: Int64) throws -> AudioState? {
         try read { db in
             try String.fetchOne(db, sql: "SELECT audio_state FROM meeting WHERE id = ?", arguments: [id])

@@ -88,8 +88,8 @@ struct MeetingsSettingsPane: View {
                 Toggle(isOn: $model.consentReminder) {
                     Text("Remind me to tell people I am recording", comment: "Meetings settings toggle")
                 }
-                Picker(selection: $model.retentionDays) {
-                    ForEach(MeetingsSettings.retentionDayChoices, id: \.self) { days in
+                Picker(selection: Binding(get: { model.retentionDays }, set: { model.selectRetention($0) })) {
+                    ForEach(model.retentionChoices(), id: \.self) { days in
                         Text(Self.retentionTitle(days)).tag(days)
                     }
                 } label: {
@@ -123,6 +123,11 @@ struct MeetingsSettingsPane: View {
                 Text("Privacy", comment: "Dictation settings section title")
             } footer: {
                 Text(
+                    "Meetings older than the period you choose are deleted, together with their transcripts and notes.",
+                    comment: "Meetings settings footer under the retention choice"
+                )
+                .font(.callout).foregroundStyle(.secondary)
+                Text(
                     "Recordings are encrypted and deleted once a meeting is processed. A deleted file is not overwritten: on an SSD or in a backup a copy may remain for a while, though it is encrypted and unreadable without the key. Erase Data removes the key too.",
                     comment: "Meetings settings footer about deleted data on an SSD"
                 )
@@ -131,6 +136,25 @@ struct MeetingsSettingsPane: View {
         }
         .formStyle(.grouped)
         .task { await model.refresh() }
+        .onChange(of: model.privacyMessage) { _, message in
+            if let message { AccessibilityNotification.Announcement(message).post() }
+        }
+        .confirmationDialog(
+            Text("Delete older meetings?", comment: "Meetings settings confirmation title of a shorter retention"),
+            isPresented: Binding(
+                get: { model.pendingRetention != nil }, set: { if !$0 { model.cancelRetention() } }),
+            titleVisibility: .visible
+        ) {
+            Button(role: .destructive) {
+                model.confirmRetention()
+            } label: {
+                Text("Delete Older Meetings", comment: "Meetings settings confirmation button")
+            }
+        } message: {
+            Text(
+                "\(model.pendingRetention?.affected ?? 0) meetings are older than the new limit and are deleted now. This cannot be undone.",
+                comment: "Meetings settings confirmation text of a shorter retention")
+        }
         .confirmationDialog(
             Text("Delete all meetings?", comment: "Meetings settings confirmation title"),
             isPresented: Binding(
@@ -280,6 +304,9 @@ struct SystemAudioTestRows: View {
                     }
                 }
             }
+        }
+        .onChange(of: test.lastOutcome) { _, outcome in
+            if let outcome { AccessibilityNotification.Announcement(outcome.message).post() }
         }
     }
 

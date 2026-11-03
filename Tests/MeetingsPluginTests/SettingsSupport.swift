@@ -100,6 +100,7 @@ final class SettingsRig {
     let model: MeetingsSettingsModel
     let picked = Shared<URL?>(nil)
     let changes = Shared(0)
+    let activity = MeetingActivity()
 
     init(
         settings: [String: SettingValue] = [:], access: MicrophoneAccess = .notDetermined,
@@ -130,7 +131,7 @@ final class SettingsRig {
         model = MeetingsSettingsModel(
             settings: meetingsSettings, library: library,
             privacy: MeetingsPrivacyActions(
-                library: library, spool: spool, changed: { changes.update { $0 += 1 } }),
+                library: library, spool: spool, activity: activity, changed: { changes.update { $0 += 1 } }),
             speech: speech, diarization: diarization,
             systemAudioTest: SystemAudioTestModel(makeTest: {
                 SystemAudioSelfTest(backend: backend, player: tone, settle: .zero, sleeper: { _ in })
