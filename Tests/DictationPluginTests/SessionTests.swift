@@ -270,7 +270,11 @@ private func session(
         try await Task.sleep(for: .milliseconds(100))
         await session.cancel()
         await #expect(throws: DictationSession.Failure.cancelled) { try await session.finish() }
-        try await Task.sleep(for: .milliseconds(100))
+        // The engine is told asynchronously: wait for it instead of guessing a delay (a loaded runner needs more).
+        let deadline = ContinuousClock.now + .seconds(10)
+        while engine.state.withLock({ $0.cancelledCalls }) == 0, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(10))
+        }
         #expect(engine.state.withLock { $0.cancelledCalls } == 1)
     }
 
