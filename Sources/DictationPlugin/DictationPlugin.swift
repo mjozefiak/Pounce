@@ -11,7 +11,7 @@ import os
 ///
 /// - The shortcut's key-down and key-up go to `DictationController` (tap to toggle, hold to talk), which
 ///   runs `DictationSession`, the HUD and `TextPaster`.
-/// - Models: `Plugins/dictation/Models/<id>/`, downloaded by `ModelManager` on the user's click, or a
+/// - Models: `Models/speech/<id>/`, downloaded by `ModelManager` on the user's click, or a
 ///   folder the user points at. The engines never download.
 ///
 /// Settings: `plugins.dictation.*` (see `DictationSettings.Key`). Disabled by default: the feature needs a
@@ -178,8 +178,9 @@ public final class DictationPlugin: PouncePlugin {
         relay.controller = nil
     }
 
-    /// "Erase Data": the host deletes `Plugins/dictation/` (models and, later, the history) after this.
-    /// Removes the history's Keychain item; the folder (models, `dictation.sqlite`) is deleted by the host.
+    /// "Erase Data": the host deletes `Plugins/dictation/` (the history) after this. Removes the history's
+    /// Keychain item; the folder (`dictation.sqlite`) is deleted by the host. Downloaded models live in the
+    /// shared `Models/` folder (ADR 0006) and stay; "Remove model" in Settings deletes them.
     public func eraseData() async throws {
         try history.erase()
     }

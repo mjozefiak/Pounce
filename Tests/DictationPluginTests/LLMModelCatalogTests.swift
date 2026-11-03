@@ -111,17 +111,6 @@ import Testing
         withExtendedLifetime(directory) {}
     }
 
-    @Test func aStorageDirectoryEraseTakesTheModelsAlong() async throws {
-        let (model, content, repository, directory) = try fixture()
-        StubProtocol.register(path: "/\(repository)/resolve/rev/fixture-Q4_K_M.gguf") { _ in .body(content) }
-        let storage = directory.url
-        _ = try await manager(in: directory).install(model.package)
-        #expect(
-            FileManager.default.fileExists(atPath: storage.appending(path: DictationPlugin.llmDirectoryName).path))
-        // `PluginHost.eraseData` removes the whole `Plugins/dictation/` folder, so the models are inside it.
-        try FileManager.default.removeItem(at: storage)
-        #expect(!FileManager.default.fileExists(atPath: storage.appending(path: DictationPlugin.llmDirectoryName).path))
-    }
 }
 
 /// Manual check of step 4.2: one real download of the default formatting model (about 2.3 GB), so the catalog's

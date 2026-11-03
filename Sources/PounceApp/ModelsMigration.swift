@@ -47,15 +47,25 @@ struct ModelsMigration {
             try fileManager.createDirectory(
                 at: target.deletingLastPathComponent(), withIntermediateDirectories: true,
                 attributes: [.posixPermissions: 0o700])
-            // An empty target folder (created by the host) is replaced by the rename.
-            if fileManager.fileExists(atPath: target.path) { try fileManager.removeItem(at: target) }
+            // An empty target folder (created by the host) is replaced by the rename. Anything else at the
+            // target (a file, a link) is left alone.
+            if fileManager.fileExists(atPath: target.path) {
+                guard isDirectory(target), !hasContents(target) else { return .conflict }
+                try fileManager.removeItem(at: target)
+            }
             try fileManager.moveItem(at: source, to: target)
-            try fileManager.setAttributes([.posixPermissions: 0o700], ofItemAtPath: target.path)
+            // The data is moved either way; tightening the mode is best effort.
+            try? fileManager.setAttributes([.posixPermissions: 0o700], ofItemAtPath: target.path)
             return .moved
         } catch {
             logger.error("Models migration failed: \(String(describing: error), privacy: .public)")
             return .failed
         }
+    }
+
+    private func isDirectory(_ url: URL) -> Bool {
+        var isDirectory: ObjCBool = false
+        return fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory) && isDirectory.boolValue
     }
 
     private func hasContents(_ directory: URL) -> Bool {

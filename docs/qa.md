@@ -309,7 +309,7 @@ Needs a real Keychain and the app built by `scripts/make-app.sh` (not `--qa`, wh
 - dictate a few times (raw and cleaned); menu bar → Dictation History lists them newest first, with the first sentence and the age; the preview switches between Formatted and Raw;
 - Return pastes the cleaned text into the app you came from, ⌘Return the raw one, ⌃X deletes; ⌘1/⌘2/⌘3 filter All/Formatted/Raw; a word only in the raw transcript ("yyy") is found;
 - Settings → Dictation → History: switch it off (new dictations are not saved, the list says it is off), change "Keep for" and "At most", "Clear History…" asks first and empties the list;
-- Keychain Access shows one `app.pounce.dictation` item; Settings → Features → Dictation → Erase Data removes it and the `Plugins/dictation` folder;
+- Keychain Access shows one `app.pounce.dictation` item; Settings → Features → Dictation → Erase Data removes it and the `Plugins/dictation` folder (downloaded models in `Models/` stay; "Remove model" deletes them);
 - delete the `app.pounce.dictation` item by hand and relaunch: the old file is renamed `dictation.sqlite.unreadable-<date>` and the history starts empty.
 
 ## Never during QA

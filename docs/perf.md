@@ -194,7 +194,7 @@ and filled in then; nothing here is estimated.
 Run the local integration tests with the model installed (they are off by default):
 
 ```sh
-POUNCE_DICTATION_MODEL_FOLDER=~/Library/Application\ Support/Pounce/Plugins/dictation/Models/parakeet-ultra \
+POUNCE_DICTATION_MODEL_FOLDER=~/Library/Application\ Support/Pounce/Models/speech/parakeet-ultra \
   swift test --filter RealModelTests
 ```
 

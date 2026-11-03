@@ -1,4 +1,5 @@
 import Foundation
+import PounceKit
 import Testing
 
 @testable import PounceApp
@@ -103,5 +104,48 @@ import Testing
         let attributes = try FileManager.default.attributesOfItem(atPath: environment.modelsDirectory.path)
         #expect((attributes[.posixPermissions] as? Int) == 0o700)
         #expect(environment.modelsDirectory == root.appending(path: "Models", directoryHint: .isDirectory))
+    }
+}
+
+extension ModelsMigrationTests {
+    @Test func theHostPassesTheSharedModelsFolderToEveryPlugin() throws {
+        let root = FileManager.default.temporaryDirectory.appending(
+            path: "pounce-ctx-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let environment = try AppEnvironment.qa(QAOptions(dataRoot: root))
+        let context = environment.makeContext(
+            for: PluginManifest(id: "any", displayName: "Any", symbolName: "circle", order: 1))
+        #expect(context.modelsDirectory == root.appending(path: "Models", directoryHint: .isDirectory))
+        #expect(!context.modelsDirectory.path.hasPrefix(context.storageDirectory.path))
+    }
+
+    @Test func aFileAtTheTargetIsNeverDeleted() throws {
+        let root = FileManager.default.temporaryDirectory.appending(
+            path: "pounce-mig-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let fm = FileManager.default
+        try fm.createDirectory(at: root.appending(path: "Plugins/dictation/llm/q"), withIntermediateDirectories: true)
+        try Data("m".utf8).write(to: root.appending(path: "Plugins/dictation/llm/q/m.gguf"))
+        try fm.createDirectory(at: root.appending(path: "Models"), withIntermediateDirectories: true)
+        try Data("stray".utf8).write(to: root.appending(path: "Models/llm"))
+
+        let outcomes = ModelsMigration(dataRoot: root).run()
+
+        #expect(outcomes.last == .conflict)
+        #expect(try Data(contentsOf: root.appending(path: "Models/llm")) == Data("stray".utf8))
+        #expect(fm.fileExists(atPath: root.appending(path: "Plugins/dictation/llm/q/m.gguf").path))
+    }
+
+    @Test func theMovedFolderIsPrivate() throws {
+        let root = FileManager.default.temporaryDirectory.appending(
+            path: "pounce-mig-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let fm = FileManager.default
+        try fm.createDirectory(
+            at: root.appending(path: "Plugins/dictation/Models/p"), withIntermediateDirectories: true)
+        try Data("a".utf8).write(to: root.appending(path: "Plugins/dictation/Models/p/f"))
+        ModelsMigration(dataRoot: root).run()
+        let mode = try fm.attributesOfItem(atPath: root.appending(path: "Models/speech").path)[.posixPermissions]
+        #expect((mode as? Int) == 0o700)
     }
 }
