@@ -40,9 +40,13 @@ import Testing
         #expect(Permission.systemAudioRecording.rawValue == "systemAudioRecording")
         #expect(Permission(rawValue: "systemAudioRecording") == .systemAudioRecording)
         // Additive: every earlier case keeps its raw value.
-        #expect(
-            Set(Permission.allCases.map(\.rawValue))
-                == ["accessibility", "fullDiskAccess", "pasteboard", "microphone", "systemAudioRecording"])
+        let historical: [(String, Permission)] = [
+            ("accessibility", .accessibility), ("fullDiskAccess", .fullDiskAccess),
+            ("pasteboard", .pasteboard), ("microphone", .microphone),
+        ]
+        for (raw, permission) in historical {
+            #expect(Permission(rawValue: raw) == permission)
+        }
     }
 
     @Test func releaseRunsTheClaimsAction() {

@@ -161,10 +161,13 @@ final class FakePermissionsReader: PermissionsReader {
         defer { test.tearDown() }
         let host = test.makeHost([RecordingPlugin.self])
         await host.start()
-        let reader = FakePermissionsReader()
-        #expect(reader.status(of: .systemAudioRecording) == .notDetermined)
+        let reader = SystemPermissionsReader(
+            accessibilityOverride: .granted, fullDiskAccessOverride: .granted, microphoneOverride: .granted)
+        let model = PermissionsModel(host: host, reader: reader) { _ in }
 
         await host.setEnabled(true, for: "recording")
+        #expect(model.requirements.map(\.permission).contains(.systemAudioRecording))
+        #expect(model.status(of: .systemAudioRecording) == .notDetermined)
         #expect(host.isEnabled("recording"))
         #expect(host.state(of: "recording")?.isActive == true)
         let steps = host.entries.filter(\.state.isActive).flatMap(\.plugin.onboardingSteps)

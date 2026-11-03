@@ -69,7 +69,9 @@ private let repositoryRoot = URL(filePath: #filePath)
             try PropertyListSerialization.propertyList(
                 from: Data(contentsOf: repositoryRoot.appending(path: "Resources/Info.plist")), format: nil)
                 as? [String: Any])
-        #expect((plist["NSMicrophoneUsageDescription"] as? String)?.isEmpty == false)
+        for key in ["NSMicrophoneUsageDescription", "NSAudioCaptureUsageDescription"] {
+            #expect((plist[key] as? String)?.isEmpty == false, "\(key) missing from Info.plist")
+        }
         let entitlements = try #require(
             try PropertyListSerialization.propertyList(
                 from: Data(contentsOf: repositoryRoot.appending(path: "Resources/Pounce.entitlements")), format: nil)
@@ -133,11 +135,13 @@ private let repositoryRoot = URL(filePath: #filePath)
     @Test func infoPlistCatalogHasEnglishAndPolish() throws {
         let data = try Data(contentsOf: repositoryRoot.appending(path: "Resources/InfoPlist.xcstrings"))
         let catalog = try JSONDecoder().decode(Catalog.self, from: data)
-        let entry = try #require(catalog.strings["NSMicrophoneUsageDescription"])
-        for language in ["en", "pl"] {
-            let unit = entry.localizations?[language]?.stringUnit
-            #expect(unit?.state == "translated")
-            #expect(unit?.value.isEmpty == false)
+        for key in ["NSMicrophoneUsageDescription", "NSAudioCaptureUsageDescription"] {
+            let entry = try #require(catalog.strings[key], "\(key) is not in InfoPlist.xcstrings")
+            for language in ["en", "pl"] {
+                let unit = entry.localizations?[language]?.stringUnit
+                #expect(unit?.state == "translated", "\(key) \(language)")
+                #expect(unit?.value.isEmpty == false, "\(key) \(language)")
+            }
         }
     }
 
