@@ -134,7 +134,7 @@ struct DictationHUDView: View {
             icon(for: state)
                 .frame(width: 20, height: 20)
             Text(state.title)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.callout.weight(.medium))
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
             if case .recording(let recording) = state {
@@ -143,7 +143,7 @@ struct DictationHUDView: View {
                 if let started = model.recordingStartedAt {
                     TimelineView(.periodic(from: started, by: 1)) { context in
                         Text(Self.format(context.date.timeIntervalSince(started)))
-                            .font(.system(size: 12, weight: .medium).monospacedDigit())
+                            .font(.callout.monospacedDigit())
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -159,11 +159,10 @@ struct DictationHUDView: View {
                 Button {
                     model.onCancel()
                 } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 9, weight: .bold))
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title3)
+                        .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(.secondary)
-                        .frame(width: 18, height: 18)
-                        .background(.primary.opacity(0.1), in: Circle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(
@@ -173,9 +172,10 @@ struct DictationHUDView: View {
         .padding(.leading, 14)
         .padding(.trailing, 12)
         .frame(width: 248, height: 40)
-        .background(.regularMaterial, in: Capsule())
-        .overlay(Capsule().strokeBorder(.primary.opacity(contrast == .increased ? 0.6 : 0.1), lineWidth: 0.5))
-        .shadow(color: .black.opacity(0.18), radius: 10, y: 3)
+        .glassEffect(.regular, in: .capsule)
+        .overlay {
+            if contrast == .increased { Capsule().strokeBorder(.primary.opacity(0.6), lineWidth: 1) }
+        }
         .frame(width: 280, height: 56)
         .animation(reduceMotion || model.reducesMotion ? nil : .smooth(duration: 0.2), value: state)
         .accessibilityElement(children: .contain)
@@ -186,45 +186,29 @@ struct DictationHUDView: View {
     private func icon(for state: HUDState) -> some View {
         switch state {
         case .recording(let recording) where !recording.loadingModel:
-            PulsingDot(animated: !(reduceMotion || model.reducesMotion))
+            Image(systemName: "record.circle.fill")
+                .symbolRenderingMode(.multicolor)
+                .foregroundStyle(.red)
+                .font(.title3)
+                .symbolEffect(.pulse, isActive: !(reduceMotion || model.reducesMotion))
                 .accessibilityHidden(true)
         case .finishing, .recording:
             ProgressView().controlSize(.small)
         case .pasted:
             Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                .font(.system(size: 16)).accessibilityHidden(true)
+                .font(.title3).accessibilityHidden(true)
         case .pastedUnformatted, .copied, .allowMicrophone:
             Image(systemName: state.symbolName).foregroundStyle(.orange)
-                .font(.system(size: 15, weight: .medium)).accessibilityHidden(true)
+                .font(.title3).accessibilityHidden(true)
         case .problem:
             Image(systemName: state.symbolName).foregroundStyle(.red)
-                .font(.system(size: 15, weight: .medium)).accessibilityHidden(true)
+                .font(.title3).accessibilityHidden(true)
         }
     }
 
     static func format(_ seconds: TimeInterval) -> String {
         let total = max(0, Int(seconds))
         return String(format: "%d:%02d", total / 60, total % 60)
-    }
-}
-
-/// The red recording dot with a soft halo; still when Reduce Motion is on.
-private struct PulsingDot: View {
-    let animated: Bool
-    @State private var pulsing = false
-
-    var body: some View {
-        ZStack {
-            Circle().fill(.red.opacity(0.28))
-                .frame(width: 18, height: 18)
-                .scaleEffect(pulsing ? 1 : 0.6)
-                .opacity(pulsing ? 0.2 : 1)
-            Circle().fill(.red).frame(width: 9, height: 9)
-        }
-        .onAppear {
-            guard animated else { return }
-            withAnimation(.easeOut(duration: 1.1).repeatForever(autoreverses: false)) { pulsing = true }
-        }
     }
 }
 
