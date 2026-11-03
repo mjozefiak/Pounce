@@ -32,7 +32,7 @@ private let words: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
 
         let temporary = try privacy.deleteTemporaryRecordings()
         #expect(temporary.removed == 1)
-        #expect(try store.status(of: busy.id) == .incomplete)
+        #expect(try store.status(of: busy.id) == .processing)
         #expect(try store.audioState(of: busy.id) == .spool)
         #expect(rig.spoolExists(busy.uuid))
         #expect(!rig.spoolExists(idle.uuid))
@@ -40,7 +40,7 @@ private let words: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
 
         let cleared = try privacy.clearLibrary()
         #expect(cleared.removed == 2)
-        #expect(try store.status(of: busy.id) == .incomplete)
+        #expect(try store.status(of: busy.id) == .processing)
         #expect(rig.spoolExists(busy.uuid))
         #expect(try store.meetingCount() == 1)
         #expect(!rig.spoolExists(ready.uuid))
@@ -58,7 +58,7 @@ private let words: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
 }
 
 @MainActor
-@Suite struct OrphanSweepTests {
+@Suite struct PrivacyOrphanSweepTests {
     @Test func aStartingSessionsFolderSurvivesAndOnlyUUIDDirectoriesAreSwept() throws {
         let rig = try SettingsRig()
         rig.library.open()

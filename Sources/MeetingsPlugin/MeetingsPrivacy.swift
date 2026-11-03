@@ -4,7 +4,7 @@ import GRDB
 extension MeetingsStore {
     /// Deletes every meeting that is not being recorded or processed and returns their `uuid`s (their spool
     /// folders). A running session keeps its row and its audio, and so does a meeting in `protected` (being
-    /// finished: its status is still `incomplete` while its audio is replayed).
+    /// finished: it is `processing` while its audio is replayed).
     func deleteFinishedMeetings(excluding protected: Set<Int64> = []) throws -> [String] {
         try write { db in
             let rows = try Row.fetchAll(
