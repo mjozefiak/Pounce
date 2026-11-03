@@ -86,6 +86,8 @@ final class MeetingController {
     private(set) var phase = Phase.idle
     private var session: (any RecordingSession)?
     private var meetingID: Int64?
+    /// Whether this controller holds one `MeetingActivity.begin()` (taken at the start, given back at the end).
+    private var holdsActivity = false
     private var recording = MeetingHUDState.Recording()
     private var runTask: Task<Void, Never>?
     private var eventsTask: Task<Void, Never>?
@@ -147,9 +149,27 @@ final class MeetingController {
         }
     }
 
+    // MARK: Activity
+
+    private func acquireActivity() {
+        guard !holdsActivity else { return }
+        holdsActivity = true
+        deps.activity.begin()
+    }
+
+    private func releaseActivity() {
+        guard holdsActivity else { return }
+        holdsActivity = false
+        deps.activity.end()
+    }
+
     // MARK: Start
 
     private func begin(systemOnly: Bool) {
+        // The activity is held from here until the meeting is over: before the model check, the spool folder,
+        // the row and any lease exist (the contract of `MeetingActivity`).
+        guard !deps.activity.isRemovingModel else { return fail(.modelBeingRemoved) }
+        acquireActivity()
         phase = .preparing
         runTask = Task { [weak self] in await self?.run(systemOnly: systemOnly) }
     }
@@ -190,7 +210,6 @@ final class MeetingController {
                 modelID: modelID, modelFolder: folder, recordsMicrophone: !systemOnly,
                 recordsSystemAudio: recordsSystem))
         self.session = session
-        deps.activity.begin()
         recording = MeetingHUDState.Recording()
         recording.recordsMicrophone = !systemOnly
         recording.recordsSystem = recordsSystem
@@ -226,6 +245,8 @@ final class MeetingController {
 
     private func microphoneDenied() {
         if deps.settings.systemAudio {
+            // Waiting for the user's decision holds nothing; `begin` takes the activity again.
+            releaseActivity()
             phase = .awaitingMicrophoneDecision
             deps.hud.show(.problem(.microphoneDenied(offersSystemOnly: true)))
         } else {
@@ -247,6 +268,7 @@ final class MeetingController {
     }
 
     private func fail(_ problem: MeetingHUDState.Problem) {
+        releaseActivity()
         phase = .idle
         deps.hud.show(.problem(problem))
     }
@@ -387,7 +409,7 @@ final class MeetingController {
     private func endSession() {
         cancelWatchers()
         if let id = meetingID { deps.library.unregisterLive(meetingID: id) }
-        if session != nil { deps.activity.end() }
+        releaseActivity()
         meetingID = nil
         session = nil
         eventsTask = nil
@@ -402,6 +424,7 @@ final class MeetingController {
         guard let session else {
             runTask?.cancel()
             runTask = nil
+            releaseActivity()
             if phase != .idle {
                 phase = .idle
                 deps.hud.hide()

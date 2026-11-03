@@ -7,6 +7,45 @@ import Testing
 
 @MainActor
 @Suite struct MeetingControllerTests {
+    // MARK: Activity contract
+
+    @Test func startIsRefusedWhileAModelIsBeingRemoved() async throws {
+        let rig = try ControllerRig()
+        let done = MeetingsModelUsage.live(activity: rig.activity, isProcessing: { false }).reserveRemoval()
+        #expect(rig.activity.isRemovingModel)
+        rig.controller.start()
+        #expect(rig.hud.last == .problem(.modelBeingRemoved))
+        #expect(rig.controller.phase == .idle)
+        #expect(rig.sessions.isEmpty)
+        #expect(!rig.activity.isActive)
+        #expect(rig.authorizer.requests == 0)
+
+        done()
+        await rig.startRecording()
+        #expect(rig.activity.isActive)
+    }
+
+    @Test func theActivityIsHeldFromTheStartAndGivenBackWhenARefusalEndsIt() async throws {
+        let rig = try ControllerRig()
+        rig.lookup = .missing
+        rig.controller.start()
+        // Taken synchronously, before the model check, the spool folder, the row or a lease exist.
+        #expect(rig.activity.isActive)
+        await eventually { rig.hud.last == .problem(.modelMissing) }
+        #expect(!rig.activity.isActive)
+    }
+
+    @Test func aPendingMicrophoneDecisionHoldsNoActivityAndAnotherStartTakesItAgain() async throws {
+        let rig = try ControllerRig(access: .denied)
+        rig.controller.start()
+        await eventually { rig.controller.phase == .awaitingMicrophoneDecision }
+        #expect(!rig.activity.isActive)
+        rig.controller.perform(.recordSystemAudioOnly)
+        #expect(rig.activity.isActive)
+        await eventually { rig.controller.phase == .recording }
+        #expect(rig.activity.sessions == 1)
+    }
+
     // MARK: Refusals
 
     @Test func startIsRefusedWhenTheLibraryIsUnavailable() async throws {
@@ -378,7 +417,12 @@ import Testing
         let rig = try ControllerRig()
         await rig.startRecording()
         #expect(rig.library.finish(meetingID: 7) == nil)
+        // Live ids survive `close()` (a session outlives a disable and re-enable); the session's end clears them.
         rig.library.close()
+        #expect(rig.library.liveMeetingIDs == [7])
+        rig.session?.send(.stateChanged(.finishing))
+        rig.session?.send(.finished(MeetingSessionOutcome(result: .incomplete, meetingID: 7)))
+        await eventually { rig.controller.phase == .idle }
         #expect(rig.library.liveMeetingIDs.isEmpty)
     }
 }

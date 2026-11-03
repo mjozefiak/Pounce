@@ -28,8 +28,6 @@ final class MeetingsLibrary {
     private(set) var store: MeetingsStore?
     /// The working keys of the open library, for the session that records into it.
     private(set) var keys: MeetingKeys?
-    /// Meetings being recorded or finished by a live session right now; "Dokończ" never touches them.
-    private(set) var liveMeetingIDs: Set<Int64> = []
 
     @ObservationIgnored private let directory: URL
     @ObservationIgnored private let keychain: any KeychainClient
@@ -163,7 +161,6 @@ final class MeetingsLibrary {
         try? store?.close()
         store = nil
         keys = nil
-        liveMeetingIDs = []
         status = .closed
     }
 
@@ -230,11 +227,6 @@ final class MeetingsLibrary {
             }
         }
     }
-
-    /// The session owner names the meeting it records, so nothing else tries to finish or resume it.
-    func registerLive(meetingID: Int64) { liveMeetingIDs.insert(meetingID) }
-
-    func unregisterLive(meetingID: Int64) { liveMeetingIDs.remove(meetingID) }
 
     /// "Dokończ": finishes an `incomplete` meeting from its spool on demand (the missing speech is
     /// transcribed, speakers are assigned, the meeting becomes `ready`, the spool goes). `nil` when the

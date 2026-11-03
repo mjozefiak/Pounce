@@ -91,6 +91,8 @@ enum MeetingHUDState: Equatable, Sendable {
         case lowDiskAtStart
         /// A previous meeting is still being processed.
         case stillProcessing
+        /// A model card is removing a model right now (`MeetingActivity.isRemovingModel`).
+        case modelBeingRemoved
         case nothingHeard
         case couldNotStart
         case failed
@@ -164,6 +166,10 @@ extension MeetingHUDState {
             String(
                 localized: "The previous meeting is still being processed",
                 comment: "Meeting HUD when a new recording is requested while one is being processed")
+        case .modelBeingRemoved:
+            String(
+                localized: "A speech model is being removed – try again in a moment",
+                comment: "Meeting HUD when a recording is requested while a model is being removed in Settings")
         case .nothingHeard:
             String(localized: "Nothing heard", comment: "Meeting HUD when the meeting was too short and silent")
         case .couldNotStart:

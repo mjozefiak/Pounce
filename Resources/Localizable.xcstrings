@@ -9000,6 +9000,24 @@
           }
         }
       }
+    },
+    "A speech model is being removed – try again in a moment" : {
+      "comment" : "Meeting HUD when a recording is requested while a model is being removed in Settings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A speech model is being removed – try again in a moment"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model mowy jest właśnie usuwany – spróbuj za chwilę"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
