@@ -6426,6 +6426,924 @@
           }
         }
       }
+    },
+    "%@, %@" : {
+      "comment" : "Accessibility label of a transcript row; speaker, time",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, %@"
+          }
+        }
+      }
+    },
+    "A speaker was renamed, so the notes may be out of date." : {
+      "comment" : "Meeting window banner when notes are stale",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A speaker was renamed, so the notes may be out of date."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zmieniono nazwę mówcy, więc notatki mogą być nieaktualne."
+          }
+        }
+      }
+    },
+    "Asks before deleting this meeting" : {
+      "comment" : "Hint of Delete",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Asks before deleting this meeting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pyta przed usunięciem tego spotkania"
+          }
+        }
+      }
+    },
+    "Copied Markdown" : {
+      "comment" : "VoiceOver announcement after copying",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied Markdown"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skopiowano Markdown"
+          }
+        }
+      }
+    },
+    "Copies the meeting as Markdown to the clipboard" : {
+      "comment" : "Hint of Copy Markdown",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copies the meeting as Markdown to the clipboard"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiuje spotkanie jako Markdown do schowka"
+          }
+        }
+      }
+    },
+    "Copy Markdown" : {
+      "comment" : "Meeting window button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy Markdown"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiuj Markdown"
+          }
+        }
+      }
+    },
+    "Date" : {
+      "comment" : "Markdown export: label of the meeting date",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Date"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data"
+          }
+        }
+      }
+    },
+    "Delete Meeting" : {
+      "comment" : "Meeting window: confirm deleting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Meeting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń spotkanie"
+          }
+        }
+      }
+    },
+    "Delete this meeting?" : {
+      "comment" : "Meeting window: delete confirmation title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete this meeting?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunąć to spotkanie?"
+          }
+        }
+      }
+    },
+    "Delete…" : {
+      "comment" : "Meeting window button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń…"
+          }
+        }
+      }
+    },
+    "Duration" : {
+      "comment" : "Markdown export: label of the meeting length",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duration"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Czas trwania"
+          }
+        }
+      }
+    },
+    "Edit the meeting title, then press Return" : {
+      "comment" : "Hint of the title field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit the meeting title, then press Return"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zmień tytuł spotkania i naciśnij Return"
+          }
+        }
+      }
+    },
+    "Finish" : {
+      "comment" : "Meeting window button that finishes an interrupted meeting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dokończ"
+          }
+        }
+      }
+    },
+    "Finishing the transcript…" : {
+      "comment" : "Meeting window banner while Finish runs",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finishing the transcript…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kończenie transkryptu…"
+          }
+        }
+      }
+    },
+    "Markdown copied" : {
+      "comment" : "Meeting window feedback after Copy Markdown",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Markdown copied"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skopiowano Markdown"
+          }
+        }
+      }
+    },
+    "Markdown saved" : {
+      "comment" : "Meeting window feedback after Save",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Markdown saved"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisano Markdown"
+          }
+        }
+      }
+    },
+    "Meeting" : {
+      "comment" : "Meeting window title while loading",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meeting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spotkanie"
+          }
+        }
+      }
+    },
+    "Meeting %@" : {
+      "comment" : "Title of a meeting without one; the date and time",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meeting %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spotkanie %@"
+          }
+        }
+      }
+    },
+    "Notes" : {
+      "comment" : "Markdown export: heading of the meeting notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki"
+          }
+        }
+      }
+    },
+    "Notes are generated in a later version of Pounce." : {
+      "comment" : "Meeting window: why Regenerate notes is disabled",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes are generated in a later version of Pounce."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki pojawią się w jednej z kolejnych wersji Pounce."
+          }
+        }
+      }
+    },
+    "Participants" : {
+      "comment" : "Markdown export: label of the speakers",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Participants"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uczestnicy"
+          }
+        }
+      }
+    },
+    "Recording was interrupted and the audio is gone, so this transcript is all there is." : {
+      "comment" : "Meeting window banner for an interrupted meeting that cannot be finished",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording was interrupted and the audio is gone, so this transcript is all there is."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywanie zostało przerwane, a dźwięku już nie ma, więc to jest cały transkrypt."
+          }
+        }
+      }
+    },
+    "Recording was interrupted. The transcript may be missing its end." : {
+      "comment" : "Meeting window banner for an interrupted meeting that can be finished",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording was interrupted. The transcript may be missing its end."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywanie zostało przerwane. W transkrypcie może brakować końca."
+          }
+        }
+      }
+    },
+    "Regenerate Notes" : {
+      "comment" : "Meeting window button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regenerate Notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regeneruj notatki"
+          }
+        }
+      }
+    },
+    "Rename this speaker, then press Return" : {
+      "comment" : "Hint of a speaker name field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rename this speaker, then press Return"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zmień nazwę tego mówcy i naciśnij Return"
+          }
+        }
+      }
+    },
+    "Renaming a speaker changes the name in the transcript at once. Notes already written change after you regenerate them." : {
+      "comment" : "Meeting window: hint under the speaker list",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Renaming a speaker changes the name in the transcript at once. Notes already written change after you regenerate them."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zmiana nazwy mówcy od razu zmienia ją w transkrypcie. Napisane już notatki zmienią się po ich ponownym wygenerowaniu."
+          }
+        }
+      }
+    },
+    "Save" : {
+      "comment" : "Button of the Markdown save panel",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisz"
+          }
+        }
+      }
+    },
+    "Save .md…" : {
+      "comment" : "Meeting window button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save .md…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisz .md…"
+          }
+        }
+      }
+    },
+    "Saved Markdown" : {
+      "comment" : "VoiceOver announcement after saving",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved Markdown"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisano Markdown"
+          }
+        }
+      }
+    },
+    "Saves the meeting as a Markdown file" : {
+      "comment" : "Hint of Save .md",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saves the meeting as a Markdown file"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisuje spotkanie jako plik Markdown"
+          }
+        }
+      }
+    },
+    "Speaker name" : {
+      "comment" : "Meeting window: label of a speaker name field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speaker name"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nazwa mówcy"
+          }
+        }
+      }
+    },
+    "Speaker recognition is unavailable – speakers are split into you and others" : {
+      "comment" : "Meeting window banner when speakers are the two audio tracks",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speaker recognition is unavailable – speakers are split into you and others"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozpoznanie mówców niedostępne – podział na Ja / Inni"
+          }
+        }
+      }
+    },
+    "Speakers" : {
+      "comment" : "Meeting window: heading of the speaker list",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speakers"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mówcy"
+          }
+        }
+      }
+    },
+    "The change could not be saved." : {
+      "comment" : "Meeting window feedback",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The change could not be saved."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się zapisać zmiany."
+          }
+        }
+      }
+    },
+    "The file could not be saved." : {
+      "comment" : "Meeting window feedback",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The file could not be saved."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się zapisać pliku."
+          }
+        }
+      }
+    },
+    "The meeting could not be opened." : {
+      "comment" : "Meeting window: read error",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The meeting could not be opened."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się otworzyć spotkania."
+          }
+        }
+      }
+    },
+    "The transcript and notes are removed from this Mac. This cannot be undone." : {
+      "comment" : "Meeting window: delete confirmation message",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The transcript and notes are removed from this Mac. This cannot be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkrypt i notatki zostaną usunięte z tego Maca. Tej operacji nie można cofnąć."
+          }
+        }
+      }
+    },
+    "The transcript is still being prepared." : {
+      "comment" : "Meeting window banner while processing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The transcript is still being prepared."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkrypt jest jeszcze przygotowywany."
+          }
+        }
+      }
+    },
+    "There is no transcript for this meeting." : {
+      "comment" : "Meeting window: no segments",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There is no transcript for this meeting."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To spotkanie nie ma transkryptu."
+          }
+        }
+      }
+    },
+    "These notes may be out of date: a speaker was renamed after they were written." : {
+      "comment" : "Markdown export: note under the notes heading when a speaker was renamed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These notes may be out of date: a speaker was renamed after they were written."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te notatki mogą być nieaktualne: po ich napisaniu zmieniono nazwę mówcy."
+          }
+        }
+      }
+    },
+    "This is me" : {
+      "comment" : "Meeting window button: mark this speaker as the user",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is me"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To ja"
+          }
+        }
+      }
+    },
+    "This is me, %@" : {
+      "comment" : "Accessibility label of This is me; the speaker",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is me, %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To ja, %@"
+          }
+        }
+      }
+    },
+    "This meeting cannot be finished now." : {
+      "comment" : "Meeting window feedback when Finish is refused",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This meeting cannot be finished now."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tego spotkania nie można teraz dokończyć."
+          }
+        }
+      }
+    },
+    "This meeting could not be processed. What was saved is shown below." : {
+      "comment" : "Meeting window banner for a failed meeting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This meeting could not be processed. What was saved is shown below."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się przetworzyć tego spotkania. Poniżej widać to, co zapisano."
+          }
+        }
+      }
+    },
+    "This meeting no longer exists." : {
+      "comment" : "Meeting window: meeting not found",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This meeting no longer exists."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To spotkanie już nie istnieje."
+          }
+        }
+      }
+    },
+    "Title" : {
+      "comment" : "Meeting window: label of the title field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tytuł"
+          }
+        }
+      }
+    },
+    "Transcribes the rest of the recording" : {
+      "comment" : "Hint of the Finish button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcribes the rest of the recording"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkrybuje resztę nagrania"
+          }
+        }
+      }
+    },
+    "Transcript" : {
+      "comment" : "Accessibility label of the transcript list",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcript"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkrypt"
+          }
+        }
+      }
+    },
+    "Unknown speaker" : {
+      "comment" : "Meeting window: segment without a speaker",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown speaker"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nieznany mówca"
+          }
+        }
+      }
+    },
+    "Writes the notes again from the transcript" : {
+      "comment" : "Hint of Regenerate Notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Writes the notes again from the transcript"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pisze notatki od nowa na podstawie transkryptu"
+          }
+        }
+      }
+    },
+    "You" : {
+      "comment" : "Meeting window: marks the speaker who is the user",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ty"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

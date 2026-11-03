@@ -160,7 +160,8 @@ let package = Package(
             dependencies: [
                 "MeetingsPlugin", "PounceSpeech", "PounceKit", "PouncePersistence",
                 .product(name: "GRDB", package: "GRDBCipher"),
-            ]
+            ],
+            resources: [.copy("Fixtures")]
         ),
         .testTarget(
             name: "PounceSpeechTests",
