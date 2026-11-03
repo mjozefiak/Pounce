@@ -30,7 +30,9 @@ public final class MeetingsPlugin: PouncePlugin {
         self.settings = settings
         library = MeetingsLibrary(
             directory: context.storageDirectory, keychain: context.keychain, settings: settings,
-            clock: context.clock, logger: context.logger, changed: context.resultsChanged)
+            clock: context.clock,
+            spool: SpoolStorage(pluginDirectory: context.storageDirectory), logger: context.logger,
+            changed: context.resultsChanged)
     }
 
     // MARK: Lifecycle
