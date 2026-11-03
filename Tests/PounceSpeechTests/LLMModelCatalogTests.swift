@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import DictationPlugin
+@testable import PounceSpeech
 
 @Suite struct LLMModelCatalogTests {
     @Test func everyModelIsOnePinnedVerifiedGGUFFromAllowedHosts() throws {
@@ -63,7 +63,7 @@ import Testing
 
     private func manager(in directory: TemporaryDirectory, space: Int = .max) -> ModelManager {
         ModelManager(
-            directory: directory.url.appending(path: DictationPlugin.llmDirectoryName, directoryHint: .isDirectory),
+            directory: directory.url.appending(path: "llm", directoryHint: .isDirectory),
             downloader: SessionDownloader(makeConfiguration: { StubProtocol.configuration() }),
             availableSpace: { _ in space })
     }

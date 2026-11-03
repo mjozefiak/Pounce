@@ -5,6 +5,7 @@ import Testing
 import os
 
 @testable import DictationPlugin
+@testable import PounceSpeech
 
 @MainActor final class FakeHUD: HUDPresenter {
     private(set) var states: [HUDState] = []

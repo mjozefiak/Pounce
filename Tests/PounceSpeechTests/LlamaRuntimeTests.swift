@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import DictationPlugin
+@testable import PounceSpeech
 
 /// A runtime that records what it was asked and answers with a fixed text.
 actor StubRuntime: LLMRuntime {
@@ -29,7 +29,7 @@ actor StubRuntime: LLMRuntime {
         loaded = false
     }
 
-    func generate(messages: [CleanupPrompt.Message], maxTokens: Int) async throws -> String {
+    func generate(messages: [ChatMessage], maxTokens: Int) async throws -> String {
         guard loaded else { throw LlamaError.notLoaded }
         generations += 1
         if delay > .zero { try await Task.sleep(for: delay) }
@@ -37,7 +37,10 @@ actor StubRuntime: LLMRuntime {
     }
 }
 
-private let sampleMessages = CleanupPrompt.messages(transcript: "yyy no więc jutro mamy spotkanie", context: nil)
+private let sampleMessages = [
+    ChatMessage(role: "system", content: "Clean up the transcript."),
+    ChatMessage(role: "user", content: "yyy no więc jutro mamy spotkanie"),
+]
 
 /// Polls until the stub has unloaded `count` times, for at most ten seconds (a fixed sleep flakes on a loaded runner).
 private func waitForUnloads(_ stub: StubRuntime, _ count: Int) async {
@@ -119,7 +122,48 @@ private func waitForUnloads(_ stub: StubRuntime, _ count: Int) async {
     }
 }
 
+@Suite struct GenerationResultTests {
+    @Test func aRuntimeThatCannotTellReportsACompletionThatFinishedByItself() async throws {
+        let stub = StubRuntime()
+        try await stub.load(modelAt: URL(fileURLWithPath: "/models/test.gguf"))
+        let result = try await stub.generateResult(messages: sampleMessages, maxTokens: 8)
+        #expect(result == GenerationResult(text: "cleaned", stoppedByTokenLimit: false))
+    }
+
+    @Test func keepWarmPassesTheResultThrough() async throws {
+        let runtime = KeepWarmRuntime(
+            runtime: StubRuntime(), modelURL: URL(fileURLWithPath: "/models/test.gguf"), keepWarm: { .seconds(60) })
+        let result = try await runtime.generateResult(messages: sampleMessages, maxTokens: 8)
+        #expect(result.text == "cleaned")
+        #expect(try await runtime.generate(messages: sampleMessages, maxTokens: 8) == "cleaned")
+        await runtime.unload()
+    }
+}
+
 @Suite struct LlamaRuntimeTests {
+    @Test func theContextLengthDefaultsToWhatDictationNeedsAndCanBeChosen() async {
+        #expect(await LlamaRuntime().contextLength == 4096)
+        #expect(await LlamaRuntime(contextLength: 8192).contextLength == 8192)
+    }
+
+    /// Loads the GGUF in `POUNCE_LLAMA_MODEL` and checks the completion and the token limit flag. Off by default,
+    /// like the other real-model tests (ADR 0005).
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["POUNCE_LLAMA_MODEL"] != nil))
+    func realModelReportsTheTokenLimit() async throws {
+        let path = try #require(ProcessInfo.processInfo.environment["POUNCE_LLAMA_MODEL"])
+        let runtime = LlamaRuntime(contextLength: 2048)
+        try await runtime.load(modelAt: URL(fileURLWithPath: path))
+        let messages = [ChatMessage(role: "user", content: "Count from one to fifty in words, separated by commas.")]
+        let cut = try await runtime.generateResult(messages: messages, maxTokens: 4)
+        #expect(cut.stoppedByTokenLimit)
+        #expect(!cut.text.isEmpty)
+        let short = [ChatMessage(role: "user", content: "Reply with the single word: ok")]
+        let done = try await runtime.generateResult(messages: short, maxTokens: 64)
+        #expect(!done.stoppedByTokenLimit)
+        #expect(try await runtime.generate(messages: short, maxTokens: 64).isEmpty == false)
+        await runtime.unload()
+    }
+
     @Test func aMissingFileIsReported() async {
         let runtime = LlamaRuntime()
         await #expect(throws: LlamaError.modelNotFound) {
@@ -142,37 +186,5 @@ private func waitForUnloads(_ stub: StubRuntime, _ count: Int) async {
         await #expect(throws: LlamaError.notLoaded) {
             _ = try await LlamaRuntime().generate(messages: sampleMessages, maxTokens: 8)
         }
-    }
-
-    /// Loads the GGUF in `POUNCE_LLAMA_MODEL` and cleans a Polish dictation with the real prompt. Off by default,
-    /// like the other real-model tests (ADR 0005).
-    @Test(.enabled(if: ProcessInfo.processInfo.environment["POUNCE_LLAMA_MODEL"] != nil))
-    func realModel() async throws {
-        let path = try #require(ProcessInfo.processInfo.environment["POUNCE_LLAMA_MODEL"])
-        let runtime = LlamaRuntime()
-        let loadStarted = ContinuousClock.now
-        try await runtime.load(modelAt: URL(fileURLWithPath: path))
-        print("[llama] load \(ContinuousClock.now - loadStarted)")
-        #expect(await runtime.isLoaded)
-
-        let transcript = "yyy no więc jutro mamy spotkanie o dziesiątej nie to znaczy o jedenastej w biurze"
-        let messages = CleanupPrompt.messages(transcript: transcript, context: nil)
-        for run in ["first", "second"] {
-            let started = ContinuousClock.now
-            let text = try await runtime.generate(messages: messages, maxTokens: 96)
-            print("[llama] \(run) request \(ContinuousClock.now - started): \(text)")
-            #expect(!text.isEmpty)
-            #expect(text.localizedCaseInsensitiveContains("jedenastej"))
-            #expect(FormatterGuard.check(input: transcript, output: text) != .rejected(.empty))
-        }
-
-        // Cancelling stops the decode and leaves the runtime usable.
-        let task = Task { try await runtime.generate(messages: messages, maxTokens: 512) }
-        task.cancel()
-        await #expect(throws: CancellationError.self) { _ = try await task.value }
-        #expect(try await runtime.generate(messages: messages, maxTokens: 96).isEmpty == false)
-
-        await runtime.unload()
-        #expect(await runtime.isLoaded == false)
     }
 }

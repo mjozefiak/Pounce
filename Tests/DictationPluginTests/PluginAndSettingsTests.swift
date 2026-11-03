@@ -4,6 +4,7 @@ import Synchronization
 import Testing
 
 @testable import DictationPlugin
+@testable import PounceSpeech
 
 @MainActor
 @Suite struct DictationPluginLifecycleTests {

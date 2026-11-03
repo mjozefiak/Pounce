@@ -3,6 +3,7 @@ import Synchronization
 import Testing
 
 @testable import DictationPlugin
+@testable import PounceSpeech
 
 /// Feeds a prepared buffer in chunks and keeps the stream open until `stop()`, like a live microphone.
 final class ScriptedAudioInput: AudioInput, @unchecked Sendable {

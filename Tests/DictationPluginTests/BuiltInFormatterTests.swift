@@ -3,6 +3,7 @@ import PounceKit
 import Testing
 
 @testable import DictationPlugin
+@testable import PounceSpeech
 
 /// A runtime that answers from a script: a fixed answer, an error, or a long wait.
 actor ScriptedRuntime: LLMRuntime {
@@ -12,7 +13,7 @@ actor ScriptedRuntime: LLMRuntime {
     var delay: Duration = .zero
     private(set) var loaded = false
     private(set) var loads = 0
-    private(set) var requests: [[CleanupPrompt.Message]] = []
+    private(set) var requests: [[ChatMessage]] = []
     private(set) var maxTokens: [Int] = []
 
     var isLoaded: Bool { loaded }
@@ -33,7 +34,7 @@ actor ScriptedRuntime: LLMRuntime {
 
     func unload() async { loaded = false }
 
-    func generate(messages: [CleanupPrompt.Message], maxTokens: Int) async throws -> String {
+    func generate(messages: [ChatMessage], maxTokens: Int) async throws -> String {
         guard loaded else { throw LlamaError.notLoaded }
         requests.append(messages)
         self.maxTokens.append(maxTokens)

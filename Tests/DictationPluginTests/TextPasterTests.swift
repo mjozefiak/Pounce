@@ -5,6 +5,7 @@ import Testing
 import os
 
 @testable import DictationPlugin
+@testable import PounceSpeech
 
 /// A clock whose sleeps return at once and may run a closure, so a test can act "during" a wait.
 final class HookClock: Clock, @unchecked Sendable {

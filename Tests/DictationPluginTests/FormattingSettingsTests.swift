@@ -3,6 +3,7 @@ import PounceKit
 import Testing
 
 @testable import DictationPlugin
+@testable import PounceSpeech
 
 @MainActor
 @Suite(.serialized) struct FormattingSettingsTests {
