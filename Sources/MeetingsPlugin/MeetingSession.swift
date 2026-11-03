@@ -649,6 +649,13 @@ actor MeetingSession {
         return await beginFinish().value
     }
 
+    /// Asks a finish that is already running to stop at its next cancellation point (the app is quitting).
+    /// Nothing is thrown away: the meeting ends `incomplete` and its spool stays for a later run. No effect
+    /// before `finish()` has begun or after it is over.
+    func cancelProcessing() {
+        finishTask?.cancel()
+    }
+
     private func runFinish() async -> Outcome {
         heartbeatTask?.cancel()
         heartbeatTask = nil

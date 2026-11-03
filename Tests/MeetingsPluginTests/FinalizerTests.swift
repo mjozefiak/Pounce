@@ -395,3 +395,27 @@ private func span(_ cluster: String, _ start: Int, _ end: Int) -> DiarizedSpan {
         #expect(diarizer.releases == 1)
     }
 }
+
+@Suite struct FinalizerCancellationHookTests {
+    @Test func aDiarizationCancelledByTheEngineKeepsTheMeetingFromBecomingReady() async throws {
+        let sessionRig = try SessionRig(texts: [12: "Text"])
+        var mic = TrackScript()
+        mic.silence(1)
+        mic.say(12, seconds: 3)
+        mic.silence(12)
+        let diarizer = ScriptedDiarizer([.failure(CancellationError())])
+        let finalizer = MeetingFinalizer(
+            store: sessionRig.store, keys: sessionRig.keys, spool: sessionRig.spool, isEnabled: { true },
+            modelFolder: { URL(filePath: "/models") }, makeDiarizer: { _ in diarizer })
+        let uuid = UUID()
+        let session = sessionRig.session(
+            mic: mic, system: nil, uuid: uuid, withSystem: false, beforeReady: finalizer.hook)
+        let id = try await session.start()
+        sessionRig.mic.push(mic.samples)
+        sessionRig.mic.end()
+        let outcome = await session.finish()
+        #expect(outcome.result == .incomplete)
+        #expect(try sessionRig.store.status(of: id) == .incomplete)
+        #expect(try sessionRig.store.audioState(of: id) == .spool)
+    }
+}

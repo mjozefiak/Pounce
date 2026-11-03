@@ -67,7 +67,12 @@ struct MeetingFinalizer: Sendable {
 
     /// The closure for `MeetingSession(beforeReady:)`.
     var hook: @Sendable (Int64, UUID) async -> Void {
-        { id, uuid in _ = await self.run(meetingID: id, uuid: uuid) }
+        { id, uuid in
+            let outcome = await self.run(meetingID: id, uuid: uuid)
+            // A cancelled diarization (also one reported as a `CancellationError` by the engine alone) must stop
+            // the session from marking the meeting ready: the session reads this task's cancellation flag.
+            if outcome == .cancelled { withUnsafeCurrentTask { $0?.cancel() } }
+        }
     }
 
     @discardableResult
