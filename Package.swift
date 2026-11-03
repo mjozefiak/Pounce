@@ -2,8 +2,8 @@
 import PackageDescription
 
 // Dependency graph (one way only, see AGENTS.md):
-//   PounceApp -> plugins (AppsPlugin, FilesPlugin, ClipboardPlugin, DictationPlugin) -> PouncePersistence / PounceCore -> PounceKit
-//   plugins that use speech (DictationPlugin) -> PounceSpeech, which depends on no repository target
+//   PounceApp -> plugins (AppsPlugin, FilesPlugin, ClipboardPlugin, DictationPlugin; MeetingsPlugin once registered) -> PouncePersistence / PounceCore -> PounceKit
+//   plugins that use speech (DictationPlugin, MeetingsPlugin) -> PounceSpeech, which depends on no repository target
 //   (docs/decisions/0006-shared-speech-layer.md)
 // Only PounceApp is MainActor by default; every other target stays nonisolated and declares
 // isolation explicitly.
@@ -89,6 +89,18 @@ let package = Package(
                 .product(name: "GRDB", package: "GRDBCipher"),
             ]
         ),
+        .target(
+            name: "MeetingsPlugin",
+            // Not registered in `PluginRegistry` yet (registration comes with the record command, spec step 1.10).
+            dependencies: [
+                "PounceKit",
+                "PounceCore",
+                "PouncePersistence",
+                "PounceSpeech",
+                // The plugin owns meetings.sqlite and its migrator, like ClipboardPlugin owns clipboard.sqlite.
+                .product(name: "GRDB", package: "GRDBCipher"),
+            ]
+        ),
         .executableTarget(
             name: "PounceApp",
             dependencies: [
@@ -138,6 +150,13 @@ let package = Package(
                 .product(name: "GRDB", package: "GRDBCipher"),
             ],
             resources: [.copy("Fixtures")]
+        ),
+        .testTarget(
+            name: "MeetingsPluginTests",
+            dependencies: [
+                "MeetingsPlugin", "PounceSpeech", "PounceKit", "PounceCore", "PouncePersistence",
+                .product(name: "GRDB", package: "GRDBCipher"),
+            ]
         ),
         .testTarget(
             name: "PounceSpeechTests",

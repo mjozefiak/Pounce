@@ -2503,6 +2503,24 @@
         }
       }
     },
+    "Meetings" : {
+      "comment" : "Plugin name of meeting transcription",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meetings"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spotkania"
+          }
+        }
+      }
+    },
     "Medium" : {
       "comment" : "Text size option, spoken",
       "extractionState" : "manual",
