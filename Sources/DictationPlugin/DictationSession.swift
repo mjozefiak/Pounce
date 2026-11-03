@@ -325,8 +325,12 @@ actor DictationSession {
         guard !samples.isEmpty else { return }
         let load = loadTask
         let logger = logger
+        // The engine takes one segment at a time (the lease queue); asking in the order the segments were said
+        // keeps the order in which they are transcribed the same as the order in which they were spoken.
+        let previous = segments.last
         let task = Task<String?, Never> {
             guard let handle = await load?.value else { return nil }
+            _ = await previous?.value
             do {
                 guard case .transcript(let segment) = try await handle.transcribe(samples) else { return nil }
                 return segment.text
