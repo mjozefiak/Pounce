@@ -216,6 +216,11 @@ footer ul{display:flex;gap:16px;list-style:none}
           <h3 data-i18n="f3.t">Clipboard history</h3>
           <p data-i18n="f3.d">Text, links, rich text, images and files from the last 30 days (up to 1000 entries), encrypted on disk with a key in your Keychain. Skips password managers and concealed items. Return pastes into the previous app.</p>
         </li>
+        <li class="card">
+          <svg aria-hidden="true"><use href="#i-doc"/></svg>
+          <h3 data-i18n="f5.t">Meeting transcripts</h3>
+          <p data-i18n="f5.d">Optional. Record a meeting with the microphone and, if you allow it, the system audio, and get a transcript with speakers from models that run on your Mac. Meetings are kept in an encrypted library you can search and export as Markdown.</p>
+        </li>
       </ul>
       <div class="grid2">
         <div>
@@ -266,8 +271,13 @@ footer ul{display:flex;gap:16px;list-style:none}
           <span class="tag" data-i18n="opt">Optional</span>
         </div>
         <div class="perm">
+          <h3 data-i18n="p5.t">System audio recording</h3>
+          <p data-i18n="p5.d">Lets Pounce transcribe the other people in an online meeting. It captures all sound your Mac plays, not only the meeting app, and never Pounce's own. Without it, meetings record the microphone only.</p>
+          <span class="tag" data-i18n="opt">Optional</span>
+        </div>
+        <div class="perm">
           <h3 data-i18n="p4.t">Keychain</h3>
-          <p data-i18n="p4.d">The clipboard history's encryption key lives in your login keychain. No permission is needed; macOS may ask once to allow access.</p>
+          <p data-i18n="p4.d">The encryption keys of the clipboard history and the meeting library live in your login keychain. No permission is needed; macOS may ask once to allow access.</p>
         </div>
       </div>
     </div>
@@ -312,9 +322,11 @@ scripts/make-app.sh    # dist/Pounce.app</code></pre>
         <dt data-i18n="q3">What does the clipboard history keep?</dt>
         <dd data-i18n="a3">Up to 30 days or 1000 entries, encrypted with SQLCipher. Entries copied in ignored apps (password managers by default) and items marked concealed are never recorded. You can pause recording or clear the history any time.</dd>
         <dt data-i18n="q4">Does it send anything over the network?</dt>
-        <dd data-i18n="a4">Only when you download the speech model for dictation, from huggingface.co, after you click Download. Otherwise no: there is no account, no analytics and no update check. Audio and dictated text never leave your Mac.</dd>
+        <dd data-i18n="a4">Only when you download a speech or speaker model for dictation or meetings, from huggingface.co, after you click Download. Otherwise no: there is no account, no analytics and no update check. Audio, dictated text and meeting transcripts never leave your Mac.</dd>
         <dt data-i18n="q6">How does dictation work?</dt>
         <dd data-i18n="a6">Turn on Dictation in Settings → Features, download the speech model (about 0.7 GB) and press ⌃⌥D. Pounce records while you talk, turns it into text with a model that runs on your Mac, and pastes it into the app you are in. Audio is never saved. To tidy up the text you can use a model that Pounce downloads and runs itself, or your own local server.</dd>
+        <dt data-i18n="q7">Does Pounce record other people in a meeting?</dt>
+        <dd data-i18n="a7">If you allow System Audio Recording, a meeting records all sound your Mac plays, so the voices of other people are processed too, but only on your Mac. The audio is stored encrypted until the transcript is ready, then deleted. Nothing leaves your Mac except the model download. Tell the people you record, and check the rules that apply to you.</dd>
         <dt data-i18n="q5">Why does macOS warn me when I open Pounce?</dt>
         <dd data-i18n="a5">Notarization needs a paid Apple developer account, and Pounce is a free project. Allow it once with Open Anyway (see Install), or build it yourself from the source.</dd>
       </dl>
@@ -365,6 +377,8 @@ scripts/make-app.sh    # dist/Pounce.app</code></pre>
     "f2.d": "Własny indeks nazw plików i folderów w katalogu domowym i Programach, aktualizowany przez FSEvents zamiast Spotlighta. Tylko nazwy: Pounce nigdy nie czyta zawartości plików.",
     "f3.t": "Historia schowka",
     "f3.d": "Tekst, linki, tekst sformatowany, obrazy i pliki z ostatnich 30 dni (do 1000 wpisów), zaszyfrowane na dysku kluczem z pęku kluczy. Pomija menedżery haseł i ukryte elementy. Return wkleja do poprzedniej aplikacji.",
+    "f5.t": "Transkrypcje spotkań",
+    "f5.d": "Opcjonalne. Nagrywaj spotkanie mikrofonem i, jeśli pozwolisz, dźwiękiem systemu, a dostaniesz transkrypt z podziałem na mówców z modeli działających na Twoim Macu. Spotkania trafiają do zaszyfrowanej biblioteki, którą można przeszukiwać i eksportować do Markdown.",
     "keys.t": "Najpierw klawiatura",
     "keys.cap": "Skróty klawiszowe",
     "keys.key": "Klawisz",
@@ -387,8 +401,10 @@ scripts/make-app.sh    # dist/Pounce.app</code></pre>
     "p2.d": "Pozwala wyszukiwaniu plików obejmować Biurko, Dokumenty, Pobrane i iCloud Drive bez pytania o każdy folder. Bez niego możesz dodać te foldery pojedynczo.",
     "p3.t": "Dostęp do schowka",
     "p3.d": "macOS może pytać, zanim aplikacja odczyta schowek. Zezwól Pounce w Prywatności i ochronie, aby historia była dalej zapisywana.",
+    "p5.t": "Nagrywanie dźwięku systemu",
+    "p5.d": "Pozwala Pounce transkrybować pozostałe osoby w spotkaniu online. Przechwytuje cały dźwięk odtwarzany przez Maca, nie tylko aplikację spotkania, i nigdy dźwięk samego Pounce. Bez niego spotkania nagrywają tylko mikrofon.",
     "p4.t": "Pęk kluczy",
-    "p4.d": "Klucz szyfrujący historię schowka jest w Twoim pęku kluczy logowania. Nie potrzeba uprawnienia; macOS może raz zapytać o zgodę na dostęp.",
+    "p4.d": "Klucze szyfrujące historię schowka i bibliotekę spotkań są w Twoim pęku kluczy logowania. Nie potrzeba uprawnienia; macOS może raz zapytać o zgodę na dostęp.",
     "opt": "Opcjonalne",
     "install.t": "Instalacja w minutę.",
     "i1": "Pobierz <a href=\"https://github.com/mjozefiak/Pounce/releases/latest/download/Pounce.dmg\"><strong>Pounce.dmg</strong></a> i otwórz go.",
@@ -409,9 +425,11 @@ scripts/make-app.sh    # dist/Pounce.app</code></pre>
     "q3": "Co przechowuje historia schowka?",
     "a3": "Do 30 dni lub 1000 wpisów, zaszyfrowanych SQLCipher. Wpisy skopiowane w ignorowanych aplikacjach (domyślnie menedżerach haseł) i elementy oznaczone jako ukryte nigdy nie są zapisywane. Zapisywanie możesz wstrzymać, a historię wyczyścić w dowolnej chwili.",
     "q4": "Czy coś wysyła przez sieć?",
-    "a4": "Tylko wtedy, gdy pobierasz model mowy do dyktowania z huggingface.co, po kliknięciu Pobierz. Poza tym nie: nie ma konta, analityki ani sprawdzania aktualizacji. Dźwięk i podyktowany tekst nigdy nie opuszczają Maca.",
+    "a4": "Tylko wtedy, gdy pobierasz model mowy lub mówców do dyktowania albo spotkań z huggingface.co, po kliknięciu Pobierz. Poza tym nie: nie ma konta, analityki ani sprawdzania aktualizacji. Dźwięk, podyktowany tekst i transkrypty spotkań nigdy nie opuszczają Maca.",
     "q6": "Jak działa dyktowanie?",
     "a6": "Włącz Dyktowanie w Ustawienia → Funkcje, pobierz model mowy (około 0,7 GB) i naciśnij ⌃⌥D. Pounce nagrywa, gdy mówisz, zamienia mowę na tekst modelem działającym na Twoim Macu i wkleja go do aplikacji, w której jesteś. Dźwięk nigdy nie jest zapisywany. Do porządkowania tekstu możesz użyć modelu, który Pounce sam pobiera i uruchamia, albo własnego lokalnego serwera.",
+    "q7": "Czy Pounce nagrywa innych uczestników spotkania?",
+    "a7": "Jeśli zezwolisz na nagrywanie dźwięku systemu, spotkanie nagrywa cały dźwięk odtwarzany przez Maca, więc głosy innych osób też są przetwarzane, ale tylko na Twoim Macu. Dźwięk jest przechowywany zaszyfrowany do czasu gotowego transkryptu, potem kasowany. Nic nie opuszcza Maca poza pobraniem modelu. Poinformuj nagrywane osoby i sprawdź przepisy, które Cię dotyczą.",
     "q5": "Dlaczego macOS ostrzega przy otwieraniu Pounce?",
     "a5": "Notaryzacja wymaga płatnego konta deweloperskiego Apple, a Pounce jest darmowym projektem. Zezwól raz przyciskiem Otwórz mimo to (patrz Instalacja) albo zbuduj go sam ze źródeł.",
     "foot.c": "© 2026 Mikołaj Józefiak · Licencja MIT",

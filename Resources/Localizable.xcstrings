@@ -9036,6 +9036,330 @@
           }
         }
       }
+    },
+    "Meeting Library" : {
+      "comment" : "Menu item and command that opens the list of meetings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meeting Library"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biblioteka spotkań"
+          }
+        }
+      }
+    },
+    "With Notes" : {
+      "comment" : "Meeting library filter",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With Notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Z notatkami"
+          }
+        }
+      }
+    },
+    "Needs Attention" : {
+      "comment" : "Meeting library filter",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs Attention"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wymagają uwagi"
+          }
+        }
+      }
+    },
+    "Open Meeting" : {
+      "comment" : "Meeting library action that opens the meeting window",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Meeting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz spotkanie"
+          }
+        }
+      }
+    },
+    "Processing" : {
+      "comment" : "Meeting library badge: being transcribed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Processing"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przetwarzanie"
+          }
+        }
+      }
+    },
+    "Incomplete" : {
+      "comment" : "Meeting library badge: recording was interrupted",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incomplete"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niekompletne"
+          }
+        }
+      }
+    },
+    "Failed" : {
+      "comment" : "Meeting library badge: meeting could not be made",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Błąd"
+          }
+        }
+      }
+    },
+    "Writing notes" : {
+      "comment" : "Meeting library badge: notes in progress",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Writing notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Piszę notatki"
+          }
+        }
+      }
+    },
+    "Partial notes" : {
+      "comment" : "Meeting library badge: notes miss some parts",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partial notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki częściowe"
+          }
+        }
+      }
+    },
+    "Notes failed" : {
+      "comment" : "Meeting library badge: notes failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes failed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Błąd notatek"
+          }
+        }
+      }
+    },
+    "Notes outdated" : {
+      "comment" : "Meeting library badge: a speaker was renamed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes outdated"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki nieaktualne"
+          }
+        }
+      }
+    },
+    "The meeting is being recorded." : {
+      "comment" : "Meeting library preview of a live meeting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The meeting is being recorded."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spotkanie jest nagrywane."
+          }
+        }
+      }
+    },
+    "The transcript is being prepared." : {
+      "comment" : "Meeting library preview of a meeting being transcribed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The transcript is being prepared."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkrypt jest przygotowywany."
+          }
+        }
+      }
+    },
+    "The text is shortened here. Open the meeting to read all of it." : {
+      "comment" : "Meeting library preview: the text was cut",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The text is shortened here. Open the meeting to read all of it."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekst jest tutaj skrócony. Otwórz spotkanie, aby przeczytać całość."
+          }
+        }
+      }
+    },
+    "This meeting is no longer in the library." : {
+      "comment" : "Meeting library preview of a deleted meeting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This meeting is no longer in the library."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tego spotkania nie ma już w bibliotece."
+          }
+        }
+      }
+    },
+    "No meetings yet. Start one with the Record Meeting command." : {
+      "comment" : "Meeting library empty state",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No meetings yet. Start one with the Record Meeting command."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak spotkań. Rozpocznij nagrywanie poleceniem Nagraj spotkanie."
+          }
+        }
+      }
+    },
+    "The meeting library is unavailable because the Keychain could not be read. Nothing was deleted." : {
+      "comment" : "Meeting library banner when the Keychain key is unavailable",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The meeting library is unavailable because the Keychain could not be read. Nothing was deleted."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biblioteka spotkań jest niedostępna, bo nie można odczytać pęku kluczy. Nic nie zostało usunięte."
+          }
+        }
+      }
+    },
+    "The meeting library could not be opened." : {
+      "comment" : "Meeting library banner when the database could not be opened",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The meeting library could not be opened."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie można otworzyć biblioteki spotkań."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

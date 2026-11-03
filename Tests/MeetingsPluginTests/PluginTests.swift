@@ -17,9 +17,8 @@ import Testing
         let harness = try MeetingsHarness()
         let plugin = MeetingsPlugin(context: harness.context)
         #expect(plugin.requiredPermissions == [.microphone, .systemAudioRecording])
-        // `meetings.library` and the list mode come with step 1.11.
-        #expect(plugin.commands.map(\.id) == ["meetings.record"])
-        #expect(plugin.panelModes.isEmpty)
+        #expect(plugin.commands.map(\.id) == ["meetings.record", "meetings.library"])
+        #expect(plugin.panelModes.map(\.id) == ["meetings.library"])
         #expect(plugin.onboardingSteps.map(\.id) == ["meetings.setup"])
         #expect(plugin.searchSources.isEmpty)
         #expect(plugin.settingsPane() != nil)
@@ -174,6 +173,22 @@ import Testing
         #expect(command.symbolName != nil)
         // The settings pane has its recorder now that the command exists.
         #expect(plugin.settingsPane() != nil)
+    }
+
+    @Test func theLibraryCommandOpensTheListModeWithoutAShortcut() throws {
+        let harness = try MeetingsHarness()
+        let plugin = MeetingsPlugin(context: harness.context)
+        let command = try #require(plugin.commands.first { $0.id == "meetings.library" })
+        #expect(command.panelMode == "meetings.library")
+        #expect(command.defaultShortcut == nil)
+        #expect(command.showsInMenu)
+        #expect(command.onKeyEvent == nil)
+        let mode = try #require(plugin.panelModes.first)
+        #expect(mode.id == "meetings.library")
+        #expect(mode.isListMode)
+        #expect(mode.filters.map(\.id) == ["all", "withNotes", "needsAttention"])
+        #expect(mode.makePreview != nil)
+        #expect(mode.makeEmptyView != nil)
     }
 
     @Test func runningTheCommandBeforeActivationDoesNothing() async throws {

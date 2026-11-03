@@ -5,7 +5,7 @@ import SwiftUI
 
 /// Meeting transcription and notes (spec: Transkrypcja spotkań i notatki). Registered in `PluginRegistry`
 /// since step 1.10, which adds the record command (`meetings.record`, ⌃⌥M), the HUD and `MeetingController`.
-/// The command `meetings.library` and its list mode come with step 1.11.
+/// Step 1.11 adds the command `meetings.library` and its list mode (`MeetingsPlugin+Library.swift`).
 ///
 /// The library is `Plugins/meetings/meetings.sqlite` (SQLCipher, key in the Keychain item
 /// `app.pounce.meetings`). Transcripts and notes are other people's conversations: they never reach a log, the
@@ -28,6 +28,7 @@ public final class MeetingsPlugin: PouncePlugin {
     let activity = MeetingActivity()
     let ui: MeetingsUI
     let runtime: MeetingsRuntime
+    let libraryActions: MeetingsLibraryActions
     private let relay = MeetingControllerRelay()
     private let hud: MeetingHUDPanel
     /// Exists while the plugin is active.
@@ -50,6 +51,8 @@ public final class MeetingsPlugin: PouncePlugin {
             spool: SpoolStorage(pluginDirectory: context.storageDirectory),
             makeResumer: { store, keys, spool in runtime.makeResumer(store: store, keys: keys, spool: spool) },
             logger: context.logger, changed: context.resultsChanged)
+        libraryActions = MeetingsLibraryActions(
+            library: library, pasteboard: context.pasteboard, changed: context.resultsChanged)
         ui = MeetingsUI(context: context, settings: settings, library: library, activity: activity)
         let relay = relay
         hud = MeetingHUDPanel(onAction: { relay.controller?.perform($0) })
@@ -117,7 +120,8 @@ public final class MeetingsPlugin: PouncePlugin {
                     comment: "Menu item and command that starts or ends a meeting recording"),
                 symbolName: "record.circle",
                 defaultShortcut: KeyShortcut(key: "m", modifiers: [.control, .option]),
-                run: { relay.controller?.toggle() })
+                run: { relay.controller?.toggle() }),
+            libraryCommand,
         ]
     }
 

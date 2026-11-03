@@ -228,3 +228,19 @@ memory grows roughly with the square of the duration, not linearly). **3 h diari
 a track longer than the cap skips diarization and the meeting gets the channel labels ("Ja" / "Inni", or one
 neutral "Mówca 1" when only the microphone spoke; `speaker_mode = channels`). Tighten or raise the cap after
 the benchmark has run (ADR 0007).
+
+## Meetings (spec: Notatki ze spotkań, budgets of Phase 1; measured in step 1.12)
+
+Nothing in this table has been measured yet: it needs the speech and diarization models, a Mac with the system-audio
+permission granted and real meetings, none of which `swift test` or a `--qa…` run can provide. The targets are the spec's.
+
+| Budget | Target | Measured | How to measure |
+|---|---|---|---|
+| Shortcut to the visible HUD and both tracks started | < 300 ms | not yet measured | Build with `scripts/make-app.sh`, grant microphone and system audio, run `log stream --predicate 'subsystem == "app.pounce"'` and note the time between the `meetings.record` command and the first buffer of each track (signposts of `MeetingController`); 10 runs, report p50 and max. |
+| Transcription while recording (both tracks, resident speech model) | keeps up with real time, < 15% of one core on average | not yet measured | Record 30 minutes of two-sided speech; in Activity Monitor sample the Pounce CPU every 5 s (or `sample Pounce 60`), and compare the transcribed length with the elapsed time at Stop. |
+| Transcription tail after Stop | < 3 s | not yet measured | Stop in the middle of a sentence; measure from the command to the HUD leaving `finishing` (`MeetingFinalizer` logs the phase changes without text). |
+| Diarization after Stop (1 h, two tracks, about 122x real time per the vendor) | about 30 to 60 s; 3 h about 3 min | not yet measured | `POUNCE_DIARIZATION_MODEL_FOLDER=… POUNCE_DIARIZATION_BENCH_AUDIO=… swift test --filter DiarizationBenchmarks -c release`, 1 h and 3 h audio, on the target and on a weaker Mac. |
+| Memory during a meeting (speech model and buffers) | < 1.5 GB | not yet measured | Record 1 h; `footprint Pounce` (or Activity Monitor, Memory column) every 5 min; report the peak. Diarization has its own limit (section above). |
+| Memory at rest after models are released | unchanged: < 150 MB | not yet measured | After the meeting is `ready` and the keep-warm time has passed, `footprint Pounce`. |
+| Disk for a 3 h meeting | at most about 700 MB of spool, deleted once processed | not yet measured | Record 3 h; `du -sh ~/Library/Application\ Support/Pounce/Plugins/meetings/Spool` during and after (use `--qa-meeting-spool-dir` in a QA run with the WAV options for a repeatable check). |
+| Library list: query and preview | no budget in the spec; the panel budget applies (a keystroke answers in a frame) | not yet measured | `--qa` run with a library of 1 000 meetings of 1 000 segments each; time `libraryEntries` for an empty and a two-word query (XCTest `measure` or `ContinuousClock` around the call). |

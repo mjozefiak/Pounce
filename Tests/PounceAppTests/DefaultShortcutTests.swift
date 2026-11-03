@@ -60,12 +60,14 @@ import Testing
         #expect(shortcut(of: "meetings.record") == "⌃⌥M")
     }
 
-    @Test func theRecordCommandAppearsInTheMenuAndHasNoLibraryCommandYet() throws {
+    @Test func theMeetingCommandsAppearInTheMenuAndTheLibraryHasNoShortcut() throws {
         let commands = try registeredCommands().filter { $0.plugin == "meetings" }.map(\.command)
         let record = try #require(commands.first { $0.id == "meetings.record" })
         #expect(record.showsInMenu)
         #expect(record.panelMode == nil)
-        // `meetings.library` arrives with the list mode (step 1.11).
-        #expect(!commands.contains { $0.id == "meetings.library" })
+        let library = try #require(commands.first { $0.id == "meetings.library" })
+        #expect(library.showsInMenu)
+        #expect(library.panelMode == "meetings.library")
+        #expect(library.defaultShortcut == nil)
     }
 }

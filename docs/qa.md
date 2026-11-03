@@ -348,6 +348,49 @@ isolates the Keychain; audio permissions are per app, not per `--qa` data folder
 - **Setting.** `plugins.meetings.systemAudio` off records the microphone only and never creates a tap (no prompt).
 - **Cleanup.** After stopping a recording, `Audio MIDI Setup` shows no leftover "Pounce meeting tap" aggregate device.
 
+## Meetings (Phase 1)
+
+The plugin is off by default: turn it on with `--qa-setting plugins.meetings.enabled=true`, or in Settings → Features.
+The Keychain is the in-memory one in QA mode, so the library key never reaches the real Keychain, and the data root is
+fresh unless `--qa-data-root` is given. Real capture is never started in QA mode: the audio comes from WAV files.
+
+Options that matter (see the table above for all of them):
+
+- `--qa-meeting-mic-wav <path>` and `--qa-meeting-system-wav <path>`: 16 kHz mono WAV played back as the two tracks;
+- `--qa-meeting-spool-dir <path>`: where the encrypted spool of the QA meeting goes;
+- `--qa-panel meetings.library [--qa-query <text>]`: the library list mode; `--qa-settings meetings`: the settings pane;
+- `--qa-appearance light|dark`, and `-AppleLanguages '(pl)'` for the Polish strings.
+
+```sh
+CONFIGURATION=debug scripts/make-app.sh
+APP=dist/Pounce.app/Contents/MacOS/Pounce
+# The library with meetings in it needs recorded or seeded meetings: record one from the WAV files first
+# (run the record command from the menu, stop it, wait for "ready"), keeping --qa-data-root so the next run sees it:
+$APP --qa --qa-data-root /tmp/pounce-qa-meetings --qa-setting plugins.meetings.enabled=true \
+  --qa-meeting-mic-wav mic.wav --qa-meeting-system-wav system.wav --qa-show-menu --qa-quit-after 120
+# The library, the Keychain-unavailable and empty states are shown by the next runs:
+$APP --qa --qa-data-root /tmp/pounce-qa-meetings --qa-setting plugins.meetings.enabled=true \
+  --qa-panel meetings.library --qa-appearance dark --qa-quit-after 8
+$APP --qa --qa-setting plugins.meetings.enabled=true --qa-panel meetings.library --qa-quit-after 8   # empty library
+```
+
+States to screenshot, in light and dark mode (and once in Polish):
+
+- the HUD while recording (both tracks, the level, the hint after 20 s of a silent system track) and while finishing;
+- the meeting window (transcript with times, speakers, a rename, the banners for `incomplete`, `failed` and stale notes);
+- the library: all meetings, the three filters (⌘1 to ⌘3), a search by a word from a title and from a transcript (also
+  without Polish letters: `budzet` finds `budżet`), the preview (transcript; notes once Phase 2 exists), the empty
+  library, and the "unavailable" banner (cannot be forced in QA mode: the Keychain is the in-memory one; covered by
+  unit tests, manual check below);
+- Settings → Meetings (models, retention, privacy actions) and Settings → Permissions with the system-audio test.
+
+Checks that cannot be done in a `--qa…` run (listed as manual items in the PR): microphone and system-audio consent
+prompts and denial; real Zoom, Meet and Teams meetings; speakers without headphones (echo) and Bluetooth headsets
+(route changes); the 3 h soak (memory, disk, CPU); diarization quality for Polish; the consent lost after an ad-hoc
+rebuild; the library with a locked or denied Keychain (lock the login keychain, open the library: the banner says it is
+unavailable and nothing is deleted; unlock and reopen); ⌃X in the library on a real meeting; the landing page in a
+browser (`.ai/browsers/agent-browser.md`), in English and Polish.
+
 ## Never during QA
 
 - No synthetic key events, no `tccutil`, no edits to TCC databases or `com.apple.*` defaults.
