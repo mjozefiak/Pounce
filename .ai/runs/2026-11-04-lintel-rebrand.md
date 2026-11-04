@@ -80,6 +80,6 @@ Rename the app from Pounce to Lintel end to end (identity, modules, data locatio
 
 ### Phase 5: Verify
 
-- [ ] 5.1 Full validation gate
-- [ ] 5.2 QA screenshots in light and dark
+- [x] 5.1 Full validation gate — 696857a
+- [x] 5.2 QA screenshots in light and dark — 696857a
 - [ ] 5.3 PR body and review pass
