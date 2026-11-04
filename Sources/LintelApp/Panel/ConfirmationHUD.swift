@@ -15,7 +15,7 @@ final class ConfirmationHUD {
         self.message = message
         let panel = panel ?? makePanel()
         self.panel = panel
-        let hosting = NSHostingView(rootView: ConfirmationView(message: message, textSize: textSize))
+        let hosting = NSHostingView(rootView: ConfirmationView(message: message, textSize: textSize).lintelBrand())
         let glass = NSGlassEffectView()
         glass.cornerRadius = 14
         glass.contentView = hosting

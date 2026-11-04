@@ -69,10 +69,7 @@ struct ResultList: View {
                         ActionErrorRow(message: errorMessage, textSize: model.textSize)
                     }
                     if model.showsNoResults {
-                        Text("No Results", comment: "Panel state when nothing matches the query")
-                            .font(model.textSize.font(.body))
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, minHeight: PanelModel.Metrics.messageHeight)
+                        NoResultsView(query: model.query, textSize: model.textSize)
                     }
                     ForEach(model.results.sections) { section in
                         if showsHeaders {
@@ -244,7 +241,9 @@ struct ResultRow: View {
 
     @Environment(\.colorSchemeContrast) private var contrast
 
-    private var selectedText: Color { Color(nsColor: .alternateSelectedControlTextColor) }
+    /// The brand selection is a light tint of the accent with a bar on the leading edge, so selected text keeps
+    /// its normal colour (white on the dark-theme accent would be 2.4:1).
+    private var selectedText: Color { .primary }
 
     var body: some View {
         HStack(spacing: 10) {
@@ -295,7 +294,10 @@ struct ResultRow: View {
         .background {
             if isSelected {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(Color(nsColor: .selectedContentBackgroundColor))
+                    .fill(LintelBrand.selectionTint)
+                    .overlay(alignment: .leading) {
+                        Capsule().fill(LintelBrand.accent).frame(width: 3).padding(.vertical, 8)
+                    }
             }
         }
         .overlay {
@@ -345,7 +347,7 @@ struct ResultRow: View {
             var match = AttributedString(String(characters[lower..<upper]))
             match.font = textSize.font(.body, weight: .bold)
             if !isSelected {
-                match.foregroundColor = .accentColor
+                match.foregroundColor = LintelBrand.accentText
             }
             result += match
             position = upper
@@ -523,7 +525,7 @@ struct FilterBar: View {
     @Environment(\.colorSchemeContrast) private var contrast
 
     /// The text on the selected (accent-filled) chip: the system's colour for text on a selection.
-    private var selectedText: Color { Color(nsColor: .alternateSelectedControlTextColor) }
+    private var selectedText: Color { LintelBrand.onAccent }
 
     var body: some View {
         HStack(spacing: 6) {
@@ -552,7 +554,7 @@ struct FilterBar: View {
                     .padding(.vertical, 3)
                     .foregroundStyle(isSelected ? AnyShapeStyle(selectedText) : AnyShapeStyle(.secondary))
                     .background {
-                        Capsule().fill(isSelected ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.quaternary))
+                        Capsule().fill(isSelected ? AnyShapeStyle(LintelBrand.accent) : AnyShapeStyle(.quaternary))
                     }
                     .overlay {
                         // Increase Contrast: every chip gets an outline, the selected one a thicker one.
@@ -572,5 +574,35 @@ struct FilterBar: View {
         .padding(.vertical, 6)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text("Filters", comment: "Accessibility label of the panel's filter bar"))
+    }
+}
+
+/// Nothing matches: the Lintel mark, what was searched for and one thing to try.
+struct NoResultsView: View {
+    let query: String
+    let textSize: TextSize
+
+    var body: some View {
+        HStack(spacing: 12) {
+            LintelMark()
+                .frame(width: 36, height: 36)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(
+                    "No results for “\(query)”",
+                    comment: "Panel state when nothing matches the query; the query is quoted"
+                )
+                .font(textSize.font(.body, weight: .semibold))
+                .lineLimit(1)
+                .truncationMode(.tail)
+                Text("Check the spelling, or try fewer letters.", comment: "Hint under the empty-results message")
+                    .font(textSize.font(.subheadline))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 20)
+        .frame(maxWidth: .infinity, minHeight: PanelModel.Metrics.messageHeight, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 }

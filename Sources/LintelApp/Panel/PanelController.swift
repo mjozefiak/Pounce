@@ -50,7 +50,7 @@ final class PanelController: NSObject, NSWindowDelegate, PanelPresenting, PanelP
         let content = LauncherView(model: model, icons: icons) { [weak self] field in
             self?.field = field
         }
-        let hosting = NSHostingView(rootView: content)
+        let hosting = NSHostingView(rootView: content.lintelBrand())
         hosting.sizingOptions = []
         glass.contentView = hosting
         panel.contentView = glass

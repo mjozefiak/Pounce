@@ -154,7 +154,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     }
 
     private func addTab(to tabs: NSTabViewController, title: String, symbol: String, view: AnyView) {
-        let controller = NSHostingController(rootView: view)
+        let controller = NSHostingController(rootView: view.lintelBrand())
         controller.sizingOptions = [.preferredContentSize]
         controller.title = title
         let item = NSTabViewItem(viewController: controller)

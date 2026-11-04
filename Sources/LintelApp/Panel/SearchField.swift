@@ -13,7 +13,7 @@ struct SearchField: NSViewRepresentable {
     }
 
     func makeNSView(context: Context) -> NSTextField {
-        let field = NSTextField()
+        let field = BrandTextField()
         field.isBordered = false
         field.drawsBackground = false
         field.focusRingType = .none
@@ -81,5 +81,16 @@ struct SearchField: NSViewRepresentable {
             }
             return true
         }
+    }
+}
+
+/// A text field whose insertion point is the brand accent.
+final class BrandTextField: NSTextField {
+    override func becomeFirstResponder() -> Bool {
+        let accepted = super.becomeFirstResponder()
+        if accepted, let editor = currentEditor() as? NSTextView {
+            editor.insertionPointColor = LintelBrand.accentColor
+        }
+        return accepted
     }
 }
