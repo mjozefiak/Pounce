@@ -43,6 +43,33 @@ import Testing
         }
     }
 
+    @Test func aKeyFromBeforeTheRenameIsFoundAndCopied() throws {
+        let keychain = FakeKeychain()
+        let legacyKey = Data(repeating: 4, count: 32)
+        keychain.state.withLock { $0.items["app.pounce.clipboard/master-key"] = legacyKey }  // LEGACY-POUNCE
+        guard case .found(let keys) = KeyStore(keychain: keychain).lookup() else {
+            Issue.record("expected .found")
+            return
+        }
+        #expect(
+            keys.blob.withUnsafeBytes { Data($0) }
+                == (try testKeys(4)).blob.withUnsafeBytes { Data($0) })
+        keychain.state.withLock { #expect($0.items["com.lintelapp.clipboard/master-key"] == legacyKey) }
+    }
+
+    @Test func anUnreadableKeyFromBeforeTheRenameIsNotMissing() {
+        let keychain = FakeKeychain()
+        keychain.state.withLock {
+            $0.items["app.pounce.clipboard/master-key"] = Data(repeating: 4, count: 32)  // LEGACY-POUNCE
+        }
+        // Reads fail for every service here; what matters is that the outcome is `.failed`, never `.missing`.
+        keychain.state.withLock { $0.readError = .accessDenied }
+        guard case .failed(.denied) = KeyStore(keychain: keychain).lookup() else {
+            Issue.record("expected .failed(.denied)")
+            return
+        }
+    }
+
     @Test func createdKeysAreFoundAgain() throws {
         let keychain = FakeKeychain()
         let store = KeyStore(keychain: keychain)

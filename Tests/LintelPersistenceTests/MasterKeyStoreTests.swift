@@ -10,12 +10,15 @@ private final class MemoryKeychain: KeychainClient {
     struct State {
         var items: [String: Data] = [:]
         var readError: KeychainError?
+        /// A read error for one service only, so the legacy item can fail while the current one is absent.
+        var readErrorsByService: [String: KeychainError] = [:]
     }
     let state = Mutex(State())
 
     func readGenericPassword(service: String, account: String) throws(KeychainError) -> Data {
         let result: Result<Data, KeychainError> = state.withLock { state in
             if let error = state.readError { return .failure(error) }
+            if let error = state.readErrorsByService[service] { return .failure(error) }
             guard let data = state.items["\(service)/\(account)"] else { return .failure(.itemNotFound) }
             return .success(data)
         }
@@ -96,6 +99,105 @@ private final class MemoryKeychain: KeychainClient {
             Issue.record("expected .malformedKey")
             return
         }
+    }
+
+    // MARK: Key copied from the service name used before the rename
+
+    private static let current = "com.lintelapp.test"
+    private static let legacy = "app.pounce.test"  // LEGACY-POUNCE
+
+    private func bytes(_ keys: MasterKeys) -> Data {
+        keys.derived(info: "blob").withUnsafeBytes { Data($0) }
+    }
+
+    @Test func aKeyUnderThePreviousServiceNameIsCopiedOnce() throws {
+        let keychain = MemoryKeychain()
+        let master = Data((0..<32).map { UInt8($0) })
+        keychain.state.withLock { $0.items["\(Self.legacy)/master-key"] = master }
+        let store = MasterKeyStore(service: Self.current, legacyService: Self.legacy, keychain: keychain)
+        guard case .found(let keys) = store.lookup() else {
+            Issue.record("expected the legacy key to be found")
+            return
+        }
+        #expect(bytes(keys) == bytes(try #require(MasterKeys(master: master))))
+        // The copy exists under the current name, the old item is left in place.
+        keychain.state.withLock {
+            #expect($0.items["\(Self.current)/master-key"] == master)
+            #expect($0.items["\(Self.legacy)/master-key"] == master)
+        }
+        // A later lookup does not need the legacy service at all.
+        let withoutLegacy = MasterKeyStore(service: Self.current, keychain: keychain)
+        guard case .found(let again) = withoutLegacy.lookup() else {
+            Issue.record("expected the copied key to be found")
+            return
+        }
+        #expect(bytes(again) == bytes(keys))
+    }
+
+    @Test func theCurrentKeyWinsOverTheLegacyOne() throws {
+        let keychain = MemoryKeychain()
+        let current = Data(repeating: 1, count: 32)
+        keychain.state.withLock {
+            $0.items["\(Self.current)/master-key"] = current
+            $0.items["\(Self.legacy)/master-key"] = Data(repeating: 2, count: 32)
+        }
+        let store = MasterKeyStore(service: Self.current, legacyService: Self.legacy, keychain: keychain)
+        guard case .found(let keys) = store.lookup() else {
+            Issue.record("expected .found")
+            return
+        }
+        #expect(bytes(keys) == bytes(try #require(MasterKeys(master: current))))
+    }
+
+    @Test func missingMeansNeitherServiceHasAKey() {
+        let store = MasterKeyStore(
+            service: Self.current, legacyService: Self.legacy, keychain: MemoryKeychain())
+        guard case .missing = store.lookup() else {
+            Issue.record("expected .missing")
+            return
+        }
+    }
+
+    @Test func anUnreadableLegacyKeyIsNeverMissing() {
+        // `.missing` is the only outcome that may reset a store, so a legacy item that exists but cannot be
+        // read (denied prompt, locked keychain) must not look like "no key".
+        for (error, expected) in [
+            (KeychainError.accessDenied, KeyStoreError.denied), (.interactionNotAllowed, .locked),
+        ] {
+            let keychain = MemoryKeychain()
+            keychain.state.withLock { $0.readErrorsByService[Self.legacy] = error }
+            let store = MasterKeyStore(service: Self.current, legacyService: Self.legacy, keychain: keychain)
+            guard case .failed(let failure) = store.lookup() else {
+                Issue.record("expected .failed")
+                continue
+            }
+            #expect(failure == expected)
+            keychain.state.withLock { #expect($0.items["\(Self.current)/master-key"] == nil) }
+        }
+    }
+
+    @Test func aMalformedLegacyKeyIsNotCopied() {
+        let keychain = MemoryKeychain()
+        keychain.state.withLock { $0.items["\(Self.legacy)/master-key"] = Data(count: 5) }
+        let store = MasterKeyStore(service: Self.current, legacyService: Self.legacy, keychain: keychain)
+        guard case .failed(.malformedKey) = store.lookup() else {
+            Issue.record("expected .malformedKey")
+            return
+        }
+        keychain.state.withLock { #expect($0.items["\(Self.current)/master-key"] == nil) }
+    }
+
+    @Test func eraseRemovesBothKeysAndIgnoresALegacyFailure() throws {
+        let keychain = MemoryKeychain()
+        keychain.state.withLock {
+            $0.items["\(Self.current)/master-key"] = Data(repeating: 1, count: 32)
+            $0.items["\(Self.legacy)/master-key"] = Data(repeating: 1, count: 32)
+        }
+        let store = MasterKeyStore(service: Self.current, legacyService: Self.legacy, keychain: keychain)
+        try store.delete()
+        keychain.state.withLock { #expect($0.items.isEmpty) }
+        // Nothing left to delete is not an error either.
+        try store.delete()
     }
 }
 

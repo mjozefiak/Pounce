@@ -73,10 +73,14 @@ public struct MasterKeyStore: Sendable {
     }
 
     public let service: String
+    /// The service the same key had before the app was renamed. When the current service has no item, the key
+    /// is copied from here once, so a database made under the old name still opens.
+    public let legacyService: String?
     public let keychain: any KeychainClient
 
-    public init(service: String, keychain: any KeychainClient) {
+    public init(service: String, legacyService: String? = nil, keychain: any KeychainClient) {
         self.service = service
+        self.legacyService = legacyService
         self.keychain = keychain
     }
 
@@ -86,10 +90,31 @@ public struct MasterKeyStore: Sendable {
             guard let keys = MasterKeys(master: master) else { return .failed(.malformedKey) }
             return .found(keys)
         } catch .itemNotFound {
+            return copyFromLegacyService()
+        } catch {
+            return .failed(KeyStoreError(error))
+        }
+    }
+
+    /// Reads the key stored under the previous service name and stores a copy under the current one. The old
+    /// item is left in place (the user can remove it in Keychain Access; "Erase Data" removes both).
+    ///
+    /// A legacy item that cannot be read is `.failed`, never `.missing`: the existing database was made with
+    /// that key, and `.missing` is the only outcome that may reset a store.
+    private func copyFromLegacyService() -> Lookup {
+        guard let legacyService else { return .missing }
+        let master: Data
+        do {
+            master = try keychain.readGenericPassword(service: legacyService, account: Self.account)
+        } catch .itemNotFound {
             return .missing
         } catch {
             return .failed(KeyStoreError(error))
         }
+        guard let keys = MasterKeys(master: master) else { return .failed(.malformedKey) }
+        // If the copy fails the key is still usable now; the next launch tries again.
+        try? keychain.addGenericPassword(master, service: service, account: Self.account)
+        return .found(keys)
     }
 
     /// Generates 32 random bytes, stores them and returns the derived keys.
@@ -111,6 +136,11 @@ public struct MasterKeyStore: Sendable {
 
     /// Removes the master key ("Erase Data"). A key that is already gone is not an error.
     public func delete() throws(KeyStoreError) {
+        // Best effort: the item under the previous name may belong to the old build, and removing it can
+        // prompt or be refused. That must not stop the current key from being erased.
+        if let legacyService {
+            try? keychain.deleteGenericPassword(service: legacyService, account: Self.account)
+        }
         do {
             try keychain.deleteGenericPassword(service: service, account: Self.account)
         } catch .itemNotFound {

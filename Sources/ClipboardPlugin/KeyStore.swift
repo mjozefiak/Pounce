@@ -36,6 +36,8 @@ struct ClipKeys: Sendable, CustomStringConvertible, CustomDebugStringConvertible
 /// alone and only disables recording until a retry succeeds.
 struct KeyStore: Sendable {
     static let service = "com.lintelapp.clipboard"
+    /// The service name before the app was renamed; the key is copied from it once.
+    static let legacyService = "app.pounce.clipboard"  // LEGACY-POUNCE
     static let account = MasterKeyStore.account
 
     enum Lookup: Sendable {
@@ -47,7 +49,9 @@ struct KeyStore: Sendable {
 
     let keychain: any KeychainClient
 
-    var master: MasterKeyStore { MasterKeyStore(service: Self.service, keychain: keychain) }
+    var master: MasterKeyStore {
+        MasterKeyStore(service: Self.service, legacyService: Self.legacyService, keychain: keychain)
+    }
 
     func lookup() -> Lookup {
         switch master.lookup() {

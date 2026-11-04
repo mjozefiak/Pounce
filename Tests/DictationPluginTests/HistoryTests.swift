@@ -171,6 +171,22 @@ private func entry(
         #expect(history.status == .closed)
     }
 
+    @Test func aKeyFromBeforeTheRenameIsReusedNotReplaced() throws {
+        // A history made under the old service name must open with the same key: a new key would make it
+        // unreadable and the opener would archive it.
+        let keychain = MemoryKeychain()
+        let legacyKey = Data((0..<32).map { UInt8($0 &+ 9) })
+        keychain.state.withLock { $0.items["app.pounce.dictation/master-key"] = legacyKey }  // LEGACY-POUNCE
+        let (history, _, directory) = try make(keychain)
+        defer { withExtendedLifetime(directory) {} }
+        history.open()
+        #expect(history.status == .ready)
+        keychain.state.withLock {
+            #expect($0.items["com.lintelapp.dictation/master-key"] == legacyKey)
+        }
+        #expect(history.resetArchive == nil)
+    }
+
     @Test func switchedOffNothingIsOpenedOrRecorded() async throws {
         let keychain = MemoryKeychain()
         let (history, _, directory) = try make(keychain, settings: ["plugins.dictation.historyEnabled": .bool(false)])
