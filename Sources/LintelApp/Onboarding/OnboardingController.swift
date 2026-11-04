@@ -39,7 +39,7 @@ struct WelcomePage: Identifiable {
 
     var symbolName: String {
         switch kind {
-        case .intro: "pawprint"
+        case .intro: "circle.circle"
         case .shortcut: "keyboard"
         case .plugin(let step): step.symbolName
         }
@@ -233,7 +233,7 @@ final class OnboardingController: NSObject, NSWindowDelegate {
     }
 
     private func present(_ view: AnyView) {
-        let controller = NSHostingController(rootView: view)
+        let controller = NSHostingController(rootView: view.lintelBrand())
         controller.sizingOptions = [.preferredContentSize]
         if let window {
             window.contentViewController = controller
@@ -357,13 +357,28 @@ struct WelcomeStepList: View {
     }
 }
 
+/// The page's symbol; the introduction shows the Lintel mark instead of a system symbol.
+struct WelcomePageIcon: View {
+    let page: WelcomePage
+    let markSize: CGFloat
+
+    var body: some View {
+        if case .intro = page.kind {
+            LintelMark(small: markSize <= 24)
+                .frame(width: markSize, height: markSize)
+        } else {
+            Image(systemName: page.symbolName)
+                .symbolRenderingMode(.hierarchical)
+        }
+    }
+}
+
 struct WelcomePageHeader: View {
     let page: WelcomePage
 
     var body: some View {
         HStack(alignment: .center, spacing: 14) {
-            Image(systemName: page.symbolName)
-                .symbolRenderingMode(.hierarchical)
+            WelcomePageIcon(page: page, markSize: 44)
                 .font(.largeTitle)
                 .foregroundStyle(.tint)
                 .accessibilityHidden(true)
@@ -436,8 +451,7 @@ struct WelcomeIntroView: View {
                     Label {
                         Text(page.title)
                     } icon: {
-                        Image(systemName: page.symbolName)
-                            .symbolRenderingMode(.hierarchical)
+                        WelcomePageIcon(page: page, markSize: 16)
                             .accessibilityHidden(true)
                     }
                 }

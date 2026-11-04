@@ -18,7 +18,6 @@ struct ShellMenuActions {
 /// the active plugins' commands, Settings, About and Quit. The menu is rebuilt each time it opens, so it
 /// always reflects which plugins are active and the current shortcut.
 final class StatusItemController: NSObject, NSMenuDelegate {
-    static let symbolName = "pawprint.fill"
 
     private let statusItem: NSStatusItem
     private let menu = NSMenu()
@@ -36,8 +35,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         super.init()
         if let button = statusItem.button {
             let label = String(localized: "Lintel", comment: "Menu bar item accessibility label")
-            let image = NSImage(systemSymbolName: Self.symbolName, accessibilityDescription: label)
-            image?.isTemplate = true
+            let image = LintelMark.menuBarImage()
+            image.accessibilityDescription = label
             button.image = image
             button.setAccessibilityLabel(label)
         }

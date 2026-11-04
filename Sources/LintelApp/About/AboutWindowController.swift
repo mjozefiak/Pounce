@@ -63,7 +63,7 @@ final class AboutWindowController: NSObject, NSWindowDelegate {
 
     func show() {
         if window == nil {
-            let controller = NSHostingController(rootView: AboutView(info: info))
+            let controller = NSHostingController(rootView: AboutView(info: info).lintelBrand())
             controller.sizingOptions = [.preferredContentSize]
             let window = ShellWindow(contentViewController: controller)
             window.styleMask = [.titled, .closable]
@@ -108,7 +108,7 @@ struct AboutView: View {
                         .foregroundStyle(.secondary)
                         .textSelection(.enabled)
                     Text(
-                        "A fast launcher for apps, files and your clipboard history.",
+                        "Search, paste and dictate. All on your Mac.",
                         comment: "About window: one-line description"
                     )
                     .fixedSize(horizontal: false, vertical: true)
