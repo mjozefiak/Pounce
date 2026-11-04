@@ -228,7 +228,7 @@ mark{background:var(--tint);color:var(--atext);border-radius:3px;font-weight:600
 </div>
 <main>
 <header class="doc"><h2 style="margin-top:12px">Lintel: the app window, Notes, Settings, Models, Permissions</h2>
-<p><b>v2 (Notes redesigned after owner feedback: “looks amateur”, reference: Orca).</b> The first Notes design (three columns, card banners) is kept for comparison in <code>index-v1-notes-columns.html</code>. Proposal, <b>acceptance: pending</b>. Portable HTML that represents native SwiftUI/AppKit components; fidelity to AppKit controls is approximate (see Evidence limits). Toolbar above switches theme, text size (S = 0.9, M = 1, XL = 1.3, the real <code>TextSize</code> scales) and language for every screen. Screen IDs are stable (<code>lib-*</code>, <code>set-*</code>, <code>dlg-*</code>, <code>shell-*</code>). Sample data is fictional.</p></header>
+<p><b>v2 (Notes redesigned after owner feedback: “looks amateur”, reference: Orca).</b> The first Notes design (three columns, card banners) is not kept. Design v2, <b>accepted by the owner 2026-11-04</b> (verbal, in the session). Portable HTML that represents native SwiftUI/AppKit components; fidelity to AppKit controls is approximate (see Evidence limits). Toolbar above switches theme, text size (S = 0.9, M = 1, XL = 1.3, the real <code>TextSize</code> scales) and language for every screen. Screen IDs are stable (<code>lib-*</code>, <code>set-*</code>, <code>dlg-*</code>, <code>shell-*</code>). Sample data is fictional.</p></header>
 
 <section class="doc" id="audit">
 <h2>1 · Audit (om-ux-shape, Review mode)</h2>
@@ -321,8 +321,8 @@ mark{background:var(--tint);color:var(--atext);border-radius:3px;font-weight:600
 <tr><td>11</td><td>What “agent” does</td><td><b>Local model, commented blocks only</b></td><td>“Revise with N comments” and “Ask agent” run the built-in model; no external agent, no network.</td></tr>
 <tr><td>12</td><td>Edit conflict</td><td><b>Read-only while the agent writes; agent never overwrites</b></td><td>Its revision shows in Compare first.</td></tr>
 <tr><td>13</td><td>v1 scope</td><td><b>Everything at once</b> (edit, comments, agent) (differs from my recommendation)</td><td>One spec, one feature, shipped as <b>stacked small PRs behind one release</b> (nothing user-visible until the stack is complete). Highest risk: editor + migrations + agent unverified in isolation, so each PR keeps its own tests and screenshots. <b>Architecture:</b> new <code>NotesPlugin</code> (own encrypted <code>notes.sqlite</code>: manual notes, revisions, comments); Meetings and Dictation expose recorded content through an additive <code>LintelKit</code> contribution.</td></tr></table>
-<h3>Still needs your acceptance</h3>
-<p>You approved the Notes design. I have <b>not</b> assumed acceptance of the rest of the shell: Settings (sidebar, banners, Models, Permissions panes), menu bar, Welcome, HUDs and confirmations. Say “accept all”, or list what to change.</p>
+<h3>Acceptance</h3>
+<p>Accepted by the owner on 2026-11-04 (verbal, in the session), the whole design including Settings, menu bar, Welcome, HUDs and confirmations.</p>
 <h3>Plan after acceptance (PR slices)</h3>
 <p>0 <b>Spec + ADR 0008 (also: revisions, comments, authorship)</b> (additive <code>LintelKit</code> “library contribution”, spec-only PR) → 1 window shell + Dock/⌘,/menu + settings sidebar hosting existing panes → 2 StatusBanner/PermissionRow/ModelRow + Permissions and Models panes → 3 General/Features/Apps/Files/Clipboard → 4 Dictation + Meetings panes → 5a explorer + read-only document + confirmations → 5b editing + history → 5c comments + agent revise → 6 Welcome/menu/cleanup, delete small meeting window. Each PR: gate + TSan + screenshots light/dark, S/XL, EN/PL.</p>
 <h3>Evidence limits</h3>
