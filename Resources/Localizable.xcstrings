@@ -235,24 +235,6 @@
         }
       }
     },
-    "A fast launcher for apps, files and your clipboard history." : {
-      "comment" : "About window: one-line description",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A fast launcher for apps, files and your clipboard history."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Szybki launcher aplikacji, plików i historii schowka."
-          }
-        }
-      }
-    },
     "A file does not match the expected checksum, so it was not used." : {
       "comment" : "Dictation settings error after a failed checksum",
       "extractionState" : "manual",
@@ -771,6 +753,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sprawdź ponownie"
+          }
+        }
+      }
+    },
+    "Check the spelling, or try fewer letters." : {
+      "comment" : "Hint under the empty-results message",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check the spelling, or try fewer letters."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprawdź pisownię lub wpisz mniej liter."
           }
         }
       }
@@ -2575,6 +2575,24 @@
         }
       }
     },
+    "Lintel stays in the menu bar either way." : {
+      "comment" : "Settings footer for the Dock toggle",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel stays in the menu bar either way."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel zawsze zostaje na pasku menu."
+          }
+        }
+      }
+    },
     "Loading model…" : {
       "comment" : "Dictation HUD while the speech model loads",
       "extractionState" : "manual",
@@ -3129,6 +3147,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nie znaleziono mikrofonu"
+          }
+        }
+      }
+    },
+    "No results for “%@”" : {
+      "comment" : "Panel state when nothing matches the query; the query is quoted",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No results for “%@”"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak wyników dla „%@”"
           }
         }
       }
@@ -4663,6 +4699,24 @@
         }
       }
     },
+    "Search, paste and dictate. All on your Mac." : {
+      "comment" : "About window: one-line description",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search, paste and dictate. All on your Mac."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szukaj, wklejaj i dyktuj. Wszystko na Twoim Macu."
+          }
+        }
+      }
+    },
     "Searched" : {
       "comment" : "Protected folder state",
       "extractionState" : "manual",
@@ -4821,6 +4875,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Skrót otwierający Lintel"
+          }
+        }
+      }
+    },
+    "Show in Dock" : {
+      "comment" : "Settings toggle",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show in Dock"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż w Docku"
           }
         }
       }
