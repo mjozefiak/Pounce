@@ -11,6 +11,11 @@ import Testing
         #expect(DockPresence.policy(showInDock: false) == .accessory)
     }
 
+    @Test func aDockClickOpensSettingsUnlessAWindowIsOpen() {
+        #expect(DockPresence.reopenAction(hasVisibleWindows: false) == .openSettings)
+        #expect(DockPresence.reopenAction(hasVisibleWindows: true) == .nothing)
+    }
+
     @Test func theDockIconIsOnByDefault() {
         let settings = AppSettings(store: InMemorySettingsStore())
         #expect(settings.showInDock)

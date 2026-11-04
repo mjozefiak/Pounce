@@ -110,9 +110,9 @@ final class AppCoordinator {
         }
     }
 
-    /// A click on the Dock icon (or opening the app again from Finder) opens the launcher.
+    /// A click on the Dock icon (or opening the app again from Finder) opens Settings.
     func reopen() {
-        panelModel.show()
+        openSettings()
     }
 
     /// Deactivates every plugin before the app exits.
