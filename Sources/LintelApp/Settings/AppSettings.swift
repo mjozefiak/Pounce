@@ -11,6 +11,16 @@ final class AppSettings {
         didSet { store.setValue(.string(textSize.rawValue), forKey: SettingsKeys.textSize) }
     }
 
+    /// Whether Lintel has an icon in the Dock (default `true`). Changing it takes effect at once through
+    /// `showInDockChanged`, which the coordinator sets.
+    var showInDock: Bool {
+        didSet {
+            store.setValue(.bool(showInDock), forKey: SettingsKeys.showInDock)
+            showInDockChanged?(showInDock)
+        }
+    }
+    @ObservationIgnored var showInDockChanged: ((Bool) -> Void)?
+
     /// The user's order of result sections (plugin ids); empty means `manifest.order`.
     var sectionOrder: [String] {
         didSet { store.setValue(.stringArray(sectionOrder), forKey: SettingsKeys.sectionOrder) }
@@ -27,6 +37,11 @@ final class AppSettings {
             sectionOrder = value
         } else {
             sectionOrder = []
+        }
+        if case .bool(let value) = store.value(forKey: SettingsKeys.showInDock) {
+            showInDock = value
+        } else {
+            showInDock = true
         }
     }
 

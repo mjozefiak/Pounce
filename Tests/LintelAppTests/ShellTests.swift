@@ -189,9 +189,9 @@ private let repositoryRoot = URL(filePath: #filePath)
         #expect(menu.items[1].isSeparatorItem)
     }
 
-    @Test func usesATemplateSymbol() throws {
-        let image = try #require(
-            NSImage(systemSymbolName: StatusItemController.symbolName, accessibilityDescription: nil))
+    @Test func usesATemplateImageOfTheMark() {
+        let image = LintelMark.menuBarImage()
+        #expect(image.isTemplate)
         #expect(image.size.width > 0)
     }
 }

@@ -28,6 +28,11 @@ enum SettingsKeys {
     /// follow in `manifest.order`. Added in Phase 3.
     static let sectionOrder = "app.sectionOrder"
 
+    /// `Bool`, default `true`: show Lintel's icon in the Dock. `false` keeps it a menu bar app only. Either way
+    /// `LSUIElement` stays in `Info.plist`; the shell switches the activation policy at runtime. Added with the
+    /// Lintel rebrand.
+    static let showInDock = "app.showInDock"
+
     /// `String`: `s`, `m` (default), `l` or `xl`, the panel's text size.
     static let textSize = "app.textSize"
 

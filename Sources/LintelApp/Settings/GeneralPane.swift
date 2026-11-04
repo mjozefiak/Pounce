@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Settings → General: the main shortcut, launch at login and the panel's text size.
+/// Settings → General: the main shortcut, launch at login, the Dock icon and the panel's text size.
 struct GeneralPane: View {
     let hotkeys: HotkeyService
     @Bindable var settings: AppSettings
@@ -33,6 +33,13 @@ struct GeneralPane: View {
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
+                Toggle(isOn: $settings.showInDock) {
+                    Text("Show in Dock", comment: "Settings toggle")
+                }
+            } footer: {
+                Text("Lintel stays in the menu bar either way.", comment: "Settings footer for the Dock toggle")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
             }
 
             Section {

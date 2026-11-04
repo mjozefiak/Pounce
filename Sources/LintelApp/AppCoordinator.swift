@@ -92,6 +92,9 @@ final class AppCoordinator {
         buildPanel()
         buildWindows()
 
+        DockPresence.apply(showInDock: appSettings.showInDock)
+        appSettings.showInDockChanged = { DockPresence.apply(showInDock: $0) }
+
         await host.start()
         hotkeys.start { [weak self] in self?.panelModel.toggle() }
         syncCommands()
@@ -102,6 +105,11 @@ final class AppCoordinator {
             presentPendingOnboarding = { [weak self] in self?.onboarding?.showPendingSteps() }
             presentPendingOnboarding?()
         }
+    }
+
+    /// A click on the Dock icon (or opening the app again from Finder) opens the launcher.
+    func reopen() {
+        panelModel.show()
     }
 
     /// Deactivates every plugin before the app exits.
