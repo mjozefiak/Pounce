@@ -1,4 +1,4 @@
-import PounceKit
+import LintelKit
 import SwiftUI
 
 /// The library list mode (spec step 1.11): `meetings.library`, without a default shortcut.

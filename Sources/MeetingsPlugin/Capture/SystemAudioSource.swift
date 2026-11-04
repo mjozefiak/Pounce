@@ -1,5 +1,5 @@
 import Foundation
-import PounceSpeech
+import LintelSpeech
 import Synchronization
 
 /// What happened to the tap while recording, for the HUD.
@@ -115,7 +115,7 @@ struct SystemAudioPipeline: Sendable {
     }
 }
 
-/// System audio as 16 kHz mono `Float32` chunks: a Core Audio process tap of everything except Pounce
+/// System audio as 16 kHz mono `Float32` chunks: a Core Audio process tap of everything except Lintel
 /// itself. Recreates the tap when the default output changes and fills the gap with silence. Audio exists
 /// only in memory and is never logged.
 ///

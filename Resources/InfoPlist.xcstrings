@@ -8,13 +8,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce captures the audio playing on this Mac, such as the other people in a call, only while a meeting is recorded. It is processed on this Mac and never uploaded."
+            "value" : "Lintel captures the audio playing on this Mac, such as the other people in a call, only while a meeting is recorded. It is processed on this Mac and never uploaded."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce przechwytuje dźwięk odtwarzany na tym Macu, na przykład głosy innych osób w rozmowie, tylko wtedy, gdy nagrywane jest spotkanie. Jest przetwarzany na tym Macu i nigdy nie jest wysyłany."
+            "value" : "Lintel przechwytuje dźwięk odtwarzany na tym Macu, na przykład głosy innych osób w rozmowie, tylko wtedy, gdy nagrywane jest spotkanie. Jest przetwarzany na tym Macu i nigdy nie jest wysyłany."
           }
         }
       }
@@ -26,13 +26,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce listens to the microphone while you dictate (the audio is never saved) and while you record a meeting. Meeting audio is stored encrypted on this Mac until the transcript is complete; the audio of unfinished meetings is kept for a limited time."
+            "value" : "Lintel listens to the microphone while you dictate (the audio is never saved) and while you record a meeting. Meeting audio is stored encrypted on this Mac until the transcript is complete; the audio of unfinished meetings is kept for a limited time."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce słucha mikrofonu, gdy dyktujesz (dźwięk nigdy nie jest zapisywany) oraz gdy nagrywasz spotkanie. Dźwięk spotkania jest przechowywany w zaszyfrowanej postaci na tym Macu, dopóki transkrypt nie będzie kompletny; dźwięk niedokończonych spotkań jest przechowywany przez ograniczony czas."
+            "value" : "Lintel słucha mikrofonu, gdy dyktujesz (dźwięk nigdy nie jest zapisywany) oraz gdy nagrywasz spotkanie. Dźwięk spotkania jest przechowywany w zaszyfrowanej postaci na tym Macu, dopóki transkrypt nie będzie kompletny; dźwięk niedokończonych spotkań jest przechowywany przez ograniczony czas."
           }
         }
       }

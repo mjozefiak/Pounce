@@ -1,6 +1,6 @@
 import AppKit
 import Foundation
-import PounceKit
+import LintelKit
 import Synchronization
 import os
 
@@ -93,7 +93,7 @@ struct AppFixture {
 
     init() throws {
         root = FileManager.default.temporaryDirectory
-            .appending(path: "pounce-apps-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
+            .appending(path: "lintel-apps-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
     }
 
@@ -142,7 +142,7 @@ func makeContext(
         storageDirectory: storage,
         settings: PluginSettings(pluginID: "apps", store: settings),
         usage: usage,
-        logger: Logger(subsystem: "app.pounce.tests", category: "apps"),
+        logger: Logger(subsystem: "com.lintelapp.tests", category: "apps"),
         keychain: NoKeychain(),
         pasteboard: NoPasteboard(),
         events: NoEvents(),

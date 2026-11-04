@@ -8,12 +8,12 @@ import Testing
 /// resident memory before and after, and checks that the models were released. Run it with the network off
 /// to confirm nothing is fetched. The result goes into the PR body (spec step 1.6: a 1 h benchmark).
 ///
-/// `POUNCE_DIARIZATION_MODEL_FOLDER=<Models>/diarization-community-1 POUNCE_DIARIZATION_BENCH_AUDIO=meeting.wav swift test --filter DiarizationBenchmarks`
+/// `LINTEL_DIARIZATION_MODEL_FOLDER=<Models>/diarization-community-1 LINTEL_DIARIZATION_BENCH_AUDIO=meeting.wav swift test --filter DiarizationBenchmarks`
 @Suite(
     .serialized,
     .enabled(
-        if: ProcessInfo.processInfo.environment["POUNCE_DIARIZATION_MODEL_FOLDER"] != nil
-            && ProcessInfo.processInfo.environment["POUNCE_DIARIZATION_BENCH_AUDIO"] != nil))
+        if: ProcessInfo.processInfo.environment["LINTEL_DIARIZATION_MODEL_FOLDER"] != nil
+            && ProcessInfo.processInfo.environment["LINTEL_DIARIZATION_BENCH_AUDIO"] != nil))
 struct DiarizationBenchmarks {
     private static func residentBytes() -> Int {
         var info = mach_task_basic_info()
@@ -29,8 +29,8 @@ struct DiarizationBenchmarks {
     @Test func diarizesARealRecording() async throws {
         let environment = ProcessInfo.processInfo.environment
         let folder = URL(
-            filePath: try #require(environment["POUNCE_DIARIZATION_MODEL_FOLDER"]), directoryHint: .isDirectory)
-        let audio = URL(filePath: try #require(environment["POUNCE_DIARIZATION_BENCH_AUDIO"]))
+            filePath: try #require(environment["LINTEL_DIARIZATION_MODEL_FOLDER"]), directoryHint: .isDirectory)
+        let audio = URL(filePath: try #require(environment["LINTEL_DIARIZATION_BENCH_AUDIO"]))
         let samples = try WAVFile.samples(from: Data(contentsOf: audio))
         let source = ArraySource(samples)
 

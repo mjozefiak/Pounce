@@ -1,5 +1,5 @@
 import Foundation
-import PounceKit
+import LintelKit
 import Synchronization
 import os
 
@@ -85,7 +85,7 @@ struct PluginHarness {
             storageDirectory: directory.url.appending(path: "Plugins/clipboard", directoryHint: .isDirectory),
             settings: PluginSettings(pluginID: "clipboard", store: settings),
             usage: usage,
-            logger: Logger(subsystem: "app.pounce.tests", category: "clipboard"),
+            logger: Logger(subsystem: "com.lintelapp.tests", category: "clipboard"),
             keychain: keychain,
             pasteboard: pasteboard,
             events: events,

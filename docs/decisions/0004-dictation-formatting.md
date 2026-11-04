@@ -6,7 +6,7 @@
 
 ## Context
 
-Pounce does not ship or download the formatting LLM: it calls the user's loopback OpenAI-compatible
+Lintel does not ship or download the formatting LLM: it calls the user's loopback OpenAI-compatible
 server (Ollama, LM Studio, llama-server). Settings only recommend a model. Spike 0.2 was going to pick
 the recommendation and the chunk limit `N` on the user's recordings; the user chose public benchmarks
 instead. Target machine: Mac Studio, 128 GB, so 30B-class models fit; per-chunk latency decides.
@@ -60,10 +60,10 @@ transcript in tags under a fixed "transcription editor" system prompt [9].
 
 ## Consequences
 
-- No new dependency: Pounce still talks to one OpenAI-compatible endpoint.
+- No new dependency: Lintel still talks to one OpenAI-compatible endpoint.
 - Whether Ollama's OpenAI endpoint honours `chat_template_kwargs` is checked in step 2.5; if not,
   `<think>` stripping and the guard handle it.
-- Ollama's `/v1/chat/completions` ignores `chat_template_kwargs` in some versions; Pounce always sends it and
+- Ollama's `/v1/chat/completions` ignores `chat_template_kwargs` in some versions; Lintel always sends it and
   relies on `<think>` stripping and the guard. The result of the check on the user's Ollama is recorded in the
   PR of step 2.5.
 - The prompt regression set (step 2.5) is written as text fixtures (PL, EN, mixed, with dictated

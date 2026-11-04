@@ -1,5 +1,5 @@
 import Foundation
-import PouncePersistence
+import LintelPersistence
 
 /// The saved index, `Plugins/files/index.snapshot` (spec: Data Model, step 3.5).
 ///

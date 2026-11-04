@@ -1,6 +1,6 @@
 import Foundation
 
-/// An app Pounce suggests a recording for.
+/// An app Lintel suggests a recording for.
 struct KnownMeetingApp: Equatable, Sendable {
     let bundleID: String
     let name: String
@@ -29,11 +29,11 @@ struct SuggestionConfig: Equatable, Sendable {
     var enabled = false
     var mutedBundleIDs: Set<String> = []
     var extraBundleIDs: [String] = []
-    /// Pounce's own bundle ID: dictation and recording a meeting never trigger a suggestion.
+    /// Lintel's own bundle ID: dictation and recording a meeting never trigger a suggestion.
     var ownBundleID: String?
 
     /// The listed app (known or added by the user) that `bundleID` belongs to, or `nil`. A helper process
-    /// (`com.google.Chrome.helper` for `com.google.Chrome`) belongs to its app. Pounce itself never matches.
+    /// (`com.google.Chrome.helper` for `com.google.Chrome`) belongs to its app. Lintel itself never matches.
     func listedApp(for bundleID: String) -> String? {
         if let own = ownBundleID, Self.belongs(bundleID, to: own) { return nil }
         let candidates = KnownMeetingApp.all.map(\.bundleID) + extraBundleIDs
@@ -58,7 +58,7 @@ struct SuggestionConfig: Equatable, Sendable {
 ///
 /// A suggestion is made only when all of these hold: suggestions are enabled; the app is listed (known, or
 /// added by the user; browsers only when added); the app has used the input without a break for at least
-/// `inputThreshold`; Pounce is not recording or finishing; the app is not muted; and it is the first time in
+/// `inputThreshold`; Lintel is not recording or finishing; the app is not muted; and it is the first time in
 /// this mic-use session of that app. After a recording that started from a suggestion, when the app stops
 /// using the microphone and both tracks have been quiet for `quietThreshold`, it asks whether to stop.
 struct SuggestionPolicy: Sendable {
@@ -161,7 +161,7 @@ struct SuggestionPolicy: Sendable {
 
     // MARK: Decisions
 
-    /// What to do now. `isBusy`: Pounce records a meeting or is still finishing one. `canSuggest`: false while
+    /// What to do now. `isBusy`: Lintel records a meeting or is still finishing one. `canSuggest`: false while
     /// a pill is showing; an app that reaches its 10 s then stays undecided and is offered by a later call
     /// (at most one suggestion per call).
     mutating func evaluate(

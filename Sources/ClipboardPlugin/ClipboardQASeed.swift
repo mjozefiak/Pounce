@@ -1,6 +1,6 @@
 #if DEBUG
 import AppKit
-import PounceKit
+import LintelKit
 
 /// DEBUG builds only: fake history entries for QA screenshots (`plugins.clipboard.qaSeed=demo`,
 /// `docs/qa.md`). Seeding only fills an empty history, so it never mixes with real entries; in QA the
@@ -30,9 +30,9 @@ enum ClipboardQASeed {
         let safari = ("com.apple.Safari", "Safari")
         let notes = ("com.apple.Notes", "Notes")
         let finder = ("com.apple.finder", "Finder")
-        let link = "https://example.com/pounce/release-notes"
+        let link = "https://example.com/lintel/release-notes"
         let note = "Meeting notes\nDemo the launcher on Friday.\nBring the release checklist."
-        let paths = ["/tmp/pounce-demo/Quarterly Report.pdf", "/tmp/pounce-demo/Budget.numbers"]
+        let paths = ["/tmp/lintel-demo/Quarterly Report.pdf", "/tmp/lintel-demo/Budget.numbers"]
         let fileItems = paths.map { path in
             PasteboardItem(representations: [
                 PasteboardRepresentation(type: "public.file-url", data: Data(URL(filePath: path).absoluteString.utf8))
@@ -40,14 +40,14 @@ enum ClipboardQASeed {
         }
         var drafts = [
             draft(
-                .text, "Pounce keeps your clipboard on this Mac.", text("Pounce keeps your clipboard on this Mac."),
+                .text, "Lintel keeps your clipboard on this Mac.", text("Lintel keeps your clipboard on this Mac."),
                 textEdit, minutesAgo: 2),
             draft(.url, link, text(link), safari, minutesAgo: 9),
             draft(.text, note, text(note), notes, minutesAgo: 34),
             draft(.file, paths.joined(separator: "\n"), fileItems, finder, minutesAgo: 75),
             draft(.text, "Zażółć gęślą jaźń", text("Zażółć gęślą jaźń"), textEdit, minutesAgo: 180),
             draft(
-                .text, "let greeting = \"Hello, Pounce\"", text("let greeting = \"Hello, Pounce\""), nil,
+                .text, "let greeting = \"Hello, Lintel\"", text("let greeting = \"Hello, Lintel\""), nil,
                 minutesAgo: 60 * 26),
         ]
         if let png = demoPNG() {

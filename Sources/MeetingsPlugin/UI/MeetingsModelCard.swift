@@ -1,6 +1,6 @@
 import Foundation
+import LintelSpeech
 import Observation
-import PounceSpeech
 
 /// One model package on a settings card: where it is, download with progress, a folder the user points to,
 /// and removal. Used for the speech model and the diarization model. `Remove` is refused while a session

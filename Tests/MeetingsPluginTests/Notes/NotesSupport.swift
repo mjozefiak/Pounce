@@ -1,5 +1,5 @@
 import Foundation
-import PounceSpeech
+import LintelSpeech
 import Synchronization
 
 @testable import MeetingsPlugin

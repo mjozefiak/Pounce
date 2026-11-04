@@ -1,6 +1,6 @@
 import Foundation
-import PounceCore
-import PounceKit
+import LintelCore
+import LintelKit
 import Synchronization
 
 /// One app with its searchable names prepared once, when the index is published.

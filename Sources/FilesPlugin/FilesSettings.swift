@@ -1,6 +1,6 @@
 import Foundation
+import LintelKit
 import Observation
-import PounceKit
 
 /// The file plugin's settings under `plugins.files.` (a protected contract, `BACKWARD_COMPATIBILITY.md`
 /// section 3), with a change callback for the plugin.

@@ -1,5 +1,5 @@
 import Foundation
-import PounceSpeech
+import LintelSpeech
 import Synchronization
 import os
 
@@ -91,7 +91,7 @@ final class NotesService {
         var shutdownLimit: Duration = .seconds(5)
         var openSettings: @MainActor () -> Void = {}
         var changed: @Sendable () -> Void = {}
-        var logger = Logger(subsystem: "app.pounce", category: "meetings")
+        var logger = Logger(subsystem: "com.lintelapp", category: "meetings")
     }
 
     private struct Job: Equatable {

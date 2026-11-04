@@ -2,14 +2,14 @@ import Foundation
 import Testing
 
 @testable import DictationPlugin
-@testable import PounceSpeech
+@testable import LintelSpeech
 
 @Suite struct RealLLMCleanupTests {
-    /// Loads the GGUF in `POUNCE_LLAMA_MODEL` and cleans a Polish dictation with the real prompt. Off by default,
+    /// Loads the GGUF in `LINTEL_LLAMA_MODEL` and cleans a Polish dictation with the real prompt. Off by default,
     /// like the other real-model tests (ADR 0005).
-    @Test(.enabled(if: ProcessInfo.processInfo.environment["POUNCE_LLAMA_MODEL"] != nil))
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["LINTEL_LLAMA_MODEL"] != nil))
     func realModel() async throws {
-        let path = try #require(ProcessInfo.processInfo.environment["POUNCE_LLAMA_MODEL"])
+        let path = try #require(ProcessInfo.processInfo.environment["LINTEL_LLAMA_MODEL"])
         let runtime = LlamaRuntime()
         let loadStarted = ContinuousClock.now
         try await runtime.load(modelAt: URL(fileURLWithPath: path))

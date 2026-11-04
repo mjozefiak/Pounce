@@ -1,6 +1,6 @@
 import Foundation
+import LintelSpeech
 import Observation
-import PounceSpeech
 
 /// What Settings → Meetings and the `meetings.setup` step show and do. Shared by both screens, so a model
 /// downloaded in one shows as downloaded in the other.

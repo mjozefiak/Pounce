@@ -1,14 +1,14 @@
 import Foundation
 import GRDB
-import PounceCore
-import PounceKit
-import PouncePersistence
+import LintelCore
+import LintelKit
+import LintelPersistence
 import Synchronization
 import Testing
 import os
 
 @testable import DictationPlugin
-@testable import PounceSpeech
+@testable import LintelSpeech
 
 private func keys(_ byte: UInt8 = 9) throws -> MasterKeys {
     try #require(MasterKeys(master: Data(repeating: byte, count: 32)))
@@ -144,7 +144,8 @@ private func entry(
         let now = now
         let history = DictationHistory(
             directory: directory.url, keychain: keychain, settings: dictationSettings, clock: ContinuousClock(),
-            now: { now }, runsRetentionJob: false, logger: Logger(subsystem: "app.pounce.tests", category: "dictation"))
+            now: { now }, runsRetentionJob: false,
+            logger: Logger(subsystem: "com.lintelapp.tests", category: "dictation"))
         return (history, dictationSettings, directory)
     }
 
@@ -162,7 +163,7 @@ private func entry(
         defer { withExtendedLifetime(directory) {} }
         history.open()
         #expect(history.status == .ready)
-        #expect(keychain.itemNames == ["app.pounce.dictation/master-key"])
+        #expect(keychain.itemNames == ["com.lintelapp.dictation/master-key"])
         history.record(entry("pierwsze dyktowanie", at: now.timeIntervalSince1970 - 10))
         try await waitForCount(history, 1)
         #expect(history.entryCount == 1)
@@ -217,7 +218,7 @@ private func entry(
         let archive = try #require(history.resetArchive)
         #expect(archive.lastPathComponent.hasPrefix("dictation.sqlite.unreadable-"))
         #expect(FileManager.default.fileExists(atPath: archive.path))
-        #expect(keychain.itemNames == ["app.pounce.dictation/master-key"])
+        #expect(keychain.itemNames == ["com.lintelapp.dictation/master-key"])
     }
 
     @Test func clearRetentionAndEraseWork() async throws {
@@ -258,7 +259,8 @@ private func entry(
         let now = now
         let history = DictationHistory(
             directory: directory.url, keychain: keychain, settings: settings, clock: ContinuousClock(),
-            now: { now }, runsRetentionJob: false, logger: Logger(subsystem: "app.pounce.tests", category: "dictation"))
+            now: { now }, runsRetentionJob: false,
+            logger: Logger(subsystem: "com.lintelapp.tests", category: "dictation"))
         return (history, settings, directory)
     }
 }

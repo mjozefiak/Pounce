@@ -1,6 +1,6 @@
 import AppKit
-import PounceKit
-import PounceSpeech
+import LintelKit
+import LintelSpeech
 import SwiftUI
 
 /// The settings pane, the setup step and the Permissions test of `MeetingsPlugin`, with the models they share.

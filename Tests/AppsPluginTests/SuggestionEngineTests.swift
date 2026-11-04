@@ -19,7 +19,7 @@ import Testing
     var apps: [AppRecord] {
         [
             app("com.example.mail", "Mail"), app("com.example.notes", "Notes"),
-            app("com.example.chat", "Chat"), app("app.pounce.Pounce", "Pounce"),
+            app("com.example.chat", "Chat"), app("com.lintelapp.Lintel", "Lintel"),
             app("com.example.maps", "Maps"), app("com.example.books", "Books"),
             app("com.example.music", "Music"), app("com.example.photos", "Photos"),
         ]
@@ -42,16 +42,16 @@ import Testing
         #expect(abs(result[2].score - 2.5) < 1e-9)
     }
 
-    @Test func skipsPounceHiddenAndUnknownApps() {
+    @Test func skipsLintelHiddenAndUnknownApps() {
         let snapshot = ActivitySnapshot(apps: [
-            "app.pounce.Pounce": entry(frecency: 9, daysAgo: 0),
+            "com.lintelapp.Lintel": entry(frecency: 9, daysAgo: 0),
             "com.example.mail": entry(frecency: 8, daysAgo: 0),
             "com.example.uninstalled": entry(frecency: 7, daysAgo: 0),
             "com.example.notes": entry(frecency: 1, daysAgo: 0),
         ])
         let result = SuggestionEngine.suggestions(
             snapshot: snapshot, apps: apps, hidden: ["com.example.mail"], running: [],
-            ownBundleIdentifier: "app.pounce.Pounce", now: now)
+            ownBundleIdentifier: "com.lintelapp.Lintel", now: now)
         #expect(result.map(\.record.bundleIdentifier) == ["com.example.notes"])
     }
 

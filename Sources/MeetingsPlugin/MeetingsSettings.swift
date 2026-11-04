@@ -1,6 +1,6 @@
 import Foundation
-import PounceKit
-import PounceSpeech
+import LintelKit
+import LintelSpeech
 
 /// `plugins.meetings.*` (a protected contract from the release that ships it, `BACKWARD_COMPATIBILITY.md` §3).
 /// Every key is declared here and nowhere else. `plugins.meetings.enabled` belongs to the host.

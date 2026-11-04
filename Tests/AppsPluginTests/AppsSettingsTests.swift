@@ -1,5 +1,5 @@
 import Foundation
-import PounceKit
+import LintelKit
 import Synchronization
 import Testing
 

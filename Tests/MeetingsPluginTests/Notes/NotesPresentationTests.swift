@@ -1,6 +1,6 @@
 import Foundation
 import GRDB
-import PounceKit
+import LintelKit
 import Testing
 
 @testable import MeetingsPlugin
@@ -198,7 +198,7 @@ extension Database {
                 #expect(unit.state == "translated" && !unit.value.isEmpty, "\(key) \(language)")
             }
         }
-        #expect(catalog.strings["Notes are generated in a later version of Pounce."] == nil)
+        #expect(catalog.strings["Notes are generated in a later version of Lintel."] == nil)
         #expect(
             catalog.strings["Try it on an example"]?.localizations?["pl"]?.stringUnit?.value
                 == "Wypróbuj na przykładzie")

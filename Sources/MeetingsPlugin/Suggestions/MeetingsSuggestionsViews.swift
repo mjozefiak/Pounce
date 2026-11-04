@@ -70,18 +70,18 @@ struct MeetingsSuggestionsSection: View {
             Text("Meeting suggestions", comment: "Meetings settings section title")
         } footer: {
             Text(
-                "Pounce only checks which app is using the microphone, never what it hears. It knows Zoom, Teams, Slack, FaceTime, Webex and Discord, and asks before recording; it never starts by itself. A browser counts only if you add it above, because a web page using the microphone can be a false alarm. Only these lists and, for a meeting you start from a suggestion, the app's ID are stored. Apps built on Safari's engine (WebKit helpers) may not be detected, and the pill cannot be operated from the keyboard; VoiceOver reads it and can press its buttons.",
+                "Lintel only checks which app is using the microphone, never what it hears. It knows Zoom, Teams, Slack, FaceTime, Webex and Discord, and asks before recording; it never starts by itself. A browser counts only if you add it above, because a web page using the microphone can be a false alarm. Only these lists and, for a meeting you start from a suggestion, the app's ID are stored. Apps built on Safari's engine (WebKit helpers) may not be detected, and the pill cannot be operated from the keyboard; VoiceOver reads it and can press its buttons.",
                 comment: "Meetings settings footer under the meeting suggestions"
             )
             .font(.callout).foregroundStyle(.secondary)
         }
     }
 
-    /// Honest and harmless: nothing answered yet, so Pounce cannot tell whether detection works here.
+    /// Honest and harmless: nothing answered yet, so Lintel cannot tell whether detection works here.
     static var noDataMessage: String {
         String(
             localized:
-                "Pounce cannot confirm that detection works on this Mac: no app has reported microphone use yet.",
+                "Lintel cannot confirm that detection works on this Mac: no app has reported microphone use yet.",
             comment: "Meetings settings: the process audio API listens but no process has answered")
     }
 
@@ -124,7 +124,7 @@ struct MeetingsSuggestionsSetupPart: View {
         Label {
             VStack(alignment: .leading, spacing: 6) {
                 Text(
-                    "Optional: Pounce can suggest recording when Zoom, Teams or another meeting app starts using the microphone. It only checks which app uses the microphone, never what it hears, and never records without your click.",
+                    "Optional: Lintel can suggest recording when Zoom, Teams or another meeting app starts using the microphone. It only checks which app uses the microphone, never what it hears, and never records without your click.",
                     comment: "Meetings onboarding step about meeting suggestions"
                 )
                 .fixedSize(horizontal: false, vertical: true)

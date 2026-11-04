@@ -1,5 +1,5 @@
 import Foundation
-import PounceSpeech
+import LintelSpeech
 import Synchronization
 import os
 
@@ -107,7 +107,7 @@ actor DictationSession {
         keepWarm: @escaping @Sendable () -> Duration = { .seconds(600) },
         maximumDuration: Duration = .seconds(20 * 60),
         warningBefore: Duration = .seconds(2 * 60),
-        logger: Logger = Logger(subsystem: "app.pounce", category: "dictation"),
+        logger: Logger = Logger(subsystem: "com.lintelapp", category: "dictation"),
         onEvent: @escaping @Sendable (Event) -> Void = { _ in }
     ) {
         self.audio = audio

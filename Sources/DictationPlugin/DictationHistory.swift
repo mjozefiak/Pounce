@@ -1,7 +1,7 @@
 import Foundation
+import LintelKit
+import LintelPersistence
 import Observation
-import PounceKit
-import PouncePersistence
 import Synchronization
 import os
 
@@ -30,7 +30,7 @@ final class DictationHistory {
         case failed
     }
 
-    static let service = "app.pounce.dictation"
+    static let service = "com.lintelapp.dictation"
     static let retentionInterval: Duration = .seconds(60 * 60)
     static let vacuumInterval: TimeInterval = 24 * 60 * 60
 

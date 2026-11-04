@@ -1,5 +1,5 @@
 import Foundation
-import PounceKit
+import LintelKit
 import os
 
 /// Which way Return goes for a chosen entry (spec step 2.5).
@@ -44,7 +44,7 @@ enum PasteDecision: Equatable, Sendable {
 /// a synthetic Command-V (`EventPoster`). Without Accessibility, under Secure Event Input or when the
 /// previous app is gone, the entry stays on the pasteboard and the user sees "Copied".
 ///
-/// Pounce's own write is reported to the watcher so it is not recorded again; the entry only moves to
+/// Lintel's own write is reported to the watcher so it is not recorded again; the entry only moves to
 /// the top and counts one more use.
 @MainActor
 final class PasteService {

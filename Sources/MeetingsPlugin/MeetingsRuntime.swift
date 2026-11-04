@@ -1,6 +1,6 @@
 import Foundation
-import PounceKit
-import PounceSpeech
+import LintelKit
+import LintelSpeech
 import os
 
 /// The real parts behind the controller and the library: the speech engine, the voice activity detector, the

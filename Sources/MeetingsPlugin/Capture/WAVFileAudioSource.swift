@@ -1,5 +1,5 @@
 import Foundation
-import PounceSpeech
+import LintelSpeech
 
 enum WAVError: Error, Equatable {
     case notWAV

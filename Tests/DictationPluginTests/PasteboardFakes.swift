@@ -1,6 +1,6 @@
 import AppKit
 import Foundation
-import PounceKit
+import LintelKit
 
 /// A `PasteboardClient` over a private `NSPasteboard(name:)`, so tests never read or write the real
 /// clipboard. Mirrors the app's system client.
@@ -9,7 +9,7 @@ import PounceKit
     var access: PasteboardAccess = .alwaysAllow
 
     init() {
-        pasteboard = NSPasteboard(name: NSPasteboard.Name("app.pounce.tests.dictation.\(UUID().uuidString)"))
+        pasteboard = NSPasteboard(name: NSPasteboard.Name("com.lintelapp.tests.dictation.\(UUID().uuidString)"))
     }
 
     func release() {
@@ -80,7 +80,7 @@ import PounceKit
 }
 
 /// Wraps a pasteboard and replaces its contents in the middle of a read, like another app copying
-/// again while Pounce reads.
+/// again while Lintel reads.
 @MainActor final class ChangingPasteboard: PasteboardClient {
     let base: NamedPasteboard
     var replacement: String?

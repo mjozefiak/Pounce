@@ -5,7 +5,7 @@ import Synchronization
 /// The real `ProcessAudioObserver`: the Core Audio process objects (macOS 14.2+), event-driven through
 /// property listeners, no polling. It reads three properties and nothing else: whether a process uses an
 /// input (`kAudioProcessPropertyIsRunningInput`), its bundle ID (`kAudioProcessPropertyBundleID`) and its pid
-/// (`kAudioProcessPropertyPID`, only to leave Pounce's own process out). It never opens a device, creates a
+/// (`kAudioProcessPropertyPID`, only to leave Lintel's own process out). It never opens a device, creates a
 /// tap or captures audio, so it shows no permission prompt.
 ///
 /// Compiled but never run by tests (the API needs real processes). Whether the properties are available and
@@ -82,7 +82,7 @@ private final class ProcessObservation: @unchecked Sendable {
         var isRunningInput: Bool
     }
 
-    private let queue = DispatchQueue(label: "app.pounce.meetings.process-audio", qos: .utility)
+    private let queue = DispatchQueue(label: "com.lintelapp.meetings.process-audio", qos: .utility)
     private let continuation: AsyncStream<ProcessAudioEvent>.Continuation
     private let ownPID = ProcessInfo.processInfo.processIdentifier
     private var listListener: ObjectListener?

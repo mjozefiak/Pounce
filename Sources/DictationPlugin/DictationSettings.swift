@@ -1,6 +1,6 @@
 import Foundation
-import PounceKit
-import PounceSpeech
+import LintelKit
+import LintelSpeech
 
 /// `plugins.dictation.*` (a protected contract from the release that ships it, `BACKWARD_COMPATIBILITY.md` §3).
 /// Phase 1 reads the speech model, the microphone, keep-warm and the clipboard restore; the formatting and
@@ -40,7 +40,7 @@ struct DictationSettings: Sendable {
     enum LLMSource: String, Sendable, CaseIterable {
         /// The user's own server on this Mac (Ollama, LM Studio, llama-server).
         case server
-        /// The model Pounce downloaded and runs itself (ADR 0005).
+        /// The model Lintel downloaded and runs itself (ADR 0005).
         case builtIn
     }
 

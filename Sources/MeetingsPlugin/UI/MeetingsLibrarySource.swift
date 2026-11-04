@@ -1,6 +1,6 @@
 import AppKit
 import Foundation
-import PounceKit
+import LintelKit
 import os
 
 /// The meeting library's results (spec step 1.11): newest first, optionally narrowed by a filter and by a
@@ -237,7 +237,7 @@ enum MeetingLibraryPresentation {
     /// The display name of the installed app with that bundle ID, without `.app`; `nil` when it is not installed.
     ///
     /// Asked once per bundle ID while the process runs (the list asks for every row on every keystroke and
-    /// Launch Services is not free); an app installed later shows up after the next launch of Pounce.
+    /// Launch Services is not free); an app installed later shows up after the next launch of Lintel.
     static func installedAppName(_ bundleID: String) -> String? {
         if let cached = appNames.withLock({ $0[bundleID] }) { return cached.name }
         let name = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)

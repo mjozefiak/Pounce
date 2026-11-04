@@ -1,4 +1,4 @@
-Pounce includes the following third-party software.
+Lintel includes the following third-party software.
 
 SQLite, the database engine inside SQLCipher, is in the public domain (https://sqlite.org/copyright.html).
 
@@ -82,9 +82,9 @@ Speaker diarization models for meetings (downloaded by the user in Settings, not
 pyannote speaker-diarization-community-1 (https://huggingface.co/pyannote/speaker-diarization-community-1),
 by pyannote, with WeSpeaker speaker embeddings and PLDA parameters from BUT Speech@FIT. Licensed under
 Creative Commons Attribution 4.0 International (https://creativecommons.org/licenses/by/4.0/). The files
-Pounce uses are modified Core ML conversions made by Fluid Inference (FluidInference/speaker-diarization-coreml:
+Lintel uses are modified Core ML conversions made by Fluid Inference (FluidInference/speaker-diarization-coreml:
 Segmentation, FBank, Embedding, PldaRho and plda-parameters.json): the PyTorch components were converted to Core
-ML with fixed input shapes and mixed-precision storage, and compiled for Apple platforms. Pounce changed
+ML with fixed input shapes and mixed-precision storage, and compiled for Apple platforms. Lintel changed
 nothing in them beyond verifying their SHA-256 after download.
 
 ================================================================================

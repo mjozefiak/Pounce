@@ -1,6 +1,6 @@
 import Foundation
 import GRDB
-import PounceKit
+import LintelKit
 import Synchronization
 import Testing
 
@@ -294,7 +294,7 @@ struct WindowHarness {
         let types = try #require(harness.pasteboard.written.first?.first?.types)
         #expect(types.contains(PasteboardRepresentation.transientMarkerType))
         #expect(types.contains(PasteboardRepresentation.concealedMarkerType))
-        #expect(!PasteboardRepresentation.markerTypes.isDisjoint(with: types), "Pounce's history skips it")
+        #expect(!PasteboardRepresentation.markerTypes.isDisjoint(with: types), "Lintel's history skips it")
         #expect(harness.model.feedback == .copied)
     }
 

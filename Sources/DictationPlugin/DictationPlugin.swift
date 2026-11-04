@@ -1,12 +1,12 @@
 import AppKit
 import Foundation
-import PounceKit
-import PounceSpeech
+import LintelKit
+import LintelSpeech
 import SwiftUI
 import os
 
 /// Voice dictation (spec: Dyktowanie głosowe): records under a global shortcut, transcribes with a speech
-/// model that runs inside Pounce, and pastes the text into the app in front. Audio never leaves the Mac
+/// model that runs inside Lintel, and pastes the text into the app in front. Audio never leaves the Mac
 /// and is never written to disk.
 ///
 /// - The shortcut's key-down and key-up go to `DictationController` (tap to toggle, hold to talk), which
@@ -17,7 +17,7 @@ import os
 /// Settings: `plugins.dictation.*` (see `DictationSettings.Key`). Disabled by default: the feature needs a
 /// model download and the microphone.
 @MainActor
-public final class DictationPlugin: PouncePlugin {
+public final class DictationPlugin: LintelPlugin {
     public nonisolated static let manifest = PluginManifest(
         id: "dictation",
         displayName: LocalizedStringResource("Dictation", comment: "Plugin name of voice dictation"),

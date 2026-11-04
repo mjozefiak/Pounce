@@ -1,8 +1,8 @@
 import CryptoKit
 import Foundation
 import GRDB
-import PounceKit
-import PouncePersistence
+import LintelKit
+import LintelPersistence
 import Synchronization
 
 /// The encrypted clipboard history: `clipboard.sqlite` (SQLCipher) plus AES-GCM blob files in

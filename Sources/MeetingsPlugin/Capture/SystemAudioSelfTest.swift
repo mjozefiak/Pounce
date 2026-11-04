@@ -9,7 +9,7 @@ protocol TonePlayer: Sendable {
 }
 
 /// The only way to check the system-audio permission, which has no read API (spec "Research"): tap
-/// everything including Pounce, play a signal of our own and see whether the tap hears it.
+/// everything including Lintel, play a signal of our own and see whether the tap hears it.
 struct SystemAudioSelfTest: Sendable {
     enum Verdict: Equatable, Sendable {
         /// The tap heard the signal: "works".

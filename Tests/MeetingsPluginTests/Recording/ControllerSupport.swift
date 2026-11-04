@@ -1,6 +1,6 @@
 import Foundation
-import PounceKit
-import PounceSpeech
+import LintelKit
+import LintelSpeech
 import Synchronization
 import Testing
 
@@ -261,7 +261,7 @@ final class ControllerRig {
     let authorizer: FakeAuthorizer
     let clock = ManualClock()
     let activity = MeetingActivity()
-    var lookup = SpeechModelLookup.ready(modelID: "parakeet-ultra", folder: URL(filePath: "/tmp/pounce-test-model"))
+    var lookup = SpeechModelLookup.ready(modelID: "parakeet-ultra", folder: URL(filePath: "/tmp/lintel-test-model"))
     var behaviour = ScriptedSession.Behaviour()
     private(set) var sessions: [ScriptedSession] = []
     private(set) var requests: [MeetingSessionRequest] = []

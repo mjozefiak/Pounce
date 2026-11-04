@@ -2,77 +2,77 @@
 import PackageDescription
 
 // Dependency graph (one way only, see AGENTS.md):
-//   PounceApp -> plugins (AppsPlugin, FilesPlugin, ClipboardPlugin, DictationPlugin, MeetingsPlugin) -> PouncePersistence / PounceCore -> PounceKit
-//   plugins that use speech (DictationPlugin, MeetingsPlugin) -> PounceSpeech, which depends on no repository target
+//   LintelApp -> plugins (AppsPlugin, FilesPlugin, ClipboardPlugin, DictationPlugin, MeetingsPlugin) -> LintelPersistence / LintelCore -> LintelKit
+//   plugins that use speech (DictationPlugin, MeetingsPlugin) -> LintelSpeech, which depends on no repository target
 //   (docs/decisions/0006-shared-speech-layer.md)
-// Only PounceApp is MainActor by default; every other target stays nonisolated and declares
+// Only LintelApp is MainActor by default; every other target stays nonisolated and declares
 // isolation explicitly.
 let package = Package(
-    name: "Pounce",
+    name: "Lintel",
     defaultLocalization: "en",
     platforms: [.macOS(.v26)],
     products: [
-        .executable(name: "Pounce", targets: ["PounceApp"])
+        .executable(name: "Lintel", targets: ["LintelApp"])
     ],
     dependencies: [
         // GRDB built against SQLCipher (spike 0.4, docs/decisions/0001-sqlite.md).
         .package(path: "Packages/GRDBCipher"),
-        // Global shortcuts and the shortcut recorder (MIT), used by PounceApp only.
+        // Global shortcuts and the shortcut recorder (MIT), used by LintelApp only.
         .package(url: "https://github.com/sindresorhus/KeyboardShortcuts.git", exact: "1.10.0"),
         // Local speech to text (Parakeet), voice activity detection and offline speaker diarization through
-        // Core ML (Apache-2.0), used by PounceSpeech and, for diarization, by MeetingsPlugin. 0.x: its API stays
+        // Core ML (Apache-2.0), used by LintelSpeech and, for diarization, by MeetingsPlugin. 0.x: its API stays
         // behind the SpeechEngine and Diarizer ports (ADR 0003, ADR 0007). `traits: ["Diarizer"]` leaves out text
-        // to speech and the bundled Rust text engine (the trait is opt-out upstream, which is why Pounce names it).
+        // to speech and the bundled Rust text engine (the trait is opt-out upstream, which is why Lintel names it).
         .package(url: "https://github.com/FluidInference/FluidAudio.git", exact: "0.18.2", traits: ["Diarizer"]),
         // Whisper large-v3-turbo through Core ML (MIT), the second speech engine with a pinned language
-        // (ADR 0003), used by PounceSpeech only.
+        // (ADR 0003), used by LintelSpeech only.
         .package(url: "https://github.com/argmaxinc/argmax-oss-swift.git", exact: "1.1.1"),
     ],
     targets: [
         // llama.cpp (MIT) as the project's own prebuilt XCFramework, pinned to a release and its checksum
-        // (ADR 0005). Used by PounceSpeech only, behind the `LLMRuntime` port.
+        // (ADR 0005). Used by LintelSpeech only, behind the `LLMRuntime` port.
         .binaryTarget(
             name: "llama",
             url: "https://github.com/ggml-org/llama.cpp/releases/download/b11600/llama-b11600-xcframework.zip",
             checksum: "a44f73ae282a7dc38c73107dd646d22d2463a442c7d2a36d8c9c373764759e68"
         ),
-        .target(name: "PounceKit"),
+        .target(name: "LintelKit"),
         .target(
-            name: "PounceCore",
-            dependencies: ["PounceKit"]
+            name: "LintelCore",
+            dependencies: ["LintelKit"]
         ),
         .target(
-            name: "PouncePersistence",
+            name: "LintelPersistence",
             dependencies: [
-                "PounceKit",
+                "LintelKit",
                 .product(name: "GRDB", package: "GRDBCipher"),
             ]
         ),
         .target(
             name: "AppsPlugin",
-            // PouncePersistence only for AtomicFile (activity.json, app suggestions spec); no GRDB.
-            dependencies: ["PounceKit", "PounceCore", "PouncePersistence"]
+            // LintelPersistence only for AtomicFile (activity.json, app suggestions spec); no GRDB.
+            dependencies: ["LintelKit", "LintelCore", "LintelPersistence"]
         ),
         .target(
             name: "FilesPlugin",
-            dependencies: ["PounceKit", "PounceCore", "PouncePersistence"]
+            dependencies: ["LintelKit", "LintelCore", "LintelPersistence"]
         ),
         .target(
             name: "ClipboardPlugin",
             dependencies: [
-                "PounceKit",
-                "PounceCore",
-                "PouncePersistence",
+                "LintelKit",
+                "LintelCore",
+                "LintelPersistence",
                 // The plugin owns clipboard.sqlite and its migrator (spec: Migracje), so it uses GRDB
-                // directly: the same SQLCipher build PouncePersistence uses (ADR 0001).
+                // directly: the same SQLCipher build LintelPersistence uses (ADR 0001).
                 .product(name: "GRDB", package: "GRDBCipher"),
             ]
         ),
         .target(
-            name: "PounceSpeech",
+            name: "LintelSpeech",
             // The shared speech layer (ADR 0006): audio capture, speech to text, voice activity detection, model
             // downloads and the built-in language model. Depends on nothing from this repository
-            // (`PounceSpeechTests` checks that), so every plugin may use it.
+            // (`LintelSpeechTests` checks that), so every plugin may use it.
             dependencies: [
                 .product(name: "FluidAudio", package: "FluidAudio"),
                 .product(name: "WhisperKit", package: "argmax-oss-swift"),
@@ -82,10 +82,10 @@ let package = Package(
         .target(
             name: "DictationPlugin",
             dependencies: [
-                "PounceKit",
-                "PounceCore",
-                "PouncePersistence",
-                "PounceSpeech",
+                "LintelKit",
+                "LintelCore",
+                "LintelPersistence",
+                "LintelSpeech",
                 // The plugin owns dictation.sqlite and its migrator, like ClipboardPlugin owns clipboard.sqlite.
                 .product(name: "GRDB", package: "GRDBCipher"),
             ]
@@ -93,10 +93,10 @@ let package = Package(
         .target(
             name: "MeetingsPlugin",
             dependencies: [
-                "PounceKit",
-                "PounceCore",
-                "PouncePersistence",
-                "PounceSpeech",
+                "LintelKit",
+                "LintelCore",
+                "LintelPersistence",
+                "LintelSpeech",
                 // `FluidDiarizer` uses the offline diarizer directly (spec: Dependencies); models load only from
                 // the folder `ModelManager` owns.
                 .product(name: "FluidAudio", package: "FluidAudio"),
@@ -105,11 +105,11 @@ let package = Package(
             ]
         ),
         .executableTarget(
-            name: "PounceApp",
+            name: "LintelApp",
             dependencies: [
-                "PounceKit",
-                "PounceCore",
-                "PouncePersistence",
+                "LintelKit",
+                "LintelCore",
+                "LintelPersistence",
                 "AppsPlugin",
                 "FilesPlugin",
                 "ClipboardPlugin",
@@ -120,28 +120,28 @@ let package = Package(
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),
         .testTarget(
-            name: "PounceKitTests",
-            dependencies: ["PounceKit"]
+            name: "LintelKitTests",
+            dependencies: ["LintelKit"]
         ),
         .testTarget(
-            name: "PounceCoreTests",
-            dependencies: ["PounceCore", "PounceKit"]
+            name: "LintelCoreTests",
+            dependencies: ["LintelCore", "LintelKit"]
         ),
         .testTarget(
             name: "AppsPluginTests",
-            dependencies: ["AppsPlugin", "PounceKit", "PounceCore", "PouncePersistence"]
+            dependencies: ["AppsPlugin", "LintelKit", "LintelCore", "LintelPersistence"]
         ),
         .testTarget(
             name: "FilesPluginTests",
-            dependencies: ["FilesPlugin", "PounceKit", "PounceCore", "PouncePersistence"]
+            dependencies: ["FilesPlugin", "LintelKit", "LintelCore", "LintelPersistence"]
         ),
         .testTarget(
             name: "ClipboardPluginTests",
             dependencies: [
                 "ClipboardPlugin",
-                "PounceKit",
-                "PounceCore",
-                "PouncePersistence",
+                "LintelKit",
+                "LintelCore",
+                "LintelPersistence",
                 .product(name: "GRDB", package: "GRDBCipher"),
             ],
             resources: [.copy("Fixtures")]
@@ -149,7 +149,7 @@ let package = Package(
         .testTarget(
             name: "DictationPluginTests",
             dependencies: [
-                "DictationPlugin", "PounceSpeech", "PounceKit", "PounceCore", "PouncePersistence",
+                "DictationPlugin", "LintelSpeech", "LintelKit", "LintelCore", "LintelPersistence",
                 .product(name: "FluidAudio", package: "FluidAudio"),
                 .product(name: "GRDB", package: "GRDBCipher"),
             ],
@@ -158,30 +158,30 @@ let package = Package(
         .testTarget(
             name: "MeetingsPluginTests",
             dependencies: [
-                "MeetingsPlugin", "PounceSpeech", "PounceKit", "PouncePersistence",
+                "MeetingsPlugin", "LintelSpeech", "LintelKit", "LintelPersistence",
                 .product(name: "GRDB", package: "GRDBCipher"),
             ],
             resources: [.copy("Fixtures")]
         ),
         .testTarget(
-            name: "PounceSpeechTests",
+            name: "LintelSpeechTests",
             dependencies: [
-                "PounceSpeech",
+                "LintelSpeech",
                 .product(name: "FluidAudio", package: "FluidAudio"),
             ]
         ),
         .testTarget(
-            name: "PouncePersistenceTests",
+            name: "LintelPersistenceTests",
             dependencies: [
-                "PouncePersistence",
-                "PounceKit",
-                "PounceCore",
+                "LintelPersistence",
+                "LintelKit",
+                "LintelCore",
                 .product(name: "GRDB", package: "GRDBCipher"),
             ]
         ),
         .testTarget(
-            name: "PounceAppTests",
-            dependencies: ["PounceApp", "PounceKit"],
+            name: "LintelAppTests",
+            dependencies: ["LintelApp", "LintelKit"],
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),
     ],

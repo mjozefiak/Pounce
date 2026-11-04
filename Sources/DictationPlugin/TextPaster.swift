@@ -1,6 +1,6 @@
 import CoreGraphics
 import Foundation
-import PounceKit
+import LintelKit
 import os
 
 /// Puts dictated text into the app in front: through the pasteboard and a synthetic Command-V, like the
@@ -11,7 +11,7 @@ import os
 ///   allowed, nothing on it is marked concealed/transient (a password manager's copy is left alone, since
 ///   writing again would stop its automatic clearing), it was read completely, and nobody copied anything
 ///   since the paste.
-/// - Without Accessibility, under Secure Event Input, when the target is gone or is Pounce itself, the text
+/// - Without Accessibility, under Secure Event Input, when the target is gone or is Lintel itself, the text
 ///   is only copied and nothing is restored.
 @MainActor
 final class TextPaster {
@@ -24,7 +24,7 @@ final class TextPaster {
         case noAccessibility
         case secureEventInput
         case targetGone
-        /// Pounce is in front (Settings, the "Try it" box): the text goes to the pasteboard only.
+        /// Lintel is in front (Settings, the "Try it" box): the text goes to the pasteboard only.
         case ownApp
     }
 

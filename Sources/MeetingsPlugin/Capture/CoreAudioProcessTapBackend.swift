@@ -116,8 +116,8 @@ private final class CoreAudioTapSession: ProcessTapSession, @unchecked Sendable 
     }
 
     private let handles = Mutex(Handles())
-    private let queue = DispatchQueue(label: "app.pounce.meetings.system-audio", qos: .userInteractive)
-    private let workerQueue = DispatchQueue(label: "app.pounce.meetings.system-audio.worker", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "com.lintelapp.meetings.system-audio", qos: .userInteractive)
+    private let workerQueue = DispatchQueue(label: "com.lintelapp.meetings.system-audio.worker", qos: .userInitiated)
 
     deinit { stop() }
 
@@ -129,7 +129,7 @@ private final class CoreAudioTapSession: ProcessTapSession, @unchecked Sendable 
         let excluded = excludingOwnProcess ? Self.ownProcessObject().map { [$0] } ?? [] : []
         let description = CATapDescription(stereoGlobalTapButExcludeProcesses: excluded)
         description.uuid = UUID()
-        description.name = "Pounce meeting audio"
+        description.name = "Lintel meeting audio"
         description.isPrivate = true
         description.muteBehavior = .unmuted
 
@@ -140,7 +140,7 @@ private final class CoreAudioTapSession: ProcessTapSession, @unchecked Sendable 
 
         let aggregateUID = UUID().uuidString
         let properties: [String: Any] = [
-            kAudioAggregateDeviceNameKey: "Pounce meeting tap",
+            kAudioAggregateDeviceNameKey: "Lintel meeting tap",
             kAudioAggregateDeviceUIDKey: aggregateUID,
             kAudioAggregateDeviceMainSubDeviceKey: outputUID,
             kAudioAggregateDeviceIsPrivateKey: true,
@@ -271,8 +271,8 @@ private final class CoreAudioTapSession: ProcessTapSession, @unchecked Sendable 
         return format
     }
 
-    /// Pounce's own audio process object, or `nil` when it has not used audio yet (the tap then also hears
-    /// Pounce, which plays nothing during a meeting).
+    /// Lintel's own audio process object, or `nil` when it has not used audio yet (the tap then also hears
+    /// Lintel, which plays nothing during a meeting).
     private static func ownProcessObject() -> AudioObjectID? {
         var address = objectAddress(kAudioHardwarePropertyTranslatePIDToProcessObject)
         var pid = ProcessInfo.processInfo.processIdentifier
@@ -307,7 +307,7 @@ private final class DefaultOutputObservation: OutputChangeObservation, @unchecke
     init(handler: @escaping @Sendable () -> Void) {
         listener = PropertyListener(
             object: AudioObjectID(kAudioObjectSystemObject), selector: kAudioHardwarePropertyDefaultOutputDevice,
-            queue: DispatchQueue(label: "app.pounce.meetings.output-change"), handler: handler)
+            queue: DispatchQueue(label: "com.lintelapp.meetings.output-change"), handler: handler)
     }
 
     func install() throws(SystemAudioError) {

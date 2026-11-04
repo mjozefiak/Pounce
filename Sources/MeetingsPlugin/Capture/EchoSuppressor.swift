@@ -1,5 +1,5 @@
 import Foundation
-import PounceCore
+import LintelCore
 
 /// One transcribed segment of one track, on the shared timeline (milliseconds since the common start).
 struct TrackSegment: Equatable, Sendable {

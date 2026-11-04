@@ -1,6 +1,6 @@
 import Foundation
-import PounceKit
-import PounceSpeech
+import LintelKit
+import LintelSpeech
 import Synchronization
 import Testing
 
@@ -470,7 +470,7 @@ import Testing
         let keys = [
             "Test System Audio", "Play Test Signal", "Clear Library…", "Delete Temporary Recordings…",
             "Remove Model", "Until I delete them", "Removed %lld meetings and their audio.",
-            "System audio works. Pounce heard its own test signal.", "Delete older meetings?",
+            "System audio works. Lintel heard its own test signal.", "Delete older meetings?",
             "Delete Older Meetings", "%lld recordings could not be deleted. Close anything using them and try again.",
             "%lld meetings are older than the new limit and are deleted now. This cannot be undone.",
             "Meetings older than the period you choose are deleted, together with their transcripts and notes.",

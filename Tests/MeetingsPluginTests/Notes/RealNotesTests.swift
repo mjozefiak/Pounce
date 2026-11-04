@@ -1,26 +1,26 @@
 import Darwin
 import Foundation
-import PounceSpeech
+import LintelSpeech
 import Testing
 
 @testable import MeetingsPlugin
 
 /// Runs the notes on a REAL model. Off by default: it needs a GGUF file from `LLMModelCatalog` and takes minutes.
 ///
-///     POUNCE_NOTES_LLM_MODEL=/path/to/Qwen3-4B-Instruct-2507-Q4_K_M.gguf \
+///     LINTEL_NOTES_LLM_MODEL=/path/to/Qwen3-4B-Instruct-2507-Q4_K_M.gguf \
 ///       swift test -c release --filter RealNotesTests
 ///
-/// Optional: `POUNCE_NOTES_TRANSCRIPT=/path/to/transcript.txt` (one `[mm:ss] Speaker: text` line per utterance, for
-/// example a real meeting) adds that transcript; `POUNCE_NOTES_LONG_REPEAT=<n>` repeats the bundled long
+/// Optional: `LINTEL_NOTES_TRANSCRIPT=/path/to/transcript.txt` (one `[mm:ss] Speaker: text` line per utterance, for
+/// example a real meeting) adds that transcript; `LINTEL_NOTES_LONG_REPEAT=<n>` repeats the bundled long
 /// meeting n times (about 440 words each; 20 is the word count of one hour of speech) for the timing in `docs/perf.md`.
 ///
 /// It asserts only what must hold for any model: no image, link or HTML in the notes, every point stands on a
 /// quote that is in the recording, no task owner nobody named, and nothing the corpus lists as bait. It prints
 /// the timings and the memory (`NOTES-BENCH …` lines); nothing is stored, and no transcript text is printed.
-@Suite(.enabled(if: ProcessInfo.processInfo.environment["POUNCE_NOTES_LLM_MODEL"] != nil), .serialized)
+@Suite(.enabled(if: ProcessInfo.processInfo.environment["LINTEL_NOTES_LLM_MODEL"] != nil), .serialized)
 struct RealNotesTests {
     private static var modelURL: URL? {
-        ProcessInfo.processInfo.environment["POUNCE_NOTES_LLM_MODEL"].map { URL(filePath: $0) }
+        ProcessInfo.processInfo.environment["LINTEL_NOTES_LLM_MODEL"].map { URL(filePath: $0) }
     }
 
     /// `phys_footprint` of this process, the number Activity Monitor calls Memory.
@@ -83,12 +83,12 @@ struct RealNotesTests {
         let environment = ProcessInfo.processInfo.environment
         var transcript: [NotesUtterance]
         var name = "long"
-        if let path = environment["POUNCE_NOTES_TRANSCRIPT"] {
+        if let path = environment["LINTEL_NOTES_TRANSCRIPT"] {
             transcript = try NotesCorpusCase.plainTranscript(at: URL(filePath: path))
             name = "own-transcript"
         } else {
             let base = try NotesCorpusCase.longMeeting()
-            let repeats = max(1, Int(environment["POUNCE_NOTES_LONG_REPEAT"] ?? "") ?? 1)
+            let repeats = max(1, Int(environment["LINTEL_NOTES_LONG_REPEAT"] ?? "") ?? 1)
             let span = (base.last?.startMs ?? 0) + 17_000
             transcript = (0..<repeats).flatMap { round in
                 base.map { NotesUtterance(startMs: $0.startMs + round * span, speaker: $0.speaker, text: $0.text) }

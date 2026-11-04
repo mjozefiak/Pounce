@@ -1,5 +1,5 @@
 import Foundation
-import PounceSpeech
+import LintelSpeech
 import os
 
 /// What `MeetingResumer` reports while it works. Counts only: never text, never audio.
@@ -99,7 +99,7 @@ struct MeetingResumer: MeetingResuming {
         keepWarm: @escaping @Sendable () -> Duration = { .seconds(600) },
         finalize: @escaping @Sendable (Int64, UUID) async -> Void, echo: EchoSuppressor = EchoSuppressor(),
         now: @escaping @Sendable () -> Date = { Date() },
-        logger: Logger = Logger(subsystem: "app.pounce", category: "meetings")
+        logger: Logger = Logger(subsystem: "com.lintelapp", category: "meetings")
     ) {
         self.store = store
         self.keys = keys

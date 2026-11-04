@@ -1,6 +1,6 @@
 import Foundation
-import PounceKit
-import PounceSpeech
+import LintelKit
+import LintelSpeech
 import Testing
 
 @testable import MeetingsPlugin
@@ -63,7 +63,7 @@ final class RecordingObserverSpy: MeetingRecordingObserver {
 
     // MARK: Policy: flapping
 
-    private let config = SuggestionConfig(enabled: true, ownBundleID: "app.pounce")
+    private let config = SuggestionConfig(enabled: true, ownBundleID: "com.lintelapp")
 
     private func event(_ process: UInt32, _ bundleID: String?, _ running: Bool = true) -> ProcessAudioEvent {
         ProcessAudioEvent(processObjectID: process, bundleID: bundleID, isRunningInput: running)
@@ -112,8 +112,8 @@ final class RecordingObserverSpy: MeetingRecordingObserver {
         #expect(listed.listedApp(for: "US.ZOOM.XOS") == "us.zoom.xos")
         #expect(KnownMeetingApp.name(of: "US.Zoom.xos") == "Zoom")
         var own = config
-        own.ownBundleID = "App.Pounce"
-        #expect(own.listedApp(for: "app.pounce.helper") == nil)
+        own.ownBundleID = "App.Lintel"
+        #expect(own.listedApp(for: "com.lintelapp.helper") == nil)
     }
 
     // MARK: Settings lists

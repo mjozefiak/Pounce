@@ -1,8 +1,8 @@
 import CryptoKit
 import Foundation
 import GRDB
-import PounceKit
-import PouncePersistence
+import LintelKit
+import LintelPersistence
 import Testing
 
 @testable import ClipboardPlugin
@@ -213,7 +213,7 @@ import Testing
     }
 }
 
-/// A clipboard database written by the release before the key logic moved to `PouncePersistence`
+/// A clipboard database written by the release before the key logic moved to `LintelPersistence`
 /// (`Fixtures/previous-release`, master key = 32 bytes of 0x07) still opens, with the same Keychain item.
 @Suite struct PreviousReleaseCompatibilityTests {
     private func copyFixture() throws -> TemporaryDirectory {
@@ -227,7 +227,7 @@ import Testing
     private func keychainWithOldKey() throws -> FakeKeychain {
         let keychain = FakeKeychain()
         try keychain.addGenericPassword(
-            Data(repeating: 7, count: 32), service: "app.pounce.clipboard", account: "master-key")
+            Data(repeating: 7, count: 32), service: "com.lintelapp.clipboard", account: "master-key")
         return keychain
     }
 
@@ -247,7 +247,7 @@ import Testing
     }
 
     @Test func theServiceAndAccountAreUnchanged() {
-        #expect(KeyStore.service == "app.pounce.clipboard")
+        #expect(KeyStore.service == "com.lintelapp.clipboard")
         #expect(KeyStore.account == "master-key")
     }
 }

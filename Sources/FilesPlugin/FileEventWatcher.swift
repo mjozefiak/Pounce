@@ -50,7 +50,7 @@ final class FileEventWatcher: Sendable {
         // by whoever takes it out of the mutex.
         let ref: FSEventStreamRef
     }
-    private let queue = DispatchQueue(label: "app.pounce.files.events", qos: .utility)
+    private let queue = DispatchQueue(label: "com.lintelapp.files.events", qos: .utility)
     private let continuation: AsyncStream<Void>.Continuation
     /// Yields after new events were buffered.
     let wakeups: AsyncStream<Void>

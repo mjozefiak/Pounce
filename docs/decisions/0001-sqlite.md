@@ -27,18 +27,18 @@ the outside:
   `4.20.0` (an XCFramework binary target with a checksum), and the `SQLITE_HAS_CODEC` / `SQLCipher`
   defines. GRDB's privacy manifest is excluded because a resource bundle cannot be located from a
   plain `.app`.
-- `PouncePersistence` depends on this `GRDB` product. Every database goes through it: plain databases
+- `LintelPersistence` depends on this `GRDB` product. Every database goes through it: plain databases
   (`ranking.sqlite`) simply open without a key.
 - Keys are passed as SQLCipher raw keys (`x'<64 hex>'` via `usePassphrase(Data)`), so the 32-byte
   HKDF-SHA256 sub-key (`info = "sqlcipher"`) is used directly without a PBKDF2 pass on top
   (`DatabaseKey`, `DatabaseFactory.openQueue`).
 - SQLCipher ships as a dynamic framework. `scripts/make-app.sh` embeds it in
-  `Pounce.app/Contents/Frameworks`, adds the `@executable_path/../Frameworks` rpath, and signs it
+  `Lintel.app/Contents/Frameworks`, adds the `@executable_path/../Frameworks` rpath, and signs it
   with the app's identity before signing the app.
 
-Licenses: GRDB is MIT, SQLCipher Community Edition is BSD-style; both are compatible with Pounce's
+Licenses: GRDB is MIT, SQLCipher Community Edition is BSD-style; both are compatible with Lintel's
 MIT license. SQLCipher's license requires its notice in binary distributions, so
-`Resources/THIRD_PARTY_NOTICES.txt` (both notices) ships in `Pounce.app/Contents/Resources`.
+`Resources/THIRD_PARTY_NOTICES.txt` (both notices) ships in `Lintel.app/Contents/Resources`.
 
 ## Spike results (macOS 27.0.1, Xcode 27.2, Swift 6.4.2)
 
@@ -54,7 +54,7 @@ MIT license. SQLCipher's license requires its notice in binary distributions, so
 | Plain database through the same GRDB | works, normal SQLite header |
 | Core Data store (system `libsqlite3`) in the same process | works; the two libraries coexist through two-level namespaces |
 
-The unit tests in `Tests/PouncePersistenceTests/SQLCipherSpikeTests.swift` keep these properties
+The unit tests in `Tests/LintelPersistenceTests/SQLCipherSpikeTests.swift` keep these properties
 under CI.
 
 ## Consequences
@@ -73,4 +73,4 @@ under CI.
   `BACKWARD_COMPATIBILITY.md` section 2.
 - If maintaining the wrapper becomes a burden, the alternative is a fork of GRDB under the owner's
   account with the recipe applied in its own `Package.swift`; the products and module names would not
-  change, so no Pounce code would.
+  change, so no Lintel code would.

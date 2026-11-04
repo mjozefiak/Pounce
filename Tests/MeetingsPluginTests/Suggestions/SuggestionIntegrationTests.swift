@@ -1,7 +1,7 @@
 import Foundation
 import GRDB
-import PounceKit
-import PounceSpeech
+import LintelKit
+import LintelSpeech
 import Synchronization
 import Testing
 
@@ -188,7 +188,7 @@ import Testing
             plugin.adjustControllerDependencies = { dependencies in
                 dependencies.authorizer = FakeAuthorizer(.granted)
                 dependencies.speechModel = {
-                    .ready(modelID: "parakeet-ultra", folder: URL(filePath: "/tmp/pounce-model"))
+                    .ready(modelID: "parakeet-ultra", folder: URL(filePath: "/tmp/lintel-model"))
                 }
                 dependencies.makeSession = { request in
                     let session = ScriptedSession()

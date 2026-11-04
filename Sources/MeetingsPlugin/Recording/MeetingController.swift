@@ -1,5 +1,5 @@
 import Foundation
-import PounceSpeech
+import LintelSpeech
 import Synchronization
 import os
 
@@ -60,7 +60,7 @@ final class MeetingController {
         var openSettings: @MainActor () -> Void
         var openURL: @MainActor (URL) -> Void
         var changed: @Sendable () -> Void = {}
-        var logger = Logger(subsystem: "app.pounce", category: "meetings")
+        var logger = Logger(subsystem: "com.lintelapp", category: "meetings")
         /// How long the consent reminder stays on the HUD.
         var consentDuration: Duration = .seconds(8)
         /// How long the system track may stay silent before the HUD says so (spec: 20 s).

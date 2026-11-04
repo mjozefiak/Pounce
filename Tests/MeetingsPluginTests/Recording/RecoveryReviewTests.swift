@@ -1,8 +1,8 @@
 import Foundation
 import GRDB
-import PounceKit
-import PouncePersistence
-import PounceSpeech
+import LintelKit
+import LintelPersistence
+import LintelSpeech
 import Synchronization
 import Testing
 
@@ -287,7 +287,7 @@ private func finished(_ handle: MeetingFinishHandle) async -> ResumeOutcome {
         let rig = try RecoveryRig(texts: words)
         let meeting = try rig.seed(.recording, mic: mic())
         rig.closeSeed()
-        try rig.harness.keychain.deleteGenericPassword(service: "app.pounce.meetings", account: "master-key")
+        try rig.harness.keychain.deleteGenericPassword(service: "com.lintelapp.meetings", account: "master-key")
         // The database is gone as well: no archive, a fresh library, but the old spool is still on disk.
         try FileManager.default.removeItem(at: rig.pluginDirectory.appending(path: MeetingsStore.fileName))
         let library = rig.library()

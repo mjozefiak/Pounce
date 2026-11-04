@@ -1,7 +1,7 @@
 import Foundation
 import GRDB
-import PounceKit
-import PounceSpeech
+import LintelKit
+import LintelSpeech
 import Synchronization
 import Testing
 

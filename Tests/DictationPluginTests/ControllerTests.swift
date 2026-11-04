@@ -1,11 +1,11 @@
 import Foundation
-import PounceKit
+import LintelKit
 import Synchronization
 import Testing
 import os
 
 @testable import DictationPlugin
-@testable import PounceSpeech
+@testable import LintelSpeech
 
 @MainActor final class FakeHUD: HUDPresenter {
     private(set) var states: [HUDState] = []

@@ -1,5 +1,5 @@
 import Foundation
-import PounceSpeech
+import LintelSpeech
 import Synchronization
 import os
 
@@ -117,7 +117,7 @@ actor MeetingSession {
         sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) },
         beforeReady: (@Sendable (Int64, UUID) async -> Void)? = nil,
         sourceBundleID: String? = nil,
-        logger: Logger = Logger(subsystem: "app.pounce", category: "meetings")
+        logger: Logger = Logger(subsystem: "com.lintelapp", category: "meetings")
     ) {
         self.sourceBundleID = sourceBundleID
         (events, continuation) = AsyncStream.makeStream(of: Event.self, bufferingPolicy: .unbounded)
@@ -164,7 +164,7 @@ actor MeetingSession {
             let writers = try createSpool()
             let id = try insertMeeting(cleaningUp: writers)
             meetingID = id
-            sleepAssertion.hold(reason: "Pounce is recording a meeting")
+            sleepAssertion.hold(reason: "Lintel is recording a meeting")
             startModelLoad()
             try await startAudio(writers: writers)
         } catch {

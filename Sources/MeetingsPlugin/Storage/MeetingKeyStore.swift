@@ -1,7 +1,7 @@
 import CryptoKit
 import Foundation
-import PounceKit
-import PouncePersistence
+import LintelKit
+import LintelPersistence
 
 /// The meetings library's working keys, derived with HKDF-SHA256 from the 32-byte master key in the Keychain
 /// (spec: Data Model): `info = "sqlcipher"` for the database and `info = "spool"` for the temporary audio
@@ -25,13 +25,13 @@ struct MeetingKeys: Sendable, CustomStringConvertible, CustomDebugStringConverti
     var debugDescription: String { description }
 }
 
-/// The meetings master key: `service = app.pounce.meetings` in `MasterKeyStore`.
+/// The meetings master key: `service = com.lintelapp.meetings` in `MasterKeyStore`.
 ///
 /// The three outcomes are kept apart on purpose: only `.missing` (`errSecItemNotFound`) may ever lead to
 /// resetting the library. A locked keychain, a denied prompt or any other error leaves every file alone and
 /// only disables the library (and recording) until a retry succeeds.
 struct MeetingKeyStore: Sendable {
-    static let service = "app.pounce.meetings"
+    static let service = "com.lintelapp.meetings"
 
     enum Lookup: Sendable {
         case found(MeetingKeys)

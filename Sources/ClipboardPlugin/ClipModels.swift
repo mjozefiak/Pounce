@@ -1,5 +1,5 @@
 import Foundation
-import PounceKit
+import LintelKit
 
 /// What a clipboard entry holds, stored in `clip_item.kind`. The raw values are part of the database
 /// format.

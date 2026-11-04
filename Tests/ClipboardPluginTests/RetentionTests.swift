@@ -1,5 +1,5 @@
 import Foundation
-import PounceKit
+import LintelKit
 import Testing
 import os
 
@@ -22,7 +22,8 @@ import os
 
     func job(now: Date) -> RetentionJob {
         RetentionJob(
-            clock: ContinuousClock(), now: { now }, logger: Logger(subsystem: "app.pounce.tests", category: "clipboard")
+            clock: ContinuousClock(), now: { now },
+            logger: Logger(subsystem: "com.lintelapp.tests", category: "clipboard")
         )
     }
 

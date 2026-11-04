@@ -1,7 +1,7 @@
 import CryptoKit
 import Foundation
-import PounceKit
-import PouncePersistence
+import LintelKit
+import LintelPersistence
 
 /// The clipboard's working keys, derived with HKDF-SHA256 from the 32-byte master key in the Keychain
 /// (spec: Data Model): `info = "sqlcipher"` for the database, `"blob"` for blob files and
@@ -29,13 +29,13 @@ struct ClipKeys: Sendable, CustomStringConvertible, CustomDebugStringConvertible
     var debugDescription: String { description }
 }
 
-/// The clipboard's master key: `service = app.pounce.clipboard` in `MasterKeyStore`.
+/// The clipboard's master key: `service = com.lintelapp.clipboard` in `MasterKeyStore`.
 ///
 /// The three outcomes are kept apart on purpose: only `.missing` (`errSecItemNotFound`) may ever lead
 /// to resetting the history. A locked keychain, a denied prompt or any other error leaves every file
 /// alone and only disables recording until a retry succeeds.
 struct KeyStore: Sendable {
-    static let service = "app.pounce.clipboard"
+    static let service = "com.lintelapp.clipboard"
     static let account = MasterKeyStore.account
 
     enum Lookup: Sendable {

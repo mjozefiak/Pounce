@@ -1,8 +1,8 @@
 import Foundation
 import GRDB
-import PounceKit
-import PouncePersistence
-import PounceSpeech
+import LintelKit
+import LintelPersistence
+import LintelSpeech
 import Testing
 
 @testable import MeetingsPlugin
@@ -15,7 +15,7 @@ private func mode(_ url: URL) throws -> Int {
 @MainActor
 @Suite struct MeetingKeyTests {
     @Test func theKeysUseTheDocumentedServiceAndInfos() throws {
-        #expect(MeetingKeyStore.service == "app.pounce.meetings")
+        #expect(MeetingKeyStore.service == "com.lintelapp.meetings")
         let master = Data(repeating: 7, count: 32)
         let keys = try #require(MasterKeys(master: master))
         let meeting = MeetingKeys(keys)
@@ -29,11 +29,11 @@ private func mode(_ url: URL) throws -> Int {
     @Test func aMalformedKeyIsReportedNotReplaced() throws {
         let harness = try MeetingsHarness()
         try harness.keychain.addGenericPassword(
-            Data(repeating: 1, count: 5), service: "app.pounce.meetings", account: "master-key")
+            Data(repeating: 1, count: 5), service: "com.lintelapp.meetings", account: "master-key")
         let library = harness.library()
         library.open()
         #expect(library.status == .unavailable(.malformedKey))
-        #expect(harness.keychain.itemNames == ["app.pounce.meetings/master-key"])
+        #expect(harness.keychain.itemNames == ["com.lintelapp.meetings/master-key"])
     }
 }
 
@@ -47,7 +47,7 @@ private func mode(_ url: URL) throws -> Int {
         #expect(library.status == .ready)
         #expect(library.canRecord)
         #expect(library.resetArchive == nil)
-        #expect(harness.keychain.itemNames == ["app.pounce.meetings/master-key"])
+        #expect(harness.keychain.itemNames == ["com.lintelapp.meetings/master-key"])
         #expect(try mode(harness.pluginDirectory) == 0o700)
         #expect(try mode(harness.pluginDirectory.appending(path: "meetings.sqlite")) == 0o600)
         library.close()
@@ -64,7 +64,7 @@ private func mode(_ url: URL) throws -> Int {
         try store.insertMeeting(uuid: "a", startedAt: stamp, speechModelID: "m")
         first.close()
 
-        try harness.keychain.deleteGenericPassword(service: "app.pounce.meetings", account: "master-key")
+        try harness.keychain.deleteGenericPassword(service: "com.lintelapp.meetings", account: "master-key")
         let second = harness.library(now: { stamp })
         second.open()
 
@@ -73,7 +73,7 @@ private func mode(_ url: URL) throws -> Int {
         let archive = try #require(second.resetArchive)
         #expect(archive.lastPathComponent == "meetings.sqlite.unreadable-\(EncryptedDatabaseOpener.stamp(stamp))")
         #expect(FileManager.default.fileExists(atPath: archive.path))
-        #expect(harness.keychain.itemNames == ["app.pounce.meetings/master-key"])
+        #expect(harness.keychain.itemNames == ["com.lintelapp.meetings/master-key"])
         second.close()
 
         // The archive is kept for 30 days and then purged.
@@ -109,7 +109,7 @@ private func mode(_ url: URL) throws -> Int {
         #expect(try Data(contentsOf: file) == before)
         let names = try FileManager.default.contentsOfDirectory(atPath: harness.pluginDirectory.path)
         #expect(!names.contains { $0.contains(".unreadable-") })
-        #expect(harness.keychain.itemNames == ["app.pounce.meetings/master-key"])
+        #expect(harness.keychain.itemNames == ["com.lintelapp.meetings/master-key"])
         #expect(harness.keychain.deleteCount == 0)
 
         // Once the Keychain answers again, the same library opens with its data.
@@ -125,9 +125,9 @@ private func mode(_ url: URL) throws -> Int {
         first.open()
         first.close()
         let file = harness.pluginDirectory.appending(path: "meetings.sqlite")
-        try harness.keychain.deleteGenericPassword(service: "app.pounce.meetings", account: "master-key")
+        try harness.keychain.deleteGenericPassword(service: "com.lintelapp.meetings", account: "master-key")
         try harness.keychain.addGenericPassword(
-            Data(repeating: 3, count: 32), service: "app.pounce.meetings", account: "master-key")
+            Data(repeating: 3, count: 32), service: "com.lintelapp.meetings", account: "master-key")
         let second = harness.library()
         second.open()
         #expect(second.status == .failed)
@@ -177,7 +177,7 @@ private func mode(_ url: URL) throws -> Int {
             library: library, spool: SpoolStorage(pluginDirectory: harness.pluginDirectory), changed: {})
         #expect(try privacy.clearLibrary().removed == 1)
         #expect(library.meetingCount == 0)
-        #expect(harness.keychain.itemNames == ["app.pounce.meetings/master-key"])
+        #expect(harness.keychain.itemNames == ["com.lintelapp.meetings/master-key"])
         #expect(FileManager.default.fileExists(atPath: harness.pluginDirectory.appending(path: "meetings.sqlite").path))
     }
 }

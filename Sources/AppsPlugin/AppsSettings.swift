@@ -1,6 +1,6 @@
 import Foundation
+import LintelKit
 import Observation
-import PounceKit
 import SwiftUI
 
 /// The app plugin's settings keys (`plugins.apps.*`, `BACKWARD_COMPATIBILITY.md` §3).
@@ -148,14 +148,14 @@ struct AppsSettingsPane: View {
                 Toggle(isOn: Binding(get: { model.suggestionsEnabled }, set: { model.setSuggestionsEnabled($0) })) {
                     Text("Suggest Apps", comment: "Settings toggle that turns app suggestions on")
                     Text(
-                        "Pounce records on this Mac which apps you use and how often, to suggest them. Nothing leaves your Mac.",
+                        "Lintel records on this Mac which apps you use and how often, to suggest them. Nothing leaves your Mac.",
                         comment: "Settings description of what app suggestions record"
                     )
                 }
                 if model.isReadOnly {
                     Label {
                         Text(
-                            "App activity was saved by a newer version of Pounce. Suggestions are off until you update.",
+                            "App activity was saved by a newer version of Lintel. Suggestions are off until you update.",
                             comment: "Settings message when activity.json comes from a newer version"
                         )
                     } icon: {

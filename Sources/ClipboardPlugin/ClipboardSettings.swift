@@ -1,6 +1,6 @@
 import Foundation
+import LintelKit
 import Observation
-import PounceKit
 
 /// The clipboard plugin's settings under `plugins.clipboard.` (a protected contract,
 /// `BACKWARD_COMPATIBILITY.md` section 3), with change callbacks for the plugin.

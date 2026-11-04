@@ -3,23 +3,23 @@ import Foundation
 import Testing
 
 @testable import DictationPlugin
-@testable import PounceSpeech
+@testable import LintelSpeech
 
 /// Step 1.5, local only (off by default): a whole `DictationSession` with the real Parakeet Ultra model and Silero
 /// VAD from an installed model folder, on speech made with the system voice (the engine-only checks live in
-/// `PounceSpeechTests`).
+/// `LintelSpeechTests`).
 ///
-/// `POUNCE_DICTATION_MODEL_FOLDER=<Models/speech/parakeet-ultra> swift test --filter RealModelTests`
-@Suite(.enabled(if: ProcessInfo.processInfo.environment["POUNCE_DICTATION_MODEL_FOLDER"] != nil))
+/// `LINTEL_DICTATION_MODEL_FOLDER=<Models/speech/parakeet-ultra> swift test --filter RealModelTests`
+@Suite(.enabled(if: ProcessInfo.processInfo.environment["LINTEL_DICTATION_MODEL_FOLDER"] != nil))
 struct RealModelTests {
     private var folder: URL {
         URL(
-            filePath: ProcessInfo.processInfo.environment["POUNCE_DICTATION_MODEL_FOLDER"] ?? "",
+            filePath: ProcessInfo.processInfo.environment["LINTEL_DICTATION_MODEL_FOLDER"] ?? "",
             directoryHint: .isDirectory)
     }
 
     private func spokenSamples(_ text: String) throws -> [Float] {
-        let file = FileManager.default.temporaryDirectory.appending(path: "pounce-say-\(UUID().uuidString).aiff")
+        let file = FileManager.default.temporaryDirectory.appending(path: "lintel-say-\(UUID().uuidString).aiff")
         defer { try? FileManager.default.removeItem(at: file) }
         let say = Process()
         say.executableURL = URL(filePath: "/usr/bin/say")

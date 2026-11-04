@@ -1,7 +1,7 @@
 import Foundation
-import PounceCore
-import PounceKit
-import PouncePersistence
+import LintelCore
+import LintelKit
+import LintelPersistence
 import Testing
 
 @testable import AppsPlugin

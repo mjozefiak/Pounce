@@ -1,6 +1,6 @@
 import Foundation
-import PounceKit
-import PouncePersistence
+import LintelKit
+import LintelPersistence
 
 /// Opens the clipboard history with the key from the Keychain, applying the spec's reset policy.
 ///

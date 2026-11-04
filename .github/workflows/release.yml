@@ -1,6 +1,6 @@
 name: Release
 
-# A tag like v0.1.0 builds Pounce.dmg, signs it with the stable self-signed "Pounce Release" identity
+# A tag like v0.1.0 builds Lintel.dmg, signs it with the stable self-signed "Lintel Release" identity
 # and publishes a GitHub Release. Pull requests that touch the app and manual runs build and sign the
 # same DMG and upload it as a workflow artifact without publishing anything.
 on:
@@ -35,7 +35,7 @@ jobs:
       # Only the import step below sees the signing secrets. Every other step, including third-party
       # actions, the tests and the build scripts, gets this flag and the temporary keychain instead.
       HAS_SIGNING_SECRETS: ${{ secrets.SIGNING_P12 != '' }}
-      IDENTITY: Pounce Release
+      IDENTITY: Lintel Release
     steps:
       - uses: actions/checkout@v7
         with:
@@ -64,7 +64,7 @@ jobs:
       - name: Require signing secrets for releases
         if: startsWith(github.ref, 'refs/tags/') && env.HAS_SIGNING_SECRETS != 'true'
         run: |
-          echo "::error::SIGNING_P12 is not available; a release must be signed with the Pounce Release identity."
+          echo "::error::SIGNING_P12 is not available; a release must be signed with the Lintel Release identity."
           exit 1
 
       - name: Import signing certificate into a temporary keychain
@@ -73,7 +73,7 @@ jobs:
           SIGNING_P12: ${{ secrets.SIGNING_P12 }}
           SIGNING_P12_PASSWORD: ${{ secrets.SIGNING_P12_PASSWORD }}
         run: |
-          KEYCHAIN="$RUNNER_TEMP/pounce-signing.keychain-db"
+          KEYCHAIN="$RUNNER_TEMP/lintel-signing.keychain-db"
           KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
           echo "::add-mask::$KEYCHAIN_PASSWORD"
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
@@ -83,7 +83,7 @@ jobs:
           security set-keychain-settings -lut 3600 "$KEYCHAIN"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
 
-          P12="$RUNNER_TEMP/pounce-signing.p12"
+          P12="$RUNNER_TEMP/lintel-signing.p12"
           trap 'rm -f "$P12"' EXIT
           (umask 077 && printf '%s' "$SIGNING_P12" | base64 --decode > "$P12")
           security import "$P12" -k "$KEYCHAIN" -f pkcs12 -P "$SIGNING_P12_PASSWORD" -T /usr/bin/codesign >/dev/null
@@ -97,8 +97,8 @@ jobs:
           cp /usr/bin/true "$PROBE"
           if ! codesign --force --sign "$IDENTITY" --keychain "$KEYCHAIN" --timestamp=none "$PROBE" 2>/dev/null; then
             echo "codesign refused the untrusted identity; trusting it on this runner only."
-            security find-certificate -c "$IDENTITY" -p "$KEYCHAIN" > "$RUNNER_TEMP/pounce-signing.pem"
-            sudo security add-trusted-cert -d -r trustRoot -p codeSign -k /Library/Keychains/System.keychain "$RUNNER_TEMP/pounce-signing.pem"
+            security find-certificate -c "$IDENTITY" -p "$KEYCHAIN" > "$RUNNER_TEMP/lintel-signing.pem"
+            sudo security add-trusted-cert -d -r trustRoot -p codeSign -k /Library/Keychains/System.keychain "$RUNNER_TEMP/lintel-signing.pem"
             codesign --force --sign "$IDENTITY" --keychain "$KEYCHAIN" --timestamp=none "$PROBE"
           fi
           rm -f "$PROBE"
@@ -115,10 +115,10 @@ jobs:
       - name: Verify signature and designated requirement
         if: env.SIGN_IDENTITY != ''
         run: |
-          codesign --verify --strict --deep --verbose=2 dist/Pounce.app
-          codesign -dv dist/Pounce.app 2>&1 | grep -E '^(Identifier|Authority|TeamIdentifier|CodeDirectory)'
-          codesign -dr - dist/Pounce.app 2>/dev/null | tee dist/designated-requirement.txt
-          grep -q 'identifier "app.pounce.Pounce"' dist/designated-requirement.txt
+          codesign --verify --strict --deep --verbose=2 dist/Lintel.app
+          codesign -dv dist/Lintel.app 2>&1 | grep -E '^(Identifier|Authority|TeamIdentifier|CodeDirectory)'
+          codesign -dr - dist/Lintel.app 2>/dev/null | tee dist/designated-requirement.txt
+          grep -q 'identifier "com.lintelapp.Lintel"' dist/designated-requirement.txt
           # A self-signed identity is a one-certificate chain, so codesign pins it as the leaf
           # (identical to the root): the requirement names that certificate's hash.
           grep -Eq 'certificate (leaf|root) = H"[0-9a-f]{40}"' dist/designated-requirement.txt
@@ -136,23 +136,23 @@ jobs:
       - name: Second build keeps the same designated requirement
         if: env.SIGN_IDENTITY != ''
         run: |
-          mv dist/Pounce.app "$RUNNER_TEMP/Pounce-first.app"
+          mv dist/Lintel.app "$RUNNER_TEMP/Lintel-first.app"
           scripts/make-app.sh
-          codesign -dr - dist/Pounce.app 2>/dev/null > "$RUNNER_TEMP/designated-requirement-2.txt"
+          codesign -dr - dist/Lintel.app 2>/dev/null > "$RUNNER_TEMP/designated-requirement-2.txt"
           diff -u dist/designated-requirement.txt "$RUNNER_TEMP/designated-requirement-2.txt"
           echo "Two consecutive builds have the same designated requirement."
 
       - name: Checksum
         run: |
           cd dist
-          shasum -a 256 Pounce.dmg | tee Pounce.dmg.sha256
+          shasum -a 256 Lintel.dmg | tee Lintel.dmg.sha256
 
       - uses: actions/upload-artifact@v7
         with:
-          name: Pounce-dmg
+          name: Lintel-dmg
           path: |
-            dist/Pounce.dmg
-            dist/Pounce.dmg.sha256
+            dist/Lintel.dmg
+            dist/Lintel.dmg.sha256
             dist/designated-requirement.txt
           if-no-files-found: error
 
@@ -171,44 +171,44 @@ jobs:
     steps:
       - uses: actions/download-artifact@v7
         with:
-          name: Pounce-dmg
+          name: Lintel-dmg
           path: dist
 
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          SHA256="$(cut -d' ' -f1 dist/Pounce.dmg.sha256)"
+          SHA256="$(cut -d' ' -f1 dist/Lintel.dmg.sha256)"
           cat > "$RUNNER_TEMP/notes.md" <<EOF
           ## Install
 
-          1. Download **Pounce.dmg** below and open it.
-          2. Drag **Pounce** onto the **Applications** folder.
-          3. Open Pounce from Applications. A paw icon appears in the menu bar.
+          1. Download **Lintel.dmg** below and open it.
+          2. Drag **Lintel** onto the **Applications** folder.
+          3. Open Lintel from Applications. A paw icon appears in the menu bar.
 
           Requires macOS 26 or later on Apple silicon.
 
           ## First launch: Gatekeeper
 
-          Pounce is free and open source. It is signed with its own stable certificate ("Pounce Release")
+          Lintel is free and open source. It is signed with its own stable certificate ("Lintel Release")
           so macOS keeps your permissions across updates, but it is **not notarized** by Apple. The first
           time you open it, macOS blocks it. To allow it once:
 
-          1. Open Pounce and close the warning.
+          1. Open Lintel and close the warning.
           2. Open **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to
-             the Pounce message, then confirm.
+             the Lintel message, then confirm.
 
           Right-click → Open no longer skips this check on current macOS. Alternatively, in Terminal:
 
           \`\`\`bash
-          xattr -dr com.apple.quarantine /Applications/Pounce.app
+          xattr -dr com.apple.quarantine /Applications/Lintel.app
           \`\`\`
 
-          SHA-256 of \`Pounce.dmg\`: \`${SHA256}\`
+          SHA-256 of \`Lintel.dmg\`: \`${SHA256}\`
           EOF
-          gh release create "$GITHUB_REF_NAME" dist/Pounce.dmg dist/Pounce.dmg.sha256 \
+          gh release create "$GITHUB_REF_NAME" dist/Lintel.dmg dist/Lintel.dmg.sha256 \
             --repo "$GITHUB_REPOSITORY" \
             --verify-tag \
-            --title "Pounce ${GITHUB_REF_NAME#v}" \
+            --title "Lintel ${GITHUB_REF_NAME#v}" \
             --notes-file "$RUNNER_TEMP/notes.md" \
             --generate-notes

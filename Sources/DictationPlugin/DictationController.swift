@@ -1,6 +1,6 @@
 import Foundation
-import PounceKit
-import PounceSpeech
+import LintelKit
+import LintelSpeech
 import os
 
 /// Runs one dictation from the shortcut to the pasted text: the gesture, the microphone permission, the
@@ -37,7 +37,7 @@ final class DictationController {
     private var session: DictationSession?
     private var escapeClaim: EscapeKeyClaim?
     private var finishTask: Task<Void, Never>?
-    private let logger = Logger(subsystem: "app.pounce", category: "dictation")
+    private let logger = Logger(subsystem: "com.lintelapp", category: "dictation")
 
     /// The raw transcript of the last dictation (before any formatting), kept in memory only, for "paste the
     /// raw version of the last dictation".

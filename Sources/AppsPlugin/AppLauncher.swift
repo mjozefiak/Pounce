@@ -1,9 +1,9 @@
 import Foundation
-import PounceCore
-import PounceKit
+import LintelCore
+import LintelKit
 
-/// How Pounce opens an app: bring it to the front, add it to Recent Items, and hand activation to it
-/// first, because the panel never activates Pounce (macOS cooperative activation).
+/// How Lintel opens an app: bring it to the front, add it to Recent Items, and hand activation to it
+/// first, because the panel never activates Lintel (macOS cooperative activation).
 enum AppLauncher {
     static func options(for record: AppRecord) -> ApplicationOpenOptions {
         ApplicationOpenOptions(

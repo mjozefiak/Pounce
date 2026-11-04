@@ -4,7 +4,7 @@ import Observation
 /// The "Test system audio" flow shared by Settings, the setup step and Settings → Permissions.
 ///
 /// macOS cannot report the System Audio Recording permission, so the test taps the output, plays a short
-/// signal of Pounce's own and listens. Nothing happens until the user presses "Play test signal": starting
+/// signal of Lintel's own and listens. Nothing happens until the user presses "Play test signal": starting
 /// the flow only explains it, and the system's consent prompt (and the tone) come after that second click.
 @MainActor @Observable
 final class SystemAudioTestModel {
@@ -35,12 +35,12 @@ final class SystemAudioTestModel {
             switch self {
             case .works:
                 String(
-                    localized: "System audio works. Pounce heard its own test signal.",
+                    localized: "System audio works. Lintel heard its own test signal.",
                     comment: "Meetings: verdict of the system audio test when the signal was heard")
             case .silent:
                 String(
                     localized:
-                        "No audio came through. Check that Pounce is allowed under System Audio Recording, then test again.",
+                        "No audio came through. Check that Lintel is allowed under System Audio Recording, then test again.",
                     comment: "Meetings: verdict of the system audio test when only silence arrived")
             case .unavailable:
                 String(

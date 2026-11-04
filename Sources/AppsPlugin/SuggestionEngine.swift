@@ -1,5 +1,5 @@
 import Foundation
-import PounceCore
+import LintelCore
 
 /// One suggested app.
 struct Suggestion: Hashable, Sendable {
@@ -16,7 +16,7 @@ enum SuggestionEngine {
     static let limit = 5
 
     /// The most used apps by decayed frecency, best first; ties go to the most recent use, then the name.
-    /// Apps the index does not know (uninstalled), Pounce itself and apps the user hid are skipped.
+    /// Apps the index does not know (uninstalled), Lintel itself and apps the user hid are skipped.
     static func suggestions(
         snapshot: ActivitySnapshot,
         apps: [AppRecord],

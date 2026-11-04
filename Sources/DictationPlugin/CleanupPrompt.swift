@@ -1,5 +1,5 @@
 import Foundation
-import PounceSpeech
+import LintelSpeech
 
 /// The instructions that turn a raw transcript into clean text (spec: `CleanupPrompt`). Versioned: a change
 /// is a change of behaviour the user can see, so it bumps `version` and goes into the release notes.
