@@ -27,6 +27,10 @@ Rename the app from Pounce to Lintel end to end (identity, modules, data locatio
 - R5 Dock presence changes a protected surface (`LSUIElement` stays in `Info.plist`; policy is switched at runtime). Documented in `BACKWARD_COMPATIBILITY.md`.
 - R6 `swift build`/`swift test` time: llama/FluidAudio are not on `main`, builds should be moderate.
 
+## Update 2026-11-04: rebased on the merged meetings work
+
+PR #47 (meeting transcription and notes) was merged into `main` on the owner's instruction (`b652e13`). This branch was rebuilt on top of it: the rename commit was regenerated with `.ai/scripts/rename-to-lintel.sh --apply` (it now also covers `MeetingsPlugin` and `LintelSpeech`), and the remaining commits were replayed. Two conflicts were resolved by hand: `AppEnvironment.live()` (the folder migration runs before `prepareModelsDirectory`) and the landing hero text. `MeetingKeyStore` gained the same legacy-service copy as the clipboard and dictation keys. Risk R1 below is therefore closed.
+
 ## Implementation Plan
 
 ### Phase 1: Rename
