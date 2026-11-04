@@ -3,6 +3,7 @@ import Synchronization
 import Testing
 
 @testable import DictationPlugin
+@testable import PounceSpeech
 
 /// A formatter driven by a closure, for the session and controller tests.
 struct StubFormatter: TextFormatter {

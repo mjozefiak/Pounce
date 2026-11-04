@@ -1,4 +1,6 @@
 import Foundation
+import PounceSpeech
+import Synchronization
 import os
 
 /// One recording, from the first sample to the finished text (spec: `DictationSession`).
@@ -17,6 +19,9 @@ actor DictationSession {
         case limitReached
         /// The microphone went away (device unplugged, Mac asleep); what was said so far can still be finished.
         case audioLost
+        /// The speech model could not be loaded; `busy` when another model (a meeting's) is in use right now.
+        /// Sent at once, not after the user stops speaking.
+        case loadFailed(busy: Bool)
     }
 
     enum Failure: Error, Equatable {
@@ -24,6 +29,8 @@ actor DictationSession {
         case silence
         /// The model could not be loaded or every segment failed.
         case engine
+        /// Another speech model is in use (`ModelLeaseError.busy`), so this one could not be loaded.
+        case busy
         case cancelled
         case notStarted
     }
@@ -56,6 +63,9 @@ actor DictationSession {
     private let audio: any AudioInput
     private let vad: any VoiceActivityDetector
     private let engine: any SpeechEngine
+    private let lease: SpeechEngineLease
+    private let modelID: String
+    private let keepWarm: @Sendable () -> Duration
     private let formatter: (any TextFormatter)?
     private let modelFolder: URL
     private let limit: Int
@@ -71,7 +81,9 @@ actor DictationSession {
     private var assembling: Task<Void, Never>?
     private var chunks: [(chunk: Segmenter.Chunk, result: Task<FormatResult, Never>)] = []
     private var lastChunkText: String?
-    private var loadTask: Task<Bool, Never>?
+    private var loadTask: Task<SpeechLease?, Never>?
+    /// Set by the load task when the lease could not be taken because another model is in use.
+    private let loadWasBusy = Flag()
     /// The formatter's own warm-up; left running on cancel, a warm model is wanted for the next dictation.
     private var prepareTask: Task<Void, Never>?
     private var consumeTask: Task<Void, Never>?
@@ -90,6 +102,9 @@ actor DictationSession {
         engine: any SpeechEngine,
         formatter: (any TextFormatter)? = nil,
         modelFolder: URL,
+        lease: SpeechEngineLease = SpeechEngineLease(),
+        modelID: String = "dictation",
+        keepWarm: @escaping @Sendable () -> Duration = { .seconds(600) },
         maximumDuration: Duration = .seconds(20 * 60),
         warningBefore: Duration = .seconds(2 * 60),
         logger: Logger = Logger(subsystem: "app.pounce", category: "dictation"),
@@ -98,6 +113,9 @@ actor DictationSession {
         self.audio = audio
         self.vad = vad
         self.engine = engine
+        self.lease = lease
+        self.modelID = modelID
+        self.keepWarm = keepWarm
         self.formatter = formatter
         self.modelFolder = modelFolder
         self.limit = Self.samples(in: maximumDuration)
@@ -117,19 +135,30 @@ actor DictationSession {
         guard !started else { return }
         started = true
         let engine = engine
+        let lease = lease
+        let modelID = modelID
+        let keepWarm = keepWarm
         let folder = modelFolder
         let onEvent = onEvent
         let logger = logger
+        let loadWasBusy = loadWasBusy
         loadTask = Task {
-            if await engine.isLoaded { return true }
-            onEvent(.loadingModel)
+            let loading = Mutex(false)
             do {
-                try await engine.load(modelFolder: folder)
-                onEvent(.modelLoaded)
-                return true
+                let handle = try await lease.acquire(
+                    modelID: modelID, folder: folder, engine: engine, priority: .interactive, keepWarm: keepWarm,
+                    onLoading: {
+                        loading.withLock { $0 = true }
+                        onEvent(.loadingModel)
+                    })
+                if loading.withLock({ $0 }) { onEvent(.modelLoaded) }
+                return handle
             } catch {
                 logger.error("Speech model failed to load: \(String(describing: error), privacy: .public)")
-                return false
+                let busy = (error as? ModelLeaseError) == .busy
+                if busy { loadWasBusy.set() }
+                if !Task.isCancelled { onEvent(.loadFailed(busy: busy)) }
+                return nil
             }
         }
         if let formatter {
@@ -141,7 +170,12 @@ actor DictationSession {
         do {
             stream = try await audio.start(onLevel: onLevel)
         } catch {
-            loadTask?.cancel()
+            // The microphone is what failed: say so now. The model may still be loading (a load cannot be
+            // interrupted), so the lease is given back by a task of its own once the load is over.
+            let load = loadTask
+            loadTask = nil
+            load?.cancel()
+            Task.detached { await load?.value?.release() }
             throw error
         }
         consumeTask = Task { [weak self] in
@@ -154,6 +188,25 @@ actor DictationSession {
 
     /// Stops recording and returns the text of everything said.
     func finish() async throws -> Output {
+        do {
+            let output = try await produce()
+            await releaseLease()
+            return output
+        } catch {
+            await releaseLease()
+            throw error
+        }
+    }
+
+    /// Gives the engine lease back (once), whenever it was or is still being acquired. The engine then stays
+    /// loaded for the keep-warm time.
+    private func releaseLease() async {
+        guard let load = loadTask else { return }
+        loadTask = nil
+        await load.value?.release()
+    }
+
+    private func produce() async throws -> Output {
         guard started else { throw Failure.notStarted }
         if cancelled { throw Failure.cancelled }
         finishing = true
@@ -174,7 +227,10 @@ actor DictationSession {
                 failed += 1
             }
         }
+        // Every segment is transcribed: the engine is not needed any more while the text is formatted.
+        await releaseLease()
         if cancelled { throw Failure.cancelled }
+        if loadWasBusy.value { throw Failure.busy }
         guard !tasks.isEmpty else { throw Failure.silence }
         guard failed < tasks.count else { throw Failure.engine }
         guard !parts.isEmpty else { throw Failure.silence }
@@ -234,6 +290,7 @@ actor DictationSession {
         segments = []
         chunks = []
         speechStart = nil
+        await releaseLease()
     }
 
     // MARK: Audio
@@ -282,13 +339,17 @@ actor DictationSession {
     private func closeSegment(_ range: Range<Int>) {
         let samples = store.slice(range)
         guard !samples.isEmpty else { return }
-        let engine = engine
         let load = loadTask
         let logger = logger
+        // The engine takes one segment at a time (the lease queue); asking in the order the segments were said
+        // keeps the order in which they are transcribed the same as the order in which they were spoken.
+        let previous = segments.last
         let task = Task<String?, Never> {
-            guard await load?.value == true else { return nil }
+            guard let handle = await load?.value else { return nil }
+            _ = await previous?.value
             do {
-                return try await engine.transcribe(samples).text
+                guard case .transcript(let segment) = try await handle.transcribe(samples) else { return nil }
+                return segment.text
             } catch {
                 if !Task.isCancelled {
                     logger.error("A segment failed to transcribe: \(String(describing: error), privacy: .public)")
@@ -332,4 +393,10 @@ actor DictationSession {
         }
         chunks.append((chunk, result))
     }
+}
+
+private final class Flag: Sendable {
+    private let state = Mutex(false)
+    var value: Bool { state.withLock { $0 } }
+    func set() { state.withLock { $0 = true } }
 }

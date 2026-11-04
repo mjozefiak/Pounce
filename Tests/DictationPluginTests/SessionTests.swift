@@ -3,6 +3,7 @@ import Synchronization
 import Testing
 
 @testable import DictationPlugin
+@testable import PounceSpeech
 
 /// Feeds a prepared buffer in chunks and keeps the stream open until `stop()`, like a live microphone.
 final class ScriptedAudioInput: AudioInput, @unchecked Sendable {
@@ -67,6 +68,46 @@ final class RangeVAD: VoiceActivityDetector, @unchecked Sendable {
     }
 }
 
+/// A one-shot gate a fake waits on, not cancellable, like a Core ML call.
+final class Gate: Sendable {
+    private struct State {
+        var open = false
+        var waiters: [CheckedContinuation<Void, Never>] = []
+    }
+
+    private let state = Mutex(State())
+
+    func wait() async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            let resume = state.withLock { state -> Bool in
+                if !state.open { state.waiters.append(continuation) }
+                return state.open
+            }
+            if resume { continuation.resume() }
+        }
+    }
+
+    func open() {
+        let waiters = state.withLock { state -> [CheckedContinuation<Void, Never>] in
+            state.open = true
+            defer { state.waiters = [] }
+            return state.waiters
+        }
+        for waiter in waiters { waiter.resume() }
+    }
+}
+
+/// Yields until `condition` holds; records an issue instead of hanging.
+func eventually(
+    sourceLocation: SourceLocation = #_sourceLocation, _ condition: @Sendable () async -> Bool
+) async {
+    for _ in 0..<200_000 {
+        if await condition() { return }
+        await Task.yield()
+    }
+    Issue.record("The condition was not met", sourceLocation: sourceLocation)
+}
+
 /// Answers "segment N" after a delay that depends on the segment's length, and can fail or load slowly.
 final class FakeEngine: SpeechEngine, @unchecked Sendable {
     struct State {
@@ -75,6 +116,7 @@ final class FakeEngine: SpeechEngine, @unchecked Sendable {
         var lengths: [Int] = []
         var cancelledCalls = 0
         var unloads = 0
+        var finished = 0
     }
 
     let state = Mutex(State())
@@ -83,10 +125,14 @@ final class FakeEngine: SpeechEngine, @unchecked Sendable {
     /// Delay before answering, by the second of audio the segment starts in.
     var delays: [Int: Duration] = [:]
     var failingSeconds: Set<Int> = []
+    /// Held until opened; the engine call does not react to cancellation while it waits.
+    var loadGate: Gate?
+    var transcribeGate: Gate?
 
     var isLoaded: Bool { state.withLock { $0.loaded } }
 
     func load(modelFolder: URL) async throws {
+        await loadGate?.wait()
         try await Task.sleep(for: loadDelay)
         if loadFails { throw CaptureError.noInputDevice }
         state.withLock { $0.loaded = true }
@@ -98,6 +144,7 @@ final class FakeEngine: SpeechEngine, @unchecked Sendable {
             state.calls += 1
             state.lengths.append(samples.count)
         }
+        await transcribeGate?.wait()
         do {
             try await Task.sleep(for: delays[key] ?? .zero)
         } catch {
@@ -105,6 +152,7 @@ final class FakeEngine: SpeechEngine, @unchecked Sendable {
             throw error
         }
         if failingSeconds.contains(key) { throw CaptureError.noInputDevice }
+        state.withLock { $0.finished += 1 }
         return TranscriptSegment(text: "segment \(key)")
     }
 
@@ -219,10 +267,18 @@ private func session(
         let session = session(
             ScriptedAudioInput(seconds: 5), vad: RangeVAD([second..<(2 * second)]), engine: engine)
         try await session.start()
-        try await Task.sleep(for: .milliseconds(100))
+        // Cancel only once the engine call is in flight; on a loaded runner the segment arrives late.
+        let started = ContinuousClock.now + .seconds(10)
+        while engine.state.withLock({ $0.calls }) == 0, ContinuousClock.now < started {
+            try await Task.sleep(for: .milliseconds(10))
+        }
         await session.cancel()
         await #expect(throws: DictationSession.Failure.cancelled) { try await session.finish() }
-        try await Task.sleep(for: .milliseconds(100))
+        // The engine is told asynchronously: wait for it instead of guessing a delay (a loaded runner needs more).
+        let deadline = ContinuousClock.now + .seconds(10)
+        while engine.state.withLock({ $0.cancelledCalls }) == 0, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(10))
+        }
         #expect(engine.state.withLock { $0.cancelledCalls } == 1)
     }
 
@@ -305,5 +361,158 @@ private func session(
         let quiet = MicrophoneCapture.level(of: [Float](repeating: 0.01, count: 100))
         let loud = MicrophoneCapture.level(of: [Float](repeating: 0.1, count: 100))
         #expect(quiet > 0 && loud > quiet && loud < 1)
+    }
+}
+
+@Suite struct DictationSessionLeaseTests {
+    private let folder = URL(filePath: "/tmp/none")
+
+    private func make(
+        audio: ScriptedAudioInput, vad: RangeVAD, engine: FakeEngine, lease: SpeechEngineLease,
+        events: EventLog = EventLog(), modelID: String = "dictation"
+    ) -> DictationSession {
+        DictationSession(
+            audio: audio, vad: vad, engine: engine, modelFolder: folder, lease: lease, modelID: modelID,
+            onEvent: { event in
+                if case .level = event { return }
+                events.append(event)
+            })
+    }
+
+    @Test func theLeaseIsGivenBackAfterAFinishedRecording() async throws {
+        let lease = SpeechEngineLease()
+        let engine = FakeEngine()
+        let session = make(
+            audio: ScriptedAudioInput(seconds: 3), vad: RangeVAD([second..<(2 * second)]), engine: engine,
+            lease: lease)
+        try await session.start()
+        _ = try await session.finish()
+        #expect(await lease.activeLeases == 0)
+        #expect(engine.isLoaded)
+    }
+
+    @Test func theLeaseIsGivenBackWhenFinishingFails() async throws {
+        let lease = SpeechEngineLease()
+        let engine = FakeEngine()
+        engine.loadFails = true
+        let session = make(
+            audio: ScriptedAudioInput(seconds: 3), vad: RangeVAD([second..<(2 * second)]), engine: engine,
+            lease: lease)
+        try await session.start()
+        await #expect(throws: DictationSession.Failure.engine) { try await session.finish() }
+        #expect(await lease.activeLeases == 0)
+        #expect(await lease.residentKey == nil)
+
+        let silent = make(
+            audio: ScriptedAudioInput(seconds: 2), vad: RangeVAD([]), engine: FakeEngine(), lease: lease)
+        try await silent.start()
+        await #expect(throws: DictationSession.Failure.silence) { try await silent.finish() }
+        #expect(await lease.activeLeases == 0)
+    }
+
+    @Test func theLeaseIsGivenBackWhenTheRecordingIsCancelled() async throws {
+        let lease = SpeechEngineLease()
+        let session = make(
+            audio: ScriptedAudioInput(seconds: 3), vad: RangeVAD([second..<(2 * second)]), engine: FakeEngine(),
+            lease: lease)
+        try await session.start()
+        await session.cancel()
+        #expect(await lease.activeLeases == 0)
+    }
+
+    @Test func theLeaseIsGivenBackWhenTheMicrophoneCannotStart() async throws {
+        let lease = SpeechEngineLease()
+        let engine = FakeEngine()
+        let session = make(
+            audio: ScriptedAudioInput(seconds: 1, failsToStart: true), vad: RangeVAD([]), engine: engine,
+            lease: lease)
+        await #expect(throws: CaptureError.self) { try await session.start() }
+        await eventually { await lease.activeLeases == 0 }
+        await eventually { engine.isLoaded }
+    }
+
+    @Test func aMicrophoneErrorIsNotHeldUpByTheModelLoad() async throws {
+        let lease = SpeechEngineLease()
+        let engine = FakeEngine()
+        let gate = Gate()
+        engine.loadGate = gate
+        let session = make(
+            audio: ScriptedAudioInput(seconds: 1, failsToStart: true), vad: RangeVAD([]), engine: engine,
+            lease: lease)
+        // The load is stuck behind the gate; start() still reports the microphone at once.
+        await #expect(throws: CaptureError.self) { try await session.start() }
+        #expect(!engine.isLoaded)
+
+        gate.open()
+        await eventually { engine.isLoaded }
+        await eventually { await lease.activeLeases == 0 }
+    }
+
+    @Test func aBusyModelIsReportedAtOnceNotAfterTheUserStopsSpeaking() async throws {
+        let lease = SpeechEngineLease()
+        let meeting = try await lease.acquire(
+            modelID: "whisper", folder: folder, engine: FakeEngine(), priority: .background, keepWarm: { .zero })
+        let events = EventLog()
+        let engine = FakeEngine()
+        let session = make(
+            audio: ScriptedAudioInput(seconds: 3), vad: RangeVAD([second..<(2 * second)]), engine: engine,
+            lease: lease, events: events)
+        try await session.start()
+        await eventually { events.all.contains(.loadFailed(busy: true)) }
+        #expect(!events.all.contains(.loadFailed(busy: false)))
+        await #expect(throws: DictationSession.Failure.busy) { try await session.finish() }
+        #expect(!engine.isLoaded)
+        #expect(await lease.activeLeases == 1)
+        await meeting.release()
+    }
+
+    @Test func anotherLoadFailureIsReportedAsNotBusy() async throws {
+        let engine = FakeEngine()
+        engine.loadFails = true
+        let events = EventLog()
+        let session = make(
+            audio: ScriptedAudioInput(seconds: 3), vad: RangeVAD([second..<(2 * second)]), engine: engine,
+            lease: SpeechEngineLease(), events: events)
+        try await session.start()
+        await eventually { events.all.contains(.loadFailed(busy: false)) }
+        await #expect(throws: DictationSession.Failure.engine) { try await session.finish() }
+    }
+
+    @Test func segmentsAreAskedForInTheOrderTheyWereSaid() async throws {
+        let engine = FakeEngine()
+        // The first segment is the longest and its answer the slowest.
+        engine.delays = [1: .milliseconds(120), 4: .milliseconds(40)]
+        let ranges = [second..<(4 * second), (4 * second)..<(6 * second), (6 * second)..<(7 * second)]
+        let session = make(
+            audio: ScriptedAudioInput(seconds: 8), vad: RangeVAD(ranges), engine: engine,
+            lease: SpeechEngineLease())
+        try await session.start()
+        let output = try await session.finish()
+        #expect(engine.state.withLock { $0.lengths } == [3 * second, 2 * second, 1 * second])
+        #expect(output.text == "segment 1 segment 4 segment 6")
+    }
+
+    @Test func cancellingWhileTheEngineIsBusyDoesNotUnloadItUnderTheRunningSegment() async throws {
+        let lease = SpeechEngineLease()
+        let engine = FakeEngine()
+        let gate = Gate()
+        engine.transcribeGate = gate
+        let session = make(
+            audio: ScriptedAudioInput(seconds: 4), vad: RangeVAD([second..<(2 * second)]), engine: engine,
+            lease: lease)
+        try await session.start()
+        await eventually { engine.state.withLock { $0.calls } == 1 }
+
+        await session.cancel()
+        let eviction = Task { await lease.evictIdle() }
+        await eventually { await lease.residentKey == nil }
+        for _ in 0..<200 { await Task.yield() }
+        #expect(engine.state.withLock { $0.unloads } == 0)
+        #expect(engine.isLoaded)
+
+        // Positive control: when the segment returns, the unload goes through.
+        gate.open()
+        await eviction.value
+        #expect(engine.state.withLock { $0.unloads } == 1)
     }
 }

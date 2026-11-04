@@ -35,7 +35,9 @@
 	<key>LSMinimumSystemVersion</key>
 	<string>26.0</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Pounce listens to the microphone only while you dictate. Audio stays on this Mac and is never saved.</string>
+	<string>Pounce listens to the microphone while you dictate (the audio is never saved) and while you record a meeting. Meeting audio is stored encrypted on this Mac until the transcript is complete; the audio of unfinished meetings is kept for a limited time.</string>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>Pounce captures the audio playing on this Mac, such as the other people in a call, only while a meeting is recorded. It is processed on this Mac and never uploaded.</string>
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>

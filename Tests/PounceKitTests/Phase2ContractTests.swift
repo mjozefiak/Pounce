@@ -133,4 +133,13 @@ import Testing
         _ = context.makeShortcutRecorder("anything")
         #expect(context.storageDirectory.lastPathComponent == "pounce-kit-tests")
     }
+
+    @Test func modelsDirectoryDefaultsToModelsInsideTheStorageDirectory() {
+        let context = TestContext.make()
+        let expected = context.storageDirectory.appending(path: "Models", directoryHint: .isDirectory)
+        #expect(context.modelsDirectory == expected)
+        let explicit = URL(filePath: "/tmp/pounce-models", directoryHint: .isDirectory)
+        let custom = TestContext.make(modelsDirectory: explicit)
+        #expect(custom.modelsDirectory == explicit)
+    }
 }

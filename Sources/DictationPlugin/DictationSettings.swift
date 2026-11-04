@@ -1,5 +1,6 @@
 import Foundation
 import PounceKit
+import PounceSpeech
 
 /// `plugins.dictation.*` (a protected contract from the release that ships it, `BACKWARD_COMPATIBILITY.md` §3).
 /// Phase 1 reads the speech model, the microphone, keep-warm and the clipboard restore; the formatting and

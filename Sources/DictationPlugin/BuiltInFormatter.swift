@@ -1,4 +1,5 @@
 import Foundation
+import PounceSpeech
 import os
 
 /// Cleans a chunk with the model that runs inside Pounce (ADR 0005): the same prompt, guard and fallbacks as
@@ -76,9 +77,10 @@ struct BuiltInFormatter: TextFormatter {
     }
 
     private static func reason(for error: any Error) -> FallbackReason {
+        if error as? ModelLeaseError == .busy { return .modelUnavailable }
         switch error as? LlamaError {
-        case .modelNotFound, .loadFailed, .contextFailed, .notLoaded: .modelUnavailable
-        default: .badResponse
+        case .modelNotFound, .loadFailed, .contextFailed, .notLoaded: return .modelUnavailable
+        default: return .badResponse
         }
     }
 }

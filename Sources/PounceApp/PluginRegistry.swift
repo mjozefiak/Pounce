@@ -2,6 +2,7 @@ import AppsPlugin
 import ClipboardPlugin
 import DictationPlugin
 import FilesPlugin
+import MeetingsPlugin
 import PounceKit
 
 /// The only place that knows the concrete plugins. Adding a feature means a new target, a `PounceApp`
@@ -12,5 +13,6 @@ enum PluginRegistry {
         FilesPlugin.self,
         ClipboardPlugin.self,
         DictationPlugin.self,
+        MeetingsPlugin.self,
     ]
 }

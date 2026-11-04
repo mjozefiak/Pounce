@@ -163,6 +163,60 @@
         }
       }
     },
+    "%lld points not backed by the recording were left out" : {
+      "comment" : "Notes: how many points had no quote in the transcript and were left out",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld point not backed by the recording was left out"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld points not backed by the recording were left out"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld punkt bez pokrycia w nagraniu pominięto"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld punkty bez pokrycia w nagraniu pominięto"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld punktów bez pokrycia w nagraniu pominięto"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld punktu bez pokrycia w nagraniu pominięto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld." : {
       "comment" : "Position in the result order list",
       "extractionState" : "manual",
@@ -375,6 +429,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zaawansowane"
+          }
+        }
+      }
+    },
+    "After a meeting, a model that runs on this Mac writes a summary, decisions, action items and open questions in the background. Every point must quote the recording, and points without a matching quote are left out. The notes can still contain mistakes. Nothing is sent anywhere." : {
+      "comment" : "Meetings settings footer under the notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After a meeting, a model that runs on this Mac writes a summary, decisions, action items and open questions in the background. Every point must quote the recording, and points without a matching quote are left out. The notes can still contain mistakes. Nothing is sent anywhere."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Po spotkaniu model działający na tym Macu pisze w tle podsumowanie, decyzje, zadania i otwarte pytania. Każdy punkt musi cytować nagranie, a punkty bez pasującego cytatu są pomijane. Notatki nadal mogą zawierać błędy. Nic nie jest nigdzie wysyłane."
           }
         }
       }
@@ -1423,6 +1495,42 @@
         }
       }
     },
+    "Download Notes Model" : {
+      "comment" : "Meeting library action that opens the notes model settings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download Notes Model"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobierz model notatek"
+          }
+        }
+      }
+    },
+    "Download the model first." : {
+      "comment" : "Meetings settings: the notes example needs the model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download the model first."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Najpierw pobierz model."
+          }
+        }
+      }
+    },
     "Downloaded" : {
       "comment" : "Dictation model status",
       "extractionState" : "manual",
@@ -1621,6 +1729,24 @@
         }
       }
     },
+    "Example" : {
+      "comment" : "Meetings settings label of the notes example",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Example"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przykład"
+          }
+        }
+      }
+    },
     "Exclusions" : {
       "comment" : "Settings section title",
       "extractionState" : "manual",
@@ -1779,6 +1905,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Filtry"
+          }
+        }
+      }
+    },
+    "Finishing notes" : {
+      "comment" : "Meeting library badge: the last step of the notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finishing notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kończenie notatek"
           }
         }
       }
@@ -2341,6 +2485,24 @@
         }
       }
     },
+    "Lets Pounce hear you while you dictate or record a meeting. Dictation audio is never saved; meeting audio is stored encrypted on this Mac until the transcript is complete, and the audio of unfinished meetings is kept for a limited time." : {
+      "comment" : "Explanation of the Microphone permission",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lets Pounce hear you while you dictate or record a meeting. Dictation audio is never saved; meeting audio is stored encrypted on this Mac until the transcript is complete, and the audio of unfinished meetings is kept for a limited time."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pozwala Pounce słyszeć Cię podczas dyktowania i nagrywania spotkania. Dźwięk dyktowania nigdy nie jest zapisywany; dźwięk spotkania jest przechowywany w zaszyfrowanej postaci na tym Macu, dopóki transkrypt nie będzie kompletny, a dźwięk niedokończonych spotkań jest przechowywany przez ograniczony czas."
+          }
+        }
+      }
+    },
     "Lets Pounce hear you while you dictate. Audio stays on this Mac and is never saved." : {
       "comment" : "Explanation of the Microphone permission",
       "extractionState" : "manual",
@@ -2503,6 +2665,24 @@
         }
       }
     },
+    "Meetings" : {
+      "comment" : "Plugin name of meeting transcription",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meetings"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spotkania"
+          }
+        }
+      }
+    },
     "Medium" : {
       "comment" : "Text size option, spoken",
       "extractionState" : "manual",
@@ -2517,6 +2697,168 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Średni"
+          }
+        }
+      }
+    },
+    "Not available while a meeting is being recorded or processed." : {
+      "comment" : "Meetings: why the system audio test is switched off during a meeting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not available while a meeting is being recorded or processed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niedostępne, gdy spotkanie jest nagrywane lub przetwarzane."
+          }
+        }
+      }
+    },
+    "Notes are on, but their model is not downloaded." : {
+      "comment" : "Meeting window banner when the notes model is missing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes are on, but their model is not downloaded."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki są włączone, ale ich model nie jest pobrany."
+          }
+        }
+      }
+    },
+    "Notes for a made-up meeting. Nothing was saved." : {
+      "comment" : "Meetings settings: caption above the example notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes for a made-up meeting. Nothing was saved."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki z wymyślonego spotkania. Nic nie zostało zapisane."
+          }
+        }
+      }
+    },
+    "Notes model needed" : {
+      "comment" : "Meeting library badge: notes are on but the model is missing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes model needed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Potrzebny model notatek"
+          }
+        }
+      }
+    },
+    "Notes queued" : {
+      "comment" : "Meeting library badge: notes wait for their turn",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes queued"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki w kolejce"
+          }
+        }
+      }
+    },
+    "Optional: let a model on this Mac write notes after each meeting. It is a large download that starts only when you press the button." : {
+      "comment" : "Meetings onboarding step about the notes model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optional: let a model on this Mac write notes after each meeting. It is a large download that starts only when you press the button."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opcjonalnie: pozwól modelowi na tym Macu pisać notatki po każdym spotkaniu. To duże pobranie, które zaczyna się dopiero po naciśnięciu przycisku."
+          }
+        }
+      }
+    },
+    "System Audio Recording" : {
+      "comment" : "Permission name in Settings → Permissions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System Audio Recording"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywanie dźwięku systemu"
+          }
+        }
+      }
+    },
+    "Lets Pounce capture what other people say in a meeting, only while a meeting is recorded. Audio is processed on this Mac and never uploaded." : {
+      "comment" : "Explanation of the System Audio Recording permission",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lets Pounce capture what other people say in a meeting, only while a meeting is recorded. Audio is processed on this Mac and never uploaded."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pozwala Pounce przechwytywać to, co mówią inni uczestnicy spotkania, tylko podczas nagrywania spotkania. Dźwięk jest przetwarzany na tym Macu i nigdy nie jest wysyłany."
+          }
+        }
+      }
+    },
+    "Can't be checked" : {
+      "comment" : "System Audio Recording state: macOS does not tell apps",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't be checked"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie można sprawdzić"
           }
         }
       }
@@ -4825,6 +5167,24 @@
         }
       }
     },
+    "The example did not work. Try again in a moment." : {
+      "comment" : "Meetings settings: the notes example failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The example did not work. Try again in a moment."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przykład się nie udał. Spróbuj ponownie za chwilę."
+          }
+        }
+      }
+    },
     "The Keychain needs no permission. A feature that keeps a key there shows its state in its own pane." : {
       "comment" : "Settings → Permissions note about the Keychain",
       "extractionState" : "manual",
@@ -5059,6 +5419,78 @@
         }
       }
     },
+    "The model you chose does not fit this Mac, so %@ is used." : {
+      "comment" : "Meetings settings: the stored notes model is replaced by the default one",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The model you chose does not fit this Mac, so %@ is used."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybrany model nie mieści się w pamięci tego Maca, więc używany jest %@."
+          }
+        }
+      }
+    },
+    "The notes could not be written. The transcript is unchanged; try Regenerate Notes." : {
+      "comment" : "Meeting window banner when the notes failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The notes could not be written. The transcript is unchanged; try Regenerate Notes."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się napisać notatek. Transkrypt jest bez zmian; spróbuj „Regeneruj notatki”."
+          }
+        }
+      }
+    },
+    "The notes miss some parts of the recording that could not be read. Regenerate Notes to try again." : {
+      "comment" : "Meeting window banner for partial notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The notes miss some parts of the recording that could not be read. Regenerate Notes to try again."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W notatkach brakuje fragmentów nagrania, których nie udało się odczytać. „Regeneruj notatki” spróbuje ponownie."
+          }
+        }
+      }
+    },
+    "The notes model is in use right now. Try again when the notes are written." : {
+      "comment" : "Meetings settings: the notes model cannot be removed while it is used",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The notes model is in use right now. Try again when the notes are written."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model notatek jest teraz używany. Spróbuj ponownie, gdy notatki będą gotowe."
+          }
+        }
+      }
+    },
     "The notices are in THIRD_PARTY_NOTICES.txt in the app bundle and in the source repository." : {
       "comment" : "About window: shown when the notices file is missing from the bundle",
       "extractionState" : "manual",
@@ -5131,6 +5563,42 @@
         }
       }
     },
+    "Another speech model is in use" : {
+      "comment" : "Dictation HUD when a meeting uses a different speech model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another speech model is in use"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inny model mowy jest w użyciu"
+          }
+        }
+      }
+    },
+    "The model is in use right now. Try again in a moment." : {
+      "comment" : "Dictation settings error when the built-in model is being used and cannot be removed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The model is in use right now. Try again in a moment."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model jest teraz używany. Spróbuj ponownie za chwilę."
+          }
+        }
+      }
+    },
     "The speech model failed to load" : {
       "comment" : "Dictation HUD when loading the model failed",
       "extractionState" : "manual",
@@ -5181,6 +5649,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tekst każdego dyktowania jest zapisany na tym Macu, zaszyfrowany kluczem z Pęku kluczy. Dźwięk nigdy nie jest zapisywany. Otwórz go z paska menu: Historia dyktowania."
+          }
+        }
+      }
+    },
+    "These notes miss parts of the recording that could not be read." : {
+      "comment" : "Meeting library preview: notice above partial notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These notes miss parts of the recording that could not be read."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W tych notatkach brakuje fragmentów nagrania, których nie udało się odczytać."
           }
         }
       }
@@ -5343,6 +5829,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wypróbuj"
+          }
+        }
+      }
+    },
+    "Try it on an example" : {
+      "comment" : "Meetings settings button that writes notes for a sample meeting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try it on an example"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wypróbuj na przykładzie"
           }
         }
       }
@@ -5545,6 +6049,24 @@
         }
       }
     },
+    "Waiting for the model" : {
+      "comment" : "Meeting library badge: another model is in use",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for the model"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Czeka na model"
+          }
+        }
+      }
+    },
     "Website" : {
       "comment" : "About window: link to the landing page",
       "extractionState" : "manual",
@@ -5667,6 +6189,96 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bez pełnego dostępu do dysku dodanie folderu tutaj sprawi, że macOS raz zapyta o ten folder."
+          }
+        }
+      }
+    },
+    "Write notes after each meeting" : {
+      "comment" : "Meetings settings toggle of automatic notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write notes after each meeting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pisz notatki po każdym spotkaniu"
+          }
+        }
+      }
+    },
+    "Writing notes %lld of %lld" : {
+      "comment" : "Meeting library badge: notes in progress, the part being read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Writing notes %lld of %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pisanie notatek %lld z %lld"
+          }
+        }
+      }
+    },
+    "Writing notes is not available." : {
+      "comment" : "Meeting window: why Regenerate notes is disabled",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Writing notes is not available."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pisanie notatek jest niedostępne."
+          }
+        }
+      }
+    },
+    "Writing notes…" : {
+      "comment" : "Meeting window banner while the notes are being written",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Writing notes…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pisanie notatek…"
+          }
+        }
+      }
+    },
+    "Writing the notes failed. The notes below are from an earlier run." : {
+      "comment" : "Meeting library preview: notice above older notes after a failed run",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Writing the notes failed. The notes below are from an earlier run."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się napisać notatek. Poniższe notatki pochodzą z wcześniejszego zapisu."
           }
         }
       }
@@ -6315,6 +6927,3318 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sugestie zaczną się od nowa od aplikacji, których użyjesz. Tej operacji nie można cofnąć."
+          }
+        }
+      }
+    },
+    "%@, %@" : {
+      "comment" : "Accessibility label of a transcript row; speaker, time",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, %@"
+          }
+        }
+      }
+    },
+    "A speaker was renamed, so the notes may be out of date." : {
+      "comment" : "Meeting window banner when notes are stale",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A speaker was renamed, so the notes may be out of date."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zmieniono nazwę mówcy, więc notatki mogą być nieaktualne."
+          }
+        }
+      }
+    },
+    "Asks before deleting this meeting" : {
+      "comment" : "Hint of Delete",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Asks before deleting this meeting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pyta przed usunięciem tego spotkania"
+          }
+        }
+      }
+    },
+    "Copied Markdown" : {
+      "comment" : "VoiceOver announcement after copying",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied Markdown"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skopiowano Markdown"
+          }
+        }
+      }
+    },
+    "Copies the meeting as Markdown. Pounce's clipboard history does not keep it." : {
+      "comment" : "Hint of Copy Markdown",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copies the meeting as Markdown. Pounce's clipboard history does not keep it."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiuje spotkanie jako Markdown. Historia schowka Pounce go nie zapisuje."
+          }
+        }
+      }
+    },
+    "Copy Markdown" : {
+      "comment" : "Meeting window button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy Markdown"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiuj Markdown"
+          }
+        }
+      }
+    },
+    "Date" : {
+      "comment" : "Markdown export: label of the meeting date",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Date"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data"
+          }
+        }
+      }
+    },
+    "Delete Meeting" : {
+      "comment" : "Meeting window: confirm deleting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Meeting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń spotkanie"
+          }
+        }
+      }
+    },
+    "Delete this meeting?" : {
+      "comment" : "Meeting window: delete confirmation title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete this meeting?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunąć to spotkanie?"
+          }
+        }
+      }
+    },
+    "Delete…" : {
+      "comment" : "Meeting window button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń…"
+          }
+        }
+      }
+    },
+    "Duration" : {
+      "comment" : "Markdown export: label of the meeting length",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duration"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Czas trwania"
+          }
+        }
+      }
+    },
+    "Edit the meeting title, then press Return" : {
+      "comment" : "Hint of the title field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit the meeting title, then press Return"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zmień tytuł spotkania i naciśnij Return"
+          }
+        }
+      }
+    },
+    "Finish" : {
+      "comment" : "Meeting window button that finishes an interrupted meeting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dokończ"
+          }
+        }
+      }
+    },
+    "Finishing the transcript…" : {
+      "comment" : "Meeting window banner while Finish runs",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finishing the transcript…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kończenie transkryptu…"
+          }
+        }
+      }
+    },
+    "Markdown copied" : {
+      "comment" : "Meeting window feedback after Copy Markdown",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Markdown copied"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skopiowano Markdown"
+          }
+        }
+      }
+    },
+    "Markdown saved" : {
+      "comment" : "Meeting window feedback after Save",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Markdown saved"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisano Markdown"
+          }
+        }
+      }
+    },
+    "Meeting" : {
+      "comment" : "Meeting window title while loading",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meeting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spotkanie"
+          }
+        }
+      }
+    },
+    "Meeting %@" : {
+      "comment" : "Title of a meeting without one; the date and time",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meeting %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spotkanie %@"
+          }
+        }
+      }
+    },
+    "Notes" : {
+      "comment" : "Markdown export: heading of the meeting notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki"
+          }
+        }
+      }
+    },
+    "Participants" : {
+      "comment" : "Markdown export: label of the speakers",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Participants"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uczestnicy"
+          }
+        }
+      }
+    },
+    "Recording was interrupted and the audio is gone, so this transcript is all there is." : {
+      "comment" : "Meeting window banner for an interrupted meeting that cannot be finished",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording was interrupted and the audio is gone, so this transcript is all there is."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywanie zostało przerwane, a dźwięku już nie ma, więc to jest cały transkrypt."
+          }
+        }
+      }
+    },
+    "Recording was interrupted. The transcript may be missing its end." : {
+      "comment" : "Meeting window banner for an interrupted meeting that can be finished",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording was interrupted. The transcript may be missing its end."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywanie zostało przerwane. W transkrypcie może brakować końca."
+          }
+        }
+      }
+    },
+    "Regenerate Notes" : {
+      "comment" : "Meeting window button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regenerate Notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wygeneruj notatki ponownie"
+          }
+        }
+      }
+    },
+    "Rename this speaker, then press Return" : {
+      "comment" : "Hint of a speaker name field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rename this speaker, then press Return"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zmień nazwę tego mówcy i naciśnij Return"
+          }
+        }
+      }
+    },
+    "Renaming a speaker changes the name in the transcript at once. Notes already written change after you regenerate them." : {
+      "comment" : "Meeting window: hint under the speaker list",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Renaming a speaker changes the name in the transcript at once. Notes already written change after you regenerate them."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zmiana nazwy mówcy od razu zmienia ją w transkrypcie. Napisane już notatki zmienią się po ich ponownym wygenerowaniu."
+          }
+        }
+      }
+    },
+    "Save" : {
+      "comment" : "Button of the Markdown save panel",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisz"
+          }
+        }
+      }
+    },
+    "Save .md…" : {
+      "comment" : "Meeting window button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save .md…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisz .md…"
+          }
+        }
+      }
+    },
+    "Saved Markdown" : {
+      "comment" : "VoiceOver announcement after saving",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved Markdown"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisano Markdown"
+          }
+        }
+      }
+    },
+    "Saves the meeting as a Markdown file" : {
+      "comment" : "Hint of Save .md",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saves the meeting as a Markdown file"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisuje spotkanie jako plik Markdown"
+          }
+        }
+      }
+    },
+    "Speaker name" : {
+      "comment" : "Meeting window: label of a speaker name field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speaker name"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nazwa mówcy"
+          }
+        }
+      }
+    },
+    "Speaker recognition is unavailable – speakers are split into you and others" : {
+      "comment" : "Meeting window banner when speakers are the two audio tracks",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speaker recognition is unavailable – speakers are split into you and others"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozpoznanie mówców niedostępne – podział na Ja / Inni"
+          }
+        }
+      }
+    },
+    "Speakers" : {
+      "comment" : "Meeting window: heading of the speaker list",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speakers"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mówcy"
+          }
+        }
+      }
+    },
+    "The change could not be saved." : {
+      "comment" : "Meeting window feedback",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The change could not be saved."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się zapisać zmiany."
+          }
+        }
+      }
+    },
+    "The file could not be saved." : {
+      "comment" : "Meeting window feedback",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The file could not be saved."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się zapisać pliku."
+          }
+        }
+      }
+    },
+    "The meeting could not be opened." : {
+      "comment" : "Meeting window: read error",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The meeting could not be opened."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się otworzyć spotkania."
+          }
+        }
+      }
+    },
+    "The transcript, notes and any saved audio are removed from this Mac. This cannot be undone." : {
+      "comment" : "Meeting window: delete confirmation message",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The transcript, notes and any saved audio are removed from this Mac. This cannot be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkrypt, notatki i zapisany dźwięk zostaną usunięte z tego Maca. Tej operacji nie można cofnąć."
+          }
+        }
+      }
+    },
+    "The transcript is still being prepared." : {
+      "comment" : "Meeting window banner while processing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The transcript is still being prepared."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkrypt jest jeszcze przygotowywany."
+          }
+        }
+      }
+    },
+    "There is no transcript for this meeting." : {
+      "comment" : "Meeting window: no segments",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There is no transcript for this meeting."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To spotkanie nie ma transkryptu."
+          }
+        }
+      }
+    },
+    "These notes may be out of date: a speaker was renamed after they were written." : {
+      "comment" : "Markdown export: note under the notes heading when a speaker was renamed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These notes may be out of date: a speaker was renamed after they were written."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te notatki mogą być nieaktualne: po ich napisaniu zmieniono nazwę mówcy."
+          }
+        }
+      }
+    },
+    "This is me" : {
+      "comment" : "Meeting window button: mark this speaker as the user",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is me"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To ja"
+          }
+        }
+      }
+    },
+    "This is me, %@" : {
+      "comment" : "Accessibility label of This is me; the speaker",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is me, %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To ja, %@"
+          }
+        }
+      }
+    },
+    "This meeting cannot be finished now." : {
+      "comment" : "Meeting window feedback when Finish is refused",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This meeting cannot be finished now."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tego spotkania nie można teraz dokończyć."
+          }
+        }
+      }
+    },
+    "This meeting could not be processed. What was saved is shown below." : {
+      "comment" : "Meeting window banner for a failed meeting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This meeting could not be processed. What was saved is shown below."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się przetworzyć tego spotkania. Poniżej widać to, co zapisano."
+          }
+        }
+      }
+    },
+    "This meeting no longer exists." : {
+      "comment" : "Meeting window: meeting not found",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This meeting no longer exists."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To spotkanie już nie istnieje."
+          }
+        }
+      }
+    },
+    "Title" : {
+      "comment" : "Meeting window: label of the title field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tytuł"
+          }
+        }
+      }
+    },
+    "Transcribes the rest of the recording" : {
+      "comment" : "Hint of the Finish button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcribes the rest of the recording"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkrybuje resztę nagrania"
+          }
+        }
+      }
+    },
+    "Transcript" : {
+      "comment" : "Accessibility label of the transcript list",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcript"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkrypt"
+          }
+        }
+      }
+    },
+    "Unknown speaker" : {
+      "comment" : "Meeting window: segment without a speaker",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown speaker"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nieznany mówca"
+          }
+        }
+      }
+    },
+    "Writes the notes again from the transcript" : {
+      "comment" : "Hint of Regenerate Notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Writes the notes again from the transcript"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generuje notatki jeszcze raz na podstawie transkryptu"
+          }
+        }
+      }
+    },
+    "You" : {
+      "comment" : "Meeting window: marks the speaker who is the user",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To ja"
+          }
+        }
+      }
+    },
+    "Finish with a Gap" : {
+      "comment" : "Meeting window button: close the meeting although audio is missing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish with a Gap"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zakończ z luką"
+          }
+        }
+      }
+    },
+    "Closes the meeting from the transcript that exists, without the unreadable audio" : {
+      "comment" : "Hint of Finish with a Gap",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Closes the meeting from the transcript that exists, without the unreadable audio"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zamyka spotkanie na podstawie istniejącego transkryptu, bez nieczytelnego dźwięku"
+          }
+        }
+      }
+    },
+    "The recording cannot be read, so the rest of it cannot be transcribed." : {
+      "comment" : "Meeting window: the saved audio of an interrupted meeting is unreadable",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The recording cannot be read, so the rest of it cannot be transcribed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrania nie da się odczytać, więc reszty nie można przepisać."
+          }
+        }
+      }
+    },
+    "Some of the recording could not be transcribed." : {
+      "comment" : "Meeting window: part of the audio of an interrupted meeting failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some of the recording could not be transcribed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się przepisać części nagrania."
+          }
+        }
+      }
+    },
+    "The meeting was not deleted: its audio could not be removed. Try again." : {
+      "comment" : "Meeting window feedback when deleting failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The meeting was not deleted: its audio could not be removed. Try again."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spotkanie nie zostało usunięte: nie udało się usunąć jego dźwięku. Spróbuj ponownie."
+          }
+        }
+      }
+    },
+    "Not available yet" : {
+      "comment" : "Meetings settings: the shortcut row without a command",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not available yet"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jeszcze niedostępne"
+          }
+        }
+      }
+    },
+    "Record meeting" : {
+      "comment" : "Meetings settings label of the record shortcut",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record meeting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywaj spotkanie"
+          }
+        }
+      }
+    },
+    "Press to start recording a meeting and press again to stop." : {
+      "comment" : "Meetings settings footer under the shortcut",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press to start recording a meeting and press again to stop."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naciśnij, aby zacząć nagrywać spotkanie, i naciśnij ponownie, aby zakończyć."
+          }
+        }
+      }
+    },
+    "Reduce echo from the speakers" : {
+      "comment" : "Meetings settings toggle of voice processing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reduce echo from the speakers"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zmniejsz echo z głośników"
+          }
+        }
+      }
+    },
+    "Audio" : {
+      "comment" : "Meetings settings section title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dźwięk"
+          }
+        }
+      }
+    },
+    "Pounce records your microphone and what the other side says, only while you record a meeting. Echo reduction can lower the volume of other apps, so it is off by default." : {
+      "comment" : "Meetings settings footer under the audio section",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce records your microphone and what the other side says, only while you record a meeting. Echo reduction can lower the volume of other apps, so it is off by default."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce nagrywa Twój mikrofon i to, co mówi druga strona, tylko podczas nagrywania spotkania. Redukcja echa może ściszać inne aplikacje, więc domyślnie jest wyłączona."
+          }
+        }
+      }
+    },
+    "Models" : {
+      "comment" : "Meetings settings section title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Models"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modele"
+          }
+        }
+      }
+    },
+    "The models run on this Mac. Audio is never sent anywhere. The speech model is shared with dictation." : {
+      "comment" : "Meetings settings footer under the models",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The models run on this Mac. Audio is never sent anywhere. The speech model is shared with dictation."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modele działają na tym Macu. Dźwięk nigdy nigdzie nie jest wysyłany. Model mowy jest wspólny z dyktowaniem."
+          }
+        }
+      }
+    },
+    "Remind me to tell people I am recording" : {
+      "comment" : "Meetings settings toggle",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remind me to tell people I am recording"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przypominaj, żeby powiedzieć ludziom o nagrywaniu"
+          }
+        }
+      }
+    },
+    "Keep meetings for" : {
+      "comment" : "Meetings settings label of the retention choice",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep meetings for"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przechowuj spotkania przez"
+          }
+        }
+      }
+    },
+    "Clear Library…" : {
+      "comment" : "Meetings settings button that deletes all meetings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Library…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyczyść bibliotekę…"
+          }
+        }
+      }
+    },
+    "Delete Temporary Recordings…" : {
+      "comment" : "Meetings settings button that deletes the audio of interrupted meetings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Temporary Recordings…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń nagrania tymczasowe…"
+          }
+        }
+      }
+    },
+    "Recordings are encrypted and deleted once a meeting is processed. A deleted file is not overwritten: on an SSD or in a backup a copy may remain for a while, though it is encrypted and unreadable without the key. Erase Data removes the key too." : {
+      "comment" : "Meetings settings footer about deleted data on an SSD",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recordings are encrypted and deleted once a meeting is processed. A deleted file is not overwritten: on an SSD or in a backup a copy may remain for a while, though it is encrypted and unreadable without the key. Erase Data removes the key too."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrania są szyfrowane i usuwane po przetworzeniu spotkania. Usunięty plik nie jest nadpisywany: na dysku SSD lub w kopii zapasowej jego kopia może zostać na jakiś czas, ale jest zaszyfrowana i nieczytelna bez klucza. „Usuń dane” usuwa też klucz."
+          }
+        }
+      }
+    },
+    "Delete all meetings?" : {
+      "comment" : "Meetings settings confirmation title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete all meetings?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunąć wszystkie spotkania?"
+          }
+        }
+      }
+    },
+    "Delete All Meetings" : {
+      "comment" : "Meetings settings confirmation button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete All Meetings"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń wszystkie spotkania"
+          }
+        }
+      }
+    },
+    "Every transcript, note and recording is deleted. A meeting that is being recorded is kept. This cannot be undone." : {
+      "comment" : "Meetings settings confirmation text of Clear Library",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every transcript, note and recording is deleted. A meeting that is being recorded is kept. This cannot be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Każdy transkrypt, notatka i nagranie zostaną usunięte. Spotkanie, które się nagrywa, zostaje. Tego nie można cofnąć."
+          }
+        }
+      }
+    },
+    "Delete temporary recordings?" : {
+      "comment" : "Meetings settings confirmation title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete temporary recordings?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunąć nagrania tymczasowe?"
+          }
+        }
+      }
+    },
+    "Delete Recordings" : {
+      "comment" : "Meetings settings confirmation button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Recordings"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń nagrania"
+          }
+        }
+      }
+    },
+    "The audio of interrupted meetings is deleted, so they can no longer be finished. Their transcripts stay." : {
+      "comment" : "Meetings settings confirmation text of Delete Temporary Recordings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The audio of interrupted meetings is deleted, so they can no longer be finished. Their transcripts stay."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dźwięk przerwanych spotkań zostanie usunięty, więc nie będzie można ich dokończyć. Ich transkrypty zostają."
+          }
+        }
+      }
+    },
+    "Until I delete them" : {
+      "comment" : "Meetings settings retention choice without a limit",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Until I delete them"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dopóki ich nie usunę"
+          }
+        }
+      }
+    },
+    "Test System Audio" : {
+      "comment" : "Meetings button that starts the system audio test",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test System Audio"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test dźwięku systemowego"
+          }
+        }
+      }
+    },
+    "Pounce will play a short tone through your speakers and check that it can hear it. macOS may ask you to allow System Audio Recording first. Lower the volume if you like." : {
+      "comment" : "Meetings: explanation before the system audio test plays its signal",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce will play a short tone through your speakers and check that it can hear it. macOS may ask you to allow System Audio Recording first. Lower the volume if you like."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce odtworzy krótki sygnał przez głośniki i sprawdzi, czy go słyszy. macOS może najpierw zapytać o zgodę na nagrywanie dźwięku systemu. Możesz wcześniej ściszyć dźwięk."
+          }
+        }
+      }
+    },
+    "Play Test Signal" : {
+      "comment" : "Meetings button that plays the system audio test tone",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play Test Signal"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odtwórz sygnał testowy"
+          }
+        }
+      }
+    },
+    "Testing…" : {
+      "comment" : "Meetings: the system audio test is running",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testing…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testowanie…"
+          }
+        }
+      }
+    },
+    "Test Again" : {
+      "comment" : "Meetings button that repeats the system audio test",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test Again"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testuj ponownie"
+          }
+        }
+      }
+    },
+    "Open System Audio Settings" : {
+      "comment" : "Meetings button that opens System Audio Recording privacy settings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open System Audio Settings"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz ustawienia dźwięku systemu"
+          }
+        }
+      }
+    },
+    "Size: %@" : {
+      "comment" : "Meetings model card: download size",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Size: %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozmiar: %@"
+          }
+        }
+      }
+    },
+    "Remove %@?" : {
+      "comment" : "Meetings model card: confirmation title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove %@?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunąć %@?"
+          }
+        }
+      }
+    },
+    "This model is shared with other Pounce features. It will be downloaded again the next time one of them needs it." : {
+      "comment" : "Meetings model card: what removing a shared model means",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This model is shared with other Pounce features. It will be downloaded again the next time one of them needs it."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten model jest współdzielony z innymi funkcjami Pounce. Zostanie pobrany ponownie, gdy któraś z nich go potrzebuje."
+          }
+        }
+      }
+    },
+    "Asks before removing the model" : {
+      "comment" : "Accessibility hint of the button that removes a model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Asks before removing the model"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pyta przed usunięciem modelu"
+          }
+        }
+      }
+    },
+    "Record meetings and get a transcript with the speakers told apart. Everything runs on this Mac and nothing is uploaded." : {
+      "comment" : "Meetings onboarding text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record meetings and get a transcript with the speakers told apart. Everything runs on this Mac and nothing is uploaded."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywaj spotkania i dostawaj transkrypt z rozróżnionymi mówcami. Wszystko działa na tym Macu i nic nie jest wysyłane."
+          }
+        }
+      }
+    },
+    "Allow the microphone. Pounce listens only while you record a meeting." : {
+      "comment" : "Meetings onboarding step",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow the microphone. Pounce listens only while you record a meeting."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól na mikrofon. Pounce słucha tylko podczas nagrywania spotkania."
+          }
+        }
+      }
+    },
+    "Check that Pounce can hear the other side of a call. Nothing is asked until you press the button." : {
+      "comment" : "Meetings onboarding step",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check that Pounce can hear the other side of a call. Nothing is asked until you press the button."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprawdź, czy Pounce słyszy drugą stronę rozmowy. Nic nie jest wyświetlane, dopóki nie naciśniesz przycisku."
+          }
+        }
+      }
+    },
+    "Get the speech model and the speaker model, or point to ones you already have." : {
+      "comment" : "Meetings onboarding step",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get the speech model and the speaker model, or point to ones you already have."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobierz model mowy i model mówców albo wskaż te, które już masz."
+          }
+        }
+      }
+    },
+    "Choose the folder that contains the model's files." : {
+      "comment" : "Message of the meetings model folder picker",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose the folder that contains the model's files."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybierz folder z plikami modelu."
+          }
+        }
+      }
+    },
+    "The library could not be changed. Nothing was lost; try again." : {
+      "comment" : "Meetings settings: a privacy action failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The library could not be changed. Nothing was lost; try again."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się zmienić biblioteki. Nic nie zostało utracone; spróbuj ponownie."
+          }
+        }
+      }
+    },
+    "System audio works. Pounce heard its own test signal." : {
+      "comment" : "Meetings: verdict of the system audio test when the signal was heard",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System audio works. Pounce heard its own test signal."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dźwięk systemowy działa. Pounce usłyszał własny sygnał testowy."
+          }
+        }
+      }
+    },
+    "No audio came through. Check that Pounce is allowed under System Audio Recording, then test again." : {
+      "comment" : "Meetings: verdict of the system audio test when only silence arrived",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No audio came through. Check that Pounce is allowed under System Audio Recording, then test again."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak dźwięku. Sprawdź, czy Pounce ma zgodę w „Nagrywanie dźwięku systemu”, i przetestuj ponownie."
+          }
+        }
+      }
+    },
+    "System audio could not be tested. Check the output device and the permission, then try again." : {
+      "comment" : "Meetings: verdict of the system audio test when the tap could not run",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System audio could not be tested. Check the output device and the permission, then try again."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się przetestować dźwięku systemowego. Sprawdź urządzenie wyjściowe i uprawnienie, po czym spróbuj ponownie."
+          }
+        }
+      }
+    },
+    "The model is in use by a meeting or dictation. Remove it when they have finished." : {
+      "comment" : "Meetings settings: the model cannot be removed while it is in use",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The model is in use by a meeting or dictation. Remove it when they have finished."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model jest używany przez spotkanie lub dyktowanie. Usuń go po ich zakończeniu."
+          }
+        }
+      }
+    },
+    "Removed %lld meetings and their audio." : {
+      "comment" : "Meetings settings: result of Clear Library",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Removed %lld meeting and its audio."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Removed %lld meetings and their audio."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Usunięto %lld spotkanie i jego nagranie."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Usunięto %lld spotkania i ich nagrania."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Usunięto %lld spotkań i ich nagrania."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Usunięto %lld spotkania i ich nagrania."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Deleted the audio of %lld interrupted meetings." : {
+      "comment" : "Meetings settings: result of Delete Temporary Recordings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Deleted the audio of %lld interrupted meeting."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Deleted the audio of %lld interrupted meetings."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Usunięto nagranie %lld przerwanego spotkania."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Usunięto nagrania %lld przerwanych spotkań."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Usunięto nagrania %lld przerwanych spotkań."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Usunięto nagrania %lld przerwanego spotkania."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Delete older meetings?" : {
+      "comment" : "Meetings settings confirmation title of a shorter retention",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete older meetings?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunąć starsze spotkania?"
+          }
+        }
+      }
+    },
+    "Delete Older Meetings" : {
+      "comment" : "Meetings settings confirmation button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Older Meetings"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń starsze spotkania"
+          }
+        }
+      }
+    },
+    "Meetings older than the period you choose are deleted, together with their transcripts and notes." : {
+      "comment" : "Meetings settings footer under the retention choice",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meetings older than the period you choose are deleted, together with their transcripts and notes."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spotkania starsze niż wybrany okres są usuwane razem z transkrypcjami i notatkami."
+          }
+        }
+      }
+    },
+    "%lld meetings are older than the new limit and are deleted now. This cannot be undone." : {
+      "comment" : "Meetings settings confirmation text of a shorter retention",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld meeting is older than the new limit and is deleted now. This cannot be undone."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld meetings are older than the new limit and are deleted now. This cannot be undone."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld spotkanie jest starsze niż nowy limit i zostanie teraz usunięte. Tej operacji nie można cofnąć."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld spotkania są starsze niż nowy limit i zostaną teraz usunięte. Tej operacji nie można cofnąć."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld spotkań jest starszych niż nowy limit i zostanie teraz usuniętych. Tej operacji nie można cofnąć."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld spotkania jest starszych niż nowy limit i zostanie teraz usuniętych. Tej operacji nie można cofnąć."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld recordings could not be deleted. Close anything using them and try again." : {
+      "comment" : "Meetings settings: some audio folders could not be removed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld recording could not be deleted. Close anything using it and try again."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld recordings could not be deleted. Close anything using them and try again."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Nie udało się usunąć %lld nagrania. Zamknij wszystko, co go używa, i spróbuj ponownie."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Nie udało się usunąć %lld nagrań. Zamknij wszystko, co ich używa, i spróbuj ponownie."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Nie udało się usunąć %lld nagrań. Zamknij wszystko, co ich używa, i spróbuj ponownie."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Nie udało się usunąć %lld nagrania. Zamknij wszystko, co go używa, i spróbuj ponownie."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Recording a meeting" : {
+      "comment" : "Meeting HUD while recording",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording a meeting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywanie spotkania"
+          }
+        }
+      }
+    },
+    "Processing: transcribing (%lld left)" : {
+      "comment" : "Meeting HUD while segments are transcribed after the meeting; the number is what is left",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Processing: transcribing (%lld left)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przetwarzanie: rozpoznawanie mowy (zostało: %lld)"
+          }
+        }
+      }
+    },
+    "Processing: recognising speakers…" : {
+      "comment" : "Meeting HUD while the speakers are recognised after the meeting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Processing: recognising speakers…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przetwarzanie: rozpoznawanie mówców…"
+          }
+        }
+      }
+    },
+    "Processing…" : {
+      "comment" : "Meeting HUD while the meeting is being closed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Processing…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przetwarzanie…"
+          }
+        }
+      }
+    },
+    "Meeting saved" : {
+      "comment" : "Meeting HUD after the meeting was saved",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meeting saved"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spotkanie zapisane"
+          }
+        }
+      }
+    },
+    "Meeting saved – not complete" : {
+      "comment" : "Meeting HUD when the transcript could not be finished",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meeting saved – not complete"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spotkanie zapisane – niekompletne"
+          }
+        }
+      }
+    },
+    "The meetings library is unavailable" : {
+      "comment" : "Meeting HUD when the library could not be opened (Keychain or database)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The meetings library is unavailable"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biblioteka spotkań jest niedostępna"
+          }
+        }
+      }
+    },
+    "Microphone not allowed. Record the system audio only?" : {
+      "comment" : "Meeting HUD when the microphone is denied but system audio can still be recorded",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microphone not allowed. Record the system audio only?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon niedozwolony. Nagrywać tylko dźwięk systemu?"
+          }
+        }
+      }
+    },
+    "No audio source could be started" : {
+      "comment" : "Meeting HUD when no track could start",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No audio source could be started"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się uruchomić żadnego źródła dźwięku"
+          }
+        }
+      }
+    },
+    "Not enough free disk space to record" : {
+      "comment" : "Meeting HUD when the disk has less than 1.5 GB free",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not enough free disk space to record"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Za mało wolnego miejsca na dysku, by nagrywać"
+          }
+        }
+      }
+    },
+    "The previous meeting is still being processed" : {
+      "comment" : "Meeting HUD when a new recording is requested while one is being processed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The previous meeting is still being processed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poprzednie spotkanie jest jeszcze przetwarzane"
+          }
+        }
+      }
+    },
+    "The recording could not start" : {
+      "comment" : "Meeting HUD when starting failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The recording could not start"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się rozpocząć nagrywania"
+          }
+        }
+      }
+    },
+    "The meeting could not be saved" : {
+      "comment" : "Meeting HUD when nothing of the meeting could be kept",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The meeting could not be saved"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się zapisać spotkania"
+          }
+        }
+      }
+    },
+    "Low disk space – the recording will end soon" : {
+      "comment" : "Meeting HUD notice when free disk space runs low",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Low disk space – the recording will end soon"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mało miejsca na dysku – nagrywanie wkrótce się zakończy"
+          }
+        }
+      }
+    },
+    "Some text could not be saved – you can finish it later" : {
+      "comment" : "Meeting HUD notice when the library or the spool failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some text could not be saved – you can finish it later"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się zapisać części tekstu – możesz go dokończyć później"
+          }
+        }
+      }
+    },
+    "Microphone disconnected" : {
+      "comment" : "Meeting HUD notice when the microphone track ended",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microphone disconnected"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon odłączony"
+          }
+        }
+      }
+    },
+    "System audio stopped" : {
+      "comment" : "Meeting HUD notice when the system track ended",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System audio stopped"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dźwięk systemu przerwany"
+          }
+        }
+      }
+    },
+    "Check the system audio recording permission" : {
+      "comment" : "Meeting HUD notice when the system track stays silent for the first 20 seconds",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check the system audio recording permission"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprawdź uprawnienie nagrywania dźwięku systemu"
+          }
+        }
+      }
+    },
+    "Recording ends in %@" : {
+      "comment" : "Meeting HUD countdown before the 3 hour limit; minutes and seconds",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording ends in %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywanie zakończy się za %@"
+          }
+        }
+      }
+    },
+    "Another speech model is in use – the text comes after the meeting" : {
+      "comment" : "Meeting HUD notice when dictation uses a different speech model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another speech model is in use – the text comes after the meeting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Używany jest inny model mowy – tekst powstanie po spotkaniu"
+          }
+        }
+      }
+    },
+    "Speech model unavailable – the text comes after the meeting" : {
+      "comment" : "Meeting HUD notice when the speech model could not be loaded",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speech model unavailable – the text comes after the meeting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model mowy niedostępny – tekst powstanie po spotkaniu"
+          }
+        }
+      }
+    },
+    "Loading the speech model – recording continues" : {
+      "comment" : "Meeting HUD notice while the model loads",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading the speech model – recording continues"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ładowanie modelu mowy – nagrywanie trwa"
+          }
+        }
+      }
+    },
+    "Tell the participants you are recording" : {
+      "comment" : "Meeting HUD consent reminder in the first seconds",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tell the participants you are recording"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poinformuj uczestników, że nagrywasz"
+          }
+        }
+      }
+    },
+    "End recording" : {
+      "comment" : "Meeting HUD button that ends the recording",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End recording"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zakończ"
+          }
+        }
+      }
+    },
+    "Open Privacy settings" : {
+      "comment" : "Meeting HUD button that opens the microphone privacy pane",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Privacy settings"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz ustawienia prywatności"
+          }
+        }
+      }
+    },
+    "Record system audio only" : {
+      "comment" : "Meeting HUD button that records without the microphone",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record system audio only"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywaj tylko dźwięk systemu"
+          }
+        }
+      }
+    },
+    "Meeting recording started" : {
+      "comment" : "VoiceOver announcement when a meeting recording starts",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meeting recording started"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozpoczęto nagrywanie spotkania"
+          }
+        }
+      }
+    },
+    "Meeting recording stopped" : {
+      "comment" : "VoiceOver announcement when a meeting recording stops",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meeting recording stopped"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zakończono nagrywanie spotkania"
+          }
+        }
+      }
+    },
+    "Me" : {
+      "comment" : "Meeting HUD level meter of the microphone",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Me"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ja"
+          }
+        }
+      }
+    },
+    "System" : {
+      "comment" : "Meeting HUD level meter of the system audio",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System"
+          }
+        }
+      }
+    },
+    "Record Meeting / Stop Recording" : {
+      "comment" : "Menu item and command that starts or ends a meeting recording",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record Meeting / Stop Recording"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywaj spotkanie / Zakończ nagrywanie"
+          }
+        }
+      }
+    },
+    "A speech model is being removed – try again in a moment" : {
+      "comment" : "Meeting HUD when a recording is requested while a model is being removed in Settings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A speech model is being removed – try again in a moment"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model mowy jest właśnie usuwany – spróbuj za chwilę"
+          }
+        }
+      }
+    },
+    "Meeting Library" : {
+      "comment" : "Menu item and command that opens the list of meetings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meeting Library"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biblioteka spotkań"
+          }
+        }
+      }
+    },
+    "With Notes" : {
+      "comment" : "Meeting library filter",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With Notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Z notatkami"
+          }
+        }
+      }
+    },
+    "Needs Attention" : {
+      "comment" : "Meeting library filter",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs Attention"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wymagają uwagi"
+          }
+        }
+      }
+    },
+    "Open Meeting" : {
+      "comment" : "Meeting library action that opens the meeting window",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Meeting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz spotkanie"
+          }
+        }
+      }
+    },
+    "Processing" : {
+      "comment" : "Meeting library badge: being transcribed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Processing"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przetwarzanie"
+          }
+        }
+      }
+    },
+    "Incomplete" : {
+      "comment" : "Meeting library badge: recording was interrupted",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incomplete"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niekompletne"
+          }
+        }
+      }
+    },
+    "Failed" : {
+      "comment" : "Meeting library badge: meeting could not be made",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Błąd"
+          }
+        }
+      }
+    },
+    "Writing notes" : {
+      "comment" : "Meeting library badge: notes in progress",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Writing notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Piszę notatki"
+          }
+        }
+      }
+    },
+    "Partial notes" : {
+      "comment" : "Meeting library badge: notes miss some parts",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partial notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki częściowe"
+          }
+        }
+      }
+    },
+    "Notes failed" : {
+      "comment" : "Meeting library badge: notes failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes failed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Błąd notatek"
+          }
+        }
+      }
+    },
+    "Notes outdated" : {
+      "comment" : "Meeting library badge: a speaker was renamed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes outdated"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki nieaktualne"
+          }
+        }
+      }
+    },
+    "The meeting is being recorded." : {
+      "comment" : "Meeting library preview of a live meeting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The meeting is being recorded."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spotkanie jest nagrywane."
+          }
+        }
+      }
+    },
+    "The transcript is being prepared." : {
+      "comment" : "Meeting library preview of a meeting being transcribed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The transcript is being prepared."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkrypt jest przygotowywany."
+          }
+        }
+      }
+    },
+    "The text is shortened here. Open the meeting to read all of it." : {
+      "comment" : "Meeting library preview: the text was cut",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The text is shortened here. Open the meeting to read all of it."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekst jest tutaj skrócony. Otwórz spotkanie, aby przeczytać całość."
+          }
+        }
+      }
+    },
+    "This meeting is no longer in the library." : {
+      "comment" : "Meeting library preview of a deleted meeting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This meeting is no longer in the library."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tego spotkania nie ma już w bibliotece."
+          }
+        }
+      }
+    },
+    "No meetings yet. Start one with the Record Meeting command." : {
+      "comment" : "Meeting library empty state",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No meetings yet. Start one with the Record Meeting command."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak spotkań. Rozpocznij nagrywanie poleceniem Nagraj spotkanie."
+          }
+        }
+      }
+    },
+    "The meeting library is unavailable because the Keychain could not be read. Nothing was deleted." : {
+      "comment" : "Meeting library banner when the Keychain key is unavailable",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The meeting library is unavailable because the Keychain could not be read. Nothing was deleted."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biblioteka spotkań jest niedostępna, bo nie można odczytać pęku kluczy. Nic nie zostało usunięte."
+          }
+        }
+      }
+    },
+    "The meeting library could not be opened." : {
+      "comment" : "Meeting library banner when the database could not be opened",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The meeting library could not be opened."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie można otworzyć biblioteki spotkań."
+          }
+        }
+      }
+    },
+    "Press ⌃X again to delete this meeting." : {
+      "comment" : "Meeting library: asks to press Delete a second time",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press ⌃X again to delete this meeting."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naciśnij ponownie ⌃X, aby usunąć to spotkanie."
+          }
+        }
+      }
+    },
+    "Press ⌃X again to delete this meeting and its audio." : {
+      "comment" : "Meeting library: asks to press Delete again; the unfinished meeting's audio goes too",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press ⌃X again to delete this meeting and its audio."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naciśnij ponownie ⌃X, aby usunąć to spotkanie i jego nagranie."
+          }
+        }
+      }
+    },
+    "A meeting that is being recorded or processed cannot be deleted." : {
+      "comment" : "Meeting library: Delete refused for a live meeting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A meeting that is being recorded or processed cannot be deleted."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spotkania, które jest nagrywane lub przetwarzane, nie można usunąć."
+          }
+        }
+      }
+    },
+    "This meeting cannot be loaded right now." : {
+      "comment" : "Meeting library preview when the database could not be read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This meeting cannot be loaded right now."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie można teraz wczytać tego spotkania."
+          }
+        }
+      }
+    },
+    "Suggest recording when a meeting starts" : {
+      "comment" : "Meetings settings toggle of suggestions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggest recording when a meeting starts"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podpowiadaj nagrywanie, gdy zaczyna się spotkanie"
+          }
+        }
+      }
+    },
+    "Not available on this Mac: macOS does not report which apps use the microphone here." : {
+      "comment" : "Meetings settings: the process audio API is unavailable",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not available on this Mac: macOS does not report which apps use the microphone here."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niedostępne na tym Macu: macOS nie podaje tutaj, które aplikacje używają mikrofonu."
+          }
+        }
+      }
+    },
+    "Apps you muted" : {
+      "comment" : "Meetings settings: list of apps with suggestions turned off",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps you muted"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyciszone aplikacje"
+          }
+        }
+      }
+    },
+    "Ask again" : {
+      "comment" : "Button that unmutes an app",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ask again"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pytaj ponownie"
+          }
+        }
+      }
+    },
+    "Other apps that count as meetings" : {
+      "comment" : "Meetings settings: list of apps added by the user",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other apps that count as meetings"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inne aplikacje uznawane za spotkania"
+          }
+        }
+      }
+    },
+    "e.g. com.google.Chrome" : {
+      "comment" : "Placeholder of the bundle ID field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "e.g. com.google.Chrome"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "np. com.google.Chrome"
+          }
+        }
+      }
+    },
+    "Bundle ID" : {
+      "comment" : "Label of the field that adds an app to the meeting suggestions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundle ID"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Identyfikator pakietu"
+          }
+        }
+      }
+    },
+    "That is not a valid bundle ID." : {
+      "comment" : "Error of the bundle ID field of the suggestions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That is not a valid bundle ID."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To nie jest poprawny identyfikator pakietu."
+          }
+        }
+      }
+    },
+    "Already in the list." : {
+      "comment" : "Error of the bundle ID field of the suggestions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Already in the list."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Już jest na liście."
+          }
+        }
+      }
+    },
+    "The list is full." : {
+      "comment" : "Error of the bundle ID field of the suggestions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The list is full."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lista jest pełna."
+          }
+        }
+      }
+    },
+    "Meeting suggestions" : {
+      "comment" : "Meetings settings section title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meeting suggestions"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podpowiedzi spotkań"
+          }
+        }
+      }
+    },
+    "Optional: Pounce can suggest recording when Zoom, Teams or another meeting app starts using the microphone. It only checks which app uses the microphone, never what it hears, and never records without your click." : {
+      "comment" : "Meetings onboarding step about meeting suggestions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optional: Pounce can suggest recording when Zoom, Teams or another meeting app starts using the microphone. It only checks which app uses the microphone, never what it hears, and never records without your click."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opcjonalnie: Pounce może podpowiedzieć nagrywanie, gdy Zoom, Teams lub inna aplikacja do spotkań zacznie używać mikrofonu. Sprawdza tylko, która aplikacja używa mikrofonu, nigdy co słyszy, i nigdy nie nagrywa bez Twojego kliknięcia."
+          }
+        }
+      }
+    },
+    "Looks like a meeting in %@" : {
+      "comment" : "Meeting suggestion HUD; the placeholder is the name of the app that uses the microphone",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Looks like a meeting in %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wygląda na spotkanie w %@"
+          }
+        }
+      }
+    },
+    "End the recording?" : {
+      "comment" : "Meeting suggestion HUD: the meeting seems to be over",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End the recording?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zakończyć nagranie?"
+          }
+        }
+      }
+    },
+    "Record" : {
+      "comment" : "Meeting suggestion HUD button that starts a recording",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywaj"
+          }
+        }
+      }
+    },
+    "Not now" : {
+      "comment" : "Meeting suggestion HUD button that dismisses the suggestion",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not now"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie teraz"
+          }
+        }
+      }
+    },
+    "Don't ask for this app" : {
+      "comment" : "Meeting suggestion HUD button that stops suggestions for the app for good",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Don't ask for this app"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie pytaj dla tej aplikacji"
+          }
+        }
+      }
+    },
+    "Keep recording" : {
+      "comment" : "Meeting suggestion HUD button that keeps the recording going",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep recording"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywaj dalej"
+          }
+        }
+      }
+    },
+    "Pounce only checks which app is using the microphone, never what it hears. It knows Zoom, Teams, Slack, FaceTime, Webex and Discord, and asks before recording; it never starts by itself. A browser counts only if you add it above, because a web page using the microphone can be a false alarm. Only these lists and, for a meeting you start from a suggestion, the app's ID are stored. Apps built on Safari's engine (WebKit helpers) may not be detected, and the pill cannot be operated from the keyboard; VoiceOver reads it and can press its buttons." : {
+      "comment" : "Meetings settings footer under the meeting suggestions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce only checks which app is using the microphone, never what it hears. It knows Zoom, Teams, Slack, FaceTime, Webex and Discord, and asks before recording; it never starts by itself. A browser counts only if you add it above, because a web page using the microphone can be a false alarm. Only these lists and, for a meeting you start from a suggestion, the app's ID are stored. Apps built on Safari's engine (WebKit helpers) may not be detected, and the pill cannot be operated from the keyboard; VoiceOver reads it and can press its buttons."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce sprawdza tylko, która aplikacja używa mikrofonu, nigdy co słyszy. Zna Zoom, Teams, Slack, FaceTime, Webex i Discord i pyta, zanim zacznie nagrywać; sam nigdy nie zaczyna. Przeglądarka liczy się tylko, jeśli dodasz ją powyżej, bo strona używająca mikrofonu może dać fałszywy alarm. Zapisywane są tylko te listy oraz, dla spotkania rozpoczętego z podpowiedzi, identyfikator aplikacji. Aplikacje oparte na silniku Safari (procesy pomocnicze WebKit) mogą nie zostać wykryte, a podpowiedzi nie da się obsłużyć z klawiatury; VoiceOver ją odczytuje i pozwala nacisnąć jej przyciski."
+          }
+        }
+      }
+    },
+    "Pounce cannot confirm that detection works on this Mac: no app has reported microphone use yet." : {
+      "comment" : "Meetings settings: the process audio API listens but no process has answered",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce cannot confirm that detection works on this Mac: no app has reported microphone use yet."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pounce nie może potwierdzić, że wykrywanie działa na tym Macu: żadna aplikacja nie zgłosiła jeszcze użycia mikrofonu."
           }
         }
       }

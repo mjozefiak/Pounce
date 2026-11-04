@@ -117,6 +117,10 @@ public struct PluginContext: Sendable {
     /// Opens this plugin's own pane in Settings, for example from a message that points the user there.
     /// Added with dictation; the default does nothing.
     public let openSettings: @MainActor @Sendable () -> Void
+    /// `Application Support/Pounce/Models/`, created by the host with mode 0700: downloaded speech and language
+    /// models (`speech/`, `llm/`), shared by every plugin that needs one and not removed by Erase Data. Added
+    /// with the meeting notes spec; defaults to `Models/` inside the storage directory.
+    public let modelsDirectory: URL
 
     public init(
         storageDirectory: URL,
@@ -137,7 +141,8 @@ public struct PluginContext: Sendable {
         claimEscapeKey:
             @escaping @MainActor @Sendable (_ onEscape: @escaping @MainActor @Sendable () -> Void) ->
             EscapeKeyClaim = { _ in .inactive },
-        openSettings: @escaping @MainActor @Sendable () -> Void = {}
+        openSettings: @escaping @MainActor @Sendable () -> Void = {},
+        modelsDirectory: URL? = nil
     ) {
         self.storageDirectory = storageDirectory
         self.settings = settings
@@ -155,5 +160,7 @@ public struct PluginContext: Sendable {
         self.makeShortcutRecorder = makeShortcutRecorder
         self.claimEscapeKey = claimEscapeKey
         self.openSettings = openSettings
+        self.modelsDirectory =
+            modelsDirectory ?? storageDirectory.appending(path: "Models", directoryHint: .isDirectory)
     }
 }

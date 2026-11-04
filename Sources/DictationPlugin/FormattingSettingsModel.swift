@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import PounceSpeech
 
 /// What the "Formatting" section of the Dictation pane shows and does: the mode, the servers found on this Mac,
 /// the model to use, and a "Try it" button. Nothing here leaves the Mac: every address goes through
@@ -154,10 +155,26 @@ final class FormattingSettingsModel {
         guard let llmModels else { return }
         let package = builtInModel.package
         Task {
+            // The file is open while a request uses the model: wait for the user to try again.
+            if await runtime?.isInUse() == true {
+                builtInError = String(
+                    localized: "The model is in use right now. Try again in a moment.",
+                    comment: "Dictation settings error when the built-in model is being used and cannot be removed")
+                return
+            }
             await runtime?.unload()
             do {
-                try await llmModels.delete(package)
-                builtInError = nil
+                // Checked again right before the delete: a request may have started while the model was freed.
+                let removed = try await llmModels.delete(package) { @Sendable in
+                    await self.runtime?.isInUse() == true
+                }
+                builtInError =
+                    removed
+                    ? nil
+                    : String(
+                        localized: "The model is in use right now. Try again in a moment.",
+                        comment:
+                            "Dictation settings error when the built-in model is being used and cannot be removed")
             } catch {
                 builtInError = DictationSettingsModel.message(for: error)
             }

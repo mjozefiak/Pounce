@@ -3,6 +3,7 @@ import Synchronization
 import Testing
 
 @testable import DictationPlugin
+@testable import PounceSpeech
 
 private func words(_ count: Int, sentenceEvery: Int? = nil) -> String {
     (1...count).map { index in

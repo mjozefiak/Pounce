@@ -60,6 +60,9 @@ public protocol PouncePlugin: AnyObject {
     var searchStatus: [SearchStatus] { get }
     /// Suggestions for the empty search panel. Added with app suggestions; the default suggests nothing.
     var suggestionSources: [any SuggestionSource] { get }
+    /// A control shown under `permission`'s row in Settings → Permissions, for example a "Test" button for a
+    /// permission whose state cannot be read. Added with meeting notes; the default shows nothing.
+    func permissionAccessory(for permission: Permission) -> AnyView?
 
     /// Removes data the plugin keeps outside its storage directory (for example a Keychain item).
     /// "Erase Data" calls `deactivate()`, then this method, and then the host deletes the whole
@@ -78,5 +81,6 @@ extension PouncePlugin {
     public func settingsPane() -> AnyView? { nil }
     public var searchStatus: [SearchStatus] { [] }
     public var suggestionSources: [any SuggestionSource] { [] }
+    public func permissionAccessory(for permission: Permission) -> AnyView? { nil }
     public func eraseData() async throws {}
 }

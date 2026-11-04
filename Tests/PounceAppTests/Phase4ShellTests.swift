@@ -31,6 +31,20 @@ final class IndexingPlugin: PouncePlugin {
     var requiredPermissions: Set<Permission> { [.fullDiskAccess, .accessibility] }
 }
 
+/// Needs the microphone and System Audio Recording, like meeting notes; has one onboarding step.
+final class RecordingPlugin: PouncePlugin {
+    static let manifest = PluginManifest(
+        id: "recording", displayName: "Recording", symbolName: "waveform", order: 3, defaultEnabled: false)
+
+    init(context: PluginContext) {}
+
+    var requiredPermissions: Set<Permission> { [.microphone, .systemAudioRecording] }
+
+    var onboardingSteps: [OnboardingStep] {
+        [OnboardingStep(id: "recording.intro", title: "Recording", symbolName: "waveform") { AnyView(EmptyView()) }]
+    }
+}
+
 /// Answers from a table and counts reads.
 @MainActor
 final class FakePermissionsReader: PermissionsReader {
@@ -110,6 +124,61 @@ final class FakePermissionsReader: PermissionsReader {
                 "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles",
                 "x-apple.systempreferences:com.apple.preference.security",
             ])
+    }
+
+    @Test func systemAudioRecordingCannotBeReadAndIsNeverADenial() {
+        let reader = SystemPermissionsReader(
+            accessibilityOverride: .denied, fullDiskAccessOverride: .denied, microphoneOverride: .denied)
+        #expect(reader.status(of: .systemAudioRecording) == .notDetermined)
+        let permission = Permission.systemAudioRecording
+        #expect(permission.statusText(.notDetermined) == "Can't be checked")
+        #expect(permission.statusText(.notDetermined) != permission.statusText(.denied))
+        #expect(permission.settingsURL.absoluteString.hasSuffix("?Privacy_AudioCapture"))
+        #expect(!permission.explanation.isEmpty)
+        #expect(NSImage(systemSymbolName: permission.symbolName, accessibilityDescription: nil) != nil)
+    }
+
+    @Test func theSystemAudioRowAppearsOnlyWhenAnEnabledPluginRequiresIt() async throws {
+        let test = try TestEnvironment()
+        defer { test.tearDown() }
+        let host = test.makeHost([PastingPlugin.self, RecordingPlugin.self])
+        await host.start()
+        let model = PermissionsModel(host: host, reader: FakePermissionsReader()) { _ in }
+        #expect(!model.requirements.map(\.permission).contains(.systemAudioRecording))
+
+        await host.setEnabled(true, for: "recording")
+        let row = model.requirements.first { $0.permission == .systemAudioRecording }
+        #expect(row == PermissionRequirement(permission: .systemAudioRecording, pluginNames: ["Recording"]))
+        model.refresh()
+        #expect(model.status(of: .systemAudioRecording) == .notDetermined)
+
+        await host.setEnabled(false, for: "recording")
+        #expect(!model.requirements.map(\.permission).contains(.systemAudioRecording))
+    }
+
+    @Test func anUnreadablePermissionBlocksNeitherEnablingNorOnboarding() async throws {
+        let test = try TestEnvironment()
+        defer { test.tearDown() }
+        let host = test.makeHost([RecordingPlugin.self])
+        await host.start()
+        let reader = SystemPermissionsReader(
+            accessibilityOverride: .granted, fullDiskAccessOverride: .granted, microphoneOverride: .granted)
+        let model = PermissionsModel(host: host, reader: reader) { _ in }
+
+        await host.setEnabled(true, for: "recording")
+        #expect(model.requirements.map(\.permission).contains(.systemAudioRecording))
+        #expect(model.status(of: .systemAudioRecording) == .notDetermined)
+        #expect(host.isEnabled("recording"))
+        #expect(host.state(of: "recording")?.isActive == true)
+        let steps = host.entries.filter(\.state.isActive).flatMap(\.plugin.onboardingSteps)
+        #expect(steps.map(\.id) == ["recording.intro"])
+
+        let settings = AppSettings(store: InMemorySettingsStore())
+        let hotkeys = HotkeyService(
+            registrar: InMemoryHotkeyRegistrar(), settings: InMemorySettingsStore(), readOccupied: { [] })
+        let controller = OnboardingController(hotkeys: hotkeys, settings: settings) { steps }
+        settings.shortcutOnboardingCompleted = true
+        #expect(controller.pendingPages.map(\.id) == ["recording.intro"])
     }
 
     @Test func everyStateHasTextAndASymbol() {

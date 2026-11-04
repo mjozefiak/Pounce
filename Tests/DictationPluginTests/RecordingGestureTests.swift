@@ -1,6 +1,7 @@
 import Testing
 
 @testable import DictationPlugin
+@testable import PounceSpeech
 
 private final class FakeClock: @unchecked Sendable {
     private(set) var instant = ContinuousClock.now

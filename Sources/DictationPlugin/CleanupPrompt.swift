@@ -1,4 +1,5 @@
 import Foundation
+import PounceSpeech
 
 /// The instructions that turn a raw transcript into clean text (spec: `CleanupPrompt`). Versioned: a change
 /// is a change of behaviour the user can see, so it bumps `version` and goes into the release notes.
@@ -8,11 +9,6 @@ import Foundation
 /// examples include questions and commands that come back as cleaned questions and commands.
 enum CleanupPrompt {
     static let version = 1
-
-    struct Message: Equatable, Sendable {
-        let role: String
-        let content: String
-    }
 
     static let system = """
         You are a transcription editor. The user message contains a raw speech-to-text transcript between \
@@ -54,13 +50,13 @@ enum CleanupPrompt {
     ]
 
     /// The request's messages: the system prompt, the examples as earlier turns, then this transcript.
-    static func messages(transcript: String, context: String?) -> [Message] {
-        var messages = [Message(role: "system", content: system)]
+    static func messages(transcript: String, context: String?) -> [ChatMessage] {
+        var messages = [ChatMessage(role: "system", content: system)]
         for example in examples {
-            messages.append(Message(role: "user", content: wrap(example.input, context: nil)))
-            messages.append(Message(role: "assistant", content: example.output))
+            messages.append(ChatMessage(role: "user", content: wrap(example.input, context: nil)))
+            messages.append(ChatMessage(role: "assistant", content: example.output))
         }
-        messages.append(Message(role: "user", content: wrap(transcript, context: context)))
+        messages.append(ChatMessage(role: "user", content: wrap(transcript, context: context)))
         return messages
     }
 

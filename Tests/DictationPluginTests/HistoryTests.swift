@@ -8,6 +8,7 @@ import Testing
 import os
 
 @testable import DictationPlugin
+@testable import PounceSpeech
 
 private func keys(_ byte: UInt8 = 9) throws -> MasterKeys {
     try #require(MasterKeys(master: Data(repeating: byte, count: 32)))

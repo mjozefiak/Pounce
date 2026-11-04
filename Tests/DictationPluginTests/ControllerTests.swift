@@ -5,6 +5,7 @@ import Testing
 import os
 
 @testable import DictationPlugin
+@testable import PounceSpeech
 
 @MainActor final class FakeHUD: HUDPresenter {
     private(set) var states: [HUDState] = []
@@ -48,6 +49,7 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         let hud = FakeHUD()
         let authorizer = FakeAuthorizer()
         let engine = FakeEngine()
+        let lease: SpeechEngineLease
         let directory: TemporaryDirectory
         let paste = TextPasterTests.Rig()
         let models: ModelManager
@@ -67,6 +69,8 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
 
         init() throws {
             directory = try TemporaryDirectory()
+            let clock = paste.clock
+            lease = SpeechEngineLease(sleep: { try await clock.sleep(for: $0) })
             let data = Data("model".utf8)
             package = ModelPackage(
                 id: "fixture", title: "Fixture", license: "MIT", attribution: "",
@@ -88,6 +92,7 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         func controller(keepWarm: Duration = .seconds(600)) -> DictationController {
             let hud = hud
             let engine = engine
+            let lease = lease
             let rig = self
             return DictationController(
                 .init(
@@ -97,17 +102,17 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
                         rig.audioStarted += 1
                         return DictationSession(
                             audio: ScriptedAudioInput(seconds: rig.audioSeconds), vad: RangeVAD(rig.ranges),
-                            engine: engine, formatter: rig.formatter, modelFolder: folder,
-                            onEvent: onEvent)
+                            engine: engine, formatter: rig.formatter, modelFolder: folder, lease: lease,
+                            keepWarm: { keepWarm }, onEvent: onEvent)
                     },
-                    engine: engine, paster: paste.paster(), hud: hud,
+                    lease: lease, paster: paste.paster(), hud: hud,
                     claimEscape: { handler in
                         rig.escapeHandler = handler
                         guard rig.escapeAvailable else { return .inactive }
                         return EscapeKeyClaim(isActive: true) { rig.escapeReleases += 1 }
                     },
                     openSettings: { rig.settingsOpened += 1 },
-                    keepWarm: { keepWarm }, clock: paste.clock, now: { rig.now },
+                    clock: paste.clock, now: { rig.now },
                     recordHistory: { rig.recorded.append($0) },
                     frontmostBundleID: { "com.example.target" },
                     formatMode: { rig.mode }, speechModelID: { "fixture" }, formatterModel: { "qwen" }))
@@ -477,6 +482,7 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
             .copied(.noAccessibility), .copied(.secureEventInput), .problem(.modelMissing),
             .problem(.modelUnavailable), .problem(.modelFailedToLoad), .problem(.microphoneDenied),
             .problem(.noMicrophone), .problem(.nothingHeard), .problem(.nothingToPaste),
+            .problem(.speechModelBusy),
             .pastedUnformatted(all: true), .pastedUnformatted(all: false),
         ]
         for state in states {

@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import Observation
+import PounceSpeech
 import os
 
 /// What the Dictation pane and the setup step show and do: the speech model (download, folder, remove), the

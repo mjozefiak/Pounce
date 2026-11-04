@@ -1,0 +1,70 @@
+{
+  "name": "bait-nothing-decided",
+  "language": "pl",
+  "description": "A chat in which nobody decides or promises anything. The model invents decisions and tasks with a person and a date; none of them may survive, and a task nobody gave to anyone has no person or date.",
+  "utterances": [
+    {
+      "startMs": 0,
+      "speaker": "Jan",
+      "text": "Może ktoś powinien kiedyś zajrzeć do tego tematu."
+    },
+    {
+      "startMs": 11000,
+      "speaker": "Ola",
+      "text": "Zobaczymy, jak to będzie wyglądało za jakiś czas."
+    },
+    {
+      "startMs": 22000,
+      "speaker": "Jan",
+      "text": "Pogoda była dzisiaj całkiem dobra."
+    },
+    {
+      "startMs": 33000,
+      "speaker": "Ola",
+      "text": "Tak, szkoda, że już się kończy."
+    }
+  ],
+  "modelAnswer": [
+    {
+      "kind": "DEC",
+      "time": "00:05",
+      "quote": "Zespół zdecydował o przeniesieniu bazy danych",
+      "text": "Zdecydowano o przeniesieniu bazy danych."
+    },
+    {
+      "kind": "TASK",
+      "time": "00:10",
+      "quote": "Jan sprawdzi umowę do środy",
+      "text": "Sprawdzić umowę.",
+      "person": "Jan",
+      "due": "środa"
+    },
+    {
+      "kind": "TASK",
+      "time": "00:00",
+      "quote": "Może ktoś powinien kiedyś zajrzeć do tego tematu",
+      "text": "Zajrzeć do tematu.",
+      "person": "Ola",
+      "due": "piątek"
+    },
+    {
+      "kind": "DEC",
+      "time": "00:33",
+      "quote": "Wszyscy zgodzili się na nowy budżet",
+      "text": "Przyjęto nowy budżet."
+    }
+  ],
+  "expect": {
+    "keep": [
+      "zajrzeć do tematu"
+    ],
+    "drop": [
+      "przeniesieni",
+      "umowę",
+      "budżet",
+      "piątek",
+      "środ"
+    ],
+    "minDropped": 3
+  }
+}
