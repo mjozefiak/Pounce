@@ -12,9 +12,9 @@ Lintel has no window other than Settings, so notes and dictation history live on
 ## Decision
 
 1. **Window and sections.** `LintelApp` owns one `MainWindowController`. Plugins contribute **sections** through an additive `LintelPlugin.workspaceSections` (empty default). Settings is a mode of the same window, not a second window.
-2. **Contract additions, all additive with defaults:** `WorkspaceSection`, `SettingsStatus` (`settingsStatus`), `ModelUsage` (`modelUsage`), `ResultAction.confirmation`, `PluginManifest.canBeDisabled` (default true), `NoteSource` (`noteSources`), and `PluginContext.noteSources` / `openNote`. `LintelPlugin.settingsPane()` is unchanged.
+2. **Contract additions, all additive with defaults:** `WorkspaceSection`, `SettingsStatus` (`settingsStatus`), `ModelUsage` (`modelUsage`), `ResultAction.confirmation`, `PluginManifest.canBeDisabled` (default true, enforced by the host) and `settingsGroup`, `Permission.isReadable`, `NoteSource` and the optional `NoteSourceEditing` (`noteSources`), and `PluginContext.noteSources` / `noteSourcesChanged` / `openNote` (returns `Bool`) / `availableCommands`. Open sets (`NoteKind`, `NoteAuthor`, `NoteMatch`, `ModelKind`, `SettingsGroup`) are `RawRepresentable` structs so new values are additive. `LintelPlugin.settingsPane()` keeps its signature, with one added rule: it may be called while the plugin is inactive or failed and must only read settings.
 3. **New plugin `NotesPlugin`** (`PluginID` `notes`, always on) owns manual notes, **revisions** (author `stt` / `agent` / `human`), **comments** and the search index in its own SQLCipher `notes.sqlite` (`MasterKeyStore(service: com.lintelapp.notes)`, the same Keychain policy as Clipboard, Dictation and Meetings).
-4. **Recorded content stays with its owner.** `MeetingsPlugin` and `DictationPlugin` implement `NoteSource`; Notes keeps an **overlay** (document + revisions + comments) per note key, seeded on first edit. The source's text is never rewritten by Notes.
+4. **Recorded content stays with its owner.** `MeetingsPlugin` and `DictationPlugin` implement `NoteSource`; Notes keeps an **overlay** (document + revisions + comments) per note key, seeded on first edit **per layer** (meetings: notes, transcript; dictation: cleaned, original), so each layer is overlaid independently and the transcript stays editable. Note keys are stable across Erase Data and key resets (`meeting.uuid`; dictation store uuid plus row id), and an overlay whose source fingerprint changes is detached, never re-attached. The source's text is never rewritten by Notes.
 5. **The agent is the local built-in model** (`LLMLease`, background priority, no network) and may change **only blocks that carry a comment**; a block the user edited after the comment is skipped; the document is read-only during a run; regeneration of an edited note is a *proposal* the user applies or discards.
 6. **Provenance is part of the product.** Every block shows its author; source-quote chips ("checked against the recording") stay only on untouched agent blocks.
 7. **Launcher:** the panel stays as is, except that destructive row actions ask for a second ⌃X (owner decision, against the author's recommendation).
@@ -30,12 +30,14 @@ Lintel has no window other than Settings, so notes and dictation history live on
 
 ## Consequences
 
-- Plugin graph is unchanged: plugins still import only `LintelKit`, `LintelSpeech`, `LintelPersistence`, `LintelCore`; `NotesPlugin` sees other plugins only as `any NoteSource` values supplied by the shell. `LintelApp` gains a dependency on `LintelSpeech` (Models pane).
+- Code layout, state machines (edit lock, revise run) and test seams are specified in the two specs; `MarkdownBlocks.split` lives in `LintelCore` so Meetings and Notes split blocks identically.
+- Plugin graph is unchanged: plugins still import only `LintelKit`, `LintelSpeech`, `LintelPersistence`, `LintelCore`; `NotesPlugin` sees other plugins only as `any NoteSource` values supplied by the shell. `LintelApp` gains a dependency on `LintelSpeech` (Models pane, behind a `ModelInventory` port).
 - A new protected store and namespace (`notes.sqlite`, `plugins.notes.*`, `app.mainWindow.*`) with additive migrations and the standard key policy.
+- Notes data has its own Data section (export all, erase) and the rollback note "export before reverting": `notes.sqlite` is encrypted with a login-keychain key and is not portable to another Mac or user unless the keychain moves with it (for example Migration Assistant).
 - Notes of edited text are **never auto-deleted** by retention (they are the user's writing); unedited recorded notes keep their source retention. This keeps data longer than today for edited notes and needs the owner's explicit approval in the PR that ships it (BC §3).
 - The meeting window is removed once the reader ships; its frame autosave names go with it.
 - Editor feasibility is not proven: Phase 0 of the Notes spec ends with a go / fallback (Markdown source editor plus preview) recorded as an addendum here.
 
 ## Rollback
 
-The contract and plugin are additive; a revert of the PR stack restores today's behaviour. `notes.sqlite` stays on disk unread. No source data is changed by this feature.
+The contract and plugin are additive; a revert of the PR stack restores today's behaviour. `notes.sqlite` stays on disk unread (export first). The stack ships in one release; no release tag is cut inside it. No source data is changed by this feature.
