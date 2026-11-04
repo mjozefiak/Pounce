@@ -44,7 +44,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        coordinator?.reopen()
+        // With a window open (Settings, About, the welcome screen) AppKit brings it forward; the launcher only
+        // opens when there is nothing else to show.
+        if !flag { coordinator?.reopen() }
         return true
     }
 

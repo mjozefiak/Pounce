@@ -70,6 +70,14 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
 
     var isVisible: Bool { window?.isVisible ?? false }
 
+    /// Switching the activation policy to `.accessory` (Dock icon off) deactivates the app; this brings an open
+    /// Settings window back to the front so the toggle does not make it disappear behind other apps.
+    func bringToFrontIfVisible() {
+        guard let window, window.isVisible, activatesApp else { return }
+        NSApp.activate()
+        window.makeKeyAndOrderFront(nil)
+    }
+
     func show(_ pane: Pane = .general) {
         rebuildIfNeeded()
         tabs?.selectedTabViewItemIndex = Self.tabIndex(of: pane, pluginPaneCount: pluginPaneIDs.count)

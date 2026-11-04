@@ -12,6 +12,8 @@ private final class MemoryKeychain: KeychainClient {
         var readError: KeychainError?
         /// A read error for one service only, so the legacy item can fail while the current one is absent.
         var readErrorsByService: [String: KeychainError] = [:]
+        /// A delete error for one service only.
+        var deleteErrorsByService: [String: KeychainError] = [:]
     }
     let state = Mutex(State())
 
@@ -30,6 +32,8 @@ private final class MemoryKeychain: KeychainClient {
     }
 
     func deleteGenericPassword(service: String, account: String) throws(KeychainError) {
+        let failure = state.withLock { $0.deleteErrorsByService[service] }
+        if let failure { throw failure }
         let found = state.withLock { $0.items.removeValue(forKey: "\(service)/\(account)") != nil }
         if !found { throw .itemNotFound }
     }
@@ -187,7 +191,7 @@ private final class MemoryKeychain: KeychainClient {
         keychain.state.withLock { #expect($0.items["\(Self.current)/master-key"] == nil) }
     }
 
-    @Test func eraseRemovesBothKeysAndIgnoresALegacyFailure() throws {
+    @Test func eraseRemovesBothKeys() throws {
         let keychain = MemoryKeychain()
         keychain.state.withLock {
             $0.items["\(Self.current)/master-key"] = Data(repeating: 1, count: 32)
@@ -198,6 +202,24 @@ private final class MemoryKeychain: KeychainClient {
         keychain.state.withLock { #expect($0.items.isEmpty) }
         // Nothing left to delete is not an error either.
         try store.delete()
+    }
+
+    @Test func aLegacyKeyThatCannotBeRemovedIsReportedAfterTheCurrentOneIsGone() {
+        let keychain = MemoryKeychain()
+        let key = Data(repeating: 1, count: 32)
+        keychain.state.withLock {
+            $0.items["\(Self.current)/master-key"] = key
+            $0.items["\(Self.legacy)/master-key"] = key
+            $0.deleteErrorsByService[Self.legacy] = .accessDenied
+        }
+        let store = MasterKeyStore(service: Self.current, legacyService: Self.legacy, keychain: keychain)
+        #expect(throws: KeyStoreError.denied) { try store.delete() }
+        // The current key is erased anyway; the stubborn legacy one is what the caller is told about, because
+        // the next lookup would copy it back.
+        keychain.state.withLock {
+            #expect($0.items["\(Self.current)/master-key"] == nil)
+            #expect($0.items["\(Self.legacy)/master-key"] == key)
+        }
     }
 }
 

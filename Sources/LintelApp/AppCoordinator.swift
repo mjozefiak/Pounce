@@ -93,7 +93,10 @@ final class AppCoordinator {
         buildWindows()
 
         DockPresence.apply(showInDock: appSettings.showInDock)
-        appSettings.showInDockChanged = { DockPresence.apply(showInDock: $0) }
+        appSettings.showInDockChanged = { [weak self] showInDock in
+            DockPresence.apply(showInDock: showInDock)
+            if !showInDock { self?.settingsWindow?.bringToFrontIfVisible() }
+        }
 
         await host.start()
         hotkeys.start { [weak self] in self?.panelModel.toggle() }

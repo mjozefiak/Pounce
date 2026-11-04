@@ -136,17 +136,26 @@ public struct MasterKeyStore: Sendable {
 
     /// Removes the master key ("Erase Data"). A key that is already gone is not an error.
     public func delete() throws(KeyStoreError) {
-        // Best effort: the item under the previous name may belong to the old build, and removing it can
-        // prompt or be refused. That must not stop the current key from being erased.
+        // The item under the previous name may belong to the old build, and removing it can prompt or be
+        // refused. That must not stop the current key from being erased, so both are attempted. A legacy key
+        // that stays behind would be copied back by the next lookup, so its failure is reported afterwards.
+        var legacyFailure: KeyStoreError?
         if let legacyService {
-            try? keychain.deleteGenericPassword(service: legacyService, account: Self.account)
+            do {
+                try keychain.deleteGenericPassword(service: legacyService, account: Self.account)
+            } catch .itemNotFound {
+                // Already gone.
+            } catch {
+                legacyFailure = KeyStoreError(error)
+            }
         }
         do {
             try keychain.deleteGenericPassword(service: service, account: Self.account)
         } catch .itemNotFound {
-            return
+            // Already gone.
         } catch {
             throw KeyStoreError(error)
         }
+        if let legacyFailure { throw legacyFailure }
     }
 }
