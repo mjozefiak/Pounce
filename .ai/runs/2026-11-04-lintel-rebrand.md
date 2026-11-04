@@ -63,8 +63,8 @@ Rename the app from Pounce to Lintel end to end (identity, modules, data locatio
 
 ### Phase 2: Migrations
 
-- [ ] 2.1 Application Support, Caches and UserDefaults migration
-- [ ] 2.2 Keychain master-key copy
+- [x] 2.1 Application Support, Caches and UserDefaults migration — 3748024
+- [x] 2.2 Keychain master-key copy — 845096a
 
 ### Phase 3: Brand
 
