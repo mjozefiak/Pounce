@@ -58,8 +58,8 @@ Rename the app from Pounce to Lintel end to end (identity, modules, data locatio
 
 ### Phase 1: Rename
 
-- [ ] 1.1 Write the rename script
-- [ ] 1.2 Run the rename and get the gate green
+- [x] 1.1 Write the rename script — c52d966
+- [x] 1.2 Run the rename and get the gate green — d943dc2
 
 ### Phase 2: Migrations
 
