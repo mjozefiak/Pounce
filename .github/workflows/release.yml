@@ -91,6 +91,20 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
           security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
 
+          # The secrets may still hold the certificate of the previous app name (docs/signing.md, "The
+          # certificate was renamed with the app"). A release must not go out unsigned, so a tag fails; a pull
+          # request builds the DMG ad-hoc and warns, instead of turning every PR red until the secrets rotate.
+          if ! security find-identity -p codesigning "$KEYCHAIN" | grep -q "\"$IDENTITY\""; then
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+              echo "::error::SIGNING_P12 holds no certificate named \"$IDENTITY\". Create it and replace the secrets (docs/signing.md)."
+              exit 1
+            fi
+            echo "::warning::SIGNING_P12 holds no certificate named \"$IDENTITY\"; this DMG is built ad-hoc and the designated requirement is not checked (docs/signing.md)."
+            security delete-keychain "$KEYCHAIN" || true
+            echo "SIGN_KEYCHAIN=" >> "$GITHUB_ENV"
+            exit 0
+          fi
+
           # The certificate is self-signed, so it is not trusted. codesign signs with it anyway; if a
           # runner image ever refuses, trust it on this ephemeral runner only.
           PROBE="$RUNNER_TEMP/probe"
@@ -126,7 +140,14 @@ jobs:
             echo "::error::The designated requirement is a cdhash: the app was signed ad-hoc."
             exit 1
           fi
-          if [[ -f Resources/designated-requirement.txt ]]; then
+          if grep -q 'REPLACE-WITH' Resources/designated-requirement.txt; then
+            # The file holds a marker until the "Lintel Release" certificate exists (docs/signing.md).
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+              echo "::error::Resources/designated-requirement.txt still holds the placeholder: record the requirement of the new certificate before releasing."
+              exit 1
+            fi
+            echo "::warning::Resources/designated-requirement.txt holds a placeholder, so the requirement is not compared."
+          elif [[ -f Resources/designated-requirement.txt ]]; then
             if ! diff -u Resources/designated-requirement.txt dist/designated-requirement.txt; then
               echo "::error::The designated requirement changed. Users would lose their TCC grants (BACKWARD_COMPATIBILITY.md section 4)."
               exit 1

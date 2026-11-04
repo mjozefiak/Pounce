@@ -23,7 +23,9 @@ certificate is renamed with it. No release had been published, so nobody loses a
 asks for Accessibility, Full Disk Access and the microphone again.
 
 Until a certificate named "Lintel Release" exists, `Resources/designated-requirement.txt` holds a marker
-instead of a hash, so a tag build fails on the requirement diff instead of shipping with the old identity.
+instead of a hash. A **tag** build then fails (no certificate by that name in `SIGNING_P12`, or the marker still in
+the file) instead of shipping with the old identity; a **pull request** builds the DMG ad-hoc and only warns, so
+the other checks are not held up while the secrets are rotated.
 To finish the rotation, once:
 
 1. Run `scripts/make-signing-cert.sh` (it creates "Lintel Release" and the `.p12`).
