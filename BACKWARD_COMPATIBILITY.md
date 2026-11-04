@@ -8,7 +8,7 @@ Any PR that changes a surface below is `risk-high` (see `SDLC.md`) and states in
 
 ## 0. The rename from Pounce to Lintel <!-- LEGACY-POUNCE -->
 
-The app was called Pounce until 2026-11-04 (`.ai/runs/2026-11-04-lintel-rebrand.md`, PR #49). No release had been
+The app was called Pounce until 2026-11-04 (`.ai/runs/2026-11-04-lintel-rebrand.md`, PR #49). No release had been <!-- LEGACY-POUNCE -->
 published, so no user had an installation; the owner's own Mac was migrated. What changed, what did not, and how
 data follows (the code is `LegacyDataMigration` and `MasterKeyStore.legacyService`; the old names stay in the code
 only on lines marked `LEGACY-POUNCE`): <!-- LEGACY-POUNCE -->
