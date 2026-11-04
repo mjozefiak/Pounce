@@ -68,10 +68,10 @@ Rename the app from Pounce to Lintel end to end (identity, modules, data locatio
 
 ### Phase 3: Brand
 
-- [ ] 3.1 Brand tokens, accent and selection style
-- [ ] 3.2 Lintel mark view, welcome and About
-- [ ] 3.3 App icon, AccentColor and menu bar glyph
-- [ ] 3.4 Dock presence setting
+- [x] 3.1 Brand tokens, accent and selection style — e357bea
+- [x] 3.2 Lintel mark view, welcome and About — 089e1e9
+- [x] 3.3 App icon, AccentColor and menu bar glyph — cac62b0
+- [x] 3.4 Dock presence setting — cff0afc
 
 ### Phase 4: Copy and docs
 
