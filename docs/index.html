@@ -3,34 +3,34 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lintel — a fast, native launcher for macOS</title>
-<meta name="description" content="Lintel is a free, open-source macOS launcher: app search, file search with its own index, and an encrypted clipboard history that pastes into the previous app.">
+<title>Lintel — a fast, private launcher for macOS</title>
+<meta name="description" content="Lintel is a free, open-source macOS launcher: app search, file search with its own index, an encrypted clipboard history that pastes into the previous app, and dictation. Everything stays on your Mac.">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#101012" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F6F3ED" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#161310" media="(prefers-color-scheme: dark)">
 <link rel="canonical" href="https://mjozefiak.github.io/Pounce/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23E2611B'/%3E%3Cg fill='%23fff'%3E%3Cellipse cx='32' cy='41' rx='12' ry='10'/%3E%3Cellipse cx='17' cy='29' rx='5' ry='6.5'/%3E%3Cellipse cx='26' cy='19' rx='5' ry='6.5'/%3E%3Cellipse cx='38' cy='19' rx='5' ry='6.5'/%3E%3Cellipse cx='47' cy='29' rx='5' ry='6.5'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Crect width='256' height='256' rx='56' fill='%23161310'/%3E%3Cg transform='translate%28128 128%29 scale%280.78%29 translate%28-128 -128%29'%3E%3Cpath fill='%23F1EEE9' d='M99.01 19.82A112 112 0 1 1 19.82 99.01L64.25 110.92A66 66 0 1 0 110.92 64.25Z'/%3E%3Ccircle cx='128' cy='128' r='34' fill='%236BBDAB'/%3E%3C/g%3E%3C/svg%3E">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Lintel">
-<meta property="og:title" content="Lintel — a fast, native launcher for macOS">
+<meta property="og:title" content="Lintel — a fast, private launcher for macOS">
 <meta property="og:description" content="App search, file search with its own index, and an encrypted clipboard history. Free and open source.">
 <meta property="og:url" content="https://mjozefiak.github.io/Pounce/">
 <style>
 :root{
-  --bg:#ffffff; --surface:#f7f7f8; --surface-2:#efeff1;
-  --text:#111113; --muted:#5f5f66; --line:#e6e6ea; --line-strong:#d4d4da;
-  --accent:#C2410C; --accent-strong:#9A3412; --accent-text:#ffffff; --tint:#FFF1E8;
-  --sel:#0A64D8; --sel-text:#ffffff;
+  --bg:#F6F3ED; --surface:#FBF9F5; --surface-2:#EFEBE3;
+  --text:#191610; --muted:#6B645A; --line:#E4DFD5; --line-strong:#D2CBBD;
+  --accent:#267C6C; --accent-strong:#036152; --accent-ink:#036152; --accent-text:#ffffff; --tint:#E3EFEB;
+  --sel:#267C6C;
   --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue",Inter,"Segoe UI",Roboto,Arial,sans-serif;
   --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Monaco,Consolas,monospace;
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){
   :root{
-    --bg:#101012; --surface:#17171a; --surface-2:#1e1e22;
-    --text:#f4f4f6; --muted:#a3a3ad; --line:#26262b; --line-strong:#34343a;
-    --accent:#FB923C; --accent-strong:#FDBA74; --accent-text:#1a0d05; --tint:#2a1a10;
-    --sel:#2F7FEA; --sel-text:#ffffff;
+    --bg:#161310; --surface:#1D1A16; --surface-2:#25211C;
+    --text:#F1EEE9; --muted:#A39B8F; --line:#2D2924; --line-strong:#3A352E;
+    --accent:#6BBDAB; --accent-strong:#9ED3C6; --accent-ink:#6BBDAB; --accent-text:#161310; --tint:#1F2E2A;
+    --sel:#6BBDAB;
     color-scheme:dark;
   }
 }
@@ -71,8 +71,7 @@ header.top{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--b
 @media (max-width:760px){.bar nav{display:none}}
 .hero{padding:72px 0 56px;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
 @media (max-width:900px){.hero{grid-template-columns:1fr}}
-.pill{display:inline-block;font-size:13px;font-weight:600;color:var(--accent);background:var(--tint);padding:4px 10px;border-radius:999px;margin-bottom:18px}
-@media (prefers-color-scheme: dark){.pill{color:var(--accent-strong)}}
+.pill{display:inline-block;font-size:13px;font-weight:600;color:var(--accent-ink);background:var(--tint);padding:4px 10px;border-radius:999px;margin-bottom:18px}
 h1{font-size:clamp(34px,5vw,52px);line-height:1.08;letter-spacing:-.02em}
 .lead{margin-top:18px;font-size:19px;color:var(--muted)}
 .ctas{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
@@ -86,15 +85,13 @@ h1{font-size:clamp(34px,5vw,52px);line-height:1.08;letter-spacing:-.02em}
 .mock .hdr{font-size:12px;font-weight:600;color:var(--muted);padding:8px 8px 4px;display:flex;gap:6px;align-items:center}
 .mock .hdr svg{width:13px;height:13px}
 .mock .row{display:flex;gap:10px;align-items:center;padding:6px 8px;border-radius:8px}
-.mock .row.sel{background:var(--sel);color:var(--sel-text)}
+.mock .row.sel{background:var(--tint);color:var(--text);box-shadow:inset 3px 0 0 var(--accent)}
 .mock .ic{width:28px;height:28px;border-radius:7px;flex:none;display:grid;place-items:center;background:var(--surface-2);border:1px solid var(--line)}
-.mock .row.sel .ic{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.35)}
 .mock .ic svg{width:16px;height:16px}
 .mock .t{font-size:15px}
 .mock .t b{font-weight:700}
-.mock .row:not(.sel) .t b{color:var(--sel)}
+.mock .row:not(.sel) .t b{color:var(--accent-ink)}
 .mock .s{font-size:12.5px;color:var(--muted)}
-.mock .row.sel .s{color:rgba(255,255,255,.85)}
 .mock .foot{display:flex;justify-content:flex-end;gap:16px;padding:9px 14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
 .mock .foot span span{margin-left:6px;padding:1px 6px;border-radius:999px;background:var(--surface-2)}
 figcaption{font-size:13px;color:var(--muted);margin-top:10px;text-align:center}
@@ -139,7 +136,7 @@ footer ul{display:flex;gap:16px;list-style:none}
 <a class="skip" href="#main" data-i18n="skip">Skip to content</a>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
-  <symbol id="i-paw" viewBox="0 0 64 64"><ellipse cx="32" cy="41" rx="12" ry="10" fill="currentColor"/><ellipse cx="17" cy="29" rx="5" ry="6.5" fill="currentColor"/><ellipse cx="26" cy="19" rx="5" ry="6.5" fill="currentColor"/><ellipse cx="38" cy="19" rx="5" ry="6.5" fill="currentColor"/><ellipse cx="47" cy="29" rx="5" ry="6.5" fill="currentColor"/></symbol>
+  <symbol id="i-mark" viewBox="0 0 256 256"><path fill="currentColor" d="M99.01 19.82A112 112 0 1 1 19.82 99.01L64.25 110.92A66 66 0 1 0 110.92 64.25Z"/><circle cx="128" cy="128" r="34" fill="var(--accent)"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
   <symbol id="i-apps" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/></g></symbol>
   <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z M14 3v5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
@@ -150,7 +147,7 @@ footer ul{display:flex;gap:16px;list-style:none}
 
 <header class="top">
   <div class="wrap bar">
-    <a class="brand" href="#main"><svg aria-hidden="true"><use href="#i-paw"/></svg>Lintel</a>
+    <a class="brand" href="#main"><svg aria-hidden="true"><use href="#i-mark"/></svg>Lintel</a>
     <nav aria-label="Primary" data-i18n-aria="nav.label">
       <ul>
         <li><a href="#features" data-i18n="nav.features">Features</a></li>
@@ -172,7 +169,7 @@ footer ul{display:flex;gap:16px;list-style:none}
     <div>
       <span class="pill" data-i18n="hero.pill">Free · Open source · MIT License</span>
       <h1 data-i18n="hero.title">Find any app, file or clipboard entry in a keystroke.</h1>
-      <p class="lead" data-i18n="hero.lead">Lintel is a native macOS launcher with four things: app search, file search with its own index, an encrypted clipboard history that pastes straight into the app you were using, and optional meeting transcripts with notes.</p>
+      <p class="lead" data-i18n="hero.lead">Lintel is a native macOS launcher: app search, file search with its own index, an encrypted clipboard history that pastes straight into the app you were using, and optional meeting transcripts with notes. Dictation is built in, and everything stays on this Mac.</p>
       <div class="ctas">
         <a class="btn btn-primary" href="https://github.com/mjozefiak/Pounce/releases/latest/download/Lintel.dmg"><svg aria-hidden="true"><use href="#i-download"/></svg><span data-i18n="cta.download">Download for macOS</span></a>
         <a class="btn btn-ghost" href="https://github.com/mjozefiak/Pounce"><svg aria-hidden="true"><use href="#i-github"/></svg><span data-i18n="cta.github">Source on GitHub</span></a>
@@ -361,7 +358,7 @@ scripts/make-app.sh    # dist/Lintel.app</code></pre>
     "nav.faq": "FAQ",
     "hero.pill": "Darmowy · Open source · Licencja MIT",
     "hero.title": "Aplikacja, plik albo wpis ze schowka w jednym skrócie.",
-    "hero.lead": "Lintel to natywny launcher dla macOS z czterema funkcjami: wyszukiwanie aplikacji, wyszukiwanie plików po własnym indeksie, zaszyfrowana historia schowka, która wkleja prosto do aplikacji, której używałeś, i opcjonalne transkrypty spotkań z notatkami.",
+    "hero.lead": "Lintel to natywny launcher dla macOS: wyszukiwanie aplikacji, wyszukiwanie plików po własnym indeksie, zaszyfrowana historia schowka, która wkleja prosto do aplikacji, której używałeś, i opcjonalne transkrypty spotkań z notatkami. Dyktowanie jest wbudowane, a wszystko zostaje na tym Macu.",
     "cta.download": "Pobierz na macOS",
     "cta.github": "Kod na GitHubie",
     "hero.note": "macOS 26 lub nowszy · Apple silicon · Bez konta i telemetrii",

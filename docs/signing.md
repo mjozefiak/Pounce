@@ -15,6 +15,23 @@ designated => identifier "com.lintelapp.Lintel" and certificate leaf = H"<certif
 The certificate is not from Apple, so Gatekeeper still blocks the first launch; the release notes
 explain "Open Anyway". The app is not notarized.
 
+## The certificate was renamed with the app
+
+The app used to be signed as "Pounce Release". The rename to Lintel changes the bundle identifier <!-- LEGACY-POUNCE -->
+(`app.pounce.Pounce` → `com.lintelapp.Lintel`), so the designated requirement changes anyway, and the <!-- LEGACY-POUNCE -->
+certificate is renamed with it. No release had been published, so nobody loses a grant; the owner's own Mac
+asks for Accessibility, Full Disk Access and the microphone again.
+
+Until a certificate named "Lintel Release" exists, `Resources/designated-requirement.txt` holds a marker
+instead of a hash, so a tag build fails on the requirement diff instead of shipping with the old identity.
+To finish the rotation, once:
+
+1. Run `scripts/make-signing-cert.sh` (it creates "Lintel Release" and the `.p12`).
+2. Replace the repository secrets `SIGNING_P12` and `SIGNING_P12_PASSWORD` with the new ones.
+3. Run the release workflow on a branch (or a throw-away tag), copy the `designated-requirement.txt` artifact
+   into `Resources/designated-requirement.txt` and commit it.
+4. Delete the old "Pounce Release" certificate from the login keychain once the new one signs. <!-- LEGACY-POUNCE -->
+
 ## Where the identity lives
 
 - The certificate and private key exist only as the repository secrets `SIGNING_P12` (base64 of a
