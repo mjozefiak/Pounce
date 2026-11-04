@@ -26,6 +26,32 @@ private func mode(_ url: URL) throws -> Int {
         #expect("\(meeting)" == "MeetingKeys(redacted)")
     }
 
+    @Test func aKeyFromBeforeTheRenameIsFoundAndCopied() throws {
+        let keychain = MemoryKeychain()
+        let legacyKey = Data(repeating: 9, count: 32)
+        keychain.state.withLock { $0.items["app.pounce.meetings/master-key"] = legacyKey }  // LEGACY-POUNCE
+        guard case .found(let keys) = MeetingKeyStore(keychain: keychain).lookup() else {
+            Issue.record("expected .found")
+            return
+        }
+        let expected = try #require(MasterKeys(master: legacyKey))
+        #expect(
+            keys.spool.withUnsafeBytes { Data($0) } == expected.derived(info: "spool").withUnsafeBytes { Data($0) })
+        keychain.state.withLock { #expect($0.items["com.lintelapp.meetings/master-key"] == legacyKey) }
+    }
+
+    @Test func anUnreadableKeyFromBeforeTheRenameIsNeverMissing() {
+        let keychain = MemoryKeychain()
+        keychain.state.withLock {
+            $0.items["app.pounce.meetings/master-key"] = Data(repeating: 9, count: 32)  // LEGACY-POUNCE
+        }
+        keychain.failReads(with: .accessDenied)
+        guard case .failed(.denied) = MeetingKeyStore(keychain: keychain).lookup() else {
+            Issue.record("expected .failed(.denied), never .missing")
+            return
+        }
+    }
+
     @Test func aMalformedKeyIsReportedNotReplaced() throws {
         let harness = try MeetingsHarness()
         try harness.keychain.addGenericPassword(

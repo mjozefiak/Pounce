@@ -32,6 +32,8 @@ struct MeetingKeys: Sendable, CustomStringConvertible, CustomDebugStringConverti
 /// only disables the library (and recording) until a retry succeeds.
 struct MeetingKeyStore: Sendable {
     static let service = "com.lintelapp.meetings"
+    /// The service name before the app was renamed; the key is copied from it once.
+    static let legacyService = "app.pounce.meetings"  // LEGACY-POUNCE
 
     enum Lookup: Sendable {
         case found(MeetingKeys)
@@ -42,7 +44,9 @@ struct MeetingKeyStore: Sendable {
 
     let keychain: any KeychainClient
 
-    var master: MasterKeyStore { MasterKeyStore(service: Self.service, keychain: keychain) }
+    var master: MasterKeyStore {
+        MasterKeyStore(service: Self.service, legacyService: Self.legacyService, keychain: keychain)
+    }
 
     func lookup() -> Lookup {
         switch master.lookup() {
