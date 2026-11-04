@@ -102,14 +102,15 @@ public struct SettingsStatus: Sendable {  // the banner of a plugin's pane
     public let level: Level
     public let title: LocalizedStringResource
     public let detail: LocalizedStringResource?
-    public let fix: SettingsStatusAction?  // at most one action
+    public let fix: SettingsStatusAction?  // at most one action; more detail goes in `detail`, with the Permissions link as text
 }
 public struct SettingsStatusAction: Sendable {
     public enum Destination: Sendable {
         case models(packageID: String?)        // opens the Models pane, scrolled to the row when known
         case systemSettings(Permission)        // deep link, as PermissionRow does today
-        case enablePlugin                      // `PluginHost.setEnabled(true)`; on a `failed` plugin this re-runs activation (`activateNow` skips only `.active`), so it is also "Try again"
-    }                                          // no `.custom`: the shell owns navigation; add a case only when one is needed
+        case enablePlugin                      // `PluginHost.setEnabled(true)`; on a `failed` plugin this re-runs activation (`activateNow` skips only `.active`), so it is "Try again" there; a no-op on an active plugin
+        case plugin(id: String, perform: @MainActor @Sendable () async -> Void)   // an action inside the plugin itself (Try Again on a locked key, Start Indexing); never navigation
+    }
     public let title: LocalizedStringResource
     public let destination: Destination
 }
@@ -126,11 +127,12 @@ public struct ActionConfirmation: Sendable { public let prompt: LocalizedStringR
 // Declared as REQUIREMENTS in the @MainActor protocol body (so an override is reached through
 // `any LintelPlugin`, see BC section 1) and given defaults in the extension:
 //   var workspaceSections: [WorkspaceSection] { get }   default []
-//   var settingsStatus: SettingsStatus? { get }          default nil: the shell derives ok/attention/error/neutral
+//   var settingsStatus: SettingsStatus? { get }          default nil: the shell derives ok/attention/error/neutral; read only while the plugin is active (host state wins, see 2.2)
 //   var modelUsage: [ModelUsage] { get }                 default []
+// `SettingsHost` re-reads `settingsStatus` and `modelUsage` on pane appear, on every `PluginHost` state change, on `PluginContext.resultsChanged` from that plugin, on app activation and after a banner action completes.
 // PluginManifest: `canBeDisabled: Bool = true` and `settingsGroup: SettingsGroup = .lintel` (Apps/Files/Clipboard declare .search, Dictation/Meetings .voice).
 // Permission gets `isReadable: Bool` (additive, default true; false for `.systemAudioRecording`, whose state cannot be read).
-// PluginContext gets `availableCommands: @MainActor @Sendable () -> [CommandInfo]` (default `[]`) for the Notes palette and
+// PluginContext gets `availableCommands: @MainActor @Sendable () -> [CommandInfo]` (default `[]`) for the Notes palette (excludes commands with `onKeyEvent`; a `panelMode` command opens the launcher panel in that mode) and
 // `openModels: @MainActor @Sendable (_ packageID: String?) -> Void` (default `{ _ in }`): opens the Models pane (D6 moved downloads there).
 // ResultAction gets a stored `public let confirmation: ActionConfirmation?` and a new init parameter
 // `confirmation: ActionConfirmation? = nil` placed BEFORE the trailing `perform` closure, so existing
@@ -165,7 +167,7 @@ Tests/LintelAppTests/{Window,Settings,Models}/ and Tests/LintelUITests/   mirror
 
 - `MainWindowController`: opens on Dock reopen, "Open Notes" (the `notes.open` command of the companion spec), ⌘, (Settings mode), `--qa-window`; all of it behind the release gate of ADR 0008 until 6.3. Built once and reused.
 - `MainMenu`: the shell avoids a global main menu (`ShellWindow`: ⌘Q must not fire while the launcher panel has focus). **The menu is installed while `NSApp.isActive` and the key window is the main window, a sheet attached to it, its child windows or popovers, or an open or save panel it presented; it is removed when the launcher panel, a HUD or About becomes key, or the app resigns active.** (Otherwise ⌘V, ⌘Z and ⌘A would stop working in `ConfirmSheet`, Save .md and Choose Folder panels.) It has Settings… ⌘, , an Edit menu and a Window menu; **no Quit, no Hide, no Close item**: `ShellWindow` keeps handling ⌘W (in Workspace mode it asks the section's `handleClose` first, then closes the window), so it cannot fire twice. Logic is the pure `MainMenuPolicy.menu(for keyWindowRole:) -> MenuSpec?`, tested with a table of window roles; real key-window behaviour is a manual QA item.
-- `SettingsHost`: the sidebar from D3 and the **one banner**: it draws `StatusBanner` above the pane content from `StatusDerivation(plugin.settingsStatus, host state, permissions)` for plugin panes and shell panes alike; `SettingsPane` has no banner slot and `SettingsWindowController` draws none (`.legacyWindow` parity). `StatusBanner` (levels from the `status.*` tokens, one primary action, announced as one unit; the sidebar attention dot and Notes state dots carry text in their accessibility labels, for example "Needs attention"); the banner action runs through the shell (`.models` → `openModels`, `.systemSettings`, `.enablePlugin` → `PluginHost.setEnabled(true)`). `PermissionRow` (the only permission view, in `PermissionsPane`, keeps the `permissionAccessory(for:)` accessories, for example Meetings' system-audio Test), `ModelRow` + `ModelsPane` (size, "used by" chips from `modelUsage`, Download / Remove / progress, "Choose Folder…" per usage as the D6 storage action, listed through `ModelInventory`, one line per kind), `PermissionsPane` (one row per `Permission`, "needed for" from `requiredPermissions`, dimmed when its feature is off).
+- `SettingsHost`: the sidebar from D3 and the **one banner**: it draws `StatusBanner` above the pane content from `StatusDerivation(plugin.settingsStatus, host state, permissions)` for plugin panes and shell panes alike; `SettingsPane` has no banner slot and `SettingsWindowController` draws none (the panes keep their in-body status under `.legacyWindow`, see Phasing). `StatusBanner` (levels from the `status.*` tokens, one primary action, announced as one unit; the sidebar attention dot and Notes state dots carry text in their accessibility labels, for example "Needs attention"); the banner action runs through the shell (`.models` → `openModels`, `.systemSettings`, `.enablePlugin` → `PluginHost.setEnabled(true)`). `PermissionRow` (the only permission view, in `PermissionsPane`, keeps the `permissionAccessory(for:)` accessories, for example Meetings' system-audio Test), `ModelRow` + `ModelsPane` (size, "used by" chips from `modelUsage`, Download / Remove / progress, "Choose Folder…" per usage as the D6 storage action, listed through `ModelInventory`, one line per kind), `PermissionsPane` (one row per `Permission`, "needed for" from `requiredPermissions`, dimmed when its feature is off).
 - Settings keys added: `app.mainWindow.mode` (`workspace`/`settings`), `app.mainWindow.section` (String), `app.mainWindow.settingsPane` (String). Window geometry is AppKit frame autosave (outside `SettingsStore`; not a protected key). No existing key changes.
 - Diagnostics: one log line without content for an unknown package id or a section that fails to build (`Logger(subsystem: "com.lintelapp", category: "window")`, codes only).
 - Budgets (to be measured, `docs/perf.md`): main window visible within 200 ms of a Dock click; pane switch under 100 ms; Models pane first paint under 150 ms with downloads running.
@@ -181,12 +183,12 @@ Prototype: `.ai/prototypes/lintel-app/index.html` (design v2, accepted by the ow
 
 Rules (from `.uxproof/conventions.md`, updated in step 0.1):
 
-- Colour only through `LintelBrand` (a source-scanning test (2.3) replaces the `.uxproof` raw-colour guard); status only through `StatusBanner`; text only through `TextSize` tokens; **no glass in the window** (system fills), glass stays on the panel, HUDs and menu.
+- Colour only through `LintelBrand` (a source-scanning test (2.3) replaces the `.uxproof` raw-colour guard); in Settings panes status only through the host's `StatusBanner` (workspace sections draw their strips with `LintelBrand` `status.*` tokens); text only through `TextSize` tokens; **no glass in the window** (system fills), glass stays on the panel, HUDs and menu.
 - Copy: sentences about 15 words, buttons are verbs, errors say what happened and what to do; every string has `en` and `pl` (`StringCatalogTests`).
 - Reduce Motion respected; full keyboard path (sidebar, banner action, rows, Advanced disclosure); state changes announced; checked at S…XL.
 - At XL the window keeps its minimum width; panes scroll, the sidebar never truncates a group label (the prototype shows tabs truncating in Notes at XL; handled in the companion spec).
 
-**Deviations from the prototype** (decided here; the prototype is updated in step 0.2):
+**Deviations from the prototype** (decided here; the prototype is updated in A 0.2):
 
 | Prototype | Decision |
 |---|---|
@@ -202,7 +204,8 @@ Rules (from `.uxproof/conventions.md`, updated in step 0.1):
 
 | Case | Behaviour |
 |---|---|
-| Plugin `failed` (for example Keychain error) | Pane shows an `error` banner with "Try again" (`.enablePlugin`: re-runs activation); controls dimmed; nothing deleted (existing rule). |
+| Plugin `failed` (activation threw) | Pane shows an `error` banner with "Try again" (`.enablePlugin`: re-runs activation); controls dimmed; nothing deleted. |
+| Plugin store unavailable (Keychain locked or denied; the plugin stays `active`, as Clipboard does today) | The plugin's `settingsStatus` is `error`, "Try again" is `.plugin(id: "retry", …)` calling the plugin's own retry; nothing deleted. |
 | Permission denied after the first ask | Banner shows `attention` with "Open System Settings"; `PermissionRow` says "Not allowed". |
 | Plugin off | Sidebar item dimmed with "Off"; pane shows a neutral banner "Turn on" (`.enablePlugin`); options dimmed, not hidden. |
 | Model download fails or is cancelled | `ModelRow` shows the error and "Try again"; partial files stay where `ModelManager` keeps them. |
@@ -234,14 +237,14 @@ A section switcher (until a second section exists), "Erase all Lintel data" (D8)
 
 ## 📋 Phasing
 
-Step 6.2 (⌃X confirmation) is its own PR and depends on 1.1 (the `ResultAction.confirmation` field) only; it carries no contract change itself. Release rule: ADR 0008, "Release gate" (terms **window enabled** / **Notes enabled**). Release users keep today's *window* until 6.3; pane bodies change in place as each pane PR merges, so every pane PR must be releasable inside `SettingsWindowController` too (screenshots of the pane in both hosts). The host tells a pane where it is drawn through the SwiftUI environment value `settingsHostStyle` (`.legacyWindow` / `.mainWindow`, default `.legacyWindow`), declared in `LintelUI`, not in `LintelKit`. `SettingsWindowController` leaves the default; the main window sets `.mainWindow`. Panes hide the model cards and permission rows only for `.mainWindow`. 6.3 deletes the `.legacyWindow` branches and the `settingsHostStyle` value (`LintelUI` is not protected).
+Step 6.2 (⌃X confirmation) is its own PR and depends on 1.1 (the `ResultAction.confirmation` field) only; it carries no contract change itself. Release rule: ADR 0008, "Release gate" (terms **window enabled** / **Notes enabled**). Release users keep today's *window* until 6.3; pane bodies change in place as each pane PR merges, so every pane PR must be releasable inside `SettingsWindowController` too (screenshots of the pane in both hosts). The host tells a pane where it is drawn through the SwiftUI environment value `settingsHostStyle` (`.legacyWindow` / `.mainWindow`, default `.legacyWindow`), declared in `LintelUI`, not in `LintelKit`. `SettingsWindowController` leaves the default; the main window sets `.mainWindow`. Under `.legacyWindow` a pane keeps today's in-body status views (Clipboard history banners and Try Again, Files Start Indexing and access notice, Dictation and Meetings model and microphone rows) until 6.3; they are hidden only for `.mainWindow`, like the model cards and permission rows, because the old controller draws no banner. Each pane PR's legacy screenshot shows the error state. 6.3 deletes the `.legacyWindow` branches and the `settingsHostStyle` value (`LintelUI` is not protected).
 
 Each phase ships on its own `feat/` branch and PR; `risk-high` follows the SDLC definition (contract, store, migrations, Keychain): Phase 1 and 6.2 here.
 
 - **Phase 0:** contract refresh and decision record.
 - **Phase 1:** contract + window shell (Dock, menu bar, ⌘, , main menu), hosting the existing panes unchanged.
-- **Phase 2:** Settings sidebar, `SettingsPane`, `StatusBanner`.
-- **Phase 3:** Permissions and Models panes, `ConfirmSheet`; remove the duplicated permission and model UI.
+- **Phase 2:** Settings sidebar, `SettingsPane`, `ConfirmSheet`, `StatusBanner`.
+- **Phase 3:** Permissions and Models panes, pane confirmation sheets (3.4); remove the duplicated permission and model UI (`.mainWindow` only).
 - **Phase 4:** General, Features, Apps, Files, Clipboard onto the template.
 - **Phase 5:** Dictation and Meetings onto the template.
 - **Phase 6:** Welcome final page, panel ⌃X confirmation, cleanup and docs (`SettingsWindowController` deleted at 6.3).
@@ -255,7 +258,7 @@ Each phase ships on its own `feat/` branch and PR; `risk-high` follows the SDLC 
 
 ### Phase 1: contract and window shell
 
-- **1.1** `LintelKit`: add `WorkspaceSection` (+ `WorkspaceRoute`), `SettingsStatus`, `ModelUsage`/`ModelKind`, `SettingsGroup`, `CommandInfo`, `ActionConfirmation`, `Permission.isReadable`, `PluginContext.availableCommands` and `openModels`, `SettingsStatusAction` (with `.enablePlugin`, no new `PluginHost` API), the `LintelPlugin` defaults, `ResultAction.confirmation` (default nil), `PluginManifest.canBeDisabled` and `settingsGroup`, all with explicit public inits; `PluginHost` enforces `canBeDisabled`; `AppCoordinator` builds panes for inactive plugins **only for the main window**; the old controller keeps skipping inactive plugins until 6.3. Tests: `LintelKitTests` assert every default is empty and every in-tree plugin compiles unchanged; `canBeDisabled == false` ignores a stored `false`; a pane built while inactive records zero keychain and file calls, per plugin. Update `BACKWARD_COMPATIBILITY.md` §1 (what was added) and AGENTS.md "Plugin contracts".
+- **1.1** `LintelKit`: add `WorkspaceSection` (+ `WorkspaceRoute`), `SettingsStatus`, `ModelUsage`/`ModelKind`, `SettingsGroup`, `CommandInfo`, `ActionConfirmation`, `Permission.isReadable`, `PluginContext.availableCommands` and `openModels`, `SettingsStatusAction` (with `.enablePlugin` and `.plugin(id:perform:)`, no new `PluginHost` API), the `LintelPlugin` defaults, `ResultAction.confirmation` (default nil), `PluginManifest.canBeDisabled` and `settingsGroup`, all with explicit public inits; `PluginHost` enforces `canBeDisabled`; `AppCoordinator` builds panes for inactive plugins **only for the main window**; the old controller keeps skipping inactive plugins until 6.3. Tests: `LintelKitTests` assert every default is empty and every in-tree plugin compiles unchanged; `canBeDisabled == false` ignores a stored `false`; a pane built while inactive records zero keychain and file calls, per plugin. Update `BACKWARD_COMPATIBILITY.md` §1 (what was added) and AGENTS.md "Plugin contracts".
 - **1.2** `MainWindowController` + window state keys (`app.mainWindow.mode|section|settingsPane`, declared in `SettingsKeys`; added to BC §3 in this step), frame autosave, QA argument `--qa-window workspace|settings`. **Rule: no registered sections means Settings mode**; a stored mode `workspace`, or an unknown section or pane id, restores to the first available section, else to Settings → General. Tests: restoration from in-memory settings including the fallbacks; frame fallback when off-screen (injected screen list).
 - **1.3** Host the existing Settings panes inside the window's Settings mode unchanged (temporary adapter over the current `SettingsWindowController` panes). Tests: every pane id reachable, `--qa-settings <pane>` still works. Screenshots light/dark.
 - **1.4** `MainMenuController` + pure `MainMenuPolicy` (see Code layout). Tests: the policy table of window roles (exact items and key equivalents, no Quit/Hide/Close); ⌘W once; a section whose `handleClose` returns true keeps the window open. Manual QA (real key windows): ⌘, and ⌘C in a text field; `app.showInDock` toggled with the window open keeps ⌘C/⌘V working.
@@ -264,9 +267,9 @@ Each phase ships on its own `feat/` branch and PR; `risk-high` follows the SDLC 
 
 ### Phase 2: sidebar and template
 
-- **2.1** `SettingsSidebar` + `SettingsSidebarModel` with the five groups, dimmed "Off" items, a per-item attention dot with an accessibility label; plugin pane order from `manifest.order`, group from `manifest.settingsGroup`. Tests: grouping and ordering come only from manifests; the ordered list of focusable ids (the model of the focus order); real keyboard traversal and VoiceOver are manual QA items with a checklist in the PR.
-- **2.2** `StatusBanner` (`LintelApp`, drawn by `SettingsHost`) + `SettingsStatus` plumbing (`StatusDerivation`, pure; default: failed → error + `.enablePlugin`, missing required **readable** permission → attention, an unreadable permission → neutral, off → neutral + `.enablePlugin`, else ok). The `status.*` colours are added to `BrandPalette`/`LintelBrand` (values in the `LintelUI` paragraph). Tests: derivation table including the unreadable row and the actions; a `failed` plugin re-activates through `.enablePlugin` (fake plugin, TSan with the existing `PluginHost` tests); accessibility label is one string; each status pair checked in `BrandContrastTests`.
-- **2.3** `SettingsPane` template and `ConfirmSheet` in `LintelUI` (Basics, `DisclosureGroup` Advanced, Data; the banner is the host's) and the one-sentence footer helper. Tests: source-scanning tests (`no-long-footer`, no raw status colours) cover `Sources/LintelUI/`, `Sources/LintelApp/Settings/` and the view files of every plugin pane already moved onto the template (a list that grows with each pane PR and is complete at 5.3).
+- **2.1** `SettingsSidebar` + `SettingsSidebarModel` with the five groups, dimmed "Off" items, a per-item attention dot with an accessibility label; group from `manifest.settingsGroup`; group Lintel = General, Features, then the `.lintel` plugin panes by `manifest.order`, then Permissions; other groups by `manifest.order`. Tests: grouping and ordering come only from manifests; the ordered list of focusable ids (the model of the focus order); real keyboard traversal and VoiceOver are manual QA items with a checklist in the PR.
+- **2.2** `StatusBanner` (`LintelApp`, drawn by `SettingsHost`) + `SettingsStatus` plumbing (`StatusDerivation`, pure). Precedence: host state first (off → neutral + `.enablePlugin`; failed → error + `.enablePlugin`; the shell never reads `settingsStatus` of an inactive or failed plugin), then the plugin's `settingsStatus` if non-nil, then derivation: missing required **readable** permission (`PermissionStatus.denied` only) → attention; `.notDetermined` → no banner (asked on first use; macOS does not list the app yet); an unreadable permission → neutral; else ok. Re-read triggers are in the contract comment. The `status.*` colours are added to `BrandPalette`/`LintelBrand` (values in the `LintelUI` paragraph). Tests: derivation table including precedence, `.notDetermined`, the unreadable row and the actions; a re-read after a state change, a `resultsChanged` and a finished banner action; a `failed` plugin re-activates through `.enablePlugin` (fake plugin, TSan with the existing `PluginHost` tests); accessibility label is one string; each status pair checked in `BrandContrastTests`.
+- **2.3** `SettingsPane` template and `ConfirmSheet` in `LintelUI` (Basics, `DisclosureGroup` Advanced, Data; the banner is the host's) and the one-sentence footer helper. Tests: source-scanning tests (`no-long-footer`, no raw status colours) cover `Sources/LintelUI/`, `Sources/LintelApp/Settings/` and the view files of every plugin pane already moved onto the template (a list that grows with each pane PR and is complete at 5.3); they skip `.legacyWindow` branches (those keep today's views).
 - **2.4** Key coverage (R-A4): `LintelAppTests` asserts every `SettingsKeys` entry is owned by exactly one shell pane (a table in the test); each plugin's test target asserts that every key of its own settings type (internal to it) is referenced by its pane (source scan; `plugins.notes.*` incl. the inspector toggles belong to Notes' pane), so no setting becomes unreachable.
 
 ### Phase 3: Permissions and Models
@@ -279,7 +282,7 @@ Each phase ships on its own `feat/` branch and PR; `risk-high` follows the SDLC 
 ### Phase 4: shell and search panes
 
 - **4.1** General and Features (Notes appears here as an "Always on" chip from `canBeDisabled`; the Notes Data actions live in NotesPlugin's own pane, group `.lintel` after Features, companion spec 4.7).
-- **4.2** Apps. **4.3** Files (banner "Indexing hasn't started": Start Indexing, Allow Full Disk Access). **4.4** Clipboard. Each: status, Basics, Advanced, Data; strings en+pl; screenshots light/dark, S and XL, EN and PL.
+- **4.2** Apps. **4.3** Files (banner "Indexing hasn't started" with one action, Start Indexing (`.plugin`); Full Disk Access is a second line of the banner detail linking to Permissions, not a second button). **4.4** Clipboard. Each: status (banner under `.mainWindow`; the legacy in-body status stays under `.legacyWindow`), Basics, Advanced, Data; strings en+pl; screenshots light/dark, S and XL, EN and PL.
 
 ### Phase 5: voice panes
 
