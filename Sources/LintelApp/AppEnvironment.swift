@@ -113,14 +113,17 @@ struct AppEnvironment {
             appropriateFor: nil,
             create: true
         )
-        let root = support.appending(path: "Lintel", directoryHint: .isDirectory)
-        try createPrivateDirectory(root, fileManager: fileManager)
         let caches = try fileManager.url(
             for: .cachesDirectory,
             in: .userDomainMask,
             appropriateFor: nil,
             create: true
         )
+        // Before anything creates the new folders: moves what the app kept under its previous name. It runs
+        // before `prepareModelsDirectory`, which then moves the dictation models inside the new folder.
+        LegacyDataMigration(fileManager: fileManager).run(supportDirectory: support, cachesDirectory: caches)
+        let root = support.appending(path: "Lintel", directoryHint: .isDirectory)
+        try createPrivateDirectory(root, fileManager: fileManager)
         let environment = AppEnvironment(
             dataRoot: root,
             cachesRoot: caches.appending(path: "Lintel", directoryHint: .isDirectory),
