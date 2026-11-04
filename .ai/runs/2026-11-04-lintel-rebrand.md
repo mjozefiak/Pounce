@@ -75,8 +75,8 @@ Rename the app from Pounce to Lintel end to end (identity, modules, data locatio
 
 ### Phase 4: Copy and docs
 
-- [ ] 4.1 Strings in English and Polish
-- [ ] 4.2 Landing page and documents
+- [x] 4.1 Strings in English and Polish — 75d7c2b
+- [x] 4.2 Landing page and documents — 2047113
 
 ### Phase 5: Verify
 
