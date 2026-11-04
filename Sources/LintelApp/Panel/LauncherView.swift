@@ -170,6 +170,7 @@ struct StatusRow: View {
                     Text(action.title)
                 }
                 .buttonStyle(.link)
+                .foregroundStyle(LintelBrand.accentText)
                 .font(textSize.font(.subheadline))
             }
         }
@@ -224,6 +225,7 @@ struct UnavailableRow: View {
                 Text("Open Settings", comment: "Button that opens Settings from the panel")
             }
             .buttonStyle(.link)
+            .foregroundStyle(LintelBrand.accentText)
             .font(textSize.font(.subheadline))
         }
         .padding(.horizontal, 8)

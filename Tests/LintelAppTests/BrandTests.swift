@@ -93,3 +93,39 @@ import Testing
         #expect(image.size == NSSize(width: 18, height: 18))
     }
 }
+
+@Suite struct BrandAssetCatalogTests {
+    /// `Resources/Assets.xcassets`, found from this file: the catalog is compiled by `scripts/make-app.sh`, so
+    /// these values must never drift from `BrandPalette`.
+    private func hexes(ofColorSet name: String) throws -> (light: UInt32, dark: UInt32) {
+        let url = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appending(path: "Resources/Assets.xcassets/\(name).colorset/Contents.json")
+        let json = try #require(try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+        let colors = try #require(json["colors"] as? [[String: Any]])
+        func hex(_ entry: [String: Any]) throws -> UInt32 {
+            let color = try #require(entry["color"] as? [String: Any])
+            let parts = try #require(color["components"] as? [String: String])
+            func channel(_ key: String) throws -> UInt32 {
+                let text = try #require(parts[key])
+                return try #require(UInt32(text.dropFirst(2), radix: 16))
+            }
+            return try channel("red") << 16 | channel("green") << 8 | channel("blue")
+        }
+        let light = try #require(colors.first { $0["appearances"] == nil })
+        let dark = try #require(colors.first { $0["appearances"] != nil })
+        return (try hex(light), try hex(dark))
+    }
+
+    @Test func accentColorMatchesThePalette() throws {
+        let accent = try hexes(ofColorSet: "AccentColor")
+        #expect(accent.light == BrandPalette.accentLight)
+        #expect(accent.dark == BrandPalette.accentDark)
+    }
+
+    @Test func accentTextMatchesThePalette() throws {
+        let text = try hexes(ofColorSet: "AccentText")
+        #expect(text.light == BrandPalette.accentTextLight)
+        #expect(text.dark == BrandPalette.accentTextDark)
+    }
+}

@@ -125,11 +125,13 @@ struct AboutView: View {
                         Link(destination: url) {
                             Text("Website", comment: "About window: link to the landing page")
                         }
+                        .foregroundStyle(LintelBrand.accentText)
                     }
                     if let url = AboutInfo.sourceURL {
                         Link(destination: url) {
                             Text("Source Code", comment: "About window: link to the GitHub repository")
                         }
+                        .foregroundStyle(LintelBrand.accentText)
                     }
                 }
             }

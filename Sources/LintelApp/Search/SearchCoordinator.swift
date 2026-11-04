@@ -247,7 +247,7 @@ final class SearchCoordinator {
             }
         }
         guard !items.isEmpty else { return nil }
-        return ResultSection(id: "suggested", title: kind, symbolName: "sparkles", kind: .suggested, items: items)
+        return ResultSection(id: "suggested", title: kind, symbolName: "star", kind: .suggested, items: items)
     }
 
     /// "Recently Used": up to `recentLimit` items by frecency, without the suggested ones. The `Ranker` is

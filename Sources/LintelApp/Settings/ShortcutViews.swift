@@ -67,6 +67,7 @@ struct SpotlightShortcutBanner: View {
                 Link(destination: url) {
                     Text("Open Keyboard Settings", comment: "Button that opens the system's keyboard settings")
                 }
+                .foregroundStyle(LintelBrand.accentText)
             }
         }
     }

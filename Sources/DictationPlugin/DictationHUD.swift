@@ -153,6 +153,9 @@ struct DictationHUDView: View {
             if state.offersSettings {
                 Button(state.detail ?? "") { model.onOpenSettings() }
                     .buttonStyle(.link)
+                    // The brand's text-grade accent (4.5:1 on the glass) from the app's asset catalog; the system
+                    // accent when the catalog is missing (`swift run`, tests).
+                    .foregroundStyle(Color(nsColor: NSColor(named: "AccentText") ?? .controlAccentColor))
                     .font(.system(size: 12, weight: .medium))
             }
             if state.offersCancel {
