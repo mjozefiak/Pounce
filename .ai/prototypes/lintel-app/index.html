@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="en" data-prototype-id="lintel-app">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lintel app design</title>
+<style>
+*{box-sizing:border-box}
+:root{--ts:1}
+body{margin:0;font:14px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;background:#d9d5cc;color:#191610}
+body.dark{background:#0c0a08;color:#F1EEE9}
+.light{--win:#F6F4F0;--side:#E7E4DE;--card:#fff;--ink:#191610;--sec:#6B645A;--hair:rgba(25,22,16,.11);--accent:#267C6C;--atext:#036152;--tint:rgba(38,124,108,.14);--onacc:#fff;--ok:#1E8E3E;--att:#B25E00;--er:#D70015;--glass:rgba(255,255,255,.72);--fill:rgba(25,22,16,.06)}
+.dark{--win:#1C1915;--side:#141210;--card:#26221E;--ink:#F1EEE9;--sec:#A39B8F;--hair:rgba(255,255,255,.11);--accent:#6BBDAB;--atext:#6BBDAB;--tint:rgba(107,189,171,.20);--onacc:#161310;--ok:#32D74B;--att:#FF9F0A;--er:#FF6961;--glass:rgba(38,34,30,.72);--fill:rgba(255,255,255,.08)}
+#bar{position:sticky;top:0;z-index:50;display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:8px 16px;background:#191610;color:#F1EEE9;font-size:13px}
+#bar nav{display:flex;gap:10px;flex-wrap:wrap;margin-left:auto}
+#bar a{color:#9fdccd;text-decoration:none}
+.seg{display:inline-flex;border:1px solid #5a544b;border-radius:7px;overflow:hidden}
+.seg button{background:none;color:#F1EEE9;border:0;padding:3px 10px;font:inherit;cursor:pointer}
+.seg button[aria-pressed=true]{background:#6BBDAB;color:#161310;font-weight:600}
+main{padding:16px 24px 80px;max-width:1280px;margin:auto}
+.doc{background:#fff;color:#191610;border-radius:10px;padding:8px 24px 20px;margin:20px 0}
+.doc h2,h2.sec{font-size:22px;margin:32px 0 6px}
+.doc h3{font-size:16px;margin:20px 0 4px}
+.doc table{border-collapse:collapse;font-size:13px;margin:8px 0;width:100%}
+.doc td,.doc th{border:1px solid #ddd;padding:5px 9px;text-align:left;vertical-align:top}
+.doc th{background:#f3f0ea}
+.doc code{background:#eee;padding:0 4px;border-radius:3px}
+.tag{display:inline-block;font-size:11px;padding:0 6px;border-radius:9px;background:#e7e4de}
+.keep{background:#d6efdf}.simp{background:#fbe9c8}.reth{background:#f9d4d0}.miss{background:#d8e3f7}
+h2.sec{color:inherit}
+figure.scr{margin:22px 0}
+figure.scr>figcaption{font-size:12px;opacity:.75;margin-bottom:5px}
+figure.scr>figcaption b{font-family:ui-monospace,monospace;opacity:1}
+/* window */
+.win{width:1040px;height:680px;display:flex;position:relative;font-size:calc(13px*var(--ts));background:var(--win);color:var(--ink);border:1px solid var(--hair);border-radius:12px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.22)}
+.win.sm{width:600px;height:auto;min-height:0}
+.lights{display:flex;gap:7px;padding:14px 14px 6px}.lights i{width:12px;height:12px;border-radius:50%;background:#8883}
+.side{width:min(14.5em,215px);flex:none;background:var(--side);display:flex;flex-direction:column;padding-bottom:12px;border-right:1px solid var(--hair);overflow:hidden}
+.brand{display:flex;gap:8px;align-items:center;font-weight:600;padding:8px 14px 12px;font-size:1.05em}
+.brand svg{width:20px;height:20px}
+.sg{font-size:.82em;font-weight:600;color:var(--sec);padding:10px 14px 3px}
+.si{display:flex;gap:8px;align-items:center;margin:1px 8px;padding:5px 8px;border-radius:7px;color:var(--ink)}
+.si .n{margin-left:auto;color:var(--sec);font-size:.9em}.si .n.att-t{color:var(--att)}
+.si.on{background:var(--tint)}.si.on .l{color:var(--atext);font-weight:600}.si.off .l{color:var(--sec)}
+.si .off-t{margin-left:auto;font-size:.8em;color:var(--sec)}
+.sp{flex:1}
+.setbtn{margin:0 8px;display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:7px;border:0;background:none;font:inherit;color:var(--ink);text-align:left}
+.setbtn kbd{margin-left:auto}
+.ic{width:1.15em;height:1.15em;flex:none;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;vertical-align:-.2em}
+.si .ic{color:var(--sec)}.si.on .ic{color:var(--atext)}
+kbd{font:600 .82em -apple-system,sans-serif;background:var(--fill);border-radius:5px;padding:1px 6px;color:var(--sec)}
+/* list */
+.list{width:min(23em,330px);flex:none;border-right:1px solid var(--hair);display:flex;flex-direction:column;background:var(--win)}
+.lh{padding:12px 12px 8px}
+.search{display:flex;gap:8px;align-items:center;background:var(--fill);border-radius:8px;padding:6px 10px;color:var(--sec)}
+.search .q{color:var(--ink)}
+.rows{overflow:hidden;flex:1;padding:0 6px}
+.rw{display:flex;gap:10px;padding:8px;border-radius:8px;position:relative}
+.rw.sel{background:var(--tint)}.rw.sel:before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:2px;background:var(--accent)}
+.kind{width:2em;height:2em;border-radius:7px;background:var(--fill);display:grid;place-items:center;color:var(--sec);flex:none}
+.rw .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rw .s{color:var(--sec);font-size:.92em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.rw .m{color:var(--sec);font-size:.85em;margin-top:2px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.rw .b1{min-width:0;flex:1}
+mark{background:var(--tint);color:var(--atext);border-radius:3px;font-weight:600;padding:0 1px}
+.badge{align-self:flex-start;font-size:.82em;border-radius:9px;padding:0 7px;border:1px solid var(--hair);color:var(--sec);white-space:nowrap}
+.badge.att{color:var(--att);border-color:currentColor}.badge.er{color:var(--er);border-color:currentColor}.badge.acc{color:var(--atext);border-color:currentColor}
+.rd{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--win)}
+.rh{padding:18px 24px 10px}
+.rh h3{margin:0;font-size:1.55em;line-height:1.2}
+.rh .meta{color:var(--sec);margin-top:3px}
+.acts{display:flex;gap:8px;margin:12px 0 0;flex-wrap:wrap}
+.tabs{display:inline-flex;background:var(--fill);border-radius:8px;padding:2px;margin:12px 0 0}
+.tabs span{padding:3px 14px;border-radius:6px}.tabs .on{background:var(--card);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.rb{padding:6px 24px 20px;overflow:auto;flex:1}
+.rb h4{margin:16px 0 4px;font-size:.88em;color:var(--sec);text-transform:none}
+.rb ul{margin:0;padding-left:1.2em}.rb li{margin:3px 0}
+.q{color:var(--atext);font-size:.85em;margin-left:6px;white-space:nowrap}
+.spk{display:flex;gap:10px;padding:6px 0}.spk .who{width:5.5em;flex:none;font-weight:600}.spk .tm{color:var(--sec);font-size:.85em;width:3.2em;flex:none}
+/* buttons */
+.btn{font:inherit;font-weight:600;border-radius:8px;padding:5px 12px;border:1px solid var(--hair);background:var(--card);color:var(--ink);display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
+.btn.pri{background:var(--accent);color:var(--onacc);border-color:transparent}
+.btn.dng{color:var(--er)}.btn.dng.fill{background:var(--er);color:#fff;border-color:transparent}
+.btn.sm{padding:2px 9px;font-size:.92em}
+.btn[disabled]{opacity:.45}
+.sw{width:2.5em;height:1.45em;border-radius:1em;background:var(--hair);position:relative;flex:none}
+.sw:after{content:"";position:absolute;top:.15em;left:.15em;width:1.15em;height:1.15em;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.sw.on{background:var(--accent)}.sw.on:after{left:1.2em}
+.sel-c{display:inline-flex;gap:6px;align-items:center;color:var(--sec)}
+/* banner */
+.bn{display:flex;gap:12px;align-items:center;padding:10px 14px;border-radius:10px;background:var(--card);border:1px solid var(--hair);margin:0 0 14px}
+.bn .g{width:1.9em;height:1.9em;border-radius:50%;display:grid;place-items:center;color:#fff;flex:none;background:var(--sec)}
+.bn.ok .g{background:var(--ok)}.bn.att .g{background:var(--att)}.bn.er .g{background:var(--er)}.bn.acc .g{background:var(--accent);color:var(--onacc)}
+.bn .tx{flex:1;min-width:0}.bn .tt{font-weight:600}.bn .ss{color:var(--sec);font-size:.92em}
+.bn .ba{display:flex;gap:8px;flex-wrap:wrap}
+.bn.ok .g,.bn.att .g,.bn.er .g{color:#fff}.dark .bn.ok .g,.dark .bn.att .g,.dark .bn.er .g{color:#161310}
+.prog{height:4px;border-radius:2px;background:var(--hair);margin-top:6px}.prog i{display:block;height:4px;border-radius:2px;background:var(--accent)}
+.rd .bn{margin:0 24px 8px}
+/* settings pane */
+.pane{flex:1;overflow:auto;padding:20px 28px;min-width:0;position:relative}
+.pane>.in{max-width:640px;margin:auto}
+.pane h3{margin:0 0 12px;font-size:1.5em}
+.sh{font-size:.82em;font-weight:600;color:var(--sec);margin:18px 0 5px 4px}
+.card{background:var(--card);border:1px solid var(--hair);border-radius:10px;padding:2px 14px}
+.fr{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--hair);min-height:2.6em}
+.fr:first-child{border-top:0}
+.fr .lb{min-width:0}.fr .hp{color:var(--sec);font-size:.9em}
+.fr .v{color:var(--sec);display:flex;gap:8px;align-items:center;flex:none}
+.ft{color:var(--sec);font-size:.88em;margin:5px 4px 0}
+.disc{display:flex;gap:6px;align-items:center;color:var(--sec);font-weight:600;font-size:.88em;margin:16px 4px 0}
+.chip{font-size:.8em;border-radius:9px;padding:0 7px;background:var(--fill);color:var(--sec);white-space:nowrap}
+.ok-t{color:var(--ok)}.att-t{color:var(--att)}.er-t{color:var(--er)}
+.dim{opacity:.5}
+.skel{background:var(--fill);border-radius:6px;height:1em;margin:6px 0}
+/* sheet */
+.stage{position:relative;width:640px;height:300px;border-radius:12px;background:linear-gradient(135deg,#c9c3b6,#9a948a);display:grid;place-items:center;font-size:calc(13px*var(--ts))}
+.dark .stage{background:linear-gradient(135deg,#3a3630,#1f1c18)}
+.sheet{width:380px;background:var(--win);color:var(--ink);border:1px solid var(--hair);border-radius:14px;padding:18px 20px;box-shadow:0 12px 40px rgba(0,0,0,.3)}
+.sheet h5{margin:0 0 4px;font-size:1.1em}.sheet p{margin:0;color:var(--sec)}
+.sheet .bt{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.btn.def{box-shadow:0 0 0 2px var(--accent)}
+/* menu, hud */
+.menu{width:300px;border-radius:10px;background:var(--glass);backdrop-filter:blur(30px);border:1px solid var(--hair);padding:5px;font-size:calc(13px*var(--ts));color:var(--ink)}
+.mi{display:flex;gap:8px;padding:3px 10px;border-radius:5px;align-items:center}.mi kbd{margin-left:auto;background:none}.mi.hl{background:var(--accent);color:var(--onacc)}.mi.hl kbd{color:var(--onacc)}
+.msep{height:1px;background:var(--hair);margin:4px 8px}
+.rdot{width:.6em;height:.6em;border-radius:50%;background:var(--er)}
+.cap{white-space:nowrap;height:2.9em;border-radius:1.5em;background:var(--glass);backdrop-filter:blur(30px);border:1px solid var(--hair);display:inline-flex;align-items:center;gap:10px;padding:0 14px;font-weight:500;color:var(--ink);font-size:calc(14px*var(--ts))}
+.bars{display:inline-flex;gap:3px;align-items:center;height:1.2em}.bars i{width:3px;border-radius:2px;background:var(--accent)}
+.wall{width:640px;padding:22px 16px;border-radius:12px;background:linear-gradient(135deg,#c9c3b6,#9a948a);display:flex;gap:16px;flex-wrap:wrap;align-items:center;justify-content:center}
+.dark .wall{background:linear-gradient(135deg,#3a3630,#1f1c18)}
+.blur{filter:blur(6px);user-select:none}
+.big{font-size:1.6em;margin:0 0 4px}
+@media(prefers-reduced-motion:no-preference){.bars i{animation:b 1s ease-in-out infinite alternate}@keyframes b{to{transform:scaleY(.5)}}}
+
+/* ===== v2 Notes: Orca-like, dense, tool feel ===== */
+.win{width:1180px;height:720px}
+.side{width:min(19em,250px)}
+.win.nt{flex-direction:column;font-size:calc(12.5px*var(--ts))}
+.nt .wb{flex:1;display:flex;min-height:0}
+.sp{flex:1}
+.dot{width:.55em;height:.55em;border-radius:50%;flex:none;background:var(--sec)}
+.dot.ok{background:var(--ok)}.dot.acc{background:var(--accent)}.dot.att{background:var(--att)}.dot.er{background:var(--er)}.dot.mute{background:var(--hair)}.dot.ne{background:var(--sec)}
+.ex{width:min(19em,250px);flex:none;background:var(--side);border-right:1px solid var(--hair);display:flex;flex-direction:column;min-width:0}
+.exs{display:flex;gap:8px;align-items:center;margin:6px 10px;padding:6px 10px;border-radius:7px;background:var(--fill);color:var(--sec)}.exs .qq{color:var(--ink)}
+.exl{display:flex;justify-content:space-between;align-items:center;padding:10px 14px 4px;color:var(--sec);font-weight:600;font-size:.9em}.exl b{font-weight:600;margin-left:4px;opacity:.7}.exl .ico{display:flex;gap:10px}
+.exb{flex:1;overflow:hidden;padding:2px 0}
+.grp{display:flex;gap:6px;align-items:center;padding:6px 14px 2px;color:var(--sec);font-size:.85em;font-weight:600}.grp span{margin-left:auto;font-weight:400}
+.tr2{display:flex;gap:9px;padding:6px 10px;margin:1px 6px;border-radius:7px;align-items:flex-start}
+.tr2 .dot{margin-top:.45em}
+.tr2.on{background:var(--tint)}
+.tr2 .tx{min-width:0;flex:1}.tr2 .a{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}.tr2.on .a{color:var(--atext)}
+.tr2 .b{color:var(--sec);font-size:.88em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tr2 .b mark{white-space:normal}
+.tr2 .c{font-size:.85em;margin-top:1px;color:var(--sec)}.tr2 .c.acc{color:var(--atext)}.tr2 .c.att{color:var(--att)}.tr2 .c.er{color:var(--er)}
+.nr{padding:18px 18px;color:var(--sec);text-align:center}
+.exf{display:flex;align-items:center;padding:8px 14px;border-top:1px solid var(--hair);color:var(--sec)}.lnk2{display:inline-flex;gap:8px;align-items:center}
+.cn{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--win);position:relative}
+.tbs{display:flex;align-items:stretch;height:2.7em;background:var(--side);border-bottom:1px solid var(--hair)}
+.tb{flex:0 1 12em;display:flex;gap:7px;align-items:center;padding:0 10px 0 12px;border-right:1px solid var(--hair);color:var(--sec);min-width:0;max-width:15em}
+.tb .tt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tb.on{background:var(--win);color:var(--ink);box-shadow:inset 0 -2px 0 var(--accent)}
+.tb .x{opacity:.5;display:grid}.tb.pl{padding:0 12px}
+.mk{color:var(--att);font-size:.8em}.spin{display:inline-grid;color:var(--atext)}
+.cmdb{display:flex;gap:8px;align-items:center;padding:0 14px;color:var(--sec)}
+.crb{display:flex;align-items:center;height:2.6em;padding:0 12px 0 16px;border-bottom:1px solid var(--hair);color:var(--sec)}
+.pth{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em}
+.ibs{display:flex;gap:2px}.ib{width:2.1em;height:2.1em;display:grid;place-items:center;border-radius:6px;color:var(--sec)}.ib.on{background:var(--tint);color:var(--atext)}
+.fmt{display:flex;align-items:center;gap:2px;height:2.7em;padding:0 12px;border-bottom:1px solid var(--hair);background:var(--fill);color:var(--sec)}
+.fmt .f{min-width:2em;height:2em;display:inline-grid;place-items:center;padding:0 5px;border-radius:6px;font-weight:600}.fmt i{width:1px;height:1.3em;background:var(--hair);margin:0 6px}
+.fmt .cb{margin-left:auto;gap:6px;display:inline-flex;align-items:center;color:var(--atext)}
+.strip{display:flex;align-items:center;gap:10px;min-height:2.3em;padding:0 16px;border-bottom:1px solid var(--hair);font-size:.95em}
+.strip.att{background:color-mix(in srgb,var(--att) 11%,transparent)}.strip.er{background:color-mix(in srgb,var(--er) 11%,transparent)}.strip.acc{background:var(--tint)}.strip.ne{background:var(--fill)}
+.lnk{color:var(--atext);font-weight:600;margin-left:10px;white-space:nowrap}
+.ed{flex:1;overflow:auto;padding:0 0 24px}
+.dh{padding:20px 24px 8px 5.4em}.dh h1{margin:0;font-size:1.9em;line-height:1.2}
+.dm{display:flex;gap:6px;align-items:center;margin-top:8px;color:var(--sec);flex-wrap:wrap}
+.chip2{border:1px solid var(--hair);border-radius:6px;padding:0 8px;font-size:.9em}
+.vs{display:inline-flex;background:var(--fill);border-radius:7px;padding:2px}.vs span{padding:2px 12px;border-radius:5px}.vs .on{background:var(--card);color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.blk{display:flex;padding:2px 28px 2px 0}
+.gt{width:4.2em;flex:none;text-align:right;padding:.55em 10px 0 0;font:.74em ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--sec);position:relative;letter-spacing:.02em}
+.gt:after{content:"";position:absolute;right:0;top:3px;bottom:3px;width:3px;border-radius:2px}
+.gt.ag:after{background:var(--accent)}.gt.you:after{background:var(--ink)}.gt.stt:after{background:var(--sec);opacity:.5}
+.noauth .gt{visibility:hidden}
+.bd{flex:1;min-width:0;padding-left:6px;line-height:1.6;font-size:1.04em}
+.bd h2{margin:.5em 0 .2em;font-size:1.3em}.bd p{margin:.3em 0}.bd ul{margin:.2em 0;padding-left:1.3em}
+.qc{font:.82em ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--fill);border-radius:4px;padding:1px 6px;color:var(--atext)}
+.bd table{border-collapse:collapse;width:100%;margin:.4em 0;font-size:.97em}.bd th{text-align:left;color:var(--sec);font-weight:600;font-size:.88em}
+.bd td,.bd th{border:1px solid var(--hair);padding:7px 10px;vertical-align:top}
+.bd tr.you td{background:color-mix(in srgb,var(--ink) 4%,transparent)}.by{font-size:.85em;color:var(--sec)}
+.cm{background:var(--tint);border-bottom:2px solid var(--accent);border-radius:2px}.sel{background:rgba(120,160,255,.35);border-radius:2px}
+.pop{display:flex;flex-direction:column;gap:8px;position:absolute;margin-top:6px;width:20em;padding:10px;border-radius:10px;background:var(--card);border:1px solid var(--hair);box-shadow:0 10px 30px rgba(0,0,0,.35);z-index:3;font-size:.95em}
+.pop .pt{display:flex;gap:6px;align-items:center;font-weight:600}.pop .pi{border:1px solid var(--accent);border-radius:7px;padding:6px 8px;display:block}.pop .pa{display:flex;justify-content:flex-end;gap:12px;align-items:center}
+.caret2{display:inline-block;width:1px;height:1em;background:var(--ink);vertical-align:-.15em;margin-left:1px}
+.find{display:flex;align-items:center;gap:8px;margin:6px 28px 6px 5.4em;padding:5px 10px;border-radius:7px;background:var(--fill);color:var(--sec)}
+.tl{display:flex;gap:12px;align-items:baseline}.tl b{width:5.5em;flex:none}.tl span{flex:1}.was{margin:2px 0 4px 6.8em;color:var(--sec);text-decoration:line-through;font-size:.92em}
+.df{margin:12px 28px 0 5.4em;border:1px solid var(--hair);border-radius:8px;overflow:hidden;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em}
+.dl{display:flex;gap:10px;padding:5px 10px}.dl .gm{width:1em;color:var(--sec)}.dl .gx{flex:1}.dl .by2{color:var(--sec);font-size:.85em}
+.dl.rm{background:color-mix(in srgb,var(--er) 12%,transparent)}.dl.rm .gm{color:var(--er)}.dl.ad{background:color-mix(in srgb,var(--ok) 13%,transparent)}.dl.ad .gm{color:var(--ok)}
+.insp{width:min(23em,300px);flex:none;border-left:1px solid var(--hair);background:var(--side);display:flex;flex-direction:column;min-width:0}
+.its{display:flex;align-items:center;gap:4px;height:2.7em;padding:0 10px;border-bottom:1px solid var(--hair);color:var(--sec)}
+.it{display:inline-flex;gap:6px;align-items:center;padding:3px 8px;border-radius:6px}.it.on{background:var(--tint);color:var(--atext)}.it sup{font-size:.75em;color:var(--sec)}
+.ip{flex:1;overflow:auto;padding:10px 12px}.ipf{display:flex;gap:6px;margin-bottom:8px}
+.chip3{border:1px solid var(--hair);border-radius:12px;padding:0 10px;font-size:.88em;color:var(--sec)}.chip3.on{background:var(--tint);color:var(--atext);border-color:transparent}
+.th{border:1px solid var(--hair);border-radius:8px;padding:8px 10px;margin-bottom:8px;background:var(--win)}.th.res{opacity:.6}
+.tq{color:var(--sec);font-size:.9em;border-left:2px solid var(--accent);padding-left:8px;margin-bottom:4px}.tm{font-size:.88em;color:var(--sec)}.tm b{color:var(--ink)}.tx2{margin:3px 0}.ta{display:flex;gap:2px}.ta .lnk{margin:0 12px 0 0;font-size:.92em}
+.ipb{padding:10px 12px;border-top:1px solid var(--hair)}.hp2{color:var(--sec);font-size:.88em;margin-top:6px}
+.he{display:flex;gap:10px;padding:0 0 12px;position:relative}.hd{width:.7em;height:.7em;border-radius:50%;margin-top:.45em;flex:none;background:var(--sec)}.hd.ag{background:var(--accent)}.hd.you{background:var(--ink)}
+.hm{font-size:.88em;color:var(--sec)}.hm b{color:var(--ink);font-family:ui-monospace,Menlo,monospace}.hx{margin:1px 0 2px}
+.ish{font-size:.8em;font-weight:600;color:var(--sec);margin:14px 0 4px;text-transform:uppercase;letter-spacing:.04em}.ish:first-child{margin-top:2px}
+.tgr{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--hair)}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:4px 0;color:var(--sec)}.kv span:last-child{color:var(--ink);text-align:right}
+.acl{display:flex;flex-direction:column}.acl span{display:flex;gap:8px;align-items:center;padding:6px 0}.acl kbd{margin-left:auto}
+.sbar{height:2.1em;flex:none;display:flex;align-items:center;gap:14px;padding:0 12px;background:var(--side);border-top:1px solid var(--hair);color:var(--sec);font-size:.9em}
+.sbar .sb{display:inline-flex;gap:14px;align-items:center}.sbar .sb>span{display:inline-flex;gap:6px;align-items:center}
+.pb{display:inline-block;width:8em;height:4px;border-radius:2px;background:var(--hair);margin-left:8px}.pb i{display:block;height:4px;border-radius:2px;background:var(--accent)}
+.emp{flex:1;display:grid;place-items:center}.em{text-align:center;max-width:26em}.mk0{width:3.2em;height:3.2em;margin:0 auto 12px;color:var(--ink);opacity:.9}.mk0 svg{width:100%;height:100%}
+.e1{font-weight:600;font-size:1.2em}.e2{color:var(--sec);margin:4px 0 14px}.sr{display:flex;flex-direction:column;gap:6px;align-items:center;color:var(--sec)}.sr span{display:flex;gap:16px;align-items:center;justify-content:space-between;width:19em}
+.pal{position:absolute;left:50%;top:5em;transform:translateX(-50%);width:30em;background:var(--card);border:1px solid var(--hair);border-radius:12px;box-shadow:0 20px 50px rgba(0,0,0,.45);overflow:hidden;z-index:5}
+.pi2{display:flex;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--hair);color:var(--sec)}
+.pr{display:flex;justify-content:space-between;padding:7px 14px}.pr.on{background:var(--tint)}.pr.on span:first-child{color:var(--atext);font-weight:600}.pm{color:var(--sec)}
+</style>
+</head>
+<body class="dark">
+<div id="bar">
+  <b>Lintel app design</b>
+  <span class="seg" id="s-theme"><button data-v="light" aria-pressed="true">Light</button><button data-v="dark" aria-pressed="false">Dark</button></span>
+  <span class="seg" id="s-size"><button data-v="0.9" aria-pressed="false">S</button><button data-v="1" aria-pressed="true">M</button><button data-v="1.3" aria-pressed="false">XL</button></span>
+  <span class="seg" id="s-lang"><button data-v="en" aria-pressed="true">EN</button><button data-v="pl" aria-pressed="false">PL</button></span>
+  <nav><a href="#audit">Audit</a><a href="#main">Main window</a><a href="#settings">Settings</a><a href="#shell">Shell</a><a href="#coverage">Coverage</a><a href="#tokens">Tokens</a><a href="#components">Components</a><a href="#decisions">Decisions</a></nav>
+</div>
+<main>
+<header class="doc"><h2 style="margin-top:12px">Lintel: the app window, Notes, Settings, Models, Permissions</h2>
+<p><b>v2 (Notes redesigned after owner feedback: “looks amateur”, reference: Orca).</b> The first Notes design (three columns, card banners) is kept for comparison in <code>index-v1-notes-columns.html</code>. Proposal, <b>acceptance: pending</b>. Portable HTML that represents native SwiftUI/AppKit components; fidelity to AppKit controls is approximate (see Evidence limits). Toolbar above switches theme, text size (S = 0.9, M = 1, XL = 1.3, the real <code>TextSize</code> scales) and language for every screen. Screen IDs are stable (<code>lib-*</code>, <code>set-*</code>, <code>dlg-*</code>, <code>shell-*</code>). Sample data is fictional.</p></header>
+
+<section class="doc" id="audit">
+<h2>1 · Audit (om-ux-shape, Review mode)</h2>
+<p><b>Verdict: rethink the shell, keep the engines.</b> Every feature works and is careful about privacy, but the app has no home: Settings is the only window, and the things a person returns to (meeting notes, dictation history) are reachable only through the launcher panel as a list mode. The Settings window is a 9–10 tab toolbar (tabs for Apps, Files, Clipboard History, Dictation, Meetings, plus General, Features, Permissions, Advanced) with panes up to 4 screens tall. <span class="tag">Evidence: inspected</span> running debug build in QA mode (Dictation and Meetings panes, screenshots) and read the code of every pane.</p>
+<table><tr><th>#</th><th>Finding (worst first)</th><th>Evidence</th><th>Impact × frequency × reach</th><th>Verdict</th></tr>
+<tr><td>1</td><td><b>No window for the thing people come back to.</b> Notes and dictation history live only in panel list modes (⌃⌥M library, ⌘ list). The “meeting window” is one small window per meeting (640×560) opened from the list. No search across meetings + dictations, no overview, Dock click opens Settings (<code>DockPresence.reopenAction</code>).</td><td>code: <code>MeetingWindowController</code>, <code>DockPresence</code>, <code>MeetingsPlugin+Library</code>; AGENTS.md</td><td>high × daily × all Meetings/Dictation users</td><td><span class="tag reth">rethink</span></td></tr>
+<tr><td>2</td><td><b>Same model downloaded and explained in three places.</b> “Parakeet Ultra” card (size, licence, Download, Choose Folder…) appears in Dictation and again in Meetings; the notes model and cleanup model are separate rows again. Each plugin repeats a 5-line card.</td><td>screenshots Dictation + Meetings panes; <code>SpeechModelCard</code>, <code>MeetingsModelCard</code>, <code>BuiltInModelRows</code></td><td>high × first run × every voice user</td><td><span class="tag reth">rethink</span> → one Models pane</td></tr>
+<tr><td>3</td><td><b>Microphone permission is shown in three places</b> (Permissions pane, Dictation “Microphone not asked yet”, Meetings “Microphone not asked yet”), each with its own button and state text.</td><td>screenshots; <code>MicrophoneRows</code>, <code>PermissionsPane</code></td><td>high × once, but blocks the feature × voice users</td><td><span class="tag simp">simplify</span> → one <code>PermissionRow</code></td></tr>
+<tr><td>4</td><td><b>Long footers that nobody reads.</b> Meetings suggestions footer is 5 lines, Notes footer 4, Dictation formatting 3. Guard <code>no-long-footer</code> exists, and 42 hard-coded <code>.callout</code> fonts ignore Text Size.</td><td>screenshot Meetings pane; <code>.uxproof/conventions.md</code> gaps; grep in Settings/Views</td><td>medium × each visit × all</td><td><span class="tag simp">simplify</span></td></tr>
+<tr><td>5</td><td><b>Meetings pane is one 1600 px scroll</b>: shortcut, audio, models, notes, suggestions, privacy, data in a fixed order; the thing that blocks recording (model, mic) is in the middle. No “is it ready?” answer at the top.</td><td>screenshot Meetings pane</td><td>high × first run × Meetings users</td><td><span class="tag simp">simplify</span> → status banner + Basics/Advanced/Data</td></tr>
+<tr><td>6</td><td><b>Toolbar tabs do not scale.</b> 9 plugin-dependent tabs; enabling a plugin makes a tab appear and the toolbar jump; disabled plugins have no pane, so “where do I turn Meetings on?” is Features, then a new tab.</td><td>screenshot toolbar; <code>SettingsWindowController.build</code></td><td>medium × setup × all</td><td><span class="tag simp">simplify</span> → grouped sidebar, disabled panes stay visible</td></tr>
+<tr><td>7</td><td><b>Raw status colours and fonts</b>: 8 orange, 7 green, 5 red, 59 secondary, as foreground styles in views; status is not announced as a unit.</td><td>contract gaps (generated); my count in plugin views: 3+3+4+3+1+5+6+24+17 raw colour/font hits per file</td><td>medium × all screens × a11y</td><td><span class="tag simp">simplify</span> → <code>StatusBanner</code> + tokens</td></tr>
+<tr><td>8</td><td><b>Destructive actions disagree.</b> Panel ⌃X deletes without confirmation; meeting window asks; “Clear Library…”, “Clear History…”, “Erase Data…” each phrase their own sheet. Fine for a launcher, not for a window with the whole library visible.</td><td><code>MeetingsLibraryActions</code>, MeetingWindowView alert strings</td><td>high consequence × rare × all</td><td><span class="tag simp">simplify</span> → one confirmation pattern</td></tr>
+<tr><td>9</td><td><b>Contract is stale</b>: <code>.uxproof/</code> still names Pounce paths and “brand pending”; brand is now approved (Verdigris, <code>LintelBrand</code>). Not regenerated here; the design below follows the manual rules plus the approved brand.</td><td><code>.uxproof/contract.json</code>, tokens.json</td><td>process</td><td>refresh <i>after</i> acceptance, with your OK</td></tr></table>
+<h3>✅ Keep</h3>
+<table><tr><td>Launcher panel and its list modes (fast, keyboard-first; stays the quick path). HUDs (capsule, glass, no activation). Welcome flow structure (one step at a time, Done or Skip). About window. Per-plugin enable switch and Result Order. Key-handling and failure rules (Keychain error ≠ reset). The meeting window’s <i>content</i> (notes with quotes, speakers, transcript, finish/regenerate actions) is good; it only needs a better home.</td></tr></table>
+<h3>🧩 Missing views</h3>
+<table><tr><th>View</th><th>Why</th></tr>
+<tr><td>Main window “Lintel” (Dock click, ⌘, , menu)</td><td>No home for notes; Dock click opens Settings.</td></tr>
+<tr><td>Notes library (list + reader) with unified search</td><td>Two sources, no overview, no cross-search.</td></tr>
+<tr><td>Dictation reader (cleaned / original, copy, delete)</td><td>Dictation history can only be pasted or deleted from the panel.</td></tr>
+<tr><td>Models pane; Permissions as one table</td><td>Findings 2 and 3.</td></tr>
+<tr><td>Library states: empty, plugin off, key unavailable, no results, loading, regenerating, save error, interrupted, notes need model</td><td>Only a status banner in the panel today.</td></tr>
+<tr><td>Confirmation sheets in the window (delete meeting, delete dictation, clear library, erase data)</td><td>Window shows the whole library; panel’s “no confirmation” does not transfer.</td></tr>
+<tr><td>Plugin-off pane, plugin-failed pane, pane loading</td><td>Today: no pane (off) or inline red text (failed).</td></tr>
+<tr><td>Menu bar with a recording state; Welcome “permission denied” step and a final “You’re set” page that points at the new window</td><td>Menu has no Notes entry; Welcome ends without saying where things went.</td></tr></table>
+<h3>🧪 Next test</h3><p><b>Riskiest belief:</b> people will use a window for notes instead of the panel. Cheapest test: ship the window shell + Notes read-only (PR 1–2) and watch whether Dock/⌘, becomes how people open meeting notes (no telemetry exists, so by owner’s own use for two weeks). Decision it triggers: if the panel list mode is still preferred, keep it as is (it stays untouched anyway).</p>
+</section>
+
+<h2 class="sec" id="main">2 · Main window: Notes</h2>
+<div id="main-screens"></div>
+<h2 class="sec" id="settings">3 · Main window: Settings</h2>
+<div id="settings-screens"></div>
+<h2 class="sec" id="shell">4 · Shell surfaces: menu, Welcome, HUDs, confirmations</h2>
+<div id="shell-screens"></div>
+
+<section class="doc" id="coverage"><h2>5 · Coverage</h2>
+<table><tr><th>Archetype / area</th><th>Required states (contract)</th><th>Screens</th></tr>
+<tr><td>Main window · Notes (new archetype <code>workspace-window</code>: explorer · tabs + document · inspector)</td><td>default, comment, history/compare, transcript, dictation (cleaned/original), grouping alt., details, search, palette, no-results, empty, off, locked, loading, agent-writing (read-only), save-error, interrupted, needs-model, hidden</td><td>lib-meeting, lib-comment, lib-history, lib-transcript, lib-dictation, lib-dictation-original, lib-tree-source, lib-details, lib-search, lib-palette, lib-noresults, lib-empty, lib-off, lib-locked, lib-loading, lib-regen, lib-saveerror, lib-interrupted, lib-needsmodel, lib-hidden</td></tr>
+<tr><td>settings-pane (contract: ready, needs-setup, error, loading)</td><td>ready / needs-setup / error / loading, + off</td><td>ready: set-general, set-apps, set-clipboard · needs-setup: set-files, set-dictation, set-meetings, set-permissions · error: set-error · loading: set-loading · off: set-off · other: set-features, set-models, set-advanced</td></tr>
+<tr><td>welcome-flow (pending, done, skipped, permission-denied)</td><td>all four (skipped = same layout as pending with Skip pressed)</td><td>shell-welcome-intro, shell-welcome-mic, shell-welcome-denied, shell-welcome-done</td></tr>
+<tr><td>hud (idle, active, processing, error, reduced-motion)</td><td>active, processing, error, suggestion (idle = not shown; reduced motion: bars static, described under the screen)</td><td>shell-hud-meeting, shell-hud-processing, shell-hud-error, shell-hud-suggest · dictation HUD unchanged (<code>.ai/prototypes/lintel-brand</code>)</td></tr>
+<tr><td>Confirmations</td><td>delete meeting, delete dictation, clear library, erase data, panel ⌃X</td><td>dlg-delete-meeting, dlg-delete-dictation, dlg-clear-library, dlg-erase, shell-panel-confirm</td></tr>
+<tr><td>Menu bar</td><td>idle, recording</td><td>shell-menu, shell-menu-rec</td></tr>
+<tr><td>launcher-panel, About</td><td>unchanged</td><td>not redrawn (verified in lintel-brand)</td></tr></table>
+<p>Every screen above renders in light and dark, S/M/XL and EN/PL through the toolbar. Not a state: “skipped” Welcome, reduced motion (static in HTML).</p></section>
+
+<section class="doc" id="tokens"><h2>6 · Token mapping</h2>
+<table><tr><th>Use</th><th>Token (contract / code)</th><th>Light</th><th>Dark</th></tr>
+<tr><td>Selection tint, focus, primary button fill, toggle on</td><td><code>brand.accent</code> → <code>LintelBrand.accent</code></td><td>#267C6C</td><td>#6BBDAB</td></tr>
+<tr><td>Accent as text (selected row title, links, match highlight, source quotes)</td><td><code>brand.accent.text</code> → <code>LintelBrand.accentText</code></td><td>#036152</td><td>#6BBDAB</td></tr>
+<tr><td>Text on accent fill</td><td><code>onAccent</code></td><td>#FFFFFF</td><td>#161310</td></tr>
+<tr><td>Banner glyphs, status text</td><td><code>status.ok / attention / error / neutral</code> (via <code>StatusBanner</code> only)</td><td>#1E8E3E / #B25E00 / #D70015 / #6B645A</td><td>#32D74B / #FF9F0A / #FF6961 / #A39B8F</td></tr>
+<tr><td>Window, sidebar, grouped cards</td><td><code>surface.window</code> = system fills; <b>no glass</b> in the window</td><td colspan="2">approximated here with warm greys; the app uses system materials</td></tr>
+<tr><td>Text</td><td><code>text.title / body / help</code> × <code>TextSize</code> (em in HTML)</td><td colspan="2">window title 1.55×, body 1×, help .9×</td></tr>
+<tr><td>Spacing</td><td><code>space.2…24</code></td><td colspan="2">rows 8 vertical, cards 14 horizontal, panes 28</td></tr>
+<tr><td>Glass</td><td><code>surface.glass</code></td><td colspan="2">menu, HUDs, suggestion pill only</td></tr>
+<tr><td>New (proposed)</td><td><code>layout.window</code> 1040×680 (min 880×560), <code>layout.sidebar</code> ≈ 215, <code>layout.list</code> ≈ 330, <code>layout.settingsContent</code> max 640</td><td colspan="2">sizes are proposals; text-size scaling only widens the sidebar up to the caps shown</td></tr></table>
+<p>Contrast: accent text uses the already-measured pairs in <code>BrandContrastTests</code>; no new colour pairs are introduced. Badges use <code>status.*</code> text on window fill; to be asserted by an added test before merge.</p></section>
+
+<section class="doc" id="components"><h2>7 · Components</h2>
+<table><tr><th>Component</th><th>State</th><th>Where</th></tr>
+<tr><td><code>MainWindowController</code>, <code>MainWindowView</code> (sidebar modes Library / Settings, frame + section autosave, Dock/⌘,/menu entry)</td><td><b>new</b></td><td><code>LintelApp/Window/</code></td></tr>
+<tr><td><code>SettingsSidebar</code> (replaces <code>SettingsWindowController</code> tabs), <code>SettingsPane</code> (banner → Basics → Advanced disclosure → Data)</td><td><b>new</b> (replaces)</td><td><code>LintelApp/Settings/</code></td></tr>
+<tr><td><code>StatusBanner</code> (ok, attention, error, neutral, progress; one primary action)</td><td><b>new</b> (proposed in contract)</td><td><code>LintelApp/Components/</code></td></tr>
+<tr><td><code>PermissionRow</code> (name, “needed for”, state, one action)</td><td>existing, <b>extend</b>: becomes the only permission view</td><td><code>PermissionsPane.swift</code> → Components</td></tr>
+<tr><td><code>ModelRow</code>, <code>ModelsPane</code> (size, used-by chips, Download/Remove/progress, folder in “…”)</td><td><b>new</b>, replaces <code>SpeechModelCard</code>, <code>MeetingsModelCard</code>, <code>BuiltInModelRows</code></td><td><code>LintelApp/Settings/Models/</code>; models port in <code>LintelKit</code></td></tr>
+<tr><td><code>NotesExplorer</code> (tree: Time/Source grouping, 2-line <code>NoteRow</code> with status dot), <code>NoteTabBar</code>, <code>PathBar</code> + icon toolbar, <code>CommandPalette</code> (⌘P / ⌘K), <code>WorkspaceStatusBar</code></td><td><b>new</b></td><td><code>LintelApp/Notes/</code></td></tr>
+<tr><td><code>NoteDocumentView</code> (Markdown editor: rendered blocks, tables, source-quote chips, author gutter), <code>FormatBar</code>, <code>InlineCommentPopover</code>, <code>SlimStrip</code> (state strips: att / er / acc)</td><td><b>new</b> (TextKit 2 / <code>AttributedString</code>; reuse <code>MarkdownExporter</code> and <code>NotesComposer</code> for output)</td><td><code>LintelApp/Notes/</code></td></tr>
+<tr><td><code>InspectorPanel</code> with <code>CommentsPane</code>, <code>HistoryPane</code> (+ <code>DiffView</code>), <code>DetailsPane</code> (toggles)</td><td><b>new</b></td><td><code>LintelApp/Notes/</code></td></tr>
+<tr><td><code>NotesPlugin</code> (new, always on, own <code>notes.sqlite</code>; manual notes, <code>note_revision</code>, <code>note_comment</code>; <code>LintelKit</code> contribution that Meetings/Dictation use to expose recorded notes)</td><td><b>new</b> plugin target + test target (registered in <code>PluginRegistry</code>)</td><td><code>Sources/NotesPlugin/</code></td></tr>
+<tr><td>Data: <code>note_revision</code> (author = stt | agent | human), <code>note_comment</code> (anchor, status, thread), dictation equivalents; <b>additive</b> migrations + additive <code>LintelKit</code> contribution</td><td><b>new</b>, protected surfaces: spec + ADR first</td><td>Meetings / Dictation plugins own the data; the shell reads through the contract</td></tr>
+<tr><td><code>ConfirmSheet</code> (destructive, Cancel is default)</td><td><b>new</b></td><td>Components</td></tr>
+<tr><td><code>FeatureRow</code>, <code>MainShortcutRecorder</code>, <code>CommandShortcutRecorder</code>, <code>WelcomeView</code> steps, <code>AboutView</code>, <code>ConfirmationView</code></td><td>existing, restyled/moved</td><td>as today</td></tr>
+<tr><td><code>MeetingWindowView</code></td><td>existing → <b>folded into</b> <code>MeetingReader</code> (decision 1)</td><td>Meetings keeps the model; the view moves</td></tr>
+<tr><td>HUDs, launcher panel</td><td>existing, unchanged</td><td>—</td></tr></table></section>
+
+<section class="doc" id="decisions"><h2>8 · Decisions (owner answers, 2026-11-04)</h2>
+<table><tr><th>#</th><th>Decision</th><th>Answer</th><th>Consequence</th></tr>
+<tr><td>1</td><td>Reader replaces the small meeting window</td><td><b>Yes</b></td><td>Remove <code>MeetingWindowController</code> and its frame-autosave names; panel “Open” opens the main window on that note.</td></tr>
+<tr><td>2</td><td>Section name</td><td>Notes (implied by design approval)</td><td>—</td></tr>
+<tr><td>3</td><td>Hide content</td><td><b>Yes, manual, session-only</b> (⌘⇧H)</td><td>lib-hidden. Not persisted, no screen-share detection.</td></tr>
+<tr><td>4</td><td>Notes when recording is off</td><td><b>Notes always available</b>; manual notes allowed; recording is switched in Settings</td><td>New kind of note (manual, human-authored only). lib-off becomes “Write a note, or turn on recording”; “New note ⌘N”; explorer “+”. Features pane lists Notes as always on.</td></tr>
+<tr><td>5</td><td>Panel ⌃X</td><td><b>Confirm in the panel too</b> (differs from my recommendation)</td><td>Changes working launcher behaviour for Meetings, Dictation and Clipboard modes: inline “press ⌃X again”, Esc cancels (shell-panel-confirm). Needs its own test and a BC note.</td></tr>
+<tr><td>6</td><td>Models ownership</td><td><b>Models pane owns download/storage; plugin panes keep the choice</b></td><td>One <code>ModelRow</code>, delete 3 duplicate cards.</td></tr>
+<tr><td>7</td><td>“Erase all data” in Advanced</td><td><b>Not now</b></td><td>Per-plugin Erase stays in each Data section.</td></tr>
+<tr><td>8</td><td>Contract refresh</td><td><b>In PR 1, after acceptance</b></td><td>Tokens, archetype <code>workspace-window</code>, Lintel paths; visible in the diff.</td></tr>
+<tr><td>9</td><td>Notes becomes an editor</td><td>Accepted (design approved)</td><td>Author gutter AI / You / STT; revisions + comments tables, additive migrations; spec + ADR.</td></tr>
+<tr><td>10</td><td>Grouping</td><td><b>By time, option by source</b></td><td>No folders in v1; revisit past ~200 notes.</td></tr>
+<tr><td>11</td><td>What “agent” does</td><td><b>Local model, commented blocks only</b></td><td>“Revise with N comments” and “Ask agent” run the built-in model; no external agent, no network.</td></tr>
+<tr><td>12</td><td>Edit conflict</td><td><b>Read-only while the agent writes; agent never overwrites</b></td><td>Its revision shows in Compare first.</td></tr>
+<tr><td>13</td><td>v1 scope</td><td><b>Everything at once</b> (edit, comments, agent) (differs from my recommendation)</td><td>One spec, one feature, shipped as <b>stacked small PRs behind one release</b> (nothing user-visible until the stack is complete). Highest risk: editor + migrations + agent unverified in isolation, so each PR keeps its own tests and screenshots. <b>Architecture:</b> new <code>NotesPlugin</code> (own encrypted <code>notes.sqlite</code>: manual notes, revisions, comments); Meetings and Dictation expose recorded content through an additive <code>LintelKit</code> contribution.</td></tr></table>
+<h3>Still needs your acceptance</h3>
+<p>You approved the Notes design. I have <b>not</b> assumed acceptance of the rest of the shell: Settings (sidebar, banners, Models, Permissions panes), menu bar, Welcome, HUDs and confirmations. Say “accept all”, or list what to change.</p>
+<h3>Plan after acceptance (PR slices)</h3>
+<p>0 <b>Spec + ADR 0008 (also: revisions, comments, authorship)</b> (additive <code>LintelKit</code> “library contribution”, spec-only PR) → 1 window shell + Dock/⌘,/menu + settings sidebar hosting existing panes → 2 StatusBanner/PermissionRow/ModelRow + Permissions and Models panes → 3 General/Features/Apps/Files/Clipboard → 4 Dictation + Meetings panes → 5a explorer + read-only document + confirmations → 5b editing + history → 5c comments + agent revise → 6 Welcome/menu/cleanup, delete small meeting window. Each PR: gate + TSan + screenshots light/dark, S/XL, EN/PL.</p>
+<h3>Evidence limits</h3>
+<p>Inspected: code of all panes, the running debug build (Dictation, Meetings panes), the brand prototype. <b>Not inspected</b>: running Files/Clipboard/Apps/General/Features/Permissions/Advanced panes and Welcome (read from code only); VoiceOver and real keyboard traversal (only described in the design notes); native fidelity (AppKit controls drawn in HTML); real data sizes (1000+ notes scrolling, long titles beyond the sample). No usage data exists (no telemetry), so “people will use a window” is an assumption.</p></section>
+</main>
+<script>
+const S={lang:'en',theme:'dark',size:1};
+const x=(en,pl)=>S.lang==='pl'?pl:en;
+const P={
+gear:'<circle cx="8" cy="8" r="2.2"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M12.6 3.4l-1.4 1.4M4.8 11.2l-1.4 1.4"/>',
+back:'<path d="M10 3L5 8l5 5"/>',fwd:'<path d="M6 3l5 5-5 5"/>',
+mic:'<rect x="6" y="1.5" width="4" height="8" rx="2"/><path d="M3.5 7.5a4.5 4.5 0 0 0 9 0M8 12v2.5"/>',
+people:'<circle cx="6" cy="5.5" r="2.2"/><path d="M2 13c0-2.3 1.8-4 4-4s4 1.7 4 4"/><circle cx="11.5" cy="6" r="1.6"/><path d="M11 9.2c2 0 3.5 1.3 3.5 3.3"/>',
+doc:'<path d="M4 1.5h5l3 3v10H4z"/><path d="M9 1.5v3h3"/>',
+search:'<circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/>',
+trash:'<path d="M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.5h6.6L12 4"/>',
+copy:'<rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5v-2a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2"/>',
+check:'<path d="M3 8.5l3.2 3L13 4.5"/>',
+warn:'<path d="M8 2l6.5 11.5h-13z"/><path d="M8 6.5v3.2M8 11.6v.2"/>',
+eye:'<path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/>',
+eyeoff:'<path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/><path d="M2 2l12 12"/>',
+down:'<path d="M8 2v8M4.5 7L8 10.5 11.5 7M3 13.5h10"/>',
+dots:'<circle cx="3.5" cy="8" r=".9" fill="currentColor"/><circle cx="8" cy="8" r=".9" fill="currentColor"/><circle cx="12.5" cy="8" r=".9" fill="currentColor"/>',
+lock:'<rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/>',
+x:'<path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/>',refresh:'<path d="M13 8a5 5 0 1 1-1.6-3.7M13 2.5v3h-3"/>',
+folder:'<path d="M1.5 4h4.5l1.5 1.5h7v7.5h-13z"/>',info:'<circle cx="8" cy="8" r="6"/><path d="M8 7.2v4M8 4.9v.2"/>',
+grid:'<rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/>',
+cube:'<path d="M8 1.5l6 3v7l-6 3-6-3v-7zM2 4.5l6 3 6-3M8 7.5v7"/>',sliders:'<path d="M2 4.5h12M2 11.5h12"/><circle cx="5.5" cy="4.5" r="1.6"/><circle cx="10.5" cy="11.5" r="1.6"/>',
+hand:'<path d="M5 8V3.5a1 1 0 0 1 2 0V7M7 7V2.5a1 1 0 0 1 2 0V7M9 7V3.5a1 1 0 0 1 2 0V9M11 7.5a1 1 0 0 1 2 0V10c0 2.5-1.5 4-4 4H8c-2 0-3-1-4-2.5L2.5 9a1 1 0 0 1 1.7-1L5 9"/>',
+bolt:'<path d="M9 1.5L3.5 9H8l-1 5.5L12.5 7H8z"/>',pen:'<path d="M2.5 13.5l.7-3L11 2.7a1.4 1.4 0 0 1 2 2L5.2 12.5z"/>'};
+const ic=n=>`<svg class="ic" viewBox="0 0 16 16" aria-hidden="true">${P[n]}</svg>`;
+const mark=`<svg viewBox="0 0 256 256" aria-hidden="true"><path fill="currentColor" d="M99.01 19.82A112 112 0 1 1 19.82 99.01L64.25 110.92A66 66 0 1 0 110.92 64.25Z"/><circle cx="128" cy="128" r="34" fill="var(--accent)"/></svg>`;
+const lights='<div class="lights"><i></i><i></i><i></i></div>';
+const sw=on=>`<span class="sw${on?' on':''}" role="switch" aria-checked="${!!on}"></span>`;
+const btn=(t,c='',i='')=>`<span class="btn ${c}">${i?ic(i):''}${t}</span>`;
+const banner=(k,tt,ss,acts='',extra='')=>`<div class="bn ${k}" role="status"><span class="g">${ic(k==='ok'?'check':k==='att'||k==='er'?'warn':k==='acc'?'refresh':'info')}</span><div class="tx"><div class="tt">${tt}</div>${ss?`<div class="ss">${ss}</div>`:''}${extra}</div><div class="ba">${acts}</div></div>`;
+const fig=(id,name,reqs,body)=>`<figure class="scr" id="${id}" data-screen="${id}"><figcaption><b>${id}</b> · ${name} · <i>${reqs}</i></figcaption>${body}</figure>`;
+const R=(label,help,ctl)=>`<div class="fr"><div class="lb">${label}${help?`<div class="hp">${help}</div>`:''}</div><div class="v">${ctl||''}</div></div>`;
+const sel=t=>`<span class="sel-c">${t} ⌃</span>`;
+
+/* ---------- sidebars ---------- */
+const GROUPS=(off=[])=>[
+ [x('Lintel','Lintel'),[['general',x('General','Ogólne'),'gear'],['features',x('Features','Funkcje'),'grid'],['permissions',x('Permissions','Uprawnienia'),'hand']]],
+ [x('Search','Szukanie'),[['apps',x('Apps','Aplikacje'),'grid'],['files',x('Files','Pliki'),'doc'],['clipboard',x('Clipboard','Schowek'),'copy']]],
+ [x('Voice','Głos'),[['dictation',x('Dictation','Dyktowanie'),'mic'],['meetings',x('Meetings','Spotkania'),'people']]],
+ [x('Models','Modele'),[['models',x('Models','Modele'),'cube']]],
+ [x('Advanced','Zaawansowane'),[['advanced',x('Advanced','Zaawansowane'),'sliders']]]];
+const setSide=(act,off=[],dot={})=>`<aside class="side">${lights}<div class="si" style="margin-top:2px">${ic('back')}<span class="l">${x('Notes','Notatki')}</span></div>
+ ${GROUPS().map(([g,items])=>`${g===x('Models','Modele')||g===x('Advanced','Zaawansowane')?'<div style="height:8px"></div>':`<div class="sg">${g}</div>`}${items.map(([k,l,i])=>`<div class="si ${act===k?'on':''} ${off.includes(k)?'off':''}">${ic(i)}<span class="l">${l}</span>${off.includes(k)?`<span class="off-t">${x('Off','Wył.')}</span>`:dot[k]?`<span class="n att-t">●</span>`:''}</div>`).join('')}`).join('')}<div class="sp"></div></aside>`;
+
+/* ---------- Notes (v2: explorer · tabs + editable document · inspector) ---------- */
+Object.assign(P,{
+ comment:'<path d="M2.5 3h11v8h-6l-3 2.5V11h-2z"/>',clock:'<circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/>',
+ diff:'<path d="M5 2v8M3 4l2-2 2 2M11 14V6M9 12l2 2 2-2"/>',outline:'<path d="M2 4h12M4 8h10M6 12h8"/>',
+ sidebar:'<rect x="2" y="3" width="12" height="10" rx="2"/><path d="M6 3v10"/>',plus:'<path d="M8 3v10M3 8h10"/>',
+ caret:'<path d="M4 6l4 4 4-4"/>',filter:'<path d="M2 4h12M4 8h8M6 12h4"/>',play:'<path d="M5 3l8 5-8 5z"/>',
+ code:'<path d="M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5"/>',quote:'<path d="M3 5h4v4H4.5c0 1.2.8 2 2.5 2M9 5h4v4h-2.5c0 1.2.8 2 2.5 2"/>',
+ link:'<path d="M6.5 9.5a3 3 0 0 0 4.2 0l2-2a3 3 0 0 0-4.2-4.2l-.8.8M9.5 6.5a3 3 0 0 0-4.2 0l-2 2a3 3 0 0 0 4.2 4.2l.8-.8"/>',
+ ul:'<path d="M6 4h8M6 8h8M6 12h8"/><circle cx="2.8" cy="4" r=".8" fill="currentColor"/><circle cx="2.8" cy="8" r=".8" fill="currentColor"/><circle cx="2.8" cy="12" r=".8" fill="currentColor"/>',
+ task:'<rect x="2" y="3" width="4" height="4" rx="1"/><path d="M8 5h6M8 11h6"/><path d="M2.5 11l1 1 2-2"/>'});
+
+const NT=[
+ {id:'orchard',k:'m',g:'today',st:'ok',t:()=>x('Orchard weekly sync','Cotygodniowy sync Orchard'),sub:()=>x('14:05 · 42 min · Zoom','14:05 · 42 min · Zoom'),act:()=>x('Edited by you 15:02','Edytowane przez Ciebie 15:02'),src:'Zoom'},
+ {id:'kasia',k:'d',g:'today',st:'mute',t:()=>x('Hi Kasia, I moved the review to Thu…','Cześć Kasia, przesunąłem przegląd na czw…'),sub:()=>x('11:20 · 0:18 · Mail','11:20 · 0:18 · Mail'),src:'Mail'},
+ {id:'m0930',k:'m',g:'today',st:'acc',t:()=>x('Meeting 3 Nov, 09:30','Spotkanie 3 lis, 09:30'),sub:()=>x('09:30 · 12 min','09:30 · 12 min'),act:()=>x('Agent writing notes 2/5','Agent pisze notatki 2/5'),src:'—'},
+ {id:'call',k:'m',g:'yday',st:'att',t:()=>x('Customer call','Rozmowa z klientem'),sub:()=>x('16:40 · 31 min · Teams','16:40 · 31 min · Teams'),act:()=>x('Interrupted · finish it','Przerwane · dokończ'),src:'Teams'},
+ {id:'domain',k:'d',g:'yday',st:'mute',t:()=>x('Reminder: renew the domain before Friday','Przypomnienie: odnowić domenę przed piątkiem'),sub:()=>x('10:02 · 0:07 · Notes','10:02 · 0:07 · Notes'),src:'Notes'},
+ {id:'design',k:'m',g:'early',st:'er',t:()=>x('Design review','Przegląd designu'),sub:()=>x('1 Nov · 58 min · Meet','1 lis · 58 min · Meet'),act:()=>x('Notes failed','Notatki nie wyszły'),src:'Meet'}];
+const GN=()=>({today:x('Today','Dzisiaj'),yday:x('Yesterday','Wczoraj'),early:x('Earlier','Wcześniej')});
+const ntRow=(it,sel,snip)=>`<div class="tr2 ${sel?'on':''}"><span class="dot ${it.st}"></span><div class="tx"><div class="a">${it.t()}</div><div class="b">${snip||it.sub()}</div>${(it.act&&(sel||it.st!=='ok'))?`<div class="c ${it.st}">${it.act()}</div>`:''}</div></div>`;
+const exHead=()=>`<div class="lights" style="padding-bottom:2px">${'<i></i><i></i><i></i>'}<span style="margin-left:auto;color:var(--sec)">${ic('sidebar')}</span></div>`;
+const exSearch=(q)=>`<div class="exs">${ic('search')}<span class="${q?'qq':''}">${q||x('Search notes','Szukaj w notatkach')}</span>${q?`<span style="margin-left:auto;color:var(--sec)">${ic('x')}</span>`:`<kbd style="margin-left:auto">⌘P</kbd>`}</div>`;
+const exLabel=(n,extra='')=>`<div class="exl"><span>${x('Notes','Notatki')} <b>${n}</b></span><span class="ico">${extra||ic('filter')+ic('caret')+ic('plus')}</span></div>`;
+function exBy(by,sel){ // by: time | source
+ const G=GN();let h='';
+ if(by==='time'){['today','yday','early'].forEach(g=>{const l=NT.filter(i=>i.g===g);h+=`<div class="grp">${ic('caret')}${G[g]}<span>${l.length}</span></div>`+l.map(i=>ntRow(i,i.id===sel)).join('')});}
+ else{[['Zoom'],['Teams'],['Meet'],['Mail'],['Notes']].forEach(([s])=>{const l=NT.filter(i=>i.src===s);if(l.length)h+=`<div class="grp">${ic('caret')}${s}<span>${l.length}</span></div>`+l.map(i=>ntRow(i,i.id===sel)).join('')});}
+ return h;}
+const exFoot=()=>`<div class="exf"><span>${ic('gear')}</span><span class="sp"></span><span class="lnk2">${x('Settings','Ustawienia')} <kbd>⌘,</kbd></span></div>`;
+const explorer=({by='time',sel='orchard',q='',body=null,count=27,hide=false}={})=>`<aside class="ex">${exHead()}${exSearch(q)}${exLabel(count)}<div class="exb ${hide?'blur':''}">${body!==null?body:exBy(by,sel)}</div>${exFoot()}</aside>`;
+
+/* tabs + chrome */
+const tab=(it,on,extra='')=>`<div class="tb ${on?'on':''}">${ic(it.k==='m'?'people':'mic')}<span class="tt">${it.t()}</span>${extra}<span class="x">${ic('x')}</span></div>`;
+const tabsBar=(openIds=['orchard','kasia','m0930'],cur='orchard',marks={})=>`<div class="tbs">${openIds.map(id=>{const it=NT.find(i=>i.id===id);return tab(it,id===cur,marks[id]||(id==='orchard'?`<span class="mk" title="${x('Edited by you','Edytowane przez Ciebie')}">●</span>`:id==='m0930'?`<span class="spin">${ic('refresh')}</span>`:''))}).join('')}<div class="tb pl">${ic('plus')}</div><span class="sp"></span><div class="cmdb" title="${x('Command','Polecenie')}">${ic('play')} <kbd>⌘K</kbd></div></div>`;
+const crumb=(path,mode='read')=>`<div class="crb"><span class="pth">${path}</span><span class="sp"></span><span class="ibs"><span class="ib ${mode==='edit'?'on':''}" title="${x('Edit','Edytuj')}">${ic('pen')}</span><span class="ib ${mode==='diff'?'on':''}" title="${x('Compare versions','Porównaj wersje')}">${ic('diff')}</span><span class="ib" title="${x('Outline','Konspekt')}">${ic('outline')}</span><span class="ib" title="${x('Copy Markdown','Kopiuj Markdown')}">${ic('copy')}</span><span class="ib" title="${x('Save .md…','Zapisz .md…')}">${ic('down')}</span><span class="ib">${ic('dots')}</span></span></div>`;
+const fmtBar=()=>`<div class="fmt">${['¶','H1','H2','H3'].map(t=>`<span class="f">${t}</span>`).join('')}<i></i><span class="f"><b>B</b></span><span class="f"><em>I</em></span><span class="f"><s>S</s></span><i></i><span class="f">${ic('ul')}</span><span class="f">${ic('task')}</span><span class="f">${ic('quote')}</span><span class="f">${ic('link')}</span><i></i><span class="f cb">${ic('comment')} ${x('Comment','Komentarz')} <kbd>⌘⌥M</kbd></span></div>`;
+const strip=(k,t,a='')=>`<div class="strip ${k}"><span class="dot ${k}"></span><span class="st">${t}</span><span class="sp"></span>${a}</div>`;
+const L=(t)=>`<span class="lnk">${t}</span>`;
+const sbar=(l,r)=>`<div class="sbar"><span class="sb">${l}</span><span class="sp"></span><span class="sb">${r}</span></div>`;
+const sbDefault=()=>sbar(`<span class="dot ok"></span>${x('Notes model ready','Model notatek gotowy')} · Qwen3 4B`+`<span>${ic('lock')} ${x('Encrypted on this Mac','Zaszyfrowane na tym Macu')}</span>`,x('27 notes · 1 writing','27 notatek · 1 w toku'));
+const ntWin=({left,center,right='',status=sbDefault()})=>`<div class="win nt"><div class="wb">${left}<div class="cn">${center}</div>${right}</div>${status}</div>`;
+
+/* document pieces */
+const AUTH=()=>({ag:'AI',you:x('You','Ty'),stt:'STT'});
+const blk=(a,h,cls='')=>`<div class="blk ${cls}"><div class="gt ${a}">${AUTH()[a]}</div><div class="bd">${h}</div></div>`;
+const qc=t=>`<code class="qc">${t}</code>`;
+const docHead=(title,meta,view='notes',kind='m')=>`<div class="dh"><h1>${title}</h1><div class="dm">${meta.map(m=>`<span class="chip2">${m}</span>`).join('')}<span class="sp"></span><span class="vs"><span class="${view==='notes'?'on':''}">${kind==='m'?x('Notes','Notatki'):x('Cleaned','Po formatowaniu')}</span><span class="${view==='tr'?'on':''}">${kind==='m'?x('Transcript','Transkrypt'):x('Original','Oryginał')}</span></span></div></div>`;
+const T1=()=>x('Orchard weekly sync','Cotygodniowy sync Orchard');
+const META=()=>[x('3 Nov, 14:05','3 lis, 14:05'),'42 min','Zoom','Kasia · Marek · '+x('You','Ty')];
+const notesDoc=({cm=true,pop=false,hideAuth=false}={})=>`<div class="ed ${hideAuth?'noauth':''}">${docHead(T1(),META())}
+ ${blk('ag',`<h2>${x('Summary','Podsumowanie')}</h2><p>${x('The team agreed to ship the new onboarding on 12 Nov and to postpone the pricing page.','Zespół zdecydował o wydaniu nowego onboardingu 12 listopada i przesunięciu strony cennika.')} ${qc('12:41')}</p>`)}
+ ${blk('ag',`<h2>${x('Decisions','Decyzje')}</h2><ul><li>${x('Ship onboarding on 12 Nov.','Wydanie onboardingu: 12 listopada.')} ${qc('12:42')}</li></ul>`)}
+ ${blk('you',`<ul start="2"><li>${x('Pricing page moves to the','Strona cennika przechodzi do')} <span class="${pop?'sel':cm?'cm':''}">${x('next sprint','następnego sprintu')}</span> ${x('(Marek confirmed).','(potwierdził Marek).')}${pop?`<span class="pop"><span class="pt">${ic('comment')} ${x('New comment','Nowy komentarz')}</span><span class="pi">${x('Which sprint? Name it.','Który sprint? Podaj nazwę.')}<i class="caret2"></i></span><span class="pa"><span class="lnk">${x('Cancel','Anuluj')}</span><span class="btn sm pri">${x('Comment','Skomentuj')} <kbd style="background:none;color:inherit">⌘↩</kbd></span></span></span>`:''}</li></ul>`)}
+ ${blk('ag',`<h2>${x('Tasks','Zadania')}</h2><table><tr><th>#</th><th>${x('Task','Zadanie')}</th><th>${x('Owner','Osoba')}</th><th>${x('Due','Termin')}</th><th>${x('Source','Źródło')}</th></tr>
+  <tr><td>T1</td><td>${x('Update the release checklist','Zaktualizować checklistę wydania')}</td><td>Kasia</td><td><span class="${cm?'cm':''}">${x('Thu','czw.')}</span></td><td>${qc('12:44')}</td></tr>
+  <tr><td>T2</td><td>${x('Send the demo build to QA','Wysłać wersję demo do QA')}</td><td>Marek</td><td>${x('today','dziś')}</td><td>${qc('12:43')}</td></tr>
+  <tr class="you"><td>T3</td><td>${x('Ask legal about the pricing copy','Zapytać prawników o tekst cennika')}</td><td>Kasia</td><td>—</td><td><span class="by">${x('added by you','dodane przez Ciebie')}</span></td></tr></table>`)}
+ ${blk('ag',`<h2>${x('Open questions','Otwarte pytania')}</h2><ul><li>${x('Who reviews the Polish translation?','Kto sprawdza polskie tłumaczenie?')} ${qc('12:46')}</li></ul>`)}</div>`;
+const trDoc=()=>`<div class="ed">${docHead(T1(),META(),'tr')}<div class="find">${ic('search')} ${x('Find in transcript','Szukaj w transkrypcie')} <kbd style="margin-left:auto">⌘F</kbd></div>
+ ${blk('stt',`<div class="tl"><b>Kasia</b><code class="qc">12:41</code><span><span class="cm">${x('I’d move the pricing page, it isn’t ready.','Przesunęłabym stronę cennika, nie jest gotowa.')}</span></span></div>`)}
+ ${blk('you',`<div class="tl"><b>${x('You','Ty')}</b><code class="qc">12:42</code><span>${x('Agreed. Onboarding first, then pricing.','Zgoda. Najpierw onboarding, potem cennik.')}</span></div><div class="was">${x('was: Agreed. Onboarding first.','było: Zgoda. Najpierw onboarding.')}</div>`)}
+ ${blk('stt',`<div class="tl"><b>Marek</b><code class="qc">12:43</code><span>${x('I’ll send QA the demo build today.','Wyślę dziś QA wersję demo.')}</span></div>`)}
+ ${blk('stt',`<div class="tl"><b>Kasia</b><code class="qc">12:44</code><span>${x('And I’ll update the release checklist by Thursday.','A ja zaktualizuję checklistę wydania do czwartku.')}</span></div>`)}</div>`;
+const dictDoc=(orig)=>`<div class="ed">${docHead(x('Dictation, 3 Nov 11:20','Dyktowanie, 3 lis 11:20'),[x('0:18','0:18'),'Mail','Parakeet Ultra'],orig?'tr':'notes','d')}
+ ${orig?blk('stt',`<p>${x('hi kasia i moved the review to thursday at ten uh could you send me the agenda before hand','cześć kasia przesunąłem przegląd na czwartek na dziesiątą yyy prześlesz mi wcześniej agendę')}</p>`):blk('ag',`<p>${x('Hi Kasia, I moved the review to Thursday at 10. Could you send me the agenda beforehand?','Cześć Kasia, przesunąłem przegląd na czwartek na 10. Prześlesz mi wcześniej agendę?')}</p>`)}</div>`;
+
+/* inspector */
+const inspTabs=(on)=>`<div class="its">${[['comment','comments',x('Comments','Komentarze'),'2'],['clock','history',x('History','Historia'),''],['sliders','details',x('Details','Szczegóły'),'']].map(([i,k,l,n])=>`<span class="it ${on===k?'on':''}" title="${l}">${ic(i)}${on===k?`<b>${l}</b>`:''}${n?`<sup>${n}</sup>`:''}</span>`).join('')}<span class="sp"></span><span class="it">${ic('sidebar')}</span></div>`;
+const thread=(q,who,when,txt,res)=>`<div class="th ${res?'res':''}"><div class="tq">“${q}”</div><div class="tm"><b>${who}</b> · ${when}</div><div class="tx2">${txt}</div><div class="ta"><span class="lnk">${x('Reply','Odpowiedz')}</span><span class="lnk">${res?x('Reopen','Otwórz ponownie'):x('Resolve','Rozwiąż')}</span>${res?'':`<span class="lnk">${x('Ask agent','Zapytaj agenta')}</span>`}</div></div>`;
+const commentsPane=()=>`${inspTabs('comments')}<div class="ip"><div class="ipf"><span class="chip3 on">${x('Open','Otwarte')} 2</span><span class="chip3">${x('Resolved','Rozwiązane')} 1</span></div>
+ ${thread(x('next sprint','następnego sprintu'),x('You','Ty'),x('today 14:58','dziś 14:58'),x('Which sprint? Name it.','Który sprint? Podaj nazwę.'))}
+ ${thread(x('Thu','czw.'),x('You','Ty'),x('today 14:59','dziś 14:59'),x('Give the date.','Podaj datę.'))}
+ ${thread(x('Marek','Marek'),'AI',x('today 14:57','dziś 14:57'),x('Added the owner to T2.','Dodano osobę do T2.'),true)}
+ </div><div class="ipb"><span class="btn pri" style="justify-content:center">${ic('refresh')} ${x('Revise with 2 comments','Popraw według 2 komentarzy')}</span><div class="hp2">${x('The agent rewrites only commented blocks. Your edits stay.','Agent poprawia tylko skomentowane bloki. Twoje zmiany zostają.')}</div></div>`;
+const hEntry=(a,when,txt,acts)=>`<div class="he"><span class="hd ${a}"></span><div><div class="hm"><b>${AUTH()[a]}</b> · ${when}</div><div class="hx">${txt}</div><div class="ta">${acts}</div></div></div>`;
+const historyPane=()=>`${inspTabs('history')}<div class="ip"><div class="ipf"><span class="chip3 on">${x('All','Wszystko')}</span><span class="chip3">AI</span><span class="chip3">${x('You','Ty')}</span></div>
+ ${hEntry('you',x('today 15:02','dziś 15:02'),x('Edited 2 blocks, added task T3','Zmieniono 2 bloki, dodano zadanie T3'),`<span class="lnk">${x('Compare','Porównaj')}</span>`)}
+ ${hEntry('ag',x('today 14:59','dziś 14:59'),x('Revised 1 block from the comment “Add an owner to T2”','Poprawiono 1 blok wg komentarza „Dodaj osobę do T2”'),`<span class="lnk">${x('Compare','Porównaj')}</span><span class="lnk">${x('Restore','Przywróć')}</span>`)}
+ ${hEntry('ag',x('today 14:52','dziś 14:52'),x('Wrote the notes · Qwen3 4B · prompt v3','Napisał notatki · Qwen3 4B · prompt v3'),`<span class="lnk">${x('Restore','Przywróć')}</span>`)}
+ ${hEntry('stt',x('today 14:51','dziś 14:51'),x('Transcript · Parakeet Ultra · speakers separated','Transkrypt · Parakeet Ultra · rozdzieleni mówcy'),`<span class="lnk">${x('Open original','Otwórz oryginał')}</span>`)}
+ </div><div class="ipb"><div class="hp2">${x('History stays on this Mac, encrypted, as long as the note.','Historia zostaje na tym Macu, zaszyfrowana, tak długo jak notatka.')}</div></div>`;
+const tg=(l,on,h='')=>`<div class="tgr"><div><div>${l}</div>${h?`<div class="hp2">${h}</div>`:''}</div>${sw(on)}</div>`;
+const kv=(k,v)=>`<div class="kv"><span>${k}</span><span>${v}</span></div>`;
+const detailsPane=()=>`${inspTabs('details')}<div class="ip"><div class="ish">${x('View','Widok')}</div>${tg(x('Author bars','Pasek autora'),true,x('Who wrote each block: AI, You, STT.','Kto napisał każdy blok: AI, Ty, STT.'))}${tg(x('Source quotes','Cytaty ze źródła'),true,x('Timestamps that open the transcript.','Znaczniki czasu otwierające transkrypt.'))}${tg(x('Comments in text','Komentarze w tekście'),true)}${tg(x('Wrap lines','Zawijaj wiersze'),true)}
+ <div class="ish">${x('Note','Notatka')}</div>${kv(x('Source','Źródło'),'Zoom')}${kv(x('Language','Język'),'PL, EN')}${kv(x('Speech','Mowa'),'Parakeet Ultra')}${kv(x('Notes model','Model notatek'),'Qwen3 4B · v3')}${kv(x('Audio','Dźwięk'),x('deleted','usunięty'))}${kv(x('Kept until','Zachowane do'),x('1 Feb (90 days)','1 lut (90 dni)'))}
+ <div class="ish">${x('Actions','Akcje')}</div><div class="acl"><span>${ic('copy')} ${x('Copy Markdown','Kopiuj Markdown')}<kbd>⌘⇧C</kbd></span><span>${ic('down')} ${x('Save .md…','Zapisz .md…')}</span><span>${ic('refresh')} ${x('Regenerate notes…','Napisz notatki od nowa…')}</span><span class="er-t">${ic('trash')} ${x('Delete…','Usuń…')}<kbd>⌘⌫</kbd></span></div></div>`;
+const insp=(c)=>`<aside class="insp">${c}</aside>`;
+
+const diffDoc=()=>`<div class="ed"><div class="dh"><h1>${x('Compare','Porównanie')}</h1><div class="dm"><span class="chip2">${x('AI 14:52','AI 14:52')}</span>→<span class="chip2">${x('You 15:02','Ty 15:02')}</span><span class="sp"></span><span class="vs"><span class="on">${x('Inline','W tekście')}</span><span>${x('Side by side','Obok siebie')}</span></span></div></div>
+ <div class="df"><div class="dl ctx"><span class="gm"> </span><span class="gx">## ${x('Decisions','Decyzje')}</span></div>
+ <div class="dl rm"><span class="gm">−</span><span class="gx">${x('Pricing page moves to the next sprint.','Strona cennika przechodzi do następnego sprintu.')}</span><span class="by2">AI</span></div>
+ <div class="dl ad"><span class="gm">+</span><span class="gx">${x('Pricing page moves to the next sprint (Marek confirmed).','Strona cennika przechodzi do następnego sprintu (potwierdził Marek).')}</span><span class="by2">${x('You','Ty')}</span></div>
+ <div class="dl ctx"><span class="gm"> </span><span class="gx">## ${x('Tasks','Zadania')}</span></div>
+ <div class="dl ad"><span class="gm">+</span><span class="gx">| T3 | ${x('Ask legal about the pricing copy','Zapytać prawników o tekst cennika')} | Kasia | — |</span><span class="by2">${x('You','Ty')}</span></div></div></div>`;
+
+const centerOf=(doc,{path,strip:s='',mode='read',fmt=false,open,cur,marks}={})=>`${tabsBar(open,cur,marks)}${crumb(path||`${x('Today','Dzisiaj')} / ${T1()}`,mode)}${fmt?fmtBar():''}${s}${doc}`;
+const emptyC=(ico,tt,tx,rows='')=>`<div class="emp"><div class="em"><div class="mk0">${mark}</div><div class="e1">${tt}</div><div class="e2">${tx}</div>${rows}</div></div>`;
+const shortRows=()=>`<div class="sr"><span>${x('New note','Nowa notatka')}<kbd>⌘N</kbd></span><span>${x('Record a meeting','Nagraj spotkanie')}<kbd>⌃⌥M</kbd></span><span>${x('Dictate','Dyktuj')}<kbd>⌃⌥D</kbd></span><span>${x('Go to a note','Przejdź do notatki')}<kbd>⌘P</kbd></span></div>`;
+
+function mainScreens(){
+ const O=['orchard','kasia','m0930'];
+ return [
+fig('lib-meeting','Notes · meeting document (default): explorer, tabs, editable notes, comments','main window default',ntWin({left:explorer(),center:centerOf(notesDoc(),{mode:'edit',fmt:true}),right:insp(commentsPane())})),
+fig('lib-comment','Notes · selecting text, adding a comment','edit + comment',ntWin({left:explorer(),center:centerOf(notesDoc({cm:false,pop:true}),{mode:'edit',fmt:true}),right:insp(commentsPane())})),
+fig('lib-history','Notes · version history and compare (agent vs you)','history, diff',ntWin({left:explorer(),center:centerOf(diffDoc(),{mode:'diff',path:`${x('Today','Dzisiaj')} / ${T1()} / ${x('Compare','Porównanie')}`}),right:insp(historyPane())})),
+fig('lib-transcript','Notes · transcript, editable, with original kept','transcript',ntWin({left:explorer(),center:centerOf(trDoc(),{mode:'edit',fmt:false,path:`${x('Today','Dzisiaj')} / ${T1()} / ${x('Transcript','Transkrypt')}`}),right:insp(detailsPane())})),
+fig('lib-dictation','Notes · dictation, cleaned text','dictation',ntWin({left:explorer({sel:'kasia'}),center:centerOf(dictDoc(false),{cur:'kasia',path:`${x('Today','Dzisiaj')} / ${x('Dictation 11:20','Dyktowanie 11:20')}`}),right:insp(historyPane())})),
+fig('lib-dictation-original','Notes · dictation, original speech-to-text','dictation',ntWin({left:explorer({sel:'kasia'}),center:centerOf(dictDoc(true),{cur:'kasia',path:`${x('Today','Dzisiaj')} / ${x('Dictation 11:20','Dyktowanie 11:20')}`}),right:insp(historyPane())})),
+fig('lib-tree-source','Notes · explorer grouped by source (alternative grouping)','grouping',ntWin({left:explorer({by:'source'}),center:centerOf(notesDoc(),{mode:'edit',fmt:true}),right:insp(commentsPane())})),
+fig('lib-details','Notes · details and toggles','inspector',ntWin({left:explorer(),center:centerOf(notesDoc(),{mode:'edit',fmt:true}),right:insp(detailsPane())})),
+fig('lib-search','Notes · search across titles, notes, transcripts, dictations','search',ntWin({left:explorer({q:x('pricing','cennika'),count:3,body:[
+ ntRow(NT[0],true,x('…we should move the <mark>pricing</mark> page, it isn’t ready…','…przesunęłabym stronę <mark>cennika</mark>, nie jest gotowa…')),
+ ntRow(NT[5],false,x('<mark>Pricing</mark> tiers: Free, Pro, Team. Decision: keep Free.','Plany <mark>cennika</mark>: Free, Pro, Team. Decyzja: zostaje Free.')),
+ ntRow({...NT[1],t:()=>x('Remind Marek about the pricing copy','Przypomnij Markowi o tekście do cennika')},false,x('30 Oct · dictation','30 paź · dyktowanie'))].join('')}),center:centerOf(trDoc(),{path:`${x('Today','Dzisiaj')} / ${T1()} / ${x('Transcript','Transkrypt')}`}),right:insp(detailsPane())})),
+fig('lib-palette','Notes · go to note (⌘P)','palette',ntWin({left:explorer(),center:`${centerOf(notesDoc())}<div class="pal"><div class="pi2">${ic('search')} <span>${x('Go to a note or run a command','Przejdź do notatki lub uruchom polecenie')}</span></div>${[[x('Orchard weekly sync','Cotygodniowy sync Orchard'),x('3 Nov · meeting','3 lis · spotkanie'),1],[x('Design review','Przegląd designu'),x('1 Nov · meeting','1 lis · spotkanie')],[x('Record a meeting','Nagraj spotkanie'),'⌃⌥M'],[x('Open Settings','Otwórz Ustawienia'),'⌘,'],[x('Hide content','Ukryj treść'),'⌘⇧H']].map(r=>`<div class="pr ${r[2]===1?'on':''}"><span>${r[0]}</span><span class="pm">${r[1]}</span></div>`).join('')}</div>`,right:insp(commentsPane())})),
+fig('lib-noresults','Notes · no results','search, empty result',ntWin({left:explorer({q:x('invoice 2019','faktura 2019'),count:0,body:`<div class="nr">${x('No notes match “invoice 2019”.','Brak notatek dla „faktura 2019”.')}<br>${x('Search covers titles, notes, transcripts and dictations.','Szukam w tytułach, notatkach, transkryptach i dyktowaniach.')}</div>`}),center:emptyC('doc',x('Select a note','Wybierz notatkę'),x('Its notes or text open here.','Jej notatki lub tekst otworzą się tutaj.'))})),
+fig('lib-empty','Notes · empty library','empty',ntWin({left:explorer({count:0,body:`<div class="nr">${x('No notes yet.','Brak notatek.')}</div>`}),center:emptyC('doc',x('Your notes will appear here','Tu pojawią się Twoje notatki'),x('Meeting notes and dictations are kept on this Mac.','Notatki ze spotkań i dyktowania zostają na tym Macu.'),shortRows()),status:sbar(`<span class="dot ok"></span>${x('Ready','Gotowe')}`,x('0 notes','0 notatek'))})),
+fig('lib-off','Notes · recording off (Meetings and Dictation disabled): notes stay available','recording off',ntWin({left:explorer({count:0,body:`<div class="nr">${x('No notes yet.','Brak notatek.')}</div>`}),center:emptyC('doc',x('Write a note, or turn on recording','Napisz notatkę albo włącz nagrywanie'),x('Notes work without recording. Meetings and Dictation add recorded notes.','Notatki działają bez nagrywania. Spotkania i Dyktowanie dodają notatki z nagrań.'),`<div class="sr"><span>${x('New note','Nowa notatka')}<kbd>⌘N</kbd></span><span>${x('Go to a note','Przejdź do notatki')}<kbd>⌘P</kbd></span><span class="lnk" style="margin:0">${x('Turn on recording in Settings…','Włącz nagrywanie w Ustawieniach…')}</span></div>`),status:sbar(`<span class="dot mute"></span>${x('Recording off','Nagrywanie wyłączone')}`,x('0 notes','0 notatek'))})),
+fig('lib-locked','Notes · key unavailable','locked',ntWin({left:explorer({count:'—',body:`<div class="nr">${ic('lock')}<br>${x('Locked','Zablokowane')}</div>`}),center:emptyC('lock',x('Lintel can’t read the key to your notes','Lintel nie może odczytać klucza do notatek'),x('Nothing was deleted. Unlock your login keychain and try again.','Nic nie zostało usunięte. Odblokuj pęk kluczy logowania i spróbuj ponownie.'),`<div class="sr"><span class="lnk">${x('Try again','Spróbuj ponownie')}</span></div>`),status:sbar(`<span class="dot er"></span>${x('Key unavailable','Klucz niedostępny')}`,'')})),
+fig('lib-loading','Notes · loading','loading',ntWin({left:explorer({body:[1,2,3,4,5].map(()=>`<div class="tr2"><span class="dot mute"></span><div class="tx"><div class="skel" style="width:75%"></div><div class="skel" style="width:45%"></div></div></div>`).join('')}),center:`<div style="padding:28px 40px"><div class="skel" style="width:40%;height:1.8em"></div><div class="skel" style="width:30%"></div><div class="skel" style="margin-top:22px"></div><div class="skel"></div><div class="skel" style="width:70%"></div></div>`,status:sbar(`<span class="spin">${ic('refresh')}</span>${x('Opening notes…','Otwieram notatki…')}`,'')})),
+fig('lib-regen','Notes · agent writing notes (read-only until done)','regenerating',ntWin({left:explorer({sel:'m0930'}),center:centerOf(notesDoc({cm:false}),{cur:'m0930',s:strip('acc',x('Agent is writing notes · 2 of 5 · read-only until it finishes','Agent pisze notatki · 2 z 5 · tylko do odczytu do końca'),`${L(x('Cancel','Anuluj'))}`)}),right:insp(historyPane()),status:sbar(`<span class="spin">${ic('refresh')}</span>${x('Writing notes 2/5','Piszę notatki 2/5')}<span class="pb"><i style="width:40%"></i></span>`,x('27 notes · 1 writing','27 notatek · 1 w toku'))})),
+fig('lib-saveerror','Notes · saving the .md file failed','save error',ntWin({left:explorer(),center:centerOf(notesDoc(),{s:strip('er',x('The .md file couldn’t be saved. Check that the folder is writable.','Nie udało się zapisać pliku .md. Sprawdź, czy folder pozwala na zapis.'),`${L(x('Try again','Spróbuj ponownie'))}${L(x('Choose another place…','Wybierz inne miejsce…'))}`)}),right:insp(commentsPane())})),
+fig('lib-interrupted','Notes · interrupted meeting','incomplete',ntWin({left:explorer({sel:'call'}),center:centerOf(`<div class="ed">${docHead(x('Customer call','Rozmowa z klientem'),[x('2 Nov, 16:40','2 lis, 16:40'),'31 min','Teams'])}<div class="nr" style="text-align:left;padding:16px 0 0 4em">${x('No transcript yet.','Brak transkryptu.')}</div></div>`,{cur:'call',open:['orchard','call'],path:`${x('Yesterday','Wczoraj')} / ${x('Customer call','Rozmowa z klientem')}`,s:strip('att',x('This meeting was interrupted. Lintel can transcribe the part it recorded.','To spotkanie zostało przerwane. Lintel może przepisać nagraną część.'),`${L(x('Finish transcript','Dokończ transkrypt'))}${L(x('Finish with a gap','Zakończ z luką'))}`)}),right:insp(detailsPane())})),
+fig('lib-needsmodel','Notes · notes need a model','needs-model',ntWin({left:explorer(),center:centerOf(trDoc(),{path:`${x('Today','Dzisiaj')} / ${T1()} / ${x('Transcript','Transkrypt')}`,s:strip('att',x('Notes need a model. It downloads once and runs on this Mac.','Notatki wymagają modelu. Pobiera się raz i działa na tym Macu.'),L(x('Open Models','Otwórz Modele')))}),right:insp(detailsPane()),status:sbar(`<span class="dot att"></span>${x('Notes model not installed','Model notatek niezainstalowany')}`,x('27 notes','27 notatek'))})),
+fig('lib-hidden','Notes · content hidden (screen sharing)','privacy',ntWin({left:explorer({hide:true}),center:`${tabsBar()}${crumb(`${x('Today','Dzisiaj')} / ••••••`)}${strip('ne',x('Content hidden. Press ⌘⇧H to show it again.','Treść ukryta. Naciśnij ⌘⇧H, aby ją pokazać.'),L(x('Show content','Pokaż treść')))}<div class="blur">${notesDoc()}</div>`,right:insp(commentsPane().replace(/class="ip"/,'class="ip blur"'))}))
+ ].join('');}
+
+/* ---------- Settings ---------- */
+const setWin=(act,inner,o={})=>`<div class="win">${setSide(act,o.off||[],o.dot||{})}<div class="pane"><div class="in">${inner}</div></div></div>`;
+const adv=l=>`<div class="disc">${ic('fwd')} ${l||x('Advanced','Zaawansowane')}</div>`;
+const sh=t=>`<div class="sh">${t}</div>`;
+const permRow=(name,need,state,kind,act)=>`<div class="fr"><div class="lb"><b>${name}</b><div class="hp">${x('Needed for','Potrzebne do')}: ${need}</div></div><div class="v"><span class="${kind==='ok'?'ok-t':kind==='att'?'att-t':''}">${kind==='ok'?'✓ ':''}${state}</span>${act?btn(act,'sm'+(kind==='att'?' pri':'')):''}</div></div>`;
+const modelRow=(n,lic,used,size,state,act,prog)=>`<div class="fr"><div class="lb"><b>${n}</b> <span class="hp">${lic}</span><div class="hp">${used.map(u=>`<span class="chip">${u}</span>`).join(' ')} · ${size}</div>${prog?`<div class="prog" style="width:14em"><i style="width:${prog}%"></i></div>`:''}</div><div class="v"><span class="${state.ok?'ok-t':''}">${state.t}</span>${act}</div></div>`;
+const MEET=()=>x('Meetings','Spotkania'),DICT=()=>x('Dictation','Dyktowanie'),NOTES=()=>x('Notes','Notatki');
+
+function settingsScreens(){return [
+fig('set-general','Settings · General (ready)','settings-pane ready',setWin('general',`<h3>${x('General','Ogólne')}</h3>${banner('ok',x('Ready','Gotowe'),x('Press ⌘Space to open Lintel.','Naciśnij ⌘Spacja, aby otworzyć Lintel.'))}
+ ${sh(x('Basics','Podstawy'))}<div class="card">${R(x('Launcher shortcut','Skrót launchera'),'',`<kbd>⌘Space</kbd>`)}${R(x('Open at login','Uruchamiaj przy logowaniu'),'',sw(true))}${R(x('Show icon in the Dock','Pokaż ikonę w Docku'),x('The Dock icon opens this window.','Ikona w Docku otwiera to okno.'),sw(true))}${R(x('Text size','Rozmiar tekstu'),'',sel(x('Medium','Średni')))}</div>`)),
+fig('set-features','Settings · Features (overview, Result order)','settings-pane',setWin('features',`<h3>${x('Features','Funkcje')}</h3>${banner('ok',x('All set','Wszystko gotowe'),x('All features are on.','Wszystkie funkcje są włączone.'))}
+ <div class="card">${R(`${ic('doc')} <b>${x('Notes','Notatki')}</b>`,x('Your notes, always available.','Twoje notatki, zawsze dostępne.'),`<span class="chip">${x('Always on','Zawsze włączone')}</span>`)}${[['grid',x('Apps','Aplikacje'),x('Find and open apps.','Szukaj i otwieraj aplikacje.'),1],['doc',x('Files','Pliki'),x('Find files by name.','Szukaj plików po nazwie.'),1],['copy',x('Clipboard','Schowek'),x('Paste from history.','Wklejaj z historii.'),1],['mic',DICT(),x('Speak instead of typing.','Mów zamiast pisać.'),1],['people',MEET(),x('Record meetings, keep notes.','Nagrywaj spotkania, miej notatki.'),1]].map(r=>R(`${ic(r[0])} <b>${r[1]}</b>`,r[2],`${sw(r[3])}`)).join('')}</div>
+ ${sh(x('Result order','Kolejność wyników'))}<div class="card">${[x('Apps','Aplikacje'),x('Files','Pliki'),x('Clipboard','Schowek')].map((n,i)=>R(`${i+1}. ${n}`,'',`<span class="hp">≡</span>`)).join('')}</div><div class="ft">${x('Drag to change the order in the launcher.','Przeciągnij, aby zmienić kolejność w launcherze.')}</div>`,{})),
+fig('set-permissions','Settings · Permissions (the one place for permissions)','needs-setup',setWin('permissions',`<h3>${x('Permissions','Uprawnienia')}</h3>${banner('att',x('2 things to do','2 rzeczy do zrobienia'),x('Meetings and Dictation can’t start until the microphone is allowed.','Spotkania i Dyktowanie nie ruszą, dopóki mikrofon nie jest dozwolony.'))}
+ <div class="card">${permRow(x('Microphone','Mikrofon'),`${DICT()}, ${MEET()}`,x('Not asked yet','Jeszcze nie pytano'),'att',x('Allow Microphone','Zezwól na mikrofon'))}${permRow(x('System audio recording','Nagrywanie dźwięku systemu'),MEET(),x('Not allowed','Niedozwolone'),'att',x('Open System Settings','Otwórz Ustawienia systemu'))}${permRow(x('Accessibility','Dostępność'),`${x('pasting from Clipboard and Dictation','wklejanie ze Schowka i Dyktowania')}`,x('Allowed','Dozwolone'),'ok','')}${permRow(x('Full Disk Access','Pełny dostęp do dysku'),`${x('Files (Documents, Desktop)','Pliki (Dokumenty, Pulpit)')} · ${x('optional','opcjonalne')}`,x('Not granted','Nie przyznano'),'',x('Open System Settings','Otwórz Ustawienia systemu'))}</div>
+ <div class="ft">${x('Only permissions of features that are on are required.','Wymagane są tylko uprawnienia włączonych funkcji.')}</div>`,{dot:{permissions:1}})),
+fig('set-apps','Settings · Apps (ready)','settings-pane ready',setWin('apps',`<h3>${x('Apps','Aplikacje')}</h3>${banner('ok',x('Ready','Gotowe'),x('312 apps indexed.','Zindeksowano 312 aplikacji.'))}
+ ${sh(x('Basics','Podstawy'))}<div class="card">${R(x('Suggest apps','Podpowiadaj aplikacje'),x('Shown when the launcher is empty.','Widoczne przy pustym launcherze.'),sw(true))}${R(x('Hidden suggestions','Ukryte podpowiedzi'),'',btn(x('Manage…','Zarządzaj…'),'sm'))}</div>
+ ${adv()}${sh(x('Data','Dane'))}<div class="card">${R(x('Usage history','Historia użycia'),x('Stored on this Mac only.','Tylko na tym Macu.'),btn(x('Reset Suggestions…','Zresetuj podpowiedzi…'),'sm dng'))}</div>`)),
+fig('set-files','Settings · Files (needs setup)','needs-setup',setWin('files',`<h3>${x('Files','Pliki')}</h3>${banner('att',x('Indexing hasn’t started','Indeksowanie jeszcze się nie zaczęło'),x('Full Disk Access adds Documents and Desktop.','Pełny dostęp do dysku dodaje Dokumenty i Pulpit.'),btn(x('Start Indexing','Zacznij indeksować'),'sm pri')+btn(x('Allow Full Disk Access','Zezwól na pełny dostęp'),'sm'))}
+ ${sh(x('Basics','Podstawy'))}<div class="card">${R(x('Folders to index','Foldery do indeksowania'),x('Home folder and Applications','Folder domowy i Aplikacje'),btn(x('Add Folder…','Dodaj folder…'),'sm'))}${R(x('Include iCloud Drive','Uwzględnij iCloud Drive'),'',sw(false))}</div>
+ ${adv()}${sh(x('Data','Dane'))}<div class="card">${R(x('Index','Indeks'),x('Not built yet','Jeszcze nie zbudowany'),btn(x('Rebuild','Odbuduj'),'sm'))}</div>`,{dot:{files:1}})),
+fig('set-clipboard','Settings · Clipboard (ready)','settings-pane ready',setWin('clipboard',`<h3>${x('Clipboard','Schowek')}</h3>${banner('ok',x('Ready','Gotowe'),x('Recording. 212 entries.','Nagrywanie włączone. 212 wpisów.'))}
+ ${sh(x('Basics','Podstawy'))}<div class="card">${R(x('Keep clipboard history','Zapisuj historię schowka'),'',sw(true))}${R(x('Keep for','Przechowuj przez'),'',sel(x('30 days','30 dni')))}${R(x('At most','Maksymalnie'),'',sel(x('1000 entries','1000 wpisów')))}${R(x('Shortcut','Skrót'),'',`<kbd>⌘⇧V</kbd>`)}</div>
+ ${adv()}${sh(x('Data','Dane'))}<div class="card">${R(x('History','Historia'),x('Encrypted on this Mac.','Zaszyfrowana na tym Macu.'),btn(x('Clear History…','Wyczyść historię…'),'sm dng'))}${R(x('Erase Data','Usuń dane'),x('History and its key.','Historia i jej klucz.'),btn(x('Erase Data…','Usuń dane…'),'sm dng'))}</div>`)),
+fig('set-dictation','Settings · Dictation (needs setup: model)','needs-setup',setWin('dictation',`<h3>${DICT()}</h3>${banner('att',x('1 thing to do','1 rzecz do zrobienia'),x('The speech model isn’t installed.','Model mowy nie jest zainstalowany.'),btn(x('Get It in Models','Pobierz w Modelach'),'sm pri'))}
+ ${sh(x('Basics','Podstawy'))}<div class="card">${R(x('Dictate','Dyktuj'),x('Press to start and again to stop, or hold.','Naciśnij, aby zacząć i zakończyć, albo przytrzymaj.'),`<kbd>⌃⌥D</kbd>`)}${R(x('Speech model','Model mowy'),x('Parakeet Ultra · not installed','Parakeet Ultra · niezainstalowany'),sel('Parakeet Ultra'))}${R(x('Language','Język'),'',sel(x('Automatic','Automatycznie')))}${R(x('Clean up text','Poprawiaj tekst'),x('Built-in model fixes punctuation and filler words.','Wbudowany model poprawia interpunkcję i wtręty.'),sw(false))}</div>
+ ${adv()}${sh(x('History','Historia'))}<div class="card">${R(x('Keep a history','Zapisuj historię'),x('Appears in Notes.','Widoczna w Notatkach.'),sw(true))}${R(x('Keep for','Przechowuj przez'),'',sel(x('30 days','30 dni')))}${R(x('History','Historia'),'',btn(x('Clear History…','Wyczyść historię…'),'sm dng'))}</div>`,{dot:{dictation:1}})),
+fig('set-meetings','Settings · Meetings (needs setup: 2 things)','needs-setup',setWin('meetings',`<h3>${MEET()}</h3>${banner('att',x('2 things to do','2 rzeczy do zrobienia'),x('Allow the microphone and get the speech model.','Zezwól na mikrofon i pobierz model mowy.'),btn(x('Fix Next','Napraw kolejne'),'sm pri'))}
+ ${sh(x('Basics','Podstawy'))}<div class="card">${R(x('Record meeting','Nagraj spotkanie'),x('Press to start and again to stop.','Naciśnij, aby zacząć i zakończyć.'),`<kbd>⌃⌥M</kbd>`)}${R(x('Write notes after each meeting','Pisz notatki po każdym spotkaniu'),x('Summary, decisions, tasks. Needs the notes model.','Podsumowanie, decyzje, zadania. Wymaga modelu notatek.'),sw(false))}${R(x('Speech model','Model mowy'),x('Parakeet Ultra · not installed','Parakeet Ultra · niezainstalowany'),sel('Parakeet Ultra'))}${R(x('Keep meetings for','Przechowuj spotkania przez'),'',sel(x('90 days','90 dni')))}</div>
+ ${adv()}<div class="card" style="margin-top:6px">${R(x('Input device','Urządzenie wejściowe'),'',sel(x('System default','Domyślne systemowe')))}${R(x('Reduce echo from speakers','Redukuj echo z głośników'),x('Can lower other apps’ volume.','Może ściszać inne aplikacje.'),sw(false))}${R(x('Suggest recording when a meeting starts','Proponuj nagranie, gdy zaczyna się spotkanie'),'',sw(false))}${R(x('Test System Audio','Przetestuj dźwięk systemu'),'',btn(x('Test','Testuj'),'sm'))}</div>
+ ${sh(x('Privacy and data','Prywatność i dane'))}<div class="card">${R(x('Remind me to say I am recording','Przypominaj, by powiedzieć, że nagrywam'),'',sw(true))}${R(x('Library','Biblioteka'),'',btn(x('Clear Library…','Wyczyść bibliotekę…'),'sm dng'))}${R(x('Erase Data','Usuń dane'),x('Library and its key.','Biblioteka i jej klucz.'),btn(x('Erase Data…','Usuń dane…'),'sm dng'))}</div>`,{dot:{meetings:1}})),
+fig('set-models','Settings · Models (one place, replaces 4 cards)','download, remove, used-by',setWin('models',`<h3>${x('Models','Modele')}</h3>${banner('att',x('1 model is needed','Potrzebny 1 model'),x('The speech model is used by Dictation and Meetings.','Model mowy jest używany przez Dyktowanie i Spotkania.'),btn(x('Download Parakeet Ultra','Pobierz Parakeet Ultra'),'sm pri'))}
+ ${sh(x('Speech','Mowa'))}<div class="card">${modelRow('Parakeet Ultra','CC-BY-4.0',[DICT(),MEET()],'633 MB',{t:x('Not downloaded','Niepobrany')},btn(x('Download','Pobierz'),'sm pri','down'))}${modelRow('Whisper Small','MIT',[DICT()],'466 MB',{t:x('Installed','Zainstalowany'),ok:1},btn(x('Remove','Usuń'),'sm dng'))}${modelRow(x('Speaker separation','Rozpoznawanie osób'),'CC-BY-4.0',[MEET()],'22 MB',{t:x('Not downloaded','Niepobrany')},btn(x('Download','Pobierz'),'sm','down'))}</div>
+ ${sh(x('Writing','Pisanie'))}<div class="card">${modelRow('Qwen3 4B Instruct','Apache-2.0',[NOTES(),DICT()],'2.5 GB',{t:x('Downloading 42%','Pobieranie 42%')},btn(x('Cancel','Anuluj'),'sm'),42)}</div><div class="ft">${x('Needs about 3.3 GB of memory while writing.','Podczas pisania potrzebuje ok. 3,3 GB pamięci.')}</div>
+ ${adv(x('Storage','Miejsce'))}<div class="card" style="margin-top:6px">${R(x('On this Mac','Na tym Macu'),x('1.1 GB in Application Support','1,1 GB w Application Support'),btn(x('Show in Finder','Pokaż w Finderze'),'sm','folder'))}${R(x('Use a model from a folder','Użyj modelu z folderu'),'',btn(x('Choose Folder…','Wybierz folder…'),'sm'))}</div><div class="ft">${x('Models run on this Mac. Audio never leaves it.','Modele działają na tym Macu. Dźwięk go nie opuszcza.')}</div>`,{dot:{models:1}})),
+fig('set-advanced','Settings · Advanced','settings-pane',setWin('advanced',`<h3>${x('Advanced','Zaawansowane')}</h3><div class="card">${R(x('Reset Ranking','Zresetuj ranking'),x('Forgets which results you open most.','Zapomina, które wyniki otwierasz najczęściej.'),btn(x('Reset Ranking…','Zresetuj ranking…'),'sm dng'))}${R(x('Welcome','Powitanie'),'',btn(x('Show Again','Pokaż ponownie'),'sm'))}${R(x('About Lintel','O Lintelu'),x('Version 1.0 · licences','Wersja 1.0 · licencje'),btn(x('About…','O programie…'),'sm'))}</div>`)),
+fig('set-off','Settings · plugin off (Meetings)','off',setWin('meetings',`<h3>${MEET()}</h3>${banner('ne',x('Meetings are off','Spotkania są wyłączone'),x('Turn them on to record meetings and keep notes.','Włącz, aby nagrywać spotkania i trzymać notatki.'),btn(x('Turn On','Włącz'),'sm pri'))}<div class="dim"><div class="card">${R(x('Record meeting','Nagraj spotkanie'),'',`<kbd>⌃⌥M</kbd>`)}${R(x('Write notes after each meeting','Pisz notatki po każdym spotkaniu'),'',sw(false))}</div></div>`,{off:['meetings']})),
+fig('set-error','Settings · plugin failed (Clipboard, key unavailable)','error',setWin('clipboard',`<h3>${x('Clipboard','Schowek')}</h3>${banner('er',x('History is paused','Historia jest wstrzymana'),x('Lintel can’t read the key. Nothing was deleted.','Lintel nie może odczytać klucza. Nic nie zostało usunięte.'),btn(x('Try Again','Spróbuj ponownie'),'sm pri'))}<div class="dim"><div class="card">${R(x('Keep clipboard history','Zapisuj historię schowka'),'',sw(true))}</div></div>`)),
+fig('set-loading','Settings · pane loading','loading',setWin('dictation',`<h3>${DICT()}</h3><div class="card" style="padding:14px"><div class="skel" style="width:60%"></div><div class="skel"></div><div class="skel" style="width:75%"></div><div class="skel"></div></div>`))
+].join('');}
+
+/* ---------- Shell ---------- */
+const menu=(rec)=>`<div class="menu">${[
+ ['hl',x('Open Lintel','Otwórz Lintel'),'⌘Space'],
+ ['',x('Open Notes','Otwórz Notatki'),''],'-',
+ ['',rec?`<span class="rdot"></span> ${x('Stop Recording','Zatrzymaj nagrywanie')}`:x('Record Meeting','Nagraj spotkanie'),'⌃⌥M'],
+ ['',x('Dictate','Dyktuj'),'⌃⌥D'],['',x('Clipboard History','Historia schowka'),'⌘⇧V'],'-',
+ ['',x('Settings…','Ustawienia…'),'⌘,'],['',x('About Lintel','O Lintelu'),''],'-',['',x('Quit Lintel','Zakończ Lintel'),'⌘Q']
+ ].map(m=>m==='-'?'<div class="msep"></div>':`<div class="mi ${m[0]}">${m[1]}<kbd>${m[2]}</kbd></div>`).join('')}</div>`;
+const sheet=(tt,tx,ok)=>`<div class="stage"><div class="sheet" role="alertdialog"><h5>${tt}</h5><p>${tx}</p><div class="bt">${btn(x('Cancel','Anuluj'),'def')}${btn(ok,'dng fill')}</div></div></div>`;
+const welcome=(h,tx,body,act)=>`<div class="win sm" style="height:420px;flex-direction:column"><div class="lights"><i></i><i></i><i></i></div><div style="flex:1;padding:8px 40px 20px;display:flex;flex-direction:column;justify-content:center"><div style="width:44px;height:44px;margin-bottom:10px">${mark}</div><h3 style="margin:0 0 4px;font-size:1.6em">${h}</h3><div style="color:var(--sec)">${tx}</div>${body||''}</div><div style="display:flex;justify-content:space-between;padding:12px 24px;border-top:1px solid var(--hair)"><span class="btn" style="border:0;background:none;color:var(--sec)">${x('Skip','Pomiń')}</span>${act}</div></div>`;
+function shellScreens(){return [
+fig('shell-menu','Menu bar · idle','menu',`<div class="wall">${menu(false)}</div>`),
+fig('shell-menu-rec','Menu bar · recording','menu',`<div class="wall">${menu(true)}</div>`),
+fig('shell-welcome-intro','Welcome · introduction','pending',welcome(x('Welcome to Lintel','Witaj w Lintelu'),x('Search apps and files, paste from history, dictate, keep meeting notes. All on this Mac.','Szukaj aplikacji i plików, wklejaj z historii, dyktuj, miej notatki ze spotkań. Wszystko na tym Macu.'),'',btn(x('Continue','Dalej'),'pri'))),
+fig('shell-welcome-mic','Welcome · microphone step (pending)','pending',welcome(x('Allow the microphone','Zezwól na mikrofon'),x('Dictation and Meetings listen only while you record.','Dyktowanie i Spotkania słuchają tylko w czasie nagrywania.'),'',btn(x('Allow Microphone','Zezwól na mikrofon'),'pri'))),
+fig('shell-welcome-denied','Welcome · microphone denied','permission-denied',welcome(x('The microphone is blocked','Mikrofon jest zablokowany'),x('Allow it in System Settings. You can also do it later in Settings → Permissions.','Zezwól w Ustawieniach systemu. Możesz to zrobić też później w Ustawieniach → Uprawnienia.'),`<div style="margin-top:12px">${banner('att',x('Microphone: not allowed','Mikrofon: niedozwolony'),'',btn(x('Open System Settings','Otwórz Ustawienia systemu'),'sm pri'))}</div>`,btn(x('Continue','Dalej'),''))),
+fig('shell-welcome-done','Welcome · done (points at the new window)','done',welcome(x('You’re set','Gotowe'),x('Open Lintel with ⌘Space. Your notes live in the Lintel window: click the Dock icon or press ⌘,.','Otwórz Lintel skrótem ⌘Spacja. Notatki są w oknie Lintel: kliknij ikonę w Docku albo naciśnij ⌘,.'),'',btn(x('Open Notes','Otwórz Notatki'),'pri'))),
+fig('shell-hud-meeting','HUD · recording a meeting','active',`<div class="wall"><span class="cap"><span class="rdot"></span>${x('Recording','Nagrywanie')} 12:41 <span class="bars"><i style="height:.5em"></i><i style="height:1em"></i><i style="height:.7em"></i><i style="height:.9em"></i></span> ${btn(x('Stop','Stop'),'sm')}</span></div><div style="font-size:.85em;opacity:.7">${x('Reduce Motion: bars stay static.','Redukcja ruchu: słupki są nieruchome.')}</div>`),
+fig('shell-hud-processing','HUD · finishing the transcript','processing',`<div class="wall"><span class="cap">${ic('refresh')} ${x('Finishing the transcript…','Kończę transkrypt…')}</span></div>`),
+fig('shell-hud-error','HUD · microphone denied','error',`<div class="wall"><span class="cap"><span class="er-t">${ic('warn')}</span>${x('Microphone not allowed','Mikrofon niedozwolony')} ${btn(x('Fix','Napraw'),'sm pri')}</span></div>`),
+fig('shell-hud-suggest','HUD · suggestion to record (opt-in)','suggestion',`<div class="wall"><span class="cap">${ic('people')} ${x('Zoom is using the microphone','Zoom używa mikrofonu')} ${btn(x('Record','Nagraj'),'sm pri')}</span></div>`),
+fig('shell-panel-confirm','Launcher panel · ⌃X now asks first (inline, keyboard only)','destructive in panel',`<div class="stage" style="height:240px"><div style="width:560px;border-radius:16px;background:var(--glass);backdrop-filter:blur(30px);border:1px solid var(--hair);color:var(--ink);overflow:hidden"><div style="padding:8px 14px;color:var(--sec)">${x('Meetings','Spotkania')}</div><div class="rw sel" style="margin:0 8px;padding:8px"><span class="kind">${ic('people')}</span><div class="b1"><div class="t">${x('Customer call','Rozmowa z klientem')}</div><div class="m">${x('2 Nov, 16:40 · 31 min · Teams','2 lis, 16:40 · 31 min · Teams')}</div></div></div><div style="display:flex;gap:16px;align-items:center;padding:8px 14px;border-top:1px solid var(--hair);margin-top:8px;color:var(--ink)"><span class="er-t">${ic('trash')}</span><b>${x('Delete this meeting?','Usunąć to spotkanie?')}</b><span style="color:var(--sec)">${x('Press ⌃X again to delete','Naciśnij ⌃X ponownie, aby usunąć')} · <kbd>Esc</kbd> ${x('cancels','anuluje')}</span></div></div></div>`),
+fig('dlg-delete-meeting','Confirm · delete a meeting','destructive',sheet(x('Delete “Orchard weekly sync”?','Usunąć „Cotygodniowy sync Orchard”?'),x('Its notes and transcript are removed from this Mac. This can’t be undone.','Jego notatki i transkrypt zostaną usunięte z tego Maca. Nie można tego cofnąć.'),x('Delete Meeting','Usuń spotkanie'))),
+fig('dlg-delete-dictation','Confirm · delete a dictation','destructive',sheet(x('Delete this dictation?','Usunąć to dyktowanie?'),x('The text is removed from your history. This can’t be undone.','Tekst zostanie usunięty z historii. Nie można tego cofnąć.'),x('Delete Dictation','Usuń dyktowanie'))),
+fig('dlg-clear-library','Confirm · clear the meeting library','destructive',sheet(x('Clear all 9 meetings?','Wyczyścić wszystkie 9 spotkań?'),x('Notes and transcripts are removed. Meetings in progress are kept. This can’t be undone.','Notatki i transkrypty zostaną usunięte. Trwające spotkania zostaną. Nie można tego cofnąć.'),x('Clear Library','Wyczyść bibliotekę'))),
+fig('dlg-erase','Confirm · erase data (e.g. Meetings)','destructive',sheet(x('Erase all Meetings data?','Usunąć wszystkie dane Spotkań?'),x('The library, its encryption key and any unfinished recordings are removed. This can’t be undone.','Biblioteka, jej klucz szyfrowania i nieukończone nagrania zostaną usunięte. Nie można tego cofnąć.'),x('Erase Data','Usuń dane')))
+].join('');}
+
+function render(){
+ document.body.className=S.theme;document.documentElement.style.setProperty('--ts',S.size);document.documentElement.lang=S.lang;
+ document.querySelectorAll('.win,.stage,.menu,.wall,.cap').forEach(()=>{});
+ const set=(id,h)=>{const e=document.getElementById(id);e.innerHTML=h;e.className=S.theme;e.style.setProperty('--ts',S.size)};
+ set('main-screens',mainScreens());set('settings-screens',settingsScreens());set('shell-screens',shellScreens());
+ document.querySelectorAll('#s-theme button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.theme));
+ document.querySelectorAll('#s-size button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.v===S.size));
+ document.querySelectorAll('#s-lang button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.lang));
+}
+document.getElementById('s-theme').onclick=e=>{if(e.target.dataset.v){S.theme=e.target.dataset.v;render()}};
+document.getElementById('s-size').onclick=e=>{if(e.target.dataset.v){S.size=+e.target.dataset.v;render()}};
+document.getElementById('s-lang').onclick=e=>{if(e.target.dataset.v){S.lang=e.target.dataset.v;render()}};
+const q=new URLSearchParams(location.search);if(q.get('theme'))S.theme=q.get('theme');if(q.get('size'))S.size=+q.get('size');if(q.get('lang'))S.lang=q.get('lang');
+render();
+</script>
+</body>
+</html>
