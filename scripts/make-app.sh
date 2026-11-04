@@ -65,6 +65,15 @@ xcrun xcstringstool compile Resources/Localizable.xcstrings --output-directory "
 # The microphone usage description is looked up in InfoPlist.strings of the user's language.
 xcrun xcstringstool compile Resources/InfoPlist.xcstrings --output-directory "$OUT/Contents/Resources"
 
+# Asset catalog: the app icon (AppIcon.icns) and the brand AccentColor (Assets.car), named in Info.plist.
+# (The partial Info.plist only repeats the keys Resources/Info.plist already has; actool wants somewhere to put it.)
+ACTOOL_PLIST="$(mktemp)"
+xcrun actool Resources/Assets.xcassets --compile "$OUT/Contents/Resources" --platform macosx \
+  --minimum-deployment-target 26.0 --app-icon AppIcon --accent-color AccentColor \
+  --output-format human-readable-text --output-partial-info-plist "$ACTOOL_PLIST" --notices --warnings >/dev/null
+rm -f "$ACTOOL_PLIST"
+[[ -f "$OUT/Contents/Resources/AppIcon.icns" ]] || { echo "actool did not produce AppIcon.icns" >&2; exit 1; }
+
 plutil -lint "$OUT/Contents/Info.plist" >/dev/null
 
 # Sign inside-out: the embedded framework first, then the app, both with the hardened runtime. A
