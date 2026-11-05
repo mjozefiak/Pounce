@@ -89,7 +89,7 @@ extension MeetingsPlugin {
         let recorder =
             commands.contains { $0.id == MeetingsUI.recordCommandID }
             ? context.makeShortcutRecorder(MeetingsUI.recordCommandID) : nil
-        return AnyView(MeetingsSettingsPane(model: ui.model, recorder: recorder))
+        return AnyView(MeetingsSettingsPane(model: ui.model, recorder: recorder, isActive: controller != nil))
     }
 
     public func permissionAccessory(for permission: Permission) -> AnyView? {

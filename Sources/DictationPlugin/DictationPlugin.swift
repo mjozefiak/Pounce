@@ -278,7 +278,7 @@ public final class DictationPlugin: LintelPlugin {
         AnyView(
             DictationSettingsPane(
                 model: settingsModel, formatting: formattingModel, history: historyModel,
-                recorder: context.makeShortcutRecorder(Self.recordCommandID)))
+                recorder: context.makeShortcutRecorder(Self.recordCommandID), isActive: controller != nil))
     }
 }
 

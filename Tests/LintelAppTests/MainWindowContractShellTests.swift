@@ -121,7 +121,7 @@ final class PanePlugin: LintelPlugin {
     }
 
     @Test(arguments: pluginIDs)
-    func paneOfAnInactivePluginTouchesNoStore(_ id: String) throws {
+    func paneOfAnInactivePluginTouchesNoStore(_ id: String) async throws {
         let name = "lintel-inactive-pane-\(UUID().uuidString)"
         let root = FileManager.default.temporaryDirectory.appending(path: name, directoryHint: .isDirectory)
         try AppEnvironment.createPrivateDirectory(root, fileManager: .default)
@@ -149,9 +149,15 @@ final class PanePlugin: LintelPlugin {
         try #require(panes.count == 1)
         #expect(panes[0].isActive == false)
 
-        let hosting = NSHostingView(rootView: panes[0].view)
-        hosting.frame = NSRect(x: 0, y: 0, width: 600, height: 800)
-        hosting.layoutSubtreeIfNeeded()
+        // In a real (off-screen) window, so `.task` and `.onAppear` run as they do on screen.
+        let window = NSWindow(
+            contentRect: NSRect(x: -10_000, y: -10_000, width: 600, height: 800), styleMask: [.titled],
+            backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.contentView = NSHostingView(rootView: panes[0].view)
+        window.orderFrontRegardless()
+        defer { window.close() }
+        for _ in 0..<30 { try await Task.sleep(for: .milliseconds(10)) }
 
         #expect(keychain.callCount == 0)
         let storage = environment.storageDirectory(for: PluginID(rawValue: id))

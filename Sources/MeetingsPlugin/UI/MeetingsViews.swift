@@ -8,6 +8,9 @@ struct MeetingsSettingsPane: View {
     @Bindable var model: MeetingsSettingsModel
     /// The shortcut recorder, or `nil` while the `meetings.record` command does not exist.
     let recorder: AnyView?
+    /// `false` while the plugin is off (the main window shows the pane dimmed): the pane then reads no model
+    /// folder or device list (`settingsPane()` must not start work while inactive).
+    var isActive = true
     @State private var confirmation: PrivacyConfirmation?
 
     private enum PrivacyConfirmation: Identifiable {
@@ -149,7 +152,10 @@ struct MeetingsSettingsPane: View {
             }
         }
         .formStyle(.grouped)
-        .task { await model.refresh() }
+        .task(id: isActive) {
+            guard isActive else { return }
+            await model.refresh()
+        }
         .onChange(of: model.privacyMessage) { _, message in
             if let message { AccessibilityNotification.Announcement(message).post() }
         }

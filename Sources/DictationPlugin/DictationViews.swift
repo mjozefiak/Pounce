@@ -7,6 +7,9 @@ struct DictationSettingsPane: View {
     @Bindable var formatting: FormattingSettingsModel
     @Bindable var history: HistorySettingsModel
     let recorder: AnyView
+    /// `false` while the plugin is off (the main window shows the pane dimmed): the pane then probes no
+    /// server and reads no model folder (`settingsPane()` must not start work while inactive).
+    var isActive = true
 
     var body: some View {
         Form {
@@ -83,7 +86,8 @@ struct DictationSettingsPane: View {
             HistorySection(model: history)
         }
         .formStyle(.grouped)
-        .task {
+        .task(id: isActive) {
+            guard isActive else { return }
             await model.refresh()
             await formatting.refresh()
         }
