@@ -22,7 +22,14 @@ import Testing
 
     /// The pane view and model sources, relative to the repository root.
     static let paneFiles = [
-        "Sources/ClipboardPlugin/ClipboardSettingsPane.swift"
+        "Sources/ClipboardPlugin/ClipboardSettingsPane.swift",
+        "Sources/ClipboardPlugin/LegacyClipboardSettingsPane.swift",
+    ]
+
+    /// Each window's own sources (step 4.4): every key stays reachable in the main window and in the old one.
+    static let windowSources: [[String]] = [
+        ["Sources/ClipboardPlugin/ClipboardSettingsPane.swift"],
+        ["Sources/ClipboardPlugin/LegacyClipboardSettingsPane.swift"],
     ]
 
     private static let root: URL = {
@@ -65,6 +72,15 @@ import Testing
         }
         for (key, reason) in Self.exempt {
             #expect(!reason.isEmpty, "\(key) needs a reason")
+        }
+    }
+
+    @Test func bothWindowsReachEveryNonExemptKey() throws {
+        for files in Self.windowSources {
+            let source = try files.map { try Self.read($0) }.joined(separator: "\n")
+            for (key, token) in Self.paneTokens {
+                #expect(source.contains(token), "\(key): \(files) do not contain \(token)")
+            }
         }
     }
 }

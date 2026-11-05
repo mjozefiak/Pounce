@@ -189,6 +189,123 @@ public final class ClipboardPlugin: LintelPlugin {
         )
     }
 
+    /// The main window's banner (prototypes `set-clipboard` and `set-error`), read by the shell only while the
+    /// plugin is active. Accessibility is left to the shell, which derives it from `requiredPermissions`.
+    public var settingsStatus: SettingsStatus? {
+        refreshEnvironment()
+        let actions = statusActions
+        return Self.settingsStatus(
+            availability: state.availability, access: state.access, isPaused: state.isPaused,
+            historyWasReset: state.historyWasReset, entryCount: state.entryCount,
+            retry: { actions.retry() }, resume: { actions.resume() }, dismissReset: { actions.dismissReset() })
+    }
+
+    /// The banner ids of the plugin's own actions.
+    nonisolated static let retryActionID = "retry"
+    nonisolated static let resumeActionID = "resume"
+    nonisolated static let dismissResetActionID = "dismissReset"
+
+    /// Most important first: a key that cannot be read (error, Try Again; nothing is deleted), pasteboard access
+    /// that keeps anything from being recorded, the reset notice, a paused recording, else "Ready · Recording.
+    /// N entries."
+    nonisolated static func settingsStatus(
+        availability: HistoryAvailability,
+        access: PasteboardAccess,
+        isPaused: Bool,
+        historyWasReset: Bool,
+        entryCount: Int,
+        retry: @escaping @MainActor @Sendable () async -> Void,
+        resume: @escaping @MainActor @Sendable () async -> Void,
+        dismissReset: @escaping @MainActor @Sendable () async -> Void
+    ) -> SettingsStatus? {
+        let tryAgain = SettingsStatusAction(
+            title: LocalizedStringResource("Try Again", comment: "Button that retries opening the clipboard history"),
+            destination: .plugin(id: retryActionID, perform: retry))
+        let paused = LocalizedStringResource(
+            "History is paused", comment: "Settings → Clipboard banner when the history key cannot be read")
+        switch availability {
+        case .inactive:
+            return nil
+        case .keychainLocked:
+            return SettingsStatus(
+                level: .error, title: paused,
+                detail: LocalizedStringResource(
+                    "The keychain is locked. Nothing was deleted.",
+                    comment: "Settings → Clipboard banner detail while the login keychain is locked"),
+                fix: [tryAgain])
+        case .keychainUnavailable:
+            return SettingsStatus(
+                level: .error, title: paused,
+                detail: LocalizedStringResource(
+                    "Lintel can’t read the key. Nothing was deleted.",
+                    comment: "Settings → Clipboard banner detail when the keychain denied access to the key"),
+                fix: [tryAgain])
+        case .ready:
+            break
+        }
+        let openPrivacy = SettingsStatusAction(
+            title: LocalizedStringResource(
+                "Open Privacy Settings", comment: "Button that opens Privacy & Security settings"),
+            destination: .systemSettings(.pasteboard))
+        switch access {
+        case .alwaysDeny:
+            return SettingsStatus(
+                level: .attention,
+                title: LocalizedStringResource(
+                    "Nothing is recorded", comment: "Settings → Clipboard banner when the clipboard cannot be read"),
+                detail: LocalizedStringResource(
+                    "Lintel isn’t allowed to read the clipboard.",
+                    comment: "Settings → Clipboard banner detail when pasteboard access is denied"),
+                fix: [openPrivacy])
+        case .ask:
+            return SettingsStatus(
+                level: .attention,
+                title: LocalizedStringResource(
+                    "Nothing is recorded", comment: "Settings → Clipboard banner when the clipboard cannot be read"),
+                detail: LocalizedStringResource(
+                    "macOS asks before every read. Allow Lintel in Privacy & Security.",
+                    comment: "Settings → Clipboard banner detail when pasteboard access asks each time"),
+                fix: [openPrivacy])
+        case .alwaysAllow, .systemDefault:
+            break
+        }
+        if historyWasReset {
+            return SettingsStatus(
+                level: .attention,
+                title: LocalizedStringResource(
+                    "A new history was started", comment: "Settings → Clipboard banner after the history was reset"),
+                detail: LocalizedStringResource(
+                    "The key was missing. The old history stays encrypted and is deleted after 30 days.",
+                    comment: "Settings → Clipboard banner detail after the history was reset"),
+                fix: [
+                    SettingsStatusAction(
+                        title: LocalizedStringResource("Dismiss", comment: "Button that dismisses a notice"),
+                        destination: .plugin(id: dismissResetActionID, perform: dismissReset))
+                ])
+        }
+        if isPaused {
+            return SettingsStatus(
+                level: .neutral,
+                title: LocalizedStringResource(
+                    "Recording is paused (banner)", defaultValue: "Recording is paused",
+                    comment: "Settings → Clipboard banner while recording is paused"),
+                detail: LocalizedStringResource(
+                    "\(entryCount) entries. Nothing new is added.",
+                    comment: "Settings → Clipboard banner detail while paused: the number of entries"),
+                fix: [
+                    SettingsStatusAction(
+                        title: LocalizedStringResource("Resume", comment: "Button that resumes clipboard recording"),
+                        destination: .plugin(id: resumeActionID, perform: resume))
+                ])
+        }
+        return SettingsStatus(
+            level: .ok,
+            title: LocalizedStringResource("Ready", comment: "Settings banner level, spoken"),
+            detail: LocalizedStringResource(
+                "Recording. \(entryCount) entries.",
+                comment: "Settings → Clipboard banner detail while recording: the number of entries"))
+    }
+
     // MARK: Search and actions
 
     var searchSource: ClipboardSearchSource {
@@ -294,8 +411,13 @@ public final class ClipboardPlugin: LintelPlugin {
     }
 
     private func settingsChanged() {
+        let pauseChanged = state.isPaused != settings.isPaused
         state.isPaused = settings.isPaused
         updateRecording()
+        if pauseChanged {
+            // The Settings banner ("Recording is paused") follows.
+            context.resultsChanged()
+        }
         if let store, let retention {
             let policy = settings.retention
             Task { [weak self] in
@@ -325,6 +447,7 @@ public final class ClipboardPlugin: LintelPlugin {
         guard state.access != access else { return }
         context.logger.notice("Pasteboard access changed to \(access.rawValue, privacy: .public)")
         state.access = access
+        context.resultsChanged()
     }
 
     private func makeWatcher() -> PasteboardWatcher {
@@ -371,7 +494,10 @@ public final class ClipboardPlugin: LintelPlugin {
         }
         Task { [weak self] in
             let count = await Task.detached { (try? store.count()) ?? 0 }.value
-            self?.state.entryCount = count
+            guard let self, self.state.entryCount != count else { return }
+            self.state.entryCount = count
+            // The Settings banner counts the entries.
+            self.context.resultsChanged()
         }
     }
 

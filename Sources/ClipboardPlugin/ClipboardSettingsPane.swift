@@ -4,7 +4,9 @@ import LintelUI
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Settings → Clipboard: the shortcut, recording, retention, ignored apps and Clear History.
+/// Settings → Clipboard. The main window draws `ClipboardPaneContent` on the `SettingsPane` template (prototype
+/// `set-clipboard`, spec step 4.4); the old window keeps `LegacyClipboardSettingsPane` with its in-body history
+/// banners and Try Again. The main window's banner is the host's, from `ClipboardPlugin.settingsStatus`.
 struct ClipboardSettingsPane: View {
     let state: ClipboardState
     @Bindable var settings: ClipboardSettings
@@ -12,135 +14,119 @@ struct ClipboardSettingsPane: View {
     let recorder: AnyView
     let clearHistory: @MainActor () async -> Bool
 
-    @State private var confirmsClear = false
+    @Environment(\.settingsHostStyle) private var hostStyle
 
     static let confirmation = DestructiveConfirmation(
         prompt: LocalizedStringResource("Clear the clipboard history?", comment: "Clear History confirmation title"),
         detail: LocalizedStringResource(
             "All entries are deleted. This cannot be undone.", comment: "Clear History confirmation message"),
         confirmTitle: LocalizedStringResource("Clear History", comment: "Clear History confirmation button"))
-    @State private var clearFailed = false
-    @State private var selectedApp: String?
 
     var body: some View {
-        Form {
-            Section {
-                LabeledContent {
-                    recorder
-                } label: {
-                    Text("Open Clipboard History", comment: "Settings label of the clipboard history shortcut")
-                }
-            } header: {
-                Text("Shortcut", comment: "Settings section title")
-            }
+        if hostStyle == .legacyWindow {
+            LegacyClipboardSettingsPane(
+                state: state, settings: settings, actions: actions, recorder: recorder, clearHistory: clearHistory)
+        } else {
+            ClipboardPaneContent(state: state, settings: settings, recorder: recorder, clearHistory: clearHistory)
+        }
+    }
+}
 
+/// The main window's Clipboard pane (prototype `set-clipboard`): Basics (Keep clipboard history, Keep for, At
+/// most, the shortcut), Advanced (the ignored apps) and Data (the history with Clear History…). The history's
+/// state (ready, paused, keychain, pasteboard access, reset notice) is the host's banner; while the key cannot
+/// be read the Basics are dimmed, as in `set-error`.
+struct ClipboardPaneContent: View {
+    let state: ClipboardState
+    @Bindable var settings: ClipboardSettings
+    let recorder: AnyView
+    let clearHistory: @MainActor () async -> Bool
+
+    @Environment(\.lintelTextSize) private var textSize
+    @State private var confirmsClear = false
+    @State private var clearFailed = false
+
+    private var isUnavailable: Bool {
+        state.availability == .keychainLocked || state.availability == .keychainUnavailable
+    }
+
+    var body: some View {
+        SettingsPane {
             Section {
                 Toggle(isOn: recordingBinding) {
-                    Text("Record clipboard history", comment: "Settings toggle that pauses or resumes recording")
+                    Text(
+                        "Keep clipboard history",
+                        comment: "Settings → Clipboard: switch that pauses or resumes recording"
+                    )
+                    .font(textSize.font(.body))
                 }
-                ForEach(ClipboardBanner.banners(for: state).filter { $0 != .paused }, id: \.self) { banner in
-                    ClipboardBannerRow(banner: banner, actions: actions)
-                }
-            } footer: {
-                Text(
-                    "Entries are encrypted and stay on this Mac. Concealed content, such as passwords, is never recorded.",
-                    comment: "Settings footer of clipboard recording"
-                )
-                .font(.callout)
-                .foregroundStyle(.secondary)
-            }
-
-            Section {
+                .toggleStyle(.switch)
                 Picker(selection: daysBinding) {
                     ForEach(RetentionPolicy.dayChoices, id: \.self) { days in
                         Text(ClipboardSettingsText.days(days)).tag(days)
                     }
                 } label: {
-                    Text("Keep entries for", comment: "Settings label of the clipboard retention period")
+                    Text("Keep for", comment: "Dictation settings label of the retention period")
+                        .font(textSize.font(.body))
                 }
+                .pickerStyle(.menu)
                 Picker(selection: countBinding) {
                     ForEach(RetentionPolicy.countChoices, id: \.self) { count in
-                        Text(count, format: .number.grouping(.never)).tag(count)
+                        Text(ClipboardSettingsText.maximum(count)).tag(count)
                     }
                 } label: {
-                    Text("Keep at most", comment: "Settings label of the maximum number of clipboard entries")
+                    Text(
+                        LocalizedStringResource(
+                            "At most (clipboard)", defaultValue: "At most",
+                            comment: "Settings → Clipboard: label of the maximum number of entries")
+                    )
+                    .font(textSize.font(.body))
                 }
-            } header: {
-                Text("History", comment: "Settings section title")
-            } footer: {
-                Text(
-                    "Older entries are deleted automatically.",
-                    comment: "Settings footer of clipboard retention"
-                )
-                .font(.callout)
-                .foregroundStyle(.secondary)
-            }
-
-            Section {
-                List(selection: $selectedApp) {
-                    ForEach(settings.ignoredApps, id: \.self) { bundleID in
-                        IgnoredAppRow(bundleID: bundleID, looksUpInstalledApp: settings.looksUpInstalledApps)
-                            .tag(bundleID)
-                    }
-                }
-                .frame(minHeight: 120)
-                .accessibilityLabel(Text("Ignored apps", comment: "Settings section title"))
-                HStack {
-                    Button {
-                        addApp()
-                    } label: {
-                        Text("Add App…", comment: "Button that adds an app to the ignored apps")
-                    }
-                    Button {
-                        if let selectedApp {
-                            settings.removeIgnoredApp(selectedApp)
-                            self.selectedApp = nil
-                        }
-                    } label: {
-                        Text("Remove", comment: "Button that removes the selected ignored app")
-                    }
-                    .disabled(selectedApp == nil)
-                    Spacer()
-                    Button {
-                        settings.restoreDefaultIgnoredApps()
-                    } label: {
-                        Text("Restore Defaults", comment: "Button that restores the default ignored apps")
-                    }
-                    .disabled(settings.usesDefaultIgnoredApps)
-                }
-            } header: {
-                Text("Ignored apps", comment: "Settings section title")
-            } footer: {
-                Text(
-                    "Nothing copied in these apps is recorded.",
-                    comment: "Settings footer of the ignored apps"
-                )
-                .font(.callout)
-                .foregroundStyle(.secondary)
-            }
-
-            Section {
+                .pickerStyle(.menu)
                 LabeledContent {
-                    Button(role: .destructive) {
-                        confirmsClear = true
-                    } label: {
-                        Text("Clear History…", comment: "Button that deletes the whole clipboard history")
-                    }
-                    .disabled(state.availability != .ready)
+                    recorder
                 } label: {
-                    Text(ClipboardSettingsText.entries(state.entryCount))
+                    Text("Shortcut", comment: "Settings section title")
+                        .font(textSize.font(.body))
                 }
-                if clearFailed {
-                    Text("The history could not be cleared.", comment: "Error after Clear History failed")
-                        .font(.callout)
-                        .foregroundStyle(.red)
+            } header: {
+                Text("Basics", comment: "Settings pane section title: the main settings of a pane")
+                    .font(textSize.font(.body, weight: .semibold))
+            }
+            .disabled(isUnavailable)
+            .opacity(isUnavailable ? 0.5 : 1)
+        } advanced: {
+            IgnoredAppsRows(settings: settings)
+            SettingsFooter(
+                LocalizedStringResource(
+                    "Nothing copied in these apps is recorded.", comment: "Settings footer of the ignored apps"))
+            SettingsFooter(
+                LocalizedStringResource(
+                    "Entries are encrypted and stay on this Mac. Concealed content, such as passwords, is never recorded.",
+                    comment: "Settings footer of clipboard recording"))
+        } data: {
+            LabeledContent {
+                Button(role: .destructive) {
+                    confirmsClear = true
+                } label: {
+                    Text("Clear History…", comment: "Button that deletes the whole clipboard history")
+                        .font(textSize.font(.body))
                 }
+                .disabled(state.availability != .ready)
+            } label: {
+                Text("History", comment: "Settings section title")
+                    .font(textSize.font(.body))
+                Text("Encrypted on this Mac.", comment: "Settings → Clipboard: help under History in Data")
+                    .font(textSize.font(.callout))
+                    .foregroundStyle(.secondary)
+            }
+            if clearFailed {
+                Text("The history could not be cleared.", comment: "Error after Clear History failed")
+                    .font(textSize.font(.callout))
+                    .foregroundStyle(LintelBrand.statusError)
             }
         }
-        .formStyle(.grouped)
-        .frame(width: SettingsLayout.columnWidth)
-        .fixedSize(horizontal: false, vertical: true)
-        .destructiveConfirmation(isPresented: $confirmsClear, Self.confirmation) {
+        .destructiveConfirmation(isPresented: $confirmsClear, ClipboardSettingsPane.confirmation) {
             Task {
                 clearFailed = !(await clearHistory())
             }
@@ -170,6 +156,48 @@ struct ClipboardSettingsPane: View {
             settings.setMaximumEntries($0)
         }
     }
+}
+
+/// The ignored apps, each with Remove, then Add App… and Restore Defaults.
+struct IgnoredAppsRows: View {
+    @Bindable var settings: ClipboardSettings
+
+    @Environment(\.lintelTextSize) private var textSize
+
+    var body: some View {
+        Text("Ignored apps", comment: "Settings section title")
+            .font(textSize.font(.body))
+        ForEach(settings.ignoredApps, id: \.self) { bundleID in
+            LabeledContent {
+                Button {
+                    settings.removeIgnoredApp(bundleID)
+                } label: {
+                    Text("Remove", comment: "Button that removes the selected item from a list")
+                        .font(textSize.font(.body))
+                }
+                .accessibilityLabel(
+                    Text(
+                        "Remove \(IgnoredAppLabel.displayName(bundleID, looksUp: settings.looksUpInstalledApps))",
+                        comment: "Accessibility label of the button that removes a list item"))
+            } label: {
+                IgnoredAppLabel(bundleID: bundleID, looksUp: settings.looksUpInstalledApps)
+            }
+        }
+        HStack {
+            Button(action: addApp) {
+                Text("Add App…", comment: "Button that adds an app to the ignored apps")
+                    .font(textSize.font(.body))
+            }
+            Spacer()
+            Button {
+                settings.restoreDefaultIgnoredApps()
+            } label: {
+                Text("Restore Defaults", comment: "Button that restores the default ignored apps")
+                    .font(textSize.font(.body))
+            }
+            .disabled(settings.usesDefaultIgnoredApps)
+        }
+    }
 
     private func addApp() {
         let panel = NSOpenPanel()
@@ -186,34 +214,46 @@ struct ClipboardSettingsPane: View {
     }
 }
 
-/// An ignored app: its name and icon when it is installed, else its known name or the bundle identifier.
-/// In QA mode (`looksUpInstalledApp == false`) installed apps are never looked up.
-struct IgnoredAppRow: View {
+/// An ignored app in the main window: its name and icon when it is installed, else its known name or the bundle
+/// identifier. In QA mode (`looksUp == false`) installed apps are never looked up.
+struct IgnoredAppLabel: View {
     let bundleID: String
-    var looksUpInstalledApp = true
+    let looksUp: Bool
+
+    @Environment(\.lintelTextSize) private var textSize
 
     var body: some View {
-        let url = looksUpInstalledApp ? NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) : nil
+        let url = looksUp ? NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) : nil
         HStack(spacing: 8) {
             if let url {
                 Image(nsImage: NSWorkspace.shared.icon(forFile: url.path(percentEncoded: false)))
                     .resizable()
-                    .frame(width: 18, height: 18)
+                    .frame(width: 18 * textSize.scale, height: 18 * textSize.scale)
                     .accessibilityHidden(true)
             } else {
                 Image(systemName: "app.dashed")
-                    .frame(width: 18, height: 18)
+                    .font(textSize.font(.body))
+                    .foregroundStyle(.secondary)
                     .accessibilityHidden(true)
             }
-            Text(name(url))
-            Spacer()
-            Text(bundleID)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(verbatim: Self.name(bundleID, url: url))
+                    .font(textSize.font(.body))
+                Text(verbatim: bundleID)
+                    .font(textSize.font(.caption1))
+                    .foregroundStyle(.secondary)
+            }
+            .lineLimit(1)
+            .truncationMode(.middle)
         }
     }
 
-    private func name(_ url: URL?) -> String {
+    /// The name shown for `bundleID`, looking up the installed app only when allowed.
+    static func displayName(_ bundleID: String, looksUp: Bool) -> String {
+        name(bundleID, url: looksUp ? NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) : nil)
+    }
+
+    private static func name(_ bundleID: String, url: URL?) -> String {
         if let url {
             return FileManager.default.displayName(atPath: url.path(percentEncoded: false))
                 .replacingOccurrences(of: ".app", with: "")
@@ -229,5 +269,13 @@ enum ClipboardSettingsText {
 
     static func entries(_ count: Int) -> String {
         String(localized: "\(count) entries in the history", comment: "Number of clipboard entries in the settings")
+    }
+
+    /// "1000 entries": a choice of the maximum number of entries (main window), without a grouping separator as
+    /// in the old window.
+    static func maximum(_ count: Int) -> String {
+        String(
+            localized: "\(count.formatted(.number.grouping(.never))) entries",
+            comment: "Settings → Clipboard: a choice of the maximum number of entries (always 100 or more)")
     }
 }

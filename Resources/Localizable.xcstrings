@@ -19,6 +19,24 @@
         }
       }
     },
+    "%@ entries" : {
+      "comment" : "Settings → Clipboard: a choice of the maximum number of entries (always 100 or more)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ entries"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ wpisów"
+          }
+        }
+      }
+    },
     "%@ items indexed" : {
       "comment" : "File index status; item count",
       "extractionState" : "manual",
@@ -174,6 +192,60 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld wpisu w historii"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld entries. Nothing new is added." : {
+      "comment" : "Settings → Clipboard banner detail while paused: the number of entries",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld entry. Nothing new is added."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld entries. Nothing new is added."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld wpisy. Nic nowego nie jest dodawane."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld wpisów. Nic nowego nie jest dodawane."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld wpis. Nic nowego nie jest dodawane."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld wpisu. Nic nowego nie jest dodawane."
                 }
               }
             }
@@ -393,6 +465,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Plik nie zgadza się z oczekiwaną sumą kontrolną, więc nie został użyty."
+          }
+        }
+      }
+    },
+    "A new history was started" : {
+      "comment" : "Settings → Clipboard banner after the history was reset",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A new history was started"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaczęto nową historię"
           }
         }
       }
@@ -861,6 +951,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Najwyżej"
+          }
+        }
+      }
+    },
+    "At most (clipboard)" : {
+      "comment" : "Settings → Clipboard: label of the maximum number of entries",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "At most"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maksymalnie"
           }
         }
       }
@@ -1909,6 +2017,24 @@
         }
       }
     },
+    "Encrypted on this Mac." : {
+      "comment" : "Settings → Clipboard: help under History in Data",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encrypted on this Mac."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaszyfrowana na tym Macu."
+          }
+        }
+      }
+    },
     "Engine" : {
       "comment" : "Dictation settings label of the speech engine choice",
       "extractionState" : "manual",
@@ -2521,6 +2647,24 @@
         }
       }
     },
+    "History is paused" : {
+      "comment" : "Settings → Clipboard banner when the history key cannot be read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History is paused"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historia jest wstrzymana"
+          }
+        }
+      }
+    },
     "Ignore" : {
       "comment" : "Open panel button that adds apps to the ignored apps",
       "extractionState" : "manual",
@@ -2773,6 +2917,24 @@
         }
       }
     },
+    "Keep clipboard history" : {
+      "comment" : "Settings → Clipboard: switch that pauses or resumes recording",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep clipboard history"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisuj historię schowka"
+          }
+        }
+      }
+    },
     "Keep entries for" : {
       "comment" : "Settings label of the clipboard retention period",
       "extractionState" : "manual",
@@ -2989,6 +3151,42 @@
         }
       }
     },
+    "Lintel can’t read the key. Nothing was deleted." : {
+      "comment" : "Settings → Clipboard banner detail when the keychain denied access to the key",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel can’t read the key. Nothing was deleted."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel nie może odczytać klucza. Nic nie zostało usunięte."
+          }
+        }
+      }
+    },
+    "Lintel isn’t allowed to read the clipboard." : {
+      "comment" : "Settings → Clipboard banner detail when pasteboard access is denied",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel isn’t allowed to read the clipboard."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel nie ma pozwolenia na odczyt schowka."
+          }
+        }
+      }
+    },
     "Lintel stays in the menu bar either way." : {
       "comment" : "Settings footer for the Dock toggle",
       "extractionState" : "manual",
@@ -3093,6 +3291,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "M"
+          }
+        }
+      }
+    },
+    "macOS asks before every read. Allow Lintel in Privacy & Security." : {
+      "comment" : "Settings → Clipboard banner detail when pasteboard access asks each time",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS asks before every read. Allow Lintel in Privacy & Security."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS pyta przed każdym odczytem. Zezwól Lintelowi w sekcji Prywatność i ochrona."
           }
         }
       }
@@ -3295,6 +3511,24 @@
         }
       }
     },
+    "Nothing is recorded" : {
+      "comment" : "Settings → Clipboard banner when the clipboard cannot be read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing is recorded"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nic nie jest zapisywane"
+          }
+        }
+      }
+    },
     "Open at login" : {
       "comment" : "Settings → General: launch at login switch",
       "extractionState" : "manual",
@@ -3399,6 +3633,78 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nagraj go poniżej, aby otwierać Lintel z każdej aplikacji."
+          }
+        }
+      }
+    },
+    "Recording is paused (banner)" : {
+      "comment" : "Settings → Clipboard banner while recording is paused",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording is paused"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywanie jest wstrzymane"
+          }
+        }
+      }
+    },
+    "Recording. %lld entries." : {
+      "comment" : "Settings → Clipboard banner detail while recording: the number of entries",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Recording. %lld entry."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Recording. %lld entries."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Nagrywanie włączone. %lld wpisy."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Nagrywanie włączone. %lld wpisów."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Nagrywanie włączone. %lld wpis."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Nagrywanie włączone. %lld wpisu."
+                }
+              }
+            }
           }
         }
       }
@@ -4047,6 +4353,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ikona w Docku otwiera to okno."
+          }
+        }
+      }
+    },
+    "The key was missing. The old history stays encrypted and is deleted after 30 days." : {
+      "comment" : "Settings → Clipboard banner detail after the history was reset",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The key was missing. The old history stays encrypted and is deleted after 30 days."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brakowało klucza. Stara historia pozostaje zaszyfrowana i zostanie usunięta po 30 dniach."
+          }
+        }
+      }
+    },
+    "The keychain is locked. Nothing was deleted." : {
+      "comment" : "Settings → Clipboard banner detail while the login keychain is locked",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The keychain is locked. Nothing was deleted."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pęk kluczy jest zablokowany. Nic nie zostało usunięte."
           }
         }
       }

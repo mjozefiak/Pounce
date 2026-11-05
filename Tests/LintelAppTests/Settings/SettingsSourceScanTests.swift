@@ -11,6 +11,7 @@ import Testing
     static let migratedPluginPaneFiles: [String] = [
         "Sources/AppsPlugin/AppsSettingsPane.swift",
         "Sources/FilesPlugin/FilesSettingsPane.swift",
+        "Sources/ClipboardPlugin/ClipboardSettingsPane.swift",
     ]
 
     /// Panes in `LintelApp/Settings` that still use today's fonts; each leaves this list in the Phase 4 step that
