@@ -72,7 +72,8 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 | 6 | 6.6d | Owner decision: Settings names of the prototype (Apps, Clipboard); `PluginManifest.sectionTitle` keeps the launcher headings (Applications, Clipboard History) | dispatch | done | f16bd10 |
 | 6 | 6.6e | Owner decision: Polish copy never declines "Lintel" (nominative only, e.g. "w aplikacji Lintel"); PolishCopyTests guard | dispatch | done | 851d2e8 |
 | 6 | 6.6f | Welcome plugin pages on the prototype's single column: `OnboardingStep.text`, `WelcomeStepLayout` + step parts in LintelUI, Files/Clipboard/Dictation/Meetings steps on it (Apps has no step) | dispatch | done | 286df4d |
-| 6 | 6.7a | Final 1:1 pass: the pane title and the banner title in `LintelBrand.ink` (were the system label grey) | inline | done | (this commit) |
+| 6 | 6.7a | Final 1:1 pass: the pane title and the banner title in `LintelBrand.ink` (were the system label grey) | inline | done | 688a5a1 |
+| 6 | 6.7b | Final 1:1 pass: banner glyphs of the prototype (`warn` triangle for attention and error, ringed `info`), semibold | inline | done | (this commit) |
 
 Step 6.2 (⌃X confirmation) is NOT in this table: it is a separate PR on a fresh branch from main, done after this PR is complete.
 

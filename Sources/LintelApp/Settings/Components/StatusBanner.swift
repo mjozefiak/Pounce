@@ -56,6 +56,9 @@ struct StatusBanner: View {
     static let verticalPadding: CGFloat = 13
     /// The filled circle behind the glyph at Medium (prototype `.bn .g`, 1.9 em of 13 pt).
     static let glyphDiameter: CGFloat = 25
+    /// The glyph's size against the circle (prototype `.ic`, 1.15 em in a 1.9 em circle, drawn with a thin
+    /// 1.4 stroke: semibold at a little over half the circle reads the same).
+    static let glyphScale: CGFloat = 0.52
     /// The prototype's `--card` with a `--hair` border, like the grouped form's cards.
     static let cardFill = LintelBrand.card
     static let hairline = LintelBrand.hairline
@@ -68,7 +71,7 @@ struct StatusBanner: View {
             .frame(width: diameter, height: diameter)
             .overlay {
                 Image(systemName: symbolName(level))
-                    .font(.system(size: diameter * 0.5, weight: .bold))
+                    .font(.system(size: diameter * glyphScale, weight: .semibold))
                     .foregroundStyle(LintelBrand.onStatus)
             }
             .accessibilityHidden(true)
@@ -99,9 +102,9 @@ struct StatusBanner: View {
     static func symbolName(_ level: SettingsStatus.Level) -> String {
         switch level {
         case .ok: "checkmark"
-        case .attention: "exclamationmark"
-        case .error: "xmark"
-        case .neutral: "info"
+        // The prototype's `warn` for attention and error (the colour tells them apart) and `info`, a ringed i.
+        case .attention, .error: "exclamationmark.triangle"
+        case .neutral: "info.circle"
         }
     }
 
