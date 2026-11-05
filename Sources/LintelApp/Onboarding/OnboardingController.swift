@@ -54,12 +54,107 @@ struct WelcomePage: Identifiable {
         }
     }
 
-    /// Whether the page can be skipped (the intro and the final page have nothing to skip).
+    /// Whether the page can be skipped in the step-list layout (the intro and the final page have nothing to
+    /// skip). The single-column layout draws Skip on every page, as the prototype does (`WelcomeFooter`).
     var isSkippable: Bool {
         switch kind {
         case .intro, .done: false
         case .shortcut, .plugin: true
         }
+    }
+
+    /// The large heading of the single-column layout: the introduction greets, every other page shows its title.
+    var heading: String {
+        switch kind {
+        case .intro: String(localized: "Welcome to Lintel", comment: "Onboarding window title")
+        case .shortcut, .plugin, .done: title
+        }
+    }
+}
+
+/// How the welcome screen is drawn. The step list is the layout release users see; the single column follows the
+/// prototype `shell-welcome-*` and is shown only while the main window is enabled (ADR 0008 "Release gate", until
+/// step 6.3a). Both run the same `WelcomeFlow` and controller, so the pages and completion keys are identical.
+enum WelcomeLayout: Equatable {
+    /// The step list on the left, the page on the right, Back, Skip and Continue at the bottom (spec step 4.2).
+    case stepList
+    /// One column: the Lintel mark, the heading, the text and the page's controls; Skip on the left of the footer
+    /// and the one primary button on the right (spec step 6.5g).
+    case singleColumn
+}
+
+/// The footer of one welcome page in one layout: which buttons are shown and what the primary one says. Pure, so
+/// both layouts' keyboard paths are tested without a window: Return is always the primary button, Escape is Skip
+/// whenever Skip is shown.
+struct WelcomeFooter: Equatable {
+    enum Primary: Equatable {
+        case getStarted
+        case continueToNext
+        case useShortcut
+        case done
+        /// The final page of the single-column layout: opens the main window, then completes the flow.
+        case openNotes
+    }
+
+    var primary: Primary
+    var showsBack: Bool
+    var isBackEnabled: Bool
+    var showsSkip: Bool
+
+    init(page: WelcomePage, isFirst: Bool, isLast: Bool, layout: WelcomeLayout) {
+        switch layout {
+        case .stepList:
+            showsBack = true
+            isBackEnabled = !isFirst
+            showsSkip = page.isSkippable
+            switch page.kind {
+            case .intro: primary = .getStarted
+            case .shortcut: primary = .useShortcut
+            case .plugin, .done: primary = isLast ? .done : .continueToNext
+            }
+        case .singleColumn:
+            showsBack = !isFirst
+            isBackEnabled = !isFirst
+            showsSkip = true
+            switch page.kind {
+            case .intro: primary = .continueToNext
+            case .shortcut: primary = .useShortcut
+            case .done: primary = .openNotes
+            case .plugin: primary = isLast ? .done : .continueToNext
+            }
+        }
+    }
+
+    /// The footer of the flow's current page, or `nil` when the flow is finished.
+    init?(flow: WelcomeFlow, layout: WelcomeLayout) {
+        guard let page = flow.current else { return nil }
+        self.init(page: page, isFirst: flow.isFirst, isLast: flow.isLast, layout: layout)
+    }
+
+    var primaryTitle: String {
+        switch primary {
+        case .getStarted: String(localized: "Get Started", comment: "Welcome screen button on the first page")
+        case .continueToNext: String(localized: "Continue", comment: "Onboarding button that goes to the next step")
+        case .useShortcut:
+            String(localized: "Use This Shortcut", comment: "Onboarding button that confirms the shortcut")
+        case .done: String(localized: "Done", comment: "Onboarding button on the last step")
+        case .openNotes:
+            String(localized: "Open Notes", comment: "Welcome screen: final page button that opens the main window")
+        }
+    }
+
+    /// Return: moves on (and on the final page of the single column first opens the main window).
+    func performPrimary(_ flow: WelcomeFlow, openMainWindow: () -> Void) {
+        flow.advance()
+        if primary == .openNotes {
+            openMainWindow()
+        }
+    }
+
+    /// Escape: skips the page on screen.
+    func performSkip(_ flow: WelcomeFlow) {
+        guard showsSkip else { return }
+        flow.advance(skipping: true)
     }
 }
 
@@ -157,6 +252,16 @@ final class OnboardingController: NSObject, NSWindowDelegate {
 
     var isVisible: Bool { window?.isVisible ?? false }
 
+    /// The single column while the main window is enabled, the step list otherwise (unchanged in release).
+    var layout: WelcomeLayout { isWindowEnabled ? .singleColumn : .stepList }
+
+    /// Whether `--qa-onboarding-step` can open `id`: the introduction, the Shortcut step, an active plugin's step,
+    /// and the final page while the main window is enabled.
+    static func isKnownPage(_ id: String, pluginStepIDs: [String], isWindowEnabled: Bool) -> Bool {
+        if [WelcomePage.introID, WelcomePage.shortcutID].contains(id) || pluginStepIDs.contains(id) { return true }
+        return isWindowEnabled && id == WelcomePage.doneID
+    }
+
     /// The plugin step on screen, if any.
     var currentPluginStep: String? {
         guard let page = flow?.current, case .plugin(let step) = page.kind else { return nil }
@@ -230,10 +335,13 @@ final class OnboardingController: NSObject, NSWindowDelegate {
         flow.onFinish = { [weak self] page, skipped in self?.finish(page, skipped: skipped) }
         flow.onComplete = { [weak self] in self?.complete() }
         self.flow = flow
-        let view = WelcomeView(
-            flow: flow, hotkeys: hotkeys, upcoming: pages,
-            openMainWindow: { [weak self] in self?.openMainWindow() })
-        present(AnyView(view))
+        let openMainWindow = { [weak self] in self?.openMainWindow() ?? () }
+        switch layout {
+        case .stepList:
+            present(AnyView(WelcomeView(flow: flow, hotkeys: hotkeys, upcoming: pages, openMainWindow: openMainWindow)))
+        case .singleColumn:
+            present(AnyView(WelcomeColumnView(flow: flow, hotkeys: hotkeys, openMainWindow: openMainWindow)))
+        }
     }
 
     private func finish(_ page: WelcomePage, skipped: Bool) {
@@ -272,6 +380,12 @@ final class OnboardingController: NSObject, NSWindowDelegate {
         }
         let window = ShellWindow(contentViewController: controller)
         window.styleMask = [.titled, .closable]
+        if layout == .singleColumn {
+            // The prototype draws only the traffic lights: the title stays for VoiceOver and the Window menu.
+            window.styleMask.insert(.fullSizeContentView)
+            window.titlebarAppearsTransparent = true
+            window.titleVisibility = .hidden
+        }
         window.title = String(localized: "Welcome to Lintel", comment: "Onboarding window title")
         window.isReleasedWhenClosed = false
         window.delegate = self
@@ -429,44 +543,34 @@ struct WelcomeButtons: View {
     let flow: WelcomeFlow
 
     var body: some View {
-        HStack {
-            Button {
-                flow.back()
-            } label: {
-                Text("Back", comment: "Welcome screen button that shows the previous step")
-            }
-            .disabled(flow.isFirst)
-            Spacer()
-            if flow.current?.isSkippable == true {
+        if let footer = WelcomeFooter(flow: flow, layout: .stepList) {
+            HStack {
                 Button {
-                    flow.advance(skipping: true)
+                    flow.back()
                 } label: {
-                    Text("Skip", comment: "Welcome screen button that skips a step")
+                    Text("Back", comment: "Welcome screen button that shows the previous step")
                 }
-                .keyboardShortcut(.cancelAction)
-                .help(
-                    Text(
-                        "Skip this step. You can change it later in Settings.",
-                        comment: "Welcome screen: help of the Skip button"))
+                .disabled(!footer.isBackEnabled)
+                Spacer()
+                if footer.showsSkip {
+                    Button {
+                        footer.performSkip(flow)
+                    } label: {
+                        Text("Skip", comment: "Welcome screen button that skips a step")
+                    }
+                    .keyboardShortcut(.cancelAction)
+                    .help(
+                        Text(
+                            "Skip this step. You can change it later in Settings.",
+                            comment: "Welcome screen: help of the Skip button"))
+                }
+                Button {
+                    footer.performPrimary(flow, openMainWindow: {})
+                } label: {
+                    Text(footer.primaryTitle)
+                }
+                .keyboardShortcut(.defaultAction)
             }
-            Button {
-                flow.advance()
-            } label: {
-                continueLabel
-            }
-            .keyboardShortcut(.defaultAction)
-        }
-    }
-
-    @ViewBuilder private var continueLabel: some View {
-        if case .intro? = flow.current?.kind {
-            Text("Get Started", comment: "Welcome screen button on the first page")
-        } else if case .shortcut? = flow.current?.kind {
-            Text("Use This Shortcut", comment: "Onboarding button that confirms the shortcut")
-        } else if flow.isLast {
-            Text("Done", comment: "Onboarding button on the last step")
-        } else {
-            Text("Continue", comment: "Onboarding button that goes to the next step")
         }
     }
 }
@@ -503,14 +607,21 @@ struct WelcomeIntroView: View {
 /// the recorder shows; "Skip" keeps the automatic default (Q10).
 struct ShortcutStepContent: View {
     let hotkeys: HotkeyService
+    /// The single-column layout shows the explanation under its heading instead.
+    var showsExplanation = true
+
+    static var explanation: String {
+        String(
+            localized: "Press this shortcut anywhere to open Lintel. Keep the suggested one or record your own.",
+            comment: "Onboarding step explanation")
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(
-                "Press this shortcut anywhere to open Lintel. Keep the suggested one or record your own.",
-                comment: "Onboarding step explanation"
-            )
-            .fixedSize(horizontal: false, vertical: true)
+            if showsExplanation {
+                Text(Self.explanation)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             LabeledContent {
                 MainShortcutRecorder(hotkeys: hotkeys)
             } label: {
@@ -546,5 +657,151 @@ struct WelcomeDoneView: View {
                 Text("Open Lintel Window", comment: "Welcome screen: final page button that opens the main window")
             }
         }
+    }
+}
+
+/// The single-column welcome window of the prototype `shell-welcome-*` (spec step 6.5g), shown only while the main
+/// window is enabled: the Lintel mark, the heading, one line of text and the page's own controls, centred in a
+/// 600 pt window; below a hairline, Skip (Escape) on the left and the one primary button (Return) on the right.
+struct WelcomeColumnView: View {
+    static let width: CGFloat = 600
+    /// The prototype's 420 pt window less the title bar, which SwiftUI keeps as the top safe area.
+    static let minHeight: CGFloat = 388
+
+    let flow: WelcomeFlow
+    let hotkeys: HotkeyService
+    var openMainWindow: () -> Void = {}
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if let page = flow.current {
+                VStack(alignment: .leading, spacing: 0) {
+                    LintelMark(ring: LintelBrand.ink)
+                        .frame(width: 44, height: 44)
+                        .padding(.bottom, 10)
+                    Text(page.heading)
+                        .font(.title.bold())
+                        .accessibilityAddTraits(.isHeader)
+                        .padding(.bottom, 4)
+                    if let text = Self.text(for: page, shortcut: hotkeys.mainShortcut?.displayString) {
+                        Text(text)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    pageContent(page)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.horizontal, 40)
+                .padding(.top, 8)
+                .padding(.bottom, 20)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel(flow.positionDescription)
+            }
+            Divider()
+            WelcomeColumnFooter(flow: flow, openMainWindow: openMainWindow)
+        }
+        .frame(width: Self.width)
+        .frame(minHeight: Self.minHeight)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// The line under the heading; plugin pages bring their own text.
+    static func text(for page: WelcomePage, shortcut: String?) -> String? {
+        switch page.kind {
+        case .intro:
+            String(
+                localized:
+                    "Search apps and files, paste from history, dictate, keep meeting notes. All on this Mac.",
+                comment: "Welcome screen: text of the first page")
+        case .shortcut:
+            ShortcutStepContent.explanation
+        case .plugin:
+            nil
+        case .done:
+            if let shortcut {
+                String(
+                    localized:
+                        "Open Lintel with \(shortcut). Your notes live in the Lintel window: click the Dock icon or press ⌘,.",
+                    comment: "Welcome screen: final page text; the argument is the main shortcut, such as ⌘Space")
+            } else {
+                String(
+                    localized: "Your notes live in the Lintel window: click the Dock icon or press ⌘,.",
+                    comment: "Welcome screen: final page text while no main shortcut is set")
+            }
+        }
+    }
+
+    @ViewBuilder private func pageContent(_ page: WelcomePage) -> some View {
+        switch page.kind {
+        case .intro, .done:
+            EmptyView()
+        case .shortcut:
+            ShortcutStepContent(hotkeys: hotkeys, showsExplanation: false)
+                .padding(.top, 16)
+        case .plugin(let step):
+            step.makeView()
+                // A new identity per step, so a plugin view's onAppear/onDisappear run for each page.
+                .id(step.id)
+                .padding(.top, 12)
+        }
+    }
+}
+
+/// The single column's footer: Skip (and Back after the first page) as plain secondary text on the left, the
+/// prototype's primary button on the right.
+struct WelcomeColumnFooter: View {
+    let flow: WelcomeFlow
+    var openMainWindow: () -> Void = {}
+
+    var body: some View {
+        if let footer = WelcomeFooter(flow: flow, layout: .singleColumn) {
+            HStack(spacing: 4) {
+                if footer.showsSkip {
+                    Button {
+                        footer.performSkip(flow)
+                    } label: {
+                        secondaryLabel(Text("Skip", comment: "Welcome screen button that skips a step"))
+                    }
+                    .buttonStyle(.plain)
+                    .keyboardShortcut(.cancelAction)
+                    .help(
+                        Text(
+                            "Skip this step. You can change it later in Settings.",
+                            comment: "Welcome screen: help of the Skip button"))
+                }
+                if footer.showsBack {
+                    Button {
+                        flow.back()
+                    } label: {
+                        secondaryLabel(Text("Back", comment: "Welcome screen button that shows the previous step"))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!footer.isBackEnabled)
+                }
+                Spacer()
+                Button {
+                    footer.performPrimary(flow, openMainWindow: openMainWindow)
+                } label: {
+                    // The prototype's `.btn` is 12 x 5 pt around a 19 pt line; the style adds 10 x 3.
+                    Text(footer.primaryTitle)
+                        .padding(.horizontal, 2)
+                        .padding(.vertical, 4)
+                }
+                .buttonStyle(LintelPrimaryButtonStyle())
+                .keyboardShortcut(.defaultAction)
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 12)
+        }
+    }
+
+    private func secondaryLabel(_ text: Text) -> some View {
+        text
+            .fontWeight(.semibold)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 5)
+            .contentShape(Rectangle())
     }
 }

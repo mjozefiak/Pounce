@@ -521,10 +521,13 @@ final class AppCoordinator {
         onboarding?.showAllSteps()
     }
 
-    /// QA: shows the whole welcome screen on one page: `intro`, `shortcut` or a plugin step id.
+    /// QA: shows the whole welcome screen on one page: `intro`, `shortcut`, a plugin step id, or `done` while the
+    /// main window is enabled.
     func showOnboardingStepForQA(_ id: String) {
         let steps = host.entries.filter(\.state.isActive).flatMap(\.plugin.onboardingSteps)
-        guard [WelcomePage.introID, WelcomePage.shortcutID].contains(id) || steps.contains(where: { $0.id == id })
+        guard
+            OnboardingController.isKnownPage(
+                id, pluginStepIDs: steps.map(\.id), isWindowEnabled: MainWindowRouter.isWindowEnabledInThisBuild)
         else {
             logger.error("No active onboarding step \(id, privacy: .public)")
             return

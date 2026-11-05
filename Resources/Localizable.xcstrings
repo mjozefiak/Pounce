@@ -3853,6 +3853,24 @@
         }
       }
     },
+    "Open Lintel with %@. Your notes live in the Lintel window: click the Dock icon or press ⌘,." : {
+      "comment" : "Welcome screen: final page text; the argument is the main shortcut, such as ⌘Space",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Lintel with %@. Your notes live in the Lintel window: click the Dock icon or press ⌘,."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz Lintel skrótem %@. Notatki są w oknie Lintel: kliknij ikonę w Docku albo naciśnij ⌘,."
+          }
+        }
+      }
+    },
     "Open Lintel with your shortcut from anywhere. Your settings and notes live in the Lintel window: click the Dock icon, use the menu bar item or press ⌘,." : {
       "comment" : "Welcome screen: final page, points at the main window",
       "extractionState" : "manual",
@@ -3867,6 +3885,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Otwórz Lintel swoim skrótem z dowolnego miejsca. Ustawienia i notatki są w oknie Lintel: kliknij ikonę w Docku, użyj ikony w pasku menu albo naciśnij ⌘,."
+          }
+        }
+      }
+    },
+    "Open Notes" : {
+      "comment" : "Welcome screen: final page button that opens the main window",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz Notatki"
           }
         }
       }
@@ -4065,6 +4101,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kolejność wyników"
+          }
+        }
+      }
+    },
+    "Search apps and files, paste from history, dictate, keep meeting notes. All on this Mac." : {
+      "comment" : "Welcome screen: text of the first page",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search apps and files, paste from history, dictate, keep meeting notes. All on this Mac."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szukaj aplikacji i plików, wklejaj z historii, dyktuj, miej notatki ze spotkań. Wszystko na tym Macu."
           }
         }
       }
@@ -8079,6 +8133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "macOS może pytać, zanim aplikacja odczyta schowek. Zezwól Lintel, aby historia była dalej zapisywana."
+          }
+        }
+      }
+    },
+    "Your notes live in the Lintel window: click the Dock icon or press ⌘,." : {
+      "comment" : "Welcome screen: final page text while no main shortcut is set",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your notes live in the Lintel window: click the Dock icon or press ⌘,."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki są w oknie Lintel: kliknij ikonę w Docku albo naciśnij ⌘,."
           }
         }
       }
