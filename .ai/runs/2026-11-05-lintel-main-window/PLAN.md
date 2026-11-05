@@ -58,7 +58,7 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 | 6 | 6.5g | Fidelity: Welcome layout and the onboarding QA argument | dispatch:capable | done | pending |
 | 6 | 6.5h | Fidelity: Welcome final label, picker tint, Models Remove, Permissions rows, ConfirmSheet layout | dispatch:standard | done | cc6d306 |
 | 6 | 6.5 | Final 1:1 re-comparison of every screen with the prototype and remaining-differences list | inline | todo | — |
-| 6 | 6.4 | docs(spec): correct the Phasing sentence about phases and PRs | inline | todo | — |
+| 6 | 6.4 | docs(spec): correct the Phasing sentence about phases and PRs | inline | done | pending |
 | 6 | 6.3a | Remove the DEBUG gate (window enabled for users) | dispatch:capable | todo | — |
 | 6 | 6.3b | Delete SettingsWindowController, the adapter and .legacyWindow branches | dispatch:capable | todo | — |
 | 6 | 6.3c | Update docs/qa.md, AGENTS.md rows, BACKWARD_COMPATIBILITY.md, catalog check | dispatch:standard | todo | — |
