@@ -76,13 +76,16 @@ private let appSources = URL(filePath: #filePath)
     }
 
     @Test func theCoordinatorBuildsAndRoutesToTheMainWindowInEveryBuild() throws {
-        let debugOnly = Self.debugOnlyLines(try source("AppCoordinator.swift")).joined(separator: "\n")
+        let coordinator = try source("AppCoordinator.swift")
+        let debugOnly = Self.debugOnlyLines(coordinator).joined(separator: "\n")
         for needle in [
             "var mainWindow: MainWindowController?", "var mainMenu: MainMenuController?",
             "func makeMainWindow()", "func makeRouter()", "func showMainWindow(", "func settingsModeContent(",
             "func modelsPaneModel()", "func mainWindowPluginPanes()", "targets.showMainWindow",
             "router.openSettings", "router.openModels", "OnboardingController(",
         ] {
+            // A renamed needle must fail here, not pass because it is in no line at all.
+            #expect(coordinator.contains(needle), "\(needle) is no longer in AppCoordinator.swift")
             #expect(!debugOnly.contains(needle), "\(needle) is DEBUG-only")
         }
         #expect(debugOnly.contains("func showMainWindowForQA("), "the --qa-window entry point stays DEBUG-only")
@@ -90,7 +93,9 @@ private let appSources = URL(filePath: #filePath)
     }
 
     @Test func theDockReopenGoesToTheRouterInEveryBuild() throws {
-        let debugOnly = Self.debugOnlyLines(try source("LintelMain.swift")).joined(separator: "\n")
+        let main = try source("LintelMain.swift")
+        let debugOnly = Self.debugOnlyLines(main).joined(separator: "\n")
+        #expect(main.contains("coordinator?.reopen()"), "the Dock reopen no longer calls the coordinator")
         #expect(!debugOnly.contains("coordinator?.reopen()"))
         #expect(debugOnly.contains("QAOptions.parse"), "the QA launch arguments stay DEBUG-only")
     }
