@@ -82,6 +82,13 @@ final class MainWindowController {
         present()
     }
 
+    /// Selects a Settings pane while the window is open (the adapter's list calls this); an unknown id is ignored.
+    func selectSettingsPane(_ paneID: String) {
+        guard var state, settingsPanes().contains(paneID) else { return }
+        state.settingsPane = paneID
+        apply(state)
+    }
+
     func close() {
         window?.close()
     }

@@ -128,7 +128,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if options.showsAbout {
             coordinator?.showAbout()
         }
-        if let pane = options.settingsPane {
+        // With `--qa-window settings` the pane opens inside the main window (below), not the old window.
+        if let pane = options.settingsPane, options.windowMode != .settings {
             if let shellPane = SettingsWindowController.Pane(rawValue: pane) {
                 coordinator?.openSettings(shellPane)
             } else {
@@ -136,7 +137,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         if let mode = options.windowMode {
-            coordinator?.showMainWindowForQA(mode)
+            coordinator?.showMainWindowForQA(mode, settingsPane: options.settingsPane)
         }
         if let mode = options.panelMode {
             let panelMode: PanelModel.Mode = mode == "search" ? .search : .plugin(PanelModeID(rawValue: mode))

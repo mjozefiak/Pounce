@@ -15,6 +15,8 @@ final class AppCoordinator {
     private(set) var statusItem: StatusItemController?
     private(set) var panel: PanelController?
     private(set) var settingsWindow: SettingsWindowController?
+    /// The shell panes' views, shared by the old Settings window and the main window's Settings mode.
+    private var shellPane: ((SettingsWindowController.Pane) -> AnyView)?
     private(set) var onboarding: OnboardingController?
     private(set) var about: AboutWindowController?
     #if DEBUG
@@ -204,24 +206,29 @@ final class AppCoordinator {
         let settings = appSettings
         let launchAtLogin = launchAtLogin
         let host = host
-        let window = SettingsWindowController(
-            general: {
-                AnyView(GeneralPane(hotkeys: hotkeys, settings: settings, launchAtLogin: launchAtLogin))
-            },
-            features: { [weak self] in
-                AnyView(FeaturesPane(host: host, settings: settings) { self?.pluginsChanged() })
-            },
-            permissions: { [environment] in
+        let shell: (SettingsWindowController.Pane) -> AnyView = { [environment, weak self] pane in
+            switch pane {
+            case .general:
+                return AnyView(GeneralPane(hotkeys: hotkeys, settings: settings, launchAtLogin: launchAtLogin))
+            case .features:
+                return AnyView(FeaturesPane(host: host, settings: settings) { self?.pluginsChanged() })
+            case .permissions:
                 let model = PermissionsModel(host: host, reader: environment.permissionsReader) { url in
                     NSWorkspace.shared.open(url)
                 }
                 return AnyView(PermissionsPane(model: model))
-            },
-            advanced: { [environment, weak self] in
-                AnyView(
+            case .advanced:
+                return AnyView(
                     AdvancedPane(
                         controls: AdvancedControls(usage: environment.usage) { self?.panelModel.resultsChanged() }))
-            },
+            }
+        }
+        shellPane = shell
+        let window = SettingsWindowController(
+            general: { shell(.general) },
+            features: { shell(.features) },
+            permissions: { shell(.permissions) },
+            advanced: { shell(.advanced) },
             // The old window keeps skipping inactive plugins until it is removed (spec step 6.3).
             pluginPanes: { host.settingsPanes(includingInactive: false) }
         )
@@ -261,13 +268,23 @@ final class AppCoordinator {
 
     #if DEBUG
     /// QA (`--qa-window`): opens the main window in a mode. Not reachable from anything else until step 1.5.
-    func showMainWindowForQA(_ mode: MainWindowState.Mode) {
+    func showMainWindowForQA(_ mode: MainWindowState.Mode, settingsPane: String? = nil) {
         panelModel.hide()
         let window = mainWindow ?? makeMainWindow()
         switch mode {
         case .workspace: window.showWorkspace()
-        case .settings: window.showSettings()
+        case .settings: window.showSettings(settingsPane)
         }
+    }
+
+    /// Settings mode: the old window's panes through the temporary adapter (spec step 1.3).
+    private func settingsModeContent(_ state: MainWindowState) -> AnyView {
+        guard let shellPane else { return AnyView(EmptyView()) }
+        let entries = SettingsPaneAdapter.entries(shellPane: shellPane, plugins: mainWindowPluginPanes())
+        return AnyView(
+            SettingsModeAdapterView(entries: entries, selection: state.settingsPane) { [weak self] id in
+                self?.mainWindow?.selectSettingsPane(id)
+            })
     }
 
     private func makeMainWindow() -> MainWindowController {
@@ -282,9 +299,11 @@ final class AppCoordinator {
             },
             // QA mode never writes the frame into the tester's defaults.
             frameAutosaveName: environment.registersGlobalHotkeys ? MainWindowController.autosaveName : nil,
-            makeContent: { state, sections in
-                // Step 1.3 hosts the Settings panes here.
-                guard state.mode == .workspace, let section = sections.first(where: { $0.id == state.section })
+            makeContent: { [weak self] state, sections in
+                if state.mode == .settings {
+                    return self?.settingsModeContent(state) ?? AnyView(EmptyView())
+                }
+                guard let section = sections.first(where: { $0.id == state.section })
                 else { return AnyView(EmptyView()) }
                 return section.makeView()
             }
