@@ -13,7 +13,7 @@ import Testing
     /// Panes in `LintelApp/Settings` that still use today's fonts; each leaves this list in the Phase 4 step that
     /// moves it onto the template. The colour, footer and glass rules apply to them already.
     static let unmigratedAppPanes: Set<String> = [
-        "GeneralPane.swift", "FeaturesPane.swift", "AdvancedPane.swift", "PermissionsPane.swift",
+        "GeneralPane.swift", "FeaturesPane.swift", "AdvancedPane.swift",
     ]
 
     static let rawStatusColour =

@@ -3115,6 +3115,24 @@
         }
       }
     },
+    "No feature that is on needs it." : {
+      "comment" : "Settings → Permissions: a permission no enabled feature needs",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No feature that is on needs it."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Żadna włączona funkcja go nie potrzebuje."
+          }
+        }
+      }
+    },
     "Needed by: %@" : {
       "comment" : "Settings → Permissions: the features that need a permission",
       "extractionState" : "manual",

@@ -1,5 +1,6 @@
 import AppKit
 import LintelKit
+import LintelUI
 import SwiftUI
 
 /// One permission the enabled plugins need, with the names of the plugins that ask for it.
@@ -18,17 +19,44 @@ struct PermissionRequirement: Identifiable, Equatable {
 /// `PermissionsReader` the plugins use, so reading them never shows a system prompt.
 @Observable
 final class PermissionsModel {
-    @ObservationIgnored private let host: PluginHost
+    @ObservationIgnored let host: PluginHost
     @ObservationIgnored private let reader: any PermissionsReader
     @ObservationIgnored private let openURL: (URL) -> Void
+    @ObservationIgnored private let requester: any PermissionRequester
+
+    /// True in the main window: every permission gets a row, the ones no enabled feature needs dimmed. The old
+    /// window lists only the permissions the enabled features need.
+    var includesUnused = false
 
     /// The last read state of each required permission; refreshed by `refresh()`.
     private(set) var statuses: [Permission: PermissionStatus] = [:]
 
-    init(host: PluginHost, reader: any PermissionsReader, openURL: @escaping (URL) -> Void) {
+    init(
+        host: PluginHost, reader: any PermissionsReader,
+        requester: any PermissionRequester = SystemPermissionRequester(),
+        openURL: @escaping (URL) -> Void
+    ) {
         self.host = host
         self.reader = reader
+        self.requester = requester
         self.openURL = openURL
+    }
+
+    /// The rows to draw, in `Permission.allCases` order: the required permissions, or every permission when
+    /// `includesUnused`.
+    var rows: [PermissionRowState] {
+        let required = Dictionary(uniqueKeysWithValues: requirements.map { ($0.permission, $0.pluginNames) })
+        return Permission.allCases.compactMap { permission in
+            let names = required[permission] ?? []
+            guard includesUnused || !names.isEmpty else { return nil }
+            return PermissionRowState(permission: permission, status: status(of: permission), pluginNames: names)
+        }
+    }
+
+    /// "Allow Microphone": the user's click, so the system prompt may appear. Reads the states again after.
+    func allow(_ permission: Permission) async {
+        await requester.request(permission)
+        refresh()
     }
 
     /// The permissions of the enabled plugins, in `Permission.allCases` order.
@@ -54,8 +82,9 @@ final class PermissionsModel {
     /// Re-reads every required permission ("Check Again", the pane appearing, Lintel becoming active).
     func refresh() {
         var result: [Permission: PermissionStatus] = [:]
-        for requirement in requirements {
-            result[requirement.permission] = reader.status(of: requirement.permission)
+        let wanted = includesUnused ? Permission.allCases : requirements.map(\.permission)
+        for permission in wanted where permission.isReadable || !includesUnused {
+            result[permission] = reader.status(of: permission)
         }
         statuses = result
     }
@@ -170,38 +199,80 @@ extension PermissionStatus {
     }
 }
 
-/// Settings → Permissions: each permission the enabled features need, its state and a button to its page
-/// in System Settings (spec: Pasek menu i Ustawienia → Uprawnienia).
+/// How a permission row reads: a state in words, never colour alone.
+enum PermissionTone: Equatable {
+    case ok
+    /// A readable permission the user has refused.
+    case problem
+    /// Not granted yet, or macOS cannot report it (System Audio Recording): never a problem.
+    case neutral
+}
+
+/// What one `PermissionRow` shows, kept out of the view so it is tested.
+struct PermissionRowState: Identifiable, Equatable {
+    let permission: Permission
+    let status: PermissionStatus
+    /// Display names of the enabled plugins that need it; empty when no enabled feature does.
+    let pluginNames: [String]
+
+    var id: Permission { permission }
+    /// No enabled feature needs it: the row is dimmed.
+    var isDimmed: Bool { pluginNames.isEmpty }
+    var stateText: String { permission.statusText(status) }
+
+    var tone: PermissionTone {
+        guard permission.isReadable else { return .neutral }
+        switch status {
+        case .granted: return .ok
+        case .denied: return .problem
+        case .notDetermined: return .neutral
+        }
+    }
+
+    /// "Allow Microphone" while macOS has not asked yet; every other state goes through System Settings.
+    var allowTitle: String? {
+        guard permission == .microphone, status == .notDetermined else { return nil }
+        return String(localized: "Allow Microphone", comment: "Button that asks for microphone access")
+    }
+}
+
+/// Settings → Permissions: a row per permission with its state and a button to its page in System Settings.
+/// The old window lists the permissions the enabled features need; the main window lists all of them and dims
+/// the unused ones (spec D5).
 struct PermissionsPane: View {
     let model: PermissionsModel
 
+    @Environment(\.settingsHostStyle) private var hostStyle
+    @Environment(\.lintelTextSize) private var textSize
+
     var body: some View {
-        Form {
+        let content = SettingsPane {
             Section {
-                let requirements = model.requirements
-                if requirements.isEmpty {
+                let rows = model.rows
+                if rows.isEmpty {
                     Text(
                         "The features that are on need no system permissions.",
                         comment: "Settings → Permissions when no enabled feature needs a permission"
                     )
+                    .font(textSize.font(.body))
                     .foregroundStyle(.secondary)
                 }
-                ForEach(requirements) { requirement in
+                ForEach(rows) { row in
                     PermissionRow(
-                        requirement: requirement,
-                        status: model.status(of: requirement.permission),
-                        accessories: model.accessories(for: requirement.permission),
-                        open: { model.openSettings(for: requirement.permission) }
+                        state: row,
+                        accessories: model.accessories(for: row.permission),
+                        allow: { Task { await model.allow(row.permission) } },
+                        open: { model.openSettings(for: row.permission) }
                     )
                 }
             } header: {
                 Text("Permissions", comment: "Settings section title")
+                    .font(textSize.font(.body, weight: .semibold))
             } footer: {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(alignment: .firstTextBaseline) {
-                        Text(
-                            "Lintel never asks for a permission on its own. Changes in System Settings apply right away.",
-                            comment: "Settings → Permissions footer"
+                        SettingsFooter(
+                            "Lintel never asks for a permission on its own. Changes in System Settings apply right away."
                         )
                         Spacer()
                         Button {
@@ -210,74 +281,30 @@ struct PermissionsPane: View {
                             Text("Check Again", comment: "Button that re-reads the permission states")
                         }
                     }
-                    Text(
-                        "The Keychain needs no permission. A feature that keeps a key there shows its state in its own pane.",
-                        comment: "Settings → Permissions note about the Keychain"
+                    SettingsFooter(
+                        "The Keychain needs no permission. A feature that keeps a key there shows its state in its own pane."
                     )
                 }
-                .font(.callout)
-                .foregroundStyle(.secondary)
             }
         }
-        .formStyle(.grouped)
-        .frame(width: 600)
-        .fixedSize(horizontal: false, vertical: true)
-        .onAppear { model.refresh() }
+        .onAppear { reload() }
+        .onChange(of: hostStyle) { reload() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             model.refresh()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
             model.refresh()
         }
-    }
-}
-
-struct PermissionRow: View {
-    let requirement: PermissionRequirement
-    let status: PermissionStatus
-    var accessories: [AnyView] = []
-    let open: () -> Void
-
-    var body: some View {
-        let permission = requirement.permission
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: permission.symbolName)
-                .symbolRenderingMode(.hierarchical)
-                .font(.title3)
-                .frame(width: 24)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(permission.title)
-                    .accessibilityAddTraits(.isHeader)
-                Label {
-                    Text(permission.statusText(status))
-                } icon: {
-                    Image(systemName: status.symbolName)
-                        .symbolRenderingMode(.hierarchical)
-                        .accessibilityHidden(true)
-                }
-                .font(.callout.weight(.medium))
-                Text(permission.explanation)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(
-                    "Needed by: \(requirement.pluginNames.formatted(.list(type: .and)))",
-                    comment: "Settings → Permissions: the features that need a permission"
-                )
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                ForEach(accessories.indices, id: \.self) { accessories[$0] }
-            }
-            Spacer(minLength: 12)
-            Button(action: open) {
-                Text("Open System Settings…", comment: "Button that opens a permission's page in System Settings")
-            }
-            .accessibilityHint(
-                Text(
-                    "Opens \(permission.title) in System Settings",
-                    comment: "Accessibility hint of the button that opens a permission's settings"))
+        if hostStyle == .legacyWindow {
+            // The old window sizes itself from the pane.
+            content.frame(width: 600).fixedSize(horizontal: false, vertical: true)
+        } else {
+            content
         }
-        .accessibilityElement(children: .contain)
+    }
+
+    private func reload() {
+        model.includesUnused = hostStyle == .mainWindow
+        model.refresh()
     }
 }
