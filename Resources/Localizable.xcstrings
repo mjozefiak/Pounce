@@ -11772,6 +11772,294 @@
           }
         }
       }
+    },
+    "Suggest apps" : {
+      "comment" : "Settings → Apps: switch that turns app suggestions on",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggest apps"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podpowiadaj aplikacje"
+          }
+        }
+      }
+    },
+    "Shown when the launcher is empty." : {
+      "comment" : "Settings → Apps: help under the Suggest apps switch",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shown when the launcher is empty."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Widoczne przy pustym launcherze."
+          }
+        }
+      }
+    },
+    "Manage…" : {
+      "comment" : "Settings → Apps: button that lists the apps hidden from suggestions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manage…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zarządzaj…"
+          }
+        }
+      }
+    },
+    "Hidden suggestions" : {
+      "comment" : "Settings → Apps: label of the hidden apps row",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hidden suggestions"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukryte podpowiedzi"
+          }
+        }
+      }
+    },
+    "Usage history" : {
+      "comment" : "Settings → Apps: label of the recorded app activity row",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usage history"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historia użycia"
+          }
+        }
+      }
+    },
+    "Stored on this Mac only." : {
+      "comment" : "Settings → Apps: help under Usage history",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stored on this Mac only."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tylko na tym Macu."
+          }
+        }
+      }
+    },
+    "Reset Suggestions…" : {
+      "comment" : "Settings → Apps: button that deletes the recorded app activity",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Suggestions…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zresetuj podpowiedzi…"
+          }
+        }
+      }
+    },
+    "Reset suggestions?" : {
+      "comment" : "Settings → Apps: Reset Suggestions confirmation title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset suggestions?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zresetować podpowiedzi?"
+          }
+        }
+      }
+    },
+    "Lintel forgets which apps you used. This can’t be undone." : {
+      "comment" : "Settings → Apps: Reset Suggestions confirmation message",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel forgets which apps you used. This can’t be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel zapomni historię używanych aplikacji. Nie można tego cofnąć."
+          }
+        }
+      }
+    },
+    "Reset Suggestions" : {
+      "comment" : "Settings → Apps: Reset Suggestions confirmation button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Suggestions"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zresetuj podpowiedzi"
+          }
+        }
+      }
+    },
+    "No apps are hidden. Hide one from its suggestion in the launcher." : {
+      "comment" : "Settings → Apps: the hidden apps sheet when nothing is hidden",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No apps are hidden. Hide one from its suggestion in the launcher."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Żadna aplikacja nie jest ukryta. Ukryj ją z jej podpowiedzi w launcherze."
+          }
+        }
+      }
+    },
+    "Suggestions are off" : {
+      "comment" : "Settings → Apps banner: activity.json comes from a newer version",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggestions are off"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podpowiedzi są wyłączone"
+          }
+        }
+      }
+    },
+    "App activity was saved by a newer version of Lintel. Update to turn them on." : {
+      "comment" : "Settings → Apps banner detail: activity.json comes from a newer version",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App activity was saved by a newer version of Lintel. Update to turn them on."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktywność aplikacji zapisała nowsza wersja Lintel. Zaktualizuj, aby je włączyć."
+          }
+        }
+      }
+    },
+    "%lld apps indexed." : {
+      "comment" : "Settings → Apps banner detail: the number of apps found",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld app indexed."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld apps indexed."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zindeksowano %lld aplikację."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zindeksowano %lld aplikacje."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zindeksowano %lld aplikacji."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zindeksowano %lld aplikacji."
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

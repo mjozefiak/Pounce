@@ -22,7 +22,15 @@ import Testing
 
     /// The pane view and model sources, relative to the repository root.
     static let paneFiles = [
-        "Sources/AppsPlugin/AppsSettings.swift"
+        "Sources/AppsPlugin/AppsSettings.swift",
+        "Sources/AppsPlugin/AppsSettingsPane.swift",
+        "Sources/AppsPlugin/LegacyAppsSettingsPane.swift",
+    ]
+
+    /// Each window's own view file (step 4.2): every key stays reachable in the main window and in the old one.
+    static let windowViewFiles = [
+        "Sources/AppsPlugin/AppsSettingsPane.swift",
+        "Sources/AppsPlugin/LegacyAppsSettingsPane.swift",
     ]
 
     private static let root: URL = {
@@ -65,6 +73,15 @@ import Testing
         }
         for (key, reason) in Self.exempt {
             #expect(!reason.isEmpty, "\(key) needs a reason")
+        }
+    }
+
+    @Test func bothWindowsReachEveryNonExemptKey() throws {
+        for file in Self.windowViewFiles {
+            let source = try Self.read(file)
+            for (key, token) in Self.paneTokens {
+                #expect(source.contains(token), "\(key): \(file) does not contain \(token)")
+            }
         }
     }
 }

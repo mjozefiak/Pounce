@@ -8,7 +8,9 @@ import Testing
 @Suite struct SettingsSourceScanTests {
     /// View files of plugin panes that use the template. Starts empty; every pane PR (Phases 4 and 5) adds its
     /// file, and the list is complete at step 5.3. Paths are relative to the repository root.
-    static let migratedPluginPaneFiles: [String] = []
+    static let migratedPluginPaneFiles: [String] = [
+        "Sources/AppsPlugin/AppsSettingsPane.swift"
+    ]
 
     /// Panes in `LintelApp/Settings` that still use today's fonts; each leaves this list in the Phase 4 step that
     /// moves it onto the template. The colour, footer and glass rules apply to them already.

@@ -15,7 +15,7 @@ struct SettingsLayoutTests {
         for path in [
             "Sources/LintelApp/Settings/LegacyShellPanes.swift",
             "Sources/LintelApp/Settings/AdvancedPane.swift", "Sources/LintelApp/Settings/PermissionsPane.swift",
-            "Sources/AppsPlugin/AppsSettings.swift", "Sources/ClipboardPlugin/ClipboardSettingsPane.swift",
+            "Sources/AppsPlugin/LegacyAppsSettingsPane.swift", "Sources/ClipboardPlugin/ClipboardSettingsPane.swift",
         ] {
             let text = try String(contentsOf: root.appending(path: path), encoding: .utf8)
             #expect(!text.contains(".frame(width: 600)"), "\(path)")

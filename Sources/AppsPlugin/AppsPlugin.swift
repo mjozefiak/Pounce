@@ -137,6 +137,31 @@ public final class AppsPlugin: LintelPlugin {
         AnyView(AppsSettingsPane(model: makeSettingsModel()))
     }
 
+    /// The main window's banner (prototype `set-apps`): "Ready · 312 apps indexed." once a list is published,
+    /// attention while the activity file comes from a newer version; read by the shell only while active.
+    public var settingsStatus: SettingsStatus? {
+        Self.status(appCount: store.apps.count, activityIsReadOnly: activity.snapshot.isReadOnly)
+    }
+
+    /// The banner for an index of `appCount` apps; `nil` (the shell's derived "Ready") before the first list.
+    nonisolated static func status(appCount: Int, activityIsReadOnly: Bool) -> SettingsStatus? {
+        if activityIsReadOnly {
+            return SettingsStatus(
+                level: .attention,
+                title: LocalizedStringResource(
+                    "Suggestions are off", comment: "Settings → Apps banner: activity.json comes from a newer version"),
+                detail: LocalizedStringResource(
+                    "App activity was saved by a newer version of Lintel. Update to turn them on.",
+                    comment: "Settings → Apps banner detail: activity.json comes from a newer version"))
+        }
+        guard appCount > 0 else { return nil }
+        return SettingsStatus(
+            level: .ok,
+            title: LocalizedStringResource("Ready", comment: "Settings banner level, spoken"),
+            detail: LocalizedStringResource(
+                "\(appCount) apps indexed.", comment: "Settings → Apps banner detail: the number of apps found"))
+    }
+
     func makeSettingsModel() -> AppsSettingsModel {
         if let settingsModel {
             settingsModel.reload()
