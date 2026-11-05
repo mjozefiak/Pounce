@@ -42,6 +42,43 @@ struct PolishCopyTests {
         }
     }
 
+    /// Owner decision 6.6e: the Polish copy never declines "Lintel". The name stays in the nominative and a
+    /// case the sentence needs goes on a noun before it ("w aplikacji Lintel", "O aplikacji Lintel").
+    @Test func thePolishCopyNeverDeclinesTheAppName() throws {
+        let root = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+        // An ending glued to the name: Lintelu, Lintela, Lintelem, Lintelowi, Lintel’a, Lintel-a…
+        let inflected = /Lintel(?:[\p{Ll}]|['’\-]\p{Ll})/
+        // The bare name where Polish needs another case: "w Lintel", "O Lintel", "Zezwól Lintel"…
+        let bareInOtherCase =
+            /(?i:\b(?:o|w|we|z|ze|dla|do|od|przy|pozwala|pozwól|zezwól|uruchomić|uruchomienia|oknie|okna|schowka|samego)\s+Lintel\b)/
+        for file in ["Resources/Localizable.xcstrings", "Resources/InfoPlist.xcstrings"] {
+            let data = try Data(contentsOf: root.appending(path: file))
+            let catalog = try JSONDecoder().decode(StringCatalogTests.Catalog.self, from: data)
+            for (key, entry) in catalog.strings {
+                for unit in entry.localizations?["pl"]?.units ?? [] {
+                    guard let value = unit?.value else { continue }
+                    #expect(value.firstMatch(of: inflected) == nil, "\(file): \(key) → \(value)")
+                    #expect(value.firstMatch(of: bareInOtherCase) == nil, "\(file): \(key) → \(value)")
+                }
+            }
+        }
+    }
+
+    @Test func theRephrasedKeysUseTheNominative() throws {
+        let catalog = try catalog()
+        let expected: [String: String] = [
+            "About Lintel": "O aplikacji Lintel",
+            "Welcome to Lintel": "Witaj w aplikacji Lintel",
+            "Lintel cannot start": "Nie można uruchomić aplikacji Lintel",
+            "macOS asks before every read. Allow Lintel in Privacy & Security.":
+                "macOS pyta przed każdym odczytem. Zezwól aplikacji Lintel w sekcji Prywatność i ochrona.",
+        ]
+        for (key, polish) in expected {
+            #expect(value(key, "pl", in: catalog) == polish, "\(key)")
+        }
+    }
+
     @Test func theSharedKeysAreUnchanged() throws {
         let catalog = try catalog()
         let shared: [String: String] = [

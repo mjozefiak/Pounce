@@ -572,7 +572,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Lintel"
+            "value" : "O aplikacji Lintel"
           }
         }
       }
@@ -3074,7 +3074,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pozwala Lintel słyszeć Cię podczas dyktowania i nagrywania spotkania. Dźwięk dyktowania nigdy nie jest zapisywany; dźwięk spotkania jest przechowywany w zaszyfrowanej postaci na tym Macu, dopóki transkrypt nie będzie kompletny, a dźwięk niedokończonych spotkań jest przechowywany przez ograniczony czas."
+            "value" : "Pozwala aplikacji Lintel słyszeć Cię podczas dyktowania i nagrywania spotkania. Dźwięk dyktowania nigdy nie jest zapisywany; dźwięk spotkania jest przechowywany w zaszyfrowanej postaci na tym Macu, dopóki transkrypt nie będzie kompletny, a dźwięk niedokończonych spotkań jest przechowywany przez ograniczony czas."
           }
         }
       }
@@ -3092,7 +3092,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pozwala Lintel wklejać do aplikacji, której używałeś. Bez tego Lintel tylko kopiuje."
+            "value" : "Pozwala aplikacji Lintel wklejać tam, gdzie pracowałeś. Bez tego Lintel tylko kopiuje."
           }
         }
       }
@@ -3308,7 +3308,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOS pyta przed każdym odczytem. Zezwól Lintelowi w sekcji Prywatność i ochrona."
+            "value" : "macOS pyta przed każdym odczytem. Zezwól aplikacji Lintel w sekcji Prywatność i ochrona."
           }
         }
       }
@@ -3578,7 +3578,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Otwórz Lintel skrótem %@. Ustawienia i spotkania są w oknie Lintel: kliknij ikonę w Docku albo naciśnij ⌘,."
+            "value" : "Otwórz Lintel skrótem %@. Ustawienia i spotkania są w oknie aplikacji Lintel: kliknij ikonę w Docku albo naciśnij ⌘,."
           }
         }
       }
@@ -3920,7 +3920,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pozwala Lintel przechwytywać to, co mówią inni uczestnicy spotkania, tylko podczas nagrywania spotkania. Dźwięk jest przetwarzany na tym Macu i nigdy nie jest wysyłany."
+            "value" : "Pozwala aplikacji Lintel przechwytywać to, co mówią inni uczestnicy spotkania, tylko podczas nagrywania spotkania. Dźwięk jest przetwarzany na tym Macu i nigdy nie jest wysyłany."
           }
         }
       }
@@ -5054,7 +5054,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nie można uruchomić Lintel"
+            "value" : "Nie można uruchomić aplikacji Lintel"
           }
         }
       }
@@ -7034,7 +7034,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Witaj w Lintel"
+            "value" : "Witaj w aplikacji Lintel"
           }
         }
       }
@@ -7286,7 +7286,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOS pyta przed każdym odczytem schowka, więc nic nie jest zapisywane. Aby nagrywać, zezwól Lintel w ustawieniach Prywatność i ochrona."
+            "value" : "macOS pyta przed każdym odczytem schowka, więc nic nie jest zapisywane. Aby nagrywać, zezwól aplikacji Lintel w ustawieniach Prywatność i ochrona."
           }
         }
       }
@@ -7304,7 +7304,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOS może pytać, zanim aplikacja odczyta schowek. Zezwól Lintel, aby historia była dalej zapisywana."
+            "value" : "macOS może pytać, zanim aplikacja odczyta schowek. Zezwól aplikacji Lintel, aby historia była dalej zapisywana."
           }
         }
       }
@@ -7322,7 +7322,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ustawienia i spotkania są w oknie Lintel: kliknij ikonę w Docku albo naciśnij ⌘,."
+            "value" : "Ustawienia i spotkania są w oknie aplikacji Lintel: kliknij ikonę w Docku albo naciśnij ⌘,."
           }
         }
       }
@@ -7772,7 +7772,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kopiuje spotkanie jako Markdown. Historia schowka Lintel go nie zapisuje."
+            "value" : "Kopiuje spotkanie jako Markdown. Historia schowka w aplikacji Lintel go nie zapisuje."
           }
         }
       }
