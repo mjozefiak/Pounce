@@ -9,14 +9,18 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 
 | Phase | Step | Title | Exec | Status | Commit |
 |-------|------|-------|------|--------|--------|
-| 0 | 0.1 | Add .uxproof/ to git (stale copy first, refresh second) | dispatch:standard | done | 05a2276 |
-| 0 | 0.2 | Apply the deviation tables to the prototype | dispatch:cheap | done | df95001 |
-| 1 | 1.1 | LintelKit contract additions, canBeDisabled, inactive panes | dispatch:capable | done | 85c424f |
-| 1 | 1.2 | MainWindowController, window state keys, QA argument | dispatch:capable | done | ccc4d07 |
-| 1 | 1.3 | Host the existing Settings panes in the window (adapter) | dispatch:standard | done | d4ad792 |
-| 1 | 1.4 | MainMenuController and MainMenuPolicy | dispatch:standard | done | 71cb82d |
-| 1 | 1.5 | Dock, status item, Cmd-comma and openModels routing behind the gate | dispatch:capable | done | 309df3d |
-| 1 | 1.6 | LintelUI target, moved brand and TextSize, host style values | dispatch:capable | done | 9bad5bd |
+| 0 | 0.1 | Add .uxproof/ to git (stale copy first, refresh second) | dispatch:standard | done | 672d8e3 |
+| 0 | 0.2 | Apply the deviation tables to the prototype | dispatch:cheap | done | 10a3b03 |
+| 1 | 1.1 | LintelKit contract additions, canBeDisabled, inactive panes | dispatch:capable | done | 01abb12 |
+| 1 | 1.2 | MainWindowController, window state keys, QA argument | dispatch:capable | done | 71edbcc |
+| 1 | 1.3 | Host the existing Settings panes in the window (adapter) | dispatch:standard | done | d9b39ef |
+| 1 | 1.4 | MainMenuController and MainMenuPolicy | dispatch:standard | done | 72a68da |
+| 1 | 1.5 | Dock, status item, Cmd-comma and openModels routing behind the gate | dispatch:capable | done | f4b5831 |
+| 1 | 1.6 | LintelUI target, moved brand and TextSize, host style values | dispatch:capable | done | 6f36f7a |
+| 1 | 1.5-review-fix | Review fix: Dock click counts only real windows (H1) | dispatch:standard | todo | — |
+| 1 | 1.2-review-fix | Review fix: call willHide on every mode switch, close and quit path (M1) | dispatch:standard | todo | — |
+| 1 | 1.1-review-fix | Review fix: inactive-pane test runs pane lifecycle in a real window; no work while inactive (M2) | dispatch:standard | todo | — |
+| 1 | 1.6-review-fix | Review fix: meeting window text size, AGENTS.md Window/ row, adapter sidebar and close-task nits (L2, L3, L4, L6) | dispatch:standard | todo | — |
 | 2 | 2.1 | SettingsSidebar and SettingsSidebarModel | dispatch:standard | todo | — |
 | 2 | 2.2 | StatusBanner and StatusDerivation | dispatch:capable | todo | — |
 | 2 | 2.3 | SettingsPane template, ConfirmSheet, footer helper, scanning tests | dispatch:standard | todo | — |
