@@ -9,7 +9,7 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 
 | Phase | Step | Title | Exec | Status | Commit |
 |-------|------|-------|------|--------|--------|
-| 0 | 0.1 | Add .uxproof/ to git (stale copy first, refresh second) | dispatch:standard | todo | — |
+| 0 | 0.1 | Add .uxproof/ to git (stale copy first, refresh second) | dispatch:standard | done | 05a2276 |
 | 0 | 0.2 | Apply the deviation tables to the prototype | dispatch:cheap | todo | — |
 | 1 | 1.1 | LintelKit contract additions, canBeDisabled, inactive panes | dispatch:capable | todo | — |
 | 1 | 1.2 | MainWindowController, window state keys, QA argument | dispatch:capable | todo | — |
