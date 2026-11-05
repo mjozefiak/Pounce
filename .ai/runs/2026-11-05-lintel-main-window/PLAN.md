@@ -47,9 +47,16 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 | 5 | 5.1 | Dictation pane onto the template | dispatch:standard | done | 389bb65 |
 | 5 | 5.2 | Meetings pane onto the template | dispatch:capable | done | 6c9f0b9 |
 | 5 | 5.3 | Clear/Erase confirmation copy with kept-copies checkbox (L1-39) | dispatch:standard | done | c7d3a71 |
-| 5 | 5.2-review-fix | Review fix: banner count includes denied required permissions, refresh the banner when the engine changes, pinned shell test | dispatch:standard | done | pending |
-| 6 | 6.1 | Welcome final page "You’re set" | dispatch:standard | done | pending |
-| 6 | 6.5 | Final 1:1 comparison of every implemented screen with the prototype, with fix commits for each difference | inline | todo | — |
+| 5 | 5.2-review-fix | Review fix: banner count includes denied required permissions, refresh the banner when the engine changes, pinned shell test | dispatch:standard | done | db6bcb5 |
+| 6 | 6.1 | Welcome final page "You’re set" | dispatch:standard | done | cb945ef |
+| 6 | 6.5a | Fidelity: shell chrome (sidebar, banner, off-state dimming, section headers, column, window chrome and size, sidebar dots) | dispatch:capable | todo | — |
+| 6 | 6.5b | Fidelity: secondary and destructive button styles, ConfirmSheet confirm button | dispatch:standard | todo | — |
+| 6 | 6.5c | Fidelity: Permissions pane rows | dispatch:standard | todo | — |
+| 6 | 6.5d | Fidelity: Advanced pane on the template (Show Again, About) | dispatch:standard | todo | — |
+| 6 | 6.5e | Fidelity: Models rows, Download icon, banner copy | dispatch:standard | todo | — |
+| 6 | 6.5f | Fidelity: Polish copy | dispatch:standard | todo | — |
+| 6 | 6.5g | Fidelity: Welcome layout and the onboarding QA argument | dispatch:capable | todo | — |
+| 6 | 6.5 | Final 1:1 re-comparison of every screen with the prototype and remaining-differences list | inline | todo | — |
 | 6 | 6.4 | docs(spec): correct the Phasing sentence about phases and PRs | inline | todo | — |
 | 6 | 6.3a | Remove the DEBUG gate (window enabled for users) | dispatch:capable | todo | — |
 | 6 | 6.3b | Delete SettingsWindowController, the adapter and .legacyWindow branches | dispatch:capable | todo | — |
