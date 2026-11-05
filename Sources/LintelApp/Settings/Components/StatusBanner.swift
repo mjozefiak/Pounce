@@ -50,14 +50,14 @@ struct StatusBanner: View {
 
     @ViewBuilder
     private func button(_ action: SettingsStatusAction, primary: Bool) -> some View {
-        let label = Text(action.title).font(textSize.font(.callout))
+        let label = Text(action.title).font(textSize.font(.callout)).lineLimit(1).fixedSize()
         if primary {
             Button {
                 onAction(action)
             } label: {
                 label
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(LintelPrimaryButtonStyle())
             .disabled(isBusy)
         } else {
             Button {

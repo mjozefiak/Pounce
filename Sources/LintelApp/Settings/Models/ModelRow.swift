@@ -18,47 +18,69 @@ struct ModelRow: View {
         ByteCountFormatter.string(fromByteCount: Int64(row.model.bytes), countStyle: .file)
     }
 
-    var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(verbatim: row.title)
-                        .font(textSize.font(.body, weight: .semibold))
-                        .accessibilityAddTraits(.isHeader)
-                    if let license = row.model.license {
-                        Text(verbatim: license)
-                            .font(textSize.font(.callout))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                HStack(spacing: 6) {
-                    ForEach(row.usedBy) { chip($0) }
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityLabel(Text(verbatim: row.usedByText ?? ""))
-                    if !row.usedBy.isEmpty {
-                        Text(verbatim: "·").foregroundStyle(.secondary)
-                    }
-                    Text(verbatim: size)
+    private var info: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(verbatim: row.title)
+                    .font(textSize.font(.body, weight: .semibold))
+                    .accessibilityAddTraits(.isHeader)
+                if let license = row.model.license {
+                    Text(verbatim: license)
+                        .font(textSize.font(.callout))
                         .foregroundStyle(.secondary)
                 }
-                .font(textSize.font(.callout))
-                if let progress = row.progress {
-                    ProgressView(value: progress.fraction)
-                        .frame(maxWidth: 200)
-                        .accessibilityLabel(Text("Download progress", comment: "Models pane: progress bar label"))
+            }
+            HStack(spacing: 6) {
+                ForEach(row.usedBy) { chip($0) }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(Text(verbatim: row.usedByText ?? ""))
+                if !row.usedBy.isEmpty {
+                    Text(verbatim: "·").foregroundStyle(.secondary)
                 }
-                if let error = row.errorMessage {
-                    Text(verbatim: error)
-                        .font(textSize.font(.callout))
-                        .foregroundStyle(LintelBrand.statusError)
-                        .fixedSize(horizontal: false, vertical: true)
+                Text(verbatim: size)
+                    .foregroundStyle(.secondary)
+            }
+            .font(textSize.font(.callout))
+            if let progress = row.progress {
+                ProgressView(value: progress.fraction)
+                    .frame(maxWidth: 200)
+                    .accessibilityLabel(Text("Download progress", comment: "Models pane: progress bar label"))
+            }
+            if let error = row.errorMessage {
+                Text(verbatim: error)
+                    .font(textSize.font(.callout))
+                    .foregroundStyle(LintelBrand.statusError)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private var state: some View {
+        Text(verbatim: row.stateText)
+            .font(textSize.font(.callout))
+            .foregroundStyle(row.isInstalled ? AnyShapeStyle(LintelBrand.statusOk) : AnyShapeStyle(.secondary))
+            .lineLimit(1)
+            .fixedSize()
+    }
+
+    /// One line while it fits; at large text sizes the state and the buttons drop under the name so a button
+    /// label never wraps.
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .center, spacing: 12) {
+                info
+                Spacer(minLength: 12)
+                state
+                buttons
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                info
+                HStack(spacing: 12) {
+                    state
+                    Spacer(minLength: 12)
+                    buttons
                 }
             }
-            Spacer(minLength: 12)
-            Text(verbatim: row.stateText)
-                .font(textSize.font(.callout))
-                .foregroundStyle(row.isInstalled ? AnyShapeStyle(LintelBrand.statusOk) : AnyShapeStyle(.secondary))
-            buttons
         }
         .accessibilityElement(children: .contain)
     }
@@ -101,7 +123,7 @@ struct ModelRowButtons: View {
     @Environment(\.lintelTextSize) private var textSize
 
     private func label(_ text: Text) -> some View {
-        text.font(textSize.font(.body))
+        text.font(textSize.font(.body)).lineLimit(1).fixedSize()
     }
 
     var body: some View {
@@ -166,6 +188,7 @@ struct ModelRowButtons: View {
                 label(Text("Choose Folder…", comment: "Models pane: use a model folder downloaded by hand"))
             }
             .menuStyle(.button)
+            .buttonStyle(.bordered)
             .menuIndicator(.hidden)
             .fixedSize()
             .disabled(row.isBusy || row.isDownloading)

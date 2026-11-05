@@ -726,3 +726,44 @@ final class FakeRecorder {
         #expect(extraLarge > medium * 1.15)
     }
 }
+
+/// Structure checks for the prototype's fidelity (the renderer cannot show a wrapped label): buttons never wrap,
+/// the folder menu is bordered like the single button, the banner's primary action is accent-filled and the
+/// banner shares the pane's column.
+@Suite struct ModelsFidelitySourceTests {
+    private static let root: URL = {
+        var url = URL(filePath: #filePath).deletingLastPathComponent()
+        while url.path != "/", !FileManager.default.fileExists(atPath: url.appending(path: "Package.swift").path) {
+            url = url.deletingLastPathComponent()
+        }
+        return url
+    }()
+
+    private func source(_ path: String) throws -> String {
+        try String(contentsOf: Self.root.appending(path: "Sources/LintelApp/Settings/" + path), encoding: .utf8)
+    }
+
+    @Test func modelRowButtonLabelsNeverWrap() throws {
+        let text = try source("Models/ModelRow.swift")
+        #expect(text.contains("text.font(textSize.font(.body)).lineLimit(1).fixedSize()"))
+        #expect(text.contains("ViewThatFits(in: .horizontal)"))
+    }
+
+    @Test func folderMenuIsBordered() throws {
+        let text = try source("Models/ModelRow.swift")
+        let menu = try #require(text.range(of: ".menuStyle(.button)"))
+        #expect(text[menu.upperBound...].prefix(60).contains(".buttonStyle(.bordered)"))
+    }
+
+    @Test func bannerPrimaryActionIsAccentFilled() throws {
+        let text = try source("Components/StatusBanner.swift")
+        #expect(text.contains("LintelPrimaryButtonStyle()"))
+        #expect(!text.contains("borderedProminent"))
+        #expect(text.contains(".lineLimit(1).fixedSize()"))
+    }
+
+    @Test func bannerAndPaneShareOneColumn() throws {
+        let text = try source("Host/SettingsHost.swift")
+        #expect(text.components(separatedBy: "maxWidth: Self.columnWidth").count - 1 == 2)
+    }
+}

@@ -174,6 +174,10 @@ struct SettingsHost: View {
     let onSelect: (String) -> Void
     let onBack: (() -> Void)?
 
+    /// The one content column: the banner and every pane body share it (prototype: the banner sits inside the
+    /// column, not across the window).
+    static let columnWidth: CGFloat = 704
+
     var body: some View {
         let entries = SettingsPaneAdapter.entries(
             shellPane: shellPane, plugins: model.plugins, models: modelsPane)
@@ -185,10 +189,13 @@ struct SettingsHost: View {
                     StatusBanner(banner: banner, isBusy: model.isBusy) { action in
                         Task { await model.perform(action) }
                     }
-                    .padding([.horizontal, .top], 16)
+                    .frame(maxWidth: Self.columnWidth)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 16)
                 }
                 ScrollView {
                     (entries.first { $0.id == selection } ?? entries.first)?.makeView()
+                        .frame(maxWidth: Self.columnWidth)
                         .frame(maxWidth: .infinity)
                         .id(selection)
                 }
