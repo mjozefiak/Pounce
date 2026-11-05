@@ -116,7 +116,7 @@ struct ClipboardPaneContent: View {
                     .font(textSize.font(.body))
                 Text("Encrypted on this Mac.", comment: "Settings → Clipboard: help under History in Data")
                     .font(textSize.font(.callout))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(LintelBrand.secondaryText)
             }
             if clearFailed {
                 Text("The history could not be cleared.", comment: "Error after Clear History failed")
@@ -235,7 +235,7 @@ struct IgnoredAppLabel: View {
             } else {
                 Image(systemName: "app.dashed")
                     .font(textSize.font(.body))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(LintelBrand.secondaryText)
                     .accessibilityHidden(true)
             }
             VStack(alignment: .leading, spacing: 1) {
@@ -243,7 +243,7 @@ struct IgnoredAppLabel: View {
                     .font(textSize.font(.body))
                 Text(verbatim: bundleID)
                     .font(textSize.font(.caption1))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(LintelBrand.secondaryText)
             }
             .lineLimit(1)
             .truncationMode(.middle)

@@ -41,7 +41,7 @@ struct AppsPaneContent: View {
                         comment: "Settings → Apps: help under the Suggest apps switch"
                     )
                     .font(textSize.font(.callout))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(LintelBrand.secondaryText)
                 }
                 .toggleStyle(.switch)
                 LabeledContent {
@@ -68,7 +68,7 @@ struct AppsPaneContent: View {
                     comment: "Settings description of the Spotlight app supplement"
                 )
                 .font(textSize.font(.callout))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(LintelBrand.secondaryText)
             }
             .toggleStyle(.switch)
             SearchedFoldersRow(roots: model.roots())
@@ -89,7 +89,7 @@ struct AppsPaneContent: View {
                     .font(textSize.font(.body))
                 Text("Stored on this Mac only.", comment: "Settings → Apps: help under Usage history")
                     .font(textSize.font(.callout))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(LintelBrand.secondaryText)
             }
         }
         .onAppear { model.reload() }
@@ -116,13 +116,13 @@ struct SearchedFoldersRow: View {
                 Label {
                     Text(root.path(percentEncoded: false))
                         .font(textSize.font(.callout))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(LintelBrand.secondaryText)
                         .truncationMode(.middle)
                         .lineLimit(1)
                 } icon: {
                     Image(systemName: "folder")
                         .font(textSize.font(.callout))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(LintelBrand.secondaryText)
                         .accessibilityHidden(true)
                 }
             }
@@ -148,7 +148,7 @@ struct HiddenSuggestionsSheet: View {
                     comment: "Settings → Apps: the hidden apps sheet when nothing is hidden"
                 )
                 .font(textSize.font(.callout))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(LintelBrand.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
             } else {
                 ForEach(model.hidden, id: \.self) { bundleID in

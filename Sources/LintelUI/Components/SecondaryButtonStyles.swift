@@ -49,8 +49,6 @@ public struct LintelDestructiveProminentButtonStyle: ButtonStyle {
 }
 
 enum LintelBorderedButton {
-    /// Hairline of the border: the ink at a low alpha, so it follows the appearance.
-    static let borderAlpha = 0.18
 
     @MainActor static func body(_ configuration: ButtonStyleConfiguration, text: Color, isEnabled: Bool)
         -> some View
@@ -61,12 +59,12 @@ enum LintelBorderedButton {
             .padding(.horizontal, 10)
             .padding(.vertical, 3)
             .background(
-                Color(nsColor: .controlBackgroundColor),
+                LintelBrand.card,
                 in: RoundedRectangle(cornerRadius: LintelPrimaryButtonStyle.cornerRadius)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: LintelPrimaryButtonStyle.cornerRadius)
-                    .strokeBorder(LintelBrand.ink.opacity(borderAlpha), lineWidth: 1)
+                    .strokeBorder(LintelBrand.hairline, lineWidth: 1)
             )
             .opacity(isEnabled ? (configuration.isPressed ? 0.7 : 1) : 0.45)
     }

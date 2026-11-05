@@ -1,4 +1,5 @@
 import LintelSpeech
+import LintelUI
 import SwiftUI
 
 /// The `meetings.setup` step's notes rows: the switch and the built-in model with its download and removal.
@@ -24,7 +25,7 @@ struct NotesSettingsRows: View {
             "Download \(bytes(model.model.package.totalBytes)), about \(bytes(model.model.residentBytes)) of memory while loaded. \(model.model.package.license) licence.",
             comment: "Dictation settings size and memory of the built-in model"
         )
-        .font(.callout).foregroundStyle(.secondary)
+        .font(.callout).foregroundStyle(LintelBrand.secondaryText)
         if model.wasReplaced {
             Label {
                 Text(
@@ -35,7 +36,7 @@ struct NotesSettingsRows: View {
             } icon: {
                 Image(systemName: "info.circle").accessibilityHidden(true)
             }
-            .foregroundStyle(.secondary)
+            .foregroundStyle(LintelBrand.secondaryText)
         }
         modelRow
         if let message = model.errorMessage {

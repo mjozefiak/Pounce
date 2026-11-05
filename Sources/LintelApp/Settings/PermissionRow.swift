@@ -17,7 +17,7 @@ struct PermissionRow: View {
         switch state.tone {
         case .ok: LintelBrand.statusOk
         case .problem: LintelBrand.statusAttention
-        case .neutral: .secondary
+        case .neutral: LintelBrand.secondaryText
         }
     }
 
@@ -33,7 +33,7 @@ struct PermissionRow: View {
                     .accessibilityAddTraits(.isHeader)
                 Text(neededText)
                     .font(textSize.font(.callout))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(LintelBrand.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
                 ForEach(accessories.indices, id: \.self) { accessories[$0] }
             }

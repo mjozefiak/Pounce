@@ -66,6 +66,7 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 | 6 | 6.3c-fix-a | Review fix (after the gate commits): Use Downloaded Model reachable in Models, Try it on an example reachable | dispatch:standard | done | 7580666 |
 | 6 | 6.3c-fix-b | Review fix: ReleaseGateTests assert the needles exist, AGENTS.md package row | dispatch:standard | done | 8cdf2c9 |
 | 6 | 6.3c-fix-c | Test fix: no test may show a real recording HUD or hang | dispatch:capable | done | 0ac3d53 |
+| 6 | 6.6a | Owner fix: the prototype's warm neutral palette (LintelBrand window, sidebar, card, secondary text, hairline, fill, window tint) in the main window, Settings, welcome and plugin panes | dispatch | done | this commit (`fix(ui): use the prototype's warm neutral palette`) |
 
 Step 6.2 (⌃X confirmation) is NOT in this table: it is a separate PR on a fresh branch from main, done after this PR is complete.
 

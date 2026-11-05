@@ -334,6 +334,8 @@ final class OnboardingController: NSObject, NSWindowDelegate {
         window.styleMask = [.titled, .closable, .fullSizeContentView]
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
+        // The prototype's `--win` (also under the transparent title bar).
+        window.backgroundColor = LintelBrand.windowBackgroundColor
         window.title = String(localized: "Welcome to Lintel", comment: "Onboarding window title")
         window.isReleasedWhenClosed = false
         window.delegate = self
@@ -381,7 +383,7 @@ struct ShortcutStepContent: View {
             }
             Text("You can change it later in Settings → General.", comment: "Onboarding hint")
                 .font(.callout)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(LintelBrand.secondaryText)
         }
     }
 }
@@ -410,7 +412,7 @@ struct WelcomeColumnView: View {
                         .padding(.bottom, 4)
                     if let text = Self.text(for: page, shortcut: hotkeys.mainShortcut?.displayString) {
                         Text(text)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(LintelBrand.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     pageContent(page)
@@ -423,7 +425,8 @@ struct WelcomeColumnView: View {
                 .accessibilityElement(children: .contain)
                 .accessibilityLabel(flow.positionDescription)
             }
-            Divider()
+            // The prototype's footer border (`--hair`).
+            LintelDivider()
             WelcomeColumnFooter(flow: flow, openMainWindow: openMainWindow)
         }
         .frame(width: Self.width)
@@ -524,7 +527,7 @@ struct WelcomeColumnFooter: View {
     private func secondaryLabel(_ text: Text) -> some View {
         text
             .fontWeight(.semibold)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(LintelBrand.secondaryText)
             .padding(.horizontal, 12)
             .padding(.vertical, 5)
             .contentShape(Rectangle())

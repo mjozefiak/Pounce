@@ -2,8 +2,8 @@ import SwiftUI
 
 /// The template of a plugin settings pane (spec `2026-11-04-lintel-main-window`, UI/UX): Basics on top, an
 /// Advanced `DisclosureGroup` and a Data section. It has no banner slot: the host draws the one `StatusBanner`
-/// above the pane. Text sizes come from `lintelTextSize`, colours from `LintelBrand`, and the form uses system
-/// fills (no glass).
+/// above the pane. Text sizes come from `lintelTextSize`, colours from `LintelBrand`, and the form sits on the
+/// prototype's warm neutrals (`windowBackground`, `card`; no glass).
 public struct SettingsPane<Basics: View, Advanced: View, Data: View>: View {
     private let basics: Basics
     private let advanced: Advanced?
@@ -59,7 +59,30 @@ public struct SettingsPane<Basics: View, Advanced: View, Data: View>: View {
             }
         }
         .formStyle(.grouped)
+        .lintelFormSurfaces()
     }
+}
+
+/// The prototype's neutrals on a grouped form: the pane's `windowBackground` shows through instead of the
+/// system's form fill, text is `ink` over `secondaryText` (prototype `--ink`, `--sec`: values, help lines), and the
+/// row separators, which the grouped style draws in the tertiary level, are the `hairline`.
+///
+/// Documented exception: macOS draws the grouped sections' own fill and ignores `listRowBackground`,
+/// `backgroundStyle` and the foreground levels for it, so the cards are that system fill over `windowBackground`
+/// (close to `--card` in the dark appearance, a warm off-white in the light one) and carry no border.
+public struct LintelFormSurfaces: ViewModifier {
+    public init() {}
+
+    public func body(content: Content) -> some View {
+        content
+            .scrollContentBackground(.hidden)
+            .foregroundStyle(LintelBrand.ink, LintelBrand.secondaryText, LintelBrand.hairline)
+    }
+}
+
+extension View {
+    /// The warm neutral surfaces of a grouped settings form (`LintelFormSurfaces`).
+    public func lintelFormSurfaces() -> some View { modifier(LintelFormSurfaces()) }
 }
 
 extension SettingsPane where Advanced == EmptyView, Data == EmptyView {
@@ -98,7 +121,7 @@ public struct SettingsFooter: View {
     public var body: some View {
         Text(text)
             .font(textSize.font(.callout))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(LintelBrand.secondaryText)
             .fixedSize(horizontal: false, vertical: true)
     }
 }
@@ -113,7 +136,7 @@ public struct SettingsSectionHeaderStyle: ViewModifier {
     public func body(content: Content) -> some View {
         content
             .font(textSize.font(.subheadline, weight: .semibold))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(LintelBrand.secondaryText)
             .accessibilityAddTraits(.isHeader)
     }
 }
@@ -161,7 +184,7 @@ public struct SettingsDisclosureSection<Content: View, Label: View, Footer: View
                         .accessibilityHidden(true)
                     label.font(textSize.font(.callout, weight: .semibold))
                 }
-                .foregroundStyle(.secondary)
+                .foregroundStyle(LintelBrand.secondaryText)
                 .contentShape(Rectangle())
                 // Collapsed, the line stands alone: keep the prototype's gap to the next section's header.
                 .padding(.bottom, isExpanded ? 0 : Self.collapsedGap)

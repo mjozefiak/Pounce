@@ -45,7 +45,7 @@ public struct ModelChoiceRow: View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             Text(Self.summary(title: title, state: state))
                 .font(textSize.font(.callout))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(LintelBrand.secondaryText)
             Button(action: open) {
                 Text(Self.actionTitle(for: state))
                     .font(textSize.font(.callout))

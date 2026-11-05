@@ -202,7 +202,8 @@ struct SettingsHost: View {
         let entry = entries.first { $0.id == selection } ?? entries.first
         HStack(spacing: 0) {
             SettingsSidebar(sections: model.sections, selection: selection, onSelect: onSelect, onBack: onBack)
-            Divider()
+            // The prototype's `.side` border: one hairline, not the system separator.
+            LintelDivider(axis: .vertical)
             VStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 0) {
                     if let title = model.title(of: selection) {
@@ -228,6 +229,8 @@ struct SettingsHost: View {
                 }
             }
         }
+        // The prototype's `--win` behind the pane and its cards.
+        .background(LintelBrand.windowBackground)
         // The window's title bar is transparent over the content (`MainWindowController`): the sidebar runs to
         // the top under the traffic lights, as in the prototype.
         .ignoresSafeArea(.container, edges: .top)

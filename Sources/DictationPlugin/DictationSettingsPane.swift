@@ -243,7 +243,7 @@ struct DictationPaneContent: View {
         } label: {
             Text(FormattingSettingsModel.sample)
                 .font(textSize.font(.callout))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(LintelBrand.secondaryText)
         }
         switch formatting.tryState {
         case .idle: EmptyView()
@@ -348,7 +348,7 @@ struct DictationPaneContent: View {
     private func label(_ title: Text, help: Text) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             title.font(textSize.font(.body))
-            help.font(textSize.font(.callout)).foregroundStyle(.secondary)
+            help.font(textSize.font(.callout)).foregroundStyle(LintelBrand.secondaryText)
         }
     }
 }

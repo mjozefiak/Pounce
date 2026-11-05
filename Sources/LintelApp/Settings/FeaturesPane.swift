@@ -198,7 +198,7 @@ struct FeatureSwitchRow: View {
                 if let detail = Self.detail(for: state) {
                     Text(verbatim: detail)
                         .font(textSize.font(.callout))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(LintelBrand.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -225,12 +225,12 @@ struct AlwaysOnChip: View {
     var body: some View {
         Text("Always on", comment: "Settings → Features: chip of a feature that cannot be turned off")
             .font(textSize.font(.caption1))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(LintelBrand.secondaryText)
             .lineLimit(1)
             .fixedSize()
             .padding(.horizontal, 7)
             .padding(.vertical, 1)
-            .background(Capsule().fill(.quaternary))
+            .background(Capsule().fill(LintelBrand.fill))
     }
 }
 
@@ -358,7 +358,7 @@ struct ResultOrderRow: View {
             .opacity(isHovered || focusedButton != nil ? 1 : 0)
             Image(systemName: "line.3.horizontal")
                 .font(textSize.font(.body))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(LintelBrand.secondaryText)
                 .accessibilityHidden(true)
         }
         .contentShape(Rectangle())
@@ -411,7 +411,7 @@ struct ResultOrderRow: View {
             .labelStyle(.iconOnly)
         }
         .buttonStyle(.borderless)
-        .foregroundStyle(.secondary)
+        .foregroundStyle(LintelBrand.secondaryText)
         .disabled(!enabled)
         .focused($focusedButton, equals: button)
         .help(

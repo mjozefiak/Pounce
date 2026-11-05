@@ -179,7 +179,7 @@ struct AdvancedPaneContent: View {
                             .accessibilityHidden(true)
                     }
                     .font(textSize.font(.callout))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(LintelBrand.secondaryText)
                 }
             }
         }
@@ -196,7 +196,7 @@ struct AdvancedPaneContent: View {
                 if let detail {
                     detail
                         .font(textSize.font(.callout))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(LintelBrand.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }

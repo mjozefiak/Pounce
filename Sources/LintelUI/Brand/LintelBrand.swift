@@ -18,7 +18,7 @@ public nonisolated enum BrandPalette {
     /// `brand.accent.secondary`: the mark's ring and titles on brand pages.
     public static let inkLight: UInt32 = 0x191610
     public static let inkDark: UInt32 = 0xF1EEE9
-    /// Brand surfaces (landing page, About art). App windows keep the system fills.
+    /// Brand surfaces (landing page, About art). The main window uses the warm neutrals below.
     public static let surfaceLight: UInt32 = 0xF6F3ED
     public static let surfaceDark: UInt32 = 0x161310
     /// `status.ok`, `status.attention`, `status.error`: the status icons and dots of the main window (the
@@ -33,6 +33,34 @@ public nonisolated enum BrandPalette {
     /// theme, the dark brand surface in the dark one. Graphics (3:1 against every status fill).
     public static let onStatusLight: UInt32 = 0xFFFFFF
     public static let onStatusDark: UInt32 = 0x161310
+
+    // The warm neutrals of the main window and Settings: `.ai/prototypes/lintel-app/index.html`, `.light` and
+    // `.dark` (`--win`, `--side`, `--card`, `--sec`, `--hair`, `--fill`, `--tint`). The launcher panel keeps its
+    // glass and does not use them.
+
+    /// `--win`: the window and the pane behind the cards.
+    public static let windowLight: UInt32 = 0xF6F4F0
+    public static let windowDark: UInt32 = 0x1C1915
+    /// `--side`: the Settings sidebar.
+    public static let sidebarLight: UInt32 = 0xE7E4DE
+    public static let sidebarDark: UInt32 = 0x141210
+    /// `--card`: cards, the status banner, grouped form sections and secondary buttons.
+    public static let cardLight: UInt32 = 0xFFFFFF
+    public static let cardDark: UInt32 = 0x26221E
+    /// `--sec`: secondary text and icons.
+    public static let secondaryTextLight: UInt32 = 0x6B645A
+    public static let secondaryTextDark: UInt32 = 0xA39B8F
+    /// `--hair`: hairlines, borders and dividers (`rgb` at `hairlineAlpha`).
+    public static let hairlineLight: UInt32 = 0x191610
+    public static let hairlineDark: UInt32 = 0xFFFFFF
+    public static let hairlineAlpha: (light: Double, dark: Double) = (0.11, 0.11)
+    /// `--fill`: chips, key caps, the search field and icon wells (`rgb` at `fillAlpha`).
+    public static let fillLight: UInt32 = 0x191610
+    public static let fillDark: UInt32 = 0xFFFFFF
+    public static let fillAlpha: (light: Double, dark: Double) = (0.06, 0.08)
+    /// `--tint`: the selected row of the main window (the accent at `windowSelectionTintAlpha`). The launcher's
+    /// `LintelBrand.selectionTintAlpha` comes from the brand prototype and stays as it is.
+    public static let windowSelectionTintAlpha: (light: Double, dark: Double) = (0.14, 0.20)
 
     /// WCAG 2.x contrast ratio between two opaque sRGB colours.
     public static func contrast(_ first: UInt32, _ second: UInt32) -> Double {
@@ -96,8 +124,40 @@ public enum LintelBrand {
     public static let onStatusColor = dynamic("LintelOnStatus", BrandPalette.onStatusLight, BrandPalette.onStatusDark)
     public static let onStatus = Color(nsColor: onStatusColor)
 
+    // The warm neutrals of the main window and Settings (`BrandPalette.window…` and on).
+    public static let windowBackgroundColor = dynamic(
+        "LintelWindowBackground", BrandPalette.windowLight, BrandPalette.windowDark)
+    public static let sidebarBackgroundColor = dynamic(
+        "LintelSidebarBackground", BrandPalette.sidebarLight, BrandPalette.sidebarDark)
+    public static let cardColor = dynamic("LintelCard", BrandPalette.cardLight, BrandPalette.cardDark)
+    public static let secondaryTextColor = dynamic(
+        "LintelSecondaryText", BrandPalette.secondaryTextLight, BrandPalette.secondaryTextDark)
+    public static let hairlineColor = dynamic(
+        "LintelHairline", BrandPalette.hairlineLight, BrandPalette.hairlineDark, alpha: BrandPalette.hairlineAlpha)
+    public static let fillColor = dynamic(
+        "LintelFill", BrandPalette.fillLight, BrandPalette.fillDark, alpha: BrandPalette.fillAlpha)
+    public static let windowSelectionTintColor = dynamic(
+        "LintelWindowSelectionTint", BrandPalette.accentLight, BrandPalette.accentDark,
+        alpha: BrandPalette.windowSelectionTintAlpha)
+
+    public static let windowBackground = Color(nsColor: windowBackgroundColor)
+    public static let sidebarBackground = Color(nsColor: sidebarBackgroundColor)
+    public static let card = Color(nsColor: cardColor)
+    public static let secondaryText = Color(nsColor: secondaryTextColor)
+    public static let hairline = Color(nsColor: hairlineColor)
+    public static let fill = Color(nsColor: fillColor)
+    public static let windowSelectionTint = Color(nsColor: windowSelectionTintColor)
+
     nonisolated private static func dynamic(_ name: String, _ light: UInt32, _ dark: UInt32) -> NSColor {
         NSColor(name: name) { appearance in color(isDark(appearance) ? dark : light) }
+    }
+
+    nonisolated private static func dynamic(
+        _ name: String, _ light: UInt32, _ dark: UInt32, alpha: (light: Double, dark: Double)
+    ) -> NSColor {
+        NSColor(name: name) { appearance in
+            isDark(appearance) ? color(dark, alpha: alpha.dark) : color(light, alpha: alpha.light)
+        }
     }
 
     nonisolated private static func isDark(_ appearance: NSAppearance) -> Bool {

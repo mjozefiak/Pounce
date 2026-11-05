@@ -17,7 +17,7 @@ struct ModelsPane: View {
     private func footerText(_ text: String) -> some View {
         Text(verbatim: text)
             .font(textSize.font(.callout))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(LintelBrand.secondaryText)
             .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -64,7 +64,7 @@ struct ModelsPane: View {
                                 .font(textSize.font(.body))
                             Text(verbatim: model.storageDetail)
                                 .font(textSize.font(.callout))
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(LintelBrand.secondaryText)
                         }
                     }
                 } label: {

@@ -57,13 +57,13 @@ public struct ConfirmSheet: View {
                 .fixedSize(horizontal: false, vertical: true)
             Text(detail)
                 .font(textSize.font(.callout))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(LintelBrand.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
             if let option {
                 if let explanation = option.explanation {
                     Text(explanation)
                         .font(textSize.font(.callout))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(LintelBrand.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Toggle(isOn: $optionIsOn) {

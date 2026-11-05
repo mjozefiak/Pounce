@@ -241,6 +241,8 @@ final class MainWindowController {
         let window = ShellWindow(contentViewController: hosting)
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
         window.title = "Lintel"
+        // The prototype's `--win` wherever the content does not draw (Workspace mode's title bar, live resize).
+        window.backgroundColor = LintelBrand.windowBackgroundColor
         window.isReleasedWhenClosed = false
         window.contentMinSize = Self.minimumSize
         // Before the size: in Settings mode the content runs under the title bar, so the default size is the

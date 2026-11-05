@@ -16,7 +16,7 @@ struct SpeechModelCard: View {
             } label: {
                 Text(model.package.title).font(.headline)
             }
-            Text(model.package.attribution).font(.caption).foregroundStyle(.secondary)
+            Text(model.package.attribution).font(.caption).foregroundStyle(LintelBrand.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
             statusRow
             if let progress = model.progress {
@@ -235,7 +235,7 @@ struct DictationHistoryEmptyView: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            Image(systemName: "clock.arrow.circlepath").font(.largeTitle).foregroundStyle(.secondary)
+            Image(systemName: "clock.arrow.circlepath").font(.largeTitle).foregroundStyle(LintelBrand.secondaryText)
             Text(
                 history.status == .closed
                     ? String(
@@ -244,7 +244,7 @@ struct DictationHistoryEmptyView: View {
                     : String(
                         localized: "No dictations yet.", comment: "Dictation history empty state")
             )
-            .foregroundStyle(.secondary)
+            .foregroundStyle(LintelBrand.secondaryText)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

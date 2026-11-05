@@ -1,4 +1,5 @@
 import LintelKit
+import LintelUI
 import SwiftUI
 
 /// The Full Disk Access step, shown before the first scan (spec: Onboarding, Faza 3). Leaving it
@@ -43,7 +44,7 @@ struct FilesOnboardingView: View {
                 comment: "File search onboarding note"
             )
             .font(.callout)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(LintelBrand.secondaryText)
             .fixedSize(horizontal: false, vertical: true)
         }
         .onAppear { model.checkAccess() }
@@ -69,7 +70,7 @@ struct AccessStatusLabel: View {
                 Text("Full Disk Access is not allowed.", comment: "Full Disk Access status")
             } icon: {
                 Image(systemName: "xmark.circle")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(LintelBrand.secondaryText)
                     .accessibilityHidden(true)
             }
         }
@@ -154,7 +155,7 @@ struct ProtectedFolderRow: View {
                         }
                     }
                     .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(LintelBrand.secondaryText)
                 }
             } icon: {
                 Image(systemName: folder == .iCloudDrive ? "icloud" : "folder")

@@ -23,7 +23,7 @@ struct StatusBanner: View {
                     if let detail = banner.detail {
                         Text(verbatim: detail)
                             .font(textSize.font(.callout))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(LintelBrand.secondaryText)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -56,9 +56,9 @@ struct StatusBanner: View {
     static let verticalPadding: CGFloat = 13
     /// The filled circle behind the glyph at Medium (prototype `.bn .g`, 1.9 em of 13 pt).
     static let glyphDiameter: CGFloat = 25
-    /// The same system fill as the grouped form's cards, so the banner reads as one of them.
-    static let cardFill = Color(nsColor: .quaternarySystemFill)
-    static let hairline = Color(nsColor: .separatorColor)
+    /// The prototype's `--card` with a `--hair` border, like the grouped form's cards.
+    static let cardFill = LintelBrand.card
+    static let hairline = LintelBrand.hairline
 
     /// The level's colour as a filled circle with the glyph cut out in `onStatus`.
     static func glyph(_ level: SettingsStatus.Level, textSize: TextSize) -> some View {
@@ -110,8 +110,8 @@ struct StatusBanner: View {
         case .ok: LintelBrand.statusOk
         case .attention: LintelBrand.statusAttention
         case .error: LintelBrand.statusError
-        // No brand token for neutral: the system's secondary label colour.
-        case .neutral: Color(nsColor: .secondaryLabelColor)
+        // The prototype's `.bn .g` default: `--sec`.
+        case .neutral: LintelBrand.secondaryText
         }
     }
 }

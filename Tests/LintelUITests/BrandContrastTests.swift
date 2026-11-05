@@ -69,46 +69,42 @@ import Testing
     }
 }
 
-/// The main window's Settings sidebar (prototype `.si.on`): the selected row is `selectionTint` over the window
-/// fill, its label and icon `accentText`.
+/// The main window's Settings sidebar (prototype `.si.on`): the selected row is `windowSelectionTint` over the
+/// sidebar fill (`--side`), its label and icon `accentText`.
 @Suite struct SettingsSidebarContrastTests {
-    /// The sidebar sits on the window fill: `windowBackgroundColor` as the system resolves it, and the fill the
-    /// QA captures measured (macOS 26 tints the dark one with the desktop picture).
-    @MainActor
-    @Test func theSelectedRowLabelIsReadableInBothAppearances() throws {
-        let cases: [(NSAppearance.Name, [UInt32], UInt32, UInt32, Double)] = [
+    @Test func theSelectedRowLabelIsReadableInBothAppearances() {
+        let cases: [(String, UInt32, UInt32, UInt32, Double)] = [
             (
-                .aqua, [0xFFFFFF], BrandPalette.accentLight, BrandPalette.accentTextLight,
-                LintelBrand.selectionTintAlpha.light
+                "light", BrandPalette.sidebarLight, BrandPalette.accentLight, BrandPalette.accentTextLight,
+                BrandPalette.windowSelectionTintAlpha.light
             ),
             (
-                .darkAqua, [0x1E222D], BrandPalette.accentDark, BrandPalette.accentTextDark,
-                LintelBrand.selectionTintAlpha.dark
+                "dark", BrandPalette.sidebarDark, BrandPalette.accentDark, BrandPalette.accentTextDark,
+                BrandPalette.windowSelectionTintAlpha.dark
             ),
         ]
-        for (name, captured, accent, text, alpha) in cases {
-            let appearance = try #require(NSAppearance(named: name))
-            var window: UInt32 = 0
-            appearance.performAsCurrentDrawingAppearance {
-                guard let colour = NSColor.windowBackgroundColor.usingColorSpace(.sRGB) else { return }
-                func byte(_ value: CGFloat) -> UInt32 { UInt32((max(0, min(1, value)) * 255).rounded()) }
-                window = byte(colour.redComponent) << 16 | byte(colour.greenComponent) << 8 | byte(colour.blueComponent)
-            }
-            for background in captured + [window] {
-                let row = BrandPalette.blend(accent, alpha: alpha, over: background)
-                #expect(BrandPalette.contrast(text, row) >= 4.5, "\(name.rawValue) on \(String(background, radix: 16))")
-                // The selected row's icon and the accent as a graphic.
-                #expect(BrandPalette.contrast(accent, row) >= 3, "\(name.rawValue) icon")
-            }
+        for (name, sidebar, accent, text, alpha) in cases {
+            let row = BrandPalette.blend(accent, alpha: alpha, over: sidebar)
+            #expect(BrandPalette.contrast(text, row) >= 4.5, "\(name) label")
+            // The selected row's icon and the accent as a graphic.
+            #expect(BrandPalette.contrast(accent, row) >= 3, "\(name) icon")
         }
+    }
+
+    /// Unselected labels are `ink` and group labels, icons and "Off" are `secondaryText` on the sidebar fill.
+    @Test func theSidebarTextIsReadable() {
+        #expect(BrandPalette.contrast(BrandPalette.inkLight, BrandPalette.sidebarLight) >= 7)
+        #expect(BrandPalette.contrast(BrandPalette.inkDark, BrandPalette.sidebarDark) >= 7)
+        #expect(BrandPalette.contrast(BrandPalette.secondaryTextLight, BrandPalette.sidebarLight) >= 4.5)
+        #expect(BrandPalette.contrast(BrandPalette.secondaryTextDark, BrandPalette.sidebarDark) >= 4.5)
     }
 }
 
 @Suite struct StatusBannerContrastTests {
-    // The banner is a card like the grouped form's sections (`quaternarySystemFill` over the window): the
-    // captured fills of the main window, light and dark, plus the classic window fills.
-    private let lightCards: [UInt32] = [0xF8F8F8, 0xFFFFFF, 0xECECEC]
-    private let darkCards: [UInt32] = [0x242833, 0x1E222D, 0x323232]
+    // The banner is the prototype's `.bn`: `--card` over `--win`. The grouped form's sections (the system fill
+    // over `--win`, captured) are listed too, since the status colours appear there as well.
+    private let lightCards: [UInt32] = [BrandPalette.cardLight, BrandPalette.windowLight, 0xF2F1ED]
+    private let darkCards: [UInt32] = [BrandPalette.cardDark, BrandPalette.windowDark, 0x2F2B25]
     private let pairs: [(name: String, light: UInt32, dark: UInt32)] = [
         ("ok", BrandPalette.statusOkLight, BrandPalette.statusOkDark),
         ("attention", BrandPalette.statusAttentionLight, BrandPalette.statusAttentionDark),
@@ -135,28 +131,19 @@ import Testing
         }
     }
 
-    /// The neutral circle has no brand token: it is `secondaryLabelColor` (itself translucent) over the card,
-    /// with the `onStatus` glyph. Both keep 3:1 in both appearances.
-    @MainActor
-    @Test func theNeutralCircleAndItsGlyphHaveThreeToOne() throws {
-        let cases: [(NSAppearance.Name, UInt32, UInt32)] = [
-            (.aqua, 0xF8F8F8, BrandPalette.onStatusLight), (.darkAqua, 0x242833, BrandPalette.onStatusDark),
-        ]
-        for (name, card, glyph) in cases {
-            let appearance = try #require(NSAppearance(named: name))
-            var rgb: UInt32 = 0
-            var alpha = 0.0
-            appearance.performAsCurrentDrawingAppearance {
-                guard let colour = NSColor.secondaryLabelColor.usingColorSpace(.sRGB) else { return }
-                func byte(_ value: CGFloat) -> UInt32 { UInt32((max(0, min(1, value)) * 255).rounded()) }
-                rgb = byte(colour.redComponent) << 16 | byte(colour.greenComponent) << 8 | byte(colour.blueComponent)
-                alpha = Double(colour.alphaComponent)
-            }
-            #expect(alpha > 0, "\(name.rawValue): secondaryLabelColor resolves")
-            let circle = BrandPalette.blend(rgb, alpha: alpha, over: card)
-            #expect(BrandPalette.contrast(circle, card) >= 3, "status.neutral \(name.rawValue) circle")
-            #expect(BrandPalette.contrast(glyph, circle) >= 3, "status.neutral \(name.rawValue) glyph")
-        }
+    /// The neutral circle is `secondaryText` (prototype `.bn .g`, `--sec`) with the `onStatus` glyph: 3:1 for
+    /// the circle on the card and for the glyph on the circle, in both appearances.
+    @Test func theNeutralCircleAndItsGlyphHaveThreeToOne() {
+        #expect(BrandPalette.contrast(BrandPalette.secondaryTextLight, BrandPalette.cardLight) >= 3)
+        #expect(BrandPalette.contrast(BrandPalette.secondaryTextDark, BrandPalette.cardDark) >= 3)
+        #expect(BrandPalette.contrast(BrandPalette.onStatusLight, BrandPalette.secondaryTextLight) >= 3)
+        #expect(BrandPalette.contrast(BrandPalette.onStatusDark, BrandPalette.secondaryTextDark) >= 3)
+    }
+
+    /// The banner's detail line is `secondaryText` on `--card`.
+    @Test func theDetailTextIsReadableOnTheCard() {
+        #expect(BrandPalette.contrast(BrandPalette.secondaryTextLight, BrandPalette.cardLight) >= 4.5)
+        #expect(BrandPalette.contrast(BrandPalette.secondaryTextDark, BrandPalette.cardDark) >= 4.5)
     }
 
     @Test func theGlyphTokensKeepTheirValues() {

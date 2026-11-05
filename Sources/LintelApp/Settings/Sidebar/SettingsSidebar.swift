@@ -4,7 +4,8 @@ import SwiftUI
 
 /// The Settings sidebar of the main window (prototype `.side`): inset rounded rows in the five groups of
 /// `SettingsSidebarModel`, no sidebar material and no glass in Settings. The selected row is tinted with
-/// `selectionTint` and its label and icon are in `accentText`; other icons are secondary. Disabled plugins stay in
+/// `windowSelectionTint` and its label and icon are in `accentText`; other icons are `secondaryText`. The sidebar
+/// fill is `sidebarBackground` (prototype `--side`). Disabled plugins stay in
 /// place, dimmed and spoken as "Off"; a pane that needs attention carries a dot whose meaning is in the row's
 /// accessibility label. The arrow keys move the selection in `SettingsSidebarModel.focusOrder`.
 struct SettingsSidebar: View {
@@ -51,7 +52,7 @@ struct SettingsSidebar: View {
                     if section.showsTitle {
                         Text(section.title)
                             .font(textSize.font(.subheadline, weight: .semibold))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(LintelBrand.secondaryText)
                             .padding(Self.groupLabelInsets)
                             .accessibilityAddTraits(.isHeader)
                     } else {
@@ -65,6 +66,8 @@ struct SettingsSidebar: View {
         }
         .scrollIndicators(.never)
         .frame(width: (Self.width * min(textSize.scale, 1.15)).rounded())
+        .frame(maxHeight: .infinity)
+        .background(LintelBrand.sidebarBackground)
         .focusable()
         .focused($isFocused)
         .focusEffectDisabled()
@@ -97,7 +100,7 @@ struct SettingsSidebar: View {
             if !item.isActive {
                 Text(String(localized: "settings.sidebar.off", defaultValue: "Off", comment: "Feature state"))
                     .font(textSize.font(.caption1))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(LintelBrand.secondaryText)
             } else if let level = item.attention {
                 Circle()
                     .fill(level == .error ? LintelBrand.statusError : LintelBrand.statusAttention)
@@ -117,7 +120,9 @@ struct SettingsSidebar: View {
             HStack(spacing: 8) {
                 Image(systemName: symbol)
                     .font(textSize.font(.body))
-                    .foregroundStyle(isSelected ? AnyShapeStyle(LintelBrand.accentText) : AnyShapeStyle(.secondary))
+                    .foregroundStyle(
+                        isSelected ? AnyShapeStyle(LintelBrand.accentText) : AnyShapeStyle(LintelBrand.secondaryText)
+                    )
                     .frame(width: (16 * textSize.scale).rounded())
                     .accessibilityHidden(true)
                 Text(verbatim: title)
@@ -125,7 +130,7 @@ struct SettingsSidebar: View {
                     .foregroundStyle(
                         isSelected
                             ? AnyShapeStyle(LintelBrand.accentText)
-                            : isActive ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary)
+                            : isActive ? AnyShapeStyle(LintelBrand.ink) : AnyShapeStyle(LintelBrand.secondaryText)
                     )
                     .lineLimit(1)
                 Spacer(minLength: 4)
@@ -134,7 +139,7 @@ struct SettingsSidebar: View {
             .padding(Self.rowPadding)
             .frame(maxWidth: .infinity, minHeight: (Self.rowHeight * textSize.scale).rounded(), alignment: .leading)
             .background(
-                isSelected ? LintelBrand.selectionTint : Color.clear,
+                isSelected ? LintelBrand.windowSelectionTint : Color.clear,
                 in: RoundedRectangle(cornerRadius: Self.rowCornerRadius)
             )
             .contentShape(Rectangle())

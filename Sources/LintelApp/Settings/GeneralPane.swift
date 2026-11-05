@@ -43,7 +43,7 @@ struct GeneralPaneContent: View {
                     if let launchError {
                         Text(launchError)
                             .font(textSize.font(.callout))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(LintelBrand.secondaryText)
                     }
                 }
                 .toggleStyle(.switch)
@@ -52,7 +52,7 @@ struct GeneralPaneContent: View {
                         .font(textSize.font(.body))
                     Text("The Dock icon opens this window.", comment: "Settings → General: help under the Dock switch")
                         .font(textSize.font(.callout))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(LintelBrand.secondaryText)
                 }
                 .toggleStyle(.switch)
                 Picker(selection: $settings.textSize) {

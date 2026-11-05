@@ -36,7 +36,7 @@ struct SystemAudioTestRows: View {
                         "Not available while a meeting is being recorded or processed.",
                         comment: "Meetings: why the system audio test is switched off during a meeting"
                     )
-                    .font(.callout).foregroundStyle(.secondary)
+                    .font(.callout).foregroundStyle(LintelBrand.secondaryText)
                 }
                 if let outcome = test.lastOutcome {
                     verdict(outcome)
@@ -46,7 +46,7 @@ struct SystemAudioTestRows: View {
                     "Lintel will play a short tone through your speakers and check that it can hear it. macOS may ask you to allow System Audio Recording first. Lower the volume if you like.",
                     comment: "Meetings: explanation before the system audio test plays its signal"
                 )
-                .font(.callout).foregroundStyle(.secondary)
+                .font(.callout).foregroundStyle(LintelBrand.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
                 HStack {
                     Button {
@@ -132,10 +132,10 @@ struct MeetingsModelCard: View {
             } label: {
                 Text(card.package.title).font(.headline)
             }
-            Text(card.package.attribution).font(.caption).foregroundStyle(.secondary)
+            Text(card.package.attribution).font(.caption).foregroundStyle(LintelBrand.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
             Text("Size: \(size)", comment: "Meetings model card: download size")
-                .font(.callout).foregroundStyle(.secondary)
+                .font(.callout).foregroundStyle(LintelBrand.secondaryText)
             statusRow
             if let progress = card.progress {
                 ProgressView(value: progress.fraction) {
@@ -250,7 +250,7 @@ struct MeetingsModelCard: View {
         }
         if card.isInUse, case .installed = card.location {
             Text(MeetingsModelMessages.inUse)
-                .font(.callout).foregroundStyle(.secondary)
+                .font(.callout).foregroundStyle(LintelBrand.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
         }
         if card.isVerifying {

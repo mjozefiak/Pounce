@@ -284,7 +284,7 @@ struct PermissionsPane: View {
             comment: "Settings → Permissions when no enabled feature needs a permission"
         )
         .font(textSize.font(.body))
-        .foregroundStyle(.secondary)
+        .foregroundStyle(LintelBrand.secondaryText)
     }
 
     private var checkAgain: some View {

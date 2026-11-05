@@ -27,7 +27,7 @@ struct ModelRow: View {
                 if let license = row.model.license {
                     Text(verbatim: license)
                         .font(textSize.font(.callout))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(LintelBrand.secondaryText)
                 }
             }
             HStack(spacing: 6) {
@@ -35,10 +35,10 @@ struct ModelRow: View {
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(Text(verbatim: row.usedByText ?? ""))
                 if !row.usedBy.isEmpty {
-                    Text(verbatim: "·").foregroundStyle(.secondary)
+                    Text(verbatim: "·").foregroundStyle(LintelBrand.secondaryText)
                 }
                 Text(verbatim: size)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(LintelBrand.secondaryText)
             }
             .font(textSize.font(.callout))
             if let progress = row.progress {
@@ -58,7 +58,9 @@ struct ModelRow: View {
     private var state: some View {
         Text(verbatim: row.stateText)
             .font(textSize.font(.callout))
-            .foregroundStyle(row.isInstalled ? AnyShapeStyle(LintelBrand.statusOk) : AnyShapeStyle(.secondary))
+            .foregroundStyle(
+                row.isInstalled ? AnyShapeStyle(LintelBrand.statusOk) : AnyShapeStyle(LintelBrand.secondaryText)
+            )
             .lineLimit(1)
             .fixedSize()
     }
@@ -105,7 +107,7 @@ struct ModelRowChip: View {
             .font(textSize.font(.caption1))
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
-            .background(.quaternary, in: Capsule())
+            .background(LintelBrand.fill, in: Capsule())
             .opacity(usedBy.isEnabled ? 1 : 0.6)
             .help(Text(verbatim: usedBy.role))
     }

@@ -49,7 +49,7 @@ struct FilesPaneContent: View {
                         .font(textSize.font(.body))
                     rootsSummary
                         .font(textSize.font(.callout))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(LintelBrand.secondaryText)
                         .lineLimit(2)
                         .truncationMode(.middle)
                 }
@@ -62,7 +62,7 @@ struct FilesPaneContent: View {
                             comment: "Settings → Files: help under Include iCloud Drive without Full Disk Access"
                         )
                         .font(textSize.font(.callout))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(LintelBrand.secondaryText)
                     }
                 }
                 .toggleStyle(.switch)
@@ -98,7 +98,7 @@ struct FilesPaneContent: View {
                     .font(textSize.font(.body))
                 indexDetail
                     .font(textSize.font(.callout))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(LintelBrand.secondaryText)
                     .monospacedDigit()
             }
         }
@@ -190,7 +190,7 @@ struct SearchedRootsRows: View {
                 } icon: {
                     Image(systemName: "folder")
                         .font(textSize.font(.callout))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(LintelBrand.secondaryText)
                         .accessibilityHidden(true)
                 }
             }
@@ -250,7 +250,7 @@ struct ProtectedFoldersRows: View {
                     }
                 }
                 .font(textSize.font(.callout))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(LintelBrand.secondaryText)
             }
         }
     }

@@ -102,7 +102,7 @@ struct MeetingsPaneContent: View {
             } else {
                 Text("Not available yet", comment: "Meetings settings: the shortcut row without a command")
                     .font(textSize.font(.body))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(LintelBrand.secondaryText)
             }
         } label: {
             label(
@@ -315,14 +315,14 @@ struct MeetingsPaneContent: View {
         } label: {
             Text(app.name).font(textSize.font(.body))
             if app.name != app.id {
-                Text(verbatim: app.id).font(textSize.font(.callout)).foregroundStyle(.secondary)
+                Text(verbatim: app.id).font(textSize.font(.callout)).foregroundStyle(LintelBrand.secondaryText)
             }
         }
         .accessibilityElement(children: .combine)
     }
 
     private func secondary(_ text: Text) -> some View {
-        text.font(textSize.font(.callout)).foregroundStyle(.secondary)
+        text.font(textSize.font(.callout)).foregroundStyle(LintelBrand.secondaryText)
     }
 
     // MARK: Privacy and data
@@ -368,7 +368,7 @@ struct MeetingsPaneContent: View {
         if let message = model.privacyMessage {
             Text(message)
                 .font(textSize.font(.callout))
-                .foregroundStyle(model.privacyFailed ? LintelBrand.statusError : .secondary)
+                .foregroundStyle(model.privacyFailed ? LintelBrand.statusError : LintelBrand.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -377,7 +377,7 @@ struct MeetingsPaneContent: View {
     private func label(_ title: Text, help: Text) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             title.font(textSize.font(.body))
-            help.font(textSize.font(.callout)).foregroundStyle(.secondary)
+            help.font(textSize.font(.callout)).foregroundStyle(LintelBrand.secondaryText)
         }
     }
 }
@@ -466,7 +466,8 @@ struct SystemAudioTestRow: View {
     }
 
     private func secondary(_ text: Text) -> some View {
-        text.font(textSize.font(.callout)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+        text.font(textSize.font(.callout)).foregroundStyle(LintelBrand.secondaryText).fixedSize(
+            horizontal: false, vertical: true)
     }
 
     private func button(_ title: Text, action: @escaping () -> Void) -> some View {
