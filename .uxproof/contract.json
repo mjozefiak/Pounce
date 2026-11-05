@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "framework": "swiftui-appkit",
+  "styling": {
+    "system": "swiftui-native",
+    "tokenSources": [
+      { "file": "Sources/PounceApp/Panel/TextSize.swift", "tokenCount": 4 },
+      { "file": "design", "tokenCount": 22 }
+    ]
+  },
+  "componentRoots": [
+    { "dir": "Sources/PounceApp", "fileCount": 0 },
+    { "dir": "Sources/DictationPlugin", "fileCount": 0 },
+    { "dir": "Sources/ClipboardPlugin", "fileCount": 0 },
+    { "dir": "Sources/FilesPlugin", "fileCount": 0 },
+    { "dir": "Sources/AppsPlugin", "fileCount": 0 }
+  ],
+  "nativeEquivalents": [
+    { "element": "Form(.grouped)", "component": "SettingsPane (proposed)" },
+    { "element": "LabeledContent + Button(open System Settings)", "component": "PermissionRow" },
+    { "element": "download/remove model rows", "component": "ModelRow (proposed, shared)" },
+    { "element": "colored status text", "component": "StatusBanner (proposed)" }
+  ],
+  "archetypes": [
+    { "kind": "settings-pane", "count": 7, "examples": ["Sources/PounceApp/Settings/GeneralPane.swift", "Sources/DictationPlugin/DictationViews.swift", "Sources/PounceApp/Settings/PermissionsPane.swift"],
+      "anatomy": "StatusBanner (what works / what is missing, with one Fix action) → Basics section → Advanced disclosure → Privacy/data section; footers are one short sentence",
+      "requiredStates": ["ready", "needs-setup", "error", "loading"] },
+    { "kind": "launcher-panel", "count": 1, "examples": ["Sources/PounceApp/Panel/LauncherView.swift"],
+      "anatomy": "SearchField → StatusRow → ResultList (SectionHeader, ResultRow) → ActionFooter on Liquid Glass",
+      "requiredStates": ["empty-query", "results", "no-results", "action-error"] },
+    { "kind": "welcome-flow", "count": 1, "examples": ["Sources/PounceApp/Onboarding/OnboardingController.swift"],
+      "anatomy": "WelcomePageHeader → step content → WelcomeButtons; every step has Done or Skip",
+      "requiredStates": ["pending", "done", "skipped", "permission-denied"] },
+    { "kind": "hud", "count": 2, "examples": ["Sources/DictationPlugin/DictationHUD.swift", "Sources/PounceApp/Panel/ConfirmationHUD.swift"],
+      "anatomy": "glass capsule, state glyph, one line of text, optional level meter",
+      "requiredStates": ["idle", "active", "processing", "error", "reduced-motion"] }
+  ],
+  "counts": { "tokens": 26, "colorTokens": 12, "components": 58 },
+  "notes": "Written by hand: the uxproof extractor targets web stacks and does not read Swift. Brand name, logo and brand colors are pending; tokens marked pending-brand must not be filled with invented values."
+}

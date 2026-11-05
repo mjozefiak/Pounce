@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "exemptMarker": "design-skip",
+  "rules": [
+    {"id":"no-raw-status-color","severity":"warning","files":["Sources/**/*.swift"],
+     "forbid":"foregroundStyle\\(\\.(orange|red|green|yellow|blue)\\)",
+     "fix":"use a status token (status.ok / status.attention / status.error) through StatusBanner or a Pounce style helper",
+     "why":"status colors drift between screens and break the brand palette and contrast checks"},
+    {"id":"no-hardcoded-text-style","severity":"warning","files":["Sources/**/Settings/*.swift","Sources/**/*Views.swift"],
+     "forbid":"\\.font\\(\\.(callout|caption|footnote|title3|headline)\\)",
+     "unless":"textSize\\.font",
+     "fix":"use the named text token (text.title / text.body / text.help) so TextSize scaling applies",
+     "why":"text that ignores Text Size breaks the accessibility setting"},
+    {"id":"no-long-footer","severity":"info","files":["Sources/**/*.swift"],
+     "forbid":"comment: \"[^\"]{140,}\"",
+     "fix":"one short sentence; move detail to .help or a Learn more link",
+     "why":"long explanatory text is not read"},
+    {"id":"glass-only-on-floating-surfaces","severity":"warning","files":["Sources/**/Settings/*.swift"],
+     "forbid":"glassEffect|NSGlassEffectView",
+     "fix":"settings windows use the system grouped Form; glass is for the panel and HUDs",
+     "why":"glass on top of a Form reduces contrast and looks unfinished"}
+  ]
+}
