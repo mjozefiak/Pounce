@@ -317,19 +317,19 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "Potrzebny jest %lld model"
+                  "value" : "Potrzebny %lld model"
                 }
               },
               "few" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "Potrzebne są %lld modele"
+                  "value" : "Potrzebne %lld modele"
                 }
               },
               "many" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "Potrzebnych jest %lld modeli"
+                  "value" : "Potrzebnych %lld modeli"
                 }
               },
               "other" : {
