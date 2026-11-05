@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// A confirmation for Clear and Erase in a pane: a prompt, one line of detail, an optional explanation with a
-/// checkbox, Cancel and the confirm verb. Cancel is the default button (Return and Esc both cancel), so a stray
-/// Return never deletes anything.
+/// checkbox, Cancel on the left and the filled red confirm verb on the right. Cancel is the default button
+/// (Return and Esc both cancel), so a stray Return never deletes anything.
 public struct ConfirmSheet: View {
     private let prompt: LocalizedStringResource
     private let detail: LocalizedStringResource
@@ -73,16 +73,16 @@ public struct ConfirmSheet: View {
                 .toggleStyle(.checkbox)
             }
             HStack {
-                Spacer()
-                Button(role: .destructive, action: confirmTapped) {
-                    Text(confirmTitle)
-                }
-                .buttonStyle(LintelDestructiveButtonStyle())
                 Button(action: cancelTapped) {
                     Text("Cancel", comment: "Confirmation sheet button that keeps everything as it is")
                 }
                 .buttonStyle(LintelSecondaryButtonStyle())
                 .keyboardShortcut(.defaultAction)
+                Spacer()
+                Button(role: .destructive, action: confirmTapped) {
+                    Text(confirmTitle)
+                }
+                .buttonStyle(LintelDestructiveProminentButtonStyle())
             }
         }
         // A view takes one keyboard shortcut, so Esc goes through a second, invisible Cancel button; the exit

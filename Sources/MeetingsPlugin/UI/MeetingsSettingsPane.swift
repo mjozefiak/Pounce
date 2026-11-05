@@ -140,6 +140,7 @@ struct MeetingsPaneContent: View {
             } label: {
                 Text("Speech model", comment: "Dictation settings section title")
             }
+            .lintelSecondaryTint()
             .labelsHidden()
             .pickerStyle(.menu)
             .font(textSize.font(.body))

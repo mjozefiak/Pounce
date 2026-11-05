@@ -46,8 +46,28 @@ import Testing
         let meetings = try source("Sources/MeetingsPlugin/UI/MeetingsSettingsPane.swift")
         #expect(meetings.components(separatedBy: ".lintelDestructiveButton()").count - 1 >= 2)
         let sheet = try source("Sources/LintelUI/Components/ConfirmSheet.swift")
-        #expect(sheet.contains(".buttonStyle(LintelDestructiveButtonStyle())"))
+        #expect(sheet.contains(".buttonStyle(LintelDestructiveProminentButtonStyle())"))
         #expect(sheet.contains(".keyboardShortcut(.defaultAction)"))
+        let models = try source("Sources/LintelApp/Settings/Models/ModelRow.swift")
+        #expect(models.contains(".buttonStyle(LintelDestructiveButtonStyle())"))
+    }
+
+    /// The filled confirm button: `onStatus` text on the `status.error` fill keeps 4.5:1 in both appearances.
+    @Test func theFilledDestructiveButtonIsReadable() {
+        #expect(BrandPalette.contrast(BrandPalette.onStatusLight, BrandPalette.statusErrorLight) >= 4.5)
+        #expect(BrandPalette.contrast(BrandPalette.onStatusDark, BrandPalette.statusErrorDark) >= 4.5)
+    }
+
+    /// Every plain menu picker of the main window takes the ink tint (a no-op under `.legacyWindow`).
+    @Test func plainMenuPickersTakeTheSecondaryTint() throws {
+        for (file, minimum) in [
+            ("Sources/LintelApp/Settings/GeneralPane.swift", 1),
+            ("Sources/ClipboardPlugin/ClipboardSettingsPane.swift", 2),
+            ("Sources/DictationPlugin/DictationSettingsPane.swift", 1),
+            ("Sources/MeetingsPlugin/UI/MeetingsSettingsPane.swift", 1),
+        ] {
+            #expect(try source(file).components(separatedBy: ".lintelSecondaryTint()").count - 1 >= minimum, "\(file)")
+        }
     }
 
     @Test func confirmationsSayItCannotBeUndoneTheSameWay() throws {

@@ -96,10 +96,12 @@ import Testing
         let cancel = try #require(
             sheet.range(of: "Button(action: cancelTapped) {\n                    Text(\"Cancel\""))
         let defaultAction = try #require(sheet.range(of: ".keyboardShortcut(.defaultAction)"))
-        #expect(destructive.lowerBound < cancel.lowerBound)
+        // Cancel on the left, the filled red confirm button on the right.
+        #expect(cancel.lowerBound < destructive.lowerBound)
         #expect(cancel.upperBound <= defaultAction.lowerBound)
-        let between = sheet[destructive.upperBound..<cancel.lowerBound]
-        #expect(!between.contains(".keyboardShortcut"))
+        #expect(defaultAction.upperBound <= destructive.lowerBound)
+        let after = sheet[destructive.upperBound...]
+        #expect(!after.contains(".keyboardShortcut(.defaultAction)"))
     }
 
     @Test func confirmingRunsTheActionBeforeTheSheetCloses() {

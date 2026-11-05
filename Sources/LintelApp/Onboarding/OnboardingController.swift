@@ -139,7 +139,7 @@ struct WelcomeFooter: Equatable {
             String(localized: "Use This Shortcut", comment: "Onboarding button that confirms the shortcut")
         case .done: String(localized: "Done", comment: "Onboarding button on the last step")
         case .openNotes:
-            String(localized: "Open Notes", comment: "Welcome screen: final page button that opens the main window")
+            String(localized: "Open Lintel", comment: "Settings label of the main shortcut")
         }
     }
 
@@ -722,11 +722,11 @@ struct WelcomeColumnView: View {
             if let shortcut {
                 String(
                     localized:
-                        "Open Lintel with \(shortcut). Your notes live in the Lintel window: click the Dock icon or press ⌘,.",
+                        "Open Lintel with \(shortcut). Settings and meetings are in the Lintel window: click the Dock icon or press ⌘,.",
                     comment: "Welcome screen: final page text; the argument is the main shortcut, such as ⌘Space")
             } else {
                 String(
-                    localized: "Your notes live in the Lintel window: click the Dock icon or press ⌘,.",
+                    localized: "Settings and meetings are in the Lintel window: click the Dock icon or press ⌘,.",
                     comment: "Welcome screen: final page text while no main shortcut is set")
             }
         }

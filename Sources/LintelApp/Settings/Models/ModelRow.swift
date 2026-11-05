@@ -160,6 +160,7 @@ struct ModelRowButtons: View {
             Button(action: remove) {
                 label(Text("Remove", comment: "Models pane: deletes a downloaded model"))
             }
+            .buttonStyle(LintelDestructiveButtonStyle())
             .disabled(row.isBusy)
         } else if row.model.canDownload {
             if row.isPrimaryAction {

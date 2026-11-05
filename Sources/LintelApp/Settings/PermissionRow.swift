@@ -30,27 +30,24 @@ struct PermissionRow: View {
         }
     }
 
-    /// The main window (prototype `set-permissions`): the name, then one line with the state in words (coloured
-    /// by tone) and who needs it, and one button. The explanation is the row's `.help` and accessibility help.
+    /// The main window (prototype `set-permissions`): the name over "Needed for …", and on the right the state in
+    /// words (coloured by tone, "✓ Allowed" for an allowed row) next to the one button. No leading icon. The
+    /// explanation is the row's `.help`.
     private var mainWindowBody: some View {
         let permission = state.permission
-        return HStack(alignment: .top, spacing: 10) {
-            Image(systemName: permission.symbolName)
-                .symbolRenderingMode(.hierarchical)
-                .font(textSize.font(.body))
-                .frame(width: 20)
-                .accessibilityHidden(true)
+        return HStack(alignment: .center, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(permission.title)
                     .font(textSize.font(.body, weight: .semibold))
                     .accessibilityAddTraits(.isHeader)
-                Text(stateLine)
+                Text(neededText)
                     .font(textSize.font(.callout))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 ForEach(accessories.indices, id: \.self) { accessories[$0] }
             }
             Spacer(minLength: 12)
+            stateLabel
             if let title = state.allowTitle {
                 Button(action: allow) { Text(title) }
                     .buttonStyle(LintelPrimaryButtonStyle())
@@ -61,6 +58,20 @@ struct PermissionRow: View {
         .help(permission.explanation)
         .opacity(state.isDimmed ? 0.6 : 1)
         .accessibilityElement(children: .contain)
+    }
+
+    /// The state in words in its tone colour; an allowed row gets a check mark in front.
+    private var stateLabel: some View {
+        HStack(spacing: 4) {
+            if state.tone == .ok {
+                Image(systemName: "checkmark")
+                    .accessibilityHidden(true)
+            }
+            Text(state.mainStateText)
+        }
+        .font(textSize.font(.callout))
+        .foregroundStyle(toneColor)
+        .multilineTextAlignment(.trailing)
     }
 
     @ViewBuilder private var openButton: some View {
@@ -76,13 +87,6 @@ struct PermissionRow: View {
         } else {
             button.buttonStyle(LintelSecondaryButtonStyle())
         }
-    }
-
-    /// "Not asked yet · Needed for: Dictation and Meetings", the state in its tone colour.
-    private var stateLine: AttributedString {
-        var line = AttributedString(state.mainStateText)
-        line.foregroundColor = toneColor
-        return line + AttributedString(" · " + String(localized: neededText))
     }
 
     private var neededText: LocalizedStringResource {

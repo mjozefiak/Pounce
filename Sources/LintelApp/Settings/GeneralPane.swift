@@ -70,6 +70,7 @@ struct GeneralPaneContent: View {
                         .font(textSize.font(.body))
                 }
                 .pickerStyle(.menu)
+                .lintelSecondaryTint()
             } header: {
                 Text("Basics", comment: "Settings pane section title: the main settings of a pane")
                     .settingsSectionHeader()

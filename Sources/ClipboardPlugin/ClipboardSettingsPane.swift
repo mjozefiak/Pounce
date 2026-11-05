@@ -74,6 +74,7 @@ struct ClipboardPaneContent: View {
                         .font(textSize.font(.body))
                 }
                 .pickerStyle(.menu)
+                .lintelSecondaryTint()
                 Picker(selection: countBinding) {
                     ForEach(RetentionPolicy.countChoices, id: \.self) { count in
                         Text(ClipboardSettingsText.maximum(count)).tag(count)
@@ -87,6 +88,7 @@ struct ClipboardPaneContent: View {
                     .font(textSize.font(.body))
                 }
                 .pickerStyle(.menu)
+                .lintelSecondaryTint()
                 LabeledContent {
                     recorder
                 } label: {

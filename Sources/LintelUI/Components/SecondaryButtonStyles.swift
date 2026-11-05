@@ -28,6 +28,26 @@ public struct LintelDestructiveButtonStyle: ButtonStyle {
     }
 }
 
+/// The prototype's `.btn.dng.fill`: the confirm button of a destructive `ConfirmSheet`, `status.error` fill with
+/// `onStatus` text (4.5:1 in both appearances, asserted in `BrandContrastTests`).
+public struct LintelDestructiveProminentButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    public init() {}
+
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .fontWeight(.semibold)
+            .foregroundStyle(LintelBrand.onStatus)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 3)
+            .background(
+                LintelBrand.statusError, in: RoundedRectangle(cornerRadius: LintelPrimaryButtonStyle.cornerRadius)
+            )
+            .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.45)
+    }
+}
+
 enum LintelBorderedButton {
     /// Hairline of the border: the ink at a low alpha, so it follows the appearance.
     static let borderAlpha = 0.18

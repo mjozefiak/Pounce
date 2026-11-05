@@ -50,6 +50,14 @@ private let sourcesRoot = URL(filePath: #filePath)
     @Test func theRowKeepsItsExplanationInHelpAndTheLegacyLayout() throws {
         let source = try String(contentsOf: sourcesRoot.appending(path: "PermissionRow.swift"), encoding: .utf8)
         #expect(source.contains(".help(permission.explanation)"))
+        // The main window row has no leading icon and shows the state on the right ("✓ Allowed").
+        let main = try #require(
+            source.components(separatedBy: "private var mainWindowBody").last?
+                .components(separatedBy: "@ViewBuilder private var openButton").first)
+        #expect(!main.contains("symbolName"))
+        #expect(main.contains("stateLabel"))
+        #expect(main.contains("\"checkmark\""))
+        #expect(main.contains("Text(neededText)"))
         #expect(source.contains("hostStyle == .legacyWindow"))
         #expect(source.contains("Open System Settings…"))  // the legacy button keeps its ellipsis
         #expect(source.contains("permission.explanation)\n                    .font"))  // legacy still shows it inline
