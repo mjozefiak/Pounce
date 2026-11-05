@@ -80,7 +80,8 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 | 6 | 6.7f | Final 1:1 pass: Polish Models banner "Potrzebny 1 model" (prototype), plural forms without "jest/są" | inline | done | 102497a |
 | 6 | 6.7g | Final 1:1 pass: the welcome window applies the text size (S–XL) to every page, the page's line and the footer | inline | done | 0849e2b |
 | 6 | 6.7h | Final 1:1 pass: the Lintel button styles take the body font at the text size (prototype `.btn`, `font: inherit`), so row buttons scale at S and XL | inline | done | 645256e |
-| 6 | 6.7i | Fix of 6.7h: keep the semibold weight over a label's own font (banner buttons, rows that set a font) and the line length the lint gate rejected | inline | done | (this commit) |
+| 6 | 6.7i | Fix of 6.7h: keep the semibold weight over a label's own font (banner buttons, rows that set a font) and the line length the lint gate rejected | inline | done | 94cab83 |
+| 6 | 6.7j | Final 1:1 pass: ConfirmSheet buttons on the right, Cancel with the prototype's default ring, the sheet on `windowBackground` | inline | done | (this commit) |
 
 Step 6.2 (⌃X confirmation) is NOT in this table: it is a separate PR on a fresh branch from main, done after this PR is complete.
 

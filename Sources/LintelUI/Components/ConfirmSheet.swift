@@ -72,13 +72,20 @@ public struct ConfirmSheet: View {
                 }
                 .toggleStyle(.checkbox)
             }
-            HStack {
+            // Prototype `.sheet .bt`: both buttons on the right, Cancel first with the default ring (`.btn.def`).
+            HStack(spacing: 8) {
+                Spacer()
                 Button(action: cancelTapped) {
                     Text("Cancel", comment: "Confirmation sheet button that keeps everything as it is")
                 }
                 .buttonStyle(LintelSecondaryButtonStyle())
                 .keyboardShortcut(.defaultAction)
-                Spacer()
+                .overlay {
+                    RoundedRectangle(cornerRadius: LintelPrimaryButtonStyle.cornerRadius + 1)
+                        .stroke(LintelBrand.accent, lineWidth: 2)
+                        .padding(-1)
+                        .accessibilityHidden(true)
+                }
                 Button(role: .destructive, action: confirmTapped) {
                     Text(confirmTitle)
                 }
@@ -97,6 +104,8 @@ public struct ConfirmSheet: View {
         .onExitCommand(perform: cancelTapped)
         .padding(20)
         .frame(width: 380)
+        // The prototype's `.sheet` background is `--win`, not the system sheet fill.
+        .presentationBackground(LintelBrand.windowBackground)
     }
 }
 
