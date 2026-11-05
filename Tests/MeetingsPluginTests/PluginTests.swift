@@ -106,7 +106,8 @@ import Testing
         try await plugin.activate()
         release.open()
         await first.waitUntilEnded()
-        await eventually("the lingering controller was released") { plugin.lingeringController == nil }
+        // Nothing signals the release (the plugin's own task), so this looks again; `eventually` slept 60 s here.
+        await eventuallyPolling("the lingering controller was released") { plugin.lingeringController == nil }
         #expect(plugin.library.status == .ready)
         await plugin.deactivate()
         #expect(plugin.library.status == .closed)

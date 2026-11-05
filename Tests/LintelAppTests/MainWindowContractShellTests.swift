@@ -128,6 +128,7 @@ final class PanePlugin: LintelPlugin {
 
     @Test(arguments: pluginIDs)
     func paneOfAnInactivePluginTouchesNoStore(_ id: String) async throws {
+        QuietMeetings.install()
         let name = "lintel-inactive-pane-\(UUID().uuidString)"
         let root = FileManager.default.temporaryDirectory.appending(path: name, directoryHint: .isDirectory)
         try AppEnvironment.createPrivateDirectory(root, fileManager: .default)

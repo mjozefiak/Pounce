@@ -159,6 +159,7 @@ struct TestEnvironment {
     let settings: InMemorySettingsStore
 
     init() throws {
+        QuietMeetings.install()
         let name = "lintel-app-tests-\(UUID().uuidString)"
         let root = FileManager.default.temporaryDirectory.appending(path: name, directoryHint: .isDirectory)
         try AppEnvironment.createPrivateDirectory(root, fileManager: .default)

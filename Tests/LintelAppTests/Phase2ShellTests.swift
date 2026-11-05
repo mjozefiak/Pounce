@@ -57,6 +57,7 @@ import Testing
 
     @MainActor
     @Test func pluginsGetTheShellRecorder() throws {
+        QuietMeetings.install()
         let root = FileManager.default.temporaryDirectory.appending(path: "lintel-recorder-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: root) }
         let environment = AppEnvironment(

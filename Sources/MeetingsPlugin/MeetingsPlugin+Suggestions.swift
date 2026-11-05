@@ -14,7 +14,7 @@ extension MeetingsPlugin {
         // An earlier detector (activate twice without a deactivate) must not go on listening.
         stopDetector()
         var dependencies = MeetingDetector.Dependencies(
-            observer: CoreAudioProcessObserver(), presenter: suggestionHUD, clock: DetectorClock(context.clock),
+            observer: system.makeProcessObserver(), presenter: suggestionHUD, clock: DetectorClock(context.clock),
             settings: settings,
             isBusy: { [weak self] in
                 guard let self else { return false }

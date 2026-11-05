@@ -172,6 +172,9 @@ struct MeetingsHarness {
     var pluginDirectory: URL { context.storageDirectory }
 
     init(settings initial: [String: SettingValue] = [:]) throws {
+        // Every plugin a test builds gets the quiet system: no HUD on the screen, no tone, no Core Audio, no
+        // microphone prompt and no real recording (step 6.3c-fix-c).
+        MeetingsSystem.installQuiet()
         let directory = try TemporaryDirectory()
         let settings = MemorySettingsStore(initial)
         self.directory = directory

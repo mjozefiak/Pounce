@@ -252,6 +252,22 @@ func eventually(
     #expect(condition(), message)
 }
 
+/// `eventually` for a condition nothing signals (the plugin lets a lingering controller go in a task of its
+/// own): it looks again every 10 ms instead of sleeping until the 60 s timeout.
+@MainActor
+func eventuallyPolling(
+    _ message: Comment = "condition", timeout: Duration = .seconds(60), _ condition: @MainActor () -> Bool
+) async {
+    let poller = Task { @MainActor in
+        while !Task.isCancelled {
+            try? await Task.sleep(for: .milliseconds(10))
+            ChangeSignal.shared.fire()
+        }
+    }
+    await eventually(message, timeout: timeout, condition)
+    poller.cancel()
+}
+
 /// The controller with fakes for everything it touches. Nothing real is captured, shown or stored.
 @MainActor
 final class ControllerRig {

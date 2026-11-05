@@ -23,13 +23,11 @@ final class MeetingsUI {
 
     init(
         context: PluginContext, settings: MeetingsSettings, library: MeetingsLibrary, activity: MeetingActivity,
-        authorizer: any MicrophoneAuthorizer = SystemMicrophoneAuthorizer(),
+        authorizer: any MicrophoneAuthorizer,
         manager: @MainActor (URL) -> ModelManager = { url in
             ModelManagers.shared.manager(for: url)
         },
-        makeSelfTest: @escaping @MainActor () -> SystemAudioSelfTest = {
-            SystemAudioSelfTest(backend: CoreAudioProcessTapBackend(), player: AVAudioEngineTonePlayer())
-        },
+        makeSelfTest: @escaping @MainActor () -> SystemAudioSelfTest,
         pickFolder: @escaping @MainActor () -> URL? = { MeetingsUI.chooseModelFolder() },
         usage: MeetingsModelUsage? = nil, notes service: NotesService
     ) {
