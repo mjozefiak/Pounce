@@ -6,13 +6,14 @@ import SwiftUI
 /// role draws as `LintelDestructiveButtonStyle`.
 public struct LintelSecondaryButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.lintelTextSize) private var textSize
 
     public init() {}
 
     public func makeBody(configuration: Configuration) -> some View {
         LintelBorderedButton.body(
             configuration, text: configuration.role == .destructive ? LintelBrand.statusError : LintelBrand.ink,
-            isEnabled: isEnabled)
+            isEnabled: isEnabled, textSize: textSize)
     }
 }
 
@@ -20,11 +21,12 @@ public struct LintelSecondaryButtonStyle: ButtonStyle {
 /// (Clear History, Erase Data, Reset Ranking, the confirm button of a `ConfirmSheet`).
 public struct LintelDestructiveButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.lintelTextSize) private var textSize
 
     public init() {}
 
     public func makeBody(configuration: Configuration) -> some View {
-        LintelBorderedButton.body(configuration, text: LintelBrand.statusError, isEnabled: isEnabled)
+        LintelBorderedButton.body(configuration, text: LintelBrand.statusError, isEnabled: isEnabled, textSize: textSize)
     }
 }
 
@@ -32,12 +34,13 @@ public struct LintelDestructiveButtonStyle: ButtonStyle {
 /// `onStatus` text (4.5:1 in both appearances, asserted in `BrandContrastTests`).
 public struct LintelDestructiveProminentButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.lintelTextSize) private var textSize
 
     public init() {}
 
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .fontWeight(.semibold)
+            .font(LintelBorderedButton.font(textSize))
             .foregroundStyle(LintelBrand.onStatus)
             .padding(.horizontal, 10)
             .padding(.vertical, 3)
@@ -49,12 +52,15 @@ public struct LintelDestructiveProminentButtonStyle: ButtonStyle {
 }
 
 enum LintelBorderedButton {
+    /// The prototype's `.btn` font: the body size (`font: inherit`) in semibold, scaled by the text size. A label
+    /// that sets its own font (the banner's buttons) keeps it.
+    @MainActor static func font(_ textSize: TextSize) -> Font { textSize.font(.body, weight: .semibold) }
 
-    @MainActor static func body(_ configuration: ButtonStyleConfiguration, text: Color, isEnabled: Bool)
-        -> some View
-    {
+    @MainActor static func body(
+        _ configuration: ButtonStyleConfiguration, text: Color, isEnabled: Bool, textSize: TextSize
+    ) -> some View {
         configuration.label
-            .fontWeight(.semibold)
+            .font(font(textSize))
             .foregroundStyle(text)
             .padding(.horizontal, 10)
             .padding(.vertical, 3)

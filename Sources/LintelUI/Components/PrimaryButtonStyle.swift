@@ -7,12 +7,13 @@ public struct LintelPrimaryButtonStyle: ButtonStyle {
     public static let cornerRadius: CGFloat = 8
 
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.lintelTextSize) private var textSize
 
     public init() {}
 
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .fontWeight(.semibold)
+            .font(LintelBorderedButton.font(textSize))
             .foregroundStyle(LintelBrand.onAccent)
             .padding(.horizontal, 10)
             .padding(.vertical, 3)
