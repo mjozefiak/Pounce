@@ -41,7 +41,7 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 | 4 | 4.2 | Apps pane onto the template | dispatch:standard | done | c2e60bc |
 | 4 | 4.3 | Files pane onto the template | dispatch:standard | done | e170580 |
 | 4 | 4.4 | Clipboard pane onto the template | dispatch:standard | done | 42b5dec |
-| 4 | 4.1-review-fix | Review fix: keyboard-reachable Result order, section-order move tests | dispatch:standard | todo | — |
+| 4 | 4.1-review-fix | Review fix: keyboard-reachable Result order, section-order move tests | dispatch:standard | done | pending |
 | 4 | 4.3-review-fix | Review fix: pure settingsStatus getters (no state change in view body), Full Disk Access acknowledged only after setup | dispatch:capable | todo | — |
 | 4 | 4.4-review-fix | Review fix: one coalesced status signal per clipboard copy, plural and behavioural pane tests, nits | dispatch:standard | todo | — |
 | 5 | 5.1 | Dictation pane onto the template | dispatch:standard | todo | — |

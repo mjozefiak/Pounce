@@ -265,7 +265,8 @@ struct FeatureEraseRow: View {
 }
 
 /// "Result order" (prototype `set-features`): the search sections numbered in the user's order, reordered by
-/// dragging a row; VoiceOver and the context menu offer Move Up and Move Down.
+/// dragging a row, or with each row's Move Up and Move Down buttons (reachable with Tab, shown while the row is
+/// hovered or one of them has focus); VoiceOver and the context menu offer the same two moves.
 struct ResultOrderSection: View {
     let order: SectionOrderControls
 
@@ -275,51 +276,8 @@ struct ResultOrderSection: View {
         let entries = order.ordered
         Section {
             ForEach(Array(entries.enumerated()), id: \.element.manifest.id.resultOrderRowID) { index, entry in
-                let id = entry.manifest.id
-                let name = String(localized: entry.manifest.displayName)
-                HStack(spacing: 10) {
-                    Text(verbatim: "\(index + 1). \(name)")
-                        .font(textSize.font(.body))
-                    Spacer()
-                    Image(systemName: "line.3.horizontal")
-                        .font(textSize.font(.body))
-                        .foregroundStyle(.secondary)
-                        .accessibilityHidden(true)
-                }
-                .contentShape(Rectangle())
-                .draggable(id.rawValue)
-                .dropDestination(for: String.self) { items, _ in
-                    guard let raw = items.first, entries.contains(where: { $0.manifest.id.rawValue == raw }) else {
-                        return false
-                    }
-                    order.move(PluginID(rawValue: raw), to: index)
-                    return true
-                }
-                .contextMenu {
-                    Button {
-                        order.move(id, by: -1)
-                    } label: {
-                        Text("Move Up", comment: "Button that moves a result section up")
-                    }
-                    .disabled(index == 0)
-                    Button {
-                        order.move(id, by: 1)
-                    } label: {
-                        Text("Move Down", comment: "Button that moves a result section down")
-                    }
-                    .disabled(index == entries.count - 1)
-                }
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(
-                    Text(
-                        "\(name), position \(index + 1) of \(entries.count)",
-                        comment: "Accessibility label of a result section in the order list")
-                )
-                .accessibilityAction(named: Text("Move Up", comment: "Button that moves a result section up")) {
-                    order.move(id, by: -1)
-                }
-                .accessibilityAction(named: Text("Move Down", comment: "Button that moves a result section down")) {
-                    order.move(id, by: 1)
+                ResultOrderRow(order: order, entry: entry, index: index, count: entries.count) { raw in
+                    entries.contains(where: { $0.manifest.id.rawValue == raw })
                 }
             }
         } header: {
@@ -331,5 +289,105 @@ struct ResultOrderSection: View {
                     "Drag to change the order in the launcher.",
                     comment: "Settings → Features: footer of the result order"))
         }
+    }
+}
+
+/// One row of "Result order": its number and name, the Move Up and Move Down buttons and the drag handle.
+struct ResultOrderRow: View {
+    let order: SectionOrderControls
+    let entry: PluginHost.Entry
+    let index: Int
+    let count: Int
+    /// Whether a dropped string is one of this list's plugin ids.
+    let accepts: (String) -> Bool
+
+    /// Which of the two buttons has keyboard focus.
+    enum MoveButton: Hashable {
+        case up
+        case down
+    }
+
+    @Environment(\.lintelTextSize) private var textSize
+    @State private var isHovered = false
+    @FocusState private var focusedButton: MoveButton?
+
+    var canMoveUp: Bool { index > 0 }
+    var canMoveDown: Bool { index < count - 1 }
+
+    var body: some View {
+        let id = entry.manifest.id
+        let name = String(localized: entry.manifest.displayName)
+        HStack(spacing: 10) {
+            Text(verbatim: "\(index + 1). \(name)")
+                .font(textSize.font(.body))
+                .accessibilityHidden(true)
+            Spacer()
+            HStack(spacing: 2) {
+                moveButton(.up, enabled: canMoveUp) { order.move(id, by: -1) }
+                moveButton(.down, enabled: canMoveDown) { order.move(id, by: 1) }
+            }
+            .opacity(isHovered || focusedButton != nil ? 1 : 0)
+            Image(systemName: "line.3.horizontal")
+                .font(textSize.font(.body))
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+        }
+        .contentShape(Rectangle())
+        .onHover { isHovered = $0 }
+        .draggable(id.rawValue)
+        .dropDestination(for: String.self) { items, _ in
+            guard let raw = items.first, accepts(raw) else { return false }
+            order.move(PluginID(rawValue: raw), to: index)
+            return true
+        }
+        .contextMenu {
+            Button {
+                order.move(id, by: -1)
+            } label: {
+                Text("Move Up", comment: "Button that moves a result section up")
+            }
+            .disabled(!canMoveUp)
+            Button {
+                order.move(id, by: 1)
+            } label: {
+                Text("Move Down", comment: "Button that moves a result section down")
+            }
+            .disabled(!canMoveDown)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(
+            Text(
+                "\(name), position \(index + 1) of \(count)",
+                comment: "Accessibility label of a result section in the order list")
+        )
+        .accessibilityAction(named: Text("Move Up", comment: "Button that moves a result section up")) {
+            order.move(id, by: -1)
+        }
+        .accessibilityAction(named: Text("Move Down", comment: "Button that moves a result section down")) {
+            order.move(id, by: 1)
+        }
+    }
+
+    private func moveButton(_ button: MoveButton, enabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label {
+                switch button {
+                case .up: Text("Move Up", comment: "Button that moves a result section up")
+                case .down: Text("Move Down", comment: "Button that moves a result section down")
+                }
+            } icon: {
+                Image(systemName: button == .up ? "chevron.up" : "chevron.down")
+                    .font(textSize.font(.callout))
+            }
+            .labelStyle(.iconOnly)
+        }
+        .buttonStyle(.borderless)
+        .foregroundStyle(.secondary)
+        .disabled(!enabled)
+        .focused($focusedButton, equals: button)
+        .help(
+            button == .up
+                ? Text("Move Up", comment: "Button that moves a result section up")
+                : Text("Move Down", comment: "Button that moves a result section down"))
     }
 }
