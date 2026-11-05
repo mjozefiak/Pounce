@@ -75,6 +75,13 @@ final class MainWindowRouter {
         }
     }
 
+    /// The welcome screen's final page: the main window in its restored state. Does nothing while the window is not
+    /// enabled (the page is not shown then).
+    func openMainWindow() {
+        guard isWindowEnabled else { return }
+        targets.showMainWindow()
+    }
+
     /// Command-comma and the status item's "Settings…": Settings mode of the main window, or the old window.
     func openSettings() {
         if isWindowEnabled {

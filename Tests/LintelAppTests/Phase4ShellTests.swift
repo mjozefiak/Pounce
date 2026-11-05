@@ -381,6 +381,70 @@ actor PlainRecorder: UsageRecorder {
         #expect(controller.flow?.pages.map(\.id) == ["intro", "shortcut", "clipboard.intro"])
         #expect(controller.flow?.current?.id == "shortcut")
     }
+
+    private func gatedController(
+        windowEnabled: Bool, steps: [String] = ["clipboard.intro"]
+    ) -> (OnboardingController, AppSettings) {
+        let store = InMemorySettingsStore()
+        let settings = AppSettings(store: store)
+        let hotkeys = HotkeyService(registrar: InMemoryHotkeyRegistrar(), settings: store, readOccupied: { [] })
+        let controller = OnboardingController(
+            hotkeys: hotkeys, settings: settings, isWindowEnabled: windowEnabled
+        ) { [self] in steps.map(step) }
+        controller.activatesApp = false
+        return (controller, settings)
+    }
+
+    @Test func theFinalPageIsAppendedOnlyWhileTheWindowIsEnabled() {
+        let (enabled, enabledSettings) = gatedController(windowEnabled: true)
+        #expect(enabled.pendingPages.map(\.id) == ["intro", "shortcut", "clipboard.intro", "done"])
+        enabled.showAllSteps()
+        #expect(enabled.flow?.pages.last?.id == "done")
+        enabled.close()
+
+        // Nothing pending: no welcome screen, so no lone "You're set" page.
+        enabledSettings.shortcutOnboardingCompleted = true
+        enabledSettings.completedOnboardingSteps = ["clipboard.intro"]
+        #expect(enabled.pendingPages.isEmpty)
+        #expect(!enabled.hasPendingSteps)
+        enabled.showPendingSteps()
+        #expect(enabled.flow == nil)
+    }
+
+    @Test func withoutTheWindowTheFlowEndsExactlyAsBefore() {
+        let (controller, _) = gatedController(windowEnabled: false)
+        #expect(controller.pendingPages.map(\.id) == ["intro", "shortcut", "clipboard.intro"])
+        controller.showAllSteps()
+        defer { controller.close() }
+        #expect(controller.flow?.pages.map(\.id) == ["intro", "shortcut", "clipboard.intro"])
+    }
+
+    @Test func theFinalPageCannotBeSkippedAndCompletesTheFlow() {
+        let (controller, _) = gatedController(windowEnabled: true, steps: [])
+        controller.showAllSteps(startingAt: "done")
+        #expect(controller.flow?.current?.isSkippable == false)
+        var completed = false
+        controller.flow?.onComplete = { completed = true }
+        controller.flow?.advance()
+        #expect(completed)
+    }
+
+    @Test func theFinalPageButtonOpensTheMainWindowThroughTheRouter() {
+        var shown = 0
+        var targets = MainWindowRouter.Targets()
+        targets.showMainWindow = { shown += 1 }
+        let router = MainWindowRouter(isWindowEnabled: true, targets: targets)
+        let (controller, _) = gatedController(windowEnabled: true)
+        controller.openMainWindow = { router.openMainWindow() }
+        controller.openMainWindow()
+        #expect(shown == 1)
+
+        var legacyShown = 0
+        var legacy = MainWindowRouter.Targets()
+        legacy.showMainWindow = { legacyShown += 1 }
+        MainWindowRouter(isWindowEnabled: false, targets: legacy).openMainWindow()
+        #expect(legacyShown == 0)
+    }
 }
 
 @MainActor

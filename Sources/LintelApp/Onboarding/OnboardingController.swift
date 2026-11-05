@@ -12,10 +12,14 @@ struct WelcomePage: Identifiable {
         case shortcut
         /// A plugin's `onboardingSteps` entry.
         case plugin(OnboardingStep)
+        /// The final "You're set" page that points at the main window; only while the window is enabled
+        /// (spec step 6.1).
+        case done
     }
 
     static let introID = "intro"
     static let shortcutID = "shortcut"
+    static let doneID = "done"
 
     let kind: Kind
 
@@ -23,6 +27,7 @@ struct WelcomePage: Identifiable {
         switch kind {
         case .intro: Self.introID
         case .shortcut: Self.shortcutID
+        case .done: Self.doneID
         case .plugin(let step): step.id
         }
     }
@@ -35,6 +40,8 @@ struct WelcomePage: Identifiable {
             String(localized: "Shortcut", comment: "Welcome screen: title of the shortcut page")
         case .plugin(let step):
             String(localized: step.title)
+        case .done:
+            String(localized: "You’re set", comment: "Welcome screen: title of the final page")
         }
     }
 
@@ -42,14 +49,17 @@ struct WelcomePage: Identifiable {
         switch kind {
         case .intro: "circle.circle"
         case .shortcut: "keyboard"
+        case .done: "checkmark.circle"
         case .plugin(let step): step.symbolName
         }
     }
 
-    /// Whether the page can be skipped (the intro has nothing to skip).
+    /// Whether the page can be skipped (the intro and the final page have nothing to skip).
     var isSkippable: Bool {
-        if case .intro = kind { return false }
-        return true
+        switch kind {
+        case .intro, .done: false
+        case .shortcut, .plugin: true
+        }
     }
 }
 
@@ -121,15 +131,27 @@ final class OnboardingController: NSObject, NSWindowDelegate {
     private let hotkeys: HotkeyService
     private let settings: AppSettings
     private let pluginSteps: () -> [OnboardingStep]
+    /// Whether the main window exists in this build; the final page is appended only then (`false` keeps the
+    /// flow exactly as before the window, until step 6.3a).
+    private let isWindowEnabled: Bool
     private var window: NSWindow?
     private(set) var flow: WelcomeFlow?
 
     /// False in QA mode: the window is ordered front without activating Lintel.
     var activatesApp = true
 
-    init(hotkeys: HotkeyService, settings: AppSettings, pluginSteps: @escaping () -> [OnboardingStep] = { [] }) {
+    /// Opens the main window from the final page (a property, so the trailing `pluginSteps` closure of the
+    /// initializer stays unambiguous).
+    var openMainWindow: () -> Void = {}
+
+    init(
+        hotkeys: HotkeyService, settings: AppSettings,
+        isWindowEnabled: Bool = false,
+        pluginSteps: @escaping () -> [OnboardingStep] = { [] }
+    ) {
         self.hotkeys = hotkeys
         self.settings = settings
+        self.isWindowEnabled = isWindowEnabled
         self.pluginSteps = pluginSteps
     }
 
@@ -161,7 +183,13 @@ final class OnboardingController: NSObject, NSWindowDelegate {
             pages.append(WelcomePage(kind: .shortcut))
         }
         pages += pendingPluginSteps.map { WelcomePage(kind: .plugin($0)) }
-        return pages
+        return withFinalPage(pages)
+    }
+
+    /// Appends the "You're set" page to a non-empty list while the main window is enabled.
+    private func withFinalPage(_ pages: [WelcomePage]) -> [WelcomePage] {
+        guard isWindowEnabled, !pages.isEmpty else { return pages }
+        return pages + [WelcomePage(kind: .done)]
     }
 
     /// Shows the welcome screen with the pending pages, if any.
@@ -174,9 +202,9 @@ final class OnboardingController: NSObject, NSWindowDelegate {
     /// Shows every page (the introduction, the Shortcut step and every active plugin step), starting at
     /// `id` when given. QA uses it to capture any page regardless of what was completed.
     func showAllSteps(startingAt id: String? = nil) {
-        let pages =
+        let pages = withFinalPage(
             [WelcomePage(kind: .intro), WelcomePage(kind: .shortcut)]
-            + pluginSteps().map { WelcomePage(kind: .plugin($0)) }
+                + pluginSteps().map { WelcomePage(kind: .plugin($0)) })
         show(pages, startingAt: id)
     }
 
@@ -202,13 +230,15 @@ final class OnboardingController: NSObject, NSWindowDelegate {
         flow.onFinish = { [weak self] page, skipped in self?.finish(page, skipped: skipped) }
         flow.onComplete = { [weak self] in self?.complete() }
         self.flow = flow
-        let view = WelcomeView(flow: flow, hotkeys: hotkeys, upcoming: pages)
+        let view = WelcomeView(
+            flow: flow, hotkeys: hotkeys, upcoming: pages,
+            openMainWindow: { [weak self] in self?.openMainWindow() })
         present(AnyView(view))
     }
 
     private func finish(_ page: WelcomePage, skipped: Bool) {
         switch page.kind {
-        case .intro:
+        case .intro, .done:
             break
         case .shortcut:
             if skipped {
@@ -263,6 +293,8 @@ struct WelcomeView: View {
     let hotkeys: HotkeyService
     /// Every page of this session, for the introduction's list.
     let upcoming: [WelcomePage]
+    /// The final page's button.
+    var openMainWindow: () -> Void = {}
 
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
@@ -288,9 +320,12 @@ struct WelcomeView: View {
     @ViewBuilder private func pageContent(_ page: WelcomePage) -> some View {
         switch page.kind {
         case .intro:
-            WelcomeIntroView(pages: upcoming.filter { $0.id != WelcomePage.introID })
+            WelcomeIntroView(
+                pages: upcoming.filter { $0.id != WelcomePage.introID && $0.id != WelcomePage.doneID })
         case .shortcut:
             ShortcutStepContent(hotkeys: hotkeys)
+        case .done:
+            WelcomeDoneView(openMainWindow: openMainWindow)
         case .plugin(let step):
             step.makeView()
                 // A new identity per step, so a plugin view's onAppear/onDisappear run for each page.
@@ -490,6 +525,26 @@ struct ShortcutStepContent: View {
             Text("You can change it later in Settings → General.", comment: "Onboarding hint")
                 .font(.callout)
                 .foregroundStyle(.secondary)
+        }
+    }
+}
+
+/// The final page: where everything lives now. The button opens the main window.
+struct WelcomeDoneView: View {
+    let openMainWindow: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(
+                "Open Lintel with your shortcut from anywhere. Your settings and notes live in the Lintel window: click the Dock icon, use the menu bar item or press ⌘,.",
+                comment: "Welcome screen: final page, points at the main window"
+            )
+            .fixedSize(horizontal: false, vertical: true)
+            Button {
+                openMainWindow()
+            } label: {
+                Text("Open Lintel Window", comment: "Welcome screen: final page button that opens the main window")
+            }
         }
     }
 }

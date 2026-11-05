@@ -48,7 +48,7 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 | 5 | 5.2 | Meetings pane onto the template | dispatch:capable | done | 6c9f0b9 |
 | 5 | 5.3 | Clear/Erase confirmation copy with kept-copies checkbox (L1-39) | dispatch:standard | done | c7d3a71 |
 | 5 | 5.2-review-fix | Review fix: banner count includes denied required permissions, refresh the banner when the engine changes, pinned shell test | dispatch:standard | done | pending |
-| 6 | 6.1 | Welcome final page "You're set" | dispatch:standard | todo | — |
+| 6 | 6.1 | Welcome final page "You’re set" | dispatch:standard | done | pending |
 | 6 | 6.5 | Final 1:1 comparison of every implemented screen with the prototype, with fix commits for each difference | inline | todo | — |
 | 6 | 6.4 | docs(spec): correct the Phasing sentence about phases and PRs | inline | todo | — |
 | 6 | 6.3a | Remove the DEBUG gate (window enabled for users) | dispatch:capable | todo | — |

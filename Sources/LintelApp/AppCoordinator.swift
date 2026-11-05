@@ -327,10 +327,14 @@ final class AppCoordinator {
         window.textSize = { settings.textSize }
         settingsWindow = window
 
-        let onboarding = OnboardingController(hotkeys: hotkeys, settings: settings) {
+        let onboarding = OnboardingController(
+            hotkeys: hotkeys, settings: settings,
+            isWindowEnabled: MainWindowRouter.isWindowEnabledInThisBuild
+        ) {
             host.entries.filter(\.state.isActive).flatMap(\.plugin.onboardingSteps)
         }
         onboarding.activatesApp = environment.registersGlobalHotkeys
+        onboarding.openMainWindow = { [weak self] in self?.router.openMainWindow() }
         self.onboarding = onboarding
 
         let about = AboutWindowController()
