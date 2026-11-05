@@ -311,7 +311,11 @@ final class AppCoordinator {
             case .advanced:
                 return AnyView(
                     AdvancedPane(
-                        controls: AdvancedControls(usage: environment.usage) { self?.panelModel.resultsChanged() }))
+                        controls: AdvancedControls(
+                            usage: environment.usage,
+                            showWelcome: { self?.onboarding?.showAllSteps() },
+                            showAbout: { self?.showAbout() }
+                        ) { self?.panelModel.resultsChanged() }))
             }
         }
         shellPane = shell

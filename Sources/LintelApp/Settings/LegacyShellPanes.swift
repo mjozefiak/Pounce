@@ -299,3 +299,62 @@ struct SectionOrderSection: View {
         }
     }
 }
+
+/// Settings → Advanced in the old window (`settingsHostStyle == .legacyWindow`, what release users see), kept
+/// unchanged until the old window is deleted in spec step 6.3b.
+struct LegacyAdvancedPane: View {
+    let controls: AdvancedControls
+
+    @State private var confirmsReset = false
+    @State private var resetDone = false
+    @State private var resetError: String?
+
+    var body: some View {
+        Form {
+            Section {
+                LabeledContent {
+                    Button {
+                        confirmsReset = true
+                    } label: {
+                        Text("Reset Ranking…", comment: "Settings button that clears the learned ranking")
+                    }
+                    .lintelDestructiveButton()
+                } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Ranking", comment: "Settings label of the ranking reset")
+                        Text(
+                            "Lintel moves the results you pick often to the top. Resetting forgets what it learned; your apps, files and clipboard history stay.",
+                            comment: "Settings explanation of Reset Ranking"
+                        )
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        Text(
+                            "App suggestions keep their own history; clear it in Settings → Applications.",
+                            comment: "Settings note that Reset Ranking does not clear app activity"
+                        )
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                if resetDone {
+                    Label {
+                        Text("The ranking was reset.", comment: "Settings message after Reset Ranking")
+                    } icon: {
+                        Image(systemName: "checkmark.circle")
+                            .accessibilityHidden(true)
+                    }
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("Advanced", comment: "Settings section title")
+            }
+        }
+        .formStyle(.grouped)
+        .frame(width: SettingsLayout.columnWidth)
+        .fixedSize(horizontal: false, vertical: true)
+        .resetRankingFlow(controls: controls, confirms: $confirmsReset, done: $resetDone, error: $resetError)
+    }
+}

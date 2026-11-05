@@ -13680,6 +13680,96 @@
           }
         }
       }
+    },
+    "Forgets which results you open most." : {
+      "comment" : "Settings → Advanced: explanation of Reset Ranking",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forgets which results you open most."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapomina, które wyniki otwierasz najczęściej."
+          }
+        }
+      }
+    },
+    "About…" : {
+      "comment" : "Settings → Advanced: button that opens the About window",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O programie…"
+          }
+        }
+      }
+    },
+    "Version %@ · licences" : {
+      "comment" : "Settings → Advanced: About row detail with the version",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version %@ · licences"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wersja %@ · licencje"
+          }
+        }
+      }
+    },
+    "Licences" : {
+      "comment" : "Settings → Advanced: About row detail",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Licences"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Licencje"
+          }
+        }
+      }
+    },
+    "settings.advanced.welcome" : {
+      "comment" : "Settings → Advanced: label of the welcome row",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welcome"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Powitanie"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

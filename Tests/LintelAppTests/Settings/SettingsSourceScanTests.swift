@@ -18,9 +18,7 @@ import Testing
 
     /// Panes in `LintelApp/Settings` that still use today's fonts; each leaves this list in the Phase 4 step that
     /// moves it onto the template. The colour, footer and glass rules apply to them already.
-    static let unmigratedAppPanes: Set<String> = [
-        "AdvancedPane.swift"
-    ]
+    static let unmigratedAppPanes: Set<String> = []
 
     /// Files drawn only under `.legacyWindow` (the old window's copies of panes already on the template), kept
     /// with today's fonts until the old window is deleted in step 6.3b. The other rules apply to them.
