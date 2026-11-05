@@ -112,11 +112,16 @@ final class PanePlugin: LintelPlugin {
             let plugin = entry.plugin
             let sections = plugin.workspaceSections.count
             let hasStatus = plugin.settingsStatus != nil
-            let usages = plugin.modelUsage.count
+            let kinds = plugin.modelUsage.map(\.kind)
             #expect(entry.manifest.canBeDisabled)
             #expect(sections == 0)
             #expect(!hasStatus)
-            #expect(usages == 0)
+            // Step 3.2: the voice plugins declare their models; the others none.
+            switch entry.manifest.id {
+            case "dictation": #expect(kinds == [.speech, .llm])
+            case "meetings": #expect(kinds == [.speech, .diarization, .llm])
+            default: #expect(kinds.isEmpty)
+            }
         }
     }
 

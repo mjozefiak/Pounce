@@ -8,9 +8,8 @@ import LintelKit
 /// is not enabled, every route behaves exactly as before the main window existed. Pure apart from the injected
 /// targets, so tests drive it with recording closures.
 final class MainWindowRouter {
-    /// The Models pane's id in the main window's Settings mode. The pane itself arrives with step 3.2, whose sidebar
-    /// lists it under this id; until then `MainWindowController.showSettings` treats it as unknown and opens General,
-    /// and `pendingModelsPackageID` keeps the row the pane scrolls to.
+    /// The Models pane's id in the main window's Settings mode (`ModelsPane`, step 3.2); `pendingModelsPackageID`
+    /// keeps the row the pane scrolls to.
     static let modelsPaneID = "models"
 
     /// The release gate of ADR 0008: true in DEBUG builds only, until step 6.3a removes the gate.
@@ -49,8 +48,8 @@ final class MainWindowRouter {
     let isWindowEnabled: Bool
     private let targets: Targets
 
-    /// The package an `openModels` asked for while the window is enabled; the Models pane (step 3.2) scrolls to its
-    /// row and clears it.
+    /// The package an `openModels` asked for while the window is enabled; the Models pane scrolls to its row and
+    /// clears it.
     private(set) var pendingModelsPackageID: String?
 
     init(isWindowEnabled: Bool = MainWindowRouter.isWindowEnabledInThisBuild, targets: Targets) {

@@ -15,6 +15,11 @@ final class MeetingsUI {
     static let llmDirectoryName = "llm"
 
     let model: MeetingsSettingsModel
+    /// The "in use" check and the removal reservation the model cards use; the Models pane gets the same through
+    /// `MeetingsPlugin.modelUsage`.
+    let usage: MeetingsModelUsage
+    /// `Models/llm/`, shared with dictation; the notes model's file is found here.
+    let llmManager: ModelManager
 
     init(
         context: PluginContext, settings: MeetingsSettings, library: MeetingsLibrary, activity: MeetingActivity,
@@ -31,6 +36,7 @@ final class MeetingsUI {
         let usage =
             usage
             ?? .live(activity: activity, isProcessing: { [weak library] in library?.isProcessing ?? false })
+        self.usage = usage
         let speechManager = manager(
             context.modelsDirectory.appending(path: Self.speechDirectoryName, directoryHint: .isDirectory))
         let diarizationManager = manager(
@@ -45,6 +51,7 @@ final class MeetingsUI {
             setCustomFolder: { settings.setDiarizationModelFolder($0) }, pickFolder: pickFolder)
         let llmManager = manager(
             context.modelsDirectory.appending(path: Self.llmDirectoryName, directoryHint: .isDirectory))
+        self.llmManager = llmManager
         let workspace = context.workspace
         model = MeetingsSettingsModel(
             settings: settings, library: library,

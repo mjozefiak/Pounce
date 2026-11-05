@@ -15,11 +15,12 @@ enum SettingsPaneAdapter {
         let makeView: () -> AnyView
     }
 
-    /// The entries by id; the sidebar (`SettingsSidebarModel`) decides the order. The Models pane stays a
-    /// placeholder until step 3.2.
+    /// The entries by id; the sidebar (`SettingsSidebarModel`) decides the order. `models` draws Settings → Models
+    /// (step 3.2); without it the entry is empty.
     static func entries(
         shellPane: @escaping (SettingsWindowController.Pane) -> AnyView,
-        plugins: [SettingsWindowController.PluginPane]
+        plugins: [SettingsWindowController.PluginPane],
+        models: (() -> AnyView)? = nil
     ) -> [Entry] {
         func shell(_ pane: SettingsWindowController.Pane) -> Entry {
             Entry(id: pane.rawValue, title: pane.rawValue, symbolName: "", isActive: true) { shellPane(pane) }
@@ -30,9 +31,7 @@ enum SettingsPaneAdapter {
         let models = Entry(
             id: SettingsSidebarModel.modelsID, title: SettingsSidebarModel.modelsID, symbolName: "", isActive: true
         ) {
-            AnyView(
-                Text(String(localized: "Models", comment: "Settings pane title"))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity))
+            models?() ?? AnyView(EmptyView())
         }
         return SettingsWindowController.Pane.allCases.map(shell) + pluginEntries + [models]
     }

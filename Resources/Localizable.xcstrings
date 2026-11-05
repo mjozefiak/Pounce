@@ -1,6 +1,24 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@ (off)" : {
+      "comment" : "Models pane chip: a feature that is off uses the model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (off)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (wył.)"
+          }
+        }
+      }
+    },
     "%@ items indexed" : {
       "comment" : "File index status; item count",
       "extractionState" : "manual",
@@ -156,6 +174,60 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld wpisu w historii"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld models are needed" : {
+      "comment" : "Models pane banner: required models",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld model is needed"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld models are needed"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Potrzebny jest %lld model"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Potrzebne są %lld modele"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Potrzebnych jest %lld modeli"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Potrzebne jest %lld modelu"
                 }
               }
             }
@@ -1459,6 +1531,24 @@
         }
       }
     },
+    "Download" : {
+      "comment" : "Models pane: downloads a model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobierz"
+          }
+        }
+      }
+    },
     "Download (≈ %@ from huggingface.co)" : {
       "comment" : "Button that downloads the speech model",
       "extractionState" : "manual",
@@ -1531,6 +1621,24 @@
         }
       }
     },
+    "Download progress" : {
+      "comment" : "Models pane: progress bar label",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download progress"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Postęp pobierania"
+          }
+        }
+      }
+    },
     "Download the model first." : {
       "comment" : "Meetings settings: the notes example needs the model",
       "extractionState" : "manual",
@@ -1563,6 +1671,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pobrano"
+          }
+        }
+      }
+    },
+    "Downloading %@" : {
+      "comment" : "Models pane: a download in progress",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloading %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobieranie %@"
           }
         }
       }
@@ -1855,6 +1981,24 @@
         }
       }
     },
+    "Features that are on can't work without them. Download them below." : {
+      "comment" : "Models pane banner detail: required models are missing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Features that are on can't work without them. Download them below."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Włączone funkcje nie działają bez nich. Pobierz je poniżej."
+          }
+        }
+      }
+    },
     "File Copied" : {
       "comment" : "Confirmation after copying a file",
       "extractionState" : "manual",
@@ -1995,6 +2139,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Folder niedostępny: %@"
+          }
+        }
+      }
+    },
+    "For %@" : {
+      "comment" : "Models pane: choose a model folder for one feature",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dla: %@"
           }
         }
       }
@@ -2377,6 +2539,24 @@
         }
       }
     },
+    "Installed" : {
+      "comment" : "Models pane: the model is on this Mac",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zainstalowany"
+          }
+        }
+      }
+    },
     "Keep a history of dictations" : {
       "comment" : "Dictation settings toggle for the history",
       "extractionState" : "manual",
@@ -2481,6 +2661,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Język"
+          }
+        }
+      }
+    },
+    "Language Models" : {
+      "comment" : "Models pane section: built-in language models",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Language Models"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modele językowe"
           }
         }
       }
@@ -2719,6 +2917,42 @@
         }
       }
     },
+    "Meeting notes" : {
+      "comment" : "Models pane: what Meetings uses the language model for",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meeting notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki ze spotkań"
+          }
+        }
+      }
+    },
+    "Meeting transcripts" : {
+      "comment" : "Models pane: what Meetings uses the speech model for",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meeting transcripts"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkrypcje spotkań"
+          }
+        }
+      }
+    },
     "Meetings" : {
       "comment" : "Plugin name of meeting transcription",
       "extractionState" : "manual",
@@ -2773,6 +3007,24 @@
         }
       }
     },
+    "Needed" : {
+      "comment" : "Models pane: a feature that is on requires this model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Potrzebny"
+          }
+        }
+      }
+    },
     "Not available while a meeting is being recorded or processed." : {
       "comment" : "Meetings: why the system audio test is switched off during a meeting",
       "extractionState" : "manual",
@@ -2787,6 +3039,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Niedostępne, gdy spotkanie jest nagrywane lub przetwarzane."
+          }
+        }
+      }
+    },
+    "Not installed" : {
+      "comment" : "Models pane: the model is not on this Mac",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not installed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie zainstalowany"
           }
         }
       }
@@ -2881,6 +3151,24 @@
         }
       }
     },
+    "Partly downloaded" : {
+      "comment" : "Models pane: an interrupted download can continue",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partly downloaded"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobrany częściowo"
+          }
+        }
+      }
+    },
     "Redo" : {
       "comment" : "Main menu item",
       "extractionState" : "manual",
@@ -2913,6 +3201,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zaznacz wszystko"
+          }
+        }
+      }
+    },
+    "Speaker Recognition" : {
+      "comment" : "Models pane section: diarization",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speaker Recognition"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozpoznawanie mówców"
+          }
+        }
+      }
+    },
+    "Speech Recognition" : {
+      "comment" : "Models pane section: speech models",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speech Recognition"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozpoznawanie mowy"
           }
         }
       }
@@ -3453,6 +3777,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "OK"
+          }
+        }
+      }
+    },
+    "Try Again (download)" : {
+      "comment" : "Models pane: downloads a model again after an error",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try Again"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spróbuj ponownie"
+          }
+        }
+      }
+    },
+    "Used by %@" : {
+      "comment" : "Models pane: the features that use a model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used by %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Używane przez: %@"
           }
         }
       }

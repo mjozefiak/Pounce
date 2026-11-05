@@ -26,6 +26,8 @@ final class AppCoordinator {
     private var mainMenu: MainMenuController?
     /// The one banner of the main window's Settings mode (spec step 2.2); built with the Settings mode.
     private var settingsHost: SettingsHostModel?
+    /// Settings → Models (spec step 3.2): main window only; the old window keeps the plugins' model cards.
+    private var modelsPane: ModelsPaneModel?
     #endif
     /// Shows the welcome screen's pending steps. Set in `start()` outside QA mode; tests replace it.
     var presentPendingOnboarding: (@MainActor () -> Void)?
@@ -155,6 +157,11 @@ final class AppCoordinator {
     /// `PluginContext.openModels` of the plugin `pluginID`.
     func openModels(from pluginID: String, packageID: String?) {
         router.openModels(from: pluginID, packageID: packageID)
+        #if DEBUG
+        // A Models pane that exists scrolls to the row now (it may be on screen already); otherwise it takes the
+        // pending row when it appears.
+        if let modelsPane, let target = router.takePendingModelsPackageID() { modelsPane.scrollTarget = target }
+        #endif
     }
 
     /// An `openNote` route (kind `openNote`, `WorkspaceSection.handleRoute`): `true` only when a section of the
@@ -385,6 +392,7 @@ final class AppCoordinator {
         return AnyView(
             SettingsHost(
                 model: model, shellPane: shellPane,
+                modelsPane: { [weak self] in self?.modelsPaneView() ?? AnyView(EmptyView()) },
                 selection: state.settingsPane,
                 onSelect: { [weak self] id in self?.mainWindow?.selectSettingsPane(id) },
                 onBack: hasSection ? { [weak self] in self?.mainWindow?.showWorkspace() } : nil))
@@ -395,11 +403,50 @@ final class AppCoordinator {
         navigation.openModels = { [weak self] id, packageID in self?.openModels(from: id, packageID: packageID) }
         navigation.openURL = { url in NSWorkspace.shared.open(url) }
         navigation.pluginsChanged = { [weak self] in self?.pluginsChanged() }
+        let models = modelsPaneModel()
         let model = SettingsHostModel(
             host: host, reader: environment.permissionsReader, navigation: navigation,
-            panes: { [weak self] in self?.mainWindowPluginPanes() ?? [] })
+            panes: { [weak self] in self?.mainWindowPluginPanes() ?? [] },
+            shellBanners: [MainWindowRouter.modelsPaneID: { models.banner }])
         settingsHost = model
         return model
+    }
+
+    /// Settings → Models over the real inventory (`ModelManagers.shared`), built once.
+    private func modelsPaneModel() -> ModelsPaneModel {
+        if let modelsPane { return modelsPane }
+        let host = host
+        let model = ModelsPaneModel(
+            inventory: SharedModelInventory(modelsDirectory: environment.modelsDirectory),
+            usages: { Self.modelUsages(host) },
+            pickFolder: { Self.chooseModelFolder() })
+        modelsPane = model
+        return model
+    }
+
+    private func modelsPaneView() -> AnyView {
+        AnyView(ModelsPane(model: modelsPaneModel()) { [weak self] in self?.router.takePendingModelsPackageID() })
+    }
+
+    /// Every plugin's `modelUsage`, on or off: a disabled plugin's usage shows "(off)" and still guards removal.
+    static func modelUsages(_ host: PluginHost) -> [ModelsPaneModel.PluginUsages] {
+        host.entries.map { entry in
+            ModelsPaneModel.PluginUsages(
+                pluginID: entry.manifest.id.rawValue, pluginName: String(localized: entry.manifest.displayName),
+                isEnabled: host.isEnabled(entry.manifest.id), usages: entry.plugin.modelUsage)
+        }
+    }
+
+    private static func chooseModelFolder() -> URL? {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.prompt = String(localized: "Choose", comment: "Button of the model folder picker")
+        panel.message = String(
+            localized: "Choose the folder that contains the model's files.",
+            comment: "Message of the meetings model folder picker")
+        return panel.runModal() == .OK ? panel.url : nil
     }
 
     private func makeMainWindow() -> MainWindowController {

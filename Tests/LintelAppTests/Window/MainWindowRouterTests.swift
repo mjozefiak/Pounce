@@ -15,7 +15,7 @@ import Testing
     /// The speech model's package id in the catalog (`ModelCatalog`, `LintelSpeech`).
     static let parakeet = "parakeet-ultra"
 
-    /// Fake usages: `ModelUsage` declarations of Dictation and Meetings arrive with step 3.2.
+    /// Fake usages, shaped like the `ModelUsage` declarations of Dictation and Meetings.
     static let users = [
         MainWindowRouter.ModelUser(pluginID: "clipboard", packageIDs: []),
         MainWindowRouter.ModelUser(pluginID: "dictation", packageIDs: [parakeet, "qwen"]),

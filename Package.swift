@@ -120,6 +120,8 @@ let package = Package(
                 "LintelCore",
                 "LintelPersistence",
                 "LintelUI",
+                // The Models pane lists and removes models through `ModelManagers.shared` (spec A, R-A5).
+                "LintelSpeech",
                 "AppsPlugin",
                 "FilesPlugin",
                 "ClipboardPlugin",
@@ -195,7 +197,7 @@ let package = Package(
         ),
         .testTarget(
             name: "LintelAppTests",
-            dependencies: ["LintelApp", "LintelKit", "LintelUI"],
+            dependencies: ["LintelApp", "LintelKit", "LintelUI", "LintelSpeech"],
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),
     ],

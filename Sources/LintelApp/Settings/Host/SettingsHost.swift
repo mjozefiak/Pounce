@@ -37,18 +37,31 @@ final class SettingsHostModel {
     @ObservationIgnored private let reader: any PermissionsReader
     @ObservationIgnored private let navigation: Navigation
     @ObservationIgnored private let makePanes: () -> [SettingsWindowController.PluginPane]
+    /// The derivation seam of the shell's own panes: a pane id here gets its banner from its closure (the Models
+    /// pane's "1 model is needed"), read while the view draws so the pane's own observable state drives it.
+    @ObservationIgnored private let shellBanners: [String: () -> StatusDerivation.Banner?]
 
     init(
         host: PluginHost, reader: any PermissionsReader, navigation: Navigation = Navigation(),
-        panes: (() -> [SettingsWindowController.PluginPane])? = nil
+        panes: (() -> [SettingsWindowController.PluginPane])? = nil,
+        shellBanners: [String: () -> StatusDerivation.Banner?] = [:]
     ) {
         self.host = host
         self.reader = reader
         self.navigation = navigation
+        self.shellBanners = shellBanners
         self.makePanes = panes ?? { host.settingsPanes(includingInactive: true) }
         reloadPanes()
         refreshAttention()
         observeHost()
+    }
+
+    /// The banner to draw above the shown pane: a shell pane's derived one through `shellBanners`, else the plugin
+    /// pane's `banner`.
+    var shownBanner: StatusDerivation.Banner? {
+        guard let paneID else { return nil }
+        if let derive = shellBanners[paneID] { return derive() }
+        return banner
     }
 
     /// The sidebar sections from the current panes and dots.
@@ -155,17 +168,20 @@ struct SettingsHost: View {
     let model: SettingsHostModel
     /// The shell's own panes (General, Features, Permissions, Advanced).
     let shellPane: (SettingsWindowController.Pane) -> AnyView
+    /// Settings → Models (step 3.2).
+    var modelsPane: (() -> AnyView)?
     let selection: String
     let onSelect: (String) -> Void
     let onBack: (() -> Void)?
 
     var body: some View {
-        let entries = SettingsPaneAdapter.entries(shellPane: shellPane, plugins: model.plugins)
+        let entries = SettingsPaneAdapter.entries(
+            shellPane: shellPane, plugins: model.plugins, models: modelsPane)
         HStack(spacing: 0) {
             SettingsSidebar(sections: model.sections, selection: selection, onSelect: onSelect, onBack: onBack)
             Divider()
             VStack(spacing: 0) {
-                if let banner = model.banner, model.paneID == selection {
+                if let banner = model.shownBanner, model.paneID == selection {
                     StatusBanner(banner: banner, isBusy: model.isBusy) { action in
                         Task { await model.perform(action) }
                     }

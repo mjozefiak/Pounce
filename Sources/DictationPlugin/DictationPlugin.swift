@@ -257,6 +257,31 @@ public final class DictationPlugin: LintelPlugin {
 
     public var requiredPermissions: Set<Permission> { [.microphone, .accessibility] }
 
+    /// The models dictation uses, for the shell's Models pane (spec `2026-11-04-lintel-main-window`, step 3.2):
+    /// the selected speech model (required) and the built-in formatting model (optional, selected only while the
+    /// built-in source is chosen; in use while a request holds it, as the Formatting settings check today).
+    public var modelUsage: [ModelUsage] {
+        let settings = settings
+        let relay = relay
+        let builtInLLM = builtInLLM
+        let speech = ModelCatalog.package(id: settings.speechModelID) ?? ModelCatalog.parakeetUltra
+        return [
+            ModelUsage(
+                packageID: speech.id, kind: .speech,
+                role: LocalizedStringResource(
+                    "Dictation", comment: "Models pane: what Dictation uses the speech model for"),
+                isRequired: true, isSelected: true,
+                chooseFolder: { settings.setSpeechModelFolder($0) },
+                isInUse: { relay.controller?.isBusy ?? false }),
+            ModelUsage(
+                packageID: settings.builtInLLMModel.id, kind: .llm,
+                role: LocalizedStringResource(
+                    "Formatting", comment: "Models pane: what Dictation uses the language model for"),
+                isRequired: false, isSelected: settings.llmSource == .builtIn,
+                isInUse: { await builtInLLM.isInUse() }),
+        ]
+    }
+
     public var onboardingSteps: [OnboardingStep] {
         let model = settingsModel
         let permissions = context.permissions
