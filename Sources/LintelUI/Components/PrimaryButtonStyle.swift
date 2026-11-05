@@ -14,6 +14,7 @@ public struct LintelPrimaryButtonStyle: ButtonStyle {
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(LintelBorderedButton.font(textSize))
+            .fontWeight(.semibold)
             .foregroundStyle(LintelBrand.onAccent)
             .padding(.horizontal, 10)
             .padding(.vertical, 3)

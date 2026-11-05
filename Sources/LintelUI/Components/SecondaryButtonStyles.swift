@@ -26,7 +26,8 @@ public struct LintelDestructiveButtonStyle: ButtonStyle {
     public init() {}
 
     public func makeBody(configuration: Configuration) -> some View {
-        LintelBorderedButton.body(configuration, text: LintelBrand.statusError, isEnabled: isEnabled, textSize: textSize)
+        LintelBorderedButton.body(
+            configuration, text: LintelBrand.statusError, isEnabled: isEnabled, textSize: textSize)
     }
 }
 
@@ -41,6 +42,7 @@ public struct LintelDestructiveProminentButtonStyle: ButtonStyle {
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(LintelBorderedButton.font(textSize))
+            .fontWeight(.semibold)
             .foregroundStyle(LintelBrand.onStatus)
             .padding(.horizontal, 10)
             .padding(.vertical, 3)
@@ -61,6 +63,7 @@ enum LintelBorderedButton {
     ) -> some View {
         configuration.label
             .font(font(textSize))
+            .fontWeight(.semibold)
             .foregroundStyle(text)
             .padding(.horizontal, 10)
             .padding(.vertical, 3)
