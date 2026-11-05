@@ -196,6 +196,11 @@ struct SettingsHost: View {
     /// banner with its Turn On or Try Again stays at full strength.
     static func bodyOpacity(isActive: Bool) -> Double { isActive ? 1 : 0.5 }
 
+    /// The dimmed pane is also not interactive: its controls reach the plugin's stores and jobs (a Keychain item
+    /// and database opened by a history switch, a shorter retention saved without its confirmation because the
+    /// closed library counts nothing), which `settingsPane()` must not do while the plugin is off or `failed`.
+    static func bodyIsInteractive(isActive: Bool) -> Bool { isActive }
+
     var body: some View {
         let entries = SettingsPanes.entries(
             shellPane: shellPane, plugins: model.plugins, models: modelsPane)
@@ -227,6 +232,7 @@ struct SettingsHost: View {
                 ScrollView {
                     entry?.makeView()
                         .opacity(Self.bodyOpacity(isActive: entry?.isActive ?? true))
+                        .disabled(!Self.bodyIsInteractive(isActive: entry?.isActive ?? true))
                         .settingsColumn()
                         .id(selection)
                 }

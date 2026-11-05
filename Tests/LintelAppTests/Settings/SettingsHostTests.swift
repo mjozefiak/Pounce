@@ -95,6 +95,18 @@ func settle() async {
         #expect(SettingsHost.bodyOpacity(isActive: false) == 0.5)
     }
 
+    /// Review of PR #52: the dimmed pane of an inactive plugin cannot be used, so its controls never open the
+    /// plugin's stores (Dictation's history switch) or skip a confirmation (Meetings' shorter retention).
+    @Test func anInactivePaneIsNotInteractive() throws {
+        #expect(SettingsHost.bodyIsInteractive(isActive: true))
+        #expect(!SettingsHost.bodyIsInteractive(isActive: false))
+        let source = try String(
+            contentsOf: URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+                .deletingLastPathComponent().deletingLastPathComponent()
+                .appending(path: "Sources/LintelApp/Settings/Host/SettingsHost.swift"), encoding: .utf8)
+        #expect(source.contains(".disabled(!Self.bodyIsInteractive(isActive: entry?.isActive ?? true))"))
+    }
+
     @Test func aShellPaneHasNoBanner() async {
         defer { env.tearDown() }
         let host = env.makeHost([BannerStatusPlugin.self])
