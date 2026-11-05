@@ -35,6 +35,7 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 | 3 | 3.2-review-fix | Review fix: confirm model removal, custom-folder models are not "needed", loaded flag, refresh generation, in-use parity tests | dispatch:capable | done | a03feda |
 | 3 | 3.2-qa-fix | QA fix: Permissions states in the new window, Choose Folder style, text size on Models rows | dispatch:standard | done | 5ece8fc |
 | 3 | 3.2-fidelity-fix | Fidelity fix: Models pane matches the prototype set-models (sections, card rows, licence, primary action, footer, wording) | dispatch:standard | done | pending |
+| 3 | 3.2-fidelity-fix-2 | Fidelity fix: banner width and accent action, no wrapped Download label, one Choose Folder style | dispatch:standard | todo | — |
 | 4 | 4.1 | General and Features panes onto the template | dispatch:standard | todo | — |
 | 4 | 4.2 | Apps pane onto the template | dispatch:standard | todo | — |
 | 4 | 4.3 | Files pane onto the template | dispatch:standard | todo | — |
