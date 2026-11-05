@@ -135,6 +135,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 coordinator?.openPluginSettings(pane)
             }
         }
+        if let mode = options.windowMode {
+            coordinator?.showMainWindowForQA(mode)
+        }
         if let mode = options.panelMode {
             let panelMode: PanelModel.Mode = mode == "search" ? .search : .plugin(PanelModeID(rawValue: mode))
             coordinator?.panelModel.show(mode: panelMode)

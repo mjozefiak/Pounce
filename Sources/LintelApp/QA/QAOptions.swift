@@ -44,6 +44,9 @@ struct QAOptions: Equatable {
     var failsAction = false
     /// `--qa-settings general|features|<plugin id>`: opens the Settings window on that pane.
     var settingsPane: String?
+    /// `--qa-window workspace|settings`: opens the main window in that mode (spec `2026-11-04-lintel-main-window`,
+    /// step 1.2). Workspace mode falls back to Settings while no workspace section is registered.
+    var windowMode: MainWindowState.Mode?
     /// `--qa-onboarding`: shows the whole welcome screen (Phase 4), whatever was completed.
     var showsOnboarding = false
     /// `--qa-about`: shows the About window (Phase 4).
@@ -143,6 +146,10 @@ struct QAOptions: Equatable {
                 guard let value = iterator.next() else { throw .missingValue(argument) }
                 guard !value.isEmpty, !value.hasPrefix("-") else { throw .invalidValue(argument, value) }
                 options.settingsPane = value
+            case "--qa-window":
+                guard let value = iterator.next() else { throw .missingValue(argument) }
+                guard let mode = MainWindowState.Mode(rawValue: value) else { throw .invalidValue(argument, value) }
+                options.windowMode = mode
             case "--qa-onboarding":
                 options.showsOnboarding = true
             case "--qa-about":

@@ -17,6 +17,10 @@ final class AppCoordinator {
     private(set) var settingsWindow: SettingsWindowController?
     private(set) var onboarding: OnboardingController?
     private(set) var about: AboutWindowController?
+    #if DEBUG
+    /// The main window, behind the release gate of ADR 0008 until step 6.3: built on first use, DEBUG only.
+    private(set) var mainWindow: MainWindowController?
+    #endif
     /// Shows the welcome screen's pending steps. Set in `start()` outside QA mode; tests replace it.
     var presentPendingOnboarding: (@MainActor () -> Void)?
     private let search: SearchCoordinator
@@ -256,6 +260,40 @@ final class AppCoordinator {
     }
 
     #if DEBUG
+    /// QA (`--qa-window`): opens the main window in a mode. Not reachable from anything else until step 1.5.
+    func showMainWindowForQA(_ mode: MainWindowState.Mode) {
+        panelModel.hide()
+        let window = mainWindow ?? makeMainWindow()
+        switch mode {
+        case .workspace: window.showWorkspace()
+        case .settings: window.showSettings()
+        }
+    }
+
+    private func makeMainWindow() -> MainWindowController {
+        let host = host
+        let window = MainWindowController(
+            settings: environment.settings,
+            sections: {
+                host.entries.filter(\.state.isActive).flatMap(\.plugin.workspaceSections).sorted { $0.order < $1.order }
+            },
+            settingsPanes: { [weak self] in
+                SettingsWindowController.Pane.allCases.map(\.rawValue) + (self?.mainWindowPluginPanes().map(\.id) ?? [])
+            },
+            // QA mode never writes the frame into the tester's defaults.
+            frameAutosaveName: environment.registersGlobalHotkeys ? MainWindowController.autosaveName : nil,
+            makeContent: { state, sections in
+                // Step 1.3 hosts the Settings panes here.
+                guard state.mode == .workspace, let section = sections.first(where: { $0.id == state.section })
+                else { return AnyView(EmptyView()) }
+                return section.makeView()
+            }
+        )
+        window.activatesApp = environment.registersGlobalHotkeys
+        mainWindow = window
+        return window
+    }
+
     /// QA: shows the whole welcome screen regardless of what was completed.
     func showOnboardingForQA() {
         onboarding?.showAllSteps()

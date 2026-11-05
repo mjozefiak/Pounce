@@ -12,7 +12,7 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 | 0 | 0.1 | Add .uxproof/ to git (stale copy first, refresh second) | dispatch:standard | done | 05a2276 |
 | 0 | 0.2 | Apply the deviation tables to the prototype | dispatch:cheap | done | df95001 |
 | 1 | 1.1 | LintelKit contract additions, canBeDisabled, inactive panes | dispatch:capable | done | 85c424f |
-| 1 | 1.2 | MainWindowController, window state keys, QA argument | dispatch:capable | todo | — |
+| 1 | 1.2 | MainWindowController, window state keys, QA argument | dispatch:capable | done | ccc4d07 |
 | 1 | 1.3 | Host the existing Settings panes in the window (adapter) | dispatch:standard | todo | — |
 | 1 | 1.4 | MainMenuController and MainMenuPolicy | dispatch:standard | todo | — |
 | 1 | 1.5 | Dock, status item, Cmd-comma and openModels routing behind the gate | dispatch:capable | todo | — |

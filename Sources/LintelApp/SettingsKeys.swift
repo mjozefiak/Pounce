@@ -39,4 +39,14 @@ enum SettingsKeys {
     /// `String`: `floating` (default) or `statusBar`, the panel's window level. `statusBar` is the spec's
     /// fallback (spike 1.2) if the panel does not appear over full-screen apps.
     static let panelLevel = "app.panelLevel"
+
+    /// `String`: `workspace` or `settings`, the main window's mode when it was last shown (`MainWindowState`).
+    /// Added with the main window (spec `2026-11-04-lintel-main-window`, step 1.2).
+    static let mainWindowMode = "app.mainWindow.mode"
+
+    /// `String`: the id of the workspace section the main window showed last (`WorkspaceSection.id`).
+    static let mainWindowSection = "app.mainWindow.section"
+
+    /// `String`: the id of the Settings pane the main window showed last (a shell pane or a plugin id).
+    static let mainWindowSettingsPane = "app.mainWindow.settingsPane"
 }
