@@ -54,8 +54,8 @@ final class PanelModel {
     /// The selected filter of a list panel mode (Command-1…), or `nil` for all results.
     private(set) var modeFilter: PanelModeFilter.ID?
     /// A destructive action that asked first (`ResultAction.confirmation`): the footer shows "Press ⌃X
-    /// again" until the same action runs again on the same row, or Esc, hiding, a list reload, a selection
-    /// change or `confirmationTimeout` cancels it.
+    /// again" until the same action runs again on the same row, or Esc, hiding, a list reload that loses
+    /// the row, a selection change or `confirmationTimeout` cancels it.
     private(set) var pendingConfirmation: PendingConfirmation?
 
     @ObservationIgnored weak var presenter: (any PanelPresenting)?
@@ -218,16 +218,21 @@ final class PanelModel {
     }
 
     /// Replaces the results and selects the row with `selectedID` if it is still there. When it is gone
-    /// (for example it was just deleted), the row now at its position is selected, else the first. A list
-    /// reload cancels a pending confirmation: the row it was asked for may have changed.
+    /// (for example it was just deleted), the row now at its position is selected, else the first.
+    ///
+    /// A list reload cancels a pending confirmation unless the row it was asked for is still the selected
+    /// one: plugins signal `resultsChanged` for unrelated reasons too (a file index step, a new clipboard
+    /// entry above the row), and the second press still acts on exactly that row.
     func apply(_ found: SearchResults, keeping selectedID: String? = nil) {
         let previousIndex = selectedIndex
-        cancelConfirmation()
         results = found
         isSearching = false
         let kept = selectedID.flatMap { id in found.items.firstIndex { $0.id == id } }
         let fallback = selectedID == nil ? 0 : min(previousIndex ?? 0, max(found.items.count - 1, 0))
         selectedIndex = found.items.isEmpty ? nil : (kept ?? fallback)
+        if let pending = pendingConfirmation, selectedItem?.id != pending.itemID {
+            cancelConfirmation()
+        }
         scheduleCountAnnouncement()
     }
 

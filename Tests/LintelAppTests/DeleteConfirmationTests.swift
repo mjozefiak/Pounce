@@ -228,15 +228,48 @@ nonisolated struct DeletingMode: CustomTestStringConvertible, Sendable {
         #expect(rig.log.all.isEmpty)
     }
 
-    @Test func aListReloadCancels() async throws {
+    @Test func aListReloadThatLosesTheRowCancels() async throws {
         let rig = try await makeRig()
+        rig.model.moveSelection(by: 1)
         rig.model.perform(shortcut: Self.controlX)
-        rig.model.resultsChanged()
-        await rig.model.waitForSearch()
+        let asked = try #require(rig.model.selectedItem)
+        let remaining = rig.model.results.items.filter { $0.id != asked.id }
+        rig.model.apply(
+            SearchResults(
+                query: rig.model.results.query,
+                sections: [ResultSection(id: "s", title: "Mode", symbolName: "doc", kind: .results, items: remaining)]),
+            keeping: asked.id)
         #expect(rig.model.pendingConfirmation == nil)
         rig.model.perform(shortcut: Self.controlX)
         await rig.model.waitForAction()
         #expect(rig.log.all.isEmpty)
+    }
+
+    /// A plugin's `resultsChanged` for an unrelated reason (a file index step, a new clipboard entry above)
+    /// keeps the prompt while the row it was asked for is still selected; the second press deletes that row.
+    @Test func aListReloadThatKeepsTheRowSelectedKeepsThePrompt() async throws {
+        let rig = try await makeRig()
+        rig.model.moveSelection(by: 1)
+        rig.model.perform(shortcut: Self.controlX)
+        rig.model.resultsChanged()
+        await rig.model.waitForSearch()
+        #expect(rig.model.pendingConfirmation != nil)
+        let asked = try #require(rig.model.selectedItem)
+        rig.model.apply(
+            SearchResults(
+                query: rig.model.results.query,
+                sections: [
+                    ResultSection(
+                        id: "s", title: "Mode", symbolName: "doc", kind: .results,
+                        items: [rig.model.results.items[2]]
+                            + rig.model.results.items.filter { $0.id != rig.model.results.items[2].id })
+                ]),
+            keeping: asked.id)
+        #expect(rig.model.selectedItem?.id == asked.id)
+        #expect(rig.model.pendingConfirmation != nil)
+        rig.model.perform(shortcut: Self.controlX)
+        await rig.model.waitForAction()
+        #expect(rig.log.all == ["delete Second entry"])
     }
 
     @Test func aSelectionChangeCancelsAndTheOtherRowAsksOnItsOwn() async throws {
