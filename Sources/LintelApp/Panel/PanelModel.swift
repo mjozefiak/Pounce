@@ -53,6 +53,10 @@ final class PanelModel {
     private(set) var errorMessage: String?
     /// The selected filter of a list panel mode (Command-1…), or `nil` for all results.
     private(set) var modeFilter: PanelModeFilter.ID?
+    /// A destructive action that asked first (`ResultAction.confirmation`): the footer shows "Press ⌃X
+    /// again" until the same action runs again on the same row, or Esc, hiding, a list reload, a selection
+    /// change or `confirmationTimeout` cancels it.
+    private(set) var pendingConfirmation: PendingConfirmation?
 
     @ObservationIgnored weak var presenter: (any PanelPresenting)?
     @ObservationIgnored var panelPresenter: (any PanelPresenter)?
@@ -71,18 +75,28 @@ final class PanelModel {
     }
     @ObservationIgnored private let search: (String) async -> SearchResults?
     @ObservationIgnored private let clock: any Clock<Duration>
+    /// Takes a deadline `duration` from now on `clock` and returns the wait for it, so a timeout counts from
+    /// the moment it was asked for, not from when its task starts.
+    @ObservationIgnored private let startDeadline: (Duration) -> @Sendable () async throws -> Void
     @ObservationIgnored private var searchTask: Task<Void, Never>?
     @ObservationIgnored private var announcementTask: Task<Void, Never>?
     @ObservationIgnored private var actionTask: Task<Void, Never>?
+    @ObservationIgnored private var confirmationExpiry: Task<Void, Never>?
     @ObservationIgnored private var previousApp: pid_t?
     @ObservationIgnored private let logger = Logger(subsystem: "com.lintelapp", category: "panel")
 
     /// The result count is announced after this long without typing.
     static let countAnnouncementDelay: Duration = .milliseconds(500)
+    /// A pending confirmation is cancelled after this long (spec step 6.2).
+    static let confirmationTimeout: Duration = .seconds(5)
 
-    init(search: @escaping (String) async -> SearchResults?, clock: any Clock<Duration> = ContinuousClock()) {
+    init(search: @escaping (String) async -> SearchResults?, clock: some Clock<Duration> = ContinuousClock()) {
         self.search = search
         self.clock = clock
+        startDeadline = { duration in
+            let deadline = clock.now.advanced(by: duration)
+            return { try await clock.sleep(until: deadline, tolerance: nil) }
+        }
     }
 
     // MARK: Visibility
@@ -95,6 +109,7 @@ final class PanelModel {
         }
         let switched = mode != self.mode
         if switched {
+            cancelConfirmation()
             searchTask?.cancel()
             query = ""
             modeFilter = nil
@@ -125,6 +140,7 @@ final class PanelModel {
     func hide() {
         guard isVisible else { return }
         isVisible = false
+        cancelConfirmation()
         presenter?.dismissPanel()
         searchTask?.cancel()
         announcementTask?.cancel()
@@ -141,9 +157,12 @@ final class PanelModel {
         isVisible ? hide() : show()
     }
 
-    /// Esc and Command-W: clear the query first, close when it is already empty.
+    /// Esc and Command-W: cancel a pending confirmation first, then clear the query, and close when it is
+    /// already empty.
     func escape() {
-        if query.isEmpty {
+        if pendingConfirmation != nil {
+            cancelConfirmation(announcing: true)
+        } else if query.isEmpty {
             hide()
         } else {
             updateQuery("")
@@ -161,6 +180,7 @@ final class PanelModel {
         guard text != query else { return }
         query = text
         errorMessage = nil
+        cancelConfirmation()
         runSearch()
     }
 
@@ -198,9 +218,11 @@ final class PanelModel {
     }
 
     /// Replaces the results and selects the row with `selectedID` if it is still there. When it is gone
-    /// (for example it was just deleted), the row now at its position is selected, else the first.
+    /// (for example it was just deleted), the row now at its position is selected, else the first. A list
+    /// reload cancels a pending confirmation: the row it was asked for may have changed.
     func apply(_ found: SearchResults, keeping selectedID: String? = nil) {
         let previousIndex = selectedIndex
+        cancelConfirmation()
         results = found
         isSearching = false
         let kept = selectedID.flatMap { id in found.items.firstIndex { $0.id == id } }
@@ -217,6 +239,7 @@ final class PanelModel {
         let id = filters[index].id
         modeFilter = modeFilter == id ? nil : id
         errorMessage = nil
+        cancelConfirmation()
         selectedIndex = nil
         runSearch()
         let title =
@@ -283,6 +306,7 @@ final class PanelModel {
 
     func select(_ index: Int) {
         guard results.items.indices.contains(index), index != selectedIndex else { return }
+        cancelConfirmation()
         selectedIndex = index
         let item = results.items[index]
         announce("\(item.candidate.title), \(String(localized: item.kind))")
@@ -292,33 +316,44 @@ final class PanelModel {
 
     /// Return: the selected row's first action.
     func performPrimary() {
-        perform(at: 0)
+        perform(at: 0, trigger: KeyShortcut(key: "\r"))
     }
 
     /// Command-Return: the selected row's second action.
     func performSecondary() {
-        perform(at: 1)
+        perform(at: 1, trigger: KeyShortcut(key: "\r", modifiers: .command))
     }
 
     /// Runs the selected row's action bound to `shortcut`. Returns whether one matched.
     @discardableResult
     func perform(shortcut: KeyShortcut) -> Bool {
         guard let action = selectedActions.first(where: { $0.shortcut == shortcut }) else { return false }
-        perform(action)
+        perform(action, trigger: shortcut)
         return true
     }
 
-    private func perform(at index: Int) {
+    private func perform(at index: Int, trigger: KeyShortcut) {
         let actions = selectedActions
         guard actions.indices.contains(index) else { return }
-        perform(actions[index])
+        perform(actions[index], trigger: trigger)
     }
 
     /// Hides the panel first (the action may open another app), then runs the action. If the action fails
     /// (for example the app was moved since the last scan), the panel opens again and says so. An action
     /// that keeps the panel open (deleting a clipboard entry) runs with the panel shown.
-    func perform(_ action: ResultAction) {
+    ///
+    /// An action with a `confirmation` only asks on the first press (`trigger` is the key the footer tells
+    /// the user to press again) and runs on the second one for the same row.
+    func perform(_ action: ResultAction, trigger: KeyShortcut? = nil) {
         guard let panelPresenter else { return }
+        if action.confirmation != nil {
+            guard let item = selectedItem else { return }
+            guard pendingConfirmation?.matches(action: action.id, item: item.id) == true else {
+                requestConfirmation(for: action, item: item, trigger: trigger ?? action.shortcut)
+                return
+            }
+        }
+        cancelConfirmation()
         let context = ActionContext(previousApp: previousApp, panel: panelPresenter, query: results.query)
         let itemTitle = selectedItem?.candidate.title
         if action.keepsPanelOpen {
@@ -396,6 +431,63 @@ final class PanelModel {
         await actionTask?.value
     }
 
+    // MARK: Confirmation
+
+    /// The first press of an action with a confirmation: shows and announces the prompt, and starts the
+    /// timeout. Nothing runs.
+    private func requestConfirmation(
+        for action: ResultAction, item: ResultItem, trigger: KeyShortcut?, expires: Bool = true
+    ) {
+        guard let confirmation = action.confirmation else { return }
+        cancelConfirmation()
+        let pending = PendingConfirmation(
+            actionID: action.id, itemID: item.id, prompt: confirmation.prompt, symbolName: action.symbolName,
+            trigger: trigger)
+        pendingConfirmation = pending
+        errorMessage = nil
+        announce(pending.spokenText)
+        guard expires else { return }
+        let generation = pending.id
+        let wait = startDeadline(Self.confirmationTimeout)
+        confirmationExpiry = Task { [weak self] in
+            do {
+                try await wait()
+            } catch {
+                return
+            }
+            guard let self, self.pendingConfirmation?.id == generation else { return }
+            self.cancelConfirmation(announcing: true)
+        }
+    }
+
+    /// Drops a pending confirmation without running anything. `announcing` says "Cancelled" (Esc and the
+    /// timeout; the other paths already announce what replaced it, or the panel is gone).
+    func cancelConfirmation(announcing: Bool = false) {
+        confirmationExpiry?.cancel()
+        confirmationExpiry = nil
+        guard pendingConfirmation != nil else { return }
+        pendingConfirmation = nil
+        if announcing {
+            announce(
+                String(localized: "Cancelled", comment: "Announced when a pending delete confirmation is cancelled"))
+        }
+    }
+
+    #if DEBUG
+    /// `--qa-confirm-action`: shows the selected row's first confirmation for a screenshot, without a timeout.
+    func showConfirmationForQA() {
+        guard let item = selectedItem, let action = selectedActions.first(where: { $0.confirmation != nil }) else {
+            return
+        }
+        requestConfirmation(for: action, item: item, trigger: action.shortcut, expires: false)
+    }
+    #endif
+
+    /// Waits for the pending confirmation's timeout (tests).
+    func waitForConfirmationExpiry() async {
+        await confirmationExpiry?.value
+    }
+
     // MARK: Layout and accessibility
 
     /// The panel's height: the field alone, or the field with the list and footer, up to 480 pt.
@@ -467,4 +559,40 @@ final class PanelModel {
             )
         }
     }
+}
+
+/// What the panel footer shows while an action waits for its second press.
+struct PendingConfirmation: Identifiable, Equatable {
+    let id = UUID()
+    let actionID: String
+    let itemID: String
+    let prompt: LocalizedStringResource
+    let symbolName: String
+    /// The key to press again (the action's shortcut, or Return for the first action).
+    let trigger: KeyShortcut?
+
+    func matches(action: String, item: String) -> Bool {
+        actionID == action && itemID == item
+    }
+
+    /// "Press ⌃X again to delete".
+    var hint: String {
+        let keys = trigger.map(ActionFooter.keys) ?? "⏎"
+        return String(
+            localized: "Press \(keys) again to delete", comment: "Panel footer: the key to press again; the key symbols"
+        )
+    }
+
+    /// The announcement, with the keys in words ("Delete this meeting? Press Control-X again to delete.
+    /// Escape cancels.").
+    var spokenText: String {
+        let keys = trigger.map(ActionFooter.spokenKeys) ?? ActionFooter.spokenKeys(KeyShortcut(key: "\r"))
+        let press = String(
+            localized: "Press \(keys) again to delete", comment: "Panel footer: the key to press again; the key symbols"
+        )
+        let cancels = String(localized: "Escape cancels.", comment: "Announced after a delete confirmation's prompt")
+        return "\(String(localized: prompt)) \(press). \(cancels)"
+    }
+
+    static func == (lhs: Self, rhs: Self) -> Bool { lhs.id == rhs.id }
 }

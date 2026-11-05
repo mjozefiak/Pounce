@@ -1,6 +1,114 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Press %@ again to delete" : {
+      "comment" : "Panel footer: the key to press again; the key symbols",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press %@ again to delete"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naciśnij %@ ponownie, aby usunąć"
+          }
+        }
+      }
+    },
+    "cancels" : {
+      "comment" : "Panel footer after the Esc key: Esc cancels the pending delete",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "cancels"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "anuluje"
+          }
+        }
+      }
+    },
+    "Escape cancels." : {
+      "comment" : "Announced after a delete confirmation's prompt",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escape cancels."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escape anuluje."
+          }
+        }
+      }
+    },
+    "Cancelled" : {
+      "comment" : "Announced when a pending delete confirmation is cancelled",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelled"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anulowano"
+          }
+        }
+      }
+    },
+    "Delete this clipboard entry?" : {
+      "comment" : "Clipboard list: asked before ⌃X deletes the entry",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete this clipboard entry?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunąć ten wpis ze schowka?"
+          }
+        }
+      }
+    },
+    "Delete this dictation?" : {
+      "comment" : "Dictation history list: asked before ⌃X deletes the entry",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete this dictation?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunąć to dyktowanie?"
+          }
+        }
+      }
+    },
     "%@ (off)" : {
       "comment" : "Models pane chip: a feature that is off uses the model",
       "extractionState" : "manual",
@@ -10401,42 +10509,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nie można otworzyć biblioteki spotkań."
-          }
-        }
-      }
-    },
-    "Press ⌃X again to delete this meeting." : {
-      "comment" : "Meeting library: asks to press Delete a second time",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Press ⌃X again to delete this meeting."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Naciśnij ponownie ⌃X, aby usunąć to spotkanie."
-          }
-        }
-      }
-    },
-    "Press ⌃X again to delete this meeting and its audio." : {
-      "comment" : "Meeting library: asks to press Delete again; the unfinished meeting's audio goes too",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Press ⌃X again to delete this meeting and its audio."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Naciśnij ponownie ⌃X, aby usunąć to spotkanie i jego nagranie."
           }
         }
       }

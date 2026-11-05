@@ -149,6 +149,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     model.actionFailed(action, itemTitle: model.selectedItem?.candidate.title)
                 }
             }
+            if options.confirmsAction, let model = coordinator?.panelModel {
+                Task {
+                    await model.waitForSearch()
+                    model.showConfirmationForQA()
+                }
+            }
         }
         if let quitAfter = options.quitAfter {
             schedule(after: quitAfter) { [weak self] in
