@@ -1225,6 +1225,24 @@
         }
       }
     },
+    "Cut" : {
+      "comment" : "Main menu item",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cut"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wytnij"
+          }
+        }
+      }
+    },
     "Delete" : {
       "comment" : "Clipboard action that deletes the entry",
       "extractionState" : "manual",
@@ -1581,6 +1599,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pobrane rzeczy"
+          }
+        }
+      }
+    },
+    "Edit" : {
+      "comment" : "Main menu item",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edycja"
           }
         }
       }
@@ -2719,6 +2755,24 @@
         }
       }
     },
+    "Minimize" : {
+      "comment" : "Main menu item",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minimize"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zminimalizuj"
+          }
+        }
+      }
+    },
     "Not available while a meeting is being recorded or processed." : {
       "comment" : "Meetings: why the system audio test is switched off during a meeting",
       "extractionState" : "manual",
@@ -2823,6 +2877,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Opcjonalnie: pozwól modelowi na tym Macu pisać notatki po każdym spotkaniu. To duże pobranie, które zaczyna się dopiero po naciśnięciu przycisku."
+          }
+        }
+      }
+    },
+    "Redo" : {
+      "comment" : "Main menu item",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redo"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ponów"
+          }
+        }
+      }
+    },
+    "Select All" : {
+      "comment" : "Main menu item",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select All"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaznacz wszystko"
           }
         }
       }
@@ -5977,6 +6067,24 @@
         }
       }
     },
+    "Undo" : {
+      "comment" : "Main menu item",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Undo"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cofnij"
+          }
+        }
+      }
+    },
     "Unknown" : {
       "comment" : "Permission state",
       "extractionState" : "manual",
@@ -6207,6 +6315,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Whisper nie zgaduje języka: słucha tego, który wybierzesz. Jeśli Parakeet zamienia Twój polski na angielski, przełącz się na Whisper."
+          }
+        }
+      }
+    },
+    "Window" : {
+      "comment" : "Main menu item",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Window"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Okno"
           }
         }
       }
@@ -6459,6 +6585,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "macOS może pytać, zanim aplikacja odczyta schowek. Zezwól Lintel, aby historia była dalej zapisywana."
+          }
+        }
+      }
+    },
+    "Zoom" : {
+      "comment" : "Main menu item",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoom"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Powiększ"
           }
         }
       }

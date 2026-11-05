@@ -23,6 +23,9 @@ final class MainWindowController {
     private(set) var window: NSWindow?
     private(set) var state: MainWindowState?
 
+    /// Called after the state changed (mode, section or pane), so the main menu can follow.
+    var onChange: (() -> Void)?
+
     /// False in QA mode: the window is ordered front without activating Lintel.
     var activatesApp = true
 
@@ -93,6 +96,28 @@ final class MainWindowController {
         window?.close()
     }
 
+    /// The active workspace section in Workspace mode, `nil` in Settings mode.
+    var activeSection: WorkspaceSection? {
+        guard state?.mode == .workspace else { return nil }
+        return sections().first { $0.id == state?.section }
+    }
+
+    /// Command-W. In Workspace mode the section is asked first (`handleClose`: it may close a tab itself and keep
+    /// the window open), then the window closes after the section's `willHide`. Returns the pending close.
+    @discardableResult
+    func requestClose() -> Task<Void, Never>? {
+        guard let window else { return nil }
+        guard let section = activeSection else {
+            window.close()
+            return nil
+        }
+        if section.handleClose() { return nil }
+        return Task { @MainActor in
+            await section.willHide()
+            window.close()
+        }
+    }
+
     private func restoredState() -> MainWindowState {
         MainWindowState.restore(
             from: settings, sections: sections().map(\.id), settingsPanes: settingsPanes())
@@ -101,6 +126,7 @@ final class MainWindowController {
     private func apply(_ state: MainWindowState) {
         self.state = state
         state.save(to: settings)
+        defer { onChange?() }
         let content = makeContent(state, sections()).lintelBrand()
         if let hosting {
             hosting.rootView = AnyView(content)
@@ -127,6 +153,10 @@ final class MainWindowController {
         }
         let frame = Self.validatedFrame(window.frame, screens: screens(), isRestored: isRestored)
         window.setFrame(frame, display: false)
+        window.closeHandler = { [weak self] in
+            self?.requestClose()
+            return true
+        }
         self.window = window
         self.hosting = hosting
     }

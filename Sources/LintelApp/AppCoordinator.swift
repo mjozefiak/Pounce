@@ -22,6 +22,7 @@ final class AppCoordinator {
     #if DEBUG
     /// The main window, behind the release gate of ADR 0008 until step 6.3: built on first use, DEBUG only.
     private(set) var mainWindow: MainWindowController?
+    private var mainMenu: MainMenuController?
     #endif
     /// Shows the welcome screen's pending steps. Set in `start()` outside QA mode; tests replace it.
     var presentPendingOnboarding: (@MainActor () -> Void)?
@@ -102,6 +103,10 @@ final class AppCoordinator {
         appSettings.showInDockChanged = { [weak self] showInDock in
             DockPresence.apply(showInDock: showInDock)
             if !showInDock { self?.settingsWindow?.bringToFrontIfVisible() }
+            #if DEBUG
+            // Changing the activation policy can drop the main menu; put it back for the key window.
+            self?.mainMenu?.refresh()
+            #endif
         }
 
         await host.start()
@@ -310,6 +315,17 @@ final class AppCoordinator {
         )
         window.activatesApp = environment.registersGlobalHotkeys
         mainWindow = window
+        // QA mode (no global hotkeys) never installs a menu into the tester's session either.
+        if environment.registersGlobalHotkeys {
+            let menu = MainMenuController(
+                mainWindow: { [weak window] in window?.window },
+                mode: { [weak window] in window?.state?.mode },
+                section: { [weak window] in window?.activeSection },
+                openSettings: { [weak window] in window?.showSettings() })
+            window.onChange = { [weak menu] in menu?.refresh() }
+            menu.start()
+            mainMenu = menu
+        }
         return window
     }
 
