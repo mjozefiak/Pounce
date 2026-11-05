@@ -186,6 +186,10 @@ final class AppCoordinator {
 
     /// Deactivates every plugin before the app exits.
     func stop() async {
+        #if DEBUG
+        // The visible workspace section flushes what it holds before the plugins stop.
+        await mainWindow?.prepareForTermination()
+        #endif
         await host.stop()
     }
 

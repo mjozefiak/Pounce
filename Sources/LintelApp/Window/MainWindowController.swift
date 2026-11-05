@@ -20,6 +20,11 @@ final class MainWindowController {
     private let frameAutosaveName: String?
     private let makeContent: (MainWindowState, [WorkspaceSection]) -> AnyView
     private var hosting: NSHostingController<AnyView>?
+    /// The pending close (Command-W or the title bar's close button) while the section's `willHide` runs.
+    private var closeTask: Task<Void, Never>?
+    /// Bumped by every change of state and every presentation, so a pending close or mode switch that waited on
+    /// `willHide` does nothing when the window was reopened or switched meanwhile.
+    private var generation = 0
 
     private(set) var window: NSWindow?
     private(set) var state: MainWindowState?
@@ -58,13 +63,17 @@ final class MainWindowController {
     var isVisible: Bool { window?.isVisible ?? false }
 
     /// Opens the window in the restored state.
-    func show() {
-        apply(restoredState())
-        present()
+    ///
+    /// Every change that leaves the visible Workspace section (another mode or section) first awaits that
+    /// section's `willHide`; the returned task is that pending change, `nil` when it applied at once.
+    @discardableResult
+    func show() -> Task<Void, Never>? {
+        transition(to: restoredState(), presenting: true)
     }
 
     /// Opens Workspace mode on a section (the stored or first one for `nil`); without any section, Settings mode.
-    func showWorkspace(_ sectionID: String? = nil) {
+    @discardableResult
+    func showWorkspace(_ sectionID: String? = nil) -> Task<Void, Never>? {
         var state = restoredState()
         let ids = sections().map(\.id)
         if let first = ids.first {
@@ -73,26 +82,26 @@ final class MainWindowController {
         } else {
             state.mode = .settings
         }
-        apply(state)
-        present()
+        return transition(to: state, presenting: true)
     }
 
     /// Opens Settings mode on a pane (the stored one for `nil`); an unknown id opens General.
-    func showSettings(_ paneID: String? = nil) {
+    @discardableResult
+    func showSettings(_ paneID: String? = nil) -> Task<Void, Never>? {
         var state = restoredState()
         state.mode = .settings
         if let paneID {
             state.settingsPane = settingsPanes().contains(paneID) ? paneID : MainWindowState.defaultSettingsPane
         }
-        apply(state)
-        present()
+        return transition(to: state, presenting: true)
     }
 
     /// Selects a Settings pane while the window is open (the adapter's list calls this); an unknown id is ignored.
-    func selectSettingsPane(_ paneID: String) {
-        guard var state, settingsPanes().contains(paneID) else { return }
+    @discardableResult
+    func selectSettingsPane(_ paneID: String) -> Task<Void, Never>? {
+        guard var state, settingsPanes().contains(paneID) else { return nil }
         state.settingsPane = paneID
-        apply(state)
+        return transition(to: state, presenting: false)
     }
 
     func close() {
@@ -106,18 +115,79 @@ final class MainWindowController {
     }
 
     /// Command-W. In Workspace mode the section is asked first (`handleClose`: it may close a tab itself and keep
-    /// the window open), then the window closes after the section's `willHide`. Returns the pending close.
+    /// the window open), then the window closes after the section's `willHide`. Returns the pending close; a
+    /// second Command-W while it waits returns the same task.
     @discardableResult
     func requestClose() -> Task<Void, Never>? {
         guard let window else { return nil }
-        guard let section = activeSection else {
+        if let closeTask { return closeTask }
+        guard let section = visibleSection else {
             window.close()
             return nil
         }
         if section.handleClose() { return nil }
-        return Task { @MainActor in
+        return hideThenClose(section)
+    }
+
+    /// The app is quitting: awaits the visible section's `willHide` (`applicationShouldTerminate` replies later).
+    func prepareForTermination() async {
+        if let closeTask {
+            await closeTask.value
+            return
+        }
+        guard let section = visibleSection else { return }
+        generation += 1
+        await section.willHide()
+    }
+
+    /// The title bar's close button: like Command-W without asking `handleClose` (it closes the window, not a
+    /// tab). `false` keeps the window open until `willHide` finished.
+    private func windowShouldClose() -> Bool {
+        guard closeTask == nil else { return false }
+        guard let section = visibleSection else { return true }
+        hideThenClose(section)
+        return false
+    }
+
+    /// The active section while the window is on screen; a hidden window's section was already told.
+    private var visibleSection: WorkspaceSection? {
+        guard isVisible else { return nil }
+        return activeSection
+    }
+
+    @discardableResult
+    private func hideThenClose(_ section: WorkspaceSection) -> Task<Void, Never> {
+        let expected = generation
+        let task = Task { @MainActor [weak self] in
             await section.willHide()
-            window.close()
+            guard let self else { return }
+            self.closeTask = nil
+            guard self.generation == expected else { return }
+            self.window?.close()
+        }
+        closeTask = task
+        return task
+    }
+
+    /// Applies `state`, first awaiting `willHide` of the visible section it leaves. A later change or a reopen
+    /// while that runs wins.
+    private func transition(to state: MainWindowState, presenting: Bool) -> Task<Void, Never>? {
+        let leaving = visibleSection.flatMap { section in
+            state.mode != .workspace || state.section != section.id ? section : nil
+        }
+        guard let leaving else {
+            apply(state)
+            if presenting { present() }
+            return nil
+        }
+        generation += 1
+        closeTask = nil
+        let expected = generation
+        return Task { @MainActor [weak self] in
+            await leaving.willHide()
+            guard let self, self.generation == expected else { return }
+            self.apply(state)
+            if presenting { self.present() }
         }
     }
 
@@ -127,6 +197,7 @@ final class MainWindowController {
     }
 
     private func apply(_ state: MainWindowState) {
+        generation += 1
         self.state = state
         state.save(to: settings)
         defer { onChange?() }
@@ -162,12 +233,14 @@ final class MainWindowController {
             self?.requestClose()
             return true
         }
+        window.shouldClose = { [weak self] in self?.windowShouldClose() ?? true }
         self.window = window
         self.hosting = hosting
     }
 
     private func present() {
         guard let window else { return }
+        generation += 1
         if activatesApp {
             NSApp.activate()
             window.makeKeyAndOrderFront(nil)

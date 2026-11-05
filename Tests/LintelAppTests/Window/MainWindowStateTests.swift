@@ -210,7 +210,7 @@ import Testing
         #expect(settings.value(forKey: SettingsKeys.mainWindowMode) == .string("settings"))
     }
 
-    @Test func switchingModesIsStoredAndRestored() {
+    @Test func switchingModesIsStoredAndRestored() async {
         let settings = InMemorySettingsStore()
         let recorder = Recorder()
         let sections = [section("notes", order: 10), section("other", order: 20)]
@@ -218,7 +218,8 @@ import Testing
         defer { controller.close() }
         controller.showWorkspace("other")
         #expect(controller.state == MainWindowState(mode: .workspace, section: "other", settingsPane: "general"))
-        controller.showSettings("gone")
+        // Leaving a visible section waits for its `willHide`.
+        await controller.showSettings("gone")?.value
         #expect(controller.state == MainWindowState(mode: .settings, section: "other", settingsPane: "general"))
         controller.showSettings("clipboard")
         controller.show()

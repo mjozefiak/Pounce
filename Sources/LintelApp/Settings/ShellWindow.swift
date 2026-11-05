@@ -8,6 +8,14 @@ final class ShellWindow: NSWindow {
     /// Command-W goes here first; `true` means it was handled and the window stays as it is (the main window's
     /// Workspace mode asks the section, then closes after `willHide`). The menu has no Close item, so it fires once.
     var closeHandler: (() -> Bool)?
+    /// The title bar's close button (`performClose`): `false` keeps the window open (the main window closes it
+    /// itself after the section's `willHide`). Not a delegate, so the window never points at a freed object.
+    var shouldClose: (() -> Bool)?
+
+    override func performClose(_ sender: Any?) {
+        if shouldClose?() == false { return }
+        super.performClose(sender)
+    }
 
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         if Self.isClose(event) {

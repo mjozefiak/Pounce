@@ -18,7 +18,7 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 | 1 | 1.5 | Dock, status item, Cmd-comma and openModels routing behind the gate | dispatch:capable | done | f4b5831 |
 | 1 | 1.6 | LintelUI target, moved brand and TextSize, host style values | dispatch:capable | done | 6f36f7a |
 | 1 | 1.5-review-fix | Review fix: Dock click counts only real windows (H1) | dispatch:standard | done | 10aa9c2 |
-| 1 | 1.2-review-fix | Review fix: call willHide on every mode switch, close and quit path (M1) | dispatch:standard | todo | — |
+| 1 | 1.2-review-fix | Review fix: call willHide on every mode switch, close and quit path (M1) | dispatch:standard | done | 9ba1a32 |
 | 1 | 1.1-review-fix | Review fix: inactive-pane test runs pane lifecycle in a real window; no work while inactive (M2) | dispatch:standard | todo | — |
 | 1 | 1.6-review-fix | Review fix: meeting window text size, AGENTS.md Window/ row, adapter sidebar and close-task nits (L2, L3, L4, L6) | dispatch:standard | todo | — |
 | 2 | 2.1 | SettingsSidebar and SettingsSidebarModel | dispatch:standard | todo | — |

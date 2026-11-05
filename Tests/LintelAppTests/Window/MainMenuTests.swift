@@ -229,4 +229,77 @@ import Testing
         #expect(window.performKeyEquivalent(with: event))
         #expect(calls == 1)
     }
+
+    // MARK: willHide on every way out
+
+    @Test func aModeSwitchHidesTheSectionOnceFirst() async {
+        var hides = 0
+        let controller = controllerWithSection(handleClose: { false }, willHide: { hides += 1 })
+        defer { controller.close() }
+        let pending = controller.showSettings("general")
+        #expect(pending != nil)
+        #expect(controller.state?.mode == .workspace)
+        await pending?.value
+        #expect(hides == 1)
+        #expect(controller.state?.mode == .settings)
+        // Settings to Settings leaves no section: nothing to hide.
+        #expect(controller.showSettings("general") == nil)
+        #expect(hides == 1)
+    }
+
+    @Test func theTitleBarsCloseButtonHidesTheSectionOnceThenCloses() async throws {
+        var asked = 0
+        var hides = 0
+        let controller = controllerWithSection(
+            handleClose: {
+                asked += 1
+                return false
+            }, willHide: { hides += 1 })
+        let window = try #require(controller.window)
+        window.performClose(nil)
+        window.performClose(nil)
+        for _ in 0..<100 where window.isVisible { await Task.yield() }
+        #expect(!window.isVisible)
+        #expect(hides == 1)
+        // The close button closes the window, not a tab.
+        #expect(asked == 0)
+    }
+
+    @Test func repeatedCommandWStartsOneClose() async {
+        var asked = 0
+        var hides = 0
+        let controller = controllerWithSection(
+            handleClose: {
+                asked += 1
+                return false
+            }, willHide: { hides += 1 })
+        let first = controller.requestClose()
+        let second = controller.requestClose()
+        #expect(first != nil)
+        #expect(first == second)
+        await first?.value
+        #expect(asked == 1)
+        #expect(hides == 1)
+    }
+
+    @Test func aWindowReopenedWhileTheSectionHidesStaysOpen() async {
+        let controller = controllerWithSection(
+            handleClose: { false }, willHide: { try? await Task.sleep(for: .milliseconds(20)) })
+        defer { controller.close() }
+        let pending = controller.requestClose()
+        controller.show()
+        await pending?.value
+        #expect(controller.isVisible)
+    }
+
+    @Test func quittingHidesTheVisibleSection() async {
+        var hides = 0
+        let controller = controllerWithSection(handleClose: { false }, willHide: { hides += 1 })
+        defer { controller.close() }
+        await controller.prepareForTermination()
+        #expect(hides == 1)
+        controller.close()
+        await controller.prepareForTermination()
+        #expect(hides == 1)
+    }
 }
