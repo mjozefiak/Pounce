@@ -174,7 +174,8 @@ import Testing
             settings: settings,
             sections: { sections },
             settingsPanes: { ["general", "features", "clipboard"] },
-            screens: { [NSRect(x: 0, y: 0, width: 1440, height: 875)] },
+            // An off-screen "screen": the window is centered there, so a test run never puts it on the display.
+            screens: { [NSRect(x: -10_000, y: -10_000, width: 1440, height: 875)] },
             frameAutosaveName: nil,
             makeContent: { state, _ in
                 recorder.states.append(state)

@@ -174,6 +174,8 @@ import Testing
             willHide: willHide, handleClose: handleClose)
         let controller = MainWindowController(
             settings: InMemorySettingsStore(), sections: { [section] }, settingsPanes: { ["general"] },
+            // An off-screen "screen": the window is centered there, so a test run never puts it on the display.
+            screens: { [NSRect(x: -10_000, y: -10_000, width: 1440, height: 875)] },
             frameAutosaveName: nil, makeContent: { _, _ in AnyView(EmptyView()) })
         controller.activatesApp = false
         controller.showWorkspace()
