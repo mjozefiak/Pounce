@@ -69,31 +69,80 @@ import Testing
     }
 }
 
-@Suite struct StatusBannerContrastTests {
-    /// The Settings banner's glyph sits on its own level's tint over the window: it keeps 3:1 there.
-    @Test func eachStatusGlyphHasThreeToOneOnItsBannerTint() {
-        let lightWindow: UInt32 = 0xECECEC
-        let darkWindow: UInt32 = 0x323232
-        let alpha = LintelBrand.statusTintAlpha
-        let pairs: [(name: String, light: UInt32, dark: UInt32)] = [
-            ("ok", BrandPalette.statusOkLight, BrandPalette.statusOkDark),
-            ("attention", BrandPalette.statusAttentionLight, BrandPalette.statusAttentionDark),
-            ("error", BrandPalette.statusErrorLight, BrandPalette.statusErrorDark),
+/// The main window's Settings sidebar (prototype `.si.on`): the selected row is `selectionTint` over the window
+/// fill, its label and icon `accentText`.
+@Suite struct SettingsSidebarContrastTests {
+    /// The sidebar sits on the window fill: `windowBackgroundColor` as the system resolves it, and the fill the
+    /// QA captures measured (macOS 26 tints the dark one with the desktop picture).
+    @MainActor
+    @Test func theSelectedRowLabelIsReadableInBothAppearances() throws {
+        let cases: [(NSAppearance.Name, [UInt32], UInt32, UInt32, Double)] = [
+            (
+                .aqua, [0xFFFFFF], BrandPalette.accentLight, BrandPalette.accentTextLight,
+                LintelBrand.selectionTintAlpha.light
+            ),
+            (
+                .darkAqua, [0x1E222D], BrandPalette.accentDark, BrandPalette.accentTextDark,
+                LintelBrand.selectionTintAlpha.dark
+            ),
         ]
+        for (name, captured, accent, text, alpha) in cases {
+            let appearance = try #require(NSAppearance(named: name))
+            var window: UInt32 = 0
+            appearance.performAsCurrentDrawingAppearance {
+                guard let colour = NSColor.windowBackgroundColor.usingColorSpace(.sRGB) else { return }
+                func byte(_ value: CGFloat) -> UInt32 { UInt32((max(0, min(1, value)) * 255).rounded()) }
+                window = byte(colour.redComponent) << 16 | byte(colour.greenComponent) << 8 | byte(colour.blueComponent)
+            }
+            for background in captured + [window] {
+                let row = BrandPalette.blend(accent, alpha: alpha, over: background)
+                #expect(BrandPalette.contrast(text, row) >= 4.5, "\(name.rawValue) on \(String(background, radix: 16))")
+                // The selected row's icon and the accent as a graphic.
+                #expect(BrandPalette.contrast(accent, row) >= 3, "\(name.rawValue) icon")
+            }
+        }
+    }
+}
+
+@Suite struct StatusBannerContrastTests {
+    // The banner is a card like the grouped form's sections (`quaternarySystemFill` over the window): the
+    // captured fills of the main window, light and dark, plus the classic window fills.
+    private let lightCards: [UInt32] = [0xF8F8F8, 0xFFFFFF, 0xECECEC]
+    private let darkCards: [UInt32] = [0x242833, 0x1E222D, 0x323232]
+    private let pairs: [(name: String, light: UInt32, dark: UInt32)] = [
+        ("ok", BrandPalette.statusOkLight, BrandPalette.statusOkDark),
+        ("attention", BrandPalette.statusAttentionLight, BrandPalette.statusAttentionDark),
+        ("error", BrandPalette.statusErrorLight, BrandPalette.statusErrorDark),
+    ]
+
+    /// The filled status circle is a graphic: 3:1 against the card it sits on.
+    @Test func eachStatusCircleHasThreeToOneOnTheBannerCard() {
         for pair in pairs {
-            let lightTint = BrandPalette.blend(pair.light, alpha: alpha, over: lightWindow)
-            let darkTint = BrandPalette.blend(pair.dark, alpha: alpha, over: darkWindow)
-            #expect(BrandPalette.contrast(pair.light, lightTint) >= 3, "status.\(pair.name) light banner")
-            #expect(BrandPalette.contrast(pair.dark, darkTint) >= 3, "status.\(pair.name) dark banner")
+            for card in lightCards {
+                #expect(BrandPalette.contrast(pair.light, card) >= 3, "status.\(pair.name) light")
+            }
+            for card in darkCards {
+                #expect(BrandPalette.contrast(pair.dark, card) >= 3, "status.\(pair.name) dark")
+            }
         }
     }
 
-    /// The neutral banner has no brand token: its glyph is `secondaryLabelColor` (itself translucent) on a tint of
-    /// the same colour. The glyph, composited over that tint, keeps 3:1 in both appearances.
+    /// The glyph cut into the circle (`onStatus`) keeps 3:1 against every status fill.
+    @Test func theGlyphHasThreeToOneOnEachStatusCircle() {
+        for pair in pairs {
+            #expect(BrandPalette.contrast(BrandPalette.onStatusLight, pair.light) >= 3, "status.\(pair.name) light")
+            #expect(BrandPalette.contrast(BrandPalette.onStatusDark, pair.dark) >= 3, "status.\(pair.name) dark")
+        }
+    }
+
+    /// The neutral circle has no brand token: it is `secondaryLabelColor` (itself translucent) over the card,
+    /// with the `onStatus` glyph. Both keep 3:1 in both appearances.
     @MainActor
-    @Test func theNeutralGlyphHasThreeToOneOnItsBannerTint() throws {
-        let windows: [(NSAppearance.Name, UInt32)] = [(.aqua, 0xECECEC), (.darkAqua, 0x323232)]
-        for (name, window) in windows {
+    @Test func theNeutralCircleAndItsGlyphHaveThreeToOne() throws {
+        let cases: [(NSAppearance.Name, UInt32, UInt32)] = [
+            (.aqua, 0xF8F8F8, BrandPalette.onStatusLight), (.darkAqua, 0x242833, BrandPalette.onStatusDark),
+        ]
+        for (name, card, glyph) in cases {
             let appearance = try #require(NSAppearance(named: name))
             var rgb: UInt32 = 0
             var alpha = 0.0
@@ -104,9 +153,13 @@ import Testing
                 alpha = Double(colour.alphaComponent)
             }
             #expect(alpha > 0, "\(name.rawValue): secondaryLabelColor resolves")
-            let tint = BrandPalette.blend(rgb, alpha: alpha * LintelBrand.statusTintAlpha, over: window)
-            let glyph = BrandPalette.blend(rgb, alpha: alpha, over: tint)
-            #expect(BrandPalette.contrast(glyph, tint) >= 3, "status.neutral \(name.rawValue) banner")
+            let circle = BrandPalette.blend(rgb, alpha: alpha, over: card)
+            #expect(BrandPalette.contrast(circle, card) >= 3, "status.neutral \(name.rawValue) circle")
+            #expect(BrandPalette.contrast(glyph, circle) >= 3, "status.neutral \(name.rawValue) glyph")
         }
+    }
+
+    @Test func theGlyphTokensKeepTheirValues() {
+        #expect(BrandPalette.onStatusLight == 0xFFFFFF && BrandPalette.onStatusDark == 0x161310)
     }
 }

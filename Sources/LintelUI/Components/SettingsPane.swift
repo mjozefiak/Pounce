@@ -37,13 +37,10 @@ public struct SettingsPane<Basics: View, Advanced: View, Data: View>: View {
         Form {
             basics
             if let advanced {
-                Section {
-                    DisclosureGroup(isExpanded: $advancedExpanded) {
-                        advanced
-                    } label: {
-                        Text("Advanced", comment: "Settings pane section title")
-                            .font(textSize.font(.body, weight: .semibold))
-                    }
+                SettingsDisclosureSection(isExpanded: $advancedExpanded) {
+                    advanced
+                } label: {
+                    Text("Advanced", comment: "Settings pane section title")
                 }
             }
             if let data {
@@ -57,7 +54,7 @@ public struct SettingsPane<Basics: View, Advanced: View, Data: View>: View {
                             Text("Data", comment: "Settings pane section title for the data a feature keeps")
                         }
                     }
-                    .font(textSize.font(.body, weight: .semibold))
+                    .settingsSectionHeader()
                 }
             }
         }
@@ -103,5 +100,107 @@ public struct SettingsFooter: View {
             .font(textSize.font(.callout))
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+/// The look of a section header in a settings form. In the main window (prototype `.sh`): the subheadline style,
+/// semibold, secondary colour. The old window keeps its body-size semibold headers.
+public struct SettingsSectionHeaderStyle: ViewModifier {
+    @Environment(\.settingsHostStyle) private var hostStyle
+    @Environment(\.lintelTextSize) private var textSize
+
+    public init() {}
+
+    public func body(content: Content) -> some View {
+        if hostStyle == .mainWindow {
+            content
+                .font(textSize.font(.subheadline, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .accessibilityAddTraits(.isHeader)
+        } else {
+            content.font(textSize.font(.body, weight: .semibold))
+        }
+    }
+}
+
+extension View {
+    /// Styles a settings section header (`SettingsSectionHeaderStyle`).
+    public func settingsSectionHeader() -> some View { modifier(SettingsSectionHeaderStyle()) }
+}
+
+/// A collapsible settings section: Advanced in `SettingsPane`, Storage in Models. In the main window it is a plain
+/// line (prototype `.disc`: a chevron and a secondary semibold label, no card) and the rows appear in a card under
+/// it when expanded; the old window keeps a `DisclosureGroup` in its own card.
+public struct SettingsDisclosureSection<Content: View, Label: View, Footer: View>: View {
+    @Binding private var isExpanded: Bool
+    private let content: Content
+    private let label: Label
+    private let footer: Footer
+
+    @Environment(\.settingsHostStyle) private var hostStyle
+    @Environment(\.lintelTextSize) private var textSize
+
+    public init(
+        isExpanded: Binding<Bool>, @ViewBuilder content: () -> Content, @ViewBuilder label: () -> Label,
+        @ViewBuilder footer: () -> Footer
+    ) {
+        _isExpanded = isExpanded
+        self.content = content()
+        self.label = label()
+        self.footer = footer()
+    }
+
+    /// The space under the collapsed line (prototype `.sh`, margin-top 18, less the form's own section gap).
+    static var collapsedGap: CGFloat { 10 }
+
+    public var body: some View {
+        if hostStyle == .mainWindow {
+            Section {
+                if isExpanded { content }
+            } header: {
+                Button {
+                    isExpanded.toggle()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "chevron.right")
+                            .font(textSize.font(.caption1, weight: .semibold))
+                            .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                            .accessibilityHidden(true)
+                        label.font(textSize.font(.callout, weight: .semibold))
+                    }
+                    .foregroundStyle(.secondary)
+                    .contentShape(Rectangle())
+                    // Collapsed, the line stands alone: keep the prototype's gap to the next section's header.
+                    .padding(.bottom, isExpanded ? 0 : Self.collapsedGap)
+                }
+                .buttonStyle(.plain)
+                .accessibilityValue(
+                    isExpanded
+                        ? Text("Expanded", comment: "Disclosure state, spoken")
+                        : Text("Collapsed", comment: "Disclosure state, spoken")
+                )
+                .accessibilityIdentifier("settings.disclosure")
+            } footer: {
+                footer
+            }
+        } else {
+            Section {
+                DisclosureGroup(isExpanded: $isExpanded) {
+                    content
+                } label: {
+                    label.font(textSize.font(.body, weight: .semibold))
+                }
+            } footer: {
+                footer
+            }
+        }
+    }
+}
+
+extension SettingsDisclosureSection where Footer == EmptyView {
+    public init(
+        isExpanded: Binding<Bool>, @ViewBuilder content: () -> Content, @ViewBuilder label: () -> Label
+    ) {
+        self.init(isExpanded: isExpanded, content: content, label: label, footer: { EmptyView() })
     }
 }

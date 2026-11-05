@@ -275,7 +275,7 @@ struct PermissionsPane: View {
                 }
             } header: {
                 Text("Permissions", comment: "Settings section title")
-                    .font(textSize.font(.body, weight: .semibold))
+                    .settingsSectionHeader()
             } footer: {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(alignment: .firstTextBaseline) {

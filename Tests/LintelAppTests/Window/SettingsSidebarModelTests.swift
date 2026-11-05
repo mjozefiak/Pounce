@@ -98,4 +98,38 @@ import Testing
         #expect(items["clipboard"]?.needsAttention == false)
         #expect(items["meetings"]?.needsAttention == false)
     }
+
+    /// Step 6.5a: the prototype draws Models and Advanced without a group label.
+    @Test func modelsAndAdvancedHaveNoGroupLabel() {
+        let sections = SettingsSidebarModel.sections(plugins: sample)
+        #expect(sections.filter { !$0.showsTitle }.map(\.id) == ["models", "advanced"])
+        #expect(sections.filter(\.showsTitle).map(\.id) == ["lintel", "search", "voice"])
+    }
+
+    @Test func aShellPaneDotFollowsItsBannerLevel() throws {
+        let sections = SettingsSidebarModel.sections(
+            plugins: sample, shellAttention: ["permissions": .attention, "models": .error, "general": .ok])
+        let items = Dictionary(uniqueKeysWithValues: sections.flatMap(\.items).map { ($0.id, $0) })
+        #expect(items["permissions"]?.attention == .attention)
+        #expect(items["models"]?.attention == .error)
+        #expect(items["general"]?.needsAttention == false)
+        let permissions = try #require(items["permissions"])
+        #expect(permissions.accessibilityLabel.contains(String(localized: "Needs attention")))
+    }
+
+    @Test func theArrowKeysWalkTheFocusOrderAndStopAtTheEnds() {
+        let sections = SettingsSidebarModel.sections(plugins: sample)
+        #expect(SettingsSidebar.neighbour(of: "general", by: 1, in: sections) == "features")
+        #expect(SettingsSidebar.neighbour(of: "permissions", by: 1, in: sections) == "apps")
+        #expect(SettingsSidebar.neighbour(of: "models", by: -1, in: sections) == "meetings")
+        #expect(SettingsSidebar.neighbour(of: "general", by: -1, in: sections) == nil)
+        #expect(SettingsSidebar.neighbour(of: "advanced", by: 1, in: sections) == nil)
+    }
+
+    /// Step 6.5a: the prototype's sidebar metrics (`.side` 248 pt, `.si` row pitch 31 pt).
+    @Test func theSidebarMetricsMatchThePrototype() {
+        #expect(SettingsSidebar.width == 248)
+        #expect(SettingsSidebar.rowHeight + SettingsSidebar.rowGap == 31)
+        #expect(SettingsSidebar.rowInset == 8)
+    }
 }

@@ -36,7 +36,8 @@ enum SettingsPaneAdapter {
         return SettingsWindowController.Pane.allCases.map(shell) + pluginEntries + [models]
     }
 
-    /// The sidebar's input from the plugins' panes and each pane's attention level (`SettingsHostModel`).
+    /// The sidebar's input from the plugins' panes and each pane's attention level (`SettingsHostModel`), plugin and
+    /// shell panes alike.
     static func sidebarSections(
         plugins: [SettingsWindowController.PluginPane], attention: [String: SettingsStatus.Level] = [:]
     ) -> [SettingsSidebarModel.Section] {
@@ -45,6 +46,7 @@ enum SettingsPaneAdapter {
                 SettingsSidebarModel.PluginItem(
                     id: $0.id, title: $0.title, symbolName: $0.symbolName, group: $0.group, order: $0.order,
                     isActive: $0.isActive, attention: attention[$0.id])
-            })
+            },
+            shellAttention: attention)
     }
 }

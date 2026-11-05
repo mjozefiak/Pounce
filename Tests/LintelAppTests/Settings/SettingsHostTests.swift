@@ -71,6 +71,30 @@ func settle() async {
         SettingsHostModel(host: host, reader: reader, navigation: navigation)
     }
 
+    /// Step 6.5a: Permissions and Models get a sidebar dot from the banner the shell derives for them; an ok
+    /// shell banner gives none.
+    @Test func shellPanesGetADotFromTheirDerivedBanner() async {
+        defer { env.tearDown() }
+        let host = env.makeHost([BannerStatusPlugin.self])
+        await host.start()
+        let attention = StatusDerivation.Banner(level: .attention, title: "1 model is needed", detail: nil, actions: [])
+        let ready = StatusDerivation.Banner(level: .ok, title: "Ready", detail: nil, actions: [])
+        let model = SettingsHostModel(
+            host: host, reader: FakePermissionsReader(),
+            shellBanners: ["models": { attention }, "permissions": { attention }, "general": { ready }])
+        let items = Dictionary(uniqueKeysWithValues: model.sections.flatMap(\.items).map { ($0.id, $0) })
+        #expect(items["models"]?.attention == .attention)
+        #expect(items["permissions"]?.attention == .attention)
+        #expect(items["general"]?.needsAttention == false)
+        #expect(items["advanced"]?.needsAttention == false)
+    }
+
+    /// Step 6.5a (prototype `set-off`): the pane of an inactive plugin is dimmed under its banner.
+    @Test func anInactivePaneIsDimmed() {
+        #expect(SettingsHost.bodyOpacity(isActive: true) == 1)
+        #expect(SettingsHost.bodyOpacity(isActive: false) == 0.5)
+    }
+
     @Test func aShellPaneHasNoBanner() async {
         defer { env.tearDown() }
         let host = env.makeHost([BannerStatusPlugin.self])

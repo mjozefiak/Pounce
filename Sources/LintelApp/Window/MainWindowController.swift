@@ -206,12 +206,28 @@ final class MainWindowController {
             .lintelBrand()
         if let hosting {
             hosting.rootView = AnyView(content)
+            if let window { Self.applyChrome(to: window, mode: state.mode) }
         } else {
-            build(AnyView(content))
+            build(AnyView(content), mode: state.mode)
         }
     }
 
-    private func build(_ content: AnyView) {
+    /// Settings mode has the prototype's chrome: a transparent title bar without a title, the traffic lights over
+    /// the full-height sidebar. Workspace mode keeps the standard title bar until its sections draw their own.
+    /// The title stays set for the Window menu and VoiceOver.
+    static func applyChrome(to window: NSWindow, mode: MainWindowState.Mode) {
+        let fullHeight = mode == .settings
+        if fullHeight {
+            window.styleMask.insert(.fullSizeContentView)
+        } else {
+            window.styleMask.remove(.fullSizeContentView)
+        }
+        window.titlebarAppearsTransparent = fullHeight
+        window.titleVisibility = fullHeight ? .hidden : .visible
+        window.titlebarSeparatorStyle = fullHeight ? .none : .automatic
+    }
+
+    private func build(_ content: AnyView, mode: MainWindowState.Mode) {
         let hosting = NSHostingController(rootView: content)
         hosting.sizingOptions = []
         let window = ShellWindow(contentViewController: hosting)
@@ -219,6 +235,9 @@ final class MainWindowController {
         window.title = "Lintel"
         window.isReleasedWhenClosed = false
         window.contentMinSize = Self.minimumSize
+        // Before the size: in Settings mode the content runs under the title bar, so the default size is the
+        // whole window, as the prototype draws it.
+        Self.applyChrome(to: window, mode: mode)
         window.setContentSize(Self.defaultSize)
         // AppKit's own restoration would reopen the window at launch, outside the release gate.
         window.isRestorable = false

@@ -48,11 +48,21 @@ enum SettingsSidebarModel {
         let id: String
         let title: String
         let items: [Item]
+        /// False for Models and Advanced, which the prototype draws without a group label (a gap only); the title
+        /// still names the group for VoiceOver.
+        var showsTitle = true
     }
 
-    static func sections(plugins: [PluginItem]) -> [Section] {
+    /// - Parameter shellAttention: the dot of a shell pane (Permissions, Models, ...) by pane id, from the banner
+    ///   the shell derives for it; only `attention` and `error` give a dot.
+    static func sections(
+        plugins: [PluginItem], shellAttention: [String: SettingsStatus.Level] = [:]
+    ) -> [Section] {
         func shell(_ id: String, _ title: String, _ symbol: String) -> Item {
-            Item(id: id, title: title, symbolName: symbol, isActive: true, attention: nil)
+            let level = shellAttention[id]
+            return Item(
+                id: id, title: title, symbolName: symbol, isActive: true,
+                attention: level == .attention || level == .error ? level : nil)
         }
         func item(_ plugin: PluginItem) -> Item {
             Item(
@@ -92,13 +102,19 @@ enum SettingsSidebarModel {
             Section(
                 id: modelsID, title: String(localized: "Models", comment: "Settings group"),
                 items: [
-                    shell(modelsID, String(localized: "Models", comment: "Settings pane title"), "square.stack.3d.up")
-                ]
+                    shell(modelsID, String(localized: "Models", comment: "Settings pane title"), "cube")
+                ],
+                showsTitle: false
             ))
         result.append(
             Section(
                 id: "advanced", title: String(localized: "Advanced", comment: "Settings group"),
-                items: [shell("advanced", String(localized: "Advanced", comment: "Settings pane title"), "gearshape.2")]
+                items: [
+                    shell(
+                        "advanced", String(localized: "Advanced", comment: "Settings pane title"), "slider.horizontal.3"
+                    )
+                ],
+                showsTitle: false
             ))
         return result
     }

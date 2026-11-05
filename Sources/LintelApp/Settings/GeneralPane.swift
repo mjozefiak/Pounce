@@ -72,7 +72,7 @@ struct GeneralPaneContent: View {
                 .pickerStyle(.menu)
             } header: {
                 Text("Basics", comment: "Settings pane section title: the main settings of a pane")
-                    .font(textSize.font(.body, weight: .semibold))
+                    .settingsSectionHeader()
             }
         }
         .onAppear {

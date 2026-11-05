@@ -1441,6 +1441,24 @@
         }
       }
     },
+    "Collapsed" : {
+      "comment" : "Disclosure state, spoken",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collapsed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zwinięte"
+          }
+        }
+      }
+    },
     "Command" : {
       "comment" : "Spoken name of the Command key",
       "extractionState" : "manual",
@@ -2355,6 +2373,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wykluczenia"
+          }
+        }
+      }
+    },
+    "Expanded" : {
+      "comment" : "Disclosure state, spoken",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expanded"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozwinięte"
           }
         }
       }

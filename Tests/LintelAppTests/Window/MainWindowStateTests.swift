@@ -184,6 +184,17 @@ import Testing
         return controller
     }
 
+    @Test func onlySettingsModeHasTheTransparentTitleBar() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 400, height: 300),
+            styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: true)
+        MainWindowController.applyChrome(to: window, mode: .settings)
+        #expect(window.styleMask.contains(.fullSizeContentView) && window.titlebarAppearsTransparent)
+        MainWindowController.applyChrome(to: window, mode: .workspace)
+        #expect(!window.styleMask.contains(.fullSizeContentView) && !window.titlebarAppearsTransparent)
+        #expect(window.titleVisibility == .visible)
+    }
+
     @Test func theWindowIsBuiltOnceWithTheSpecSizes() throws {
         let recorder = Recorder()
         let controller = makeController(settings: InMemorySettingsStore(), recorder: recorder)
@@ -192,7 +203,12 @@ import Testing
         let window = try #require(controller.window)
         #expect(window.title == "Lintel")
         #expect(window.contentMinSize == MainWindowController.minimumSize)
-        #expect(window.contentLayoutRect.size == MainWindowController.defaultSize)
+        // Settings mode (step 6.5a): the content runs under a transparent title bar, so the window is the
+        // prototype's 1180 × 720 with the traffic lights over the sidebar.
+        #expect(window.frame.size == MainWindowController.defaultSize)
+        #expect(window.styleMask.contains(.fullSizeContentView))
+        #expect(window.titlebarAppearsTransparent)
+        #expect(window.titleVisibility == .hidden)
         #expect(window.styleMask.contains(.resizable))
         #expect(!window.isRestorable)
         controller.showSettings("clipboard")

@@ -14,11 +14,9 @@ struct StatusBanner: View {
     @Environment(\.lintelTextSize) private var textSize
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: Self.symbolName(banner.level))
-                    .font(textSize.font(.title3))
-                    .foregroundStyle(Self.color(banner.level))
+        HStack(alignment: .center, spacing: 12) {
+            HStack(alignment: .center, spacing: 12) {
+                Self.glyph(banner.level, textSize: textSize)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(verbatim: banner.title)
                         .font(textSize.font(.body, weight: .semibold))
@@ -36,16 +34,44 @@ struct StatusBanner: View {
             .accessibilityIdentifier("settings.banner.text")
 
             let actions = Array(banner.actions.prefix(StatusDerivation.maximumActions))
-            ForEach(actions.indices, id: \.self) { index in
-                button(actions[index], primary: index == 0)
+            HStack(spacing: 8) {
+                ForEach(actions.indices, id: \.self) { index in
+                    button(actions[index], primary: index == 0)
+                }
             }
         }
-        .padding(12)
-        .background(
-            Self.color(banner.level).opacity(LintelBrand.statusTintAlpha), in: RoundedRectangle(cornerRadius: 8)
+        .padding(.vertical, Self.verticalPadding)
+        .padding(.horizontal, 14)
+        .background(Self.cardFill, in: RoundedRectangle(cornerRadius: Self.cornerRadius))
+        .overlay(
+            RoundedRectangle(cornerRadius: Self.cornerRadius).strokeBorder(Self.hairline, lineWidth: 1)
         )
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("settings.banner")
+    }
+
+    /// The prototype's `.bn`: a card like the grouped form's sections, with a hairline border.
+    static let cornerRadius: CGFloat = 10
+    /// Padding 10 plus the prototype's 1.45 line height, which the system text styles do not have.
+    static let verticalPadding: CGFloat = 13
+    /// The filled circle behind the glyph at Medium (prototype `.bn .g`, 1.9 em of 13 pt).
+    static let glyphDiameter: CGFloat = 25
+    /// The same system fill as the grouped form's cards, so the banner reads as one of them.
+    static let cardFill = Color(nsColor: .quaternarySystemFill)
+    static let hairline = Color(nsColor: .separatorColor)
+
+    /// The level's colour as a filled circle with the glyph cut out in `onStatus`.
+    static func glyph(_ level: SettingsStatus.Level, textSize: TextSize) -> some View {
+        let diameter = (glyphDiameter * textSize.scale).rounded()
+        return Circle()
+            .fill(color(level))
+            .frame(width: diameter, height: diameter)
+            .overlay {
+                Image(systemName: symbolName(level))
+                    .font(.system(size: diameter * 0.5, weight: .bold))
+                    .foregroundStyle(LintelBrand.onStatus)
+            }
+            .accessibilityHidden(true)
     }
 
     @ViewBuilder
@@ -72,10 +98,10 @@ struct StatusBanner: View {
 
     static func symbolName(_ level: SettingsStatus.Level) -> String {
         switch level {
-        case .ok: "checkmark.circle.fill"
-        case .attention: "exclamationmark.triangle.fill"
-        case .error: "xmark.octagon.fill"
-        case .neutral: "info.circle.fill"
+        case .ok: "checkmark"
+        case .attention: "exclamationmark"
+        case .error: "xmark"
+        case .neutral: "info"
         }
     }
 

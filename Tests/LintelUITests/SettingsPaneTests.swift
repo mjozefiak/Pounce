@@ -34,6 +34,29 @@ import Testing
         #expect(try size(sheet).width >= 380)
     }
 
+    /// Step 6.5a: in the main window Advanced is a plain line (no card) and the headers are the small secondary
+    /// style; the old window keeps the `DisclosureGroup`. Both render, expanded or not.
+    @Test func theMainWindowDisclosureRendersCollapsedAndExpanded() throws {
+        for expanded in [false, true] {
+            let section = Form {
+                SettingsDisclosureSection(isExpanded: .constant(expanded)) {
+                    Text(verbatim: "Row")
+                } label: {
+                    Text(verbatim: "Advanced")
+                }
+                Section {
+                    Text(verbatim: "Data row")
+                } header: {
+                    Text(verbatim: "Data").settingsSectionHeader()
+                }
+            }
+            .formStyle(.grouped)
+            .frame(width: 400, height: 300)
+            #expect(try size(section.environment(\.settingsHostStyle, .mainWindow)).width > 0)
+            #expect(try size(section).width > 0)
+        }
+    }
+
     @Test func footerLimitMatchesTheScanningRule() {
         #expect(SettingsFooter.maxLength == 140)
     }

@@ -75,7 +75,7 @@ struct FilesPaneContent: View {
                 .toggleStyle(.switch)
             } header: {
                 Text("Basics", comment: "Settings pane section title: the main settings of a pane")
-                    .font(textSize.font(.body, weight: .semibold))
+                    .settingsSectionHeader()
             }
         } advanced: {
             SearchedRootsRows(settings: settings)

@@ -66,12 +66,18 @@ final class SettingsHostModel {
 
     /// The sidebar sections from the current panes and dots.
     var sections: [SettingsSidebarModel.Section] {
-        SettingsPaneAdapter.sidebarSections(plugins: plugins, attention: attention)
+        SettingsPaneAdapter.sidebarSections(plugins: plugins, attention: attention.merging(shellAttention) { $1 })
+    }
+
+    /// The dots of the shell's own panes (Permissions, Models, and General without a shortcut): the level of the
+    /// banner `shellBanners` derives, read while the sidebar draws so the panes' observable state drives it.
+    var shellAttention: [String: SettingsStatus.Level] {
+        shellBanners.compactMapValues { StatusDerivation.attention($0()) }
     }
 
     /// The pane's title above its banner (the prototype's `h3`): the sidebar item's title.
     func title(of paneID: String) -> String? {
-        sections.lazy.flatMap(\.items).first { $0.id == paneID }?.title
+        SettingsPaneAdapter.sidebarSections(plugins: plugins).lazy.flatMap(\.items).first { $0.id == paneID }?.title
     }
 
     /// Builds the plugin panes again (a plugin's `settingsPane()` reflects whether it is active).
@@ -181,19 +187,30 @@ struct SettingsHost: View {
 
     @Environment(\.lintelTextSize) private var textSize
 
+    /// From the window's top edge to the pane title (prototype `.pane`, padding 20, plus the 1.45 line height).
+    static let topInset: CGFloat = 22
+    /// Between the pane title and the banner (prototype `.pane h3`, margin 12).
+    static let titleSpacing: CGFloat = 12
+
+    /// The pane of a disabled or failed plugin is dimmed under its banner (prototype `set-off`, `.dim`); the
+    /// banner with its Turn On or Try Again stays at full strength.
+    static func bodyOpacity(isActive: Bool) -> Double { isActive ? 1 : 0.5 }
+
     var body: some View {
         let entries = SettingsPaneAdapter.entries(
             shellPane: shellPane, plugins: model.plugins, models: modelsPane)
+        let entry = entries.first { $0.id == selection } ?? entries.first
         HStack(spacing: 0) {
             SettingsSidebar(sections: model.sections, selection: selection, onSelect: onSelect, onBack: onBack)
             Divider()
             VStack(spacing: 0) {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 0) {
                     if let title = model.title(of: selection) {
                         Text(verbatim: title)
-                            .font(textSize.font(.title2, weight: .bold))
+                            .font(textSize.paneTitleFont)
                             .accessibilityAddTraits(.isHeader)
                             .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.bottom, Self.titleSpacing)
                     }
                     if let banner = model.shownBanner, model.paneID == selection {
                         StatusBanner(banner: banner, isBusy: model.isBusy) { action in
@@ -202,14 +219,18 @@ struct SettingsHost: View {
                     }
                 }
                 .settingsBannerColumn()
-                .padding(.top, 20)
+                .padding(.top, Self.topInset)
                 ScrollView {
-                    (entries.first { $0.id == selection } ?? entries.first)?.makeView()
+                    entry?.makeView()
+                        .opacity(Self.bodyOpacity(isActive: entry?.isActive ?? true))
                         .settingsColumn()
                         .id(selection)
                 }
             }
         }
+        // The window's title bar is transparent over the content (`MainWindowController`): the sidebar runs to
+        // the top under the traffic lights, as in the prototype.
+        .ignoresSafeArea(.container, edges: .top)
         .task(id: selection) { model.show(selection) }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             model.refresh()

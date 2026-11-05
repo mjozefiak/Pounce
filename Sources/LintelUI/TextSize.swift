@@ -65,6 +65,16 @@ public nonisolated enum TextSize: String, CaseIterable, Identifiable, Sendable {
         return Font(font)
     }
 
+    /// The title above a Settings pane in the main window (prototype `.pane h3`: 20 pt bold at Medium): the
+    /// `title1` style at `paneTitleRatio` of its size, scaled like every other style.
+    @MainActor public var paneTitleFont: Font {
+        let base = NSFont.preferredFont(forTextStyle: .title1)
+        return Font(NSFont.systemFont(ofSize: (base.pointSize * Self.paneTitleRatio * scale).rounded(), weight: .bold))
+    }
+
+    /// 20 pt of the 22 pt `title1` style.
+    public static let paneTitleRatio: CGFloat = 20.0 / 22.0
+
     @MainActor public func nsFont(_ style: NSFont.TextStyle) -> NSFont {
         let base = NSFont.preferredFont(forTextStyle: style)
         return base.withSize(base.pointSize * scale)

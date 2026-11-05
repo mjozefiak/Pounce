@@ -38,40 +38,37 @@ struct ModelsPane: View {
                         }
                     } header: {
                         Text(verbatim: section.title)
-                            .font(textSize.font(.body, weight: .semibold))
+                            .settingsSectionHeader()
                     } footer: {
                         if section.id == "writing", let footer = model.writingMemoryFooter {
                             footerText(footer)
                         }
                     }
                 }
-                Section {
-                    DisclosureGroup(isExpanded: $storageExpanded) {
-                        LabeledContent {
-                            Button {
-                                model.showInFinder()
-                            } label: {
-                                Label {
-                                    Text("Show in Finder", comment: "Models pane: reveals the models folder")
-                                } icon: {
-                                    Image(systemName: "folder")
-                                }
-                                .font(textSize.font(.body))
-                            }
-                            .buttonStyle(.bordered)
+                SettingsDisclosureSection(isExpanded: $storageExpanded) {
+                    LabeledContent {
+                        Button {
+                            model.showInFinder()
                         } label: {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("On this Mac", comment: "Models pane storage: where the models live")
-                                    .font(textSize.font(.body))
-                                Text(verbatim: model.storageDetail)
-                                    .font(textSize.font(.callout))
-                                    .foregroundStyle(.secondary)
+                            Label {
+                                Text("Show in Finder", comment: "Models pane: reveals the models folder")
+                            } icon: {
+                                Image(systemName: "folder")
                             }
+                            .font(textSize.font(.body))
                         }
+                        .buttonStyle(.bordered)
                     } label: {
-                        Text("Storage", comment: "Models pane: disclosure group for where models are kept")
-                            .font(textSize.font(.body, weight: .semibold))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("On this Mac", comment: "Models pane storage: where the models live")
+                                .font(textSize.font(.body))
+                            Text(verbatim: model.storageDetail)
+                                .font(textSize.font(.callout))
+                                .foregroundStyle(.secondary)
+                        }
                     }
+                } label: {
+                    Text("Storage", comment: "Models pane: disclosure group for where models are kept")
                 } footer: {
                     footerText(
                         String(

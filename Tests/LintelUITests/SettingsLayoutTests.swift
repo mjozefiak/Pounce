@@ -7,6 +7,18 @@ import Testing
 struct SettingsLayoutTests {
     @Test func cardsAreTheColumnMinusTheInsets() {
         #expect(SettingsLayout.cardWidth == SettingsLayout.columnWidth - 2 * SettingsLayout.cardInset)
+        #expect(SettingsLayout.mainCardWidth == SettingsLayout.mainColumnWidth - 2 * SettingsLayout.cardInset)
+    }
+
+    /// The old window keeps its 600 pt panes; the main window's cards are the prototype's 640 pt
+    /// (`layout.settingsContent`).
+    @Test func theOldWindowKeepsItsWidthAndTheMainWindowMatchesThePrototype() {
+        #expect(SettingsLayout.columnWidth == 600)
+        #expect(SettingsLayout.mainCardWidth == 640)
+    }
+
+    @Test func thePaneTitleIsTwentyPointsAtMedium() {
+        #expect(22 * TextSize.paneTitleRatio == 20)
     }
 
     @Test func paneFramesUseTheSharedColumn() throws {

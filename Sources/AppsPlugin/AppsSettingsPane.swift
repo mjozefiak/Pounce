@@ -72,7 +72,7 @@ struct AppsPaneContent: View {
                 }
             } header: {
                 Text("Basics", comment: "Settings pane section title: the main settings of a pane")
-                    .font(textSize.font(.body, weight: .semibold))
+                    .settingsSectionHeader()
             }
         } advanced: {
             Toggle(isOn: Binding(get: { model.spotlightEnabled }, set: { model.setSpotlightEnabled($0) })) {

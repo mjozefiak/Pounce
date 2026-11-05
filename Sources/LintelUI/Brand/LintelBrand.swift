@@ -29,6 +29,10 @@ public nonisolated enum BrandPalette {
     public static let statusAttentionDark: UInt32 = 0xFF9F0A
     public static let statusErrorLight: UInt32 = 0xD70015
     public static let statusErrorDark: UInt32 = 0xFF6961
+    /// The glyph inside a filled status circle (the Settings banner, prototype `.bn .g`): white in the light
+    /// theme, the dark brand surface in the dark one. Graphics (3:1 against every status fill).
+    public static let onStatusLight: UInt32 = 0xFFFFFF
+    public static let onStatusDark: UInt32 = 0x161310
 
     /// WCAG 2.x contrast ratio between two opaque sRGB colours.
     public static func contrast(_ first: UInt32, _ second: UInt32) -> Double {
@@ -60,8 +64,6 @@ public nonisolated enum BrandPalette {
 public enum LintelBrand {
     /// How strongly the accent tints a selected row (light, dark).
     nonisolated public static let selectionTintAlpha: (light: Double, dark: Double) = (0.14, 0.18)
-    /// How strongly a status colour tints the background of the Settings status banner.
-    nonisolated public static let statusTintAlpha = 0.12
 
     public static let accentColor = dynamic("LintelAccent", BrandPalette.accentLight, BrandPalette.accentDark)
     public static let accentTextColor = dynamic(
@@ -87,6 +89,9 @@ public enum LintelBrand {
     public static let statusOk = Color(nsColor: statusOkColor)
     public static let statusAttention = Color(nsColor: statusAttentionColor)
     public static let statusError = Color(nsColor: statusErrorColor)
+
+    public static let onStatusColor = dynamic("LintelOnStatus", BrandPalette.onStatusLight, BrandPalette.onStatusDark)
+    public static let onStatus = Color(nsColor: onStatusColor)
 
     nonisolated private static func dynamic(_ name: String, _ light: UInt32, _ dark: UInt32) -> NSColor {
         NSColor(name: name) { appearance in color(isDark(appearance) ? dark : light) }

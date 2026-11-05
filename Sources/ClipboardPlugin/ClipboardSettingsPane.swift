@@ -95,7 +95,7 @@ struct ClipboardPaneContent: View {
                 }
             } header: {
                 Text("Basics", comment: "Settings pane section title: the main settings of a pane")
-                    .font(textSize.font(.body, weight: .semibold))
+                    .settingsSectionHeader()
             }
             .disabled(isUnavailable)
             .opacity(isUnavailable ? 0.5 : 1)

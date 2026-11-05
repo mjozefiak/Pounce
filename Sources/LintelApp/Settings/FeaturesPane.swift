@@ -305,7 +305,7 @@ struct ResultOrderSection: View {
             }
         } header: {
             Text("Result order", comment: "Settings → Features: section title of the result order")
-                .font(textSize.font(.body, weight: .semibold))
+                .settingsSectionHeader()
         } footer: {
             SettingsFooter(
                 LocalizedStringResource(
