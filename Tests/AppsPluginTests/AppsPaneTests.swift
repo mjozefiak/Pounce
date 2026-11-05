@@ -8,7 +8,7 @@ import Testing
 @testable import AppsPlugin
 
 /// Spec `2026-11-04-lintel-main-window`, step 4.2: the Apps pane on the `SettingsPane` template (prototype
-/// `set-apps`), its banner, and the old window's unchanged pane.
+/// `set-apps`) and its banner.
 @Suite @MainActor struct AppsPaneTests {
     private func makeModel(_ directory: TemporaryDirectory) async -> AppsSettingsModel {
         let store = ActivityStore(directory: directory.url, now: VirtualTime().now, clock: NeverClock())
@@ -51,30 +51,20 @@ import Testing
         #expect(sections.map(\.1) == [true, true, true])
     }
 
-    @Test func theOldWindowKeepsTodaysPane() async throws {
+    @Test func thePluginsPaneIsTheTemplatePane() async throws {
         let directory = try TemporaryDirectory()
         defer { directory.remove() }
-        let model = await makeModel(directory)
-        // Outside a host the environment is the default, `.legacyWindow`: what release users see.
-        let types = Self.typeNames(in: AppsSettingsPane(model: model).body)
-        #expect(types.contains("LegacyAppsSettingsPane"))
-        #expect(!types.contains("AppsPaneContent"))
-        let legacy = Self.typeNames(in: LegacyAppsSettingsPane(model: model).body)
-        #expect(legacy.contains("Form"))
-        #expect(!legacy.contains("SettingsPane"))
+        let types = Self.typeNames(in: AppsSettingsPane(model: await makeModel(directory)).body)
+        #expect(types.contains("AppsPaneContent"))
     }
 
-    @Test func bothHostsRenderThePane() async throws {
+    @Test func thePaneRenders() async throws {
         let directory = try TemporaryDirectory()
         defer { directory.remove() }
         let model = await makeModel(directory)
         model.roots = { [URL(filePath: "/tmp/apps-fixture", directoryHint: .isDirectory)] }
-        for style in [SettingsHostStyle.legacyWindow, .mainWindow] {
-            let renderer = ImageRenderer(
-                content: AppsSettingsPane(model: model).environment(\.settingsHostStyle, style)
-                    .frame(width: 600, height: 700))
-            #expect(renderer.nsImage != nil)
-        }
+        let renderer = ImageRenderer(content: AppsSettingsPane(model: model).frame(width: 680, height: 700))
+        #expect(renderer.nsImage != nil)
         let sheet = ImageRenderer(content: HiddenSuggestionsSheet(model: model) {})
         #expect(sheet.nsImage != nil)
     }

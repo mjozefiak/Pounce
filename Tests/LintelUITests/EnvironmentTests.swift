@@ -8,7 +8,6 @@ import Testing
 private final class Seen {
     var textSize: TextSize?
     var dynamicTypeSize: DynamicTypeSize?
-    var hostStyle: SettingsHostStyle?
 }
 
 /// A pane as plugins write them: sizes only through `lintelTextSize`.
@@ -16,12 +15,10 @@ private struct SamplePane: View {
     let seen: Seen
     @Environment(\.lintelTextSize) private var textSize
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @Environment(\.settingsHostStyle) private var hostStyle
 
     var body: some View {
         seen.textSize = textSize
         seen.dynamicTypeSize = dynamicTypeSize
-        seen.hostStyle = hostStyle
         return Text(verbatim: "Start Indexing").font(textSize.font(.body)).fixedSize()
     }
 }
@@ -34,11 +31,10 @@ private struct SamplePane: View {
         return try #require(renderer.nsImage).size
     }
 
-    @Test func theDefaultsAreMediumAndTheLegacyWindow() throws {
+    @Test func theDefaultIsMedium() throws {
         let seen = Seen()
         _ = try render(SamplePane(seen: seen))
         #expect(seen.textSize == .medium)
-        #expect(seen.hostStyle == .legacyWindow)
     }
 
     @Test func theModifierSetsTheSizeAndTheDynamicTypeSize() throws {
@@ -72,11 +68,5 @@ private struct SamplePane: View {
         _ = try render(scope)
         #expect(seen.textSize == .large)
         #expect(seen.dynamicTypeSize == TextSize.large.dynamicTypeSize)
-    }
-
-    @Test func theMainWindowStyleReachesThePane() throws {
-        let seen = Seen()
-        _ = try render(SamplePane(seen: seen).environment(\.settingsHostStyle, .mainWindow))
-        #expect(seen.hostStyle == .mainWindow)
     }
 }

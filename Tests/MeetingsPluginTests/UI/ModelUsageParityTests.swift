@@ -1,52 +1,14 @@
 import Foundation
 import LintelKit
 import LintelSpeech
-import LintelUI
-import SwiftUI
 import Testing
 
 @testable import MeetingsPlugin
 
-/// Spec `2026-11-04-lintel-main-window`, step 3.3: the old Settings window (`.legacyWindow`, what release users
-/// see) still draws both model cards and the microphone rows; the main window draws the one-line summaries with
-/// their link to Models instead. And every "in use" check the cards use today is the one `modelUsage` gives the
-/// Models pane.
+/// Spec `2026-11-04-lintel-main-window`, step 3.3: the pane's one-line summaries follow the models' state, and
+/// every "in use" check the setup step's cards use is the one `modelUsage` gives the Models pane.
 @MainActor
-@Suite struct MeetingsHostStyleParityTests {
-    /// The view types a `body` value holds, found by reflection: the branch an `if` took is stored, the other is
-    /// not. Outside a host `settingsHostStyle` keeps its default, `.legacyWindow`, as `SettingsWindowController`
-    /// leaves it.
-    private static func typeNames(in value: Any, depth: Int = 0) -> Set<String> {
-        guard depth < 60 else { return [] }
-        let type = String(describing: Swift.type(of: value))
-        var names: Set<String> = [type.components(separatedBy: "<").first ?? type]
-        for child in Mirror(reflecting: value).children {
-            names.formUnion(typeNames(in: child.value, depth: depth + 1))
-        }
-        return names
-    }
-
-    @Test func theOldWindowKeepsTheModelCardsAndTheMicrophoneRows() throws {
-        let rig = try SettingsRig()
-        let types = Self.typeNames(
-            in: LegacyMeetingsSettingsPane(model: rig.model, recorder: nil, isActive: false).body)
-        #expect(types.contains("MeetingsModelCard"))
-        #expect(types.contains("NotesSettingsRows"))
-        #expect(types.contains("MeetingsMicrophoneRows"))
-        #expect(types.contains("MeetingsInputDevicePicker"))
-        #expect(!types.contains("ModelChoiceRow"))
-    }
-
-    @Test func bothHostsRender() throws {
-        let rig = try SettingsRig()
-        for style in [SettingsHostStyle.legacyWindow, .mainWindow] {
-            let pane = MeetingsSettingsPane(model: rig.model, recorder: nil, isActive: false)
-                .environment(\.settingsHostStyle, style)
-                .frame(width: 600, height: 900)
-            #expect(ImageRenderer(content: pane).nsImage != nil)
-        }
-    }
-
+@Suite struct MeetingsModelUsageParityTests {
     @Test func theSummaryFollowsTheCard() throws {
         let rig = try SettingsRig()
         #expect(rig.model.speech.choiceState == .notInstalled)

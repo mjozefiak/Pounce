@@ -49,9 +49,7 @@ import Testing
         let types = ViewTree.typeNames(in: content(rig).body)
         #expect(types.contains("SettingsPane"))
         #expect(types.contains("ModelChoiceRow"))
-        for legacy in ["SpeechModelCard", "MicrophoneRows", "BuiltInModelRows", "LegacyDictationSettingsPane"] {
-            #expect(!types.contains(legacy), "\(legacy)")
-        }
+        #expect(!types.contains("SpeechModelCard"))
     }
 
     @Test func theRowsFollowThePrototypeOrder() throws {
@@ -82,8 +80,7 @@ import Testing
         defer { rig.harness.tearDown() }
         for size in [TextSize.small, .extraLarge] {
             let renderer = ImageRenderer(
-                content: content(rig).lintelTextSize(size).environment(\.settingsHostStyle, .mainWindow)
-                    .frame(width: 600, height: 900))
+                content: content(rig).lintelTextSize(size).frame(width: 680, height: 900))
             #expect(renderer.nsImage != nil)
         }
     }

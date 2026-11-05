@@ -28,22 +28,16 @@ final class FakePermissionRequester: PermissionRequester {
         return PermissionsModel(host: host, reader: reader, requester: requester) { _ in }
     }
 
-    @Test func theMainWindowHasOneRowPerPermissionAndDimsTheUnused() async throws {
+    @Test func thereIsOneRowPerPermissionAndTheUnusedAreDimmed() async throws {
         let test = try TestEnvironment()
         defer { test.tearDown() }
         let model = await makeModel(test, plugins: [PastingPlugin.self], reader: FakePermissionsReader())
-        model.includesUnused = true
         model.refresh()
 
         #expect(model.rows.map(\.permission) == Permission.allCases)
         let dimmed = Set(model.rows.filter(\.isDimmed).map(\.permission))
         #expect(dimmed == Set(Permission.allCases).subtracting([.accessibility, .pasteboard]))
         #expect(model.rows.first { $0.permission == .accessibility }?.pluginNames == ["Pasting"])
-
-        // The old window keeps listing only what the enabled features need.
-        model.includesUnused = false
-        #expect(model.rows.map(\.permission) == [.accessibility, .pasteboard])
-        #expect(model.rows.allSatisfy { !$0.isDimmed })
     }
 
     @Test func aModelThatHasNotRefreshedYetStillShowsTheRealState() async throws {

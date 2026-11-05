@@ -376,8 +376,7 @@ final class ModelsPaneModel {
                 "This model is shared with other Lintel features. It will be downloaded again the next time one of them needs it.",
                 comment: "Meetings model card: what removing a shared model means"),
             confirmTitle: LocalizedStringResource(
-                "Remove Model", comment: "Button that deletes the downloaded speech model"),
-            legacyTitleVisible: true)
+                "Remove Model", comment: "Button that deletes the downloaded speech model"))
     }
 
     /// Removes the downloaded package (never a folder the user chose). Refused with the in-use message while a

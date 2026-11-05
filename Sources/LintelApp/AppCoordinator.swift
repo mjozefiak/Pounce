@@ -15,9 +15,8 @@ final class AppCoordinator {
     let launchAtLogin: any LaunchAtLoginClient
     private(set) var statusItem: StatusItemController?
     private(set) var panel: PanelController?
-    private(set) var settingsWindow: SettingsWindowController?
-    /// The shell panes' views, shared by the old Settings window and the main window's Settings mode.
-    private var shellPane: ((SettingsWindowController.Pane) -> AnyView)?
+    /// The shell panes' views in the main window's Settings mode.
+    private var shellPane: ((SettingsShellPane) -> AnyView)?
     private(set) var onboarding: OnboardingController?
     private(set) var about: AboutWindowController?
     /// The main window (ADR 0008; enabled in every build since step 6.3a): built on first use.
@@ -90,7 +89,7 @@ final class AppCoordinator {
         relay.handler = { [weak panelModel] in panelModel?.resultsChanged() }
         self.icons = IconCache(
             diskDirectory: environment.cachesRoot.appending(path: "icons", directoryHint: .isDirectory))
-        settingsRelay.handler = { [weak self] id in self?.openPluginSettings(id) }
+        settingsRelay.handler = { [weak self] id in self?.openSettings(pane: id) }
         settingsRelay.modelsHandler = { [weak self] id, packageID in self?.openModels(from: id, packageID: packageID) }
         statusRelay.handler = { [weak self] id in self?.settingsHost?.pluginResultsChanged(id) }
     }
@@ -116,7 +115,7 @@ final class AppCoordinator {
         DockPresence.apply(showInDock: appSettings.showInDock)
         appSettings.showInDockChanged = { [weak self] showInDock in
             DockPresence.apply(showInDock: showInDock)
-            if !showInDock { self?.settingsWindow?.bringToFrontIfVisible() }
+            if !showInDock { self?.mainWindow?.bringToFrontIfVisible() }
             // Changing the activation policy can drop the main menu; put it back for the key window.
             self?.mainMenu?.refresh()
         }
@@ -191,14 +190,14 @@ final class AppCoordinator {
 
     /// Hides the panel first, refreshes the default shortcut (Spotlight may have released ⌘Space), and
     /// shows a shell pane of the main window's Settings mode.
-    func openSettings(_ pane: SettingsWindowController.Pane = .general) {
+    func openSettings(_ pane: SettingsShellPane = .general) {
         router.openSettings(pane: pane.rawValue)
     }
 
-    /// The plugin panes of the main window's Settings mode: unlike the old Settings window, it includes disabled
-    /// and failed plugins, drawn dimmed (spec steps 1.2 and 1.3).
-    func mainWindowPluginPanes() -> [SettingsWindowController.PluginPane] {
-        host.settingsPanes(includingInactive: true)
+    /// The plugin panes of the main window's Settings mode, disabled and failed plugins included, drawn dimmed
+    /// (spec steps 1.2 and 1.3).
+    func mainWindowPluginPanes() -> [SettingsPluginPane] {
+        host.settingsPanes()
     }
 
     /// Hides the panel first and shows the About window with the third-party notices.
@@ -207,8 +206,8 @@ final class AppCoordinator {
         about?.show()
     }
 
-    /// Shows a plugin's own pane in the main window's Settings mode.
-    func openPluginSettings(_ id: String) {
+    /// Shows a plugin's own pane, or a shell pane by its id, in the main window's Settings mode.
+    func openSettings(pane id: String) {
         router.openSettings(pane: id)
     }
 
@@ -250,7 +249,7 @@ final class AppCoordinator {
         AppTextSize.current = { appSettings.textSize }
         panelModel.previousApplication = { NSWorkspace.shared.frontmostApplication?.processIdentifier }
         panelModel.openSettings = { [weak self] in self?.openSettings(.features) }
-        panelModel.openPluginSettings = { [weak self] id in self?.openPluginSettings(id.rawValue) }
+        panelModel.openPluginSettings = { [weak self] id in self?.openSettings(pane: id.rawValue) }
         let host = host
         panelModel.panelMode = { id in host.activePanelModes.first { $0.id == id } }
         let search = search
@@ -267,7 +266,7 @@ final class AppCoordinator {
         let settings = appSettings
         let launchAtLogin = launchAtLogin
         let host = host
-        let shell: (SettingsWindowController.Pane) -> AnyView = { [environment, weak self] pane in
+        let shell: (SettingsShellPane) -> AnyView = { [environment, weak self] pane in
             switch pane {
             case .general:
                 return AnyView(GeneralPane(hotkeys: hotkeys, settings: settings, launchAtLogin: launchAtLogin))
@@ -289,17 +288,6 @@ final class AppCoordinator {
             }
         }
         shellPane = shell
-        let window = SettingsWindowController(
-            general: { shell(.general) },
-            features: { shell(.features) },
-            permissions: { shell(.permissions) },
-            advanced: { shell(.advanced) },
-            // The old window keeps skipping inactive plugins until it is removed (spec step 6.3).
-            pluginPanes: { host.settingsPanes(includingInactive: false) }
-        )
-        window.activatesApp = environment.registersGlobalHotkeys
-        window.textSize = { settings.textSize }
-        settingsWindow = window
 
         let onboarding = OnboardingController(hotkeys: hotkeys, settings: settings) {
             host.entries.filter(\.state.isActive).flatMap(\.plugin.onboardingSteps)
@@ -340,14 +328,13 @@ final class AppCoordinator {
         present(mainWindow ?? makeMainWindow())
     }
 
-    /// Settings mode: the sidebar, the one banner (`SettingsHost`) and the old window's panes through the
-    /// temporary adapter (spec step 1.3).
+    /// Settings mode: the sidebar, the one banner and the selected pane (`SettingsHost`).
     private func settingsModeContent(_ state: MainWindowState) -> AnyView {
         guard let shellPane else { return AnyView(EmptyView()) }
         let hasSection = state.section != nil
         let model: SettingsHostModel
         if let settingsHost {
-            // A mode or selection change builds the panes again, as the old window does on open.
+            // A mode or selection change builds the panes again.
             settingsHost.reloadPanes()
             model = settingsHost
         } else {
@@ -382,11 +369,11 @@ final class AppCoordinator {
         let hotkeys = hotkeys
         let reader = environment.permissionsReader
         return [
-            SettingsWindowController.Pane.general.rawValue: {
+            SettingsShellPane.general.rawValue: {
                 ShellPaneBanners.general(shortcut: hotkeys.mainShortcut?.displayString)
             },
-            SettingsWindowController.Pane.features.rawValue: { ShellPaneBanners.features(host: host) },
-            SettingsWindowController.Pane.permissions.rawValue: {
+            SettingsShellPane.features.rawValue: { ShellPaneBanners.features(host: host) },
+            SettingsShellPane.permissions.rawValue: {
                 ShellPaneBanners.permissions(host: host, reader: reader)
             },
             MainWindowRouter.modelsPaneID: { models.banner },
@@ -440,7 +427,7 @@ final class AppCoordinator {
             settings: environment.settings,
             sections: { Self.activeWorkspaceSections(host) },
             settingsPanes: { [weak self] in
-                SettingsWindowController.Pane.allCases.map(\.rawValue) + [MainWindowRouter.modelsPaneID]
+                SettingsShellPane.allCases.map(\.rawValue) + [MainWindowRouter.modelsPaneID]
                     + (self?.mainWindowPluginPanes().map(\.id) ?? [])
             },
             // QA mode never writes the frame into the tester's defaults.

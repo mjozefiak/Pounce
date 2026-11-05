@@ -4,9 +4,9 @@ import Testing
 
 @testable import DictationPlugin
 
-/// Spec `2026-11-04-lintel-main-window`, step 5.3 (owner decision L1-39): Clear History in the main window says
-/// that copies edited or commented on in Notes stay and offers "Also delete kept copies", off by default; in
-/// DEBUG only until Notes ships, and never in the old window.
+/// Spec `2026-11-04-lintel-main-window`, step 5.3 (owner decision L1-39): Clear History says that copies edited
+/// or commented on in Notes stay and offers "Also delete kept copies", off by default; in DEBUG only until Notes
+/// ships.
 @MainActor
 @Suite struct DictationKeptCopiesConfirmationTests {
     private static let root: URL = {
@@ -21,21 +21,18 @@ import Testing
         try String(contentsOf: root.appending(path: "Sources/DictationPlugin/\(name)"), encoding: .utf8)
     }
 
-    @Test func clearHistoryInTheMainWindowHasTheNotesSentenceAndAnUncheckedBox() throws {
+    @Test func clearHistoryHasTheNotesSentenceAndAnUncheckedBox() throws {
         let confirmation = HistorySection.confirmationInMainWindow
-        let option = try #require(confirmation.option(in: .mainWindow))
+        let option = try #require(confirmation.option)
         #expect(option.title.key == "Also delete kept copies")
         #expect(option.explanation?.key.contains("Notes") == true)
         #expect(option.isOnByDefault == false)
         #expect(confirmation.confirmTitle.key == "Clear History")
     }
 
-    @Test func theOldWindowHasNoCheckbox() throws {
-        #expect(HistorySection.confirmationInMainWindow.option(in: .legacyWindow) == nil)
+    @Test func onlyThePaneAddsTheCheckbox() throws {
         #expect(HistorySection.confirmation.option == nil)
-        let legacy = try Self.source("LegacyDictationSettingsPane.swift")
         let views = try Self.source("DictationViews.swift")
-        #expect(!legacy.contains("keptNotesCopies") && !legacy.contains("confirmationInMainWindow"))
         #expect(!views.contains("keptNotesCopies") && !views.contains("confirmationInMainWindow"))
     }
 

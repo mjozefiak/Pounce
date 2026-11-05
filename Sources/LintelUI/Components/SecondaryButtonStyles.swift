@@ -72,35 +72,10 @@ enum LintelBorderedButton {
     }
 }
 
-/// The destructive button style in the main window only; the old window keeps the system button.
-private struct LintelDestructiveButtonModifier: ViewModifier {
-    @Environment(\.settingsHostStyle) private var hostStyle
-
-    @ViewBuilder func body(content: Content) -> some View {
-        switch hostStyle {
-        case .mainWindow: content.buttonStyle(LintelDestructiveButtonStyle())
-        case .legacyWindow: content
-        }
-    }
-}
-
-/// A picker's chosen value follows the ink in the main window, not the accent the host tints controls with.
-private struct LintelSecondaryTintModifier: ViewModifier {
-    @Environment(\.settingsHostStyle) private var hostStyle
-
-    @ViewBuilder func body(content: Content) -> some View {
-        switch hostStyle {
-        case .mainWindow: content.tint(LintelBrand.ink)
-        case .legacyWindow: content
-        }
-    }
-}
-
 extension View {
-    /// The red destructive button of the main window (`LintelDestructiveButtonStyle`); under `.legacyWindow` the
-    /// button stays as it was.
-    public func lintelDestructiveButton() -> some View { modifier(LintelDestructiveButtonModifier()) }
+    /// The red destructive button (`LintelDestructiveButtonStyle`).
+    public func lintelDestructiveButton() -> some View { buttonStyle(LintelDestructiveButtonStyle()) }
 
-    /// Ink instead of the accent for a control's value (menu pickers), in the main window only.
-    public func lintelSecondaryTint() -> some View { modifier(LintelSecondaryTintModifier()) }
+    /// Ink instead of the accent for a control's value (menu pickers).
+    public func lintelSecondaryTint() -> some View { tint(LintelBrand.ink) }
 }

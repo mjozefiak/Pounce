@@ -3,8 +3,8 @@ import Testing
 
 @testable import LintelApp
 
-/// Step 6.5f: the main window's Polish copy follows the prototype, while the keys the old Settings window still
-/// shows keep their release wording.
+/// Step 6.5f: the main window's Polish copy follows the prototype, while the keys other screens share (the
+/// status menu, the welcome screen, the meeting window) keep their release wording.
 struct PolishCopyTests {
     private func catalog() throws -> StringCatalogTests.Catalog {
         let data = try Data(
@@ -36,17 +36,14 @@ struct PolishCopyTests {
         }
     }
 
-    @Test func theKeysOfTheOldWindowAreUnchanged() throws {
+    @Test func theSharedKeysAreUnchanged() throws {
         let catalog = try catalog()
-        let legacy: [String: String] = [
+        let shared: [String: String] = [
             "Search": "Szukaj",
-            "Off": "Wyłączona",
-            "Record meeting": "Nagrywaj spotkanie",
             "Suggest recording when a meeting starts": "Podpowiadaj nagrywanie, gdy zaczyna się spotkanie",
             "Test System Audio": "Test dźwięku systemowego",
-            "At most": "Najwyżej",
         ]
-        for (key, polish) in legacy {
+        for (key, polish) in shared {
             #expect(value(key, "pl", in: catalog) == polish, "\(key)")
         }
     }

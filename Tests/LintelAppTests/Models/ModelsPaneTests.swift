@@ -700,7 +700,7 @@ final class FakeRecorder {
 
     @Test func theModelsEntryDrawsTheModelsPane() {
         var built = 0
-        let entries = SettingsPaneAdapter.entries(
+        let entries = SettingsPanes.entries(
             shellPane: { _ in AnyView(EmptyView()) }, plugins: [],
             models: {
                 built += 1

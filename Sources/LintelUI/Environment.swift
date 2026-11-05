@@ -1,16 +1,6 @@
 import SwiftUI
 
-/// Where a settings pane is drawn (spec `2026-11-04-lintel-main-window`, Phasing). The old Settings window leaves
-/// the default; the main window sets `.mainWindow`. Under `.legacyWindow` a pane keeps today's in-body status
-/// views; they are hidden only for `.mainWindow`, whose host draws the banner. Removed in step 6.3.
-public nonisolated enum SettingsHostStyle: Sendable, Equatable {
-    case legacyWindow
-    case mainWindow
-}
-
 extension EnvironmentValues {
-    /// Where the pane is drawn; `.legacyWindow` unless the main window says otherwise.
-    @Entry public var settingsHostStyle: SettingsHostStyle = .legacyWindow
     /// The app's text size (`app.textSize`), set by every host through `.lintelTextSize(_:)`.
     @Entry public var lintelTextSize: TextSize = .default
 }

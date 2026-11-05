@@ -8,8 +8,8 @@ private let settingsRoot = URL(filePath: #filePath)
     .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
     .appending(path: "Sources/LintelApp/Settings")
 
-/// The main window's Advanced pane (step 6.5d): the Welcome and About rows call their closures, the reset
-/// confirmation keeps Cancel as the default button, and the old window's pane stays as it was.
+/// The main window's Advanced pane (step 6.5d): the Welcome and About rows call their closures and the reset
+/// confirmation keeps Cancel as the default button.
 @MainActor
 @Suite struct AdvancedPaneFidelityTests {
     @Test func theWelcomeAndAboutClosuresAreCalled() {
@@ -52,16 +52,5 @@ private let settingsRoot = URL(filePath: #filePath)
                 .appending(path: "LintelUI/Components/ConfirmSheet.swift"), encoding: .utf8)
         #expect(sheet.contains(".keyboardShortcut(.defaultAction)"))
         #expect(AdvancedPane.confirmation.confirmTitle.key == "Reset Ranking")
-    }
-
-    @Test func theOldWindowKeepsItsOwnPane() throws {
-        let legacy = try String(contentsOf: settingsRoot.appending(path: "LegacyShellPanes.swift"), encoding: .utf8)
-        let pane = try #require(legacy.components(separatedBy: "struct LegacyAdvancedPane").last)
-        #expect(pane.contains("Text(\"Ranking\""))
-        #expect(pane.contains("App suggestions keep their own history"))
-        #expect(pane.contains("Text(\"Advanced\", comment: \"Settings section title\")"))
-        let source = try String(contentsOf: settingsRoot.appending(path: "AdvancedPane.swift"), encoding: .utf8)
-        #expect(source.contains("hostStyle == .legacyWindow"))
-        #expect(source.contains("LegacyAdvancedPane(controls: controls)"))
     }
 }

@@ -5,15 +5,11 @@ import SwiftUI
 /// every pane. Below its width the column fills the width and the banner keeps the same `cardInset` margins as
 /// the cards.
 public nonisolated enum SettingsLayout {
-    /// The width of a pane's form in the old Settings window, which fixes its panes to it.
-    public static let columnWidth: CGFloat = 600
     /// The width of a pane's column in the main window (`settingsColumn()`): cards of 640 pt, the prototype's
     /// `layout.settingsContent`.
     public static let mainColumnWidth: CGFloat = 680
     /// The horizontal margin between the form's edge and its grouped cards.
     public static let cardInset: CGFloat = 20
-    /// The width of the cards in the old window.
-    public static var cardWidth: CGFloat { columnWidth - 2 * cardInset }
     /// The width of the cards and of the banner at full column width in the main window.
     public static var mainCardWidth: CGFloat { mainColumnWidth - 2 * cardInset }
 }

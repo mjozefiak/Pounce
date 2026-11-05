@@ -4,8 +4,8 @@ import LintelUI
 import SwiftUI
 
 /// Settings → Models (spec `2026-11-04-lintel-main-window`, step 3.2, D6): one section per kind of model, a
-/// `ModelRow` per catalog package. Main window only; the old Settings window keeps the plugins' model cards. The
-/// "1 model is needed" banner is drawn by `SettingsHost` from `ModelsPaneModel.banner`.
+/// `ModelRow` per catalog package. The "1 model is needed" banner is drawn by `SettingsHost` from
+/// `ModelsPaneModel.banner`.
 struct ModelsPane: View {
     let model: ModelsPaneModel
     /// The row an `openModels(packageID)` asked for; taken once when the pane appears.

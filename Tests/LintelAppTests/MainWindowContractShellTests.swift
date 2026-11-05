@@ -72,19 +72,18 @@ final class PanePlugin: LintelPlugin {
         #expect(env.settings.value(forKey: "plugins.pinned.enabled") == .bool(false))
     }
 
-    @Test func onlyTheMainWindowListsThePanesOfInactivePlugins() async {
+    @Test func thePanesOfInactivePluginsAreListedDimmed() async {
         defer { env.tearDown() }
         let host = env.makeHost([PanePlugin.self])
         await host.start()
 
-        #expect(host.settingsPanes(includingInactive: false).isEmpty)
-        let panes = host.settingsPanes(includingInactive: true)
+        let panes = host.settingsPanes()
         #expect(panes.map(\.id) == ["pane"])
         #expect(panes.first?.isActive == false)
 
         await host.setEnabled(true, for: "pane")
-        #expect(host.settingsPanes(includingInactive: false).map(\.id) == ["pane"])
-        #expect(host.settingsPanes(includingInactive: true).first?.isActive == true)
+        #expect(host.settingsPanes().map(\.id) == ["pane"])
+        #expect(host.settingsPanes().first?.isActive == true)
     }
 }
 
@@ -152,7 +151,7 @@ final class PanePlugin: LintelPlugin {
             settings: environment.settings
         )
         // Never started: the plugin is inactive, as for a disabled plugin in the main window.
-        let panes = host.settingsPanes(includingInactive: true)
+        let panes = host.settingsPanes()
         try #require(panes.count == 1)
         #expect(panes[0].isActive == false)
 

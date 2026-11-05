@@ -29,32 +29,17 @@ import Testing
     static let paneFiles = [
         "Sources/FilesPlugin/FilesViews.swift",
         "Sources/FilesPlugin/FilesSettingsPane.swift",
-        "Sources/FilesPlugin/LegacyFilesSettingsPane.swift",
     ]
 
-    /// The label (or `type:` row view) each window's pane shows for each non-exempt key's control (step 4.3): the
-    /// main window's `FilesPaneContent` and the old window's `LegacyFilesSettingsPane`, found in the built views.
-    /// The main window's "Start Indexing" (`setupCompleted`) is its banner's action, checked by
-    /// `theMainWindowsBannerCompletesSetup`.
-    static let windowControls: [(window: String, labels: [String: String])] = [
-        (
-            "main",
-            [
-                "roots": "Add Folder…", "exclusions": "New exclusion", "protectedFolders": "type:ProtectedFoldersRows",
-                "iCloudDrive": "Include iCloud Drive", "includesHidden": "Include hidden files",
-            ]
-        ),
-        (
-            "old",
-            [
-                "roots": "Add Folder…", "exclusions": "New exclusion", "protectedFolders": "type:ProtectedFolderRow",
-                "iCloudDrive": "type:ProtectedFolderRow", "includesHidden": "Include hidden files",
-                "setupCompleted": "Start Indexing",
-            ]
-        ),
+    /// The label (or `type:` row view) the pane (`FilesPaneContent`, step 4.3) shows for each non-exempt key's
+    /// control, found in the built view. "Start Indexing" (`setupCompleted`) is the banner's action, checked by
+    /// `theBannerCompletesSetup`.
+    static let controls: [String: String] = [
+        "roots": "Add Folder…", "exclusions": "New exclusion", "protectedFolders": "type:ProtectedFoldersRows",
+        "iCloudDrive": "Include iCloud Drive", "includesHidden": "Include hidden files",
     ]
 
-    /// Keys whose main-window control is the banner, not the pane.
+    /// Keys whose control is the banner, not the pane.
     static let bannerKeys: Set<String> = ["setupCompleted"]
 
     private static let root: URL = {
@@ -100,25 +85,17 @@ import Testing
         }
     }
 
-    @MainActor @Test func bothWindowsShowEveryNonExemptKey() throws {
+    @MainActor @Test func thePaneShowsEveryNonExemptKey() throws {
         let harness = try PluginHarness()
-        let model = harness.plugin.viewModel
-        let panes = [
-            PaneText(FilesPaneContent(model: model), module: "FilesPlugin"),
-            PaneText(LegacyFilesSettingsPane(model: model), module: "FilesPlugin"),
-        ]
-        let keys = Set(Self.paneTokens.keys)
-        for (pane, window) in zip(panes, Self.windowControls) {
-            let expected = window.window == "main" ? keys.subtracting(Self.bannerKeys) : keys
-            #expect(Set(window.labels.keys) == expected, "\(window.window)")
-            for (key, label) in window.labels {
-                #expect(pane.shows(label), "\(key): the \(window.window) window's pane does not show \(label)")
-            }
+        let pane = PaneText(FilesPaneContent(model: harness.plugin.viewModel), module: "FilesPlugin")
+        #expect(Set(Self.controls.keys) == Set(Self.paneTokens.keys).subtracting(Self.bannerKeys))
+        for (key, label) in Self.controls {
+            #expect(pane.shows(label), "\(key): the pane does not show \(label)")
         }
     }
 
-    /// The main window sets `setupCompleted` through the banner's Start Indexing.
-    @MainActor @Test func theMainWindowsBannerCompletesSetup() async throws {
+    /// The banner's Start Indexing sets `setupCompleted`.
+    @MainActor @Test func theBannerCompletesSetup() async throws {
         let harness = try PluginHarness()
         try await harness.plugin.activate()
         let start = harness.plugin.settingsStatus?.fix.first { action in

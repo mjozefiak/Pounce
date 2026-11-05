@@ -11,7 +11,7 @@ struct MainWindowState: Equatable {
     }
 
     /// The pane Settings falls back to.
-    static let defaultSettingsPane = SettingsWindowController.Pane.general.rawValue
+    static let defaultSettingsPane = SettingsShellPane.general.rawValue
 
     var mode: Mode
     /// The workspace section shown in Workspace mode, and the one Workspace mode returns to; `nil` while no

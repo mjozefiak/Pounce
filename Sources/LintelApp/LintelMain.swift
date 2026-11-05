@@ -128,13 +128,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if options.showsAbout {
             coordinator?.showAbout()
         }
-        // With `--qa-window settings` the pane opens inside the main window (below), not the old window.
+        // `--qa-settings <pane>` selects the pane in the main window's Settings mode; with `--qa-window settings`
+        // the window opens on that pane below.
         if let pane = options.settingsPane, options.windowMode != .settings {
-            if let shellPane = SettingsWindowController.Pane(rawValue: pane) {
-                coordinator?.openSettings(shellPane)
-            } else {
-                coordinator?.openPluginSettings(pane)
-            }
+            coordinator?.openSettings(pane: pane)
         }
         if let mode = options.windowMode {
             coordinator?.showMainWindowForQA(mode, settingsPane: options.settingsPane)

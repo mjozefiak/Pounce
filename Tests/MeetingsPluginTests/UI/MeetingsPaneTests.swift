@@ -50,8 +50,7 @@ import Testing
         #expect(types.contains("SettingsPane"))
         #expect(types.contains("ModelChoiceRow"))
         for legacy in [
-            "MeetingsModelCard", "MeetingsMicrophoneRows", "NotesSettingsRows", "LegacyMeetingsSettingsPane",
-            "MeetingsSuggestionsSection",
+            "MeetingsModelCard", "NotesSettingsRows", "MeetingsSuggestionsSection",
         ] {
             #expect(!types.contains(legacy), "\(legacy)")
         }
@@ -77,16 +76,13 @@ import Testing
         #expect(!source.contains("Try it on an example"))
     }
 
-    @Test func bothWindowsRenderAtEveryTextSize() throws {
+    @Test func thePaneRendersAtEveryTextSize() throws {
         let rig = try SettingsRig()
         for size in [TextSize.small, .extraLarge] {
-            for style in [SettingsHostStyle.legacyWindow, .mainWindow] {
-                let pane = MeetingsSettingsPane(model: rig.model, recorder: nil, isActive: false)
-                    .lintelTextSize(size)
-                    .environment(\.settingsHostStyle, style)
-                    .frame(width: 600, height: 1200)
-                #expect(ImageRenderer(content: pane).nsImage != nil)
-            }
+            let pane = MeetingsSettingsPane(model: rig.model, recorder: nil, isActive: false)
+                .lintelTextSize(size)
+                .frame(width: 680, height: 1200)
+            #expect(ImageRenderer(content: pane).nsImage != nil)
         }
     }
 
@@ -97,8 +93,7 @@ import Testing
             backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         window.contentView = NSHostingView(
-            rootView: MeetingsSettingsPane(model: rig.model, recorder: nil, isActive: false)
-                .environment(\.settingsHostStyle, .mainWindow))
+            rootView: MeetingsSettingsPane(model: rig.model, recorder: nil, isActive: false))
         window.orderFrontRegardless()
         defer { window.close() }
         try await Task.sleep(for: .milliseconds(100))

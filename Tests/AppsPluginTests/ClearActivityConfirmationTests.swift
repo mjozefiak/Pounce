@@ -3,7 +3,8 @@ import Testing
 
 @testable import AppsPlugin
 
-/// Step 3.4: Clear App Activity asks before it deletes, with a verb on the confirm button, in English and Polish.
+/// Step 3.4: Reset Suggestions asks before it deletes the app activity, with a verb on the confirm button, in
+/// English and Polish.
 @Suite struct ClearActivityConfirmationTests {
     private func expectTranslated(_ key: String) throws {
         let url = URL(filePath: #filePath).deletingLastPathComponent()
@@ -19,9 +20,9 @@ import Testing
 
     @Test func theConfirmationHasWordsAndAVerb() throws {
         for resource in [
-            AppsSettingsPane.confirmation.prompt, AppsSettingsPane.confirmation.detail,
-            AppsSettingsPane.confirmation.confirmTitle,
+            AppsSettingsPane.resetConfirmation.prompt, AppsSettingsPane.resetConfirmation.detail,
+            AppsSettingsPane.resetConfirmation.confirmTitle,
         ] { try expectTranslated(resource.key) }
-        #expect(AppsSettingsPane.confirmation.confirmTitle.key == "Clear App Activity")
+        #expect(AppsSettingsPane.resetConfirmation.confirmTitle.key == "Reset Suggestions")
     }
 }

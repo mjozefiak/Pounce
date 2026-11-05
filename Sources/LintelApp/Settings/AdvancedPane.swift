@@ -33,9 +33,9 @@ struct AdvancedControls {
     let usage: any UsageRecorder
     /// Called after a successful reset, so an open panel searches again.
     let onReset: () -> Void
-    /// "Show Again": the welcome flow from its first page (main window only).
+    /// "Show Again": the welcome flow from its first page.
     let showWelcome: () -> Void
-    /// "About…": the About window (main window only).
+    /// "About…": the About window.
     let showAbout: () -> Void
     /// The version shown under "About Lintel"; `nil` for an unbundled build.
     let version: String?
@@ -78,35 +78,26 @@ struct AdvancedControls {
     }
 }
 
-/// Settings → Advanced: Reset Ranking with a confirmation, and in the main window the Welcome and About rows
-/// (prototype `set-advanced`). The old window keeps `LegacyAdvancedPane`.
+/// Settings → Advanced: Reset Ranking with a confirmation, and the Welcome and About rows (prototype
+/// `set-advanced`).
 struct AdvancedPane: View {
     let controls: AdvancedControls
-
-    @Environment(\.settingsHostStyle) private var hostStyle
 
     static let confirmation = DestructiveConfirmation(
         prompt: LocalizedStringResource("Reset the ranking?", comment: "Reset Ranking confirmation title"),
         detail: LocalizedStringResource(
-            "Results go back to the order of how well they match. It cannot be undone.",
-            comment: "Reset Ranking confirmation message"),
-        confirmTitle: LocalizedStringResource(
-            "Reset Ranking", comment: "Confirmation button that clears the learned ranking"),
-        mainWindowDetail: LocalizedStringResource(
             "Results go back to the order of how well they match. This can’t be undone.",
-            comment: "Reset Ranking confirmation message in the main window"))
+            comment: "Reset Ranking confirmation message in the main window"),
+        confirmTitle: LocalizedStringResource(
+            "Reset Ranking", comment: "Confirmation button that clears the learned ranking"))
 
     var body: some View {
-        if hostStyle == .legacyWindow {
-            LegacyAdvancedPane(controls: controls)
-        } else {
-            AdvancedPaneContent(controls: controls)
-        }
+        AdvancedPaneContent(controls: controls)
     }
 }
 
 extension View {
-    /// The Reset Ranking confirmation, the result announcement and the failure alert, shared by both windows.
+    /// The Reset Ranking confirmation, the result announcement and the failure alert.
     func resetRankingFlow(
         controls: AdvancedControls, confirms: Binding<Bool>, done: Binding<Bool>, error: Binding<String?>
     ) -> some View {

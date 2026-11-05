@@ -4,28 +4,28 @@ import Testing
 
 @testable import LintelApp
 
-/// Spec `2026-11-04-lintel-main-window`, step 1.3: the old Settings panes inside the main window's Settings mode.
-@Suite struct SettingsPaneAdapterTests {
-    private func plugins() -> [SettingsWindowController.PluginPane] {
+/// Spec `2026-11-04-lintel-main-window`, steps 1.3 and 6.3b: the panes of the main window's Settings mode.
+@Suite struct SettingsPanesTests {
+    private func plugins() -> [SettingsPluginPane] {
         [
             .init(id: "apps", title: "Apps", symbolName: "app", view: AnyView(EmptyView())),
             .init(id: "clipboard", title: "Clipboard", symbolName: "doc", view: AnyView(EmptyView()), isActive: false),
         ]
     }
 
-    private func entries() -> [SettingsPaneAdapter.Entry] {
-        SettingsPaneAdapter.entries(shellPane: { _ in AnyView(EmptyView()) }, plugins: plugins())
+    private func entries() -> [SettingsPanes.Entry] {
+        SettingsPanes.entries(shellPane: { _ in AnyView(EmptyView()) }, plugins: plugins())
     }
 
     @Test func everyPaneOfTheSidebarHasAnEntry() {
-        let sections = SettingsPaneAdapter.sidebarSections(plugins: plugins())
+        let sections = SettingsPanes.sidebarSections(plugins: plugins())
         let ids = Set(entries().map(\.id))
         for id in SettingsSidebarModel.focusOrder(sections) { #expect(ids.contains(id)) }
     }
 
     @Test func everyShellPaneAndEveryPluginPaneIsReachable() {
         let ids = Set(entries().map(\.id))
-        for pane in SettingsWindowController.Pane.allCases { #expect(ids.contains(pane.rawValue)) }
+        for pane in SettingsShellPane.allCases { #expect(ids.contains(pane.rawValue)) }
         #expect(ids.isSuperset(of: ["apps", "clipboard", "models"]))
     }
 
@@ -35,8 +35,8 @@ import Testing
     }
 
     @Test func aShellPaneIsBuiltOnlyWhenShown() {
-        var built: [SettingsWindowController.Pane] = []
-        let entries = SettingsPaneAdapter.entries(
+        var built: [SettingsShellPane] = []
+        let entries = SettingsPanes.entries(
             shellPane: { pane in
                 built.append(pane)
                 return AnyView(EmptyView())

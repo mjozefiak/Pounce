@@ -53,17 +53,16 @@ import Testing
         #expect(isPresented == false)
     }
 
-    @Test func onlyTheMainWindowShowsTheCheckbox() {
+    @Test func theOptionIsAddedWithoutChangingTheWords() {
         let plain = DestructiveConfirmation(prompt: "Erase?", detail: "Gone.", confirmTitle: "Erase")
         #expect(plain.option == nil)
         let withOption = plain.with(option: .keptNotesCopies)
-        #expect(withOption.option(in: .mainWindow) != nil)
-        #expect(withOption.option(in: .legacyWindow) == nil)
-        #expect(plain.option(in: .mainWindow) == nil)
+        #expect(withOption.option != nil)
+        #expect(withOption.with(option: nil).option == nil)
         // The words stay the same.
         #expect(withOption.prompt.key == plain.prompt.key)
+        #expect(withOption.detail.key == plain.detail.key)
         #expect(withOption.confirmTitle.key == plain.confirmTitle.key)
-        #expect(withOption.legacyTitleVisible == plain.legacyTitleVisible)
     }
 
     @Test func aSheetWithTheCheckboxRenders() throws {

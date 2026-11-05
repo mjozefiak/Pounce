@@ -75,7 +75,7 @@ enum PaneTree {
 }
 
 /// Spec `2026-11-04-lintel-main-window`, step 4.1: General and Features on the `SettingsPane` template, the shell
-/// panes' banners, the "Always on" chip and the old window's unchanged panes.
+/// panes' banners and the "Always on" chip.
 @MainActor
 @Suite(.serialized) struct ShellPanesTests {
     let env: TestEnvironment
@@ -122,49 +122,27 @@ enum PaneTree {
         #expect(sections.map(\.present) == [true, true, false])
     }
 
-    // The old window (release users) keeps today's panes.
-
-    @Test func theOldWindowKeepsTodaysGeneralPane() throws {
+    @Test func theShellPanesAreTheTemplatePanes() async throws {
         defer { env.tearDown() }
         let settings = AppSettings(store: env.settings)
-        let pane = GeneralPane(hotkeys: hotkeys(), settings: settings, launchAtLogin: InMemoryLaunchAtLogin())
-        let types = PaneTree.typeNames(in: pane.body)
-        #expect(types.contains("LegacyGeneralPane"))
-        #expect(!types.contains("GeneralPaneContent"))
-        let legacy = PaneTree.typeNames(
-            in: LegacyGeneralPane(hotkeys: hotkeys(), settings: settings, launchAtLogin: InMemoryLaunchAtLogin())
-                .body)
-        #expect(legacy.contains("Form"))
-        #expect(legacy.contains("MainShortcutRecorder"))
-        #expect(!legacy.contains("SettingsPane"))
-    }
-
-    @Test func theOldWindowKeepsTodaysFeaturesPane() async throws {
-        defer { env.tearDown() }
+        let general = GeneralPane(hotkeys: hotkeys(), settings: settings, launchAtLogin: InMemoryLaunchAtLogin())
+        #expect(PaneTree.typeNames(in: general.body).contains("GeneralPaneContent"))
         let host = env.makeHost([PlainFeaturePlugin.self])
         await host.start()
-        let pane = FeaturesPane(host: host, settings: AppSettings(store: env.settings)) {}
-        let types = PaneTree.typeNames(in: pane.body)
-        #expect(types.contains("LegacyFeaturesPane"))
-        #expect(!types.contains("FeaturesPaneContent"))
-        let legacy = PaneTree.typeNames(in: LegacyFeaturesPane(controls: pane.controls, order: pane.order).body)
-        #expect(legacy.contains("Form"))
-        #expect(!legacy.contains("SettingsPane"))
+        let features = FeaturesPane(host: host, settings: settings) {}
+        #expect(PaneTree.typeNames(in: features.body).contains("FeaturesPaneContent"))
     }
 
-    @Test func bothHostsRenderBothPanes() async throws {
+    @Test func bothPanesRender() async throws {
         defer { env.tearDown() }
         let host = env.makeHost([AlwaysOnNotesPlugin.self, PlainFeaturePlugin.self, OtherFeaturePlugin.self])
         await host.start()
         let settings = AppSettings(store: env.settings)
-        for style in [SettingsHostStyle.legacyWindow, .mainWindow] {
-            let general = GeneralPane(hotkeys: hotkeys(), settings: settings, launchAtLogin: InMemoryLaunchAtLogin())
-            let features = FeaturesPane(host: host, settings: settings) {}
-            for view in [AnyView(general), AnyView(features)] {
-                let renderer = ImageRenderer(
-                    content: view.environment(\.settingsHostStyle, style).frame(width: 600, height: 700))
-                #expect(renderer.nsImage != nil)
-            }
+        let general = GeneralPane(hotkeys: hotkeys(), settings: settings, launchAtLogin: InMemoryLaunchAtLogin())
+        let features = FeaturesPane(host: host, settings: settings) {}
+        for view in [AnyView(general), AnyView(features)] {
+            let renderer = ImageRenderer(content: view.frame(width: 680, height: 700))
+            #expect(renderer.nsImage != nil)
         }
     }
 

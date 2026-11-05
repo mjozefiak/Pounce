@@ -1,10 +1,30 @@
 import LintelKit
 import SwiftUI
 
-/// Temporary adapter (spec `2026-11-04-lintel-main-window`, step 1.3): shows the panes of the old Settings window
-/// unchanged inside the main window's Settings mode, listed by the sidebar of step 2.1. The pane template
-/// replaces it in steps 2.2 and 2.3.
-enum SettingsPaneAdapter {
+/// The shell's own panes of the main window's Settings mode. The raw values are the pane ids that
+/// `app.mainWindow.settingsPane` stores and `--qa-settings` takes.
+enum SettingsShellPane: String, CaseIterable {
+    case general
+    case features
+    case permissions
+    case advanced
+}
+
+/// A plugin's own Settings pane (`LintelPlugin.settingsPane()`), as the sidebar lists it.
+struct SettingsPluginPane {
+    let id: String
+    let title: String
+    let symbolName: String
+    let view: AnyView
+    /// False for the pane of a disabled or failed plugin, which the main window shows dimmed.
+    var isActive = true
+    /// The sidebar group, from `manifest.settingsGroup`, and the order inside it, from `manifest.order`.
+    var group: SettingsGroup = .lintel
+    var order = 0
+}
+
+/// The panes of Settings mode by id and the sidebar built from them.
+enum SettingsPanes {
     struct Entry {
         let id: String
         let title: String
@@ -15,14 +35,14 @@ enum SettingsPaneAdapter {
         let makeView: () -> AnyView
     }
 
-    /// The entries by id; the sidebar (`SettingsSidebarModel`) decides the order. `models` draws Settings → Models
-    /// (step 3.2); without it the entry is empty.
+    /// The entries by id; the sidebar (`SettingsSidebarModel`) decides the order. `models` draws Settings → Models;
+    /// without it the entry is empty.
     static func entries(
-        shellPane: @escaping (SettingsWindowController.Pane) -> AnyView,
-        plugins: [SettingsWindowController.PluginPane],
+        shellPane: @escaping (SettingsShellPane) -> AnyView,
+        plugins: [SettingsPluginPane],
         models: (() -> AnyView)? = nil
     ) -> [Entry] {
-        func shell(_ pane: SettingsWindowController.Pane) -> Entry {
+        func shell(_ pane: SettingsShellPane) -> Entry {
             Entry(id: pane.rawValue, title: pane.rawValue, symbolName: "", isActive: true) { shellPane(pane) }
         }
         let pluginEntries = plugins.map { pane in
@@ -33,13 +53,13 @@ enum SettingsPaneAdapter {
         ) {
             models?() ?? AnyView(EmptyView())
         }
-        return SettingsWindowController.Pane.allCases.map(shell) + pluginEntries + [models]
+        return SettingsShellPane.allCases.map(shell) + pluginEntries + [models]
     }
 
     /// The sidebar's input from the plugins' panes and each pane's attention level (`SettingsHostModel`), plugin and
     /// shell panes alike.
     static func sidebarSections(
-        plugins: [SettingsWindowController.PluginPane], attention: [String: SettingsStatus.Level] = [:]
+        plugins: [SettingsPluginPane], attention: [String: SettingsStatus.Level] = [:]
     ) -> [SettingsSidebarModel.Section] {
         SettingsSidebarModel.sections(
             plugins: plugins.map {

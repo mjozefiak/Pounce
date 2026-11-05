@@ -8,7 +8,7 @@ import Testing
 @testable import FilesPlugin
 
 /// Spec `2026-11-04-lintel-main-window`, step 4.3: the Files pane on the `SettingsPane` template (prototype
-/// `set-files`), its banner, and the old window's unchanged pane. Every plugin works on a fake home in a
+/// `set-files`), its banner and the template pane. Every plugin works on a fake home in a
 /// temporary folder; no protected location is touched.
 @Suite @MainActor struct FilesPaneTests {
     /// The view types a `body` holds, found by reflection (the branch an `if` took is stored, the other is not).
@@ -54,29 +54,20 @@ import Testing
         #expect(sections.map(\.1) == [true, true, true])
     }
 
-    @Test func theOldWindowKeepsTodaysPane() throws {
+    @Test func thePluginsPaneIsTheTemplatePane() throws {
         let harness = try PluginHarness()
-        // Outside a host the environment is the default, `.legacyWindow`: what release users see.
         let types = Self.typeNames(in: FilesSettingsPane(model: harness.plugin.viewModel).body)
-        #expect(types.contains("LegacyFilesSettingsPane"))
-        #expect(!types.contains("FilesPaneContent"))
-        let legacy = Self.typeNames(in: LegacyFilesSettingsPane(model: harness.plugin.viewModel).body)
-        #expect(legacy.contains("Form"))
-        #expect(!legacy.contains("SettingsPane"))
+        #expect(types.contains("FilesPaneContent"))
     }
 
-    @Test func bothHostsRenderThePane() throws {
+    @Test func thePaneRenders() throws {
         let harness = try PluginHarness(settings: ["plugins.files.exclusions": .stringArray(["*.log"])])
         for access in [PermissionStatus.denied, .granted] {
             harness.permissions.fullDiskAccess = access
             harness.plugin.refreshAccess()
-            for style in [SettingsHostStyle.legacyWindow, .mainWindow] {
-                let renderer = ImageRenderer(
-                    content: FilesSettingsPane(model: harness.plugin.viewModel)
-                        .environment(\.settingsHostStyle, style)
-                        .frame(width: 600, height: 900))
-                #expect(renderer.nsImage != nil)
-            }
+            let renderer = ImageRenderer(
+                content: FilesSettingsPane(model: harness.plugin.viewModel).frame(width: 680, height: 900))
+            #expect(renderer.nsImage != nil)
         }
     }
 

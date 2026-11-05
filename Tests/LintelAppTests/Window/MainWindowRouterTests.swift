@@ -45,7 +45,7 @@ import Testing
 
     @Test func shellAndPluginPanesOpenInSettingsMode() {
         let (router, recorder) = router()
-        router.openSettings(pane: SettingsWindowController.Pane.features.rawValue)
+        router.openSettings(pane: SettingsShellPane.features.rawValue)
         router.openSettings(pane: "dictation")
         #expect(recorder.calls == ["window.settings:features", "window.settings:dictation"])
     }

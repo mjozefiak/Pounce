@@ -8,7 +8,7 @@ import Testing
 @testable import ClipboardPlugin
 
 /// Spec `2026-11-04-lintel-main-window`, step 4.4: the Clipboard pane on the `SettingsPane` template (prototypes
-/// `set-clipboard` and `set-error`), its banner, and the old window's unchanged pane. Every plugin uses a named
+/// `set-clipboard` and `set-error`), its banner and the template pane. Every plugin uses a named
 /// pasteboard, an in-memory keychain and a temporary folder.
 @Suite @MainActor struct ClipboardPaneTests {
     private static func typeNames(in value: Any, depth: Int = 0) -> Set<String> {
@@ -76,35 +76,22 @@ import Testing
         }
         #expect(sections.map(\.0) == ["basics", "advanced", "data"])
         #expect(sections.map(\.1) == [true, true, true])
-        // The history banners are the host's in the main window.
+        // The history banners are the host's.
         #expect(!Self.typeNames(in: content.body).contains("ClipboardBannerRow"))
     }
 
-    @Test func theOldWindowKeepsTodaysPane() throws {
+    @Test func thePluginsPaneIsTheTemplatePane() throws {
         let harness = try PluginHarness()
-        // Outside a host the environment is the default, `.legacyWindow`: what release users see.
-        let types = Self.typeNames(in: pane(harness).body)
-        #expect(types.contains("LegacyClipboardSettingsPane"))
-        #expect(!types.contains("ClipboardPaneContent"))
-        let legacy = Self.typeNames(
-            in: LegacyClipboardSettingsPane(
-                state: harness.plugin.state, settings: harness.plugin.settings, actions: harness.plugin.statusActions,
-                recorder: AnyView(EmptyView()), clearHistory: { true }
-            ).body)
-        #expect(legacy.contains("Form"))
-        #expect(!legacy.contains("SettingsPane"))
+        #expect(Self.typeNames(in: pane(harness).body).contains("ClipboardPaneContent"))
     }
 
-    @Test func bothHostsRenderThePaneInEveryState() async throws {
+    @Test func thePaneRendersInEveryState() async throws {
         let harness = try PluginHarness()
         try await harness.plugin.activate()
         for availability in [HistoryAvailability.ready, .keychainLocked, .keychainUnavailable] {
             harness.plugin.state.availability = availability
-            for style in [SettingsHostStyle.legacyWindow, .mainWindow] {
-                let renderer = ImageRenderer(
-                    content: pane(harness).environment(\.settingsHostStyle, style).frame(width: 600, height: 900))
-                #expect(renderer.nsImage != nil)
-            }
+            let renderer = ImageRenderer(content: pane(harness).frame(width: 680, height: 900))
+            #expect(renderer.nsImage != nil)
         }
         await harness.tearDown()
     }

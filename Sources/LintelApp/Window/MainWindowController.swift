@@ -62,6 +62,14 @@ final class MainWindowController {
 
     var isVisible: Bool { window?.isVisible ?? false }
 
+    /// Switching the activation policy to `.accessory` (Dock icon off) deactivates the app; this brings the open
+    /// window back to the front so the toggle in Settings → General does not make it disappear behind other apps.
+    func bringToFrontIfVisible() {
+        guard let window, window.isVisible, activatesApp else { return }
+        NSApp.activate()
+        window.makeKeyAndOrderFront(nil)
+    }
+
     /// Opens the window in the restored state.
     ///
     /// Every change that leaves the visible Workspace section (another mode or section) first awaits that
@@ -202,7 +210,6 @@ final class MainWindowController {
         state.save(to: settings)
         defer { onChange?() }
         let content = LintelTextSizeScope(size: textSize) { makeContent(state, sections()) }
-            .environment(\.settingsHostStyle, .mainWindow)
             .buttonStyle(LintelSecondaryButtonStyle())
             .lintelBrand()
         if let hosting {

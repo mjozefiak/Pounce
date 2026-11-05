@@ -4,68 +4,13 @@ import LintelUI
 import SwiftUI
 
 extension MeetingsModelCardModel {
-    /// The model's state for the main window's one-line summary.
+    /// The model's state for the one-line summary.
     var choiceState: ModelChoiceRow.State {
         if progress != nil { return .downloading }
         switch location {
         case .installed: return .installed
         case .customFolder: return .customFolder
         case .customFolderUnavailable, .partial, .missing: return .notInstalled
-        }
-    }
-}
-
-/// The microphone to record from. Its own view so it stays in both hosts when the permission rows go (it moves
-/// under Advanced with step 5.2).
-struct MeetingsInputDevicePicker: View {
-    @Bindable var model: MeetingsSettingsModel
-
-    var body: some View {
-        Picker(selection: $model.inputDevice) {
-            Text("System default", comment: "Dictation input device choice that follows the system").tag(String?.none)
-            ForEach(model.devices) { device in
-                Text(device.name).tag(Optional(device.uid))
-            }
-        } label: {
-            Text("Input device", comment: "Dictation settings label")
-        }
-    }
-}
-
-/// The microphone permission and the Allow / Open Settings buttons (the old Settings window only).
-struct MeetingsMicrophoneRows: View {
-    @Bindable var model: MeetingsSettingsModel
-
-    var body: some View {
-        HStack {
-            switch model.microphone {
-            case .granted:
-                Label {
-                    Text("Microphone allowed", comment: "Dictation microphone status")
-                } icon: {
-                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityHidden(true)
-                }
-            case .notDetermined:
-                Text("Microphone not asked yet", comment: "Dictation microphone status")
-                Spacer()
-                Button {
-                    model.requestMicrophone()
-                } label: {
-                    Text("Allow Microphone", comment: "Button that asks for microphone access")
-                }
-            case .denied:
-                Label {
-                    Text("Microphone not allowed", comment: "Dictation HUD when microphone access is denied")
-                } icon: {
-                    Image(systemName: "mic.slash").foregroundStyle(.orange).accessibilityHidden(true)
-                }
-                Spacer()
-                Button {
-                    model.openMicrophoneSettings()
-                } label: {
-                    Text("Open Microphone Settings", comment: "Button that opens microphone privacy settings")
-                }
-            }
         }
     }
 }
@@ -417,26 +362,18 @@ enum MeetingsConfirmations {
             prompt: LocalizedStringResource(
                 "Delete older meetings?", comment: "Meetings settings confirmation title of a shorter retention"),
             detail: LocalizedStringResource(
-                "\(count) meetings are older than the new limit and are deleted now. This cannot be undone.",
-                comment: "Meetings settings confirmation text of a shorter retention"),
-            confirmTitle: LocalizedStringResource(
-                "Delete Older Meetings", comment: "Meetings settings confirmation button"),
-            legacyTitleVisible: true,
-            mainWindowDetail: LocalizedStringResource(
                 "\(count) meetings are older than the new limit and are deleted now. This can’t be undone.",
-                comment: "Meetings settings confirmation text of a shorter retention in the main window"))
+                comment: "Meetings settings confirmation text of a shorter retention in the main window"),
+            confirmTitle: LocalizedStringResource(
+                "Delete Older Meetings", comment: "Meetings settings confirmation button"))
     }
 
     static let clearLibrary = DestructiveConfirmation(
         prompt: LocalizedStringResource("Delete all meetings?", comment: "Meetings settings confirmation title"),
         detail: LocalizedStringResource(
-            "Every transcript, note and recording is deleted. A meeting that is being recorded is kept. This cannot be undone.",
-            comment: "Meetings settings confirmation text of Clear Library"),
-        confirmTitle: LocalizedStringResource("Delete All Meetings", comment: "Meetings settings confirmation button"),
-        legacyTitleVisible: true,
-        mainWindowDetail: LocalizedStringResource(
             "Every transcript, note and recording is deleted. A meeting that is being recorded is kept. This can’t be undone.",
-            comment: "Meetings settings confirmation text of Clear Library in the main window"))
+            comment: "Meetings settings confirmation text of Clear Library in the main window"),
+        confirmTitle: LocalizedStringResource("Delete All Meetings", comment: "Meetings settings confirmation button"))
 
     static let deleteRecordings = DestructiveConfirmation(
         prompt: LocalizedStringResource(
@@ -444,6 +381,5 @@ enum MeetingsConfirmations {
         detail: LocalizedStringResource(
             "The audio of interrupted meetings is deleted, so they can no longer be finished. Their transcripts stay.",
             comment: "Meetings settings confirmation text of Delete Temporary Recordings"),
-        confirmTitle: LocalizedStringResource("Delete Recordings", comment: "Meetings settings confirmation button"),
-        legacyTitleVisible: true)
+        confirmTitle: LocalizedStringResource("Delete Recordings", comment: "Meetings settings confirmation button"))
 }

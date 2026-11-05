@@ -1,23 +1,12 @@
 import LintelUI
 import SwiftUI
 
-/// Settings → Applications. The main window draws `AppsPaneContent` on the `SettingsPane` template (prototype
-/// `set-apps`, spec step 4.2); the old window keeps `LegacyAppsSettingsPane`. The banner is the host's, from
-/// `AppsPlugin.settingsStatus`.
+/// Settings → Applications: `AppsPaneContent` on the `SettingsPane` template (prototype `set-apps`, spec step
+/// 4.2). The banner is the host's, from `AppsPlugin.settingsStatus`.
 struct AppsSettingsPane: View {
     let model: AppsSettingsModel
 
-    @Environment(\.settingsHostStyle) private var hostStyle
-
-    /// The old window's Clear App Activity question.
-    static let confirmation = DestructiveConfirmation(
-        prompt: LocalizedStringResource("Clear the app activity?", comment: "Clear App Activity confirmation title"),
-        detail: LocalizedStringResource(
-            "Suggestions start again from the apps you use next. This cannot be undone.",
-            comment: "Clear App Activity confirmation message"),
-        confirmTitle: LocalizedStringResource("Clear App Activity", comment: "Clear App Activity confirmation button"))
-
-    /// The main window's Reset Suggestions question (the same action as Clear App Activity).
+    /// The Reset Suggestions question.
     static let resetConfirmation = DestructiveConfirmation(
         prompt: LocalizedStringResource(
             "Reset suggestions?", comment: "Settings → Apps: Reset Suggestions confirmation title"),
@@ -28,15 +17,11 @@ struct AppsSettingsPane: View {
             "Reset Suggestions", comment: "Settings → Apps: Reset Suggestions confirmation button"))
 
     var body: some View {
-        if hostStyle == .legacyWindow {
-            LegacyAppsSettingsPane(model: model)
-        } else {
-            AppsPaneContent(model: model)
-        }
+        AppsPaneContent(model: model)
     }
 }
 
-/// The main window's Apps pane (prototype `set-apps`): Basics (Suggest apps, Hidden suggestions), Advanced (the
+/// The Apps pane (prototype `set-apps`): Basics (Suggest apps, Hidden suggestions), Advanced (the
 /// app index: Spotlight and the searched folders) and Data (usage history, Reset Suggestions…).
 struct AppsPaneContent: View {
     let model: AppsSettingsModel

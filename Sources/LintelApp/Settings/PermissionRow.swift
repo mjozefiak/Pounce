@@ -12,7 +12,6 @@ struct PermissionRow: View {
     let open: () -> Void
 
     @Environment(\.lintelTextSize) private var textSize
-    @Environment(\.settingsHostStyle) private var hostStyle
 
     private var toneColor: Color {
         switch state.tone {
@@ -22,18 +21,10 @@ struct PermissionRow: View {
         }
     }
 
-    var body: some View {
-        if hostStyle == .legacyWindow {
-            legacyBody
-        } else {
-            mainWindowBody
-        }
-    }
-
-    /// The main window (prototype `set-permissions`): the name over "Needed for …", and on the right the state in
+    /// Prototype `set-permissions`: the name over "Needed for …", and on the right the state in
     /// words (coloured by tone, "✓ Allowed" for an allowed row) next to the one button. No leading icon. The
     /// explanation is the row's `.help`.
-    private var mainWindowBody: some View {
+    var body: some View {
         let permission = state.permission
         return HStack(alignment: .center, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
@@ -97,63 +88,5 @@ struct PermissionRow: View {
             : LocalizedStringResource(
                 "Needed for: \(state.pluginNames.formatted(.list(type: .and)))",
                 comment: "Settings → Permissions: the features that need a permission")
-    }
-
-    private var legacyBody: some View {
-        let permission = state.permission
-        return HStack(alignment: .top, spacing: 12) {
-            Image(systemName: permission.symbolName)
-                .symbolRenderingMode(.hierarchical)
-                .font(textSize.font(.title3))
-                .frame(width: 24)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(permission.title)
-                    .font(textSize.font(.body))
-                    .accessibilityAddTraits(.isHeader)
-                Label {
-                    Text(state.stateText)
-                } icon: {
-                    Image(systemName: state.status.symbolName)
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(toneColor)
-                        .accessibilityHidden(true)
-                }
-                .font(textSize.font(.callout, weight: .medium))
-                Text(permission.explanation)
-                    .font(textSize.font(.callout))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                Group {
-                    if state.pluginNames.isEmpty {
-                        Text(
-                            "No feature that is on needs it.",
-                            comment: "Settings → Permissions: a permission no enabled feature needs")
-                    } else {
-                        Text(
-                            "Needed by: \(state.pluginNames.formatted(.list(type: .and)))",
-                            comment: "Settings → Permissions: the features that need a permission")
-                    }
-                }
-                .font(textSize.font(.callout))
-                .foregroundStyle(.secondary)
-                ForEach(accessories.indices, id: \.self) { accessories[$0] }
-            }
-            Spacer(minLength: 12)
-            VStack(alignment: .trailing, spacing: 6) {
-                if let title = state.allowTitle {
-                    Button(action: allow) { Text(title) }
-                }
-                Button(action: open) {
-                    Text("Open System Settings…", comment: "Button that opens a permission's page in System Settings")
-                }
-                .accessibilityHint(
-                    Text(
-                        "Opens \(permission.title) in System Settings",
-                        comment: "Accessibility hint of the button that opens a permission's settings"))
-            }
-        }
-        .opacity(state.isDimmed ? 0.6 : 1)
-        .accessibilityElement(children: .contain)
     }
 }

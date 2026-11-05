@@ -3,15 +3,12 @@ import LintelKit
 import LintelUI
 import SwiftUI
 
-/// Settings → Files. The main window draws `FilesPaneContent` on the `SettingsPane` template (prototype
-/// `set-files`, spec step 4.3); the old window keeps `LegacyFilesSettingsPane` with its in-body index status and
-/// Full Disk Access notice. The main window's banner is the host's, from `FilesPlugin.settingsStatus`.
+/// Settings → Files: `FilesPaneContent` on the `SettingsPane` template (prototype `set-files`, spec step 4.3).
+/// The banner is the host's, from `FilesPlugin.settingsStatus`.
 struct FilesSettingsPane: View {
     let model: FilesViewModel
 
-    @Environment(\.settingsHostStyle) private var hostStyle
-
-    /// The Rebuild question, in the old window's words.
+    /// The Rebuild question.
     static let rebuildConfirmation = DestructiveConfirmation(
         prompt: LocalizedStringResource("Rebuild the file index?", comment: "Rebuild confirmation title"),
         detail: LocalizedStringResource(
@@ -21,15 +18,11 @@ struct FilesSettingsPane: View {
             "Rebuild Index", comment: "Confirmation button that rebuilds the file index"))
 
     var body: some View {
-        if hostStyle == .legacyWindow {
-            LegacyFilesSettingsPane(model: model)
-        } else {
-            FilesPaneContent(model: model)
-        }
+        FilesPaneContent(model: model)
     }
 }
 
-/// The main window's Files pane (prototype `set-files`): Basics (Folders to index, Include iCloud Drive),
+/// The Files pane (prototype `set-files`): Basics (Folders to index, Include iCloud Drive),
 /// Advanced (the searched folders, the protected folders, exclusions, hidden files) and Data (the index with
 /// Rebuild…). Indexing is started from the banner.
 struct FilesPaneContent: View {

@@ -4,9 +4,8 @@ import LintelUI
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Settings → Clipboard. The main window draws `ClipboardPaneContent` on the `SettingsPane` template (prototype
-/// `set-clipboard`, spec step 4.4); the old window keeps `LegacyClipboardSettingsPane` with its in-body history
-/// banners and Try Again. The main window's banner is the host's, from `ClipboardPlugin.settingsStatus`.
+/// Settings → Clipboard: `ClipboardPaneContent` on the `SettingsPane` template (prototype `set-clipboard`, spec
+/// step 4.4). The banner is the host's, from `ClipboardPlugin.settingsStatus`.
 struct ClipboardSettingsPane: View {
     let state: ClipboardState
     @Bindable var settings: ClipboardSettings
@@ -14,32 +13,21 @@ struct ClipboardSettingsPane: View {
     let recorder: AnyView
     let clearHistory: @MainActor () async -> Bool
 
-    @Environment(\.settingsHostStyle) private var hostStyle
-
     static let confirmation = DestructiveConfirmation(
         prompt: LocalizedStringResource("Clear the clipboard history?", comment: "Clear History confirmation title"),
         detail: LocalizedStringResource(
-            "All entries are deleted. This cannot be undone.", comment: "Clear History confirmation message"),
-        confirmTitle: LocalizedStringResource("Clear History", comment: "Clear History confirmation button"),
-        mainWindowDetail: LocalizedStringResource(
             "All entries are deleted. This can’t be undone.",
-            comment: "Clear History confirmation message in the main window"))
+            comment: "Clear History confirmation message in the main window"),
+        confirmTitle: LocalizedStringResource("Clear History", comment: "Clear History confirmation button"))
 
     var body: some View {
-        Group {
-            if hostStyle == .legacyWindow {
-                LegacyClipboardSettingsPane(
-                    state: state, settings: settings, actions: actions, recorder: recorder, clearHistory: clearHistory)
-            } else {
-                ClipboardPaneContent(state: state, settings: settings, recorder: recorder, clearHistory: clearHistory)
-            }
-        }
-        // The banners read pasteboard access; it is re-read here, not while the banner draws.
-        .onAppear { actions.recheck() }
+        ClipboardPaneContent(state: state, settings: settings, recorder: recorder, clearHistory: clearHistory)
+            // The banner reads pasteboard access; it is re-read here, not while the banner draws.
+            .onAppear { actions.recheck() }
     }
 }
 
-/// The main window's Clipboard pane (prototype `set-clipboard`): Basics (Keep clipboard history, Keep for, At
+/// The Clipboard pane (prototype `set-clipboard`): Basics (Keep clipboard history, Keep for, At
 /// most, the shortcut), Advanced (the ignored apps) and Data (the history with Clear History…). The history's
 /// state (ready, paused, keychain, pasteboard access, reset notice) is the host's banner; while the key cannot
 /// be read the Basics are dimmed, as in `set-error`.
@@ -227,7 +215,7 @@ struct IgnoredAppsRows: View {
     }
 }
 
-/// An ignored app in the main window: its name and icon when it is installed, else its known name or the bundle
+/// An ignored app: its name and icon when it is installed, else its known name or the bundle
 /// identifier. In QA mode (`looksUp == false`) installed apps are never looked up.
 struct IgnoredAppLabel: View {
     let bundleID: String
@@ -286,8 +274,8 @@ enum ClipboardSettingsText {
         String(localized: "\(count) entries in the history", comment: "Number of clipboard entries in the settings")
     }
 
-    /// "1000 entries": a choice of the maximum number of entries (main window), with the plural rules of the
-    /// language and, as in the old window, without a grouping separator (`%lld` is not grouped).
+    /// "1000 entries": a choice of the maximum number of entries, with the plural rules of the language and
+    /// without a grouping separator (`%lld` is not grouped).
     static func maximum(_ count: Int) -> String {
         String(
             localized: "%lld entries (clipboard maximum)", defaultValue: "\(count) entries",

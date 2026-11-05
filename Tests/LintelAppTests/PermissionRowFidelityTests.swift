@@ -8,7 +8,7 @@ private let sourcesRoot = URL(filePath: #filePath)
     .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
     .appending(path: "Sources/LintelApp/Settings")
 
-/// The main window's Permissions rows (step 6.5c): order, state text, help and the legacy look kept.
+/// The main window's Permissions rows (step 6.5c): order, state text and help.
 @Suite struct PermissionRowFidelityTests {
     private func row(_ permission: Permission, _ status: PermissionStatus, needed: Bool = true) -> PermissionRowState {
         PermissionRowState(permission: permission, status: status, pluginNames: needed ? ["Dictation"] : [])
@@ -37,7 +37,7 @@ private let sourcesRoot = URL(filePath: #filePath)
         #expect(row(.pasteboard, .granted).mainStateText == "Always allowed")
     }
 
-    @Test func legacyStateTextIsUnchanged() {
+    @Test func theStateTextSaysUnknownBeforeMacOSAsked() {
         #expect(row(.microphone, .notDetermined).stateText == "Unknown")
     }
 
@@ -47,22 +47,18 @@ private let sourcesRoot = URL(filePath: #filePath)
         #expect(row(.accessibility, .notDetermined).allowTitle == nil)
     }
 
-    @Test func theRowKeepsItsExplanationInHelpAndTheLegacyLayout() throws {
+    @Test func theRowKeepsItsExplanationInHelp() throws {
         let source = try String(contentsOf: sourcesRoot.appending(path: "PermissionRow.swift"), encoding: .utf8)
         #expect(source.contains(".help(permission.explanation)"))
         // The main window row has no leading icon and shows the state on the right ("✓ Allowed").
         let main = try #require(
-            source.components(separatedBy: "private var mainWindowBody").last?
+            source.components(separatedBy: "var body: some View").last?
                 .components(separatedBy: "@ViewBuilder private var openButton").first)
         #expect(!main.contains("symbolName"))
         #expect(main.contains("stateLabel"))
         #expect(main.contains("\"checkmark\""))
         #expect(main.contains("Text(neededText)"))
-        #expect(source.contains("hostStyle == .legacyWindow"))
-        #expect(source.contains("Open System Settings…"))  // the legacy button keeps its ellipsis
-        #expect(source.contains("permission.explanation)\n                    .font"))  // legacy still shows it inline
         let pane = try String(contentsOf: sourcesRoot.appending(path: "PermissionsPane.swift"), encoding: .utf8)
-        #expect(pane.contains("private var legacyForm"))
         #expect(pane.contains("problemsFirst(model.rows)"))
     }
 

@@ -2,10 +2,8 @@ import LintelKit
 import LintelUI
 import SwiftUI
 
-/// Settings → Dictation. The main window draws `DictationPaneContent` on the `SettingsPane` template (prototype
-/// `set-dictation`, spec step 5.1); the old window keeps `LegacyDictationSettingsPane` with its model cards,
-/// microphone rows and in-body history status. The main window's banner is the host's, from
-/// `DictationPlugin.settingsStatus`.
+/// Settings → Dictation: `DictationPaneContent` on the `SettingsPane` template (prototype `set-dictation`, spec
+/// step 5.1). The banner is the host's, from `DictationPlugin.settingsStatus`.
 struct DictationSettingsPane: View {
     @Bindable var model: DictationSettingsModel
     @Bindable var formatting: FormattingSettingsModel
@@ -16,22 +14,15 @@ struct DictationSettingsPane: View {
     var isActive = true
     /// `PluginContext.openModels`: the Models pane on the package's row.
     var openModels: (String?) -> Void = { _ in }
-    @Environment(\.settingsHostStyle) private var hostStyle
 
     var body: some View {
-        if hostStyle == .legacyWindow {
-            LegacyDictationSettingsPane(
-                model: model, formatting: formatting, history: history, recorder: recorder, isActive: isActive,
-                openModels: openModels)
-        } else {
-            DictationPaneContent(
-                model: model, formatting: formatting, history: history, recorder: recorder, isActive: isActive,
-                openModels: openModels)
-        }
+        DictationPaneContent(
+            model: model, formatting: formatting, history: history, recorder: recorder, isActive: isActive,
+            openModels: openModels)
     }
 }
 
-/// The main window's Dictation pane (prototype `set-dictation`): Basics (Dictate, Speech model with its
+/// The Dictation pane (prototype `set-dictation`): Basics (Dictate, Speech model with its
 /// one-line summary, Clean up text and, while it is on, where it runs), a collapsed Advanced (Input device,
 /// restore the clipboard) and History (Keep a history, Keep for, At most, Clear History…). The model, the
 /// microphone and the history's state are the host's banner; downloads live in Models, the microphone in
@@ -360,9 +351,9 @@ struct DictationPaneContent: View {
 }
 
 extension HistorySection {
-    /// Clear History in the main window: also says that copies edited or commented on in Notes stay, with the
-    /// "Also delete kept copies" checkbox (owner decision L1-39). DEBUG only until Notes ships (spec
-    /// `2026-11-04-notes-workspace`, step 7.1 removes the guard); release builds show `confirmation` as today.
+    /// Clear History: also says that copies edited or commented on in Notes stay, with the "Also delete kept
+    /// copies" checkbox (owner decision L1-39). DEBUG only until Notes ships (spec `2026-11-04-notes-workspace`,
+    /// step 7.1 removes the guard); release builds show `confirmation`.
     static var confirmationInMainWindow: DestructiveConfirmation {
         #if DEBUG
         confirmation.with(option: .keptNotesCopies)

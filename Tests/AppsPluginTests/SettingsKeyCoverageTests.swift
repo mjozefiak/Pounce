@@ -27,29 +27,14 @@ import Testing
     static let paneFiles = [
         "Sources/AppsPlugin/AppsSettings.swift",
         "Sources/AppsPlugin/AppsSettingsPane.swift",
-        "Sources/AppsPlugin/LegacyAppsSettingsPane.swift",
     ]
 
-    /// The label each window's pane shows for each non-exempt key's control (step 4.2): the main window's
-    /// `AppsPaneContent` and the old window's `LegacyAppsSettingsPane`, found in the built views (with one app
-    /// hidden, so the old window shows its hidden list).
-    static let windowControls: [(window: String, labels: [String: String])] = [
-        (
-            "main",
-            [
-                "roots": "Searched folders", "spotlight": "Find apps with Spotlight",
-                "suggestionsEnabled": "Suggest apps",
-                "suggestionsHidden": "Hidden suggestions",
-            ]
-        ),
-        (
-            "old",
-            [
-                "roots": "Searched folders", "spotlight": "Find apps with Spotlight",
-                "suggestionsEnabled": "Suggest Apps",
-                "suggestionsHidden": "Hidden from suggestions",
-            ]
-        ),
+    /// The label the pane (`AppsPaneContent`, step 4.2) shows for each non-exempt key's control, found in the
+    /// built view (with one app hidden).
+    static let controls: [String: String] = [
+        "roots": "Searched folders", "spotlight": "Find apps with Spotlight",
+        "suggestionsEnabled": "Suggest apps",
+        "suggestionsHidden": "Hidden suggestions",
     ]
 
     private static let root: URL = {
@@ -95,22 +80,17 @@ import Testing
         }
     }
 
-    @MainActor @Test func bothWindowsShowEveryNonExemptKey() async throws {
+    @MainActor @Test func thePaneShowsEveryNonExemptKey() async throws {
         let directory = try TemporaryDirectory()
         let store = ActivityStore(directory: directory.url, now: VirtualTime().now, clock: NeverClock())
         await store.load()
         let settings = MemorySettings()
         settings.setValue(.stringArray(["com.example.hidden"]), forKey: "plugins.apps.suggestions.hidden")
         let model = AppsSettingsModel(settings: PluginSettings(pluginID: "apps", store: settings), store: store)
-        let panes = [
-            PaneText(AppsPaneContent(model: model), module: "AppsPlugin"),
-            PaneText(LegacyAppsSettingsPane(model: model), module: "AppsPlugin"),
-        ]
-        for (pane, window) in zip(panes, Self.windowControls) {
-            #expect(Set(window.labels.keys) == Set(Self.paneTokens.keys), "\(window.window)")
-            for (key, label) in window.labels {
-                #expect(pane.shows(label), "\(key): the \(window.window) window's pane does not show \(label)")
-            }
+        let pane = PaneText(AppsPaneContent(model: model), module: "AppsPlugin")
+        #expect(Set(Self.controls.keys) == Set(Self.paneTokens.keys))
+        for (key, label) in Self.controls {
+            #expect(pane.shows(label), "\(key): the pane does not show \(label)")
         }
     }
 }

@@ -103,23 +103,18 @@ public struct SettingsFooter: View {
     }
 }
 
-/// The look of a section header in a settings form. In the main window (prototype `.sh`): the subheadline style,
-/// semibold, secondary colour. The old window keeps its body-size semibold headers.
+/// The look of a section header in a settings form (prototype `.sh`): the subheadline style, semibold, secondary
+/// colour.
 public struct SettingsSectionHeaderStyle: ViewModifier {
-    @Environment(\.settingsHostStyle) private var hostStyle
     @Environment(\.lintelTextSize) private var textSize
 
     public init() {}
 
     public func body(content: Content) -> some View {
-        if hostStyle == .mainWindow {
-            content
-                .font(textSize.font(.subheadline, weight: .semibold))
-                .foregroundStyle(.secondary)
-                .accessibilityAddTraits(.isHeader)
-        } else {
-            content.font(textSize.font(.body, weight: .semibold))
-        }
+        content
+            .font(textSize.font(.subheadline, weight: .semibold))
+            .foregroundStyle(.secondary)
+            .accessibilityAddTraits(.isHeader)
     }
 }
 
@@ -128,16 +123,15 @@ extension View {
     public func settingsSectionHeader() -> some View { modifier(SettingsSectionHeaderStyle()) }
 }
 
-/// A collapsible settings section: Advanced in `SettingsPane`, Storage in Models. In the main window it is a plain
-/// line (prototype `.disc`: a chevron and a secondary semibold label, no card) and the rows appear in a card under
-/// it when expanded; the old window keeps a `DisclosureGroup` in its own card.
+/// A collapsible settings section: Advanced in `SettingsPane`, Storage in Models. It is a plain line (prototype
+/// `.disc`: a chevron and a secondary semibold label, no card) and the rows appear in a card under it when
+/// expanded.
 public struct SettingsDisclosureSection<Content: View, Label: View, Footer: View>: View {
     @Binding private var isExpanded: Bool
     private let content: Content
     private let label: Label
     private let footer: Footer
 
-    @Environment(\.settingsHostStyle) private var hostStyle
     @Environment(\.lintelTextSize) private var textSize
 
     public init(
@@ -154,45 +148,33 @@ public struct SettingsDisclosureSection<Content: View, Label: View, Footer: View
     static var collapsedGap: CGFloat { 10 }
 
     public var body: some View {
-        if hostStyle == .mainWindow {
-            Section {
-                if isExpanded { content }
-            } header: {
-                Button {
-                    isExpanded.toggle()
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "chevron.right")
-                            .font(textSize.font(.caption1, weight: .semibold))
-                            .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                            .accessibilityHidden(true)
-                        label.font(textSize.font(.callout, weight: .semibold))
-                    }
-                    .foregroundStyle(.secondary)
-                    .contentShape(Rectangle())
-                    // Collapsed, the line stands alone: keep the prototype's gap to the next section's header.
-                    .padding(.bottom, isExpanded ? 0 : Self.collapsedGap)
+        Section {
+            if isExpanded { content }
+        } header: {
+            Button {
+                isExpanded.toggle()
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "chevron.right")
+                        .font(textSize.font(.caption1, weight: .semibold))
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                        .accessibilityHidden(true)
+                    label.font(textSize.font(.callout, weight: .semibold))
                 }
-                .buttonStyle(.plain)
-                .accessibilityValue(
-                    isExpanded
-                        ? Text("Expanded", comment: "Disclosure state, spoken")
-                        : Text("Collapsed", comment: "Disclosure state, spoken")
-                )
-                .accessibilityIdentifier("settings.disclosure")
-            } footer: {
-                footer
+                .foregroundStyle(.secondary)
+                .contentShape(Rectangle())
+                // Collapsed, the line stands alone: keep the prototype's gap to the next section's header.
+                .padding(.bottom, isExpanded ? 0 : Self.collapsedGap)
             }
-        } else {
-            Section {
-                DisclosureGroup(isExpanded: $isExpanded) {
-                    content
-                } label: {
-                    label.font(textSize.font(.body, weight: .semibold))
-                }
-            } footer: {
-                footer
-            }
+            .buttonStyle(.plain)
+            .accessibilityValue(
+                isExpanded
+                    ? Text("Expanded", comment: "Disclosure state, spoken")
+                    : Text("Collapsed", comment: "Disclosure state, spoken")
+            )
+            .accessibilityIdentifier("settings.disclosure")
+        } footer: {
+            footer
         }
     }
 }

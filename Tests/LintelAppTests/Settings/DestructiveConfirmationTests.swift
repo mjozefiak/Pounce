@@ -27,20 +27,20 @@ import Testing
     @Test func eraseDataAndResetRankingHaveEnglishAndPolishCopy() throws {
         let manifest = PluginManifest(
             id: "apps", displayName: "Apps", symbolName: "app", order: 10)
-        for confirmation in [FeatureRow.confirmation(for: manifest), AdvancedPane.confirmation] {
+        for confirmation in [FeatureEraseRow.eraseConfirmation(for: manifest), AdvancedPane.confirmation] {
             for resource in [confirmation.prompt, confirmation.detail, confirmation.confirmTitle] {
                 try Self.expectTranslated(resource)
             }
             #expect(confirmation.confirmTitle.key != "OK")
         }
         #expect(AdvancedPane.confirmation.confirmTitle.key == "Reset Ranking")
-        #expect(FeatureRow.confirmation(for: manifest).confirmTitle.key == "Erase Data")
+        #expect(FeatureEraseRow.eraseConfirmation(for: manifest).confirmTitle.key == "Erase Data")
     }
 }
 
 /// Step 5.3 (owner decision L1-39): Erase Data of Meetings and Dictation in Features → Advanced says that copies
-/// edited or commented on in Notes stay and offers "Also delete kept copies", off by default; other features,
-/// the old window and release builds keep today's words.
+/// edited or commented on in Notes stay and offers "Also delete kept copies", off by default; other features and
+/// release builds have no checkbox.
 @MainActor
 @Suite struct EraseDataKeptCopiesTests {
     private static func manifest(_ id: PluginID) -> PluginManifest {
@@ -50,21 +50,20 @@ import Testing
     @Test func meetingsAndDictationOfferTheUncheckedBox() throws {
         for id: PluginID in ["meetings", "dictation"] {
             let confirmation = FeatureEraseRow.confirmation(for: Self.manifest(id))
-            let option = try #require(confirmation.option(in: .mainWindow))
+            let option = try #require(confirmation.option)
             #expect(option.isOnByDefault == false)
             #expect(option.title.key == "Also delete kept copies")
             try DestructiveConfirmationTests.expectTranslated(option.title)
             try DestructiveConfirmationTests.expectTranslated(try #require(option.explanation))
             #expect(confirmation.confirmTitle.key == "Erase Data")
-            #expect(confirmation.option(in: .legacyWindow) == nil)
         }
     }
 
-    @Test func otherFeaturesAndTheOldWindowHaveNoCheckbox() {
+    @Test func otherFeaturesHaveNoCheckbox() {
         for id: PluginID in ["apps", "files", "clipboard"] {
             #expect(FeatureEraseRow.confirmation(for: Self.manifest(id)).option == nil)
         }
-        #expect(FeatureRow.confirmation(for: Self.manifest("meetings")).option == nil)
+        #expect(FeatureEraseRow.eraseConfirmation(for: Self.manifest("meetings")).option == nil)
     }
 
     @Test func theCheckboxIsGuardedAndReachesTheEraseAction() throws {
@@ -72,12 +71,9 @@ import Testing
             .deletingLastPathComponent().deletingLastPathComponent()
         let pane = try String(
             contentsOf: url.appending(path: "Sources/LintelApp/Settings/FeaturesPane.swift"), encoding: .utf8)
-        let legacy = try String(
-            contentsOf: url.appending(path: "Sources/LintelApp/Settings/LegacyShellPanes.swift"), encoding: .utf8)
         #expect(pane.contains("entry.manifest.id, alsoDeleteKeptCopies: alsoDeleteKeptCopies"))
         let guarded = try #require(pane.range(of: "#if DEBUG\n        guard featuresWithNotesCopies"))
         let release = try #require(pane.range(of: "#else\n        return confirmation\n        #endif"))
         #expect(guarded.upperBound <= release.lowerBound)
-        #expect(!legacy.contains("keptNotesCopies"))
     }
 }

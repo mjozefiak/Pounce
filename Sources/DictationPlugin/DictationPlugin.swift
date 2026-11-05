@@ -119,8 +119,7 @@ public final class DictationPlugin: LintelPlugin {
         let openModels = context.openModels
         // The HUD's buttons call back into the controller, which exists once the plugin is active.
         let relay = ControllerRelay()
-        // A missing or broken speech model goes to the Models pane (in the old window: this pane, which shows the
-        // model card); the microphone problem goes to Settings as before.
+        // A missing or broken speech model goes to the Models pane; the microphone problem goes to Settings.
         hud = DictationHUDPanel(
             onCancel: { relay.controller?.cancel() }, onOpenSettings: { openSettings() },
             onOpenModels: { openModels(settings.speechModelID) })

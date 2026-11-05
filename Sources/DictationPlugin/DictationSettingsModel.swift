@@ -21,7 +21,6 @@ final class DictationSettingsModel {
     /// its banner again (`PluginContext.resultsChanged`).
     @ObservationIgnored var onStatusChange: (@MainActor () -> Void)?
     private(set) var devices: [MicrophoneCapture.InputDevice] = []
-    private(set) var level: Float?
     var inputDevice: String? {
         didSet { settings.setInputDevice(inputDevice) }
     }
@@ -41,17 +40,14 @@ final class DictationSettingsModel {
     @ObservationIgnored private let listDevices: () -> [MicrophoneCapture.InputDevice]
     @ObservationIgnored private let pickFolder: @MainActor () -> URL?
     @ObservationIgnored private let openURL: @MainActor (URL) -> Void
-    @ObservationIgnored private let makeCapture: (String?) -> any AudioInput
     @ObservationIgnored private var downloadTask: Task<Void, Never>?
-    @ObservationIgnored private var testTask: Task<Void, Never>?
     @ObservationIgnored private let logger = Logger(subsystem: "com.lintelapp", category: "dictation")
 
     init(
         package: ModelPackage, packages: [ModelPackage]? = nil, manager: ModelManager, settings: DictationSettings,
         authorizer: any MicrophoneAuthorizer,
         listDevices: @escaping () -> [MicrophoneCapture.InputDevice] = MicrophoneCapture.inputDevices,
-        pickFolder: @escaping @MainActor () -> URL?, openURL: @escaping @MainActor (URL) -> Void,
-        makeCapture: @escaping (String?) -> any AudioInput = { MicrophoneCapture(deviceUID: $0) }
+        pickFolder: @escaping @MainActor () -> URL?, openURL: @escaping @MainActor (URL) -> Void
     ) {
         self.packages = packages ?? ModelCatalog.all
         self.package = package
@@ -61,7 +57,6 @@ final class DictationSettingsModel {
         self.listDevices = listDevices
         self.pickFolder = pickFolder
         self.openURL = openURL
-        self.makeCapture = makeCapture
         inputDevice = settings.inputDevice
         restoresClipboard = settings.restoresClipboard
     }
@@ -218,27 +213,6 @@ final class DictationSettingsModel {
     func openAccessibilitySettings() {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
             openURL(url)
-        }
-    }
-
-    /// "Test": shows the input level for a few seconds. Nothing is kept.
-    func testMicrophone() {
-        guard testTask == nil, microphone == .granted else { return }
-        let capture = makeCapture(inputDevice)
-        testTask = Task { [weak self] in
-            do {
-                let stream = try await capture.start { value in
-                    Task { @MainActor in self?.level = value }
-                }
-                try? await Task.sleep(for: .seconds(4))
-                await capture.stop()
-                for await _ in stream {}
-            } catch {
-                self?.errorMessage = String(
-                    localized: "No microphone found", comment: "Dictation HUD when there is no input device")
-            }
-            self?.level = nil
-            self?.testTask = nil
         }
     }
 }

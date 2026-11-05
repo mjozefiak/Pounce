@@ -2,9 +2,8 @@ import LintelKit
 import LintelUI
 import SwiftUI
 
-/// Settings → Meetings. The main window draws `MeetingsPaneContent` on the `SettingsPane` template (prototype
-/// `set-meetings`, spec step 5.2); the old window keeps `LegacyMeetingsSettingsPane` with its model cards,
-/// microphone rows and notes card. The main window's banner is the host's, from `MeetingsPlugin.settingsStatus`.
+/// Settings → Meetings: `MeetingsPaneContent` on the `SettingsPane` template (prototype `set-meetings`, spec step
+/// 5.2). The banner is the host's, from `MeetingsPlugin.settingsStatus`.
 struct MeetingsSettingsPane: View {
     @Bindable var model: MeetingsSettingsModel
     /// The shortcut recorder, or `nil` while the `meetings.record` command does not exist.
@@ -14,14 +13,9 @@ struct MeetingsSettingsPane: View {
     var isActive = true
     /// `PluginContext.openModels`: the Models pane on the package's row.
     var openModels: (String?) -> Void = { _ in }
-    @Environment(\.settingsHostStyle) private var hostStyle
 
     var body: some View {
-        if hostStyle == .legacyWindow {
-            LegacyMeetingsSettingsPane(model: model, recorder: recorder, isActive: isActive, openModels: openModels)
-        } else {
-            MeetingsPaneContent(model: model, recorder: recorder, isActive: isActive, openModels: openModels)
-        }
+        MeetingsPaneContent(model: model, recorder: recorder, isActive: isActive, openModels: openModels)
     }
 
     static func retentionTitle(_ days: Int) -> String {
@@ -31,7 +25,7 @@ struct MeetingsSettingsPane: View {
     }
 }
 
-/// The main window's Meetings pane (prototype `set-meetings`): Basics (Record meeting, Write notes and, while it
+/// The Meetings pane (prototype `set-meetings`): Basics (Record meeting, Write notes and, while it
 /// is on, the notes model, Speech model with its one-line summary, Keep meetings for), a collapsed Advanced
 /// (Input device, echo, meeting suggestions, Test System Audio) and Privacy and data (the reminder, Clear
 /// Library…, Delete Temporary Recordings…). The models live in Models, the microphone in Permissions; their
@@ -175,7 +169,7 @@ struct MeetingsPaneContent: View {
         }
     }
 
-    /// The notes model: the choice here, download and removal in Models (the old window's notes card).
+    /// The notes model: the choice here, download and removal in Models.
     @ViewBuilder private var notesModelRow: some View {
         let notes = model.notes
         MenuPicker(
@@ -460,7 +454,7 @@ struct SystemAudioTestRow: View {
 }
 
 extension NotesSettingsModel {
-    /// The notes model's state for the main window's one-line summary.
+    /// The notes model's state for the one-line summary.
     var choiceState: ModelChoiceRow.State {
         if progress != nil { return .downloading }
         return isInstalled ? .installed : .notInstalled
@@ -468,9 +462,9 @@ extension NotesSettingsModel {
 }
 
 extension MeetingsConfirmations {
-    /// Clear Library in the main window: also says that copies edited or commented on in Notes stay, with the
-    /// "Also delete kept copies" checkbox (owner decision L1-39). DEBUG only until Notes ships (spec
-    /// `2026-11-04-notes-workspace`, step 7.1 removes the guard); release builds show `clearLibrary` as today.
+    /// Clear Library: also says that copies edited or commented on in Notes stay, with the "Also delete kept
+    /// copies" checkbox (owner decision L1-39). DEBUG only until Notes ships (spec `2026-11-04-notes-workspace`,
+    /// step 7.1 removes the guard); release builds show `clearLibrary`.
     static var clearLibraryInMainWindow: DestructiveConfirmation {
         #if DEBUG
         clearLibrary.with(option: .keptNotesCopies)

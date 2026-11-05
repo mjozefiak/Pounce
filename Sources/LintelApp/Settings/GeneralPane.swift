@@ -1,26 +1,20 @@
 import LintelUI
 import SwiftUI
 
-/// Settings → General: the main shortcut, launch at login, the Dock icon and the panel's text size. The main
-/// window draws it on the `SettingsPane` template (prototype `set-general`, spec step 4.1); the old window keeps
-/// `LegacyGeneralPane`. The "Ready" banner is the host's (`ShellPaneBanners.general`).
+/// Settings → General: the main shortcut, launch at login, the Dock icon and the panel's text size, on the
+/// `SettingsPane` template (prototype `set-general`, spec step 4.1). The "Ready" banner is the host's
+/// (`ShellPaneBanners.general`).
 struct GeneralPane: View {
     let hotkeys: HotkeyService
     @Bindable var settings: AppSettings
     let launchAtLogin: any LaunchAtLoginClient
 
-    @Environment(\.settingsHostStyle) private var hostStyle
-
     var body: some View {
-        if hostStyle == .legacyWindow {
-            LegacyGeneralPane(hotkeys: hotkeys, settings: settings, launchAtLogin: launchAtLogin)
-        } else {
-            GeneralPaneContent(hotkeys: hotkeys, settings: settings, launchAtLogin: launchAtLogin)
-        }
+        GeneralPaneContent(hotkeys: hotkeys, settings: settings, launchAtLogin: launchAtLogin)
     }
 }
 
-/// The main window's General pane: one Basics section, no Advanced and no Data (prototype `set-general`).
+/// The General pane: one Basics section, no Advanced and no Data (prototype `set-general`).
 struct GeneralPaneContent: View {
     let hotkeys: HotkeyService
     @Bindable var settings: AppSettings

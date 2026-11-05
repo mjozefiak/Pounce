@@ -34,9 +34,9 @@ import Testing
         #expect(try size(sheet).width >= 380)
     }
 
-    /// Step 6.5a: in the main window Advanced is a plain line (no card) and the headers are the small secondary
-    /// style; the old window keeps the `DisclosureGroup`. Both render, expanded or not.
-    @Test func theMainWindowDisclosureRendersCollapsedAndExpanded() throws {
+    /// Step 6.5a: Advanced is a plain line (no card) and the headers are the small secondary style. It renders,
+    /// expanded or not.
+    @Test func theDisclosureRendersCollapsedAndExpanded() throws {
         for expanded in [false, true] {
             let section = Form {
                 SettingsDisclosureSection(isExpanded: .constant(expanded)) {
@@ -52,7 +52,6 @@ import Testing
             }
             .formStyle(.grouped)
             .frame(width: 400, height: 300)
-            #expect(try size(section.environment(\.settingsHostStyle, .mainWindow)).width > 0)
             #expect(try size(section).width > 0)
         }
     }
@@ -122,7 +121,6 @@ import Testing
 
     @Test func theCopyKeepsItsWords() {
         let confirmation = DestructiveConfirmation(prompt: "Erase?", detail: "Gone.", confirmTitle: "Erase")
-        #expect(confirmation.legacyTitleVisible == false)
         #expect(String(localized: confirmation.confirmTitle) == "Erase")
     }
 }

@@ -271,47 +271,4 @@ import Testing
             #expect(model.builtInModel == LLMModelCatalog.qwen3Large)
         }
     }
-
-    @Test func removingAMissingModelIsHarmless() async throws {
-        let (model, _, directory) = try make()
-        defer { withExtendedLifetime(directory) {} }
-        model.removeBuiltIn()
-        await model.refreshBuiltIn()
-        #expect(model.builtInError == nil)
-        #expect(!model.isBuiltInInstalled)
-    }
-
-    @Test func aModelThatIsInUseIsNotRemoved() async throws {
-        let directory = try TemporaryDirectory()
-        let settings = DictationSettings(PluginSettings(pluginID: "dictation", store: MemorySettingsStore()))
-        let manager = ModelManager(directory: directory.url, availableSpace: { _ in Int.max })
-        let url = URL(fileURLWithPath: "/models/in-use.gguf")
-        let lease = LLMLease()
-        let scripted = ScriptedRuntime()
-        let warm = KeepWarmRuntime(
-            runtime: scripted, modelURL: url, keepWarm: { .seconds(60) }, lease: lease)
-        let model = FormattingSettingsModel(
-            settings: settings, transport: ScriptedTransport(.content("x")), llmModels: manager, runtime: warm)
-
-        // A request holds the model: Remove refuses, says why and leaves the loaded copy alone.
-        let handle = try await lease.acquire(
-            key: .init(modelID: url.path, contextLength: scripted.contextLength), runtime: scripted, modelURL: url,
-            priority: .interactive, keepWarm: { .seconds(60) })
-        #expect(await warm.isInUse())
-        model.removeBuiltIn()
-        for _ in 0..<2_000 where model.builtInError == nil { await Task.yield() }
-        #expect(model.builtInError != nil)
-        #expect(await scripted.loaded)
-
-        // Positive control: once the request is over, removal goes through (nothing to delete here) and the
-        // model is freed.
-        await handle.release()
-        #expect(!(await warm.isInUse()))
-        model.removeBuiltIn()
-        for _ in 0..<2_000 where model.builtInError != nil { await Task.yield() }
-        #expect(model.builtInError == nil)
-        for _ in 0..<2_000 where await scripted.loaded { await Task.yield() }
-        #expect(!(await scripted.loaded))
-        withExtendedLifetime(directory) {}
-    }
 }

@@ -101,10 +101,9 @@ public struct ConfirmSheet: View {
 }
 
 /// The words of one destructive action: a question, one sentence of consequence, and a verb for the confirm
-/// button (never "OK"). Shown as a `ConfirmSheet` in the main window and as the system dialog in the old window.
+/// button (never "OK"). Shown as a `ConfirmSheet`.
 public struct DestructiveConfirmation: Sendable {
-    /// A checkbox in the main window's sheet, with an optional sentence above it. The old window's dialog has
-    /// no checkbox, so there the confirm closure always receives `false`.
+    /// A checkbox in the sheet, with an optional sentence above it.
     public struct Option: Sendable {
         public let explanation: LocalizedStringResource?
         public let title: LocalizedStringResource
@@ -121,40 +120,24 @@ public struct DestructiveConfirmation: Sendable {
 
     public let prompt: LocalizedStringResource
     public let detail: LocalizedStringResource
-    /// The main window's sheet shows this instead of `detail` when set. The old window keeps `detail` word for word
-    /// (until step 6.3b removes the old window).
-    public let mainWindowDetail: LocalizedStringResource?
     public let confirmTitle: LocalizedStringResource
-    /// The old window's dialog shows its title only where it always did.
-    public let legacyTitleVisible: Bool
     public let option: Option?
 
     public init(
         prompt: LocalizedStringResource,
         detail: LocalizedStringResource,
         confirmTitle: LocalizedStringResource,
-        legacyTitleVisible: Bool = false,
-        option: Option? = nil,
-        mainWindowDetail: LocalizedStringResource? = nil
+        option: Option? = nil
     ) {
         self.prompt = prompt
         self.detail = detail
-        self.mainWindowDetail = mainWindowDetail
         self.confirmTitle = confirmTitle
-        self.legacyTitleVisible = legacyTitleVisible
         self.option = option
     }
 
     /// The same words with `option` (or without one for `nil`).
     public func with(option: Option?) -> DestructiveConfirmation {
-        DestructiveConfirmation(
-            prompt: prompt, detail: detail, confirmTitle: confirmTitle, legacyTitleVisible: legacyTitleVisible,
-            option: option, mainWindowDetail: mainWindowDetail)
-    }
-
-    /// The checkbox shown for a host: only the main window's sheet has one.
-    public func option(in hostStyle: SettingsHostStyle) -> Option? {
-        hostStyle == .mainWindow ? option : nil
+        DestructiveConfirmation(prompt: prompt, detail: detail, confirmTitle: confirmTitle, option: option)
     }
 }
 
@@ -175,39 +158,20 @@ private struct DestructiveConfirmationModifier: ViewModifier {
     @Binding var isPresented: Bool
     let confirmation: DestructiveConfirmation
     let onConfirm: (Bool) -> Void
-    @Environment(\.settingsHostStyle) private var hostStyle
 
     func body(content: Content) -> some View {
-        switch hostStyle {
-        case .mainWindow:
-            content.sheet(isPresented: $isPresented) {
-                ConfirmSheet(
-                    prompt: confirmation.prompt, detail: confirmation.mainWindowDetail ?? confirmation.detail,
-                    confirmTitle: confirmation.confirmTitle,
-                    option: confirmation.option(in: .mainWindow),
-                    onConfirm: confirmThenClose(isPresented: $isPresented, onConfirm),
-                    onCancel: { isPresented = false })
-            }
-        case .legacyWindow:
-            content.confirmationDialog(
-                Text(confirmation.prompt), isPresented: $isPresented,
-                titleVisibility: confirmation.legacyTitleVisible ? .visible : .automatic
-            ) {
-                Button(role: .destructive) {
-                    onConfirm(false)
-                } label: {
-                    Text(confirmation.confirmTitle)
-                }
-            } message: {
-                Text(confirmation.detail)
-            }
+        content.sheet(isPresented: $isPresented) {
+            ConfirmSheet(
+                prompt: confirmation.prompt, detail: confirmation.detail, confirmTitle: confirmation.confirmTitle,
+                option: confirmation.option,
+                onConfirm: confirmThenClose(isPresented: $isPresented, onConfirm),
+                onCancel: { isPresented = false })
         }
     }
 }
 
 extension View {
-    /// Asks before a destructive action: a `ConfirmSheet` (Cancel is the default button) in the main window, the
-    /// old window's confirmation dialog under `.legacyWindow`, so release behaviour does not change.
+    /// Asks before a destructive action with a `ConfirmSheet` (Cancel is the default button).
     public func destructiveConfirmation(
         isPresented: Binding<Bool>, _ confirmation: DestructiveConfirmation, onConfirm: @escaping () -> Void
     ) -> some View {
@@ -216,8 +180,7 @@ extension View {
                 isPresented: isPresented, confirmation: confirmation, onConfirm: { _ in onConfirm() }))
     }
 
-    /// The same, for a confirmation with an `option`: `onConfirm` receives the checkbox's state, always `false`
-    /// in the old window (its dialog has no checkbox).
+    /// The same, for a confirmation with an `option`: `onConfirm` receives the checkbox's state.
     public func destructiveConfirmation(
         isPresented: Binding<Bool>, _ confirmation: DestructiveConfirmation,
         onConfirmWithOption onConfirm: @escaping (Bool) -> Void

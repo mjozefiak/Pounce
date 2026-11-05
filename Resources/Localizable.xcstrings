@@ -289,60 +289,6 @@
         }
       }
     },
-    "%lld meetings are older than the new limit and are deleted now. This cannot be undone." : {
-      "comment" : "Meetings settings confirmation text of a shorter retention",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld meeting is older than the new limit and is deleted now. This cannot be undone."
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld meetings are older than the new limit and are deleted now. This cannot be undone."
-                }
-              }
-            }
-          }
-        },
-        "pl" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld spotkanie jest starsze niż nowy limit i zostanie teraz usunięte. Tej operacji nie można cofnąć."
-                }
-              },
-              "few" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld spotkania są starsze niż nowy limit i zostaną teraz usunięte. Tej operacji nie można cofnąć."
-                }
-              },
-              "many" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld spotkań jest starszych niż nowy limit i zostanie teraz usuniętych. Tej operacji nie można cofnąć."
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld spotkania jest starszych niż nowy limit i zostanie teraz usuniętych. Tej operacji nie można cofnąć."
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "%lld models are needed" : {
       "comment" : "Models pane banner: required models",
       "extractionState" : "manual",
@@ -775,24 +721,6 @@
         }
       }
     },
-    "After a meeting, a model that runs on this Mac writes a summary, decisions, action items and open questions in the background. Every point must quote the recording, and points without a matching quote are left out. The notes can still contain mistakes. Nothing is sent anywhere." : {
-      "comment" : "Meetings settings footer under the notes",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "After a meeting, a model that runs on this Mac writes a summary, decisions, action items and open questions in the background. Every point must quote the recording, and points without a matching quote are left out. The notes can still contain mistakes. Nothing is sent anywhere."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Po spotkaniu model działający na tym Macu pisze w tle podsumowanie, decyzje, zadania i otwarte pytania. Każdy punkt musi cytować nagranie, a punkty bez pasującego cytatu są pomijane. Notatki nadal mogą zawierać błędy. Nic nie jest nigdzie wysyłane."
-          }
-        }
-      }
-    },
     "All" : {
       "comment" : "Announced when a panel filter is cleared",
       "extractionState" : "manual",
@@ -807,24 +735,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wszystko"
-          }
-        }
-      }
-    },
-    "All entries are deleted. This cannot be undone." : {
-      "comment" : "Clear History confirmation message",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "All entries are deleted. This cannot be undone."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wszystkie wpisy zostaną usunięte. Tej operacji nie można cofnąć."
           }
         }
       }
@@ -1117,24 +1027,6 @@
         }
       }
     },
-    "At most" : {
-      "comment" : "Dictation settings label of the entry limit",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "At most"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Najwyżej"
-          }
-        }
-      }
-    },
     "At most (clipboard)" : {
       "comment" : "Settings → Clipboard: label of the maximum number of entries",
       "extractionState" : "manual",
@@ -1239,24 +1131,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Anuluj dyktowanie"
-          }
-        }
-      }
-    },
-    "Changes the size of text in the Lintel panel." : {
-      "comment" : "Settings footer for text size",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Changes the size of text in the Lintel panel."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zmienia rozmiar tekstu w panelu Lintel."
           }
         }
       }
@@ -1383,24 +1257,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Poprawiaj tekst"
-          }
-        }
-      }
-    },
-    "Clean up the text with a local model" : {
-      "comment" : "Dictation settings toggle for formatting",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clean up the text with a local model"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Porządkuj tekst lokalnym modelem"
           }
         }
       }
@@ -2287,24 +2143,6 @@
         }
       }
     },
-    "Engine" : {
-      "comment" : "Dictation settings label of the speech engine choice",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Engine"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Silnik"
-          }
-        }
-      }
-    },
     "English" : {
       "comment" : "Dictation language choice",
       "extractionState" : "manual",
@@ -2427,24 +2265,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Esc anuluje"
-          }
-        }
-      }
-    },
-    "Every transcript, note and recording is deleted. A meeting that is being recorded is kept. This cannot be undone." : {
-      "comment" : "Meetings settings confirmation text of Clear Library",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Every transcript, note and recording is deleted. A meeting that is being recorded is kept. This cannot be undone."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Każdy transkrypt, notatka i nagranie zostaną usunięte. Spotkanie, które się nagrywa, zostaje. Tego nie można cofnąć."
           }
         }
       }
@@ -3169,24 +2989,6 @@
         }
       }
     },
-    "Input level" : {
-      "comment" : "Accessibility label of the level meter",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Input level"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Poziom wejścia"
-          }
-        }
-      }
-    },
     "Installed" : {
       "comment" : "Models pane: the model is on this Mac",
       "extractionState" : "manual",
@@ -3223,42 +3025,6 @@
         }
       }
     },
-    "Keep a history of dictations" : {
-      "comment" : "Dictation settings toggle for the history",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keep a history of dictations"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zapisuj historię dyktowania"
-          }
-        }
-      }
-    },
-    "Keep at most" : {
-      "comment" : "Settings label of the maximum number of clipboard entries",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keep at most"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Przechowuj najwyżej"
-          }
-        }
-      }
-    },
     "Keep clipboard history" : {
       "comment" : "Settings → Clipboard: switch that pauses or resumes recording",
       "extractionState" : "manual",
@@ -3273,24 +3039,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zapisuj historię schowka"
-          }
-        }
-      }
-    },
-    "Keep entries for" : {
-      "comment" : "Settings label of the clipboard retention period",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keep entries for"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Przechowuj wpisy przez"
           }
         }
       }
@@ -3363,24 +3111,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Duży"
-          }
-        }
-      }
-    },
-    "Launch at login" : {
-      "comment" : "Settings toggle",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Launch at login"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uruchamiaj przy logowaniu"
           }
         }
       }
@@ -3561,24 +3291,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lintel wkleja przez schowek i sekundę później przywraca jego zawartość."
-          }
-        }
-      }
-    },
-    "Lintel stays in the menu bar either way." : {
-      "comment" : "Settings footer for the Dock toggle",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel stays in the menu bar either way."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel zawsze zostaje na pasku menu."
           }
         }
       }
@@ -4213,24 +3925,6 @@
         }
       }
     },
-    "Results go back to the order of how well they match. It cannot be undone." : {
-      "comment" : "Reset Ranking confirmation message",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Results go back to the order of how well they match. It cannot be undone."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wyniki wrócą do kolejności według dopasowania. Tego nie można cofnąć."
-          }
-        }
-      }
-    },
     "Search apps and files, paste from history, dictate, keep meeting notes. All on this Mac." : {
       "comment" : "Welcome screen: text of the first page",
       "extractionState" : "manual",
@@ -4321,24 +4015,6 @@
         }
       }
     },
-    "Suggestions start again from the apps you use next. This cannot be undone." : {
-      "comment" : "Clear App Activity confirmation message",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Suggestions start again from the apps you use next. This cannot be undone."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sugestie zaczną się od nowa od aplikacji, których użyjesz. Tej operacji nie można cofnąć."
-          }
-        }
-      }
-    },
     "System Audio Recording" : {
       "comment" : "Permission name in Settings → Permissions",
       "extractionState" : "manual",
@@ -4411,24 +4087,6 @@
         }
       }
     },
-    "Microphone allowed" : {
-      "comment" : "Dictation microphone status",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Microphone allowed"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mikrofon dozwolony"
-          }
-        }
-      }
-    },
     "Microphone not allowed" : {
       "comment" : "Dictation HUD when microphone access is denied",
       "extractionState" : "manual",
@@ -4443,24 +4101,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mikrofon niedozwolony"
-          }
-        }
-      }
-    },
-    "Microphone not asked yet" : {
-      "comment" : "Dictation microphone status",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Microphone not asked yet"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mikrofon jeszcze nie był pytany"
           }
         }
       }
@@ -5005,42 +4645,6 @@
         }
       }
     },
-    "This deletes every saved dictation. It cannot be undone." : {
-      "comment" : "Dictation settings confirmation text",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This deletes every saved dictation. It cannot be undone."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Usuwa wszystkie zapisane dyktowania. Tego nie można cofnąć."
-          }
-        }
-      }
-    },
-    "This deletes everything the feature stored on this Mac. It cannot be undone." : {
-      "comment" : "Erase confirmation message",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This deletes everything the feature stored on this Mac. It cannot be undone."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "To usunie wszystko, co funkcja zapisała na tym Macu. Tej operacji nie można cofnąć."
-          }
-        }
-      }
-    },
     "Try Again (dictation history)" : {
       "comment" : "Settings → Dictation banner button that opens the dictation history again",
       "extractionState" : "manual",
@@ -5149,60 +4753,6 @@
         }
       }
     },
-    "Off" : {
-      "comment" : "Feature state",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Off"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wyłączona"
-          }
-        }
-      }
-    },
-    "Older entries are deleted automatically." : {
-      "comment" : "Settings footer of clipboard retention",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Older entries are deleted automatically."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Starsze wpisy są usuwane automatycznie."
-          }
-        }
-      }
-    },
-    "On" : {
-      "comment" : "Feature state",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "On"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Włączona"
-          }
-        }
-      }
-    },
     "Only addresses on this Mac are allowed: localhost, 127.x.x.x or [::1]." : {
       "comment" : "Dictation settings error for a server address that is not on this Mac",
       "extractionState" : "manual",
@@ -5253,24 +4803,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Otwórz ustawienia Dostępności"
-          }
-        }
-      }
-    },
-    "Open Clipboard History" : {
-      "comment" : "Settings label of the clipboard history shortcut",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open Clipboard History"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Otwórz historię schowka"
           }
         }
       }
@@ -5379,24 +4911,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Otwórz Ustawienia"
-          }
-        }
-      }
-    },
-    "Open System Settings…" : {
-      "comment" : "Button that opens a permission's page in System Settings",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open System Settings…"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Otwórz Ustawienia systemowe…"
           }
         }
       }
@@ -5743,24 +5257,6 @@
         }
       }
     },
-    "Lintel moves the results you pick often to the top. Resetting forgets what it learned; your apps, files and clipboard history stay." : {
-      "comment" : "Settings explanation of Reset Ranking",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel moves the results you pick often to the top. Resetting forgets what it learned; your apps, files and clipboard history stay."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel przesuwa na górę wyniki, które często wybierasz. Reset zapomina to, czego się nauczył; aplikacje, pliki i historia schowka zostają."
-          }
-        }
-      }
-    },
     "Lintel never asks for a permission on its own. Changes in System Settings apply right away." : {
       "comment" : "Settings → Permissions footer",
       "extractionState" : "manual",
@@ -5815,24 +5311,6 @@
         }
       }
     },
-    "Lintel sends the text only to a server on this Mac (Ollama, LM Studio, llama-server). The server may keep prompts in its own log. If it does not answer, the raw text is pasted." : {
-      "comment" : "Dictation settings footer under the formatting toggle",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel sends the text only to a server on this Mac (Ollama, LM Studio, llama-server). The server may keep prompts in its own log. If it does not answer, the raw text is pasted."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel wysyła tekst tylko do serwera na tym Macu (Ollama, LM Studio, llama-server). Serwer może zapisywać prompty we własnym logu. Jeśli nie odpowie, wklejany jest surowy tekst."
-          }
-        }
-      }
-    },
     "Press this shortcut anywhere to open Lintel. Keep the suggested one or record your own." : {
       "comment" : "Onboarding step explanation",
       "extractionState" : "manual",
@@ -5851,42 +5329,6 @@
         }
       }
     },
-    "Press to start and press again to stop. Or hold the keys while you talk. Esc cancels." : {
-      "comment" : "Dictation settings footer under the shortcut",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Press to start and press again to stop. Or hold the keys while you talk. Esc cancels."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Naciśnij, aby zacząć, i naciśnij ponownie, aby skończyć. Albo przytrzymaj klawisze, gdy mówisz. Esc anuluje."
-          }
-        }
-      }
-    },
-    "Privacy" : {
-      "comment" : "Dictation settings section title",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Privacy"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Prywatność"
-          }
-        }
-      }
-    },
     "Quit Lintel" : {
       "comment" : "Menu bar menu item that quits the app",
       "extractionState" : "manual",
@@ -5901,24 +5343,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zakończ Lintel"
-          }
-        }
-      }
-    },
-    "Ranking" : {
-      "comment" : "Settings label of the ranking reset",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ranking"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ranking"
           }
         }
       }
@@ -5977,24 +5401,6 @@
         }
       }
     },
-    "Rebuild Index…" : {
-      "comment" : "Button that deletes the file index and scans again",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rebuild Index…"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Odbuduj indeks…"
-          }
-        }
-      }
-    },
     "Rebuild the file index?" : {
       "comment" : "Rebuild confirmation title",
       "extractionState" : "manual",
@@ -6045,24 +5451,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Polecany: Qwen3.6-35B-A3B (4-bit). Najlepszy polski: Bielik-11B-v3.0-Instruct. Lekki: Qwen3-4B-Instruct-2507."
-          }
-        }
-      }
-    },
-    "Record clipboard history" : {
-      "comment" : "Settings toggle that pauses or resumes recording",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Record clipboard history"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nagrywaj historię schowka"
           }
         }
       }
@@ -6319,24 +5707,6 @@
         }
       }
     },
-    "Result Order" : {
-      "comment" : "Settings section title",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Result Order"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kolejność wyników"
-          }
-        }
-      }
-    },
     "Results" : {
       "comment" : "Accessibility label of the panel's result list",
       "extractionState" : "manual",
@@ -6553,24 +5923,6 @@
         }
       }
     },
-    "Sections appear in the panel in this order." : {
-      "comment" : "Settings footer of the result order",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sections appear in the panel in this order."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sekcje pojawiają się w panelu w tej kolejności."
-          }
-        }
-      }
-    },
     "Server" : {
       "comment" : "Dictation settings label of the formatting server",
       "extractionState" : "manual",
@@ -6675,24 +6027,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Skrót otwierający Lintel"
-          }
-        }
-      }
-    },
-    "Show in Dock" : {
-      "comment" : "Settings toggle",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show in Dock"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pokaż w Docku"
           }
         }
       }
@@ -6877,24 +6211,6 @@
         }
       }
     },
-    "Start Indexing" : {
-      "comment" : "Button that starts the first file scan",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Start Indexing"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rozpocznij indeksowanie"
-          }
-        }
-      }
-    },
     "Starting…" : {
       "comment" : "Feature state",
       "extractionState" : "manual",
@@ -6985,24 +6301,6 @@
         }
       }
     },
-    "Test" : {
-      "comment" : "Button that shows the microphone level for a moment",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Test"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Test"
-          }
-        }
-      }
-    },
     "Text" : {
       "comment" : "Clipboard entry kind and filter",
       "extractionState" : "manual",
@@ -7053,24 +6351,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przykład się nie udał. Spróbuj ponownie za chwilę."
-          }
-        }
-      }
-    },
-    "The Keychain needs no permission. A feature that keeps a key there shows its state in its own pane." : {
-      "comment" : "Settings → Permissions note about the Keychain",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The Keychain needs no permission. A feature that keeps a key there shows its state in its own pane."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pęk kluczy nie wymaga uprawnienia. Funkcja, która trzyma w nim klucz, pokazuje jego stan we własnym panelu."
           }
         }
       }
@@ -7273,24 +6553,6 @@
         }
       }
     },
-    "The model runs on this Mac. Audio is never sent anywhere and never saved." : {
-      "comment" : "Dictation settings footer under the speech model",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The model runs on this Mac. Audio is never sent anywhere and never saved."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Model działa na tym Macu. Dźwięk nigdy nie jest nigdzie wysyłany ani zapisywany."
-          }
-        }
-      }
-    },
     "The model you chose does not fit this Mac, so %@ is used." : {
       "comment" : "Meetings settings: the stored notes model is replaced by the default one",
       "extractionState" : "manual",
@@ -7485,42 +6747,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nie udało się załadować modelu mowy"
-          }
-        }
-      }
-    },
-    "The text is pasted through the clipboard. Lintel puts back what was there a second later, unless it was a password or you copied something else meanwhile." : {
-      "comment" : "Dictation settings footer under the clipboard restore toggle",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The text is pasted through the clipboard. Lintel puts back what was there a second later, unless it was a password or you copied something else meanwhile."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tekst jest wklejany przez schowek. Lintel przywraca po sekundzie to, co w nim było, chyba że było to hasło albo w międzyczasie coś skopiowałeś."
-          }
-        }
-      }
-    },
-    "The text of every dictation is stored on this Mac, encrypted with a key in your Keychain. Audio is never stored. Open it from the menu bar: Dictation History." : {
-      "comment" : "Dictation settings footer under the history toggle",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The text of every dictation is stored on this Mac, encrypted with a key in your Keychain. Audio is never stored. Open it from the menu bar: Dictation History."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tekst każdego dyktowania jest zapisany na tym Macu, zaszyfrowany kluczem z Pęku kluczy. Dźwięk nigdy nie jest zapisywany. Otwórz go z paska menu: Historia dyktowania."
           }
         }
       }
@@ -7737,24 +6963,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wypróbuj na przykładzie"
-          }
-        }
-      }
-    },
-    "Turning a feature off stops it and hides its results. Its data stays until you erase it." : {
-      "comment" : "Settings footer for the feature list",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Turning a feature off stops it and hides its results. Its data stays until you erase it."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wyłączenie funkcji zatrzymuje ją i ukrywa jej wyniki. Jej dane zostają, dopóki ich nie usuniesz."
           }
         }
       }
@@ -8029,24 +7237,6 @@
         }
       }
     },
-    "Whisper does not guess the language: it listens for the one you choose. If Parakeet turns your Polish into English, switch to Whisper." : {
-      "comment" : "Dictation settings note about the pinned language",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Whisper does not guess the language: it listens for the one you choose. If Parakeet turns your Polish into English, switch to Whisper."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Whisper nie zgaduje języka: słucha tego, który wybierzesz. Jeśli Parakeet zamienia Twój polski na angielski, przełącz się na Whisper."
-          }
-        }
-      }
-    },
     "Whisper listens for the language you choose." : {
       "comment" : "Settings → Dictation: help under the language of the Whisper model",
       "extractionState" : "manual",
@@ -8115,24 +7305,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bez pełnego dostępu do dysku Biurko, Dokumenty i Pobrane rzeczy nie są przeszukiwane."
-          }
-        }
-      }
-    },
-    "Without Full Disk Access, adding a folder here makes macOS ask once for that folder." : {
-      "comment" : "Settings footer of the protected folders",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Without Full Disk Access, adding a folder here makes macOS ask once for that folder."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bez pełnego dostępu do dysku dodanie folderu tutaj sprawi, że macOS raz zapyta o ten folder."
           }
         }
       }
@@ -8515,24 +7687,6 @@
         }
       }
     },
-    "The model runs inside Lintel on this Mac. Nothing is sent anywhere. It loads while you talk and is freed after a while. If it is not ready in time, the raw text is pasted." : {
-      "comment" : "Dictation settings footer under the built-in formatting model",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The model runs inside Lintel on this Mac. Nothing is sent anywhere. It loads while you talk and is freed after a while. If it is not ready in time, the raw text is pasted."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Model działa wewnątrz Lintel na tym Macu. Nic nie jest nigdzie wysyłane. Ładuje się, gdy mówisz, i po jakimś czasie jest zwalniany z pamięci. Jeśli nie jest gotowy na czas, wklejany jest surowy tekst."
-          }
-        }
-      }
-    },
     "Download %@, about %@ of memory while loaded. %@ licence." : {
       "comment" : "Dictation settings size and memory of the built-in model",
       "extractionState" : "manual",
@@ -8587,114 +7741,6 @@
         }
       }
     },
-    "App activity was saved by a newer version of Lintel. Suggestions are off until you update." : {
-      "comment" : "Settings message when activity.json comes from a newer version",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "App activity was saved by a newer version of Lintel. Suggestions are off until you update."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aktywność aplikacji zapisała nowsza wersja Lintel. Sugestie są wyłączone do czasu aktualizacji."
-          }
-        }
-      }
-    },
-    "App index" : {
-      "comment" : "Settings section title",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "App index"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Indeks aplikacji"
-          }
-        }
-      }
-    },
-    "App suggestions keep their own history; clear it in Settings → Applications." : {
-      "comment" : "Settings note that Reset Ranking does not clear app activity",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "App suggestions keep their own history; clear it in Settings → Applications."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sugestie aplikacji mają własną historię; wyczyścisz ją w Ustawieniach → Aplikacje."
-          }
-        }
-      }
-    },
-    "Clear App Activity" : {
-      "comment" : "Clear App Activity confirmation button",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clear App Activity"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wyczyść aktywność aplikacji"
-          }
-        }
-      }
-    },
-    "Clear App Activity…" : {
-      "comment" : "Button that deletes the recorded app activity",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clear App Activity…"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wyczyść aktywność aplikacji…"
-          }
-        }
-      }
-    },
-    "Clear the app activity?" : {
-      "comment" : "Clear App Activity confirmation title",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clear the app activity?"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wyczyścić aktywność aplikacji?"
-          }
-        }
-      }
-    },
     "Contents need Full Disk Access" : {
       "comment" : "Subtitle of a folder result whose contents Lintel may not read without Full Disk Access",
       "extractionState" : "manual",
@@ -8731,24 +7777,6 @@
         }
       }
     },
-    "Hidden from suggestions" : {
-      "comment" : "Settings label above the list of hidden apps",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hidden from suggestions"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ukryte w sugestiach"
-          }
-        }
-      }
-    },
     "Hide from Suggestions" : {
       "comment" : "Result action that stops suggesting the selected app",
       "extractionState" : "manual",
@@ -8781,42 +7809,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Brak dostępu do zawartości"
-          }
-        }
-      }
-    },
-    "Lintel records on this Mac which apps you use and how often, to suggest them. Nothing leaves your Mac." : {
-      "comment" : "Settings description of what app suggestions record",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel records on this Mac which apps you use and how often, to suggest them. Nothing leaves your Mac."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel zapisuje na tym Macu, których aplikacji używasz i jak często, żeby je sugerować. Nic nie opuszcza Twojego Maca."
-          }
-        }
-      }
-    },
-    "Recorded activity" : {
-      "comment" : "Settings label next to Clear App Activity",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recorded activity"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zapisana aktywność"
           }
         }
       }
@@ -8875,24 +7867,6 @@
         }
       }
     },
-    "Suggest Apps" : {
-      "comment" : "Settings toggle that turns app suggestions on",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Suggest Apps"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sugeruj aplikacje"
-          }
-        }
-      }
-    },
     "Suggested" : {
       "comment" : "Panel section with suggested apps",
       "extractionState" : "manual",
@@ -8907,24 +7881,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sugerowane"
-          }
-        }
-      }
-    },
-    "Suggestions" : {
-      "comment" : "Settings section title",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Suggestions"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sugestie"
           }
         }
       }
@@ -9955,96 +8911,6 @@
         }
       }
     },
-    "Record meeting" : {
-      "comment" : "Meetings settings label of the record shortcut",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Record meeting"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nagrywaj spotkanie"
-          }
-        }
-      }
-    },
-    "Press to start recording a meeting and press again to stop." : {
-      "comment" : "Meetings settings footer under the shortcut",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Press to start recording a meeting and press again to stop."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Naciśnij, aby zacząć nagrywać spotkanie, i naciśnij ponownie, aby zakończyć."
-          }
-        }
-      }
-    },
-    "Reduce echo from the speakers" : {
-      "comment" : "Meetings settings toggle of voice processing",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reduce echo from the speakers"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zmniejsz echo z głośników"
-          }
-        }
-      }
-    },
-    "Audio" : {
-      "comment" : "Meetings settings section title",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Audio"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dźwięk"
-          }
-        }
-      }
-    },
-    "Lintel records your microphone and what the other side says, only while you record a meeting. Echo reduction can lower the volume of other apps, so it is off by default." : {
-      "comment" : "Meetings settings footer under the audio section",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel records your microphone and what the other side says, only while you record a meeting. Echo reduction can lower the volume of other apps, so it is off by default."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel nagrywa Twój mikrofon i to, co mówi druga strona, tylko podczas nagrywania spotkania. Redukcja echa może ściszać inne aplikacje, więc domyślnie jest wyłączona."
-          }
-        }
-      }
-    },
     "Models" : {
       "comment" : "Meetings settings section title",
       "extractionState" : "manual",
@@ -10059,42 +8925,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Modele"
-          }
-        }
-      }
-    },
-    "The models run on this Mac. Audio is never sent anywhere. The speech model is shared with dictation." : {
-      "comment" : "Meetings settings footer under the models",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The models run on this Mac. Audio is never sent anywhere. The speech model is shared with dictation."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Modele działają na tym Macu. Dźwięk nigdy nigdzie nie jest wysyłany. Model mowy jest wspólny z dyktowaniem."
-          }
-        }
-      }
-    },
-    "Remind me to tell people I am recording" : {
-      "comment" : "Meetings settings toggle",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remind me to tell people I am recording"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Przypominaj, żeby powiedzieć ludziom o nagrywaniu"
           }
         }
       }
@@ -10149,24 +8979,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Usuń nagrania tymczasowe…"
-          }
-        }
-      }
-    },
-    "Recordings are encrypted and deleted once a meeting is processed. A deleted file is not overwritten: on an SSD or in a backup a copy may remain for a while, though it is encrypted and unreadable without the key. Erase Data removes the key too." : {
-      "comment" : "Meetings settings footer about deleted data on an SSD",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recordings are encrypted and deleted once a meeting is processed. A deleted file is not overwritten: on an SSD or in a backup a copy may remain for a while, though it is encrypted and unreadable without the key. Erase Data removes the key too."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nagrania są szyfrowane i usuwane po przetworzeniu spotkania. Usunięty plik nie jest nadpisywany: na dysku SSD lub w kopii zapasowej jego kopia może zostać na jakiś czas, ale jest zaszyfrowana i nieczytelna bez klucza. „Usuń dane” usuwa też klucz."
           }
         }
       }
@@ -10797,24 +9609,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Usuń starsze spotkania"
-          }
-        }
-      }
-    },
-    "Meetings older than the period you choose are deleted, together with their transcripts and notes." : {
-      "comment" : "Meetings settings footer under the retention choice",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Meetings older than the period you choose are deleted, together with their transcripts and notes."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Spotkania starsze niż wybrany okres są usuwane razem z transkrypcjami i notatkami."
           }
         }
       }

@@ -103,7 +103,7 @@ enum MeetingHUDState: Equatable, Sendable {
     enum Action: Equatable, Sendable {
         case stop
         case openSettings
-        /// The speech model is missing or unusable: `PluginContext.openModels` (the old window: this pane).
+        /// The speech model is missing or unusable: `PluginContext.openModels`.
         case openModels
         case openMicrophoneSettings
         case recordSystemAudioOnly

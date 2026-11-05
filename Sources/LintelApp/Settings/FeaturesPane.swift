@@ -63,14 +63,11 @@ struct SectionOrderControls {
 }
 
 /// Settings → Features: every plugin with its switch (or the "Always on" chip of a plugin that cannot be turned
-/// off), the order of the result sections and, under Advanced, "Erase Data". The main window draws it on the
-/// `SettingsPane` template (prototype `set-features`, spec step 4.1); the old window keeps `LegacyFeaturesPane`.
-/// The "All set" banner is the host's (`ShellPaneBanners.features`).
+/// off), the order of the result sections and, under Advanced, "Erase Data", on the `SettingsPane` template
+/// (prototype `set-features`, spec step 4.1). The "All set" banner is the host's (`ShellPaneBanners.features`).
 struct FeaturesPane: View {
     let controls: FeatureControls
     let order: SectionOrderControls?
-
-    @Environment(\.settingsHostStyle) private var hostStyle
 
     init(host: PluginHost, settings: AppSettings? = nil, onChange: @escaping () -> Void) {
         controls = FeatureControls(host: host, onChange: onChange)
@@ -78,11 +75,7 @@ struct FeaturesPane: View {
     }
 
     var body: some View {
-        if hostStyle == .legacyWindow {
-            LegacyFeaturesPane(controls: controls, order: order)
-        } else {
-            FeaturesPaneContent(controls: controls, order: order)
-        }
+        FeaturesPaneContent(controls: controls, order: order)
     }
 }
 
@@ -104,7 +97,7 @@ extension PluginID {
     fileprivate var eraseRowID: String { "erase:\(rawValue)" }
 }
 
-/// The main window's Features pane: the feature list, Result order with its one-line footer, and a collapsed
+/// The Features pane: the feature list, Result order with its one-line footer, and a collapsed
 /// Advanced section with each feature's "Erase Data" and "Restore Default Order".
 struct FeaturesPaneContent: View {
     let controls: FeatureControls
@@ -253,11 +246,23 @@ struct FeatureEraseRow: View {
     /// The features whose data Notes can keep copies of (owner decision L1-39).
     static let featuresWithNotesCopies: Set<PluginID> = ["meetings", "dictation"]
 
-    /// Erase Data in the main window: for Meetings and Dictation it also says that copies edited or commented
-    /// on in Notes stay, with the "Also delete kept copies" checkbox. DEBUG only until Notes ships (spec
-    /// `2026-11-04-notes-workspace`, step 7.1 removes the guard); release builds show the words as today.
+    /// The words of Erase Data for one feature.
+    static func eraseConfirmation(for manifest: PluginManifest) -> DestructiveConfirmation {
+        DestructiveConfirmation(
+            prompt: LocalizedStringResource(
+                "Erase all data of “\(String(localized: manifest.displayName))”?", comment: "Erase confirmation title"),
+            detail: LocalizedStringResource(
+                "This deletes everything the feature stored on this Mac. This can’t be undone.",
+                comment: "Erase confirmation message in the main window"),
+            confirmTitle: LocalizedStringResource(
+                "Erase Data", comment: "Confirmation button that deletes a feature's data"))
+    }
+
+    /// Erase Data: for Meetings and Dictation it also says that copies edited or commented on in Notes stay,
+    /// with the "Also delete kept copies" checkbox. DEBUG only until Notes ships (spec
+    /// `2026-11-04-notes-workspace`, step 7.1 removes the guard); release builds show `eraseConfirmation`.
     static func confirmation(for manifest: PluginManifest) -> DestructiveConfirmation {
-        let confirmation = FeatureRow.confirmation(for: manifest)
+        let confirmation = eraseConfirmation(for: manifest)
         #if DEBUG
         guard featuresWithNotesCopies.contains(manifest.id) else { return confirmation }
         return confirmation.with(option: .keptNotesCopies)

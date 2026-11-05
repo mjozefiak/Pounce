@@ -24,10 +24,6 @@ final class PermissionsModel {
     @ObservationIgnored private let openURL: (URL) -> Void
     @ObservationIgnored private let requester: any PermissionRequester
 
-    /// True in the main window: every permission gets a row, the ones no enabled feature needs dimmed. The old
-    /// window lists only the permissions the enabled features need.
-    var includesUnused = false
-
     /// The last read state of each required permission; refreshed by `refresh()`.
     private(set) var statuses: [Permission: PermissionStatus] = [:]
 
@@ -42,14 +38,13 @@ final class PermissionsModel {
         self.openURL = openURL
     }
 
-    /// The rows to draw, in `Permission.allCases` order: the required permissions, or every permission when
-    /// `includesUnused`.
+    /// The rows to draw, one per permission in `Permission.allCases` order; the ones no enabled feature needs are
+    /// dimmed (spec D5).
     var rows: [PermissionRowState] {
         let required = Dictionary(uniqueKeysWithValues: requirements.map { ($0.permission, $0.pluginNames) })
-        return Permission.allCases.compactMap { permission in
-            let names = required[permission] ?? []
-            guard includesUnused || !names.isEmpty else { return nil }
-            return PermissionRowState(permission: permission, status: status(of: permission), pluginNames: names)
+        return Permission.allCases.map { permission in
+            PermissionRowState(
+                permission: permission, status: status(of: permission), pluginNames: required[permission] ?? [])
         }
     }
 
@@ -81,11 +76,10 @@ final class PermissionsModel {
         statuses[permission] ?? (permission.isReadable ? reader.status(of: permission) : .notDetermined)
     }
 
-    /// Re-reads every required permission ("Check Again", the pane appearing, Lintel becoming active).
+    /// Re-reads every readable permission ("Check Again", the pane appearing, Lintel becoming active).
     func refresh() {
         var result: [Permission: PermissionStatus] = [:]
-        let wanted = includesUnused ? Permission.allCases : requirements.map(\.permission)
-        for permission in wanted where permission.isReadable || !includesUnused {
+        for permission in Permission.allCases where permission.isReadable {
             result[permission] = reader.status(of: permission)
         }
         statuses = result
@@ -113,16 +107,6 @@ extension Permission {
             }
         return URL(string: "x-apple.systempreferences:com.apple.preference.security" + anchor)
             ?? URL(filePath: "/System/Applications/System Settings.app")
-    }
-
-    var symbolName: String {
-        switch self {
-        case .accessibility: "accessibility"
-        case .fullDiskAccess: "externaldrive"
-        case .pasteboard: "doc.on.clipboard"
-        case .microphone: "mic"
-        case .systemAudioRecording: "speaker.wave.2"
-        }
     }
 
     var title: String {
@@ -191,16 +175,6 @@ extension Permission {
     }
 }
 
-extension PermissionStatus {
-    var symbolName: String {
-        switch self {
-        case .granted: "checkmark.circle.fill"
-        case .denied: "hand.raised"
-        case .notDetermined: "questionmark.circle"
-        }
-    }
-}
-
 /// How a permission row reads: a state in words, never colour alone.
 enum PermissionTone: Equatable {
     case ok
@@ -222,13 +196,13 @@ struct PermissionRowState: Identifiable, Equatable {
     var isDimmed: Bool { pluginNames.isEmpty }
     var stateText: String { permission.statusText(status) }
 
-    /// The state line of the main window's row: "Not asked yet" where the legacy rows say "Unknown".
+    /// The state line of the row: "Not asked yet" where `stateText` says "Unknown".
     var mainStateText: String {
         guard permission.isReadable, permission != .pasteboard, status == .notDetermined else { return stateText }
         return String(localized: "Not asked yet", comment: "Permission state: macOS has not asked the user yet")
     }
 
-    /// Main window order: permissions that need the user first (denied, not asked), then the allowed ones, then
+    /// Row order: permissions that need the user first (denied, not asked), then the allowed ones, then
     /// the ones no enabled feature needs. Stable inside each group.
     static func problemsFirst(_ rows: [PermissionRowState]) -> [PermissionRowState] {
         func rank(_ row: PermissionRowState) -> Int { row.isDimmed ? 2 : (row.tone == .ok ? 1 : 0) }
@@ -253,76 +227,30 @@ struct PermissionRowState: Identifiable, Equatable {
 }
 
 /// Settings → Permissions: a row per permission with its state and a button to its page in System Settings.
-/// The old window lists the permissions the enabled features need; the main window lists all of them and dims
-/// the unused ones (spec D5).
+/// Every permission is listed; the ones no enabled feature needs are dimmed (spec D5).
 struct PermissionsPane: View {
     /// Kept in `@State`: `SettingsHost` builds the pane again whenever its own state changes, and a new model
-    /// would start with no states and without `includesUnused`.
+    /// would start with no states.
     @State private var model: PermissionsModel
 
     init(model: PermissionsModel) {
         _model = State(initialValue: model)
     }
 
-    @Environment(\.settingsHostStyle) private var hostStyle
     @Environment(\.lintelTextSize) private var textSize
 
     var body: some View {
-        let content = Group {
-            if hostStyle == .legacyWindow { legacyForm } else { mainForm }
-        }
-        .onAppear { reload() }
-        .onChange(of: hostStyle) { reload() }
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            model.refresh()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
-            model.refresh()
-        }
-        if hostStyle == .legacyWindow {
-            // The old window sizes itself from the pane.
-            content.frame(width: SettingsLayout.columnWidth).fixedSize(horizontal: false, vertical: true)
-        } else {
-            content
-        }
-    }
-
-    private var legacyForm: some View {
-        SettingsPane {
-            Section {
-                let rows = model.rows
-                if rows.isEmpty {
-                    emptyText
-                }
-                ForEach(rows) { row in
-                    PermissionRow(
-                        state: row,
-                        accessories: model.accessories(for: row.permission),
-                        allow: { Task { await model.allow(row.permission) } },
-                        open: { model.openSettings(for: row.permission) }
-                    )
-                }
-            } header: {
-                Text("Permissions", comment: "Settings section title")
-                    .settingsSectionHeader()
-            } footer: {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(alignment: .firstTextBaseline) {
-                        SettingsFooter(
-                            "Lintel never asks for a permission on its own. Changes in System Settings apply right away."
-                        )
-                        Spacer()
-                        checkAgain
-                    }
-                    SettingsFooter(
-                        "The Keychain needs no permission. A feature that keeps a key there shows its state in its own pane."
-                    )
-                }
+        mainForm
+            .onAppear { model.refresh() }
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+                model.refresh()
             }
-        }
+            .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
+                model.refresh()
+            }
     }
 
-    /// The main window: no section header (the host's title names the pane), problems first, one footer.
+    /// No section header (the host's title names the pane), problems first, one footer.
     private var mainForm: some View {
         SettingsPane {
             Section {
@@ -365,10 +293,5 @@ struct PermissionsPane: View {
         } label: {
             Text("Check Again", comment: "Button that re-reads the permission states")
         }
-    }
-
-    private func reload() {
-        model.includesUnused = hostStyle == .mainWindow
-        model.refresh()
     }
 }

@@ -26,8 +26,8 @@ final class SettingsHostModel {
 
     private(set) var paneID: String?
     private(set) var banner: StatusDerivation.Banner?
-    /// Every plugin's pane, inactive ones included (`PluginHost.settingsPanes(includingInactive: true)`).
-    private(set) var plugins: [SettingsWindowController.PluginPane] = []
+    /// Every plugin's pane, inactive ones included (`PluginHost.settingsPanes()`).
+    private(set) var plugins: [SettingsPluginPane] = []
     /// The sidebar dot per plugin id: the level of that pane's banner when it is `attention` or `error`.
     private(set) var attention: [String: SettingsStatus.Level] = [:]
     /// True while a banner action runs.
@@ -36,21 +36,21 @@ final class SettingsHostModel {
     @ObservationIgnored private let host: PluginHost
     @ObservationIgnored private let reader: any PermissionsReader
     @ObservationIgnored private let navigation: Navigation
-    @ObservationIgnored private let makePanes: () -> [SettingsWindowController.PluginPane]
+    @ObservationIgnored private let makePanes: () -> [SettingsPluginPane]
     /// The derivation seam of the shell's own panes: a pane id here gets its banner from its closure (the Models
     /// pane's "1 model is needed"), read while the view draws so the pane's own observable state drives it.
     @ObservationIgnored private let shellBanners: [String: () -> StatusDerivation.Banner?]
 
     init(
         host: PluginHost, reader: any PermissionsReader, navigation: Navigation = Navigation(),
-        panes: (() -> [SettingsWindowController.PluginPane])? = nil,
+        panes: (() -> [SettingsPluginPane])? = nil,
         shellBanners: [String: () -> StatusDerivation.Banner?] = [:]
     ) {
         self.host = host
         self.reader = reader
         self.navigation = navigation
         self.shellBanners = shellBanners
-        self.makePanes = panes ?? { host.settingsPanes(includingInactive: true) }
+        self.makePanes = panes ?? { host.settingsPanes() }
         reloadPanes()
         refreshAttention()
         observeHost()
@@ -66,7 +66,7 @@ final class SettingsHostModel {
 
     /// The sidebar sections from the current panes and dots.
     var sections: [SettingsSidebarModel.Section] {
-        SettingsPaneAdapter.sidebarSections(plugins: plugins, attention: attention.merging(shellAttention) { $1 })
+        SettingsPanes.sidebarSections(plugins: plugins, attention: attention.merging(shellAttention) { $1 })
     }
 
     /// The dots of the shell's own panes (Permissions, Models, and General without a shortcut): the level of the
@@ -77,7 +77,7 @@ final class SettingsHostModel {
 
     /// The pane's title above its banner (the prototype's `h3`): the sidebar item's title.
     func title(of paneID: String) -> String? {
-        SettingsPaneAdapter.sidebarSections(plugins: plugins).lazy.flatMap(\.items).first { $0.id == paneID }?.title
+        SettingsPanes.sidebarSections(plugins: plugins).lazy.flatMap(\.items).first { $0.id == paneID }?.title
     }
 
     /// Builds the plugin panes again (a plugin's `settingsPane()` reflects whether it is active).
@@ -174,11 +174,11 @@ final class SettingsHostModel {
 }
 
 /// The main window's Settings mode: the sidebar, the pane title, the one banner and the selected pane. Panes have no banner
-/// slot; `SettingsWindowController` draws none.
+/// slot.
 struct SettingsHost: View {
     let model: SettingsHostModel
     /// The shell's own panes (General, Features, Permissions, Advanced).
-    let shellPane: (SettingsWindowController.Pane) -> AnyView
+    let shellPane: (SettingsShellPane) -> AnyView
     /// Settings → Models (step 3.2).
     var modelsPane: (() -> AnyView)?
     let selection: String
@@ -197,7 +197,7 @@ struct SettingsHost: View {
     static func bodyOpacity(isActive: Bool) -> Double { isActive ? 1 : 0.5 }
 
     var body: some View {
-        let entries = SettingsPaneAdapter.entries(
+        let entries = SettingsPanes.entries(
             shellPane: shellPane, plugins: model.plugins, models: modelsPane)
         let entry = entries.first { $0.id == selection } ?? entries.first
         HStack(spacing: 0) {

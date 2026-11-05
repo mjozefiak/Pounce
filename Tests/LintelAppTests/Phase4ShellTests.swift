@@ -87,7 +87,7 @@ final class FakePermissionsReader: PermissionsReader {
         #expect(model.requirements.isEmpty)
     }
 
-    @Test func refreshReadsOnlyTheRequiredPermissions() async throws {
+    @Test func refreshReadsEveryReadablePermission() async throws {
         let test = try TestEnvironment()
         defer { test.tearDown() }
         let host = test.makeHost([PastingPlugin.self, IndexingPlugin.self])
@@ -99,7 +99,8 @@ final class FakePermissionsReader: PermissionsReader {
         // Before the first refresh the model answers from the reader instead of "unknown".
         #expect(model.status(of: .accessibility) == .granted)
         model.refresh()
-        #expect(Set(reader.reads) == [.accessibility, .pasteboard])
+        // Every permission has a row (the unused ones dimmed), so every readable one is read.
+        #expect(Set(reader.reads) == Set(Permission.allCases.filter(\.isReadable)))
         #expect(model.status(of: .accessibility) == .granted)
         #expect(model.status(of: .pasteboard) == .denied)
 
@@ -136,7 +137,6 @@ final class FakePermissionsReader: PermissionsReader {
         #expect(permission.statusText(.notDetermined) != permission.statusText(.denied))
         #expect(permission.settingsURL.absoluteString.hasSuffix("?Privacy_AudioCapture"))
         #expect(!permission.explanation.isEmpty)
-        #expect(NSImage(systemSymbolName: permission.symbolName, accessibilityDescription: nil) != nil)
     }
 
     @Test func theSystemAudioRowAppearsOnlyWhenAnEnabledPluginRequiresIt() async throws {
@@ -182,19 +182,14 @@ final class FakePermissionsReader: PermissionsReader {
         #expect(controller.pendingPages.map(\.id) == ["recording.intro", "done"])
     }
 
-    @Test func everyStateHasTextAndASymbol() {
+    @Test func everyStateHasText() {
         let statuses: [PermissionStatus] = [.granted, .denied, .notDetermined]
         for permission in Permission.allCases {
             #expect(!permission.title.isEmpty)
             #expect(!permission.explanation.isEmpty)
-            #expect(NSImage(systemSymbolName: permission.symbolName, accessibilityDescription: nil) != nil)
             let texts = statuses.map { permission.statusText($0) }
             #expect(Set(texts).count == statuses.count, "\(permission) states must read differently")
         }
-        for status in statuses {
-            #expect(NSImage(systemSymbolName: status.symbolName, accessibilityDescription: nil) != nil)
-        }
-        #expect(Set(statuses.map(\.symbolName)).count == statuses.count)
     }
 
     @Test func qaPasteboardAccessDecidesThePasteboardRow() {
@@ -250,19 +245,6 @@ actor PlainRecorder: UsageRecorder {
         let plain = AdvancedControls(usage: PlainRecorder()) { refreshed += 1 }
         #expect(await plain.resetRanking() != nil)
         #expect(refreshed == 0)
-    }
-}
-
-@MainActor
-@Suite struct SettingsTabTests {
-    @Test func shellPanesSurroundThePluginPanes() {
-        #expect(SettingsWindowController.tabIndex(of: .general, pluginPaneCount: 3) == 0)
-        #expect(SettingsWindowController.tabIndex(of: .features, pluginPaneCount: 3) == 1)
-        #expect(SettingsWindowController.tabIndex(of: .permissions, pluginPaneCount: 3) == 5)
-        #expect(SettingsWindowController.tabIndex(of: .advanced, pluginPaneCount: 3) == 6)
-        #expect(SettingsWindowController.tabIndex(of: .permissions, pluginPaneCount: 0) == 2)
-        #expect(SettingsWindowController.tabIndex(ofPlugin: "files", in: ["apps", "files"]) == 3)
-        #expect(SettingsWindowController.tabIndex(ofPlugin: "gone", in: ["apps"]) == nil)
     }
 }
 

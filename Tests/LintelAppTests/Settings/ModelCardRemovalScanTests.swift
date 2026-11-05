@@ -1,22 +1,22 @@
 import Foundation
 import Testing
 
-/// Spec `2026-11-04-lintel-main-window`, step 3.3: in the main window the Dictation and Meetings panes show a
-/// one-line model summary instead of the model cards and microphone rows (those live in the Models and
+/// Spec `2026-11-04-lintel-main-window`, steps 3.3 and 6.3b: the Dictation and Meetings panes show a one-line
+/// model summary instead of the model cards and microphone rows (those live in the Models and
 /// Permissions panes), and every way to a model download goes through `PluginContext.openModels`.
 @Suite struct ModelCardRemovalScanTests {
-    /// The views that only the old Settings window (`.legacyWindow`) may draw in a plugin pane.
-    static let legacyOnlyViews = [
-        "SpeechModelCard", "MeetingsModelCard", "BuiltInModelRows", "MicrophoneRows", "MeetingsMicrophoneRows",
-    ]
+    /// The model cards, which only the welcome screen's setup steps draw (`DictationSetupView`,
+    /// `MeetingsSetupView`); the Models pane has the downloads in Settings.
+    static let setupOnlyViews = ["SpeechModelCard", "MeetingsModelCard"]
 
-    /// The pane views (file, struct) whose main-window branches are scanned.
+    /// The microphone rows and model rows of the old Settings window, deleted with it in step 6.3b: Permissions has
+    /// the microphone, Models the downloads.
+    static let deletedViews = ["BuiltInModelRows", "MicrophoneRows", "MeetingsMicrophoneRows"]
+
+    /// The pane views (file, struct) that are scanned.
     static let paneViews: [(file: String, type: String)] = [
         ("Sources/DictationPlugin/DictationSettingsPane.swift", "DictationPaneContent"),
-        ("Sources/DictationPlugin/LegacyDictationSettingsPane.swift", "LegacyDictationSettingsPane"),
-        ("Sources/DictationPlugin/DictationViews.swift", "FormattingSection"),
         ("Sources/MeetingsPlugin/UI/MeetingsSettingsPane.swift", "MeetingsPaneContent"),
-        ("Sources/MeetingsPlugin/UI/LegacyMeetingsSettingsPane.swift", "LegacyMeetingsSettingsPane"),
     ]
 
     /// Every call of a plugin's `openSettings` (`PluginContext.openSettings` and the closures it is passed on as),
@@ -94,24 +94,36 @@ import Testing
         text.range(of: "(?<![A-Za-z0-9_])\(name)(?![A-Za-z0-9_])", options: .regularExpression) != nil
     }
 
-    @Test func noMainWindowBranchReferencesTheModelCardsOrMicrophoneRows() throws {
+    @Test func noPaneReferencesTheModelCards() throws {
         for (file, type) in Self.paneViews {
             let source = try #require(Self.declaration(of: type, in: try Self.read(file)), "\(type) in \(file)")
-            let kept = SettingsSourceScanTests.strippingLegacyBranches(source)
-            for name in Self.legacyOnlyViews {
-                #expect(!Self.mentions(name, in: kept), "\(type) draws \(name) outside a .legacyWindow branch")
+            for name in Self.setupOnlyViews + Self.deletedViews {
+                #expect(!Self.mentions(name, in: source), "\(type) draws \(name)")
             }
-            #expect(kept.contains("ModelChoiceRow"), "\(type) has no model summary in the main window")
+            #expect(source.contains("ModelChoiceRow"), "\(type) has no model summary")
         }
     }
 
-    @Test func theOldWindowStillDrawsEveryCardAndRow() throws {
-        let panes = try Self.paneViews.map { file, type in
-            try #require(Self.declaration(of: type, in: try Self.read(file)))
+    @Test func theOldRowsAreGoneAndTheCardsStayInTheSetupSteps() throws {
+        var sources = ""
+        for plugin in ["DictationPlugin", "MeetingsPlugin"] {
+            let folder = Self.root.appending(path: "Sources/\(plugin)", directoryHint: .isDirectory)
+            let files =
+                FileManager.default.enumerator(at: folder, includingPropertiesForKeys: nil)?
+                .compactMap { $0 as? URL }.filter { $0.pathExtension == "swift" } ?? []
+            for url in files { sources += try String(contentsOf: url, encoding: .utf8) + "\n" }
         }
+        for name in Self.deletedViews {
+            #expect(!Self.mentions(name, in: sources), "\(name) still exists")
+        }
+        let setup = try [
+            Self.declaration(of: "DictationSetupView", in: Self.read("Sources/DictationPlugin/DictationViews.swift")),
+            Self.declaration(of: "MeetingsSetupView", in: Self.read("Sources/MeetingsPlugin/UI/MeetingsViews.swift")),
+        ]
+        .map { try #require($0) }
         .joined(separator: "\n")
-        for name in Self.legacyOnlyViews {
-            #expect(Self.mentions(name, in: panes), "\(name) is gone from the old window too")
+        for name in Self.setupOnlyViews {
+            #expect(Self.mentions(name, in: setup), "\(name) is gone from the setup step")
         }
     }
 

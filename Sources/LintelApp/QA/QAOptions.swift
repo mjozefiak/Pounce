@@ -42,7 +42,8 @@ struct QAOptions: Equatable {
     /// `--qa-fail-action`: once the panel's results load, shows the failed-action message for the selected
     /// row's first action without running it (the state a moved or deleted app produces).
     var failsAction = false
-    /// `--qa-settings general|features|<plugin id>`: opens the Settings window on that pane.
+    /// `--qa-settings general|features|permissions|advanced|models|<plugin id>`: opens the main window's Settings
+    /// mode on that pane.
     var settingsPane: String?
     /// `--qa-window workspace|settings`: opens the main window in that mode (spec `2026-11-04-lintel-main-window`,
     /// step 1.2). Workspace mode falls back to Settings while no workspace section is registered.

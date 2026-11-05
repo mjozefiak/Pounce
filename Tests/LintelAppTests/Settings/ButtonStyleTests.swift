@@ -30,7 +30,7 @@ import Testing
         let picker = try source("Sources/LintelUI/Components/MenuPicker.swift")
         #expect(picker.contains(".lintelSecondaryTint()"))
         let styles = try source("Sources/LintelUI/Components/SecondaryButtonStyles.swift")
-        #expect(styles.contains("case .legacyWindow: content"))
+        #expect(styles.contains("buttonStyle(LintelDestructiveButtonStyle())"))
     }
 
     @Test func everyDestructiveButtonUsesTheSharedStyle() throws {
@@ -58,7 +58,7 @@ import Testing
         #expect(BrandPalette.contrast(BrandPalette.onStatusDark, BrandPalette.statusErrorDark) >= 4.5)
     }
 
-    /// Every plain menu picker of the main window takes the ink tint (a no-op under `.legacyWindow`).
+    /// Every plain menu picker of the main window takes the ink tint.
     @Test func plainMenuPickersTakeTheSecondaryTint() throws {
         for (file, minimum) in [
             ("Sources/LintelApp/Settings/GeneralPane.swift", 1),
@@ -70,16 +70,16 @@ import Testing
         }
     }
 
-    /// The main window's sheet says "can’t" (`mainWindowDetail`); the old window's text stays as release has it
-    /// (`ReleaseStringParityTests` pins those).
+    /// Every confirmation sheet says "This can’t be undone." the same way; the old dialog's "cannot" is gone.
     @Test func confirmationsSayItCannotBeUndoneTheSameWay() throws {
         for file in [
             "Sources/ClipboardPlugin/ClipboardSettingsPane.swift", "Sources/DictationPlugin/DictationViews.swift",
             "Sources/MeetingsPlugin/UI/MeetingsViews.swift", "Sources/LintelApp/Settings/AdvancedPane.swift",
-            "Sources/AppsPlugin/AppsSettingsPane.swift",
+            "Sources/AppsPlugin/AppsSettingsPane.swift", "Sources/LintelApp/Settings/FeaturesPane.swift",
         ] {
             let text = try source(file)
             #expect(text.contains("can’t be undone"), "\(file)")
+            #expect(!text.contains("cannot be undone"), "\(file)")
         }
     }
 }
