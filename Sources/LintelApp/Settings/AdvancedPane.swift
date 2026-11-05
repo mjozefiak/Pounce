@@ -109,7 +109,7 @@ struct AdvancedPane: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 600)
+        .frame(width: SettingsLayout.columnWidth)
         .fixedSize(horizontal: false, vertical: true)
         .destructiveConfirmation(isPresented: $confirmsReset, Self.confirmation) {
             Task {

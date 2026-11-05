@@ -764,6 +764,9 @@ final class FakeRecorder {
 
     @Test func bannerAndPaneShareOneColumn() throws {
         let text = try source("Host/SettingsHost.swift")
-        #expect(text.components(separatedBy: "maxWidth: Self.columnWidth").count - 1 == 2)
+        #expect(text.contains(".settingsBannerColumn()"))
+        #expect(text.contains(".settingsColumn()"))
+        #expect(!text.contains("columnWidth"))
+        #expect(text.range(of: #"\.frame\((max)?[wW]idth:\s*\d"#, options: .regularExpression) == nil)
     }
 }

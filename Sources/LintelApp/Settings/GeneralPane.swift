@@ -63,7 +63,7 @@ struct GeneralPane: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 600)
+        .frame(width: SettingsLayout.columnWidth)
         .fixedSize(horizontal: false, vertical: true)
         .onAppear {
             launchesAtLogin = launchAtLogin.isEnabled

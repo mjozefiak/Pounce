@@ -95,7 +95,7 @@ struct FeaturesPane: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 600)
+        .frame(width: SettingsLayout.columnWidth)
         .fixedSize(horizontal: false, vertical: true)
         .alert(
             Text("The data could not be erased.", comment: "Alert title when Erase Data fails"),

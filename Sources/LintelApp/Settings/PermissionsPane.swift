@@ -305,7 +305,7 @@ struct PermissionsPane: View {
         }
         if hostStyle == .legacyWindow {
             // The old window sizes itself from the pane.
-            content.frame(width: 600).fixedSize(horizontal: false, vertical: true)
+            content.frame(width: SettingsLayout.columnWidth).fixedSize(horizontal: false, vertical: true)
         } else {
             content
         }
