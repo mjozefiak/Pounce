@@ -1,20 +1,25 @@
 import Foundation
 import LintelKit
 import LintelSpeech
+import LintelUI
 
 /// The main window's banner of Settings → Meetings (prototype `set-meetings`, spec step 5.2).
 extension MeetingsPlugin {
     /// The shell reads it only while the plugin is active and while the view draws, so it only reads: the speech
     /// model's place and the microphone are re-read on activation, when the pane appears and when Lintel becomes
-    /// the active app, and a change signals `resultsChanged`. A denied microphone is left to the shell's
-    /// derivation; System Audio Recording cannot be read and is never counted (spec 2.2).
+    /// the active app, and a change signals `resultsChanged`. A denied microphone is listed by the shell's
+    /// derivation and counted in the title's number (`ThingsToDo`); System Audio Recording cannot be read and is
+    /// never counted (spec 2.2).
     public var settingsStatus: SettingsStatus? {
         let model = ui.model
         let library = library
         let changed = context.resultsChanged
+        let denied = ThingsToDo.deniedPermissions(
+            requiredPermissions, countedByPlugin: model.microphone == .notDetermined ? [.microphone] : [],
+            reader: context.permissions)
         return Self.settingsStatus(
             location: model.speech.location, microphone: model.microphone, library: library.status,
-            modelTitle: model.speech.package.title, packageID: model.speech.package.id,
+            modelTitle: model.speech.package.title, packageID: model.speech.package.id, deniedPermissions: denied,
             allowMicrophone: { await model.requestMicrophoneAccess() },
             retryLibrary: {
                 library.open()
@@ -29,13 +34,15 @@ extension MeetingsPlugin {
     /// Most important first: a library that cannot be opened (nothing can be recorded; Try Again, nothing is
     /// deleted), then what recording needs: a microphone macOS has not asked about yet and the speech model
     /// ("N things to do" with one "Fix Next" button, as in the prototype). The speaker model is optional and not
-    /// counted: finishing falls back to one speaker without it.
+    /// counted: finishing falls back to one speaker without it. `deniedPermissions` is how many denied required
+    /// permissions the shell adds to the detail; the number in the title counts them too.
     static func settingsStatus(
         location: ModelLocation,
         microphone: MicrophoneAccess,
         library: MeetingsLibrary.Status,
         modelTitle: String,
         packageID: String,
+        deniedPermissions: Int = 0,
         allowMicrophone: @escaping @MainActor @Sendable () async -> Void,
         retryLibrary: @escaping @MainActor @Sendable () async -> Void
     ) -> SettingsStatus? {
@@ -46,13 +53,12 @@ extension MeetingsPlugin {
             title: LocalizedStringResource(
                 "Get It in Models", comment: "Settings banner button: opens the Models pane on the missing model"),
             destination: .models(packageID: packageID))
+        let title = ThingsToDo.title((needsModel ? 1 : 0) + (needsMicrophone ? 1 : 0) + deniedPermissions)
         switch (needsModel, needsMicrophone) {
         case (true, true):
             // One button: the microphone first (it asks only on this click), then the banner offers the model.
             return SettingsStatus(
-                level: .attention,
-                title: LocalizedStringResource(
-                    "2 things to do", comment: "Settings banner: two things are needed before the feature works"),
+                level: .attention, title: title,
                 detail: LocalizedStringResource(
                     "Allow the microphone and get the speech model.",
                     comment: "Settings banner detail: the microphone was not asked yet and the speech model is missing"
@@ -68,21 +74,16 @@ extension MeetingsPlugin {
             if case .customFolderUnavailable = location {
                 detail = LocalizedStringResource(
                     "The speech model’s folder isn’t available.",
-                    comment: "Settings → Dictation banner detail: the folder the user chose for the model is gone")
+                    comment: "Settings → Meetings banner detail: the folder the user chose for the speech model is gone"
+                )
             } else {
                 detail = LocalizedStringResource(
                     "The speech model isn’t installed.", comment: "Settings banner detail: the speech model is missing")
             }
-            return SettingsStatus(
-                level: .attention,
-                title: LocalizedStringResource(
-                    "1 thing to do", comment: "Settings banner: one thing is needed before the feature works"),
-                detail: detail, fix: [getModel])
+            return SettingsStatus(level: .attention, title: title, detail: detail, fix: [getModel])
         case (false, true):
             return SettingsStatus(
-                level: .attention,
-                title: LocalizedStringResource(
-                    "1 thing to do", comment: "Settings banner: one thing is needed before the feature works"),
+                level: .attention, title: title,
                 detail: LocalizedStringResource(
                     "Allow the microphone so Lintel can hear the meeting.",
                     comment: "Settings → Meetings banner detail: macOS has not asked for the microphone yet"),
@@ -98,8 +99,7 @@ extension MeetingsPlugin {
                 title: LocalizedStringResource("Ready", comment: "Settings banner level, spoken"),
                 detail: LocalizedStringResource(
                     "Speech model: \(modelTitle).",
-                    comment:
-                        "Settings → Dictation banner detail when dictation is ready: the speech model's name"))
+                    comment: "Settings → Meetings banner detail when recording is ready: the speech model's name"))
         }
     }
 

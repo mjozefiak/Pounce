@@ -17,7 +17,7 @@ final class DictationSettingsModel {
     private(set) var microphone = MicrophoneAccess.notDetermined {
         didSet { if microphone != oldValue { onStatusChange?() } }
     }
-    /// Called when the model's place or the microphone access changed, so the plugin can tell the shell to read
+    /// Called when the model, its place or the microphone access changed, so the plugin can tell the shell to read
     /// its banner again (`PluginContext.resultsChanged`).
     @ObservationIgnored var onStatusChange: (@MainActor () -> Void)?
     private(set) var devices: [MicrophoneCapture.InputDevice] = []
@@ -29,8 +29,10 @@ final class DictationSettingsModel {
         didSet { settings.setRestoresClipboard(restoresClipboard) }
     }
 
-    /// The package of the engine chosen in Settings.
-    private(set) var package: ModelPackage
+    /// The package of the engine chosen in Settings. The Ready banner names it, so a change signals too.
+    private(set) var package: ModelPackage {
+        didSet { if package != oldValue { onStatusChange?() } }
+    }
     /// The speech models to choose from.
     let packages: [ModelPackage]
     @ObservationIgnored private let manager: ModelManager

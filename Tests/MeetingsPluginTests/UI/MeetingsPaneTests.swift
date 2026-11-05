@@ -117,12 +117,14 @@ import Testing
         location: ModelLocation = .installed(URL(filePath: "/tmp/model")),
         microphone: MicrophoneAccess = .granted,
         library: MeetingsLibrary.Status = .ready,
+        denied: Int = 0,
         allow: @escaping @MainActor @Sendable () async -> Void = {},
         retry: @escaping @MainActor @Sendable () async -> Void = {}
     ) -> SettingsStatus? {
         MeetingsPlugin.settingsStatus(
             location: location, microphone: microphone, library: library, modelTitle: "Parakeet Ultra",
-            packageID: ModelCatalog.parakeetUltra.id, allowMicrophone: allow, retryLibrary: retry)
+            packageID: ModelCatalog.parakeetUltra.id, deniedPermissions: denied, allowMicrophone: allow,
+            retryLibrary: retry)
     }
 
     @Test func aFreshProfileHasTwoThingsToDoWithOneFixNextButton() async throws {
@@ -158,6 +160,14 @@ import Testing
         }
         let gone = try #require(status(location: .customFolderUnavailable(URL(filePath: "/Volumes/Gone"))))
         #expect(gone.detail?.key == "The speech model’s folder isn’t available.")
+    }
+
+    @Test func aDeniedMicrophoneIsCountedWithTheMissingModel() throws {
+        // The shell adds "Microphone: not allowed" to the detail, so the title counts it.
+        let banner = try #require(status(location: .missing, microphone: .denied, denied: 1))
+        #expect(banner.title.key == "2 things to do")
+        #expect(banner.detail?.key == "The speech model isn’t installed.")
+        #expect(status(microphone: .denied, denied: 1)?.title.key == "Ready")
     }
 
     @Test func anUnaskedMicrophoneAloneOffersAllowMicrophone() throws {

@@ -337,13 +337,17 @@ public final class DictationPlugin: LintelPlugin {
     /// The main window's banner (prototype `set-dictation`). The shell reads it only while the plugin is active
     /// and while the view draws, so it only reads: the model's place and the microphone are re-read on
     /// activation, when the pane appears and when Lintel becomes the active app, and a change signals
-    /// `resultsChanged`. A denied microphone or Accessibility is left to the shell's derivation.
+    /// `resultsChanged`. A denied microphone or Accessibility is listed by the shell's derivation; the title's
+    /// number counts it (`ThingsToDo`).
     public var settingsStatus: SettingsStatus? {
         let model = settingsModel
         let history = history
+        let denied = ThingsToDo.deniedPermissions(
+            requiredPermissions, countedByPlugin: model.microphone == .notDetermined ? [.microphone] : [],
+            reader: context.permissions)
         return Self.settingsStatus(
             location: model.location, microphone: model.microphone, history: history.status,
-            modelTitle: model.package.title, packageID: model.package.id,
+            modelTitle: model.package.title, packageID: model.package.id, deniedPermissions: denied,
             allowMicrophone: { await model.requestMicrophoneAccess() },
             retryHistory: { history.open() })
     }
@@ -354,13 +358,15 @@ public final class DictationPlugin: LintelPlugin {
 
     /// Most important first: what keeps dictation from working (the speech model, a microphone macOS has not
     /// asked about yet; "N things to do" as in the prototype), then a history that cannot be opened (dictation
-    /// still works; Try Again, nothing is deleted), else "Ready".
+    /// still works; Try Again, nothing is deleted), else "Ready". `deniedPermissions` is how many denied required
+    /// permissions the shell adds to the detail; the number in the title counts them too.
     static func settingsStatus(
         location: ModelLocation,
         microphone: MicrophoneAccess,
         history: DictationHistory.Status,
         modelTitle: String,
         packageID: String,
+        deniedPermissions: Int = 0,
         allowMicrophone: @escaping @MainActor @Sendable () async -> Void,
         retryHistory: @escaping @MainActor @Sendable () async -> Void
     ) -> SettingsStatus? {
@@ -373,12 +379,11 @@ public final class DictationPlugin: LintelPlugin {
         let askMicrophone = SettingsStatusAction(
             title: LocalizedStringResource("Allow Microphone", comment: "Button that asks for microphone access"),
             destination: .plugin(id: allowMicrophoneActionID, perform: allowMicrophone))
+        let title = ThingsToDo.title((needsModel ? 1 : 0) + (needsMicrophone ? 1 : 0) + deniedPermissions)
         switch (needsModel, needsMicrophone) {
         case (true, true):
             return SettingsStatus(
-                level: .attention,
-                title: LocalizedStringResource(
-                    "2 things to do", comment: "Settings banner: two things are needed before the feature works"),
+                level: .attention, title: title,
                 detail: LocalizedStringResource(
                     "Allow the microphone and get the speech model.",
                     comment: "Settings banner detail: the microphone was not asked yet and the speech model is missing"
@@ -394,16 +399,10 @@ public final class DictationPlugin: LintelPlugin {
                 detail = LocalizedStringResource(
                     "The speech model isn’t installed.", comment: "Settings banner detail: the speech model is missing")
             }
-            return SettingsStatus(
-                level: .attention,
-                title: LocalizedStringResource(
-                    "1 thing to do", comment: "Settings banner: one thing is needed before the feature works"),
-                detail: detail, fix: [getModel])
+            return SettingsStatus(level: .attention, title: title, detail: detail, fix: [getModel])
         case (false, true):
             return SettingsStatus(
-                level: .attention,
-                title: LocalizedStringResource(
-                    "1 thing to do", comment: "Settings banner: one thing is needed before the feature works"),
+                level: .attention, title: title,
                 detail: LocalizedStringResource(
                     "Allow the microphone so Lintel can hear you.",
                     comment: "Settings → Dictation banner detail: macOS has not asked for the microphone yet"),

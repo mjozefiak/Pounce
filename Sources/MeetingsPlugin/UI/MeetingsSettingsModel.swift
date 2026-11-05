@@ -9,7 +9,7 @@ final class MeetingsSettingsModel {
     private(set) var microphone = MicrophoneAccess.notDetermined {
         didSet { if microphone != oldValue { onStatusChange?() } }
     }
-    /// Called when the speech model's place or the microphone access changed, so the plugin can tell the shell
+    /// Called when the speech model, its place or the microphone access changed, so the plugin can tell the shell
     /// to read its banner again (`PluginContext.resultsChanged`).
     @ObservationIgnored var onStatusChange: (@MainActor () -> Void)?
     private(set) var devices: [MicrophoneCapture.InputDevice] = []
@@ -128,6 +128,8 @@ final class MeetingsSettingsModel {
         speechPackageID = id
         settings.setSpeechModelID(id)
         speech.use(chosen)
+        // The Ready banner names the model: the shell reads it again even when the new one is in the same place.
+        onStatusChange?()
     }
 
     // MARK: Microphone

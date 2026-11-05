@@ -398,7 +398,7 @@
       }
     },
     "%lld things to do" : {
-      "comment" : "Settings → Permissions banner: permissions to allow",
+      "comment" : "Settings banner: the number of things needed (Permissions pane and plugin panes)",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -4052,7 +4052,7 @@
       }
     },
     "Speech model: %@." : {
-      "comment" : "Settings → Dictation banner detail when dictation is ready: the speech model's name",
+      "comment" : "Settings → Dictation and Meetings banner detail when the feature is ready: the speech model's name",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -4700,7 +4700,7 @@
       }
     },
     "The speech model’s folder isn’t available." : {
-      "comment" : "Settings → Dictation banner detail: the folder the user chose for the model is gone",
+      "comment" : "Settings → Dictation and Meetings banner detail: the folder the user chose for the speech model is gone",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {

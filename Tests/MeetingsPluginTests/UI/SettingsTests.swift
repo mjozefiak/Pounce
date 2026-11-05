@@ -139,11 +139,16 @@ import Testing
             notes: rig.model.notes, speechPackages: [rig.models.package, other.package], authorizer: rig.authorizer,
             listDevices: { [] },
             openURL: { _ in })
+        var signals = 0
+        model.onStatusChange = { signals += 1 }
         model.selectSpeechModel("other-engine")
         #expect(model.speech.package.id == "other-engine")
         #expect(rig.harness.meetingsSettings.speechModelID == "other-engine")
+        // The Ready banner names the model, so the shell reads it again even when the place is unchanged.
+        #expect(signals == 1)
         model.selectSpeechModel("unknown")
         #expect(model.speech.package.id == "other-engine")
+        #expect(signals == 1)
         #expect(!model.usesPinnedLanguage)
     }
 }

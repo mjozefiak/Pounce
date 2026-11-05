@@ -94,12 +94,14 @@ import Testing
         location: ModelLocation = .installed(URL(filePath: "/tmp/model")),
         microphone: MicrophoneAccess = .granted,
         history: DictationHistory.Status = .ready,
+        denied: Int = 0,
         allow: @escaping @MainActor @Sendable () async -> Void = {},
         retry: @escaping @MainActor @Sendable () async -> Void = {}
     ) -> SettingsStatus? {
         DictationPlugin.settingsStatus(
             location: location, microphone: microphone, history: history, modelTitle: "Parakeet Ultra",
-            packageID: ModelCatalog.parakeetUltra.id, allowMicrophone: allow, retryHistory: retry)
+            packageID: ModelCatalog.parakeetUltra.id, deniedPermissions: denied, allowMicrophone: allow,
+            retryHistory: retry)
     }
 
     @Test func aMissingModelNeedsAttentionWithGetItInModels() throws {
@@ -163,6 +165,32 @@ import Testing
         #expect(banner.level == .attention)
         #expect(banner.title.key == "2 things to do")
         #expect(banner.fix.map(\.title.key) == ["Allow Microphone", "Get It in Models"])
+    }
+
+    @Test func theNumberCountsTheDeniedPermissionsTheShellLists() throws {
+        // Accessibility denied: the shell adds it to the detail, so the title counts it.
+        let three = try #require(status(location: .missing, microphone: .notDetermined, denied: 1))
+        #expect(three.title.key == "%lld things to do")
+        #expect(String(localized: three.title) == "3 things to do")
+        #expect(status(location: .missing, denied: 1)?.title.key == "2 things to do")
+        #expect(status(location: .missing, microphone: .denied, denied: 2)?.title.key == "%lld things to do")
+        // Nothing of the plugin's own: the shell's own banner names the permission.
+        #expect(status(denied: 1)?.title.key == "Ready")
+    }
+
+    @Test func thePluginReadsTheDeniedPermissionsFromItsContext() async throws {
+        let harness = try DictationHarness()
+        defer { harness.tearDown() }
+        let authorizer = FakeAuthorizer()
+        authorizer.access.withLock { $0 = .notDetermined }
+        // A microphone macOS has not asked about is the plugin's own item, never counted twice.
+        harness.permissions.states = [.accessibility: .denied, .microphone: .denied]
+        let plugin = DictationPlugin(context: harness.context, makeBuiltInLLM: nil, authorizer: authorizer)
+        try await plugin.activate()
+        #expect(plugin.settingsStatus.map { String(localized: $0.title) } == "3 things to do")
+        harness.permissions.states = [.accessibility: .granted]
+        #expect(plugin.settingsStatus?.title.key == "2 things to do")
+        await plugin.deactivate()
     }
 
     @Test func anUnreadableHistoryOffersTryAgain() async throws {

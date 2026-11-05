@@ -77,7 +77,8 @@ enum ShellPaneBanners {
         return StatusDerivation.Banner(
             level: .attention,
             title: String(
-                localized: "\(open.count) things to do", comment: "Settings → Permissions banner: permissions to allow"),
+                localized: "\(open.count) things to do",
+                comment: "Settings banner: the number of things needed (Permissions pane and plugin panes)"),
             detail: String(
                 localized: "Features that are on can't start until these are allowed.",
                 comment: "Settings → Permissions banner detail"),
