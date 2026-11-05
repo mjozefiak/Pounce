@@ -219,6 +219,9 @@ struct SettingsHost: View {
                         }
                     }
                 }
+                // The prototype's `--ink` for the title and the banner's title (the system label colour is a
+                // neutral grey, not the warm ink).
+                .foregroundStyle(LintelBrand.ink)
                 .settingsBannerColumn()
                 .padding(.top, Self.topInset)
                 ScrollView {
