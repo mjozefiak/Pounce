@@ -63,7 +63,7 @@ let package = Package(
         ),
         .target(
             name: "FilesPlugin",
-            dependencies: ["LintelKit", "LintelCore", "LintelPersistence"]
+            dependencies: ["LintelKit", "LintelCore", "LintelPersistence", "LintelUI"]
         ),
         .target(
             name: "ClipboardPlugin",

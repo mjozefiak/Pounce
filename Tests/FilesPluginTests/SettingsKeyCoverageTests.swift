@@ -24,7 +24,21 @@ import Testing
 
     /// The pane view and model sources, relative to the repository root.
     static let paneFiles = [
-        "Sources/FilesPlugin/FilesViews.swift"
+        "Sources/FilesPlugin/FilesViews.swift",
+        "Sources/FilesPlugin/FilesSettingsPane.swift",
+        "Sources/FilesPlugin/LegacyFilesSettingsPane.swift",
+    ]
+
+    /// Each window's own sources (step 4.3): every key stays reachable in the main window and in the old one.
+    /// The main window starts indexing from its banner, so its sources include the plugin's `settingsStatus`.
+    static let windowSources: [[String]] = [
+        ["Sources/FilesPlugin/FilesSettingsPane.swift", "Sources/FilesPlugin/FilesPlugin.swift"],
+        ["Sources/FilesPlugin/LegacyFilesSettingsPane.swift"],
+    ]
+
+    /// Tokens that differ in the main window: "Start Indexing" is the banner's plugin action there.
+    static let mainWindowTokens: [String: String] = [
+        "setupCompleted": "perform: startIndexing"
     ]
 
     private static let root: URL = {
@@ -67,6 +81,16 @@ import Testing
         }
         for (key, reason) in Self.exempt {
             #expect(!reason.isEmpty, "\(key) needs a reason")
+        }
+    }
+
+    @Test func bothWindowsReachEveryNonExemptKey() throws {
+        for (index, files) in Self.windowSources.enumerated() {
+            let source = try files.map { try Self.read($0) }.joined(separator: "\n")
+            for (key, token) in Self.paneTokens {
+                let expected = index == 0 ? Self.mainWindowTokens[key] ?? token : token
+                #expect(source.contains(expected), "\(key): \(files) do not contain \(expected)")
+            }
         }
     }
 }

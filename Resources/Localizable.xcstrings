@@ -12060,6 +12060,402 @@
           }
         }
       }
+    },
+    "Allow Full Disk Access" : {
+      "comment" : "Settings → Files banner button: opens the Full Disk Access settings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Full Disk Access"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól na pełny dostęp"
+          }
+        }
+      }
+    },
+    "Start Indexing (banner)" : {
+      "comment" : "Settings → Files banner button: starts the first file scan",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start Indexing"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zacznij indeksować"
+          }
+        }
+      }
+    },
+    "Indexing hasn’t started" : {
+      "comment" : "Settings → Files banner before the first file scan",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indexing hasn’t started"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indeksowanie jeszcze się nie zaczęło"
+          }
+        }
+      }
+    },
+    "Start indexing to find files by name." : {
+      "comment" : "Settings → Files banner detail before the first scan, with Full Disk Access",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start indexing to find files by name."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zacznij indeksować, aby szukać plików po nazwie."
+          }
+        }
+      }
+    },
+    "Full Disk Access adds Documents and Desktop." : {
+      "comment" : "Settings → Files banner detail: what Full Disk Access adds to the index",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Full Disk Access adds Documents and Desktop."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pełny dostęp do dysku dodaje Dokumenty i Pulpit."
+          }
+        }
+      }
+    },
+    "Indexing…" : {
+      "comment" : "Settings → Files banner while files are indexed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indexing…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indeksowanie…"
+          }
+        }
+      }
+    },
+    "%lld items so far." : {
+      "comment" : "Settings → Files banner detail while indexing: the number of items so far",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld item so far."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld items so far."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Na razie %lld element."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Na razie %lld elementy."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Na razie %lld elementów."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Na razie %lld elementu."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld items indexed." : {
+      "comment" : "Settings → Files banner detail: the number of indexed files and folders",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld item indexed."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld items indexed."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zindeksowano %lld element."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zindeksowano %lld elementy."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zindeksowano %lld elementów."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zindeksowano %lld elementu."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld items indexed. Full Disk Access adds Documents and Desktop." : {
+      "comment" : "Settings → Files banner detail without Full Disk Access: the number of items",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld item indexed. Full Disk Access adds Documents and Desktop."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld items indexed. Full Disk Access adds Documents and Desktop."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zindeksowano %lld element. Pełny dostęp do dysku dodaje Dokumenty i Pulpit."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zindeksowano %lld elementy. Pełny dostęp do dysku dodaje Dokumenty i Pulpit."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zindeksowano %lld elementów. Pełny dostęp do dysku dodaje Dokumenty i Pulpit."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zindeksowano %lld elementu. Pełny dostęp do dysku dodaje Dokumenty i Pulpit."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Folders to index" : {
+      "comment" : "Settings → Files: label of the searched folders row",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folders to index"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foldery do indeksowania"
+          }
+        }
+      }
+    },
+    "Home folder and Applications" : {
+      "comment" : "Settings → Files: the default searched folders",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Home folder and Applications"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder domowy i Aplikacje"
+          }
+        }
+      }
+    },
+    "Include iCloud Drive" : {
+      "comment" : "Settings → Files: switch that indexes iCloud Drive",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Include iCloud Drive"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uwzględnij iCloud Drive"
+          }
+        }
+      }
+    },
+    "Without Full Disk Access, macOS asks once for this folder." : {
+      "comment" : "Settings → Files: help under Include iCloud Drive without Full Disk Access",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Without Full Disk Access, macOS asks once for this folder."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bez pełnego dostępu do dysku macOS zapyta raz o ten folder."
+          }
+        }
+      }
+    },
+    "Not built yet" : {
+      "comment" : "Settings → Files: the index before the first scan",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not built yet"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jeszcze nie zbudowany"
+          }
+        }
+      }
+    },
+    "Rebuild…" : {
+      "comment" : "Settings → Files: button that deletes the file index and scans again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rebuild…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odbuduj…"
+          }
+        }
+      }
+    },
+    "Home folder" : {
+      "comment" : "Settings → Files: the home folder in the folder list",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Home folder"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder domowy"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

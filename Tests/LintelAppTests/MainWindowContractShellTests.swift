@@ -115,7 +115,8 @@ final class PanePlugin: LintelPlugin {
             let kinds = plugin.modelUsage.map(\.kind)
             #expect(entry.manifest.canBeDisabled)
             #expect(sections == 0)
-            #expect(!hasStatus)
+            // Step 4.3: Files always has a banner ("Indexing hasn’t started" before the first scan).
+            #expect(hasStatus == (entry.manifest.id == "files"))
             // Step 3.2: the voice plugins declare their models; the others none.
             switch entry.manifest.id {
             case "dictation": #expect(kinds == [.speech, .llm])

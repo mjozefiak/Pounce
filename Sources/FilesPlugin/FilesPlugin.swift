@@ -119,6 +119,91 @@ public final class FilesPlugin: LintelPlugin {
         AnyView(FilesSettingsPane(model: viewModel))
     }
 
+    /// The main window's banner (prototype `set-files`). Reading it may re-check Full Disk Access (at most every
+    /// few seconds), so a grant in System Settings shows when the user comes back; read by the shell only while
+    /// active.
+    public var settingsStatus: SettingsStatus? {
+        refreshAccessIfStale()
+        return Self.settingsStatus(
+            status: state.status,
+            setupCompleted: settings.setupCompleted,
+            fullDiskAccess: state.fullDiskAccess,
+            startIndexing: { [weak self] in self?.completeSetup() }
+        )
+    }
+
+    /// The banner id of "Start Indexing".
+    nonisolated static let startIndexingActionID = "startIndexing"
+
+    /// "Indexing hasn't started" with Start Indexing and Allow Full Disk Access before the first scan, progress
+    /// while the index loads or scans, "Ready · N items indexed." after. Indexing without Full Disk Access is
+    /// intended (protected folders are skipped), so the banner acknowledges it and offers it itself.
+    nonisolated static func settingsStatus(
+        status: IndexStatus,
+        setupCompleted: Bool,
+        fullDiskAccess: PermissionStatus,
+        startIndexing: @escaping @MainActor @Sendable () async -> Void
+    ) -> SettingsStatus {
+        let hasAccess = fullDiskAccess == .granted
+        let allowAccess = SettingsStatusAction(
+            title: LocalizedStringResource(
+                "Allow Full Disk Access", comment: "Settings → Files banner button: opens the Full Disk Access settings"
+            ),
+            destination: .systemSettings(.fullDiskAccess))
+        let accessFix = hasAccess ? [] : [allowAccess]
+        let acknowledged: Set<Permission> = hasAccess ? [] : [.fullDiskAccess]
+        guard setupCompleted else {
+            let start = SettingsStatusAction(
+                title: LocalizedStringResource(
+                    "Start Indexing (banner)", defaultValue: "Start Indexing",
+                    comment: "Settings → Files banner button: starts the first file scan"),
+                destination: .plugin(id: startIndexingActionID, perform: startIndexing))
+            return SettingsStatus(
+                level: .attention,
+                title: LocalizedStringResource(
+                    "Indexing hasn’t started", comment: "Settings → Files banner before the first file scan"),
+                detail: hasAccess
+                    ? LocalizedStringResource(
+                        "Start indexing to find files by name.",
+                        comment: "Settings → Files banner detail before the first scan, with Full Disk Access")
+                    : LocalizedStringResource(
+                        "Full Disk Access adds Documents and Desktop.",
+                        comment: "Settings → Files banner detail: what Full Disk Access adds to the index"),
+                fix: [start] + accessFix,
+                acknowledgedPermissions: acknowledged)
+        }
+        switch status.phase {
+        case .waiting, .loading:
+            return SettingsStatus(
+                level: .neutral,
+                title: LocalizedStringResource(
+                    "Loading the file index…", comment: "Panel progress while the saved index loads"),
+                acknowledgedPermissions: acknowledged)
+        case .scanning:
+            return SettingsStatus(
+                level: .neutral,
+                title: LocalizedStringResource("Indexing…", comment: "Settings → Files banner while files are indexed"),
+                detail: LocalizedStringResource(
+                    "\(status.count) items so far.",
+                    comment: "Settings → Files banner detail while indexing: the number of items so far"),
+                fix: accessFix,
+                acknowledgedPermissions: acknowledged)
+        case .ready:
+            return SettingsStatus(
+                level: .ok,
+                title: LocalizedStringResource("Ready", comment: "Settings banner level, spoken"),
+                detail: hasAccess
+                    ? LocalizedStringResource(
+                        "\(status.count) items indexed.",
+                        comment: "Settings → Files banner detail: the number of indexed files and folders")
+                    : LocalizedStringResource(
+                        "\(status.count) items indexed. Full Disk Access adds Documents and Desktop.",
+                        comment: "Settings → Files banner detail without Full Disk Access: the number of items"),
+                fix: accessFix,
+                acknowledgedPermissions: acknowledged)
+        }
+    }
+
     /// Indexing progress, a "not set up yet" notice before the first scan, and the "no Full Disk Access"
     /// notice. Reading it may re-check Full Disk Access (at most every few seconds), so granting it in
     /// System Settings is noticed the next time the panel searches.
