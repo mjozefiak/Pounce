@@ -30,7 +30,8 @@ public final class FilesPlugin: LintelPlugin {
         id: "files",
         displayName: LocalizedStringResource("Files", comment: "Results section and plugin name for files"),
         symbolName: "doc",
-        order: 20
+        order: 20,
+        settingsGroup: .search
     )
 
     static let onboardingStepID = "files.fullDiskAccess"

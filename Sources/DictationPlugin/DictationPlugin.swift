@@ -23,7 +23,8 @@ public final class DictationPlugin: LintelPlugin {
         displayName: LocalizedStringResource("Dictation", comment: "Plugin name of voice dictation"),
         symbolName: "mic",
         order: 40,
-        defaultEnabled: false
+        defaultEnabled: false,
+        settingsGroup: .voice
     )
 
     static let recordCommandID = "dictation.record"

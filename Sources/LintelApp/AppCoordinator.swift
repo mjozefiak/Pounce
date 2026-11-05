@@ -128,6 +128,13 @@ final class AppCoordinator {
         settingsWindow?.show(pane)
     }
 
+    /// The plugin panes of the main window's Settings mode: unlike the old Settings window, it includes disabled
+    /// and failed plugins, drawn dimmed. Used by the main window (spec steps 1.2 and 1.3), which stays behind the
+    /// DEBUG release gate until step 6.3.
+    func mainWindowPluginPanes() -> [SettingsWindowController.PluginPane] {
+        host.settingsPanes(includingInactive: true)
+    }
+
     /// Hides the panel first and shows the About window with the third-party notices.
     func showAbout() {
         panelModel.hide()
@@ -211,17 +218,8 @@ final class AppCoordinator {
                     AdvancedPane(
                         controls: AdvancedControls(usage: environment.usage) { self?.panelModel.resultsChanged() }))
             },
-            pluginPanes: {
-                host.entries.compactMap { entry in
-                    guard entry.state.isActive, let view = entry.plugin.settingsPane() else { return nil }
-                    return SettingsWindowController.PluginPane(
-                        id: entry.manifest.id.rawValue,
-                        title: String(localized: entry.manifest.displayName),
-                        symbolName: entry.manifest.symbolName,
-                        view: view
-                    )
-                }
-            }
+            // The old window keeps skipping inactive plugins until it is removed (spec step 6.3).
+            pluginPanes: { host.settingsPanes(includingInactive: false) }
         )
         window.activatesApp = environment.registersGlobalHotkeys
         settingsWindow = window

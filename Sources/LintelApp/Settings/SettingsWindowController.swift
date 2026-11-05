@@ -24,6 +24,8 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         let title: String
         let symbolName: String
         let view: AnyView
+        /// False for the pane of a disabled or failed plugin, which only the main window shows (dimmed).
+        var isActive = true
     }
 
     private var window: NSWindow?

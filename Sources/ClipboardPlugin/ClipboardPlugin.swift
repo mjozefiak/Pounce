@@ -21,7 +21,8 @@ public final class ClipboardPlugin: LintelPlugin {
         id: "clipboard",
         displayName: LocalizedStringResource("Clipboard History", comment: "Plugin name of the clipboard history"),
         symbolName: "doc.on.clipboard",
-        order: 30
+        order: 30,
+        settingsGroup: .search
     )
 
     static let modeID: PanelModeID = "clipboard"

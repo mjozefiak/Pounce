@@ -121,6 +121,12 @@ public struct PluginContext: Sendable {
     /// models (`speech/`, `llm/`), shared by every plugin that needs one and not removed by Erase Data. Added
     /// with the meeting notes spec; defaults to `Models/` inside the storage directory.
     public let modelsDirectory: URL
+    /// The commands of the active plugins for a command palette: commands with `onKeyEvent` are left out, and a
+    /// `panelMode` command opens the launcher panel in that mode. Added with the main window; defaults to none.
+    public let availableCommands: @MainActor @Sendable () -> [CommandInfo]
+    /// Opens the Models pane of Settings, scrolled to the package's row when it is given. Added with the main
+    /// window; the default does nothing.
+    public let openModels: @MainActor @Sendable (_ packageID: String?) -> Void
 
     public init(
         storageDirectory: URL,
@@ -142,7 +148,9 @@ public struct PluginContext: Sendable {
             @escaping @MainActor @Sendable (_ onEscape: @escaping @MainActor @Sendable () -> Void) ->
             EscapeKeyClaim = { _ in .inactive },
         openSettings: @escaping @MainActor @Sendable () -> Void = {},
-        modelsDirectory: URL? = nil
+        modelsDirectory: URL? = nil,
+        availableCommands: @escaping @MainActor @Sendable () -> [CommandInfo] = { [] },
+        openModels: @escaping @MainActor @Sendable (_ packageID: String?) -> Void = { _ in }
     ) {
         self.storageDirectory = storageDirectory
         self.settings = settings
@@ -162,5 +170,7 @@ public struct PluginContext: Sendable {
         self.openSettings = openSettings
         self.modelsDirectory =
             modelsDirectory ?? storageDirectory.appending(path: "Models", directoryHint: .isDirectory)
+        self.availableCommands = availableCommands
+        self.openModels = openModels
     }
 }

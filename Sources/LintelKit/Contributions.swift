@@ -178,6 +178,10 @@ public enum Permission: String, Hashable, Sendable, CaseIterable {
     /// always answers `PermissionStatus.notDetermined` for it and a plugin finds out only when the tap
     /// fails to start. Added with meeting notes.
     case systemAudioRecording
+
+    /// Whether `PermissionsReader` can read the permission's state. `false` for `.systemAudioRecording`, whose
+    /// state macOS does not report. Added with the main window.
+    public var isReadable: Bool { self != .systemAudioRecording }
 }
 
 /// What the host knows about a permission.
