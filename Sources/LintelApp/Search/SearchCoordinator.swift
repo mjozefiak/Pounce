@@ -134,7 +134,7 @@ final class SearchCoordinator {
                 sections.append(
                     ResultSection(
                         id: "unavailable:\(id.rawValue)",
-                        title: entry.manifest.displayName,
+                        title: entry.manifest.resultsTitle,
                         symbolName: entry.manifest.symbolName,
                         kind: .unavailable(id),
                         items: []
@@ -151,13 +151,13 @@ final class SearchCoordinator {
                         id: "\(sectionID)|\($0.itemKey.rawValue)",
                         candidate: $0,
                         source: group.source,
-                        kind: entry.manifest.displayName
+                        kind: entry.manifest.resultsTitle
                     )
                 }
                 sections.append(
                     ResultSection(
                         id: sectionID,
-                        title: entry.manifest.displayName,
+                        title: entry.manifest.resultsTitle,
                         symbolName: entry.manifest.symbolName,
                         kind: .results,
                         items: items
@@ -261,7 +261,7 @@ final class SearchCoordinator {
         var sourceByKey: [ItemKey: (any SearchSource, LocalizedStringResource)] = [:]
         var candidates: [Candidate] = []
         for group in groups {
-            let kind = host.entries.first { $0.manifest.id == group.pluginID }?.manifest.displayName ?? "Lintel"
+            let kind = host.entries.first { $0.manifest.id == group.pluginID }?.manifest.resultsTitle ?? "Lintel"
             for candidate in group.candidates where sourceByKey[candidate.itemKey] == nil {
                 sourceByKey[candidate.itemKey] = (group.source, kind)
                 candidates.append(candidate)

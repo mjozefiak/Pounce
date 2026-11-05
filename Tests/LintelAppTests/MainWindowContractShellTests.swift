@@ -117,6 +117,20 @@ final class PanePlugin: LintelPlugin {
         #expect(summaries["clipboard"] == "Paste from history.")
         #expect(summaries["dictation"] == "Speak instead of typing.")
         #expect(summaries["meetings"] == "Record meetings, keep notes.")
+        // Owner decision 6.6d: the Settings names of prototype `set-*` (sidebar and pane titles); the launcher keeps
+        // its headings through `resultsTitle`.
+        #expect(
+            host.entries.map { String(localized: $0.manifest.displayName) } == [
+                "Apps", "Files", "Clipboard", "Dictation", "Meetings",
+            ])
+        let results = Dictionary(
+            uniqueKeysWithValues: host.entries.map { ($0.manifest.id, String(localized: $0.manifest.resultsTitle)) })
+        #expect(results["apps"] == "Applications")
+        #expect(results["files"] == "Files")
+        #expect(results["clipboard"] == "Clipboard History")
+        #expect(results["dictation"] == "Dictation")
+        #expect(results["meetings"] == "Meetings")
+        #expect(host.settingsPanes().map(\.title) == ["Apps", "Files", "Clipboard", "Dictation", "Meetings"])
         for entry in host.entries {
             let plugin = entry.plugin
             let sections = plugin.workspaceSections.count

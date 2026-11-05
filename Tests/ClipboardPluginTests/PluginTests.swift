@@ -257,6 +257,9 @@ struct ClipboardPluginLifecycleTests {
         #expect(history.defaultShortcut == KeyShortcut(key: "v", modifiers: [.command, .shift]))
         let mode = try #require(harness.plugin.panelModes.first)
         #expect(mode.isListMode)
+        // Owner decision 6.6d: Settings says "Clipboard", the launcher's list mode keeps "Clipboard History".
+        #expect(String(localized: mode.title) == "Clipboard History")
+        #expect(String(localized: ClipboardPlugin.manifest.displayName) == "Clipboard")
         #expect(mode.filters.map(\.id) == ["text", "rich", "image", "file", "url"])
         #expect(harness.plugin.onboardingSteps.map(\.id) == [ClipboardPlugin.onboardingStepID])
         #expect(harness.plugin.requiredPermissions == [.accessibility, .pasteboard])

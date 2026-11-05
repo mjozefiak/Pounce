@@ -5,6 +5,7 @@ import SwiftUI
 public struct PluginManifest: Sendable {
     /// Stable identifier; it appears in item keys, paths and settings keys, so it never changes.
     public let id: PluginID
+    /// The feature's name in Settings (sidebar, pane title, Features) and wherever the shell names the feature.
     public let displayName: LocalizedStringResource
     /// SF Symbol for the plugin's results section and settings pane.
     public let symbolName: String
@@ -19,6 +20,10 @@ public struct PluginManifest: Sendable {
     /// One line that says what the feature does, under its name in Settings → Features ("Find files by name.").
     /// Added with the main window; defaults to `nil` (the row shows the name only).
     public let summary: LocalizedStringResource?
+    /// The heading of the plugin's results in the launcher (its sections, the kind in Recently Used) when it should
+    /// differ from `displayName` ("Applications" for Apps). Added with the main window; defaults to `nil`, which
+    /// means `displayName`. Read it through `resultsTitle`.
+    public let sectionTitle: LocalizedStringResource?
 
     public init(
         id: PluginID,
@@ -28,7 +33,8 @@ public struct PluginManifest: Sendable {
         defaultEnabled: Bool = true,
         canBeDisabled: Bool = true,
         settingsGroup: SettingsGroup = .lintel,
-        summary: LocalizedStringResource? = nil
+        summary: LocalizedStringResource? = nil,
+        sectionTitle: LocalizedStringResource? = nil
     ) {
         self.id = id
         self.displayName = displayName
@@ -38,7 +44,11 @@ public struct PluginManifest: Sendable {
         self.canBeDisabled = canBeDisabled
         self.settingsGroup = settingsGroup
         self.summary = summary
+        self.sectionTitle = sectionTitle
     }
+
+    /// The launcher's heading for the plugin's results: `sectionTitle`, else `displayName`.
+    public var resultsTitle: LocalizedStringResource { sectionTitle ?? displayName }
 }
 
 /// A feature of Lintel, compiled into the app and registered in `PluginRegistry`.

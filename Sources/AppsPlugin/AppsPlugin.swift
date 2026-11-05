@@ -22,11 +22,13 @@ import os
 public final class AppsPlugin: LintelPlugin {
     public nonisolated static let manifest = PluginManifest(
         id: "apps",
-        displayName: LocalizedStringResource("Applications", comment: "Results section and plugin name for apps"),
+        displayName: LocalizedStringResource("Apps", comment: "Plugin name of app search in Settings"),
         symbolName: "square.grid.2x2",
         order: 10,
         settingsGroup: .search,
-        summary: LocalizedStringResource("Find and open apps.", comment: "Settings → Features: what Apps does")
+        summary: LocalizedStringResource("Find and open apps.", comment: "Settings → Features: what Apps does"),
+        // The launcher keeps its heading (prototype `lintel-brand`); Settings says "Apps" (prototype `set-apps`).
+        sectionTitle: LocalizedStringResource("Applications", comment: "Results section title for apps")
     )
 
     /// Spotlight updates arrive in bursts; one rescan follows each quiet period of this length.

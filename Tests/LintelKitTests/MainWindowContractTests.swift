@@ -51,6 +51,13 @@ import Testing
         // Owner decision 6.6b: the Features description is optional; a manifest written before it has none.
         #expect(manifest.summary == nil)
         #expect(MainWindowPlugin.manifest.summary.map { String(localized: $0) } == "Does one thing.")
+        // Owner decision 6.6d: the launcher heading defaults to the display name.
+        #expect(manifest.sectionTitle == nil)
+        #expect(String(localized: manifest.resultsTitle) == "Before")
+        let titled = PluginManifest(
+            id: "titled", displayName: "Apps", symbolName: "a.circle", order: 3, sectionTitle: "Applications")
+        #expect(String(localized: titled.resultsTitle) == "Applications")
+        #expect(String(localized: titled.displayName) == "Apps")
         #expect(SettingsGroup.search.rawValue == "search")
         #expect(SettingsGroup(rawValue: "voice") == .voice)
     }

@@ -68,7 +68,8 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 | 6 | 6.3c-fix-c | Test fix: no test may show a real recording HUD or hang | dispatch:capable | done | 0ac3d53 |
 | 6 | 6.6a | Owner fix: the prototype's warm neutral palette (LintelBrand window, sidebar, card, secondary text, hairline, fill, window tint) in the main window, Settings, welcome and plugin panes | dispatch | done | d1d0795 |
 | 6 | 6.6b | Owner decision: `PluginManifest.summary`, the one-line feature descriptions of prototype `set-features` in Settings → Features | dispatch | done | f69b09d |
-| 6 | 6.6c | Owner decision: `ModelUsage.customFolder`; the Models pane shows the state of a folder Dictation or Meetings chose instead of "Not downloaded" | dispatch | done | (this commit) |
+| 6 | 6.6c | Owner decision: `ModelUsage.customFolder`; the Models pane shows the state of a folder Dictation or Meetings chose instead of "Not downloaded" | dispatch | done | b66a4e6 |
+| 6 | 6.6d | Owner decision: Settings names of the prototype (Apps, Clipboard); `PluginManifest.sectionTitle` keeps the launcher headings (Applications, Clipboard History) | dispatch | done | (this commit) |
 
 Step 6.2 (⌃X confirmation) is NOT in this table: it is a separate PR on a fresh branch from main, done after this PR is complete.
 

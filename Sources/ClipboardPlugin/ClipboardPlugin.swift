@@ -20,11 +20,13 @@ import os
 public final class ClipboardPlugin: LintelPlugin {
     public nonisolated static let manifest = PluginManifest(
         id: "clipboard",
-        displayName: LocalizedStringResource("Clipboard History", comment: "Plugin name of the clipboard history"),
+        displayName: LocalizedStringResource("Clipboard", comment: "Plugin name of the clipboard history in Settings"),
         symbolName: "doc.on.clipboard",
         order: 30,
         settingsGroup: .search,
-        summary: LocalizedStringResource("Paste from history.", comment: "Settings → Features: what Clipboard does")
+        summary: LocalizedStringResource("Paste from history.", comment: "Settings → Features: what Clipboard does"),
+        // The launcher's list mode and an unavailable section keep "Clipboard History"; Settings says "Clipboard".
+        sectionTitle: LocalizedStringResource("Clipboard History", comment: "Plugin name of the clipboard history")
     )
 
     static let modeID: PanelModeID = "clipboard"
@@ -158,7 +160,7 @@ public final class ClipboardPlugin: LintelPlugin {
         return [
             PanelMode(
                 id: Self.modeID,
-                title: Self.manifest.displayName,
+                title: Self.manifest.resultsTitle,
                 symbolName: Self.manifest.symbolName,
                 source: searchSource,
                 filters: ClipKind.allCases.map(\.filter),

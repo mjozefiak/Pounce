@@ -149,7 +149,7 @@ dist/Lintel.app/Contents/MacOS/Lintel "${COMMON[@]}" --qa-panel search --qa-appe
 # Suggested and "Recently Used" without duplicates:
 dist/Lintel.app/Contents/MacOS/Lintel "${COMMON[@]}" --qa-record-use apps:com.example.mail \
   --qa-record-use apps:com.example.music --qa-panel search
-# Settings → Applications (Suggest Apps, hidden apps, Clear App Activity…), with one hidden app:
+# Settings → Apps (Suggest Apps, hidden apps, Clear App Activity…), with one hidden app:
 dist/Lintel.app/Contents/MacOS/Lintel "${COMMON[@]}" \
   --qa-setting plugins.apps.suggestions.hidden=com.example.maps --qa-settings apps
 # Suggestions turned off: no section, the history stays:
@@ -160,7 +160,7 @@ dist/Lintel.app/Contents/MacOS/Lintel "${COMMON[@]}" --qa-setting plugins.apps.s
 The "Running" badge comes from the real running apps, so fixture bundles never show it; check it by
 hand with a real app (for example `--qa-setting plugins.apps.roots=/System/Applications --qa-activity
 com.apple.Notes` while Notes is open). With `--qa-activity-live` the tracker records the tester's real
-app switches into the QA data root only. The newer-version message in Settings → Applications needs an
+app switches into the QA data root only. The newer-version message in Settings → Apps needs an
 `activity.json` with `"version": 2` in `<data root>/Plugins/apps/` (pass `--qa-data-root`).
 
 ## File search with a fixture folder

@@ -992,7 +992,7 @@
       }
     },
     "Applications" : {
-      "comment" : "Results section and plugin name for apps",
+      "comment" : "Results section title for apps",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -12867,6 +12867,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "W folderze „%@”"
+          }
+        }
+      }
+    },
+    "Apps" : {
+      "comment" : "Plugin name of app search in Settings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikacje"
+          }
+        }
+      }
+    },
+    "Clipboard" : {
+      "comment" : "Plugin name of the clipboard history in Settings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clipboard"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schowek"
           }
         }
       }
