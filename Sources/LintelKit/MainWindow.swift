@@ -161,6 +161,10 @@ public struct ModelUsage: Sendable {
     public let isSelected: Bool
     /// "Choose Folder…": the plugin writes its own folder key. `nil` when the plugin offers no folder choice.
     public let chooseFolder: (@MainActor @Sendable (URL?) -> Void)?
+    /// The folder the user chose for this model ("Choose Folder…"), which the plugin loads it from instead of the
+    /// downloaded copy; `nil` when it uses the download. The Models pane shows that folder's state. Added after the
+    /// main window shipped in PR #52 (owner decision); defaults to `nil`.
+    public let customFolder: URL?
     /// The plugin's own "in use" check (a recording, a notes run, a loaded runtime).
     public let isInUse: @MainActor @Sendable () async -> Bool
     /// Holds off new work that needs the model while it is being removed; returns the release.
@@ -173,6 +177,7 @@ public struct ModelUsage: Sendable {
         isRequired: Bool,
         isSelected: Bool,
         chooseFolder: (@MainActor @Sendable (URL?) -> Void)? = nil,
+        customFolder: URL? = nil,
         isInUse: @escaping @MainActor @Sendable () async -> Bool = { false },
         reserveRemoval: @escaping @MainActor @Sendable () -> @MainActor @Sendable () -> Void = { {} }
     ) {
@@ -182,6 +187,7 @@ public struct ModelUsage: Sendable {
         self.isRequired = isRequired
         self.isSelected = isSelected
         self.chooseFolder = chooseFolder
+        self.customFolder = customFolder
         self.isInUse = isInUse
         self.reserveRemoval = reserveRemoval
     }

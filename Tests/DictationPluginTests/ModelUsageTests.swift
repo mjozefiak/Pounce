@@ -17,6 +17,7 @@ import Testing
         #expect(usages[0].packageID == ModelCatalog.parakeetUltra.id)
         #expect(usages[0].isRequired && usages[0].isSelected)
         #expect(usages[0].chooseFolder != nil)
+        #expect(usages[0].customFolder == nil)
         #expect(usages[1].packageID == LLMModelCatalog.defaultModel.id)
         #expect(!usages[1].isRequired)
         // The server is the default source: the built-in model is not selected.
@@ -59,9 +60,11 @@ import Testing
         ])
         defer { harness.tearDown() }
         let plugin = DictationPlugin(context: harness.context)
-        // The Models pane does not see the chosen folder, so the model must not count as missing.
+        // The plugin loads the folder, so the downloaded copy is not needed; the pane shows the folder's state.
         #expect(!plugin.modelUsage[0].isRequired)
         #expect(plugin.modelUsage[0].isSelected)
+        #expect(plugin.modelUsage[0].customFolder?.path == FileManager.default.temporaryDirectory.path)
+        #expect(plugin.modelUsage[1].customFolder == nil)
     }
 
     @Test func theSpeechModelIsInUseWhileTheControllerIsBusy() async throws {

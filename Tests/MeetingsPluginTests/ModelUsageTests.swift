@@ -51,6 +51,10 @@ import Testing
         plugin.modelUsage[1].chooseFolder?(folder)
         #expect(plugin.settings.speechModelFolder?.path == folder.path)
         #expect(plugin.settings.diarizationModelFolder?.path == folder.path)
+        // Owner decision 6.6c: the chosen folders are reported, so the Models pane shows their state.
+        #expect(plugin.modelUsage[0].customFolder?.path == folder.path)
+        #expect(plugin.modelUsage[1].customFolder?.path == folder.path)
+        #expect(plugin.modelUsage[2].customFolder == nil)
     }
 
     @Test func aChosenSpeechFolderIsNotRequired() throws {
@@ -58,7 +62,7 @@ import Testing
             "plugins.meetings.speechModelFolder": .string(FileManager.default.temporaryDirectory.path)
         ])
         let plugin = MeetingsPlugin(context: harness.context)
-        // The Models pane does not see the chosen folder, so the model must not count as missing.
+        // The plugin loads the folder, so the downloaded copy is not needed; the pane shows the folder's state.
         #expect(!plugin.modelUsage[0].isRequired)
         #expect(plugin.modelUsage[0].isSelected)
     }

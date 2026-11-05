@@ -43,6 +43,13 @@ final class FakeInventory: ModelInventory {
         log.append("verify:\(id)")
     }
 
+    /// Folders that hold a complete package, per package id.
+    var completeFolders: [String: Set<URL>] = [:]
+
+    func isComplete(folder: URL, for id: String) async -> Bool {
+        completeFolders[id]?.contains(folder) == true
+    }
+
     func delete(_ id: String, unless isInUse: @escaping @Sendable () async -> Bool) async throws -> Bool {
         log.append("delete:\(id)")
         duringDelete()
@@ -667,6 +674,84 @@ final class FakeRecorder {
         await model.chooseFolder(Self.speechA.id, for: "meetings")
         #expect(chosen.value == [folder])
         #expect(inventory.log == ["verify:speech-a"])
+    }
+
+    /// Owner decision 6.6c: a complete folder a feature chose reads as on this Mac, in that folder, not "Not
+    /// downloaded"; nothing is removable and it raises no "needed" banner.
+    @Test func aCompleteChosenFolderShowsItsState() async {
+        let inventory = inventory()
+        let folder = URL(filePath: "/tmp/Parakeet by hand", directoryHint: .isDirectory)
+        inventory.completeFolders[Self.speechA.id] = [folder]
+        let usage = ModelUsage(
+            packageID: Self.speechA.id, kind: .speech, role: "x", isRequired: false, isSelected: true,
+            chooseFolder: { _ in }, customFolder: folder)
+        let model = ModelsPaneModel(inventory: inventory, usages: { [self.plugin("meetings", [usage])] })
+        await model.refresh()
+        let row = model.rows.first { $0.id == Self.speechA.id }
+        #expect(row?.folder == folder)
+        #expect(row?.isInFolder == true)
+        #expect(row?.isAvailable == true)
+        #expect(row?.isInstalled == false)
+        #expect(row?.stateText == "In “Parakeet by hand”")
+        #expect(model.banner == nil)
+        #expect(model.installedBytes == 0)
+        // Another package without a folder keeps the downloaded copy's state.
+        #expect(model.rows.first { $0.id == Self.speechB.id }?.stateText == "Not downloaded")
+    }
+
+    /// A chosen folder that is incomplete (moved, files missing) is not shown as installed.
+    @Test func anIncompleteChosenFolderReadsNotDownloaded() async {
+        let folder = URL(filePath: "/tmp/half a model", directoryHint: .isDirectory)
+        let usage = ModelUsage(
+            packageID: Self.speechA.id, kind: .speech, role: "x", isRequired: false, isSelected: true,
+            customFolder: folder)
+        let model = ModelsPaneModel(inventory: inventory(), usages: { [self.plugin("meetings", [usage])] })
+        await model.refresh()
+        let row = model.rows.first { $0.id == Self.speechA.id }
+        #expect(row?.folder == nil)
+        #expect(row?.isAvailable == false)
+        #expect(row?.stateText == "Not downloaded")
+    }
+
+    /// The downloaded copy wins over a chosen folder in the state text; an unselected usage's folder is ignored.
+    @Test func theDownloadedCopyAndUnselectedUsagesKeepTheirState() async {
+        let inventory = inventory()
+        let folder = URL(filePath: "/tmp/hand", directoryHint: .isDirectory)
+        inventory.completeFolders = [Self.speechA.id: [folder], Self.speechB.id: [folder]]
+        inventory.states[Self.speechA.id] = .installed
+        let model = ModelsPaneModel(
+            inventory: inventory,
+            usages: {
+                [
+                    self.plugin(
+                        "dictation",
+                        [
+                            ModelUsage(
+                                packageID: Self.speechA.id, kind: .speech, role: "x", isRequired: false,
+                                isSelected: true, customFolder: folder),
+                            ModelUsage(
+                                packageID: Self.speechB.id, kind: .speech, role: "x", isRequired: false,
+                                isSelected: false, customFolder: folder),
+                        ])
+                ]
+            })
+        await model.refresh()
+        #expect(model.rows.first { $0.id == Self.speechA.id }?.stateText == "Installed")
+        #expect(model.rows.first { $0.id == Self.speechA.id }?.isInFolder == false)
+        #expect(model.rows.first { $0.id == Self.speechB.id }?.folder == nil)
+    }
+
+    /// The real inventory reads the folder's files: an empty folder is not complete.
+    @Test func theRealInventoryChecksTheChosenFolder() async throws {
+        let root = FileManager.default.temporaryDirectory.appending(
+            path: "lintel-models-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let real = SharedModelInventory(
+            modelsDirectory: root.appending(path: "Models", directoryHint: .isDirectory),
+            managers: ModelManagers(), physicalMemory: 64 << 30)
+        #expect(await real.isComplete(folder: root, for: ModelCatalog.parakeetUltra.id) == false)
+        #expect(await real.isComplete(folder: root, for: "no-such-package") == false)
     }
 
     @Test func aCancelledFolderPickerChangesNothing() async {

@@ -53,6 +53,9 @@ final class ModelsPaneModel {
         /// An enabled plugin requires it and it is not installed.
         let isNeeded: Bool
         let isBusy: Bool
+        /// A complete folder a feature chose for the package (`ModelUsage.customFolder`) while the downloaded copy
+        /// is not installed: the model is on this Mac, in that folder.
+        var folder: URL? = nil
 
         var id: String { model.id }
 
@@ -67,6 +70,10 @@ final class ModelsPaneModel {
         /// The primary button is the one the user must press: a needed model's Download.
         var isPrimaryAction: Bool { isNeeded && !isInstalled && !isDownloading }
         var isInstalled: Bool { state == .installed }
+        /// Installed in a chosen folder, not downloaded: there is nothing to remove.
+        var isInFolder: Bool { !isInstalled && folder != nil }
+        /// Usable on this Mac, from the download or a chosen folder (the state is drawn in the ok colour).
+        var isAvailable: Bool { isInstalled || isInFolder }
         var isDownloading: Bool { progress != nil }
 
         /// "Used by Meetings, Dictation (off)"; `nil` when no plugin uses it.
@@ -85,6 +92,11 @@ final class ModelsPaneModel {
             if let progress {
                 let percent = progress.fraction.formatted(.percent.precision(.fractionLength(0)))
                 return String(localized: "Downloading \(percent)", comment: "Models pane: a download in progress")
+            }
+            if isInFolder, let folder {
+                return String(
+                    localized: "In “\(folder.lastPathComponent)”",
+                    comment: "Models pane: the model is used from a folder the user chose; the folder's name")
             }
             switch state {
             case .installed:
@@ -119,6 +131,9 @@ final class ModelsPaneModel {
     }
 
     private(set) var states: [String: InventoryState] = [:]
+    /// Package id → the first complete folder a feature chose for it (`ModelUsage.customFolder`, selected usages,
+    /// enabled features first).
+    private(set) var folders: [String: URL] = [:]
     private(set) var progress: [String: ModelProgress] = [:]
     private(set) var errors: [String: String] = [:]
     private(set) var busy: Set<String> = []
@@ -206,7 +221,8 @@ final class ModelsPaneModel {
         let state = states[model.id] ?? .missing
         return Row(
             model: model, state: state, progress: progress[model.id], errorMessage: errors[model.id],
-            usedBy: usedBy(model.id), isNeeded: neededIDs.contains(model.id), isBusy: busy.contains(model.id))
+            usedBy: usedBy(model.id), isNeeded: neededIDs.contains(model.id), isBusy: busy.contains(model.id),
+            folder: folders[model.id])
     }
 
     private func usedBy(_ id: String) -> [UsedBy] {
@@ -291,8 +307,19 @@ final class ModelsPaneModel {
         for model in inventory.catalog {
             result[model.id] = await inventory.state(of: model.id)
         }
+        var chosen: [String: URL] = [:]
+        let known = Set(inventory.catalog.map(\.id))
+        for plugin in plugins.filter(\.isEnabled) + plugins.filter({ !$0.isEnabled }) {
+            for usage in plugin.usages where usage.isSelected && known.contains(usage.packageID) {
+                guard chosen[usage.packageID] == nil, let folder = usage.customFolder,
+                    await inventory.isComplete(folder: folder, for: usage.packageID)
+                else { continue }
+                chosen[usage.packageID] = folder
+            }
+        }
         guard generation == refreshGeneration else { return }
         states = result
+        folders = chosen
         hasLoaded = true
     }
 

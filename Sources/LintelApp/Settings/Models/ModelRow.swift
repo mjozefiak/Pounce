@@ -59,10 +59,11 @@ struct ModelRow: View {
         Text(verbatim: row.stateText)
             .font(textSize.font(.callout))
             .foregroundStyle(
-                row.isInstalled ? AnyShapeStyle(LintelBrand.statusOk) : AnyShapeStyle(LintelBrand.secondaryText)
+                row.isAvailable ? AnyShapeStyle(LintelBrand.statusOk) : AnyShapeStyle(LintelBrand.secondaryText)
             )
             .lineLimit(1)
             .fixedSize()
+            .help(row.isInFolder ? Text(verbatim: row.folder?.path(percentEncoded: false) ?? "") : Text(verbatim: ""))
     }
 
     /// One line while it fits; at large text sizes the state and the buttons drop under the name so a button

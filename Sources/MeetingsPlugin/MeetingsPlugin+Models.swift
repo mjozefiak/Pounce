@@ -4,10 +4,11 @@ import LintelSpeech
 
 /// The models Meetings uses, for the shell's Models pane (spec `2026-11-04-lintel-main-window`, step 3.2, D6).
 ///
-/// - The speech model is required (recording needs it) unless the user chose a folder for it; the diarization model is not (finishing falls back to
-///   one speaker without it). Both are guarded by `MeetingsModelUsage.live`, the check the model cards use: a
-///   meeting recording or finishing holds them, and its reservation keeps a new recording from starting while a
-///   model is being removed.
+/// - The speech model is required (recording needs it) unless the user chose a folder for it; the diarization model
+///   is not (finishing falls back to one speaker without it). A chosen folder of either is reported as
+///   `customFolder`, so the Models pane shows its state. Both are guarded by `MeetingsModelUsage.live`, the check
+///   the model cards use: a meeting recording or finishing holds them, and its reservation keeps a new recording
+///   from starting while a model is being removed.
 /// - The notes model is optional; it is in use while `NotesService` has work or a lease holds its file.
 extension MeetingsPlugin {
     public var modelUsage: [ModelUsage] {
@@ -23,9 +24,10 @@ extension MeetingsPlugin {
                 packageID: speech.id, kind: .speech,
                 role: LocalizedStringResource(
                     "Meeting transcripts", comment: "Models pane: what Meetings uses the speech model for"),
-                // A chosen folder is not seen by the Models pane, so it must not count as a missing model.
+                // With a chosen folder the downloaded copy is not needed; the pane shows the folder's state.
                 isRequired: settings.speechModelFolder == nil, isSelected: true,
                 chooseFolder: { settings.setSpeechModelFolder($0) },
+                customFolder: settings.speechModelFolder,
                 isInUse: { await usage.isInUse(speech) },
                 reserveRemoval: usage.reserveRemoval),
             ModelUsage(
@@ -34,6 +36,7 @@ extension MeetingsPlugin {
                     "Speakers", comment: "Models pane: what Meetings uses the diarization model for"),
                 isRequired: false, isSelected: settings.diarization,
                 chooseFolder: { settings.setDiarizationModelFolder($0) },
+                customFolder: settings.diarizationModelFolder,
                 isInUse: { await usage.isInUse(diarization) },
                 reserveRemoval: usage.reserveRemoval),
             ModelUsage(

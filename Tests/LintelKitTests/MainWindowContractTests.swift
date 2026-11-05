@@ -95,6 +95,7 @@ import Testing
 
         let usage = ModelUsage(packageID: "p", kind: .llm, role: "Notes", isRequired: false, isSelected: false)
         #expect(usage.chooseFolder == nil)
+        #expect(usage.customFolder == nil)
         #expect(await usage.isInUse() == false)
         usage.reserveRemoval()()
         #expect(ModelKind.diarization.rawValue == "diarization")

@@ -48,6 +48,9 @@ protocol ModelInventory: AnyObject, Sendable {
     func install(_ id: String, progress: @escaping @Sendable (ModelProgress) -> Void) async throws
     /// Checks the files and sums of a folder the user downloaded the package into by hand.
     func verify(folder: URL, for id: String) async throws
+    /// Whether a folder the user chose (`ModelUsage.customFolder`) holds every file of the package. Only the files'
+    /// presence and sizes are read, no checksum (`ModelManager.location(of:customFolder:)`).
+    func isComplete(folder: URL, for id: String) async -> Bool
     /// `ModelManager.delete(_:unless:)`: `false` when `isInUse` said so and nothing was removed.
     func delete(_ id: String, unless isInUse: @escaping @Sendable () async -> Bool) async throws -> Bool
     /// The shell's own check: a speech lease holds the package resident with active leases, or an LLM lease is
@@ -112,10 +115,8 @@ final class SharedModelInventory: ModelInventory {
         return (package, manager)
     }
 
-    /// The state of the downloaded copy only. A folder the user chose ("Choose Folder…") is not seen here:
-    /// `ModelUsage` carries no folder and the contract stays as it is, so such a model reads "Not installed".
-    /// The plugins therefore declare their speech usage required only while no folder is chosen, so a chosen
-    /// folder never raises the "needed" banner or asks for a second download.
+    /// The state of the downloaded copy only. A folder the user chose ("Choose Folder…") is read through
+    /// `isComplete(folder:for:)` from the usage's `customFolder`.
     func state(of id: String) async -> InventoryState {
         guard let (package, manager) = lookup(id) else { return .missing }
         switch await manager.location(of: package) {
@@ -133,6 +134,12 @@ final class SharedModelInventory: ModelInventory {
     func verify(folder: URL, for id: String) async throws {
         guard let (package, manager) = lookup(id) else { throw ModelError.notInstalled }
         try await manager.verify(folder: folder, for: package)
+    }
+
+    func isComplete(folder: URL, for id: String) async -> Bool {
+        guard let (package, manager) = lookup(id) else { return false }
+        if case .customFolder = await manager.location(of: package, customFolder: folder) { return true }
+        return false
     }
 
     func delete(_ id: String, unless isInUse: @escaping @Sendable () async -> Bool) async throws -> Bool {

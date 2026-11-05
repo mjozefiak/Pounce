@@ -305,9 +305,10 @@ public final class DictationPlugin: LintelPlugin {
                 packageID: speech.id, kind: .speech,
                 role: LocalizedStringResource(
                     "Dictation", comment: "Models pane: what Dictation uses the speech model for"),
-                // A chosen folder is not seen by the Models pane, so it must not count as a missing model.
+                // With a chosen folder the downloaded copy is not needed; the pane shows the folder's state.
                 isRequired: settings.speechModelFolder == nil, isSelected: true,
                 chooseFolder: { settings.setSpeechModelFolder($0) },
+                customFolder: settings.speechModelFolder,
                 isInUse: { relay.controller?.isBusy ?? false }),
             ModelUsage(
                 packageID: settings.builtInLLMModel.id, kind: .llm,

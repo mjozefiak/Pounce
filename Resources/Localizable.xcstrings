@@ -12852,6 +12852,24 @@
           }
         }
       }
+    },
+    "In “%@”" : {
+      "comment" : "Models pane: the model is used from a folder the user chose; the folder's name",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In “%@”"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W folderze „%@”"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
