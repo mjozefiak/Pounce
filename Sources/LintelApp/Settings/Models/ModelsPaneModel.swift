@@ -239,9 +239,7 @@ final class ModelsPaneModel {
         let count = needed.count
         let detail: String
         if count == 1, let names = row(first).usedByNames {
-            detail = String(
-                localized: "\(first.title) is used by \(names).",
-                comment: "Models pane banner detail: one model is needed")
+            detail = Self.neededDetail(kind: first.kind, names: names)
         } else {
             detail = String(
                 localized: "Features that are on can't work without them. Download them below.",
@@ -257,6 +255,25 @@ final class ModelsPaneModel {
             title: String(localized: "\(count) models are needed", comment: "Models pane banner: required models"),
             detail: detail,
             actions: first.canDownload ? [action] : [])
+    }
+
+    /// "The speech model is used by Dictation and Meetings.": the kind of the model says what it is, the chips'
+    /// names who uses it (a usage's own `role` is per plugin, so it cannot name the model).
+    static func neededDetail(kind: ModelKind, names: String) -> String {
+        switch kind {
+        case .llm:
+            String(
+                localized: "The writing model is used by \(names).",
+                comment: "Models pane banner detail: one needed language model; the argument lists the features")
+        case .diarization:
+            String(
+                localized: "The speaker model is used by \(names).",
+                comment: "Models pane banner detail: one needed speaker model; the argument lists the features")
+        default:
+            String(
+                localized: "The speech model is used by \(names).",
+                comment: "Models pane banner detail: one needed speech model; the argument lists the features")
+        }
     }
 
     // MARK: Reading

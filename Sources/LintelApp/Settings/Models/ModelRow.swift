@@ -122,8 +122,27 @@ struct ModelRowButtons: View {
 
     @Environment(\.lintelTextSize) private var textSize
 
-    private func label(_ text: Text) -> some View {
-        text.font(textSize.font(.body)).lineLimit(1).fixedSize()
+    /// The prototype's download glyph on the Download buttons (`set-models`).
+    static let downloadSymbol = "arrow.down.to.line"
+
+    private func label(_ text: Text, systemImage: String? = nil) -> some View {
+        Group {
+            if let systemImage {
+                Label {
+                    text
+                } icon: {
+                    Image(systemName: systemImage)
+                }
+            } else {
+                text
+            }
+        }
+        .font(textSize.font(.body)).lineLimit(1).fixedSize()
+    }
+
+    /// The one "Choose Folder…" label, in the one secondary button style, whether one feature or several offer it.
+    private var folderLabel: some View {
+        label(Text("Choose Folder…", comment: "Models pane: use a model folder downloaded by hand"))
     }
 
     var body: some View {
@@ -162,7 +181,9 @@ struct ModelRowButtons: View {
                         "Try Again (download)", defaultValue: "Try Again",
                         comment: "Models pane: downloads a model again after an error")))
         } else {
-            label(Text("Download", comment: "Models pane: downloads a model"))
+            label(
+                Text("Download", comment: "Models pane: downloads a model"),
+                systemImage: ModelRowButtons.downloadSymbol)
         }
     }
 
@@ -172,7 +193,7 @@ struct ModelRowButtons: View {
             Button {
                 chooseFolder(only.pluginID)
             } label: {
-                label(Text("Choose Folder…", comment: "Models pane: use a model folder downloaded by hand"))
+                folderLabel
             }
             .disabled(row.isBusy || row.isDownloading)
         } else if folderUsers.count > 1 {
@@ -185,7 +206,7 @@ struct ModelRowButtons: View {
                     }
                 }
             } label: {
-                label(Text("Choose Folder…", comment: "Models pane: use a model folder downloaded by hand"))
+                folderLabel
             }
             .menuStyle(.button)
             .buttonStyle(LintelSecondaryButtonStyle())

@@ -545,7 +545,7 @@ final class FakeRecorder {
         let model = ModelsPaneModel(inventory: inventory, usages: { [self.plugin("meetings", [usage])] })
         await model.refresh()
         let banner = try #require(model.banner)
-        #expect(banner.detail == "Speech A is used by Meetings.")
+        #expect(banner.detail == "The speech model is used by Meetings.")
         let action = try #require(banner.actions.first)
         #expect(banner.actions.count == 1)
         #expect(String(localized: action.title) == "Download Speech A")
@@ -557,6 +557,39 @@ final class FakeRecorder {
         await model.waitForDownload(Self.speechA.id)
         #expect(inventory.log == ["install:speech-a"])
         #expect(model.banner == nil)
+    }
+
+    @Test func theBannerDetailNamesTheKindOfModelAndWhoUsesIt() {
+        #expect(
+            ModelsPaneModel.neededDetail(kind: .speech, names: "Dictation and Meetings")
+                == "The speech model is used by Dictation and Meetings.")
+        #expect(
+            ModelsPaneModel.neededDetail(kind: .llm, names: "Notes")
+                == "The writing model is used by Notes.")
+        #expect(
+            ModelsPaneModel.neededDetail(kind: .diarization, names: "Meetings")
+                == "The speaker model is used by Meetings.")
+    }
+
+    @Test func theModelsWordingKeysHaveEnglishAndPolish() throws {
+        var url = URL(filePath: #filePath).deletingLastPathComponent()
+        while !FileManager.default.fileExists(atPath: url.appending(path: "Package.swift").path) {
+            url = url.deletingLastPathComponent()
+        }
+        let data = try Data(contentsOf: url.appending(path: "Resources/Localizable.xcstrings"))
+        let root = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let strings = try #require(root["strings"] as? [String: [String: Any]])
+        func value(_ key: String, _ language: String) -> String? {
+            let locs = strings[key]?["localizations"] as? [String: [String: [String: String]]]
+            return locs?[language]?["stringUnit"]?["value"]
+        }
+        #expect(value("The speech model is used by %@.", "en") == "The speech model is used by %@.")
+        #expect(value("The speech model is used by %@.", "pl") == "Model mowy jest używany przez %@.")
+        #expect(value("The writing model is used by %@.", "pl") == "Model pisania jest używany przez %@.")
+        #expect(value("The speaker model is used by %@.", "pl")?.contains("%@") == true)
+        #expect(value("not installed", "pl") == "niezainstalowany")
+        #expect(value("Choose Folder…", "pl") == "Wybierz folder…")
+        #expect(strings["%@ is used by %@."] == nil)
     }
 
     @Test func withSeveralNeededModelsTheBannerDownloadsTheFirst() async throws {
@@ -719,6 +752,27 @@ final class FakeRecorder {
         #expect(extraLarge > medium * 1.15)
     }
 
+    private func height(_ view: some View, width: CGFloat) throws -> CGFloat {
+        let renderer = ImageRenderer(content: view.frame(width: width))
+        renderer.scale = 1
+        return try #require(renderer.nsImage).size.height
+    }
+
+    /// The prototype's row: the name and licence, then the chips and size, with the state and buttons on the
+    /// same lines: no third line for any state, with or without "Choose Folder…".
+    @Test(arguments: [0, 1, 2]) func theRowHasNoThirdLineAtTheDefaultSize(folderUsers: Int) throws {
+        let base = row(folderUsers: folderUsers)
+        let installed = ModelsPaneModel.Row(
+            model: base.model, state: .installed, progress: nil, errorMessage: nil, usedBy: base.usedBy,
+            isNeeded: false, isBusy: false)
+        let two = try height(ModelRow(row: base).lintelTextSize(.medium), width: 640)
+        let plain = try height(ModelRow(row: row(folderUsers: 0)).lintelTextSize(.medium), width: 640)
+        let done = try height(ModelRow(row: installed).lintelTextSize(.medium), width: 640)
+        #expect(abs(two - plain) < 14)
+        #expect(abs(done - plain) < 14)
+        #expect(two < 48)
+    }
+
     @Test func chipsRenderLargerAtExtraLarge() throws {
         let chip = ModelRowChip(usedBy: try #require(row(folderUsers: 1).usedBy.first))
         let medium = try width(chip.lintelTextSize(.medium))
@@ -745,7 +799,7 @@ final class FakeRecorder {
 
     @Test func modelRowButtonLabelsNeverWrap() throws {
         let text = try source("Models/ModelRow.swift")
-        #expect(text.contains("text.font(textSize.font(.body)).lineLimit(1).fixedSize()"))
+        #expect(text.contains(".font(textSize.font(.body)).lineLimit(1).fixedSize()"))
         #expect(text.contains("ViewThatFits(in: .horizontal)"))
     }
 
@@ -753,6 +807,22 @@ final class FakeRecorder {
         let text = try source("Models/ModelRow.swift")
         let menu = try #require(text.range(of: ".menuStyle(.button)"))
         #expect(text[menu.upperBound...].prefix(60).contains(".buttonStyle(LintelSecondaryButtonStyle())"))
+    }
+
+    @Test func chooseFolderHasOneLabelAndOneStyle() throws {
+        let text = try source("Models/ModelRow.swift")
+        #expect(text.components(separatedBy: #"Text("Choose Folder…""#).count == 2)
+        #expect(text.components(separatedBy: "folderLabel").count == 4)
+        #expect(!text.contains("PrimaryButtonStyle()\n                    .disabled(row.isBusy || row.isDownloading)"))
+        // The buttons group sets the secondary style once; only the Download of a needed model overrides it.
+        #expect(text.components(separatedBy: "LintelSecondaryButtonStyle()").count == 3)
+        #expect(text.components(separatedBy: "LintelPrimaryButtonStyle()").count == 2)
+    }
+
+    @Test func downloadButtonsCarryTheDownloadSymbol() throws {
+        let text = try source("Models/ModelRow.swift")
+        #expect(ModelRowButtons.downloadSymbol == "arrow.down.to.line")
+        #expect(text.contains("systemImage: ModelRowButtons.downloadSymbol"))
     }
 
     @Test func bannerPrimaryActionIsAccentFilled() throws {

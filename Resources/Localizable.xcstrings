@@ -1256,7 +1256,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wskaż folder…"
+            "value" : "Wybierz folder…"
           }
         }
       }
@@ -12344,7 +12344,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "nie zainstalowany"
+            "value" : "niezainstalowany"
           }
         }
       }
@@ -12457,20 +12457,56 @@
         }
       }
     },
-    "%@ is used by %@." : {
-      "comment" : "Models pane banner detail: one model is needed",
+    "The speech model is used by %@." : {
+      "comment" : "Models pane banner detail: one needed speech model; the argument lists the features",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ is used by %@."
+            "value" : "The speech model is used by %@."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ jest używany przez %2$@."
+            "value" : "Model mowy jest używany przez %@."
+          }
+        }
+      }
+    },
+    "The writing model is used by %@." : {
+      "comment" : "Models pane banner detail: one needed language model; the argument lists the features",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The writing model is used by %@."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model pisania jest używany przez %@."
+          }
+        }
+      }
+    },
+    "The speaker model is used by %@." : {
+      "comment" : "Models pane banner detail: one needed speaker model; the argument lists the features",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The speaker model is used by %@."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model rozpoznawania osób jest używany przez %@."
           }
         }
       }

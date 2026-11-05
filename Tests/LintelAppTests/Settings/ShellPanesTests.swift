@@ -224,7 +224,7 @@ enum PaneTree {
         let banner = ShellPaneBanners.permissions(host: host, reader: reader)
         #expect(banner.level == .attention)
         #expect(banner.title == String(localized: "\(1) things to do"))
-        #expect(banner.detail == "Features that are on can't start until these are allowed.")
+        #expect(banner.detail == "Listening can't start until Microphone is allowed.")
         reader.answers[.microphone] = .granted
         let ready = ShellPaneBanners.permissions(host: host, reader: reader)
         #expect(ready.level == .ok)

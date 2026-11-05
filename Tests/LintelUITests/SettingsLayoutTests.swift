@@ -26,7 +26,7 @@ struct SettingsLayoutTests {
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
         for path in [
             "Sources/LintelApp/Settings/LegacyShellPanes.swift",
-            "Sources/LintelApp/Settings/AdvancedPane.swift", "Sources/LintelApp/Settings/PermissionsPane.swift",
+            "Sources/LintelApp/Settings/PermissionsPane.swift",
             "Sources/AppsPlugin/LegacyAppsSettingsPane.swift",
             "Sources/ClipboardPlugin/LegacyClipboardSettingsPane.swift",
         ] {

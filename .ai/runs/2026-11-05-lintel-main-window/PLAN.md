@@ -53,7 +53,7 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 | 6 | 6.5b | Fidelity: secondary and destructive button styles, ConfirmSheet confirm button | dispatch:standard | done | 5a4783e |
 | 6 | 6.5c | Fidelity: Permissions pane rows | dispatch:standard | done | 8783412 |
 | 6 | 6.5d | Fidelity: Advanced pane on the template (Show Again, About) | dispatch:standard | done | 5a4783e |
-| 6 | 6.5e | Fidelity: Models rows, Download icon, banner copy | dispatch:standard | todo | — |
+| 6 | 6.5e | Fidelity: Models rows, Download icon, banner copy | dispatch:standard | done | pending |
 | 6 | 6.5f | Fidelity: Polish copy | dispatch:standard | todo | — |
 | 6 | 6.5g | Fidelity: Welcome layout and the onboarding QA argument | dispatch:capable | todo | — |
 | 6 | 6.5 | Final 1:1 re-comparison of every screen with the prototype and remaining-differences list | inline | todo | — |
