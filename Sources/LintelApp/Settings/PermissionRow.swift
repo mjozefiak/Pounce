@@ -14,7 +14,9 @@ struct PermissionRow: View {
     @Environment(\.lintelTextSize) private var textSize
 
     private var toneColor: Color {
-        switch state.tone {
+        // "Not asked yet" with Allow Microphone next to it: something to do (prototype `att-t`).
+        if state.allowTitle != nil { return LintelBrand.statusAttention }
+        return switch state.tone {
         case .ok: LintelBrand.statusOk
         case .problem: LintelBrand.statusAttention
         case .neutral: LintelBrand.secondaryText
@@ -81,12 +83,18 @@ struct PermissionRow: View {
     }
 
     private var neededText: LocalizedStringResource {
-        state.pluginNames.isEmpty
-            ? LocalizedStringResource(
+        let names = state.pluginNames.formatted(.list(type: .and))
+        if state.pluginNames.isEmpty {
+            return LocalizedStringResource(
                 "No feature that is on needs it.",
                 comment: "Settings → Permissions: a permission no enabled feature needs")
-            : LocalizedStringResource(
-                "Needed for: \(state.pluginNames.formatted(.list(type: .and)))",
-                comment: "Settings → Permissions: the features that need a permission")
+        }
+        if state.isOptional {
+            return LocalizedStringResource(
+                "Needed for: \(names) · optional",
+                comment: "Settings → Permissions: the features that can use an optional permission")
+        }
+        return LocalizedStringResource(
+            "Needed for: \(names)", comment: "Settings → Permissions: the features that need a permission")
     }
 }

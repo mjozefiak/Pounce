@@ -27,6 +27,21 @@ private let sourcesRoot = URL(filePath: #filePath)
                 == [.microphone, .systemAudioRecording, .pasteboard, .accessibility, .fullDiskAccess])
     }
 
+    /// Prototype `set-permissions` (step 6.7): Full Disk Access is optional, "Not granted" in the secondary tone,
+    /// after the allowed rows.
+    @Test func fullDiskAccessIsOptional() {
+        let denied = row(.fullDiskAccess, .denied)
+        #expect(denied.isOptional)
+        #expect(denied.tone == .neutral)
+        #expect(denied.mainStateText == "Not granted")
+        #expect(row(.fullDiskAccess, .granted).tone == .ok)
+        #expect(row(.fullDiskAccess, .granted).mainStateText == "Allowed")
+        #expect(!row(.microphone, .denied).isOptional)
+        let rows = [denied, row(.accessibility, .granted), row(.microphone, .notDetermined)]
+        #expect(
+            PermissionRowState.problemsFirst(rows).map(\.permission) == [.microphone, .accessibility, .fullDiskAccess])
+    }
+
     @Test func mainStateTextPerStatus() {
         #expect(row(.microphone, .granted).mainStateText == "Allowed")
         #expect(row(.microphone, .denied).mainStateText == "Not allowed")

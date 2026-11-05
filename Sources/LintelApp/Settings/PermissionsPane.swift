@@ -120,7 +120,7 @@ extension Permission {
         case .microphone:
             String(localized: "Microphone", comment: "Permission name in Settings → Permissions")
         case .systemAudioRecording:
-            String(localized: "System Audio Recording", comment: "Permission name in Settings → Permissions")
+            String(localized: "System audio recording", comment: "Permission name in Settings → Permissions")
         }
     }
 
@@ -196,22 +196,35 @@ struct PermissionRowState: Identifiable, Equatable {
     var isDimmed: Bool { pluginNames.isEmpty }
     var stateText: String { permission.statusText(status) }
 
-    /// The state line of the row: "Not asked yet" where `stateText` says "Unknown".
+    /// Full Disk Access: Files works without it and only skips the protected folders (prototype
+    /// `set-permissions`, "· optional"), so not having it is never a problem.
+    var isOptional: Bool { permission == .fullDiskAccess }
+
+    /// The state line of the row: "Not asked yet" where `stateText` says "Unknown", "Not granted" for an optional
+    /// permission the user has not given.
     var mainStateText: String {
+        if isOptional, status != .granted {
+            return String(localized: "Not granted", comment: "State of an optional permission the user has not given")
+        }
         guard permission.isReadable, permission != .pasteboard, status == .notDetermined else { return stateText }
         return String(localized: "Not asked yet", comment: "Permission state: macOS has not asked the user yet")
     }
 
-    /// Row order: permissions that need the user first (denied, not asked), then the allowed ones, then
-    /// the ones no enabled feature needs. Stable inside each group.
+    /// Row order: permissions that need the user first (denied, not asked), then the allowed ones, then an
+    /// optional one not given (prototype `set-permissions`), then the ones no enabled feature needs. Stable inside
+    /// each group.
     static func problemsFirst(_ rows: [PermissionRowState]) -> [PermissionRowState] {
-        func rank(_ row: PermissionRowState) -> Int { row.isDimmed ? 2 : (row.tone == .ok ? 1 : 0) }
+        func rank(_ row: PermissionRowState) -> Int {
+            if row.isDimmed { return 3 }
+            if row.tone == .ok { return 1 }
+            return row.isOptional ? 2 : 0
+        }
         return rows.enumerated().sorted { (rank($0.element), $0.offset) < (rank($1.element), $1.offset) }
             .map(\.element)
     }
 
     var tone: PermissionTone {
-        guard permission.isReadable else { return .neutral }
+        guard permission.isReadable, !(isOptional && status != .granted) else { return .neutral }
         switch status {
         case .granted: return .ok
         case .denied: return .problem
@@ -268,9 +281,7 @@ struct PermissionsPane: View {
                 }
             } footer: {
                 HStack(alignment: .firstTextBaseline) {
-                    SettingsFooter(
-                        "Lintel never asks for a permission on its own. Changes in System Settings apply right away."
-                    )
+                    SettingsFooter("Only permissions of features that are on are required.")
                     Spacer()
                     checkAgain
                 }

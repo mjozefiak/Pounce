@@ -3889,24 +3889,6 @@
         }
       }
     },
-    "System Audio Recording" : {
-      "comment" : "Permission name in Settings → Permissions",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "System Audio Recording"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nagrywanie dźwięku systemu"
-          }
-        }
-      }
-    },
     "Lets Lintel capture what other people say in a meeting, only while a meeting is recorded. Audio is processed on this Mac and never uploaded." : {
       "comment" : "Explanation of the System Audio Recording permission",
       "extractionState" : "manual",
@@ -5109,24 +5091,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lintel zapamiętuje to, co kopiujesz, aby można było wkleić to ponownie skrótem ⌘⇧V. Historia zostaje na tym Macu, zaszyfrowana, przez 30 dni lub do 1000 wpisów."
-          }
-        }
-      }
-    },
-    "Lintel never asks for a permission on its own. Changes in System Settings apply right away." : {
-      "comment" : "Settings → Permissions footer",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel never asks for a permission on its own. Changes in System Settings apply right away."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel nigdy sam nie prosi o uprawnienia. Zmiany w Ustawieniach systemowych działają od razu."
           }
         }
       }
@@ -12903,6 +12867,78 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Schowek"
+          }
+        }
+      }
+    },
+    "System audio recording" : {
+      "comment" : "Permission name in Settings → Permissions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System audio recording"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywanie dźwięku systemu"
+          }
+        }
+      }
+    },
+    "Not granted" : {
+      "comment" : "State of an optional permission the user has not given",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not granted"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie przyznano"
+          }
+        }
+      }
+    },
+    "Only permissions of features that are on are required." : {
+      "comment" : "Settings → Permissions footer",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only permissions of features that are on are required."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wymagane są tylko uprawnienia włączonych funkcji."
+          }
+        }
+      }
+    },
+    "Needed for: %@ · optional" : {
+      "comment" : "Settings → Permissions: the features that can use an optional permission",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needed for: %@ · optional"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Potrzebne do: %@ · opcjonalne"
           }
         }
       }
