@@ -31,10 +31,63 @@ import Testing
 
     /// The pane view and model sources, relative to the repository root.
     static let paneFiles = [
+        "Sources/DictationPlugin/DictationSettingsPane.swift",
+        "Sources/DictationPlugin/LegacyDictationSettingsPane.swift",
         "Sources/DictationPlugin/DictationViews.swift",
         "Sources/DictationPlugin/DictationSettingsModel.swift",
         "Sources/DictationPlugin/FormattingSettingsModel.swift",
         "Sources/DictationPlugin/HistorySettingsModel.swift",
+    ]
+
+    /// Step 5.1: the view token of every non-exempt key in each window's own sources, so a key stays reachable in
+    /// the main window and in the old one. The setters above live in the shared models; these are the controls
+    /// that call them.
+    static let windowTokens: [(window: String, files: [String], tokens: [String: String])] = [
+        (
+            "main window",
+            [
+                "Sources/DictationPlugin/DictationSettingsPane.swift",
+                // The speech model's folder is chosen in the Models pane through the usage's `chooseFolder`.
+                "Sources/DictationPlugin/DictationPlugin.swift",
+            ],
+            [
+                "speechModel": "model.selectSpeechModel(",
+                "speechLanguage": "$model.speechLanguage",
+                "speechModelFolder": "chooseFolder: { settings.setSpeechModelFolder($0) }",
+                "inputDevice": "$model.inputDevice",
+                "restoreClipboard": "$model.restoresClipboard",
+                "mode": "formatting.mode = ",
+                "llmEndpoint": "formatting.chooseEndpoint(",
+                "llmModel": "formatting.chooseModel(",
+                "llmSource": "$formatting.source",
+                "builtInLLMModel": "formatting.chooseBuiltInModel(",
+                "historyEnabled": "$history.isEnabled",
+                "retentionDays": "$history.retentionDays",
+                "maximumEntries": "$history.maximumEntries",
+            ]
+        ),
+        (
+            "old window",
+            [
+                "Sources/DictationPlugin/LegacyDictationSettingsPane.swift",
+                "Sources/DictationPlugin/DictationViews.swift",
+            ],
+            [
+                "speechModel": "model.selectSpeechModel(",
+                "speechLanguage": "$model.speechLanguage",
+                "speechModelFolder": "model.chooseFolder()",
+                "inputDevice": "$model.inputDevice",
+                "restoreClipboard": "$model.restoresClipboard",
+                "mode": "model.mode = ",
+                "llmEndpoint": "model.chooseEndpoint(",
+                "llmModel": "model.chooseModel(",
+                "llmSource": "$model.source",
+                "builtInLLMModel": "model.chooseBuiltInModel(",
+                "historyEnabled": "$model.isEnabled",
+                "retentionDays": "$model.retentionDays",
+                "maximumEntries": "$model.maximumEntries",
+            ]
+        ),
     ]
 
     private static let root: URL = {
@@ -77,6 +130,16 @@ import Testing
         }
         for (key, reason) in Self.exempt {
             #expect(!reason.isEmpty, "\(key) needs a reason")
+        }
+    }
+
+    @Test func bothWindowsReachEveryNonExemptKey() throws {
+        for window in Self.windowTokens {
+            #expect(Set(window.tokens.keys) == Set(Self.paneTokens.keys), "\(window.window): the key list differs")
+            let source = try window.files.map { try Self.read($0) }.joined(separator: "\n")
+            for (key, token) in window.tokens {
+                #expect(source.contains(token), "\(key): the \(window.window) sources do not contain \(token)")
+            }
         }
     }
 }

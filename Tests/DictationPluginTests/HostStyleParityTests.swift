@@ -15,15 +15,23 @@ import Testing
 @Suite struct DictationHostStyleParityTests {
     /// The pane as the old window builds it: `settingsHostStyle` keeps its default (`.legacyWindow`) outside a
     /// host, which is what `SettingsWindowController` leaves it at.
-    private func legacyPane(_ rig: DictationSettingsModelTests.Rig) -> DictationSettingsPane {
+    private func legacyPane(_ rig: DictationSettingsModelTests.Rig) -> LegacyDictationSettingsPane {
         let settings = DictationSettings(rig.harness.context.settings)
-        return DictationSettingsPane(
+        return LegacyDictationSettingsPane(
             model: rig.model(),
             formatting: FormattingSettingsModel(
                 settings: settings, transport: ScriptedTransport(.failure(.cannotConnectToHost))),
             history: HistorySettingsModel(
                 settings: settings, history: DictationPlugin(context: rig.harness.context).history),
             recorder: AnyView(EmptyView()), isActive: false)
+    }
+
+    /// The pane a plugin hands to either host (`settingsPane()`), which picks its body from `settingsHostStyle`.
+    private func pane(_ rig: DictationSettingsModelTests.Rig) -> DictationSettingsPane {
+        let legacy = legacyPane(rig)
+        return DictationSettingsPane(
+            model: legacy.model, formatting: legacy.formatting, history: legacy.history, recorder: legacy.recorder,
+            isActive: false)
     }
 
     @Test func theOldWindowKeepsTheModelCardAndTheMicrophoneRows() throws {
@@ -57,7 +65,7 @@ import Testing
         defer { rig.harness.tearDown() }
         for style in [SettingsHostStyle.legacyWindow, .mainWindow] {
             let renderer = ImageRenderer(
-                content: legacyPane(rig).environment(\.settingsHostStyle, style).frame(width: 600, height: 900))
+                content: pane(rig).environment(\.settingsHostStyle, style).frame(width: 600, height: 900))
             #expect(renderer.nsImage != nil)
         }
     }

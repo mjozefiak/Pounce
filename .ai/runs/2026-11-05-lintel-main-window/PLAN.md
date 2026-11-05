@@ -44,7 +44,7 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 | 4 | 4.1-review-fix | Review fix: keyboard-reachable Result order, section-order move tests | dispatch:standard | done | pending |
 | 4 | 4.3-review-fix | Review fix: pure settingsStatus getters (no state change in view body), Full Disk Access acknowledged only after setup | dispatch:capable | done | pending |
 | 4 | 4.4-review-fix | Review fix: one coalesced status signal per clipboard copy, plural and behavioural pane tests, nits | dispatch:standard | done | pending |
-| 5 | 5.1 | Dictation pane onto the template | dispatch:standard | todo | — |
+| 5 | 5.1 | Dictation pane onto the template | dispatch:standard | done | pending |
 | 5 | 5.2 | Meetings pane onto the template | dispatch:capable | todo | — |
 | 5 | 5.3 | Clear/Erase confirmation copy with kept-copies checkbox (L1-39) | dispatch:standard | todo | — |
 | 6 | 6.1 | Welcome final page "You're set" | dispatch:standard | todo | — |

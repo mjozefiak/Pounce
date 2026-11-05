@@ -469,6 +469,42 @@
         }
       }
     },
+    "1 thing to do" : {
+      "comment" : "Settings banner: one thing is needed before the feature works",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 thing to do"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 rzecz do zrobienia"
+          }
+        }
+      }
+    },
+    "2 things to do" : {
+      "comment" : "Settings banner: two things are needed before the feature works",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2 things to do"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2 rzeczy do zrobienia"
+          }
+        }
+      }
+    },
     "A feature couldn't start" : {
       "comment" : "Settings → Features banner: a plugin failed",
       "extractionState" : "manual",
@@ -829,6 +865,42 @@
         }
       }
     },
+    "Allow the microphone and get the speech model." : {
+      "comment" : "Settings banner detail: the microphone was not asked yet and the speech model is missing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow the microphone and get the speech model."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól na mikrofon i pobierz model mowy."
+          }
+        }
+      }
+    },
+    "Allow the microphone so Lintel can hear you." : {
+      "comment" : "Settings → Dictation banner detail: macOS has not asked for the microphone yet",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow the microphone so Lintel can hear you."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól na mikrofon, aby Lintel mógł cię słyszeć."
+          }
+        }
+      }
+    },
     "Allow the microphone. Lintel listens only while you dictate." : {
       "comment" : "Dictation onboarding step",
       "extractionState" : "manual",
@@ -1045,6 +1117,24 @@
         }
       }
     },
+    "Built-in model fixes punctuation and filler words." : {
+      "comment" : "Settings → Dictation: help under Clean up text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Built-in model fixes punctuation and filler words."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wbudowany model poprawia interpunkcję i wtręty."
+          }
+        }
+      }
+    },
     "Cancel" : {
       "comment" : "Button that cancels the model download",
       "extractionState" : "manual",
@@ -1185,6 +1275,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wybierz folder z plikami modelu mowy."
+          }
+        }
+      }
+    },
+    "Clean up text" : {
+      "comment" : "Settings → Dictation: switch that formats the text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clean up text"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poprawiaj tekst"
           }
         }
       }
@@ -2629,6 +2737,24 @@
         }
       }
     },
+    "Get It in Models" : {
+      "comment" : "Settings banner button: opens the Models pane on the missing model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get It in Models"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobierz w Modelach"
+          }
+        }
+      }
+    },
     "Get Started" : {
       "comment" : "Welcome screen button on the first page",
       "extractionState" : "manual",
@@ -2685,6 +2811,24 @@
     },
     "History is paused" : {
       "comment" : "Settings → Clipboard banner when the history key cannot be read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History is paused"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historia jest wstrzymana"
+          }
+        }
+      }
+    },
+    "History is paused (dictation)" : {
+      "comment" : "Settings → Dictation banner when the dictation history cannot be opened",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2913,6 +3057,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zainstalowany"
+          }
+        }
+      }
+    },
+    "Keep a history" : {
+      "comment" : "Settings → Dictation: switch that keeps finished dictations",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep a history"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisuj historię"
           }
         }
       }
@@ -3187,6 +3349,24 @@
         }
       }
     },
+    "Lintel can’t read the history’s key. Nothing was deleted." : {
+      "comment" : "Settings → Dictation banner detail when the history key cannot be read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel can’t read the history’s key. Nothing was deleted."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel nie może odczytać klucza historii. Nic nie zostało usunięte."
+          }
+        }
+      }
+    },
     "Lintel can’t read the key. Nothing was deleted." : {
       "comment" : "Settings → Clipboard banner detail when the keychain denied access to the key",
       "extractionState" : "manual",
@@ -3219,6 +3399,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lintel nie ma pozwolenia na odczyt schowka."
+          }
+        }
+      }
+    },
+    "Lintel pastes through the clipboard and puts back what was there a second later." : {
+      "comment" : "Settings → Dictation: footer under the clipboard restore switch",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel pastes through the clipboard and puts back what was there a second later."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel wkleja przez schowek i sekundę później przywraca jego zawartość."
           }
         }
       }
@@ -3655,6 +3853,24 @@
         }
       }
     },
+    "Press to start and again to stop, or hold." : {
+      "comment" : "Settings → Dictation: help under the Dictate shortcut",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press to start and again to stop, or hold."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naciśnij, aby zacząć i zakończyć, albo przytrzymaj."
+          }
+        }
+      }
+    },
     "Record one below to open Lintel from any app." : {
       "comment" : "Settings → General banner detail: no main shortcut",
       "extractionState" : "manual",
@@ -3831,6 +4047,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Niektóre funkcje są wyłączone."
+          }
+        }
+      }
+    },
+    "Speech model: %@." : {
+      "comment" : "Settings → Dictation banner detail when dictation is ready: the speech model's name",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speech model: %@."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model mowy: %@."
           }
         }
       }
@@ -4393,6 +4627,24 @@
         }
       }
     },
+    "The history couldn’t be opened. Dictation still works." : {
+      "comment" : "Settings → Dictation banner detail when the history database cannot be opened",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The history couldn’t be opened. Dictation still works."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się otworzyć historii. Dyktowanie nadal działa."
+          }
+        }
+      }
+    },
     "The key was missing. The old history stays encrypted and is deleted after 30 days." : {
       "comment" : "Settings → Clipboard banner detail after the history was reset",
       "extractionState" : "manual",
@@ -4425,6 +4677,60 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pęk kluczy jest zablokowany. Nic nie zostało usunięte."
+          }
+        }
+      }
+    },
+    "The speech model isn’t installed." : {
+      "comment" : "Settings banner detail: the speech model is missing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The speech model isn’t installed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model mowy nie jest zainstalowany."
+          }
+        }
+      }
+    },
+    "The speech model’s folder isn’t available." : {
+      "comment" : "Settings → Dictation banner detail: the folder the user chose for the model is gone",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The speech model’s folder isn’t available."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder modelu mowy jest niedostępny."
+          }
+        }
+      }
+    },
+    "Try Again (dictation history)" : {
+      "comment" : "Settings → Dictation banner button that opens the dictation history again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try Again"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spróbuj ponownie"
           }
         }
       }
@@ -7417,6 +7723,24 @@
         }
       }
     },
+    "Whisper listens for the language you choose." : {
+      "comment" : "Settings → Dictation: help under the language of the Whisper model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Whisper listens for the language you choose."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Whisper słucha w wybranym przez ciebie języku."
+          }
+        }
+      }
+    },
     "Window" : {
       "comment" : "Main menu item",
       "extractionState" : "manual",
@@ -7683,6 +8007,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "macOS może pytać, zanim aplikacja odczyta schowek. Zezwól Lintel, aby historia była dalej zapisywana."
+          }
+        }
+      }
+    },
+    "Your server on this Mac fixes punctuation and filler words." : {
+      "comment" : "Settings → Dictation: help under Clean up text when the user's server formats",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your server on this Mac fixes punctuation and filler words."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Twój serwer na tym Macu poprawia interpunkcję i wtręty."
           }
         }
       }

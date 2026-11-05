@@ -12,7 +12,8 @@ import Testing
 
     /// The pane views (file, struct) whose main-window branches are scanned.
     static let paneViews: [(file: String, type: String)] = [
-        ("Sources/DictationPlugin/DictationViews.swift", "DictationSettingsPane"),
+        ("Sources/DictationPlugin/DictationSettingsPane.swift", "DictationPaneContent"),
+        ("Sources/DictationPlugin/LegacyDictationSettingsPane.swift", "LegacyDictationSettingsPane"),
         ("Sources/DictationPlugin/DictationViews.swift", "FormattingSection"),
         ("Sources/MeetingsPlugin/UI/MeetingsViews.swift", "MeetingsSettingsPane"),
     ]

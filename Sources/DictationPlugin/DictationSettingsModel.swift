@@ -8,11 +8,18 @@ import os
 /// microphone and its permission. Shared by both screens.
 @MainActor @Observable
 final class DictationSettingsModel {
-    private(set) var location = ModelLocation.missing
+    private(set) var location = ModelLocation.missing {
+        didSet { if location != oldValue { onStatusChange?() } }
+    }
     private(set) var progress: ModelProgress?
     private(set) var errorMessage: String?
     private(set) var isVerifying = false
-    private(set) var microphone = MicrophoneAccess.notDetermined
+    private(set) var microphone = MicrophoneAccess.notDetermined {
+        didSet { if microphone != oldValue { onStatusChange?() } }
+    }
+    /// Called when the model's place or the microphone access changed, so the plugin can tell the shell to read
+    /// its banner again (`PluginContext.resultsChanged`).
+    @ObservationIgnored var onStatusChange: (@MainActor () -> Void)?
     private(set) var devices: [MicrophoneCapture.InputDevice] = []
     private(set) var level: Float?
     var inputDevice: String? {
@@ -84,9 +91,15 @@ final class DictationSettingsModel {
 
     /// Re-reads the model's place, the microphone and the device list (the pane calls it when it appears).
     func refresh() async {
+        await refreshStatus()
+        devices = listDevices()
+    }
+
+    /// Re-reads only what the Settings banner shows: the model's place and the microphone access. Reads files
+    /// and the permission state, never asks for anything.
+    func refreshStatus() async {
         location = await manager.location(of: package, customFolder: settings.speechModelFolder)
         microphone = authorizer.status()
-        devices = listDevices()
     }
 
     // MARK: Model
@@ -185,10 +198,13 @@ final class DictationSettingsModel {
 
     /// "Allow": the user's click, so the system prompt may appear.
     func requestMicrophone() {
-        Task {
-            _ = await authorizer.requestAccess()
-            microphone = authorizer.status()
-        }
+        Task { await requestMicrophoneAccess() }
+    }
+
+    /// The same as `requestMicrophone()`, finished when the answer is known (the Settings banner's action).
+    func requestMicrophoneAccess() async {
+        _ = await authorizer.requestAccess()
+        microphone = authorizer.status()
     }
 
     func openMicrophoneSettings() {

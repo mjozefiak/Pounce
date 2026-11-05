@@ -8,11 +8,14 @@ public struct SettingsPane<Basics: View, Advanced: View, Data: View>: View {
     private let basics: Basics
     private let advanced: Advanced?
     private let data: Data?
+    /// The Data section's header; `nil` is "Data". Dictation calls it "History" (prototype `set-dictation`).
+    private let dataTitle: LocalizedStringResource?
 
     @Environment(\.lintelTextSize) private var textSize
     @State private var advancedExpanded = false
 
     public init(
+        dataTitle: LocalizedStringResource? = nil,
         @ViewBuilder basics: () -> Basics,
         @ViewBuilder advanced: () -> Advanced,
         @ViewBuilder data: () -> Data
@@ -20,12 +23,14 @@ public struct SettingsPane<Basics: View, Advanced: View, Data: View>: View {
         self.basics = basics()
         self.advanced = advanced()
         self.data = data()
+        self.dataTitle = dataTitle
     }
 
-    fileprivate init(basics: Basics, advanced: Advanced?, data: Data?) {
+    fileprivate init(basics: Basics, advanced: Advanced?, data: Data?, dataTitle: LocalizedStringResource? = nil) {
         self.basics = basics
         self.advanced = advanced
         self.data = data
+        self.dataTitle = dataTitle
     }
 
     public var body: some View {
@@ -45,8 +50,14 @@ public struct SettingsPane<Basics: View, Advanced: View, Data: View>: View {
                 Section {
                     data
                 } header: {
-                    Text("Data", comment: "Settings pane section title for the data a feature keeps")
-                        .font(textSize.font(.body, weight: .semibold))
+                    Group {
+                        if let dataTitle {
+                            Text(dataTitle)
+                        } else {
+                            Text("Data", comment: "Settings pane section title for the data a feature keeps")
+                        }
+                    }
+                    .font(textSize.font(.body, weight: .semibold))
                 }
             }
         }
@@ -67,8 +78,10 @@ extension SettingsPane where Data == EmptyView {
 }
 
 extension SettingsPane where Advanced == EmptyView {
-    public init(@ViewBuilder basics: () -> Basics, @ViewBuilder data: () -> Data) {
-        self.init(basics: basics(), advanced: nil, data: data())
+    public init(
+        dataTitle: LocalizedStringResource? = nil, @ViewBuilder basics: () -> Basics, @ViewBuilder data: () -> Data
+    ) {
+        self.init(basics: basics(), advanced: nil, data: data(), dataTitle: dataTitle)
     }
 }
 

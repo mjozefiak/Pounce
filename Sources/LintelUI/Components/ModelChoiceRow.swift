@@ -13,18 +13,51 @@ public struct ModelChoiceRow: View {
         case notInstalled
     }
 
+    /// Where the summary sits.
+    public enum Style: Hashable, Sendable {
+        /// A row of its own: the summary on the left, the link on the right.
+        case row
+        /// The help line under a row's label (prototype `set-dictation`, "Speech model"): smaller, secondary.
+        case help
+    }
+
     private let title: String
     private let state: State
+    private let style: Style
     private let open: () -> Void
     @Environment(\.lintelTextSize) private var textSize
 
-    public init(title: String, state: State, open: @escaping () -> Void) {
+    public init(title: String, state: State, style: Style = .row, open: @escaping () -> Void) {
         self.title = title
         self.state = state
+        self.style = style
         self.open = open
     }
 
     public var body: some View {
+        switch style {
+        case .row: rowBody
+        case .help: helpBody
+        }
+    }
+
+    private var helpBody: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(Self.summary(title: title, state: state))
+                .font(textSize.font(.callout))
+                .foregroundStyle(.secondary)
+            Button(action: open) {
+                Text(Self.actionTitle(for: state))
+                    .font(textSize.font(.callout))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(LintelBrand.accentText)
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var rowBody: some View {
         HStack(alignment: .firstTextBaseline) {
             Text(Self.summary(title: title, state: state))
                 .font(textSize.font(.body))

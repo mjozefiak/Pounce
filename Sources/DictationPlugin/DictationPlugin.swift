@@ -2,6 +2,7 @@ import AppKit
 import Foundation
 import LintelKit
 import LintelSpeech
+import LintelUI
 import SwiftUI
 import os
 
@@ -36,7 +37,7 @@ public final class DictationPlugin: LintelPlugin {
     let context: PluginContext
     let settings: DictationSettings
     private let engine: SwitchingEngine
-    private let authorizer = SystemMicrophoneAuthorizer()
+    private let authorizer: any MicrophoneAuthorizer
     private let models: ModelManager
     /// Downloads the built-in formatting models into `Models/llm/` (used by the settings in step 4.4).
     let llmModels: ModelManager
@@ -51,14 +52,22 @@ public final class DictationPlugin: LintelPlugin {
     let history: DictationHistory
     private let historyModel: HistorySettingsModel
     private(set) var controller: DictationController?
+    /// Where app activations are posted (tests use their own centre).
+    var appActivationCenter: NotificationCenter = .default
+    private var activationObserver: AppActivationObserver?
 
     public convenience init(context: PluginContext) {
         self.init(context: context, makeBuiltInLLM: nil)
     }
 
     /// `makeBuiltInLLM` replaces the built-in formatting runtime (tests); `nil` is the real one over llama.cpp.
-    init(context: PluginContext, makeBuiltInLLM: ((DictationSettings, ModelManager) -> KeepWarmRuntime)?) {
+    /// `authorizer` replaces the system's microphone permission (tests).
+    init(
+        context: PluginContext, makeBuiltInLLM: ((DictationSettings, ModelManager) -> KeepWarmRuntime)?,
+        authorizer: any MicrophoneAuthorizer = SystemMicrophoneAuthorizer()
+    ) {
         self.context = context
+        self.authorizer = authorizer
         let settings = DictationSettings(context.settings)
         self.settings = settings
         engine = SwitchingEngine(
@@ -95,6 +104,9 @@ public final class DictationPlugin: LintelPlugin {
             authorizer: authorizer,
             pickFolder: { Self.chooseModelFolder() },
             openURL: { url in Task { try? await workspace.open(url) } })
+        // The banner reads the model's place and the microphone; a change makes the shell read it again.
+        let resultsChanged = context.resultsChanged
+        settingsModel.onStatusChange = { resultsChanged() }
         history = DictationHistory(
             directory: context.storageDirectory, keychain: context.keychain, settings: settings,
             clock: context.clock, logger: context.logger, changed: context.resultsChanged)
@@ -183,9 +195,18 @@ public final class DictationPlugin: LintelPlugin {
         self.controller = controller
         relay.controller = controller
         history.open()
+        // The banner's state is known before the shell first reads it; coming back from System Settings or from
+        // a download elsewhere re-reads it.
+        await settingsModel.refreshStatus()
+        let model = settingsModel
+        activationObserver = AppActivationObserver(center: appActivationCenter) {
+            Task { await model.refreshStatus() }
+        }
     }
 
     public func deactivate() async {
+        activationObserver?.stop()
+        activationObserver = nil
         await controller?.shutDown()
         await builtInLLM.unload()
         history.close()
@@ -311,6 +332,117 @@ public final class DictationPlugin: LintelPlugin {
                 )
             }
         ]
+    }
+
+    /// The main window's banner (prototype `set-dictation`). The shell reads it only while the plugin is active
+    /// and while the view draws, so it only reads: the model's place and the microphone are re-read on
+    /// activation, when the pane appears and when Lintel becomes the active app, and a change signals
+    /// `resultsChanged`. A denied microphone or Accessibility is left to the shell's derivation.
+    public var settingsStatus: SettingsStatus? {
+        let model = settingsModel
+        let history = history
+        return Self.settingsStatus(
+            location: model.location, microphone: model.microphone, history: history.status,
+            modelTitle: model.package.title, packageID: model.package.id,
+            allowMicrophone: { await model.requestMicrophoneAccess() },
+            retryHistory: { history.open() })
+    }
+
+    /// The banner ids of the plugin's own actions.
+    nonisolated static let allowMicrophoneActionID = "allowMicrophone"
+    nonisolated static let retryHistoryActionID = "retry"
+
+    /// Most important first: what keeps dictation from working (the speech model, a microphone macOS has not
+    /// asked about yet; "N things to do" as in the prototype), then a history that cannot be opened (dictation
+    /// still works; Try Again, nothing is deleted), else "Ready".
+    static func settingsStatus(
+        location: ModelLocation,
+        microphone: MicrophoneAccess,
+        history: DictationHistory.Status,
+        modelTitle: String,
+        packageID: String,
+        allowMicrophone: @escaping @MainActor @Sendable () async -> Void,
+        retryHistory: @escaping @MainActor @Sendable () async -> Void
+    ) -> SettingsStatus? {
+        let needsModel = location.folder == nil
+        let needsMicrophone = microphone == .notDetermined
+        let getModel = SettingsStatusAction(
+            title: LocalizedStringResource(
+                "Get It in Models", comment: "Settings banner button: opens the Models pane on the missing model"),
+            destination: .models(packageID: packageID))
+        let askMicrophone = SettingsStatusAction(
+            title: LocalizedStringResource("Allow Microphone", comment: "Button that asks for microphone access"),
+            destination: .plugin(id: allowMicrophoneActionID, perform: allowMicrophone))
+        switch (needsModel, needsMicrophone) {
+        case (true, true):
+            return SettingsStatus(
+                level: .attention,
+                title: LocalizedStringResource(
+                    "2 things to do", comment: "Settings banner: two things are needed before the feature works"),
+                detail: LocalizedStringResource(
+                    "Allow the microphone and get the speech model.",
+                    comment: "Settings banner detail: the microphone was not asked yet and the speech model is missing"
+                ),
+                fix: [askMicrophone, getModel])
+        case (true, false):
+            let detail: LocalizedStringResource
+            if case .customFolderUnavailable = location {
+                detail = LocalizedStringResource(
+                    "The speech model’s folder isn’t available.",
+                    comment: "Settings → Dictation banner detail: the folder the user chose for the model is gone")
+            } else {
+                detail = LocalizedStringResource(
+                    "The speech model isn’t installed.", comment: "Settings banner detail: the speech model is missing")
+            }
+            return SettingsStatus(
+                level: .attention,
+                title: LocalizedStringResource(
+                    "1 thing to do", comment: "Settings banner: one thing is needed before the feature works"),
+                detail: detail, fix: [getModel])
+        case (false, true):
+            return SettingsStatus(
+                level: .attention,
+                title: LocalizedStringResource(
+                    "1 thing to do", comment: "Settings banner: one thing is needed before the feature works"),
+                detail: LocalizedStringResource(
+                    "Allow the microphone so Lintel can hear you.",
+                    comment: "Settings → Dictation banner detail: macOS has not asked for the microphone yet"),
+                fix: [askMicrophone])
+        case (false, false):
+            break
+        }
+        let paused = LocalizedStringResource(
+            "History is paused (dictation)", defaultValue: "History is paused",
+            comment: "Settings → Dictation banner when the dictation history cannot be opened")
+        let tryAgain = SettingsStatusAction(
+            title: LocalizedStringResource(
+                "Try Again (dictation history)", defaultValue: "Try Again",
+                comment: "Settings → Dictation banner button that opens the dictation history again"),
+            destination: .plugin(id: retryHistoryActionID, perform: retryHistory))
+        switch history {
+        case .unavailable:
+            return SettingsStatus(
+                level: .attention, title: paused,
+                detail: LocalizedStringResource(
+                    "Lintel can’t read the history’s key. Nothing was deleted.",
+                    comment: "Settings → Dictation banner detail when the history key cannot be read"),
+                fix: [tryAgain])
+        case .failed:
+            return SettingsStatus(
+                level: .attention, title: paused,
+                detail: LocalizedStringResource(
+                    "The history couldn’t be opened. Dictation still works.",
+                    comment: "Settings → Dictation banner detail when the history database cannot be opened"),
+                fix: [tryAgain])
+        case .closed, .ready:
+            break
+        }
+        return SettingsStatus(
+            level: .ok,
+            title: LocalizedStringResource("Ready", comment: "Settings banner level, spoken"),
+            detail: LocalizedStringResource(
+                "Speech model: \(modelTitle).",
+                comment: "Settings → Dictation banner detail when dictation is ready: the speech model's name"))
     }
 
     public func settingsPane() -> AnyView? {
