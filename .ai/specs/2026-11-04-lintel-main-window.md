@@ -291,7 +291,7 @@ Each phase ships on its own `feat/` branch and PR; `risk-high` follows the SDLC 
 
 - **5.1** Dictation (banner for the model, Basics shortcut/model summary/language/cleanup, Advanced input device/restore clipboard, History).
 - **5.2** Meetings (banner "2 things to do" with "Fix Next", Basics, Advanced echo/suggestions/test, Privacy and data). Tests: with Meetings enabled on a fresh profile: "2 things to do" (microphone + speech model; the diarization model is not counted); with Meetings off: the neutral "Turn on" banner; "2 things to do" counts a `.notDetermined` microphone and "Fix Next" requests it.
-- **5.3** Confirmation copy of Clear Library, Clear History and Erase Data in Meetings and Dictation says that copies you edited or commented on in Notes stay until deleted there (companion spec, "Retention"); the Notes sentence sits inside `#if DEBUG` in each pane until Notes is enabled (B 7.1 removes the guards); uses `ConfirmSheet` from 3.4; strings en+pl, test on the sheet copy.
+- **5.3** Confirmation copy of Clear Library, Clear History and Erase Data in Meetings and Dictation says that copies you edited or commented on in Notes stay until deleted there and offers an "Also delete kept copies" checkbox, off by default (owner decision L1-39, 2026-11-05) (companion spec, "Retention"); the Notes sentence sits inside `#if DEBUG` in each pane until Notes is enabled (B 7.1 removes the guards); uses `ConfirmSheet` from 3.4; strings en+pl, test on the sheet copy.
 
 ### Phase 6: finish
 
