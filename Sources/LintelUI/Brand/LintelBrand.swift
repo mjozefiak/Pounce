@@ -60,6 +60,8 @@ public nonisolated enum BrandPalette {
 public enum LintelBrand {
     /// How strongly the accent tints a selected row (light, dark).
     nonisolated public static let selectionTintAlpha: (light: Double, dark: Double) = (0.14, 0.18)
+    /// How strongly a status colour tints the background of the Settings status banner.
+    nonisolated public static let statusTintAlpha = 0.12
 
     public static let accentColor = dynamic("LintelAccent", BrandPalette.accentLight, BrandPalette.accentDark)
     public static let accentTextColor = dynamic(

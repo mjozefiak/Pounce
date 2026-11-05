@@ -46,24 +46,3 @@ enum SettingsPaneAdapter {
             })
     }
 }
-
-/// The Settings mode content: the sidebar and the selected pane.
-struct SettingsModeAdapterView: View {
-    let entries: [SettingsPaneAdapter.Entry]
-    let sections: [SettingsSidebarModel.Section]
-    let selection: String
-    let onSelect: (String) -> Void
-    let onBack: (() -> Void)?
-
-    var body: some View {
-        HStack(spacing: 0) {
-            SettingsSidebar(sections: sections, selection: selection, onSelect: onSelect, onBack: onBack)
-            Divider()
-            ScrollView {
-                (entries.first { $0.id == selection } ?? entries.first)?.makeView()
-                    .frame(maxWidth: .infinity)
-                    .id(selection)
-            }
-        }
-    }
-}

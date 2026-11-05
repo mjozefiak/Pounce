@@ -10512,6 +10512,258 @@
           }
         }
       }
+    },
+    "This feature is off" : {
+      "comment" : "Settings banner: the plugin is turned off",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This feature is off"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ta funkcja jest wyłączona"
+          }
+        }
+      }
+    },
+    "Turn it on to use it." : {
+      "comment" : "Settings banner detail: plugin is off",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn it on to use it."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Włącz ją, aby z niej korzystać."
+          }
+        }
+      }
+    },
+    "Turn On" : {
+      "comment" : "Settings banner button: turns a plugin on",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn On"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Włącz"
+          }
+        }
+      }
+    },
+    "This feature couldn't start" : {
+      "comment" : "Settings banner: the plugin failed to start",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This feature couldn't start"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ta funkcja nie mogła się uruchomić"
+          }
+        }
+      }
+    },
+    "Nothing was deleted." : {
+      "comment" : "Settings banner detail: the plugin failed to start",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing was deleted."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nic nie zostało usunięte."
+          }
+        }
+      }
+    },
+    "Open System Settings" : {
+      "comment" : "Settings banner button: opens a permission's page",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open System Settings"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz Ustawienia systemu"
+          }
+        }
+      }
+    },
+    "%@ can't be checked" : {
+      "comment" : "Settings banner: a permission whose state macOS does not report; the permission name",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ can't be checked"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie można sprawdzić: %@"
+          }
+        }
+      }
+    },
+    "macOS doesn't report this permission. Lintel finds out when it's first used." : {
+      "comment" : "Settings banner detail: a permission whose state cannot be read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS doesn't report this permission. Lintel finds out when it's first used."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS nie zgłasza stanu tego uprawnienia. Lintel dowie się o nim przy pierwszym użyciu."
+          }
+        }
+      }
+    },
+    "Ready" : {
+      "comment" : "Settings banner level, spoken",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ready"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gotowe"
+          }
+        }
+      }
+    },
+    "Error" : {
+      "comment" : "Settings banner level, spoken",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Błąd"
+          }
+        }
+      }
+    },
+    "Information" : {
+      "comment" : "Settings banner level, spoken",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Information"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Informacja"
+          }
+        }
+      }
+    },
+    "%@: not allowed" : {
+      "comment" : "Settings banner: a required permission is denied; the permission name",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: not allowed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: brak zgody"
+          }
+        }
+      }
+    },
+    "Some permissions aren't allowed" : {
+      "comment" : "Settings banner: several permissions are denied",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some permissions aren't allowed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brakuje niektórych uprawnień"
+          }
+        }
+      }
+    },
+    "Allow it in System Settings." : {
+      "comment" : "Settings banner detail: a permission is denied",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow it in System Settings."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól w Ustawieniach systemu."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

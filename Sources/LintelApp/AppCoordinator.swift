@@ -24,11 +24,15 @@ final class AppCoordinator {
     /// The main window, behind the release gate of ADR 0008 until step 6.3: built on first use, DEBUG only.
     private(set) var mainWindow: MainWindowController?
     private var mainMenu: MainMenuController?
+    /// The one banner of the main window's Settings mode (spec step 2.2); built with the Settings mode.
+    private var settingsHost: SettingsHostModel?
     #endif
     /// Shows the welcome screen's pending steps. Set in `start()` outside QA mode; tests replace it.
     var presentPendingOnboarding: (@MainActor () -> Void)?
     private let search: SearchCoordinator
     private let settingsRelay: PluginSettingsRelay
+    /// `PluginContext.resultsChanged` with the plugin's id, for the Settings banner.
+    private let statusRelay = PluginStatusRelay()
     private let icons: IconCache
     private let logger = Logger(subsystem: "com.lintelapp", category: "app")
 
@@ -46,6 +50,7 @@ final class AppCoordinator {
         let relay = ResultsChangedRelay()
         let settingsRelay = PluginSettingsRelay()
         self.settingsRelay = settingsRelay
+        let statusRelay = statusRelay
         let hotkeys = HotkeyService(
             registrar: registrar,
             settings: environment.settings,
@@ -58,7 +63,12 @@ final class AppCoordinator {
             makeContext: { manifest in
                 environment.makeContext(
                     for: manifest,
-                    resultsChanged: { Task { @MainActor in relay.signal() } },
+                    resultsChanged: {
+                        Task { @MainActor in
+                            relay.signal()
+                            statusRelay.signal(manifest.id.rawValue)
+                        }
+                    },
                     makeShortcutRecorder: { commandID in
                         AnyView(CommandShortcutRecorder(hotkeys: hotkeys, commandID: commandID))
                     },
@@ -82,6 +92,9 @@ final class AppCoordinator {
             diskDirectory: environment.cachesRoot.appending(path: "icons", directoryHint: .isDirectory))
         settingsRelay.handler = { [weak self] id in self?.openPluginSettings(id) }
         settingsRelay.modelsHandler = { [weak self] id, packageID in self?.openModels(from: id, packageID: packageID) }
+        #if DEBUG
+        statusRelay.handler = { [weak self] id in self?.settingsHost?.pluginResultsChanged(id) }
+        #endif
     }
 
     /// Builds the panel and windows, activates the enabled plugins, registers shortcuts and, while steps
@@ -356,18 +369,30 @@ final class AppCoordinator {
         present(mainWindow ?? makeMainWindow())
     }
 
-    /// Settings mode: the old window's panes through the temporary adapter (spec step 1.3).
+    /// Settings mode: the sidebar, the one banner (`SettingsHost`) and the old window's panes through the
+    /// temporary adapter (spec step 1.3).
     private func settingsModeContent(_ state: MainWindowState) -> AnyView {
         guard let shellPane else { return AnyView(EmptyView()) }
         let panes = mainWindowPluginPanes()
         let entries = SettingsPaneAdapter.entries(shellPane: shellPane, plugins: panes)
         let hasSection = state.section != nil
         return AnyView(
-            SettingsModeAdapterView(
+            SettingsHost(
+                model: settingsHost ?? makeSettingsHost(),
                 entries: entries, sections: SettingsPaneAdapter.sidebarSections(plugins: panes),
                 selection: state.settingsPane,
                 onSelect: { [weak self] id in self?.mainWindow?.selectSettingsPane(id) },
                 onBack: hasSection ? { [weak self] in self?.mainWindow?.showWorkspace() } : nil))
+    }
+
+    private func makeSettingsHost() -> SettingsHostModel {
+        var navigation = SettingsHostModel.Navigation()
+        navigation.openModels = { [weak self] id, packageID in self?.openModels(from: id, packageID: packageID) }
+        navigation.openURL = { url in NSWorkspace.shared.open(url) }
+        navigation.pluginsChanged = { [weak self] in self?.pluginsChanged() }
+        let model = SettingsHostModel(host: host, reader: environment.permissionsReader, navigation: navigation)
+        settingsHost = model
+        return model
     }
 
     private func makeMainWindow() -> MainWindowController {
@@ -440,6 +465,15 @@ final class ResultsChangedRelay {
             self?.pending = nil
             self?.handler()
         }
+    }
+}
+
+/// Forwards a plugin's `resultsChanged` with its id to the Settings banner, which reads its status again.
+final class PluginStatusRelay {
+    var handler: @MainActor (String) -> Void = { _ in }
+
+    @MainActor func signal(_ pluginID: String) {
+        handler(pluginID)
     }
 }
 

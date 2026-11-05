@@ -67,3 +67,23 @@ import Testing
         #expect(BrandPalette.statusErrorLight == 0xD70015 && BrandPalette.statusErrorDark == 0xFF6961)
     }
 }
+
+@Suite struct StatusBannerContrastTests {
+    /// The Settings banner's glyph sits on its own level's tint over the window: it keeps 3:1 there.
+    @Test func eachStatusGlyphHasThreeToOneOnItsBannerTint() {
+        let lightWindow: UInt32 = 0xECECEC
+        let darkWindow: UInt32 = 0x323232
+        let alpha = LintelBrand.statusTintAlpha
+        let pairs: [(name: String, light: UInt32, dark: UInt32)] = [
+            ("ok", BrandPalette.statusOkLight, BrandPalette.statusOkDark),
+            ("attention", BrandPalette.statusAttentionLight, BrandPalette.statusAttentionDark),
+            ("error", BrandPalette.statusErrorLight, BrandPalette.statusErrorDark),
+        ]
+        for pair in pairs {
+            let lightTint = BrandPalette.blend(pair.light, alpha: alpha, over: lightWindow)
+            let darkTint = BrandPalette.blend(pair.dark, alpha: alpha, over: darkWindow)
+            #expect(BrandPalette.contrast(pair.light, lightTint) >= 3, "status.\(pair.name) light banner")
+            #expect(BrandPalette.contrast(pair.dark, darkTint) >= 3, "status.\(pair.name) dark banner")
+        }
+    }
+}
