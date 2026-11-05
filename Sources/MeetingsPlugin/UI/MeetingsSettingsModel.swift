@@ -211,8 +211,9 @@ final class MeetingsSettingsModel {
     /// audio are in use).
     var canChangeLibrary: Bool { library.status == .ready && !library.isProcessing }
 
-    /// Called after the pane's confirmation.
-    func clearLibrary() {
+    /// Called after the pane's confirmation. `alsoDeleteKeptCopies` is the sheet's "Also delete kept copies"
+    /// checkbox; ignored until Notes exists (spec `2026-11-04-notes-workspace`, step 4.6 deletes the copies).
+    func clearLibrary(alsoDeleteKeptCopies: Bool = false) {
         run {
             let report = try privacy.clearLibrary()
             return (Self.removedMessage(report.removed), report.failed)

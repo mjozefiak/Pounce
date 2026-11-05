@@ -19,8 +19,10 @@ struct FeatureControls {
         onChange()
     }
 
-    /// "Erase Data". Returns the error message to show, or `nil` when it worked.
-    func erase(_ id: PluginID) async -> String? {
+    /// "Erase Data". Returns the error message to show, or `nil` when it worked. `alsoDeleteKeptCopies` is the
+    /// sheet's "Also delete kept copies" checkbox; ignored until Notes exists (spec `2026-11-04-notes-workspace`,
+    /// step 4.6 deletes the copies).
+    func erase(_ id: PluginID, alsoDeleteKeptCopies: Bool = false) async -> String? {
         defer { onChange() }
         do {
             try await host.eraseData(for: id)
@@ -129,8 +131,11 @@ struct FeaturesPaneContent: View {
             }
         } advanced: {
             ForEach(controls.host.entries, id: \.manifest.id.eraseRowID) { entry in
-                FeatureEraseRow(manifest: entry.manifest) {
-                    Task { eraseError = await controls.erase(entry.manifest.id) }
+                FeatureEraseRow(manifest: entry.manifest) { alsoDeleteKeptCopies in
+                    Task {
+                        eraseError = await controls.erase(
+                            entry.manifest.id, alsoDeleteKeptCopies: alsoDeleteKeptCopies)
+                    }
                 }
             }
             if let order, order.ordered.count > 1 {
@@ -239,10 +244,27 @@ struct AlwaysOnChip: View {
 /// "Erase Data…" of one feature, under Advanced, with the shared confirmation.
 struct FeatureEraseRow: View {
     let manifest: PluginManifest
-    let erase: () -> Void
+    /// Receives the "Also delete kept copies" checkbox (always `false` without one).
+    let erase: (Bool) -> Void
 
     @Environment(\.lintelTextSize) private var textSize
     @State private var confirmsErase = false
+
+    /// The features whose data Notes can keep copies of (owner decision L1-39).
+    static let featuresWithNotesCopies: Set<PluginID> = ["meetings", "dictation"]
+
+    /// Erase Data in the main window: for Meetings and Dictation it also says that copies edited or commented
+    /// on in Notes stay, with the "Also delete kept copies" checkbox. DEBUG only until Notes ships (spec
+    /// `2026-11-04-notes-workspace`, step 7.1 removes the guard); release builds show the words as today.
+    static func confirmation(for manifest: PluginManifest) -> DestructiveConfirmation {
+        let confirmation = FeatureRow.confirmation(for: manifest)
+        #if DEBUG
+        guard featuresWithNotesCopies.contains(manifest.id) else { return confirmation }
+        return confirmation.with(option: .keptNotesCopies)
+        #else
+        return confirmation
+        #endif
+    }
 
     var body: some View {
         LabeledContent {
@@ -260,7 +282,8 @@ struct FeatureEraseRow: View {
             Text(manifest.displayName)
                 .font(textSize.font(.body))
         }
-        .destructiveConfirmation(isPresented: $confirmsErase, FeatureRow.confirmation(for: manifest), onConfirm: erase)
+        .destructiveConfirmation(
+            isPresented: $confirmsErase, Self.confirmation(for: manifest), onConfirmWithOption: erase)
     }
 }
 

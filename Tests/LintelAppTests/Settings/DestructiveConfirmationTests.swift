@@ -37,3 +37,47 @@ import Testing
         #expect(FeatureRow.confirmation(for: manifest).confirmTitle.key == "Erase Data")
     }
 }
+
+/// Step 5.3 (owner decision L1-39): Erase Data of Meetings and Dictation in Features → Advanced says that copies
+/// edited or commented on in Notes stay and offers "Also delete kept copies", off by default; other features,
+/// the old window and release builds keep today's words.
+@MainActor
+@Suite struct EraseDataKeptCopiesTests {
+    private static func manifest(_ id: PluginID) -> PluginManifest {
+        PluginManifest(id: id, displayName: "Feature", symbolName: "app", order: 10)
+    }
+
+    @Test func meetingsAndDictationOfferTheUncheckedBox() throws {
+        for id: PluginID in ["meetings", "dictation"] {
+            let confirmation = FeatureEraseRow.confirmation(for: Self.manifest(id))
+            let option = try #require(confirmation.option(in: .mainWindow))
+            #expect(option.isOnByDefault == false)
+            #expect(option.title.key == "Also delete kept copies")
+            try DestructiveConfirmationTests.expectTranslated(option.title)
+            try DestructiveConfirmationTests.expectTranslated(try #require(option.explanation))
+            #expect(confirmation.confirmTitle.key == "Erase Data")
+            #expect(confirmation.option(in: .legacyWindow) == nil)
+        }
+    }
+
+    @Test func otherFeaturesAndTheOldWindowHaveNoCheckbox() {
+        for id: PluginID in ["apps", "files", "clipboard"] {
+            #expect(FeatureEraseRow.confirmation(for: Self.manifest(id)).option == nil)
+        }
+        #expect(FeatureRow.confirmation(for: Self.manifest("meetings")).option == nil)
+    }
+
+    @Test func theCheckboxIsGuardedAndReachesTheEraseAction() throws {
+        let url = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+        let pane = try String(
+            contentsOf: url.appending(path: "Sources/LintelApp/Settings/FeaturesPane.swift"), encoding: .utf8)
+        let legacy = try String(
+            contentsOf: url.appending(path: "Sources/LintelApp/Settings/LegacyShellPanes.swift"), encoding: .utf8)
+        #expect(pane.contains("entry.manifest.id, alsoDeleteKeptCopies: alsoDeleteKeptCopies"))
+        let guarded = try #require(pane.range(of: "#if DEBUG\n        guard featuresWithNotesCopies"))
+        let release = try #require(pane.range(of: "#else\n        return confirmation\n        #endif"))
+        #expect(guarded.upperBound <= release.lowerBound)
+        #expect(!legacy.contains("keptNotesCopies"))
+    }
+}

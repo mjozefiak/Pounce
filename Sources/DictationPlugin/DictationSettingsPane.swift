@@ -62,9 +62,12 @@ struct DictationPaneContent: View {
         } data: {
             historyRows
         }
-        .destructiveConfirmation(isPresented: $confirmsClear, HistorySection.confirmation) {
-            history.clear()
-        }
+        .destructiveConfirmation(
+            isPresented: $confirmsClear, HistorySection.confirmationInMainWindow,
+            onConfirmWithOption: { alsoDeleteKeptCopies in
+                history.clear(alsoDeleteKeptCopies: alsoDeleteKeptCopies)
+            }
+        )
         .task(id: isActive) {
             guard isActive else { return }
             await model.refresh()
@@ -347,5 +350,18 @@ struct DictationPaneContent: View {
             title.font(textSize.font(.body))
             help.font(textSize.font(.callout)).foregroundStyle(.secondary)
         }
+    }
+}
+
+extension HistorySection {
+    /// Clear History in the main window: also says that copies edited or commented on in Notes stay, with the
+    /// "Also delete kept copies" checkbox (owner decision L1-39). DEBUG only until Notes ships (spec
+    /// `2026-11-04-notes-workspace`, step 7.1 removes the guard); release builds show `confirmation` as today.
+    static var confirmationInMainWindow: DestructiveConfirmation {
+        #if DEBUG
+        confirmation.with(option: .keptNotesCopies)
+        #else
+        confirmation
+        #endif
     }
 }

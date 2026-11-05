@@ -85,10 +85,11 @@ struct MeetingsPaneContent: View {
         .destructiveConfirmation(
             isPresented: Binding(
                 get: { confirmation == .clearLibrary }, set: { if !$0 { confirmation = nil } }),
-            MeetingsConfirmations.clearLibrary
-        ) {
-            model.clearLibrary()
-        }
+            MeetingsConfirmations.clearLibraryInMainWindow,
+            onConfirmWithOption: { alsoDeleteKeptCopies in
+                model.clearLibrary(alsoDeleteKeptCopies: alsoDeleteKeptCopies)
+            }
+        )
         .destructiveConfirmation(
             isPresented: Binding(
                 get: { confirmation == .deleteRecordings }, set: { if !$0 { confirmation = nil } }),
@@ -449,5 +450,18 @@ extension NotesSettingsModel {
     var choiceState: ModelChoiceRow.State {
         if progress != nil { return .downloading }
         return isInstalled ? .installed : .notInstalled
+    }
+}
+
+extension MeetingsConfirmations {
+    /// Clear Library in the main window: also says that copies edited or commented on in Notes stay, with the
+    /// "Also delete kept copies" checkbox (owner decision L1-39). DEBUG only until Notes ships (spec
+    /// `2026-11-04-notes-workspace`, step 7.1 removes the guard); release builds show `clearLibrary` as today.
+    static var clearLibraryInMainWindow: DestructiveConfirmation {
+        #if DEBUG
+        clearLibrary.with(option: .keptNotesCopies)
+        #else
+        clearLibrary
+        #endif
     }
 }

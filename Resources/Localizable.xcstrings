@@ -13482,6 +13482,42 @@
           }
         }
       }
+    },
+    "Copies you edited or commented on in Notes stay until you delete them there." : {
+      "comment" : "Confirmation sheet: Clear or Erase in Meetings and Dictation keeps the edited copies in Notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copies you edited or commented on in Notes stay until you delete them there."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopie edytowane lub skomentowane w Notatkach zostają, dopóki ich tam nie usuniesz."
+          }
+        }
+      }
+    },
+    "Also delete kept copies" : {
+      "comment" : "Confirmation sheet checkbox: also delete the copies kept in Notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Also delete kept copies"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń też zachowane kopie"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
