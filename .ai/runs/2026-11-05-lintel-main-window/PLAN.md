@@ -75,7 +75,8 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 | 6 | 6.7a | Final 1:1 pass: the pane title and the banner title in `LintelBrand.ink` (were the system label grey) | inline | done | 688a5a1 |
 | 6 | 6.7b | Final 1:1 pass: banner glyphs of the prototype (`warn` triangle for attention and error, ringed `info`), semibold | inline | done | f066176 |
 | 6 | 6.7c | Final 1:1 pass: Features uses the prototype's grid symbol in the sidebar; Features rows put the symbol in front of the name | inline | done | 4b74e41 |
-| 6 | 6.7d | Final 1:1 pass: Permissions rows (Full Disk Access optional: "Not granted", secondary button, after the allowed rows, "· optional"; "Not asked yet" in the attention colour; "System audio recording"; the prototype's footer) | inline | done | (this commit) |
+| 6 | 6.7d | Final 1:1 pass: Permissions rows (Full Disk Access optional: "Not granted", secondary button, after the allowed rows, "· optional"; "Not asked yet" in the attention colour; "System audio recording"; the prototype's footer) | inline | done | 1e18198 |
+| 6 | 6.7e | Final 1:1 pass: the Advanced card starts where the other panes' banner does (16 pt higher) | inline | done | (this commit) |
 
 Step 6.2 (⌃X confirmation) is NOT in this table: it is a separate PR on a fresh branch from main, done after this PR is complete.
 

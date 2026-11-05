@@ -183,9 +183,15 @@ struct AdvancedPaneContent: View {
                 }
             }
         }
+        // No banner and no section title, so the card starts where the other panes' banner does (prototype
+        // `set-advanced`, the title's 12 pt margin), not under the grouped form's top margin, which is sized for a
+        // section header.
+        .padding(.top, -Self.headerlessLift)
         .resetRankingFlow(
             controls: controls, confirms: $confirmsReset, done: $resetDone, error: $resetError)
     }
+
+    static let headerlessLift: CGFloat = 16
 
     private func row<Action: View>(title: Text, detail: Text?, @ViewBuilder action: () -> Action) -> some View {
         LabeledContent {
