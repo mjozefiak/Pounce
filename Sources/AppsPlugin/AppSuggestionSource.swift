@@ -1,5 +1,5 @@
 import Foundation
-import PounceKit
+import LintelKit
 
 /// The suggested apps for the empty panel: the top apps by activity, as `apps:<bundleID>` candidates with
 /// the app's icon and a "Running" badge for running apps. Reads only memory (the activity snapshot, the

@@ -1,4 +1,5 @@
 import Foundation
+import LintelSpeech
 import Observation
 
 /// What the "Formatting" section of the Dictation pane shows and does: the mode, the servers found on this Mac,
@@ -32,7 +33,7 @@ final class FormattingSettingsModel {
     private(set) var selectedEndpoint: URL?
     private(set) var selectedModel: String?
 
-    /// Where the clean-up runs: the user's server or the model Pounce downloaded.
+    /// Where the clean-up runs: the user's server or the model Lintel downloaded.
     var source: DictationSettings.LLMSource {
         didSet {
             settings.setLLMSource(source)
@@ -154,10 +155,26 @@ final class FormattingSettingsModel {
         guard let llmModels else { return }
         let package = builtInModel.package
         Task {
+            // The file is open while a request uses the model: wait for the user to try again.
+            if await runtime?.isInUse() == true {
+                builtInError = String(
+                    localized: "The model is in use right now. Try again in a moment.",
+                    comment: "Dictation settings error when the built-in model is being used and cannot be removed")
+                return
+            }
             await runtime?.unload()
             do {
-                try await llmModels.delete(package)
-                builtInError = nil
+                // Checked again right before the delete: a request may have started while the model was freed.
+                let removed = try await llmModels.delete(package) { @Sendable in
+                    await self.runtime?.isInUse() == true
+                }
+                builtInError =
+                    removed
+                    ? nil
+                    : String(
+                        localized: "The model is in use right now. Try again in a moment.",
+                        comment:
+                            "Dictation settings error when the built-in model is being used and cannot be removed")
             } catch {
                 builtInError = DictationSettingsModel.message(for: error)
             }

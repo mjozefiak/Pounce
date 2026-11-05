@@ -1,6 +1,6 @@
 import Foundation
+import LintelKit
 import Observation
-import PounceKit
 import SwiftUI
 import Synchronization
 import os
@@ -13,7 +13,7 @@ final class FilesState {
     var plan: IndexPlan?
 }
 
-/// File search (spec Phase 3): filenames under the home folder and `/Applications` from Pounce's own
+/// File search (spec Phase 3): filenames under the home folder and `/Applications` from Lintel's own
 /// index, kept fresh with FSEvents and saved as `Plugins/files/index.snapshot`.
 ///
 /// - The first scan waits for the Full Disk Access onboarding step (or "Start Indexing" in Settings).
@@ -25,7 +25,7 @@ final class FilesState {
 ///
 /// Settings: see `FilesSettings.Key`.
 @MainActor
-public final class FilesPlugin: PouncePlugin {
+public final class FilesPlugin: LintelPlugin {
     public nonisolated static let manifest = PluginManifest(
         id: "files",
         displayName: LocalizedStringResource("Files", comment: "Results section and plugin name for files"),
@@ -148,7 +148,7 @@ public final class FilesPlugin: PouncePlugin {
                     id: "files.setup",
                     symbolName: "doc.text.magnifyingglass",
                     message: LocalizedStringResource(
-                        "File search starts once you choose how Pounce may read your files.",
+                        "File search starts once you choose how Lintel may read your files.",
                         comment: "Panel notice before file indexing was set up"),
                     actions: [
                         SearchStatusAction(

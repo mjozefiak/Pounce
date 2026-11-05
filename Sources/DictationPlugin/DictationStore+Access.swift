@@ -1,6 +1,6 @@
 import Foundation
 import GRDB
-import PouncePersistence
+import LintelPersistence
 
 extension DictationStore {
     /// Opens (or creates) the encrypted database in `directory`.

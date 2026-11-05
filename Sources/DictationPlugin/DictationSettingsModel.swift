@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import LintelSpeech
 import Observation
 import os
 
@@ -34,7 +35,7 @@ final class DictationSettingsModel {
     @ObservationIgnored private let makeCapture: (String?) -> any AudioInput
     @ObservationIgnored private var downloadTask: Task<Void, Never>?
     @ObservationIgnored private var testTask: Task<Void, Never>?
-    @ObservationIgnored private let logger = Logger(subsystem: "app.pounce", category: "dictation")
+    @ObservationIgnored private let logger = Logger(subsystem: "com.lintelapp", category: "dictation")
 
     init(
         package: ModelPackage, packages: [ModelPackage]? = nil, manager: ModelManager, settings: DictationSettings,

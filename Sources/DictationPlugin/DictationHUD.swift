@@ -153,6 +153,9 @@ struct DictationHUDView: View {
             if state.offersSettings {
                 Button(state.detail ?? "") { model.onOpenSettings() }
                     .buttonStyle(.link)
+                    // The brand's text-grade accent (4.5:1 on the glass) from the app's asset catalog; the system
+                    // accent when the catalog is missing (`swift run`, tests).
+                    .foregroundStyle(Color(nsColor: NSColor(named: "AccentText") ?? .controlAccentColor))
                     .font(.system(size: 12, weight: .medium))
             }
             if state.offersCancel {
@@ -193,7 +196,8 @@ struct DictationHUDView: View {
                 .symbolEffect(.pulse, isActive: !(reduceMotion || model.reducesMotion))
                 .accessibilityHidden(true)
         case .finishing, .recording:
-            ProgressView().controlSize(.small)
+            BrandCaret(animated: !(reduceMotion || model.reducesMotion))
+                .accessibilityHidden(true)
         case .pasted:
             Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
                 .font(.title3).accessibilityHidden(true)
@@ -212,6 +216,27 @@ struct DictationHUDView: View {
     }
 }
 
+/// The "working" indicator: the accent caret. It blinks, or stays solid when Reduce Motion is on.
+private struct BrandCaret: View {
+    let animated: Bool
+    @State private var lit = true
+
+    var body: some View {
+        Capsule()
+            .fill(Color.accentColor)
+            .frame(width: 3, height: 16)
+            .opacity(lit ? 1 : 0.25)
+            .task(id: animated) {
+                lit = true
+                guard animated else { return }
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .milliseconds(550))
+                    lit.toggle()
+                }
+            }
+    }
+}
+
 /// Bars that follow the microphone level, tallest in the middle; flat when Reduce Motion is on.
 private struct LevelBars: View {
     let level: Float
@@ -223,7 +248,7 @@ private struct LevelBars: View {
             ForEach(0..<Self.profile.count, id: \.self) { index in
                 let height = 4 + 14 * CGFloat(min(1, max(0, level))) * Self.profile[index]
                 Capsule()
-                    .fill(Color.primary.opacity(0.75))
+                    .fill(Color.accentColor)
                     .frame(width: 3, height: height)
             }
         }

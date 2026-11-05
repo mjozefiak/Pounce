@@ -1,5 +1,5 @@
 import Foundation
-import PounceKit
+import LintelKit
 import os
 
 /// What one capture read from the pasteboard, handed to the background for classification and storage.
@@ -98,7 +98,7 @@ final class PasteboardWatcher {
         task = nil
     }
 
-    /// Pounce wrote this `changeCount` itself (pasting from the history), so it is not recorded again.
+    /// Lintel wrote this `changeCount` itself (pasting from the history), so it is not recorded again.
     func ignore(changeCount: Int) {
         ownChangeCounts.insert(changeCount)
         if ownChangeCounts.count > 16 {

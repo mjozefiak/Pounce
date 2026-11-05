@@ -1,8 +1,9 @@
 import Foundation
-import PounceKit
+import LintelKit
 import Testing
 
 @testable import DictationPlugin
+@testable import LintelSpeech
 
 @MainActor
 @Suite(.serialized) struct FormattingSettingsTests {
@@ -139,13 +140,13 @@ import Testing
         #expect(cases.allSatisfy { !$0.raw.isEmpty && !$0.mustContain.isEmpty })
     }
 
-    /// Runs every fixture against the server in `POUNCE_LLM_URL` with the model in `POUNCE_LLM_MODEL` and
+    /// Runs every fixture against the server in `LINTEL_LLM_URL` with the model in `LINTEL_LLM_MODEL` and
     /// prints a table for the PR body. Off by default, like the benchmarks.
-    @Test(.enabled(if: ProcessInfo.processInfo.environment["POUNCE_LLM_URL"] != nil))
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["LINTEL_LLM_URL"] != nil))
     func realServer() async throws {
         let env = ProcessInfo.processInfo.environment
-        let base = try #require(env["POUNCE_LLM_URL"].flatMap { LoopbackPolicy.parse($0) })
-        let model = try #require(env["POUNCE_LLM_MODEL"])
+        let base = try #require(env["LINTEL_LLM_URL"].flatMap { LoopbackPolicy.parse($0) })
+        let model = try #require(env["LINTEL_LLM_MODEL"])
         let formatter = LocalLLMFormatter(
             transport: LoopbackTransport(), target: { .init(baseURL: base, model: model) })
         var failures: [String] = []
@@ -166,11 +167,11 @@ import Testing
         #expect(failures.isEmpty, "\(failures.joined(separator: "\n"))")
     }
 
-    /// Runs every fixture against the built-in engine with the GGUF file in `POUNCE_LLAMA_MODEL` (step 4.5) and
+    /// Runs every fixture against the built-in engine with the GGUF file in `LINTEL_LLAMA_MODEL` (step 4.5) and
     /// prints a table for the PR body. Off by default, like the benchmarks.
-    @Test(.enabled(if: ProcessInfo.processInfo.environment["POUNCE_LLAMA_MODEL"] != nil))
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["LINTEL_LLAMA_MODEL"] != nil))
     func builtInModel() async throws {
-        let path = try #require(ProcessInfo.processInfo.environment["POUNCE_LLAMA_MODEL"])
+        let path = try #require(ProcessInfo.processInfo.environment["LINTEL_LLAMA_MODEL"])
         let warm = KeepWarmRuntime(
             runtime: LlamaRuntime(), modelURL: URL(fileURLWithPath: path), keepWarm: { .seconds(300) })
         let formatter = BuiltInFormatter(runtime: warm)
@@ -278,5 +279,39 @@ import Testing
         await model.refreshBuiltIn()
         #expect(model.builtInError == nil)
         #expect(!model.isBuiltInInstalled)
+    }
+
+    @Test func aModelThatIsInUseIsNotRemoved() async throws {
+        let directory = try TemporaryDirectory()
+        let settings = DictationSettings(PluginSettings(pluginID: "dictation", store: MemorySettingsStore()))
+        let manager = ModelManager(directory: directory.url, availableSpace: { _ in Int.max })
+        let url = URL(fileURLWithPath: "/models/in-use.gguf")
+        let lease = LLMLease()
+        let scripted = ScriptedRuntime()
+        let warm = KeepWarmRuntime(
+            runtime: scripted, modelURL: url, keepWarm: { .seconds(60) }, lease: lease)
+        let model = FormattingSettingsModel(
+            settings: settings, transport: ScriptedTransport(.content("x")), llmModels: manager, runtime: warm)
+
+        // A request holds the model: Remove refuses, says why and leaves the loaded copy alone.
+        let handle = try await lease.acquire(
+            key: .init(modelID: url.path, contextLength: scripted.contextLength), runtime: scripted, modelURL: url,
+            priority: .interactive, keepWarm: { .seconds(60) })
+        #expect(await warm.isInUse())
+        model.removeBuiltIn()
+        for _ in 0..<2_000 where model.builtInError == nil { await Task.yield() }
+        #expect(model.builtInError != nil)
+        #expect(await scripted.loaded)
+
+        // Positive control: once the request is over, removal goes through (nothing to delete here) and the
+        // model is freed.
+        await handle.release()
+        #expect(!(await warm.isInUse()))
+        model.removeBuiltIn()
+        for _ in 0..<2_000 where model.builtInError != nil { await Task.yield() }
+        #expect(model.builtInError == nil)
+        for _ in 0..<2_000 where await scripted.loaded { await Task.yield() }
+        #expect(!(await scripted.loaded))
+        withExtendedLifetime(directory) {}
     }
 }

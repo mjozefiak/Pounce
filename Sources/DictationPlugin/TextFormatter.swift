@@ -60,7 +60,7 @@ struct LocalLLMFormatter: TextFormatter {
 
     init(
         transport: any HTTPTransport, target: @escaping @Sendable () -> Target?,
-        logger: Logger = Logger(subsystem: "app.pounce", category: "dictation")
+        logger: Logger = Logger(subsystem: "com.lintelapp", category: "dictation")
     ) {
         self.transport = transport
         self.target = target

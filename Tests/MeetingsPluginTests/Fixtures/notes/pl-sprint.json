@@ -1,0 +1,86 @@
+{
+  "name": "pl-sprint",
+  "language": "pl",
+  "description": "Polish sprint planning: a decision, a task with a person and a weekday, a question. The model also invents a task for a person who is not in the recording.",
+  "utterances": [
+    {
+      "startMs": 0,
+      "speaker": "Anna",
+      "text": "Dzień dobry, przechodzimy do planu sprintu."
+    },
+    {
+      "startMs": 15000,
+      "speaker": "Marek",
+      "text": "Zatwierdzamy wydanie nowej wersji na piątek."
+    },
+    {
+      "startMs": 30000,
+      "speaker": "Anna",
+      "text": "Marek, przygotuj notatki do wydania do czwartku."
+    },
+    {
+      "startMs": 45000,
+      "speaker": "Marek",
+      "text": "Dobrze, przygotuję je do czwartku."
+    },
+    {
+      "startMs": 60000,
+      "speaker": "Ola",
+      "text": "Czy dostawca potwierdził termin dostawy?"
+    },
+    {
+      "startMs": 75000,
+      "speaker": "Anna",
+      "text": "To jeszcze sprawdzimy po spotkaniu."
+    }
+  ],
+  "modelAnswer": [
+    {
+      "kind": "SUM",
+      "time": "00:00",
+      "quote": "przechodzimy do planu sprintu",
+      "text": "Omówiono plan sprintu."
+    },
+    {
+      "kind": "DEC",
+      "time": "00:15",
+      "quote": "Zatwierdzamy wydanie nowej wersji na piątek",
+      "text": "Zatwierdzono wydanie nowej wersji na piątek."
+    },
+    {
+      "kind": "TASK",
+      "time": "00:30",
+      "quote": "Marek, przygotuj notatki do wydania do czwartku",
+      "text": "Przygotować notatki do wydania.",
+      "person": "Marek",
+      "due": "czwartek"
+    },
+    {
+      "kind": "ASK",
+      "time": "01:00",
+      "quote": "Czy dostawca potwierdził termin dostawy",
+      "text": "Czy dostawca potwierdził termin dostawy?"
+    },
+    {
+      "kind": "TASK",
+      "time": "01:15",
+      "quote": "Zofia wyśle raport w poniedziałek",
+      "text": "Zofia wyśle raport kwartalny.",
+      "person": "Zofia",
+      "due": "poniedziałek"
+    }
+  ],
+  "expect": {
+    "keep": [
+      "wydanie nowej wersji",
+      "notatki do wydania",
+      "dostawca potwierdził"
+    ],
+    "drop": [
+      "Zofia",
+      "raport kwartalny",
+      "poniedział"
+    ],
+    "minDropped": 1
+  }
+}

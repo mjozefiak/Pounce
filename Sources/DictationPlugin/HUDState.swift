@@ -29,6 +29,8 @@ enum HUDState: Equatable, Sendable {
         case modelMissing
         case modelUnavailable
         case modelFailedToLoad
+        /// Another speech model (a meeting's) is in use, so dictation cannot load its own.
+        case speechModelBusy
         case microphoneDenied
         case noMicrophone
         case nothingHeard
@@ -72,6 +74,10 @@ extension HUDState {
             String(localized: "Speech model unavailable", comment: "Dictation HUD when the model folder is gone")
         case .problem(.modelFailedToLoad):
             String(localized: "The speech model failed to load", comment: "Dictation HUD when loading the model failed")
+        case .problem(.speechModelBusy):
+            String(
+                localized: "Another speech model is in use",
+                comment: "Dictation HUD when a meeting uses a different speech model")
         case .problem(.microphoneDenied):
             String(localized: "Microphone not allowed", comment: "Dictation HUD when microphone access is denied")
         case .problem(.noMicrophone):

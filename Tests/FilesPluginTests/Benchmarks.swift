@@ -1,18 +1,18 @@
 import Darwin
 import Foundation
-import PounceCore
+import LintelCore
 import Synchronization
 import Testing
 
 @testable import FilesPlugin
 
 /// Local measurements for `docs/perf.md` (spec steps 3.2 and 3.6). Off by default; run with
-/// `POUNCE_BENCHMARKS=1 swift test -c release --filter FileBenchmarks`. They only read synthetic data and
-/// a generated fixture tree of fake names (`POUNCE_BENCH_TREE`, default `/tmp/pounce-p3-bench/tree`),
+/// `LINTEL_BENCHMARKS=1 swift test -c release --filter FileBenchmarks`. They only read synthetic data and
+/// a generated fixture tree of fake names (`LINTEL_BENCH_TREE`, default `/tmp/lintel-p3-bench/tree`),
 /// never the home folder.
 @Suite(
     "FileBenchmarks", .serialized,
-    .enabled(if: ProcessInfo.processInfo.environment["POUNCE_BENCHMARKS"] != nil))
+    .enabled(if: ProcessInfo.processInfo.environment["LINTEL_BENCHMARKS"] != nil))
 struct FileBenchmarks {
     static let queries = [
         "report", "pln", "x9", "budget 2024", "inv", "final summary", "dt", "photo_5", "notes 12", "swift",
@@ -70,12 +70,12 @@ struct FileBenchmarks {
     }
 
     /// Builds (once) a fixture tree of fake names: `folders` folders, each with `files` files.
-    /// `POUNCE_BENCH_FOLDERS` overrides the folder count (5 000 gives about 505 000 entries, spec step 4.5).
+    /// `LINTEL_BENCH_FOLDERS` overrides the folder count (5 000 gives about 505 000 entries, spec step 4.5).
     static func fixtureTree(
-        folders: Int = ProcessInfo.processInfo.environment["POUNCE_BENCH_FOLDERS"].flatMap(Int.init) ?? 2_000,
+        folders: Int = ProcessInfo.processInfo.environment["LINTEL_BENCH_FOLDERS"].flatMap(Int.init) ?? 2_000,
         files: Int = 100
     ) throws -> String {
-        let path = ProcessInfo.processInfo.environment["POUNCE_BENCH_TREE"] ?? "/tmp/pounce-p3-bench/tree"
+        let path = ProcessInfo.processInfo.environment["LINTEL_BENCH_TREE"] ?? "/tmp/lintel-p3-bench/tree"
         let marker = path + "/.complete"
         if FileManager.default.fileExists(atPath: marker) { return path }
         let words = ["report", "budget", "plan", "photo", "invoice", "notes", "draft", "final", "summary", "data"]
@@ -105,7 +105,7 @@ struct FileBenchmarks {
         let ready = Mutex(false)
         let controller = IndexController(
             index: index, configuration: IndexController.Configuration(plan: plan, storageDirectory: storage.url),
-            logger: .init(subsystem: "app.pounce.tests", category: "bench"),
+            logger: .init(subsystem: "com.lintelapp.tests", category: "bench"),
             onStatus: { status in if status.phase == .ready { ready.withLock { $0 = true } } }, onChange: {})
         let start = clock.now
         let run = Task.detached { await controller.run() }
@@ -133,10 +133,10 @@ struct FileBenchmarks {
 
 /// Path mode budget (spec: file path search): one query on a folder of 1 000 entries, p95 < 20 ms, read cold
 /// (a new lister, so nothing is cached) and while typing a filter (the folder listing is cached).
-/// Run with `POUNCE_BENCHMARKS=1 swift test -c release --filter PathModeBenchmarks`.
+/// Run with `LINTEL_BENCHMARKS=1 swift test -c release --filter PathModeBenchmarks`.
 @Suite(
     "PathModeBenchmarks", .serialized,
-    .enabled(if: ProcessInfo.processInfo.environment["POUNCE_BENCHMARKS"] != nil))
+    .enabled(if: ProcessInfo.processInfo.environment["LINTEL_BENCHMARKS"] != nil))
 struct PathModeBenchmarks {
     @Test func thousandEntryFolder() async throws {
         let directory = try TemporaryDirectory()

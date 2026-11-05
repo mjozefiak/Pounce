@@ -1,6 +1,6 @@
 import AppKit
 import Foundation
-import PounceKit
+import LintelKit
 import Testing
 import os
 
@@ -21,7 +21,7 @@ import os
         pasteboard: pasteboard,
         workspace: workspace,
         clock: ContinuousClock(),
-        logger: Logger(subsystem: "app.pounce.tests", category: "clipboard"),
+        logger: Logger(subsystem: "com.lintelapp.tests", category: "clipboard"),
         filter: { CaptureFilter(ignoredApps: ignored, maximumBytes: maximumBytes) },
         onCapture: { log.captures.append($0) }
     )
@@ -127,7 +127,7 @@ import os
             pasteboard: pasteboard,
             workspace: FakeWorkspace(),
             clock: ContinuousClock(),
-            logger: Logger(subsystem: "app.pounce.tests", category: "clipboard"),
+            logger: Logger(subsystem: "com.lintelapp.tests", category: "clipboard"),
             filter: { CaptureFilter(ignoredApps: []) },
             onAccess: { reported.append($0) },
             onCapture: { log.captures.append($0) }
@@ -184,7 +184,7 @@ import os
         #expect(log.captures.isEmpty)
     }
 
-    @Test func pounceOwnWritesAreNotCapturedAgain() {
+    @Test func lintelOwnWritesAreNotCapturedAgain() {
         let pasteboard = NamedPasteboard()
         defer { pasteboard.release() }
         let log = CaptureLog()

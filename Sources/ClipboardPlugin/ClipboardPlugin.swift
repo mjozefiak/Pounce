@@ -1,5 +1,5 @@
 import Foundation
-import PounceKit
+import LintelKit
 import SwiftUI
 import os
 
@@ -16,7 +16,7 @@ import os
 ///
 /// Settings: see `ClipboardSettings.Key`.
 @MainActor
-public final class ClipboardPlugin: PouncePlugin {
+public final class ClipboardPlugin: LintelPlugin {
     public nonisolated static let manifest = PluginManifest(
         id: "clipboard",
         displayName: LocalizedStringResource("Clipboard History", comment: "Plugin name of the clipboard history"),

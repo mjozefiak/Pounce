@@ -1,16 +1,16 @@
 import Foundation
-import PounceCore
-import PounceKit
+import LintelCore
+import LintelKit
 import Testing
 
 @testable import AppsPlugin
 
 /// Local measurement for `docs/perf.md` (spec budget "Zapytanie o aplikacje < 5 ms", step 4.5). Off by
-/// default; run with `POUNCE_BENCHMARKS=1 swift test -c release -Xswiftc -enable-testing --filter
+/// default; run with `LINTEL_BENCHMARKS=1 swift test -c release -Xswiftc -enable-testing --filter
 /// AppBenchmarks`. Synthetic app names only.
 @Suite(
     "AppBenchmarks", .serialized,
-    .enabled(if: ProcessInfo.processInfo.environment["POUNCE_BENCHMARKS"] != nil))
+    .enabled(if: ProcessInfo.processInfo.environment["LINTEL_BENCHMARKS"] != nil))
 @MainActor
 struct AppBenchmarks {
     static let queries = [

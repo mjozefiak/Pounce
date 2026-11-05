@@ -1,5 +1,5 @@
 import Foundation
-import PounceKit
+import LintelKit
 
 /// Counts the time apps spend in front (app suggestions spec, Q2).
 ///
@@ -8,7 +8,7 @@ import PounceKit
 /// still frontmost, its last use is at least 10 minutes old, and the user touched the keyboard, mouse or
 /// trackpad in the last 10 minutes. A port that cannot tell the idle time (`nil`) gets the first use only
 /// and no heartbeat. A new activation cancels the pending checks. Apps without a bundle identifier and
-/// Pounce itself are ignored; the port already filters out non-regular apps.
+/// Lintel itself are ignored; the port already filters out non-regular apps.
 @MainActor
 final class ActivityTracker {
     /// How long an app must stay in front before it counts.

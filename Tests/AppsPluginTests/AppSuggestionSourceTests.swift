@@ -1,5 +1,5 @@
 import Foundation
-import PounceKit
+import LintelKit
 import Synchronization
 import Testing
 
@@ -42,7 +42,7 @@ import Testing
         let changes = ChangeCounter()
         let source = AppSuggestionSource(
             store: store, activity: activity, settings: PluginSettings(pluginID: "apps", store: settings),
-            usage: usage, workspace: workspace, ownBundleIdentifier: "app.pounce.Pounce",
+            usage: usage, workspace: workspace, ownBundleIdentifier: "com.lintelapp.Lintel",
             resultsChanged: { changes.increment() }, now: time.now)
         for (bundleID, uses) in [("com.example.mail", 3), ("com.example.notes", 2), ("com.example.maps", 1)] {
             for _ in 0..<uses {

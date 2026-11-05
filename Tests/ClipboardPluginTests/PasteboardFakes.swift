@@ -1,6 +1,6 @@
 import AppKit
 import Foundation
-import PounceKit
+import LintelKit
 
 @testable import ClipboardPlugin
 
@@ -11,7 +11,7 @@ import PounceKit
     var access: PasteboardAccess = .alwaysAllow
 
     init() {
-        pasteboard = NSPasteboard(name: NSPasteboard.Name("app.pounce.tests.clipboard.\(UUID().uuidString)"))
+        pasteboard = NSPasteboard(name: NSPasteboard.Name("com.lintelapp.tests.clipboard.\(UUID().uuidString)"))
     }
 
     func release() {
@@ -82,7 +82,7 @@ import PounceKit
 }
 
 /// Wraps a pasteboard and replaces its contents in the middle of a read, like another app copying
-/// again while Pounce reads.
+/// again while Lintel reads.
 @MainActor final class ChangingPasteboard: PasteboardClient {
     let base: NamedPasteboard
     var replacement: String?

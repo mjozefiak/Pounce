@@ -1,6 +1,6 @@
 import Foundation
-import PounceCore
-import PounceKit
+import LintelCore
+import LintelKit
 
 /// The clipboard mode's results (spec step 2.4).
 ///

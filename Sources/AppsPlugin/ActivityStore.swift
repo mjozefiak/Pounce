@@ -1,6 +1,6 @@
 import Foundation
-import PounceCore
-import PouncePersistence
+import LintelCore
+import LintelPersistence
 import Synchronization
 import os
 
@@ -83,7 +83,7 @@ actor ActivityStore {
         directory: URL,
         now: @escaping @Sendable () -> Date = { Date() },
         clock: any Clock<Duration> = ContinuousClock(),
-        logger: Logger = Logger(subsystem: "app.pounce", category: "apps"),
+        logger: Logger = Logger(subsystem: "com.lintelapp", category: "apps"),
         halfLife: TimeInterval = Ranker.frecencyHalfLife
     ) {
         self.fileURL = directory.appending(path: Self.fileName)

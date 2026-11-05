@@ -1,23 +1,23 @@
 import AppKit
-import FluidAudio
 import Foundation
-import PounceKit
+import LintelKit
+import LintelSpeech
 import SwiftUI
 import os
 
 /// Voice dictation (spec: Dyktowanie głosowe): records under a global shortcut, transcribes with a speech
-/// model that runs inside Pounce, and pastes the text into the app in front. Audio never leaves the Mac
+/// model that runs inside Lintel, and pastes the text into the app in front. Audio never leaves the Mac
 /// and is never written to disk.
 ///
 /// - The shortcut's key-down and key-up go to `DictationController` (tap to toggle, hold to talk), which
 ///   runs `DictationSession`, the HUD and `TextPaster`.
-/// - Models: `Plugins/dictation/Models/<id>/`, downloaded by `ModelManager` on the user's click, or a
+/// - Models: `Models/speech/<id>/`, downloaded by `ModelManager` on the user's click, or a
 ///   folder the user points at. The engines never download.
 ///
 /// Settings: `plugins.dictation.*` (see `DictationSettings.Key`). Disabled by default: the feature needs a
 /// model download and the microphone.
 @MainActor
-public final class DictationPlugin: PouncePlugin {
+public final class DictationPlugin: LintelPlugin {
     public nonisolated static let manifest = PluginManifest(
         id: "dictation",
         displayName: LocalizedStringResource("Dictation", comment: "Plugin name of voice dictation"),
@@ -37,9 +37,10 @@ public final class DictationPlugin: PouncePlugin {
     private let engine: SwitchingEngine
     private let authorizer = SystemMicrophoneAuthorizer()
     private let models: ModelManager
-    /// Downloads the built-in formatting models into `Plugins/dictation/llm/` (used by the settings in step 4.4).
+    /// Downloads the built-in formatting models into `Models/llm/` (used by the settings in step 4.4).
     let llmModels: ModelManager
     nonisolated static let llmDirectoryName = "llm"
+    nonisolated static let speechDirectoryName = "speech"
     /// The built-in formatting model, loaded on demand and freed after the keep-warm time.
     private let builtInLLM: KeepWarmRuntime
     private let hud: DictationHUDPanel
@@ -60,13 +61,13 @@ public final class DictationPlugin: PouncePlugin {
                 ModelCatalog.whisperLargeV3Turbo.id: WhisperKitEngine(language: { settings.speechLanguage }),
             ],
             selected: { settings.speechModelID })
-        let models = ModelManager(
-            directory: context.storageDirectory.appending(path: "Models", directoryHint: .isDirectory),
+        let models = ModelManagers.shared.manager(
+            for: context.modelsDirectory.appending(path: Self.speechDirectoryName, directoryHint: .isDirectory),
             logger: context.logger)
         self.models = models
-        // Formatting models (ADR 0005) live next to the speech models and go with them on Erase Data.
-        let llmModels = ModelManager(
-            directory: context.storageDirectory.appending(path: Self.llmDirectoryName, directoryHint: .isDirectory),
+        // Formatting models (ADR 0005) live next to the speech models in the shared `Models/` folder (ADR 0006).
+        let llmModels = ModelManagers.shared.manager(
+            for: context.modelsDirectory.appending(path: Self.llmDirectoryName, directoryHint: .isDirectory),
             logger: context.logger)
         self.llmModels = llmModels
         builtInLLM = KeepWarmRuntime(
@@ -78,7 +79,7 @@ public final class DictationPlugin: PouncePlugin {
                 else { throw LlamaError.modelNotFound }
                 return file
             },
-            keepWarm: { settings.keepWarm })
+            keepWarm: { settings.keepWarm }, lease: .shared)
         let workspace = context.workspace
         settingsModel = DictationSettingsModel(
             package: ModelCatalog.package(id: settings.speechModelID) ?? ModelCatalog.parakeetUltra, manager: models,
@@ -135,6 +136,7 @@ public final class DictationPlugin: PouncePlugin {
         let context = context
         let settings = settings
         let engine = engine
+        let lease = SpeechEngineLease.shared
         let transport = transport
         let history = history
         let builtInLLM = builtInLLM
@@ -150,15 +152,16 @@ public final class DictationPlugin: PouncePlugin {
                         engine: engine,
                         formatter: Self.formatter(
                             settings: settings, transport: transport, builtIn: builtInLLM, logger: context.logger),
-                        modelFolder: folder, logger: context.logger, onEvent: onEvent)
+                        modelFolder: folder, lease: lease, modelID: settings.speechModelID,
+                        keepWarm: { settings.keepWarm }, logger: context.logger, onEvent: onEvent)
                 },
-                engine: engine,
+                lease: lease,
                 paster: TextPaster(
                     pasteboard: context.pasteboard, events: context.events, workspace: context.workspace,
                     permissions: context.permissions, clock: context.clock,
                     restoresClipboard: { settings.restoresClipboard }, logger: context.logger),
                 hud: hud, claimEscape: context.claimEscapeKey, openSettings: context.openSettings,
-                keepWarm: { settings.keepWarm }, clock: context.clock,
+                clock: context.clock,
                 recordHistory: { history.record($0) },
                 frontmostBundleID: { context.workspace.frontmostApplication?.bundleIdentifier },
                 formatMode: { settings.mode == .cleanup ? .clean : .raw },
@@ -177,8 +180,9 @@ public final class DictationPlugin: PouncePlugin {
         relay.controller = nil
     }
 
-    /// "Erase Data": the host deletes `Plugins/dictation/` (models and, later, the history) after this.
-    /// Removes the history's Keychain item; the folder (models, `dictation.sqlite`) is deleted by the host.
+    /// "Erase Data": the host deletes `Plugins/dictation/` (the history) after this. Removes the history's
+    /// Keychain item; the folder (`dictation.sqlite`) is deleted by the host. Downloaded models live in the
+    /// shared `Models/` folder (ADR 0006) and stay; "Remove model" in Settings deletes them.
     public func eraseData() async throws {
         try history.erase()
     }
@@ -284,23 +288,5 @@ final class ControllerRelay {
 
     func pasteFromHistory(_ text: String) async {
         await controller?.pasteFromHistory(text)
-    }
-}
-
-/// Creates the Silero detector when the first audio arrives, so a missing VAD file fails the recording and not
-/// the plugin.
-actor LazyVAD: VoiceActivityDetector {
-    private let modelFolder: URL
-    private var detector: SileroVAD?
-
-    init(modelFolder: URL) {
-        self.modelFolder = modelFolder
-    }
-
-    func process(_ samples: [Float]) async throws -> [VADEvent] {
-        if detector == nil {
-            detector = try SileroVAD(modelFolder: modelFolder)
-        }
-        return try await detector?.process(samples) ?? []
     }
 }

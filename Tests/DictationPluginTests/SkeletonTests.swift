@@ -1,7 +1,7 @@
 import Testing
 
 @testable import DictationPlugin
-@testable import PounceKit
+@testable import LintelKit
 
 @Suite @MainActor struct SkeletonTests {
     @Test func theManifestIsOffByDefaultAndStable() {

@@ -1,5 +1,5 @@
 import Foundation
-import PounceKit
+import LintelKit
 import Synchronization
 import Testing
 import os
@@ -29,7 +29,7 @@ import os
             storageDirectory: fixture.url("Storage"),
             settings: PluginSettings(pluginID: "apps", store: settings),
             usage: RecordingUsage(),
-            logger: Logger(subsystem: "app.pounce.tests", category: "apps"),
+            logger: Logger(subsystem: "com.lintelapp.tests", category: "apps"),
             keychain: NoKeychain(),
             pasteboard: NoPasteboard(),
             events: NoEvents(),

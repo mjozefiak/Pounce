@@ -32,14 +32,14 @@ not, the read happens on `MainActor` and only hashing stays in the background.
 
 A passing stress test cannot prove the absence of a data race in a closed-source class, and the
 vendor's guidance is that the class is main-thread only. **The spike does not confirm the
-background read, so Pounce uses the spec's fallback.**
+background read, so Lintel uses the spec's fallback.**
 
 ## Decision
 
 - `PasteboardClient` keeps every member `@MainActor`. `PasteboardWatcher` compares `changeCount`, checks
   the access setting, reads the types, filters (marker types, ignored apps) and copies the
   representations on the main actor, and stops at 20 MB.
-- Only the types Pounce stores are requested (`readContents(maxBytes:including:)` with
+- Only the types Lintel stores are requested (`readContents(maxBytes:including:)` with
   `ClipClassifier.keeps`): app-private `dyn.*` types and marker types are never read, so they cost no
   main-thread time and do not count toward the 20 MB limit.
 - After the read it compares `changeCount` again. If the pasteboard changed meanwhile, the copy is

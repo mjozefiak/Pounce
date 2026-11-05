@@ -1,5 +1,5 @@
 import Foundation
-import PounceKit
+import LintelKit
 import Synchronization
 import os
 
@@ -24,7 +24,7 @@ final class TemporaryDirectory: Sendable {
 
     init() throws {
         url = FileManager.default.temporaryDirectory
-            .appending(path: "pounce-dictation-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
+            .appending(path: "lintel-dictation-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     }
 
@@ -111,13 +111,14 @@ struct DictationHarness {
             storageDirectory: directory.url.appending(path: "Plugins/dictation", directoryHint: .isDirectory),
             settings: PluginSettings(pluginID: "dictation", store: settings),
             usage: usage,
-            logger: Logger(subsystem: "app.pounce.tests", category: "dictation"),
+            logger: Logger(subsystem: "com.lintelapp.tests", category: "dictation"),
             keychain: keychain,
             pasteboard: pasteboard,
             events: events,
             workspace: workspace,
             permissions: permissions,
-            clock: ContinuousClock()
+            clock: ContinuousClock(),
+            modelsDirectory: directory.url.appending(path: "Models", directoryHint: .isDirectory)
         )
     }
 

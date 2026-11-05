@@ -6,7 +6,7 @@ import Synchronization
 enum DirectoryListing: Hashable, Sendable {
     /// The folder's entries (at most `DirectoryLister.entryLimit`; `truncated` when there were more).
     case listed([ScannedEntry], truncated: Bool)
-    /// The folder is in a TCC-protected place and Pounce has no Full Disk Access: it was not opened.
+    /// The folder is in a TCC-protected place and Lintel has no Full Disk Access: it was not opened.
     case protected
     /// The folder exists but cannot be read (`EPERM`, `EACCES`).
     case denied
@@ -39,7 +39,7 @@ final class DirectoryLister: Sendable {
     private let limit: Int
     private let scanner = BulkScanner(rules: IgnoreRules(includesHidden: true), workerCount: 1)
     private let cache = Mutex<Cached?>(nil)
-    private let queue = DispatchQueue(label: "app.pounce.files.path-mode", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "com.lintelapp.files.path-mode", qos: .userInitiated)
 
     init(home: String, limit: Int = DirectoryLister.entryLimit) {
         self.home = home

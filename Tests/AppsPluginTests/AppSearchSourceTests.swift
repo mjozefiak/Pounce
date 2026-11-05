@@ -1,6 +1,6 @@
 import Foundation
-import PounceCore
-import PounceKit
+import LintelCore
+import LintelKit
 import Synchronization
 import Testing
 

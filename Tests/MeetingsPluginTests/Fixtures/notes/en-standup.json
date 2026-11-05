@@ -1,0 +1,81 @@
+{
+  "name": "en-standup",
+  "language": "en",
+  "description": "English stand-up. The model invents a decision nobody made and a task for a date and a person nobody named.",
+  "utterances": [
+    {
+      "startMs": 0,
+      "speaker": "Sam",
+      "text": "Morning everyone, let's go through the release checklist."
+    },
+    {
+      "startMs": 12000,
+      "speaker": "Priya",
+      "text": "We agreed to freeze the branch on Thursday."
+    },
+    {
+      "startMs": 25000,
+      "speaker": "Sam",
+      "text": "Priya will update the changelog by Wednesday."
+    },
+    {
+      "startMs": 40000,
+      "speaker": "Lee",
+      "text": "Who is going to talk to the customer about the delay?"
+    },
+    {
+      "startMs": 55000,
+      "speaker": "Sam",
+      "text": "I'll talk to them tomorrow."
+    }
+  ],
+  "modelAnswer": [
+    {
+      "kind": "DEC",
+      "time": "00:12",
+      "quote": "We agreed to freeze the branch on Thursday",
+      "text": "The branch is frozen on Thursday."
+    },
+    {
+      "kind": "TASK",
+      "time": "00:25",
+      "quote": "Priya will update the changelog by Wednesday",
+      "text": "Update the changelog.",
+      "person": "Priya",
+      "due": "Wednesday"
+    },
+    {
+      "kind": "ASK",
+      "time": "00:40",
+      "quote": "Who is going to talk to the customer about the delay",
+      "text": "Who will talk to the customer about the delay?"
+    },
+    {
+      "kind": "DEC",
+      "time": "00:55",
+      "quote": "The team decided to cancel the contract with the vendor",
+      "text": "The team cancelled the vendor contract."
+    },
+    {
+      "kind": "TASK",
+      "time": "00:56",
+      "quote": "Sam must pay the invoice next Monday",
+      "text": "Pay the invoice.",
+      "person": "Sam",
+      "due": "Monday"
+    }
+  ],
+  "expect": {
+    "keep": [
+      "branch is frozen",
+      "update the changelog",
+      "customer about the delay"
+    ],
+    "drop": [
+      "cancel",
+      "invoice",
+      "vendor"
+    ],
+    "minDropped": 2
+  }
+}

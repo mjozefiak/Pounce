@@ -1,13 +1,13 @@
 #!/bin/zsh
-# Builds dist/Pounce.dmg: a drag-and-drop installer with Pounce.app and an Applications shortcut.
+# Builds dist/Lintel.dmg: a drag-and-drop installer with Lintel.app and an Applications shortcut.
 #
 # Usage: scripts/make-dmg.sh [--skip-build]
-#   --skip-build  reuse an existing dist/Pounce.app (or set SKIP_BUILD=1)
+#   --skip-build  reuse an existing dist/Lintel.app (or set SKIP_BUILD=1)
 # Signing uses the same SIGN_IDENTITY / SIGN_KEYCHAIN as scripts/make-app.sh (ad-hoc by default).
 set -euo pipefail
 
-APP_NAME="Pounce"
-VOL_NAME="Pounce"
+APP_NAME="Lintel"
+VOL_NAME="Lintel"
 ROOT="${0:A:h:h}"
 SKIP_BUILD="${SKIP_BUILD:-0}"
 SIGN_IDENTITY="${SIGN_IDENTITY:--}"

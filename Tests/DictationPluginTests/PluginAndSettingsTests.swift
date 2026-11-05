@@ -1,9 +1,10 @@
 import Foundation
-import PounceKit
+import LintelKit
 import Synchronization
 import Testing
 
 @testable import DictationPlugin
+@testable import LintelSpeech
 
 @MainActor
 @Suite struct DictationPluginLifecycleTests {
@@ -16,10 +17,12 @@ import Testing
         await plugin.deactivate()
         #expect(plugin.controller == nil)
         #expect(harness.usage.callCount == 0)
-        // Nothing was created on disk until the user downloads a model.
-        #expect(
-            !FileManager.default.fileExists(
-                atPath: harness.directory.url.appending(path: "Plugins/dictation/Models").path))
+        // Nothing was created on disk until the user downloads a model: not in the shared models folder, and
+        // not in the plugin's own storage (models no longer live there).
+        #expect(!FileManager.default.fileExists(atPath: harness.context.modelsDirectory.path))
+        let legacy = harness.context.storageDirectory.appending(path: "Models")
+        #expect(!FileManager.default.fileExists(atPath: legacy.path))
+        #expect(harness.context.modelsDirectory.deletingLastPathComponent() == harness.directory.url)
     }
 
     @Test func theRecordCommandRunsFromTheMenuAndTakesKeyEventsFromTheShortcut() async throws {
@@ -219,7 +222,7 @@ import Testing
         let plugin = DictationPlugin(context: harness.context)
         try await plugin.activate()
         #expect(plugin.history.status == .ready)
-        #expect(keychain.itemNames == ["app.pounce.dictation/master-key"])
+        #expect(keychain.itemNames == ["com.lintelapp.dictation/master-key"])
         await plugin.deactivate()
         #expect(plugin.history.status == .closed)
     }

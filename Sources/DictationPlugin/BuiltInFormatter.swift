@@ -1,7 +1,8 @@
 import Foundation
+import LintelSpeech
 import os
 
-/// Cleans a chunk with the model that runs inside Pounce (ADR 0005): the same prompt, guard and fallbacks as
+/// Cleans a chunk with the model that runs inside Lintel (ADR 0005): the same prompt, guard and fallbacks as
 /// `LocalLLMFormatter`, with `LlamaRuntime` instead of a server. Never throws except on cancellation: a chunk
 /// the model cannot clean in time comes back raw.
 struct BuiltInFormatter: TextFormatter {
@@ -15,7 +16,7 @@ struct BuiltInFormatter: TextFormatter {
     /// - Parameter timeout: how long a chunk of this many words may take; tests shorten it.
     init(
         runtime: KeepWarmRuntime, timeout: @escaping @Sendable (Int) -> Duration = BuiltInFormatter.timeout(forWords:),
-        logger: Logger = Logger(subsystem: "app.pounce", category: "dictation")
+        logger: Logger = Logger(subsystem: "com.lintelapp", category: "dictation")
     ) {
         self.runtime = runtime
         self.timeout = timeout
@@ -76,9 +77,10 @@ struct BuiltInFormatter: TextFormatter {
     }
 
     private static func reason(for error: any Error) -> FallbackReason {
+        if error as? ModelLeaseError == .busy { return .modelUnavailable }
         switch error as? LlamaError {
-        case .modelNotFound, .loadFailed, .contextFailed, .notLoaded: .modelUnavailable
-        default: .badResponse
+        case .modelNotFound, .loadFailed, .contextFailed, .notLoaded: return .modelUnavailable
+        default: return .badResponse
         }
     }
 }

@@ -1,8 +1,9 @@
 import Foundation
-import PounceKit
+import LintelKit
 import Testing
 
 @testable import DictationPlugin
+@testable import LintelSpeech
 
 /// A runtime that answers from a script: a fixed answer, an error, or a long wait.
 actor ScriptedRuntime: LLMRuntime {
@@ -12,7 +13,7 @@ actor ScriptedRuntime: LLMRuntime {
     var delay: Duration = .zero
     private(set) var loaded = false
     private(set) var loads = 0
-    private(set) var requests: [[CleanupPrompt.Message]] = []
+    private(set) var requests: [[ChatMessage]] = []
     private(set) var maxTokens: [Int] = []
 
     var isLoaded: Bool { loaded }
@@ -33,7 +34,7 @@ actor ScriptedRuntime: LLMRuntime {
 
     func unload() async { loaded = false }
 
-    func generate(messages: [CleanupPrompt.Message], maxTokens: Int) async throws -> String {
+    func generate(messages: [ChatMessage], maxTokens: Int) async throws -> String {
         guard loaded else { throw LlamaError.notLoaded }
         requests.append(messages)
         self.maxTokens.append(maxTokens)
@@ -315,12 +316,12 @@ private actor PrepareSpy: TextFormatter {
     }
 }
 
-/// Cleans two Polish dictations with the real GGUF in `POUNCE_LLAMA_MODEL` through the whole built-in path
+/// Cleans two Polish dictations with the real GGUF in `LINTEL_LLAMA_MODEL` through the whole built-in path
 /// (`KeepWarmRuntime`, `BuiltInFormatter`, the guard). Off by default; the full fixture set is step 4.5.
-@Suite(.enabled(if: ProcessInfo.processInfo.environment["POUNCE_LLAMA_MODEL"] != nil))
+@Suite(.enabled(if: ProcessInfo.processInfo.environment["LINTEL_LLAMA_MODEL"] != nil))
 struct RealBuiltInFormatterTests {
     @Test func cleansPolishDictationsWithTheRealModel() async throws {
-        let path = try #require(ProcessInfo.processInfo.environment["POUNCE_LLAMA_MODEL"])
+        let path = try #require(ProcessInfo.processInfo.environment["LINTEL_LLAMA_MODEL"])
         let warm = KeepWarmRuntime(
             runtime: LlamaRuntime(), modelURL: URL(fileURLWithPath: path), keepWarm: { .seconds(60) })
         let formatter = BuiltInFormatter(runtime: warm)

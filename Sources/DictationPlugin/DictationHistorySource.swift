@@ -1,6 +1,6 @@
 import Foundation
-import PounceCore
-import PounceKit
+import LintelCore
+import LintelKit
 import SwiftUI
 
 /// The history list mode's results (spec step 3.3): newest first; a query matches the first sentence fuzzily

@@ -1,0 +1,81 @@
+{
+  "name": "mixed-pl-en",
+  "language": "pl",
+  "description": "Polish with English engineering terms, as in real meetings. The model invents a task with a deadline.",
+  "utterances": [
+    {
+      "startMs": 0,
+      "speaker": "Kamil",
+      "text": "Zmergowałem pull request z poprawką do deploymentu."
+    },
+    {
+      "startMs": 14000,
+      "speaker": "Ewa",
+      "text": "Ustalmy, że release candidate wypuszczamy w środę."
+    },
+    {
+      "startMs": 28000,
+      "speaker": "Kamil",
+      "text": "Ewa, zrób code review do jutra."
+    },
+    {
+      "startMs": 41000,
+      "speaker": "Ewa",
+      "text": "Dobra, zrobię to jutro rano."
+    },
+    {
+      "startMs": 55000,
+      "speaker": "Kamil",
+      "text": "Czy staging jest już zaktualizowany?"
+    }
+  ],
+  "modelAnswer": [
+    {
+      "kind": "SUM",
+      "time": "00:00",
+      "quote": "Zmergowałem pull request z poprawką do deploymentu",
+      "text": "Zmergowano poprawkę do deploymentu."
+    },
+    {
+      "kind": "DEC",
+      "time": "00:14",
+      "quote": "Ustalmy, że release candidate wypuszczamy w środę",
+      "text": "Release candidate zostanie wypuszczony w środę."
+    },
+    {
+      "kind": "TASK",
+      "time": "00:28",
+      "quote": "Ewa, zrób code review do jutra",
+      "text": "Zrobić code review.",
+      "person": "Ewa",
+      "due": "jutro"
+    },
+    {
+      "kind": "ASK",
+      "time": "00:55",
+      "quote": "Czy staging jest już zaktualizowany",
+      "text": "Czy staging jest już zaktualizowany?"
+    },
+    {
+      "kind": "TASK",
+      "time": "01:10",
+      "quote": "Kamil wdroży hotfix na produkcję w sobotę",
+      "text": "Wdrożyć hotfix na produkcję.",
+      "person": "Kamil",
+      "due": "sobota"
+    }
+  ],
+  "expect": {
+    "keep": [
+      "release candidate",
+      "code review",
+      "staging"
+    ],
+    "drop": [
+      "hotfix",
+      "produkcj",
+      "sobot"
+    ],
+    "minDropped": 1
+  }
+}

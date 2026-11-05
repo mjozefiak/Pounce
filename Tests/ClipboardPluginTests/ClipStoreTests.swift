@@ -1,6 +1,6 @@
 import Foundation
 import GRDB
-import PounceKit
+import LintelKit
 import Testing
 
 @testable import ClipboardPlugin
@@ -80,7 +80,7 @@ import Testing
     }
 
     @Test func largeRepresentationsGoToEncryptedBlobFilesWithRandomNames() throws {
-        let marker = Data("pounce-fake-blob-marker".utf8)
+        let marker = Data("lintel-fake-blob-marker".utf8)
         let big = marker + Data(repeating: 0x41, count: ClipStore.inlineLimit + 1)
         let item = PasteboardItem(representations: [PasteboardRepresentation(type: "public.tiff", data: big)])
         guard case .inserted(let id) = try store.insert(draft("1 × 1", kind: .image, items: [item])) else {
@@ -173,9 +173,9 @@ import Testing
     }
 
     @Test func theDatabaseIsEncrypted() throws {
-        try store.insert(draft("pounce-fake-secret-marker"))
+        try store.insert(draft("lintel-fake-secret-marker"))
         let raw = try Data(contentsOf: temporary.url.appending(path: ClipStore.fileName))
-        #expect(raw.range(of: Data("pounce-fake-secret-marker".utf8)) == nil)
+        #expect(raw.range(of: Data("lintel-fake-secret-marker".utf8)) == nil)
         #expect(raw.range(of: Data("SQLite format 3".utf8)) == nil)
     }
 }

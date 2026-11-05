@@ -1,5 +1,5 @@
 import Foundation
-import PounceKit
+import LintelKit
 import Testing
 
 @testable import FilesPlugin
@@ -80,9 +80,9 @@ struct FilesSettingsTests {
 
     #if DEBUG
     @Test func qaHomeReplacesTheHomeFolder() {
-        let (settings, _) = make(["plugins.files.qaHome": .string("/tmp/pounce-p3-fixture/home")])
-        #expect(settings.home == "/tmp/pounce-p3-fixture/home")
-        #expect(settings.displayedRoots.first == "/tmp/pounce-p3-fixture/home")
+        let (settings, _) = make(["plugins.files.qaHome": .string("/tmp/lintel-p3-fixture/home")])
+        #expect(settings.home == "/tmp/lintel-p3-fixture/home")
+        #expect(settings.displayedRoots.first == "/tmp/lintel-p3-fixture/home")
     }
     #endif
 }
