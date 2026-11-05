@@ -14,7 +14,7 @@ import Testing
         _ deleter: Deleter, option: DestructiveConfirmation.Option?, cancelled: @escaping () -> Void = {}
     ) -> ConfirmSheet {
         ConfirmSheet(
-            prompt: "Erase?", detail: "It cannot be undone.", confirmTitle: "Erase", option: option,
+            prompt: "Erase?", detail: "This can’t be undone.", confirmTitle: "Erase", option: option,
             onConfirm: { deleter.confirmed.append($0) }, onCancel: cancelled)
     }
 

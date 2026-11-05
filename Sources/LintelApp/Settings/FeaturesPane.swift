@@ -274,6 +274,7 @@ struct FeatureEraseRow: View {
                 Text("Erase Data…", comment: "Settings button that deletes a feature's data")
                     .font(textSize.font(.body))
             }
+            .lintelDestructiveButton()
             .accessibilityLabel(
                 Text(
                     "Erase Data of \(String(localized: manifest.displayName))…",

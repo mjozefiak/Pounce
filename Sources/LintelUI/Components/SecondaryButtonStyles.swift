@@ -1,0 +1,86 @@
+import SwiftUI
+
+/// The prototype's `.btn`: a card-coloured button with a hairline border, semibold ink text and 8 pt corners.
+/// The main window's host applies it to every button that sets no style of its own, so the host's accent tint
+/// (toggles, links, primary actions) no longer reaches secondary buttons. A button with the `.destructive`
+/// role draws as `LintelDestructiveButtonStyle`.
+public struct LintelSecondaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    public init() {}
+
+    public func makeBody(configuration: Configuration) -> some View {
+        LintelBorderedButton.body(
+            configuration, text: configuration.role == .destructive ? LintelBrand.statusError : LintelBrand.ink,
+            isEnabled: isEnabled)
+    }
+}
+
+/// The prototype's `.btn.dng`: the secondary button with `status.error` text, for the actions that delete data
+/// (Clear History, Erase Data, Reset Ranking, the confirm button of a `ConfirmSheet`).
+public struct LintelDestructiveButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    public init() {}
+
+    public func makeBody(configuration: Configuration) -> some View {
+        LintelBorderedButton.body(configuration, text: LintelBrand.statusError, isEnabled: isEnabled)
+    }
+}
+
+enum LintelBorderedButton {
+    /// Hairline of the border: the ink at a low alpha, so it follows the appearance.
+    static let borderAlpha = 0.18
+
+    @MainActor static func body(_ configuration: ButtonStyleConfiguration, text: Color, isEnabled: Bool)
+        -> some View
+    {
+        configuration.label
+            .fontWeight(.semibold)
+            .foregroundStyle(text)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 3)
+            .background(
+                Color(nsColor: .controlBackgroundColor),
+                in: RoundedRectangle(cornerRadius: LintelPrimaryButtonStyle.cornerRadius)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: LintelPrimaryButtonStyle.cornerRadius)
+                    .strokeBorder(LintelBrand.ink.opacity(borderAlpha), lineWidth: 1)
+            )
+            .opacity(isEnabled ? (configuration.isPressed ? 0.7 : 1) : 0.45)
+    }
+}
+
+/// The destructive button style in the main window only; the old window keeps the system button.
+private struct LintelDestructiveButtonModifier: ViewModifier {
+    @Environment(\.settingsHostStyle) private var hostStyle
+
+    @ViewBuilder func body(content: Content) -> some View {
+        switch hostStyle {
+        case .mainWindow: content.buttonStyle(LintelDestructiveButtonStyle())
+        case .legacyWindow: content
+        }
+    }
+}
+
+/// A picker's chosen value follows the ink in the main window, not the accent the host tints controls with.
+private struct LintelSecondaryTintModifier: ViewModifier {
+    @Environment(\.settingsHostStyle) private var hostStyle
+
+    @ViewBuilder func body(content: Content) -> some View {
+        switch hostStyle {
+        case .mainWindow: content.tint(LintelBrand.ink)
+        case .legacyWindow: content
+        }
+    }
+}
+
+extension View {
+    /// The red destructive button of the main window (`LintelDestructiveButtonStyle`); under `.legacyWindow` the
+    /// button stays as it was.
+    public func lintelDestructiveButton() -> some View { modifier(LintelDestructiveButtonModifier()) }
+
+    /// Ink instead of the accent for a control's value (menu pickers), in the main window only.
+    public func lintelSecondaryTint() -> some View { modifier(LintelSecondaryTintModifier()) }
+}

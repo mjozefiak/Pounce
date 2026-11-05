@@ -131,7 +131,7 @@ struct ModelRowButtons: View {
             folderButton
             actionButton
         }
-        .buttonStyle(.bordered)
+        .buttonStyle(LintelSecondaryButtonStyle())
     }
 
     @ViewBuilder private var actionButton: some View {
@@ -188,7 +188,7 @@ struct ModelRowButtons: View {
                 label(Text("Choose Folder…", comment: "Models pane: use a model folder downloaded by hand"))
             }
             .menuStyle(.button)
-            .buttonStyle(.bordered)
+            .buttonStyle(LintelSecondaryButtonStyle())
             .menuIndicator(.hidden)
             .fixedSize()
             .disabled(row.isBusy || row.isDownloading)

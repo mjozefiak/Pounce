@@ -91,7 +91,7 @@ struct StatusBanner: View {
             } label: {
                 label
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(LintelSecondaryButtonStyle())
             .disabled(isBusy)
         }
     }

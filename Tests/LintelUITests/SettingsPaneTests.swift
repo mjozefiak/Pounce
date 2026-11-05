@@ -29,7 +29,7 @@ import Testing
         let footer = SettingsFooter("Stays on this Mac.").lintelTextSize(.extraLarge)
         #expect(try size(footer).height > 0)
         let sheet = ConfirmSheet(
-            prompt: "Erase all history?", detail: "It cannot be undone.", confirmTitle: "Erase",
+            prompt: "Erase all history?", detail: "This can’t be undone.", confirmTitle: "Erase",
             onConfirm: {}, onCancel: {})
         #expect(try size(sheet).width >= 380)
     }
@@ -69,7 +69,7 @@ import Testing
 
     private func sheet(_ deleter: Deleter, cancelled: @escaping () -> Void = {}) -> ConfirmSheet {
         ConfirmSheet(
-            prompt: "Erase?", detail: "It cannot be undone.", confirmTitle: "Erase",
+            prompt: "Erase?", detail: "This can’t be undone.", confirmTitle: "Erase",
             onConfirm: { deleter.deletions += 1 }, onCancel: cancelled)
     }
 

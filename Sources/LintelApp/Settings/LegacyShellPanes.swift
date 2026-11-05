@@ -162,7 +162,7 @@ struct FeatureRow: View {
             prompt: LocalizedStringResource(
                 "Erase all data of “\(String(localized: manifest.displayName))”?", comment: "Erase confirmation title"),
             detail: LocalizedStringResource(
-                "This deletes everything the feature stored on this Mac. It cannot be undone.",
+                "This deletes everything the feature stored on this Mac. This can’t be undone.",
                 comment: "Erase confirmation message"),
             confirmTitle: LocalizedStringResource(
                 "Erase Data", comment: "Confirmation button that deletes a feature's data"))

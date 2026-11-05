@@ -57,7 +57,7 @@ struct ModelsPane: View {
                             }
                             .font(textSize.font(.body))
                         }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(LintelSecondaryButtonStyle())
                     } label: {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("On this Mac", comment: "Models pane storage: where the models live")

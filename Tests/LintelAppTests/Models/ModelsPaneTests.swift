@@ -752,7 +752,7 @@ final class FakeRecorder {
     @Test func folderMenuIsBordered() throws {
         let text = try source("Models/ModelRow.swift")
         let menu = try #require(text.range(of: ".menuStyle(.button)"))
-        #expect(text[menu.upperBound...].prefix(60).contains(".buttonStyle(.bordered)"))
+        #expect(text[menu.upperBound...].prefix(60).contains(".buttonStyle(LintelSecondaryButtonStyle())"))
     }
 
     @Test func bannerPrimaryActionIsAccentFilled() throws {

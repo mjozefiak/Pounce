@@ -77,9 +77,11 @@ public struct ConfirmSheet: View {
                 Button(role: .destructive, action: confirmTapped) {
                     Text(confirmTitle)
                 }
+                .buttonStyle(LintelDestructiveButtonStyle())
                 Button(action: cancelTapped) {
                     Text("Cancel", comment: "Confirmation sheet button that keeps everything as it is")
                 }
+                .buttonStyle(LintelSecondaryButtonStyle())
                 .keyboardShortcut(.defaultAction)
             }
         }

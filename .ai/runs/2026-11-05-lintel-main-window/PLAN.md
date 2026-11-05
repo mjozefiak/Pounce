@@ -50,7 +50,7 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 | 5 | 5.2-review-fix | Review fix: banner count includes denied required permissions, refresh the banner when the engine changes, pinned shell test | dispatch:standard | done | db6bcb5 |
 | 6 | 6.1 | Welcome final page "You’re set" | dispatch:standard | done | cb945ef |
 | 6 | 6.5a | Fidelity: shell chrome (sidebar, banner, off-state dimming, section headers, column, window chrome and size, sidebar dots) | dispatch:capable | done | pending |
-| 6 | 6.5b | Fidelity: secondary and destructive button styles, ConfirmSheet confirm button | dispatch:standard | todo | — |
+| 6 | 6.5b | Fidelity: secondary and destructive button styles, ConfirmSheet confirm button | dispatch:standard | done | pending |
 | 6 | 6.5c | Fidelity: Permissions pane rows | dispatch:standard | todo | — |
 | 6 | 6.5d | Fidelity: Advanced pane on the template (Show Again, About) | dispatch:standard | todo | — |
 | 6 | 6.5e | Fidelity: Models rows, Download icon, banner copy | dispatch:standard | todo | — |

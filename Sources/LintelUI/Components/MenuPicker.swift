@@ -32,6 +32,7 @@ public struct MenuPicker<Value: Hashable, Options: View, Label: View>: View {
             .pickerStyle(.menu)
             .font(textSize.font(.body))
             .fixedSize()
+            .lintelSecondaryTint()
         } label: {
             label
         }

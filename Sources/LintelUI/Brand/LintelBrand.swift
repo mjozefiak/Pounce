@@ -75,6 +75,9 @@ public enum LintelBrand {
             : color(BrandPalette.accentLight, alpha: selectionTintAlpha.light)
     }
 
+    public static let inkColor = dynamic("LintelInk", BrandPalette.inkLight, BrandPalette.inkDark)
+    public static let ink = Color(nsColor: inkColor)
+
     public static let accent = Color(nsColor: accentColor)
     public static let accentText = Color(nsColor: accentTextColor)
     public static let onAccent = Color(nsColor: onAccentColor)

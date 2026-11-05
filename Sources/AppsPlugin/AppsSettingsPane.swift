@@ -13,7 +13,7 @@ struct AppsSettingsPane: View {
     static let confirmation = DestructiveConfirmation(
         prompt: LocalizedStringResource("Clear the app activity?", comment: "Clear App Activity confirmation title"),
         detail: LocalizedStringResource(
-            "Suggestions start again from the apps you use next. This cannot be undone.",
+            "Suggestions start again from the apps you use next. This can’t be undone.",
             comment: "Clear App Activity confirmation message"),
         confirmTitle: LocalizedStringResource("Clear App Activity", comment: "Clear App Activity confirmation button"))
 
@@ -96,8 +96,8 @@ struct AppsPaneContent: View {
                         "Reset Suggestions…", comment: "Settings → Apps: button that deletes the recorded app activity"
                     )
                     .font(textSize.font(.body))
-                    .foregroundStyle(LintelBrand.statusError)
                 }
+                .lintelDestructiveButton()
                 .disabled(model.isReadOnly)
             } label: {
                 Text("Usage history", comment: "Settings → Apps: label of the recorded app activity row")

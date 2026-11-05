@@ -203,6 +203,7 @@ final class MainWindowController {
         defer { onChange?() }
         let content = LintelTextSizeScope(size: textSize) { makeContent(state, sections()) }
             .environment(\.settingsHostStyle, .mainWindow)
+            .buttonStyle(LintelSecondaryButtonStyle())
             .lintelBrand()
         if let hosting {
             hosting.rootView = AnyView(content)

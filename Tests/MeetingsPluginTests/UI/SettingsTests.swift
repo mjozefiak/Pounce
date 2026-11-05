@@ -477,7 +477,7 @@ import Testing
             "Remove Model", "Until I delete them", "Removed %lld meetings and their audio.",
             "System audio works. Lintel heard its own test signal.", "Delete older meetings?",
             "Delete Older Meetings", "%lld recordings could not be deleted. Close anything using them and try again.",
-            "%lld meetings are older than the new limit and are deleted now. This cannot be undone.",
+            "%lld meetings are older than the new limit and are deleted now. This can’t be undone.",
             "Meetings older than the period you choose are deleted, together with their transcripts and notes.",
             "Deleted the audio of %lld interrupted meetings.", "%lld days",
         ]

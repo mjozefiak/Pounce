@@ -332,6 +332,7 @@ struct DictationPaneContent: View {
                 Text("Clear History…", comment: "Dictation settings button that deletes the history")
                     .font(textSize.font(.body))
             }
+            .lintelDestructiveButton()
             .disabled(history.history.status != .ready || history.history.entryCount == 0)
         } label: {
             Text("History", comment: "Dictation settings section title")

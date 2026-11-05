@@ -59,7 +59,7 @@ struct AdvancedPane: View {
     static let confirmation = DestructiveConfirmation(
         prompt: LocalizedStringResource("Reset the ranking?", comment: "Reset Ranking confirmation title"),
         detail: LocalizedStringResource(
-            "Results go back to the order of how well they match. It cannot be undone.",
+            "Results go back to the order of how well they match. This can’t be undone.",
             comment: "Reset Ranking confirmation message"),
         confirmTitle: LocalizedStringResource(
             "Reset Ranking", comment: "Confirmation button that clears the learned ranking"))
@@ -75,6 +75,7 @@ struct AdvancedPane: View {
                     } label: {
                         Text("Reset Ranking…", comment: "Settings button that clears the learned ranking")
                     }
+                    .lintelDestructiveButton()
                 } label: {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Ranking", comment: "Settings label of the ranking reset")

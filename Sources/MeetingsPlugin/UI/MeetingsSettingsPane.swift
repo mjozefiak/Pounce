@@ -317,6 +317,7 @@ struct MeetingsPaneContent: View {
                 Text("Clear Library…", comment: "Meetings settings button that deletes all meetings")
                     .font(textSize.font(.body))
             }
+            .lintelDestructiveButton()
             .disabled(!model.canChangeLibrary)
         } label: {
             Text("Library", comment: "Settings → Meetings row of the meeting library")
@@ -332,6 +333,7 @@ struct MeetingsPaneContent: View {
                 )
                 .font(textSize.font(.body))
             }
+            .lintelDestructiveButton()
             .disabled(!model.canChangeLibrary)
         } label: {
             label(
