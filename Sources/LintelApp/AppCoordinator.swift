@@ -1,5 +1,6 @@
 import AppKit
 import LintelKit
+import LintelUI
 import SwiftUI
 import os
 
@@ -254,6 +255,9 @@ final class AppCoordinator {
 
     private func buildPanel() {
         panelModel.textSize = appSettings.textSize
+        // Plugin windows (the meeting window) read the app's text size through LintelUI.
+        let appSettings = appSettings
+        AppTextSize.current = { appSettings.textSize }
         panelModel.previousApplication = { NSWorkspace.shared.frontmostApplication?.processIdentifier }
         panelModel.openSettings = { [weak self] in self?.openSettings(.features) }
         panelModel.openPluginSettings = { [weak self] id in self?.openPluginSettings(id.rawValue) }

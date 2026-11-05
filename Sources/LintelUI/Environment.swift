@@ -23,6 +23,13 @@ extension View {
     }
 }
 
+/// The app's text size (`app.textSize`) for windows a plugin opens itself (the meeting window), which no shell
+/// host wraps. `LintelApp` sets it once at start to a closure over its observed setting; a plugin window reads it
+/// through `LintelTextSizeScope`, so a change applies at once.
+@MainActor public enum AppTextSize {
+    public static var current: () -> TextSize = { .default }
+}
+
 /// A host's root view that reads the text size while SwiftUI renders it, so a size read from an `@Observable`
 /// setting (`AppSettings.textSize`) is tracked and the content follows a change at once.
 public struct LintelTextSizeScope<Content: View>: View {

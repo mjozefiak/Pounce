@@ -34,6 +34,13 @@ enum SettingsPaneAdapter {
         }
         return [general, features] + pluginEntries + [permissions, advanced]
     }
+
+    /// The row's spoken label: a dimmed row (a disabled or failed plugin) says it is off, not only by its
+    /// opacity.
+    static func accessibilityLabel(for entry: Entry) -> String {
+        guard !entry.isActive else { return entry.title }
+        return "\(entry.title), \(String(localized: "Off", comment: "Feature state"))"
+    }
 }
 
 /// The Settings mode content: a plain pane list and the selected pane.
@@ -52,10 +59,12 @@ struct SettingsModeAdapterView: View {
                     Label(entry.title, systemImage: entry.symbolName)
                         .opacity(entry.isActive ? 1 : 0.5)
                         .tag(entry.id)
+                        .accessibilityLabel(Text(verbatim: SettingsPaneAdapter.accessibilityLabel(for: entry)))
                         .accessibilityIdentifier("settings.pane.\(entry.id)")
                 }
             }
-            .listStyle(.sidebar)
+            // A plain list, not the translucent sidebar material: no glass in Settings.
+            .listStyle(.plain)
             .frame(width: 200)
             Divider()
             ScrollView {

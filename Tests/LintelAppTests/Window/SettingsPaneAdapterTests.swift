@@ -33,6 +33,14 @@ import Testing
         #expect(entry?.isActive == false)
     }
 
+    @Test func anInactiveRowSaysItIsOff() throws {
+        let off = try #require(entries().first { $0.id == "clipboard" })
+        let on = try #require(entries().first { $0.id == "apps" })
+        let offWord = String(localized: "Off", comment: "Feature state")
+        #expect(SettingsPaneAdapter.accessibilityLabel(for: off) == "Clipboard, \(offWord)")
+        #expect(SettingsPaneAdapter.accessibilityLabel(for: on) == "Apps")
+    }
+
     @Test func aShellPaneIsBuiltOnlyWhenShown() {
         var built: [SettingsWindowController.Pane] = []
         let entries = SettingsPaneAdapter.entries(
