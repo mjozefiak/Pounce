@@ -44,6 +44,7 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 | 5 | 5.2 | Meetings pane onto the template | dispatch:capable | todo | — |
 | 5 | 5.3 | Clear/Erase confirmation copy with kept-copies checkbox (L1-39) | dispatch:standard | todo | — |
 | 6 | 6.1 | Welcome final page "You're set" | dispatch:standard | todo | — |
+| 6 | 6.5 | Final 1:1 comparison of every implemented screen with the prototype, with fix commits for each difference | inline | todo | — |
 | 6 | 6.4 | docs(spec): correct the Phasing sentence about phases and PRs | inline | todo | — |
 | 6 | 6.3a | Remove the DEBUG gate (window enabled for users) | dispatch:capable | todo | — |
 | 6 | 6.3b | Delete SettingsWindowController, the adapter and .legacyWindow branches | dispatch:capable | todo | — |
