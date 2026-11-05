@@ -62,7 +62,8 @@ final class AppCoordinator {
                         AnyView(CommandShortcutRecorder(hotkeys: hotkeys, commandID: commandID))
                     },
                     claimEscapeKey: { onEscape in hotkeys.claimEscape(onEscape) },
-                    openSettings: { settingsRelay.open(manifest.id.rawValue) }
+                    openSettings: { settingsRelay.open(manifest.id.rawValue) },
+                    openModels: { packageID in settingsRelay.openModels(manifest.id.rawValue, packageID) }
                 )
             },
             settings: environment.settings
@@ -79,6 +80,7 @@ final class AppCoordinator {
         self.icons = IconCache(
             diskDirectory: environment.cachesRoot.appending(path: "icons", directoryHint: .isDirectory))
         settingsRelay.handler = { [weak self] id in self?.openPluginSettings(id) }
+        settingsRelay.modelsHandler = { [weak self] id, packageID in self?.openModels(from: id, packageID: packageID) }
     }
 
     /// Builds the panel and windows, activates the enabled plugins, registers shortcuts and, while steps
@@ -88,7 +90,7 @@ final class AppCoordinator {
         statusItem = StatusItemController(
             actions: ShellMenuActions(
                 openPanel: { [weak self] in self?.panelModel.show() },
-                openSettings: { [weak self] in self?.openSettings() },
+                openSettings: { [weak self] in self?.openSettingsFromMenu() },
                 mainShortcut: { [weak self] in self?.hotkeys.mainShortcut },
                 runCommand: { [weak self] command in self?.perform(command) },
                 commandShortcut: { [weak self] id in self?.hotkeys.commandShortcut(id) },
@@ -121,9 +123,65 @@ final class AppCoordinator {
         }
     }
 
-    /// A click on the Dock icon (or opening the app again from Finder) opens Settings.
-    func reopen() {
-        openSettings()
+    /// Sends the Dock, Command-comma, "Settings…", `openModels` and `openNote` to the main window while it is
+    /// enabled (DEBUG until step 6.3a), else to the old Settings window as before (ADR 0008, "Release gate").
+    private(set) lazy var router = makeRouter()
+
+    /// A click on the Dock icon (or opening the app again from Finder): the main window while it is enabled,
+    /// else Settings, unless a window is already open.
+    func reopen(appKitHasVisibleWindows: Bool) {
+        router.reopen(appKitHasVisibleWindows: appKitHasVisibleWindows, visibleWindowRoles: visibleWindowRoles())
+    }
+
+    /// Command-comma in the launcher panel and the status item's "Settings…".
+    func openSettingsFromMenu() {
+        router.openSettings()
+    }
+
+    /// `PluginContext.openModels` of the plugin `pluginID`.
+    func openModels(from pluginID: String, packageID: String?) {
+        router.openModels(from: pluginID, packageID: packageID)
+    }
+
+    /// An `openNote` route (kind `openNote`, `WorkspaceSection.handleRoute`): `true` only when a section of the
+    /// enabled main window handled it; the caller keeps its old behaviour otherwise.
+    @discardableResult
+    func openNote(_ route: WorkspaceRoute) -> Bool {
+        router.open(route)
+    }
+
+    /// The active plugins' workspace sections, by `order`.
+    private static func activeWorkspaceSections(_ host: PluginHost) -> [WorkspaceSection] {
+        host.entries.filter(\.state.isActive).flatMap(\.plugin.workspaceSections).sorted { $0.order < $1.order }
+    }
+
+    private func visibleWindowRoles() -> [KeyWindowRole] {
+        #if DEBUG
+        let main = mainWindow?.window
+        #else
+        let main: NSWindow? = nil
+        #endif
+        return NSApp.windows.filter(\.isVisible).map { KeyWindowRole.classify($0, mainWindow: main) }
+    }
+
+    private func makeRouter() -> MainWindowRouter {
+        let host = host
+        var targets = MainWindowRouter.Targets()
+        targets.showLegacySettings = { [weak self] pane in self?.openSettings(pane) }
+        targets.showLegacyPluginPane = { [weak self] id in self?.openPluginSettings(id) }
+        targets.modelUsers = {
+            host.entries.filter(\.state.isActive).map {
+                MainWindowRouter.ModelUser(
+                    pluginID: $0.manifest.id.rawValue, packageIDs: $0.plugin.modelUsage.map(\.packageID))
+            }
+        }
+        targets.sections = { Self.activeWorkspaceSections(host) }
+        #if DEBUG
+        targets.showMainWindow = { [weak self] in self?.showMainWindow { $0.show() } }
+        targets.showMainWindowSettings = { [weak self] pane in self?.showMainWindow { $0.showSettings(pane) } }
+        targets.showMainWindowSection = { [weak self] id in self?.showMainWindow { $0.showWorkspace(id) } }
+        #endif
+        return MainWindowRouter(targets: targets)
     }
 
     /// Deactivates every plugin before the app exits.
@@ -201,7 +259,7 @@ final class AppCoordinator {
         panelModel.modeSearch = { mode, text, filter in await search.search(mode: mode, raw: text, filter: filter) }
         let controller = PanelController(model: panelModel, icons: icons, level: appSettings.panelLevel)
         controller.takesKeyFocus = environment.registersGlobalHotkeys
-        controller.onOpenSettings = { [weak self] in self?.openSettings() }
+        controller.onOpenSettings = { [weak self] in self?.openSettingsFromMenu() }
         panel = controller
         observeTextSize()
     }
@@ -272,14 +330,21 @@ final class AppCoordinator {
     }
 
     #if DEBUG
-    /// QA (`--qa-window`): opens the main window in a mode. Not reachable from anything else until step 1.5.
+    /// QA (`--qa-window`): opens the main window in a mode.
     func showMainWindowForQA(_ mode: MainWindowState.Mode, settingsPane: String? = nil) {
-        panelModel.hide()
-        let window = mainWindow ?? makeMainWindow()
-        switch mode {
-        case .workspace: window.showWorkspace()
-        case .settings: window.showSettings(settingsPane)
+        showMainWindow { window in
+            switch mode {
+            case .workspace: window.showWorkspace()
+            case .settings: window.showSettings(settingsPane)
+            }
         }
+    }
+
+    /// Builds the main window on first use and shows it through `present`.
+    private func showMainWindow(_ present: (MainWindowController) -> Void) {
+        panelModel.hide()
+        hotkeys.refreshDefault()
+        present(mainWindow ?? makeMainWindow())
     }
 
     /// Settings mode: the old window's panes through the temporary adapter (spec step 1.3).
@@ -296,9 +361,7 @@ final class AppCoordinator {
         let host = host
         let window = MainWindowController(
             settings: environment.settings,
-            sections: {
-                host.entries.filter(\.state.isActive).flatMap(\.plugin.workspaceSections).sorted { $0.order < $1.order }
-            },
+            sections: { Self.activeWorkspaceSections(host) },
             settingsPanes: { [weak self] in
                 SettingsWindowController.Pane.allCases.map(\.rawValue) + (self?.mainWindowPluginPanes().map(\.id) ?? [])
             },
@@ -321,7 +384,7 @@ final class AppCoordinator {
                 mainWindow: { [weak window] in window?.window },
                 mode: { [weak window] in window?.state?.mode },
                 section: { [weak window] in window?.activeSection },
-                openSettings: { [weak window] in window?.showSettings() })
+                openSettings: { [weak self] in self?.openSettingsFromMenu() })
             window.onChange = { [weak menu] in menu?.refresh() }
             menu.start()
             mainMenu = menu
@@ -367,8 +430,14 @@ final class ResultsChangedRelay {
 /// Lets a plugin ask for its own Settings pane before the coordinator exists.
 final class PluginSettingsRelay {
     var handler: @MainActor (String) -> Void = { _ in }
+    /// `PluginContext.openModels`: the plugin id and the package id.
+    var modelsHandler: @MainActor (String, String?) -> Void = { _, _ in }
 
     @MainActor func open(_ pluginID: String) {
         handler(pluginID)
+    }
+
+    @MainActor func openModels(_ pluginID: String, _ packageID: String?) {
+        modelsHandler(pluginID, packageID)
     }
 }

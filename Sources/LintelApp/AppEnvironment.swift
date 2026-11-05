@@ -77,6 +77,7 @@ struct AppEnvironment {
     ///   - makeShortcutRecorder: the shell's recorder for one of the plugin's commands.
     ///   - claimEscapeKey: the shell's temporary Escape claim.
     ///   - openSettings: opens the plugin's own Settings pane.
+    ///   - openModels: opens the Models pane, or the pane that shows the model (`MainWindowRouter`).
     func makeContext(
         for manifest: PluginManifest,
         resultsChanged: @escaping @Sendable () -> Void = {},
@@ -84,7 +85,8 @@ struct AppEnvironment {
         claimEscapeKey:
             @escaping @MainActor @Sendable (_ onEscape: @escaping @MainActor @Sendable () -> Void) ->
             EscapeKeyClaim = { _ in .inactive },
-        openSettings: @escaping @MainActor @Sendable () -> Void = {}
+        openSettings: @escaping @MainActor @Sendable () -> Void = {},
+        openModels: @escaping @MainActor @Sendable (String?) -> Void = { _ in }
     ) -> PluginContext {
         PluginContext(
             storageDirectory: storageDirectory(for: manifest.id),
@@ -102,7 +104,8 @@ struct AppEnvironment {
             makeShortcutRecorder: makeShortcutRecorder,
             claimEscapeKey: claimEscapeKey,
             openSettings: openSettings,
-            modelsDirectory: modelsDirectory
+            modelsDirectory: modelsDirectory,
+            openModels: openModels
         )
     }
 

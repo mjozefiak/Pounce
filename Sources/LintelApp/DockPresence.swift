@@ -9,14 +9,26 @@ enum DockPresence {
 
     /// What a click on the Dock icon (or opening the app again from Finder) does.
     enum ReopenAction: Equatable {
-        /// Open Settings: the Dock icon is where the app's own windows live; the launcher has its shortcut.
-        case openSettings
+        /// Open the app's window: the main window while it is enabled, else Settings (`MainWindowRouter`). The
+        /// Dock icon is where the app's own windows live; the launcher has its shortcut.
+        case openMainWindow
         /// A window is already open: AppKit brings it forward.
         case nothing
     }
 
     static func reopenAction(hasVisibleWindows: Bool) -> ReopenAction {
-        hasVisibleWindows ? .nothing : .openSettings
+        hasVisibleWindows ? .nothing : .openMainWindow
+    }
+
+    /// Whether a Dock click finds a window of the app already open. The launcher panel and the HUDs are not
+    /// windows the Dock brings forward, so with only them visible the main window opens.
+    static func hasVisibleWindows(_ roles: [KeyWindowRole]) -> Bool {
+        roles.contains { role in
+            switch role {
+            case .launcherPanel, .hud, .none: false
+            case .mainWindow, .sheet, .childWindow, .popover, .openSavePanel, .about, .other: true
+            }
+        }
     }
 
     static func apply(showInDock: Bool, to application: NSApplication = .shared) {

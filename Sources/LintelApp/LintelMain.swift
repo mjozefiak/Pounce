@@ -44,7 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        if DockPresence.reopenAction(hasVisibleWindows: flag) == .openSettings { coordinator?.reopen() }
+        coordinator?.reopen(appKitHasVisibleWindows: flag)
         return true
     }
 

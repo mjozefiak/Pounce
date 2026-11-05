@@ -11,9 +11,23 @@ import Testing
         #expect(DockPresence.policy(showInDock: false) == .accessory)
     }
 
-    @Test func aDockClickOpensSettingsUnlessAWindowIsOpen() {
-        #expect(DockPresence.reopenAction(hasVisibleWindows: false) == .openSettings)
+    @Test func aDockClickOpensTheMainWindowUnlessAWindowIsOpen() {
+        #expect(DockPresence.reopenAction(hasVisibleWindows: false) == .openMainWindow)
         #expect(DockPresence.reopenAction(hasVisibleWindows: true) == .nothing)
+    }
+
+    @Test func onlyTheLauncherPanelVisibleCountsAsNoVisibleWindow() {
+        #expect(!DockPresence.hasVisibleWindows([]))
+        #expect(!DockPresence.hasVisibleWindows([.launcherPanel]))
+        #expect(!DockPresence.hasVisibleWindows([.launcherPanel, .hud]))
+        let onlyPanel = DockPresence.hasVisibleWindows([.launcherPanel])
+        #expect(DockPresence.reopenAction(hasVisibleWindows: onlyPanel) == .openMainWindow)
+    }
+
+    @Test func realWindowsCountAsVisible() {
+        for role in [KeyWindowRole.mainWindow, .sheet, .childWindow, .popover, .openSavePanel, .about, .other] {
+            #expect(DockPresence.hasVisibleWindows([.launcherPanel, role]))
+        }
     }
 
     @Test func theDockIconIsOnByDefault() {
