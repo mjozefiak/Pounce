@@ -179,53 +179,26 @@ struct MeetingsSettingsPane: View {
         .onChange(of: model.privacyMessage) { _, message in
             if let message { AccessibilityNotification.Announcement(message).post() }
         }
-        .confirmationDialog(
-            Text("Delete older meetings?", comment: "Meetings settings confirmation title of a shorter retention"),
+        .destructiveConfirmation(
             isPresented: Binding(
                 get: { model.pendingRetention != nil }, set: { if !$0 { model.cancelRetention() } }),
-            titleVisibility: .visible
+            MeetingsConfirmations.olderMeetings(count: model.pendingRetention?.affected ?? 0)
         ) {
-            Button(role: .destructive) {
-                model.confirmRetention()
-            } label: {
-                Text("Delete Older Meetings", comment: "Meetings settings confirmation button")
-            }
-        } message: {
-            Text(
-                "\(model.pendingRetention?.affected ?? 0) meetings are older than the new limit and are deleted now. This cannot be undone.",
-                comment: "Meetings settings confirmation text of a shorter retention")
+            model.confirmRetention()
         }
-        .confirmationDialog(
-            Text("Delete all meetings?", comment: "Meetings settings confirmation title"),
+        .destructiveConfirmation(
             isPresented: Binding(
                 get: { confirmation == .clearLibrary }, set: { if !$0 { confirmation = nil } }),
-            titleVisibility: .visible
+            MeetingsConfirmations.clearLibrary
         ) {
-            Button(role: .destructive) {
-                model.clearLibrary()
-            } label: {
-                Text("Delete All Meetings", comment: "Meetings settings confirmation button")
-            }
-        } message: {
-            Text(
-                "Every transcript, note and recording is deleted. A meeting that is being recorded is kept. This cannot be undone.",
-                comment: "Meetings settings confirmation text of Clear Library")
+            model.clearLibrary()
         }
-        .confirmationDialog(
-            Text("Delete temporary recordings?", comment: "Meetings settings confirmation title"),
+        .destructiveConfirmation(
             isPresented: Binding(
                 get: { confirmation == .deleteRecordings }, set: { if !$0 { confirmation = nil } }),
-            titleVisibility: .visible
+            MeetingsConfirmations.deleteRecordings
         ) {
-            Button(role: .destructive) {
-                model.deleteTemporaryRecordings()
-            } label: {
-                Text("Delete Recordings", comment: "Meetings settings confirmation button")
-            }
-        } message: {
-            Text(
-                "The audio of interrupted meetings is deleted, so they can no longer be finished. Their transcripts stay.",
-                comment: "Meetings settings confirmation text of Delete Temporary Recordings")
+            model.deleteTemporaryRecordings()
         }
     }
 
@@ -641,4 +614,36 @@ struct MeetingsSetupView: View {
             Image(systemName: symbol).accessibilityHidden(true)
         }
     }
+}
+
+/// The words of the destructive actions in Settings → Meetings.
+enum MeetingsConfirmations {
+    static func olderMeetings(count: Int) -> DestructiveConfirmation {
+        DestructiveConfirmation(
+            prompt: LocalizedStringResource(
+                "Delete older meetings?", comment: "Meetings settings confirmation title of a shorter retention"),
+            detail: LocalizedStringResource(
+                "\(count) meetings are older than the new limit and are deleted now. This cannot be undone.",
+                comment: "Meetings settings confirmation text of a shorter retention"),
+            confirmTitle: LocalizedStringResource(
+                "Delete Older Meetings", comment: "Meetings settings confirmation button"),
+            legacyTitleVisible: true)
+    }
+
+    static let clearLibrary = DestructiveConfirmation(
+        prompt: LocalizedStringResource("Delete all meetings?", comment: "Meetings settings confirmation title"),
+        detail: LocalizedStringResource(
+            "Every transcript, note and recording is deleted. A meeting that is being recorded is kept. This cannot be undone.",
+            comment: "Meetings settings confirmation text of Clear Library"),
+        confirmTitle: LocalizedStringResource("Delete All Meetings", comment: "Meetings settings confirmation button"),
+        legacyTitleVisible: true)
+
+    static let deleteRecordings = DestructiveConfirmation(
+        prompt: LocalizedStringResource(
+            "Delete temporary recordings?", comment: "Meetings settings confirmation title"),
+        detail: LocalizedStringResource(
+            "The audio of interrupted meetings is deleted, so they can no longer be finished. Their transcripts stay.",
+            comment: "Meetings settings confirmation text of Delete Temporary Recordings"),
+        confirmTitle: LocalizedStringResource("Delete Recordings", comment: "Meetings settings confirmation button"),
+        legacyTitleVisible: true)
 }

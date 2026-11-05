@@ -1,5 +1,6 @@
 import Foundation
 import LintelKit
+import LintelUI
 import Observation
 import SwiftUI
 
@@ -142,6 +143,13 @@ struct AppsSettingsPane: View {
 
     @State private var confirmsClear = false
 
+    static let confirmation = DestructiveConfirmation(
+        prompt: LocalizedStringResource("Clear the app activity?", comment: "Clear App Activity confirmation title"),
+        detail: LocalizedStringResource(
+            "Suggestions start again from the apps you use next. This cannot be undone.",
+            comment: "Clear App Activity confirmation message"),
+        confirmTitle: LocalizedStringResource("Clear App Activity", comment: "Clear App Activity confirmation button"))
+
     var body: some View {
         Form {
             Section {
@@ -211,20 +219,8 @@ struct AppsSettingsPane: View {
         .frame(width: 600)
         .fixedSize(horizontal: false, vertical: true)
         .onAppear { model.reload() }
-        .confirmationDialog(
-            Text("Clear the app activity?", comment: "Clear App Activity confirmation title"),
-            isPresented: $confirmsClear
-        ) {
-            Button(role: .destructive) {
-                Task { await model.clearActivity() }
-            } label: {
-                Text("Clear App Activity", comment: "Clear App Activity confirmation button")
-            }
-        } message: {
-            Text(
-                "Suggestions start again from the apps you use next. This cannot be undone.",
-                comment: "Clear App Activity confirmation message"
-            )
+        .destructiveConfirmation(isPresented: $confirmsClear, Self.confirmation) {
+            Task { await model.clearActivity() }
         }
     }
 

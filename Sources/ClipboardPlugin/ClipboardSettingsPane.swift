@@ -1,5 +1,6 @@
 import AppKit
 import LintelKit
+import LintelUI
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -12,6 +13,12 @@ struct ClipboardSettingsPane: View {
     let clearHistory: @MainActor () async -> Bool
 
     @State private var confirmsClear = false
+
+    static let confirmation = DestructiveConfirmation(
+        prompt: LocalizedStringResource("Clear the clipboard history?", comment: "Clear History confirmation title"),
+        detail: LocalizedStringResource(
+            "All entries are deleted. This cannot be undone.", comment: "Clear History confirmation message"),
+        confirmTitle: LocalizedStringResource("Clear History", comment: "Clear History confirmation button"))
     @State private var clearFailed = false
     @State private var selectedApp: String?
 
@@ -133,19 +140,10 @@ struct ClipboardSettingsPane: View {
         .formStyle(.grouped)
         .frame(width: 600)
         .fixedSize(horizontal: false, vertical: true)
-        .confirmationDialog(
-            Text("Clear the clipboard history?", comment: "Clear History confirmation title"),
-            isPresented: $confirmsClear
-        ) {
-            Button(role: .destructive) {
-                Task {
-                    clearFailed = !(await clearHistory())
-                }
-            } label: {
-                Text("Clear History", comment: "Clear History confirmation button")
+        .destructiveConfirmation(isPresented: $confirmsClear, Self.confirmation) {
+            Task {
+                clearFailed = !(await clearHistory())
             }
-        } message: {
-            Text("All entries are deleted. This cannot be undone.", comment: "Clear History confirmation message")
         }
     }
 

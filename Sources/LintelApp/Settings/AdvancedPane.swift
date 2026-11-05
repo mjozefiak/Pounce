@@ -1,5 +1,6 @@
 import LintelKit
 import LintelPersistence
+import LintelUI
 import SwiftUI
 
 /// A usage store that can forget everything at once: Settings → Advanced → "Reset Ranking".
@@ -54,6 +55,14 @@ struct AdvancedPane: View {
     let controls: AdvancedControls
 
     @State private var confirmsReset = false
+
+    static let confirmation = DestructiveConfirmation(
+        prompt: LocalizedStringResource("Reset the ranking?", comment: "Reset Ranking confirmation title"),
+        detail: LocalizedStringResource(
+            "Results go back to the order of how well they match. It cannot be undone.",
+            comment: "Reset Ranking confirmation message"),
+        confirmTitle: LocalizedStringResource(
+            "Reset Ranking", comment: "Confirmation button that clears the learned ranking"))
     @State private var resetDone = false
     @State private var resetError: String?
 
@@ -102,28 +111,16 @@ struct AdvancedPane: View {
         .formStyle(.grouped)
         .frame(width: 600)
         .fixedSize(horizontal: false, vertical: true)
-        .confirmationDialog(
-            Text("Reset the ranking?", comment: "Reset Ranking confirmation title"),
-            isPresented: $confirmsReset
-        ) {
-            Button(role: .destructive) {
-                Task {
-                    resetError = await controls.resetRanking()
-                    resetDone = resetError == nil
-                    if resetDone {
-                        AccessibilityNotification.Announcement(
-                            String(localized: "The ranking was reset.", comment: "Settings message after Reset Ranking")
-                        ).post()
-                    }
+        .destructiveConfirmation(isPresented: $confirmsReset, Self.confirmation) {
+            Task {
+                resetError = await controls.resetRanking()
+                resetDone = resetError == nil
+                if resetDone {
+                    AccessibilityNotification.Announcement(
+                        String(localized: "The ranking was reset.", comment: "Settings message after Reset Ranking")
+                    ).post()
                 }
-            } label: {
-                Text("Reset Ranking", comment: "Confirmation button that clears the learned ranking")
             }
-        } message: {
-            Text(
-                "Results go back to the order of how well they match. It cannot be undone.",
-                comment: "Reset Ranking confirmation message"
-            )
         }
         .alert(
             Text("The ranking could not be reset.", comment: "Alert title when Reset Ranking fails"),

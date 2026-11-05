@@ -1,4 +1,5 @@
 import LintelKit
+import LintelUI
 import SwiftUI
 
 /// What the Features pane's controls do, kept out of the view so the binding to `PluginHost` is tested
@@ -120,6 +121,18 @@ struct FeatureRow: View {
 
     @State private var confirmsErase = false
 
+    /// The words of Erase Data for one feature.
+    static func confirmation(for manifest: PluginManifest) -> DestructiveConfirmation {
+        DestructiveConfirmation(
+            prompt: LocalizedStringResource(
+                "Erase all data of “\(String(localized: manifest.displayName))”?", comment: "Erase confirmation title"),
+            detail: LocalizedStringResource(
+                "This deletes everything the feature stored on this Mac. It cannot be undone.",
+                comment: "Erase confirmation message"),
+            confirmTitle: LocalizedStringResource(
+                "Erase Data", comment: "Confirmation button that deletes a feature's data"))
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: manifest.symbolName)
@@ -150,22 +163,7 @@ struct FeatureRow: View {
             .labelsHidden()
             .toggleStyle(.switch)
         }
-        .confirmationDialog(
-            Text(
-                "Erase all data of “\(String(localized: manifest.displayName))”?", comment: "Erase confirmation title"),
-            isPresented: $confirmsErase
-        ) {
-            Button(role: .destructive) {
-                erase()
-            } label: {
-                Text("Erase Data", comment: "Confirmation button that deletes a feature's data")
-            }
-        } message: {
-            Text(
-                "This deletes everything the feature stored on this Mac. It cannot be undone.",
-                comment: "Erase confirmation message"
-            )
-        }
+        .destructiveConfirmation(isPresented: $confirmsErase, Self.confirmation(for: manifest), onConfirm: erase)
     }
 
     @ViewBuilder private var status: some View {

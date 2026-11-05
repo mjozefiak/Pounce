@@ -59,7 +59,7 @@ let package = Package(
         .target(
             name: "AppsPlugin",
             // LintelPersistence only for AtomicFile (activity.json, app suggestions spec); no GRDB.
-            dependencies: ["LintelKit", "LintelCore", "LintelPersistence"]
+            dependencies: ["LintelKit", "LintelCore", "LintelPersistence", "LintelUI"]
         ),
         .target(
             name: "FilesPlugin",
@@ -71,6 +71,7 @@ let package = Package(
                 "LintelKit",
                 "LintelCore",
                 "LintelPersistence",
+                "LintelUI",
                 // The plugin owns clipboard.sqlite and its migrator (spec: Migracje), so it uses GRDB
                 // directly: the same SQLCipher build LintelPersistence uses (ADR 0001).
                 .product(name: "GRDB", package: "GRDBCipher"),

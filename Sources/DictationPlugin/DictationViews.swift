@@ -618,6 +618,13 @@ struct HistorySection: View {
     @Bindable var model: HistorySettingsModel
     @State private var confirmsClear = false
 
+    static let confirmation = DestructiveConfirmation(
+        prompt: LocalizedStringResource(
+            "Clear the dictation history?", comment: "Dictation settings confirmation title"),
+        detail: LocalizedStringResource(
+            "This deletes every saved dictation. It cannot be undone.", comment: "Dictation settings confirmation text"),
+        confirmTitle: LocalizedStringResource("Clear History", comment: "Dictation settings confirmation button"))
+
     var body: some View {
         Section {
             Toggle(isOn: $model.isEnabled) {
@@ -664,19 +671,8 @@ struct HistorySection: View {
             )
             .font(.callout).foregroundStyle(.secondary)
         }
-        .confirmationDialog(
-            Text("Clear the dictation history?", comment: "Dictation settings confirmation title"),
-            isPresented: $confirmsClear
-        ) {
-            Button(role: .destructive) {
-                model.clear()
-            } label: {
-                Text("Clear History", comment: "Dictation settings confirmation button")
-            }
-        } message: {
-            Text(
-                "This deletes every saved dictation. It cannot be undone.",
-                comment: "Dictation settings confirmation text")
+        .destructiveConfirmation(isPresented: $confirmsClear, Self.confirmation) {
+            model.clear()
         }
     }
 
