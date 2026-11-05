@@ -1,6 +1,6 @@
 import Foundation
-import PounceKit
-import PouncePersistence
+import LintelKit
+import LintelPersistence
 import Synchronization
 import Testing
 import os
@@ -28,7 +28,7 @@ final class TemporaryDirectory: Sendable {
 
     init() throws {
         url = FileManager.default.temporaryDirectory
-            .appending(path: "pounce-meetings-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
+            .appending(path: "lintel-meetings-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     }
 
@@ -178,7 +178,7 @@ struct MeetingsHarness {
             storageDirectory: directory.url.appending(path: "Plugins/meetings", directoryHint: .isDirectory),
             settings: PluginSettings(pluginID: "meetings", store: settings),
             usage: usage,
-            logger: Logger(subsystem: "app.pounce.tests", category: "meetings"),
+            logger: Logger(subsystem: "com.lintelapp.tests", category: "meetings"),
             keychain: keychain,
             pasteboard: InertPasteboard(),
             events: InertEvents(),

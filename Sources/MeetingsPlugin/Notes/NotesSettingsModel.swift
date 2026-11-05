@@ -1,6 +1,6 @@
 import Foundation
+import LintelSpeech
 import Observation
-import PounceSpeech
 
 /// What the notes section of Settings → Meetings and the `meetings.setup` step show and do: the switch, the
 /// built-in model (the catalog models this Mac has the memory for, their size, download with progress and

@@ -1,7 +1,7 @@
 import Foundation
-import PounceKit
+import LintelKit
 
-/// A folder that macOS protects with a privacy prompt (TCC) unless Pounce has Full Disk Access.
+/// A folder that macOS protects with a privacy prompt (TCC) unless Lintel has Full Disk Access.
 ///
 /// Without Full Disk Access the scan skips these folders, so indexing never shows a series of prompts
 /// (spec: Onboarding, Faza 3). The user can add them one at a time and accept the prompt for each.

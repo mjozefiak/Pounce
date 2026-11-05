@@ -1,6 +1,6 @@
 import Foundation
 import GRDB
-import PounceSpeech
+import LintelSpeech
 import Synchronization
 import Testing
 import os

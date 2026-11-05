@@ -1,6 +1,6 @@
 import Foundation
+import LintelSpeech
 import OSLog
-import PounceSpeech
 
 /// What the finalizer did for one meeting. Carries no text and no audio, so it can be logged and shown.
 enum DiarizationOutcome: Equatable, Sendable {
@@ -52,7 +52,7 @@ struct MeetingFinalizer: Sendable {
         makeDiarizer: @escaping @Sendable (URL) -> any Diarizer = { FluidDiarizer(modelFolder: $0) },
         budget: DiarizationBudget = DiarizationBudget(),
         onOutcome: @escaping @Sendable (Int64, DiarizationOutcome) -> Void = { _, _ in },
-        logger: Logger = Logger(subsystem: "app.pounce", category: "meetings")
+        logger: Logger = Logger(subsystem: "com.lintelapp", category: "meetings")
     ) {
         self.store = store
         self.keys = keys

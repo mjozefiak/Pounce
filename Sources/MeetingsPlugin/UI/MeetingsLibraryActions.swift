@@ -1,5 +1,5 @@
 import Foundation
-import PounceKit
+import LintelKit
 
 enum MeetingLibraryActionError: Error, Equatable {
     /// The library is closed or unavailable.
@@ -41,7 +41,7 @@ final class MeetingsLibraryActions {
     private var armedDelete: (id: Int64, deadline: Date)?
     private let now: () -> Date
     static let deleteConfirmationWindow: TimeInterval = 3
-    /// False in QA mode: the window is ordered front without activating Pounce.
+    /// False in QA mode: the window is ordered front without activating Lintel.
     var activatesApp = true
 
     /// Whether "Regenerate Notes" is offered: only once the notes pipeline gives a closure (Phase 2).
@@ -70,7 +70,7 @@ final class MeetingsLibraryActions {
     }
 
     /// Return: puts the meeting on the pasteboard as Markdown, marked transient and concealed so clipboard
-    /// managers that honour nspasteboard.org (Pounce's own included) do not store a second copy.
+    /// managers that honour nspasteboard.org (Lintel's own included) do not store a second copy.
     func copyMarkdown(_ id: Int64) async throws {
         guard let store = library.store else { throw MeetingLibraryActionError.unavailable }
         let document = try await MeetingLibraryIO.document(store: store, id: id)

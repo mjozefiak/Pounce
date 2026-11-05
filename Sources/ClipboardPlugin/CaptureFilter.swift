@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
 import ImageIO
-import PounceKit
+import LintelKit
 
 /// Decides what is never recorded (spec: Edge Cases): entries marked with the nspasteboard.org types
 /// (concealed, transient, auto-generated) or the equivalent markers of password managers, entries
@@ -11,7 +11,7 @@ struct CaptureFilter: Sendable {
     static let maximumEntryBytes = 20 << 20
 
     /// Marker types from nspasteboard.org and the private markers password managers still use (shared with
-    /// dictation through `PounceKit`).
+    /// dictation through `LintelKit`).
     static let markerTypes = PasteboardRepresentation.markerTypes
 
     /// Apps ignored by default (spec: Pasek menu i Ustawienia): Passwords, Keychain Access, 1Password,
@@ -110,7 +110,7 @@ enum ClipClassifier {
         )
     }
 
-    /// The kind and preview text, or `nil` when no representation is one Pounce can show or paste.
+    /// The kind and preview text, or `nil` when no representation is one Lintel can show or paste.
     static func classify(_ items: [PasteboardItem]) -> (ClipKind, String)? {
         let types = Set(items.flatMap(\.types))
         let plain = items.lazy.compactMap { $0.data(for: PasteboardRepresentation.plainTextType) }.first

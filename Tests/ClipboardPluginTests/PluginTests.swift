@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
-import PounceCore
-import PounceKit
+import LintelCore
+import LintelKit
 import Testing
 
 @testable import ClipboardPlugin
@@ -138,7 +138,7 @@ struct ClipboardPluginLifecycleTests {
         await harness.tearDown()
     }
 
-    /// Changing the pasteboard privacy setting while Pounce runs: the watcher notices on the next copy,
+    /// Changing the pasteboard privacy setting while Lintel runs: the watcher notices on the next copy,
     /// without waiting for the mode to open, and the banners follow.
     @Test func anAccessChangeWhileRunningUpdatesTheBannersAndRecording() async throws {
         let harness = try PluginHarness()
@@ -163,7 +163,7 @@ struct ClipboardPluginLifecycleTests {
 
     @Test func aStartedWatcherIgnoresWhatWasAlreadyOnThePasteboard() async throws {
         let harness = try PluginHarness()
-        harness.pasteboard.setString("before Pounce started")
+        harness.pasteboard.setString("before Lintel started")
         try await harness.plugin.activate()
         let watcher = try #require(harness.plugin.watcher)
         #expect(!watcher.check())
@@ -355,7 +355,7 @@ struct PasteServiceTests {
         #expect(harness.pasteboard.string() == "fake pasted text")
         #expect(harness.events.posts == 1)
         #expect(panel.confirmations.isEmpty)
-        // Pounce's own write is not recorded again (the running watcher may have polled already).
+        // Lintel's own write is not recorded again (the running watcher may have polled already).
         let watcher = try #require(harness.plugin.watcher)
         watcher.check()
         #expect(watcher.lastEvent == .ownWrite)

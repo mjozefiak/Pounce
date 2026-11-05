@@ -1,5 +1,5 @@
 import Foundation
-import PounceSpeech
+import LintelSpeech
 
 /// What kind of note a point is. The codes are the first field of a line of the map output.
 enum NotesPointKind: String, Sendable, CaseIterable {

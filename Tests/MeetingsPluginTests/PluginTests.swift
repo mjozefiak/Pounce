@@ -1,5 +1,5 @@
 import Foundation
-import PounceKit
+import LintelKit
 import Testing
 
 @testable import MeetingsPlugin
@@ -47,7 +47,7 @@ import Testing
         let plugin = MeetingsPlugin(context: harness.context)
         plugin.adjustControllerDependencies = { dependencies in
             dependencies.authorizer = FakeAuthorizer(.granted)
-            dependencies.speechModel = { .ready(modelID: "parakeet-ultra", folder: URL(filePath: "/tmp/pounce-model")) }
+            dependencies.speechModel = { .ready(modelID: "parakeet-ultra", folder: URL(filePath: "/tmp/lintel-model")) }
             dependencies.makeSession = { _ in ScriptedSession(behaviour) }
             dependencies.clock = clock
             dependencies.shutdownTimeout = .seconds(5)
@@ -133,7 +133,7 @@ import Testing
         let spool = harness.pluginDirectory.appending(path: "Spool/a", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: spool, withIntermediateDirectories: true)
         try Data("audio".utf8).write(to: spool.appending(path: "mic.spool"))
-        #expect(harness.keychain.itemNames == ["app.pounce.meetings/master-key"])
+        #expect(harness.keychain.itemNames == ["com.lintelapp.meetings/master-key"])
 
         await plugin.deactivate()
         try await plugin.eraseData()

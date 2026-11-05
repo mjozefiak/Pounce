@@ -1,5 +1,5 @@
 import Foundation
-import PounceCore
+import LintelCore
 
 /// The file index as flat arrays (spec: Architecture, `NameStore`): a name pool and a node table with
 /// the parent index, so a million entries cost tens of bytes each instead of a `String` path each.

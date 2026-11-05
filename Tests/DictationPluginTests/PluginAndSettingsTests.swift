@@ -1,10 +1,10 @@
 import Foundation
-import PounceKit
+import LintelKit
 import Synchronization
 import Testing
 
 @testable import DictationPlugin
-@testable import PounceSpeech
+@testable import LintelSpeech
 
 @MainActor
 @Suite struct DictationPluginLifecycleTests {
@@ -222,7 +222,7 @@ import Testing
         let plugin = DictationPlugin(context: harness.context)
         try await plugin.activate()
         #expect(plugin.history.status == .ready)
-        #expect(keychain.itemNames == ["app.pounce.dictation/master-key"])
+        #expect(keychain.itemNames == ["com.lintelapp.dictation/master-key"])
         await plugin.deactivate()
         #expect(plugin.history.status == .closed)
     }

@@ -1,5 +1,5 @@
 import Foundation
-import PounceKit
+import LintelKit
 import Synchronization
 
 @testable import AppsPlugin
@@ -68,7 +68,7 @@ struct TemporaryDirectory {
 
     init() throws {
         url = FileManager.default.temporaryDirectory
-            .appending(path: "pounce-activity-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
+            .appending(path: "lintel-activity-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(
             at: url, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
     }

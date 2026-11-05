@@ -3,11 +3,11 @@ import Testing
 
 @testable import MeetingsPlugin
 
-/// Golden files live in `Fixtures/`. `POUNCE_UPDATE_GOLDEN=1 swift test --filter MarkdownExporterTests` rewrites
+/// Golden files live in `Fixtures/`. `LINTEL_UPDATE_GOLDEN=1 swift test --filter MarkdownExporterTests` rewrites
 /// them in the source tree; review the diff before committing.
 enum Golden {
     static func check(_ actual: String, named name: String, sourceFile: String = #filePath) throws {
-        if ProcessInfo.processInfo.environment["POUNCE_UPDATE_GOLDEN"] == "1" {
+        if ProcessInfo.processInfo.environment["LINTEL_UPDATE_GOLDEN"] == "1" {
             let directory = TestPaths.repoRoot.appending(path: "Tests/MeetingsPluginTests/Fixtures")
             try actual.write(to: directory.appending(path: name), atomically: true, encoding: .utf8)
             return

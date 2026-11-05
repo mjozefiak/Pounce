@@ -1,5 +1,5 @@
 import Foundation
-import PounceKit
+import LintelKit
 import Testing
 
 @testable import AppsPlugin
@@ -21,7 +21,7 @@ import Testing
         func uses(of bundleID: String) -> Int { store.snapshot.apps[bundleID]?.useCount ?? 0 }
     }
 
-    func makeHarness(own: String? = "app.pounce.Pounce") async throws -> Harness {
+    func makeHarness(own: String? = "com.lintelapp.Lintel") async throws -> Harness {
         let time = VirtualTime()
         let directory = try TemporaryDirectory()
         let store = ActivityStore(directory: directory.url, now: time.now, clock: NeverClock())
@@ -117,11 +117,11 @@ import Testing
         #expect(harness.store.snapshot.apps[x]?.lastUsedAt == harness.time.origin.timeIntervalSince1970 + 605)
     }
 
-    @Test func pounceAndAppsWithoutBundleIdentifierAreIgnored() async throws {
+    @Test func lintelAndAppsWithoutBundleIdentifierAreIgnored() async throws {
         let harness = try await makeHarness()
         defer { harness.directory.remove() }
-        harness.workspace.frontmost = { _ in "app.pounce.Pounce" }
-        harness.tracker.activated(RunningApplication(processIdentifier: 2, bundleIdentifier: "app.pounce.Pounce"))
+        harness.workspace.frontmost = { _ in "com.lintelapp.Lintel" }
+        harness.tracker.activated(RunningApplication(processIdentifier: 2, bundleIdentifier: "com.lintelapp.Lintel"))
         await harness.tracker.waitForChecks()
         harness.tracker.activated(RunningApplication(processIdentifier: 3, bundleIdentifier: nil))
         await harness.tracker.waitForChecks()

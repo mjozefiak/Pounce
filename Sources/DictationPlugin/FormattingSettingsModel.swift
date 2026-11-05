@@ -1,6 +1,6 @@
 import Foundation
+import LintelSpeech
 import Observation
-import PounceSpeech
 
 /// What the "Formatting" section of the Dictation pane shows and does: the mode, the servers found on this Mac,
 /// the model to use, and a "Try it" button. Nothing here leaves the Mac: every address goes through
@@ -33,7 +33,7 @@ final class FormattingSettingsModel {
     private(set) var selectedEndpoint: URL?
     private(set) var selectedModel: String?
 
-    /// Where the clean-up runs: the user's server or the model Pounce downloaded.
+    /// Where the clean-up runs: the user's server or the model Lintel downloaded.
     var source: DictationSettings.LLMSource {
         didSet {
             settings.setLLMSource(source)

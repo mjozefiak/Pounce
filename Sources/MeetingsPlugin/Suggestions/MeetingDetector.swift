@@ -1,5 +1,5 @@
 import Foundation
-import PounceSpeech
+import LintelSpeech
 import os
 
 /// The detector's view of time: a monotonic `Duration` and a sleep, taken from the plugin's clock. Tests give
@@ -49,7 +49,7 @@ final class MeetingDetector: MeetingRecordingObserver {
         case listening
         /// The Core Audio process API cannot be used here: suggestions are off, nothing else is affected.
         case unavailable
-        /// Listening, but no process has answered the "uses an input" question for a while: Pounce cannot
+        /// Listening, but no process has answered the "uses an input" question for a while: Lintel cannot
         /// confirm that detection works on this Mac. Harmless; events that do arrive are still handled.
         case noData
     }
@@ -62,7 +62,7 @@ final class MeetingDetector: MeetingRecordingObserver {
         var presenter: any SuggestionPresenter
         var clock: DetectorClock
         var settings: MeetingsSettings
-        /// Pounce records a meeting or is still finishing one.
+        /// Lintel records a meeting or is still finishing one.
         var isBusy: @MainActor () -> Bool
         /// The user clicked "Nagrywaj" for `bundleID`.
         var startRecording: @MainActor (_ bundleID: String) -> Void
@@ -74,7 +74,7 @@ final class MeetingDetector: MeetingRecordingObserver {
         var statusChanged: @MainActor (Status) -> Void = { _ in }
         /// Told after every handled event and every timer, so tests wait on it instead of polling.
         var didProcess: @MainActor () -> Void = {}
-        var logger = Logger(subsystem: "app.pounce", category: "meetings")
+        var logger = Logger(subsystem: "com.lintelapp", category: "meetings")
     }
 
     private let deps: Dependencies

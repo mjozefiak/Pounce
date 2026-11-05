@@ -1,4 +1,4 @@
-import PounceSpeech
+import LintelSpeech
 import SwiftUI
 
 /// Settings → Meetings → Notes: the switch, the built-in model and "Try it on an example". Shared by the pane

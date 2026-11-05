@@ -1,5 +1,5 @@
 import Foundation
-import PounceCore
+import LintelCore
 
 /// A query that names a folder by its path (spec: file path search, "path mode").
 ///

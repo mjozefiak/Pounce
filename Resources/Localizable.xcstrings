@@ -235,24 +235,6 @@
         }
       }
     },
-    "A fast launcher for apps, files and your clipboard history." : {
-      "comment" : "About window: one-line description",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A fast launcher for apps, files and your clipboard history."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Szybki launcher aplikacji, plików i historii schowka."
-          }
-        }
-      }
-    },
     "A file does not match the expected checksum, so it was not used." : {
       "comment" : "Dictation settings error after a failed checksum",
       "extractionState" : "manual",
@@ -271,20 +253,20 @@
         }
       }
     },
-    "About Pounce" : {
+    "About Lintel" : {
       "comment" : "Menu bar menu item that opens the About window",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "About Pounce"
+            "value" : "About Lintel"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Pounce"
+            "value" : "O Lintel"
           }
         }
       }
@@ -320,7 +302,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce ma uprawnienie Dostępność."
+            "value" : "Lintel ma uprawnienie Dostępność."
           }
         }
       }
@@ -487,20 +469,20 @@
         }
       }
     },
-    "Allow Accessibility so Pounce can paste for you. Without it, the text is only copied." : {
+    "Allow Accessibility so Lintel can paste for you. Without it, the text is only copied." : {
       "comment" : "Dictation onboarding step",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Allow Accessibility so Pounce can paste for you. Without it, the text is only copied."
+            "value" : "Allow Accessibility so Lintel can paste for you. Without it, the text is only copied."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zezwól na Dostępność, aby Pounce mógł wklejać za Ciebie. Bez tego tekst tylko się kopiuje."
+            "value" : "Zezwól na Dostępność, aby Lintel mógł wklejać za Ciebie. Bez tego tekst tylko się kopiuje."
           }
         }
       }
@@ -541,20 +523,20 @@
         }
       }
     },
-    "Allow the microphone. Pounce listens only while you dictate." : {
+    "Allow the microphone. Lintel listens only while you dictate." : {
       "comment" : "Dictation onboarding step",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Allow the microphone. Pounce listens only while you dictate."
+            "value" : "Allow the microphone. Lintel listens only while you dictate."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zezwól na mikrofon. Pounce słucha tylko wtedy, gdy dyktujesz."
+            "value" : "Zezwól na mikrofon. Lintel słucha tylko wtedy, gdy dyktujesz."
           }
         }
       }
@@ -739,20 +721,20 @@
         }
       }
     },
-    "Changes the size of text in the Pounce panel." : {
+    "Changes the size of text in the Lintel panel." : {
       "comment" : "Settings footer for text size",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Changes the size of text in the Pounce panel."
+            "value" : "Changes the size of text in the Lintel panel."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zmienia rozmiar tekstu w panelu Pounce."
+            "value" : "Zmienia rozmiar tekstu w panelu Lintel."
           }
         }
       }
@@ -771,6 +753,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sprawdź ponownie"
+          }
+        }
+      }
+    },
+    "Check the spelling, or try fewer letters." : {
+      "comment" : "Hint under the empty-results message",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check the spelling, or try fewer letters."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprawdź pisownię lub wpisz mniej liter."
           }
         }
       }
@@ -1333,20 +1333,20 @@
         }
       }
     },
-    "Dictate in any app: press the shortcut, talk, and Pounce types the text where you are. The speech model runs on this Mac." : {
+    "Dictate in any app: press the shortcut, talk, and Lintel types the text where you are. The speech model runs on this Mac." : {
       "comment" : "Dictation onboarding text",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dictate in any app: press the shortcut, talk, and Pounce types the text where you are. The speech model runs on this Mac."
+            "value" : "Dictate in any app: press the shortcut, talk, and Lintel types the text where you are. The speech model runs on this Mac."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dyktuj w dowolnej aplikacji: naciśnij skrót, mów, a Pounce wpisze tekst tam, gdzie jesteś. Model mowy działa na tym Macu."
+            "value" : "Dyktuj w dowolnej aplikacji: naciśnij skrót, mów, a Lintel wpisze tekst tam, gdzie jesteś. Model mowy działa na tym Macu."
           }
         }
       }
@@ -1855,20 +1855,20 @@
         }
       }
     },
-    "File search starts once you choose how Pounce may read your files." : {
+    "File search starts once you choose how Lintel may read your files." : {
       "comment" : "Panel notice before file indexing was set up",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "File search starts once you choose how Pounce may read your files."
+            "value" : "File search starts once you choose how Lintel may read your files."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wyszukiwanie plików ruszy, gdy wybierzesz, jak Pounce może czytać Twoje pliki."
+            "value" : "Wyszukiwanie plików ruszy, gdy wybierzesz, jak Lintel może czytać Twoje pliki."
           }
         }
       }
@@ -2197,20 +2197,20 @@
         }
       }
     },
-    "In Chrome, Slack and Google Docs ⌘⇧V means “paste without formatting”. Pounce takes this shortcut over; you can change it in Settings." : {
+    "In Chrome, Slack and Google Docs ⌘⇧V means “paste without formatting”. Lintel takes this shortcut over; you can change it in Settings." : {
       "comment" : "Clipboard onboarding note about the shortcut conflict",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In Chrome, Slack and Google Docs ⌘⇧V means “paste without formatting”. Pounce takes this shortcut over; you can change it in Settings."
+            "value" : "In Chrome, Slack and Google Docs ⌘⇧V means “paste without formatting”. Lintel takes this shortcut over; you can change it in Settings."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "W Chrome, Slacku i Dokumentach Google ⌘⇧V oznacza „wklej bez formatowania”. Pounce przejmuje ten skrót; możesz go zmienić w Ustawieniach."
+            "value" : "W Chrome, Slacku i Dokumentach Google ⌘⇧V oznacza „wklej bez formatowania”. Lintel przejmuje ten skrót; możesz go zmienić w Ustawieniach."
           }
         }
       }
@@ -2485,56 +2485,56 @@
         }
       }
     },
-    "Lets Pounce hear you while you dictate or record a meeting. Dictation audio is never saved; meeting audio is stored encrypted on this Mac until the transcript is complete, and the audio of unfinished meetings is kept for a limited time." : {
+    "Lets Lintel hear you while you dictate or record a meeting. Dictation audio is never saved; meeting audio is stored encrypted on this Mac until the transcript is complete, and the audio of unfinished meetings is kept for a limited time." : {
       "comment" : "Explanation of the Microphone permission",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lets Pounce hear you while you dictate or record a meeting. Dictation audio is never saved; meeting audio is stored encrypted on this Mac until the transcript is complete, and the audio of unfinished meetings is kept for a limited time."
+            "value" : "Lets Lintel hear you while you dictate or record a meeting. Dictation audio is never saved; meeting audio is stored encrypted on this Mac until the transcript is complete, and the audio of unfinished meetings is kept for a limited time."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pozwala Pounce słyszeć Cię podczas dyktowania i nagrywania spotkania. Dźwięk dyktowania nigdy nie jest zapisywany; dźwięk spotkania jest przechowywany w zaszyfrowanej postaci na tym Macu, dopóki transkrypt nie będzie kompletny, a dźwięk niedokończonych spotkań jest przechowywany przez ograniczony czas."
+            "value" : "Pozwala Lintel słyszeć Cię podczas dyktowania i nagrywania spotkania. Dźwięk dyktowania nigdy nie jest zapisywany; dźwięk spotkania jest przechowywany w zaszyfrowanej postaci na tym Macu, dopóki transkrypt nie będzie kompletny, a dźwięk niedokończonych spotkań jest przechowywany przez ograniczony czas."
           }
         }
       }
     },
-    "Lets Pounce hear you while you dictate. Audio stays on this Mac and is never saved." : {
+    "Lets Lintel hear you while you dictate. Audio stays on this Mac and is never saved." : {
       "comment" : "Explanation of the Microphone permission",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lets Pounce hear you while you dictate. Audio stays on this Mac and is never saved."
+            "value" : "Lets Lintel hear you while you dictate. Audio stays on this Mac and is never saved."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pozwala Pounce słuchać, gdy dyktujesz. Dźwięk zostaje na tym Macu i nigdy nie jest zapisywany."
+            "value" : "Pozwala Lintel słuchać, gdy dyktujesz. Dźwięk zostaje na tym Macu i nigdy nie jest zapisywany."
           }
         }
       }
     },
-    "Lets Pounce paste into the app you were using. Without it, Pounce only copies." : {
+    "Lets Lintel paste into the app you were using. Without it, Lintel only copies." : {
       "comment" : "Explanation of the Accessibility permission",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lets Pounce paste into the app you were using. Without it, Pounce only copies."
+            "value" : "Lets Lintel paste into the app you were using. Without it, Lintel only copies."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pozwala Pounce wklejać do aplikacji, której używałeś. Bez tego Pounce tylko kopiuje."
+            "value" : "Pozwala Lintel wklejać do aplikacji, której używałeś. Bez tego Lintel tylko kopiuje."
           }
         }
       }
@@ -2571,6 +2571,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Link"
+          }
+        }
+      }
+    },
+    "Lintel stays in the menu bar either way." : {
+      "comment" : "Settings footer for the Dock toggle",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel stays in the menu bar either way."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel zawsze zostaje na pasku menu."
           }
         }
       }
@@ -2827,20 +2845,20 @@
         }
       }
     },
-    "Lets Pounce capture what other people say in a meeting, only while a meeting is recorded. Audio is processed on this Mac and never uploaded." : {
+    "Lets Lintel capture what other people say in a meeting, only while a meeting is recorded. Audio is processed on this Mac and never uploaded." : {
       "comment" : "Explanation of the System Audio Recording permission",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lets Pounce capture what other people say in a meeting, only while a meeting is recorded. Audio is processed on this Mac and never uploaded."
+            "value" : "Lets Lintel capture what other people say in a meeting, only while a meeting is recorded. Audio is processed on this Mac and never uploaded."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pozwala Pounce przechwytywać to, co mówią inni uczestnicy spotkania, tylko podczas nagrywania spotkania. Dźwięk jest przetwarzany na tym Macu i nigdy nie jest wysyłany."
+            "value" : "Pozwala Lintel przechwytywać to, co mówią inni uczestnicy spotkania, tylko podczas nagrywania spotkania. Dźwięk jest przetwarzany na tym Macu i nigdy nie jest wysyłany."
           }
         }
       }
@@ -3129,6 +3147,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nie znaleziono mikrofonu"
+          }
+        }
+      }
+    },
+    "No results for “%@”" : {
+      "comment" : "Panel state when nothing matches the query; the query is quoted",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No results for “%@”"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak wyników dla „%@”"
           }
         }
       }
@@ -3475,20 +3511,20 @@
         }
       }
     },
-    "Open Pounce" : {
+    "Open Lintel" : {
       "comment" : "Menu bar menu item that opens the panel\nSettings label of the main shortcut",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Open Pounce"
+            "value" : "Open Lintel"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Otwórz Pounce"
+            "value" : "Otwórz Lintel"
           }
         }
       }
@@ -3799,218 +3835,218 @@
         }
       }
     },
-    "Pounce" : {
+    "Lintel" : {
       "comment" : "Menu bar item accessibility label",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce"
+            "value" : "Lintel"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce"
+            "value" : "Lintel"
           }
         }
       }
     },
-    "Pounce cannot read the clipboard history key from the keychain. Nothing was deleted." : {
+    "Lintel cannot read the clipboard history key from the keychain. Nothing was deleted." : {
       "comment" : "Clipboard banner when the keychain denied access to the key",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce cannot read the clipboard history key from the keychain. Nothing was deleted."
+            "value" : "Lintel cannot read the clipboard history key from the keychain. Nothing was deleted."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce nie może odczytać klucza historii schowka z pęku kluczy. Nic nie zostało usunięte."
+            "value" : "Lintel nie może odczytać klucza historii schowka z pęku kluczy. Nic nie zostało usunięte."
           }
         }
       }
     },
-    "Pounce cannot start" : {
+    "Lintel cannot start" : {
       "comment" : "Alert title when the app cannot prepare its data directory",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce cannot start"
+            "value" : "Lintel cannot start"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nie można uruchomić Pounce"
+            "value" : "Nie można uruchomić Lintel"
           }
         }
       }
     },
-    "Pounce finds files and folders by name, using its own index that stays on this Mac. It never reads what is inside your files." : {
+    "Lintel finds files and folders by name, using its own index that stays on this Mac. It never reads what is inside your files." : {
       "comment" : "File search onboarding text",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce finds files and folders by name, using its own index that stays on this Mac. It never reads what is inside your files."
+            "value" : "Lintel finds files and folders by name, using its own index that stays on this Mac. It never reads what is inside your files."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce znajduje pliki i foldery po nazwie, korzystając z własnego indeksu, który zostaje na tym Macu. Nigdy nie czyta zawartości Twoich plików."
+            "value" : "Lintel znajduje pliki i foldery po nazwie, korzystając z własnego indeksu, który zostaje na tym Macu. Nigdy nie czyta zawartości Twoich plików."
           }
         }
       }
     },
-    "Pounce is not allowed to read the clipboard, so nothing is recorded." : {
+    "Lintel is not allowed to read the clipboard, so nothing is recorded." : {
       "comment" : "Clipboard banner when pasteboard access is denied in Privacy settings",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce is not allowed to read the clipboard, so nothing is recorded."
+            "value" : "Lintel is not allowed to read the clipboard, so nothing is recorded."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Brak dostępu do schowka: Pounce nie może go czytać, więc nic nie jest zapisywane."
+            "value" : "Brak dostępu do schowka: Lintel nie może go czytać, więc nic nie jest zapisywane."
           }
         }
       }
     },
-    "Pounce keeps what you copy so you can paste it again with ⌘⇧V. The history stays on this Mac, encrypted, for 30 days or 1000 entries." : {
+    "Lintel keeps what you copy so you can paste it again with ⌘⇧V. The history stays on this Mac, encrypted, for 30 days or 1000 entries." : {
       "comment" : "Clipboard onboarding text",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce keeps what you copy so you can paste it again with ⌘⇧V. The history stays on this Mac, encrypted, for 30 days or 1000 entries."
+            "value" : "Lintel keeps what you copy so you can paste it again with ⌘⇧V. The history stays on this Mac, encrypted, for 30 days or 1000 entries."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce zapamiętuje to, co kopiujesz, aby można było wkleić to ponownie skrótem ⌘⇧V. Historia zostaje na tym Macu, zaszyfrowana, przez 30 dni lub do 1000 wpisów."
+            "value" : "Lintel zapamiętuje to, co kopiujesz, aby można było wkleić to ponownie skrótem ⌘⇧V. Historia zostaje na tym Macu, zaszyfrowana, przez 30 dni lub do 1000 wpisów."
           }
         }
       }
     },
-    "Pounce moves the results you pick often to the top. Resetting forgets what it learned; your apps, files and clipboard history stay." : {
+    "Lintel moves the results you pick often to the top. Resetting forgets what it learned; your apps, files and clipboard history stay." : {
       "comment" : "Settings explanation of Reset Ranking",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce moves the results you pick often to the top. Resetting forgets what it learned; your apps, files and clipboard history stay."
+            "value" : "Lintel moves the results you pick often to the top. Resetting forgets what it learned; your apps, files and clipboard history stay."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce przesuwa na górę wyniki, które często wybierasz. Reset zapomina to, czego się nauczył; aplikacje, pliki i historia schowka zostają."
+            "value" : "Lintel przesuwa na górę wyniki, które często wybierasz. Reset zapomina to, czego się nauczył; aplikacje, pliki i historia schowka zostają."
           }
         }
       }
     },
-    "Pounce never asks for a permission on its own. Changes in System Settings apply right away." : {
+    "Lintel never asks for a permission on its own. Changes in System Settings apply right away." : {
       "comment" : "Settings → Permissions footer",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce never asks for a permission on its own. Changes in System Settings apply right away."
+            "value" : "Lintel never asks for a permission on its own. Changes in System Settings apply right away."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce nigdy sam nie prosi o uprawnienia. Zmiany w Ustawieniach systemowych działają od razu."
+            "value" : "Lintel nigdy sam nie prosi o uprawnienia. Zmiany w Ustawieniach systemowych działają od razu."
           }
         }
       }
     },
-    "Pounce opens with a shortcut from anywhere and lives in the menu bar. The next steps set it up; you can skip any of them and change everything later in Settings." : {
+    "Lintel opens with a shortcut from anywhere and lives in the menu bar. The next steps set it up; you can skip any of them and change everything later in Settings." : {
       "comment" : "Welcome screen introduction",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce opens with a shortcut from anywhere and lives in the menu bar. The next steps set it up; you can skip any of them and change everything later in Settings."
+            "value" : "Lintel opens with a shortcut from anywhere and lives in the menu bar. The next steps set it up; you can skip any of them and change everything later in Settings."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce otwierasz skrótem z dowolnego miejsca, a mieszka w pasku menu. Kolejne kroki go skonfigurują; każdy możesz pominąć i wszystko zmienić później w Ustawieniach."
+            "value" : "Lintel otwierasz skrótem z dowolnego miejsca, a mieszka w pasku menu. Kolejne kroki go skonfigurują; każdy możesz pominąć i wszystko zmienić później w Ustawieniach."
           }
         }
       }
     },
-    "Pounce scans the searched folders again. Results stay available while it runs." : {
+    "Lintel scans the searched folders again. Results stay available while it runs." : {
       "comment" : "Rebuild confirmation message",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce scans the searched folders again. Results stay available while it runs."
+            "value" : "Lintel scans the searched folders again. Results stay available while it runs."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce ponownie przeskanuje przeszukiwane foldery. Wyniki pozostają dostępne w trakcie."
+            "value" : "Lintel ponownie przeskanuje przeszukiwane foldery. Wyniki pozostają dostępne w trakcie."
           }
         }
       }
     },
-    "Pounce sends the text only to a server on this Mac (Ollama, LM Studio, llama-server). The server may keep prompts in its own log. If it does not answer, the raw text is pasted." : {
+    "Lintel sends the text only to a server on this Mac (Ollama, LM Studio, llama-server). The server may keep prompts in its own log. If it does not answer, the raw text is pasted." : {
       "comment" : "Dictation settings footer under the formatting toggle",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce sends the text only to a server on this Mac (Ollama, LM Studio, llama-server). The server may keep prompts in its own log. If it does not answer, the raw text is pasted."
+            "value" : "Lintel sends the text only to a server on this Mac (Ollama, LM Studio, llama-server). The server may keep prompts in its own log. If it does not answer, the raw text is pasted."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce wysyła tekst tylko do serwera na tym Macu (Ollama, LM Studio, llama-server). Serwer może zapisywać prompty we własnym logu. Jeśli nie odpowie, wklejany jest surowy tekst."
+            "value" : "Lintel wysyła tekst tylko do serwera na tym Macu (Ollama, LM Studio, llama-server). Serwer może zapisywać prompty we własnym logu. Jeśli nie odpowie, wklejany jest surowy tekst."
           }
         }
       }
     },
-    "Press this shortcut anywhere to open Pounce. Keep the suggested one or record your own." : {
+    "Press this shortcut anywhere to open Lintel. Keep the suggested one or record your own." : {
       "comment" : "Onboarding step explanation",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Press this shortcut anywhere to open Pounce. Keep the suggested one or record your own."
+            "value" : "Press this shortcut anywhere to open Lintel. Keep the suggested one or record your own."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Naciśnij ten skrót w dowolnym miejscu, aby otworzyć Pounce. Zostaw proponowany albo nagraj własny."
+            "value" : "Naciśnij ten skrót w dowolnym miejscu, aby otworzyć Lintel. Zostaw proponowany albo nagraj własny."
           }
         }
       }
@@ -4051,20 +4087,20 @@
         }
       }
     },
-    "Quit Pounce" : {
+    "Quit Lintel" : {
       "comment" : "Menu bar menu item that quits the app",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Quit Pounce"
+            "value" : "Quit Lintel"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zakończ Pounce"
+            "value" : "Zakończ Lintel"
           }
         }
       }
@@ -4663,6 +4699,24 @@
         }
       }
     },
+    "Search, paste and dictate. All on your Mac." : {
+      "comment" : "About window: one-line description",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search, paste and dictate. All on your Mac."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szukaj, wklejaj i dyktuj. Wszystko na Twoim Macu."
+          }
+        }
+      }
+    },
     "Searched" : {
       "comment" : "Protected folder state",
       "extractionState" : "manual",
@@ -4807,20 +4861,38 @@
         }
       }
     },
-    "Shortcut to open Pounce" : {
+    "Shortcut to open Lintel" : {
       "comment" : "Accessibility label of the shortcut recorder",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Shortcut to open Pounce"
+            "value" : "Shortcut to open Lintel"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Skrót otwierający Pounce"
+            "value" : "Skrót otwierający Lintel"
+          }
+        }
+      }
+    },
+    "Show in Dock" : {
+      "comment" : "Settings toggle",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show in Dock"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż w Docku"
           }
         }
       }
@@ -4987,20 +5059,20 @@
         }
       }
     },
-    "Spotlight uses ⌘Space. To open Pounce with ⌘Space, turn off “Show Spotlight search” in System Settings → Keyboard → Keyboard Shortcuts → Spotlight." : {
+    "Spotlight uses ⌘Space. To open Lintel with ⌘Space, turn off “Show Spotlight search” in System Settings → Keyboard → Keyboard Shortcuts → Spotlight." : {
       "comment" : "Banner explaining how to free Command-Space from Spotlight",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Spotlight uses ⌘Space. To open Pounce with ⌘Space, turn off “Show Spotlight search” in System Settings → Keyboard → Keyboard Shortcuts → Spotlight."
+            "value" : "Spotlight uses ⌘Space. To open Lintel with ⌘Space, turn off “Show Spotlight search” in System Settings → Keyboard → Keyboard Shortcuts → Spotlight."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Spotlight używa ⌘Spacji. Aby otwierać Pounce przez ⌘Spację, wyłącz „Pokaż wyszukiwanie Spotlight” w Ustawieniach systemowych → Klawiatura → Skróty klawiszowe → Spotlight."
+            "value" : "Spotlight używa ⌘Spacji. Aby otwierać Lintel przez ⌘Spację, wyłącz „Pokaż wyszukiwanie Spotlight” w Ustawieniach systemowych → Klawiatura → Skróty klawiszowe → Spotlight."
           }
         }
       }
@@ -5617,20 +5689,20 @@
         }
       }
     },
-    "The text is pasted through the clipboard. Pounce puts back what was there a second later, unless it was a password or you copied something else meanwhile." : {
+    "The text is pasted through the clipboard. Lintel puts back what was there a second later, unless it was a password or you copied something else meanwhile." : {
       "comment" : "Dictation settings footer under the clipboard restore toggle",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The text is pasted through the clipboard. Pounce puts back what was there a second later, unless it was a password or you copied something else meanwhile."
+            "value" : "The text is pasted through the clipboard. Lintel puts back what was there a second later, unless it was a password or you copied something else meanwhile."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tekst jest wklejany przez schowek. Pounce przywraca po sekundzie to, co w nim było, chyba że było to hasło albo w międzyczasie coś skopiowałeś."
+            "value" : "Tekst jest wklejany przez schowek. Lintel przywraca po sekundzie to, co w nim było, chyba że było to hasło albo w międzyczasie coś skopiowałeś."
           }
         }
       }
@@ -5779,20 +5851,20 @@
         }
       }
     },
-    "To paste into the app you were using, Pounce needs Accessibility. Without it, Return copies the entry and you paste with ⌘V." : {
+    "To paste into the app you were using, Lintel needs Accessibility. Without it, Return copies the entry and you paste with ⌘V." : {
       "comment" : "Clipboard onboarding text about Accessibility",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "To paste into the app you were using, Pounce needs Accessibility. Without it, Return copies the entry and you paste with ⌘V."
+            "value" : "To paste into the app you were using, Lintel needs Accessibility. Without it, Return copies the entry and you paste with ⌘V."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aby wklejać do aplikacji, której używasz, Pounce potrzebuje uprawnienia Dostępność. Bez niego Return kopiuje wpis, a wklejasz go skrótem ⌘V."
+            "value" : "Aby wklejać do aplikacji, której używasz, Lintel potrzebuje uprawnienia Dostępność. Bez niego Return kopiuje wpis, a wklejasz go skrótem ⌘V."
           }
         }
       }
@@ -6103,20 +6175,20 @@
         }
       }
     },
-    "Welcome to Pounce" : {
+    "Welcome to Lintel" : {
       "comment" : "Onboarding window title",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Welcome to Pounce"
+            "value" : "Welcome to Lintel"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Witaj w Pounce"
+            "value" : "Witaj w Lintel"
           }
         }
       }
@@ -6139,20 +6211,20 @@
         }
       }
     },
-    "With Full Disk Access, Pounce also searches Desktop, Documents, Downloads and iCloud Drive. Without it, those folders are skipped so macOS does not ask about each one. You can add them one at a time in Settings." : {
+    "With Full Disk Access, Lintel also searches Desktop, Documents, Downloads and iCloud Drive. Without it, those folders are skipped so macOS does not ask about each one. You can add them one at a time in Settings." : {
       "comment" : "File search onboarding text about Full Disk Access",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "With Full Disk Access, Pounce also searches Desktop, Documents, Downloads and iCloud Drive. Without it, those folders are skipped so macOS does not ask about each one. You can add them one at a time in Settings."
+            "value" : "With Full Disk Access, Lintel also searches Desktop, Documents, Downloads and iCloud Drive. Without it, those folders are skipped so macOS does not ask about each one. You can add them one at a time in Settings."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Z pełnym dostępem do dysku Pounce przeszukuje też Biurko, Dokumenty, Pobrane rzeczy i iCloud Drive. Bez niego te foldery są pomijane, żeby macOS nie pytał o każdy z nich. Możesz dodać je pojedynczo w Ustawieniach."
+            "value" : "Z pełnym dostępem do dysku Lintel przeszukuje też Biurko, Dokumenty, Pobrane rzeczy i iCloud Drive. Bez niego te foldery są pomijane, żeby macOS nie pytał o każdy z nich. Możesz dodać je pojedynczo w Ustawieniach."
           }
         }
       }
@@ -6355,38 +6427,38 @@
         }
       }
     },
-    "macOS asks before Pounce reads the clipboard, so nothing is recorded. Allow Pounce in Privacy & Security to record." : {
+    "macOS asks before Lintel reads the clipboard, so nothing is recorded. Allow Lintel in Privacy & Security to record." : {
       "comment" : "Clipboard banner when pasteboard access is set to ask each time",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOS asks before Pounce reads the clipboard, so nothing is recorded. Allow Pounce in Privacy & Security to record."
+            "value" : "macOS asks before Lintel reads the clipboard, so nothing is recorded. Allow Lintel in Privacy & Security to record."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOS pyta przed każdym odczytem schowka, więc nic nie jest zapisywane. Aby nagrywać, zezwól Pounce w ustawieniach Prywatność i ochrona."
+            "value" : "macOS pyta przed każdym odczytem schowka, więc nic nie jest zapisywane. Aby nagrywać, zezwól Lintel w ustawieniach Prywatność i ochrona."
           }
         }
       }
     },
-    "macOS can ask before an app reads the clipboard. Allow Pounce so the history keeps recording." : {
+    "macOS can ask before an app reads the clipboard. Allow Lintel so the history keeps recording." : {
       "comment" : "Explanation of the clipboard access permission",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOS can ask before an app reads the clipboard. Allow Pounce so the history keeps recording."
+            "value" : "macOS can ask before an app reads the clipboard. Allow Lintel so the history keeps recording."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOS może pytać, zanim aplikacja odczyta schowek. Zezwól Pounce, aby historia była dalej zapisywana."
+            "value" : "macOS może pytać, zanim aplikacja odczyta schowek. Zezwól Lintel, aby historia była dalej zapisywana."
           }
         }
       }
@@ -6445,20 +6517,20 @@
         }
       }
     },
-    "Built-in (Pounce)" : {
+    "Built-in (Lintel)" : {
       "comment" : "Dictation settings choice of the built-in formatting model",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Built-in (Pounce)"
+            "value" : "Built-in (Lintel)"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wbudowany (Pounce)"
+            "value" : "Wbudowany (Lintel)"
           }
         }
       }
@@ -6499,20 +6571,20 @@
         }
       }
     },
-    "The model runs inside Pounce on this Mac. Nothing is sent anywhere. It loads while you talk and is freed after a while. If it is not ready in time, the raw text is pasted." : {
+    "The model runs inside Lintel on this Mac. Nothing is sent anywhere. It loads while you talk and is freed after a while. If it is not ready in time, the raw text is pasted." : {
       "comment" : "Dictation settings footer under the built-in formatting model",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The model runs inside Pounce on this Mac. Nothing is sent anywhere. It loads while you talk and is freed after a while. If it is not ready in time, the raw text is pasted."
+            "value" : "The model runs inside Lintel on this Mac. Nothing is sent anywhere. It loads while you talk and is freed after a while. If it is not ready in time, the raw text is pasted."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Model działa wewnątrz Pounce na tym Macu. Nic nie jest nigdzie wysyłane. Ładuje się, gdy mówisz, i po jakimś czasie jest zwalniany z pamięci. Jeśli nie jest gotowy na czas, wklejany jest surowy tekst."
+            "value" : "Model działa wewnątrz Lintel na tym Macu. Nic nie jest nigdzie wysyłane. Ładuje się, gdy mówisz, i po jakimś czasie jest zwalniany z pamięci. Jeśli nie jest gotowy na czas, wklejany jest surowy tekst."
           }
         }
       }
@@ -6571,20 +6643,20 @@
         }
       }
     },
-    "App activity was saved by a newer version of Pounce. Suggestions are off until you update." : {
+    "App activity was saved by a newer version of Lintel. Suggestions are off until you update." : {
       "comment" : "Settings message when activity.json comes from a newer version",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "App activity was saved by a newer version of Pounce. Suggestions are off until you update."
+            "value" : "App activity was saved by a newer version of Lintel. Suggestions are off until you update."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aktywność aplikacji zapisała nowsza wersja Pounce. Sugestie są wyłączone do czasu aktualizacji."
+            "value" : "Aktywność aplikacji zapisała nowsza wersja Lintel. Sugestie są wyłączone do czasu aktualizacji."
           }
         }
       }
@@ -6680,7 +6752,7 @@
       }
     },
     "Contents need Full Disk Access" : {
-      "comment" : "Subtitle of a folder result whose contents Pounce may not read without Full Disk Access",
+      "comment" : "Subtitle of a folder result whose contents Lintel may not read without Full Disk Access",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -6769,20 +6841,20 @@
         }
       }
     },
-    "Pounce records on this Mac which apps you use and how often, to suggest them. Nothing leaves your Mac." : {
+    "Lintel records on this Mac which apps you use and how often, to suggest them. Nothing leaves your Mac." : {
       "comment" : "Settings description of what app suggestions record",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce records on this Mac which apps you use and how often, to suggest them. Nothing leaves your Mac."
+            "value" : "Lintel records on this Mac which apps you use and how often, to suggest them. Nothing leaves your Mac."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce zapisuje na tym Macu, których aplikacji używasz i jak często, żeby je sugerować. Nic nie opuszcza Twojego Maca."
+            "value" : "Lintel zapisuje na tym Macu, których aplikacji używasz i jak często, żeby je sugerować. Nic nie opuszcza Twojego Maca."
           }
         }
       }
@@ -7003,20 +7075,20 @@
         }
       }
     },
-    "Copies the meeting as Markdown. Pounce's clipboard history does not keep it." : {
+    "Copies the meeting as Markdown. Lintel's clipboard history does not keep it." : {
       "comment" : "Hint of Copy Markdown",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Copies the meeting as Markdown. Pounce's clipboard history does not keep it."
+            "value" : "Copies the meeting as Markdown. Lintel's clipboard history does not keep it."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kopiuje spotkanie jako Markdown. Historia schowka Pounce go nie zapisuje."
+            "value" : "Kopiuje spotkanie jako Markdown. Historia schowka Lintel go nie zapisuje."
           }
         }
       }
@@ -8011,20 +8083,20 @@
         }
       }
     },
-    "Pounce records your microphone and what the other side says, only while you record a meeting. Echo reduction can lower the volume of other apps, so it is off by default." : {
+    "Lintel records your microphone and what the other side says, only while you record a meeting. Echo reduction can lower the volume of other apps, so it is off by default." : {
       "comment" : "Meetings settings footer under the audio section",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce records your microphone and what the other side says, only while you record a meeting. Echo reduction can lower the volume of other apps, so it is off by default."
+            "value" : "Lintel records your microphone and what the other side says, only while you record a meeting. Echo reduction can lower the volume of other apps, so it is off by default."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce nagrywa Twój mikrofon i to, co mówi druga strona, tylko podczas nagrywania spotkania. Redukcja echa może ściszać inne aplikacje, więc domyślnie jest wyłączona."
+            "value" : "Lintel nagrywa Twój mikrofon i to, co mówi druga strona, tylko podczas nagrywania spotkania. Redukcja echa może ściszać inne aplikacje, więc domyślnie jest wyłączona."
           }
         }
       }
@@ -8299,20 +8371,20 @@
         }
       }
     },
-    "Pounce will play a short tone through your speakers and check that it can hear it. macOS may ask you to allow System Audio Recording first. Lower the volume if you like." : {
+    "Lintel will play a short tone through your speakers and check that it can hear it. macOS may ask you to allow System Audio Recording first. Lower the volume if you like." : {
       "comment" : "Meetings: explanation before the system audio test plays its signal",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce will play a short tone through your speakers and check that it can hear it. macOS may ask you to allow System Audio Recording first. Lower the volume if you like."
+            "value" : "Lintel will play a short tone through your speakers and check that it can hear it. macOS may ask you to allow System Audio Recording first. Lower the volume if you like."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce odtworzy krótki sygnał przez głośniki i sprawdzi, czy go słyszy. macOS może najpierw zapytać o zgodę na nagrywanie dźwięku systemu. Możesz wcześniej ściszyć dźwięk."
+            "value" : "Lintel odtworzy krótki sygnał przez głośniki i sprawdzi, czy go słyszy. macOS może najpierw zapytać o zgodę na nagrywanie dźwięku systemu. Możesz wcześniej ściszyć dźwięk."
           }
         }
       }
@@ -8425,20 +8497,20 @@
         }
       }
     },
-    "This model is shared with other Pounce features. It will be downloaded again the next time one of them needs it." : {
+    "This model is shared with other Lintel features. It will be downloaded again the next time one of them needs it." : {
       "comment" : "Meetings model card: what removing a shared model means",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This model is shared with other Pounce features. It will be downloaded again the next time one of them needs it."
+            "value" : "This model is shared with other Lintel features. It will be downloaded again the next time one of them needs it."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ten model jest współdzielony z innymi funkcjami Pounce. Zostanie pobrany ponownie, gdy któraś z nich go potrzebuje."
+            "value" : "Ten model jest współdzielony z innymi funkcjami Lintel. Zostanie pobrany ponownie, gdy któraś z nich go potrzebuje."
           }
         }
       }
@@ -8479,38 +8551,38 @@
         }
       }
     },
-    "Allow the microphone. Pounce listens only while you record a meeting." : {
+    "Allow the microphone. Lintel listens only while you record a meeting." : {
       "comment" : "Meetings onboarding step",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Allow the microphone. Pounce listens only while you record a meeting."
+            "value" : "Allow the microphone. Lintel listens only while you record a meeting."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zezwól na mikrofon. Pounce słucha tylko podczas nagrywania spotkania."
+            "value" : "Zezwól na mikrofon. Lintel słucha tylko podczas nagrywania spotkania."
           }
         }
       }
     },
-    "Check that Pounce can hear the other side of a call. Nothing is asked until you press the button." : {
+    "Check that Lintel can hear the other side of a call. Nothing is asked until you press the button." : {
       "comment" : "Meetings onboarding step",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Check that Pounce can hear the other side of a call. Nothing is asked until you press the button."
+            "value" : "Check that Lintel can hear the other side of a call. Nothing is asked until you press the button."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sprawdź, czy Pounce słyszy drugą stronę rozmowy. Nic nie jest wyświetlane, dopóki nie naciśniesz przycisku."
+            "value" : "Sprawdź, czy Lintel słyszy drugą stronę rozmowy. Nic nie jest wyświetlane, dopóki nie naciśniesz przycisku."
           }
         }
       }
@@ -8569,38 +8641,38 @@
         }
       }
     },
-    "System audio works. Pounce heard its own test signal." : {
+    "System audio works. Lintel heard its own test signal." : {
       "comment" : "Meetings: verdict of the system audio test when the signal was heard",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "System audio works. Pounce heard its own test signal."
+            "value" : "System audio works. Lintel heard its own test signal."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dźwięk systemowy działa. Pounce usłyszał własny sygnał testowy."
+            "value" : "Dźwięk systemowy działa. Lintel usłyszał własny sygnał testowy."
           }
         }
       }
     },
-    "No audio came through. Check that Pounce is allowed under System Audio Recording, then test again." : {
+    "No audio came through. Check that Lintel is allowed under System Audio Recording, then test again." : {
       "comment" : "Meetings: verdict of the system audio test when only silence arrived",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No audio came through. Check that Pounce is allowed under System Audio Recording, then test again."
+            "value" : "No audio came through. Check that Lintel is allowed under System Audio Recording, then test again."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Brak dźwięku. Sprawdź, czy Pounce ma zgodę w „Nagrywanie dźwięku systemu”, i przetestuj ponownie."
+            "value" : "Brak dźwięku. Sprawdź, czy Lintel ma zgodę w „Nagrywanie dźwięku systemu”, i przetestuj ponownie."
           }
         }
       }
@@ -10081,20 +10153,20 @@
         }
       }
     },
-    "Optional: Pounce can suggest recording when Zoom, Teams or another meeting app starts using the microphone. It only checks which app uses the microphone, never what it hears, and never records without your click." : {
+    "Optional: Lintel can suggest recording when Zoom, Teams or another meeting app starts using the microphone. It only checks which app uses the microphone, never what it hears, and never records without your click." : {
       "comment" : "Meetings onboarding step about meeting suggestions",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Optional: Pounce can suggest recording when Zoom, Teams or another meeting app starts using the microphone. It only checks which app uses the microphone, never what it hears, and never records without your click."
+            "value" : "Optional: Lintel can suggest recording when Zoom, Teams or another meeting app starts using the microphone. It only checks which app uses the microphone, never what it hears, and never records without your click."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Opcjonalnie: Pounce może podpowiedzieć nagrywanie, gdy Zoom, Teams lub inna aplikacja do spotkań zacznie używać mikrofonu. Sprawdza tylko, która aplikacja używa mikrofonu, nigdy co słyszy, i nigdy nie nagrywa bez Twojego kliknięcia."
+            "value" : "Opcjonalnie: Lintel może podpowiedzieć nagrywanie, gdy Zoom, Teams lub inna aplikacja do spotkań zacznie używać mikrofonu. Sprawdza tylko, która aplikacja używa mikrofonu, nigdy co słyszy, i nigdy nie nagrywa bez Twojego kliknięcia."
           }
         }
       }
@@ -10207,38 +10279,38 @@
         }
       }
     },
-    "Pounce only checks which app is using the microphone, never what it hears. It knows Zoom, Teams, Slack, FaceTime, Webex and Discord, and asks before recording; it never starts by itself. A browser counts only if you add it above, because a web page using the microphone can be a false alarm. Only these lists and, for a meeting you start from a suggestion, the app's ID are stored. Apps built on Safari's engine (WebKit helpers) may not be detected, and the pill cannot be operated from the keyboard; VoiceOver reads it and can press its buttons." : {
+    "Lintel only checks which app is using the microphone, never what it hears. It knows Zoom, Teams, Slack, FaceTime, Webex and Discord, and asks before recording; it never starts by itself. A browser counts only if you add it above, because a web page using the microphone can be a false alarm. Only these lists and, for a meeting you start from a suggestion, the app's ID are stored. Apps built on Safari's engine (WebKit helpers) may not be detected, and the pill cannot be operated from the keyboard; VoiceOver reads it and can press its buttons." : {
       "comment" : "Meetings settings footer under the meeting suggestions",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce only checks which app is using the microphone, never what it hears. It knows Zoom, Teams, Slack, FaceTime, Webex and Discord, and asks before recording; it never starts by itself. A browser counts only if you add it above, because a web page using the microphone can be a false alarm. Only these lists and, for a meeting you start from a suggestion, the app's ID are stored. Apps built on Safari's engine (WebKit helpers) may not be detected, and the pill cannot be operated from the keyboard; VoiceOver reads it and can press its buttons."
+            "value" : "Lintel only checks which app is using the microphone, never what it hears. It knows Zoom, Teams, Slack, FaceTime, Webex and Discord, and asks before recording; it never starts by itself. A browser counts only if you add it above, because a web page using the microphone can be a false alarm. Only these lists and, for a meeting you start from a suggestion, the app's ID are stored. Apps built on Safari's engine (WebKit helpers) may not be detected, and the pill cannot be operated from the keyboard; VoiceOver reads it and can press its buttons."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce sprawdza tylko, która aplikacja używa mikrofonu, nigdy co słyszy. Zna Zoom, Teams, Slack, FaceTime, Webex i Discord i pyta, zanim zacznie nagrywać; sam nigdy nie zaczyna. Przeglądarka liczy się tylko, jeśli dodasz ją powyżej, bo strona używająca mikrofonu może dać fałszywy alarm. Zapisywane są tylko te listy oraz, dla spotkania rozpoczętego z podpowiedzi, identyfikator aplikacji. Aplikacje oparte na silniku Safari (procesy pomocnicze WebKit) mogą nie zostać wykryte, a podpowiedzi nie da się obsłużyć z klawiatury; VoiceOver ją odczytuje i pozwala nacisnąć jej przyciski."
+            "value" : "Lintel sprawdza tylko, która aplikacja używa mikrofonu, nigdy co słyszy. Zna Zoom, Teams, Slack, FaceTime, Webex i Discord i pyta, zanim zacznie nagrywać; sam nigdy nie zaczyna. Przeglądarka liczy się tylko, jeśli dodasz ją powyżej, bo strona używająca mikrofonu może dać fałszywy alarm. Zapisywane są tylko te listy oraz, dla spotkania rozpoczętego z podpowiedzi, identyfikator aplikacji. Aplikacje oparte na silniku Safari (procesy pomocnicze WebKit) mogą nie zostać wykryte, a podpowiedzi nie da się obsłużyć z klawiatury; VoiceOver ją odczytuje i pozwala nacisnąć jej przyciski."
           }
         }
       }
     },
-    "Pounce cannot confirm that detection works on this Mac: no app has reported microphone use yet." : {
+    "Lintel cannot confirm that detection works on this Mac: no app has reported microphone use yet." : {
       "comment" : "Meetings settings: the process audio API listens but no process has answered",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce cannot confirm that detection works on this Mac: no app has reported microphone use yet."
+            "value" : "Lintel cannot confirm that detection works on this Mac: no app has reported microphone use yet."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pounce nie może potwierdzić, że wykrywanie działa na tym Macu: żadna aplikacja nie zgłosiła jeszcze użycia mikrofonu."
+            "value" : "Lintel nie może potwierdzić, że wykrywanie działa na tym Macu: żadna aplikacja nie zgłosiła jeszcze użycia mikrofonu."
           }
         }
       }

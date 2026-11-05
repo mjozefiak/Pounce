@@ -2,7 +2,7 @@ import Foundation
 import Testing
 
 @testable import DictationPlugin
-@testable import PounceSpeech
+@testable import LintelSpeech
 
 @MainActor
 @Suite struct EngineChoiceSettingsTests {

@@ -1,5 +1,5 @@
 import AppKit
-import PounceKit
+import LintelKit
 import SwiftUI
 
 /// What the plugin's views can ask the plugin to do.
@@ -85,15 +85,15 @@ enum ClipboardBanner: Hashable {
                 comment: "Clipboard banner when the login keychain is locked")
         case .keychainUnavailable:
             LocalizedStringResource(
-                "Pounce cannot read the clipboard history key from the keychain. Nothing was deleted.",
+                "Lintel cannot read the clipboard history key from the keychain. Nothing was deleted.",
                 comment: "Clipboard banner when the keychain denied access to the key")
         case .accessDenied:
             LocalizedStringResource(
-                "Pounce is not allowed to read the clipboard, so nothing is recorded.",
+                "Lintel is not allowed to read the clipboard, so nothing is recorded.",
                 comment: "Clipboard banner when pasteboard access is denied in Privacy settings")
         case .accessAsks:
             LocalizedStringResource(
-                "macOS asks before Pounce reads the clipboard, so nothing is recorded. Allow Pounce in Privacy & Security to record.",
+                "macOS asks before Lintel reads the clipboard, so nothing is recorded. Allow Lintel in Privacy & Security to record.",
                 comment: "Clipboard banner when pasteboard access is set to ask each time")
         case .paused:
             LocalizedStringResource("Recording is paused.", comment: "Clipboard banner when recording is paused")
@@ -344,12 +344,12 @@ struct ClipboardOnboardingView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(
-                "Pounce keeps what you copy so you can paste it again with ⌘⇧V. The history stays on this Mac, encrypted, for 30 days or 1000 entries.",
+                "Lintel keeps what you copy so you can paste it again with ⌘⇧V. The history stays on this Mac, encrypted, for 30 days or 1000 entries.",
                 comment: "Clipboard onboarding text"
             )
             .fixedSize(horizontal: false, vertical: true)
             Text(
-                "In Chrome, Slack and Google Docs ⌘⇧V means “paste without formatting”. Pounce takes this shortcut over; you can change it in Settings.",
+                "In Chrome, Slack and Google Docs ⌘⇧V means “paste without formatting”. Lintel takes this shortcut over; you can change it in Settings.",
                 comment: "Clipboard onboarding note about the shortcut conflict"
             )
             .font(.callout)
@@ -368,7 +368,7 @@ struct ClipboardOnboardingView: View {
             Label {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(
-                        "To paste into the app you were using, Pounce needs Accessibility. Without it, Return copies the entry and you paste with ⌘V.",
+                        "To paste into the app you were using, Lintel needs Accessibility. Without it, Return copies the entry and you paste with ⌘V.",
                         comment: "Clipboard onboarding text about Accessibility"
                     )
                     .fixedSize(horizontal: false, vertical: true)

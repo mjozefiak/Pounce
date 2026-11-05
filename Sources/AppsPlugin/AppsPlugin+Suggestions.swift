@@ -1,5 +1,5 @@
 import Foundation
-import PounceKit
+import LintelKit
 
 /// Collecting app activity for suggestions (app suggestions spec, Cykl życia).
 extension AppsPlugin {

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Generate the stable self-signed "Pounce Release" code-signing certificate, import it
+# Generate the stable self-signed "Lintel Release" code-signing certificate, import it
 # into the login keychain, and (optionally) upload it to the repository's GitHub
 # Actions secrets SIGNING_P12 and SIGNING_P12_PASSWORD.
 #
-# WARNING: regenerating the certificate changes Pounce's designated requirement.
+# WARNING: regenerating the certificate changes Lintel's designated requirement.
 # Every user loses Accessibility / Full Disk Access grants and Keychain access on the
 # next update (see BACKWARD_COMPATIBILITY.md section 4). Only run this to create the
 # identity for the first time, or as a deliberate, documented break.
@@ -13,7 +13,7 @@
 # deleted on exit; nothing is printed or committed.
 set -euo pipefail
 
-IDENTITY="Pounce Release"
+IDENTITY="Lintel Release"
 UPLOAD=0
 REPO=""
 while [[ $# -gt 0 ]]; do
@@ -61,16 +61,16 @@ CNF
 # Legacy PBE/MAC so that macOS `security import` accepts the bundle on every runner.
 "$OPENSSL" pkcs12 -export -legacy -name "$IDENTITY" \
   -inkey "$WORK/key.pem" -in "$WORK/cert.pem" \
-  -out "$WORK/pounce.p12" -passout "file:$WORK/pass.txt"
+  -out "$WORK/lintel.p12" -passout "file:$WORK/pass.txt"
 
-security import "$WORK/pounce.p12" -k "$HOME/Library/Keychains/login.keychain-db" \
+security import "$WORK/lintel.p12" -k "$HOME/Library/Keychains/login.keychain-db" \
   -f pkcs12 -P "$(cat "$WORK/pass.txt")" -T /usr/bin/codesign >/dev/null
 echo "Imported \"$IDENTITY\" into the login keychain."
 
 if [[ "$UPLOAD" == 1 ]]; then
   REPO_ARGS=()
   [[ -n "$REPO" ]] && REPO_ARGS=(--repo "$REPO")
-  base64 < "$WORK/pounce.p12" | tr -d '\n' | gh secret set SIGNING_P12 "${REPO_ARGS[@]}"
+  base64 < "$WORK/lintel.p12" | tr -d '\n' | gh secret set SIGNING_P12 "${REPO_ARGS[@]}"
   gh secret set SIGNING_P12_PASSWORD "${REPO_ARGS[@]}" < "$WORK/pass.txt"
   echo "Uploaded secrets SIGNING_P12 and SIGNING_P12_PASSWORD."
 fi

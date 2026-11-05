@@ -54,7 +54,7 @@ final class IndexController: Sendable {
     private let onChange: @Sendable () -> Void
     private let logger: Logger
     private let progress = Mutex(Progress())
-    private let signposter = OSSignposter(subsystem: "app.pounce", category: "files")
+    private let signposter = OSSignposter(subsystem: "com.lintelapp", category: "files")
     /// Canonical root paths as FSEvents reports them, mapped to the roots (`RescanPlanner.aliases`).
     private let rootAliases: [String: String]
 

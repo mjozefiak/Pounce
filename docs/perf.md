@@ -30,18 +30,18 @@ build is a release build with QA compiled in. It is never shipped:
 ```bash
 # The fixture tree of fake names (5 000 folders × 100 files, 510 020 entries), generated once by the
 # file benchmarks; any FileBenchmarks test creates it before it runs.
-POUNCE_BENCHMARKS=1 POUNCE_BENCH_TREE=/tmp/pounce-p4-bench/tree POUNCE_BENCH_FOLDERS=5000 \
+LINTEL_BENCHMARKS=1 LINTEL_BENCH_TREE=/tmp/lintel-p4-bench/tree LINTEL_BENCH_FOLDERS=5000 \
   swift test -c release -Xswiftc -enable-testing --filter FileBenchmarks/scanFixtureTree
-swift build -c release -Xswiftc -DDEBUG --scratch-path /tmp/pounce-perf-build
-BIN=/tmp/pounce-perf-build/out/Products/Release/Pounce
-FIX=/tmp/pounce-p4-bench/tree
+swift build -c release -Xswiftc -DDEBUG --scratch-path /tmp/lintel-perf-build
+BIN=/tmp/lintel-perf-build/out/Products/Release/Lintel
+FIX=/tmp/lintel-p4-bench/tree
 APP_FIXTURES=$(mktemp -d)   # an empty apps root; the app rows below use their own benchmark
-COMMON=(--qa --qa-data-root /tmp/pounce-perf/data --qa-setting "plugins.files.qaHome=$FIX"
+COMMON=(--qa --qa-data-root /tmp/lintel-perf/data --qa-setting "plugins.files.qaHome=$FIX"
   --qa-setting "plugins.files.roots=$FIX" --qa-setting plugins.files.setupCompleted=true
   --qa-full-disk-access granted --qa-setting "plugins.apps.roots=$APP_FIXTURES"
   --qa-setting plugins.apps.spotlight=false --qa-spotlight off --qa-accessibility denied
   --qa-setting app.onboarding.shortcutCompleted=true)
-/usr/bin/log stream --predicate 'subsystem == "app.pounce"' --info --style compact &
+/usr/bin/log stream --predicate 'subsystem == "com.lintelapp"' --info --style compact &
 ```
 
 - **Panel open:** `$BIN "${COMMON[@]}" --qa-panel search --qa-query rep --qa-quit-after 3`, five times.
@@ -59,13 +59,13 @@ COMMON=(--qa --qa-data-root /tmp/pounce-perf/data --qa-setting "plugins.files.qa
   `AppSearchSource.search` with `limit: 50`:
 
   ```bash
-  POUNCE_BENCHMARKS=1 swift test -c release -Xswiftc -enable-testing --filter AppBenchmarks
+  LINTEL_BENCHMARKS=1 swift test -c release -Xswiftc -enable-testing --filter AppBenchmarks
   ```
 
 ### Memory right after the first scan
 
 Without help, the session that runs the first scan of 510 k entries stays at 199–222 MB, above the
-budget, until Pounce restarts. `heap` shows only 54 MB of live allocations (48 MB of them the index
+budget, until Lintel restarts. `heap` shows only 54 MB of live allocations (48 MB of them the index
 arrays). `vmmap -summary` shows the rest as freed memory the allocator keeps: "Malloc Large (empty)"
 about 104 MB and "Malloc Small (empty)" about 41 MB, dirty. Most of it is libmalloc's cache of freed large
 allocations. The scan frees many of them: folder listings, the array copies made while a batch is applied
@@ -75,7 +75,7 @@ releases nothing on macOS 27.
 **Mitigation (v1.0):** `Resources/Info.plist` sets `LSEnvironment` → `MallocLargeCache=0`. This turns that
 cache off, so freed large blocks go back to the system right away. Launch Services applies
 `LSEnvironment` to every launch it makes (Finder, Dock, Spotlight, `open`, the login item); a binary
-started directly from a shell (`swift run`, `.build/…/Pounce`) does not get it. The apps Pounce opens do
+started directly from a shell (`swift run`, `.build/…/Lintel`) does not get it. The apps Lintel opens do
 not inherit it: they are launched through Launch Services with their own environment. Measured with the
 procedure above, `MallocLargeCache=0` set the way Launch Services sets it:
 
@@ -97,14 +97,14 @@ measure with it, prefix the command with `MallocLargeCache=0`.
 `Tests/FilesPluginTests/Benchmarks.swift`, off by default:
 
 ```bash
-POUNCE_BENCHMARKS=1 swift test -c release -Xswiftc -enable-testing --filter FileBenchmarks
+LINTEL_BENCHMARKS=1 swift test -c release -Xswiftc -enable-testing --filter FileBenchmarks
 ```
 
 - **Search:** `syntheticStore(count: 1_000_000)` (the generator from the tests: ten words, six
   extensions, nested folders, one folder per 20 entries), then 20 queries × 5 rounds through
   `FileSearch.search` with `limit: 50`, the same call the search source makes. Queries cover exact
   words, acronyms (`pln`, `bgt`), multi-word queries, a single letter and a query with no match.
-- **Scan:** a fixture tree of fake names generated under `/tmp/pounce-p3-bench/tree` (2,000 folders ×
+- **Scan:** a fixture tree of fake names generated under `/tmp/lintel-p3-bench/tree` (2,000 folders ×
   100 empty files in 20 areas, 204,020 entries), indexed by `IndexController` with the default
   exclusions, from an empty storage folder to the first complete snapshot.
 - **Memory:** `NameStore.approximateBytes` (the capacity of every array in the store) and the change in
@@ -153,8 +153,8 @@ Agents never scan a real home folder (`docs/qa.md`). The owner measures it once 
 
 1. Build and run a release app (`scripts/make-app.sh`), allow Full Disk Access if wanted, finish the
    File Search step and wait until Settings → Files shows "N items indexed".
-2. Wait a minute, then read Memory for Pounce in Activity Monitor (or
-   `footprint -p $(pgrep -x Pounce)`).
+2. Wait a minute, then read Memory for Lintel in Activity Monitor (or
+   `footprint -p $(pgrep -x Lintel)`).
 3. Record here only the entry count, the memory and the machine. Never record paths or names.
 
 Also still to do by the owner for v1.0, because an agent cannot do them:
@@ -164,7 +164,7 @@ Also still to do by the owner for v1.0, because an agent cannot do them:
 - The whole budget table on an M1 Mac, the slowest supported machine.
 - Opening the panel with the real global shortcut while another app is active (the QA run above opens
   it at launch and never registers a hotkey). Run
-  `/usr/bin/log stream --predicate 'subsystem == "app.pounce"' --info` and press the shortcut ten
+  `/usr/bin/log stream --predicate 'subsystem == "com.lintelapp"' --info` and press the shortcut ten
   times; read "Panel ordered front in … ms".
 
 ## Dictation (spec: Dyktowanie głosowe, Phase 1)
@@ -189,12 +189,12 @@ and filled in then; nothing here is estimated.
 | Same with a 4B model on a base M-series | < 8 s | – | Manual (QA with Ollama) |
 | Built-in model (Qwen3-4B Q4_K_M) loaded while recording, ready before the user stops | < 3 s load on M-series (ADR 0005) | – | Manual (QA, step 4.4) |
 | Resident memory with the built-in 4B model loaded / after keep-warm unload | ≈ 3.3 GB / back to the baseline | – | Manual (Activity Monitor) |
-| Time of one chunk request | printed by `POUNCE_LLM_URL=… swift test --filter CleanupFixtureTests/realServer` | – | Manual |
+| Time of one chunk request | printed by `LINTEL_LLM_URL=… swift test --filter CleanupFixtureTests/realServer` | – | Manual |
 
 Run the local integration tests with the model installed (they are off by default):
 
 ```sh
-POUNCE_DICTATION_MODEL_FOLDER=~/Library/Application\ Support/Pounce/Models/speech/parakeet-ultra \
+LINTEL_DICTATION_MODEL_FOLDER=~/Library/Application\ Support/Lintel/Models/speech/parakeet-ultra \
   swift test --filter RealModelTests
 ```
 
@@ -204,7 +204,7 @@ A query that starts with `/` or `~` reads one folder from disk instead of the in
 (`PathSearchSource`, `DirectoryLister`). `PathModeBenchmarks.thousandEntryFolder` lists a generated
 folder of 1 000 entries 50 times with a new lister (nothing cached) and then types five filters ten
 times each against a cached listing; run it with
-`POUNCE_BENCHMARKS=1 swift test -c release --filter PathModeBenchmarks`.
+`LINTEL_BENCHMARKS=1 swift test -c release --filter PathModeBenchmarks`.
 
 - Typing is slower than the cold read because every keystroke runs `FuzzyMatcher` on each name; the
   folder itself is read only when its modification time changes.
@@ -221,7 +221,7 @@ times each against a cached listing; run it with
 
 | Budget | Target | Measured | Status |
 |---|---|---|---|
-| Peak memory of offline diarization, one track | not set | **not measured** for 1 h, 90 min or 3 h (needs the model files and a real recording; `DiarizationBenchmarks`, `POUNCE_DIARIZATION_MODEL_FOLDER` + `POUNCE_DIARIZATION_BENCH_AUDIO`) | Open |
+| Peak memory of offline diarization, one track | not set | **not measured** for 1 h, 90 min or 3 h (needs the model files and a real recording; `DiarizationBenchmarks`, `LINTEL_DIARIZATION_MODEL_FOLDER` + `LINTEL_DIARIZATION_BENCH_AUDIO`) | Open |
 
 Until it is measured, `DiarizationBudget.unmeasuredMaximumDuration` caps a track at 90 minutes (the clustering
 memory grows roughly with the square of the duration, not linearly). **3 h diarization is NOT yet measured**:
@@ -236,13 +236,13 @@ permission granted and real meetings, none of which `swift test` or a `--qa…` 
 
 | Budget | Target | Measured | How to measure |
 |---|---|---|---|
-| Shortcut to the visible HUD and both tracks started | < 300 ms | not yet measured | Build with `scripts/make-app.sh`, grant microphone and system audio, run `log stream --predicate 'subsystem == "app.pounce"'` and note the time between the `meetings.record` command and the first buffer of each track (signposts of `MeetingController`); 10 runs, report p50 and max. |
-| Transcription while recording (both tracks, resident speech model) | keeps up with real time, < 15% of one core on average | not yet measured | Record 30 minutes of two-sided speech; in Activity Monitor sample the Pounce CPU every 5 s (or `sample Pounce 60`), and compare the transcribed length with the elapsed time at Stop. |
+| Shortcut to the visible HUD and both tracks started | < 300 ms | not yet measured | Build with `scripts/make-app.sh`, grant microphone and system audio, run `log stream --predicate 'subsystem == "com.lintelapp"'` and note the time between the `meetings.record` command and the first buffer of each track (signposts of `MeetingController`); 10 runs, report p50 and max. |
+| Transcription while recording (both tracks, resident speech model) | keeps up with real time, < 15% of one core on average | not yet measured | Record 30 minutes of two-sided speech; in Activity Monitor sample the Lintel CPU every 5 s (or `sample Lintel 60`), and compare the transcribed length with the elapsed time at Stop. |
 | Transcription tail after Stop | < 3 s | not yet measured | Stop in the middle of a sentence; measure from the command to the HUD leaving `finishing` (`MeetingFinalizer` logs the phase changes without text). |
-| Diarization after Stop (1 h, two tracks, about 122x real time per the vendor) | about 30 to 60 s; 3 h about 3 min | not yet measured | `POUNCE_DIARIZATION_MODEL_FOLDER=… POUNCE_DIARIZATION_BENCH_AUDIO=… swift test --filter DiarizationBenchmarks -c release`, 1 h and 3 h audio, on the target and on a weaker Mac. |
-| Memory during a meeting (speech model and buffers) | < 1.5 GB | not yet measured | Record 1 h; `footprint Pounce` (or Activity Monitor, Memory column) every 5 min; report the peak. Diarization has its own limit (section above). |
-| Memory at rest after models are released | unchanged: < 150 MB | not yet measured | After the meeting is `ready` and the keep-warm time has passed, `footprint Pounce`. |
-| Disk for a 3 h meeting | at most about 700 MB of spool, deleted once processed | not yet measured | Record 3 h; `du -sh ~/Library/Application\ Support/Pounce/Plugins/meetings/Spool` during and after (use `--qa-meeting-spool-dir` in a QA run with the WAV options for a repeatable check). |
+| Diarization after Stop (1 h, two tracks, about 122x real time per the vendor) | about 30 to 60 s; 3 h about 3 min | not yet measured | `LINTEL_DIARIZATION_MODEL_FOLDER=… LINTEL_DIARIZATION_BENCH_AUDIO=… swift test --filter DiarizationBenchmarks -c release`, 1 h and 3 h audio, on the target and on a weaker Mac. |
+| Memory during a meeting (speech model and buffers) | < 1.5 GB | not yet measured | Record 1 h; `footprint Lintel` (or Activity Monitor, Memory column) every 5 min; report the peak. Diarization has its own limit (section above). |
+| Memory at rest after models are released | unchanged: < 150 MB | not yet measured | After the meeting is `ready` and the keep-warm time has passed, `footprint Lintel`. |
+| Disk for a 3 h meeting | at most about 700 MB of spool, deleted once processed | not yet measured | Record 3 h; `du -sh ~/Library/Application\ Support/Lintel/Plugins/meetings/Spool` during and after (use `--qa-meeting-spool-dir` in a QA run with the WAV options for a repeatable check). |
 | Library list: query and preview | no budget in the spec; the panel budget applies (a keystroke answers in a frame) | not yet measured | `--qa` run with a library of 1 000 meetings of 1 000 segments each; time `libraryEntries` for an empty and a two-word query (XCTest `measure` or `ContinuousClock` around the call). |
 
 ## Meeting notes (spec: Notatki ze spotkań, step 2.5)
@@ -265,7 +265,7 @@ Configuration the measurements are made with (the values of the code; change a v
 
 | Budget | Target | Measured | How to measure |
 |---|---|---|---|
-| Notes for a 1 h meeting (about 8 MAP chunks and a REDUCE; built-in Qwen3 30B-A3B or 4B) | about 1 to 2 min in the background on an M4 Max; a weaker Mac: to be measured, aim for 8 min or less | not yet measured | Release build. `POUNCE_NOTES_LLM_MODEL=<gguf> POUNCE_NOTES_LONG_REPEAT=20 swift test -c release --filter RealNotesTests` (20 repeats of the bundled long meeting are about 9 000 words, the volume of one hour of speech; or `POUNCE_NOTES_TRANSCRIPT=<file>` with a real transcript in the `[mm:ss] Speaker: text` format). Read the `NOTES-BENCH … seconds=` line: it is the wall time of `NotesPipeline.run` including the model load. Run each model twice (cold file cache, then warm) and on the target and on a weaker Mac; report both numbers and the chunk count. |
+| Notes for a 1 h meeting (about 8 MAP chunks and a REDUCE; built-in Qwen3 30B-A3B or 4B) | about 1 to 2 min in the background on an M4 Max; a weaker Mac: to be measured, aim for 8 min or less | not yet measured | Release build. `LINTEL_NOTES_LLM_MODEL=<gguf> LINTEL_NOTES_LONG_REPEAT=20 swift test -c release --filter RealNotesTests` (20 repeats of the bundled long meeting are about 9 000 words, the volume of one hour of speech; or `LINTEL_NOTES_TRANSCRIPT=<file>` with a real transcript in the `[mm:ss] Speaker: text` format). Read the `NOTES-BENCH … seconds=` line: it is the wall time of `NotesPipeline.run` including the model load. Run each model twice (cold file cache, then warm) and on the target and on a weaker Mac; report both numbers and the chunk count. |
 | Peak memory with the 8192 context | model residency (3.3 GB for the 4B, 18.9 GB for the 30B-A3B, ADR 0005) plus the KV cache and compute buffers of an 8192 context; not set separately | not yet measured | The same run: `footprintBeforeMB` and `footprintAfterMB` of the `NOTES-BENCH` line are `phys_footprint`; also sample `footprint <pid>` every 10 s during the run in a second terminal and report the peak. Compare with a dictation-only run (context 4096) of the same model. |
 | Memory at rest after the notes | unchanged: < 150 MB | not yet measured | After the job, wait the keep-warm time (60 s for notes) and run `footprint <pid>` on the app. |
 | Dictation tail while notes are written | the dictation budget plus one reload of the model at the dictation context (4096): the notes use another context length (8192), so the lease takes the model from the notes (the generation is cancelled between two tokens), unloads the 8192 copy and loads it again at 4096; aim for < 3 s warm file cache, measure the reload | not yet measured | In the app, with notes running on a long meeting, dictate a sentence with the built-in formatting; time from release of the key to the paste. Afterwards the notes reload at 8192 and repeat the interrupted request (one extra load of the model and one repeated MAP/REDUCE request per interruption). The notes do not take the model back at once: for 15 s after dictation's lease was released they wait ("Czeka na model"), so a second dictation in a row finds its model loaded; the waits of one notes job add up to a 30-minute budget and one request gives up after 20 takeovers (`modelBusy`). |

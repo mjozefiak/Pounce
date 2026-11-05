@@ -1,5 +1,5 @@
 import Foundation
-import PounceCore
+import LintelCore
 
 /// The structure REDUCE returns: the ids of the points for each section and a paragraph. Nothing in it is
 /// trusted yet; `NotesGuard.verifyReduce` checks the ids and the paragraph.

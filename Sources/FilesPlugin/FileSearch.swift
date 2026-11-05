@@ -1,6 +1,6 @@
 import Foundation
-import PounceCore
-import PounceKit
+import LintelCore
+import LintelKit
 
 /// One file search result before it becomes a `Candidate`.
 struct FileHit: Sendable {

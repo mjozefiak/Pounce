@@ -1,6 +1,6 @@
 import Foundation
-import PounceCore
-import PounceKit
+import LintelCore
+import LintelKit
 import os
 
 /// Searches file and folder names in the index (spec step 3.3). Results carry the item key
@@ -14,7 +14,7 @@ struct FileSearchSource: SearchSource {
     let pasteboard: any PasteboardClient
     let home: String
     let clock: @Sendable () -> Date
-    private let signposter = OSSignposter(subsystem: "app.pounce", category: "files")
+    private let signposter = OSSignposter(subsystem: "com.lintelapp", category: "files")
 
     init(
         index: FileIndex,

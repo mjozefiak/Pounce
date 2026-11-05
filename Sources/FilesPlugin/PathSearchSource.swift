@@ -1,6 +1,6 @@
 import Foundation
-import PounceCore
-import PounceKit
+import LintelCore
+import LintelKit
 import os
 
 /// Path mode (spec: file path search): a query that starts with `/` or `~` lists that folder straight from
@@ -26,7 +26,7 @@ struct PathSearchSource: SearchSource {
     let fullDiskAccess: @Sendable () -> Bool
     let includesHidden: @Sendable () -> Bool
     let clock: @Sendable () -> Date
-    private let signposter = OSSignposter(subsystem: "app.pounce", category: "files")
+    private let signposter = OSSignposter(subsystem: "com.lintelapp", category: "files")
 
     static let folderScore = 0.6
     static let otherScore = 0.5
@@ -106,7 +106,7 @@ struct PathSearchSource: SearchSource {
     static var protectedNote: String {
         String(
             localized: "Contents need Full Disk Access",
-            comment: "Subtitle of a folder result whose contents Pounce may not read without Full Disk Access")
+            comment: "Subtitle of a folder result whose contents Lintel may not read without Full Disk Access")
     }
 
     static var deniedNote: String {
@@ -128,7 +128,7 @@ struct PathSearchSource: SearchSource {
     private func candidate(path: String, kind: EntryKind, match: MatchResult, fullDiskAccess: Bool) -> Candidate {
         let isFolder = kind == .directory || kind == .package
         let name = path == "/" ? "/" : PathText.name(path)
-        let icon: PounceKit.IconRef =
+        let icon: LintelKit.IconRef =
             // A link may point into a protected place, and loading its icon follows it.
             !fullDiskAccess && (kind == .symlink || TCCProtectedLocations.requiresFullDiskAccess(path, home: home))
             ? .symbol(kind == .symlink ? "arrowshape.turn.up.right" : isFolder ? "folder" : "doc")

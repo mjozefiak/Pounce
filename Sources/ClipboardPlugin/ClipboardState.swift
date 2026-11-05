@@ -1,6 +1,6 @@
 import Foundation
+import LintelKit
 import Observation
-import PounceKit
 import Synchronization
 
 /// Whether the history can be read and recorded right now.
@@ -96,7 +96,7 @@ enum ClipPresentation {
         return formatter.localizedString(for: date, relativeTo: now)
     }
 
-    static func icon(_ summary: ClipSummary) -> PounceKit.IconRef {
+    static func icon(_ summary: ClipSummary) -> LintelKit.IconRef {
         if let bundleID = summary.sourceBundleID, !bundleID.isEmpty {
             return .bundleIdentifier(bundleID)
         }

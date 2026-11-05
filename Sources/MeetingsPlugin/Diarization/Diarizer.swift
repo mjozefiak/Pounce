@@ -27,7 +27,7 @@ enum DiarizationError: Error, Equatable {
 ///
 /// **UNMEASURED, tighten after the benchmark.** 90 minutes is a conservative guess, not a measurement: the
 /// peak memory of FluidAudio for 1 h and 3 h is the open item of spike 0.0 (ADR 0007, `docs/perf.md`) and is
-/// what `DiarizationBenchmarks` (`POUNCE_DIARIZATION_BENCH_AUDIO`) measures. Until it has run, a track longer
+/// what `DiarizationBenchmarks` (`LINTEL_DIARIZATION_BENCH_AUDIO`) measures. Until it has run, a track longer
 /// than this falls back to the channel labels instead of risking the process.
 struct DiarizationBudget: Equatable, Sendable {
     /// UNMEASURED, tighten (or raise) after the benchmark. See the type's comment.

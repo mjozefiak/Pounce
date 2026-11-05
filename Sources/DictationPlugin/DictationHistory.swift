@@ -1,7 +1,7 @@
 import Foundation
+import LintelKit
+import LintelPersistence
 import Observation
-import PounceKit
-import PouncePersistence
 import Synchronization
 import os
 
@@ -30,7 +30,9 @@ final class DictationHistory {
         case failed
     }
 
-    static let service = "app.pounce.dictation"
+    static let service = "com.lintelapp.dictation"
+    /// The service name before the app was renamed; the key is copied from it once.
+    static let legacyService = "app.pounce.dictation"  // LEGACY-POUNCE
     static let retentionInterval: Duration = .seconds(60 * 60)
     static let vacuumInterval: TimeInterval = 24 * 60 * 60
 
@@ -71,10 +73,14 @@ final class DictationHistory {
         self.changed = changed
     }
 
+    private var keyStore: MasterKeyStore {
+        MasterKeyStore(service: Self.service, legacyService: Self.legacyService, keychain: keychain)
+    }
+
     private var opener: EncryptedDatabaseOpener {
         EncryptedDatabaseOpener(
             directory: directory, databaseFileName: DictationStore.fileName,
-            keyStore: MasterKeyStore(service: Self.service, keychain: keychain))
+            keyStore: keyStore)
     }
 
     var isRecording: Bool { status == .ready && settings.historyEnabled }
@@ -164,7 +170,7 @@ final class DictationHistory {
     /// "Erase Data": closes the history and removes the Keychain item. The host deletes the folder.
     func erase() throws {
         close()
-        try MasterKeyStore(service: Self.service, keychain: keychain).delete()
+        try keyStore.delete()
     }
 
     // MARK: Retention

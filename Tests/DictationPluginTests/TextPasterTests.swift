@@ -1,11 +1,11 @@
 import Foundation
-import PounceKit
+import LintelKit
 import Synchronization
 import Testing
 import os
 
 @testable import DictationPlugin
-@testable import PounceSpeech
+@testable import LintelSpeech
 
 /// A clock whose sleeps return at once and may run a closure, so a test can act "during" a wait.
 final class HookClock: Clock, @unchecked Sendable {
@@ -74,7 +74,7 @@ final class HookClock: Clock, @unchecked Sendable {
         var modifiersHeldFor = 0
 
         func paster(
-            _ pasteboard: (any PasteboardClient)? = nil, ownBundleID: String? = "app.pounce.Pounce"
+            _ pasteboard: (any PasteboardClient)? = nil, ownBundleID: String? = "com.lintelapp.Lintel"
         ) -> TextPaster {
             TextPaster(
                 pasteboard: pasteboard ?? self.pasteboard, events: events, workspace: workspace,
@@ -85,7 +85,7 @@ final class HookClock: Clock, @unchecked Sendable {
                     defer { modifiersHeldFor = max(0, modifiersHeldFor - 1) }
                     return modifiersHeldFor > 0
                 },
-                logger: Logger(subsystem: "app.pounce.tests", category: "dictation"))
+                logger: Logger(subsystem: "com.lintelapp.tests", category: "dictation"))
         }
     }
 
@@ -151,11 +151,11 @@ final class HookClock: Clock, @unchecked Sendable {
         #expect(await rig.paster().paste("text") == .copied(.targetGone))
     }
 
-    @Test func whenPounceItselfIsInFrontThereIsNoCommandV() async {
+    @Test func whenLintelItselfIsInFrontThereIsNoCommandV() async {
         let rig = Rig()
         defer { rig.pasteboard.release() }
         rig.workspace.frontmost = RunningApplication(
-            processIdentifier: 99, bundleIdentifier: "app.pounce.Pounce", name: "Pounce")
+            processIdentifier: 99, bundleIdentifier: "com.lintelapp.Lintel", name: "Lintel")
         #expect(await rig.paster().paste("text") == .copied(.ownApp))
         #expect(rig.events.posts == 0)
     }

@@ -1,6 +1,6 @@
 import Foundation
-import PounceKit
-import PounceSpeech
+import LintelKit
+import LintelSpeech
 import Testing
 
 @testable import MeetingsPlugin
@@ -144,7 +144,7 @@ import Testing
         let request = try #require(rig.requests.first)
         #expect(request.modelID == "parakeet-ultra")
         #expect(request.recordsMicrophone && request.recordsSystemAudio)
-        #expect(request.modelFolder.lastPathComponent == "pounce-test-model")
+        #expect(request.modelFolder.lastPathComponent == "lintel-test-model")
         #expect(rig.session?.startCount == 1)
         #expect(rig.activity.isActive)
         #expect(rig.library.liveMeetingIDs == [7])

@@ -1,5 +1,5 @@
 import Foundation
-import PounceKit
+import LintelKit
 import SwiftUI
 import os
 
@@ -19,7 +19,7 @@ import os
 ///   panel (`AppSuggestionSource`).
 /// - `suggestions.hidden` (`[String]`): bundle identifiers hidden from suggestions.
 @MainActor
-public final class AppsPlugin: PouncePlugin {
+public final class AppsPlugin: LintelPlugin {
     public nonisolated static let manifest = PluginManifest(
         id: "apps",
         displayName: LocalizedStringResource("Applications", comment: "Results section and plugin name for apps"),
@@ -77,7 +77,7 @@ public final class AppsPlugin: PouncePlugin {
         ]
     }
 
-    /// Pounce's own bundle identifier, never tracked or suggested.
+    /// Lintel's own bundle identifier, never tracked or suggested.
     var ownBundleIdentifier: String? { Bundle.main.bundleIdentifier }
 
     /// Tests turn this off to read the cached list without a scan replacing it.

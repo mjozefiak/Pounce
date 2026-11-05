@@ -1,4 +1,4 @@
-import PounceKit
+import LintelKit
 import SwiftUI
 
 /// Settings → Dictation.
@@ -74,7 +74,7 @@ struct DictationSettingsPane: View {
                 Text("Privacy", comment: "Dictation settings section title")
             } footer: {
                 Text(
-                    "The text is pasted through the clipboard. Pounce puts back what was there a second later, unless it was a password or you copied something else meanwhile.",
+                    "The text is pasted through the clipboard. Lintel puts back what was there a second later, unless it was a password or you copied something else meanwhile.",
                     comment: "Dictation settings footer under the clipboard restore toggle"
                 )
                 .font(.callout).foregroundStyle(.secondary)
@@ -267,7 +267,7 @@ struct DictationSetupView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text(
-                "Dictate in any app: press the shortcut, talk, and Pounce types the text where you are. The speech model runs on this Mac.",
+                "Dictate in any app: press the shortcut, talk, and Lintel types the text where you are. The speech model runs on this Mac.",
                 comment: "Dictation onboarding text"
             )
             .fixedSize(horizontal: false, vertical: true)
@@ -275,7 +275,7 @@ struct DictationSetupView: View {
             step(
                 symbol: "mic", done: model.microphone == .granted,
                 text: Text(
-                    "Allow the microphone. Pounce listens only while you dictate.", comment: "Dictation onboarding step"
+                    "Allow the microphone. Lintel listens only while you dictate.", comment: "Dictation onboarding step"
                 )
             ) {
                 if model.microphone == .denied {
@@ -305,7 +305,7 @@ struct DictationSetupView: View {
             step(
                 symbol: "keyboard", done: accessibility,
                 text: Text(
-                    "Allow Accessibility so Pounce can paste for you. Without it, the text is only copied.",
+                    "Allow Accessibility so Lintel can paste for you. Without it, the text is only copied.",
                     comment: "Dictation onboarding step")
             ) {
                 Button {
@@ -355,7 +355,7 @@ struct FormattingSection: View {
             if model.isCleanupOn {
                 if model.offersBuiltIn {
                     Picker(selection: $model.source) {
-                        Text("Built-in (Pounce)", comment: "Dictation settings choice of the built-in formatting model")
+                        Text("Built-in (Lintel)", comment: "Dictation settings choice of the built-in formatting model")
                             .tag(DictationSettings.LLMSource.builtIn)
                         Text("My server", comment: "Dictation settings choice of the user's formatting server")
                             .tag(DictationSettings.LLMSource.server)
@@ -377,13 +377,13 @@ struct FormattingSection: View {
         } footer: {
             if model.isBuiltIn {
                 Text(
-                    "The model runs inside Pounce on this Mac. Nothing is sent anywhere. It loads while you talk and is freed after a while. If it is not ready in time, the raw text is pasted.",
+                    "The model runs inside Lintel on this Mac. Nothing is sent anywhere. It loads while you talk and is freed after a while. If it is not ready in time, the raw text is pasted.",
                     comment: "Dictation settings footer under the built-in formatting model"
                 )
                 .font(.callout).foregroundStyle(.secondary)
             } else {
                 Text(
-                    "Pounce sends the text only to a server on this Mac (Ollama, LM Studio, llama-server). The server may keep prompts in its own log. If it does not answer, the raw text is pasted.",
+                    "Lintel sends the text only to a server on this Mac (Ollama, LM Studio, llama-server). The server may keep prompts in its own log. If it does not answer, the raw text is pasted.",
                     comment: "Dictation settings footer under the formatting toggle"
                 )
                 .font(.callout).foregroundStyle(.secondary)

@@ -1,5 +1,5 @@
 import Foundation
-import PounceSpeech
+import LintelSpeech
 import Synchronization
 
 /// Runs one model request and gives up on it after a time limit **of generation**, without waiting for the

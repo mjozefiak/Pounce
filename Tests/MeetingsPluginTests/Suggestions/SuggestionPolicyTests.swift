@@ -5,7 +5,7 @@ import Testing
 
 /// The policy is pure: scripted events and a `Duration` as the clock.
 @Suite struct SuggestionPolicyTests {
-    private let config = SuggestionConfig(enabled: true, ownBundleID: "app.pounce")
+    private let config = SuggestionConfig(enabled: true, ownBundleID: "com.lintelapp")
 
     private func event(_ process: UInt32, _ bundleID: String?, _ running: Bool = true) -> ProcessAudioEvent {
         ProcessAudioEvent(processObjectID: process, bundleID: bundleID, isRunningInput: running)
@@ -112,7 +112,7 @@ import Testing
         #expect(evaluate(&policy, at: 20).isEmpty)
     }
 
-    @Test func nothingIsSuggestedWhilePounceRecordsOrFinishes() {
+    @Test func nothingIsSuggestedWhileLintelRecordsOrFinishes() {
         var policy = SuggestionPolicy()
         policy.handle(event(1, "us.zoom.xos"), now: .zero, config: config)
         #expect(evaluate(&policy, at: 10, busy: true).isEmpty)
@@ -120,15 +120,15 @@ import Testing
         #expect(evaluate(&policy, at: 30).isEmpty)
     }
 
-    @Test func pounceItselfIsIgnored() {
+    @Test func lintelItselfIsIgnored() {
         var policy = SuggestionPolicy()
-        policy.handle(event(1, "app.pounce"), now: .zero, config: config)
-        policy.handle(event(2, "app.pounce.helper"), now: .zero, config: config)
+        policy.handle(event(1, "com.lintelapp"), now: .zero, config: config)
+        policy.handle(event(2, "com.lintelapp.helper"), now: .zero, config: config)
         #expect(evaluate(&policy, at: 60).isEmpty)
         // Even when the user listed it.
         var listed = config
-        listed.extraBundleIDs = ["app.pounce"]
-        policy.handle(event(3, "app.pounce"), now: .zero, config: listed)
+        listed.extraBundleIDs = ["com.lintelapp"]
+        policy.handle(event(3, "com.lintelapp"), now: .zero, config: listed)
         #expect(evaluate(&policy, at: 60, config: listed).isEmpty)
     }
 

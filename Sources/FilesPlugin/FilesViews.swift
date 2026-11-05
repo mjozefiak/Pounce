@@ -1,23 +1,23 @@
 import AppKit
-import PounceKit
+import LintelKit
 import SwiftUI
 
 /// The Full Disk Access step, shown before the first scan (spec: Onboarding, Faza 3). Leaving it
-/// (Continue, Done or closing the window) starts indexing with whatever access Pounce has.
+/// (Continue, Done or closing the window) starts indexing with whatever access Lintel has.
 struct FilesOnboardingView: View {
     let model: FilesViewModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(
-                "Pounce finds files and folders by name, using its own index that stays on this Mac. It never reads what is inside your files.",
+                "Lintel finds files and folders by name, using its own index that stays on this Mac. It never reads what is inside your files.",
                 comment: "File search onboarding text"
             )
             .fixedSize(horizontal: false, vertical: true)
             Label {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(
-                        "With Full Disk Access, Pounce also searches Desktop, Documents, Downloads and iCloud Drive. Without it, those folders are skipped so macOS does not ask about each one. You can add them one at a time in Settings.",
+                        "With Full Disk Access, Lintel also searches Desktop, Documents, Downloads and iCloud Drive. Without it, those folders are skipped so macOS does not ask about each one. You can add them one at a time in Settings.",
                         comment: "File search onboarding text about Full Disk Access"
                     )
                     .fixedSize(horizontal: false, vertical: true)
@@ -259,7 +259,7 @@ struct FilesSettingsPane: View {
             }
         } message: {
             Text(
-                "Pounce scans the searched folders again. Results stay available while it runs.",
+                "Lintel scans the searched folders again. Results stay available while it runs.",
                 comment: "Rebuild confirmation message"
             )
         }

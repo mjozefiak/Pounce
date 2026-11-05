@@ -1,8 +1,8 @@
 import Foundation
 import GRDB
-import PounceKit
-import PouncePersistence
-import PounceSpeech
+import LintelKit
+import LintelPersistence
+import LintelSpeech
 import Synchronization
 import Testing
 
@@ -291,7 +291,7 @@ private let texts: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
         let rig = try RecoveryRig(texts: texts)
         let meeting = try rig.seed(.recording, mic: micScript(), system: systemScript())
         rig.closeSeed()
-        try rig.harness.keychain.deleteGenericPassword(service: "app.pounce.meetings", account: "master-key")
+        try rig.harness.keychain.deleteGenericPassword(service: "com.lintelapp.meetings", account: "master-key")
 
         let library = rig.library(resumer: rig.resumerFactory(mic: micScript()))
         library.open()

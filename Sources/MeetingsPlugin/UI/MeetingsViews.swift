@@ -1,5 +1,5 @@
-import PounceKit
-import PounceSpeech
+import LintelKit
+import LintelSpeech
 import SwiftUI
 
 /// Settings → Meetings: the notes (a built-in model card, Phase 2) and the meeting suggestions (Phase 3,
@@ -50,7 +50,7 @@ struct MeetingsSettingsPane: View {
                 Text("Audio", comment: "Meetings settings section title")
             } footer: {
                 Text(
-                    "Pounce records your microphone and what the other side says, only while you record a meeting. Echo reduction can lower the volume of other apps, so it is off by default.",
+                    "Lintel records your microphone and what the other side says, only while you record a meeting. Echo reduction can lower the volume of other apps, so it is off by default.",
                     comment: "Meetings settings footer under the audio section"
                 )
                 .font(.callout).foregroundStyle(.secondary)
@@ -284,7 +284,7 @@ struct SystemAudioTestRows: View {
                 }
             case .awaitingConfirmation:
                 Text(
-                    "Pounce will play a short tone through your speakers and check that it can hear it. macOS may ask you to allow System Audio Recording first. Lower the volume if you like.",
+                    "Lintel will play a short tone through your speakers and check that it can hear it. macOS may ask you to allow System Audio Recording first. Lower the volume if you like.",
                     comment: "Meetings: explanation before the system audio test plays its signal"
                 )
                 .font(.callout).foregroundStyle(.secondary)
@@ -412,7 +412,7 @@ struct MeetingsModelCard: View {
             }
         } message: {
             Text(
-                "This model is shared with other Pounce features. It will be downloaded again the next time one of them needs it.",
+                "This model is shared with other Lintel features. It will be downloaded again the next time one of them needs it.",
                 comment: "Meetings model card: what removing a shared model means")
         }
     }
@@ -516,7 +516,7 @@ struct MeetingsSetupView: View {
             part(
                 symbol: "mic", done: model.setupProgress.isDone(.microphone),
                 text: Text(
-                    "Allow the microphone. Pounce listens only while you record a meeting.",
+                    "Allow the microphone. Lintel listens only while you record a meeting.",
                     comment: "Meetings onboarding step")
             ) {
                 if model.microphone == .denied {
@@ -537,7 +537,7 @@ struct MeetingsSetupView: View {
             part(
                 symbol: "speaker.wave.2", done: model.setupProgress.isDone(.systemAudio),
                 text: Text(
-                    "Check that Pounce can hear the other side of a call. Nothing is asked until you press the button.",
+                    "Check that Lintel can hear the other side of a call. Nothing is asked until you press the button.",
                     comment: "Meetings onboarding step")
             ) {
                 SystemAudioTestRows(test: model.systemAudioTest, openSettings: { model.openSystemAudioSettings() })

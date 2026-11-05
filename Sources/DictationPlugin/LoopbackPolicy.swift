@@ -2,7 +2,7 @@ import Foundation
 
 /// Decides which addresses the formatting client may talk to: this Mac only (spec: `LoopbackPolicy`).
 ///
-/// Pure and without DNS. Accepted: `localhost` (rewritten to `127.0.0.1` by Pounce itself, so neither DNS
+/// Pure and without DNS. Accepted: `localhost` (rewritten to `127.0.0.1` by Lintel itself, so neither DNS
 /// nor `/etc/hosts` is asked), a dotted-decimal `127.x.x.x` and `[::1]`, over plain `http`. Everything else is
 /// refused: other hosts, mapped (`::ffff:`), numeric and octal IP forms, `user@host` tricks and other schemes.
 enum LoopbackPolicy {

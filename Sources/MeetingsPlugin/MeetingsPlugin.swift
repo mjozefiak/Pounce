@@ -1,6 +1,6 @@
 import Foundation
-import PounceKit
-import PounceSpeech
+import LintelKit
+import LintelSpeech
 import SwiftUI
 
 /// Meeting transcription and notes (spec: Transkrypcja spotkań i notatki). Registered in `PluginRegistry`
@@ -8,11 +8,11 @@ import SwiftUI
 /// Step 1.11 adds the command `meetings.library` and its list mode (`MeetingsPlugin+Library.swift`).
 ///
 /// The library is `Plugins/meetings/meetings.sqlite` (SQLCipher, key in the Keychain item
-/// `app.pounce.meetings`). Transcripts and notes are other people's conversations: they never reach a log, the
+/// `com.lintelapp.meetings`). Transcripts and notes are other people's conversations: they never reach a log, the
 /// pasteboard (except an explicit copy) or `ranking.sqlite`. Settings: `plugins.meetings.*`
 /// (see `MeetingsSettings.Key`). Disabled by default.
 @MainActor
-public final class MeetingsPlugin: PouncePlugin {
+public final class MeetingsPlugin: LintelPlugin {
     public nonisolated static let manifest = PluginManifest(
         id: "meetings",
         displayName: LocalizedStringResource("Meetings", comment: "Plugin name of meeting transcription"),

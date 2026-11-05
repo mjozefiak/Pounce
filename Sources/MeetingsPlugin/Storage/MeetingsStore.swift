@@ -1,6 +1,6 @@
 import Foundation
 import GRDB
-import PouncePersistence
+import LintelPersistence
 import Synchronization
 
 enum MeetingsStoreError: Error {

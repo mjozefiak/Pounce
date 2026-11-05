@@ -1,6 +1,6 @@
 import Foundation
+import LintelSpeech
 import Observation
-import PounceSpeech
 
 /// Whether a meeting is being recorded or processed right now. The session owner (step 1.10) calls
 /// `begin()` when a session starts and `end()` when it is over; Settings reads `isActive` to keep the models

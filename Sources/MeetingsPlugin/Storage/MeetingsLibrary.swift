@@ -1,7 +1,7 @@
 import Foundation
+import LintelKit
+import LintelPersistence
 import Observation
-import PounceKit
-import PouncePersistence
 import os
 
 /// Owns the meetings library for the plugin: opens `meetings.sqlite` with the key from the Keychain, runs

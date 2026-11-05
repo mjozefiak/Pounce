@@ -1,7 +1,7 @@
 import Darwin
 import Foundation
 
-/// Places macOS guards with a privacy prompt (TCC) unless Pounce has Full Disk Access.
+/// Places macOS guards with a privacy prompt (TCC) unless Lintel has Full Disk Access.
 ///
 /// Path mode never opens or stats anything inside these places without Full Disk Access, so typing a path
 /// can never show a prompt (spec: file path search, A5):

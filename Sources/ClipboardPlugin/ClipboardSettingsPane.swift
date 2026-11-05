@@ -1,5 +1,5 @@
 import AppKit
-import PounceKit
+import LintelKit
 import SwiftUI
 import UniformTypeIdentifiers
 

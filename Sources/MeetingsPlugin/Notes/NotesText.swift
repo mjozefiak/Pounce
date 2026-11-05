@@ -1,5 +1,5 @@
 import Foundation
-import PounceCore
+import LintelCore
 
 /// A rough language detector for the notes: Polish or English, by diacritics and common words. A copy of the
 /// dictation guard's detector (plugins never import each other). `unknown` is the answer for short or mixed text.

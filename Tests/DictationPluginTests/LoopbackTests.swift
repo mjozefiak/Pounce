@@ -3,7 +3,7 @@ import Synchronization
 import Testing
 
 @testable import DictationPlugin
-@testable import PounceSpeech
+@testable import LintelSpeech
 
 /// A URL protocol that answers by host, port and path, so the transport's session can be exercised without
 /// a network. Registered only on the session under test.

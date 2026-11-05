@@ -1,8 +1,8 @@
 import CryptoKit
 import Foundation
 import GRDB
-import PounceKit
-import PouncePersistence
+import LintelKit
+import LintelPersistence
 import Testing
 
 @testable import ClipboardPlugin
@@ -39,6 +39,33 @@ import Testing
         let keychain = FakeKeychain()
         guard case .missing = KeyStore(keychain: keychain).lookup() else {
             Issue.record("expected .missing")
+            return
+        }
+    }
+
+    @Test func aKeyFromBeforeTheRenameIsFoundAndCopied() throws {
+        let keychain = FakeKeychain()
+        let legacyKey = Data(repeating: 4, count: 32)
+        keychain.state.withLock { $0.items["app.pounce.clipboard/master-key"] = legacyKey }  // LEGACY-POUNCE
+        guard case .found(let keys) = KeyStore(keychain: keychain).lookup() else {
+            Issue.record("expected .found")
+            return
+        }
+        #expect(
+            keys.blob.withUnsafeBytes { Data($0) }
+                == (try testKeys(4)).blob.withUnsafeBytes { Data($0) })
+        keychain.state.withLock { #expect($0.items["com.lintelapp.clipboard/master-key"] == legacyKey) }
+    }
+
+    @Test func anUnreadableKeyFromBeforeTheRenameIsNotMissing() {
+        let keychain = FakeKeychain()
+        keychain.state.withLock {
+            $0.items["app.pounce.clipboard/master-key"] = Data(repeating: 4, count: 32)  // LEGACY-POUNCE
+        }
+        // Reads fail for every service here; what matters is that the outcome is `.failed`, never `.missing`.
+        keychain.state.withLock { $0.readError = .accessDenied }
+        guard case .failed(.denied) = KeyStore(keychain: keychain).lookup() else {
+            Issue.record("expected .failed(.denied)")
             return
         }
     }
@@ -213,7 +240,7 @@ import Testing
     }
 }
 
-/// A clipboard database written by the release before the key logic moved to `PouncePersistence`
+/// A clipboard database written by the release before the key logic moved to `LintelPersistence`
 /// (`Fixtures/previous-release`, master key = 32 bytes of 0x07) still opens, with the same Keychain item.
 @Suite struct PreviousReleaseCompatibilityTests {
     private func copyFixture() throws -> TemporaryDirectory {
@@ -227,7 +254,7 @@ import Testing
     private func keychainWithOldKey() throws -> FakeKeychain {
         let keychain = FakeKeychain()
         try keychain.addGenericPassword(
-            Data(repeating: 7, count: 32), service: "app.pounce.clipboard", account: "master-key")
+            Data(repeating: 7, count: 32), service: "com.lintelapp.clipboard", account: "master-key")
         return keychain
     }
 
@@ -247,7 +274,7 @@ import Testing
     }
 
     @Test func theServiceAndAccountAreUnchanged() {
-        #expect(KeyStore.service == "app.pounce.clipboard")
+        #expect(KeyStore.service == "com.lintelapp.clipboard")
         #expect(KeyStore.account == "master-key")
     }
 }

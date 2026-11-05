@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
+import LintelKit
 import Observation
-import PounceKit
 import UniformTypeIdentifiers
 
 /// Saves an exported file. The system one shows an `NSSavePanel`; tests use a fake.
@@ -325,7 +325,7 @@ final class MeetingWindowModel {
     /// "Kopiuj Markdown": the only place the pasteboard is touched, and only on this explicit action.
     func copyMarkdown() {
         guard canCopy, let text = markdown() else { return }
-        // Marked transient and concealed: Pounce's own clipboard history (and other managers that honour
+        // Marked transient and concealed: Lintel's own clipboard history (and other managers that honour
         // nspasteboard.org) skip it, so a meeting transcript is not stored a second time.
         pasteboard.write([
             PasteboardItem(representations: [

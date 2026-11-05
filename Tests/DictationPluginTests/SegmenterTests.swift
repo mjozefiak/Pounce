@@ -3,7 +3,7 @@ import Synchronization
 import Testing
 
 @testable import DictationPlugin
-@testable import PounceSpeech
+@testable import LintelSpeech
 
 private func words(_ count: Int, sentenceEvery: Int? = nil) -> String {
     (1...count).map { index in

@@ -190,7 +190,7 @@ struct MeetingWindowView: View {
         .disabled(!model.canCopy)
         .accessibilityHint(
             Text(
-                "Copies the meeting as Markdown. Pounce's clipboard history does not keep it.",
+                "Copies the meeting as Markdown. Lintel's clipboard history does not keep it.",
                 comment: "Hint of Copy Markdown"))
         Button {
             Task { await model.saveMarkdown() }

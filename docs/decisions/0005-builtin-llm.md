@@ -14,13 +14,13 @@ timeout, so the first dictation after a pause fell back to raw text).
 
 The speech engines need no inference runtime of their own because they are Core ML models, which
 macOS runs itself. Language models are shipped as GGUF (llama.cpp) or as MLX weights, so a built-in
-formatter needs an engine inside Pounce.
+formatter needs an engine inside Lintel.
 
 ## Options
 
 | | llama.cpp (GGUF) | MLX Swift (`mlx-swift-lm`) | Ollama `/api/pull` |
 |---|---|---|---|
-| Runs in the Pounce process | yes | yes | no, the user's Ollama downloads and runs it |
+| Runs in the Lintel process | yes | yes | no, the user's Ollama downloads and runs it |
 | Integration | official prebuilt `llama` XCFramework as a SwiftPM `binaryTarget` (pinned release and checksum); C API, Swift examples in the repo | SwiftPM package, native Swift; downloads through `swift-huggingface` and `swift-transformers` (two more dependencies) | none (loopback HTTP, streaming progress) |
 | Model ecosystem | widest: Qwen3 Instruct, Bielik and most others as GGUF | smaller; fewer Polish models, conversion may be needed | whatever Ollama offers |
 | Apple silicon | Metal backend | native, Apple-maintained | n/a |
@@ -49,7 +49,7 @@ formatter needs an engine inside Pounce.
 
 ## Measurements (step 4.0, 2026-11-02)
 
-Machine: Apple M4 Max, 128 GB. Engine: a local llama.cpp build (commit `77d6ae4ac`, 2026-02-19, Metal, tensor API off on this chip), all layers on the GPU. Models: Q4_K_M GGUF from Hugging Face. Speeds from `llama-bench` (200-token prefill, 160-token decode, 2 runs); end-to-end from `llama-server` with Pounce's real `CleanupPrompt` (system prompt, four few-shot pairs, one 60-word Polish transcript with a self-correction), `temperature` 0, non-thinking.
+Machine: Apple M4 Max, 128 GB. Engine: a local llama.cpp build (commit `77d6ae4ac`, 2026-02-19, Metal, tensor API off on this chip), all layers on the GPU. Models: Q4_K_M GGUF from Hugging Face. Speeds from `llama-bench` (200-token prefill, 160-token decode, 2 runs); end-to-end from `llama-server` with Lintel's real `CleanupPrompt` (system prompt, four few-shot pairs, one 60-word Polish transcript with a self-correction), `temperature` 0, non-thinking.
 
 | Model (Q4_K_M) | File | Peak RSS | Prefill | Decode | Server ready | First request | Warm request | Words out / in |
 |---|---|---|---|---|---|---|---|---|
@@ -78,7 +78,7 @@ Proposal for the catalog, to confirm in step 4.5 on the regression set:
 
 The nine cleanup fixtures of step 2.5 run through `BuiltInFormatter` and `LlamaRuntime` with Qwen3-4B-Instruct-2507
 Q4_K_M (SHA-256 verified), model already loaded, M-series Mac:
-`POUNCE_LLAMA_MODEL=<gguf> swift test --filter CleanupFixtureTests/builtInModel`.
+`LINTEL_LLAMA_MODEL=<gguf> swift test --filter CleanupFixtureTests/builtInModel`.
 
 | Fixture | Result | Time |
 |---|---|---|

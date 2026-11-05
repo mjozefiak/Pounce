@@ -12,7 +12,7 @@ final class MeetingWindowController: NSObject, NSWindowDelegate, MeetingWindowPr
 
     /// The app's text size, when the host passes it; the view uses text styles, so it scales.
     var dynamicTypeSize: DynamicTypeSize?
-    /// False in QA mode: the window is ordered front without activating Pounce.
+    /// False in QA mode: the window is ordered front without activating Lintel.
     var activatesApp = true
 
     init(makeModel: @escaping @MainActor (Int64) -> MeetingWindowModel) {

@@ -1,6 +1,6 @@
 import Foundation
-import PounceKit
-import PounceSpeech
+import LintelKit
+import LintelSpeech
 import Synchronization
 import Testing
 
@@ -101,7 +101,7 @@ final class DetectorRig {
 
     init(
         settings: [String: SettingValue] = ["plugins.meetings.suggestMeetings": .bool(true)],
-        failure: ProcessAudioError? = nil, ownBundleID: String? = "app.pounce",
+        failure: ProcessAudioError? = nil, ownBundleID: String? = "com.lintelapp",
         observer: ScriptedProcessObserver? = nil
     ) throws {
         harness = try MeetingsHarness(settings: settings)

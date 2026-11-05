@@ -45,7 +45,7 @@ protocol OutputChangeObservation: Sendable {
 /// Everything Core Audio that system capture needs. The real implementation
 /// (`CoreAudioProcessTapBackend`) is compiled but exercised only by hand; tests use a scripted fake.
 protocol ProcessTapBackend: Sendable {
-    /// Creates a tap of all processes (except Pounce's own when `excludingOwnProcess`), an aggregate device
+    /// Creates a tap of all processes (except Lintel's own when `excludingOwnProcess`), an aggregate device
     /// around it and an IO proc that calls `onBuffer` (on a worker queue, never on the audio thread itself).
     func startTap(
         excludingOwnProcess: Bool, onBuffer: @escaping @Sendable (TapBuffer) -> Void

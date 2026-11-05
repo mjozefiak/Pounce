@@ -1,14 +1,14 @@
 import CoreML
 import FluidAudio
 import Foundation
-import PounceSpeech
+import LintelSpeech
 
 /// Offline speaker diarization through FluidAudio (pyannote Community-1 in Core ML).
 ///
 /// **Models load only from the folder `ModelManager` owns.** `OfflineDiarizerModels.load(from:)` and
 /// `OfflineDiarizerManager.prepareModels()` go through FluidAudio's `ModelHub`, which downloads whatever it
 /// finds missing or not matching its own revision marker and, after a failed load, deletes the cache and
-/// downloads again. Pounce's folder has no such marker, so those paths are never used: the four compiled
+/// downloads again. Lintel's folder has no such marker, so those paths are never used: the four compiled
 /// models and `plda-parameters.json` are opened here with `MLModel(contentsOf:)` and handed to the public
 /// `OfflineDiarizerModels` initializer. A missing file is an error (`modelsUnavailable`), never a fetch.
 actor FluidDiarizer: Diarizer {

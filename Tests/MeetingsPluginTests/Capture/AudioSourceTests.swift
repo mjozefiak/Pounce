@@ -1,5 +1,5 @@
 import Foundation
-import PounceKit
+import LintelKit
 import Testing
 
 @testable import MeetingsPlugin
@@ -257,7 +257,7 @@ import Testing
             restartDelay: .zero, sleeper: { _ in }, onEvent: { event in events.append(event) })
     }
 
-    @Test func theTapExcludesPounceAndDeliversConvertedChunks() async throws {
+    @Test func theTapExcludesLintelAndDeliversConvertedChunks() async throws {
         let backend = FakeBackend()
         let clock = FakeClock(1_000_000_000)
         let source = source(backend, clock: clock)
@@ -481,7 +481,7 @@ import Testing
         let player = FakeTonePlayer { backend.deliver(tone()) }
         #expect(await run(backend: backend, player: player) == .works)
         #expect(player.played.withLock { $0 } == [0.3])
-        // Pounce is not excluded, or the tap would never hear its own tone.
+        // Lintel is not excluded, or the tap would never hear its own tone.
         #expect(backend.excludingFlags == [false])
         #expect(backend.stoppedFlags == [true])
     }

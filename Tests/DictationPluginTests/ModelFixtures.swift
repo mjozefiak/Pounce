@@ -4,7 +4,7 @@ import Synchronization
 import Testing
 
 @testable import DictationPlugin
-@testable import PounceSpeech
+@testable import LintelSpeech
 
 /// A `URLProtocol` that answers from a table keyed by URL path, so tests never touch the network.
 final class StubProtocol: URLProtocol, @unchecked Sendable {

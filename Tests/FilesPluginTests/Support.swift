@@ -1,6 +1,6 @@
 import Foundation
-import PounceCore
-import PounceKit
+import LintelCore
+import LintelKit
 import Synchronization
 import Testing
 import os
@@ -15,7 +15,7 @@ final class TemporaryDirectory: Sendable {
 
     init() throws {
         let base = FileManager.default.temporaryDirectory.resolvingSymlinksInPath()
-        url = base.appending(path: "pounce-files-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
+        url = base.appending(path: "lintel-files-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     }
 
@@ -207,7 +207,7 @@ struct PluginHarness {
             storageDirectory: directory.url.appending(path: "Plugins/files", directoryHint: .isDirectory),
             settings: PluginSettings(pluginID: "files", store: settings),
             usage: usage,
-            logger: Logger(subsystem: "app.pounce.tests", category: "files"),
+            logger: Logger(subsystem: "com.lintelapp.tests", category: "files"),
             keychain: NoKeychain(),
             pasteboard: pasteboard,
             events: NoEvents(),

@@ -1,6 +1,6 @@
 import Foundation
-import PounceKit
-import PounceSpeech
+import LintelKit
+import LintelSpeech
 import Testing
 
 @testable import MeetingsPlugin
@@ -48,7 +48,7 @@ import Testing
     @Test func ownProcessAndUnlistedAppsGiveNothing() async throws {
         let rig = try DetectorRig()
         rig.detector.reconcile(enabled: true)
-        await rig.send(1, "app.pounce")
+        await rig.send(1, "com.lintelapp")
         await rig.send(2, "com.google.Chrome")
         #expect(rig.clock.sleepers == 0)
         rig.clock.advance(by: .seconds(120))
@@ -68,7 +68,7 @@ import Testing
         #expect(rig.presenter.prompts.isEmpty)
     }
 
-    @Test func nothingIsSuggestedWhilePounceIsBusy() async throws {
+    @Test func nothingIsSuggestedWhileLintelIsBusy() async throws {
         let rig = try DetectorRig()
         rig.busy = true
         rig.detector.reconcile(enabled: true)

@@ -3,7 +3,7 @@ import Synchronization
 import Testing
 
 @testable import DictationPlugin
-@testable import PounceSpeech
+@testable import LintelSpeech
 
 /// A formatter driven by a closure, for the session and controller tests.
 struct StubFormatter: TextFormatter {
@@ -226,7 +226,7 @@ final class ScriptedTransport: HTTPTransport, @unchecked Sendable {
         let rendered =
             CleanupPrompt.messages(transcript: "TRANSCRIPT", context: "CONTEXT")
             .map { "[\($0.role)]\n\($0.content)" }.joined(separator: "\n\n") + "\n"
-        if ProcessInfo.processInfo.environment["POUNCE_RECORD_SNAPSHOT"] != nil {
+        if ProcessInfo.processInfo.environment["LINTEL_RECORD_SNAPSHOT"] != nil {
             let source = URL(filePath: #filePath).deletingLastPathComponent()
                 .appending(path: "Fixtures/cleanup/prompt-v1.txt")
             try rendered.write(to: source, atomically: true, encoding: .utf8)

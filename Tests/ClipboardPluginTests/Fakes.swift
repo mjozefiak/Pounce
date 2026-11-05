@@ -1,5 +1,5 @@
 import Foundation
-import PounceKit
+import LintelKit
 import Security
 import SwiftUI
 import Synchronization
@@ -58,7 +58,7 @@ final class TemporaryDirectory: Sendable {
 
     init() throws {
         url = FileManager.default.temporaryDirectory
-            .appending(path: "pounce-clipboard-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
+            .appending(path: "lintel-clipboard-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     }
 

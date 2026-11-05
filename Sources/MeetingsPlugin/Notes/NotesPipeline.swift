@@ -1,5 +1,5 @@
 import Foundation
-import PounceSpeech
+import LintelSpeech
 import Synchronization
 
 /// The built-in model the notes run on: the shared `LLMLease` (key: model file, context length 8192), the

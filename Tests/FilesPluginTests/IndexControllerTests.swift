@@ -1,6 +1,6 @@
 import CoreServices
 import Foundation
-import PounceCore
+import LintelCore
 import Testing
 import os
 
@@ -22,7 +22,7 @@ final class ControllerRun: Sendable {
         configuration.workerCount = 2
         let controller = IndexController(
             index: index, configuration: configuration,
-            logger: Logger(subsystem: "app.pounce.tests", category: "files"),
+            logger: Logger(subsystem: "com.lintelapp.tests", category: "files"),
             onStatus: { _ in }, onChange: {})
         self.index = index
         self.controller = controller
@@ -97,7 +97,7 @@ struct IndexControllerTests {
         await first.stop()
         #expect(FileManager.default.fileExists(atPath: IndexSnapshot.url(in: storage).path))
 
-        // Changed while Pounce was not running.
+        // Changed while Lintel was not running.
         try directory.make(["root/folder/while-away.txt"])
         try FileManager.default.removeItem(atPath: directory.sub("root/alpha.txt"))
         try await Task.sleep(for: .milliseconds(1500))
