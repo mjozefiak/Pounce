@@ -3439,6 +3439,60 @@
         }
       }
     },
+    "Voice" : {
+      "comment" : "Settings group",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voice"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Głos"
+          }
+        }
+      }
+    },
+    "Needs attention" : {
+      "comment" : "Settings sidebar item state, spoken",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs attention"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wymaga uwagi"
+          }
+        }
+      }
+    },
+    "Back to Workspace" : {
+      "comment" : "Settings sidebar: returns to the workspace",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back to Workspace"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wróć do przestrzeni roboczej"
+          }
+        }
+      }
+    },
     "Off" : {
       "comment" : "Feature state",
       "extractionState" : "manual",

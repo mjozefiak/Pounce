@@ -359,11 +359,15 @@ final class AppCoordinator {
     /// Settings mode: the old window's panes through the temporary adapter (spec step 1.3).
     private func settingsModeContent(_ state: MainWindowState) -> AnyView {
         guard let shellPane else { return AnyView(EmptyView()) }
-        let entries = SettingsPaneAdapter.entries(shellPane: shellPane, plugins: mainWindowPluginPanes())
+        let panes = mainWindowPluginPanes()
+        let entries = SettingsPaneAdapter.entries(shellPane: shellPane, plugins: panes)
+        let hasSection = state.section != nil
         return AnyView(
-            SettingsModeAdapterView(entries: entries, selection: state.settingsPane) { [weak self] id in
-                self?.mainWindow?.selectSettingsPane(id)
-            })
+            SettingsModeAdapterView(
+                entries: entries, sections: SettingsPaneAdapter.sidebarSections(plugins: panes),
+                selection: state.settingsPane,
+                onSelect: { [weak self] id in self?.mainWindow?.selectSettingsPane(id) },
+                onBack: hasSection ? { [weak self] in self?.mainWindow?.showWorkspace() } : nil))
     }
 
     private func makeMainWindow() -> MainWindowController {
@@ -372,7 +376,8 @@ final class AppCoordinator {
             settings: environment.settings,
             sections: { Self.activeWorkspaceSections(host) },
             settingsPanes: { [weak self] in
-                SettingsWindowController.Pane.allCases.map(\.rawValue) + (self?.mainWindowPluginPanes().map(\.id) ?? [])
+                SettingsWindowController.Pane.allCases.map(\.rawValue) + [MainWindowRouter.modelsPaneID]
+                    + (self?.mainWindowPluginPanes().map(\.id) ?? [])
             },
             // QA mode never writes the frame into the tester's defaults.
             frameAutosaveName: environment.registersGlobalHotkeys ? MainWindowController.autosaveName : nil,

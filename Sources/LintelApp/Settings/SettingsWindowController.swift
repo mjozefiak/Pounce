@@ -1,4 +1,5 @@
 import AppKit
+import LintelKit
 import LintelUI
 import SwiftUI
 
@@ -27,6 +28,11 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         let view: AnyView
         /// False for the pane of a disabled or failed plugin, which only the main window shows (dimmed).
         var isActive = true
+        /// The sidebar group, from `manifest.settingsGroup`, and the order inside it, from `manifest.order`.
+        var group: SettingsGroup = .lintel
+        var order = 0
+        /// The sidebar's attention dot: the plugin's `settingsStatus` asks for attention or reports an error.
+        var needsAttention = false
     }
 
     private var window: NSWindow?

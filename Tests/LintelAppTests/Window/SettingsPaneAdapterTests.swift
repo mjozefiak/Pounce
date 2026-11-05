@@ -17,28 +17,21 @@ import Testing
         SettingsPaneAdapter.entries(shellPane: { _ in AnyView(EmptyView()) }, plugins: plugins())
     }
 
-    @Test func theEntriesFollowTheOrderOfTheOldWindow() {
-        #expect(
-            entries().map(\.id) == ["general", "features", "apps", "clipboard", "permissions", "advanced"])
+    @Test func everyPaneOfTheSidebarHasAnEntry() {
+        let sections = SettingsPaneAdapter.sidebarSections(plugins: plugins())
+        let ids = Set(entries().map(\.id))
+        for id in SettingsSidebarModel.focusOrder(sections) { #expect(ids.contains(id)) }
     }
 
     @Test func everyShellPaneAndEveryPluginPaneIsReachable() {
         let ids = Set(entries().map(\.id))
         for pane in SettingsWindowController.Pane.allCases { #expect(ids.contains(pane.rawValue)) }
-        #expect(ids.isSuperset(of: ["apps", "clipboard"]))
+        #expect(ids.isSuperset(of: ["apps", "clipboard", "models"]))
     }
 
     @Test func anInactivePluginPaneIsMarkedAndStillReachable() {
         let entry = entries().first { $0.id == "clipboard" }
         #expect(entry?.isActive == false)
-    }
-
-    @Test func anInactiveRowSaysItIsOff() throws {
-        let off = try #require(entries().first { $0.id == "clipboard" })
-        let on = try #require(entries().first { $0.id == "apps" })
-        let offWord = String(localized: "Off", comment: "Feature state")
-        #expect(SettingsPaneAdapter.accessibilityLabel(for: off) == "Clipboard, \(offWord)")
-        #expect(SettingsPaneAdapter.accessibilityLabel(for: on) == "Apps")
     }
 
     @Test func aShellPaneIsBuiltOnlyWhenShown() {
@@ -67,7 +60,7 @@ import Testing
             #expect(store.value(forKey: SettingsKeys.mainWindowSettingsPane) == .string(id))
         }
         controller.selectSettingsPane("bogus")
-        #expect(controller.state?.settingsPane == "advanced")
+        #expect(controller.state?.settingsPane == ids.last)
         controller.close()
     }
 

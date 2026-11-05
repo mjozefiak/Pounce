@@ -16,8 +16,16 @@ extension PluginHost {
                 title: String(localized: entry.manifest.displayName),
                 symbolName: entry.manifest.symbolName,
                 view: view,
-                isActive: isActive
+                isActive: isActive,
+                group: entry.manifest.settingsGroup,
+                order: entry.manifest.order,
+                needsAttention: isActive && Self.needsAttention(entry.plugin.settingsStatus)
             )
         }
+    }
+
+    private static func needsAttention(_ status: SettingsStatus?) -> Bool {
+        guard let level = status?.level else { return false }
+        return level == .attention || level == .error
     }
 }

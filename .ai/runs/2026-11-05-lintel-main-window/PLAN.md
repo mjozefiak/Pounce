@@ -21,7 +21,7 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 | 1 | 1.2-review-fix | Review fix: call willHide on every mode switch, close and quit path (M1) | dispatch:standard | done | 9ba1a32 |
 | 1 | 1.1-review-fix | Review fix: inactive-pane test runs pane lifecycle in a real window; no work while inactive (M2) | dispatch:standard | done | a2a9f6f |
 | 1 | 1.6-review-fix | Review fix: meeting window text size, AGENTS.md Window/ row, adapter sidebar and close-task nits (L2, L3, L4, L6) | dispatch:standard | done | 23e08e0 |
-| 2 | 2.1 | SettingsSidebar and SettingsSidebarModel | dispatch:standard | todo | — |
+| 2 | 2.1 | SettingsSidebar and SettingsSidebarModel | dispatch:standard | done | a901956 |
 | 2 | 2.2 | StatusBanner and StatusDerivation | dispatch:capable | todo | — |
 | 2 | 2.3 | SettingsPane template, ConfirmSheet, footer helper, scanning tests | dispatch:standard | todo | — |
 | 2 | 2.4 | SettingsKeys ownership and per-plugin key coverage tests | dispatch:standard | todo | — |
