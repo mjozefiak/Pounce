@@ -36,7 +36,12 @@ enum SettingsSidebarModel {
         /// What VoiceOver speaks: the title, "Off" for a dimmed row, "Needs attention" for the dot.
         var accessibilityLabel: String {
             var parts = [title]
-            if !isActive { parts.append(String(localized: "Off", comment: "Feature state")) }
+            if !isActive {
+                parts.append(
+                    String(
+                        localized: "settings.sidebar.off.spoken", defaultValue: "Off", comment: "Feature state, spoken")
+                )
+            }
             if needsAttention {
                 parts.append(String(localized: "Needs attention", comment: "Settings sidebar item state, spoken"))
             }
@@ -93,7 +98,9 @@ enum SettingsSidebarModel {
             let items = ordered(group)
             if !items.isEmpty { result.append(Section(id: group.rawValue, title: title, items: items)) }
         }
-        add(.search, title: String(localized: "Search", comment: "Settings group"))
+        add(
+            .search,
+            title: String(localized: "settings.sidebar.search", defaultValue: "Search", comment: "Settings group"))
         add(.voice, title: String(localized: "Voice", comment: "Settings group"))
         // An open set: a group the shell does not know comes after Voice, by its raw value, titled by it.
         let others = Set(plugins.map(\.group)).subtracting(known).sorted { $0.rawValue < $1.rawValue }

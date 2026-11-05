@@ -321,8 +321,12 @@ struct DictationPaneContent: View {
                     .tag(count)
             }
         } label: {
-            Text("At most", comment: "Dictation settings label of the entry limit")
-                .font(textSize.font(.body))
+            Text(
+                LocalizedStringResource(
+                    "At most (dictation)", defaultValue: "At most",
+                    comment: "Dictation settings label of the entry limit")
+            )
+            .font(textSize.font(.body))
         }
         .disabled(!history.isEnabled)
         LabeledContent {

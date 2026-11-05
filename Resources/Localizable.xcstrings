@@ -13676,7 +13676,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Jeszcze nie zapytano"
+            "value" : "Jeszcze nie pytano"
           }
         }
       }
@@ -13803,6 +13803,132 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Powitanie"
+          }
+        }
+      }
+    },
+    "settings.sidebar.search" : {
+      "comment" : "Settings sidebar: group title of the search plugins",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szukanie"
+          }
+        }
+      }
+    },
+    "settings.sidebar.off" : {
+      "comment" : "Settings sidebar: badge of a switched-off feature",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wył."
+          }
+        }
+      }
+    },
+    "settings.sidebar.off.spoken" : {
+      "comment" : "Settings sidebar: spoken state of a switched-off feature",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyłączone"
+          }
+        }
+      }
+    },
+    "Record meeting (settings)" : {
+      "comment" : "Settings → Meetings: label of the record shortcut in the main window",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record meeting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagraj spotkanie"
+          }
+        }
+      }
+    },
+    "Suggest recording (settings)" : {
+      "comment" : "Settings → Meetings: switch of suggestions in the main window",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggest recording when a meeting starts"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proponuj nagranie, gdy zaczyna się spotkanie"
+          }
+        }
+      }
+    },
+    "Test System Audio (settings)" : {
+      "comment" : "Settings → Meetings: label of the system audio test in the main window",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test System Audio"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przetestuj dźwięk systemu"
+          }
+        }
+      }
+    },
+    "At most (dictation)" : {
+      "comment" : "Settings → Dictation: label of the entry limit in the main window",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "At most"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maksymalnie"
           }
         }
       }

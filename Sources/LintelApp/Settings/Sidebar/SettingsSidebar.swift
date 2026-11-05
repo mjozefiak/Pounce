@@ -95,7 +95,7 @@ struct SettingsSidebar: View {
             accessibilityLabel: item.accessibilityLabel, action: { onSelect(item.id) }
         ) {
             if !item.isActive {
-                Text(String(localized: "Off", comment: "Feature state"))
+                Text(String(localized: "settings.sidebar.off", defaultValue: "Off", comment: "Feature state"))
                     .font(textSize.font(.caption1))
                     .foregroundStyle(.secondary)
             } else if let level = item.attention {

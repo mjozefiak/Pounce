@@ -112,7 +112,10 @@ struct MeetingsPaneContent: View {
             }
         } label: {
             label(
-                Text("Record meeting", comment: "Meetings settings label of the record shortcut"),
+                Text(
+                    LocalizedStringResource(
+                        "Record meeting (settings)", defaultValue: "Record meeting",
+                        comment: "Meetings settings label of the record shortcut")),
                 help: Text(
                     "Press to start and again to stop.",
                     comment: "Settings → Meetings: help under the Record meeting shortcut"))
@@ -211,8 +214,12 @@ struct MeetingsPaneContent: View {
         }
         .toggleStyle(.switch)
         Toggle(isOn: $model.suggestMeetings) {
-            Text("Suggest recording when a meeting starts", comment: "Meetings settings toggle of suggestions")
-                .font(textSize.font(.body))
+            Text(
+                LocalizedStringResource(
+                    "Suggest recording (settings)", defaultValue: "Suggest recording when a meeting starts",
+                    comment: "Meetings settings toggle of suggestions")
+            )
+            .font(textSize.font(.body))
         }
         .toggleStyle(.switch)
         if model.suggestMeetings {
@@ -370,8 +377,12 @@ struct SystemAudioTestRow: View {
         LabeledContent {
             controls
         } label: {
-            Text("Test System Audio", comment: "Meetings button that starts the system audio test")
-                .font(textSize.font(.body))
+            Text(
+                LocalizedStringResource(
+                    "Test System Audio (settings)", defaultValue: "Test System Audio",
+                    comment: "Meetings button that starts the system audio test")
+            )
+            .font(textSize.font(.body))
             detail
         }
         .onChange(of: test.lastOutcome) { _, outcome in
