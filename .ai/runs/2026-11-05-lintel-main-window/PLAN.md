@@ -24,7 +24,7 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 | 2 | 2.1 | SettingsSidebar and SettingsSidebarModel | dispatch:standard | done | a901956 |
 | 2 | 2.2 | StatusBanner and StatusDerivation | dispatch:capable | done | fe06897 |
 | 2 | 2.3 | SettingsPane template, ConfirmSheet, footer helper, scanning tests | dispatch:standard | done | 7ed6534 |
-| 2 | 2.4 | SettingsKeys ownership and per-plugin key coverage tests | dispatch:standard | todo | — |
+| 2 | 2.4 | SettingsKeys ownership and per-plugin key coverage tests | dispatch:standard | done | 3dfdb64 |
 | 3 | 3.1 | PermissionRow and PermissionsPane | dispatch:standard | todo | — |
 | 3 | 3.2 | ModelsPane, ModelRow, ModelsPaneModel, ModelUsage declarations | dispatch:capable | todo | — |
 | 3 | 3.3 | Remove duplicated microphone rows and model cards (mainWindow only) | dispatch:capable | todo | — |
