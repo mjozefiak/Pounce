@@ -292,4 +292,70 @@ import Testing
             #expect(localizations["pl"] != nil, "\(key) has no pl")
         }
     }
+
+    // MARK: A folder of the user's own (step 6.3c-fix-a)
+
+    /// Models offers "Choose Folder…" for the speech and the speaker model but cannot see that a folder is set;
+    /// the pane shows "Use Downloaded Model" for each while it is, and the speaker row only then.
+    @Test func aChosenFolderOffersUseDownloadedModelForTheSpeechAndSpeakerModels() async throws {
+        let rig = try SettingsRig()
+        let settings = rig.harness.meetingsSettings
+        func types() -> Set<String> {
+            Self.typeNames(in: MeetingsPaneContent(model: rig.model, recorder: nil, isActive: false).body)
+        }
+        await rig.model.speech.refresh()
+        await rig.model.diarization.refresh()
+        #expect(!rig.model.speech.usesCustomFolder)
+        #expect(!rig.model.diarization.usesCustomFolder)
+        #expect(!types().contains("UseDownloadedModelButton"))
+
+        let folder = rig.harness.pluginDirectory.appending(path: "mine", directoryHint: .isDirectory)
+        settings.setSpeechModelFolder(folder)
+        await rig.model.speech.refresh()
+        #expect(rig.model.speech.usesCustomFolder)
+        #expect(types().contains("UseDownloadedModelButton"))
+        await rig.model.speech.useDownloadedModel()
+        #expect(settings.speechModelFolder == nil)
+        #expect(!rig.model.speech.usesCustomFolder)
+        #expect(!types().contains("UseDownloadedModelButton"))
+
+        settings.setDiarizationModelFolder(folder)
+        await rig.model.diarization.refresh()
+        #expect(rig.model.diarization.usesCustomFolder)
+        #expect(types().contains("UseDownloadedModelButton"))
+        await rig.model.diarization.useDownloadedModel()
+        #expect(settings.diarizationModelFolder == nil)
+        #expect(!types().contains("UseDownloadedModelButton"))
+    }
+
+    @Test func theSpeakerModelRowIsTranslated() throws {
+        let source = try Self.paneSource()
+        #expect(source.contains("if model.diarization.usesCustomFolder {"))
+        #expect(source.contains("\"Speaker model\", comment:"))
+        let catalog = try String(
+            contentsOf: Self.root.appending(path: "Resources/Localizable.xcstrings"), encoding: .utf8)
+        let data = try #require(catalog.data(using: .utf8))
+        let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let strings = try #require(json["strings"] as? [String: Any])
+        for key in ["Speaker model", "Use Downloaded Model"] {
+            let entry = try #require(strings[key] as? [String: Any], "\(key)")
+            let localizations = try #require(entry["localizations"] as? [String: Any])
+            #expect(localizations["en"] != nil && localizations["pl"] != nil, "\(key)")
+        }
+    }
+
+    // MARK: Try it on an example (step 6.3c-fix-a)
+
+    /// The prototype `set-meetings` has no "Try it on an example"; the old window's only caller went with step
+    /// 6.3b, so the code is gone rather than unreachable.
+    @Test func theNotesExampleIsGoneEverywhere() throws {
+        let folder = Self.root.appending(path: "Sources/MeetingsPlugin")
+        let files = try #require(FileManager.default.enumerator(at: folder, includingPropertiesForKeys: nil))
+        for case let url as URL in files where url.pathExtension == "swift" {
+            let source = try String(contentsOf: url, encoding: .utf8)
+            for needle in ["runSample", "NotesSample", "func tryIt", "showsTryIt", "tryState"] {
+                #expect(!source.contains(needle), "\(needle) in \(url.lastPathComponent)")
+            }
+        }
+    }
 }

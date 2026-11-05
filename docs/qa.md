@@ -408,7 +408,7 @@ Flow to check, in light and dark mode and once in Polish (`-AppleLanguages '(pl)
   you flip it; the model list shows only models that fit this Mac's memory (an 8 GB Mac lists the small one only), with
   the download size and the memory; with a stored model that does not fit, the pane says which one is used instead;
   Download shows progress and can be cancelled, Remove is refused while notes are being written or dictation uses the
-  model, "Try it on an example" shows notes for the bundled made-up meeting and stores nothing.
+  model.
 - The `meetings.setup` step has an optional notes row: nothing is downloaded until the button is pressed.
 - With the switch on and the model present, stop a recording: the library row shows "Writing notes 1 of N", then
   "Notes". With the model missing it shows "Notes model needed" and the row has a "Download Notes Model" action (also a

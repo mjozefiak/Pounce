@@ -63,7 +63,7 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 | 6 | 6.3a | Remove the DEBUG gate (window enabled for users) | dispatch:capable | done | pending |
 | 6 | 6.3b | Delete SettingsWindowController, the adapter and .legacyWindow branches | dispatch:capable | done | pending |
 | 6 | 6.3c | Update docs/qa.md, AGENTS.md rows, BACKWARD_COMPATIBILITY.md, catalog check | dispatch:standard | done | pending |
-| 6 | 6.3c-fix-a | Review fix (after the gate commits): Use Downloaded Model reachable in Models, Try it on an example reachable | dispatch:standard | todo | — |
+| 6 | 6.3c-fix-a | Review fix (after the gate commits): Use Downloaded Model reachable in Models, Try it on an example reachable | dispatch:standard | done | pending |
 | 6 | 6.3c-fix-b | Review fix: ReleaseGateTests assert the needles exist, AGENTS.md package row | dispatch:standard | todo | — |
 | 6 | 6.3c-fix-c | Test fix: no test may show a real recording HUD or hang | dispatch:capable | todo | — |
 

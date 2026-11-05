@@ -1999,24 +1999,6 @@
         }
       }
     },
-    "Download the model first." : {
-      "comment" : "Meetings settings: the notes example needs the model",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Download the model first."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Najpierw pobierz model."
-          }
-        }
-      }
-    },
     "Downloaded" : {
       "comment" : "Dictation model status",
       "extractionState" : "manual",
@@ -2265,24 +2247,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Esc anuluje"
-          }
-        }
-      }
-    },
-    "Example" : {
-      "comment" : "Meetings settings label of the notes example",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Example"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Przykład"
           }
         }
       }
@@ -3511,24 +3475,6 @@
         }
       }
     },
-    "Notes for a made-up meeting. Nothing was saved." : {
-      "comment" : "Meetings settings: caption above the example notes",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Notes for a made-up meeting. Nothing was saved."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Notatki z wymyślonego spotkania. Nic nie zostało zapisane."
-          }
-        }
-      }
-    },
     "Notes model needed" : {
       "comment" : "Meeting library badge: notes are on but the model is missing",
       "extractionState" : "manual",
@@ -3903,6 +3849,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Niektóre funkcje są wyłączone."
+          }
+        }
+      }
+    },
+    "Speaker model" : {
+      "comment" : "Settings → Meetings label of the model that tells the speakers apart",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speaker model"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model mówców"
           }
         }
       }
@@ -6211,24 +6175,6 @@
         }
       }
     },
-    "The example did not work. Try again in a moment." : {
-      "comment" : "Meetings settings: the notes example failed",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The example did not work. Try again in a moment."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Przykład się nie udał. Spróbuj ponownie za chwilę."
-          }
-        }
-      }
-    },
     "The data could not be erased." : {
       "comment" : "Alert title when Erase Data fails",
       "extractionState" : "manual",
@@ -6819,24 +6765,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wypróbuj"
-          }
-        }
-      }
-    },
-    "Try it on an example" : {
-      "comment" : "Meetings settings button that writes notes for a sample meeting",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Try it on an example"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wypróbuj na przykładzie"
           }
         }
       }

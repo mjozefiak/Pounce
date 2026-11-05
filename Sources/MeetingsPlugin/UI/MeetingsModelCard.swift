@@ -42,6 +42,14 @@ final class MeetingsModelCardModel {
 
     var isDownloading: Bool { progress != nil }
     var isInstalled: Bool { location.folder != nil }
+    /// The model comes from a folder the user chose (also when that folder is gone): the pane offers "Use
+    /// Downloaded Model" to go back.
+    var usesCustomFolder: Bool {
+        switch location {
+        case .customFolder, .customFolderUnavailable: true
+        default: false
+        }
+    }
 
     /// Shows another package (the engine picker of the speech card).
     func use(_ package: ModelPackage) {

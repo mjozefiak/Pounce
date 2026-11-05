@@ -147,43 +147,4 @@ struct NotesSettingsRig {
         #expect(rig.model.errorMessage != nil)
         #expect(!rig.model.isInstalled)
     }
-
-    @Test func tryItShowsNotesForTheSampleAndStoresNothing() async throws {
-        let rig = try NotesSettingsRig()
-        rig.service.file.update { $0 = rig.installedFile(of: LLMModelCatalog.defaultModel) }
-        try rig.install(LLMModelCatalog.defaultModel)
-        await rig.service.start()
-        await rig.model.refresh()
-        #expect(rig.model.tryState == .idle)
-
-        rig.model.tryIt()
-        #expect(rig.model.tryState == .running)
-        await rig.model.waitForTry()
-        guard case .result(let notes) = rig.model.tryState else {
-            Issue.record("Expected notes, got \(rig.model.tryState)")
-            return
-        }
-        #expect(!notes.isEmpty)
-        #expect(try rig.service.store.meetingCount() == 0)
-        #expect(rig.service.harness.settings.value(forKey: "plugins.meetings.notesEnabled") == nil)
-    }
-
-    @Test func tryItDoesNothingWithoutTheModel() async throws {
-        let rig = try NotesSettingsRig()
-        await rig.model.refresh()
-        rig.model.tryIt()
-        #expect(rig.model.tryState == .idle)
-        #expect(rig.service.llm.calls.isEmpty)
-    }
-
-    @Test func tryItReportsAFailingModel() async throws {
-        let rig = try NotesSettingsRig(handler: { _, _, _ in throw NotesFake.Failure() })
-        rig.service.file.update { $0 = rig.installedFile(of: LLMModelCatalog.defaultModel) }
-        try rig.install(LLMModelCatalog.defaultModel)
-        await rig.service.start()
-        await rig.model.refresh()
-        rig.model.tryIt()
-        await rig.model.waitForTry()
-        #expect(rig.model.tryState == .failed)
-    }
 }

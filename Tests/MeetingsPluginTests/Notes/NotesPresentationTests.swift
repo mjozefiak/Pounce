@@ -188,8 +188,6 @@ extension Database {
             "Notes are on, but their model is not downloaded.",
             "The notes model is in use right now. Try again when the notes are written.",
             "Write notes after each meeting", "The model you chose does not fit this Mac, so %@ is used.",
-            "Try it on an example", "Example", "Notes for a made-up meeting. Nothing was saved.",
-            "The example did not work. Try again in a moment.", "Download the model first.",
         ]
         for key in keys {
             let entry = try #require(catalog.strings[key], "\(key) is missing")
@@ -199,9 +197,13 @@ extension Database {
             }
         }
         #expect(catalog.strings["Notes are generated in a later version of Lintel."] == nil)
-        #expect(
-            catalog.strings["Try it on an example"]?.localizations?["pl"]?.stringUnit?.value
-                == "Wypróbuj na przykładzie")
+        // "Try it on an example" went with the old Settings window (step 6.3c-fix-a): its strings are gone too.
+        for removed in [
+            "Try it on an example", "Example", "Notes for a made-up meeting. Nothing was saved.",
+            "The example did not work. Try again in a moment.", "Download the model first.",
+        ] {
+            #expect(catalog.strings[removed] == nil, "\(removed)")
+        }
         #expect(catalog.strings["Waiting for the model"]?.localizations?["pl"]?.stringUnit?.value == "Czeka na model")
         #expect(
             catalog.strings["Download Notes Model"]?.localizations?["pl"]?.stringUnit?.value == "Pobierz model notatek")

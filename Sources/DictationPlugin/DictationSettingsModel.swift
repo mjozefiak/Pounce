@@ -85,6 +85,14 @@ final class DictationSettingsModel {
 
     var isDownloading: Bool { progress != nil }
     var isInstalled: Bool { location.folder != nil }
+    /// The model comes from a folder the user chose (also when that folder is gone): the pane offers "Use
+    /// Downloaded Model" to go back.
+    var usesCustomFolder: Bool {
+        switch location {
+        case .customFolder, .customFolderUnavailable: true
+        default: false
+        }
+    }
 
     /// Re-reads the model's place, the microphone and the device list (the pane calls it when it appears).
     func refresh() async {

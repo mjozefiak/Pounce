@@ -105,3 +105,27 @@ public struct ModelChoiceRow: View {
         }
     }
 }
+
+/// "Use Downloaded Model" under a plugin pane's `ModelChoiceRow` while the model comes from a folder the user
+/// chose: the way back to the model Lintel downloads. Models offers "Choose Folder…" but cannot tell that a
+/// folder is set, so the pane that knows shows this (a link, like the summary's).
+public struct UseDownloadedModelButton: View {
+    private let action: () -> Void
+    @Environment(\.lintelTextSize) private var textSize
+
+    public init(action: @escaping () -> Void) {
+        self.action = action
+    }
+
+    public var body: some View {
+        Button(action: action) {
+            Text(Self.title).font(textSize.font(.callout))
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(LintelBrand.accentText)
+    }
+
+    public static var title: String {
+        String(localized: "Use Downloaded Model", comment: "Button that stops using the chosen model folder")
+    }
+}

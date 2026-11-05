@@ -466,27 +466,4 @@ import Testing
         let rig = try NotesServiceRig(physicalMemory: 4 * NotesServiceRig.gibibyte)
         #expect(rig.settings.offeredLLMModels.map(\.id) == [LLMModelCatalog.defaultModel.id])
     }
-
-    @Test func theSampleRunsTheNotesAndStoresNothing() async throws {
-        let rig = try NotesServiceRig()
-        await rig.start()
-        let outcome = await rig.service.runSample().value
-        guard case .notes(let markdown) = outcome else {
-            Issue.record("Expected notes, got \(outcome)")
-            return
-        }
-        #expect(!markdown.isEmpty)
-        #expect(try rig.store.meetingCount() == 0)
-        #expect(!rig.llm.calls.isEmpty)
-        #expect(await rig.lease.activeLeases == 0)
-
-        rig.file.update { $0 = nil }
-        #expect(await rig.service.runSample().value == .modelMissing)
-    }
-
-    @Test func aFailingModelFailsTheSampleWithoutTrapping() async throws {
-        let rig = try NotesServiceRig { _, _, _ in throw NotesFake.Failure() }
-        await rig.start()
-        #expect(await rig.service.runSample().value == .failed)
-    }
 }

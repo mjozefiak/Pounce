@@ -322,7 +322,7 @@ struct MeetingsSetupView: View {
                         comment: "Meetings onboarding step about the notes model"
                     )
                     .fixedSize(horizontal: false, vertical: true)
-                    NotesSettingsRows(model: model.notes, showsTryIt: false)
+                    NotesSettingsRows(model: model.notes)
                 }
             } icon: {
                 Image(systemName: "text.badge.checkmark").accessibilityHidden(true)

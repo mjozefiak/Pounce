@@ -145,6 +145,12 @@ struct MeetingsPaneContent: View {
             ModelChoiceRow(title: model.speech.package.title, state: model.speech.choiceState, style: .help) {
                 openModels(model.speech.package.id)
             }
+            if model.speech.usesCustomFolder {
+                UseDownloadedModelButton { Task { await model.speech.useDownloadedModel() } }
+            }
+        }
+        if model.diarization.usesCustomFolder {
+            speakerModelRow
         }
         if model.usesPinnedLanguage {
             // Whisper listens for one language; Parakeet needs no choice.
@@ -184,6 +190,21 @@ struct MeetingsPaneContent: View {
                 .font(textSize.font(.body))
             ModelChoiceRow(title: notes.model.package.title, state: notes.choiceState, style: .help) {
                 openModels(notes.model.id)
+            }
+        }
+    }
+
+    /// The speaker model has no row of its own (prototype `set-meetings`; Models manages it). Only a folder the
+    /// user chose there brings this row, with the way back to the downloaded model.
+    @ViewBuilder private var speakerModelRow: some View {
+        let diarization = model.diarization
+        LabeledContent {
+            UseDownloadedModelButton { Task { await diarization.useDownloadedModel() } }
+        } label: {
+            Text("Speaker model", comment: "Settings → Meetings label of the model that tells the speakers apart")
+                .font(textSize.font(.body))
+            ModelChoiceRow(title: diarization.package.title, state: diarization.choiceState, style: .help) {
+                openModels(diarization.package.id)
             }
         }
     }

@@ -30,10 +30,12 @@ import Testing
             contentsOf: root.appending(path: "Sources/DictationPlugin/DictationSettingsPane.swift"), encoding: .utf8)
     }
 
-    private func content(_ rig: DictationSettingsModelTests.Rig) -> DictationPaneContent {
+    private func content(
+        _ rig: DictationSettingsModelTests.Rig, model: DictationSettingsModel? = nil
+    ) -> DictationPaneContent {
         let settings = DictationSettings(rig.harness.context.settings)
         return DictationPaneContent(
-            model: rig.model(),
+            model: model ?? rig.model(),
             formatting: FormattingSettingsModel(
                 settings: settings, transport: ScriptedTransport(.failure(.cannotConnectToHost))),
             history: HistorySettingsModel(
@@ -312,5 +314,34 @@ import Testing
             #expect(localizations["en"] != nil, "\(key) has no en")
             #expect(localizations["pl"] != nil, "\(key) has no pl")
         }
+    }
+
+    // MARK: A folder of the user's own (step 6.3c-fix-a)
+
+    /// Models offers "Choose Folder…" but cannot see the folder is set; the pane shows the way back.
+    @Test func aChosenFolderOffersUseDownloadedModelInThePane() async throws {
+        let rig = try DictationSettingsModelTests.Rig()
+        defer { rig.harness.tearDown() }
+        let settings = DictationSettings(rig.harness.context.settings)
+        let model = rig.model()
+        await model.refresh()
+        #expect(!model.usesCustomFolder)
+        #expect(!ViewTree.typeNames(in: content(rig, model: model).body).contains("UseDownloadedModelButton"))
+
+        for folder in [
+            rig.harness.directory.url.appending(path: "gone", directoryHint: .isDirectory),
+            rig.harness.directory.url,
+        ] {
+            settings.setSpeechModelFolder(folder)
+            await model.refresh()
+            #expect(model.usesCustomFolder, "\(model.location)")
+            #expect(ViewTree.typeNames(in: content(rig, model: model).body).contains("UseDownloadedModelButton"))
+
+            model.useDownloadedModel()
+            #expect(settings.speechModelFolder == nil)
+            for _ in 0..<300 where model.usesCustomFolder { try? await Task.sleep(for: .milliseconds(10)) }
+            #expect(!model.usesCustomFolder)
+        }
+        #expect(UseDownloadedModelButton.title == "Use Downloaded Model")
     }
 }

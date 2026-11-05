@@ -97,6 +97,9 @@ struct DictationPaneContent: View {
             ModelChoiceRow(title: model.package.title, state: model.choiceState, style: .help) {
                 openModels(model.package.id)
             }
+            if model.usesCustomFolder {
+                UseDownloadedModelButton { model.useDownloadedModel() }
+            }
         }
         if model.usesPinnedLanguage {
             // Whisper listens for one language; Parakeet needs no choice (the prototype's automatic row is dropped).
