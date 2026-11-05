@@ -487,6 +487,137 @@ final class FakeRecorder {
         #expect(model.rows(of: .speech).map(\.id) == [Self.speechA.id, Self.speechB.id])
     }
 
+    // MARK: Prototype fidelity (set-models)
+
+    @Test func speechAndSpeakerModelsShareOneCardAndLanguageModelsAreWriting() {
+        let model = ModelsPaneModel(inventory: inventory(), usages: { [] })
+        #expect(model.sections.map(\.id) == ["speech", "writing"])
+        #expect(model.sections.map(\.title) == ["Speech", "Writing"])
+        #expect(
+            model.rows(in: model.sections[0]).map(\.id) == [Self.speechA.id, Self.speechB.id, Self.diarization.id])
+        #expect(model.rows(in: model.sections[1]).map(\.id) == [Self.llm.id])
+    }
+
+    @Test func theSpeakerModelIsCalledSpeakerSeparation() {
+        let model = ModelsPaneModel(inventory: inventory(), usages: { [] })
+        #expect(model.rows.first { $0.id == Self.diarization.id }?.title == "Speaker separation")
+        #expect(model.rows.first { $0.id == Self.speechA.id }?.title == "Speech A")
+    }
+
+    @Test func aMissingModelReadsNotDownloaded() async {
+        let model = ModelsPaneModel(inventory: inventory(), usages: { [] })
+        await model.refresh()
+        #expect(model.rows.first { $0.id == Self.speechA.id }?.stateText == "Not downloaded")
+    }
+
+    @Test func theLicenceComesFromTheCatalogOrIsOmitted() {
+        let licensed = CatalogModel(id: "a", title: "A", kind: .speech, bytes: 1, license: "MIT")
+        let plain = CatalogModel(id: "b", title: "B", kind: .speech, bytes: 1)
+        #expect(licensed.license == "MIT")
+        #expect(plain.license == nil)
+        let real = SharedModelInventory(modelsDirectory: URL(filePath: "/nonexistent"), physicalMemory: 64 << 30)
+        #expect(real.catalog.allSatisfy { $0.license?.isEmpty == false })
+        #expect(real.catalog.first { $0.id == LLMModelCatalog.defaultModel.id }?.license == "Apache-2.0")
+    }
+
+    @Test func theWritingFooterUsesTheCatalogMemoryFigureOnly() {
+        let withFigure = CatalogModel(id: "llm", title: "LLM", kind: .llm, bytes: 1, residentBytes: 3_274_784_768)
+        let model = ModelsPaneModel(inventory: FakeInventory([withFigure]), usages: { [] })
+        let footer = model.writingMemoryFooter
+        #expect(footer?.hasPrefix("Needs about ") == true)
+        #expect(footer?.hasSuffix(" of memory while writing.") == true)
+        #expect(footer?.contains("3") == true)
+        let unknown = ModelsPaneModel(inventory: inventory(), usages: { [] })
+        #expect(unknown.writingMemoryFooter == nil)
+    }
+
+    @Test func theNeededModelsDownloadIsThePrimaryAction() async {
+        let usage = ModelUsage(packageID: Self.speechA.id, kind: .speech, role: "x", isRequired: true, isSelected: true)
+        let model = ModelsPaneModel(inventory: inventory(), usages: { [self.plugin("meetings", [usage])] })
+        await model.refresh()
+        #expect(model.rows.first { $0.id == Self.speechA.id }?.isPrimaryAction == true)
+        #expect(model.rows.first { $0.id == Self.speechB.id }?.isPrimaryAction == false)
+    }
+
+    @Test func theBannerOffersDownloadingTheNeededModelAndItStartsTheDownload() async throws {
+        let inventory = inventory()
+        let usage = ModelUsage(packageID: Self.speechA.id, kind: .speech, role: "x", isRequired: true, isSelected: true)
+        let model = ModelsPaneModel(inventory: inventory, usages: { [self.plugin("meetings", [usage])] })
+        await model.refresh()
+        let banner = try #require(model.banner)
+        #expect(banner.detail == "Speech A is used by Meetings.")
+        let action = try #require(banner.actions.first)
+        #expect(banner.actions.count == 1)
+        #expect(String(localized: action.title) == "Download Speech A")
+        guard case .plugin(_, let perform) = action.destination else {
+            Issue.record("the banner button must run inside the pane")
+            return
+        }
+        await perform()
+        await model.waitForDownload(Self.speechA.id)
+        #expect(inventory.log == ["install:speech-a"])
+        #expect(model.banner == nil)
+    }
+
+    @Test func withSeveralNeededModelsTheBannerDownloadsTheFirst() async throws {
+        let usages = [Self.speechA, Self.speechB].map {
+            ModelUsage(packageID: $0.id, kind: .speech, role: "x", isRequired: true, isSelected: true)
+        }
+        let model = ModelsPaneModel(inventory: inventory(), usages: { [self.plugin("meetings", usages)] })
+        await model.refresh()
+        let banner = try #require(model.banner)
+        #expect(banner.title.contains("2"))
+        #expect(String(localized: try #require(banner.actions.first).title) == "Download Speech A")
+    }
+
+    @Test func showInFinderRevealsTheModelsFolderThroughThePort() {
+        let folder = URL(filePath: "/tmp/models", directoryHint: .isDirectory)
+        let revealed = Box<[URL]>([])
+        let model = ModelsPaneModel(
+            inventory: inventory(), usages: { [] }, modelsDirectory: folder,
+            revealInFinder: { revealed.value.append($0) })
+        model.showInFinder()
+        #expect(revealed.value == [folder])
+    }
+
+    @Test func storageSumsTheInstalledPackages() async {
+        let inventory = inventory()
+        let model = ModelsPaneModel(inventory: inventory, usages: { [] })
+        await model.refresh()
+        #expect(model.installedBytes == 0)
+        #expect(model.storageDetail == "Nothing downloaded yet.")
+        inventory.states[Self.speechA.id] = .installed
+        await model.refresh()
+        #expect(model.installedBytes == 100)
+        #expect(model.storageDetail.hasSuffix("in Application Support"))
+    }
+
+    /// The views draw with the tokens: no raw colours, the accent fill and `onAccent` text for the primary
+    /// button, the text-size font everywhere, and no global "use a model from a folder" row (D6).
+    @Test func theViewsUseTokensOnly() throws {
+        let root = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+        func source(_ path: String) throws -> String {
+            try String(contentsOf: root.appending(path: path), encoding: .utf8)
+        }
+        let files = [
+            "Sources/LintelApp/Settings/Models/ModelRow.swift", "Sources/LintelApp/Settings/Models/ModelsPane.swift",
+            "Sources/LintelUI/Components/PrimaryButtonStyle.swift",
+        ]
+        for file in files {
+            let text = try source(file)
+            for raw in ["Color(red", "Color(.", "NSColor(", ".foregroundColor(", "Color.red", "Color.green", "0x"] {
+                #expect(!text.contains(raw), "\(file) uses \(raw)")
+            }
+            #expect(!text.contains(".font(.system"), "\(file) bypasses the text size")
+        }
+        let primary = try source("Sources/LintelUI/Components/PrimaryButtonStyle.swift")
+        #expect(primary.contains("LintelBrand.onAccent") && primary.contains("LintelBrand.accent"))
+        #expect(try source("Sources/LintelApp/Settings/Models/ModelRow.swift").contains("LintelPrimaryButtonStyle()"))
+        let pane = try source("Sources/LintelApp/Settings/Models/ModelsPane.swift")
+        #expect(!pane.contains("Use a model from a folder"))
+    }
+
     // MARK: Choose Folder
 
     @Test func chooseFolderVerifiesTheFolderAndCallsTheUsage() async {

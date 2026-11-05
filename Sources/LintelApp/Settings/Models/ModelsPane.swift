@@ -12,13 +12,21 @@ struct ModelsPane: View {
     var takeScrollTarget: () -> String? = { nil }
 
     @Environment(\.lintelTextSize) private var textSize
+    @State private var storageExpanded = false
+
+    private func footerText(_ text: String) -> some View {
+        Text(verbatim: text)
+            .font(textSize.font(.callout))
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
 
     var body: some View {
         ScrollViewReader { proxy in
             SettingsPane {
-                ForEach(model.kinds, id: \.self) { kind in
+                ForEach(model.sections) { section in
                     Section {
-                        ForEach(model.rows(of: kind)) { row in
+                        ForEach(model.rows(in: section)) { row in
                             ModelRow(
                                 row: row,
                                 download: { model.download(row.id) },
@@ -29,9 +37,46 @@ struct ModelsPane: View {
                             .id(row.id)
                         }
                     } header: {
-                        Text(Self.title(of: kind))
+                        Text(verbatim: section.title)
+                            .font(textSize.font(.body, weight: .semibold))
+                    } footer: {
+                        if section.id == "writing", let footer = model.writingMemoryFooter {
+                            footerText(footer)
+                        }
+                    }
+                }
+                Section {
+                    DisclosureGroup(isExpanded: $storageExpanded) {
+                        LabeledContent {
+                            Button {
+                                model.showInFinder()
+                            } label: {
+                                Label {
+                                    Text("Show in Finder", comment: "Models pane: reveals the models folder")
+                                } icon: {
+                                    Image(systemName: "folder")
+                                }
+                                .font(textSize.font(.body))
+                            }
+                            .buttonStyle(.bordered)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("On this Mac", comment: "Models pane storage: where the models live")
+                                    .font(textSize.font(.body))
+                                Text(verbatim: model.storageDetail)
+                                    .font(textSize.font(.callout))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    } label: {
+                        Text("Storage", comment: "Models pane: disclosure group for where models are kept")
                             .font(textSize.font(.body, weight: .semibold))
                     }
+                } footer: {
+                    footerText(
+                        String(
+                            localized: "Models run on this Mac. Audio never leaves it.",
+                            comment: "Models pane footer: models run locally"))
                 }
             }
             .destructiveConfirmation(
@@ -57,15 +102,6 @@ struct ModelsPane: View {
             .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
                 Task { await model.refresh() }
             }
-        }
-    }
-
-    static func title(of kind: ModelKind) -> String {
-        switch kind {
-        case .speech: String(localized: "Speech Recognition", comment: "Models pane section: speech models")
-        case .llm: String(localized: "Language Models", comment: "Models pane section: built-in language models")
-        case .diarization: String(localized: "Speaker Recognition", comment: "Models pane section: diarization")
-        default: kind.rawValue
         }
     }
 }

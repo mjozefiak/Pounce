@@ -55,14 +55,30 @@ final class ModelsPaneModel {
         let isBusy: Bool
 
         var id: String { model.id }
+
+        /// The name shown: the catalog title, except the speaker model, which the prototype calls "Speaker
+        /// separation" (the package title is a technical name).
+        var title: String {
+            model.kind == .diarization
+                ? String(localized: "Speaker separation", comment: "Models pane: the speaker recognition model")
+                : model.title
+        }
+
+        /// The primary button is the one the user must press: a needed model's Download.
+        var isPrimaryAction: Bool { isNeeded && !isInstalled && !isDownloading }
         var isInstalled: Bool { state == .installed }
         var isDownloading: Bool { progress != nil }
 
         /// "Used by Meetings, Dictation (off)"; `nil` when no plugin uses it.
         var usedByText: String? {
-            guard !usedBy.isEmpty else { return nil }
-            let names = usedBy.map(\.label).formatted(.list(type: .and))
+            guard let names = usedByNames else { return nil }
             return String(localized: "Used by \(names)", comment: "Models pane: the features that use a model")
+        }
+
+        /// "Meetings and Dictation (off)"; `nil` when no plugin uses it.
+        var usedByNames: String? {
+            guard !usedBy.isEmpty else { return nil }
+            return usedBy.map(\.label).formatted(.list(type: .and))
         }
 
         var stateText: String {
@@ -77,13 +93,27 @@ final class ModelsPaneModel {
                 return String(
                     localized: "Partly downloaded", comment: "Models pane: an interrupted download can continue")
             case .missing:
-                return String(localized: "Not installed", comment: "Models pane: the model is not on this Mac")
+                return String(localized: "Not downloaded", comment: "Models pane: the model is not on this Mac")
             }
         }
     }
 
     /// The kinds in the order the pane shows them.
     static let kindOrder: [ModelKind] = [.speech, .llm, .diarization]
+
+    /// One card of the pane: "Speech" (speech models, then the speaker model) and "Writing" (language models).
+    struct Section: Identifiable, Equatable {
+        let id: String
+        let kinds: [ModelKind]
+
+        var title: String {
+            switch id {
+            case "speech": String(localized: "Speech", comment: "Models pane section: speech models")
+            case "writing": String(localized: "Writing", comment: "Models pane section: built-in language models")
+            default: id
+            }
+        }
+    }
 
     private(set) var states: [String: InventoryState] = [:]
     private(set) var progress: [String: ModelProgress] = [:]
@@ -101,6 +131,9 @@ final class ModelsPaneModel {
     @ObservationIgnored let inventory: any ModelInventory
     @ObservationIgnored private let readUsages: () -> [PluginUsages]
     @ObservationIgnored private let pickFolder: () -> URL?
+    /// The folder "Show in Finder" reveals (`Models/`, the parent of the per-kind folders).
+    @ObservationIgnored let modelsDirectory: URL
+    @ObservationIgnored private let revealInFinder: (URL) -> Void
     @ObservationIgnored private var downloads: [String: Task<Void, Never>] = [:]
     @ObservationIgnored private var loggedUnknown: Set<String> = []
     /// Bumped by every `refresh()`; a refresh that was overtaken by a newer one does not write its states.
@@ -109,11 +142,14 @@ final class ModelsPaneModel {
 
     init(
         inventory: any ModelInventory, usages: @escaping () -> [PluginUsages],
-        pickFolder: @escaping () -> URL? = { nil }
+        pickFolder: @escaping () -> URL? = { nil }, modelsDirectory: URL = URL(filePath: "/"),
+        revealInFinder: @escaping (URL) -> Void = { _ in }
     ) {
         self.inventory = inventory
         self.readUsages = usages
         self.pickFolder = pickFolder
+        self.modelsDirectory = modelsDirectory
+        self.revealInFinder = revealInFinder
         self.plugins = usages()
     }
 
@@ -127,6 +163,36 @@ final class ModelsPaneModel {
     }
 
     var rows: [Row] { kinds.flatMap(rows(of:)) }
+
+    /// The cards, in the order shown; a card with no packages is left out.
+    var sections: [Section] {
+        var result: [Section] = []
+        let speech = kinds.filter { $0 == .speech || $0 == .diarization }
+        if !speech.isEmpty { result.append(Section(id: "speech", kinds: speech)) }
+        if kinds.contains(.llm) { result.append(Section(id: "writing", kinds: [.llm])) }
+        for kind in kinds where ![.speech, .diarization, .llm].contains(kind) {
+            result.append(Section(id: kind.rawValue, kinds: [kind]))
+        }
+        return result
+    }
+
+    func rows(in section: Section) -> [Row] { section.kinds.flatMap(rows(of:)) }
+
+    /// "Needs about 3.3 GB of memory while writing.": the catalog's figure for the language model the user most
+    /// likely runs (an installed one, else the smallest that can be downloaded); `nil` when the catalog has none.
+    var writingMemoryFooter: String? {
+        let writing = rows(of: .llm).filter { $0.model.residentBytes != nil }
+        let chosen =
+            writing.filter(\.isInstalled).max { ($0.model.residentBytes ?? 0) < ($1.model.residentBytes ?? 0) }
+            ?? writing.filter { $0.model.canDownload }.min {
+                ($0.model.residentBytes ?? 0) < ($1.model.residentBytes ?? 0)
+            }
+        guard let bytes = chosen?.model.residentBytes else { return nil }
+        let size = ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
+        return String(
+            localized: "Needs about \(size) of memory while writing.",
+            comment: "Models pane footer under Writing: memory a loaded language model takes")
+    }
 
     /// The rows of one kind, in catalog order.
     func rows(of kind: ModelKind) -> [Row] {
@@ -162,17 +228,35 @@ final class ModelsPaneModel {
         ).filter { states[$0] != .installed }
     }
 
-    /// The pane's banner through the host's derivation seam: "1 model is needed", or none.
+    /// The pane's banner through the host's derivation seam: "1 model is needed" with a primary button that
+    /// downloads the first needed model, or none.
     var banner: StatusDerivation.Banner? {
-        let count = neededIDs.count
-        guard count > 0 else { return nil }
+        let needed = neededIDs
+        guard !needed.isEmpty,
+            let first = inventory.catalog.first(where: { needed.contains($0.id) && $0.canDownload })
+                ?? inventory.catalog.first(where: { needed.contains($0.id) })
+        else { return nil }
+        let count = needed.count
+        let detail: String
+        if count == 1, let names = row(first).usedByNames {
+            detail = String(
+                localized: "\(first.title) is used by \(names).",
+                comment: "Models pane banner detail: one model is needed")
+        } else {
+            detail = String(
+                localized: "Features that are on can't work without them. Download them below.",
+                comment: "Models pane banner detail: required models are missing")
+        }
+        let id = first.id
+        let action = SettingsStatusAction(
+            title: LocalizedStringResource(
+                "Download \(first.title)", comment: "Models pane banner button: downloads the first needed model"),
+            destination: .plugin(id: "models.download", perform: { [weak self] in self?.download(id) }))
         return StatusDerivation.Banner(
             level: .attention,
             title: String(localized: "\(count) models are needed", comment: "Models pane banner: required models"),
-            detail: String(
-                localized: "Features that are on can't work without them. Download them below.",
-                comment: "Models pane banner detail: required models are missing"),
-            actions: [])
+            detail: detail,
+            actions: first.canDownload ? [action] : [])
     }
 
     // MARK: Reading
@@ -329,6 +413,28 @@ final class ModelsPaneModel {
             errors[id] = Self.message(for: error)
         }
         await refresh()
+    }
+
+    // MARK: Storage
+
+    /// Total size of the installed catalog packages: the catalog's own sizes, no scan of the disk.
+    var installedBytes: Int {
+        inventory.catalog.filter { states[$0.id] == .installed }.reduce(0) { $0 + $1.bytes }
+    }
+
+    /// "1.1 GB in Application Support", or "Nothing downloaded yet."
+    var storageDetail: String {
+        guard installedBytes > 0 else {
+            return String(localized: "Nothing downloaded yet.", comment: "Models pane storage: no model is downloaded")
+        }
+        let size = ByteCountFormatter.string(fromByteCount: Int64(installedBytes), countStyle: .file)
+        return String(
+            localized: "\(size) in Application Support", comment: "Models pane storage: the size of the downloads")
+    }
+
+    /// "Show in Finder": reveals the models folder through the injected port.
+    func showInFinder() {
+        revealInFinder(modelsDirectory)
     }
 
     // MARK: Messages

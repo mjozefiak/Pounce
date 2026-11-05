@@ -19,27 +19,33 @@ struct ModelRow: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(verbatim: row.model.title)
-                        .font(textSize.font(.body))
+                    Text(verbatim: row.title)
+                        .font(textSize.font(.body, weight: .semibold))
                         .accessibilityAddTraits(.isHeader)
+                    if let license = row.model.license {
+                        Text(verbatim: license)
+                            .font(textSize.font(.callout))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                HStack(spacing: 6) {
+                    ForEach(row.usedBy) { chip($0) }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(Text(verbatim: row.usedByText ?? ""))
+                    if !row.usedBy.isEmpty {
+                        Text(verbatim: "·").foregroundStyle(.secondary)
+                    }
                     Text(verbatim: size)
-                        .font(textSize.font(.callout))
                         .foregroundStyle(.secondary)
                 }
-                stateLine
+                .font(textSize.font(.callout))
                 if let progress = row.progress {
                     ProgressView(value: progress.fraction)
+                        .frame(maxWidth: 200)
                         .accessibilityLabel(Text("Download progress", comment: "Models pane: progress bar label"))
-                }
-                if !row.usedBy.isEmpty {
-                    HStack(spacing: 6) {
-                        ForEach(row.usedBy) { chip($0) }
-                    }
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(Text(verbatim: row.usedByText ?? ""))
                 }
                 if let error = row.errorMessage {
                     Text(verbatim: error)
@@ -49,20 +55,12 @@ struct ModelRow: View {
                 }
             }
             Spacer(minLength: 12)
+            Text(verbatim: row.stateText)
+                .font(textSize.font(.callout))
+                .foregroundStyle(row.isInstalled ? AnyShapeStyle(LintelBrand.statusOk) : AnyShapeStyle(.secondary))
             buttons
         }
         .accessibilityElement(children: .contain)
-    }
-
-    @ViewBuilder private var stateLine: some View {
-        HStack(spacing: 6) {
-            Text(verbatim: row.stateText)
-            if row.isNeeded {
-                Text("Needed", comment: "Models pane: a feature that is on requires this model")
-                    .foregroundStyle(LintelBrand.statusAttention)
-            }
-        }
-        .font(textSize.font(.callout, weight: .medium))
     }
 
     private func chip(_ usedBy: ModelsPaneModel.UsedBy) -> some View {
@@ -107,55 +105,70 @@ struct ModelRowButtons: View {
     }
 
     var body: some View {
-        VStack(alignment: .trailing, spacing: 6) {
-            if row.isDownloading {
-                Button(action: cancel) { label(Text("Cancel", comment: "Models pane: stops a download")) }
-            } else if row.isInstalled {
-                Button(action: remove) {
-                    label(Text("Remove", comment: "Models pane: deletes a downloaded model"))
-                }
-                .disabled(row.isBusy)
-            } else if row.model.canDownload {
-                Button(action: download) {
-                    if row.errorMessage != nil {
-                        label(
-                            Text(
-                                LocalizedStringResource(
-                                    "Try Again (download)", defaultValue: "Try Again",
-                                    comment: "Models pane: downloads a model again after an error")))
-                    } else {
-                        label(Text("Download", comment: "Models pane: downloads a model"))
-                    }
-                }
-                .disabled(row.isBusy)
-            }
-            let folderUsers = row.usedBy.filter(\.canChooseFolder)
-            if folderUsers.count == 1, let only = folderUsers.first {
-                Button {
-                    chooseFolder(only.pluginID)
-                } label: {
-                    label(Text("Choose Folder…", comment: "Models pane: use a model folder downloaded by hand"))
-                }
-                .disabled(row.isBusy || row.isDownloading)
-            } else if folderUsers.count > 1 {
-                Menu {
-                    ForEach(folderUsers) { user in
-                        Button {
-                            chooseFolder(user.pluginID)
-                        } label: {
-                            Text(
-                                "For \(user.pluginName)", comment: "Models pane: choose a model folder for one feature")
-                        }
-                    }
-                } label: {
-                    label(Text("Choose Folder…", comment: "Models pane: use a model folder downloaded by hand"))
-                }
-                .menuStyle(.button)
-                .menuIndicator(.hidden)
-                .fixedSize()
-                .disabled(row.isBusy || row.isDownloading)
-            }
+        HStack(spacing: 8) {
+            folderButton
+            actionButton
         }
         .buttonStyle(.bordered)
+    }
+
+    @ViewBuilder private var actionButton: some View {
+        if row.isDownloading {
+            Button(action: cancel) { label(Text("Cancel", comment: "Models pane: stops a download")) }
+        } else if row.isInstalled {
+            Button(action: remove) {
+                label(Text("Remove", comment: "Models pane: deletes a downloaded model"))
+            }
+            .disabled(row.isBusy)
+        } else if row.model.canDownload {
+            if row.isPrimaryAction {
+                Button(action: download) { downloadLabel }
+                    .buttonStyle(LintelPrimaryButtonStyle())
+                    .disabled(row.isBusy)
+            } else {
+                Button(action: download) { downloadLabel }
+                    .disabled(row.isBusy)
+            }
+        }
+    }
+
+    @ViewBuilder private var downloadLabel: some View {
+        if row.errorMessage != nil {
+            label(
+                Text(
+                    LocalizedStringResource(
+                        "Try Again (download)", defaultValue: "Try Again",
+                        comment: "Models pane: downloads a model again after an error")))
+        } else {
+            label(Text("Download", comment: "Models pane: downloads a model"))
+        }
+    }
+
+    @ViewBuilder private var folderButton: some View {
+        let folderUsers = row.usedBy.filter(\.canChooseFolder)
+        if folderUsers.count == 1, let only = folderUsers.first {
+            Button {
+                chooseFolder(only.pluginID)
+            } label: {
+                label(Text("Choose Folder…", comment: "Models pane: use a model folder downloaded by hand"))
+            }
+            .disabled(row.isBusy || row.isDownloading)
+        } else if folderUsers.count > 1 {
+            Menu {
+                ForEach(folderUsers) { user in
+                    Button {
+                        chooseFolder(user.pluginID)
+                    } label: {
+                        Text("For \(user.pluginName)", comment: "Models pane: choose a model folder for one feature")
+                    }
+                }
+            } label: {
+                label(Text("Choose Folder…", comment: "Models pane: use a model folder downloaded by hand"))
+            }
+            .menuStyle(.button)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .disabled(row.isBusy || row.isDownloading)
+        }
     }
 }

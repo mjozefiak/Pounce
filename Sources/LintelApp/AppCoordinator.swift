@@ -419,7 +419,11 @@ final class AppCoordinator {
         let model = ModelsPaneModel(
             inventory: SharedModelInventory(modelsDirectory: environment.modelsDirectory),
             usages: { Self.modelUsages(host) },
-            pickFolder: { Self.chooseModelFolder() })
+            pickFolder: { Self.chooseModelFolder() }, modelsDirectory: environment.modelsDirectory,
+            revealInFinder: { url in
+                try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+                NSWorkspace.shared.activateFileViewerSelecting([url])
+            })
         modelsPane = model
         return model
     }

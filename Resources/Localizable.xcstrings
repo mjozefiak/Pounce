@@ -2665,24 +2665,6 @@
         }
       }
     },
-    "Language Models" : {
-      "comment" : "Models pane section: built-in language models",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Language Models"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Modele językowe"
-          }
-        }
-      }
-    },
     "Large" : {
       "comment" : "Text size option, spoken",
       "extractionState" : "manual",
@@ -3007,24 +2989,6 @@
         }
       }
     },
-    "Needed" : {
-      "comment" : "Models pane: a feature that is on requires this model",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Needed"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Potrzebny"
-          }
-        }
-      }
-    },
     "Not available while a meeting is being recorded or processed." : {
       "comment" : "Meetings: why the system audio test is switched off during a meeting",
       "extractionState" : "manual",
@@ -3039,24 +3003,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Niedostępne, gdy spotkanie jest nagrywane lub przetwarzane."
-          }
-        }
-      }
-    },
-    "Not installed" : {
-      "comment" : "Models pane: the model is not on this Mac",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Not installed"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nie zainstalowany"
           }
         }
       }
@@ -3201,42 +3147,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zaznacz wszystko"
-          }
-        }
-      }
-    },
-    "Speaker Recognition" : {
-      "comment" : "Models pane section: diarization",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Speaker Recognition"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rozpoznawanie mówców"
-          }
-        }
-      }
-    },
-    "Speech Recognition" : {
-      "comment" : "Models pane section: speech models",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Speech Recognition"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rozpoznawanie mowy"
           }
         }
       }
@@ -3638,7 +3548,7 @@
       }
     },
     "Not downloaded" : {
-      "comment" : "Dictation model status",
+      "comment" : "Models pane: the model is not on this Mac",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3650,7 +3560,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nie pobrano"
+            "value" : "Niepobrany"
           }
         }
       }
@@ -11301,6 +11211,204 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zarządzaj w Modelach"
+          }
+        }
+      }
+    },
+    "Speech" : {
+      "comment" : "Models pane section: speech models",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speech"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mowa"
+          }
+        }
+      }
+    },
+    "Writing" : {
+      "comment" : "Models pane section: built-in language models",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Writing"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pisanie"
+          }
+        }
+      }
+    },
+    "Speaker separation" : {
+      "comment" : "Models pane: the speaker recognition model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speaker separation"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozpoznawanie osób"
+          }
+        }
+      }
+    },
+    "Needs about %@ of memory while writing." : {
+      "comment" : "Models pane footer under Writing: memory a loaded language model takes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs about %@ of memory while writing."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podczas pisania potrzebuje ok. %@ pamięci."
+          }
+        }
+      }
+    },
+    "%@ is used by %@." : {
+      "comment" : "Models pane banner detail: one model is needed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is used by %@."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ jest używany przez %2$@."
+          }
+        }
+      }
+    },
+    "Download %@" : {
+      "comment" : "Models pane banner button: downloads the first needed model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobierz %@"
+          }
+        }
+      }
+    },
+    "Nothing downloaded yet." : {
+      "comment" : "Models pane storage: no model is downloaded",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing downloaded yet."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nic jeszcze nie pobrano."
+          }
+        }
+      }
+    },
+    "%@ in Application Support" : {
+      "comment" : "Models pane storage: the size of the downloads",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ in Application Support"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ w Application Support"
+          }
+        }
+      }
+    },
+    "On this Mac" : {
+      "comment" : "Models pane storage: where the models live",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On this Mac"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Na tym Macu"
+          }
+        }
+      }
+    },
+    "Storage" : {
+      "comment" : "Models pane: disclosure group for where models are kept",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Storage"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Miejsce"
+          }
+        }
+      }
+    },
+    "Models run on this Mac. Audio never leaves it." : {
+      "comment" : "Models pane footer: models run locally",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Models run on this Mac. Audio never leaves it."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modele działają na tym Macu. Dźwięk go nie opuszcza."
           }
         }
       }

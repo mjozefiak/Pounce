@@ -11,13 +11,22 @@ struct CatalogModel: Identifiable, Equatable, Sendable {
     /// False for a language model this Mac does not have the memory for: listed (it may be installed), never
     /// offered for download.
     let canDownload: Bool
+    /// The licence the catalog names for the package (`ModelPackage.license`); `nil` when it names none.
+    let license: String?
+    /// Memory the loaded model takes (`LLMModel.residentBytes`); `nil` when the catalog does not know it.
+    let residentBytes: Int?
 
-    init(id: String, title: String, kind: ModelKind, bytes: Int, canDownload: Bool = true) {
+    init(
+        id: String, title: String, kind: ModelKind, bytes: Int, canDownload: Bool = true, license: String? = nil,
+        residentBytes: Int? = nil
+    ) {
         self.id = id
         self.title = title
         self.kind = kind
         self.bytes = bytes
         self.canDownload = canDownload
+        self.license = license
+        self.residentBytes = residentBytes
     }
 }
 
@@ -68,11 +77,14 @@ final class SharedModelInventory: ModelInventory {
         var catalog: [CatalogModel] = []
         var packages: [String: ModelPackage] = [:]
         var kinds: [String: ModelKind] = [:]
-        func add(_ package: ModelPackage, _ kind: ModelKind, canDownload: Bool = true) {
+        func add(
+            _ package: ModelPackage, _ kind: ModelKind, canDownload: Bool = true, residentBytes: Int? = nil
+        ) {
             catalog.append(
                 CatalogModel(
                     id: package.id, title: package.title, kind: kind, bytes: package.totalBytes,
-                    canDownload: canDownload))
+                    canDownload: canDownload, license: package.license.isEmpty ? nil : package.license,
+                    residentBytes: residentBytes))
             packages[package.id] = package
             kinds[package.id] = kind
         }
@@ -80,7 +92,8 @@ final class SharedModelInventory: ModelInventory {
         for model in LLMModelCatalog.all {
             add(
                 model.package, .llm,
-                canDownload: fitting.contains(model.id) || model.id == LLMModelCatalog.defaultModel.id)
+                canDownload: fitting.contains(model.id) || model.id == LLMModelCatalog.defaultModel.id,
+                residentBytes: model.residentBytes)
         }
         for package in ModelCatalog.diarization { add(package, .diarization) }
         self.catalog = catalog
