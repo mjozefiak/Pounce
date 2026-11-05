@@ -34,7 +34,7 @@ public struct ModelChoiceRow: View {
                 Text(Self.actionTitle(for: state))
                     .font(textSize.font(.body))
             }
-            .buttonStyle(.link)
+            .buttonStyle(.plain)
             .foregroundStyle(LintelBrand.accentText)
         }
         .accessibilityElement(children: .combine)

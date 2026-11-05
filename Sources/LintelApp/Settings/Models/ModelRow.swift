@@ -66,6 +66,21 @@ struct ModelRow: View {
     }
 
     private func chip(_ usedBy: ModelsPaneModel.UsedBy) -> some View {
+        ModelRowChip(usedBy: usedBy)
+    }
+
+    private var buttons: some View {
+        ModelRowButtons(
+            row: row, download: download, cancel: cancel, remove: remove, chooseFolder: chooseFolder)
+    }
+}
+
+/// A "used by" chip.
+struct ModelRowChip: View {
+    let usedBy: ModelsPaneModel.UsedBy
+    @Environment(\.lintelTextSize) private var textSize
+
+    var body: some View {
         Text(verbatim: usedBy.label)
             .font(textSize.font(.caption1))
             .padding(.horizontal, 6)
@@ -74,23 +89,42 @@ struct ModelRow: View {
             .opacity(usedBy.isEnabled ? 1 : 0.6)
             .help(Text(verbatim: usedBy.role))
     }
+}
 
-    @ViewBuilder private var buttons: some View {
+/// The row's buttons. Every one is a bordered button whose label uses the `lintelTextSize` font (the prototype's
+/// `set-models` draws "Choose Folder…" as a bordered button next to Download / Remove).
+struct ModelRowButtons: View {
+    let row: ModelsPaneModel.Row
+    var download: () -> Void = {}
+    var cancel: () -> Void = {}
+    var remove: () -> Void = {}
+    var chooseFolder: (_ pluginID: String) -> Void = { _ in }
+
+    @Environment(\.lintelTextSize) private var textSize
+
+    private func label(_ text: Text) -> some View {
+        text.font(textSize.font(.body))
+    }
+
+    var body: some View {
         VStack(alignment: .trailing, spacing: 6) {
             if row.isDownloading {
-                Button(action: cancel) { Text("Cancel", comment: "Models pane: stops a download") }
+                Button(action: cancel) { label(Text("Cancel", comment: "Models pane: stops a download")) }
             } else if row.isInstalled {
-                Button(action: remove) { Text("Remove", comment: "Models pane: deletes a downloaded model") }
-                    .disabled(row.isBusy)
+                Button(action: remove) {
+                    label(Text("Remove", comment: "Models pane: deletes a downloaded model"))
+                }
+                .disabled(row.isBusy)
             } else if row.model.canDownload {
                 Button(action: download) {
                     if row.errorMessage != nil {
-                        Text(
-                            LocalizedStringResource(
-                                "Try Again (download)", defaultValue: "Try Again",
-                                comment: "Models pane: downloads a model again after an error"))
+                        label(
+                            Text(
+                                LocalizedStringResource(
+                                    "Try Again (download)", defaultValue: "Try Again",
+                                    comment: "Models pane: downloads a model again after an error")))
                     } else {
-                        Text("Download", comment: "Models pane: downloads a model")
+                        label(Text("Download", comment: "Models pane: downloads a model"))
                     }
                 }
                 .disabled(row.isBusy)
@@ -100,7 +134,7 @@ struct ModelRow: View {
                 Button {
                     chooseFolder(only.pluginID)
                 } label: {
-                    Text("Choose Folder…", comment: "Models pane: use a model folder downloaded by hand")
+                    label(Text("Choose Folder…", comment: "Models pane: use a model folder downloaded by hand"))
                 }
                 .disabled(row.isBusy || row.isDownloading)
             } else if folderUsers.count > 1 {
@@ -114,11 +148,14 @@ struct ModelRow: View {
                         }
                     }
                 } label: {
-                    Text("Choose Folder…", comment: "Models pane: use a model folder downloaded by hand")
+                    label(Text("Choose Folder…", comment: "Models pane: use a model folder downloaded by hand"))
                 }
+                .menuStyle(.button)
+                .menuIndicator(.hidden)
                 .fixedSize()
                 .disabled(row.isBusy || row.isDownloading)
             }
         }
+        .buttonStyle(.bordered)
     }
 }

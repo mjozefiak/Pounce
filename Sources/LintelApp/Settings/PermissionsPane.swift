@@ -76,7 +76,9 @@ final class PermissionsModel {
     }
 
     func status(of permission: Permission) -> PermissionStatus {
-        statuses[permission] ?? .notDetermined
+        // A model that has not refreshed yet (the host rebuilt it) still answers with the real state: the reader
+        // only preflights, so reading it here never shows a prompt.
+        statuses[permission] ?? (permission.isReadable ? reader.status(of: permission) : .notDetermined)
     }
 
     /// Re-reads every required permission ("Check Again", the pane appearing, Lintel becoming active).
@@ -240,7 +242,13 @@ struct PermissionRowState: Identifiable, Equatable {
 /// The old window lists the permissions the enabled features need; the main window lists all of them and dims
 /// the unused ones (spec D5).
 struct PermissionsPane: View {
-    let model: PermissionsModel
+    /// Kept in `@State`: `SettingsHost` builds the pane again whenever its own state changes, and a new model
+    /// would start with no states and without `includesUnused`.
+    @State private var model: PermissionsModel
+
+    init(model: PermissionsModel) {
+        _model = State(initialValue: model)
+    }
 
     @Environment(\.settingsHostStyle) private var hostStyle
     @Environment(\.lintelTextSize) private var textSize

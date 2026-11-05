@@ -96,7 +96,8 @@ final class FakePermissionsReader: PermissionsReader {
         reader.answers = [.accessibility: .granted, .pasteboard: .denied, .fullDiskAccess: .granted]
         let model = PermissionsModel(host: host, reader: reader) { _ in }
 
-        #expect(model.status(of: .accessibility) == .notDetermined)
+        // Before the first refresh the model answers from the reader instead of "unknown".
+        #expect(model.status(of: .accessibility) == .granted)
         model.refresh()
         #expect(Set(reader.reads) == [.accessibility, .pasteboard])
         #expect(model.status(of: .accessibility) == .granted)

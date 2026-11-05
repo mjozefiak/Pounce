@@ -57,6 +57,13 @@ private struct SamplePane: View {
         #expect(extraLarge.height > medium.height)
     }
 
+    @Test func aModelChoiceRowRenderedExtraLargeScalesItsLink() throws {
+        let row = ModelChoiceRow(title: "Parakeet", state: .notInstalled, open: {})
+        let medium = try render(row.lintelTextSize(.medium))
+        let extraLarge = try render(row.lintelTextSize(.extraLarge))
+        #expect(extraLarge.width > medium.width * 1.15)
+    }
+
     @Test func theScopeReadsTheSizeWhenItRenders() throws {
         let seen = Seen()
         var size = TextSize.small

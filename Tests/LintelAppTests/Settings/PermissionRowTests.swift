@@ -46,6 +46,18 @@ final class FakePermissionRequester: PermissionRequester {
         #expect(model.rows.allSatisfy { !$0.isDimmed })
     }
 
+    @Test func aModelThatHasNotRefreshedYetStillShowsTheRealState() async throws {
+        let test = try TestEnvironment()
+        defer { test.tearDown() }
+        let reader = FakePermissionsReader()
+        reader.answers = [.accessibility: .granted, .pasteboard: .granted]
+        let model = await makeModel(test, plugins: [PastingPlugin.self], reader: reader)
+        // The host rebuilds the pane (and its model) while it is open; the new model never saw `refresh()`.
+        #expect(model.status(of: .accessibility) == .granted)
+        #expect(model.rows.first { $0.permission == .accessibility }?.stateText == "Allowed")
+        #expect(model.status(of: .systemAudioRecording) == .notDetermined)
+    }
+
     @Test func stateTextFollowsThePermissionStatus() {
         let denied = PermissionRowState(permission: .microphone, status: .denied, pluginNames: ["A"])
         #expect(denied.stateText == "Not allowed")

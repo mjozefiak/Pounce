@@ -560,3 +560,38 @@ final class FakeRecorder {
         #expect(english["one"]?.stringUnit?.value == "%lld model is needed")
     }
 }
+
+/// The row's buttons and chips use the `lintelTextSize` tokens like its labels, and every row draws the same
+/// control for "Choose Folder…".
+@MainActor
+@Suite struct ModelRowControlsTests {
+    private func width(_ view: some View) throws -> CGFloat {
+        let renderer = ImageRenderer(content: view)
+        renderer.scale = 1
+        return try #require(renderer.nsImage).size.width
+    }
+
+    private func row(folderUsers: Int) -> ModelsPaneModel.Row {
+        let users = (0..<folderUsers).map {
+            ModelsPaneModel.UsedBy(
+                pluginID: "p\($0)", pluginName: "Plugin \($0)", role: "role", isEnabled: true, canChooseFolder: true)
+        }
+        return ModelsPaneModel.Row(
+            model: ModelsPaneTests.speechA, state: .missing, progress: nil, errorMessage: nil, usedBy: users,
+            isNeeded: false, isBusy: false)
+    }
+
+    @Test(arguments: [1, 2]) func buttonsRenderLargerAtExtraLarge(folderUsers: Int) throws {
+        let view = ModelRowButtons(row: row(folderUsers: folderUsers))
+        let medium = try width(view.lintelTextSize(.medium))
+        let extraLarge = try width(view.lintelTextSize(.extraLarge))
+        #expect(extraLarge > medium * 1.15)
+    }
+
+    @Test func chipsRenderLargerAtExtraLarge() throws {
+        let chip = ModelRowChip(usedBy: try #require(row(folderUsers: 1).usedBy.first))
+        let medium = try width(chip.lintelTextSize(.medium))
+        let extraLarge = try width(chip.lintelTextSize(.extraLarge))
+        #expect(extraLarge > medium * 1.15)
+    }
+}
