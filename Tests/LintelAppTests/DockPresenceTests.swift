@@ -30,6 +30,23 @@ import Testing
         }
     }
 
+    @Test func untitledSystemWindowsDoNotCountAsAppWindows() {
+        // The status item's window is borderless and always visible; it must not stop the Dock from opening
+        // the main window.
+        let statusBarLike = NSWindow(contentRect: .zero, styleMask: [.borderless], backing: .buffered, defer: true)
+        let settings = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 100, height: 100), styleMask: [.titled, .closable],
+            backing: .buffered, defer: true)
+        let main = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 100, height: 100), styleMask: [.titled], backing: .buffered,
+            defer: true)
+        let onlyStatusItem = DockPresence.appWindowRoles([statusBarLike], mainWindow: main)
+        #expect(onlyStatusItem.isEmpty)
+        #expect(!DockPresence.hasVisibleWindows(onlyStatusItem))
+        #expect(DockPresence.appWindowRoles([statusBarLike, settings], mainWindow: main) == [.other])
+        #expect(DockPresence.appWindowRoles([statusBarLike, main], mainWindow: main) == [.mainWindow])
+    }
+
     @Test func theDockIconIsOnByDefault() {
         let settings = AppSettings(store: InMemorySettingsStore())
         #expect(settings.showInDock)

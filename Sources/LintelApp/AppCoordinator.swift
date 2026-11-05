@@ -161,7 +161,7 @@ final class AppCoordinator {
         #else
         let main: NSWindow? = nil
         #endif
-        return NSApp.windows.filter(\.isVisible).map { KeyWindowRole.classify($0, mainWindow: main) }
+        return DockPresence.appWindowRoles(NSApp.windows.filter(\.isVisible), mainWindow: main)
     }
 
     private func makeRouter() -> MainWindowRouter {

@@ -31,6 +31,21 @@ enum DockPresence {
         }
     }
 
+    /// The roles of `windows` (the visible ones) that a Dock click could find open. Only windows of the app
+    /// count: titled windows (the main window, Settings, About, the welcome screen) and the sheets and child
+    /// windows of the main window. Untitled system windows such as the status item's `NSStatusBarWindow` are
+    /// always visible and would otherwise make every Dock click find a window.
+    static func appWindowRoles(_ windows: [NSWindow], mainWindow: NSWindow?) -> [KeyWindowRole] {
+        windows.compactMap { window in
+            let role = KeyWindowRole.classify(window, mainWindow: mainWindow)
+            switch role {
+            case .mainWindow, .sheet, .childWindow, .popover, .openSavePanel, .launcherPanel, .hud: return role
+            case .about, .other, .none:
+                return window.styleMask.contains(.titled) ? role : nil
+            }
+        }
+    }
+
     static func apply(showInDock: Bool, to application: NSApplication = .shared) {
         let policy = policy(showInDock: showInDock)
         guard application.activationPolicy() != policy else { return }
