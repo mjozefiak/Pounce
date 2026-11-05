@@ -103,6 +103,8 @@ enum MeetingHUDState: Equatable, Sendable {
     enum Action: Equatable, Sendable {
         case stop
         case openSettings
+        /// The speech model is missing or unusable: `PluginContext.openModels` (the old window: this pane).
+        case openModels
         case openMicrophoneSettings
         case recordSystemAudioOnly
         case dismiss
@@ -244,7 +246,9 @@ extension MeetingHUDState {
             }
         case .allowMicrophone:
             [.dismiss]
-        case .problem(.modelMissing), .problem(.modelUnavailable), .problem(.libraryUnavailable):
+        case .problem(.modelMissing), .problem(.modelUnavailable):
+            [.openModels]
+        case .problem(.libraryUnavailable):
             [.openSettings]
         case .problem(.microphoneDenied(let offersSystemOnly)):
             offersSystemOnly ? [.openMicrophoneSettings, .recordSystemAudioOnly, .dismiss] : [.openMicrophoneSettings]
@@ -257,7 +261,7 @@ extension MeetingHUDState {
         switch action {
         case .stop:
             String(localized: "End recording", comment: "Meeting HUD button that ends the recording")
-        case .openSettings:
+        case .openSettings, .openModels:
             String(localized: "Open Settings", comment: "Meeting HUD button that opens Settings")
         case .openMicrophoneSettings:
             String(

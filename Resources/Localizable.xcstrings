@@ -11178,6 +11178,132 @@
           }
         }
       }
+    },
+    "%@ · %@" : {
+      "comment" : "Settings model summary: the model's name and its state, for example Parakeet Ultra · not installed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %@"
+          }
+        }
+      }
+    },
+    "installed" : {
+      "comment" : "Settings model summary: the model is on this Mac",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "installed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "zainstalowany"
+          }
+        }
+      }
+    },
+    "your folder" : {
+      "comment" : "Settings model summary: the model is in a folder the user chose",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "your folder"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Twój folder"
+          }
+        }
+      }
+    },
+    "downloading" : {
+      "comment" : "Settings model summary: the model is being downloaded",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "downloading"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pobieranie"
+          }
+        }
+      }
+    },
+    "not installed" : {
+      "comment" : "Settings model summary: the model is not on this Mac",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "not installed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nie zainstalowany"
+          }
+        }
+      }
+    },
+    "Get it in Models" : {
+      "comment" : "Settings model summary link that opens the Models pane",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get it in Models"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobierz w Modelach"
+          }
+        }
+      }
+    },
+    "Manage in Models" : {
+      "comment" : "Settings model summary link that opens the Models pane",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manage in Models"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zarządzaj w Modelach"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

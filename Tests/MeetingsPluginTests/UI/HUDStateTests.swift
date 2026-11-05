@@ -80,7 +80,13 @@ import Testing
         #expect(MeetingHUDState.processing(.recognisingSpeakers).title == "Processing: recognising speakers…")
         #expect(MeetingHUDState.processing(.transcribing(remaining: 3)).title == "Processing: transcribing (3 left)")
         #expect(MeetingHUDState.problem(.modelMissing).title == "Download a speech model in Settings")
-        #expect(MeetingHUDState.problem(.modelMissing).actions == [.openSettings])
+        // A model problem leads to the model's download (`openModels`); the button reads the same.
+        #expect(MeetingHUDState.problem(.modelMissing).actions == [.openModels])
+        #expect(MeetingHUDState.problem(.modelUnavailable).actions == [.openModels])
+        #expect(MeetingHUDState.problem(.libraryUnavailable).actions == [.openSettings])
+        #expect(
+            MeetingHUDState.problem(.modelMissing).title(for: .openModels)
+                == MeetingHUDState.problem(.modelMissing).title(for: .openSettings))
         #expect(recording { $0.secondsLeft = 125 }.detail == "Recording ends in 2:05")
     }
 

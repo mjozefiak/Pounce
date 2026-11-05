@@ -97,10 +97,14 @@ public final class DictationPlugin: LintelPlugin {
         formattingModel = FormattingSettingsModel(
             settings: settings, transport: transport, llmModels: llmModels, runtime: builtInLLM)
         let openSettings = context.openSettings
+        let openModels = context.openModels
         // The HUD's buttons call back into the controller, which exists once the plugin is active.
         let relay = ControllerRelay()
+        // A missing or broken speech model goes to the Models pane (in the old window: this pane, which shows the
+        // model card); the microphone problem goes to Settings as before.
         hud = DictationHUDPanel(
-            onCancel: { relay.controller?.cancel() }, onOpenSettings: { openSettings() })
+            onCancel: { relay.controller?.cancel() }, onOpenSettings: { openSettings() },
+            onOpenModels: { openModels(settings.speechModelID) })
         self.relay = relay
     }
 
@@ -303,7 +307,8 @@ public final class DictationPlugin: LintelPlugin {
         AnyView(
             DictationSettingsPane(
                 model: settingsModel, formatting: formattingModel, history: historyModel,
-                recorder: context.makeShortcutRecorder(Self.recordCommandID), isActive: controller != nil))
+                recorder: context.makeShortcutRecorder(Self.recordCommandID), isActive: controller != nil,
+                openModels: context.openModels))
     }
 }
 

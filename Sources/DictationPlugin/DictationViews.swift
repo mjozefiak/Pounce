@@ -1,7 +1,12 @@
 import LintelKit
+import LintelUI
 import SwiftUI
 
 /// Settings → Dictation.
+///
+/// In the old Settings window (`settingsHostStyle == .legacyWindow`) the pane keeps its model cards and microphone
+/// rows. In the main window they live in the Models and Permissions panes, so the pane shows a one-line summary of
+/// each model with a link to Models (spec `2026-11-04-lintel-main-window`, step 3.3).
 struct DictationSettingsPane: View {
     @Bindable var model: DictationSettingsModel
     @Bindable var formatting: FormattingSettingsModel
@@ -10,6 +15,9 @@ struct DictationSettingsPane: View {
     /// `false` while the plugin is off (the main window shows the pane dimmed): the pane then probes no
     /// server and reads no model folder (`settingsPane()` must not start work while inactive).
     var isActive = true
+    /// `PluginContext.openModels`: the Models pane on the package's row.
+    var openModels: (String?) -> Void = { _ in }
+    @Environment(\.settingsHostStyle) private var hostStyle
 
     var body: some View {
         Form {
@@ -50,7 +58,13 @@ struct DictationSettingsPane: View {
                     )
                     .font(.callout).foregroundStyle(.secondary)
                 }
-                SpeechModelCard(model: model)
+                if hostStyle == .legacyWindow {
+                    SpeechModelCard(model: model)
+                } else {
+                    ModelChoiceRow(title: model.package.title, state: model.choiceState) {
+                        openModels(model.package.id)
+                    }
+                }
             } header: {
                 Text("Speech model", comment: "Dictation settings section title")
             } footer: {
@@ -61,10 +75,13 @@ struct DictationSettingsPane: View {
                 .font(.callout).foregroundStyle(.secondary)
             }
 
-            FormattingSection(model: formatting)
+            FormattingSection(model: formatting, openModels: openModels)
 
             Section {
-                MicrophoneRows(model: model)
+                InputDevicePicker(model: model)
+                if hostStyle == .legacyWindow {
+                    MicrophoneRows(model: model)
+                }
             } header: {
                 Text("Microphone", comment: "Dictation settings section title")
             }
@@ -206,7 +223,21 @@ struct SpeechModelCard: View {
     }
 }
 
-struct MicrophoneRows: View {
+extension DictationSettingsModel {
+    /// The speech model's state for the main window's one-line summary.
+    var choiceState: ModelChoiceRow.State {
+        if progress != nil { return .downloading }
+        switch location {
+        case .installed: return .installed
+        case .customFolder: return .customFolder
+        case .customFolderUnavailable, .partial, .missing: return .notInstalled
+        }
+    }
+}
+
+/// The microphone to record from. Its own view so it stays in both hosts when the permission rows go (it moves
+/// under Advanced with step 5.1).
+struct InputDevicePicker: View {
     @Bindable var model: DictationSettingsModel
 
     var body: some View {
@@ -218,6 +249,14 @@ struct MicrophoneRows: View {
         } label: {
             Text("Input device", comment: "Dictation settings label")
         }
+    }
+}
+
+/// The microphone permission and its Test / Allow / Open Settings buttons (the old Settings window only).
+struct MicrophoneRows: View {
+    @Bindable var model: DictationSettingsModel
+
+    var body: some View {
         HStack {
             switch model.microphone {
             case .granted:
@@ -350,6 +389,8 @@ struct DictationSetupView: View {
 /// Settings → Dictation → Formatting: the optional clean-up by the user's local language model.
 struct FormattingSection: View {
     @Bindable var model: FormattingSettingsModel
+    var openModels: (String?) -> Void = { _ in }
+    @Environment(\.settingsHostStyle) private var hostStyle
 
     var body: some View {
         Section {
@@ -368,7 +409,16 @@ struct FormattingSection: View {
                     }
                 }
                 if model.isBuiltIn {
-                    BuiltInModelRows(model: model)
+                    if hostStyle == .legacyWindow {
+                        BuiltInModelRows(model: model)
+                    } else {
+                        BuiltInModelPicker(model: model)
+                        ModelChoiceRow(
+                            title: model.builtInModel.package.title, state: model.builtInChoiceState
+                        ) {
+                            openModels(model.builtInModel.id)
+                        }
+                    }
                 } else {
                     serverRows
                 }
@@ -472,13 +522,17 @@ struct FormattingSection: View {
     }
 }
 
-/// The built-in formatting model: the list of catalog models, their size and memory, and download or remove.
-struct BuiltInModelRows: View {
-    @Bindable var model: FormattingSettingsModel
-
-    private func bytes(_ value: Int) -> String {
-        ByteCountFormatter.string(fromByteCount: Int64(value), countStyle: .file)
+extension FormattingSettingsModel {
+    /// The built-in model's state for the main window's one-line summary.
+    var builtInChoiceState: ModelChoiceRow.State {
+        if builtInProgress != nil { return .downloading }
+        return isBuiltInInstalled ? .installed : .notInstalled
     }
+}
+
+/// Which catalog model formats the text (`plugins.dictation.builtInLLMModel`); shown in both hosts.
+struct BuiltInModelPicker: View {
+    @Bindable var model: FormattingSettingsModel
 
     var body: some View {
         Picker(selection: Binding(get: { model.builtInModel.id }, set: { model.chooseBuiltInModel($0) })) {
@@ -488,6 +542,20 @@ struct BuiltInModelRows: View {
         } label: {
             Text("Model", comment: "Dictation settings label of the formatting model")
         }
+    }
+}
+
+/// The built-in formatting model: the list of catalog models, their size and memory, and download or remove
+/// (the old Settings window only; the main window has them in the Models pane).
+struct BuiltInModelRows: View {
+    @Bindable var model: FormattingSettingsModel
+
+    private func bytes(_ value: Int) -> String {
+        ByteCountFormatter.string(fromByteCount: Int64(value), countStyle: .file)
+    }
+
+    var body: some View {
+        BuiltInModelPicker(model: model)
         Text(
             "Download \(bytes(model.builtInModel.package.totalBytes)), about \(bytes(model.builtInModel.residentBytes)) of memory while loaded. \(model.builtInModel.package.license) licence.",
             comment: "Dictation settings size and memory of the built-in model"

@@ -17,8 +17,11 @@ extension MeetingsPlugin {
 
     public var panelModes: [PanelMode] {
         let library = library
+        let openModels = context.openModels
+        let settings = settings
         let source = MeetingsLibrarySource(
-            store: { library.store }, actions: libraryActions, notes: notes.board, openSettings: context.openSettings)
+            store: { library.store }, actions: libraryActions, notes: notes.board,
+            openNotesModel: { openModels(settings.builtInLLMModel.id) })
         return [
             PanelMode(
                 id: Self.libraryModeID,

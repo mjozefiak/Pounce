@@ -89,7 +89,8 @@ final class NotesService {
         var now: @Sendable () -> Date = { Date() }
         /// How long `shutDown` waits for a job that does not stop (a model load cannot be cancelled).
         var shutdownLimit: Duration = .seconds(5)
-        var openSettings: @MainActor () -> Void = {}
+        /// `PluginContext.openModels`: a "Regenerate" without the notes model leads to its download.
+        var openModels: @MainActor (_ packageID: String?) -> Void = { _ in }
         var changed: @Sendable () -> Void = {}
         var logger = Logger(subsystem: "com.lintelapp", category: "meetings")
     }
@@ -270,7 +271,7 @@ final class NotesService {
             }) {
                 deps.changed()
             }
-            if job.requested { deps.openSettings() }
+            if job.requested { deps.openModels(model.id) }
             return
         }
         board.update {

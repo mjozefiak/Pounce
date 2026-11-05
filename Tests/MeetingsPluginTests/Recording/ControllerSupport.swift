@@ -267,6 +267,8 @@ final class ControllerRig {
     private(set) var requests: [MeetingSessionRequest] = []
     private(set) var openedURLs: [URL] = []
     private(set) var settingsOpened = 0
+    /// The packages `openModels` was called with.
+    private(set) var modelsOpened: [String?] = []
     private(set) var changes = Shared(0)
     private(set) var controller: MeetingController!
     private var markers = 0
@@ -295,6 +297,7 @@ final class ControllerRig {
                     return session
                 }, hud: hud, clock: clock, openSettings: { [unowned self] in self.settingsOpened += 1 },
                 openURL: { [unowned self] url in self.openedURLs.append(url) },
+                openModels: { [unowned self] id in self.modelsOpened.append(id) },
                 changed: { changes.update { $0 += 1 } }, shutdownTimeout: shutdownTimeout,
                 stateChanged: { ChangeSignal.shared.fire() }, recordingObserver: observer))
     }

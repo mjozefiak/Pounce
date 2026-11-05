@@ -1,9 +1,14 @@
 import LintelKit
 import LintelSpeech
+import LintelUI
 import SwiftUI
 
 /// Settings → Meetings: the notes (a built-in model card, Phase 2) and the meeting suggestions (Phase 3,
 /// `MeetingsSuggestionsSection`) have their own sections.
+///
+/// In the old Settings window (`settingsHostStyle == .legacyWindow`) the pane keeps its model cards and microphone
+/// rows. In the main window they live in the Models and Permissions panes, so the pane shows a one-line summary of
+/// each model with a link to Models (spec `2026-11-04-lintel-main-window`, step 3.3).
 struct MeetingsSettingsPane: View {
     @Bindable var model: MeetingsSettingsModel
     /// The shortcut recorder, or `nil` while the `meetings.record` command does not exist.
@@ -11,6 +16,9 @@ struct MeetingsSettingsPane: View {
     /// `false` while the plugin is off (the main window shows the pane dimmed): the pane then reads no model
     /// folder or device list (`settingsPane()` must not start work while inactive).
     var isActive = true
+    /// `PluginContext.openModels`: the Models pane on the package's row.
+    var openModels: (String?) -> Void = { _ in }
+    @Environment(\.settingsHostStyle) private var hostStyle
     @State private var confirmation: PrivacyConfirmation?
 
     private enum PrivacyConfirmation: Identifiable {
@@ -44,7 +52,10 @@ struct MeetingsSettingsPane: View {
             }
 
             Section {
-                MeetingsMicrophoneRows(model: model)
+                MeetingsInputDevicePicker(model: model)
+                if hostStyle == .legacyWindow {
+                    MeetingsMicrophoneRows(model: model)
+                }
                 Toggle(isOn: $model.voiceProcessing) {
                     Text("Reduce echo from the speakers", comment: "Meetings settings toggle of voice processing")
                 }
@@ -75,8 +86,17 @@ struct MeetingsSettingsPane: View {
                         Text("Language", comment: "Dictation settings label of the pinned language")
                     }
                 }
-                MeetingsModelCard(card: model.speech)
-                MeetingsModelCard(card: model.diarization)
+                if hostStyle == .legacyWindow {
+                    MeetingsModelCard(card: model.speech)
+                    MeetingsModelCard(card: model.diarization)
+                } else {
+                    ModelChoiceRow(title: model.speech.package.title, state: model.speech.choiceState) {
+                        openModels(model.speech.package.id)
+                    }
+                    ModelChoiceRow(title: model.diarization.package.title, state: model.diarization.choiceState) {
+                        openModels(model.diarization.package.id)
+                    }
+                }
             } header: {
                 Text("Models", comment: "Meetings settings section title")
             } footer: {
@@ -216,8 +236,21 @@ struct MeetingsSettingsPane: View {
     }
 }
 
-/// Input device, microphone permission and the Allow / Open Settings buttons.
-struct MeetingsMicrophoneRows: View {
+extension MeetingsModelCardModel {
+    /// The model's state for the main window's one-line summary.
+    var choiceState: ModelChoiceRow.State {
+        if progress != nil { return .downloading }
+        switch location {
+        case .installed: return .installed
+        case .customFolder: return .customFolder
+        case .customFolderUnavailable, .partial, .missing: return .notInstalled
+        }
+    }
+}
+
+/// The microphone to record from. Its own view so it stays in both hosts when the permission rows go (it moves
+/// under Advanced with step 5.2).
+struct MeetingsInputDevicePicker: View {
     @Bindable var model: MeetingsSettingsModel
 
     var body: some View {
@@ -229,6 +262,14 @@ struct MeetingsMicrophoneRows: View {
         } label: {
             Text("Input device", comment: "Dictation settings label")
         }
+    }
+}
+
+/// The microphone permission and the Allow / Open Settings buttons (the old Settings window only).
+struct MeetingsMicrophoneRows: View {
+    @Bindable var model: MeetingsSettingsModel
+
+    var body: some View {
         HStack {
             switch model.microphone {
             case .granted:

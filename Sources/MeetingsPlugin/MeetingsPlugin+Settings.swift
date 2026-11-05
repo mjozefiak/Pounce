@@ -96,7 +96,9 @@ extension MeetingsPlugin {
         let recorder =
             commands.contains { $0.id == MeetingsUI.recordCommandID }
             ? context.makeShortcutRecorder(MeetingsUI.recordCommandID) : nil
-        return AnyView(MeetingsSettingsPane(model: ui.model, recorder: recorder, isActive: controller != nil))
+        return AnyView(
+            MeetingsSettingsPane(
+                model: ui.model, recorder: recorder, isActive: controller != nil, openModels: context.openModels))
     }
 
     public func permissionAccessory(for permission: Permission) -> AnyView? {

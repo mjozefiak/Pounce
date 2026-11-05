@@ -104,7 +104,7 @@ final class MeetingWindowModel {
     @ObservationIgnored private let finishMeeting: @MainActor (Int64, Bool) -> MeetingFinishHandle?
     @ObservationIgnored private let regenerate: (@MainActor (Int64) -> Void)?
     @ObservationIgnored private let notes: NotesBoard?
-    @ObservationIgnored private let openNotesSettings: @MainActor () -> Void
+    @ObservationIgnored private let openNotesModel: @MainActor () -> Void
     @ObservationIgnored private let pollInterval: Duration
     @ObservationIgnored private let sleep: @Sendable (Duration) async throws -> Void
     @ObservationIgnored private var followTask: Task<Void, Never>?
@@ -130,11 +130,11 @@ final class MeetingWindowModel {
         regenerate: (@MainActor (Int64) -> Void)? = nil, onDeleted: @escaping @MainActor () -> Void = {},
         announce: @escaping @MainActor (String) -> Void = { _ in },
         labels: MarkdownExporter.Labels = .localized, timeZone: TimeZone = .current, notes: NotesBoard? = nil,
-        openNotesSettings: @escaping @MainActor () -> Void = {}, pollInterval: Duration = .seconds(2),
+        openNotesModel: @escaping @MainActor () -> Void = {}, pollInterval: Duration = .seconds(2),
         sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     ) {
         self.notes = notes
-        self.openNotesSettings = openNotesSettings
+        self.openNotesModel = openNotesModel
         self.pollInterval = pollInterval
         self.sleep = sleep
         self.meetingID = meetingID
@@ -264,7 +264,7 @@ final class MeetingWindowModel {
     }
 
     /// "Pobierz model notatek": opens the Settings of the notes.
-    func downloadNotesModel() { openNotesSettings() }
+    func downloadNotesModel() { openNotesModel() }
 
     var canDelete: Bool {
         guard let status = document?.status else { return false }

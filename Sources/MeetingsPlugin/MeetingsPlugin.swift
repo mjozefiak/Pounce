@@ -71,13 +71,14 @@ public final class MeetingsPlugin: LintelPlugin {
                 modelFile: { model in
                     await llmManager.location(of: model.package).folder.flatMap { model.fileURL(in: $0) }
                 },
-                openSettings: context.openSettings, changed: context.resultsChanged, logger: context.logger))
+                openModels: context.openModels, changed: context.resultsChanged, logger: context.logger))
         self.notes = notes
         library.onMeetingReady = { [weak notes] id in notes?.meetingBecameReady(id) }
         library.onWillClose = { [weak notes] in notes?.cancelJobs() }
         libraryActions = MeetingsLibraryActions(
             library: library, pasteboard: context.pasteboard, regenerate: { notes.regenerate($0) },
-            changed: context.resultsChanged, notes: notes.board, openNotesSettings: context.openSettings)
+            changed: context.resultsChanged, notes: notes.board,
+            openNotesModel: { [openModels = context.openModels] in openModels(settings.builtInLLMModel.id) })
         ui = MeetingsUI(context: context, settings: settings, library: library, activity: activity, notes: notes)
         let relay = relay
         hud = MeetingHUDPanel(onAction: { relay.controller?.perform($0) })
@@ -98,8 +99,8 @@ public final class MeetingsPlugin: LintelPlugin {
             library: library, settings: settings, authorizer: SystemMicrophoneAuthorizer(), activity: activity,
             speechModel: { await runtime.speechLookup() }, makeSession: { runtime.makeSession($0) },
             hud: hud, clock: context.clock, openSettings: context.openSettings,
-            openURL: { url in Task { try? await workspace.open(url) } }, changed: context.resultsChanged,
-            logger: context.logger)
+            openURL: { url in Task { try? await workspace.open(url) } }, openModels: context.openModels,
+            changed: context.resultsChanged, logger: context.logger)
         dependencies.recordingObserver = detector
         adjustControllerDependencies?(&dependencies)
         let controller = MeetingController(dependencies)

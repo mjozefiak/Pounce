@@ -94,6 +94,7 @@ let package = Package(
                 "LintelCore",
                 "LintelPersistence",
                 "LintelSpeech",
+                "LintelUI",
                 // The plugin owns dictation.sqlite and its migrator, like ClipboardPlugin owns clipboard.sqlite.
                 .product(name: "GRDB", package: "GRDBCipher"),
             ]

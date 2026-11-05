@@ -28,7 +28,8 @@ final class NotesServiceRig {
     let llm: ScriptedLLM
     let lease = LLMLease(sleep: { _ in try await Task.sleep(for: .seconds(3600)) })
     let file = Shared<URL?>(URL(filePath: "/models/llm/notes-test.gguf"))
-    let settingsOpened = Shared(0)
+    /// The packages `openModels` was called with.
+    let modelsOpened = Shared<[String?]>([])
     let changes = Shared(0)
     let fixedNow = Date(timeIntervalSince1970: 1_800_000_000)
     private(set) var service: NotesService!
@@ -49,7 +50,7 @@ final class NotesServiceRig {
         library.open()
         let llm = llm
         let file = file
-        let opened = settingsOpened
+        let opened = modelsOpened
         let changes = changes
         let now = fixedNow
         service = NotesService(
@@ -60,7 +61,7 @@ final class NotesServiceRig {
                     configuration.busyPoll = .milliseconds(10)
                     configure(&configuration)
                 }, now: { now }, shutdownLimit: shutdownLimit,
-                openSettings: { opened.update { $0 += 1 } }, changed: { changes.update { $0 += 1 } }))
+                openModels: { id in opened.update { $0.append(id) } }, changed: { changes.update { $0 += 1 } }))
         library.onMeetingReady = { [service] id in service?.meetingBecameReady(id) }
         library.onWillClose = { [service] in service?.cancelJobs() }
     }

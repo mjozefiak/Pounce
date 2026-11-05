@@ -8,12 +8,12 @@ import Testing
 @MainActor
 private func windowModel(
     _ rig: WindowRig, board: NotesBoard? = nil, regenerate: (@MainActor (Int64) -> Void)? = nil,
-    openSettings: @escaping @MainActor () -> Void = {}
+    openNotesModel: @escaping @MainActor () -> Void = {}
 ) -> MeetingWindowModel {
     MeetingWindowModel(
         meetingID: rig.meetingID, store: rig.store, spool: rig.spool, pasteboard: RecordingPasteboard(),
         saver: FakeFileSaver(), regenerate: regenerate, labels: .english, timeZone: ExportFixtures.utc, notes: board,
-        openNotesSettings: openSettings, pollInterval: .milliseconds(1), sleep: { _ in await Task.yield() })
+        openNotesModel: openNotesModel, pollInterval: .milliseconds(1), sleep: { _ in await Task.yield() })
 }
 
 @MainActor
@@ -58,9 +58,9 @@ private func windowModel(
         #expect(await banners(try WindowRig(status: .incomplete), board: wanting) == [.incomplete(canFinish: true)])
     }
 
-    @Test func theDownloadButtonOpensTheSettings() async throws {
+    @Test func theDownloadButtonOpensTheNotesModel() async throws {
         let opened = Box(0)
-        let model = windowModel(try WindowRig(), openSettings: { opened.withLock { $0 += 1 } })
+        let model = windowModel(try WindowRig(), openNotesModel: { opened.withLock { $0 += 1 } })
         model.downloadNotesModel()
         #expect(opened.withLock { $0 } == 1)
     }
