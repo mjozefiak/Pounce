@@ -17,7 +17,7 @@ import Testing
     ]
 
     static let rawStatusColour =
-        #/foregroundStyle\(\.(orange|red|green|yellow|blue|purple|pink|teal|mint|indigo|cyan)\)|Color\.(orange|red|green|yellow|blue)(?![A-Za-z0-9])|\.tint\(\.(orange|red|green|yellow|blue)\)/#
+        #/(foregroundStyle|foregroundColor|fill|stroke|background|tint)\(\.(orange|red|green|yellow|blue|purple|pink|teal|mint|indigo|cyan)\)|Color\.(orange|red|green|yellow|blue)(?![A-Za-z0-9])|\.system(Red|Orange|Green|Yellow|Blue)(?![A-Za-z0-9])/#
     static let hardCodedFont =
         #/[\s)]\.font\(\.(callout|caption|caption2|footnote|title|title2|title3|headline|subheadline|body|largeTitle)(?![A-Za-z0-9])/#
     static let glass = #/glassEffect|NSGlassEffectView/#
@@ -46,22 +46,66 @@ import Testing
         return result
     }
 
-    /// The text without the blocks that follow a `.legacyWindow` condition and without `//` comments.
+    private enum ScanState {
+        case normal
+        /// Inside a `.legacyWindow` block, `depth` braces deep: dropped.
+        case skipping(depth: Int)
+        /// Inside the new-window block of `!= .legacyWindow`: kept; its `else` block is the legacy one.
+        case keeping(depth: Int)
+        /// Just after that block closed: an `else {` that follows is skipped.
+        case afterNegatedBlock
+    }
+
+    /// The text without `//` comments and without the `.legacyWindow` branches: the block after
+    /// `== .legacyWindow {` (an `else` after it is kept) and the `else` block after `!= .legacyWindow {`.
     static func strippingLegacyBranches(_ source: String) -> String {
         var output = ""
-        var skipDepth: Int?
+        var state = ScanState.normal
         for line in source.split(separator: "\n", omittingEmptySubsequences: false) {
             let code = line.range(of: "//").map { String(line[..<$0.lowerBound]) } ?? String(line)
-            if skipDepth == nil, code.contains(".legacyWindow"), code.contains("{") {
-                skipDepth = 0
+            var kept = ""
+            var index = code.startIndex
+            if case .normal = state, let condition = code.range(of: ".legacyWindow"),
+                let brace = code[condition.upperBound...].firstIndex(of: "{")
+            {
+                let before = code[..<condition.lowerBound].trimmingCharacters(in: .whitespaces)
+                if before.hasSuffix("!=") {
+                    kept += code[...brace]
+                    state = .keeping(depth: 1)
+                } else {
+                    state = .skipping(depth: 1)
+                }
+                index = code.index(after: brace)
             }
-            if let depth = skipDepth {
-                let next = depth + code.filter { $0 == "{" }.count - code.filter { $0 == "}" }.count
-                skipDepth = next <= 0 ? nil : next
-                output += "\n"
-                continue
+            while index < code.endIndex {
+                let character = code[index]
+                let change = character == "{" ? 1 : character == "}" ? -1 : 0
+                switch state {
+                case .normal:
+                    kept.append(character)
+                case .skipping(let depth):
+                    state = depth + change == 0 ? .normal : .skipping(depth: depth + change)
+                case .keeping(let depth):
+                    kept.append(character)
+                    state = depth + change == 0 ? .afterNegatedBlock : .keeping(depth: depth + change)
+                case .afterNegatedBlock:
+                    let rest = code[index...]
+                    if character.isWhitespace {
+                        kept.append(character)
+                    } else if rest.hasPrefix("else"),
+                        let brace = rest.firstIndex(of: "{"),
+                        rest[rest.index(rest.startIndex, offsetBy: 4)..<brace].allSatisfy(\.isWhitespace)
+                    {
+                        state = .skipping(depth: 1)
+                        index = brace
+                    } else {
+                        kept.append(character)
+                        state = .normal
+                    }
+                }
+                index = code.index(after: index)
             }
-            output += code + "\n"
+            output += kept + "\n"
         }
         return output
     }
@@ -104,6 +148,13 @@ import Testing
         #expect("x.foregroundStyle(.orange)".contains(Self.rawStatusColour))
         #expect("Color.red".contains(Self.rawStatusColour))
         #expect(!"x.foregroundStyle(.secondary)".contains(Self.rawStatusColour))
+        #expect("x.foregroundColor(.red)".contains(Self.rawStatusColour))
+        #expect("Circle().fill(.orange)".contains(Self.rawStatusColour))
+        #expect("x.background(.red)".contains(Self.rawStatusColour))
+        #expect("Color(nsColor: .systemRed)".contains(Self.rawStatusColour))
+        #expect(!"Circle().fill(.secondary)".contains(Self.rawStatusColour))
+        #expect(!"Color(nsColor: .secondaryLabelColor)".contains(Self.rawStatusColour))
+        #expect(!"x.fill(LintelBrand.statusError)".contains(Self.rawStatusColour))
         #expect("Text(a).font(.callout.weight(.medium))".contains(Self.hardCodedFont))
         #expect(!"x.font(textSize.font(.callout))".contains(Self.hardCodedFont))
         #expect("glassEffect(.regular)".contains(Self.glass))
@@ -124,5 +175,49 @@ import Testing
         let kept = Self.strippingLegacyBranches(source)
         #expect(!kept.contains(".orange"))
         #expect(kept.contains(".red"))
+    }
+
+    @Test func theElseOfALegacyBranchIsScanned() {
+        let source = """
+            if style == .legacyWindow {
+                Text("old").foregroundStyle(.orange)
+            } else {
+                Text("new").foregroundStyle(.red)
+            }
+            Text("after").foregroundStyle(.green)
+            """
+        let kept = Self.strippingLegacyBranches(source)
+        #expect(!kept.contains(".orange"))
+        #expect(kept.contains(".red"))
+        #expect(kept.contains(".green"))
+        let oneLine = Self.strippingLegacyBranches(
+            "if style == .legacyWindow { a.fill(.orange) } else { b.fill(.red) }")
+        #expect(!oneLine.contains(".orange"))
+        #expect(oneLine.contains(".red"))
+    }
+
+    @Test func aNegatedConditionSkipsTheElseHalf() {
+        let source = """
+            if style != .legacyWindow {
+                Text("new").foregroundStyle(.red)
+                if x { y }
+            } else {
+                Text("old").foregroundStyle(.orange)
+            }
+            Text("after").foregroundStyle(.green)
+            """
+        let kept = Self.strippingLegacyBranches(source)
+        #expect(kept.contains(".red"))
+        #expect(!kept.contains(".orange"))
+        #expect(kept.contains(".green"))
+        let noElse = Self.strippingLegacyBranches(
+            """
+            if style != .legacyWindow {
+                a.fill(.red)
+            }
+            b.fill(.green)
+            """)
+        #expect(noElse.contains(".red"))
+        #expect(noElse.contains(".green"))
     }
 }

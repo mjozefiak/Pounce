@@ -42,9 +42,18 @@ public struct ConfirmSheet: View {
                     Text("Cancel", comment: "Confirmation sheet button that keeps everything as it is")
                 }
                 .keyboardShortcut(.defaultAction)
-                .keyboardShortcut(.cancelAction)
             }
         }
+        // A view takes one keyboard shortcut, so Esc goes through a second, invisible Cancel button; the exit
+        // command covers a focused control that swallows the shortcut.
+        .background {
+            Button(action: onCancel) { EmptyView() }
+                .keyboardShortcut(.cancelAction)
+                .frame(width: 0, height: 0)
+                .opacity(0)
+                .accessibilityHidden(true)
+        }
+        .onExitCommand(perform: onCancel)
         .padding(20)
         .frame(width: 380)
     }

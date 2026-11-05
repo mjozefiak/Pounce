@@ -1,3 +1,4 @@
+import AppKit
 import LintelUI
 import Testing
 
@@ -84,6 +85,28 @@ import Testing
             let darkTint = BrandPalette.blend(pair.dark, alpha: alpha, over: darkWindow)
             #expect(BrandPalette.contrast(pair.light, lightTint) >= 3, "status.\(pair.name) light banner")
             #expect(BrandPalette.contrast(pair.dark, darkTint) >= 3, "status.\(pair.name) dark banner")
+        }
+    }
+
+    /// The neutral banner has no brand token: its glyph is `secondaryLabelColor` (itself translucent) on a tint of
+    /// the same colour. The glyph, composited over that tint, keeps 3:1 in both appearances.
+    @MainActor
+    @Test func theNeutralGlyphHasThreeToOneOnItsBannerTint() throws {
+        let windows: [(NSAppearance.Name, UInt32)] = [(.aqua, 0xECECEC), (.darkAqua, 0x323232)]
+        for (name, window) in windows {
+            let appearance = try #require(NSAppearance(named: name))
+            var rgb: UInt32 = 0
+            var alpha = 0.0
+            appearance.performAsCurrentDrawingAppearance {
+                guard let colour = NSColor.secondaryLabelColor.usingColorSpace(.sRGB) else { return }
+                func byte(_ value: CGFloat) -> UInt32 { UInt32((max(0, min(1, value)) * 255).rounded()) }
+                rgb = byte(colour.redComponent) << 16 | byte(colour.greenComponent) << 8 | byte(colour.blueComponent)
+                alpha = Double(colour.alphaComponent)
+            }
+            #expect(alpha > 0, "\(name.rawValue): secondaryLabelColor resolves")
+            let tint = BrandPalette.blend(rgb, alpha: alpha * LintelBrand.statusTintAlpha, over: window)
+            let glyph = BrandPalette.blend(rgb, alpha: alpha, over: tint)
+            #expect(BrandPalette.contrast(glyph, tint) >= 3, "status.neutral \(name.rawValue) banner")
         }
     }
 }
