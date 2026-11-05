@@ -187,14 +187,15 @@ struct FeatureSwitchRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: manifest.symbolName)
-                .symbolRenderingMode(.hierarchical)
-                .font(textSize.font(.body))
-                .frame(width: 20)
-                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
-                Text(manifest.displayName)
-                    .font(textSize.font(.body, weight: .semibold))
+                // Prototype `set-features`: the symbol sits in front of the name, in the name's colour.
+                HStack(spacing: 4) {
+                    Image(systemName: manifest.symbolName)
+                        .font(textSize.font(.callout))
+                        .accessibilityHidden(true)
+                    Text(manifest.displayName)
+                        .font(textSize.font(.body, weight: .semibold))
+                }
                 if let summary = manifest.summary {
                     Text(summary)
                         .font(textSize.font(.callout))

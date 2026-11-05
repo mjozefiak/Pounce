@@ -85,9 +85,8 @@ enum SettingsSidebarModel {
                 id: SettingsGroup.lintel.rawValue, title: String(localized: "Lintel", comment: "Settings group"),
                 items: [
                     shell("general", String(localized: "General", comment: "Settings pane title"), "gearshape"),
-                    shell(
-                        "features", String(localized: "Features", comment: "Settings pane title"),
-                        "puzzlepiece.extension"),
+                    // The prototype's `grid` (the same glyph as Apps).
+                    shell("features", String(localized: "Features", comment: "Settings pane title"), "square.grid.2x2"),
                 ] + ordered(.lintel) + [
                     shell(
                         "permissions", String(localized: "Permissions", comment: "Settings pane title"), "hand.raised")
