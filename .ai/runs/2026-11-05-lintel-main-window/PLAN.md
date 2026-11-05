@@ -41,12 +41,13 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 | 4 | 4.2 | Apps pane onto the template | dispatch:standard | done | c2e60bc |
 | 4 | 4.3 | Files pane onto the template | dispatch:standard | done | e170580 |
 | 4 | 4.4 | Clipboard pane onto the template | dispatch:standard | done | 42b5dec |
-| 4 | 4.1-review-fix | Review fix: keyboard-reachable Result order, section-order move tests | dispatch:standard | done | pending |
-| 4 | 4.3-review-fix | Review fix: pure settingsStatus getters (no state change in view body), Full Disk Access acknowledged only after setup | dispatch:capable | done | pending |
-| 4 | 4.4-review-fix | Review fix: one coalesced status signal per clipboard copy, plural and behavioural pane tests, nits | dispatch:standard | done | pending |
-| 5 | 5.1 | Dictation pane onto the template | dispatch:standard | done | pending |
-| 5 | 5.2 | Meetings pane onto the template | dispatch:capable | done | pending |
-| 5 | 5.3 | Clear/Erase confirmation copy with kept-copies checkbox (L1-39) | dispatch:standard | done | pending |
+| 4 | 4.1-review-fix | Review fix: keyboard-reachable Result order, section-order move tests | dispatch:standard | done | 0a26e5a |
+| 4 | 4.3-review-fix | Review fix: pure settingsStatus getters (no state change in view body), Full Disk Access acknowledged only after setup | dispatch:capable | done | 7468a2d |
+| 4 | 4.4-review-fix | Review fix: one coalesced status signal per clipboard copy, plural and behavioural pane tests, nits | dispatch:standard | done | 0bafb18 |
+| 5 | 5.1 | Dictation pane onto the template | dispatch:standard | done | 389bb65 |
+| 5 | 5.2 | Meetings pane onto the template | dispatch:capable | done | 6c9f0b9 |
+| 5 | 5.3 | Clear/Erase confirmation copy with kept-copies checkbox (L1-39) | dispatch:standard | done | c7d3a71 |
+| 5 | 5.2-review-fix | Review fix: banner count includes denied required permissions, refresh the banner when the engine changes, pinned shell test | dispatch:standard | todo | — |
 | 6 | 6.1 | Welcome final page "You're set" | dispatch:standard | todo | — |
 | 6 | 6.5 | Final 1:1 comparison of every implemented screen with the prototype, with fix commits for each difference | inline | todo | — |
 | 6 | 6.4 | docs(spec): correct the Phasing sentence about phases and PRs | inline | todo | — |
