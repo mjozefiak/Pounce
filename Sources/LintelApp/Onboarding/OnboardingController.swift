@@ -323,7 +323,11 @@ final class OnboardingController: NSObject, NSWindowDelegate {
     }
 
     private func present(_ view: AnyView) {
-        let controller = NSHostingController(rootView: view.lintelBrand())
+        // Every host applies the text size (Settings → General → Text size), read while it renders so a change
+        // follows at once (prototype `shell-welcome-*` at S and XL).
+        let settings = settings
+        let controller = NSHostingController(
+            rootView: AnyView(LintelTextSizeScope(size: { settings.textSize }) { view }.lintelBrand()))
         controller.sizingOptions = [.preferredContentSize]
         if let window {
             window.contentViewController = controller

@@ -73,6 +73,9 @@ public struct WelcomeStepLayout<Mark: View, Content: View, Footer: View>: View {
             LintelDivider()
             footer
         }
+        // Text without its own font (the page's line, the footer's Skip and Back) is the body size at the
+        // text size, as every prototype `shell-welcome-*` line is.
+        .font(textSize.font(.body))
         .frame(width: WelcomeLayout.width)
         .frame(minHeight: WelcomeLayout.minHeight)
         .fixedSize(horizontal: false, vertical: true)
