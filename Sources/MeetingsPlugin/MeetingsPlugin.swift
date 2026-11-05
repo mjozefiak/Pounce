@@ -1,6 +1,7 @@
 import Foundation
 import LintelKit
 import LintelSpeech
+import LintelUI
 import SwiftUI
 
 /// Meeting transcription and notes (spec: Transkrypcja spotkań i notatki). Registered in `PluginRegistry`
@@ -49,8 +50,16 @@ public final class MeetingsPlugin: LintelPlugin {
     var adjustDetectorDependencies: ((inout MeetingDetector.Dependencies) -> Void)?
     let suggestionRelay = SuggestionRelay()
     let suggestionHUD: SuggestionHUDPanel
+    /// Where app activations are posted (tests use their own centre).
+    var appActivationCenter: NotificationCenter = .default
+    private var activationObserver: AppActivationObserver?
 
-    public init(context: PluginContext) {
+    public convenience init(context: PluginContext) {
+        self.init(context: context, authorizer: SystemMicrophoneAuthorizer())
+    }
+
+    /// `authorizer` replaces the system's microphone permission in the settings and the banner (tests).
+    init(context: PluginContext, authorizer: any MicrophoneAuthorizer) {
         self.context = context
         let settings = MeetingsSettings(context.settings)
         self.settings = settings
@@ -79,7 +88,12 @@ public final class MeetingsPlugin: LintelPlugin {
             library: library, pasteboard: context.pasteboard, regenerate: { notes.regenerate($0) },
             changed: context.resultsChanged, notes: notes.board,
             openNotesModel: { [openModels = context.openModels] in openModels(settings.builtInLLMModel.id) })
-        ui = MeetingsUI(context: context, settings: settings, library: library, activity: activity, notes: notes)
+        ui = MeetingsUI(
+            context: context, settings: settings, library: library, activity: activity, authorizer: authorizer,
+            notes: notes)
+        // The banner reads the speech model's place and the microphone; a change makes the shell read it again.
+        let resultsChanged = context.resultsChanged
+        ui.model.onStatusChange = { resultsChanged() }
         let relay = relay
         hud = MeetingHUDPanel(onAction: { relay.controller?.perform($0) })
         let suggestionRelay = suggestionRelay
@@ -107,6 +121,13 @@ public final class MeetingsPlugin: LintelPlugin {
         self.controller = controller
         relay.controller = controller
         startDetector(detector)
+        // The banner's state is known before the shell first reads it; coming back from System Settings or from
+        // a download in the Models pane reads it again.
+        let model = ui.model
+        await model.refreshStatus()
+        activationObserver = AppActivationObserver(center: appActivationCenter) {
+            Task { await model.refreshStatus() }
+        }
     }
 
     /// Switches the plugin off. A recording in progress is finished first, for at most the controller's
@@ -115,6 +136,8 @@ public final class MeetingsPlugin: LintelPlugin {
     /// closed by a background task as soon as the session ends, unless the plugin was activated again by then.
     /// So after `deactivate()` returns, `library.status` is `.closed` only when nothing was still running.
     public func deactivate() async {
+        activationObserver?.stop()
+        activationObserver = nil
         stopDetector()
         // A running notes job is cancelled and puts its status back before the library can close.
         await notes.shutDown()

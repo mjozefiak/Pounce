@@ -8,7 +8,11 @@ import Observation
 @MainActor @Observable
 final class MeetingsModelCardModel {
     private(set) var package: ModelPackage
-    private(set) var location = ModelLocation.missing
+    private(set) var location = ModelLocation.missing {
+        didSet { if location != oldValue { onLocationChange?() } }
+    }
+    /// Called when the model's place changed, so the plugin can tell the shell to read its banner again.
+    @ObservationIgnored var onLocationChange: (@MainActor () -> Void)?
     private(set) var progress: ModelProgress?
     private(set) var errorMessage: String?
     private(set) var isVerifying = false

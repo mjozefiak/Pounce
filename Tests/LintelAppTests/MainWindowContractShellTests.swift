@@ -116,8 +116,8 @@ final class PanePlugin: LintelPlugin {
             #expect(entry.manifest.canBeDisabled)
             #expect(sections == 0)
             // Step 4.3: Files always has a banner ("Indexing hasn’t started" before the first scan); step 5.1:
-            // Dictation too (the speech model, the microphone, else Ready).
-            #expect(hasStatus == ["files", "dictation"].contains(entry.manifest.id))
+            // Dictation too (the speech model, the microphone, else Ready); step 5.2: Meetings too.
+            #expect(hasStatus == ["files", "dictation", "meetings"].contains(entry.manifest.id))
             // Step 3.2: the voice plugins declare their models; the others none.
             switch entry.manifest.id {
             case "dictation": #expect(kinds == [.speech, .llm])

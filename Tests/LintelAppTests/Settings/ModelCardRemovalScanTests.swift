@@ -15,7 +15,8 @@ import Testing
         ("Sources/DictationPlugin/DictationSettingsPane.swift", "DictationPaneContent"),
         ("Sources/DictationPlugin/LegacyDictationSettingsPane.swift", "LegacyDictationSettingsPane"),
         ("Sources/DictationPlugin/DictationViews.swift", "FormattingSection"),
-        ("Sources/MeetingsPlugin/UI/MeetingsViews.swift", "MeetingsSettingsPane"),
+        ("Sources/MeetingsPlugin/UI/MeetingsSettingsPane.swift", "MeetingsPaneContent"),
+        ("Sources/MeetingsPlugin/UI/LegacyMeetingsSettingsPane.swift", "LegacyMeetingsSettingsPane"),
     ]
 
     /// Every call of a plugin's `openSettings` (`PluginContext.openSettings` and the closures it is passed on as),
@@ -48,6 +49,10 @@ import Testing
         (
             "Sources/MeetingsPlugin/UI/MeetingsViews.swift", "openSettings()",
             "SystemAudioTestRows: the System Audio Recording privacy settings"
+        ),
+        (
+            "Sources/MeetingsPlugin/UI/MeetingsSettingsPane.swift", ") { openSettings() }",
+            "SystemAudioTestRow: the System Audio Recording privacy settings"
         ),
     ]
 

@@ -28,8 +28,10 @@ import Testing
 
     @Test func theOldWindowKeepsTheModelCardsAndTheMicrophoneRows() throws {
         let rig = try SettingsRig()
-        let types = Self.typeNames(in: MeetingsSettingsPane(model: rig.model, recorder: nil, isActive: false).body)
+        let types = Self.typeNames(
+            in: LegacyMeetingsSettingsPane(model: rig.model, recorder: nil, isActive: false).body)
         #expect(types.contains("MeetingsModelCard"))
+        #expect(types.contains("NotesSettingsRows"))
         #expect(types.contains("MeetingsMicrophoneRows"))
         #expect(types.contains("MeetingsInputDevicePicker"))
         #expect(!types.contains("ModelChoiceRow"))

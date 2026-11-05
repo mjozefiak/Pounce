@@ -23,7 +23,8 @@ import Testing
         "retentionDays": "setRetentionDays",
     ]
 
-    /// Keys with no pane control, each with the reason.
+    /// Keys with no pane control, each with the reason. The prototype figure `set-meetings` shows no control for
+    /// any of them either (step 5.2).
     static let exempt: [String: String] = [
         "systemAudio": "no pane control by design: capture setting kept for defaults, default on",
         "diarization": "no pane control by design: capture setting kept for defaults, default on",
@@ -34,12 +35,67 @@ import Testing
 
     /// The pane view and model sources, relative to the repository root.
     static let paneFiles = [
+        "Sources/MeetingsPlugin/UI/MeetingsSettingsPane.swift",
+        "Sources/MeetingsPlugin/UI/LegacyMeetingsSettingsPane.swift",
         "Sources/MeetingsPlugin/UI/MeetingsViews.swift",
         "Sources/MeetingsPlugin/UI/MeetingsSettingsModel.swift",
         "Sources/MeetingsPlugin/Suggestions/MeetingsSettingsModel+Suggestions.swift",
         "Sources/MeetingsPlugin/Notes/NotesViews.swift",
         "Sources/MeetingsPlugin/Notes/NotesSettingsModel.swift",
         "Sources/MeetingsPlugin/MeetingsPlugin+Settings.swift",
+    ]
+
+    /// Step 5.2: the view token of every non-exempt key in each window's own sources, so a key stays reachable in
+    /// the main window and in the old one. The setters above live in the shared models; these are the controls
+    /// that call them.
+    static let windowTokens: [(window: String, files: [String], tokens: [String: String])] = [
+        (
+            "main window",
+            [
+                "Sources/MeetingsPlugin/UI/MeetingsSettingsPane.swift",
+                // Both model folders are chosen in the Models pane through the usages' `chooseFolder`.
+                "Sources/MeetingsPlugin/MeetingsPlugin+Models.swift",
+            ],
+            [
+                "speechModel": "model.selectSpeechModel(",
+                "speechLanguage": "$model.speechLanguage",
+                "speechModelFolder": "chooseFolder: { settings.setSpeechModelFolder($0) }",
+                "diarizationModelFolder": "chooseFolder: { settings.setDiarizationModelFolder($0) }",
+                "inputDevice": "$model.inputDevice",
+                "voiceProcessing": "$model.voiceProcessing",
+                "consentReminder": "$model.consentReminder",
+                "notesEnabled": "model.notes.enabled = ",
+                "builtInLLMModel": "notes.choose(",
+                "suggestMeetings": "$model.suggestMeetings",
+                "suggestMutedBundleIDs": "model.unmute(",
+                "suggestExtraBundleIDs": "model.addExtraApp(",
+                "retentionDays": "model.selectRetention(",
+            ]
+        ),
+        (
+            "old window",
+            [
+                "Sources/MeetingsPlugin/UI/LegacyMeetingsSettingsPane.swift",
+                "Sources/MeetingsPlugin/UI/MeetingsViews.swift",
+                "Sources/MeetingsPlugin/Notes/NotesViews.swift",
+                "Sources/MeetingsPlugin/Suggestions/MeetingsSuggestionsViews.swift",
+            ],
+            [
+                "speechModel": "model.selectSpeechModel(",
+                "speechLanguage": "$model.speechLanguage",
+                "speechModelFolder": "MeetingsModelCard(card: model.speech)",
+                "diarizationModelFolder": "MeetingsModelCard(card: model.diarization)",
+                "inputDevice": "$model.inputDevice",
+                "voiceProcessing": "$model.voiceProcessing",
+                "consentReminder": "$model.consentReminder",
+                "notesEnabled": "$model.enabled",
+                "builtInLLMModel": "model.choose(",
+                "suggestMeetings": "$model.suggestMeetings",
+                "suggestMutedBundleIDs": "model.unmute(",
+                "suggestExtraBundleIDs": "model.addExtraApp(",
+                "retentionDays": "model.selectRetention(",
+            ]
+        ),
     ]
 
     private static let root: URL = {
@@ -82,6 +138,16 @@ import Testing
         }
         for (key, reason) in Self.exempt {
             #expect(!reason.isEmpty, "\(key) needs a reason")
+        }
+    }
+
+    @Test func bothWindowsReachEveryNonExemptKey() throws {
+        for window in Self.windowTokens {
+            #expect(Set(window.tokens.keys) == Set(Self.paneTokens.keys), "\(window.window): the key list differs")
+            let source = try window.files.map { try Self.read($0) }.joined(separator: "\n")
+            for (key, token) in window.tokens {
+                #expect(source.contains(token), "\(key): the \(window.window) sources do not contain \(token)")
+            }
         }
     }
 }

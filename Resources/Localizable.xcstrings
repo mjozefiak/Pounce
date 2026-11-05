@@ -13176,6 +13176,312 @@
           }
         }
       }
+    },
+    "Fix Next" : {
+      "comment" : "Settings banner button: fixes the first of several things to do",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fix Next"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Napraw kolejne"
+          }
+        }
+      }
+    },
+    "Privacy and data" : {
+      "comment" : "Settings → Meetings section title: the reminder and the library",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy and data"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prywatność i dane"
+          }
+        }
+      }
+    },
+    "Library" : {
+      "comment" : "Settings → Meetings row of the meeting library",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Library"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biblioteka"
+          }
+        }
+      }
+    },
+    "Notes model" : {
+      "comment" : "Settings → Meetings label of the model that writes the notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes model"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model notatek"
+          }
+        }
+      }
+    },
+    "Reduce echo from speakers" : {
+      "comment" : "Settings → Meetings switch of voice processing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reduce echo from speakers"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redukuj echo z głośników"
+          }
+        }
+      }
+    },
+    "Can lower other apps’ volume." : {
+      "comment" : "Settings → Meetings: help under Reduce echo",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can lower other apps’ volume."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Może ściszać inne aplikacje."
+          }
+        }
+      }
+    },
+    "Press to start and again to stop." : {
+      "comment" : "Settings → Meetings: help under the Record meeting shortcut",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press to start and again to stop."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naciśnij, aby zacząć i zakończyć."
+          }
+        }
+      }
+    },
+    "Summary, decisions, tasks. Needs the notes model." : {
+      "comment" : "Settings → Meetings: help under Write notes after each meeting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Summary, decisions, tasks. Needs the notes model."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podsumowanie, decyzje, zadania. Wymaga modelu notatek."
+          }
+        }
+      }
+    },
+    "Remind me to say I am recording" : {
+      "comment" : "Settings → Meetings switch of the consent reminder",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remind me to say I am recording"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przypominaj, by powiedzieć, że nagrywam"
+          }
+        }
+      }
+    },
+    "Temporary recordings" : {
+      "comment" : "Settings → Meetings row of the audio of interrupted meetings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temporary recordings"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tymczasowe nagrania"
+          }
+        }
+      }
+    },
+    "Audio of interrupted meetings." : {
+      "comment" : "Settings → Meetings: help under Temporary recordings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio of interrupted meetings."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dźwięk przerwanych spotkań."
+          }
+        }
+      }
+    },
+    "Allow the microphone so Lintel can hear the meeting." : {
+      "comment" : "Settings → Meetings banner detail: macOS has not asked for the microphone yet",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow the microphone so Lintel can hear the meeting."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól na mikrofon, aby Lintel słyszał spotkanie."
+          }
+        }
+      }
+    },
+    "Meetings are paused" : {
+      "comment" : "Settings → Meetings banner when the library cannot be opened",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meetings are paused"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spotkania są wstrzymane"
+          }
+        }
+      }
+    },
+    "Lintel can’t read the library’s key. Nothing was deleted." : {
+      "comment" : "Settings → Meetings banner detail when the library key cannot be read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel can’t read the library’s key. Nothing was deleted."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel nie może odczytać klucza biblioteki. Nic nie zostało usunięte."
+          }
+        }
+      }
+    },
+    "The library couldn’t be opened. Nothing was deleted." : {
+      "comment" : "Settings → Meetings banner detail when the library database cannot be opened",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The library couldn’t be opened. Nothing was deleted."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się otworzyć biblioteki. Nic nie zostało usunięte."
+          }
+        }
+      }
+    },
+    "Try Again (meetings library)" : {
+      "comment" : "Settings → Meetings banner button that opens the library again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try Again"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spróbuj ponownie"
+          }
+        }
+      }
+    },
+    "Test (system audio)" : {
+      "comment" : "Settings → Meetings button that starts the system audio test",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testuj"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

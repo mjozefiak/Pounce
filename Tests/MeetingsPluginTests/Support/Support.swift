@@ -164,6 +164,8 @@ struct MeetingsHarness {
     let keychain = MemoryKeychain()
     let settings: MemorySettingsStore
     let usage = NoUsage()
+    /// How many times the plugin signalled `resultsChanged`.
+    let changes = Shared(0)
     let context: PluginContext
 
     /// `Plugins/meetings` inside the temporary folder.
@@ -174,6 +176,7 @@ struct MeetingsHarness {
         let settings = MemorySettingsStore(initial)
         self.directory = directory
         self.settings = settings
+        let changes = changes
         context = PluginContext(
             storageDirectory: directory.url.appending(path: "Plugins/meetings", directoryHint: .isDirectory),
             settings: PluginSettings(pluginID: "meetings", store: settings),
@@ -185,6 +188,7 @@ struct MeetingsHarness {
             workspace: InertWorkspace(),
             permissions: GrantedPermissions(),
             clock: ContinuousClock(),
+            resultsChanged: { changes.update { $0 += 1 } },
             modelsDirectory: directory.url.appending(path: "Models", directoryHint: .isDirectory)
         )
     }

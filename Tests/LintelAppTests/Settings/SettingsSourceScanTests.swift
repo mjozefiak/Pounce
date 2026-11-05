@@ -13,6 +13,7 @@ import Testing
         "Sources/FilesPlugin/FilesSettingsPane.swift",
         "Sources/ClipboardPlugin/ClipboardSettingsPane.swift",
         "Sources/DictationPlugin/DictationSettingsPane.swift",
+        "Sources/MeetingsPlugin/UI/MeetingsSettingsPane.swift",
     ]
 
     /// Panes in `LintelApp/Settings` that still use today's fonts; each leaves this list in the Phase 4 step that
