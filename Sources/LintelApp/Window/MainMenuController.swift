@@ -6,7 +6,7 @@ import LintelKit
 /// and Command-V, Command-Z and Command-A keep working in sheets and panels (spec `2026-11-04-lintel-main-window`,
 /// `MainMenu`). The decisions are `MainMenuPolicy`; this class builds the `NSMenu` and watches the key window.
 ///
-/// Behind the release gate of ADR 0008 until step 6.3a: a release build never installs a menu.
+/// Installed in every build since step 6.3a removed the release gate of ADR 0008.
 final class MainMenuController: NSObject, NSMenuItemValidation {
     private let mainWindow: () -> NSWindow?
     private let mode: () -> MainWindowState.Mode?
@@ -69,7 +69,6 @@ final class MainMenuController: NSObject, NSMenuItemValidation {
     /// Installs or removes the menu for the current key window, mode and section. Also called after the activation
     /// policy changes (`app.showInDock`), which can drop the menu.
     func refresh() {
-        #if DEBUG
         let role = isAppActive ? KeyWindowRole.classify(keyWindow(), mainWindow: mainWindow()) : .none
         let current = section()
         let sectionMenu = current.map { section in
@@ -86,7 +85,6 @@ final class MainMenuController: NSObject, NSMenuItemValidation {
         let menu = Self.build(spec, target: self)
         installedMenu = menu
         setMenu(menu)
-        #endif
     }
 
     private func remove() {

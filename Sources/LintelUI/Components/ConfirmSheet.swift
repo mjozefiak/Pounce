@@ -122,7 +122,7 @@ public struct DestructiveConfirmation: Sendable {
     public let prompt: LocalizedStringResource
     public let detail: LocalizedStringResource
     /// The main window's sheet shows this instead of `detail` when set. The old window keeps `detail` word for word
-    /// (release users see today's text until step 6.3a, ADR 0008 Release gate).
+    /// (until step 6.3b removes the old window).
     public let mainWindowDetail: LocalizedStringResource?
     public let confirmTitle: LocalizedStringResource
     /// The old window's dialog shows its title only where it always did.

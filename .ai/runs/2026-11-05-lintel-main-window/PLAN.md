@@ -60,7 +60,7 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 | 6 | 6.5i | Release parity: restore the release wording of shared catalog keys changed for the new window | dispatch:standard | done | dad5d1f |
 | 6 | 6.5 | Final 1:1 re-comparison of every screen with the prototype and remaining-differences list | inline | done | 6.5a–i |
 | 6 | 6.4 | docs(spec): correct the Phasing sentence about phases and PRs | inline | done | 3b684f6 |
-| 6 | 6.3a | Remove the DEBUG gate (window enabled for users) | dispatch:capable | todo | — |
+| 6 | 6.3a | Remove the DEBUG gate (window enabled for users) | dispatch:capable | done | pending |
 | 6 | 6.3b | Delete SettingsWindowController, the adapter and .legacyWindow branches | dispatch:capable | todo | — |
 | 6 | 6.3c | Update docs/qa.md, AGENTS.md rows, BACKWARD_COMPATIBILITY.md, catalog check | dispatch:standard | todo | — |
 

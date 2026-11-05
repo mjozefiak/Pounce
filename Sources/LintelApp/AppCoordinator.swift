@@ -20,15 +20,13 @@ final class AppCoordinator {
     private var shellPane: ((SettingsWindowController.Pane) -> AnyView)?
     private(set) var onboarding: OnboardingController?
     private(set) var about: AboutWindowController?
-    #if DEBUG
-    /// The main window, behind the release gate of ADR 0008 until step 6.3: built on first use, DEBUG only.
+    /// The main window (ADR 0008; enabled in every build since step 6.3a): built on first use.
     private(set) var mainWindow: MainWindowController?
     private var mainMenu: MainMenuController?
     /// The one banner of the main window's Settings mode (spec step 2.2); built with the Settings mode.
     private var settingsHost: SettingsHostModel?
-    /// Settings → Models (spec step 3.2): main window only; the old window keeps the plugins' model cards.
+    /// Settings → Models (spec step 3.2).
     private var modelsPane: ModelsPaneModel?
-    #endif
     /// Shows the welcome screen's pending steps. Set in `start()` outside QA mode; tests replace it.
     var presentPendingOnboarding: (@MainActor () -> Void)?
     private let search: SearchCoordinator
@@ -94,9 +92,7 @@ final class AppCoordinator {
             diskDirectory: environment.cachesRoot.appending(path: "icons", directoryHint: .isDirectory))
         settingsRelay.handler = { [weak self] id in self?.openPluginSettings(id) }
         settingsRelay.modelsHandler = { [weak self] id, packageID in self?.openModels(from: id, packageID: packageID) }
-        #if DEBUG
         statusRelay.handler = { [weak self] id in self?.settingsHost?.pluginResultsChanged(id) }
-        #endif
     }
 
     /// Builds the panel and windows, activates the enabled plugins, registers shortcuts and, while steps
@@ -121,10 +117,8 @@ final class AppCoordinator {
         appSettings.showInDockChanged = { [weak self] showInDock in
             DockPresence.apply(showInDock: showInDock)
             if !showInDock { self?.settingsWindow?.bringToFrontIfVisible() }
-            #if DEBUG
             // Changing the activation policy can drop the main menu; put it back for the key window.
             self?.mainMenu?.refresh()
-            #endif
         }
 
         await host.start()
@@ -139,14 +133,14 @@ final class AppCoordinator {
         }
     }
 
-    /// Sends the Dock, Command-comma, "Settings…", `openModels` and `openNote` to the main window while it is
-    /// enabled (DEBUG until step 6.3a), else to the old Settings window as before (ADR 0008, "Release gate").
+    /// Sends the Dock, Command-comma, "Settings…", the Settings panes, `openModels` and `openNote` to the main
+    /// window (ADR 0008, "Release gate"; enabled in every build since step 6.3a).
     private(set) lazy var router = makeRouter()
 
-    /// A click on the Dock icon (or opening the app again from Finder): the main window while it is enabled,
-    /// else Settings, unless a window is already open.
-    func reopen(appKitHasVisibleWindows: Bool) {
-        router.reopen(appKitHasVisibleWindows: appKitHasVisibleWindows, visibleWindowRoles: visibleWindowRoles())
+    /// A click on the Dock icon (or opening the app again from Finder): the main window, unless a window is already
+    /// open.
+    func reopen() {
+        router.reopen(visibleWindowRoles: visibleWindowRoles())
     }
 
     /// Command-comma in the launcher panel and the status item's "Settings…".
@@ -156,16 +150,14 @@ final class AppCoordinator {
 
     /// `PluginContext.openModels` of the plugin `pluginID`.
     func openModels(from pluginID: String, packageID: String?) {
-        router.openModels(from: pluginID, packageID: packageID)
-        #if DEBUG
+        router.openModels(packageID: packageID)
         // A Models pane that exists scrolls to the row now (it may be on screen already); otherwise it takes the
         // pending row when it appears.
         if let modelsPane, let target = router.takePendingModelsPackageID() { modelsPane.scrollTarget = target }
-        #endif
     }
 
     /// An `openNote` route (kind `openNote`, `WorkspaceSection.handleRoute`): `true` only when a section of the
-    /// enabled main window handled it; the caller keeps its old behaviour otherwise.
+    /// main window handled it; the caller keeps its old behaviour otherwise.
     @discardableResult
     func openNote(_ route: WorkspaceRoute) -> Bool {
         router.open(route)
@@ -177,54 +169,34 @@ final class AppCoordinator {
     }
 
     private func visibleWindowRoles() -> [KeyWindowRole] {
-        #if DEBUG
-        let main = mainWindow?.window
-        #else
-        let main: NSWindow? = nil
-        #endif
-        return DockPresence.appWindowRoles(NSApp.windows.filter(\.isVisible), mainWindow: main)
+        DockPresence.appWindowRoles(NSApp.windows.filter(\.isVisible), mainWindow: mainWindow?.window)
     }
 
     private func makeRouter() -> MainWindowRouter {
         let host = host
         var targets = MainWindowRouter.Targets()
-        targets.showLegacySettings = { [weak self] pane in self?.openSettings(pane) }
-        targets.showLegacyPluginPane = { [weak self] id in self?.openPluginSettings(id) }
-        targets.modelUsers = {
-            host.entries.filter(\.state.isActive).map {
-                MainWindowRouter.ModelUser(
-                    pluginID: $0.manifest.id.rawValue, packageIDs: $0.plugin.modelUsage.map(\.packageID))
-            }
-        }
         targets.sections = { Self.activeWorkspaceSections(host) }
-        #if DEBUG
         targets.showMainWindow = { [weak self] in self?.showMainWindow { $0.show() } }
         targets.showMainWindowSettings = { [weak self] pane in self?.showMainWindow { $0.showSettings(pane) } }
         targets.showMainWindowSection = { [weak self] id in self?.showMainWindow { $0.showWorkspace(id) } }
-        #endif
         return MainWindowRouter(targets: targets)
     }
 
     /// Deactivates every plugin before the app exits.
     func stop() async {
-        #if DEBUG
         // The visible workspace section flushes what it holds before the plugins stop.
         await mainWindow?.prepareForTermination()
-        #endif
         await host.stop()
     }
 
     /// Hides the panel first, refreshes the default shortcut (Spotlight may have released ⌘Space), and
-    /// shows Settings.
+    /// shows a shell pane of the main window's Settings mode.
     func openSettings(_ pane: SettingsWindowController.Pane = .general) {
-        panelModel.hide()
-        hotkeys.refreshDefault()
-        settingsWindow?.show(pane)
+        router.openSettings(pane: pane.rawValue)
     }
 
     /// The plugin panes of the main window's Settings mode: unlike the old Settings window, it includes disabled
-    /// and failed plugins, drawn dimmed. Used by the main window (spec steps 1.2 and 1.3), which stays behind the
-    /// DEBUG release gate until step 6.3.
+    /// and failed plugins, drawn dimmed (spec steps 1.2 and 1.3).
     func mainWindowPluginPanes() -> [SettingsWindowController.PluginPane] {
         host.settingsPanes(includingInactive: true)
     }
@@ -235,11 +207,9 @@ final class AppCoordinator {
         about?.show()
     }
 
-    /// Shows a plugin's own Settings pane.
+    /// Shows a plugin's own pane in the main window's Settings mode.
     func openPluginSettings(_ id: String) {
-        panelModel.hide()
-        hotkeys.refreshDefault()
-        settingsWindow?.showPluginPane(id)
+        router.openSettings(pane: id)
     }
 
     /// A plugin command from its shortcut or the menu: open its panel mode, or run it.
@@ -331,10 +301,7 @@ final class AppCoordinator {
         window.textSize = { settings.textSize }
         settingsWindow = window
 
-        let onboarding = OnboardingController(
-            hotkeys: hotkeys, settings: settings,
-            isWindowEnabled: MainWindowRouter.isWindowEnabledInThisBuild
-        ) {
+        let onboarding = OnboardingController(hotkeys: hotkeys, settings: settings) {
             host.entries.filter(\.state.isActive).flatMap(\.plugin.onboardingSteps)
         }
         onboarding.activatesApp = environment.registersGlobalHotkeys
@@ -362,17 +329,6 @@ final class AppCoordinator {
                 guard let self else { return }
                 self.panelModel.textSize = self.appSettings.textSize
                 self.observeTextSize()
-            }
-        }
-    }
-
-    #if DEBUG
-    /// QA (`--qa-window`): opens the main window in a mode.
-    func showMainWindowForQA(_ mode: MainWindowState.Mode, settingsPane: String? = nil) {
-        showMainWindow { window in
-            switch mode {
-            case .workspace: window.showWorkspace()
-            case .settings: window.showSettings(settingsPane)
             }
         }
     }
@@ -516,18 +472,27 @@ final class AppCoordinator {
         return window
     }
 
+    #if DEBUG
+    /// QA (`--qa-window`): opens the main window in a mode.
+    func showMainWindowForQA(_ mode: MainWindowState.Mode, settingsPane: String? = nil) {
+        showMainWindow { window in
+            switch mode {
+            case .workspace: window.showWorkspace()
+            case .settings: window.showSettings(settingsPane)
+            }
+        }
+    }
+
     /// QA: shows the whole welcome screen regardless of what was completed.
     func showOnboardingForQA() {
         onboarding?.showAllSteps()
     }
 
-    /// QA: shows the whole welcome screen on one page: `intro`, `shortcut`, a plugin step id, or `done` while the
-    /// main window is enabled.
+    /// QA: shows the whole welcome screen on one page: `intro`, `shortcut`, a plugin step id, or `done`.
     func showOnboardingStepForQA(_ id: String) {
         let steps = host.entries.filter(\.state.isActive).flatMap(\.plugin.onboardingSteps)
         guard
-            OnboardingController.isKnownPage(
-                id, pluginStepIDs: steps.map(\.id), isWindowEnabled: MainWindowRouter.isWindowEnabledInThisBuild)
+            OnboardingController.isKnownPage(id, pluginStepIDs: steps.map(\.id))
         else {
             logger.error("No active onboarding step \(id, privacy: .public)")
             return

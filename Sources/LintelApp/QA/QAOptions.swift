@@ -52,7 +52,7 @@ struct QAOptions: Equatable {
     /// `--qa-about`: shows the About window (Phase 4).
     var showsAbout = false
     /// `--qa-onboarding-step <step id>`: shows the welcome screen on one page: `intro`, `shortcut`, a
-    /// plugin's step (for example `clipboard.intro`) or the final page `done` (the main window is enabled in DEBUG).
+    /// plugin's step (for example `clipboard.intro`) or the final page `done`.
     var onboardingStep: String?
     /// `--qa-pasteboard-access allow|default|ask|deny`: the pasteboard access behaviour plugins see.
     var pasteboardAccess: PasteboardAccess?

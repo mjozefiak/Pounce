@@ -7,7 +7,7 @@ import SwiftUI
 /// Workspace (a plugin's `WorkspaceSection`) and Settings (a pane). Built once and reused; it restores its mode,
 /// section and pane from `MainWindowState` and its frame from AppKit frame autosave (`MainWindow`).
 ///
-/// Behind the release gate of ADR 0008 until step 6.3: only DEBUG builds create it (`--qa-window`).
+/// Exists in every build since step 6.3a removed the release gate of ADR 0008 (`ReleaseGateTests`).
 final class MainWindowController {
     static let autosaveName = "MainWindow"
     static let minimumSize = NSSize(width: 880, height: 560)
@@ -240,7 +240,7 @@ final class MainWindowController {
         // whole window, as the prototype draws it.
         Self.applyChrome(to: window, mode: mode)
         window.setContentSize(Self.defaultSize)
-        // AppKit's own restoration would reopen the window at launch, outside the release gate.
+        // AppKit's own restoration would reopen the window at launch; it opens only from the Dock, ⌘, and the menus.
         window.isRestorable = false
         var isRestored = false
         if let frameAutosaveName {
