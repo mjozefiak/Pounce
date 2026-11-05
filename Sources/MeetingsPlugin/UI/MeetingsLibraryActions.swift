@@ -37,10 +37,6 @@ final class MeetingsLibraryActions {
     private var windows: (store: MeetingsStore, controller: any MeetingWindowPresenting)?
     private let makeWindows:
         @MainActor (@escaping @MainActor (Int64) -> MeetingWindowModel) -> any MeetingWindowPresenting
-    /// ⌃X asks twice: the first press arms the meeting, the second one within `deleteConfirmationWindow` deletes.
-    private var armedDelete: (id: Int64, deadline: Date)?
-    private let now: () -> Date
-    static let deleteConfirmationWindow: TimeInterval = 3
     /// False in QA mode: the window is ordered front without activating Lintel.
     var activatesApp = true
 
@@ -50,13 +46,12 @@ final class MeetingsLibraryActions {
     init(
         library: MeetingsLibrary, pasteboard: any PasteboardClient, labels: MarkdownExporter.Labels = .localized,
         timeZone: TimeZone = .current, regenerate: (@MainActor (Int64) -> Void)? = nil,
-        changed: @escaping @Sendable () -> Void = {}, now: @escaping () -> Date = { Date() },
+        changed: @escaping @Sendable () -> Void = {},
         notes: NotesBoard? = nil, openNotesModel: @escaping @MainActor () -> Void = {},
         makeWindows:
             @escaping @MainActor (@escaping @MainActor (Int64) -> MeetingWindowModel) -> any MeetingWindowPresenting =
             { MeetingWindowController(makeModel: $0) }
     ) {
-        self.now = now
         self.makeWindows = makeWindows
         self.library = library
         self.pasteboard = pasteboard
@@ -122,47 +117,33 @@ final class MeetingsLibraryActions {
     func closeWindows() {
         windows?.controller.closeAll()
         windows = nil
-        armedDelete = nil
     }
 
-    /// ⌃X in the list: a meeting being recorded or processed is not touched and the panel says so; any other
-    /// asks first ("Press ⌃X again to delete this meeting", and its audio when an unfinished one still has it) and
-    /// deletes on the second press within a few seconds. A failed delete is explained, not a generic error.
+    /// ⌃X in the list, after the shell's confirmation (`MeetingsLibrarySource.deleteConfirmation`: the shell
+    /// asks "Press ⌃X again" and runs this on the second press). A meeting being recorded or processed is not
+    /// touched and the panel says so; any other is deleted with its audio. A failed delete is explained, not a
+    /// generic error.
     func requestDelete(_ id: Int64, panel: any PanelPresenter) async throws {
         guard let store = library.store else { throw MeetingLibraryActionError.unavailable }
         if library.protectedMeetingIDs.contains(id) {
             panel.showConfirmation(Self.activeMessage)
             return
         }
-        if let armed = armedDelete, armed.id == id, armed.deadline >= now() {
-            armedDelete = nil
-            do {
-                try await delete(id)
-            } catch MeetingActionError.active {
-                panel.showConfirmation(Self.activeMessage)
-            } catch MeetingActionError.spoolNotRemoved {
-                panel.showConfirmation(Self.notRemovedMessage)
-            }
-            return
-        }
-        armedDelete = nil
         let meeting = try await Task.detached { try store.recoverableMeeting(id: id) }.value
         guard let meeting else { throw MeetingLibraryActionError.missing }
         if meeting.status == .recording || meeting.status == .processing {
             panel.showConfirmation(Self.activeMessage)
             return
         }
-        armedDelete = (id, now().addingTimeInterval(Self.deleteConfirmationWindow))
-        panel.showConfirmation(
-            meeting.audioState == .spool && meeting.status != .ready
-                ? Self.confirmWithAudioMessage : Self.confirmMessage)
+        do {
+            try await delete(id)
+        } catch MeetingActionError.active {
+            panel.showConfirmation(Self.activeMessage)
+        } catch MeetingActionError.spoolNotRemoved {
+            panel.showConfirmation(Self.notRemovedMessage)
+        }
     }
 
-    static let confirmMessage = LocalizedStringResource(
-        "Press ⌃X again to delete this meeting.", comment: "Meeting library: asks to press Delete a second time")
-    static let confirmWithAudioMessage = LocalizedStringResource(
-        "Press ⌃X again to delete this meeting and its audio.",
-        comment: "Meeting library: asks to press Delete again; the unfinished meeting's audio goes too")
     static let activeMessage = LocalizedStringResource(
         "A meeting that is being recorded or processed cannot be deleted.",
         comment: "Meeting library: Delete refused for a live meeting")

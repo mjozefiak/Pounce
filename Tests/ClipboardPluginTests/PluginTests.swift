@@ -322,6 +322,9 @@ struct ClipboardSearchSourceTests {
         let candidate = try #require(try await source.search(TextNormalizer.query(""), filter: nil, limit: 1).first)
         #expect(source.actions(for: candidate).map(\.id) == ["clipboard.paste", "clipboard.copy", "clipboard.delete"])
         #expect(source.actions(for: candidate).first?.title.key == "Paste")
+        // Only ⌃X Delete asks first (the shell shows "Press ⌃X again", spec 2026-11-04 step 6.2).
+        #expect(source.actions(for: candidate).map { $0.confirmation != nil } == [false, false, true])
+        #expect(source.actions(for: candidate).last?.confirmation?.prompt.key == "Delete this clipboard entry?")
 
         harness.permissions.accessibility = .denied
         harness.plugin.refreshEnvironment()

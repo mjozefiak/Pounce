@@ -336,6 +336,9 @@ private func entry(
         #expect(actions[1].shortcut == KeyShortcut(key: "\r", modifiers: .command))
         #expect(actions[2].shortcut == KeyShortcut(key: "x", modifiers: .control))
         #expect(actions[2].keepsPanelOpen)
+        // Only ⌃X Delete asks first (the shell shows "Press ⌃X again", spec 2026-11-04 step 6.2).
+        #expect(actions.map { $0.confirmation != nil } == [false, false, true])
+        #expect(actions[2].confirmation?.prompt.key == "Delete this dictation?")
         let context = ActionContext(previousApp: nil, panel: NoPanel())
         try await actions[0].perform(context)
         try await actions[1].perform(context)
