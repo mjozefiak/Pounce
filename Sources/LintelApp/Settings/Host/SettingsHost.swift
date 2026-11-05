@@ -69,6 +69,11 @@ final class SettingsHostModel {
         SettingsPaneAdapter.sidebarSections(plugins: plugins, attention: attention)
     }
 
+    /// The pane's title above its banner (the prototype's `h3`): the sidebar item's title.
+    func title(of paneID: String) -> String? {
+        sections.lazy.flatMap(\.items).first { $0.id == paneID }?.title
+    }
+
     /// Builds the plugin panes again (a plugin's `settingsPane()` reflects whether it is active).
     func reloadPanes() {
         plugins = makePanes()
@@ -162,7 +167,7 @@ final class SettingsHostModel {
     }
 }
 
-/// The main window's Settings mode: the sidebar, the one banner and the selected pane. Panes have no banner
+/// The main window's Settings mode: the sidebar, the pane title, the one banner and the selected pane. Panes have no banner
 /// slot; `SettingsWindowController` draws none.
 struct SettingsHost: View {
     let model: SettingsHostModel
@@ -174,6 +179,8 @@ struct SettingsHost: View {
     let onSelect: (String) -> Void
     let onBack: (() -> Void)?
 
+    @Environment(\.lintelTextSize) private var textSize
+
     var body: some View {
         let entries = SettingsPaneAdapter.entries(
             shellPane: shellPane, plugins: model.plugins, models: modelsPane)
@@ -181,13 +188,21 @@ struct SettingsHost: View {
             SettingsSidebar(sections: model.sections, selection: selection, onSelect: onSelect, onBack: onBack)
             Divider()
             VStack(spacing: 0) {
-                if let banner = model.shownBanner, model.paneID == selection {
-                    StatusBanner(banner: banner, isBusy: model.isBusy) { action in
-                        Task { await model.perform(action) }
+                VStack(alignment: .leading, spacing: 12) {
+                    if let title = model.title(of: selection) {
+                        Text(verbatim: title)
+                            .font(textSize.font(.title2, weight: .bold))
+                            .accessibilityAddTraits(.isHeader)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .settingsBannerColumn()
-                    .padding(.top, 16)
+                    if let banner = model.shownBanner, model.paneID == selection {
+                        StatusBanner(banner: banner, isBusy: model.isBusy) { action in
+                            Task { await model.perform(action) }
+                        }
+                    }
                 }
+                .settingsBannerColumn()
+                .padding(.top, 20)
                 ScrollView {
                     (entries.first { $0.id == selection } ?? entries.first)?.makeView()
                         .settingsColumn()

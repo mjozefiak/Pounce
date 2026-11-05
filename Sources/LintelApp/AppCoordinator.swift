@@ -407,9 +407,26 @@ final class AppCoordinator {
         let model = SettingsHostModel(
             host: host, reader: environment.permissionsReader, navigation: navigation,
             panes: { [weak self] in self?.mainWindowPluginPanes() ?? [] },
-            shellBanners: [MainWindowRouter.modelsPaneID: { models.banner }])
+            shellBanners: shellPaneBanners(models: models))
         settingsHost = model
         return model
+    }
+
+    /// The banners of the shell's own panes (spec step 4.1); Advanced has none.
+    private func shellPaneBanners(models: ModelsPaneModel) -> [String: () -> StatusDerivation.Banner?] {
+        let host = host
+        let hotkeys = hotkeys
+        let reader = environment.permissionsReader
+        return [
+            SettingsWindowController.Pane.general.rawValue: {
+                ShellPaneBanners.general(shortcut: hotkeys.mainShortcut?.displayString)
+            },
+            SettingsWindowController.Pane.features.rawValue: { ShellPaneBanners.features(host: host) },
+            SettingsWindowController.Pane.permissions.rawValue: {
+                ShellPaneBanners.permissions(host: host, reader: reader)
+            },
+            MainWindowRouter.modelsPaneID: { models.banner },
+        ]
     }
 
     /// Settings → Models over the real inventory (`ModelManagers.shared`), built once.

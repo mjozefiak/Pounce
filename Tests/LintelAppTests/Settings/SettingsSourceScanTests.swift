@@ -13,8 +13,12 @@ import Testing
     /// Panes in `LintelApp/Settings` that still use today's fonts; each leaves this list in the Phase 4 step that
     /// moves it onto the template. The colour, footer and glass rules apply to them already.
     static let unmigratedAppPanes: Set<String> = [
-        "GeneralPane.swift", "FeaturesPane.swift", "AdvancedPane.swift",
+        "AdvancedPane.swift"
     ]
+
+    /// Files drawn only under `.legacyWindow` (the old window's copies of panes already on the template), kept
+    /// with today's fonts until the old window is deleted in step 6.3b. The other rules apply to them.
+    static let legacyOnlyFiles: Set<String> = ["LegacyShellPanes.swift"]
 
     static let rawStatusColour =
         #/(foregroundStyle|foregroundColor|fill|stroke|background|tint)\(\.(orange|red|green|yellow|blue|purple|pink|teal|mint|indigo|cyan)\)|Color\.(orange|red|green|yellow|blue)(?![A-Za-z0-9])|\.system(Red|Orange|Green|Yellow|Blue)(?![A-Za-z0-9])/#
@@ -40,7 +44,7 @@ import Testing
     private func scanned() -> [(url: URL, checksFonts: Bool)] {
         var result = swiftFiles(under: "Sources/LintelUI").map { ($0, true) }
         result += swiftFiles(under: "Sources/LintelApp/Settings").map {
-            ($0, !Self.unmigratedAppPanes.contains($0.lastPathComponent))
+            ($0, !Self.unmigratedAppPanes.union(Self.legacyOnlyFiles).contains($0.lastPathComponent))
         }
         result += Self.migratedPluginPaneFiles.map { (root.appending(path: $0), true) }
         return result

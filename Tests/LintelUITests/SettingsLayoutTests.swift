@@ -13,7 +13,7 @@ struct SettingsLayoutTests {
         let root = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
         for path in [
-            "Sources/LintelApp/Settings/GeneralPane.swift", "Sources/LintelApp/Settings/FeaturesPane.swift",
+            "Sources/LintelApp/Settings/LegacyShellPanes.swift",
             "Sources/LintelApp/Settings/AdvancedPane.swift", "Sources/LintelApp/Settings/PermissionsPane.swift",
             "Sources/AppsPlugin/AppsSettings.swift", "Sources/ClipboardPlugin/ClipboardSettingsPane.swift",
         ] {

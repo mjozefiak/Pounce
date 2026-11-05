@@ -289,6 +289,60 @@
         }
       }
     },
+    "%lld things to do" : {
+      "comment" : "Settings → Permissions banner: permissions to allow",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld thing to do"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld things to do"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rzecz do zrobienia"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rzeczy do zrobienia"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rzeczy do zrobienia"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rzeczy do zrobienia"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld." : {
       "comment" : "Position in the result order list",
       "extractionState" : "manual",
@@ -303,6 +357,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld."
+          }
+        }
+      }
+    },
+    "A feature couldn't start" : {
+      "comment" : "Settings → Features banner: a plugin failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A feature couldn't start"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jedna z funkcji nie wystartowała"
           }
         }
       }
@@ -541,6 +613,42 @@
         }
       }
     },
+    "All features are on." : {
+      "comment" : "Settings → Features banner detail",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All features are on."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wszystkie funkcje są włączone."
+          }
+        }
+      }
+    },
+    "All set" : {
+      "comment" : "Settings → Features banner",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All set"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wszystko gotowe"
+          }
+        }
+      }
+    },
     "Allow Accessibility so Lintel can paste for you. Without it, the text is only copied." : {
       "comment" : "Dictation onboarding step",
       "extractionState" : "manual",
@@ -685,6 +793,24 @@
         }
       }
     },
+    "Always on" : {
+      "comment" : "Settings → Features: chip of a feature that cannot be turned off",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Always on"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zawsze włączone"
+          }
+        }
+      }
+    },
     "Applications" : {
       "comment" : "Results section and plugin name for apps",
       "extractionState" : "manual",
@@ -753,6 +879,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wstecz"
+          }
+        }
+      }
+    },
+    "Basics" : {
+      "comment" : "Settings pane section title: the main settings of a pane",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Basics"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podstawy"
           }
         }
       }
@@ -1729,6 +1873,24 @@
         }
       }
     },
+    "Drag to change the order in the launcher." : {
+      "comment" : "Settings → Features: footer of the result order",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag to change the order in the launcher."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przeciągnij, aby zmienić kolejność w launcherze."
+          }
+        }
+      }
+    },
     "Edit" : {
       "comment" : "Main menu item",
       "extractionState" : "manual",
@@ -1977,6 +2139,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Funkcje"
+          }
+        }
+      }
+    },
+    "Features that are on can't start until these are allowed." : {
+      "comment" : "Settings → Permissions banner detail",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Features that are on can't start until these are allowed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Włączone funkcje nie ruszą, dopóki te uprawnienia nie są dozwolone."
           }
         }
       }
@@ -2701,6 +2881,24 @@
         }
       }
     },
+    "Launcher shortcut" : {
+      "comment" : "Settings → General: label of the main shortcut",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Launcher shortcut"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skrót launchera"
+          }
+        }
+      }
+    },
     "Lets Lintel hear you while you dictate or record a meeting. Dictation audio is never saved; meeting audio is stored encrypted on this Mac until the transcript is complete, and the audio of unfinished meetings is kept for a limited time." : {
       "comment" : "Explanation of the Microphone permission",
       "extractionState" : "manual",
@@ -2989,6 +3187,24 @@
         }
       }
     },
+    "No shortcut is set" : {
+      "comment" : "Settings → General banner: no main shortcut",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No shortcut is set"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie ustawiono skrótu"
+          }
+        }
+      }
+    },
     "Not available while a meeting is being recorded or processed." : {
       "comment" : "Meetings: why the system audio test is switched off during a meeting",
       "extractionState" : "manual",
@@ -3079,6 +3295,42 @@
         }
       }
     },
+    "Open at login" : {
+      "comment" : "Settings → General: launch at login switch",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open at login"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uruchamiaj przy logowaniu"
+          }
+        }
+      }
+    },
+    "Open its pane to try again. Nothing was deleted." : {
+      "comment" : "Settings → Features banner detail: a plugin failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open its pane to try again. Nothing was deleted."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz jej panel, aby spróbować ponownie. Nic nie zostało usunięte."
+          }
+        }
+      }
+    },
     "Optional: let a model on this Mac write notes after each meeting. It is a large download that starts only when you press the button." : {
       "comment" : "Meetings onboarding step about the notes model",
       "extractionState" : "manual",
@@ -3115,6 +3367,42 @@
         }
       }
     },
+    "Press %@ to open Lintel." : {
+      "comment" : "Settings → General banner detail; the main shortcut, for example ⌘Space",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press %@ to open Lintel."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naciśnij %@, aby otworzyć Lintel."
+          }
+        }
+      }
+    },
+    "Record one below to open Lintel from any app." : {
+      "comment" : "Settings → General banner detail: no main shortcut",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record one below to open Lintel from any app."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagraj go poniżej, aby otwierać Lintel z każdej aplikacji."
+          }
+        }
+      }
+    },
     "Redo" : {
       "comment" : "Main menu item",
       "extractionState" : "manual",
@@ -3133,6 +3421,24 @@
         }
       }
     },
+    "Result order" : {
+      "comment" : "Settings → Features: section title of the result order",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Result order"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kolejność wyników"
+          }
+        }
+      }
+    },
     "Select All" : {
       "comment" : "Main menu item",
       "extractionState" : "manual",
@@ -3147,6 +3453,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zaznacz wszystko"
+          }
+        }
+      }
+    },
+    "Show icon in the Dock" : {
+      "comment" : "Settings → General: Dock icon switch",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show icon in the Dock"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż ikonę w Docku"
+          }
+        }
+      }
+    },
+    "Some features are off." : {
+      "comment" : "Settings → Features banner detail",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some features are off."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niektóre funkcje są wyłączone."
           }
         }
       }
@@ -3687,6 +4029,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "OK"
+          }
+        }
+      }
+    },
+    "The Dock icon opens this window." : {
+      "comment" : "Settings → General: help under the Dock switch",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Dock icon opens this window."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikona w Docku otwiera to okno."
           }
         }
       }
