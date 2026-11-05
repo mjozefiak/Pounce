@@ -222,6 +222,20 @@ struct PermissionRowState: Identifiable, Equatable {
     var isDimmed: Bool { pluginNames.isEmpty }
     var stateText: String { permission.statusText(status) }
 
+    /// The state line of the main window's row: "Not asked yet" where the legacy rows say "Unknown".
+    var mainStateText: String {
+        guard permission.isReadable, permission != .pasteboard, status == .notDetermined else { return stateText }
+        return String(localized: "Not asked yet", comment: "Permission state: macOS has not asked the user yet")
+    }
+
+    /// Main window order: permissions that need the user first (denied, not asked), then the allowed ones, then
+    /// the ones no enabled feature needs. Stable inside each group.
+    static func problemsFirst(_ rows: [PermissionRowState]) -> [PermissionRowState] {
+        func rank(_ row: PermissionRowState) -> Int { row.isDimmed ? 2 : (row.tone == .ok ? 1 : 0) }
+        return rows.enumerated().sorted { (rank($0.element), $0.offset) < (rank($1.element), $1.offset) }
+            .map(\.element)
+    }
+
     var tone: PermissionTone {
         guard permission.isReadable else { return .neutral }
         switch status {
@@ -254,16 +268,31 @@ struct PermissionsPane: View {
     @Environment(\.lintelTextSize) private var textSize
 
     var body: some View {
-        let content = SettingsPane {
+        let content = Group {
+            if hostStyle == .legacyWindow { legacyForm } else { mainForm }
+        }
+        .onAppear { reload() }
+        .onChange(of: hostStyle) { reload() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            model.refresh()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
+            model.refresh()
+        }
+        if hostStyle == .legacyWindow {
+            // The old window sizes itself from the pane.
+            content.frame(width: SettingsLayout.columnWidth).fixedSize(horizontal: false, vertical: true)
+        } else {
+            content
+        }
+    }
+
+    private var legacyForm: some View {
+        SettingsPane {
             Section {
                 let rows = model.rows
                 if rows.isEmpty {
-                    Text(
-                        "The features that are on need no system permissions.",
-                        comment: "Settings → Permissions when no enabled feature needs a permission"
-                    )
-                    .font(textSize.font(.body))
-                    .foregroundStyle(.secondary)
+                    emptyText
                 }
                 ForEach(rows) { row in
                     PermissionRow(
@@ -283,11 +312,7 @@ struct PermissionsPane: View {
                             "Lintel never asks for a permission on its own. Changes in System Settings apply right away."
                         )
                         Spacer()
-                        Button {
-                            model.refresh()
-                        } label: {
-                            Text("Check Again", comment: "Button that re-reads the permission states")
-                        }
+                        checkAgain
                     }
                     SettingsFooter(
                         "The Keychain needs no permission. A feature that keeps a key there shows its state in its own pane."
@@ -295,19 +320,50 @@ struct PermissionsPane: View {
                 }
             }
         }
-        .onAppear { reload() }
-        .onChange(of: hostStyle) { reload() }
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            model.refresh()
+    }
+
+    /// The main window: no section header (the host's title names the pane), problems first, one footer.
+    private var mainForm: some View {
+        SettingsPane {
+            Section {
+                let rows = PermissionRowState.problemsFirst(model.rows)
+                if rows.isEmpty {
+                    emptyText
+                }
+                ForEach(rows) { row in
+                    PermissionRow(
+                        state: row,
+                        accessories: model.accessories(for: row.permission),
+                        allow: { Task { await model.allow(row.permission) } },
+                        open: { model.openSettings(for: row.permission) }
+                    )
+                }
+            } footer: {
+                HStack(alignment: .firstTextBaseline) {
+                    SettingsFooter(
+                        "Lintel never asks for a permission on its own. Changes in System Settings apply right away."
+                    )
+                    Spacer()
+                    checkAgain
+                }
+            }
         }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
+    }
+
+    private var emptyText: some View {
+        Text(
+            "The features that are on need no system permissions.",
+            comment: "Settings → Permissions when no enabled feature needs a permission"
+        )
+        .font(textSize.font(.body))
+        .foregroundStyle(.secondary)
+    }
+
+    private var checkAgain: some View {
+        Button {
             model.refresh()
-        }
-        if hostStyle == .legacyWindow {
-            // The old window sizes itself from the pane.
-            content.frame(width: SettingsLayout.columnWidth).fixedSize(horizontal: false, vertical: true)
-        } else {
-            content
+        } label: {
+            Text("Check Again", comment: "Button that re-reads the permission states")
         }
     }
 

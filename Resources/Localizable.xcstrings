@@ -13608,6 +13608,78 @@
           }
         }
       }
+    },
+    "Needed for: %@" : {
+      "comment" : "Settings → Permissions: the features that need a permission",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needed for: %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Potrzebne do: %@"
+          }
+        }
+      }
+    },
+    "Not asked yet" : {
+      "comment" : "Permission state: macOS has not asked the user yet",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not asked yet"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jeszcze nie zapytano"
+          }
+        }
+      }
+    },
+    "%@ can't start until %@ is allowed." : {
+      "comment" : "Settings → Permissions banner detail: the features and the one permission they wait for",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ can't start until %@ is allowed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ nie uruchomią się, dopóki nie zezwolisz na: %2$@."
+          }
+        }
+      }
+    },
+    "%@ can't start until %@ are allowed." : {
+      "comment" : "Settings → Permissions banner detail: the features and the permissions they wait for",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ can't start until %@ are allowed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ nie uruchomią się, dopóki nie zezwolisz na: %2$@."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

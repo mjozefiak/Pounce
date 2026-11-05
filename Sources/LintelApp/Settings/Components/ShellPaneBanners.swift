@@ -79,10 +79,24 @@ enum ShellPaneBanners {
             title: String(
                 localized: "\(open.count) things to do",
                 comment: "Settings banner: the number of things needed (Permissions pane and plugin panes)"),
-            detail: String(
-                localized: "Features that are on can't start until these are allowed.",
-                comment: "Settings → Permissions banner detail"),
+            detail: permissionsDetail(requirements.filter { open.contains($0.permission) }),
             actions: [])
+    }
+
+    /// "Meetings and Dictation can't start until Microphone is allowed."
+    private static func permissionsDetail(_ open: [PermissionRequirement]) -> String {
+        var features: [String] = []
+        for name in open.flatMap(\.pluginNames) where !features.contains(name) { features.append(name) }
+        let featureList = features.formatted(.list(type: .and))
+        let permissionList = open.map(\.permission.title).formatted(.list(type: .and))
+        if open.count == 1 {
+            return String(
+                localized: "\(featureList) can't start until \(permissionList) is allowed.",
+                comment: "Settings → Permissions banner detail: the features and the one permission they wait for")
+        }
+        return String(
+            localized: "\(featureList) can't start until \(permissionList) are allowed.",
+            comment: "Settings → Permissions banner detail: the features and the permissions they wait for")
     }
 
     static func permissions(host: PluginHost, reader: any PermissionsReader) -> StatusDerivation.Banner {
