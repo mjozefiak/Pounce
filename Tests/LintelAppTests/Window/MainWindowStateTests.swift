@@ -206,7 +206,14 @@ import Testing
         #expect(window.contentMinSize == MainWindowController.minimumSize)
         // Settings mode (step 6.5a): the content runs under a transparent title bar, so the window is the
         // prototype's 1180 × 720 with the traffic lights over the sidebar.
-        #expect(window.frame.size == MainWindowController.defaultSize)
+        // AppKit fits a titled window to the real screen when it is ordered front: a CI runner's display can be
+        // smaller than 1180 × 720, and there the window is only expected not to grow past the spec size.
+        let size = MainWindowController.defaultSize
+        if let screen = NSScreen.main?.visibleFrame.size, screen.width >= size.width, screen.height >= size.height {
+            #expect(window.frame.size == size)
+        } else {
+            #expect(window.frame.width <= size.width && window.frame.height <= size.height)
+        }
         #expect(window.styleMask.contains(.fullSizeContentView))
         #expect(window.titlebarAppearsTransparent)
         #expect(window.titleVisibility == .hidden)
