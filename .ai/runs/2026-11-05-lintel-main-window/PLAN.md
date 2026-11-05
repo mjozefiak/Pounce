@@ -60,12 +60,12 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 | 6 | 6.5i | Release parity: restore the release wording of shared catalog keys changed for the new window | dispatch:standard | done | dad5d1f |
 | 6 | 6.5 | Final 1:1 re-comparison of every screen with the prototype and remaining-differences list | inline | done | 6.5a–i |
 | 6 | 6.4 | docs(spec): correct the Phasing sentence about phases and PRs | inline | done | 3b684f6 |
-| 6 | 6.3a | Remove the DEBUG gate (window enabled for users) | dispatch:capable | done | pending |
-| 6 | 6.3b | Delete SettingsWindowController, the adapter and .legacyWindow branches | dispatch:capable | done | pending |
-| 6 | 6.3c | Update docs/qa.md, AGENTS.md rows, BACKWARD_COMPATIBILITY.md, catalog check | dispatch:standard | done | pending |
-| 6 | 6.3c-fix-a | Review fix (after the gate commits): Use Downloaded Model reachable in Models, Try it on an example reachable | dispatch:standard | done | pending |
-| 6 | 6.3c-fix-b | Review fix: ReleaseGateTests assert the needles exist, AGENTS.md package row | dispatch:standard | done | pending |
-| 6 | 6.3c-fix-c | Test fix: no test may show a real recording HUD or hang | dispatch:capable | done | pending |
+| 6 | 6.3a | Remove the DEBUG gate (window enabled for users) | dispatch:capable | done | 9fce98e |
+| 6 | 6.3b | Delete SettingsWindowController, the adapter and .legacyWindow branches | dispatch:capable | done | cbd3376 |
+| 6 | 6.3c | Update docs/qa.md, AGENTS.md rows, BACKWARD_COMPATIBILITY.md, catalog check | dispatch:standard | done | 5cfd00f |
+| 6 | 6.3c-fix-a | Review fix (after the gate commits): Use Downloaded Model reachable in Models, Try it on an example reachable | dispatch:standard | done | 7580666 |
+| 6 | 6.3c-fix-b | Review fix: ReleaseGateTests assert the needles exist, AGENTS.md package row | dispatch:standard | done | 8cdf2c9 |
+| 6 | 6.3c-fix-c | Test fix: no test may show a real recording HUD or hang | dispatch:capable | done | 0ac3d53 |
 
 Step 6.2 (⌃X confirmation) is NOT in this table: it is a separate PR on a fresh branch from main, done after this PR is complete.
 
