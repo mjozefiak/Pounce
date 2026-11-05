@@ -31,7 +31,7 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 | 3 | 3.2 | ModelsPane, ModelRow, ModelsPaneModel, ModelUsage declarations | dispatch:capable | done | f06e254 |
 | 3 | 3.3 | Remove duplicated microphone rows and model cards (mainWindow only) | dispatch:capable | done | 58ba0af |
 | 3 | 3.4 | Confirmation sheets for Clear and Erase | dispatch:standard | done | 29a5321 |
-| 3 | 3.4-review-fix | Review fix: ConfirmSheet runs onConfirm before closing | dispatch:standard | todo | — |
+| 3 | 3.4-review-fix | Review fix: ConfirmSheet runs onConfirm before closing | dispatch:standard | done | 4ea4ceb |
 | 3 | 3.2-review-fix | Review fix: confirm model removal, custom-folder models are not "needed", loaded flag, refresh generation, in-use parity tests | dispatch:capable | todo | — |
 | 4 | 4.1 | General and Features panes onto the template | dispatch:standard | todo | — |
 | 4 | 4.2 | Apps pane onto the template | dispatch:standard | todo | — |

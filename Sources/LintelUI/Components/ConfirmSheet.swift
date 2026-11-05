@@ -132,12 +132,19 @@ extension View {
                 prompt: prompt,
                 detail: detail,
                 confirmTitle: confirmTitle,
-                onConfirm: {
-                    isPresented.wrappedValue = false
-                    onConfirm()
-                },
+                onConfirm: confirmThenClose(isPresented: isPresented, onConfirm),
                 onCancel: { isPresented.wrappedValue = false }
             )
         }
+    }
+}
+
+/// Runs the confirmed action first and closes the sheet afterwards: closing goes through the binding's setter,
+/// which may clear the very state the action reads (Meetings' "Delete Older Meetings" cancels the pending
+/// retention when its sheet closes).
+func confirmThenClose(isPresented: Binding<Bool>, _ onConfirm: @escaping () -> Void) -> () -> Void {
+    {
+        onConfirm()
+        isPresented.wrappedValue = false
     }
 }

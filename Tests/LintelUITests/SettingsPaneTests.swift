@@ -79,6 +79,22 @@ import Testing
         #expect(!between.contains(".keyboardShortcut"))
     }
 
+    @Test func confirmingRunsTheActionBeforeTheSheetCloses() {
+        // Like Meetings' retention binding: closing the sheet clears the pending action.
+        final class Pending {
+            var days: Int? = 30
+            var applied: [Int] = []
+        }
+        let pending = Pending()
+        let binding = Binding<Bool>(
+            get: { pending.days != nil }, set: { if !$0 { pending.days = nil } })
+        confirmThenClose(isPresented: binding) {
+            if let days = pending.days { pending.applied.append(days) }
+        }()
+        #expect(pending.applied == [30])
+        #expect(binding.wrappedValue == false)
+    }
+
     @Test func theCopyKeepsItsWords() {
         let confirmation = DestructiveConfirmation(prompt: "Erase?", detail: "Gone.", confirmTitle: "Erase")
         #expect(confirmation.legacyTitleVisible == false)
