@@ -29,6 +29,12 @@ struct PolishCopyTests {
             "Test System Audio (settings)": "Przetestuj dźwięk systemu",
             "At most (dictation)": "Maksymalnie",
             "Not asked yet": "Jeszcze nie pytano",
+            // Owner decision 6.6b: the Features descriptions.
+            "Find and open apps.": "Szukaj i otwieraj aplikacje.",
+            "Find files by name.": "Szukaj plików po nazwie.",
+            "Paste from history.": "Wklejaj z historii.",
+            "Speak instead of typing.": "Mów zamiast pisać.",
+            "Record meetings, keep notes.": "Nagrywaj spotkania, miej notatki.",
         ]
         for (key, polish) in expected {
             #expect(value(key, "pl", in: catalog) == polish, "\(key)")

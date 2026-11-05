@@ -12762,6 +12762,96 @@
           }
         }
       }
+    },
+    "Find and open apps." : {
+      "comment" : "Settings → Features: what Apps does",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find and open apps."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szukaj i otwieraj aplikacje."
+          }
+        }
+      }
+    },
+    "Find files by name." : {
+      "comment" : "Settings → Features: what Files does",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find files by name."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szukaj plików po nazwie."
+          }
+        }
+      }
+    },
+    "Paste from history." : {
+      "comment" : "Settings → Features: what Clipboard does",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste from history."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wklejaj z historii."
+          }
+        }
+      }
+    },
+    "Speak instead of typing." : {
+      "comment" : "Settings → Features: what Dictation does",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speak instead of typing."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mów zamiast pisać."
+          }
+        }
+      }
+    },
+    "Record meetings, keep notes." : {
+      "comment" : "Settings → Features: what Meetings does",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record meetings, keep notes."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywaj spotkania, miej notatki."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

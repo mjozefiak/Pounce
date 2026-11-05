@@ -107,6 +107,16 @@ final class PanePlugin: LintelPlugin {
         #expect(groups["clipboard"] == .search)
         #expect(groups["dictation"] == .voice)
         #expect(groups["meetings"] == .voice)
+        // Owner decision 6.6b: the one-line descriptions of prototype `set-features`, word for word.
+        let summaries = Dictionary(
+            uniqueKeysWithValues: host.entries.map {
+                ($0.manifest.id, $0.manifest.summary.map { String(localized: $0) })
+            })
+        #expect(summaries["apps"] == "Find and open apps.")
+        #expect(summaries["files"] == "Find files by name.")
+        #expect(summaries["clipboard"] == "Paste from history.")
+        #expect(summaries["dictation"] == "Speak instead of typing.")
+        #expect(summaries["meetings"] == "Record meetings, keep notes.")
         for entry in host.entries {
             let plugin = entry.plugin
             let sections = plugin.workspaceSections.count

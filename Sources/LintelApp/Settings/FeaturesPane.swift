@@ -161,8 +161,8 @@ struct FeaturesPaneContent: View {
     }
 }
 
-/// One feature in the main window: its symbol and name, a state line only while it starts or after it failed,
-/// and its switch or the "Always on" chip.
+/// One feature in the main window: its symbol and name, the manifest's one-line `summary` (prototype
+/// `set-features`), a state line only while it starts or after it failed, and its switch or the "Always on" chip.
 struct FeatureSwitchRow: View {
     let manifest: PluginManifest
     let state: PluginState
@@ -195,6 +195,12 @@ struct FeatureSwitchRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(manifest.displayName)
                     .font(textSize.font(.body, weight: .semibold))
+                if let summary = manifest.summary {
+                    Text(summary)
+                        .font(textSize.font(.callout))
+                        .foregroundStyle(LintelBrand.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 if let detail = Self.detail(for: state) {
                     Text(verbatim: detail)
                         .font(textSize.font(.callout))

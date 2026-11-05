@@ -15,7 +15,7 @@ import Testing
 @MainActor final class MainWindowPlugin: LintelPlugin {
     static let manifest = PluginManifest(
         id: "mainwindow", displayName: "Main", symbolName: "2.circle", order: 2, canBeDisabled: false,
-        settingsGroup: .voice)
+        settingsGroup: .voice, summary: "Does one thing.")
     init(context: PluginContext) {}
 
     var workspaceSections: [WorkspaceSection] {
@@ -48,6 +48,9 @@ import Testing
         #expect(manifest.settingsGroup == .lintel)
         #expect(!MainWindowPlugin.manifest.canBeDisabled)
         #expect(MainWindowPlugin.manifest.settingsGroup == .voice)
+        // Owner decision 6.6b: the Features description is optional; a manifest written before it has none.
+        #expect(manifest.summary == nil)
+        #expect(MainWindowPlugin.manifest.summary.map { String(localized: $0) } == "Does one thing.")
         #expect(SettingsGroup.search.rawValue == "search")
         #expect(SettingsGroup(rawValue: "voice") == .voice)
     }

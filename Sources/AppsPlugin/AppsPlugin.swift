@@ -25,7 +25,8 @@ public final class AppsPlugin: LintelPlugin {
         displayName: LocalizedStringResource("Applications", comment: "Results section and plugin name for apps"),
         symbolName: "square.grid.2x2",
         order: 10,
-        settingsGroup: .search
+        settingsGroup: .search,
+        summary: LocalizedStringResource("Find and open apps.", comment: "Settings → Features: what Apps does")
     )
 
     /// Spotlight updates arrive in bursts; one rescan follows each quiet period of this length.

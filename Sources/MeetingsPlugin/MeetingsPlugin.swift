@@ -20,7 +20,9 @@ public final class MeetingsPlugin: LintelPlugin {
         symbolName: "person.2.wave.2",
         order: 50,
         defaultEnabled: false,
-        settingsGroup: .voice
+        settingsGroup: .voice,
+        summary: LocalizedStringResource(
+            "Record meetings, keep notes.", comment: "Settings → Features: what Meetings does")
     )
 
     let context: PluginContext

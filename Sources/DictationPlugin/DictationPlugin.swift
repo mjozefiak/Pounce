@@ -25,7 +25,9 @@ public final class DictationPlugin: LintelPlugin {
         symbolName: "mic",
         order: 40,
         defaultEnabled: false,
-        settingsGroup: .voice
+        settingsGroup: .voice,
+        summary: LocalizedStringResource(
+            "Speak instead of typing.", comment: "Settings → Features: what Dictation does")
     )
 
     static let recordCommandID = "dictation.record"

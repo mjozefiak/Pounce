@@ -16,6 +16,9 @@ public struct PluginManifest: Sendable {
     public let canBeDisabled: Bool
     /// The Settings sidebar group of the plugin's pane. Added with the main window; defaults to `.lintel`.
     public let settingsGroup: SettingsGroup
+    /// One line that says what the feature does, under its name in Settings → Features ("Find files by name.").
+    /// Added with the main window; defaults to `nil` (the row shows the name only).
+    public let summary: LocalizedStringResource?
 
     public init(
         id: PluginID,
@@ -24,7 +27,8 @@ public struct PluginManifest: Sendable {
         order: Int,
         defaultEnabled: Bool = true,
         canBeDisabled: Bool = true,
-        settingsGroup: SettingsGroup = .lintel
+        settingsGroup: SettingsGroup = .lintel,
+        summary: LocalizedStringResource? = nil
     ) {
         self.id = id
         self.displayName = displayName
@@ -33,6 +37,7 @@ public struct PluginManifest: Sendable {
         self.defaultEnabled = defaultEnabled
         self.canBeDisabled = canBeDisabled
         self.settingsGroup = settingsGroup
+        self.summary = summary
     }
 }
 
