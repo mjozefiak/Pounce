@@ -70,6 +70,8 @@ import Testing
         }
     }
 
+    /// The main window's sheet says "can’t" (`mainWindowDetail`); the old window's text stays as release has it
+    /// (`ReleaseStringParityTests` pins those).
     @Test func confirmationsSayItCannotBeUndoneTheSameWay() throws {
         for file in [
             "Sources/ClipboardPlugin/ClipboardSettingsPane.swift", "Sources/DictationPlugin/DictationViews.swift",
@@ -77,7 +79,6 @@ import Testing
             "Sources/AppsPlugin/AppsSettingsPane.swift",
         ] {
             let text = try source(file)
-            #expect(!text.contains("cannot be undone"), "\(file)")
             #expect(text.contains("can’t be undone"), "\(file)")
         }
     }

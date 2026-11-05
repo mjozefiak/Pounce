@@ -588,7 +588,7 @@ final class FakeRecorder {
         #expect(value("The writing model is used by %@.", "pl") == "Model pisania jest używany przez %@.")
         #expect(value("The speaker model is used by %@.", "pl")?.contains("%@") == true)
         #expect(value("not installed", "pl") == "niezainstalowany")
-        #expect(value("Choose Folder…", "pl") == "Wybierz folder…")
+        #expect(value("Choose Folder… (models)", "pl") == "Wybierz folder…")
         #expect(strings["%@ is used by %@."] == nil)
     }
 
@@ -811,7 +811,7 @@ final class FakeRecorder {
 
     @Test func chooseFolderHasOneLabelAndOneStyle() throws {
         let text = try source("Models/ModelRow.swift")
-        #expect(text.components(separatedBy: #"Text("Choose Folder…""#).count == 2)
+        #expect(text.components(separatedBy: #""Choose Folder… (models)""#).count == 2)
         #expect(text.components(separatedBy: "folderLabel").count == 4)
         #expect(!text.contains("PrimaryButtonStyle()\n                    .disabled(row.isBusy || row.isDownloading)"))
         // The buttons group sets the secondary style once; only the Download of a needed model overrides it.

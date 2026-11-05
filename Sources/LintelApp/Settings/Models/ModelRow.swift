@@ -142,7 +142,11 @@ struct ModelRowButtons: View {
 
     /// The one "Choose Folder…" label, in the one secondary button style, whether one feature or several offer it.
     private var folderLabel: some View {
-        label(Text("Choose Folder…", comment: "Models pane: use a model folder downloaded by hand"))
+        label(
+            Text(
+                LocalizedStringResource(
+                    "Choose Folder… (models)", defaultValue: "Choose Folder…",
+                    comment: "Models pane: use a model folder downloaded by hand")))
     }
 
     var body: some View {

@@ -513,9 +513,13 @@ struct HistorySection: View {
         prompt: LocalizedStringResource(
             "Clear the dictation history?", comment: "Dictation settings confirmation title"),
         detail: LocalizedStringResource(
-            "This deletes every saved dictation. This can’t be undone.", comment: "Dictation settings confirmation text"
+            "This deletes every saved dictation. It cannot be undone.",
+            comment: "Dictation settings confirmation text"
         ),
-        confirmTitle: LocalizedStringResource("Clear History", comment: "Dictation settings confirmation button"))
+        confirmTitle: LocalizedStringResource("Clear History", comment: "Dictation settings confirmation button"),
+        mainWindowDetail: LocalizedStringResource(
+            "This deletes every saved dictation. This can’t be undone.",
+            comment: "Dictation settings confirmation text in the main window"))
 
     var body: some View {
         Section {

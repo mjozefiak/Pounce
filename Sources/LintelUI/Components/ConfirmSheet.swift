@@ -121,6 +121,9 @@ public struct DestructiveConfirmation: Sendable {
 
     public let prompt: LocalizedStringResource
     public let detail: LocalizedStringResource
+    /// The main window's sheet shows this instead of `detail` when set. The old window keeps `detail` word for word
+    /// (release users see today's text until step 6.3a, ADR 0008 Release gate).
+    public let mainWindowDetail: LocalizedStringResource?
     public let confirmTitle: LocalizedStringResource
     /// The old window's dialog shows its title only where it always did.
     public let legacyTitleVisible: Bool
@@ -131,10 +134,12 @@ public struct DestructiveConfirmation: Sendable {
         detail: LocalizedStringResource,
         confirmTitle: LocalizedStringResource,
         legacyTitleVisible: Bool = false,
-        option: Option? = nil
+        option: Option? = nil,
+        mainWindowDetail: LocalizedStringResource? = nil
     ) {
         self.prompt = prompt
         self.detail = detail
+        self.mainWindowDetail = mainWindowDetail
         self.confirmTitle = confirmTitle
         self.legacyTitleVisible = legacyTitleVisible
         self.option = option
@@ -144,7 +149,7 @@ public struct DestructiveConfirmation: Sendable {
     public func with(option: Option?) -> DestructiveConfirmation {
         DestructiveConfirmation(
             prompt: prompt, detail: detail, confirmTitle: confirmTitle, legacyTitleVisible: legacyTitleVisible,
-            option: option)
+            option: option, mainWindowDetail: mainWindowDetail)
     }
 
     /// The checkbox shown for a host: only the main window's sheet has one.
@@ -177,7 +182,8 @@ private struct DestructiveConfirmationModifier: ViewModifier {
         case .mainWindow:
             content.sheet(isPresented: $isPresented) {
                 ConfirmSheet(
-                    prompt: confirmation.prompt, detail: confirmation.detail, confirmTitle: confirmation.confirmTitle,
+                    prompt: confirmation.prompt, detail: confirmation.mainWindowDetail ?? confirmation.detail,
+                    confirmTitle: confirmation.confirmTitle,
                     option: confirmation.option(in: .mainWindow),
                     onConfirm: confirmThenClose(isPresented: $isPresented, onConfirm),
                     onCancel: { isPresented = false })

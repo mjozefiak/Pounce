@@ -417,20 +417,26 @@ enum MeetingsConfirmations {
             prompt: LocalizedStringResource(
                 "Delete older meetings?", comment: "Meetings settings confirmation title of a shorter retention"),
             detail: LocalizedStringResource(
-                "\(count) meetings are older than the new limit and are deleted now. This can’t be undone.",
+                "\(count) meetings are older than the new limit and are deleted now. This cannot be undone.",
                 comment: "Meetings settings confirmation text of a shorter retention"),
             confirmTitle: LocalizedStringResource(
                 "Delete Older Meetings", comment: "Meetings settings confirmation button"),
-            legacyTitleVisible: true)
+            legacyTitleVisible: true,
+            mainWindowDetail: LocalizedStringResource(
+                "\(count) meetings are older than the new limit and are deleted now. This can’t be undone.",
+                comment: "Meetings settings confirmation text of a shorter retention in the main window"))
     }
 
     static let clearLibrary = DestructiveConfirmation(
         prompt: LocalizedStringResource("Delete all meetings?", comment: "Meetings settings confirmation title"),
         detail: LocalizedStringResource(
-            "Every transcript, note and recording is deleted. A meeting that is being recorded is kept. This can’t be undone.",
+            "Every transcript, note and recording is deleted. A meeting that is being recorded is kept. This cannot be undone.",
             comment: "Meetings settings confirmation text of Clear Library"),
         confirmTitle: LocalizedStringResource("Delete All Meetings", comment: "Meetings settings confirmation button"),
-        legacyTitleVisible: true)
+        legacyTitleVisible: true,
+        mainWindowDetail: LocalizedStringResource(
+            "Every transcript, note and recording is deleted. A meeting that is being recorded is kept. This can’t be undone.",
+            comment: "Meetings settings confirmation text of Clear Library in the main window"))
 
     static let deleteRecordings = DestructiveConfirmation(
         prompt: LocalizedStringResource(

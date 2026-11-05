@@ -289,6 +289,60 @@
         }
       }
     },
+    "%lld meetings are older than the new limit and are deleted now. This cannot be undone." : {
+      "comment" : "Meetings settings confirmation text of a shorter retention",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld meeting is older than the new limit and is deleted now. This cannot be undone."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld meetings are older than the new limit and are deleted now. This cannot be undone."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld spotkanie jest starsze niż nowy limit i zostanie teraz usunięte. Tej operacji nie można cofnąć."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld spotkania są starsze niż nowy limit i zostaną teraz usunięte. Tej operacji nie można cofnąć."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld spotkań jest starszych niż nowy limit i zostanie teraz usuniętych. Tej operacji nie można cofnąć."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld spotkania jest starszych niż nowy limit i zostanie teraz usuniętych. Tej operacji nie można cofnąć."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld models are needed" : {
       "comment" : "Models pane banner: required models",
       "extractionState" : "manual",
@@ -753,6 +807,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wszystko"
+          }
+        }
+      }
+    },
+    "All entries are deleted. This cannot be undone." : {
+      "comment" : "Clear History confirmation message",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All entries are deleted. This cannot be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wszystkie wpisy zostaną usunięte. Tej operacji nie można cofnąć."
           }
         }
       }
@@ -1245,6 +1317,24 @@
     },
     "Choose Folder…" : {
       "comment" : "Button that picks a model folder",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Folder…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wskaż folder…"
+          }
+        }
+      }
+    },
+    "Choose Folder… (models)" : {
+      "comment" : "Models pane: use a model folder downloaded by hand",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2337,6 +2427,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Esc anuluje"
+          }
+        }
+      }
+    },
+    "Every transcript, note and recording is deleted. A meeting that is being recorded is kept. This cannot be undone." : {
+      "comment" : "Meetings settings confirmation text of Clear Library",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every transcript, note and recording is deleted. A meeting that is being recorded is kept. This cannot be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Każdy transkrypt, notatka i nagranie zostaną usunięte. Spotkanie, które się nagrywa, zostaje. Tego nie można cofnąć."
           }
         }
       }
@@ -3709,6 +3817,24 @@
         }
       }
     },
+    "Not downloaded (models)" : {
+      "comment" : "Models pane: the model is not on this Mac",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not downloaded"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niepobrany"
+          }
+        }
+      }
+    },
     "Notes are on, but their model is not downloaded." : {
       "comment" : "Meeting window banner when the notes model is missing",
       "extractionState" : "manual",
@@ -4087,6 +4213,24 @@
         }
       }
     },
+    "Results go back to the order of how well they match. It cannot be undone." : {
+      "comment" : "Reset Ranking confirmation message",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Results go back to the order of how well they match. It cannot be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyniki wrócą do kolejności według dopasowania. Tego nie można cofnąć."
+          }
+        }
+      }
+    },
     "Search apps and files, paste from history, dictate, keep meeting notes. All on this Mac." : {
       "comment" : "Welcome screen: text of the first page",
       "extractionState" : "manual",
@@ -4173,6 +4317,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Model mowy: %@."
+          }
+        }
+      }
+    },
+    "Suggestions start again from the apps you use next. This cannot be undone." : {
+      "comment" : "Clear App Activity confirmation message",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggestions start again from the apps you use next. This cannot be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sugestie zaczną się od nowa od aplikacji, których użyjesz. Tej operacji nie można cofnąć."
           }
         }
       }
@@ -4586,7 +4748,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Niepobrany"
+            "value" : "Nie pobrano"
           }
         }
       }
@@ -4821,6 +4983,60 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Folder modelu mowy jest niedostępny."
+          }
+        }
+      }
+    },
+    "The transcript, notes and any saved audio are removed from this Mac. This cannot be undone." : {
+      "comment" : "Meeting window: delete confirmation message",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The transcript, notes and any saved audio are removed from this Mac. This cannot be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkrypt, notatki i zapisany dźwięk zostaną usunięte z tego Maca. Tej operacji nie można cofnąć."
+          }
+        }
+      }
+    },
+    "This deletes every saved dictation. It cannot be undone." : {
+      "comment" : "Dictation settings confirmation text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This deletes every saved dictation. It cannot be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuwa wszystkie zapisane dyktowania. Tego nie można cofnąć."
+          }
+        }
+      }
+    },
+    "This deletes everything the feature stored on this Mac. It cannot be undone." : {
+      "comment" : "Erase confirmation message",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This deletes everything the feature stored on this Mac. It cannot be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To usunie wszystko, co funkcja zapisała na tym Macu. Tej operacji nie można cofnąć."
           }
         }
       }
@@ -8709,24 +8925,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sugestie"
-          }
-        }
-      }
-    },
-    "Suggestions start again from the apps you use next. This can’t be undone." : {
-      "comment" : "Clear App Activity confirmation message",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Suggestions start again from the apps you use next. This can’t be undone."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sugestie zaczną się od nowa od aplikacji, których użyjesz. Tej operacji nie można cofnąć."
           }
         }
       }

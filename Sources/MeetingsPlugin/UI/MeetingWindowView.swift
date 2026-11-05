@@ -49,7 +49,7 @@ struct MeetingWindowView: View {
             }
         } message: {
             Text(
-                "The transcript, notes and any saved audio are removed from this Mac. This can’t be undone.",
+                "The transcript, notes and any saved audio are removed from this Mac. This cannot be undone.",
                 comment: "Meeting window: delete confirmation message")
         }
     }

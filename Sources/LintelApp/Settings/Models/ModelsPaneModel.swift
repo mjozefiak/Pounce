@@ -93,7 +93,10 @@ final class ModelsPaneModel {
                 return String(
                     localized: "Partly downloaded", comment: "Models pane: an interrupted download can continue")
             case .missing:
-                return String(localized: "Not downloaded", comment: "Models pane: the model is not on this Mac")
+                return String(
+                    localized: LocalizedStringResource(
+                        "Not downloaded (models)", defaultValue: "Not downloaded",
+                        comment: "Models pane: the model is not on this Mac"))
             }
         }
     }

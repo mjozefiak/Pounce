@@ -19,8 +19,11 @@ struct ClipboardSettingsPane: View {
     static let confirmation = DestructiveConfirmation(
         prompt: LocalizedStringResource("Clear the clipboard history?", comment: "Clear History confirmation title"),
         detail: LocalizedStringResource(
-            "All entries are deleted. This can’t be undone.", comment: "Clear History confirmation message"),
-        confirmTitle: LocalizedStringResource("Clear History", comment: "Clear History confirmation button"))
+            "All entries are deleted. This cannot be undone.", comment: "Clear History confirmation message"),
+        confirmTitle: LocalizedStringResource("Clear History", comment: "Clear History confirmation button"),
+        mainWindowDetail: LocalizedStringResource(
+            "All entries are deleted. This can’t be undone.",
+            comment: "Clear History confirmation message in the main window"))
 
     var body: some View {
         Group {
