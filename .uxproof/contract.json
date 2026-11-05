@@ -67,7 +67,7 @@
       "kind": "workspace-window",
       "count": 1,
       "examples": [
-        "Sources/LintelApp/Settings/ShellWindow.swift"
+        "Sources/LintelApp/Window/MainWindowController.swift"
       ],
       "anatomy": "one main window: sidebar with groups, then a detail area (Settings panes, Notes workspace); system fills, no glass; minimum width kept at XL text",
       "requiredStates": [
@@ -83,7 +83,7 @@
       "count": 7,
       "examples": [
         "Sources/LintelApp/Settings/GeneralPane.swift",
-        "Sources/DictationPlugin/DictationViews.swift",
+        "Sources/DictationPlugin/DictationSettingsPane.swift",
         "Sources/LintelApp/Settings/PermissionsPane.swift"
       ],
       "anatomy": "StatusBanner (what works / what is missing, with one Fix action) → Basics → Advanced disclosure → Data (clear / erase, with confirmation); footers are one short sentence",

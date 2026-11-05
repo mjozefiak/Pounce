@@ -3,7 +3,7 @@
 Generated sections describe the code today; the manual section below is the team's rule and wins on conflict.
 
 ## Stack (generated, by hand: the web extractor does not read Swift)
-SwiftUI inside AppKit windows (`NSPanel`, `NSWindow`), macOS 26, Liquid Glass (`NSGlassEffectView`, `.glassEffect`) on the launcher panel and the dictation HUD. Settings is `NSTabViewController` (toolbar style) hosting SwiftUI `Form(.grouped)` panes, 600 pt wide. The brand accent comes from `LintelBrand` (Verdigris); everything else uses system fills and controls.
+SwiftUI inside AppKit windows (`NSPanel`, `NSWindow`), macOS 26, Liquid Glass (`NSGlassEffectView`, `.glassEffect`) on the launcher panel and the dictation HUD. Settings is the main window's Settings mode (`MainWindowController`, `SettingsHost`: a sidebar and one SwiftUI pane on the `SettingsPane` template at a time). The brand accent comes from `LintelBrand` (Verdigris); everything else uses system fills and controls.
 
 ## Today's gaps (generated)
 - Raw status colors in views (measured before the rename: 59 `.secondary`, 8 `.orange`, 7 `.green`, 5 `.red`); to be replaced by `LintelBrand` tokens.
@@ -19,7 +19,7 @@ SwiftUI inside AppKit windows (`NSPanel`, `NSWindow`), macOS 26, Liquid Glass (`
 
 **Colour only through `LintelBrand`.** Raw colours (`.orange`, `.red`, `.green`, ...) are forbidden in views (see `guards.json`; a source-scanning test in `LintelAppTests` enforces it in CI). In Settings panes status goes only through the host's `StatusBanner`; workspace sections draw their strips with `LintelBrand` `status.*` tokens (ok / attention / error / neutral). Text only through `TextSize` tokens (title / body / help). Spacing from 2, 4, 8, 12, 16, 24.
 
-**Archetypes.** `workspace-window`: one window, sidebar with groups, detail area. `settings-pane`: StatusBanner (what works, one Fix action) → Basics → Advanced disclosure → Data (Clear / Erase, always with a confirmation dialog). A permission is always shown by one shared `PermissionRow`. Models live in one Models pane; plugin panes only summarise them.
+**Archetypes.** `workspace-window`: one window, sidebar with groups, detail area. `settings-pane`: StatusBanner (what works, one Fix action) → Basics → Advanced disclosure → Data (Clear / Erase, always behind a `ConfirmSheet` through `.destructiveConfirmation`). A permission is always shown by one shared `PermissionRow`. Models live in one Models pane; plugin panes only summarise them.
 
 **Copy.** English base and Polish, every key in both (`StringCatalogTests`). Sentences are short (about 15 words); detail goes in `.help` or Learn more. Buttons are verbs ("Download", "Allow Microphone"). Errors say what happened and what to do.
 

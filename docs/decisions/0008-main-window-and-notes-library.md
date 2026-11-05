@@ -49,6 +49,15 @@ Terms: **window enabled** = `#if DEBUG` before main-window step 6.3, every build
 - Pane bodies are not gated: each pane PR is releasable in the old window (and the old controller keeps skipping inactive plugins until 6.3).
 - Notes enabled (B 7.1) and the removal of `MeetingWindowController` (B 7.3) merge only after A 6.3; B 7.1's PR has a source-scanning test that `MainWindowController` is not inside `#if DEBUG`.
 
+### Addendum: window enabled in step 6.3 (2026-11-05)
+
+Steps 6.3a to 6.3c enabled the window, the last three commits of the stack. The text above describes the state before them and is kept as written.
+
+- 6.3a removed the `#if DEBUG` gate: the main window, the Dock, ⌘, and "Settings…" routing, `openModels` and `openNote` work in every build. `--qa-window` and `--qa-settings <pane>` stay DEBUG-only QA arguments; `--qa-notes` is unchanged (Notes enabled is still step 7.1).
+- 6.3b deleted `SettingsWindowController`, `SettingsPaneAdapter`, the `settingsHostStyle` value and every `.legacyWindow` branch, and the unused catalog keys. Every pane draws only its main-window body.
+- 6.3c updated `docs/qa.md`, `AGENTS.md`, `BACKWARD_COMPATIBILITY.md` and the `.uxproof/` paths, and added the window budgets to `docs/perf.md` as "to be measured".
+- Because the three commits are the last of the branch, the owner can cut them before the merge to keep the old Settings window for another release. A revert of them restores the old window with no data change.
+
 ## Rollback
 
 The contract and plugin are additive; a revert of the PR stack restores today's behaviour. `notes.sqlite` stays on disk unread (export first). Source stores are not changed by this feature.

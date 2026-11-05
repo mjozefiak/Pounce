@@ -2377,24 +2377,6 @@
         }
       }
     },
-    "Features that are on can't start until these are allowed." : {
-      "comment" : "Settings → Permissions banner detail",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Features that are on can't start until these are allowed."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Włączone funkcje nie ruszą, dopóki te uprawnienia nie są dozwolone."
-          }
-        }
-      }
-    },
     "Features that are on can't work without them. Download them below." : {
       "comment" : "Models pane banner detail: required models are missing",
       "extractionState" : "manual",
@@ -2715,24 +2697,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pobierz w Modelach"
-          }
-        }
-      }
-    },
-    "Get Started" : {
-      "comment" : "Welcome screen button on the first page",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Get Started"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zaczynamy"
           }
         }
       }
@@ -3147,24 +3111,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pozwala Lintel słyszeć Cię podczas dyktowania i nagrywania spotkania. Dźwięk dyktowania nigdy nie jest zapisywany; dźwięk spotkania jest przechowywany w zaszyfrowanej postaci na tym Macu, dopóki transkrypt nie będzie kompletny, a dźwięk niedokończonych spotkań jest przechowywany przez ograniczony czas."
-          }
-        }
-      }
-    },
-    "Lets Lintel hear you while you dictate. Audio stays on this Mac and is never saved." : {
-      "comment" : "Explanation of the Microphone permission",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lets Lintel hear you while you dictate. Audio stays on this Mac and is never saved."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pozwala Lintel słuchać, gdy dyktujesz. Dźwięk zostaje na tym Macu i nigdy nie jest zapisywany."
           }
         }
       }
@@ -3673,24 +3619,6 @@
         }
       }
     },
-    "Open Lintel Window" : {
-      "comment" : "Welcome screen: final page button that opens the main window",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open Lintel Window"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Otwórz okno Lintel"
-          }
-        }
-      }
-    },
     "Open Lintel with %@. Settings and meetings are in the Lintel window: click the Dock icon or press ⌘,." : {
       "comment" : "Welcome screen: final page text; the argument is the main shortcut, such as ⌘Space",
       "extractionState" : "manual",
@@ -3705,24 +3633,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Otwórz Lintel skrótem %@. Ustawienia i spotkania są w oknie Lintel: kliknij ikonę w Docku albo naciśnij ⌘,."
-          }
-        }
-      }
-    },
-    "Open Lintel with your shortcut from anywhere. Your settings and notes live in the Lintel window: click the Dock icon, use the menu bar item or press ⌘,." : {
-      "comment" : "Welcome screen: final page, points at the main window",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open Lintel with your shortcut from anywhere. Your settings and notes live in the Lintel window: click the Dock icon, use the menu bar item or press ⌘,."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Otwórz Lintel swoim skrótem z dowolnego miejsca. Ustawienia i notatki są w oknie Lintel: kliknij ikonę w Docku, użyj ikony w pasku menu albo naciśnij ⌘,."
           }
         }
       }
@@ -4191,24 +4101,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Żadna włączona funkcja go nie potrzebuje."
-          }
-        }
-      }
-    },
-    "Needed by: %@" : {
-      "comment" : "Settings → Permissions: the features that need a permission",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Needed by: %@"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Potrzebne dla: %@"
           }
         }
       }
@@ -5271,24 +5163,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lintel nigdy sam nie prosi o uprawnienia. Zmiany w Ustawieniach systemowych działają od razu."
-          }
-        }
-      }
-    },
-    "Lintel opens with a shortcut from anywhere and lives in the menu bar. The next steps set it up; you can skip any of them and change everything later in Settings." : {
-      "comment" : "Welcome screen introduction",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel opens with a shortcut from anywhere and lives in the menu bar. The next steps set it up; you can skip any of them and change everything later in Settings."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel otwierasz skrótem z dowolnego miejsca, a mieszka w pasku menu. Kolejne kroki go skonfigurują; każdy możesz pominąć i wszystko zmienić później w Ustawieniach."
           }
         }
       }
@@ -8529,24 +8403,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nie udało się otworzyć spotkania."
-          }
-        }
-      }
-    },
-    "The transcript, notes and any saved audio are removed from this Mac. This can’t be undone." : {
-      "comment" : "Meeting window: delete confirmation message",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The transcript, notes and any saved audio are removed from this Mac. This can’t be undone."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transkrypt, notatki i zapisany dźwięk zostaną usunięte z tego Maca. Tej operacji nie można cofnąć."
           }
         }
       }
