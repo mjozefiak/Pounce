@@ -2,6 +2,7 @@ import AppKit
 import Carbon.HIToolbox
 import Foundation
 import LintelKit
+import LintelUI
 import SwiftUI
 import Synchronization
 import Testing

@@ -1,4 +1,5 @@
 import AppKit
+import LintelUI
 import SwiftUI
 
 /// The single Settings window: a toolbar-style tab view with General, Features, every active plugin's
@@ -39,6 +40,9 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
 
     /// False in QA mode: the window is ordered front without activating Lintel.
     var activatesApp = true
+    /// The app's text size (`app.textSize`), read while the panes render so a change applies at once. The panes
+    /// keep the default `settingsHostStyle` (`.legacyWindow`).
+    var textSize: () -> TextSize = { .default }
 
     init(
         general: @escaping () -> AnyView,
@@ -164,7 +168,9 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     }
 
     private func addTab(to tabs: NSTabViewController, title: String, symbol: String, view: AnyView) {
-        let controller = NSHostingController(rootView: view.lintelBrand())
+        let textSize = textSize
+        let controller = NSHostingController(
+            rootView: LintelTextSizeScope(size: textSize) { view }.lintelBrand())
         controller.sizingOptions = [.preferredContentSize]
         controller.title = title
         let item = NSTabViewItem(viewController: controller)

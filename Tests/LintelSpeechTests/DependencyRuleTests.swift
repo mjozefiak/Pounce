@@ -5,8 +5,8 @@ import Testing
 /// The SwiftPM graph is the enforcement; this reads `Package.swift` so a dependency added by mistake fails a test.
 @Suite struct DependencyRuleTests {
     private static let repositoryTargets = [
-        "LintelKit", "LintelCore", "LintelPersistence", "LintelApp", "AppsPlugin", "FilesPlugin", "ClipboardPlugin",
-        "DictationPlugin", "MeetingsPlugin",
+        "LintelKit", "LintelCore", "LintelPersistence", "LintelUI", "LintelApp", "AppsPlugin", "FilesPlugin",
+        "ClipboardPlugin", "DictationPlugin", "MeetingsPlugin",
     ]
 
     private func manifest() throws -> String {

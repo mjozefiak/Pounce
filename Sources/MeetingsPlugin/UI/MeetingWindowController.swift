@@ -1,4 +1,5 @@
 import AppKit
+import LintelUI
 import Observation
 import SwiftUI
 
@@ -11,7 +12,7 @@ final class MeetingWindowController: NSObject, NSWindowDelegate, MeetingWindowPr
     private let makeModel: @MainActor (Int64) -> MeetingWindowModel
 
     /// The app's text size, when the host passes it; the view uses text styles, so it scales.
-    var dynamicTypeSize: DynamicTypeSize?
+    var textSize: TextSize = .default
     /// False in QA mode: the window is ordered front without activating Lintel.
     var activatesApp = true
 
@@ -27,7 +28,7 @@ final class MeetingWindowController: NSObject, NSWindowDelegate, MeetingWindowPr
             return
         }
         let model = makeModel(meetingID)
-        let view = MeetingWindowView(model: model).modifier(TextSizeModifier(size: dynamicTypeSize))
+        let view = MeetingWindowView(model: model).lintelTextSize(textSize)
         let controller = NSHostingController(rootView: view)
         let window = NSWindow(contentViewController: controller)
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
@@ -93,13 +94,5 @@ final class MeetingWindowController: NSObject, NSWindowDelegate, MeetingWindowPr
         NSAccessibility.post(
             element: element, notification: .announcementRequested,
             userInfo: [.announcement: text, .priority: NSAccessibilityPriorityLevel.high.rawValue])
-    }
-}
-
-private struct TextSizeModifier: ViewModifier {
-    let size: DynamicTypeSize?
-
-    func body(content: Content) -> some View {
-        if let size { content.dynamicTypeSize(size) } else { content }
     }
 }

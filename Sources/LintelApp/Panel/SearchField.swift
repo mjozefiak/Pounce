@@ -1,4 +1,5 @@
 import AppKit
+import LintelUI
 import SwiftUI
 
 /// The search field: an `NSTextField`, so the keyboard table is driven by the field editor's commands.

@@ -296,6 +296,7 @@ final class AppCoordinator {
             pluginPanes: { host.settingsPanes(includingInactive: false) }
         )
         window.activatesApp = environment.registersGlobalHotkeys
+        window.textSize = { settings.textSize }
         settingsWindow = window
 
         let onboarding = OnboardingController(hotkeys: hotkeys, settings: settings) {
@@ -377,6 +378,8 @@ final class AppCoordinator {
             }
         )
         window.activatesApp = environment.registersGlobalHotkeys
+        let appSettings = appSettings
+        window.textSize = { appSettings.textSize }
         mainWindow = window
         // QA mode (no global hotkeys) never installs a menu into the tester's session either.
         if environment.registersGlobalHotkeys {

@@ -2,7 +2,9 @@
 import PackageDescription
 
 // Dependency graph (one way only, see AGENTS.md):
-//   LintelApp -> plugins (AppsPlugin, FilesPlugin, ClipboardPlugin, DictationPlugin, MeetingsPlugin) -> LintelPersistence / LintelCore -> LintelKit
+//   LintelApp -> plugins (AppsPlugin, FilesPlugin, ClipboardPlugin, DictationPlugin, MeetingsPlugin) -> LintelUI / LintelPersistence / LintelCore -> LintelKit
+//   LintelUI holds the shared views and brand tokens (SwiftUI and AppKit, no I/O) and imports only LintelKit and
+//   LintelCore (docs/decisions/0008-main-window-and-notes-library.md, decision 8)
 //   plugins that use speech (DictationPlugin, MeetingsPlugin) -> LintelSpeech, which depends on no repository target
 //   (docs/decisions/0006-shared-speech-layer.md)
 // Only LintelApp is MainActor by default; every other target stays nonisolated and declares
@@ -40,6 +42,12 @@ let package = Package(
         .target(
             name: "LintelCore",
             dependencies: ["LintelKit"]
+        ),
+        .target(
+            name: "LintelUI",
+            // Shared views and brand tokens for LintelApp and the plugins' settings panes (ADR 0008, decision 8).
+            // Never a plugin or LintelApp (`DependencyRuleTests` checks that).
+            dependencies: ["LintelKit", "LintelCore"]
         ),
         .target(
             name: "LintelPersistence",
@@ -97,6 +105,7 @@ let package = Package(
                 "LintelCore",
                 "LintelPersistence",
                 "LintelSpeech",
+                "LintelUI",
                 // `FluidDiarizer` uses the offline diarizer directly (spec: Dependencies); models load only from
                 // the folder `ModelManager` owns.
                 .product(name: "FluidAudio", package: "FluidAudio"),
@@ -110,6 +119,7 @@ let package = Package(
                 "LintelKit",
                 "LintelCore",
                 "LintelPersistence",
+                "LintelUI",
                 "AppsPlugin",
                 "FilesPlugin",
                 "ClipboardPlugin",
@@ -122,6 +132,10 @@ let package = Package(
         .testTarget(
             name: "LintelKitTests",
             dependencies: ["LintelKit"]
+        ),
+        .testTarget(
+            name: "LintelUITests",
+            dependencies: ["LintelUI"]
         ),
         .testTarget(
             name: "LintelCoreTests",
@@ -181,7 +195,7 @@ let package = Package(
         ),
         .testTarget(
             name: "LintelAppTests",
-            dependencies: ["LintelApp", "LintelKit"],
+            dependencies: ["LintelApp", "LintelKit", "LintelUI"],
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),
     ],

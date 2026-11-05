@@ -16,7 +16,7 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 | 1 | 1.3 | Host the existing Settings panes in the window (adapter) | dispatch:standard | done | d4ad792 |
 | 1 | 1.4 | MainMenuController and MainMenuPolicy | dispatch:standard | done | 71cb82d |
 | 1 | 1.5 | Dock, status item, Cmd-comma and openModels routing behind the gate | dispatch:capable | done | 309df3d |
-| 1 | 1.6 | LintelUI target, moved brand and TextSize, host style values | dispatch:capable | todo | — |
+| 1 | 1.6 | LintelUI target, moved brand and TextSize, host style values | dispatch:capable | done | 9bad5bd |
 | 2 | 2.1 | SettingsSidebar and SettingsSidebarModel | dispatch:standard | todo | — |
 | 2 | 2.2 | StatusBanner and StatusDerivation | dispatch:capable | todo | — |
 | 2 | 2.3 | SettingsPane template, ConfirmSheet, footer helper, scanning tests | dispatch:standard | todo | — |

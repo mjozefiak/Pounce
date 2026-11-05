@@ -1,4 +1,5 @@
 import AppKit
+import LintelUI
 import SwiftUI
 
 /// What the About window shows, read from the app bundle.

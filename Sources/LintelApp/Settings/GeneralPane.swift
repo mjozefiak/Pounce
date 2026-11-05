@@ -1,3 +1,4 @@
+import LintelUI
 import SwiftUI
 
 /// Settings → General: the main shortcut, launch at login, the Dock icon and the panel's text size.

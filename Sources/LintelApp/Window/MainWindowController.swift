@@ -1,5 +1,6 @@
 import AppKit
 import LintelKit
+import LintelUI
 import SwiftUI
 
 /// The main window (spec `2026-11-04-lintel-main-window`): one `NSWindow` with SwiftUI content in two modes,
@@ -28,6 +29,8 @@ final class MainWindowController {
 
     /// False in QA mode: the window is ordered front without activating Lintel.
     var activatesApp = true
+    /// The app's text size (`app.textSize`), read while the content renders so a change applies at once.
+    var textSize: () -> TextSize = { .default }
 
     /// - Parameters:
     ///   - settings: where the mode, section and pane are stored.
@@ -127,7 +130,9 @@ final class MainWindowController {
         self.state = state
         state.save(to: settings)
         defer { onChange?() }
-        let content = makeContent(state, sections()).lintelBrand()
+        let content = LintelTextSizeScope(size: textSize) { makeContent(state, sections()) }
+            .environment(\.settingsHostStyle, .mainWindow)
+            .lintelBrand()
         if let hosting {
             hosting.rootView = AnyView(content)
         } else {
