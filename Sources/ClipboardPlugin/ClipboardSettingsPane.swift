@@ -23,12 +23,16 @@ struct ClipboardSettingsPane: View {
         confirmTitle: LocalizedStringResource("Clear History", comment: "Clear History confirmation button"))
 
     var body: some View {
-        if hostStyle == .legacyWindow {
-            LegacyClipboardSettingsPane(
-                state: state, settings: settings, actions: actions, recorder: recorder, clearHistory: clearHistory)
-        } else {
-            ClipboardPaneContent(state: state, settings: settings, recorder: recorder, clearHistory: clearHistory)
+        Group {
+            if hostStyle == .legacyWindow {
+                LegacyClipboardSettingsPane(
+                    state: state, settings: settings, actions: actions, recorder: recorder, clearHistory: clearHistory)
+            } else {
+                ClipboardPaneContent(state: state, settings: settings, recorder: recorder, clearHistory: clearHistory)
+            }
         }
+        // The banners read pasteboard access; it is re-read here, not while the banner draws.
+        .onAppear { actions.recheck() }
     }
 }
 

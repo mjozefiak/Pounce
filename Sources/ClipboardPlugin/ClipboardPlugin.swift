@@ -1,5 +1,6 @@
 import Foundation
 import LintelKit
+import LintelUI
 import SwiftUI
 import os
 
@@ -39,6 +40,9 @@ public final class ClipboardPlugin: LintelPlugin {
     private var retention: RetentionJob?
     private var sessionTask: Task<Void, Never>?
     private var isActive = false
+    /// Where app activations are posted (tests use their own centre).
+    var appActivationCenter: NotificationCenter = .default
+    private var activationObserver: AppActivationObserver?
     private lazy var pasteService = PasteService(
         pasteboard: context.pasteboard,
         events: context.events,
@@ -76,6 +80,10 @@ public final class ClipboardPlugin: LintelPlugin {
                 self?.retryIfUnavailable()
             }
         }
+        // Coming back from System Settings: Accessibility and pasteboard access may have changed.
+        activationObserver = AppActivationObserver(center: appActivationCenter) { [weak self] in
+            self?.recheckEnvironment()
+        }
         let retention = RetentionJob(clock: context.clock, logger: context.logger)
         self.retention = retention
         retention.start(
@@ -95,6 +103,8 @@ public final class ClipboardPlugin: LintelPlugin {
 
     public func deactivate() async {
         isActive = false
+        activationObserver?.stop()
+        activationObserver = nil
         watcher?.stop()
         watcher = nil
         retention?.stop()
@@ -190,9 +200,10 @@ public final class ClipboardPlugin: LintelPlugin {
     }
 
     /// The main window's banner (prototypes `set-clipboard` and `set-error`), read by the shell only while the
-    /// plugin is active. Accessibility is left to the shell, which derives it from `requiredPermissions`.
+    /// plugin is active and while the view draws, so it only reads: pasteboard access is re-checked when the pane
+    /// appears and when Lintel becomes the active app (`recheckEnvironment()`). Accessibility is left to the
+    /// shell, which derives it from `requiredPermissions`.
     public var settingsStatus: SettingsStatus? {
-        refreshEnvironment()
         let actions = statusActions
         return Self.settingsStatus(
             availability: state.availability, access: state.access, isPaused: state.isPaused,
@@ -337,6 +348,7 @@ public final class ClipboardPlugin: LintelPlugin {
     var statusActions: ClipboardActions {
         ClipboardActions(
             resume: { [weak self] in self?.settings.setPaused(false) },
+            recheck: { [weak self] in self?.recheckEnvironment() },
             retry: { [weak self] in self?.retryIfUnavailable() },
             dismissReset: { [weak self] in self?.dismissResetNotice() },
             openAccessibilitySettings: { [weak self] in self?.open(ClipboardActions.accessibilitySettings) },
@@ -403,11 +415,25 @@ public final class ClipboardPlugin: LintelPlugin {
         updateRecording()
     }
 
-    /// Re-reads what the system may have changed: Accessibility and pasteboard access.
-    func refreshEnvironment() {
-        state.pasteAllowed = context.permissions.status(of: .accessibility) == .granted
-        shared.setPasteAllowed(state.pasteAllowed)
-        state.access = context.pasteboard.accessBehavior
+    /// Re-reads what the system may have changed: Accessibility and pasteboard access. Returns whether either
+    /// changed.
+    @discardableResult func refreshEnvironment() -> Bool {
+        let pasteAllowed = context.permissions.status(of: .accessibility) == .granted
+        let access = context.pasteboard.accessBehavior
+        let changed = pasteAllowed != state.pasteAllowed || access != state.access
+        state.pasteAllowed = pasteAllowed
+        shared.setPasteAllowed(pasteAllowed)
+        state.access = access
+        return changed
+    }
+
+    /// The pane appeared or Lintel became the active app: re-reads the environment, starts or stops recording to
+    /// match, and tells the shell when the banner changes. Does nothing while the plugin is off.
+    func recheckEnvironment() {
+        guard isActive else { return }
+        guard refreshEnvironment() else { return }
+        updateRecording()
+        context.resultsChanged()
     }
 
     private func settingsChanged() {

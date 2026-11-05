@@ -10,6 +10,8 @@ struct ClipboardActions: Sendable {
     static let privacySettings = URL(string: "x-apple.systempreferences:com.apple.preference.security")
 
     var resume: @MainActor @Sendable () -> Void = {}
+    /// Re-reads Accessibility and pasteboard access (the Settings pane appeared).
+    var recheck: @MainActor @Sendable () -> Void = {}
     var retry: @MainActor @Sendable () -> Void = {}
     var dismissReset: @MainActor @Sendable () -> Void = {}
     var openAccessibilitySettings: @MainActor @Sendable () -> Void = {}

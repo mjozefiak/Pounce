@@ -176,6 +176,45 @@ import Testing
         await harness.tearDown()
     }
 
+    // Step 4.3 review fix: the banner getter only reads; access is re-checked on app activation.
+
+    @Test func readingTheBannerChangesNothing() async throws {
+        let harness = try PluginHarness()
+        try await harness.plugin.activate()
+        harness.pasteboard.access = .alwaysDeny
+        harness.permissions.accessibility = .denied
+        let changes = harness.changes.value
+        #expect(harness.plugin.settingsStatus?.level == .ok)
+        #expect(harness.plugin.settingsStatus?.level == .ok)
+        #expect(harness.plugin.state.access == .alwaysAllow)
+        #expect(harness.plugin.state.pasteAllowed)
+        #expect(harness.plugin.shared.pasteAllowed)
+        #expect(harness.changes.value == changes)
+        await harness.tearDown()
+    }
+
+    @Test func changedAccessShowsAfterComingBack() async throws {
+        let harness = try PluginHarness()
+        let center = NotificationCenter()
+        harness.plugin.appActivationCenter = center
+        try await harness.plugin.activate()
+        harness.pasteboard.access = .alwaysDeny
+        let changes = harness.changes.value
+        center.post(name: NSApplication.didBecomeActiveNotification, object: nil)
+        #expect(harness.plugin.state.access == .alwaysDeny)
+        #expect(harness.changes.value > changes)
+        #expect(harness.plugin.settingsStatus?.title.key == "Nothing is recorded")
+        // Nothing changed: no signal.
+        let after = harness.changes.value
+        center.post(name: NSApplication.didBecomeActiveNotification, object: nil)
+        #expect(harness.changes.value == after)
+        // The pane's appearance re-checks too.
+        harness.pasteboard.access = .alwaysAllow
+        harness.plugin.statusActions.recheck()
+        #expect(harness.plugin.settingsStatus?.level == .ok)
+        await harness.tearDown()
+    }
+
     @Test func pausingSignalsTheBanner() async throws {
         let harness = try PluginHarness()
         try await harness.plugin.activate()

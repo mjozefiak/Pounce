@@ -148,6 +148,51 @@ import Testing
         await harness.plugin.deactivate()
     }
 
+    // Step 4.3 review fix: the banner getter only reads; access is re-checked on app activation.
+
+    @Test func readingTheBannerChangesNothingAndStartsNothing() async throws {
+        let harness = try PluginHarness()
+        try await harness.plugin.activate()
+        harness.permissions.fullDiskAccess = .granted
+        let changes = harness.changes.value
+        let before = harness.plugin.settingsStatus
+        let again = harness.plugin.settingsStatus
+        #expect(before?.title.key == "Indexing hasn’t started")
+        #expect(again?.acknowledgedPermissions == [.fullDiskAccess])
+        #expect(harness.plugin.state.fullDiskAccess == .denied)
+        #expect(harness.plugin.state.plan == nil)
+        #expect(harness.plugin.controller == nil)
+        #expect(harness.changes.value == changes)
+        await harness.plugin.deactivate()
+    }
+
+    @Test func grantingAccessThenComingBackUpdatesTheBanner() async throws {
+        let harness = try PluginHarness(settings: ["plugins.files.setupCompleted": .bool(true)])
+        try harness.directory.make(["home/Projects/notes.txt"])
+        let center = NotificationCenter()
+        harness.plugin.appActivationCenter = center
+        try await harness.plugin.activate()
+        #expect(await eventually { harness.plugin.state.status.phase == .ready })
+        #expect(harness.plugin.settingsStatus?.acknowledgedPermissions == [.fullDiskAccess])
+        let plan = harness.plugin.state.plan
+        harness.permissions.fullDiskAccess = .granted
+        #expect(harness.plugin.settingsStatus?.acknowledgedPermissions == [.fullDiskAccess])
+        let changes = harness.changes.value
+        center.post(name: NSApplication.didBecomeActiveNotification, object: nil)
+        #expect(harness.plugin.state.fullDiskAccess == .granted)
+        #expect(harness.changes.value > changes)
+        #expect(harness.plugin.state.plan != plan)
+        #expect(await eventually { harness.plugin.state.status.phase == .ready })
+        let status = try #require(harness.plugin.settingsStatus)
+        #expect(status.acknowledgedPermissions.isEmpty)
+        #expect(status.fix.isEmpty)
+        await harness.plugin.deactivate()
+        // Switched off: activations are no longer observed.
+        harness.permissions.fullDiskAccess = .denied
+        center.post(name: NSApplication.didBecomeActiveNotification, object: nil)
+        #expect(harness.plugin.state.fullDiskAccess == .granted)
+    }
+
     @Test func theBannerStringsAreTranslated() throws {
         let url = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
             .deletingLastPathComponent().appending(path: "Resources/Localizable.xcstrings")

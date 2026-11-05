@@ -1,5 +1,6 @@
 import Foundation
 import LintelKit
+import LintelUI
 import Observation
 import SwiftUI
 import Synchronization
@@ -52,6 +53,9 @@ public final class FilesPlugin: LintelPlugin {
     private var runTask: Task<Void, Never>?
     private var isActive = false
     private var lastAccessCheck: ContinuousClock.Instant?
+    /// Where app activations are posted (tests use their own centre).
+    var appActivationCenter: NotificationCenter = .default
+    private var activationObserver: AppActivationObserver?
 
     public init(context: PluginContext) {
         self.context = context
@@ -66,10 +70,16 @@ public final class FilesPlugin: LintelPlugin {
         isActive = true
         refreshAccess()
         startIfReady()
+        // Coming back from System Settings: a Full Disk Access grant replans the index and updates the banner.
+        activationObserver = AppActivationObserver(center: appActivationCenter) { [weak self] in
+            self?.refreshAccess()
+        }
     }
 
     public func deactivate() async {
         isActive = false
+        activationObserver?.stop()
+        activationObserver = nil
         let task = runTask
         runTask = nil
         controller = nil
@@ -119,12 +129,11 @@ public final class FilesPlugin: LintelPlugin {
         AnyView(FilesSettingsPane(model: viewModel))
     }
 
-    /// The main window's banner (prototype `set-files`). Reading it may re-check Full Disk Access (at most every
-    /// few seconds), so a grant in System Settings shows when the user comes back; read by the shell only while
-    /// active.
+    /// The main window's banner (prototype `set-files`), read by the shell only while active and while the view
+    /// draws, so it only reads: Full Disk Access is re-checked when the pane appears and when Lintel becomes the
+    /// active app (`refreshAccess()`), which signals `resultsChanged` so the shell reads the banner again.
     public var settingsStatus: SettingsStatus? {
-        refreshAccessIfStale()
-        return Self.settingsStatus(
+        Self.settingsStatus(
             status: state.status,
             setupCompleted: settings.setupCompleted,
             fullDiskAccess: state.fullDiskAccess,
@@ -354,7 +363,8 @@ public final class FilesPlugin: LintelPlugin {
 
     // MARK: Access
 
-    /// Re-reads Full Disk Access and replans when it changed.
+    /// Re-reads Full Disk Access; when it changed, replans and tells the shell (the banner and the panel
+    /// notices follow it).
     func refreshAccess() {
         lastAccessCheck = .now
         let status = context.permissions.status(of: .fullDiskAccess)
@@ -362,6 +372,7 @@ public final class FilesPlugin: LintelPlugin {
         guard status != state.fullDiskAccess else { return }
         state.fullDiskAccess = status
         startIfReady()
+        context.resultsChanged()
     }
 
     private func refreshAccessIfStale() {
