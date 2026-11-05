@@ -7327,6 +7327,24 @@
         }
       }
     },
+    "Data" : {
+      "comment" : "Settings pane section title for the data a feature keeps",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dane"
+          }
+        }
+      }
+    },
     "Delete Meeting" : {
       "comment" : "Meeting window: confirm deleting",
       "extractionState" : "manual",
