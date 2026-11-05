@@ -25,7 +25,7 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 | 2 | 2.2 | StatusBanner and StatusDerivation | dispatch:capable | done | fe06897 |
 | 2 | 2.3 | SettingsPane template, ConfirmSheet, footer helper, scanning tests | dispatch:standard | done | 7ed6534 |
 | 2 | 2.4 | SettingsKeys ownership and per-plugin key coverage tests | dispatch:standard | done | 3dfdb64 |
-| 2 | 2.2-review-fix | Review fix: sidebar dot from derivation, live sidebar after state change, ok banner when nothing is wrong, error dot colour | dispatch:capable | todo | — |
+| 2 | 2.2-review-fix | Review fix: sidebar dot from derivation, live sidebar after state change, ok banner when nothing is wrong, error dot colour | dispatch:capable | done | bab53c8 |
 | 2 | 2.3-review-fix | Review fix: legacy-branch scanner else/!= handling, colour rule gaps, ConfirmSheet shortcuts, neutral glyph contrast | dispatch:standard | todo | — |
 | 3 | 3.1 | PermissionRow and PermissionsPane | dispatch:standard | todo | — |
 | 3 | 3.2 | ModelsPane, ModelRow, ModelsPaneModel, ModelUsage declarations | dispatch:capable | todo | — |

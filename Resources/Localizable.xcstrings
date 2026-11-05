@@ -6031,6 +6031,24 @@
         }
       }
     },
+    "Try Again (plugin)" : {
+      "comment" : "Settings banner button: starts a plugin that failed to start again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try Again"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spróbuj ponownie"
+          }
+        }
+      }
+    },
     "Try it" : {
       "comment" : "Dictation settings button that cleans up a sample text",
       "extractionState" : "manual",

@@ -1,3 +1,4 @@
+import LintelKit
 import LintelUI
 import SwiftUI
 
@@ -59,8 +60,10 @@ struct SettingsSidebar: View {
                     .font(textSize.font(.caption1))
                     .foregroundStyle(.secondary)
             }
-            if item.needsAttention {
-                Circle().fill(LintelBrand.statusAttention).frame(width: 8, height: 8)
+            if let level = item.attention {
+                Circle()
+                    .fill(level == .error ? LintelBrand.statusError : LintelBrand.statusAttention)
+                    .frame(width: 8, height: 8)
             }
         }
         .tag(item.id)

@@ -115,11 +115,11 @@ func settle() async {
         await host.start()
         let model = model(host)
         model.show("banner")
-        #expect(model.banner == nil)
+        #expect(model.banner?.level == .ok)
 
         StatusBox.status = SettingsStatus(level: .attention, title: "1 thing to do")
         model.pluginResultsChanged("alpha")
-        #expect(model.banner == nil)
+        #expect(model.banner?.level == .ok)
         model.pluginResultsChanged("banner")
         #expect(model.banner?.title == "1 thing to do")
     }
@@ -184,7 +184,55 @@ func settle() async {
 
         reader.answers[.microphone] = .granted
         model.refresh()  // what app activation calls
-        #expect(model.banner == nil)
+        #expect(model.banner?.level == .ok)
+    }
+
+    @Test func aDeniedPermissionGivesTheSidebarDotThoughThePluginSaysNothing() async {
+        defer { env.tearDown() }
+        let host = env.makeHost([BannerStatusPlugin.self])
+        await host.start()
+        let reader = FakePermissionsReader()
+        reader.answers[.microphone] = .denied
+        let model = model(host, reader: reader)
+        #expect(StatusBox.status == nil)
+        #expect(model.attention["banner"] == .attention)
+
+        reader.answers[.microphone] = .granted
+        model.refresh()
+        #expect(model.attention["banner"] == nil)
+    }
+
+    @Test func aFailedPluginGivesAnErrorDot() async {
+        defer { env.tearDown() }
+        RecoveringPlugin.failuresLeft = 1
+        defer { RecoveringPlugin.failuresLeft = 0 }
+        let host = env.makeHost([RecoveringPlugin.self])
+        await host.start()
+        let model = model(host)
+        #expect(model.attention["recovering"] == .error)
+        model.show("recovering")
+        #expect(model.banner?.level == .error)
+    }
+
+    @Test func theSidebarAndThePaneFollowTurnOn() async throws {
+        defer { env.tearDown() }
+        let host = env.makeHost([PanePlugin.self])
+        await host.start()
+        let model = model(host)
+        model.show("pane")
+        let row = { model.sections.flatMap(\.items).first { $0.id == "pane" } }
+        #expect(try #require(row()).isActive == false)
+        #expect(model.plugins.first { $0.id == "pane" }?.isActive == false)
+
+        let turnOn = try #require(model.banner?.actions.first)
+        await model.perform(turnOn)
+        #expect(try #require(row()).isActive)
+        #expect(model.plugins.first { $0.id == "pane" }?.isActive == true)
+
+        // A Features switch changes the host state only; the observation builds the panes again.
+        await host.setEnabled(false, for: "pane")
+        await settle()
+        #expect(try #require(row()).isActive == false)
     }
 
     @Test func anInactivePluginsStatusIsNeverRead() async {

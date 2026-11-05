@@ -1,3 +1,4 @@
+import LintelKit
 import SwiftUI
 
 /// Temporary adapter (spec `2026-11-04-lintel-main-window`, step 1.3): shows the panes of the old Settings window
@@ -36,13 +37,15 @@ enum SettingsPaneAdapter {
         return SettingsWindowController.Pane.allCases.map(shell) + pluginEntries + [models]
     }
 
-    /// The sidebar's input from the plugins' panes.
-    static func sidebarSections(plugins: [SettingsWindowController.PluginPane]) -> [SettingsSidebarModel.Section] {
+    /// The sidebar's input from the plugins' panes and each pane's attention level (`SettingsHostModel`).
+    static func sidebarSections(
+        plugins: [SettingsWindowController.PluginPane], attention: [String: SettingsStatus.Level] = [:]
+    ) -> [SettingsSidebarModel.Section] {
         SettingsSidebarModel.sections(
             plugins: plugins.map {
                 SettingsSidebarModel.PluginItem(
                     id: $0.id, title: $0.title, symbolName: $0.symbolName, group: $0.group, order: $0.order,
-                    isActive: $0.isActive, needsAttention: $0.needsAttention)
+                    isActive: $0.isActive, attention: attention[$0.id])
             })
     }
 }

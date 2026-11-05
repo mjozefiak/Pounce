@@ -18,14 +18,8 @@ extension PluginHost {
                 view: view,
                 isActive: isActive,
                 group: entry.manifest.settingsGroup,
-                order: entry.manifest.order,
-                needsAttention: isActive && Self.needsAttention(entry.plugin.settingsStatus)
+                order: entry.manifest.order
             )
         }
-    }
-
-    private static func needsAttention(_ status: SettingsStatus?) -> Bool {
-        guard let level = status?.level else { return false }
-        return level == .attention || level == .error
     }
 }

@@ -31,8 +31,6 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         /// The sidebar group, from `manifest.settingsGroup`, and the order inside it, from `manifest.order`.
         var group: SettingsGroup = .lintel
         var order = 0
-        /// The sidebar's attention dot: the plugin's `settingsStatus` asks for attention or reports an error.
-        var needsAttention = false
     }
 
     private var window: NSWindow?

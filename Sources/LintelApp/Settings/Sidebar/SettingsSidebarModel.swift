@@ -18,7 +18,9 @@ enum SettingsSidebarModel {
         let order: Int
         /// False for a disabled or failed plugin: the row is dimmed and says "Off".
         let isActive: Bool
-        let needsAttention: Bool
+        /// The level of the pane's banner when it is `attention` or `error` (`StatusDerivation.attention`), so the
+        /// dot and the banner agree; a failed plugin's error banner gives an error dot on its "Off" row.
+        let attention: SettingsStatus.Level?
     }
 
     struct Item: Equatable, Identifiable {
@@ -26,7 +28,10 @@ enum SettingsSidebarModel {
         let title: String
         let symbolName: String
         let isActive: Bool
-        let needsAttention: Bool
+        /// `attention` or `error`; `nil` for no dot.
+        let attention: SettingsStatus.Level?
+
+        var needsAttention: Bool { attention != nil }
 
         /// What VoiceOver speaks: the title, "Off" for a dimmed row, "Needs attention" for the dot.
         var accessibilityLabel: String {
@@ -47,12 +52,12 @@ enum SettingsSidebarModel {
 
     static func sections(plugins: [PluginItem]) -> [Section] {
         func shell(_ id: String, _ title: String, _ symbol: String) -> Item {
-            Item(id: id, title: title, symbolName: symbol, isActive: true, needsAttention: false)
+            Item(id: id, title: title, symbolName: symbol, isActive: true, attention: nil)
         }
         func item(_ plugin: PluginItem) -> Item {
             Item(
                 id: plugin.id, title: plugin.title, symbolName: plugin.symbolName, isActive: plugin.isActive,
-                needsAttention: plugin.isActive && plugin.needsAttention)
+                attention: plugin.attention == .attention || plugin.attention == .error ? plugin.attention : nil)
         }
         func ordered(_ group: SettingsGroup) -> [Item] {
             plugins.filter { $0.group == group }

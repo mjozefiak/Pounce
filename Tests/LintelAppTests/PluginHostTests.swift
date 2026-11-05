@@ -261,7 +261,8 @@ import Testing
         #expect(host.state(of: "recovering")?.isActive == true)
         #expect(LifecycleLog.shared.events.filter { $0 == "recovering.activate" }.count == 2)
         #expect(changed == 1)
-        #expect(model.banner == nil)
+        #expect(model.banner?.level == .ok)
+        #expect(model.attention["recovering"] == nil)
     }
 
     private func isDisabled(_ state: PluginState) -> Bool {

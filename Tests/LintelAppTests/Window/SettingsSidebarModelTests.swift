@@ -8,11 +8,11 @@ import Testing
     private typealias Plugin = SettingsSidebarModel.PluginItem
 
     private func plugin(
-        _ id: String, group: SettingsGroup, order: Int, active: Bool = true, attention: Bool = false
+        _ id: String, group: SettingsGroup, order: Int, active: Bool = true, attention: SettingsStatus.Level? = nil
     ) -> Plugin {
         Plugin(
             id: id, title: id.capitalized, symbolName: "app", group: group, order: order, isActive: active,
-            needsAttention: attention)
+            attention: attention)
     }
 
     private var sample: [Plugin] {
@@ -79,15 +79,23 @@ import Testing
         #expect(off.accessibilityLabel == "Meetings, \(String(localized: "Off", comment: "Feature state"))")
     }
 
-    @Test func theAttentionDotIsSpokenAndNeverShownOnAnOffRow() throws {
+    @Test func theAttentionDotFollowsTheBannerLevelAndIsSpoken() throws {
         let sections = SettingsSidebarModel.sections(plugins: [
-            plugin("apps", group: .search, order: 1, attention: true),
-            plugin("files", group: .search, order: 2, active: false, attention: true),
+            plugin("apps", group: .search, order: 1, attention: .attention),
+            // A failed plugin: dimmed "Off" row, but its banner is an error, so the dot is an error dot.
+            plugin("files", group: .search, order: 2, active: false, attention: .error),
+            plugin("clipboard", group: .search, order: 3, attention: .ok),
+            plugin("meetings", group: .search, order: 4, active: false, attention: .neutral),
         ])
-        let apps = try #require(sections[1].items.first { $0.id == "apps" })
-        let files = try #require(sections[1].items.first { $0.id == "files" })
-        #expect(apps.needsAttention)
+        let items = Dictionary(uniqueKeysWithValues: sections[1].items.map { ($0.id, $0) })
+        let apps = try #require(items["apps"])
+        #expect(apps.attention == .attention)
         #expect(apps.accessibilityLabel.contains(String(localized: "Needs attention")))
-        #expect(!files.needsAttention)
+        let files = try #require(items["files"])
+        #expect(files.attention == .error)
+        #expect(!files.isActive)
+        #expect(files.accessibilityLabel.contains(String(localized: "Needs attention")))
+        #expect(items["clipboard"]?.needsAttention == false)
+        #expect(items["meetings"]?.needsAttention == false)
     }
 }

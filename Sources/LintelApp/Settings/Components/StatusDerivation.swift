@@ -7,7 +7,8 @@ import LintelKit
 ///
 /// Precedence: host state first (off → neutral with Turn On, failed → error with Try Again, both
 /// `.enablePlugin`), then the plugin's status combined with the derived permission status. The shown level is
-/// the worse of the two in the order `error > attention > ok`; a plugin `neutral` counts as `ok` there.
+/// the worse of the two in the order `error > attention > ok`; a plugin `neutral` counts as `ok` there. A plugin
+/// that says nothing (`nil`) while derivation finds nothing wrong gets the derived `ok` banner ("Ready").
 enum StatusDerivation {
     /// What the shell knows about the pane's plugin.
     enum HostState: Equatable {
@@ -27,14 +28,16 @@ enum StatusDerivation {
 
         /// What VoiceOver speaks for the banner as one unit: the level, the title and the detail.
         var accessibilityLabel: String {
-            [StatusDerivation.levelName(level), title, detail].compactMap { $0 }.joined(separator: ", ")
+            let name = StatusDerivation.levelName(level)
+            // The derived ok banner is titled by the level name; it is spoken once.
+            return [name == title ? nil : name, title, detail].compactMap { $0 }.joined(separator: ", ")
         }
     }
 
     /// The most buttons a banner shows.
     static let maximumActions = 2
 
-    /// The banner of a plugin pane; `nil` when there is nothing to say.
+    /// The banner of a plugin pane; `nil` only while the plugin is turning on or off.
     ///
     /// - Parameters:
     ///   - pluginStatus: the plugin's `settingsStatus`, called only while the plugin is active.
@@ -69,7 +72,8 @@ enum StatusDerivation {
                 actions: [
                     SettingsStatusAction(
                         title: LocalizedStringResource(
-                            "Try Again", comment: "Button that retries opening the clipboard history"),
+                            "Try Again (plugin)", defaultValue: "Try Again",
+                            comment: "Settings banner button: starts a plugin that failed to start again"),
                         destination: .enablePlugin)
                 ])
         case .active:
@@ -120,7 +124,7 @@ enum StatusDerivation {
                         comment: "Settings banner detail: a permission whose state cannot be read"),
                     actions: [])
             }
-            return nil
+            return Banner(level: .ok, title: levelName(.ok), detail: nil, actions: [])
         }
 
         let title = String(localized: status.title)
@@ -150,6 +154,12 @@ enum StatusDerivation {
         case .attention: 1
         case .error: 2
         }
+    }
+
+    /// The sidebar's attention dot for a banner: its level when it is `attention` or `error`, else `nil`.
+    static func attention(_ banner: Banner?) -> SettingsStatus.Level? {
+        guard let level = banner?.level, level == .attention || level == .error else { return nil }
+        return level
     }
 
     static func levelName(_ level: SettingsStatus.Level) -> String {

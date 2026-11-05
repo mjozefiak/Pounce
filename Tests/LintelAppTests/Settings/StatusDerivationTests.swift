@@ -106,9 +106,13 @@ enum ActionKind: Equatable {
         #expect(kinds(derive(status(.attention, fix: fix))) == [.plugin("a1"), .plugin("a2")])
     }
 
-    @Test func nothingToSayGivesNoBanner() {
-        #expect(derive(nil) == nil)
-        #expect(derive(nil, required: [.microphone], states: [.microphone: .granted]) == nil)
+    @Test func nothingWrongGivesTheDerivedReadyBanner() {
+        for banner in [derive(nil), derive(nil, required: [.microphone], states: [.microphone: .granted])] {
+            #expect(banner?.level == .ok)
+            #expect(banner?.title == StatusDerivation.levelName(.ok))
+            #expect(banner?.detail == nil)
+            #expect(banner?.actions.isEmpty == true)
+        }
     }
 
     // MARK: Derivation and the level order
@@ -188,7 +192,7 @@ enum ActionKind: Equatable {
     }
 
     @Test func notDeterminedGivesNoBannerFromDerivation() {
-        #expect(derive(nil, required: [.microphone], states: [.microphone: .notDetermined]) == nil)
+        #expect(derive(nil, required: [.microphone], states: [.microphone: .notDetermined])?.level == .ok)
         let banner = derive(status(.ok, "Ready"), required: [.microphone], states: [.microphone: .notDetermined])
         #expect(banner?.level == .ok)
         // A plugin may still report it itself, with its own action.
@@ -210,6 +214,8 @@ enum ActionKind: Equatable {
         let banner = derive(status(.error, "History is paused", detail: "Nothing was deleted."))
         let label = banner?.accessibilityLabel
         #expect(label == "\(StatusDerivation.levelName(.error)), History is paused, Nothing was deleted.")
-        #expect(derive(status(.ok, "Ready"))?.accessibilityLabel == "\(StatusDerivation.levelName(.ok)), Ready")
+        #expect(derive(status(.ok, "Indexed"))?.accessibilityLabel == "\(StatusDerivation.levelName(.ok)), Indexed")
+        // The derived ok banner is titled by the level name and speaks it once.
+        #expect(derive(nil)?.accessibilityLabel == StatusDerivation.levelName(.ok))
     }
 }

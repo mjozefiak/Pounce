@@ -4,11 +4,14 @@ import LintelUI
 import Observation
 import SwiftUI
 
-/// The state behind the one banner of the main window's Settings mode (spec step 2.2): which pane is shown, its
-/// `StatusDerivation` banner, and the banner actions, which the shell runs.
+/// The state behind the main window's Settings mode (spec step 2.2): which pane is shown, its `StatusDerivation`
+/// banner, the banner actions (which the shell runs), and the plugin panes with their sidebar dots.
 ///
-/// The banner is read again when the pane appears (`show`), on every `PluginHost` state change, on
-/// `PluginContext.resultsChanged` from the pane's plugin, on app activation and after a banner action finishes.
+/// The banner and the dots are read again when the pane appears (`show`), on every `PluginHost` state change, on
+/// `PluginContext.resultsChanged` (the banner only from the pane's plugin), on app activation and after a banner
+/// action finishes. The plugin panes (`plugins`: dimmed rows, `isActive`) are built again on every `PluginHost`
+/// state change and after `.enablePlugin`, so the sidebar and the pane follow "Turn On", "Try Again" and the
+/// Features switches.
 @Observable
 final class SettingsHostModel {
     /// Where the banner actions lead; the shell owns navigation.
@@ -23,18 +26,39 @@ final class SettingsHostModel {
 
     private(set) var paneID: String?
     private(set) var banner: StatusDerivation.Banner?
+    /// Every plugin's pane, inactive ones included (`PluginHost.settingsPanes(includingInactive: true)`).
+    private(set) var plugins: [SettingsWindowController.PluginPane] = []
+    /// The sidebar dot per plugin id: the level of that pane's banner when it is `attention` or `error`.
+    private(set) var attention: [String: SettingsStatus.Level] = [:]
     /// True while a banner action runs.
     private(set) var isBusy = false
 
     @ObservationIgnored private let host: PluginHost
     @ObservationIgnored private let reader: any PermissionsReader
     @ObservationIgnored private let navigation: Navigation
+    @ObservationIgnored private let makePanes: () -> [SettingsWindowController.PluginPane]
 
-    init(host: PluginHost, reader: any PermissionsReader, navigation: Navigation = Navigation()) {
+    init(
+        host: PluginHost, reader: any PermissionsReader, navigation: Navigation = Navigation(),
+        panes: (() -> [SettingsWindowController.PluginPane])? = nil
+    ) {
         self.host = host
         self.reader = reader
         self.navigation = navigation
+        self.makePanes = panes ?? { host.settingsPanes(includingInactive: true) }
+        reloadPanes()
+        refreshAttention()
         observeHost()
+    }
+
+    /// The sidebar sections from the current panes and dots.
+    var sections: [SettingsSidebarModel.Section] {
+        SettingsPaneAdapter.sidebarSections(plugins: plugins, attention: attention)
+    }
+
+    /// Builds the plugin panes again (a plugin's `settingsPane()` reflects whether it is active).
+    func reloadPanes() {
+        plugins = makePanes()
     }
 
     /// The pane appeared or the selection changed.
@@ -46,12 +70,25 @@ final class SettingsHostModel {
     /// Reads the banner of the shown pane again.
     func refresh() {
         banner = paneID.flatMap { Self.banner(for: $0, host: host, reader: reader) }
+        refreshAttention()
     }
 
-    /// `PluginContext.resultsChanged` from the plugin `pluginID`.
+    /// `PluginContext.resultsChanged` from the plugin `pluginID`: its dot, and the banner when it is shown.
     func pluginResultsChanged(_ pluginID: String) {
-        guard pluginID == paneID else { return }
+        guard pluginID == paneID else {
+            refreshAttention()
+            return
+        }
         refresh()
+    }
+
+    private func refreshAttention() {
+        var levels: [String: SettingsStatus.Level] = [:]
+        for entry in host.entries {
+            let id = entry.manifest.id.rawValue
+            levels[id] = StatusDerivation.attention(Self.banner(for: id, host: host, reader: reader))
+        }
+        if levels != attention { attention = levels }
     }
 
     /// Runs a banner button through the shell, then reads the banner again.
@@ -70,6 +107,7 @@ final class SettingsHostModel {
         case .enablePlugin:
             // On a failed plugin this runs activation again (`activateNow` skips only `.active`).
             await host.setEnabled(true, for: PluginID(rawValue: paneID))
+            reloadPanes()
             navigation.pluginsChanged()
         case .plugin(_, let perform):
             await perform()
@@ -96,13 +134,14 @@ final class SettingsHostModel {
             permission: { reader.status(of: $0) })
     }
 
-    /// Every lifecycle change of a plugin reads the banner again.
+    /// Every lifecycle change of a plugin builds the panes and reads the banner and the dots again.
     private func observeHost() {
         withObservationTracking {
             _ = host.entries.map(\.state.isActive)
         } onChange: { [weak self] in
             Task { @MainActor in
                 guard let self else { return }
+                self.reloadPanes()
                 self.refresh()
                 self.observeHost()
             }
@@ -114,15 +153,16 @@ final class SettingsHostModel {
 /// slot; `SettingsWindowController` draws none.
 struct SettingsHost: View {
     let model: SettingsHostModel
-    let entries: [SettingsPaneAdapter.Entry]
-    let sections: [SettingsSidebarModel.Section]
+    /// The shell's own panes (General, Features, Permissions, Advanced).
+    let shellPane: (SettingsWindowController.Pane) -> AnyView
     let selection: String
     let onSelect: (String) -> Void
     let onBack: (() -> Void)?
 
     var body: some View {
+        let entries = SettingsPaneAdapter.entries(shellPane: shellPane, plugins: model.plugins)
         HStack(spacing: 0) {
-            SettingsSidebar(sections: sections, selection: selection, onSelect: onSelect, onBack: onBack)
+            SettingsSidebar(sections: model.sections, selection: selection, onSelect: onSelect, onBack: onBack)
             Divider()
             VStack(spacing: 0) {
                 if let banner = model.banner, model.paneID == selection {

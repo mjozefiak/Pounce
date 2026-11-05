@@ -373,13 +373,18 @@ final class AppCoordinator {
     /// temporary adapter (spec step 1.3).
     private func settingsModeContent(_ state: MainWindowState) -> AnyView {
         guard let shellPane else { return AnyView(EmptyView()) }
-        let panes = mainWindowPluginPanes()
-        let entries = SettingsPaneAdapter.entries(shellPane: shellPane, plugins: panes)
         let hasSection = state.section != nil
+        let model: SettingsHostModel
+        if let settingsHost {
+            // A mode or selection change builds the panes again, as the old window does on open.
+            settingsHost.reloadPanes()
+            model = settingsHost
+        } else {
+            model = makeSettingsHost()
+        }
         return AnyView(
             SettingsHost(
-                model: settingsHost ?? makeSettingsHost(),
-                entries: entries, sections: SettingsPaneAdapter.sidebarSections(plugins: panes),
+                model: model, shellPane: shellPane,
                 selection: state.settingsPane,
                 onSelect: { [weak self] id in self?.mainWindow?.selectSettingsPane(id) },
                 onBack: hasSection ? { [weak self] in self?.mainWindow?.showWorkspace() } : nil))
@@ -390,7 +395,9 @@ final class AppCoordinator {
         navigation.openModels = { [weak self] id, packageID in self?.openModels(from: id, packageID: packageID) }
         navigation.openURL = { url in NSWorkspace.shared.open(url) }
         navigation.pluginsChanged = { [weak self] in self?.pluginsChanged() }
-        let model = SettingsHostModel(host: host, reader: environment.permissionsReader, navigation: navigation)
+        let model = SettingsHostModel(
+            host: host, reader: environment.permissionsReader, navigation: navigation,
+            panes: { [weak self] in self?.mainWindowPluginPanes() ?? [] })
         settingsHost = model
         return model
     }
