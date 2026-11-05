@@ -122,28 +122,24 @@ struct MeetingsSuggestionsSetupPart: View {
     @Bindable var model: MeetingsSettingsModel
 
     var body: some View {
-        Label {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(
-                    "Optional: Lintel can suggest recording when Zoom, Teams or another meeting app starts using the microphone. It only checks which app uses the microphone, never what it hears, and never records without your click.",
-                    comment: "Meetings onboarding step about meeting suggestions"
-                )
-                .fixedSize(horizontal: false, vertical: true)
-                Toggle(isOn: $model.suggestMeetings) {
-                    Text("Suggest recording when a meeting starts", comment: "Meetings settings toggle of suggestions")
-                }
-                if model.suggestionStatus == .unavailable {
-                    Text(
-                        "Not available on this Mac: macOS does not report which apps use the microphone here.",
-                        comment: "Meetings settings: the process audio API is unavailable"
-                    )
-                    .foregroundStyle(.orange)
-                } else if model.suggestionStatus == .noData {
-                    Text(MeetingsSuggestionsSection.noDataMessage).foregroundStyle(.orange)
-                }
+        // A part of the welcome page's single column (`WelcomeStepColumn`), without an icon.
+        WelcomeStepItem(
+            Text(
+                "Optional: Lintel can suggest recording when Zoom, Teams or another meeting app starts using the microphone. It only checks which app uses the microphone, never what it hears, and never records without your click.",
+                comment: "Meetings onboarding step about meeting suggestions")
+        ) {
+            Toggle(isOn: $model.suggestMeetings) {
+                Text("Suggest recording when a meeting starts", comment: "Meetings settings toggle of suggestions")
             }
-        } icon: {
-            Image(systemName: "person.2.wave.2").accessibilityHidden(true)
+            if model.suggestionStatus == .unavailable {
+                Text(
+                    "Not available on this Mac: macOS does not report which apps use the microphone here.",
+                    comment: "Meetings settings: the process audio API is unavailable"
+                )
+                .foregroundStyle(LintelBrand.statusAttention)
+            } else if model.suggestionStatus == .noData {
+                Text(MeetingsSuggestionsSection.noDataMessage).foregroundStyle(LintelBrand.statusAttention)
+            }
         }
     }
 }

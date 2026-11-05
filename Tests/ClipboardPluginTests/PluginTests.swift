@@ -262,6 +262,12 @@ struct ClipboardPluginLifecycleTests {
         #expect(String(localized: ClipboardPlugin.manifest.displayName) == "Clipboard")
         #expect(mode.filters.map(\.id) == ["text", "rich", "image", "file", "url"])
         #expect(harness.plugin.onboardingSteps.map(\.id) == [ClipboardPlugin.onboardingStepID])
+        // Step 6.6f: the welcome page's line under the heading comes from the step, the view has the controls.
+        let step = try #require(harness.plugin.onboardingSteps.first)
+        #expect(
+            step.text.map { String(localized: $0) }
+                == "Lintel keeps what you copy so you can paste it again with ⌘⇧V. The history stays on this Mac, encrypted, for 30 days or 1000 entries."
+        )
         #expect(harness.plugin.requiredPermissions == [.accessibility, .pasteboard])
         #expect(harness.plugin.settingsPane() != nil)
     }

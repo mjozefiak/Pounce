@@ -20,6 +20,12 @@ import Testing
         #expect(plugin.commands.map(\.id) == ["meetings.record", "meetings.library"])
         #expect(plugin.panelModes.map(\.id) == ["meetings.library"])
         #expect(plugin.onboardingSteps.map(\.id) == ["meetings.setup"])
+        // Step 6.6f: the welcome page's line under the heading comes from the step, the view has the controls.
+        let step = try #require(plugin.onboardingSteps.first)
+        #expect(
+            step.text.map { String(localized: $0) }
+                == "Record meetings and get a transcript with the speakers told apart. Everything runs on this Mac and nothing is uploaded."
+        )
         #expect(plugin.searchSources.isEmpty)
         #expect(plugin.settingsPane() != nil)
     }

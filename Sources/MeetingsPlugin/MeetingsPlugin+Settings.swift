@@ -82,7 +82,8 @@ extension MeetingsPlugin {
             OnboardingStep(
                 id: MeetingsUI.onboardingStepID,
                 title: LocalizedStringResource("Meetings", comment: "Plugin name of meeting transcription"),
-                symbolName: "person.2.wave.2"
+                symbolName: "person.2.wave.2",
+                text: MeetingsSetupView.text
             ) {
                 AnyView(MeetingsSetupView(model: model))
             }

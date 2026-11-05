@@ -192,3 +192,15 @@ enum TestContext {
         )
     }
 }
+
+/// Step 6.6f: `OnboardingStep.text` is additive. A step written before it compiles unchanged and shows no line.
+@Suite struct OnboardingStepTextTests {
+    @Test func theTextDefaultsToNoneAndKeepsAGivenLine() {
+        let old = OnboardingStep(id: "old", title: "Old", symbolName: "star") { AnyView(EmptyView()) }
+        #expect(old.text == nil)
+        let new = OnboardingStep(id: "new", title: "New", symbolName: "star", text: "One line.") {
+            AnyView(EmptyView())
+        }
+        #expect(new.text.map { String(localized: $0) } == "One line.")
+    }
+}

@@ -132,19 +132,19 @@ struct DictationSetupView: View {
     let accessibilityAllowed: () -> Bool
     @State private var accessibility = false
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text(
-                "Dictate in any app: press the shortcut, talk, and Lintel types the text where you are. The speech model runs on this Mac.",
-                comment: "Dictation onboarding text"
-            )
-            .fixedSize(horizontal: false, vertical: true)
+    static let text = LocalizedStringResource(
+        "Dictate in any app: press the shortcut, talk, and Lintel types the text where you are. The speech model runs on this Mac.",
+        comment: "Dictation onboarding text")
 
-            step(
-                symbol: "mic", done: model.microphone == .granted,
-                text: Text(
+    var body: some View {
+        // The welcome page's controls (prototype `shell-welcome-*`); the explanation is the step's `text`.
+        // The microphone is asked only when Allow Microphone is clicked.
+        WelcomeStepColumn {
+            WelcomeStepItem(
+                Text(
                     "Allow the microphone. Lintel listens only while you dictate.", comment: "Dictation onboarding step"
-                )
+                ),
+                isDone: model.microphone == .granted
             ) {
                 if model.microphone == .denied {
                     Button {
@@ -161,20 +161,20 @@ struct DictationSetupView: View {
                 }
             }
 
-            step(
-                symbol: "arrow.down.circle", done: model.isInstalled,
-                text: Text(
+            WelcomeStepItem(
+                Text(
                     "Get the speech model (about 0.7 GB), or point to one you already have.",
-                    comment: "Dictation onboarding step")
+                    comment: "Dictation onboarding step"),
+                isDone: model.isInstalled
             ) {
                 SpeechModelCard(model: model)
             }
 
-            step(
-                symbol: "keyboard", done: accessibility,
-                text: Text(
+            WelcomeStepItem(
+                Text(
                     "Allow Accessibility so Lintel can paste for you. Without it, the text is only copied.",
-                    comment: "Dictation onboarding step")
+                    comment: "Dictation onboarding step"),
+                isDone: accessibility
             ) {
                 Button {
                     model.openAccessibilitySettings()
@@ -186,27 +186,6 @@ struct DictationSetupView: View {
         .task {
             await model.refresh()
             accessibility = accessibilityAllowed()
-        }
-    }
-
-    private func step<Action: View>(
-        symbol: String, done: Bool, text: Text, @ViewBuilder action: () -> Action
-    ) -> some View {
-        Label {
-            VStack(alignment: .leading, spacing: 6) {
-                text.fixedSize(horizontal: false, vertical: true)
-                if done {
-                    Label {
-                        Text("Done", comment: "Onboarding status of a finished step")
-                    } icon: {
-                        Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityHidden(true)
-                    }
-                } else {
-                    action()
-                }
-            }
-        } icon: {
-            Image(systemName: symbol).accessibilityHidden(true)
         }
     }
 }

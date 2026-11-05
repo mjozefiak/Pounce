@@ -450,6 +450,11 @@ actor PlainRecorder: UsageRecorder {
             WelcomeColumnView.text(for: WelcomePage(kind: .shortcut), shortcut: nil)
                 == ShortcutStepContent.explanation)
         #expect(WelcomeColumnView.text(for: WelcomePage(kind: .plugin(step("a"))), shortcut: nil) == nil)
+        // Step 6.6f: a plugin page shows its step's line under the heading.
+        let described = OnboardingStep(id: "b", title: "B", symbolName: "star", text: "What B does.") {
+            AnyView(EmptyView())
+        }
+        #expect(WelcomeColumnView.text(for: WelcomePage(kind: .plugin(described)), shortcut: nil) == "What B does.")
         #expect(
             WelcomeColumnView.text(for: WelcomePage(kind: .done), shortcut: "⌘Space")
                 == "Open Lintel with ⌘Space. Settings and meetings are in the Lintel window: click the Dock icon or press ⌘,."

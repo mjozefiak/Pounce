@@ -44,6 +44,12 @@ import Testing
         defer { harness.tearDown() }
         let plugin = DictationPlugin(context: harness.context)
         #expect(plugin.onboardingSteps.map(\.id) == ["dictation.setup"])
+        // Step 6.6f: the welcome page's line under the heading comes from the step, the view has the controls.
+        let step = try #require(plugin.onboardingSteps.first)
+        #expect(
+            step.text.map { String(localized: $0) }
+                == "Dictate in any app: press the shortcut, talk, and Lintel types the text where you are. The speech model runs on this Mac."
+        )
         #expect(plugin.settingsPane() != nil)
     }
 

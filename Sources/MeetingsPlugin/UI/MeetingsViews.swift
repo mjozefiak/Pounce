@@ -264,19 +264,19 @@ struct MeetingsModelCard: View {
 struct MeetingsSetupView: View {
     @Bindable var model: MeetingsSettingsModel
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text(
-                "Record meetings and get a transcript with the speakers told apart. Everything runs on this Mac and nothing is uploaded.",
-                comment: "Meetings onboarding text"
-            )
-            .fixedSize(horizontal: false, vertical: true)
+    static let text = LocalizedStringResource(
+        "Record meetings and get a transcript with the speakers told apart. Everything runs on this Mac and nothing is uploaded.",
+        comment: "Meetings onboarding text")
 
-            part(
-                symbol: "mic", done: model.setupProgress.isDone(.microphone),
-                text: Text(
+    var body: some View {
+        // The welcome page's controls (prototype `shell-welcome-*`); the explanation is the step's `text`.
+        // Nothing is asked or downloaded until its button is clicked.
+        WelcomeStepColumn {
+            WelcomeStepItem(
+                Text(
                     "Allow the microphone. Lintel listens only while you record a meeting.",
-                    comment: "Meetings onboarding step")
+                    comment: "Meetings onboarding step"),
+                isDone: model.setupProgress.isDone(.microphone)
             ) {
                 if model.microphone == .denied {
                     Button {
@@ -293,20 +293,20 @@ struct MeetingsSetupView: View {
                 }
             }
 
-            part(
-                symbol: "speaker.wave.2", done: model.setupProgress.isDone(.systemAudio),
-                text: Text(
+            WelcomeStepItem(
+                Text(
                     "Check that Lintel can hear the other side of a call. Nothing is asked until you press the button.",
-                    comment: "Meetings onboarding step")
+                    comment: "Meetings onboarding step"),
+                isDone: model.setupProgress.isDone(.systemAudio)
             ) {
                 SystemAudioTestRows(test: model.systemAudioTest, openSettings: { model.openSystemAudioSettings() })
             }
 
-            part(
-                symbol: "arrow.down.circle", done: model.setupProgress.isDone(.models),
-                text: Text(
+            WelcomeStepItem(
+                Text(
                     "Get the speech model and the speaker model, or point to ones you already have.",
-                    comment: "Meetings onboarding step")
+                    comment: "Meetings onboarding step"),
+                isDone: model.setupProgress.isDone(.models)
             ) {
                 VStack(alignment: .leading, spacing: 12) {
                     MeetingsModelCard(card: model.speech)
@@ -315,43 +315,17 @@ struct MeetingsSetupView: View {
             }
 
             // Optional and never counted in the checkmarks: notes are off until the user turns them on.
-            Label {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(
-                        "Optional: let a model on this Mac write notes after each meeting. It is a large download that starts only when you press the button.",
-                        comment: "Meetings onboarding step about the notes model"
-                    )
-                    .fixedSize(horizontal: false, vertical: true)
-                    NotesSettingsRows(model: model.notes)
-                }
-            } icon: {
-                Image(systemName: "text.badge.checkmark").accessibilityHidden(true)
+            WelcomeStepItem(
+                Text(
+                    "Optional: let a model on this Mac write notes after each meeting. It is a large download that starts only when you press the button.",
+                    comment: "Meetings onboarding step about the notes model")
+            ) {
+                NotesSettingsRows(model: model.notes)
             }
 
             MeetingsSuggestionsSetupPart(model: model)
         }
         .task { await model.refresh() }
-    }
-
-    private func part<Action: View>(
-        symbol: String, done: Bool, text: Text, @ViewBuilder action: () -> Action
-    ) -> some View {
-        Label {
-            VStack(alignment: .leading, spacing: 6) {
-                text.fixedSize(horizontal: false, vertical: true)
-                if done {
-                    Label {
-                        Text("Done", comment: "Onboarding status of a finished step")
-                    } icon: {
-                        Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityHidden(true)
-                    }
-                } else {
-                    action()
-                }
-            }
-        } icon: {
-            Image(systemName: symbol).accessibilityHidden(true)
-        }
     }
 }
 

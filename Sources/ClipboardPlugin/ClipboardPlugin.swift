@@ -181,7 +181,8 @@ public final class ClipboardPlugin: LintelPlugin {
             OnboardingStep(
                 id: Self.onboardingStepID,
                 title: LocalizedStringResource("Clipboard History", comment: "Plugin name of the clipboard history"),
-                symbolName: "doc.on.clipboard"
+                symbolName: "doc.on.clipboard",
+                text: ClipboardOnboardingView.text
             ) {
                 AnyView(ClipboardOnboardingView(state: state, actions: actions))
             }

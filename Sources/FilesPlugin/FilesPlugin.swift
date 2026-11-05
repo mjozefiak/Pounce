@@ -117,7 +117,8 @@ public final class FilesPlugin: LintelPlugin {
             OnboardingStep(
                 id: Self.onboardingStepID,
                 title: LocalizedStringResource("File Search", comment: "Onboarding step title for file search"),
-                symbolName: "doc.text.magnifyingglass"
+                symbolName: "doc.text.magnifyingglass",
+                text: FilesOnboardingView.text
             ) {
                 AnyView(FilesOnboardingView(model: model))
             }

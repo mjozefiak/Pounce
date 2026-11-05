@@ -326,7 +326,8 @@ public final class DictationPlugin: LintelPlugin {
             OnboardingStep(
                 id: Self.onboardingStepID,
                 title: LocalizedStringResource("Dictation", comment: "Plugin name of voice dictation"),
-                symbolName: "mic"
+                symbolName: "mic",
+                text: DictationSetupView.text
             ) {
                 AnyView(
                     DictationSetupView(

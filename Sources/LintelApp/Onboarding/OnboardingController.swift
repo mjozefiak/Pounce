@@ -388,53 +388,35 @@ struct ShortcutStepContent: View {
     }
 }
 
-/// The single-column welcome window of the prototype `shell-welcome-*` (spec step 6.5g): the Lintel mark, the heading, one line of text and the page's own controls, centred in a
-/// 600 pt window; below a hairline, Skip (Escape) on the left and the one primary button (Return) on the right.
+/// The single-column welcome window of the prototype `shell-welcome-*` (spec step 6.5g, the shared
+/// `WelcomeStepLayout` since step 6.6f): the Lintel mark, the heading, one line of text and the page's own
+/// controls, centred in a 600 pt window; below a hairline, Skip (Escape) on the left and the one primary button
+/// (Return) on the right. A plugin page shows its `OnboardingStep.text` under the heading and its view's controls.
 struct WelcomeColumnView: View {
-    static let width: CGFloat = 600
-    /// The prototype's 420 pt window less the title bar, which SwiftUI keeps as the top safe area.
-    static let minHeight: CGFloat = 388
+    static let width = WelcomeLayout.width
+    static let minHeight = WelcomeLayout.minHeight
 
     let flow: WelcomeFlow
     let hotkeys: HotkeyService
     var openMainWindow: () -> Void = {}
 
     var body: some View {
-        VStack(spacing: 0) {
-            if let page = flow.current {
-                VStack(alignment: .leading, spacing: 0) {
-                    LintelMark(ring: LintelBrand.ink)
-                        .frame(width: 44, height: 44)
-                        .padding(.bottom, 10)
-                    Text(page.heading)
-                        .font(.title.bold())
-                        .accessibilityAddTraits(.isHeader)
-                        .padding(.bottom, 4)
-                    if let text = Self.text(for: page, shortcut: hotkeys.mainShortcut?.displayString) {
-                        Text(text)
-                            .foregroundStyle(LintelBrand.secondaryText)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    pageContent(page)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .padding(.horizontal, 40)
-                .padding(.top, 8)
-                .padding(.bottom, 20)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-                .accessibilityElement(children: .contain)
-                .accessibilityLabel(flow.positionDescription)
+        if let page = flow.current {
+            WelcomeStepLayout(
+                heading: page.heading,
+                text: Self.text(for: page, shortcut: hotkeys.mainShortcut?.displayString),
+                accessibilityLabel: flow.positionDescription
+            ) {
+                LintelMark(ring: LintelBrand.ink)
+            } content: {
+                pageContent(page)
+            } footer: {
+                WelcomeColumnFooter(flow: flow, openMainWindow: openMainWindow)
             }
-            // The prototype's footer border (`--hair`).
-            LintelDivider()
-            WelcomeColumnFooter(flow: flow, openMainWindow: openMainWindow)
         }
-        .frame(width: Self.width)
-        .frame(minHeight: Self.minHeight)
-        .fixedSize(horizontal: false, vertical: true)
     }
 
-    /// The line under the heading; plugin pages bring their own text.
+    /// The line under the heading; a plugin page shows its step's `text`.
     static func text(for page: WelcomePage, shortcut: String?) -> String? {
         switch page.kind {
         case .intro:
@@ -444,8 +426,8 @@ struct WelcomeColumnView: View {
                 comment: "Welcome screen: text of the first page")
         case .shortcut:
             ShortcutStepContent.explanation
-        case .plugin:
-            nil
+        case .plugin(let step):
+            step.text.map { String(localized: $0) }
         case .done:
             if let shortcut {
                 String(
@@ -468,10 +450,10 @@ struct WelcomeColumnView: View {
             ShortcutStepContent(hotkeys: hotkeys, showsExplanation: false)
                 .padding(.top, 16)
         case .plugin(let step):
+            // The plugin's controls, which lay themselves out with `WelcomeStepColumn` (it adds the top gap).
             step.makeView()
                 // A new identity per step, so a plugin view's onAppear/onDisappear run for each page.
                 .id(step.id)
-                .padding(.top, 12)
         }
     }
 }

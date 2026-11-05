@@ -4,48 +4,43 @@ import SwiftUI
 
 /// The Full Disk Access step, shown before the first scan (spec: Onboarding, Faza 3). Leaving it
 /// (Continue, Done or closing the window) starts indexing with whatever access Lintel has.
+/// The `files.fullDiskAccess` welcome page's controls (prototype `shell-welcome-*`): the explanation is the
+/// step's `text`, this view is the Full Disk Access part and the note. Nothing is asked: the buttons only open
+/// System Settings and re-read the state.
 struct FilesOnboardingView: View {
     let model: FilesViewModel
 
+    static let text = LocalizedStringResource(
+        "Lintel finds files and folders by name, using its own index that stays on this Mac. It never reads what is inside your files.",
+        comment: "File search onboarding text")
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(
-                "Lintel finds files and folders by name, using its own index that stays on this Mac. It never reads what is inside your files.",
-                comment: "File search onboarding text"
-            )
-            .fixedSize(horizontal: false, vertical: true)
-            Label {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(
-                        "With Full Disk Access, Lintel also searches Desktop, Documents, Downloads and iCloud Drive. Without it, those folders are skipped so macOS does not ask about each one. You can add them one at a time in Settings.",
-                        comment: "File search onboarding text about Full Disk Access"
-                    )
-                    .fixedSize(horizontal: false, vertical: true)
-                    AccessStatusLabel(status: model.state.fullDiskAccess)
-                    HStack {
-                        Button {
-                            model.openAccessSettings()
-                        } label: {
-                            Text("Open Privacy Settings…", comment: "Button that opens the Full Disk Access settings")
-                        }
-                        Button {
-                            model.checkAccess()
-                        } label: {
-                            Text("Check Again", comment: "Button that re-reads the Full Disk Access state")
-                        }
+        WelcomeStepColumn {
+            WelcomeStepItem(
+                Text(
+                    "With Full Disk Access, Lintel also searches Desktop, Documents, Downloads and iCloud Drive. Without it, those folders are skipped so macOS does not ask about each one. You can add them one at a time in Settings.",
+                    comment: "File search onboarding text about Full Disk Access"),
+                isDone: model.state.fullDiskAccess == .granted,
+                doneText: Text("Full Disk Access is allowed.", comment: "Full Disk Access status")
+            ) {
+                AccessStatusLabel(status: model.state.fullDiskAccess)
+                HStack {
+                    Button {
+                        model.openAccessSettings()
+                    } label: {
+                        Text("Open Privacy Settings…", comment: "Button that opens the Full Disk Access settings")
+                    }
+                    Button {
+                        model.checkAccess()
+                    } label: {
+                        Text("Check Again", comment: "Button that re-reads the Full Disk Access state")
                     }
                 }
-            } icon: {
-                Image(systemName: "hand.raised")
-                    .accessibilityHidden(true)
             }
-            Text(
-                "Indexing starts when you continue. Folders like node_modules, .git, caches and ~/Library are left out.",
-                comment: "File search onboarding note"
-            )
-            .font(.callout)
-            .foregroundStyle(LintelBrand.secondaryText)
-            .fixedSize(horizontal: false, vertical: true)
+            WelcomeStepNote(
+                Text(
+                    "Indexing starts when you continue. Folders like node_modules, .git, caches and ~/Library are left out.",
+                    comment: "File search onboarding note"))
         }
         .onAppear { model.checkAccess() }
         .onDisappear { model.completeSetup() }
@@ -62,7 +57,7 @@ struct AccessStatusLabel: View {
                 Text("Full Disk Access is allowed.", comment: "Full Disk Access status")
             } icon: {
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
+                    .foregroundStyle(LintelBrand.statusOk)
                     .accessibilityHidden(true)
             }
         } else {
