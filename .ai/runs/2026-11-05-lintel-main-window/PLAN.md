@@ -32,7 +32,7 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 | 3 | 3.3 | Remove duplicated microphone rows and model cards (mainWindow only) | dispatch:capable | done | 58ba0af |
 | 3 | 3.4 | Confirmation sheets for Clear and Erase | dispatch:standard | done | 29a5321 |
 | 3 | 3.4-review-fix | Review fix: ConfirmSheet runs onConfirm before closing | dispatch:standard | done | 4ea4ceb |
-| 3 | 3.2-review-fix | Review fix: confirm model removal, custom-folder models are not "needed", loaded flag, refresh generation, in-use parity tests | dispatch:capable | todo | — |
+| 3 | 3.2-review-fix | Review fix: confirm model removal, custom-folder models are not "needed", loaded flag, refresh generation, in-use parity tests | dispatch:capable | done | a03feda |
 | 4 | 4.1 | General and Features panes onto the template | dispatch:standard | todo | — |
 | 4 | 4.2 | Apps pane onto the template | dispatch:standard | todo | — |
 | 4 | 4.3 | Files pane onto the template | dispatch:standard | todo | — |
@@ -90,6 +90,8 @@ Spec contradicts code on main and cannot be done without a contract change; a te
 ## Risks
 
 R-A1 protected contract (additive only); R-A3 menu vs launcher focus; R-A4 pane regressions (key coverage tests); R-A5 package graph (new `LintelUI`, `LintelApp → LintelSpeech`); R-A7 release gate. Large PR: mitigated by one commit per Step and phase-boundary reviews.
+
+Deviation from the spec (3.2-review-fix): the speech `ModelUsage` is `isRequired: speechModelFolder == nil` instead of always `true`, because `ModelUsage` carries no folder (contract unchanged) and the Models pane would otherwise call a model in a chosen folder "Not installed · Needed"; such a row still reads "Not installed".
 
 ## External References
 

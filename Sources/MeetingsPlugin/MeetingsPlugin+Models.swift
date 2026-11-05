@@ -4,7 +4,7 @@ import LintelSpeech
 
 /// The models Meetings uses, for the shell's Models pane (spec `2026-11-04-lintel-main-window`, step 3.2, D6).
 ///
-/// - The speech model is required (recording needs it); the diarization model is not (finishing falls back to
+/// - The speech model is required (recording needs it) unless the user chose a folder for it; the diarization model is not (finishing falls back to
 ///   one speaker without it). Both are guarded by `MeetingsModelUsage.live`, the check the model cards use: a
 ///   meeting recording or finishing holds them, and its reservation keeps a new recording from starting while a
 ///   model is being removed.
@@ -23,7 +23,8 @@ extension MeetingsPlugin {
                 packageID: speech.id, kind: .speech,
                 role: LocalizedStringResource(
                     "Meeting transcripts", comment: "Models pane: what Meetings uses the speech model for"),
-                isRequired: true, isSelected: true,
+                // A chosen folder is not seen by the Models pane, so it must not count as a missing model.
+                isRequired: settings.speechModelFolder == nil, isSelected: true,
                 chooseFolder: { settings.setSpeechModelFolder($0) },
                 isInUse: { await usage.isInUse(speech) },
                 reserveRemoval: usage.reserveRemoval),

@@ -23,7 +23,14 @@ final class FakeInventory: ModelInventory {
         self.catalog = catalog
     }
 
-    func state(of id: String) async -> InventoryState { states[id] ?? .missing }
+    /// Runs after a state was read and before it is returned (a slow disk overtaken by a newer refresh).
+    var afterStateRead: (String) async -> Void = { _ in }
+
+    func state(of id: String) async -> InventoryState {
+        let value = states[id] ?? .missing
+        await afterStateRead(id)
+        return value
+    }
 
     func install(_ id: String, progress: @escaping @Sendable (ModelProgress) -> Void) async throws {
         log.append("install:\(id)")
@@ -246,7 +253,63 @@ final class FakeRecorder {
         #expect(model.rows.first { $0.id == Self.speechA.id }?.isInstalled == true)
     }
 
+    // MARK: Confirmation
+
+    @Test func removeAsksFirstAndCancellingDeletesNothing() async throws {
+        let inventory = inventory()
+        inventory.states[Self.speechA.id] = .installed
+        let model = ModelsPaneModel(inventory: inventory, usages: { [] })
+        await model.refresh()
+        model.requestRemoval(Self.speechA.id)
+        #expect(model.pendingRemoval == Self.speechA.id)
+        #expect(inventory.log.isEmpty)
+        model.cancelRemoval()
+        #expect(model.pendingRemoval == nil)
+        #expect(model.confirmRemoval() == nil)
+        #expect(inventory.log.isEmpty)
+        #expect(model.rows.first { $0.id == Self.speechA.id }?.isInstalled == true)
+
+        model.requestRemoval(Self.speechA.id)
+        await try #require(model.confirmRemoval()).value
+        #expect(inventory.log == ["evict:speech", "delete:speech-a"])
+        #expect(model.rows.first { $0.id == Self.speechA.id }?.isInstalled == false)
+    }
+
+    @Test func theRemovalConfirmationNamesTheModelAndSaysRemoveModel() {
+        let model = ModelsPaneModel(inventory: inventory(), usages: { [] })
+        model.requestRemoval(Self.speechB.id)
+        let confirmation = model.removalConfirmation
+        #expect(String(localized: confirmation.prompt) == "Remove Speech B?")
+        #expect(String(localized: confirmation.confirmTitle) == "Remove Model")
+        #expect(String(localized: confirmation.detail).contains("downloaded again"))
+    }
+
+    /// The Remove button only asks; the delete runs from the `ConfirmSheet`, whose default button is Cancel.
+    @Test func theRemoveButtonGoesThroughTheConfirmSheet() throws {
+        let url = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .appending(path: "Sources/LintelApp/Settings/Models/ModelsPane.swift")
+        let source = try String(contentsOf: url, encoding: .utf8)
+        #expect(source.contains("remove: { model.requestRemoval(row.id) }"))
+        #expect(!source.contains("model.remove("))
+        #expect(source.contains(".destructiveConfirmation("))
+    }
+
     // MARK: Reservation and eviction
+
+    @Test func theReservationIsTakenBeforeTheFirstInUseCheck() async {
+        let inventory = inventory()
+        inventory.states[Self.speechA.id] = .installed
+        let recorder = FakeRecorder()
+        recorder.isRecording = true
+        let usages = [plugin("meetings", [recorder.usage(Self.speechA.id)])]
+        let model = ModelsPaneModel(inventory: inventory, usages: { usages })
+        await model.refresh()
+        await model.remove(Self.speechA.id)
+        // Refused, and the reservation was held for the check and released after it.
+        #expect(recorder.log == ["reserve", "release"])
+        #expect(!inventory.log.contains { $0.hasPrefix("delete:") })
+    }
 
     @Test func theReservationIsHeldDuringRemovalAndBlocksStartingARecording() async {
         let inventory = inventory()
@@ -348,6 +411,49 @@ final class FakeRecorder {
         #expect(off?.usedBy.first?.label.contains("Dictation") == true)
         // An unselected usage is no chip.
         #expect(model.rows.first { $0.id == Self.llm.id }?.usedBy.isEmpty == true)
+    }
+
+    @Test func noModelIsNeededBeforeTheFirstRefresh() async {
+        let usage = ModelUsage(packageID: Self.speechA.id, kind: .speech, role: "x", isRequired: true, isSelected: true)
+        let model = ModelsPaneModel(inventory: inventory(), usages: { [self.plugin("meetings", [usage])] })
+        #expect(!model.hasLoaded)
+        #expect(model.banner == nil)
+        #expect(model.rows.allSatisfy { !$0.isNeeded })
+        await model.refresh()
+        #expect(model.hasLoaded)
+        #expect(model.banner != nil)
+    }
+
+    @Test func anOvertakenRefreshDoesNotWriteStaleStates() async {
+        let inventory = inventory()
+        let firstPaused = Box(false)
+        let gate = Box<CheckedContinuation<Void, Never>?>(nil)
+        inventory.afterStateRead = { id in
+            guard id == Self.speechA.id, !firstPaused.value else { return }
+            firstPaused.value = true
+            await withCheckedContinuation { gate.value = $0 }
+        }
+        let model = ModelsPaneModel(inventory: inventory, usages: { [] })
+        // The first refresh reads "missing" and stalls; meanwhile the model is installed and a second one runs.
+        let first = Task { await model.refresh() }
+        for _ in 0..<1_000 where gate.value == nil { await Task.yield() }
+        inventory.states[Self.speechA.id] = .installed
+        await model.refresh()
+        #expect(model.rows.first { $0.id == Self.speechA.id }?.isInstalled == true)
+        gate.value?.resume()
+        await first.value
+        #expect(model.rows.first { $0.id == Self.speechA.id }?.isInstalled == true)
+    }
+
+    /// A model in a folder the user chose is not seen by the inventory, so the plugins declare it not required
+    /// then (`ModelUsage.isRequired` is `speechModelFolder == nil`): no banner and no second download.
+    @Test func aCustomFolderGivesNoNeededBanner() async {
+        let chosenFolder = ModelUsage(
+            packageID: Self.speechA.id, kind: .speech, role: "x", isRequired: false, isSelected: true)
+        let model = ModelsPaneModel(inventory: inventory(), usages: { [self.plugin("dictation", [chosenFolder])] })
+        await model.refresh()
+        #expect(model.banner == nil)
+        #expect(model.rows.first { $0.id == Self.speechA.id }?.isNeeded == false)
     }
 
     @Test func twoPluginsNeedingTheSameModelCountOnce() async {

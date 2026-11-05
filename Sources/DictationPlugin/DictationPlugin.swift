@@ -52,7 +52,12 @@ public final class DictationPlugin: LintelPlugin {
     private let historyModel: HistorySettingsModel
     private(set) var controller: DictationController?
 
-    public init(context: PluginContext) {
+    public convenience init(context: PluginContext) {
+        self.init(context: context, makeBuiltInLLM: nil)
+    }
+
+    /// `makeBuiltInLLM` replaces the built-in formatting runtime (tests); `nil` is the real one over llama.cpp.
+    init(context: PluginContext, makeBuiltInLLM: ((DictationSettings, ModelManager) -> KeepWarmRuntime)?) {
         self.context = context
         let settings = DictationSettings(context.settings)
         self.settings = settings
@@ -71,16 +76,18 @@ public final class DictationPlugin: LintelPlugin {
             for: context.modelsDirectory.appending(path: Self.llmDirectoryName, directoryHint: .isDirectory),
             logger: context.logger)
         self.llmModels = llmModels
-        builtInLLM = KeepWarmRuntime(
-            runtime: LlamaRuntime(),
-            modelURL: {
-                let model = settings.builtInLLMModel
-                guard let folder = await llmModels.location(of: model.package).folder,
-                    let file = model.fileURL(in: folder)
-                else { throw LlamaError.modelNotFound }
-                return file
-            },
-            keepWarm: { settings.keepWarm }, lease: .shared)
+        builtInLLM =
+            makeBuiltInLLM?(settings, llmModels)
+            ?? KeepWarmRuntime(
+                runtime: LlamaRuntime(),
+                modelURL: {
+                    let model = settings.builtInLLMModel
+                    guard let folder = await llmModels.location(of: model.package).folder,
+                        let file = model.fileURL(in: folder)
+                    else { throw LlamaError.modelNotFound }
+                    return file
+                },
+                keepWarm: { settings.keepWarm }, lease: .shared)
         let workspace = context.workspace
         settingsModel = DictationSettingsModel(
             package: ModelCatalog.package(id: settings.speechModelID) ?? ModelCatalog.parakeetUltra, manager: models,
@@ -108,7 +115,8 @@ public final class DictationPlugin: LintelPlugin {
         self.relay = relay
     }
 
-    private let relay: ControllerRelay
+    /// Internal so tests can hand `modelUsage` a controller.
+    let relay: ControllerRelay
 
     private static func chooseModelFolder() -> URL? {
         let panel = NSOpenPanel()
@@ -262,8 +270,9 @@ public final class DictationPlugin: LintelPlugin {
     public var requiredPermissions: Set<Permission> { [.microphone, .accessibility] }
 
     /// The models dictation uses, for the shell's Models pane (spec `2026-11-04-lintel-main-window`, step 3.2):
-    /// the selected speech model (required) and the built-in formatting model (optional, selected only while the
-    /// built-in source is chosen; in use while a request holds it, as the Formatting settings check today).
+    /// the selected speech model (required unless the user chose a folder for it) and the built-in formatting model
+    /// (optional, selected only while the built-in source is chosen; in use while a request holds it, as the
+    /// Formatting settings check today).
     public var modelUsage: [ModelUsage] {
         let settings = settings
         let relay = relay
@@ -274,7 +283,8 @@ public final class DictationPlugin: LintelPlugin {
                 packageID: speech.id, kind: .speech,
                 role: LocalizedStringResource(
                     "Dictation", comment: "Models pane: what Dictation uses the speech model for"),
-                isRequired: true, isSelected: true,
+                // A chosen folder is not seen by the Models pane, so it must not count as a missing model.
+                isRequired: settings.speechModelFolder == nil, isSelected: true,
                 chooseFolder: { settings.setSpeechModelFolder($0) },
                 isInUse: { relay.controller?.isBusy ?? false }),
             ModelUsage(

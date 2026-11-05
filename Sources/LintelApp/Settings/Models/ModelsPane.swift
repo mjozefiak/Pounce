@@ -23,7 +23,7 @@ struct ModelsPane: View {
                                 row: row,
                                 download: { model.download(row.id) },
                                 cancel: { model.cancelDownload(row.id) },
-                                remove: { Task { await model.remove(row.id) } },
+                                remove: { model.requestRemoval(row.id) },
                                 chooseFolder: { pluginID in Task { await model.chooseFolder(row.id, for: pluginID) } }
                             )
                             .id(row.id)
@@ -33,6 +33,13 @@ struct ModelsPane: View {
                             .font(textSize.font(.body, weight: .semibold))
                     }
                 }
+            }
+            .destructiveConfirmation(
+                isPresented: Binding(
+                    get: { model.pendingRemoval != nil }, set: { if !$0 { model.cancelRemoval() } }),
+                model.removalConfirmation
+            ) {
+                model.confirmRemoval()
             }
             .task {
                 if let target = takeScrollTarget() { model.scrollTarget = target }

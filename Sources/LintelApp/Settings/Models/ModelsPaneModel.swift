@@ -1,6 +1,7 @@
 import Foundation
 import LintelKit
 import LintelSpeech
+import LintelUI
 import Observation
 import os
 
@@ -89,6 +90,11 @@ final class ModelsPaneModel {
     private(set) var errors: [String: String] = [:]
     private(set) var busy: Set<String> = []
     private(set) var plugins: [PluginUsages] = []
+    /// `false` until the first `refresh()` has read every state: before that no model counts as missing, so the
+    /// "needed" banner and badges do not flash (and VoiceOver does not announce them) while the pane opens.
+    private(set) var hasLoaded = false
+    /// The package the user asked to remove, waiting for the confirmation.
+    private(set) var pendingRemoval: String?
     /// The row `openModels(packageID)` asked for; the pane scrolls to it once.
     var scrollTarget: String?
 
@@ -97,6 +103,8 @@ final class ModelsPaneModel {
     @ObservationIgnored private let pickFolder: () -> URL?
     @ObservationIgnored private var downloads: [String: Task<Void, Never>] = [:]
     @ObservationIgnored private var loggedUnknown: Set<String> = []
+    /// Bumped by every `refresh()`; a refresh that was overtaken by a newer one does not write its states.
+    @ObservationIgnored private var refreshGeneration = 0
     @ObservationIgnored private let logger = Logger(subsystem: "com.lintelapp", category: "window")
 
     init(
@@ -145,6 +153,7 @@ final class ModelsPaneModel {
     /// The packages an enabled plugin requires (and has selected) that are not installed. A usage of a disabled
     /// plugin never counts; an id outside the catalog is ignored.
     var neededIDs: Set<String> {
+        guard hasLoaded else { return [] }
         let known = Set(inventory.catalog.map(\.id))
         return Set(
             plugins.filter(\.isEnabled).flatMap(\.usages)
@@ -170,13 +179,17 @@ final class ModelsPaneModel {
 
     /// Reads the plugins' usages and every package's state again (the pane appearing, after every action).
     func refresh() async {
+        refreshGeneration += 1
+        let generation = refreshGeneration
         plugins = readUsages()
         logUnknownPackages()
         var result: [String: InventoryState] = [:]
         for model in inventory.catalog {
             result[model.id] = await inventory.state(of: model.id)
         }
+        guard generation == refreshGeneration else { return }
         states = result
+        hasLoaded = true
     }
 
     private func logUnknownPackages() {
@@ -229,6 +242,40 @@ final class ModelsPaneModel {
 
     // MARK: Remove
 
+    /// "Remove" asks first: the files are several gigabytes and come back only by downloading them again.
+    func requestRemoval(_ id: String) {
+        guard inventory.catalog.contains(where: { $0.id == id }), !busy.contains(id) else { return }
+        pendingRemoval = id
+    }
+
+    /// Cancel (or Esc) in the confirmation: nothing is deleted.
+    func cancelRemoval() { pendingRemoval = nil }
+
+    /// The confirmation's "Remove Model": removes the pending package.
+    @discardableResult
+    func confirmRemoval() -> Task<Void, Never>? {
+        guard let id = pendingRemoval else { return nil }
+        pendingRemoval = nil
+        return Task { await remove(id) }
+    }
+
+    /// The confirmation for the pending removal.
+    var removalConfirmation: DestructiveConfirmation {
+        let title = inventory.catalog.first { $0.id == pendingRemoval }?.title ?? ""
+        return Self.removalConfirmation(title: title)
+    }
+
+    static func removalConfirmation(title: String) -> DestructiveConfirmation {
+        DestructiveConfirmation(
+            prompt: LocalizedStringResource("Remove \(title)?", comment: "Meetings model card: confirmation title"),
+            detail: LocalizedStringResource(
+                "This model is shared with other Lintel features. It will be downloaded again the next time one of them needs it.",
+                comment: "Meetings model card: what removing a shared model means"),
+            confirmTitle: LocalizedStringResource(
+                "Remove Model", comment: "Button that deletes the downloaded speech model"),
+            legacyTitleVisible: true)
+    }
+
     /// Removes the downloaded package (never a folder the user chose). Refused with the in-use message while a
     /// usage of the same kind or a shared lease holds it; see the type's documentation.
     func remove(_ id: String) async {
@@ -239,13 +286,14 @@ final class ModelsPaneModel {
         let guards = plugins.flatMap(\.usages).filter { $0.kind == model.kind }
         let inventory = inventory
         let isInUse: @Sendable () async -> Bool = { await Self.isInUse(id, guards: guards, inventory: inventory) }
-        if await isInUse() {
-            errors[id] = Self.inUseMessage
-            return
-        }
+        // Reserved before the first check, so nothing can start using the model between the check and the delete.
         let releases = guards.map { $0.reserveRemoval() }
         defer {
             for release in releases { release() }
+        }
+        if await isInUse() {
+            errors[id] = Self.inUseMessage
+            return
         }
         // The warm copy goes first, inside the reservation, so the file is not open and stops serving requests.
         await inventory.evictIdle(model.kind)

@@ -227,7 +227,7 @@
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "Potrzebne jest %lld modelu"
+                  "value" : "Potrzeba %lld modelu"
                 }
               }
             }

@@ -53,6 +53,16 @@ import Testing
         #expect(plugin.settings.diarizationModelFolder?.path == folder.path)
     }
 
+    @Test func aChosenSpeechFolderIsNotRequired() throws {
+        let harness = try MeetingsHarness(settings: [
+            "plugins.meetings.speechModelFolder": .string(FileManager.default.temporaryDirectory.path)
+        ])
+        let plugin = MeetingsPlugin(context: harness.context)
+        // The Models pane does not see the chosen folder, so the model must not count as missing.
+        #expect(!plugin.modelUsage[0].isRequired)
+        #expect(plugin.modelUsage[0].isSelected)
+    }
+
     @Test func anActiveMeetingHoldsTheSpeechAndTheDiarizationModel() async throws {
         let harness = try MeetingsHarness()
         let plugin = MeetingsPlugin(context: harness.context)

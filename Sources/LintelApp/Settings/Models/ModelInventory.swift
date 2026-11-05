@@ -99,6 +99,10 @@ final class SharedModelInventory: ModelInventory {
         return (package, manager)
     }
 
+    /// The state of the downloaded copy only. A folder the user chose ("Choose Folder…") is not seen here:
+    /// `ModelUsage` carries no folder and the contract stays as it is, so such a model reads "Not installed".
+    /// The plugins therefore declare their speech usage required only while no folder is chosen, so a chosen
+    /// folder never raises the "needed" banner or asks for a second download.
     func state(of id: String) async -> InventoryState {
         guard let (package, manager) = lookup(id) else { return .missing }
         switch await manager.location(of: package) {
