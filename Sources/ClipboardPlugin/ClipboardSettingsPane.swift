@@ -172,6 +172,9 @@ struct IgnoredAppsRows: View {
         Text("Ignored apps", comment: "Settings section title")
             .font(textSize.font(.body))
         ForEach(settings.ignoredApps, id: \.self) { bundleID in
+            // Looked up once per row: the label and the Remove button's accessibility label share it.
+            let url = IgnoredAppLabel.installedURL(bundleID, looksUp: settings.looksUpInstalledApps)
+            let name = IgnoredAppLabel.name(bundleID, url: url)
             LabeledContent {
                 Button {
                     settings.removeIgnoredApp(bundleID)
@@ -181,10 +184,10 @@ struct IgnoredAppsRows: View {
                 }
                 .accessibilityLabel(
                     Text(
-                        "Remove \(IgnoredAppLabel.displayName(bundleID, looksUp: settings.looksUpInstalledApps))",
+                        "Remove \(name)",
                         comment: "Accessibility label of the button that removes a list item"))
             } label: {
-                IgnoredAppLabel(bundleID: bundleID, looksUp: settings.looksUpInstalledApps)
+                IgnoredAppLabel(bundleID: bundleID, url: url, name: name)
             }
         }
         HStack {
@@ -222,12 +225,13 @@ struct IgnoredAppsRows: View {
 /// identifier. In QA mode (`looksUp == false`) installed apps are never looked up.
 struct IgnoredAppLabel: View {
     let bundleID: String
-    let looksUp: Bool
+    /// The installed app, if it was looked up and found.
+    let url: URL?
+    let name: String
 
     @Environment(\.lintelTextSize) private var textSize
 
     var body: some View {
-        let url = looksUp ? NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) : nil
         HStack(spacing: 8) {
             if let url {
                 Image(nsImage: NSWorkspace.shared.icon(forFile: url.path(percentEncoded: false)))
@@ -241,7 +245,7 @@ struct IgnoredAppLabel: View {
                     .accessibilityHidden(true)
             }
             VStack(alignment: .leading, spacing: 1) {
-                Text(verbatim: Self.name(bundleID, url: url))
+                Text(verbatim: name)
                     .font(textSize.font(.body))
                 Text(verbatim: bundleID)
                     .font(textSize.font(.caption1))
@@ -252,12 +256,13 @@ struct IgnoredAppLabel: View {
         }
     }
 
-    /// The name shown for `bundleID`, looking up the installed app only when allowed.
-    static func displayName(_ bundleID: String, looksUp: Bool) -> String {
-        name(bundleID, url: looksUp ? NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) : nil)
+    /// The installed app of `bundleID`, looked up only when allowed.
+    static func installedURL(_ bundleID: String, looksUp: Bool) -> URL? {
+        looksUp ? NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) : nil
     }
 
-    private static func name(_ bundleID: String, url: URL?) -> String {
+    /// The name shown for `bundleID`: the installed app's, else its known name, else the bundle identifier.
+    static func name(_ bundleID: String, url: URL?) -> String {
         if let url {
             return FileManager.default.displayName(atPath: url.path(percentEncoded: false))
                 .replacingOccurrences(of: ".app", with: "")
@@ -275,11 +280,11 @@ enum ClipboardSettingsText {
         String(localized: "\(count) entries in the history", comment: "Number of clipboard entries in the settings")
     }
 
-    /// "1000 entries": a choice of the maximum number of entries (main window), without a grouping separator as
-    /// in the old window.
+    /// "1000 entries": a choice of the maximum number of entries (main window), with the plural rules of the
+    /// language and, as in the old window, without a grouping separator (`%lld` is not grouped).
     static func maximum(_ count: Int) -> String {
         String(
-            localized: "\(count.formatted(.number.grouping(.never))) entries",
-            comment: "Settings → Clipboard: a choice of the maximum number of entries (always 100 or more)")
+            localized: "%lld entries (clipboard maximum)", defaultValue: "\(count) entries",
+            comment: "Settings → Clipboard: a choice of the maximum number of entries")
     }
 }

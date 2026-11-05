@@ -1,5 +1,8 @@
 import Foundation
+import LintelKit
 import Testing
+
+@testable import FilesPlugin
 
 /// Spec `2026-11-04-lintel-main-window`, step 2.4 (risk R-A4): every key of the Files plugin's settings type is
 /// either used by its settings pane (the token is a setter or control the pane sources must contain) or listed
@@ -29,17 +32,30 @@ import Testing
         "Sources/FilesPlugin/LegacyFilesSettingsPane.swift",
     ]
 
-    /// Each window's own sources (step 4.3): every key stays reachable in the main window and in the old one.
-    /// The main window starts indexing from its banner, so its sources include the plugin's `settingsStatus`.
-    static let windowSources: [[String]] = [
-        ["Sources/FilesPlugin/FilesSettingsPane.swift", "Sources/FilesPlugin/FilesPlugin.swift"],
-        ["Sources/FilesPlugin/LegacyFilesSettingsPane.swift"],
+    /// The label (or `type:` row view) each window's pane shows for each non-exempt key's control (step 4.3): the
+    /// main window's `FilesPaneContent` and the old window's `LegacyFilesSettingsPane`, found in the built views.
+    /// The main window's "Start Indexing" (`setupCompleted`) is its banner's action, checked by
+    /// `theMainWindowsBannerCompletesSetup`.
+    static let windowControls: [(window: String, labels: [String: String])] = [
+        (
+            "main",
+            [
+                "roots": "Add Folder…", "exclusions": "New exclusion", "protectedFolders": "type:ProtectedFoldersRows",
+                "iCloudDrive": "Include iCloud Drive", "includesHidden": "Include hidden files",
+            ]
+        ),
+        (
+            "old",
+            [
+                "roots": "Add Folder…", "exclusions": "New exclusion", "protectedFolders": "type:ProtectedFolderRow",
+                "iCloudDrive": "type:ProtectedFolderRow", "includesHidden": "Include hidden files",
+                "setupCompleted": "Start Indexing",
+            ]
+        ),
     ]
 
-    /// Tokens that differ in the main window: "Start Indexing" is the banner's plugin action there.
-    static let mainWindowTokens: [String: String] = [
-        "setupCompleted": "perform: startIndexing"
-    ]
+    /// Keys whose main-window control is the banner, not the pane.
+    static let bannerKeys: Set<String> = ["setupCompleted"]
 
     private static let root: URL = {
         var url = URL(filePath: #filePath).deletingLastPathComponent()
@@ -84,13 +100,39 @@ import Testing
         }
     }
 
-    @Test func bothWindowsReachEveryNonExemptKey() throws {
-        for (index, files) in Self.windowSources.enumerated() {
-            let source = try files.map { try Self.read($0) }.joined(separator: "\n")
-            for (key, token) in Self.paneTokens {
-                let expected = index == 0 ? Self.mainWindowTokens[key] ?? token : token
-                #expect(source.contains(expected), "\(key): \(files) do not contain \(expected)")
+    @MainActor @Test func bothWindowsShowEveryNonExemptKey() throws {
+        let harness = try PluginHarness()
+        let model = harness.plugin.viewModel
+        let panes = [
+            PaneText(FilesPaneContent(model: model), module: "FilesPlugin"),
+            PaneText(LegacyFilesSettingsPane(model: model), module: "FilesPlugin"),
+        ]
+        let keys = Set(Self.paneTokens.keys)
+        for (pane, window) in zip(panes, Self.windowControls) {
+            let expected = window.window == "main" ? keys.subtracting(Self.bannerKeys) : keys
+            #expect(Set(window.labels.keys) == expected, "\(window.window)")
+            for (key, label) in window.labels {
+                #expect(pane.shows(label), "\(key): the \(window.window) window's pane does not show \(label)")
             }
         }
+    }
+
+    /// The main window sets `setupCompleted` through the banner's Start Indexing.
+    @MainActor @Test func theMainWindowsBannerCompletesSetup() async throws {
+        let harness = try PluginHarness()
+        try await harness.plugin.activate()
+        let start = harness.plugin.settingsStatus?.fix.first { action in
+            if case .plugin(let id, _) = action.destination { return id == FilesPlugin.startIndexingActionID }
+            return false
+        }
+        guard case .plugin(_, let perform) = start?.destination else {
+            Issue.record("the banner has no Start Indexing")
+            return
+        }
+        #expect(!harness.plugin.settings.setupCompleted)
+        await perform()
+        #expect(harness.plugin.settings.setupCompleted)
+        #expect(harness.settings.value(forKey: "plugins.files.setupCompleted") == .bool(true))
+        await harness.plugin.deactivate()
     }
 }

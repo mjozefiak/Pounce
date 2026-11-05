@@ -543,12 +543,30 @@ final class ResultsChangedRelay {
     }
 }
 
-/// Forwards a plugin's `resultsChanged` with its id to the Settings banner, which reads its status again.
+/// Forwards a plugin's `resultsChanged` with its id to the Settings banner, which reads its status (and every
+/// plugin's for the sidebar dots) again. Like `ResultsChangedRelay`, the signals of one plugin within `delay` are
+/// merged into one, so a burst (a copy, an indexing step) reads the statuses once.
 final class PluginStatusRelay {
+    static let delay: Duration = .milliseconds(100)
+
     var handler: @MainActor (String) -> Void = { _ in }
+    /// Waits out the merge window; tests pass a gate they open themselves.
+    private let wait: @MainActor () async -> Void
+    private var pending: [String: Task<Void, Never>] = [:]
+
+    init(wait: @escaping @MainActor () async -> Void = { try? await Task.sleep(for: PluginStatusRelay.delay) }) {
+        self.wait = wait
+    }
 
     @MainActor func signal(_ pluginID: String) {
-        handler(pluginID)
+        guard pending[pluginID] == nil else { return }
+        let wait = wait
+        pending[pluginID] = Task { [weak self] in
+            await wait()
+            guard let self else { return }
+            self.pending[pluginID] = nil
+            self.handler(pluginID)
+        }
     }
 }
 

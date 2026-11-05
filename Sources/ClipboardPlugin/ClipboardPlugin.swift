@@ -492,7 +492,6 @@ public final class ClipboardPlugin: LintelPlugin {
     private func store(_ capture: Capture) {
         guard let store else { return }
         let logger = context.logger
-        let resultsChanged = context.resultsChanged
         Task.detached(priority: .utility) { [weak self] in
             guard
                 let draft = ClipClassifier.draft(
@@ -500,8 +499,8 @@ public final class ClipboardPlugin: LintelPlugin {
             else { return }
             do {
                 try store.insert(draft)
-                resultsChanged()
-                await self?.refreshCount()
+                // One signal per copy, once the count is known (the list and the Settings banner both follow).
+                await self?.refreshCount(changed: true)
             } catch {
                 logger.error("Cannot store a clipboard entry: \(String(describing: error), privacy: .private)")
             }
@@ -509,21 +508,25 @@ public final class ClipboardPlugin: LintelPlugin {
     }
 
     private func historyChanged() {
-        context.resultsChanged()
-        refreshCount()
+        refreshCount(changed: true)
     }
 
-    func refreshCount() {
+    /// Reads the entry count again and signals `resultsChanged` once: when the count changed (the Settings
+    /// banner counts the entries) or when `changed` says the history did.
+    func refreshCount(changed: Bool = false) {
         guard let store else {
             state.entryCount = 0
+            if changed { context.resultsChanged() }
             return
         }
         Task { [weak self] in
             let count = await Task.detached { (try? store.count()) ?? 0 }.value
-            guard let self, self.state.entryCount != count else { return }
+            guard let self else { return }
+            let countChanged = self.state.entryCount != count
             self.state.entryCount = count
-            // The Settings banner counts the entries.
-            self.context.resultsChanged()
+            if changed || countChanged {
+                self.context.resultsChanged()
+            }
         }
     }
 

@@ -1,5 +1,8 @@
 import Foundation
+import SwiftUI
 import Testing
+
+@testable import ClipboardPlugin
 
 /// Spec `2026-11-04-lintel-main-window`, step 2.4 (risk R-A4): every key of the Clipboard plugin's settings type is
 /// either used by its settings pane (the token is a setter or control the pane sources must contain) or listed
@@ -26,10 +29,24 @@ import Testing
         "Sources/ClipboardPlugin/LegacyClipboardSettingsPane.swift",
     ]
 
-    /// Each window's own sources (step 4.4): every key stays reachable in the main window and in the old one.
-    static let windowSources: [[String]] = [
-        ["Sources/ClipboardPlugin/ClipboardSettingsPane.swift"],
-        ["Sources/ClipboardPlugin/LegacyClipboardSettingsPane.swift"],
+    /// The label each window's pane shows for each non-exempt key's control (step 4.4): the main window's
+    /// `ClipboardPaneContent` and the old window's `LegacyClipboardSettingsPane`, found in the built views.
+    static let windowControls: [(window: String, labels: [String: String])] = [
+        (
+            "main",
+            [
+                "paused": "Keep clipboard history", "retentionDays": "Keep for",
+                "maximumEntries": "At most (clipboard)",
+                "ignoredApps": "Add App…",
+            ]
+        ),
+        (
+            "old",
+            [
+                "paused": "Record clipboard history", "retentionDays": "Keep entries for",
+                "maximumEntries": "Keep at most", "ignoredApps": "Add App…",
+            ]
+        ),
     ]
 
     private static let root: URL = {
@@ -75,11 +92,25 @@ import Testing
         }
     }
 
-    @Test func bothWindowsReachEveryNonExemptKey() throws {
-        for files in Self.windowSources {
-            let source = try files.map { try Self.read($0) }.joined(separator: "\n")
-            for (key, token) in Self.paneTokens {
-                #expect(source.contains(token), "\(key): \(files) do not contain \(token)")
+    @MainActor @Test func bothWindowsShowEveryNonExemptKey() throws {
+        let harness = try PluginHarness()
+        let plugin = harness.plugin
+        let panes = [
+            PaneText(
+                ClipboardPaneContent(
+                    state: plugin.state, settings: plugin.settings, recorder: AnyView(EmptyView()),
+                    clearHistory: { true }),
+                module: "ClipboardPlugin"),
+            PaneText(
+                LegacyClipboardSettingsPane(
+                    state: plugin.state, settings: plugin.settings, actions: plugin.statusActions,
+                    recorder: AnyView(EmptyView()), clearHistory: { true }),
+                module: "ClipboardPlugin"),
+        ]
+        for (pane, window) in zip(panes, Self.windowControls) {
+            #expect(Set(window.labels.keys) == Set(Self.paneTokens.keys), "\(window.window)")
+            for (key, label) in window.labels {
+                #expect(pane.shows(label), "\(key): the \(window.window) window's pane does not show \(label)")
             }
         }
     }

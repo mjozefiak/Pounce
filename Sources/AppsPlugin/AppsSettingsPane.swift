@@ -198,7 +198,8 @@ struct HiddenSuggestionsSheet: View {
                 .keyboardShortcut(.defaultAction)
             }
         }
-        .padding(20)
-        .frame(width: 380)
+        .padding(20 * textSize.scale)
+        // Grows with the text size, so names and buttons fit at XL.
+        .frame(minWidth: 380 * textSize.scale, idealWidth: 380 * textSize.scale)
     }
 }

@@ -186,6 +186,22 @@ struct ClipboardPluginLifecycleTests {
         await harness.tearDown()
     }
 
+    /// Step 4.4 review fix: one copy is one `resultsChanged`, sent once the count is known.
+    @Test func aCopySignalsOnceWithTheNewCount() async throws {
+        let harness = try PluginHarness()
+        try await harness.plugin.activate()
+        try await Task.sleep(for: .milliseconds(100))
+        let before = harness.changes.value
+        let watcher = try #require(harness.plugin.watcher)
+        harness.pasteboard.setString("fake copied once")
+        #expect(watcher.check())
+        #expect(await eventually { harness.changes.value > before })
+        #expect(harness.plugin.state.entryCount == 1)
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(harness.changes.value == before + 1)
+        await harness.tearDown()
+    }
+
     @Test func ignoredAppsAreNotRecorded() async throws {
         let harness = try PluginHarness()
         try await harness.plugin.activate()

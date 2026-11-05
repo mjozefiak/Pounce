@@ -1,5 +1,8 @@
 import Foundation
+import LintelKit
 import Testing
+
+@testable import AppsPlugin
 
 /// Spec `2026-11-04-lintel-main-window`, step 2.4 (risk R-A4): every key of the Apps plugin's settings type is
 /// either used by its settings pane (the token is a setter or control the pane sources must contain) or listed
@@ -27,10 +30,26 @@ import Testing
         "Sources/AppsPlugin/LegacyAppsSettingsPane.swift",
     ]
 
-    /// Each window's own view file (step 4.2): every key stays reachable in the main window and in the old one.
-    static let windowViewFiles = [
-        "Sources/AppsPlugin/AppsSettingsPane.swift",
-        "Sources/AppsPlugin/LegacyAppsSettingsPane.swift",
+    /// The label each window's pane shows for each non-exempt key's control (step 4.2): the main window's
+    /// `AppsPaneContent` and the old window's `LegacyAppsSettingsPane`, found in the built views (with one app
+    /// hidden, so the old window shows its hidden list).
+    static let windowControls: [(window: String, labels: [String: String])] = [
+        (
+            "main",
+            [
+                "roots": "Searched folders", "spotlight": "Find apps with Spotlight",
+                "suggestionsEnabled": "Suggest apps",
+                "suggestionsHidden": "Hidden suggestions",
+            ]
+        ),
+        (
+            "old",
+            [
+                "roots": "Searched folders", "spotlight": "Find apps with Spotlight",
+                "suggestionsEnabled": "Suggest Apps",
+                "suggestionsHidden": "Hidden from suggestions",
+            ]
+        ),
     ]
 
     private static let root: URL = {
@@ -76,11 +95,21 @@ import Testing
         }
     }
 
-    @Test func bothWindowsReachEveryNonExemptKey() throws {
-        for file in Self.windowViewFiles {
-            let source = try Self.read(file)
-            for (key, token) in Self.paneTokens {
-                #expect(source.contains(token), "\(key): \(file) does not contain \(token)")
+    @MainActor @Test func bothWindowsShowEveryNonExemptKey() async throws {
+        let directory = try TemporaryDirectory()
+        let store = ActivityStore(directory: directory.url, now: VirtualTime().now, clock: NeverClock())
+        await store.load()
+        let settings = MemorySettings()
+        settings.setValue(.stringArray(["com.example.hidden"]), forKey: "plugins.apps.suggestions.hidden")
+        let model = AppsSettingsModel(settings: PluginSettings(pluginID: "apps", store: settings), store: store)
+        let panes = [
+            PaneText(AppsPaneContent(model: model), module: "AppsPlugin"),
+            PaneText(LegacyAppsSettingsPane(model: model), module: "AppsPlugin"),
+        ]
+        for (pane, window) in zip(panes, Self.windowControls) {
+            #expect(Set(window.labels.keys) == Set(Self.paneTokens.keys), "\(window.window)")
+            for (key, label) in window.labels {
+                #expect(pane.shows(label), "\(key): the \(window.window) window's pane does not show \(label)")
             }
         }
     }

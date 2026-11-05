@@ -124,12 +124,37 @@ func settle() async {
         #expect(model.banner?.title == "1 thing to do")
     }
 
-    @Test func theRelayForwardsThePluginID() {
-        let relay = PluginStatusRelay()
-        var received: [String] = []
-        relay.handler = { received.append($0) }
+    @Test func theRelayForwardsThePluginID() async {
+        let gate = RelayGate()
+        let relay = PluginStatusRelay(wait: { await gate.wait() })
+        let received = ReceivedIDs()
+        relay.handler = { received.ids.append($0) }
         relay.signal("banner")
-        #expect(received == ["banner"])
+        await gate.waitForWaiters(1)
+        gate.open()
+        #expect(await received.eventually(["banner"]))
+    }
+
+    /// Step 4.4 review fix: a burst of signals from one plugin reaches the banner once per merge window.
+    @Test func theRelayMergesABurstPerPlugin() async {
+        let gate = RelayGate()
+        let relay = PluginStatusRelay(wait: { await gate.wait() })
+        let received = ReceivedIDs()
+        relay.handler = { received.ids.append($0) }
+        relay.signal("clipboard")
+        relay.signal("clipboard")
+        relay.signal("files")
+        relay.signal("clipboard")
+        await gate.waitForWaiters(2)
+        #expect(received.ids.isEmpty)
+        #expect(gate.waiters == 2)
+        gate.open()
+        #expect(await received.eventually(["clipboard", "files"]))
+        // The next signal after the window is forwarded again.
+        relay.signal("clipboard")
+        await gate.waitForWaiters(1)
+        gate.open()
+        #expect(await received.eventually(["clipboard", "clipboard", "files"]))
     }
 
     @Test func aFinishedPluginActionReadsTheBannerAgain() async {
@@ -245,5 +270,41 @@ func settle() async {
         model.show("banner")
         #expect(model.banner?.level == .neutral)
         #expect(StatusBox.reads == 0)
+    }
+}
+
+/// The merge window of `PluginStatusRelay`, opened by the test.
+@MainActor final class RelayGate {
+    private var continuations: [CheckedContinuation<Void, Never>] = []
+
+    var waiters: Int { continuations.count }
+
+    func wait() async {
+        await withCheckedContinuation { continuations.append($0) }
+    }
+
+    func waitForWaiters(_ count: Int) async {
+        for _ in 0..<1000 where continuations.count < count {
+            await Task.yield()
+        }
+    }
+
+    func open() {
+        let waiting = continuations
+        continuations = []
+        for continuation in waiting { continuation.resume() }
+    }
+}
+
+/// The plugin ids the relay forwarded.
+@MainActor final class ReceivedIDs {
+    var ids: [String] = []
+
+    /// Whether `ids`, sorted, becomes `expected` within a few yields.
+    func eventually(_ expected: [String]) async -> Bool {
+        for _ in 0..<1000 where ids.sorted() != expected {
+            await Task.yield()
+        }
+        return ids.sorted() == expected
     }
 }

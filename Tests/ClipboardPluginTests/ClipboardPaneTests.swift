@@ -40,6 +40,18 @@ import Testing
             retry: {}, resume: {}, dismissReset: {})
     }
 
+    /// One plural form of a catalog key.
+    private static func plural(_ key: String, _ language: String, _ form: String) throws -> String {
+        let url = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().appending(path: "Resources/Localizable.xcstrings")
+        let root = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+        let entry = try #require((root["strings"] as? [String: Any])?[key] as? [String: Any], "\(key)")
+        let localization = try #require((entry["localizations"] as? [String: Any])?[language] as? [String: Any])
+        let plural = try #require((localization["variations"] as? [String: Any])?["plural"] as? [String: Any])
+        let unit = try #require((plural[form] as? [String: Any])?["stringUnit"] as? [String: Any])
+        return try #require(unit["value"] as? String)
+    }
+
     private static func pluginActionID(_ action: SettingsStatusAction?) -> String? {
         guard case .plugin(let id, _) = action?.destination else { return nil }
         return id
@@ -136,8 +148,14 @@ import Testing
         let paused = try #require(Self.status(paused: true, count: 1))
         #expect(paused.level == .neutral)
         #expect(String(localized: paused.title) == "Recording is paused")
-        // `swift test` has no compiled catalog, so the plural rule is not applied here (the app's is).
-        #expect(String(localized: try #require(paused.detail)) == "1 entries. Nothing new is added.")
+        // `swift test` has no compiled catalog, so the plural rule is checked in the catalog (the app applies it).
+        let detail = try #require(paused.detail)
+        #expect(detail.key == "%lld entries. Nothing new is added.")
+        #expect(
+            try Self.plural(detail.key, "en", "one").replacing("%lld", with: "1") == "1 entry. Nothing new is added.")
+        #expect(
+            try Self.plural(detail.key, "pl", "one").replacing("%lld", with: "1")
+                == "1 wpis. Nic nowego nie jest dodawane.")
         #expect(Self.pluginActionID(paused.fix.first) == ClipboardPlugin.resumeActionID)
         let reset = try #require(Self.status(paused: true, reset: true))
         #expect(reset.level == .attention)
@@ -230,7 +248,9 @@ import Testing
             .deletingLastPathComponent().appending(path: "Resources/Localizable.xcstrings")
         let root = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
         let strings = try #require(root["strings"] as? [String: Any])
-        for key in ["Recording. %lld entries.", "%lld entries. Nothing new is added."] {
+        for key in [
+            "Recording. %lld entries.", "%lld entries. Nothing new is added.", "%lld entries (clipboard maximum)",
+        ] {
             let entry = try #require(strings[key] as? [String: Any], "\(key)")
             let localizations = try #require(entry["localizations"] as? [String: Any])
             let polish = try #require(localizations["pl"] as? [String: Any])
@@ -243,7 +263,7 @@ import Testing
             "Nothing is recorded", "Lintel isn’t allowed to read the clipboard.",
             "macOS asks before every read. Allow Lintel in Privacy & Security.", "A new history was started",
             "The key was missing. The old history stays encrypted and is deleted after 30 days.",
-            "Recording is paused (banner)", "%@ entries", "Keep for", "Shortcut", "History", "Clear History…",
+            "Recording is paused (banner)", "Keep for", "Shortcut", "History", "Clear History…",
         ] {
             let item = try #require(strings[key] as? [String: Any], "\(key)")
             let both = try #require(item["localizations"] as? [String: Any])
