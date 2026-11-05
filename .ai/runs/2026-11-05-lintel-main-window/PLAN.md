@@ -17,30 +17,33 @@ Source spec: `.ai/specs/2026-11-04-lintel-main-window.md` · ADR: `docs/decision
 | 1 | 1.4 | MainMenuController and MainMenuPolicy | dispatch:standard | done | 72a68da |
 | 1 | 1.5 | Dock, status item, Cmd-comma and openModels routing behind the gate | dispatch:capable | done | f4b5831 |
 | 1 | 1.6 | LintelUI target, moved brand and TextSize, host style values | dispatch:capable | done | 6f36f7a |
-| 1 | 1.5-review-fix | Review fix: Dock click counts only real windows (H1) | dispatch:standard | done | 10aa9c2 |
-| 1 | 1.2-review-fix | Review fix: call willHide on every mode switch, close and quit path (M1) | dispatch:standard | done | 9ba1a32 |
-| 1 | 1.1-review-fix | Review fix: inactive-pane test runs pane lifecycle in a real window; no work while inactive (M2) | dispatch:standard | done | a2a9f6f |
-| 1 | 1.6-review-fix | Review fix: meeting window text size, AGENTS.md Window/ row, adapter sidebar and close-task nits (L2, L3, L4, L6) | dispatch:standard | done | 23e08e0 |
-| 2 | 2.1 | SettingsSidebar and SettingsSidebarModel | dispatch:standard | done | a901956 |
-| 2 | 2.2 | StatusBanner and StatusDerivation | dispatch:capable | done | fe06897 |
-| 2 | 2.3 | SettingsPane template, ConfirmSheet, footer helper, scanning tests | dispatch:standard | done | 7ed6534 |
-| 2 | 2.4 | SettingsKeys ownership and per-plugin key coverage tests | dispatch:standard | done | 3dfdb64 |
-| 2 | 2.2-review-fix | Review fix: sidebar dot from derivation, live sidebar after state change, ok banner when nothing is wrong, error dot colour | dispatch:capable | done | bab53c8 |
-| 2 | 2.3-review-fix | Review fix: legacy-branch scanner else/!= handling, colour rule gaps, ConfirmSheet shortcuts, neutral glyph contrast | dispatch:standard | done | eada3a9 |
-| 3 | 3.1 | PermissionRow and PermissionsPane | dispatch:standard | done | dac8640 |
-| 3 | 3.2 | ModelsPane, ModelRow, ModelsPaneModel, ModelUsage declarations | dispatch:capable | done | f06e254 |
-| 3 | 3.3 | Remove duplicated microphone rows and model cards (mainWindow only) | dispatch:capable | done | 58ba0af |
-| 3 | 3.4 | Confirmation sheets for Clear and Erase | dispatch:standard | done | 29a5321 |
-| 3 | 3.4-review-fix | Review fix: ConfirmSheet runs onConfirm before closing | dispatch:standard | done | 4ea4ceb |
-| 3 | 3.2-review-fix | Review fix: confirm model removal, custom-folder models are not "needed", loaded flag, refresh generation, in-use parity tests | dispatch:capable | done | a03feda |
+| 1 | 1.5-review-fix | Review fix: Dock click counts only real windows (H1) | dispatch:standard | done | 8233eb5 |
+| 1 | 1.2-review-fix | Review fix: call willHide on every mode switch, close and quit path (M1) | dispatch:standard | done | 3db70df |
+| 1 | 1.1-review-fix | Review fix: inactive-pane test runs pane lifecycle in a real window; no work while inactive (M2) | dispatch:standard | done | 8576bc0 |
+| 1 | 1.6-review-fix | Review fix: meeting window text size, AGENTS.md Window/ row, adapter sidebar and close-task nits (L2, L3, L4, L6) | dispatch:standard | done | cc3132b |
+| 2 | 2.1 | SettingsSidebar and SettingsSidebarModel | dispatch:standard | done | a4bdff3 |
+| 2 | 2.2 | StatusBanner and StatusDerivation | dispatch:capable | done | 4d9a82a |
+| 2 | 2.3 | SettingsPane template, ConfirmSheet, footer helper, scanning tests | dispatch:standard | done | 423ea82 |
+| 2 | 2.4 | SettingsKeys ownership and per-plugin key coverage tests | dispatch:standard | done | ca8ff98 |
+| 2 | 2.2-review-fix | Review fix: sidebar dot from derivation, live sidebar after state change, ok banner when nothing is wrong, error dot colour | dispatch:capable | done | 644a84f |
+| 2 | 2.3-review-fix | Review fix: legacy-branch scanner else/!= handling, colour rule gaps, ConfirmSheet shortcuts, neutral glyph contrast | dispatch:standard | done | 94dc7e2 |
+| 3 | 3.1 | PermissionRow and PermissionsPane | dispatch:standard | done | 99a48b4 |
+| 3 | 3.2 | ModelsPane, ModelRow, ModelsPaneModel, ModelUsage declarations | dispatch:capable | done | d289bd2 |
+| 3 | 3.3 | Remove duplicated microphone rows and model cards (mainWindow only) | dispatch:capable | done | 016f6fc |
+| 3 | 3.4 | Confirmation sheets for Clear and Erase | dispatch:standard | done | 472d414 |
+| 3 | 3.4-review-fix | Review fix: ConfirmSheet runs onConfirm before closing | dispatch:standard | done | 8ba35b5 |
+| 3 | 3.2-review-fix | Review fix: confirm model removal, custom-folder models are not "needed", loaded flag, refresh generation, in-use parity tests | dispatch:capable | done | 287d17b |
 | 3 | 3.2-qa-fix | QA fix: Permissions states in the new window, Choose Folder style, text size on Models rows | dispatch:standard | done | 5ece8fc |
-| 3 | 3.2-fidelity-fix | Fidelity fix: Models pane matches the prototype set-models (sections, card rows, licence, primary action, footer, wording) | dispatch:standard | done | pending |
-| 3 | 3.2-fidelity-fix-2 | Fidelity fix: banner width and accent action, no wrapped Download label, one Choose Folder style | dispatch:standard | done | pending |
-| 3 | 3.2-fidelity-fix-3 | Fidelity fix: banner and pane body share one layout column | dispatch:standard | done | pending |
-| 4 | 4.1 | General and Features panes onto the template | dispatch:standard | done | pending |
-| 4 | 4.2 | Apps pane onto the template | dispatch:standard | done | pending |
-| 4 | 4.3 | Files pane onto the template | dispatch:standard | done | pending |
-| 4 | 4.4 | Clipboard pane onto the template | dispatch:standard | done | pending |
+| 3 | 3.2-fidelity-fix | Fidelity fix: Models pane matches the prototype set-models (sections, card rows, licence, primary action, footer, wording) | dispatch:standard | done | b022609 |
+| 3 | 3.2-fidelity-fix-2 | Fidelity fix: banner width and accent action, no wrapped Download label, one Choose Folder style | dispatch:standard | done | bbfd7b7 |
+| 3 | 3.2-fidelity-fix-3 | Fidelity fix: banner and pane body share one layout column | dispatch:standard | done | 88aee3f |
+| 4 | 4.1 | General and Features panes onto the template | dispatch:standard | done | ec370f2 |
+| 4 | 4.2 | Apps pane onto the template | dispatch:standard | done | c2e60bc |
+| 4 | 4.3 | Files pane onto the template | dispatch:standard | done | e170580 |
+| 4 | 4.4 | Clipboard pane onto the template | dispatch:standard | done | 42b5dec |
+| 4 | 4.1-review-fix | Review fix: keyboard-reachable Result order, section-order move tests | dispatch:standard | todo | — |
+| 4 | 4.3-review-fix | Review fix: pure settingsStatus getters (no state change in view body), Full Disk Access acknowledged only after setup | dispatch:capable | todo | — |
+| 4 | 4.4-review-fix | Review fix: one coalesced status signal per clipboard copy, plural and behavioural pane tests, nits | dispatch:standard | todo | — |
 | 5 | 5.1 | Dictation pane onto the template | dispatch:standard | todo | — |
 | 5 | 5.2 | Meetings pane onto the template | dispatch:capable | todo | — |
 | 5 | 5.3 | Clear/Erase confirmation copy with kept-copies checkbox (L1-39) | dispatch:standard | todo | — |
