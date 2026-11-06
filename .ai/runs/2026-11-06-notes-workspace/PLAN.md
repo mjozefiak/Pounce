@@ -20,6 +20,10 @@
 | 2 | 2.1 | MeetingNoteSource in MeetingsPlugin | dispatch:capable | done | a59bbfb |
 | 2 | 2.2 | DictationNoteSource in DictationPlugin | dispatch | done | a5cc47a |
 | 2 | 2.3 | openNote wiring without changing the current Cmd+O | dispatch | done | 863378c |
+| 2 | 2.1-review-fix | DictationNoteSource.delete throws when the history closed | inline | done | c8ab03a |
+| 2 | 2.2-review-fix | NoteSource.exists skips foreign or malformed keys per key | inline | done | db415df |
+| 2 | 2.3-review-fix | MeetingWindowModel keeps its earlier edit behaviour | inline | done | 72487e7 |
+| 2 | 2.4-review-fix | Comments on stream end versus reads corrected | inline | done | 68f9a36 |
 | 3 | 3.1 | NoteLibrary aggregator | dispatch:capable | todo | — |
 | 3 | 3.2 | Explorer, tab bar, path bar, status bar, NotesSection (DEBUG only) | dispatch:capable | todo | — |
 | 3 | 3.3 | Read-only document views, Copy Markdown, Save .md | dispatch:capable | todo | — |
