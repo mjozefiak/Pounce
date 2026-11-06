@@ -1,5 +1,6 @@
 import Foundation
 import LintelKit
+import Observation
 import Synchronization
 import os
 
@@ -124,6 +125,21 @@ final class ScriptedSaver: NoteFileSaving {
         case .saved: return true
         case .cancelled: return false
         case .fails: throw ScriptedError()
+        }
+    }
+}
+
+/// Returns once `condition` holds, woken by changes of the observable state it reads (no polling, no yielding).
+/// A test that never reaches it is stopped by its `.timeLimit`.
+@MainActor
+func waitUntil(_ condition: @MainActor () -> Bool) async {
+    while !condition() {
+        await withCheckedContinuation { continuation in
+            withObservationTracking {
+                _ = condition()
+            } onChange: {
+                continuation.resume()
+            }
         }
     }
 }

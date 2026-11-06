@@ -132,7 +132,7 @@ struct NoteLibraryBudgetTests {
         let task = Task { await library.list(matching: nil, after: nil, limit: 10) }
         // Time moves only here; the budget fires once both sources have been asked.
         // Both sources were asked and each has set its deadline.
-        while slow.started == 0 || fast.started == 0 || clock.sleepCalls < 2 { await Task.yield() }
+        await clock.waitForSleeps(2)
         clock.advance(by: .milliseconds(150))
         let listing = await task.value
         #expect(ids(listing.rows) == ["meetings:a"])
@@ -259,7 +259,7 @@ struct NoteLibrarySourceSetTests {
         trigger.yield()
         await iterator.next()
         #expect(await library.activePluginIDs == ["meetings"])
-        while meetings.changeStreams == 0 { await Task.yield() }
+        await meetings.waitForChangeStream()
         meetings.signalChange()
         await iterator.next()
         trigger.finish()
@@ -395,7 +395,7 @@ struct NoteLibrarySweepTests {
         let clock = ManualClock()
         let slow = NoteLibrary(box: SourceBox([source]), store: store, clock: clock)
         let task = Task { await slow.sweep() }
-        while source.existsCalls.isEmpty || clock.sleepCalls < 1 { await Task.yield() }
+        await clock.waitForSleeps(1)
         clock.advance(by: .milliseconds(150))
         #expect(await task.value.isEmpty)
         #expect(store.detachCalls.isEmpty)

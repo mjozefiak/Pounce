@@ -4,6 +4,72 @@ import Synchronization
 
 @testable import NotesPlugin
 
+/// A counter a test can wait on without polling: `wait(atLeast:)` returns once `increment()` was called that
+/// often, however the two interleave.
+final class CountLatch: Sendable {
+    private struct State {
+        var count = 0
+        var waiters: [(target: Int, continuation: CheckedContinuation<Void, Never>)] = []
+    }
+
+    private let state = Mutex(State())
+
+    var count: Int { state.withLock { $0.count } }
+
+    func increment() {
+        let ready = state.withLock { state -> [CheckedContinuation<Void, Never>] in
+            state.count += 1
+            let count = state.count
+            let ready = state.waiters.filter { $0.target <= count }.map(\.continuation)
+            state.waiters.removeAll { $0.target <= count }
+            return ready
+        }
+        for continuation in ready { continuation.resume() }
+    }
+
+    func wait(atLeast target: Int = 1) async {
+        await withCheckedContinuation { continuation in
+            let done = state.withLock { state -> Bool in
+                if state.count >= target { return true }
+                state.waiters.append((target, continuation))
+                return false
+            }
+            if done { continuation.resume() }
+        }
+    }
+}
+
+/// Holds the next calls of a fake source at a point after they took their answer, so a test can change the world
+/// and then let the old answer arrive. `release()` lets every held call go on.
+final class Gate: Sendable {
+    private let state = Mutex<(hold: Int, blocked: [CheckedContinuation<Void, Never>])>((0, []))
+    /// How many calls reached the gate and are held.
+    let held = CountLatch()
+
+    /// The next `count` calls to `pass()` are held.
+    func hold(next count: Int = 1) { state.withLock { $0.hold = count } }
+
+    func pass() async {
+        await withCheckedContinuation { continuation in
+            let held = state.withLock { state -> Bool in
+                guard state.hold > 0 else { return false }
+                state.hold -= 1
+                state.blocked.append(continuation)
+                return true
+            }
+            if held { self.held.increment() } else { continuation.resume() }
+        }
+    }
+
+    func release() {
+        let all = state.withLock { state -> [CheckedContinuation<Void, Never>] in
+            defer { state.blocked = [] }
+            return state.blocked
+        }
+        for continuation in all { continuation.resume() }
+    }
+}
+
 /// A clock that only moves when a test advances it: the 150 ms budget is tested without waiting.
 final class ManualClock: Clock, Sendable {
     struct Instant: InstantProtocol {
@@ -26,6 +92,10 @@ final class ManualClock: Clock, Sendable {
     }
 
     private let state = Mutex(State())
+    private let sleeps = CountLatch()
+
+    /// Returns once `sleep` was asked for `count` times in all; the deadline of the last one is then set.
+    func waitForSleeps(_ count: Int) async { await sleeps.wait(atLeast: count) }
 
     var now: Instant { state.withLock { $0.now } }
 
@@ -52,6 +122,7 @@ final class ManualClock: Clock, Sendable {
                 case .fire: continuation.resume()
                 case .cancel: continuation.resume(throwing: CancellationError())
                 }
+                sleeps.increment()
             }
         } onCancel: {
             let sleeper = state.withLock { $0.sleepers.removeValue(forKey: id) }
@@ -94,7 +165,14 @@ final class ScriptedNoteSource: NoteSource, Sendable {
         var contentBehavior: Behavior = .answers
         var actions: [NoteSourceAction] = []
         var continuations: [UUID: AsyncStream<Void>.Continuation] = [:]
+        var listGate: Gate?
+        var contentGate: Gate?
     }
+
+    private let listStarts = CountLatch()
+    private let existsStarts = CountLatch()
+    private let contentStarts = CountLatch()
+    private let changeStreamsOpened = CountLatch()
 
     let pluginID: PluginID
     private let state: Mutex<State>
@@ -130,17 +208,32 @@ final class ScriptedNoteSource: NoteSource, Sendable {
         get { state.withLock { $0.contentBehavior } }
         set { state.withLock { $0.contentBehavior = newValue } }
     }
+    /// Held at a point after the call took its answer (see `Gate`).
+    var listGate: Gate? {
+        get { state.withLock { $0.listGate } }
+        set { state.withLock { $0.listGate = newValue } }
+    }
+    var contentGate: Gate? {
+        get { state.withLock { $0.contentGate } }
+        set { state.withLock { $0.contentGate = newValue } }
+    }
+    func waitForListStarts(_ count: Int = 1) async { await listStarts.wait(atLeast: count) }
+    func waitForExistsStarts(_ count: Int = 1) async { await existsStarts.wait(atLeast: count) }
+    func waitForContentStarts(_ count: Int = 1) async { await contentStarts.wait(atLeast: count) }
+    func waitForChangeStream(_ count: Int = 1) async { await changeStreamsOpened.wait(atLeast: count) }
     var listCalls: Int { state.withLock { $0.listCalls } }
     var existsCalls: [[NoteKey]] { state.withLock { $0.existsCalls } }
     /// How many `list` calls have begun.
     var started: Int { state.withLock { $0.started } }
 
     func list(matching: NormalizedQuery?, after: NoteCursor?, limit: Int) async throws -> NotePage {
-        let (behavior, all) = state.withLock { state -> (Behavior, [NoteSummary]) in
+        let (behavior, all, gate) = state.withLock { state -> (Behavior, [NoteSummary], Gate?) in
             state.listCalls += 1
             state.started += 1
-            return (state.behavior, state.items)
+            return (state.behavior, state.items, state.listGate)
         }
+        listStarts.increment()
+        await gate?.pass()
         switch behavior {
         case .throwsError: throw ScriptedError()
         case .hangs:
@@ -161,6 +254,7 @@ final class ScriptedNoteSource: NoteSource, Sendable {
             state.existsCalls.append(keys)
             return (state.existsBehavior, state.existing)
         }
+        existsStarts.increment()
         switch behavior {
         case .throwsError: throw ScriptedError()
         case .hangs:
@@ -172,9 +266,16 @@ final class ScriptedNoteSource: NoteSource, Sendable {
     }
 
     func content(for key: NoteKey) async throws -> NoteContent? {
-        let (behavior, content) = state.withLock { ($0.contentBehavior, $0.contents[key]) }
-        if behavior == .throwsError { throw ScriptedError() }
-        return content
+        let (behavior, content, gate) = state.withLock { ($0.contentBehavior, $0.contents[key], $0.contentGate) }
+        contentStarts.increment()
+        await gate?.pass()
+        switch behavior {
+        case .throwsError: throw ScriptedError()
+        case .hangs:
+            try await Task.sleep(for: .seconds(3600))
+            throw ScriptedError()
+        case .answers: return content
+        }
     }
     func delete(_ key: NoteKey) async throws {}
     func actions(for key: NoteKey) -> [NoteSourceAction] { state.withLock { $0.actions } }
@@ -184,6 +285,7 @@ final class ScriptedNoteSource: NoteSource, Sendable {
         let (stream, continuation) = AsyncStream.makeStream(of: Void.self, bufferingPolicy: .bufferingNewest(1))
         let id = UUID()
         state.withLock { $0.continuations[id] = continuation }
+        changeStreamsOpened.increment()
         continuation.onTermination = { [weak self] _ in
             _ = self?.state.withLock { $0.continuations.removeValue(forKey: id) }
         }

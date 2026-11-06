@@ -190,7 +190,7 @@ struct NoteLibrarySearchTests {
             sources: { [meetings, dictation] }, overlays: FakeOverlayStore(), detacher: FakeOverlayStore(), clock: clock
         )
         let task = Task { await slow.list(matching: query, after: nil, limit: 3) }
-        while clock.sleepCalls < 2 { await Task.yield() }
+        await clock.waitForSleeps(2)
         clock.advance(by: .milliseconds(150))
         let result = await task.value
         #expect(result.rows.map(\.id.key.rawValue) == ["meetings:m0", "meetings:m1", "meetings:m2"])

@@ -243,11 +243,11 @@ struct NotesWorkspaceModelTests {
     func followsTheSourceSet() async {
         let rig = Rig()
         let running = Task { await rig.model.run() }
-        while rig.model.loadState == .loading { await Task.yield() }
+        await waitUntil { rig.model.loadState == .loaded }
         #expect(rig.model.rows.count == 3)
         rig.dictation.items = []
         rig.sourceSet.yield()
-        while rig.model.rows.count != 2 { await Task.yield() }
+        await waitUntil { rig.model.rows.count == 2 }
         running.cancel()
         #expect(rig.model.rows.count == 2)
     }
