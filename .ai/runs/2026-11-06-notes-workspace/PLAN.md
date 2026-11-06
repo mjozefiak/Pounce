@@ -40,6 +40,9 @@
 | 4 | 4.2 | RevisionWriter, OverlaySeeder, SourceReconciler | dispatch:capable | done | e53dcc6 |
 | 4 | 4.3 | BlockAttribution gutter, legend, Details toggle | dispatch | done | 8808486 |
 | 4 | 4.4 | Manual notes (Cmd+N, notes:<uuid>, title editing) | dispatch | done | 3299d7f |
+| 4 | 4.2-review-fix (M3 proposed human kept) | review fix | inline | done | e0d479f |
+| 4 | 4.2-review-fix (H1 H2 M4-M8, Lows) | review fix: durable release, retired text, max-wait, retry, conflict, stale seed, registry races | inline | done | afadff3 |
+| 4 | 4.2-review-fix (M9 TSan NotesPluginTests) | review fix | inline | done | 8c8116d |
 | 4 | 4.5 | History pane, Compare, Restore | dispatch | todo | — |
 | 4 | 4.6 | Delete with confirmation sheets and kept-copies option | dispatch | todo | — |
 | 4 | 4.7 | Notes settings pane, retention rules, Export All, Erase | dispatch | todo | — |
