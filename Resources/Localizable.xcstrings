@@ -17730,6 +17730,204 @@
           }
         }
       }
+    },
+    "Proposal applied" : {
+      "comment" : "Path bar: a proposed version became the current text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proposal applied"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Propozycja zastosowana"
+          }
+        }
+      }
+    },
+    "Proposal discarded" : {
+      "comment" : "Path bar: a proposed version was set aside",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proposal discarded"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Propozycja odrzucona"
+          }
+        }
+      }
+    },
+    "The note changed in the meantime. Compare again before applying." : {
+      "comment" : "Notes: Apply was refused because the note changed after the comparison",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The note changed in the meantime. Compare again before applying."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatka zmieniła się w międzyczasie. Porównaj jeszcze raz, zanim zastosujesz."
+          }
+        }
+      }
+    },
+    "That proposal couldn’t be applied. Nothing was changed." : {
+      "comment" : "Notes: applying or discarding a proposal failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That proposal couldn’t be applied. Nothing was changed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się zastosować tej propozycji. Nic nie zostało zmienione."
+          }
+        }
+      }
+    },
+    "Has a proposal" : {
+      "comment" : "Accessibility: a version of the note waits for Apply",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Has a proposal"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ma propozycję"
+          }
+        }
+      }
+    },
+    "Apply" : {
+      "comment" : "Inspector, History and Compare: makes a proposed version the text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zastosuj"
+          }
+        }
+      }
+    },
+    "Discard" : {
+      "comment" : "Inspector, History and Compare: sets a proposed version aside",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discard"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odrzuć"
+          }
+        }
+      }
+    },
+    "A proposed version, not applied. Your text stays as it is until you apply it." : {
+      "comment" : "Compare: explains a proposal before Apply or Discard",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A proposed version, not applied. Your text stays as it is until you apply it."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proponowana wersja, jeszcze niezastosowana. Twój tekst zostaje bez zmian, dopóki jej nie zastosujesz."
+          }
+        }
+      }
+    },
+    "Proposals waiting: %lld" : {
+      "comment" : "Accessibility value of the History tab: versions waiting for Apply or Discard",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Proposal waiting: %lld"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Proposals waiting: %lld"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Propozycja czeka: %lld"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Propozycje czekają: %lld"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Propozycji czeka: %lld"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Propozycji czeka: %lld"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

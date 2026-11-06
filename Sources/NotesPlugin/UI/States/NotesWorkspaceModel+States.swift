@@ -160,7 +160,8 @@ extension NotesWorkspaceModel {
                     ], isDismissible: true))
         }
         for failed in [
-            Feedback.restoreFailed, .restoreChanged, .restoreReadOnly, .restoreTargetInvalid, .deleteFailed,
+            Feedback.restoreFailed, .restoreChanged, .restoreReadOnly, .restoreTargetInvalid, .proposalChanged,
+            .proposalFailed, .deleteFailed,
             .copyNotRemoved, .commentFailed, .commentReadOnly, .commentChanged, .commentTooLong,
             .commentSelectionTooLong, .commentSelectionInvalid,
         ] where feedback == failed {

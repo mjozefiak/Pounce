@@ -41,6 +41,7 @@ extension NotesWorkspaceModel {
             let revision = snapshot.revisions.first(where: { $0.id == revisionID }),
             let base = baseRevision(of: revision, in: snapshot)
         else { return }
+        let isProposal = revision.state == .proposed
         // The editor holds typed text the history does not know yet: write it, then leave it.
         if let session = document.session {
             await session.flush(closingSession: true)
@@ -50,7 +51,8 @@ extension NotesWorkspaceModel {
             CompareState(
                 layer: snapshot.layer, revisionID: revisionID, baseAuthor: NoteAuthor(rawValue: base.author),
                 baseDate: base.createdAt, author: NoteAuthor(rawValue: revision.author), date: revision.createdAt,
-                result: NoteHistory.compare(revision, against: base)))
+                result: NoteHistory.compare(revision, against: base), proposalID: isProposal ? revision.id : nil,
+                baseHeadID: isProposal ? base.id : nil))
     }
 
     func closeCompare() {
@@ -58,7 +60,9 @@ extension NotesWorkspaceModel {
     }
 
     private func baseRevision(of revision: RevisionRecord, in snapshot: HistorySnapshot) -> RevisionRecord? {
-        snapshot.revisions.filter { $0.seq < revision.seq && $0.state == .applied }.max { $0.seq < $1.seq }
+        // A proposal is compared with the head it would replace, whichever revisions came after it.
+        if revision.state == .proposed { return snapshot.revisions.first { $0.id == snapshot.headID } }
+        return snapshot.revisions.filter { $0.seq < revision.seq && $0.state == .applied }.max { $0.seq < $1.seq }
     }
 
     /// The newest revision kept aside after a compare-and-set loss ("Your edits were kept as a proposal").
@@ -69,6 +73,52 @@ extension NotesWorkspaceModel {
             let proposal = snapshot.revisions.filter({ $0.state == .proposed }).max(by: { $0.seq < $1.seq })
         else { return }
         await showCompare(revisionID: proposal.id)
+    }
+
+    // MARK: Apply and Discard (step 6.3)
+
+    /// Apply and Discard are offered like Restore: the store can be written, the layer is not a detached overlay and
+    /// no agent run holds the lock.
+    func canResolveProposals(_ document: NoteDocumentModel, _ snapshot: HistorySnapshot) -> Bool {
+        canRestore(document, snapshot)
+    }
+
+    /// Apply: the proposal becomes a new applied revision on top of the head it was compared with (compare-and-set:
+    /// a moved head, or typed text, writes nothing). The earlier text stays in History.
+    func applyProposal(revisionID: Int64) async {
+        guard let id = currentID, let document = documents[id], let layer = document.layerID,
+            case .loaded(let snapshot) = document.history, canResolveProposals(document, snapshot),
+            let proposal = snapshot.revisions.first(where: { $0.id == revisionID && $0.state == .proposed })
+        else { return }
+        // What the user compared is the head of the compare on screen, else the head the history shows.
+        let head = document.compare?.proposalID == proposal.id ? document.compare?.baseHeadID : snapshot.headID
+        if let session = document.session {
+            await session.flush(closingSession: true)
+            document.leaveEditing()
+        }
+        document.setCompare(nil)
+        switch await environment.applyProposal(id, layer, revisionID, head ?? snapshot.headID) {
+        case nil: show(.proposalApplied)
+        case .changed?: show(.proposalChanged)
+        default: show(.proposalFailed)
+        }
+        await loadContent(id)
+        await loadHistory(for: id)
+    }
+
+    /// Discard: the proposal is set aside (the row stays in the store, hidden from History); the text is unchanged.
+    func discardProposal(revisionID: Int64) async {
+        guard let id = currentID, let document = documents[id], let layer = document.layerID,
+            case .loaded(let snapshot) = document.history, canResolveProposals(document, snapshot),
+            snapshot.revisions.contains(where: { $0.id == revisionID && $0.state == .proposed })
+        else { return }
+        document.setCompare(nil)
+        switch await environment.discardProposal(id, layer, revisionID) {
+        case nil: show(.proposalDiscarded)
+        default: show(.proposalFailed)
+        }
+        await loadContent(id)
+        await loadHistory(for: id)
     }
 
     // MARK: Restore

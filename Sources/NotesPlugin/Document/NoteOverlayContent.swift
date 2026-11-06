@@ -10,6 +10,8 @@ struct OverlayLayerHead: Sendable, Equatable {
     var seedSpeakers: [NoteSpeaker]
     /// Who wrote each block and which blocks keep their quote chips (step 4.3).
     var attribution: LayerAttribution?
+    /// Revisions kept aside and not yet applied or discarded (step 6.3).
+    var pendingProposals = 0
 }
 
 /// Puts overlays and sources together for one open note (spec "Components": the document shows the head revision,
@@ -36,7 +38,8 @@ enum NoteOverlayContent {
             return OverlayLayerHead(
                 layerID: document.layer, markdown: head.body, provenance: provenance, seedSpeakers: speakers,
                 attribution: .overlay(
-                    layerAuthor: layerAuthor, chain: chain, head: StoredBlocks.decode(head.blocksJSON)))
+                    layerAuthor: layerAuthor, chain: chain, head: StoredBlocks.decode(head.blocksJSON)),
+                pendingProposals: chain.filter { $0.state == .proposed }.count)
         }
     }
 
@@ -58,6 +61,11 @@ enum NoteOverlayContent {
     /// The attribution of every overlaid layer, by layer id; a layer without an overlay is the source's own text.
     static func attributions(heads: [OverlayLayerHead]) -> [String: LayerAttribution] {
         Dictionary(heads.compactMap { head in head.attribution.map { (head.layerID, $0) } }) { first, _ in first }
+    }
+
+    /// The pending proposals by layer id (only layers that have one).
+    static func proposals(heads: [OverlayLayerHead]) -> [String: Int] {
+        Dictionary(heads.filter { $0.pendingProposals > 0 }.map { ($0.layerID, $0.pendingProposals) }) { a, _ in a }
     }
 
     /// What the document model gets. `source` is what the source returned (`nil`: gone or never asked).

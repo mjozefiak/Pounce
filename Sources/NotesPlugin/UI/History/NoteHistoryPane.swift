@@ -30,7 +30,8 @@ struct NoteHistoryPane: View {
                 ForEach(snapshot.entries) { entry in
                     NoteHistoryRow(
                         model: model, entry: entry, layer: snapshot.layer,
-                        canRestore: model.canRestore(document, snapshot))
+                        canRestore: model.canRestore(document, snapshot),
+                        canResolve: model.canResolveProposals(document, snapshot))
                 }
             }
         }
@@ -70,6 +71,7 @@ struct NoteHistoryRow: View {
     let entry: HistoryEntry
     let layer: String
     let canRestore: Bool
+    var canResolve = false
     @Environment(\.lintelTextSize) private var textSize
 
     var body: some View {
@@ -97,6 +99,14 @@ struct NoteHistoryRow: View {
                     if entry.canCompare {
                         link(Text("Compare", comment: "Inspector, History: shows what a version changed")) {
                             Task { await model.showCompare(revisionID: entry.id) }
+                        }
+                    }
+                    if entry.isProposal && canResolve {
+                        link(Text("Apply", comment: "Inspector, History: makes a proposed version the text")) {
+                            Task { await model.applyProposal(revisionID: entry.id) }
+                        }
+                        link(Text("Discard", comment: "Inspector, History: sets a proposed version aside")) {
+                            Task { await model.discardProposal(revisionID: entry.id) }
                         }
                     }
                     if entry.canRestore && canRestore {

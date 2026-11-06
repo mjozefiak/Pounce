@@ -51,6 +51,7 @@ struct NoteCompareView: View {
                 .foregroundStyle(LintelBrand.ink)
                 .accessibilityAddTraits(.isHeader)
                 Spacer(minLength: 12)
+                if compare.isProposal, canResolve { proposalButtons }
                 Button {
                     model.closeCompare()
                 } label: {
@@ -78,11 +79,58 @@ struct NoteCompareView: View {
                     .background(LintelBrand.fill, in: RoundedRectangle(cornerRadius: 7))
                     .layoutValue(key: NoteWrapTrailingKey.self, value: true)
             }
+            if compare.isProposal {
+                Text(
+                    "A proposed version, not applied. Your text stays as it is until you apply it.",
+                    comment: "Compare: explains a proposal before Apply or Discard"
+                )
+                .font(textSize.font(.footnote))
+                .foregroundStyle(LintelBrand.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .padding(.top, 20 * textSize.scale)
         .padding(.bottom, 8 * textSize.scale)
         .padding(.leading, 5.4 * 12.5 * textSize.scale)
         .padding(.trailing, 24 * textSize.scale)
+    }
+
+    /// Whether Apply and Discard are offered (the store can be written, no agent run, not a detached overlay).
+    private var canResolve: Bool {
+        guard case .loaded(let snapshot) = document.history else { return false }
+        return model.canResolveProposals(document, snapshot)
+    }
+
+    /// Apply is the primary button (prototype `.btn.pri`), Discard the plain one (`.btn`).
+    private var proposalButtons: some View {
+        HStack(spacing: 8 * textSize.scale) {
+            if let id = compare.proposalID {
+                Button {
+                    Task { await model.discardProposal(revisionID: id) }
+                } label: {
+                    Text("Discard", comment: "Compare: sets the proposed version aside")
+                        .font(textSize.font(.footnote, weight: .semibold))
+                        .foregroundStyle(LintelBrand.ink)
+                        .padding(.horizontal, 12 * textSize.scale)
+                        .padding(.vertical, 4 * textSize.scale)
+                        .background(LintelBrand.card, in: RoundedRectangle(cornerRadius: 8))
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(LintelBrand.hairline))
+                }
+                .buttonStyle(.plain)
+                Button {
+                    Task { await model.applyProposal(revisionID: id) }
+                } label: {
+                    Text("Apply", comment: "Compare: makes the proposed version the text")
+                        .font(textSize.font(.footnote, weight: .semibold))
+                        .foregroundStyle(LintelBrand.onAccent)
+                        .padding(.horizontal, 12 * textSize.scale)
+                        .padding(.vertical, 4 * textSize.scale)
+                        .background(LintelBrand.accent, in: RoundedRectangle(cornerRadius: 8))
+                }
+                .buttonStyle(.plain)
+                .keyboardShortcut(.defaultAction)
+            }
+        }
     }
 
     private func chip(_ author: NoteAuthor, _ date: Date) -> some View {

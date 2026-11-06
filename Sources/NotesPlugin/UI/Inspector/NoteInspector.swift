@@ -10,7 +10,9 @@ struct NoteInspector: View {
     @Environment(\.lintelTextSize) private var textSize
 
     /// A tab of the strip (prototype `.it`): the icon, and the name in bold on the one that is on.
-    private func tab(_ tab: NoteInspectorTab, symbol: String, title: Text, count: Int = 0) -> some View {
+    private func tab(
+        _ tab: NoteInspectorTab, symbol: String, title: Text, count: Int = 0, value: Text? = nil
+    ) -> some View {
         let isOn = model.inspectorTab == tab
         return Button {
             model.selectInspectorTab(tab)
@@ -34,7 +36,9 @@ struct NoteInspector: View {
         .buttonStyle(.plain)
         .accessibilityLabel(title)
         .accessibilityValue(
-            count > 0 ? Text("Open: \(count)", comment: "Accessibility value of the Comments tab") : Text(verbatim: "")
+            count > 0
+                ? (value ?? Text("Open: \(count)", comment: "Accessibility value of the Comments tab"))
+                : Text(verbatim: "")
         )
         .accessibilityAddTraits(isOn ? .isSelected : [])
     }
@@ -48,7 +52,11 @@ struct NoteInspector: View {
                     count: document.openCommentCount)
                 tab(
                     .history, symbol: "clock",
-                    title: Text("History", comment: "Inspector: tab with the versions of the text"))
+                    title: Text("History", comment: "Inspector: tab with the versions of the text"),
+                    count: document.pendingProposals,
+                    value: Text(
+                        "Proposals waiting: \(document.pendingProposals)",
+                        comment: "Accessibility value of the History tab: versions waiting for Apply or Discard"))
                 tab(
                     .details, symbol: "slider.horizontal.3",
                     title: Text("Details", comment: "Inspector: tab with the view toggles and the note's facts"))

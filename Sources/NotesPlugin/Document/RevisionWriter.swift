@@ -289,6 +289,21 @@ final class RevisionWriter: Sendable {
             expectingHead: expectingHead)
     }
 
+    /// Apply: the proposal becomes an `applied` revision on top of `expectingHead`, the head the user compared it
+    /// with. A moved head, or text typed since, is a `casConflict`: nothing is written and nothing typed is replaced.
+    @discardableResult
+    func applyProposal(id: Int64, expectingHead: Int64) async throws -> Int64 {
+        if hasPendingText { throw NotesError.casConflict }
+        try await flush(closingSession: true)
+        return try await core.applyProposal(id, expectingHead: expectingHead)
+    }
+
+    /// Discard: the proposal is set aside for good (it stays in the store, hidden from History).
+    func discardProposal(id: Int64) async throws {
+        try await flush(closingSession: true)
+        try await core.discardProposal(id)
+    }
+
     /// A `proposed` revision: never moves the head.
     @discardableResult
     func appendProposal(author: NoteAuthor, body: String, summary: String? = nil, metaJSON: String? = nil)
@@ -594,6 +609,37 @@ final class RevisionWriter: Sendable {
                 NewNoteRevision(
                     docID: docID, author: author, state: .proposed, body: body, summary: summary,
                     blocksJSON: blocks.json, metaJSON: metaJSON, now: now()))
+        }
+
+        func applyProposal(_ proposalID: Int64, expectingHead: Int64) throws -> Int64 {
+            if let reason = store.blockedReason { throw reason }
+            guard let docID else { throw NotesError.guardRejected(rule: "noDocument") }
+            try reloadIfNeeded()
+            if expectingHead != headID { throw NotesError.casConflict }
+            guard let proposal = try store.revision(id: proposalID), proposal.docID == docID,
+                proposal.state == .proposed
+            else { throw NotesError.guardRejected(rule: "proposalTarget") }
+            let stored =
+                StoredBlocks.decode(proposal.blocksJSON)
+                ?? attribution.stored(body: proposal.body, author: proposal.author, previous: headBlocks)
+            let id = try store.applyProposal(
+                docID: docID, proposalID: proposalID, expectedHeadID: headID, summary: nil, blocksJSON: stored.json,
+                metaJSON: NoteMeta.json(["applied_from": proposalID, "base_head_id": headID]), now: now())
+            attribution.add(author: proposal.author, body: proposal.body)
+            setHead(id, body: proposal.body, stored: stored, author: proposal.author)
+            sessionRevisionID = nil
+            conflictProposalID = nil
+            pruneAfterWrite()
+            return id
+        }
+
+        func discardProposal(_ proposalID: Int64) throws {
+            if let reason = store.blockedReason { throw reason }
+            guard let docID else { throw NotesError.guardRejected(rule: "noDocument") }
+            guard try store.discardProposal(docID: docID, proposalID: proposalID) else {
+                throw NotesError.guardRejected(rule: "proposalTarget")
+            }
+            if conflictProposalID == proposalID { conflictProposalID = nil }
         }
 
         private func storeApplied(

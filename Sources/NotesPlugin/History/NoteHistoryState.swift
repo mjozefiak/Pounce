@@ -12,6 +12,9 @@ struct HistorySnapshot: Sendable, Equatable {
     var isDetached: Bool
 
     var entries: [HistoryEntry] { NoteHistory.entries(from: revisions, headID: headID) }
+
+    /// Proposals waiting for Apply or Discard.
+    var pendingProposals: Int { revisions.filter { $0.state == .proposed }.count }
 }
 
 /// The inspector's History for the layer on screen.
@@ -34,6 +37,12 @@ struct CompareState: Equatable {
     var author: NoteAuthor
     var date: Date
     var result: NoteDiff.Result
+    /// A proposal on screen (step 6.3): Apply and Discard are offered, and Apply goes through compare-and-set on
+    /// `baseHeadID`, the head this comparison was made against.
+    var proposalID: Int64?
+    var baseHeadID: Int64?
+
+    var isProposal: Bool { proposalID != nil }
 }
 
 enum NoteInspectorTab: Equatable {

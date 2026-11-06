@@ -23,14 +23,17 @@ struct HistoryEntry: Identifiable, Equatable, Sendable {
     var change: Change
     var isHead: Bool
     var state: NoteRevisionState
-    /// The revision it is compared with: the applied one before it; `nil` for the first.
+    /// The revision it is compared with: the applied one before it; `nil` for the first. A proposal is compared with
+    /// the head it would replace.
     var baseID: Int64?
     /// The text of an agent's own description (the model, the comments it answered), shown when present.
     var note: String?
 
     /// Restore turns an earlier applied revision into the head; the head itself and proposals are not offered.
     var canRestore: Bool { state == .applied && !isHead }
-    var canCompare: Bool { baseID != nil }
+    var canCompare: Bool { baseID != nil || isProposal }
+    /// Kept aside, waiting for Apply or Discard (step 6.3).
+    var isProposal: Bool { state == .proposed }
 }
 
 enum NoteHistory {
@@ -61,8 +64,8 @@ enum NoteHistory {
             result.append(
                 HistoryEntry(
                     id: revision.id, author: NoteAuthor(rawValue: revision.author), createdAt: revision.createdAt,
-                    change: change, isHead: revision.id == headID, state: revision.state, baseID: base?.id,
-                    note: nil))
+                    change: change, isHead: revision.id == headID, state: revision.state,
+                    baseID: revision.state == .proposed ? headID : base?.id, note: nil))
         }
         return result.reversed()
     }

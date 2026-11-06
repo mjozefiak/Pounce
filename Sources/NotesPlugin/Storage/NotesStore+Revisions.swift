@@ -237,6 +237,49 @@ extension NotesStore {
         }
     }
 
+    /// Apply: a `proposed` revision becomes the head as a NEW `applied` revision (its author, text and block authors,
+    /// `applied_from` and `base_head_id` in its meta), and the proposal is set to `discarded` so History lists the
+    /// text once. One transaction, with compare-and-set on the head: when the head is not `expectedHeadID` nothing
+    /// is written and `casConflict` is thrown. Throws `guardRejected("proposalTarget")` when the revision is not a
+    /// proposal of this document.
+    func applyProposal(
+        docID: Int64, proposalID: Int64, expectedHeadID: Int64, summary: String?, blocksJSON: String?,
+        metaJSON: String?, now: Date
+    ) throws -> Int64 {
+        try write { db in
+            guard
+                let proposal = try Row.fetchOne(
+                    db,
+                    sql:
+                        "SELECT author, body_markdown FROM note_revision WHERE id = ? AND doc_id = ? AND state = 'proposed'",
+                    arguments: [proposalID, docID])
+            else { throw NotesError.guardRejected(rule: "proposalTarget") }
+            let author: String = proposal["author"]
+            let body: String = proposal["body_markdown"]
+            let id = try Self.appendRevision(
+                NewNoteRevision(
+                    docID: docID, author: author, state: .applied, body: body, summary: summary,
+                    blocksJSON: blocksJSON, metaJSON: metaJSON, now: now, expectedHeadID: expectedHeadID),
+                in: db)
+            try db.execute(
+                sql: "UPDATE note_revision SET state = 'discarded' WHERE id = ? AND doc_id = ?",
+                arguments: [proposalID, docID])
+            return id
+        }
+    }
+
+    /// Discard: the proposal is hidden from History and never applied; the row stays (it is the first thing pruned).
+    /// `false` when the revision is not a proposal of this document (already applied or discarded).
+    @discardableResult
+    func discardProposal(docID: Int64, proposalID: Int64) throws -> Bool {
+        try write { db in
+            try db.execute(
+                sql: "UPDATE note_revision SET state = 'discarded' WHERE id = ? AND doc_id = ? AND state = 'proposed'",
+                arguments: [proposalID, docID])
+            return db.changesCount > 0
+        }
+    }
+
     /// Records the source layer version a document has been reconciled with, without a revision.
     func setSourceVersionSeen(docID: Int64, version: String) throws {
         try write { db in

@@ -42,6 +42,44 @@ extension NotesWorkspaceModel.Environment {
                 return .other
             }
         }
+        applyProposal = { item, layer, proposalID, head in
+            guard let opened = store(), case .live(let key) = item,
+                let document = try? opened.liveDocument(key: key, layer: layer)
+            else { return .other }
+            let writer = registry.writer(for: .live(key, layer: layer), item: item) {
+                RevisionWriter(store: opened, target: .existing(docID: document.id), clock: clock, now: now)
+            }
+            do {
+                try await writer.applyProposal(id: proposalID, expectingHead: head)
+                return nil
+            } catch NotesError.casConflict {
+                return .changed
+            } catch NotesError.readOnly, NotesError.schemaNewer {
+                return .readOnly
+            } catch NotesError.guardRejected(let rule) where rule == "proposalTarget" {
+                return .badTarget
+            } catch {
+                return .other
+            }
+        }
+        discardProposal = { item, layer, proposalID in
+            guard let opened = store(), case .live(let key) = item,
+                let document = try? opened.liveDocument(key: key, layer: layer)
+            else { return .other }
+            let writer = registry.writer(for: .live(key, layer: layer), item: item) {
+                RevisionWriter(store: opened, target: .existing(docID: document.id), clock: clock, now: now)
+            }
+            do {
+                try await writer.discardProposal(id: proposalID)
+                return nil
+            } catch NotesError.readOnly, NotesError.schemaNewer {
+                return .readOnly
+            } catch NotesError.guardRejected(let rule) where rule == "proposalTarget" {
+                return .badTarget
+            } catch {
+                return .other
+            }
+        }
         let library = self.library
         let budget = contentBudget
         makeEditingSession = { content, layerID, document in

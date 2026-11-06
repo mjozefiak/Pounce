@@ -33,6 +33,21 @@ struct NoteTabView: View {
     let isSelected: Bool
     @Environment(\.lintelTextSize) private var textSize
 
+    /// A version of the text is waiting for Apply or Discard (step 6.3).
+    private var hasProposal: Bool { (model.documents[tab.id]?.totalPendingProposals ?? 0) > 0 }
+
+    private var spokenTitle: String {
+        var parts = [tab.title]
+        if tab.isBusy {
+            parts.append(String(localized: "Working", comment: "Accessibility: a note is being worked on"))
+        }
+        if hasProposal {
+            parts.append(
+                String(localized: "Has a proposal", comment: "Accessibility: a version of the note waits for Apply"))
+        }
+        return parts.joined(separator: ", ")
+    }
+
     var body: some View {
         HStack(spacing: 0) {
             Button {
@@ -44,6 +59,13 @@ struct NoteTabView: View {
                     Text(verbatim: tab.title)
                         .lineLimit(1)
                         .truncationMode(.tail)
+                    if hasProposal {
+                        // Prototype `.mk`: the attention-coloured dot after the title.
+                        Text(verbatim: "●")
+                            .font(textSize.font(.caption1))
+                            .foregroundStyle(LintelBrand.statusAttention)
+                            .accessibilityHidden(true)
+                    }
                     if tab.isBusy {
                         Image(systemName: "arrow.triangle.2.circlepath")
                             .font(textSize.font(.caption1))
@@ -58,12 +80,7 @@ struct NoteTabView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(
-                Text(
-                    verbatim: tab.isBusy
-                        ? "\(tab.title), \(String(localized: "Working", comment: "Accessibility: a note is being worked on"))"
-                        : tab.title)
-            )
+            .accessibilityLabel(Text(verbatim: spokenTitle))
             .accessibilityAddTraits(isSelected ? .isSelected : [])
             Button {
                 model.close(tab.id)
@@ -223,6 +240,18 @@ struct NotePathBar: View {
             String(
                 localized: "That is not an earlier saved version of this note. Nothing was changed.",
                 comment: "Notes: a restore target was not an earlier applied version")
+        case .proposalApplied:
+            String(localized: "Proposal applied", comment: "Path bar: a proposed version became the current text")
+        case .proposalDiscarded:
+            String(localized: "Proposal discarded", comment: "Path bar: a proposed version was set aside")
+        case .proposalChanged:
+            String(
+                localized: "The note changed in the meantime. Compare again before applying.",
+                comment: "Notes: Apply was refused because the note changed after the comparison")
+        case .proposalFailed:
+            String(
+                localized: "That proposal couldn’t be applied. Nothing was changed.",
+                comment: "Notes: applying or discarding a proposal failed")
         case .commentFailed:
             String(
                 localized: "The comment couldn’t be saved. Nothing was changed.",

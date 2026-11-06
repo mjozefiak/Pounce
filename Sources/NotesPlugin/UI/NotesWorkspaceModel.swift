@@ -64,6 +64,12 @@ final class NotesWorkspaceModel {
         var restoreRevision: @MainActor (NoteItemID, String, Int64) async -> RestoreFailure? = { _, _, _ in
             .other
         }
+        /// Apply and Discard of a proposal (step 6.3), through the layer's one writer; `nil` when done, else why not.
+        /// Apply takes the head the user compared (compare-and-set).
+        var applyProposal: @MainActor (NoteItemID, String, Int64, Int64) async -> RestoreFailure? = { _, _, _, _ in
+            .other
+        }
+        var discardProposal: @MainActor (NoteItemID, String, Int64) async -> RestoreFailure? = { _, _, _ in .other }
         /// Delete: the owner first, the overlays only after it succeeded (`NoteDeleter`); throws a
         /// `NoteDeleter.Failure`. Off (`canDeleteNotes` false) without the store.
         var canDeleteNotes = false
@@ -392,7 +398,9 @@ final class NotesWorkspaceModel {
             if let content = NoteOverlayContent.compose(
                 item: id, source: nil, heads: heads, summary: row(for: id)?.summary)
             {
-                document.apply(content, attributions: NoteOverlayContent.attributions(heads: heads))
+                document.apply(
+                    content, attributions: NoteOverlayContent.attributions(heads: heads),
+                    proposals: NoteOverlayContent.proposals(heads: heads))
                 document.setActions([])
                 await refreshPanes(id)
             } else {
@@ -407,7 +415,9 @@ final class NotesWorkspaceModel {
             if let content = NoteOverlayContent.compose(
                 item: id, source: nil, heads: heads, summary: row(for: id)?.summary)
             {
-                document.apply(content, attributions: NoteOverlayContent.attributions(heads: heads))
+                document.apply(
+                    content, attributions: NoteOverlayContent.attributions(heads: heads),
+                    proposals: NoteOverlayContent.proposals(heads: heads))
                 document.setActions([])
                 if document.wantsEditing { beginEditing(id) }
                 await refreshPanes(id)
@@ -434,7 +444,8 @@ final class NotesWorkspaceModel {
             guard isCurrent(epoch, id, document) else { return }
             document.apply(
                 NoteOverlayContent.compose(item: id, source: read, heads: heads, summary: nil),
-                attributions: NoteOverlayContent.attributions(heads: heads))
+                attributions: NoteOverlayContent.attributions(heads: heads),
+                proposals: NoteOverlayContent.proposals(heads: heads))
             document.setActions(source.actions(for: key))
             document.canRenameTitle = source is any NoteSourceEditing
             await refreshPanes(id)
@@ -622,6 +633,12 @@ final class NotesWorkspaceModel {
         case restoreReadOnly
         /// The version is not an earlier applied version of this note.
         case restoreTargetInvalid
+        /// A proposal was applied or discarded (a short message on the path bar).
+        case proposalApplied
+        case proposalDiscarded
+        /// The note changed after the comparison: nothing was applied.
+        case proposalChanged
+        case proposalFailed
         case deleted
         case deleteFailed
         case copyNotRemoved
@@ -641,7 +658,9 @@ final class NotesWorkspaceModel {
         /// A message that stays as a strip until dismissed, instead of fading from the path bar.
         var isStrip: Bool {
             switch self {
-            case .saveFailed, .restoreFailed, .restoreChanged, .restoreReadOnly, .restoreTargetInvalid, .deleteFailed,
+            case .saveFailed, .restoreFailed, .restoreChanged, .restoreReadOnly, .restoreTargetInvalid,
+                .proposalChanged,
+                .proposalFailed, .deleteFailed,
                 .copyNotRemoved, .commentFailed, .commentReadOnly, .commentChanged, .commentTooLong,
                 .commentSelectionTooLong, .commentSelectionInvalid:
                 true

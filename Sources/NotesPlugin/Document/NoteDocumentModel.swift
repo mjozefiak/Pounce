@@ -49,6 +49,12 @@ final class NoteDocumentModel {
     /// source's own text.
     private(set) var attributions: [String: LayerAttribution] = [:]
 
+    /// Proposals waiting for Apply or Discard, by layer (step 6.3): read with the heads, so the tab and the
+    /// History tab show them without the History being open.
+    private(set) var proposals: [String: Int] = [:]
+    var pendingProposals: Int { layerID.flatMap { proposals[$0] } ?? 0 }
+    var totalPendingProposals: Int { proposals.values.reduce(0, +) }
+
     /// The History of the shown layer and the Compare on screen (step 4.5); both belong to the layer.
     private(set) var history: HistoryState = .idle
     private(set) var compare: CompareState?
@@ -117,8 +123,11 @@ final class NoteDocumentModel {
     var transcriptLayer: NoteLayer? { layers.first { $0.id == Self.transcriptLayerID } }
 
     /// Takes what the source returned: `nil` means the note is gone. The shown layer stays when it still exists.
-    func apply(_ incoming: NoteContent?, attributions: [String: LayerAttribution] = [:]) {
+    func apply(
+        _ incoming: NoteContent?, attributions: [String: LayerAttribution] = [:], proposals: [String: Int] = [:]
+    ) {
         self.attributions = attributions
+        self.proposals = proposals
         var content = incoming
         // The editor froze these layers at the first keystroke: the view never reloads them from the source.
         // Only while the editor is open: once it ends (or a Restore/Apply/reconcile moved the head and the editor is
