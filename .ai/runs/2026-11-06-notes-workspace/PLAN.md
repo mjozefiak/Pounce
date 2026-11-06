@@ -62,7 +62,8 @@
 | 6 | 6.x-review-fix | Review fixes for 6.1/6.2: unchanged answer is no edit, comments frozen under a run, escaped delimiters, wider link check, no overlapping runs, resolve failures reported | inline | done | 693b4ad, 198afba |
 | 6 | 6.3 | Proposed revisions: Compare with Apply/Discard | dispatch | done | 503df23 |
 | 6 | 6.4 | Revise regression corpus, RealReviseTests, perf budgets | dispatch | done | 405dfd5 |
-| 7 | 7.4 | Docs: AGENTS.md, BACKWARD_COMPATIBILITY.md, qa.md, perf.md, localization check | inline | todo | — |
+| 6 | 6.x-review-fix | Deterministic budget tests: wait for the answering source's deadline to be cancelled (NotesSearchTests flake) | inline | done | 7ca0cbc |
+| 7 | 7.4 | Docs: AGENTS.md, BACKWARD_COMPATIBILITY.md, qa.md, perf.md, localization check | inline | done | e890150 |
 | 7 | 7.1 | ENABLES NOTES FOR USERS: palette, Hide content, remove DEBUG guards | inline | todo | — |
 | 7 | 7.2 | ENABLES NOTES FOR USERS: Welcome mentions Notes | dispatch | todo | — |
 | 7 | 7.3 | ENABLES NOTES FOR USERS: remove Meetings window after parity checklist | inline | todo | — |
