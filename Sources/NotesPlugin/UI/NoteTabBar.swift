@@ -123,8 +123,10 @@ struct NotePathBar: View {
         }
         .accessibilityElement(children: .contain)
         .task(id: model.feedbackSerial) {
-            guard let feedback = model.feedback, feedback != .saveFailed else { return }
+            guard let feedback = model.feedback else { return }
             AccessibilityNotification.Announcement(Self.text(feedback)).post()
+            // The save-error strip stays until it is dismissed or the save is tried again.
+            guard feedback != .saveFailed else { return }
             try? await Task.sleep(for: .seconds(2))
             if !Task.isCancelled { model.dismissFeedback() }
         }

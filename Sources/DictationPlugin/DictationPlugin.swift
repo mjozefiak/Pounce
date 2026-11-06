@@ -311,8 +311,8 @@ public final class DictationPlugin: LintelPlugin {
     public var noteSources: [any NoteSource] { [noteSource] }
 
     /// Offers a history entry to the shell's Notes workspace (`PluginContext.openNote`). `true` only when a
-    /// section took it; the default handler returns `false`. Nothing calls it yet: the history list keeps its
-    /// own actions, and the "Open in Lintel" action arrives with step 3.2 (inside `#if DEBUG`).
+    /// section took it; the default handler returns `false`. The history's "Open in Lintel" action (⌘O, inside
+    /// `#if DEBUG` until step 7.1) goes through the same context call.
     func openNote(entryID: Int64) -> Bool {
         guard let storeID = history.storeID else { return false }
         return context.openNote(DictationNoteSource.key(storeID: storeID, row: entryID))

@@ -29,6 +29,16 @@ struct NoteSourceSet {
         }
     }
 
+    /// `true` when both sets hold the same sources in the same order (by identity: a value-type source never
+    /// matches, which only costs a restart of the cursors).
+    func isSame(as other: NoteSourceSet) -> Bool {
+        guard order == other.order, dropped == other.dropped else { return false }
+        return order.allSatisfy { id in
+            guard let a = accepted[id], let b = other.accepted[id] else { return false }
+            return (a as AnyObject) === (b as AnyObject)
+        }
+    }
+
     /// The id of Notes itself: manual notes live under it.
     static let reservedID: PluginID = "notes"
 }

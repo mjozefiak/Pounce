@@ -57,6 +57,8 @@ actor NoteLibrary {
             case .invalidID(let id): logger.error("note source dropped: invalid id \(id.rawValue, privacy: .public)")
             }
         }
+        // The same sources again (a plugin toggled elsewhere): the cursors stay good, so no page restarts.
+        if hasLoadedSources, set.isSame(as: sources) { return }
         sources = set
         generation += 1
         hasLoadedSources = true
@@ -79,7 +81,10 @@ actor NoteLibrary {
     var activePluginIDs: [PluginID] { sources.order }
 
     /// The source that owns a key, or `nil` when its plugin has none (off, failed, dropped).
-    func source(for key: NoteKey) -> (any NoteSource)? { sources.accepted[key.pluginID] }
+    func source(for key: NoteKey) async -> (any NoteSource)? {
+        await ensureSources()
+        return sources.accepted[key.pluginID]
+    }
 
     /// One stream that yields when any source says its notes changed or the set of sources changed. Pass the
     /// context's `noteSourcesChanged()` stream. The library has already read the new set when it yields; a source's own change stream is followed from the
@@ -183,11 +188,16 @@ actor NoteLibrary {
             for id in accepted.order {
                 guard let head = progress[id]?.buffer.first else { continue }
                 let position = NoteSortPosition(date: head.summary.startedAt, tie: head.summary.id.rawValue)
-                if best == nil || position.isBefore(best!.position) { best = (position, id) }
+                if let current = best, !position.isBefore(current.position) { continue }
+                best = (position, id)
             }
             if localIndex < local.count {
                 let position = NoteSortPosition(local[localIndex])
-                if best == nil || position.isBefore(best!.position) { best = (position, nil) }
+                if let current = best, !position.isBefore(current.position) {
+                    // A source's head is earlier: keep it.
+                } else {
+                    best = (position, nil)
+                }
             }
             guard let chosen = best else { break }
             if let plugin = chosen.plugin, var state = progress[plugin] {
