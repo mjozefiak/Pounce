@@ -27,13 +27,25 @@ final class NoteEditingSession {
     /// The last write failed; the text is still buffered and `retry()` saves it.
     private(set) var saveFailed = false
 
-    var isEditable: Bool { block == nil }
+    /// Asked at every edit and save point, so `plugins.notes.readOnly` flipping while the editor is open is seen.
+    private let readOnlyNow: (@MainActor () -> Bool)?
+    private weak var controller: NoteEditorController?
 
-    init(documentID: NoteDocumentID, writer: RevisionWriter, model: NoteDocumentModel?, block: Block?) {
+    var isEditable: Bool { block == nil && !(readOnlyNow?() ?? false) }
+
+    init(
+        documentID: NoteDocumentID, writer: RevisionWriter, model: NoteDocumentModel?, block: Block?,
+        readOnlyNow: (@MainActor () -> Bool)? = nil
+    ) {
         self.documentID = documentID
         self.writer = writer
         self.model = model
         self.block = block
+        self.readOnlyNow = readOnlyNow
+        saveFailed = writer.isSaveFailing
+        writer.setSaveFailureHandler { [weak self] failed in
+            Task { @MainActor in self?.saveFailed = failed }
+        }
     }
 
     /// Builds the session for the layer the editor shows, or `nil` when the layer cannot be edited at all.
@@ -41,7 +53,8 @@ final class NoteEditingSession {
     /// state allows it (`OverlaySeeder`).
     static func make(
         content: NoteContent, layerID: String, store: NotesStore, registry: NoteDocumentRegistry,
-        model: NoteDocumentModel? = nil, readOnly: Bool, clock: any Clock<Duration> = ContinuousClock(),
+        model: NoteDocumentModel? = nil, readOnly: Bool, readOnlyNow: (@MainActor () -> Bool)? = nil,
+        sourceStartedAtMs: (@Sendable () async -> Int64?)? = nil, clock: any Clock<Duration> = ContinuousClock(),
         now: @escaping @Sendable () -> Date = { Date() }, timing: RevisionWriter.Timing = .init(),
         log: any NotesLogging = OSNotesLog()
     ) -> NoteEditingSession? {
@@ -59,23 +72,31 @@ final class NoteEditingSession {
         }
         if readOnly || store.blockedReason != nil { block = .readOnly }
         let writer = registry.writer(for: id, item: .live(key)) {
-            RevisionWriter(store: store, target: target, clock: clock, now: now, timing: timing, log: log)
+            RevisionWriter(
+                store: store, target: target, clock: clock, now: now, timing: timing,
+                sourceStartedAtMs: sourceStartedAtMs, log: log)
         }
-        return NoteEditingSession(documentID: id, writer: writer, model: model, block: block)
+        return NoteEditingSession(
+            documentID: id, writer: writer, model: model, block: block, readOnlyNow: readOnlyNow)
     }
 
     /// Wires the editor: every edit goes to the writer, losing focus is a save point.
     func attach(to controller: NoteEditorController) {
+        self.controller = controller
         controller.isReadOnly = !isEditable
         controller.onEdit = { [weak self] edit in self?.handle(edit) }
         controller.onFocusChange = { [weak self] focused in
+            self?.controller?.isReadOnly = !(self?.isEditable ?? false)
             if !focused { Task { await self?.flush() } }
         }
     }
 
     /// An edit of the whole buffer. Ignored while the session is blocked (read-only).
     func handle(_ edit: NoteEditorEdit) {
-        guard isEditable else { return }
+        guard isEditable else {
+            controller?.isReadOnly = true
+            return
+        }
         if case .live(_, let layer) = documentID { model?.freezeLayer(layer) }
         writer.submit(edit.text)
     }

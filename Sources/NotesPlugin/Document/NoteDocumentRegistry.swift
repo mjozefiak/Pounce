@@ -15,6 +15,11 @@ final class NoteDocumentRegistry {
     private struct Entry {
         var writer: RevisionWriter
         var item: NoteItemID
+        /// Counts every `writer(for:)` that handed the entry out again: a release that awaited a flush forgets the
+        /// entry only when nobody re-acquired it meanwhile.
+        var acquisitions = 0
+        /// The tab closed but the last flush failed: the entry (and its buffered text) stays until a flush works.
+        var lingering = false
     }
 
     private var entries: [NoteDocumentID: Entry] = [:]
@@ -25,7 +30,10 @@ final class NoteDocumentRegistry {
     var cleanup: @Sendable (Set<Int64>) async -> Void = { _ in }
     /// A detach re-keyed the open documents of a note: the tab of `.live(key)` is now
     /// `.detached(key, startedAtMs:)` and shows "Recording removed".
-    var onRekey: @MainActor (NoteKey, Int64) -> Void = { _, _ in }
+    /// Returns `false` when no tab could be moved (it was closed, or the detached tab is already open).
+    var onRekey: @MainActor (NoteKey, Int64) -> Bool = { _, _ in true }
+    /// A tab closed (or the quit flush ran) while its text could not be written: the text is kept and retried.
+    var onSaveFailure: @MainActor (NoteItemID) -> Void = { _ in }
 
     init(log: any NotesLogging = OSNotesLog()) {
         self.log = log
@@ -33,7 +41,12 @@ final class NoteDocumentRegistry {
 
     /// The writer of a document, made by `make` the first time it is opened.
     func writer(for id: NoteDocumentID, item: NoteItemID, make: () -> RevisionWriter) -> RevisionWriter {
-        if let existing = entries[id] { return existing.writer }
+        if var existing = entries[id] {
+            existing.acquisitions += 1
+            existing.lingering = false
+            entries[id] = existing
+            return existing.writer
+        }
         let writer = make()
         entries[id] = Entry(writer: writer, item: item)
         return writer
@@ -70,49 +83,74 @@ final class NoteDocumentRegistry {
     }
 
     /// Writes every buffer (window close, quit, `deactivate()`). A write that fails is logged; its text stays in
-    /// the writer's buffer.
+    /// the writer's buffer, and the entry stays too, so the next flush point or quit tries again.
     func flushAll() async {
-        for entry in Array(entries.values) {
+        for (id, entry) in Array(entries) {
             do {
                 try await entry.writer.flush()
+                dropIfLingering(id, entry)
             } catch {
                 log.error(NotesLogEvent("flush", code: (error as? NotesError)?.code ?? "flushFailed"))
             }
         }
     }
 
-    /// A tab closed: flushes its documents, forgets them, then runs the deferred delete of detached rows.
+    private func dropIfLingering(_ id: NoteDocumentID, _ flushed: Entry) {
+        guard let current = entries[id], current.lingering, current.acquisitions == flushed.acquisitions else { return }
+        entries[id] = nil
+    }
+
+    /// A tab closed: flushes its documents, forgets them, then runs the deferred delete of detached rows. A
+    /// document whose flush fails is NOT forgotten (its text would be lost): it lingers, is retried by the next
+    /// flush point or quit, and `onSaveFailure` says so. A document re-opened while the flush ran is kept.
     func release(item: NoteItemID) async {
-        let ids = entries.filter { $0.value.item == item }.map(\.key)
+        await release(ids: entries.filter { $0.value.item == item }.map(\.key))
+    }
+
+    private func release(ids: [NoteDocumentID]) async {
         guard !ids.isEmpty else { return }
+        var failed = false
         for id in ids {
-            if let entry = entries[id] {
-                do {
-                    try await entry.writer.flush(closingSession: true)
-                } catch {
-                    log.error(NotesLogEvent("flush", code: (error as? NotesError)?.code ?? "flushFailed"))
+            guard let entry = entries[id] else { continue }
+            let seen = entry.acquisitions
+            do {
+                try await entry.writer.flush(closingSession: true)
+                if let now = entries[id], now.acquisitions == seen { entries[id] = nil }
+            } catch {
+                log.error(NotesLogEvent("flush", code: (error as? NotesError)?.code ?? "flushFailed"))
+                if var now = entries[id], now.acquisitions == seen {
+                    now.lingering = true
+                    entries[id] = now
+                    failed = true
+                    onSaveFailure(now.item)
                 }
             }
-            entries[id] = nil
         }
+        _ = failed
         await cleanup(await openDocIDs())
     }
 
     /// After a detach: the open documents of the key move to `.detached(docID)` (their writers keep their rows, so
     /// typed text lands in the detached document); a live document that had no row yet is retired, because the
-    /// snapshot it would seed from belongs to the recording that is gone.
-    func rekey(key: NoteKey, moved: [DetachedRow]) {
+    /// snapshot it would seed from belongs to the recording that is gone. When no tab could be moved (it is gone,
+    /// or the detached tab exists already) the moved writers are released at once instead of living on unowned.
+    func rekey(key: NoteKey, moved: [DetachedRow]) async {
+        let started = moved.compactMap(\.startedAtMs).first ?? 0
+        var movedIDs: [NoteDocumentID] = []
         for row in moved {
             guard let entry = entries.removeValue(forKey: .live(key, layer: row.layer)) else { continue }
-            entries[.detached(docID: row.docID)] = Entry(
-                writer: entry.writer, item: .detached(key, startedAtMs: row.startedAtMs ?? 0))
+            let id = NoteDocumentID.detached(docID: row.docID)
+            entries[id] = Entry(
+                writer: entry.writer, item: .detached(key, startedAtMs: started), acquisitions: entry.acquisitions)
+            movedIDs.append(id)
         }
         for id in entries.keys {
             if case .live(let entryKey, _) = id, entryKey == key, let entry = entries.removeValue(forKey: id) {
                 entry.writer.retire()
             }
         }
-        if let started = moved.compactMap(\.startedAtMs).first { onRekey(key, started) }
+        guard !moved.isEmpty else { return }
+        if !onRekey(key, started) { await release(ids: movedIDs) }
     }
 }
 

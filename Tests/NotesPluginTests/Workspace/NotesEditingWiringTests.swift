@@ -12,7 +12,9 @@ import Testing
         let store = r.store
         environment.overlayHeads = { item in (try? NoteOverlayContent.heads(for: item, in: store)) ?? [] }
         let model = NotesWorkspaceModel(environment: environment)
-        r.registry.onRekey = { [weak model] key, started in model?.rekeyDetached(key: key, startedAtMs: started) }
+        r.registry.onRekey = { [weak model] key, started in
+            model?.rekeyDetached(key: key, startedAtMs: started) ?? false
+        }
         return model
     }
 
@@ -137,6 +139,7 @@ import Testing
                 content: content, layerID: "notes", store: r.store, registry: r.registry, model: document,
                 readOnly: false)
         )
+        document.startEditing(session)
         let controller = NoteEditorController(pasteboard: RecordingPasteboard())
         session.attach(to: controller)
         #expect(!controller.isReadOnly)
@@ -166,5 +169,45 @@ import Testing
         await session.retry()
         #expect(!session.saveFailed)
         #expect(try r.rig.head(doc.id).body == "boom")
+    }
+
+    @Test func theReadOnlySettingIsReadAtEveryEditNotOnlyWhenTheSessionIsMade() async throws {
+        let r = try ReconRig()
+        let content = r.rig.content(layers: [r.rig.layer("rendered")])
+        let flag = ReadOnlyFlag()
+        let made = NoteEditingSession.make(
+            content: content, layerID: "notes", store: r.store, registry: r.registry, readOnly: false,
+            readOnlyNow: { flag.value })
+        let session = try #require(made)
+        let controller = NoteEditorController(pasteboard: RecordingPasteboard())
+        session.attach(to: controller)
+        #expect(session.isEditable)
+        flag.value = true
+        #expect(!session.isEditable)
+        session.handle(NoteEditorEdit(text: "typed", range: 0..<5, changeInLength: 5))
+        #expect(!session.writer.hasPendingText)
+        #expect(controller.isReadOnly)
+        flag.value = false
+        #expect(session.isEditable)
+    }
+
+    @Test func layersUnfreezeOnceTheEditorIsNotOpen() throws {
+        let r = try ReconRig()
+        let document = NoteDocumentModel(id: .live(r.key))
+        document.apply(r.rig.content(layers: [r.rig.layer("rendered", version: "v1")]))
+        document.freezeLayer("notes")
+        // A head move (Restore, Apply, reconcile) with no editor open: the layer shows the new head.
+        document.apply(r.rig.content(layers: [r.rig.layer("restored", version: "v2")]))
+        #expect(document.selectedLayer?.markdown == "restored")
+        #expect(document.frozenLayers.isEmpty)
+    }
+}
+
+private final class ReadOnlyFlag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var stored = false
+    var value: Bool {
+        get { lock.withLock { stored } }
+        set { lock.withLock { stored = newValue } }
     }
 }

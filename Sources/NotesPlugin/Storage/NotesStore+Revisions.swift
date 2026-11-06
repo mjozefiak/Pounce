@@ -223,6 +223,20 @@ extension NotesStore {
         }
     }
 
+    /// Rewrites the `proposed` human revision that holds the text kept after a compare-and-set loss, so one
+    /// conflict is one proposal however long the user keeps typing. Never touches the head.
+    @discardableResult
+    func amendProposal(docID: Int64, revisionID: Int64, body: String, blocksJSON: String?, now: Date) throws -> Bool {
+        try write { db in
+            try db.execute(
+                sql: """
+                    UPDATE note_revision SET body_markdown = ?, blocks_json = ?, created_at = ?
+                    WHERE id = ? AND doc_id = ? AND author = 'human' AND state = 'proposed'
+                    """, arguments: [body, blocksJSON, now.timeIntervalSince1970, revisionID, docID])
+            return db.changesCount > 0
+        }
+    }
+
     /// Records the source layer version a document has been reconciled with, without a revision.
     func setSourceVersionSeen(docID: Int64, version: String) throws {
         try write { db in

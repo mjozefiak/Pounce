@@ -92,7 +92,10 @@ final class NoteDocumentModel {
         self.attributions = attributions
         var content = incoming
         // The editor froze these layers at the first keystroke: the view never reloads them from the source.
-        if var updated = content {
+        // Only while the editor is open: once it ends (or a Restore/Apply/reconcile moved the head and the editor is
+        // not showing the layer) the layers show the head again.
+        if !isEditing { frozenLayers = [] }
+        if isEditing, var updated = content {
             for id in frozenLayers {
                 if let old = self.content?.layers.first(where: { $0.id == id }),
                     let index = updated.layers.firstIndex(where: { $0.id == id })

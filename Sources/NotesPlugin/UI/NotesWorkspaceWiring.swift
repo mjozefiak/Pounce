@@ -22,11 +22,25 @@ extension NotesWorkspaceModel.Environment {
             return await Task.detached { (try? opened.setTitleOverride(key: key, title: title, now: now())) == true }
                 .value
         }
+        let library = self.library
+        let budget = contentBudget
         makeEditingSession = { content, layerID, document in
             guard let opened = store() else { return nil }
+            let key = content.summary.id
+            // The source's current start time, asked before the first seed: a recording recreated since the
+            // editor rendered it must not be seeded with the old text.
+            let startedAt: @Sendable () async -> Int64? = {
+                guard let source = await library.source(for: key) else { return nil }
+                let outcome = await SourceFanOut.call(budget: budget, clock: clock) {
+                    try await source.content(for: key)
+                }
+                if case .value(let current?) = outcome { return NoteTime.milliseconds(current.summary.startedAt) }
+                return nil
+            }
             return NoteEditingSession.make(
                 content: content, layerID: layerID, store: opened, registry: registry, model: document,
-                readOnly: NotesSettings(settings).readOnly, clock: clock, now: now)
+                readOnly: NotesSettings(settings).readOnly, readOnlyNow: { NotesSettings(settings).readOnly },
+                sourceStartedAtMs: startedAt, clock: clock, now: now)
         }
     }
 }

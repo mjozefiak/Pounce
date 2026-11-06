@@ -13,6 +13,8 @@ final class DocRig {
     let clock = ManualClock()
     let wrote = CountLatch()
     let idleClosed = CountLatch()
+    let saveFailures = CountLatch()
+    let saveRecoveries = CountLatch()
     let meeting = NoteKey(pluginID: "meetings", id: "m1")
     let started = Date(timeIntervalSince1970: 1_800_000_000)
 
@@ -25,13 +27,21 @@ final class DocRig {
     var log: RecordingNotesLog { harness.log }
 
     func writer(
-        _ target: RevisionWriter.Target, timing: RevisionWriter.Timing = .init(), registry: NoteDocumentRegistry? = nil
+        _ target: RevisionWriter.Target, timing: RevisionWriter.Timing = .init(), registry: NoteDocumentRegistry? = nil,
+        sourceStartedAtMs: (@Sendable () async -> Int64?)? = nil,
+        onWrote: @escaping @Sendable (RevisionWriter.Outcome) -> Void = { _ in }
     ) -> RevisionWriter {
         RevisionWriter(
             store: store, target: target, clock: clock, timing: timing,
             observer: RevisionWriter.Observer(
-                wrote: { [wrote] _ in wrote.increment() }, idleClosed: { [idleClosed] in idleClosed.increment() }),
-            log: log)
+                wrote: { [wrote] outcome in
+                    wrote.increment()
+                    onWrote(outcome)
+                }, idleClosed: { [idleClosed] in idleClosed.increment() },
+                saveFailed: { [saveFailures, saveRecoveries] failed in
+                    if failed { saveFailures.increment() } else { saveRecoveries.increment() }
+                }),
+            sourceStartedAtMs: sourceStartedAtMs, log: log)
     }
 
     func layer(

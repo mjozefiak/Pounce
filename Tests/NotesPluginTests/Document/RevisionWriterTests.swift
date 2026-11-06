@@ -16,7 +16,7 @@ import Testing
         writer.submit("a")
         writer.submit("ab")
         writer.submit("abc")
-        await rig.clock.waitForSleeps(3)
+        await rig.clock.waitForSleeps(4)  // three debounce timers and the max-wait timer
         rig.clock.advance(by: .milliseconds(999))
         #expect(try rig.humanRevisions(seed.id).isEmpty)  // the 1 s crash window is exactly 1 s
         rig.clock.advance(by: .milliseconds(1))
@@ -32,10 +32,10 @@ import Testing
         let seed = try rig.seededDocument(rig.layer("seed text"))
         let writer = rig.writer(.existing(docID: seed.id))
         writer.submit("a")
-        await rig.clock.waitForSleeps(1)
+        await rig.clock.waitForSleeps(2)
         rig.clock.advance(by: .milliseconds(600))
         writer.submit("ab")
-        await rig.clock.waitForSleeps(2)
+        await rig.clock.waitForSleeps(3)
         rig.clock.advance(by: .milliseconds(600))  // 1.2 s after the first key, 0.6 s after the last
         #expect(try rig.humanRevisions(seed.id).isEmpty)
         rig.clock.advance(by: .milliseconds(400))
@@ -113,7 +113,7 @@ import Testing
         let writer = rig.writer(.existing(docID: seed.id))
         writer.submit("one")
         try await writer.flush()
-        await rig.clock.waitForSleeps(2)  // the debounce timer (cancelled) and the idle timer
+        await rig.clock.waitForSleeps(3)  // the debounce and max-wait timers (cancelled) and the idle timer
         rig.clock.advance(by: .seconds(299))
         rig.clock.advance(by: .seconds(1))
         await rig.idleClosed.wait()
@@ -453,4 +453,220 @@ extension RevisionWriter.Outcome {
     var docIDOfSeed: Int64? {
         if case .seeded(let docID, _) = self { docID } else { nil }
     }
+}
+
+// MARK: - Review fixes: no silent loss of typed text
+
+@MainActor
+@Suite(.timeLimit(.minutes(1))) struct RevisionWriterDurabilityTests {
+    @Test func aRetiredWriterKeepsTheTextAndReportsTheFailure() async throws {
+        let rig = try DocRig()
+        let writer = rig.writer(.seed(try rig.plan(rig.layer("text"))))
+        writer.retire()
+        writer.submit("typed between the flush and the re-key")
+        await #expect(throws: NotesError.guardRejected(rule: "detached")) { try await writer.flush() }
+        #expect(writer.hasPendingText)  // not dropped
+        #expect(writer.isSaveFailing)
+        await #expect(throws: NotesError.guardRejected(rule: "detached")) { try await writer.flush() }
+        #expect(writer.hasPendingText)
+    }
+
+    @Test func typingWithoutAPauseIsWrittenWithinTheMaxWait() async throws {
+        let rig = try DocRig()
+        let seed = try rig.seededDocument(rig.layer("seed text"))
+        let writer = rig.writer(.existing(docID: seed.id))
+        writer.submit("k0")
+        await rig.clock.waitForSleeps(2)  // debounce + max wait
+        for index in 1...8 {  // a key every 600 ms: the 1 s debounce never fires
+            rig.clock.advance(by: .milliseconds(600))
+            writer.submit("k\(index)")
+            await rig.clock.waitForSleeps(2 + index)
+        }
+        #expect(try rig.humanRevisions(seed.id).isEmpty)  // 4.8 s after the first key
+        rig.clock.advance(by: .milliseconds(200))  // 5 s
+        await rig.wrote.wait()
+        #expect(try rig.head(seed.id).body == "k8")
+    }
+
+    @Test func aFailedAutosaveIsReportedAndRetriedWithBackoff() async throws {
+        let rig = try DocRig()
+        let seed = try rig.seededDocument(rig.layer("seed text"))
+        let writer = rig.writer(.existing(docID: seed.id))
+        try rig.failNextInsert(body: "boom")
+        writer.submit("boom")
+        await rig.clock.waitForSleeps(2)
+        rig.clock.advance(by: .seconds(1))  // the debounce fires and the write fails
+        await rig.saveFailures.wait()
+        #expect(writer.isSaveFailing)
+        #expect(writer.hasPendingText)
+        await rig.clock.waitForSleeps(3)  // the retry timer, 2 s
+        rig.clock.advance(by: .seconds(1))
+        #expect(rig.wrote.count == 0)
+        rig.clock.advance(by: .seconds(1))  // the first retry fails too: the next delay doubles
+        await rig.clock.waitForSleeps(4)
+        try rig.clearFault()
+        rig.clock.advance(by: .seconds(3))
+        #expect(rig.wrote.count == 0)
+        rig.clock.advance(by: .seconds(1))  // 4 s after the second attempt
+        await rig.wrote.wait()
+        await rig.saveRecoveries.wait()
+        #expect(!writer.isSaveFailing)
+        #expect(try rig.head(seed.id).body == "boom")
+        #expect(rig.saveFailures.count == 1)  // reported once, not on every attempt
+    }
+
+    @Test func afterALostCompareAndSetNothingIsWrittenOverTheHead() async throws {
+        let rig = try DocRig()
+        let seed = try rig.seededDocument(rig.layer("seed text"))
+        let writer = rig.writer(.existing(docID: seed.id))
+        writer.submit("mine")
+        try await writer.flush()
+        await writer.closeSession()
+        let intruder = try rig.store.appendRevision(
+            NewNoteRevision(
+                docID: seed.id, author: "agent", state: .applied, body: "intruder", now: Date(),
+                expectedHeadID: try rig.head(seed.id).id))
+        writer.submit("mine two")
+        guard case .keptAsProposal(let proposal) = try await writer.flush() else {
+            Issue.record("expected a proposal")
+            return
+        }
+        #expect(await writer.hasConflict)
+        writer.submit("mine two, and more")
+        let next = try await writer.flush()
+        #expect(next == .keptAsProposal(revisionID: proposal))  // the same proposal grows, no new row, no new head
+        #expect(try rig.store.revision(id: proposal)?.body == "mine two, and more")
+        #expect(try rig.head(seed.id).id == intruder)
+        #expect(try rig.head(seed.id).body == "intruder")
+        let proposed = try rig.store.revisions(of: seed.id).filter { $0.state == .proposed }
+        #expect(proposed.count == 1)
+        // Restore is the user's resolution: it moves the head and ends the conflict.
+        try await writer.restore(revisionID: seed.headRevisionID)
+        #expect(!(await writer.hasConflict))
+    }
+
+    @Test func aSeedFromARecordingThatWasRecreatedGoesToADetachedOverlay() async throws {
+        let rig = try DocRig()
+        let layer = rig.layer("old text")
+        let plan = try rig.plan(layer)
+        let recreated = plan.startedAtMs + 60_000
+        let writer = rig.writer(.seed(plan), sourceStartedAtMs: { recreated })
+        writer.submit("typed on the old rendering")
+        guard case .seeded(let docID, _) = try await writer.flush() else {
+            Issue.record("expected the text to be written")
+            return
+        }
+        #expect(try rig.store.liveDocument(key: rig.meeting, layer: "notes") == nil)
+        #expect(try rig.store.document(id: docID)?.sourceState == .detached)
+        #expect(try rig.head(docID).body == "typed on the old rendering")
+        #expect(try rig.store.hasUserWriting(docID))
+        // A detached overlay never follows a source again.
+        let result = try await writer.reconcile(layer: rig.layer("new", version: "v9"))
+        #expect(result == .unchanged)
+    }
+
+    @Test func aSeedWhoseLiveRowBelongsToANewerRecordingIsNotWrittenOnIt() async throws {
+        let rig = try DocRig()
+        let layer = rig.layer("old text")
+        let plan = try rig.plan(layer)
+        let newer = try rig.seededDocument(layer, startedAt: rig.started.addingTimeInterval(60))
+        let writer = rig.writer(.seed(plan))
+        writer.submit("typed on the old rendering")
+        guard case .seeded(let docID, _) = try await writer.flush() else {
+            Issue.record("expected a detached seed")
+            return
+        }
+        #expect(docID != newer.id)
+        #expect(try rig.store.revisions(of: newer.id).count == 1)  // the new recording's overlay is untouched
+        #expect(try rig.store.liveDocument(key: rig.meeting, layer: "notes")?.id == newer.id)
+    }
+}
+
+@MainActor
+@Suite(.timeLimit(.minutes(1))) struct NoteDocumentRegistryDurabilityTests {
+    @Test func aTabThatCannotFlushKeepsItsTextUntilAFlushWorks() async throws {
+        let r = try ReconRig()
+        let seed = try r.rig.seededDocument(r.rig.layer("seed text"))
+        let id = NoteDocumentID.live(r.key, layer: "notes")
+        let writer = r.registry.writer(for: id, item: .live(r.key)) { r.rig.writer(.existing(docID: seed.id)) }
+        var failures: [NoteItemID] = []
+        r.registry.onSaveFailure = { failures.append($0) }
+        try r.rig.failNextInsert(body: "unsaved")
+        writer.submit("unsaved")
+        await r.registry.release(item: .live(r.key))
+        #expect(r.registry.writer(for: id) != nil)  // not forgotten
+        #expect(writer.hasPendingText)
+        #expect(failures == [.live(r.key)])
+        try r.rig.clearFault()
+        await r.registry.flushAll()  // quit, window close or the next flush point
+        #expect(try r.rig.head(seed.id).body == "unsaved")
+        #expect(r.registry.writer(for: id) == nil)  // a lingering entry goes once it is written
+    }
+
+    @Test func aDocumentReopenedWhileItsTabWasClosingIsKept() async throws {
+        let r = try ReconRig()
+        let seed = try r.rig.seededDocument(r.rig.layer("seed text"))
+        let id = NoteDocumentID.live(r.key, layer: "notes")
+        let reacquired = CountLatch()
+        let registry = r.registry
+        let key = r.key
+        let made = Counter()
+        let writer = registry.writer(for: id, item: .live(key)) {
+            r.rig.writer(
+                .existing(docID: seed.id),
+                onWrote: { _ in
+                    // Runs inside the flush the release awaits; the main actor job is queued before the release resumes.
+                    Task { @MainActor in
+                        _ = registry.writer(for: id, item: .live(key)) {
+                            made.bump()
+                            return r.rig.writer(.existing(docID: seed.id))
+                        }
+                        reacquired.increment()
+                    }
+                })
+        }
+        writer.submit("typed")
+        await registry.release(item: .live(key))
+        await reacquired.wait()
+        #expect(made.value == 0)
+        #expect(registry.writer(for: id) === writer)
+    }
+
+    @Test func aRekeyWithoutATabReleasesTheMovedWriters() async throws {
+        let r = try ReconRig()
+        let seed = try r.rig.seededDocument(r.rig.layer("seed text"))
+        let writer = r.registry.writer(for: .live(r.key, layer: "notes"), item: .live(r.key)) {
+            r.rig.writer(.existing(docID: seed.id))
+        }
+        writer.submit("typed")
+        r.registry.onRekey = { _, _ in false }  // no tab could be moved
+        let moved = try r.store.detachReportingRows(r.key)
+        await r.registry.rekey(key: r.key, moved: moved)
+        #expect(r.registry.documentIDs.isEmpty)
+        #expect(try r.rig.head(seed.id).body == "typed")  // flushed before it was forgotten
+    }
+
+    @Test func aDetachedRowWithoutAStartTimeStillMovesTheTab() async throws {
+        let r = try ReconRig()
+        let seed = try r.rig.seededDocument(r.rig.layer("seed text"))
+        _ = r.registry.writer(for: .live(r.key, layer: "notes"), item: .live(r.key)) {
+            r.rig.writer(.existing(docID: seed.id))
+        }
+        var started: Int64?
+        r.registry.onRekey = { _, value in
+            started = value
+            return true
+        }
+        await r.registry.rekey(
+            key: r.key, moved: [DetachedRow(docID: seed.id, layer: "notes", startedAtMs: nil)])
+        #expect(started == 0)
+        #expect(r.registry.documentIDs == [.detached(docID: seed.id)])
+    }
+}
+
+private final class Counter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+    func bump() { lock.withLock { count += 1 } }
+    var value: Int { lock.withLock { count } }
 }

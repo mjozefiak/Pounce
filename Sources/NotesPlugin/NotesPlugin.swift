@@ -147,7 +147,8 @@ public final class NotesPlugin: LintelPlugin {
             }
         }
         let model = NotesWorkspaceModel(environment: environment)
-        registry.onRekey = { [weak model] key, started in model?.rekeyDetached(key: key, startedAtMs: started) }
+        registry.onRekey = { [weak model] key, started in model?.rekeyDetached(key: key, startedAtMs: started) ?? false
+        }
         #if DEBUG
         openQAFixtureTabs(in: model)
         applyQAState(to: model)

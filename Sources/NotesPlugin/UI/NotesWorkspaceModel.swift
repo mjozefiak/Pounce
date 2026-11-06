@@ -301,15 +301,17 @@ final class NotesWorkspaceModel {
     /// A detach re-keyed an open note: its tab and document move from `.live(key)` to
     /// `.detached(key, startedAtMs:)` and are labelled "Recording removed". A new live note with the same key
     /// (a recreated store's row 1) is a different identity and opens in its own tab.
-    func rekeyDetached(key: NoteKey, startedAtMs: Int64) {
+    @discardableResult
+    func rekeyDetached(key: NoteKey, startedAtMs: Int64) -> Bool {
         let old = NoteItemID.live(key)
         let new = NoteItemID.detached(key, startedAtMs: startedAtMs)
-        guard tabs.rekey(from: old, to: new) else { return }
+        guard tabs.rekey(from: old, to: new) else { return false }
         documents[new] = documents.removeValue(forKey: old).map { _ in makeDocument(new) }
         contentEpochs[old] = nil
         let title = tabs.tabs.first { $0.id == new }?.title ?? key.rawValue
         tabs.update(new, title: title, isBusy: false)
         Task { await loadContent(new) }
+        return true
     }
 
     /// ⌘W: closes the current tab. Returns `true` when other tabs stay, so the window stays; the last tab closes

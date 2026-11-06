@@ -115,6 +115,38 @@ final class NoteEditorTextView: NSTextView {
 
     override var readablePasteboardTypes: [NSPasteboard.PasteboardType] { [.string] }
 
+    // MARK: Find pasteboard
+
+    /// "Use Selection for Find" would put the selected text on the find pasteboard, outside the plugin's
+    /// pasteboard port (no transient or concealed marker). It is switched off; Find itself still works.
+    private static func setsFindString(_ sender: Any?) -> Bool {
+        if let item = sender as? NSMenuItem {
+            return item.tag == Int(NSFindPanelAction.setFindString.rawValue)
+                || item.tag == NSTextFinder.Action.setSearchString.rawValue
+        }
+        return false
+    }
+
+    override func performFindPanelAction(_ sender: Any?) {
+        guard !Self.setsFindString(sender) else { return }
+        super.performFindPanelAction(sender)
+    }
+
+    override func performTextFinderAction(_ sender: Any?) {
+        guard !Self.setsFindString(sender) else { return }
+        super.performTextFinderAction(sender)
+    }
+
+    override func validateUserInterfaceItem(_ item: any NSValidatedUserInterfaceItem) -> Bool {
+        if item.tag == Int(NSFindPanelAction.setFindString.rawValue),
+            item.action == #selector(NSResponder.performTextFinderAction(_:))
+                || item.action == #selector(NSTextView.performFindPanelAction(_:))
+        {
+            return false
+        }
+        return super.validateUserInterfaceItem(item)
+    }
+
     // MARK: Shortcuts
 
     override func performKeyEquivalent(with event: NSEvent) -> Bool {

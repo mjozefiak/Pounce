@@ -27,12 +27,20 @@ final class RevisionWriter: Sendable {
         var debounce: Duration = .seconds(1)
         /// A history granularity: a new `human` revision starts after this much idle time.
         var sessionIdle: Duration = .seconds(300)
+        /// Typing is written at most this long after the FIRST unsaved keystroke, however long the user keeps typing.
+        var maxWait: Duration = .seconds(5)
+        /// A failed write is retried after this long, doubling up to `retryMax`.
+        var retryInitial: Duration = .seconds(2)
+        var retryMax: Duration = .seconds(60)
     }
 
     /// Hooks for tests and the UI: a buffered write finished, the idle timer closed the session.
     struct Observer: Sendable {
         var wrote: @Sendable (Outcome) -> Void = { _ in }
         var idleClosed: @Sendable () -> Void = {}
+        /// The save state changed: `true` after a write failed (the text stays buffered and is retried with
+        /// backoff), `false` once a write succeeded again.
+        var saveFailed: @Sendable (Bool) -> Void = { _ in }
     }
 
     enum Target: Sendable {
@@ -65,7 +73,11 @@ final class RevisionWriter: Sendable {
         var serial = 0
         var debounce: Task<Void, Never>?
         var idle: Task<Void, Never>?
+        var maxWait: Task<Void, Never>?
+        var retry: Task<Void, Never>?
+        var failed = false
         var retired = false
+        var onSaveFailed: (@Sendable (Bool) -> Void)?
     }
 
     private let core: Core
@@ -77,13 +89,18 @@ final class RevisionWriter: Sendable {
     init(
         store: NotesStore, target: Target, clock: any Clock<Duration> = ContinuousClock(),
         now: @escaping @Sendable () -> Date = { Date() }, timing: Timing = Timing(),
-        observer: Observer = Observer(), log: any NotesLogging = OSNotesLog()
+        observer: Observer = Observer(), sourceStartedAtMs: (@Sendable () async -> Int64?)? = nil,
+        log: any NotesLogging = OSNotesLog()
     ) {
         self.clock = clock
         self.timing = timing
         self.observer = observer
-        core = Core(store: store, target: target, now: now, log: log)
+        core = Core(store: store, target: target, now: now, sourceStartedAtMs: sourceStartedAtMs, log: log)
     }
+
+    /// `true` after a compare-and-set loss until a head-moving write (Restore, Apply) resolves it: while it holds,
+    /// every typed write goes to a `proposed` revision and the head is never overwritten.
+    var hasConflict: Bool { get async { await core.conflictProposalID != nil } }
 
     /// The row's id once it exists (a seed that was never written has none).
     var docID: Int64? { get async { await core.docID } }
@@ -109,6 +126,14 @@ final class RevisionWriter: Sendable {
             state.text = text
             state.serial += 1
             state.debounce = timer
+            // The max-wait timer runs from the first unsaved keystroke and is not restarted by later ones.
+            if state.maxWait == nil {
+                state.maxWait = Task { [weak self, clock, maxWait = timing.maxWait] in
+                    do { try await clock.sleep(for: maxWait) } catch { return }
+                    guard let self else { return }
+                    _ = try? await self.flush()
+                }
+            }
             return old
         }
         old?.cancel()
@@ -121,20 +146,27 @@ final class RevisionWriter: Sendable {
         let taken = pending.withLock { state -> (text: String, serial: Int)? in
             state.debounce?.cancel()
             state.debounce = nil
+            state.maxWait?.cancel()
+            state.maxWait = nil
             guard let text = state.text else { return nil }
             state.text = nil
             return (text, state.serial)
         }
         var outcome = Outcome.nothing
         if let taken {
-            if pending.withLock({ $0.retired }), await core.docID == nil {
-                throw NotesError.guardRejected(rule: "detached")
-            }
             do {
+                // A retired writer (its recording was detached before it had a row) cannot seed; the text is kept
+                // and the failure reported, never dropped.
+                if pending.withLock({ $0.retired }), await core.docID == nil {
+                    throw NotesError.guardRejected(rule: "detached")
+                }
                 outcome = try await core.writeHuman(taken.text, serial: taken.serial)
                 observer.wrote(outcome)
+                reportSave(failed: false)
             } catch {
                 pending.withLock { if $0.text == nil { $0.text = taken.text } }
+                reportSave(failed: true)
+                startRetry()
                 throw error
             }
         }
@@ -150,6 +182,60 @@ final class RevisionWriter: Sendable {
     func closeSession() async {
         await core.closeSession()
         cancelIdleTimer()
+    }
+
+    // MARK: Save failures
+
+    private func reportSave(failed: Bool) {
+        let (changed, handler) = pending.withLock { state -> (Bool, (@Sendable (Bool) -> Void)?) in
+            defer { state.failed = failed }
+            return (state.failed != failed, state.onSaveFailed)
+        }
+        if changed {
+            observer.saveFailed(failed)
+            handler?(failed)
+        }
+    }
+
+    /// `true` while the last write failed and its text is still buffered.
+    var isSaveFailing: Bool { pending.withLock { $0.failed } }
+
+    /// The UI's hook for the save state (the editing session); replaces an earlier one.
+    func setSaveFailureHandler(_ handler: (@Sendable (Bool) -> Void)?) {
+        pending.withLock { $0.onSaveFailed = handler }
+    }
+
+    /// Retries a failed write on the injected clock with doubling delays; ends when a write succeeds, nothing is
+    /// buffered any more, or the writer is retired.
+    private func startRetry() {
+        let task = Task { [weak self, clock, timing] in
+            var delay = timing.retryInitial
+            while !Task.isCancelled {
+                do { try await clock.sleep(for: delay) } catch { return }
+                guard let self else { return }
+                if self.pending.withLock({ $0.retired }) {
+                    self.endRetry()
+                    return
+                }
+                do {
+                    try await self.flush()
+                    self.endRetry()
+                    return
+                } catch {
+                    delay = min(delay * 2, timing.retryMax)
+                }
+            }
+        }
+        let installed = pending.withLock { state -> Bool in
+            guard state.retry == nil else { return false }
+            state.retry = task
+            return true
+        }
+        if !installed { task.cancel() }
+    }
+
+    private func endRetry() {
+        pending.withLock { $0.retry = nil }
     }
 
     // MARK: Other head-moving writes
@@ -232,10 +318,17 @@ final class RevisionWriter: Sendable {
         var attribution = BlockAttribution()
         var sessionRevisionID: Int64?
         var lastSerial = 0
+        /// The `proposed` human revision holding the text since a compare-and-set loss; `nil` when none.
+        var conflictProposalID: Int64?
+        let sourceStartedAtMs: (@Sendable () async -> Int64?)?
 
-        init(store: NotesStore, target: Target, now: @escaping @Sendable () -> Date, log: any NotesLogging) {
+        init(
+            store: NotesStore, target: Target, now: @escaping @Sendable () -> Date,
+            sourceStartedAtMs: (@Sendable () async -> Int64?)?, log: any NotesLogging
+        ) {
             self.store = store
             self.now = now
+            self.sourceStartedAtMs = sourceStartedAtMs
             self.log = log
             switch target {
             case .existing(let id):
@@ -280,10 +373,10 @@ final class RevisionWriter: Sendable {
 
         // MARK: Typing
 
-        func writeHuman(_ text: String, serial: Int) throws -> Outcome {
+        func writeHuman(_ text: String, serial: Int) async throws -> Outcome {
             guard serial > lastSerial else { return .nothing }
             if let reason = store.blockedReason { throw reason }
-            if docID == nil { return try seedAndWrite(text, serial: serial) }
+            if docID == nil { return try await seedAndWrite(text, serial: serial) }
             try reloadIfNeeded()
             guard let docID else { return .nothing }
             if text == headBody {
@@ -291,6 +384,17 @@ final class RevisionWriter: Sendable {
                 return .nothing
             }
             let blocks = attribution.stored(body: text, author: "human", previous: headBlocks)
+            if let proposalID = conflictProposalID {
+                // After a compare-and-set loss the editor buffer is stale against the head: never write it over
+                // the head again. It keeps going into the one proposal until Restore/Apply resolves the conflict.
+                lastSerial = serial
+                if try store.amendProposal(
+                    docID: docID, revisionID: proposalID, body: text, blocksJSON: blocks.json, now: now())
+                {
+                    return .keptAsProposal(revisionID: proposalID)
+                }
+                return try keepAsProposal(text, blocks: blocks, docID: docID)
+            }
             if let session = sessionRevisionID, session == headID,
                 try store.amendHead(docID: docID, revisionID: session, body: text, blocksJSON: blocks.json, now: now())
             {
@@ -314,25 +418,37 @@ final class RevisionWriter: Sendable {
             } catch NotesError.casConflict {
                 // The head moved under the writer (a defect path: only this writer moves heads). Keep the text.
                 log.error(NotesLogEvent("write", code: NotesError.casConflict.code, key: keyForLog))
-                var proposal = revision
-                proposal.state = .proposed
-                proposal.expectedHeadID = nil
-                proposal.metaJSON = NoteMeta.json(["cas_conflict": true])
-                let id = try store.appendRevision(proposal)
-                needsReload = true
                 lastSerial = serial
-                return .keptAsProposal(revisionID: id)
+                return try keepAsProposal(text, blocks: blocks, docID: docID)
             }
         }
 
-        private func seedAndWrite(_ text: String, serial: Int) throws -> Outcome {
+        private func keepAsProposal(_ text: String, blocks: StoredBlocks, docID: Int64) throws -> Outcome {
+            let id = try store.appendRevision(
+                NewNoteRevision(
+                    docID: docID, author: "human", state: .proposed, body: text, blocksJSON: blocks.json,
+                    metaJSON: NoteMeta.json(["cas_conflict": true]), now: now()))
+            conflictProposalID = id
+            needsReload = true
+            return .keptAsProposal(revisionID: id)
+        }
+
+        private func seedAndWrite(_ text: String, serial: Int) async throws -> Outcome {
             guard let plan = seed else { throw NotesError.guardRejected(rule: "seed") }
+            let current = await sourceStartedAtMs?()
             if let existing = try store.liveDocument(key: plan.key, layer: plan.layerID) {
+                if let started = existing.sourceStartedAtMs, started != plan.startedAtMs {
+                    // The source was recreated since this editor rendered it: the text belongs to the old recording.
+                    return try seedDetached(text, serial: serial, plan: plan)
+                }
                 // Another writer (a comment, the agent) seeded the layer first: write on top of it.
                 docID = existing.id
                 seed = nil
                 needsReload = true
-                return try writeHuman(text, serial: serial)
+                return try await writeHuman(text, serial: serial)
+            }
+            if let current, current != plan.startedAtMs {
+                return try seedDetached(text, serial: serial, plan: plan)
             }
             if text == plan.snapshot.markdown {
                 lastSerial = serial
@@ -346,6 +462,31 @@ final class RevisionWriter: Sendable {
             let human = NewNoteRevision(
                 docID: 0, author: "human", state: .applied, body: text, blocksJSON: blocks.json, now: now())
             let result = try store.insertSeededDocument(OverlaySeeder.document(for: plan, now: now()), human: human)
+            seeded.add(author: "human", body: text)
+            attribution = seeded
+            docID = result.docID
+            seed = nil
+            setHead(result.humanID, body: text, stored: blocks, author: "human")
+            sessionRevisionID = result.humanID
+            lastSerial = serial
+            return .seeded(docID: result.docID, revisionID: result.humanID)
+        }
+
+        /// The first write came from a snapshot of a recording that is gone: the text is kept in a detached overlay
+        /// (user writing, never deleted with its source) and never seeds a live row under the new recording.
+        private func seedDetached(_ text: String, serial: Int, plan: SeedPlan) throws -> Outcome {
+            log.error(NotesLogEvent("seed", code: "startedAtChanged", key: keyForLog))
+            var seeded = BlockAttribution()
+            seeded.add(author: plan.snapshot.author.rawValue, body: plan.snapshot.markdown)
+            setHead(
+                0, body: plan.snapshot.markdown, stored: BlockAttribution.seeded(layer: plan.snapshot),
+                author: plan.snapshot.author.rawValue)
+            let blocks = seeded.stored(body: text, author: "human", previous: headBlocks)
+            let human = NewNoteRevision(
+                docID: 0, author: "human", state: .applied, body: text, blocksJSON: blocks.json, now: now())
+            var document = OverlaySeeder.document(for: plan, now: now())
+            document.sourceState = .detached
+            let result = try store.insertSeededDocument(document, human: human)
             seeded.add(author: "human", body: text)
             attribution = seeded
             docID = result.docID
@@ -402,6 +543,7 @@ final class RevisionWriter: Sendable {
             attribution.add(author: author, body: body)
             setHead(id, body: body, stored: stored, author: author)
             sessionRevisionID = nil
+            conflictProposalID = nil
             pruneAfterWrite()
             return id
         }
@@ -413,6 +555,8 @@ final class RevisionWriter: Sendable {
             guard let document = try store.document(id: docID) else {
                 throw NotesError.guardRejected(rule: "noDocument")
             }
+            // A detached overlay never follows a source again.
+            if document.sourceState == .detached { return .unchanged }
             guard document.sourceVersionSeen != layer.version else { return .unchanged }
             sessionRevisionID = nil
             if headBody == layer.markdown {
