@@ -61,3 +61,41 @@ Steps 6.3a to 6.3c enabled the window, the last three commits of the stack. The 
 ## Rollback
 
 The contract and plugin are additive; a revert of the PR stack restores today's behaviour. `notes.sqlite` stays on disk unread (export first). Source stores are not changed by this feature.
+
+### Addendum: Notes workspace Phase 0 spike (2026-11-06)
+
+Spec `.ai/specs/2026-11-04-notes-workspace.md`, Phase 0. The spike code is throwaway and is not in the repository; this addendum records what it showed. Three results follow, one per step: 0.1 editor (this section), 0.2 Markdown (next section) and 0.3 attribution (last section).
+
+#### 0.1 Editor spike: GO (TextKit 2 `NSTextView`)
+
+**Setup.** A scratch SwiftPM package outside the tree (release build, Swift 6.4.2, macOS 27.0.1, Apple M4 Max, 128 GB, dark appearance). One `NSTextView(usingTextLayoutManager: true)` in an `NSScrollView` in an `NSWindow` ordered back at 760 x 900 pt (the process is a headless command-line tool with activation policy `.prohibited`). Document: generated Markdown of headings, paragraphs with bold, italic and code, task-style list items and a three-column table per section, parsed by Foundation `AttributedString(markdown:)` with `.full` syntax and converted to an `NSAttributedString` (fonts from `inlinePresentationIntent`, headings from `PresentationIntent`, list indent, table cells as tab-separated rows with tab stops). The rendered text is **50 054 characters** in 1 417 blocks (source 62 094 characters, of which 1 593 table cell runs).
+
+**What was built and checked.**
+
+| Requirement | Result |
+|---|---|
+| TextKit 2 active (no TextKit 1 fallback) | yes, `textLayoutManager` non-nil for the whole run; `writingToolsBehavior = .none` accepted |
+| Foundation-parsed Markdown incl. a table | headings, emphasis, code, list items and tables render. A table is tab-aligned rows with a bold header row. `NSTextTable` does not exist in TextKit 2, so there are no cell borders, no per-cell wrapping and no column alignment from the `:---:` markers unless a custom layout fragment draws them (not built). |
+| Per-block gutter | a custom `NSTextLayoutFragment` (via `NSTextLayoutManagerDelegate`) draws a dot in the leading gutter outside the text container; confirmed on a `cacheDisplay` bitmap (about 840 blue pixels, one dot per fragment in view) and a screenshot. One fragment is one text element (paragraph, list item, table row); the production gutter must map fragments to `BlockAttribution` blocks. |
+| Comment highlights | `setRenderingAttributes` on 20 ranges does not touch the text storage, redraw measured 0.3 to 0.4 ms; confirmed on the bitmap. The highlight follows edits because it is anchored by `NSTextRange` locations (production still stores offsets and re-anchors, spec Edge Cases). |
+| Selection popover | the selection's rect comes from `enumerateTextSegments` (a plausible anchor, 17 pt tall, in text container coordinates); an `NSPopover` with a content controller was created. **Not shown**: a popover needs a visible, key window. |
+
+**Typing latency at 50 054 rendered characters** (per keystroke: `insertText` at the insertion point, then `layoutViewport()` and `displayIfNeeded()`, 300 keystrokes each, release build, two identical runs agreed within 0.2 ms):
+
+| Where | median | p95 | p99 | max |
+|---|---|---|---|---|
+| middle of the document | 0.95 ms | 1.24 ms | 1.51 ms | 1.58 ms |
+| start | 1.13 ms | 1.46 ms | 1.59 ms | 1.69 ms |
+| end | 0.72 ms | 0.93 ms | 1.12 ms | 1.40 ms |
+| middle, plus a restyle of the edited paragraph's attributes | 1.25 ms | 1.66 ms | 1.92 ms | 2.44 ms |
+
+Other numbers: set the whole 50 054-character attributed string and lay out the first viewport 14.5 to 19.6 ms (136 fragments created, the rest is laid out lazily, 3 179 fragments after all runs); parse and convert the whole document 43 ms (28 to 43 ms across runs). The last number is the budget that matters: **a whole-document re-parse on every keystroke would cost 28 to 43 ms**, so Phase 4 must re-render only the edited block(s) (split with `MarkdownBlocks.split`, re-parse the changed block, debounced) and keep the full parse for open and for Restore.
+
+**Decision: GO.** TextKit 2 is fast enough by a wide margin at the spec's size: typing stays about 1 ms per keystroke in the measured path (a 16.7 ms frame budget at 60 Hz is not approached; the spec states no number, this addendum proposes **p99 under 8 ms at 50 000 characters** as the Phase 4 budget for `docs/perf.md`). Gutter dots and comment highlights work with public API only. The fallback in R-B1 (monospaced source editor with a preview tab) is not needed.
+
+**Limits and open items the owner should know.**
+
+- **Tables are the weak part.** Without `NSTextTable` the editor shows tables as tab-aligned text. Good enough for read and edit; borders, wrapped cells and alignment need a custom layout fragment (a bounded piece of Phase 4 work) or can ship later. Editing a table is editing its Markdown rows, as in any Markdown source editor.
+- **Task lists are not parsed by Foundation** (see 0.2): `- [ ]` is a plain list item. The editor draws no checkboxes unless Notes post-processes the marker itself.
+- **Not measured, because it cannot be done headlessly:** the real key event path (`NSEvent` to input context to `insertText`, key repeat, input methods and dead keys for Polish, marked text), frame latency through the compositor (`displayIfNeeded` on an offscreen, occluded window may not include GPU presentation), memory and layout cost while scrolling quickly through the whole document, VoiceOver, undo/redo grouping, live popover presentation and its focus behaviour, light appearance, and any other hardware (only an M4 Max was available; an M1-class Mac will be slower). Step 4.1 must repeat the typing measurement on the real editor in a real window and record it in `docs/perf.md`.
+- The spike converted attributes itself; the production renderer must also ignore `link`, `imageURL` and any inline HTML run (display text only, never load or open anything, see 0.2).
