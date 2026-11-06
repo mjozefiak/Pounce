@@ -108,6 +108,9 @@ public protocol LintelPlugin: AnyObject {
     /// "Also delete kept copies". `ownerErased` is true after Erase Data, when the owner can no longer be asked
     /// which recordings are gone. Returns `false` when something could not be deleted. The default deletes
     /// nothing and returns `true`.
+    ///
+    /// Both are owner-scoped: an implementation counts and deletes only copies of `owner`, and a second implementer
+    /// must scope by owner the same way.
     func deleteKeptNoteCopies(ofOwner owner: PluginID, ownerErased: Bool) async -> Bool
 
     /// Removes data the plugin keeps outside its storage directory (for example a Keychain item).
