@@ -55,8 +55,8 @@
 | 5 | 5.1 | note_comment store, anchors, re-anchoring | dispatch | done | 250572a |
 | 5 | 5.2 | Comment popover, inspector Comments pane, highlights | dispatch | done | d965d70 |
 | 5 | 5.3 | Revise-with-N-comments counts and accessibility | dispatch | done | d965d70 (same commit as 5.2) |
-| 6 | 6.1 | ReviseNotesPrompt and ReviseGuard | dispatch | todo | — |
-| 6 | 6.2 | ReviseService, EditLock state machine through LLMLease | dispatch:capable | todo | — |
+| 6 | 6.1 | ReviseNotesPrompt and ReviseGuard | dispatch | done | a900769 |
+| 6 | 6.2 | ReviseService, EditLock state machine through LLMLease | dispatch:capable | done | 4dda303 |
 | 6 | 6.3 | Proposed revisions: Compare with Apply/Discard | dispatch | todo | — |
 | 6 | 6.4 | Revise regression corpus, RealReviseTests, perf budgets | dispatch | todo | — |
 | 7 | 7.4 | Docs: AGENTS.md, BACKWARD_COMPATIBILITY.md, qa.md, perf.md, localization check | inline | todo | — |
