@@ -103,6 +103,6 @@ struct NoteRowPresentationTests {
         #expect(NoteRowPresentation.level(.writing(done: 1, of: 2)) == .active)
         #expect(NoteRowPresentation.level(.interrupted) == .attention)
         #expect(NoteRowPresentation.level(.failed) == .error)
-        #expect(NoteRowPresentation.stateText(.writing(done: 2, of: 5)) == "Writing notes 2 of 5")
+        #expect(NoteRowPresentation.stateText(.writing(done: 2, of: 5)) == "Agent writing notes 2/5")
     }
 }

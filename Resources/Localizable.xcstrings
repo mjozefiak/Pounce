@@ -14437,6 +14437,24 @@
         }
       }
     },
+    "Agent writing notes %lld/%lld" : {
+      "comment" : "Explorer: state line while the notes are written",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent writing notes %lld/%lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent pisze notatki %lld/%lld"
+          }
+        }
+      }
+    },
     "Writing notes %lld/%lld" : {
       "comment" : "Notes status bar while the open note's notes are written",
       "extractionState" : "manual",

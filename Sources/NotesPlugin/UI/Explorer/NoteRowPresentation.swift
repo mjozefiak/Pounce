@@ -107,7 +107,7 @@ struct NoteRowPresentation: Sendable {
         }
     }
 
-    /// The state line of a row ("Writing notes 2 of 5"); `nil` for a finished note. The dot carries the colour,
+    /// The state line of a row ("Agent writing notes 2/5"); `nil` for a finished note. The dot carries the colour,
     /// the words carry the meaning.
     static func stateText(_ badge: NoteBadge?) -> String? {
         guard let badge else { return nil }
@@ -119,7 +119,7 @@ struct NoteRowPresentation: Sendable {
                 localized: "Processing the recording", comment: "Explorer: state line while the transcript is made")
         case .writing(let done, let total):
             return String(
-                localized: "Writing notes \(done) of \(total)",
+                localized: "Agent writing notes \(done)/\(total)",
                 comment: "Explorer: state line while the notes are written")
         case .partial:
             return String(localized: "Some notes are missing", comment: "Explorer: state line of partial notes")
