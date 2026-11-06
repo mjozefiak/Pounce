@@ -40,8 +40,10 @@ extension NotesPlugin {
         }
         do {
             let ids = try store.overlayIDs(ofOwner: owner, detachedOnly: !ownerErased)
-            await registry.discard(docIDs: Set(ids))
+            // The rows go first; the text still typed into an open copy is dropped only once they are gone, so a
+            // failed delete keeps it (ADR 0008 addendum, "Delete order and failures"; as in `NoteDeleter`).
             try store.deleteDocuments(ids)
+            await registry.discard(docIDs: Set(ids))
             // An owner that could not say which recordings are gone leaves the copies the count promised: say so
             // instead of "removed".
             if undecided, try store.keptCopyCount(owner: owner) > 0 { return false }

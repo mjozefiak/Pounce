@@ -38,6 +38,11 @@ extension NotesPlugin {
 
     /// "Export All Notes…": every overlay is reconciled with its source first, then the folder is written.
     func exportAllNotes(to destination: URL) async throws -> NotesExporter.Outcome {
+        // A profile without a library has nothing to export: opening it here would create the Keychain item and
+        // `notes.sqlite` (the lazy-store rule: only a write opens the library).
+        guard hasLibrary() else { throw NotesExporter.Failure.nothingToExport }
+        // The text still in an open document's buffer belongs in the export.
+        await documents.flushAll()
         library.open()
         guard let store = library.store else { throw NotesExporter.Failure.storeUnavailable }
         let environment = workspace.environment

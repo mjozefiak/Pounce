@@ -177,4 +177,44 @@ import Testing
         #expect(FileManager.default.fileExists(atPath: meetings.appending(path: "meetings.sqlite").path))
         #expect(plugin.library.store == nil)
     }
+
+    /// Settings → Features → Erase Data goes through `eraseData()` (deactivate, erase, activate): the open
+    /// documents' writers hold the erased store and are dropped like in "Erase Notes Data…", so a note written
+    /// afterwards lands in the new library instead of a closed one.
+    @Test func eraseDataFromFeaturesDropsTheOpenDocumentsToo() async throws {
+        let root = FileManager.default.temporaryDirectory.appending(
+            path: "lintel-notes-erase-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let plugin = NotesPlugin(context: makeContext(storage: root, keychain: MemoryKeychain()))
+        try await plugin.activate()
+        await plugin.workspace.refresh()
+        await plugin.workspace.newNote()
+        #expect(!plugin.documents.documentIDs.isEmpty)
+
+        await plugin.deactivate()
+        try await plugin.eraseData()
+        try await plugin.activate()
+        #expect(plugin.documents.documentIDs.isEmpty)
+        #expect(plugin.library.store == nil)
+
+        await plugin.workspace.newNote()
+        #expect(plugin.workspace.rows.count == 1)
+        await plugin.deactivate()
+    }
+
+    /// Export All Notes on a Mac where Notes never stored anything: nothing to export, and neither the Keychain
+    /// item nor `notes.sqlite` is created by asking (the lazy-store rule).
+    @Test func exportOnAFreshProfileCreatesNoKeychainItemAndNoFile() async throws {
+        let keychain = CountingKeychain()
+        let root = FileManager.default.temporaryDirectory.appending(
+            path: "lintel-notes-export-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let storage = root.appending(path: "notes", directoryHint: .isDirectory)
+        let plugin = NotesPlugin(context: makeContext(storage: storage, keychain: keychain))
+        await #expect(throws: NotesExporter.Failure.nothingToExport) {
+            _ = try await plugin.exportAllNotes(to: root.appending(path: "Export", directoryHint: .isDirectory))
+        }
+        #expect(keychain.calls == 0)
+        #expect(!FileManager.default.fileExists(atPath: storage.path))
+    }
 }

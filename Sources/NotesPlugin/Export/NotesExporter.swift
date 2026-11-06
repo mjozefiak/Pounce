@@ -24,6 +24,8 @@ struct NotesExporter {
     enum Failure: Error, Equatable {
         case storeUnavailable
         case writeFailed
+        /// Notes never stored anything on this Mac (no `notes.sqlite`): nothing is opened and nothing is written.
+        case nothingToExport
     }
 
     let store: NotesStore

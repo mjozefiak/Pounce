@@ -50,9 +50,11 @@ public final class NotesPlugin: LintelPlugin {
         library.close()
     }
 
-    /// "Erase Data": removes the Keychain item and `Plugins/notes/`; never touches the sources.
+    /// "Erase Data" (Settings → Features): removes the Keychain item and `Plugins/notes/`; never touches the
+    /// sources. The same as "Erase Notes Data…": the open documents' writers hold the store that is erased, so they
+    /// are dropped too, else the text typed afterwards would go to a closed store and never be saved.
     public func eraseData() async throws {
-        try library.erase()
+        try await eraseNotesData()
     }
 
     /// The Details toggles, shared by the inspector and Settings → Notes (a change shows in both at once).

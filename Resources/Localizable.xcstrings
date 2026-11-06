@@ -16309,6 +16309,24 @@
         }
       }
     },
+    "There are no notes to export yet." : {
+      "comment" : "Notes settings: Export All on a Mac where Notes has never stored anything",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There are no notes to export yet."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie ma jeszcze notatek do wyeksportowania."
+          }
+        }
+      }
+    },
     "The notes couldn’t be exported. Nothing was written." : {
       "comment" : "Notes settings: Export All failed while writing the folder",
       "extractionState" : "manual",

@@ -129,6 +129,12 @@ final class NotesPaneModel {
         do {
             let outcome = try await exportNotes(destination)
             report(Self.exported(count: outcome.noteCount, folder: outcome.folder.lastPathComponent), failed: false)
+        } catch NotesExporter.Failure.nothingToExport {
+            report(
+                String(
+                    localized: "There are no notes to export yet.",
+                    comment: "Notes settings: Export All on a Mac where Notes has never stored anything"),
+                failed: false)
         } catch NotesExporter.Failure.storeUnavailable {
             report(
                 String(
