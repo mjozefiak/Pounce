@@ -93,14 +93,14 @@ final class PanePlugin: LintelPlugin {
     nonisolated static let pluginIDs = ["apps", "files", "clipboard", "dictation", "meetings"]
 
     @Test func theListCoversEveryRegisteredPlugin() {
-        let registered = PluginRegistry.all.map { $0.manifest.id.rawValue }.sorted()
+        let registered = PluginRegistry.shipped.map { $0.manifest.id.rawValue }.sorted()
         #expect(registered == Self.pluginIDs.sorted())
     }
 
     @Test func registeredPluginsUseTheNewDefaultsAndTheirGroups() throws {
         let env = try TestEnvironment()
         defer { env.tearDown() }
-        let host = env.makeHost(PluginRegistry.all)
+        let host = env.makeHost(PluginRegistry.shipped)
         let groups = Dictionary(uniqueKeysWithValues: host.entries.map { ($0.manifest.id, $0.manifest.settingsGroup) })
         #expect(groups["apps"] == .search)
         #expect(groups["files"] == .search)
@@ -168,7 +168,7 @@ final class PanePlugin: LintelPlugin {
             registersGlobalHotkeys: false,
             fullDiskAccess: .denied
         )
-        let types = PluginRegistry.all.filter { $0.manifest.id.rawValue == id }
+        let types = PluginRegistry.shipped.filter { $0.manifest.id.rawValue == id }
         try #require(types.count == 1)
         let host = PluginHost(
             pluginTypes: types,

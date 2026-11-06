@@ -152,10 +152,13 @@ struct AppEnvironment {
         let fileHome = root.appending(path: "files-home", directoryHint: .isDirectory)
         try createPrivateDirectory(fileHome, fileManager: fileManager)
         let settings = InMemorySettingsStore(
-            qaAppActivitySettings(
-                qaFileIndexSettings(options.settings, emptyHome: fileHome.path),
-                activity: options.appActivity,
-                live: options.liveAppActivity
+            qaNotesSettings(
+                qaAppActivitySettings(
+                    qaFileIndexSettings(options.settings, emptyHome: fileHome.path),
+                    activity: options.appActivity,
+                    live: options.liveAppActivity
+                ),
+                fixtures: options.notesFixtures
             )
         )
         let environment = AppEnvironment(
@@ -185,6 +188,13 @@ struct AppEnvironment {
         if settings[QAOptions.filesRootsKey] == nil {
             result[QAOptions.filesRootsKey] = home
         }
+        return result
+    }
+
+    /// `--qa-notes` turns on `plugins.notes.qaFixtures`, so the Notes section lists its fixture notes.
+    static func qaNotesSettings(_ settings: [String: SettingValue], fixtures: Bool) -> [String: SettingValue] {
+        var result = settings
+        if fixtures { result[QAOptions.notesFixturesKey] = .bool(true) }
         return result
     }
 

@@ -18,6 +18,14 @@ import Testing
         #expect(try QAOptions.parse(["--qa"])?.meetingMicWAV == nil)
     }
 
+    @Test func qaNotesTurnsOnTheFixturesKeyOnly() throws {
+        #expect(try QAOptions.parse(["--qa-notes"])?.notesFixtures == true)
+        #expect(try QAOptions.parse(["--qa"])?.notesFixtures == false)
+        let on = AppEnvironment.qaNotesSettings(["plugins.x": .bool(true)], fixtures: true)
+        #expect(on == ["plugins.x": .bool(true), QAOptions.notesFixturesKey: .bool(true)])
+        #expect(AppEnvironment.qaNotesSettings([:], fixtures: false).isEmpty)
+    }
+
     @Test func rejectsAMissingOrOptionLikeValue() {
         #expect(throws: QAOptions.ParseError.missingValue("--qa-meeting-mic-wav")) {
             _ = try QAOptions.parse(["--qa-meeting-mic-wav"])

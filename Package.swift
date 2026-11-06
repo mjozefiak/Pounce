@@ -2,7 +2,7 @@
 import PackageDescription
 
 // Dependency graph (one way only, see AGENTS.md):
-//   LintelApp -> plugins (AppsPlugin, FilesPlugin, ClipboardPlugin, DictationPlugin, MeetingsPlugin) -> LintelUI / LintelPersistence / LintelCore -> LintelKit
+//   LintelApp -> plugins (AppsPlugin, FilesPlugin, ClipboardPlugin, DictationPlugin, MeetingsPlugin, NotesPlugin) -> LintelUI / LintelPersistence / LintelCore -> LintelKit
 //   LintelUI holds the shared views and brand tokens (SwiftUI and AppKit, no I/O) and imports only LintelKit and
 //   LintelCore (docs/decisions/0008-main-window-and-notes-library.md, decision 8)
 //   plugins that use speech (DictationPlugin, MeetingsPlugin) -> LintelSpeech, which depends on no repository target
@@ -115,6 +115,11 @@ let package = Package(
                 .product(name: "GRDB", package: "GRDBCipher"),
             ]
         ),
+        .target(
+            name: "NotesPlugin",
+            // GRDB, LintelPersistence and LintelSpeech are added with the store (spec 2026-11-04-notes-workspace, 4.0).
+            dependencies: ["LintelKit", "LintelCore", "LintelUI"]
+        ),
         .executableTarget(
             name: "LintelApp",
             dependencies: [
@@ -129,6 +134,7 @@ let package = Package(
                 "ClipboardPlugin",
                 "DictationPlugin",
                 "MeetingsPlugin",
+                "NotesPlugin",
                 .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
             ],
             swiftSettings: [.defaultIsolation(MainActor.self)]
@@ -180,6 +186,10 @@ let package = Package(
                 .product(name: "GRDB", package: "GRDBCipher"),
             ],
             resources: [.copy("Fixtures")]
+        ),
+        .testTarget(
+            name: "NotesPluginTests",
+            dependencies: ["NotesPlugin", "LintelKit", "LintelCore", "LintelUI"]
         ),
         .testTarget(
             name: "LintelSpeechTests",

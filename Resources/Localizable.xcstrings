@@ -8119,6 +8119,42 @@
         }
       }
     },
+    "No notes yet" : {
+      "comment" : "Notes section: nothing to show",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No notes yet"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak notatek"
+          }
+        }
+      }
+    },
+    "Read, edit and comment on your recordings and notes." : {
+      "comment" : "Settings → Features: what Notes does",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read, edit and comment on your recordings and notes."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Czytaj, edytuj i komentuj nagrania i notatki."
+          }
+        }
+      }
+    },
     "Participants" : {
       "comment" : "Markdown export: label of the speakers",
       "extractionState" : "manual",

@@ -11,12 +11,12 @@ import Testing
     private func registeredCommands() throws -> [(plugin: PluginID, command: PluginCommand)] {
         let env = try TestEnvironment()
         defer { env.tearDown() }
-        let host = env.makeHost(PluginRegistry.all)
+        let host = env.makeHost(PluginRegistry.shipped)
         return host.entries.flatMap { entry in entry.plugin.commands.map { (entry.manifest.id, $0) } }
     }
 
     @Test func theRegistryContainsMeetingsOnce() {
-        let ids = PluginRegistry.all.map { $0.manifest.id }
+        let ids = PluginRegistry.shipped.map { $0.manifest.id }
         #expect(ids.filter { $0 == "meetings" }.count == 1)
         #expect(ids == ["apps", "files", "clipboard", "dictation", "meetings"])
     }
@@ -24,7 +24,7 @@ import Testing
     @Test func meetingsIsOffUntilTheUserTurnsItOn() throws {
         let env = try TestEnvironment()
         defer { env.tearDown() }
-        let host = env.makeHost(PluginRegistry.all)
+        let host = env.makeHost(PluginRegistry.shipped)
         #expect(host.isEnabled("meetings") == false)
         // The plugin has the command, but a disabled plugin registers none, so ⌃⌥M stays free for other apps.
         #expect(try registeredCommands().contains { $0.command.id == "meetings.record" })
