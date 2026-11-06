@@ -48,8 +48,10 @@ import Testing
         await plugin.deactivate()
         #expect(keychain.calls == 0)
         #expect(!FileManager.default.fileExists(atPath: storage.path))
+        // Only the explicit Erase Data touches the Keychain (it removes the item), and it never opens the store.
         try await plugin.eraseData()
-        #expect(keychain.calls == 0)
+        #expect(keychain.calls == 1)
+        #expect(!FileManager.default.fileExists(atPath: storage.path))
     }
 
     @Test func fixturesAppearOnlyWhenTheQAKeyIsOn() async {

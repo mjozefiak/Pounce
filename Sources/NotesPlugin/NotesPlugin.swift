@@ -6,7 +6,7 @@ import SwiftUI
 /// a `notesSection` stub. The plugin is registered in `PluginRegistry` only `#if DEBUG` until step 7.1, so users see
 /// nothing of it.
 ///
-/// It never opens a store, reads a file or touches the Keychain before step 4.0, and notes, transcripts and
+/// The store (`NotesLibraryOpener`) opens lazily on first need, never in `activate()`; notes, transcripts and
 /// dictation text never reach a log. Other plugins are seen only as `any NoteSource` values the shell hands over
 /// (`PluginContext.noteSources`); `NotesPlugin` imports no other plugin.
 @MainActor
@@ -28,10 +28,22 @@ public final class NotesPlugin: LintelPlugin {
         self.context = context
     }
 
-    /// Nothing to start: no store, no file and no Keychain access before step 4.0.
+    /// The store is opened lazily, by the first thing that needs it (never here, never in a manifest read or a
+    /// settings pane). Building the opener touches no file and no Keychain.
+    private(set) lazy var library = NotesLibraryOpener(
+        directory: context.storageDirectory, keychain: context.keychain, settings: NotesSettings(context.settings))
+
+    /// Nothing to start: the store opens on first need, so activation touches no file and no Keychain.
     public func activate() async throws {}
 
-    public func deactivate() async {}
+    public func deactivate() async {
+        library.close()
+    }
+
+    /// "Erase Data": removes the Keychain item and `Plugins/notes/`; never touches the sources.
+    public func eraseData() async throws {
+        try library.erase()
+    }
 
     /// The Notes section's state, built when the section is first shown or a route reaches it.
     private(set) lazy var workspace: NotesWorkspaceModel = makeWorkspace()

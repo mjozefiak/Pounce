@@ -117,8 +117,16 @@ let package = Package(
         ),
         .target(
             name: "NotesPlugin",
-            // GRDB, LintelPersistence and LintelSpeech are added with the store (spec 2026-11-04-notes-workspace, 4.0).
-            dependencies: ["LintelKit", "LintelCore", "LintelUI"]
+            dependencies: [
+                "LintelKit",
+                "LintelCore",
+                "LintelPersistence",
+                "LintelSpeech",
+                "LintelUI",
+                // The plugin owns notes.sqlite and its migrator, like MeetingsPlugin owns meetings.sqlite
+                // (spec 2026-11-04-notes-workspace, 4.0).
+                .product(name: "GRDB", package: "GRDBCipher"),
+            ]
         ),
         .executableTarget(
             name: "LintelApp",
@@ -189,7 +197,10 @@ let package = Package(
         ),
         .testTarget(
             name: "NotesPluginTests",
-            dependencies: ["NotesPlugin", "LintelKit", "LintelCore", "LintelUI"]
+            dependencies: [
+                "NotesPlugin", "LintelKit", "LintelCore", "LintelPersistence", "LintelSpeech", "LintelUI",
+                .product(name: "GRDB", package: "GRDBCipher"),
+            ]
         ),
         .testTarget(
             name: "LintelSpeechTests",
