@@ -9,6 +9,11 @@ import os
 struct MeetingsLibrarySource: PanelModeSource {
     /// The shell asks for at most this many rows (`SearchCoordinator.modeLimit`); the list is not paged.
     static let maxRows = 1000
+    /// ⌃X asks first: the shell shows this with "Press ⌃X again to delete" (spec 2026-11-04, step 6.2), and the
+    /// second press runs `MeetingsLibraryActions.requestDelete`, which deletes at once.
+    static let deleteConfirmation = ActionConfirmation(
+        prompt: LocalizedStringResource(
+            "Delete this meeting?", comment: "Meeting library list: asked before ⌃X deletes the meeting"))
 
     /// The open store, or `nil` while the library is closed or unavailable (a Keychain error, a failed open).
     let store: @MainActor @Sendable () -> MeetingsStore?
@@ -95,7 +100,8 @@ struct MeetingsLibrarySource: PanelModeSource {
                 title: LocalizedStringResource("Delete", comment: "Meeting library action that deletes the meeting"),
                 symbolName: "trash",
                 shortcut: KeyShortcut(key: "x", modifiers: .control),
-                keepsPanelOpen: true
+                keepsPanelOpen: true,
+                confirmation: Self.deleteConfirmation
             ) { context in try await actions.requestDelete(id, panel: context.panel) })
         return result
     }

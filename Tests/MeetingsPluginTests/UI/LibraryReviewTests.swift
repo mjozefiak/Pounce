@@ -19,53 +19,42 @@ final class FakeWindows: MeetingWindowPresenting {
 @Suite struct MeetingLibraryDeleteConfirmationTests {
     private func text(_ message: LocalizedStringResource) -> String { String(localized: message) }
 
-    private func actions(_ rig: LibraryRig, clock: Box<Date>) -> MeetingsLibraryActions {
+    private func actions(_ rig: LibraryRig) -> MeetingsLibraryActions {
         MeetingsLibraryActions(
             library: rig.library, pasteboard: rig.pasteboard, labels: .english, timeZone: ExportFixtures.utc,
-            now: { clock.withLock { $0 } },
             makeWindows: { _ in FakeWindows() })
     }
 
-    @Test func theFirstPressOnlyAsksAndTheSecondDeletes() async throws {
+    /// The shell asks "Press ⌃X again" (step 6.2): the row's delete action carries the confirmation, so the
+    /// plugin no longer arms a second press of its own.
+    @Test func theDeleteActionAsksThroughTheShell() async throws {
         let rig = try LibraryRig()
-        let clock = Box(Date())
-        let actions = actions(rig, clock: clock)
+        let id = try #require(rig.ids["plain"])
+        let row = try #require(try await rig.search().first { $0.itemKey == MeetingLibraryPresentation.itemKey(id) })
+        let delete = try #require(rig.source.actions(for: row).first { $0.id == "meetings.library.delete" })
+        #expect(delete.confirmation != nil)
+        #expect(delete.shortcut == KeyShortcut(key: "x", modifiers: .control))
+        #expect(rig.source.actions(for: row).filter { $0.confirmation != nil }.map(\.id) == [delete.id])
+        #expect(String(localized: try #require(delete.confirmation).prompt) == "Delete this meeting?")
+    }
+
+    @Test func oneCallAfterTheShellsConfirmationDeletes() async throws {
+        let rig = try LibraryRig()
+        let actions = actions(rig)
         let id = try #require(rig.ids["plain"])
         try await actions.requestDelete(id, panel: rig.panel)
-        #expect(try rig.store.loadDocument(id: id) != nil)
-        #expect(rig.panel.confirmations == [text(MeetingsLibraryActions.confirmMessage)])
-        clock.withLock { $0 = $0.addingTimeInterval(2) }
-        try await actions.requestDelete(id, panel: rig.panel)
         #expect(try rig.store.loadDocument(id: id) == nil)
+        #expect(rig.panel.confirmations.isEmpty)
+        #expect(try rig.store.loadDocument(id: try #require(rig.ids["stale"])) != nil)
     }
 
-    @Test func theConfirmationExpiresAndBelongsToOneMeeting() async throws {
+    @Test func anUnfinishedMeetingGoesWithItsAudio() async throws {
         let rig = try LibraryRig()
-        let clock = Box(Date())
-        let actions = actions(rig, clock: clock)
-        let first = try #require(rig.ids["plain"])
-        let other = try #require(rig.ids["stale"])
-        // Too late: asks again instead of deleting.
-        try await actions.requestDelete(first, panel: rig.panel)
-        clock.withLock { $0 = $0.addingTimeInterval(MeetingsLibraryActions.deleteConfirmationWindow + 1) }
-        try await actions.requestDelete(first, panel: rig.panel)
-        #expect(try rig.store.loadDocument(id: first) != nil)
-        // Another meeting's press does not delete anything and replaces the armed one.
-        try await actions.requestDelete(other, panel: rig.panel)
-        #expect(try rig.store.loadDocument(id: first) != nil)
-        #expect(try rig.store.loadDocument(id: other) != nil)
-        #expect(rig.panel.confirmations.count == 3)
-    }
-
-    @Test func anUnfinishedMeetingWithAudioSaysTheAudioGoesToo() async throws {
-        let rig = try LibraryRig()
-        let actions = actions(rig, clock: Box(Date()))
+        let actions = actions(rig)
         let uuid = UUID()
         _ = try rig.library.spoolStorage.prepare(meeting: uuid)
         let id = try rig.store.insertMeeting(
             uuid: SpoolStorage.name(of: uuid), startedAt: Date(), speechModelID: "m", status: .incomplete)
-        try await actions.requestDelete(id, panel: rig.panel)
-        #expect(rig.panel.confirmations == [text(MeetingsLibraryActions.confirmWithAudioMessage)])
         try await actions.requestDelete(id, panel: rig.panel)
         #expect(!rig.library.spoolStorage.hasSpool(forMeeting: SpoolStorage.name(of: uuid)))
         #expect(try rig.store.loadDocument(id: id) == nil)
@@ -73,7 +62,7 @@ final class FakeWindows: MeetingWindowPresenting {
 
     @Test func aLiveOrProcessingMeetingIsRefusedWithAMessageNotAFailure() async throws {
         let rig = try LibraryRig()
-        let actions = actions(rig, clock: Box(Date()))
+        let actions = actions(rig)
         let recording = try rig.store.insertMeeting(
             uuid: UUID().uuidString.lowercased(), startedAt: Date(), speechModelID: "m")
         try await actions.requestDelete(recording, panel: rig.panel)
@@ -96,7 +85,7 @@ final class FakeWindows: MeetingWindowPresenting {
 
     @Test func aMissingMeetingStillThrows() async throws {
         let rig = try LibraryRig()
-        let actions = actions(rig, clock: Box(Date()))
+        let actions = actions(rig)
         await #expect(throws: MeetingLibraryActionError.missing) {
             try await actions.requestDelete(9_999, panel: rig.panel)
         }
