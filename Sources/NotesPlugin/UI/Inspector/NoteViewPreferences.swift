@@ -13,6 +13,9 @@ final class NoteViewPreferences {
     var showQuotes: Bool {
         didSet { if showQuotes != oldValue { settings?.set(showQuotes, for: NotesSettingsKey.showQuotes) } }
     }
+    var showComments: Bool {
+        didSet { if showComments != oldValue { settings?.set(showComments, for: NotesSettingsKey.showComments) } }
+    }
     var wrapLines: Bool {
         didSet { if wrapLines != oldValue { settings?.set(wrapLines, for: NotesSettingsKey.wrapLines) } }
     }
@@ -24,6 +27,7 @@ final class NoteViewPreferences {
         let current = settings.map(NotesSettings.init)
         showAuthorBars = current?.showAuthorBars ?? true
         showQuotes = current?.showQuotes ?? true
+        showComments = current?.showComments ?? true
         wrapLines = current?.wrapLines ?? true
     }
 }

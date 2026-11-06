@@ -53,6 +53,14 @@ final class NoteDocumentModel {
     private(set) var history: HistoryState = .idle
     private(set) var compare: CompareState?
 
+    /// The comments of the shown layer (step 5.2), the chip that filters them and the thread the user picked (in the
+    /// inspector or by putting the caret in its highlight).
+    private(set) var comments: CommentsState = .idle
+    var commentFilter: CommentFilter = .open
+    var selectedThreadID: Int64?
+    /// The editor's buffer while it is open: the quotes are looked for in it, so a highlight follows typing.
+    private(set) var editorText: String?
+
     /// The editor's connection to its writer while the note is being edited (step 4.4); `nil` when it is only read.
     private(set) var session: NoteEditingSession?
     /// A new note opens straight in the editor: set before its content is read, taken once it is loaded.
@@ -78,6 +86,7 @@ final class NoteDocumentModel {
     func leaveEditing() {
         guard let ended = session else { return }
         session = nil
+        editorText = nil
         onEditingEnded?(ended)
     }
 
@@ -178,10 +187,23 @@ final class NoteDocumentModel {
 
     func setCompare(_ state: CompareState?) { compare = state }
 
+    #if DEBUG
+    /// `plugins.notes.qaComments=popover`: the editor selects this text and opens the new-comment popover.
+    var qaCommentQuote: String?
+    #endif
+
+    func setComments(_ state: CommentsState) { comments = state }
+
+    func setEditorText(_ text: String?) {
+        if editorText != text { editorText = text }
+    }
+
     func selectLayer(_ id: String) {
         guard layers.contains(where: { $0.id == id }), id != layerID else { return }
         compare = nil
         if history != .idle { history = .loading }
+        if comments != .idle { comments = .loading }
+        selectedThreadID = nil
         // The editor belongs to the layer it was opened on.
         leaveEditing()
         layerID = id

@@ -38,6 +38,10 @@ enum NotesSettingsKey {
     /// DEBUG only, with `--qa-notes`: `history` gives the fixture meeting's notes an agent revision and two of yours
     /// in the QA run's own `notes.sqlite` and shows History (step 4.5); `compare` also opens the comparison.
     static let qaHistory = "qaHistory"
+    /// DEBUG only, with `--qa-notes`: `threads` gives the fixture meeting's notes two open comments and a resolved one
+    /// in the QA run's own store and opens the note in the editor with the Comments tab (step 5.2); `popover` also opens
+    /// the new-comment popover on a selection; `changed` makes one comment's text disappear ("Text changed").
+    static let qaComments = "qaComments"
     /// DEBUG only, with `--qa-notes`: `meeting`, `dictation`, `manual` or `copy` opens that delete confirmation sheet
     /// (step 4.6). Nothing is deleted unless the sheet is confirmed.
     static let qaDelete = "qaDelete"

@@ -37,6 +37,7 @@ struct CompareState: Equatable {
 }
 
 enum NoteInspectorTab: Equatable {
+    case comments
     case history
     case details
 }

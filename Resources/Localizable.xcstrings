@@ -16524,6 +16524,546 @@
           }
         }
       }
+    },
+    "Comments" : {
+      "comment" : "Inspector: tab with the comment threads",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comments"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Komentarze"
+          }
+        }
+      }
+    },
+    "Select text first. Opens a field for your comment." : {
+      "comment" : "Accessibility hint of the format bar's Comment button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select text first. Opens a field for your comment."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Najpierw zaznacz tekst. Otwiera pole na komentarz."
+          }
+        }
+      }
+    },
+    "Open: %lld" : {
+      "comment" : "Accessibility value of the Comments tab",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open: %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwarte: %lld"
+          }
+        }
+      }
+    },
+    "Comments in text" : {
+      "comment" : "Inspector, Details: toggle for the comment highlights in the editor",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comments in text"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Komentarze w tekście"
+          }
+        }
+      }
+    },
+    "New comment" : {
+      "comment" : "Comment popover: title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New comment"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nowy komentarz"
+          }
+        }
+      }
+    },
+    "Send" : {
+      "comment" : "Inspector, Comments: sends a reply",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyślij"
+          }
+        }
+      }
+    },
+    "Reply" : {
+      "comment" : "Inspector, Comments: answers a thread",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reply"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odpowiedz"
+          }
+        }
+      }
+    },
+    "Resolve" : {
+      "comment" : "Inspector, Comments: closes a thread",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resolve"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozwiąż"
+          }
+        }
+      }
+    },
+    "Reopen" : {
+      "comment" : "Inspector, Comments: opens a resolved thread again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reopen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz ponownie"
+          }
+        }
+      }
+    },
+    "Use selection" : {
+      "comment" : "Inspector, Comments: points a thread whose text changed at the selected text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use selection"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Użyj zaznaczenia"
+          }
+        }
+      }
+    },
+    "Text changed" : {
+      "comment" : "Inspector, Comments: the commented text is no longer in the note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text changed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekst się zmienił"
+          }
+        }
+      }
+    },
+    "Open %lld" : {
+      "comment" : "Inspector, Comments: filter of the open threads and how many",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwarte %lld"
+          }
+        }
+      }
+    },
+    "Resolved %lld" : {
+      "comment" : "Inspector, Comments: filter of the resolved threads and how many",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resolved %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozwiązane %lld"
+          }
+        }
+      }
+    },
+    "Loading comments…" : {
+      "comment" : "Inspector, Comments: while the comments are read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading comments…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wczytywanie komentarzy…"
+          }
+        }
+      }
+    },
+    "Comments can’t be read right now. Nothing was changed." : {
+      "comment" : "Inspector, Comments: notes.sqlite could not be read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comments can’t be read right now. Nothing was changed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie można teraz odczytać komentarzy. Nic nie zmieniono."
+          }
+        }
+      }
+    },
+    "No comments yet. Select text in the editor and choose Comment." : {
+      "comment" : "Inspector, Comments: how to start a comment",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No comments yet. Select text in the editor and choose Comment."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak komentarzy. Zaznacz tekst w edytorze i wybierz Komentarz."
+          }
+        }
+      }
+    },
+    "No open comments." : {
+      "comment" : "Inspector, Comments: nothing is open",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No open comments."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak otwartych komentarzy."
+          }
+        }
+      }
+    },
+    "No resolved comments." : {
+      "comment" : "Inspector, Comments: nothing is resolved",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No resolved comments."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak rozwiązanych komentarzy."
+          }
+        }
+      }
+    },
+    "The agent rewrites only commented blocks. Your edits stay." : {
+      "comment" : "Inspector, Comments: what Revise does",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The agent rewrites only commented blocks. Your edits stay."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent poprawia tylko skomentowane bloki. Twoje zmiany zostają."
+          }
+        }
+      }
+    },
+    "Revise with %lld comments" : {
+      "comment" : "Inspector, Comments: revises the commented blocks",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Revise with %lld comment"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Revise with %lld comments"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Popraw według %lld komentarza"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Popraw według %lld komentarzy"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Popraw według %lld komentarzy"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Popraw według %lld komentarza"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Comment on “%@”" : {
+      "comment" : "Accessibility label of an open comment thread, naming the commented text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comment on “%@”"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Komentarz do „%@”"
+          }
+        }
+      }
+    },
+    "Resolved comment on “%@”" : {
+      "comment" : "Accessibility label of a resolved comment thread, naming the commented text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resolved comment on “%@”"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozwiązany komentarz do „%@”"
+          }
+        }
+      }
+    },
+    "The text changed." : {
+      "comment" : "Accessibility: the commented text is no longer in the note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The text changed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekst się zmienił."
+          }
+        }
+      }
+    },
+    "The comment couldn’t be saved. Nothing was changed." : {
+      "comment" : "Notes: writing a comment failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The comment couldn’t be saved. Nothing was changed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się zapisać komentarza. Nic nie zmieniono."
+          }
+        }
+      }
+    },
+    "Notes are read-only, so nothing can be commented." : {
+      "comment" : "Notes: a comment was refused because editing is off",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes are read-only, so nothing can be commented."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki są tylko do odczytu, więc nie można ich komentować."
+          }
+        }
+      }
+    },
+    "That text is not in the saved note. Select it again." : {
+      "comment" : "Notes: a comment was refused because the selected text is not in the saved note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That text is not in the saved note. Select it again."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tego tekstu nie ma w zapisanej notatce. Zaznacz go ponownie."
+          }
+        }
+      }
+    },
+    "comment.author.you" : {
+      "comment" : "Comments: the user's own comment",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ty"
+          }
+        }
+      }
+    },
+    "comment.author.ai" : {
+      "comment" : "Comments: a comment written by the agent",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

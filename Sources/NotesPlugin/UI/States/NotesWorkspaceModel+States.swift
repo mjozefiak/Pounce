@@ -161,7 +161,7 @@ extension NotesWorkspaceModel {
         }
         for failed in [
             Feedback.restoreFailed, .restoreChanged, .restoreReadOnly, .restoreTargetInvalid, .deleteFailed,
-            .copyNotRemoved,
+            .copyNotRemoved, .commentFailed, .commentReadOnly, .commentChanged,
         ] where feedback == failed {
             result.append(
                 Strip(

@@ -223,6 +223,18 @@ struct NotePathBar: View {
             String(
                 localized: "That is not an earlier saved version of this note. Nothing was changed.",
                 comment: "Notes: a restore target was not an earlier applied version")
+        case .commentFailed:
+            String(
+                localized: "The comment couldn’t be saved. Nothing was changed.",
+                comment: "Notes: writing a comment failed")
+        case .commentReadOnly:
+            String(
+                localized: "Notes are read-only, so nothing can be commented.",
+                comment: "Notes: a comment was refused because editing is off")
+        case .commentChanged:
+            String(
+                localized: "That text is not in the saved note. Select it again.",
+                comment: "Notes: a comment was refused because the selected text is not in the saved note")
         case .restoreFailed:
             String(
                 localized: "That version couldn’t be restored. Nothing was changed.",

@@ -13,6 +13,8 @@ final class NoteEditorTextView: NSTextView {
     var copyText: (String) -> Void = { _ in }
     /// The text view drew (the layout it shows is current): the author gutter measures the blocks again.
     var onDraw: () -> Void = {}
+    /// ⇧⌘M: comment on the selection (spec: ⌥⌘M is Window → Minimize All), set by the editor view.
+    var commentShortcut: (() -> Void)?
     /// ⌘B and ⌘I, set by the controller.
     var formatShortcut: (NoteFormatAction) -> Void = { _ in }
 
@@ -161,6 +163,12 @@ final class NoteEditorTextView: NSTextView {
                 return true
             default: break
             }
+        }
+        if isEditable, flags == [.command, .shift], event.charactersIgnoringModifiers?.lowercased() == "m",
+            let commentShortcut
+        {
+            commentShortcut()
+            return true
         }
         return super.performKeyEquivalent(with: event)
     }

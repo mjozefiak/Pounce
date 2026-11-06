@@ -21,6 +21,8 @@ final class NoteEditingSession {
     let documentID: NoteDocumentID
     let writer: RevisionWriter
     private let model: NoteDocumentModel?
+    /// Comment writes of this layer's document (step 5.2); `nil` without a store (QA without one).
+    private let comments: CommentService?
     private(set) var block: Block?
     /// The last write kept the user's text as a proposal (a compare-and-set loss): the UI says so, with Compare.
     private(set) var keptAsProposal = false
@@ -35,8 +37,9 @@ final class NoteEditingSession {
 
     init(
         documentID: NoteDocumentID, writer: RevisionWriter, model: NoteDocumentModel?, block: Block?,
-        readOnlyNow: (@MainActor () -> Bool)? = nil
+        readOnlyNow: (@MainActor () -> Bool)? = nil, comments: CommentService? = nil
     ) {
+        self.comments = comments
         self.documentID = documentID
         self.writer = writer
         self.model = model
@@ -77,7 +80,8 @@ final class NoteEditingSession {
                 sourceStartedAtMs: sourceStartedAtMs, log: log)
         }
         return NoteEditingSession(
-            documentID: id, writer: writer, model: model, block: block, readOnlyNow: readOnlyNow)
+            documentID: id, writer: writer, model: model, block: block, readOnlyNow: readOnlyNow,
+            comments: CommentService(store: store, now: now))
     }
 
     /// Wires the editor: every edit goes to the writer, losing focus is a save point.
@@ -116,4 +120,28 @@ final class NoteEditingSession {
     }
 
     func retry() async { await flush() }
+
+    // MARK: Comments
+
+    /// What the editor selects now and the text it holds, for the Comment button and for re-anchoring.
+    var editorSelection: (range: NSRange, buffer: String)? {
+        guard let controller else { return nil }
+        return (controller.textView.selectedRange(), controller.text)
+    }
+
+    var canComment: Bool { isEditable && comments != nil }
+
+    /// A new thread on `selection` of `buffer`. The writer saves what is typed first and seeds the overlay when
+    /// the layer has none. Returns the thread's id.
+    func addComment(body: String, selection: NSRange, buffer: String) async throws -> Int64 {
+        guard isEditable, let comments else { throw CommentFailure.readOnly }
+        return try await comments.add(body: body, selection: selection, buffer: buffer, writer: writer)
+    }
+
+    /// Points a thread at the editor's current selection ("text changed").
+    func reanchor(docID: Int64, threadID: Int64) async throws {
+        guard isEditable, let comments, let selection = editorSelection else { throw CommentFailure.readOnly }
+        try await comments.reanchor(
+            docID: docID, threadID: threadID, selection: selection.range, buffer: selection.buffer, writer: writer)
+    }
 }

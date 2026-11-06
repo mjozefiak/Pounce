@@ -24,6 +24,12 @@ final class NoteEditorController: NSObject, NSTextStorageDelegate, NSTextViewDel
     /// The editor gained or lost focus (a save point, spec "Saving").
     var onFocusChange: (Bool) -> Void = { _ in }
 
+    /// The selection or the caret moved (the Comment button's state, a caret inside a comment's highlight).
+    var onSelectionChange: (NSRange) -> Void = { _ in }
+
+    /// The scroll view the text view sits in, set by the SwiftUI wrapper (the popover is placed from it).
+    weak var scrollView: NSScrollView?
+
     /// The author gutter beside the text (the scroll view's ruler), set by the SwiftUI wrapper.
     var gutter: AuthorGutterRuler?
     /// Who wrote each block of the buffer, asked with the blocks of the current text (spec step 4.3); `nil` draws
@@ -83,6 +89,57 @@ final class NoteEditorController: NSObject, NSTextStorageDelegate, NSTextViewDel
         gutter.blocks = zip(infos, ranges).compactMap { info, range in
             range.map { AuthorGutterRuler.Block(range: $0, info: info) }
         }
+    }
+
+    // MARK: Comment highlights (step 5.2)
+
+    private var appliedHighlights: [CommentHighlight] = []
+    private var appliedPending: NSRange?
+
+    /// Highlights the quotes of the open comments and, while the popover is open, the passage being commented on.
+    /// They are rendering attributes of the layout manager, not attributes of the text: the Markdown storage is
+    /// untouched, so the styler, undo and the saved text never see them.
+    func setHighlights(_ highlights: [CommentHighlight], pending: NSRange? = nil) {
+        guard highlights != appliedHighlights || pending != appliedPending else { return }
+        appliedHighlights = highlights
+        appliedPending = pending
+        guard let manager = textView.textLayoutManager, let content = manager.textContentManager else { return }
+        let length = (textView.string as NSString).length
+        let whole = manager.documentRange
+        for key in [NSAttributedString.Key.backgroundColor, .underlineStyle, .underlineColor] {
+            manager.removeRenderingAttribute(key, for: whole)
+        }
+        func textRange(_ range: NSRange) -> NSTextRange? {
+            let clamped = NSIntersectionRange(range, NSRange(location: 0, length: length))
+            guard clamped.length > 0,
+                let start = content.location(content.documentRange.location, offsetBy: clamped.location),
+                let end = content.location(start, offsetBy: clamped.length)
+            else { return nil }
+            return NSTextRange(location: start, end: end)
+        }
+        for highlight in highlights {
+            guard let range = textRange(highlight.range) else { continue }
+            manager.addRenderingAttribute(
+                .backgroundColor,
+                value: highlight.isSelected ? LintelBrand.selectionTintColor : LintelBrand.windowSelectionTintColor,
+                for: range)
+            manager.addRenderingAttribute(
+                .underlineStyle, value: NSUnderlineStyle.thick.rawValue, for: range)
+            manager.addRenderingAttribute(.underlineColor, value: LintelBrand.accentColor, for: range)
+        }
+        if let pending, let range = textRange(pending) {
+            manager.addRenderingAttribute(.backgroundColor, value: LintelBrand.selectionTintColor, for: range)
+        }
+        textView.needsDisplay = true
+    }
+
+    /// The rectangle of `range` in the scroll view's coordinates, top-left origin, or `nil` without a window.
+    func rect(of range: NSRange, in scroll: NSScrollView) -> CGRect? {
+        guard let window = textView.window else { return nil }
+        let screen = textView.firstRect(forCharacterRange: range, actualRange: nil)
+        let local = scroll.convert(window.convertFromScreen(screen), from: nil)
+        let y = scroll.isFlipped ? local.minY : scroll.bounds.height - local.maxY
+        return CGRect(x: local.minX, y: y, width: local.width, height: local.height)
     }
 
     func setTextSize(_ size: TextSize) {
@@ -147,6 +204,11 @@ final class NoteEditorController: NSObject, NSTextStorageDelegate, NSTextViewDel
             NoteEditorEdit(
                 text: textView.string, range: edit.range.location..<(edit.range.location + edit.range.length),
                 changeInLength: edit.delta))
+    }
+
+    func textViewDidChangeSelection(_ notification: Notification) {
+        guard !isReplacingText else { return }
+        onSelectionChange(textView.selectedRange())
     }
 
     func textDidBeginEditing(_ notification: Notification) { onFocusChange(true) }

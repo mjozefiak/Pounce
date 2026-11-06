@@ -32,6 +32,8 @@ struct NoteDocumentView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .task(id: document.id) { await model.loadContent(document.id) }
+        // A layer switch clears the comments: they are read again for the layer now on screen.
+        .task(id: document.layerID) { await model.refreshComments(document.id) }
     }
 
     /// The editor while the note is being edited, else the read-only blocks.

@@ -11,8 +11,12 @@ struct NoteEditorSurface<Header: View>: View {
     let isReadOnly: Bool
     let wrapsLines: Bool
     let onEdit: (NoteEditorEdit) -> Void
-    /// Opens the comment popover; `nil` until comments exist (step 5.2), then the button is disabled.
-    let onComment: (() -> Void)?
+    /// Writes a comment on a selection of the buffer (text, selection, the buffer); `true` when it was written.
+    /// `nil` turns the Comment button off (a layer that cannot be commented on).
+    let onAddComment: ((String, NSRange, String) async -> Bool)?
+    /// Where the open comments are in the buffer, and which thread a caret inside one picks (step 5.2).
+    let highlights: [CommentHighlight]
+    let onSelectThread: ((Int64) -> Void)?
     /// Who wrote each block of the buffer (step 4.3); `nil` shows no author gutter.
     let attribution: (([String]) -> [BlockAttributionInfo])?
     let showsAuthorBars: Bool
@@ -20,14 +24,23 @@ struct NoteEditorSurface<Header: View>: View {
     let onFocusChange: ((Bool) -> Void)?
     let header: Header
     @State private var controller: NoteEditorController
+    @State private var selection = NSRange(location: 0, length: 0)
+    @State private var draft: CommentDraft?
+    #if DEBUG
+    /// QA: select this text and open the popover once the editor is on screen (`plugins.notes.qaComments=popover`).
+    var qaSelect: String?
+    #endif
     @Environment(\.lintelTextSize) private var textSize
 
     init(
         text: Binding<String>, pasteboard: any PasteboardClient, isReadOnly: Bool = false, wrapsLines: Bool = true,
-        onComment: (() -> Void)? = nil, attribution: (([String]) -> [BlockAttributionInfo])? = nil,
+        onAddComment: ((String, NSRange, String) async -> Bool)? = nil, highlights: [CommentHighlight] = [],
+        onSelectThread: ((Int64) -> Void)? = nil, attribution: (([String]) -> [BlockAttributionInfo])? = nil,
         showsAuthorBars: Bool = true, onFocusChange: ((Bool) -> Void)? = nil,
         onEdit: @escaping (NoteEditorEdit) -> Void = { _ in }, @ViewBuilder header: () -> Header
     ) {
+        self.highlights = highlights
+        self.onSelectThread = onSelectThread
         self.header = header()
         self.onFocusChange = onFocusChange
         self.attribution = attribution
@@ -35,32 +48,103 @@ struct NoteEditorSurface<Header: View>: View {
         _text = text
         self.isReadOnly = isReadOnly
         self.wrapsLines = wrapsLines
-        self.onComment = onComment
+        self.onAddComment = onAddComment
         self.onEdit = onEdit
         _controller = State(initialValue: NoteEditorController(pasteboard: pasteboard, isReadOnly: isReadOnly))
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            if !isReadOnly { NoteFormatBar(controller: controller, onComment: onComment) }
+            if !isReadOnly {
+                NoteFormatBar(
+                    controller: controller, canComment: onAddComment != nil && selection.length > 0 && draft == nil,
+                    onComment: openComment)
+            }
             header
             NoteEditorRepresentable(
                 controller: controller, text: $text, isReadOnly: isReadOnly, wrapsLines: wrapsLines,
                 textSize: textSize, attribution: attribution, showsAuthorBars: showsAuthorBars,
-                onFocusChange: onFocusChange, onEdit: onEdit)
+                highlights: highlights, pending: draft?.range, onSelectionChange: selectionChanged,
+                onComment: openComment, onFocusChange: onFocusChange, onEdit: onEdit
+            )
+            .overlay(alignment: .topLeading) {
+                if let draft { popover(for: draft) }
+            }
+            #if DEBUG
+            .task(id: qaSelect) {
+                guard let qaSelect else { return }
+                try? await Task.sleep(for: .milliseconds(400))
+                let range = (controller.text as NSString).range(of: qaSelect)
+                guard range.location != NSNotFound else { return }
+                controller.textView.setSelectedRange(range)
+                openComment()
+            }
+            #endif
         }
     }
+
+    private func selectionChanged(_ range: NSRange) {
+        selection = range
+        guard range.length == 0, let onSelectThread,
+            let hit = highlights.first(where: {
+                range.location >= $0.range.location && range.location <= NSMaxRange($0.range)
+            })
+        else { return }
+        onSelectThread(hit.threadID)
+    }
+
+    /// ⇧⌘M and the format bar's Comment: the popover for the selected passage (nothing when nothing is selected, or
+    /// when the passage cannot be anchored).
+    private func openComment() {
+        guard onAddComment != nil, draft == nil else { return }
+        let range = controller.textView.selectedRange()
+        guard range.length > 0, CommentAnchors.make(in: controller.text, range: range) != nil else { return }
+        let rect =
+            controller.scrollView.flatMap { controller.rect(of: range, in: $0) }
+            ?? CGRect(x: 24, y: 24, width: 0, height: 0)
+        draft = CommentDraft(range: range, buffer: controller.text, rect: rect)
+    }
+
+    private func popover(for draft: CommentDraft) -> some View {
+        let width = CommentPopover.width(textSize)
+        return GeometryReader { proxy in
+            CommentPopover(
+                onSubmit: { body in
+                    guard let onAddComment else { return false }
+                    let written = await onAddComment(body, draft.range, draft.buffer)
+                    if written { close() }
+                    return written
+                }, onCancel: close
+            )
+            .offset(
+                x: min(max(0, draft.rect.minX), max(0, proxy.size.width - width)), y: draft.rect.maxY + 6)
+        }
+    }
+
+    private func close() {
+        draft = nil
+        controller.textView.window?.makeFirstResponder(controller.textView)
+    }
+}
+
+/// The passage the popover comments on, with where to draw it.
+struct CommentDraft: Equatable {
+    var range: NSRange
+    var buffer: String
+    var rect: CGRect
 }
 
 extension NoteEditorSurface where Header == EmptyView {
     init(
         text: Binding<String>, pasteboard: any PasteboardClient, isReadOnly: Bool = false, wrapsLines: Bool = true,
-        onComment: (() -> Void)? = nil, attribution: (([String]) -> [BlockAttributionInfo])? = nil,
+        onAddComment: ((String, NSRange, String) async -> Bool)? = nil, highlights: [CommentHighlight] = [],
+        onSelectThread: ((Int64) -> Void)? = nil, attribution: (([String]) -> [BlockAttributionInfo])? = nil,
         showsAuthorBars: Bool = true, onFocusChange: ((Bool) -> Void)? = nil,
         onEdit: @escaping (NoteEditorEdit) -> Void = { _ in }
     ) {
         self.init(
-            text: text, pasteboard: pasteboard, isReadOnly: isReadOnly, wrapsLines: wrapsLines, onComment: onComment,
+            text: text, pasteboard: pasteboard, isReadOnly: isReadOnly, wrapsLines: wrapsLines,
+            onAddComment: onAddComment, highlights: highlights, onSelectThread: onSelectThread,
             attribution: attribution, showsAuthorBars: showsAuthorBars, onFocusChange: onFocusChange, onEdit: onEdit,
             header: { EmptyView() })
     }
@@ -75,6 +159,10 @@ struct NoteEditorRepresentable: NSViewRepresentable {
     let textSize: TextSize
     let attribution: (([String]) -> [BlockAttributionInfo])?
     let showsAuthorBars: Bool
+    let highlights: [CommentHighlight]
+    let pending: NSRange?
+    let onSelectionChange: (NSRange) -> Void
+    let onComment: () -> Void
     let onFocusChange: ((Bool) -> Void)?
     let onEdit: (NoteEditorEdit) -> Void
 
@@ -86,6 +174,7 @@ struct NoteEditorRepresentable: NSViewRepresentable {
         scroll.borderType = .noBorder
         scroll.automaticallyAdjustsContentInsets = false
         scroll.documentView = controller.textView
+        controller.scrollView = scroll
         controller.textView.textContainer?.lineFragmentPadding = 0
         if attribution != nil {
             // The author gutter is the vertical ruler: it scrolls with the text and keeps the text off the bars.
@@ -114,11 +203,14 @@ struct NoteEditorRepresentable: NSViewRepresentable {
             onEdit(edit)
         }
         controller.isReadOnly = isReadOnly
+        controller.onSelectionChange = onSelectionChange
+        controller.textView.commentShortcut = onComment
         if let onFocusChange { controller.onFocusChange = onFocusChange }
         controller.setTextSize(textSize)
         controller.setWrapsLines(wrapsLines)
         if let attribution, controller.attribution == nil { controller.attribution = attribution }
         if controller.text != text { controller.setText(text) }
+        controller.setHighlights(highlights, pending: pending)
     }
 }
 
@@ -126,7 +218,9 @@ struct NoteEditorRepresentable: NSViewRepresentable {
 /// quote prefixes and a link, then the Comment button on the right.
 struct NoteFormatBar: View {
     let controller: NoteEditorController
-    let onComment: (() -> Void)?
+    /// Something is selected that a comment can point at.
+    let canComment: Bool
+    let onComment: () -> Void
     @Environment(\.lintelTextSize) private var textSize
 
     var body: some View {
@@ -166,7 +260,7 @@ struct NoteFormatBar: View {
 
     private var commentButton: some View {
         Button {
-            onComment?()
+            onComment()
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "text.bubble")
@@ -180,8 +274,13 @@ struct NoteFormatBar: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .disabled(onComment == nil)
+        .keyboardShortcut("m", modifiers: [.command, .shift])
+        .disabled(!canComment)
         .accessibilityLabel(Text("Comment", comment: "Format bar: comment on the selected text"))
+        .accessibilityHint(
+            Text(
+                "Select text first. Opens a field for your comment.",
+                comment: "Accessibility hint of the format bar's Comment button"))
     }
 
     struct Item {

@@ -2,15 +2,15 @@ import LintelKit
 import LintelUI
 import SwiftUI
 
-/// The inspector on the right of the document (prototype `.insp`): a tab strip and the pane. History and Details; Comments
-/// join the strip in step 5.2.
+/// The inspector on the right of the document (prototype `.insp`): a tab strip and the pane. Comments, History and
+/// Details.
 struct NoteInspector: View {
     let model: NotesWorkspaceModel
     let document: NoteDocumentModel
     @Environment(\.lintelTextSize) private var textSize
 
     /// A tab of the strip (prototype `.it`): the icon, and the name in bold on the one that is on.
-    private func tab(_ tab: NoteInspectorTab, symbol: String, title: Text) -> some View {
+    private func tab(_ tab: NoteInspectorTab, symbol: String, title: Text, count: Int = 0) -> some View {
         let isOn = model.inspectorTab == tab
         return Button {
             model.selectInspectorTab(tab)
@@ -18,6 +18,11 @@ struct NoteInspector: View {
             HStack(spacing: 6) {
                 Image(systemName: symbol).accessibilityHidden(true)
                 if isOn { title.font(textSize.font(.callout, weight: .bold)) }
+                if count > 0 {
+                    Text(verbatim: "\(count)")
+                        .font(textSize.font(.caption1, weight: .semibold))
+                        .baselineOffset(4)
+                }
             }
             .font(textSize.font(.callout))
             .foregroundStyle(isOn ? LintelBrand.accentText : LintelBrand.secondaryText)
@@ -28,12 +33,19 @@ struct NoteInspector: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
+        .accessibilityValue(
+            count > 0 ? Text("Open: \(count)", comment: "Accessibility value of the Comments tab") : Text(verbatim: "")
+        )
         .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 4) {
+                tab(
+                    .comments, symbol: "text.bubble",
+                    title: Text("Comments", comment: "Inspector: tab with the comment threads"),
+                    count: document.openCommentCount)
                 tab(
                     .history, symbol: "clock",
                     title: Text("History", comment: "Inspector: tab with the versions of the text"))
@@ -60,6 +72,7 @@ struct NoteInspector: View {
             ScrollView {
                 Group {
                     switch model.inspectorTab {
+                    case .comments: NoteCommentsPane(model: model, document: document)
                     case .history: NoteHistoryPane(model: model, document: document)
                     case .details: NoteDetailsPane(model: model, document: document)
                     }
@@ -69,6 +82,7 @@ struct NoteInspector: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             if model.inspectorTab == .history { NoteHistoryFooter() }
+            if model.inspectorTab == .comments { NoteCommentsFooter(model: model) }
         }
         .task(id: HistoryTaskKey(tab: model.inspectorTab, layer: document.layerID, note: document.id)) {
             if model.inspectorTab == .history { await model.loadHistory(for: document.id) }
@@ -109,6 +123,10 @@ struct NoteDetailsPane: View {
                 hint: Text(
                     "Timestamps that open the transcript.", comment: "Inspector, Details: what the quote chips do"),
                 isOn: $preferences.showQuotes)
+            toggleRow(
+                Text(
+                    "Comments in text", comment: "Inspector, Details: toggle for the comment highlights in the editor"),
+                hint: nil, isOn: $preferences.showComments)
             toggleRow(
                 Text("Wrap lines", comment: "Inspector, Details: toggle for wrapping long lines in the editor"),
                 hint: nil, isOn: $preferences.wrapLines)

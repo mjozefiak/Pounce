@@ -70,6 +70,12 @@ final class NotesWorkspaceModel {
         var deleteNote: @MainActor (NoteItemID) async throws -> Void = { _ in
             throw NoteDeleter.Failure.sourceUnavailable
         }
+        /// The comments of a layer from `notes.sqlite`; `.none` when the layer has no overlay (step 5.2).
+        var loadComments: @MainActor (NoteItemID, String) async -> CommentsState = { _, _ in .none }
+        /// A reply, a resolve or a reopen on a loaded thread; `nil` when it was written, else why not.
+        var writeComment: @MainActor (CommentWrite) async -> CommentFailure? = { _ in .other }
+        /// "Revise with N comments" (step 6.2): `nil` until the agent is wired, and the button stays off.
+        var revise: (@MainActor (NoteItemID) async -> Void)?
         /// Renames the title of a recorded note in its owner (`NoteSourceEditing`); `false` when it was not changed.
         var renameTitle: @MainActor (NoteKey, String) async -> Bool = { _, _ in false }
     }
@@ -85,9 +91,9 @@ final class NotesWorkspaceModel {
     let presentation: NoteRowPresentation
     /// The Details toggles (author bars, source quotes, wrapped lines).
     let preferences: NoteViewPreferences
-    /// The inspector on the right (Details and History; Comments join it in step 5.2).
+    /// The inspector on the right (Comments, History and Details).
     var inspectorVisible = true
-    var inspectorTab: NoteInspectorTab = .details
+    var inspectorTab: NoteInspectorTab = .comments
     /// The question the delete sheet shows, `nil` when none is open.
     var pendingDelete: DeleteRequest?
 
@@ -381,7 +387,7 @@ final class NotesWorkspaceModel {
             {
                 document.apply(content, attributions: NoteOverlayContent.attributions(heads: heads))
                 document.setActions([])
-                await refreshHistoryIfShown(id)
+                await refreshPanes(id)
             } else {
                 document.markUnavailable()
             }
@@ -397,7 +403,7 @@ final class NotesWorkspaceModel {
                 document.apply(content, attributions: NoteOverlayContent.attributions(heads: heads))
                 document.setActions([])
                 if document.wantsEditing { beginEditing(id) }
-                await refreshHistoryIfShown(id)
+                await refreshPanes(id)
             } else {
                 document.markUnavailable()
             }
@@ -424,7 +430,7 @@ final class NotesWorkspaceModel {
                 attributions: NoteOverlayContent.attributions(heads: heads))
             document.setActions(source.actions(for: key))
             document.canRenameTitle = source is any NoteSourceEditing
-            await refreshHistoryIfShown(id)
+            await refreshPanes(id)
             #if DEBUG
             if qaMixedAuthors { document.qaMixAuthors() }
             if let layer = preferredLayers.removeValue(forKey: id) { document.selectLayer(layer) }
@@ -611,12 +617,18 @@ final class NotesWorkspaceModel {
         case deleted
         case deleteFailed
         case copyNotRemoved
+        /// A comment could not be written; the text is still in the popover or the reply field.
+        case commentFailed
+        /// Comments are read-only (`plugins.notes.readOnly`, a newer database).
+        case commentReadOnly
+        /// The selected text is not in the saved note, so it cannot be commented on.
+        case commentChanged
 
         /// A message that stays as a strip until dismissed, instead of fading from the path bar.
         var isStrip: Bool {
             switch self {
             case .saveFailed, .restoreFailed, .restoreChanged, .restoreReadOnly, .restoreTargetInvalid, .deleteFailed,
-                .copyNotRemoved:
+                .copyNotRemoved, .commentFailed, .commentReadOnly, .commentChanged:
                 true
             default: false
             }

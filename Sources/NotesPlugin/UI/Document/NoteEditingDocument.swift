@@ -20,19 +20,32 @@ struct NoteEditingDocument: View {
     }
 
     var body: some View {
-        NoteEditorSurface(
+        var surface = NoteEditorSurface(
             text: $buffer, pasteboard: model.environment.pasteboard, isReadOnly: !session.isEditable,
-            wrapsLines: preferences.wrapLines, attribution: attribution, showsAuthorBars: preferences.showAuthorBars,
+            wrapsLines: preferences.wrapLines,
+            onAddComment: model.canWriteComments(document) && session.canComment
+                ? { body, selection, text in await model.addComment(body: body, selection: selection, buffer: text) }
+                : nil,
+            highlights: preferences.showComments ? document.highlights : [],
+            onSelectThread: { document.selectedThreadID = $0 }, attribution: attribution,
+            showsAuthorBars: preferences.showAuthorBars,
             onFocusChange: { focused in
                 // Losing focus is a save point.
                 if !focused { Task { await session.flush() } }
             },
-            onEdit: { session.handle($0) },
+            onEdit: {
+                session.handle($0)
+                document.setEditorText($0.text)
+            },
             header: {
                 if let summary = document.summary {
                     NoteDocumentHeader(model: model, document: document, summary: summary)
                 }
             })
+        #if DEBUG
+        surface.qaSelect = document.qaCommentQuote
+        #endif
+        return surface
     }
 
     /// Who wrote each block while typing: the layer's overlay chain, or (before the first write) the layer as

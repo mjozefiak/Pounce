@@ -115,6 +115,7 @@ public final class NotesPlugin: LintelPlugin {
             context.settings.string(NotesSettingsKey.qaManual) != nil
             || context.settings.string(NotesSettingsKey.qaHistory) != nil
             || context.settings.string(NotesSettingsKey.qaDelete) != nil
+            || context.settings.string(NotesSettingsKey.qaComments) != nil
         let usesStore = !locked && (!fixtures || qaManual)
         let overlays: any OverlayIndex & OverlayDetacher
         if locked {
@@ -151,6 +152,7 @@ public final class NotesPlugin: LintelPlugin {
         if usesStore {
             environment.registry = registry
             environment.installHistory(store: storeProvider)
+            environment.installComments(store: storeProvider)
             // Delete (also with `plugins.notes.readOnly`: export, copy and delete keep working): the owner first,
             // the overlays only after it succeeded.
             environment.canDeleteNotes = true
@@ -204,6 +206,9 @@ public final class NotesPlugin: LintelPlugin {
         model.qaMixedAuthors = context.settings.string(NotesSettingsKey.qaAttribution) == "mixed"
         if let manual = context.settings.string(NotesSettingsKey.qaManual) { qaCreateManualNote(manual, in: model) }
         if let history = context.settings.string(NotesSettingsKey.qaHistory) { qaCreateHistory(history, in: model) }
+        if let comments = context.settings.string(NotesSettingsKey.qaComments) {
+            qaCreateComments(comments, in: model)
+        }
         if let delete = context.settings.string(NotesSettingsKey.qaDelete) { qaRequestDelete(delete, in: model) }
     }
 
