@@ -33,29 +33,47 @@ public final class NotesPlugin: LintelPlugin {
 
     public func deactivate() async {}
 
+    /// The Notes section's state, built when the section is first shown or a route reaches it.
+    private(set) lazy var workspace: NotesWorkspaceModel = makeWorkspace()
+
     public var workspaceSections: [WorkspaceSection] {
         [notesSection]
     }
 
-    /// The Notes section of the main window. A stub: it lists the QA fixtures (`--qa-notes`, DEBUG) or says there
-    /// are no notes yet. The explorer, tabs and document come with Phase 3.
+    /// The Notes section of the main window: explorer, tabs, path bar, document and status bar (spec step 3.2).
+    /// `handleRoute` takes an `openNote` route, `handleClose` closes a tab before the window.
     var notesSection: WorkspaceSection {
-        let fixtures = qaFixtures
-        return WorkspaceSection(
-            id: "notes",
+        WorkspaceSection(
+            id: NotesWorkspaceModel.sectionID,
             title: LocalizedStringResource("Notes", comment: "Main window section title"),
             symbolName: "note.text",
-            order: Self.manifest.order
-        ) {
-            AnyView(NotesSectionStub(notes: fixtures))
-        }
+            order: Self.manifest.order,
+            makeView: { [self] in AnyView(NotesSectionView(model: workspace)) },
+            handleRoute: { [self] route in workspace.handle(route) },
+            handleClose: { [self] in workspace.closeCurrentTab() }
+        )
     }
 
-    var qaFixtures: [NoteSummary] {
+    private func makeWorkspace() -> NotesWorkspaceModel {
+        let context = context
+        let provider = noteSourceProvider
+        let none = NoOverlays()
+        let library = NoteLibrary(sources: provider, overlays: none, detacher: none)
+        return NotesWorkspaceModel(
+            environment: NotesWorkspaceModel.Environment(
+                library: library, sourceSetChanges: context.noteSourcesChanged, openSettings: context.openSettings))
+    }
+
+    /// The sources the library reads: the active plugins' (`PluginContext.noteSources`); with `--qa-notes` the
+    /// fixture sources come first, so they win over a real plugin of the same id.
+    private var noteSourceProvider: @MainActor @Sendable () -> [any NoteSource] {
+        let real = context.noteSources
         #if DEBUG
-        context.settings.bool(NotesSettingsKey.qaFixtures, default: false) ? NotesQAFixtures.summaries : []
-        #else
-        []
+        if context.settings.bool(NotesSettingsKey.qaFixtures, default: false) {
+            let fixtures = NotesQAFixtureSource.all()
+            return { fixtures + real() }
+        }
         #endif
+        return real
     }
 }

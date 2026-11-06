@@ -265,10 +265,17 @@ public final class DictationPlugin: LintelPlugin {
     public var panelModes: [PanelMode] {
         let history = history
         let relay = relay
-        let source = DictationHistorySource(
+        var source = DictationHistorySource(
             store: { history.storeBox.value },
             paste: { text in await relay.pasteFromHistory(text) },
             delete: { id in try await history.delete([id]) })
+        #if DEBUG
+        let openNote = context.openNote
+        source.openInNotes = { row in
+            guard let storeID = history.storeID else { return }
+            _ = await openNote(DictationNoteSource.key(storeID: storeID, row: row))
+        }
+        #endif
         return [
             PanelMode(
                 id: Self.historyModeID,

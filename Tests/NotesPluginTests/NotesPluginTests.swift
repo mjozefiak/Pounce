@@ -52,20 +52,39 @@ import Testing
         #expect(keychain.calls == 0)
     }
 
-    @Test func fixturesAppearOnlyWhenTheQAKeyIsOn() {
+    @Test func fixturesAppearOnlyWhenTheQAKeyIsOn() async {
         let off = NotesPlugin(context: makeContext())
-        #expect(off.qaFixtures.count == 0)
+        await off.workspace.refresh()
+        #expect(off.workspace.rows.isEmpty)
         let settings = MemorySettings()
-        let on = NotesPlugin(context: makeContext(settings: settings))
         PluginSettings(pluginID: "notes", store: settings).set(true, for: NotesSettingsKey.qaFixtures)
-        #expect(on.qaFixtures.count == NotesQAFixtures.summaries.count)
-        #expect(on.qaFixtures.count > 0)
+        let on = NotesPlugin(context: makeContext(settings: settings))
+        await on.workspace.refresh()
+        #expect(on.workspace.rows.count == NotesQAFixtures.summaries().count)
+        #expect(on.workspace.rows.count > 0)
     }
 
     @Test func fixtureKeysBelongToTheirOwnersAndAreUnique() {
-        let keys = NotesQAFixtures.summaries.map(\.id)
+        let summaries = NotesQAFixtures.summaries()
+        let keys = summaries.map(\.id)
         #expect(Set(keys).count == keys.count)
-        let owners = Dictionary(uniqueKeysWithValues: NotesQAFixtures.summaries.map { ($0.kind, $0.id.pluginID) })
-        #expect(owners == [.meeting: "meetings", .dictation: "dictation", .manual: "notes"])
+        for summary in summaries {
+            let owner: PluginID = summary.kind == .meeting ? "meetings" : "dictation"
+            #expect(summary.kind == .meeting || summary.kind == .dictation)
+            #expect(summary.id.pluginID == owner)
+            #expect(NotesQAFixtures.content(for: summary.id) != nil)
+        }
+    }
+
+    @Test func theSectionHandlesAnOpenNoteRouteAndClosesATabBeforeTheWindow() throws {
+        let plugin = NotesPlugin(context: makeContext())
+        let section = try #require(plugin.workspaceSections.first)
+        #expect(!section.handleRoute(WorkspaceRoute(kind: "openModels", id: "x")))
+        #expect(!section.handleClose())
+        #expect(section.handleRoute(NoteRoute.route(for: NotesQAFixtures.meetingID)))
+        #expect(section.handleRoute(NoteRoute.route(for: NotesQAFixtures.dictationID)))
+        #expect(plugin.workspace.tabs.tabs.count == 2)
+        #expect(section.handleClose())
+        #expect(!section.handleClose())
     }
 }

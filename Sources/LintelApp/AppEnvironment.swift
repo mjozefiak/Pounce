@@ -78,6 +78,9 @@ struct AppEnvironment {
     ///   - claimEscapeKey: the shell's temporary Escape claim.
     ///   - openSettings: opens the plugin's own Settings pane.
     ///   - openModels: opens the Models pane, or the pane that shows the model (`MainWindowRouter`).
+    ///   - noteSources: the active plugins' note sources (`NoteSourcesRelay`).
+    ///   - noteSourcesChanged: yields when a plugin was switched on or off.
+    ///   - openNote: asks the main window's sections to show a note.
     func makeContext(
         for manifest: PluginManifest,
         resultsChanged: @escaping @Sendable () -> Void = {},
@@ -86,7 +89,10 @@ struct AppEnvironment {
             @escaping @MainActor @Sendable (_ onEscape: @escaping @MainActor @Sendable () -> Void) ->
             EscapeKeyClaim = { _ in .inactive },
         openSettings: @escaping @MainActor @Sendable () -> Void = {},
-        openModels: @escaping @MainActor @Sendable (String?) -> Void = { _ in }
+        openModels: @escaping @MainActor @Sendable (String?) -> Void = { _ in },
+        noteSources: @escaping @MainActor @Sendable () -> [any NoteSource] = { [] },
+        noteSourcesChanged: @escaping @Sendable () -> AsyncStream<Void> = { AsyncStream { $0.finish() } },
+        openNote: @escaping @MainActor @Sendable (NoteKey) -> Bool = { _ in false }
     ) -> PluginContext {
         PluginContext(
             storageDirectory: storageDirectory(for: manifest.id),
@@ -105,7 +111,10 @@ struct AppEnvironment {
             claimEscapeKey: claimEscapeKey,
             openSettings: openSettings,
             modelsDirectory: modelsDirectory,
-            openModels: openModels
+            openModels: openModels,
+            noteSources: noteSources,
+            noteSourcesChanged: noteSourcesChanged,
+            openNote: openNote
         )
     }
 

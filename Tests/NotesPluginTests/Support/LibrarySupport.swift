@@ -83,6 +83,8 @@ final class ScriptedNoteSource: NoteSource, Sendable {
         var listCalls = 0
         var existsCalls: [[NoteKey]] = []
         var started = 0
+        var contents: [NoteKey: NoteContent] = [:]
+        var contentBehavior: Behavior = .answers
         var continuations: [UUID: AsyncStream<Void>.Continuation] = [:]
     }
 
@@ -110,6 +112,15 @@ final class ScriptedNoteSource: NoteSource, Sendable {
     var items: [NoteSummary] {
         get { state.withLock { $0.items } }
         set { state.withLock { $0.items = newValue.sorted { $0.startedAt > $1.startedAt } } }
+    }
+    /// What `content(for:)` returns; a key without an entry is "gone" (`nil`).
+    var contents: [NoteKey: NoteContent] {
+        get { state.withLock { $0.contents } }
+        set { state.withLock { $0.contents = newValue } }
+    }
+    var contentBehavior: Behavior {
+        get { state.withLock { $0.contentBehavior } }
+        set { state.withLock { $0.contentBehavior = newValue } }
     }
     var listCalls: Int { state.withLock { $0.listCalls } }
     var existsCalls: [[NoteKey]] { state.withLock { $0.existsCalls } }
@@ -152,7 +163,11 @@ final class ScriptedNoteSource: NoteSource, Sendable {
         return Set(keys).intersection(known ?? Set(keys))
     }
 
-    func content(for key: NoteKey) async throws -> NoteContent? { nil }
+    func content(for key: NoteKey) async throws -> NoteContent? {
+        let (behavior, content) = state.withLock { ($0.contentBehavior, $0.contents[key]) }
+        if behavior == .throwsError { throw ScriptedError() }
+        return content
+    }
     func delete(_ key: NoteKey) async throws {}
     func actions(for key: NoteKey) -> [NoteSourceAction] { [] }
 

@@ -18,6 +18,11 @@ struct DictationHistorySource: PanelModeSource {
     let paste: @Sendable (String) async -> Void
     let delete: @Sendable (Int64) async throws -> Void
     var now: @Sendable () -> Date = { Date() }
+    #if DEBUG
+    /// Shows the entry in the Notes section of the main window (Notes workspace, step 3.2). DEBUG only until the
+    /// Notes plugin ships (step 7.1); `nil` adds no action.
+    var openInNotes: (@Sendable (Int64) async -> Void)?
+    #endif
 
     func search(_ query: NormalizedQuery, filter: PanelModeFilter.ID?, limit: Int) async throws -> [Candidate] {
         guard let store = store() else { return [] }
@@ -53,7 +58,7 @@ struct DictationHistorySource: PanelModeSource {
         let store = store
         let paste = paste
         let delete = delete
-        return [
+        var actions = [
             ResultAction(
                 id: "dictation.history.paste",
                 title: LocalizedStringResource("Paste", comment: "Dictation history action that pastes the text"),
@@ -81,6 +86,19 @@ struct DictationHistorySource: PanelModeSource {
                 confirmation: Self.deleteConfirmation
             ) { _ in try await delete(id) },
         ]
+        #if DEBUG
+        if let openInNotes {
+            actions.append(
+                ResultAction(
+                    id: "dictation.history.openInLintel",
+                    title: LocalizedStringResource(
+                        "Open in Lintel", comment: "Dictation history action that shows the entry in the Notes section"),
+                    symbolName: "arrow.up.forward.app",
+                    shortcut: KeyShortcut(key: "o", modifiers: .command)
+                ) { _ in await openInNotes(id) })
+        }
+        #endif
+        return actions
     }
 
     private func candidate(_ entry: DictationEntry, match: MatchResult?, now: Date) -> Candidate {

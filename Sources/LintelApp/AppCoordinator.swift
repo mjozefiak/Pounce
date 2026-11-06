@@ -32,6 +32,8 @@ final class AppCoordinator {
     private let settingsRelay: PluginSettingsRelay
     /// `PluginContext.resultsChanged` with the plugin's id, for the Settings banner.
     private let statusRelay = PluginStatusRelay()
+    /// `PluginContext.noteSources`, `noteSourcesChanged` and `openNote` (the Notes workspace).
+    private let noteSourcesRelay = NoteSourcesRelay()
     private let icons: IconCache
     private let logger = Logger(subsystem: "com.lintelapp", category: "app")
 
@@ -50,6 +52,7 @@ final class AppCoordinator {
         let settingsRelay = PluginSettingsRelay()
         self.settingsRelay = settingsRelay
         let statusRelay = statusRelay
+        let noteRelay = noteSourcesRelay
         let hotkeys = HotkeyService(
             registrar: registrar,
             settings: environment.settings,
@@ -73,7 +76,10 @@ final class AppCoordinator {
                     },
                     claimEscapeKey: { onEscape in hotkeys.claimEscape(onEscape) },
                     openSettings: { settingsRelay.open(manifest.id.rawValue) },
-                    openModels: { packageID in settingsRelay.openModels(manifest.id.rawValue, packageID) }
+                    openModels: { packageID in settingsRelay.openModels(manifest.id.rawValue, packageID) },
+                    noteSources: { noteRelay.sources() },
+                    noteSourcesChanged: { noteRelay.changes() },
+                    openNote: { key in noteRelay.openNote(WorkspaceRoute(kind: "openNote", id: key.rawValue)) }
                 )
             },
             settings: environment.settings
@@ -92,6 +98,49 @@ final class AppCoordinator {
         settingsRelay.handler = { [weak self] id in self?.openSettings(pane: id) }
         settingsRelay.modelsHandler = { [weak self] id, packageID in self?.openModels(from: id, packageID: packageID) }
         statusRelay.handler = { [weak self] id in self?.settingsHost?.pluginResultsChanged(id) }
+        let host = host
+        let logger = logger
+        var reported = Set<String>()
+        noteRelay.sources = {
+            Self.activeNoteSources(
+                host, report: { if reported.insert($0).inserted { logger.error("\($0, privacy: .public)") } })
+        }
+        noteRelay.openNote = { [weak self] route in self?.openNote(route) ?? false }
+        observeNoteSources()
+    }
+
+    /// The active plugins' note sources. A source whose `pluginID` is not its plugin's id, and any later source
+    /// of an id already taken, is dropped and reported once.
+    static func activeNoteSources(_ host: PluginHost, report: (String) -> Void = { _ in }) -> [any NoteSource] {
+        var taken = Set<PluginID>()
+        var result: [any NoteSource] = []
+        for entry in host.entries where entry.state.isActive {
+            for source in entry.plugin.noteSources {
+                guard source.pluginID == entry.manifest.id else {
+                    report("note source dropped: id does not match its plugin \(entry.manifest.id.rawValue)")
+                    continue
+                }
+                guard taken.insert(source.pluginID).inserted else {
+                    report("note source dropped: duplicate id \(source.pluginID.rawValue)")
+                    continue
+                }
+                result.append(source)
+            }
+        }
+        return result
+    }
+
+    /// Tells Notes when a plugin was switched on or off, failed or recovered: its set of sources changed.
+    private func observeNoteSources() {
+        withObservationTracking {
+            _ = host.entries.map(\.state)
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                guard let self else { return }
+                self.noteSourcesRelay.signalChanged()
+                self.observeNoteSources()
+            }
+        }
     }
 
     /// Builds the panel and windows, activates the enabled plugins, registers shortcuts and, while steps
