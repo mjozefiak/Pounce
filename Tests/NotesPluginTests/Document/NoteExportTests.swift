@@ -47,6 +47,26 @@ struct NoteExportTests {
         #expect(NoteMarkdownExport.displayTitle(summary) == "Untitled note")
     }
 
+    @Test("a speaker name and a body cannot carry bidi overrides or inject lines")
+    func sanitised() {
+        let key = Fixtures.key("meetings", "a")
+        let summary = NoteSummary(id: key, kind: .meeting, title: "T", startedAt: Fixtures.epoch)
+        let speaker = NoteSpeaker(id: "s1", name: "Eve\u{202E}\n# Injected")
+        let layer = NoteLayer(
+            id: NoteDocumentModel.transcriptLayerID, author: .stt, markdown: "Hello\u{202E}evil\u{200B}",
+            provenance: [NoteBlockProvenance(blockIndex: 0, speakerID: "s1", startMs: 1000)], version: "1")
+        let content = NoteContent(summary: summary, layers: [layer], speakers: [speaker], details: [])
+        let text = NoteMarkdownExport.markdown(content, layerID: NoteDocumentModel.transcriptLayerID)
+        #expect(!text.contains("\u{202E}"))
+        #expect(!text.contains("\u{200B}"))
+        #expect(text.contains("**Eve \\# Injected** (0:01): Helloevil"))
+        #expect(!text.contains("\n# Injected"))
+        let notes = NoteContent(
+            summary: summary, layers: [NoteLayer(id: "notes", author: .agent, markdown: "A\u{202E}B\r\nC", version: "1")],
+            speakers: [], details: [])
+        #expect(NoteMarkdownExport.markdown(notes, layerID: "notes") == "# T\n\nAB\nC\n")
+    }
+
     @Test("a file name has no separators, no control characters, no leading dot and a limit")
     func fileNames() {
         func name(_ title: String?) -> String {

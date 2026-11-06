@@ -8,21 +8,24 @@ enum NoteMarkdownExport {
     static func markdown(_ content: NoteContent, layerID: String) -> String {
         guard let layer = content.layers.first(where: { $0.id == layerID }) else { return "" }
         let title = escapeHeading(displayTitle(content.summary))
-        let body = layerID == NoteDocumentModel.transcriptLayerID ? transcript(layer, content.speakers) : layer.markdown
+        let raw = layerID == NoteDocumentModel.transcriptLayerID ? transcript(layer, content.speakers) : layer.markdown
+        // Text from a source or a model is untrusted: no bidi override, invisible or control character reaches a file.
+        let body = MarkdownText.cleaned(raw, keepNewlines: true)
         return "# \(title)\n\n\(body.trimmingCharacters(in: .whitespacesAndNewlines))\n"
     }
 
     /// One paragraph per segment: `**Name** (12:41): text`. The text is already Markdown-escaped by its source.
     static func transcript(_ layer: NoteLayer, _ speakers: [NoteSpeaker]) -> String {
-        let blocks = MarkdownBlocks.split(layer.markdown)
+        let blocks = MarkdownBlocks.split(MarkdownText.cleaned(layer.markdown, keepNewlines: true))
         var facts: [Int: NoteBlockProvenance] = [:]
         for entry in layer.provenance where facts[entry.blockIndex] == nil { facts[entry.blockIndex] = entry }
         return blocks.enumerated().map { index, text in
             var prefix = ""
             if let name = facts[index]?.speakerID.flatMap({ id in speakers.first { $0.id == id }?.name }),
-                !name.isEmpty
+                case let clean = MarkdownText.cleaned(name, keepNewlines: false).trimmingCharacters(in: .whitespaces),
+                !clean.isEmpty
             {
-                prefix = "**\(escapeInline(name))**"
+                prefix = "**\(escapeInline(clean))**"
             }
             if let start = facts[index]?.startMs {
                 prefix += (prefix.isEmpty ? "" : " ") + "(\(NoteQuote.clock(milliseconds: start)))"
