@@ -53,6 +53,9 @@ struct BlockAttribution: Sendable {
 
     func author(of block: String) -> String? { firstAuthor[block] }
 
+    /// Block text to its first author, for `LayerAttribution`.
+    var authors: [String: String] { firstAuthor }
+
     mutating func add(author: String, body: String) {
         for block in MarkdownBlocks.split(body) where firstAuthor[block] == nil { firstAuthor[block] = author }
     }

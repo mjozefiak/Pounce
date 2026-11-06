@@ -138,6 +138,13 @@ struct NotePathBar: View {
                 model.copyMarkdown()
             }
             .keyboardShortcut("c", modifiers: [.command, .shift])
+            if !model.inspectorVisible {
+                iconButton(
+                    "sidebar.right", label: Text("Show the inspector", comment: "Path bar: shows the inspector")
+                ) {
+                    model.inspectorVisible = true
+                }
+            }
             iconButton(
                 "square.and.arrow.down",
                 label: Text("Save .md…", comment: "Path bar: saves the note as a Markdown file")

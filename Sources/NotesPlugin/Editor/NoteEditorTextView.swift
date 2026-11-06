@@ -11,6 +11,8 @@ import LintelKit
 final class NoteEditorTextView: NSTextView {
     /// Where ⌘C, ⌘X and Copy Markdown from the editor write (`NoteClipboard`, `PluginContext.pasteboard`).
     var copyText: (String) -> Void = { _ in }
+    /// The text view drew (the layout it shows is current): the author gutter measures the blocks again.
+    var onDraw: () -> Void = {}
     /// ⌘B and ⌘I, set by the controller.
     var formatShortcut: (NoteFormatAction) -> Void = { _ in }
 
@@ -53,6 +55,11 @@ final class NoteEditorTextView: NSTextView {
         setAccessibilityLabel(
             String(localized: "Note text", comment: "Accessibility label of the Markdown editor of a note"))
         setAccessibilityRole(.textArea)
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        onDraw()
     }
 
     // MARK: Services

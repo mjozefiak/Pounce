@@ -19,10 +19,14 @@ struct NotesSectionView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(LintelBrand.windowBackground)
+                if model.inspectorVisible, let document = model.currentDocument, document.phase == .loaded {
+                    NoteInspector(model: model, document: document)
+                }
             }
             NotesStatusBar(model: model)
         }
         .background(LintelBrand.windowBackground)
+        .environment(model.preferences)
         .task { await model.run() }
     }
 }

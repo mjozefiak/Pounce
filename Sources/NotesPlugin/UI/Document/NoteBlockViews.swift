@@ -2,33 +2,38 @@ import LintelKit
 import LintelUI
 import SwiftUI
 
-/// One block with its author bar (prototype `.blk`): the gutter names who wrote it (AI, You, STT) and the body
-/// draws the Markdown. The label shows where a section starts (a heading, or another author); the bar runs
-/// beside every block, and VoiceOver hears the author at every block.
+/// One block with its author bar (prototype `.blk`): the gutter names who wrote it (AI, You, STT) next to a bar,
+/// and the body draws the Markdown. Every block has its own author (`BlockAttribution`, spec step 4.3): a block
+/// the user edited is "You" even in a note the model wrote. A block that is no longer the seeded one says so, and
+/// loses its quote chips. VoiceOver hears the author, and the mark, at every block, also when the bars are off.
 struct NoteBlockRow: View {
     let document: NoteDocumentModel
     let block: NoteBlock
     let previous: NoteBlock?
     @Environment(\.lintelTextSize) private var textSize
+    @Environment(NoteViewPreferences.self) private var preferences
 
-    private var author: NoteAuthor { document.selectedLayer?.author ?? .stt }
+    private var info: BlockAttributionInfo { document.info(forBlockAt: block.index) }
     private var isTranscript: Bool { document.layerID == NoteDocumentModel.transcriptLayerID }
 
-    private var showsLabel: Bool {
-        if case .heading = block.kind { return true }
-        return previous == nil
-    }
-
     var body: some View {
+        let info = info
         HStack(alignment: .top, spacing: 0) {
-            AuthorGutter(author: author, showsLabel: showsLabel)
-            Group {
+            AuthorGutter(info: info, showsBars: preferences.showAuthorBars)
+            VStack(alignment: .leading, spacing: 2 * textSize.scale) {
                 if isTranscript {
                     TranscriptLine(document: document, block: block)
                 } else {
                     NoteBlockBody(document: document, block: block)
                 }
+                if let mark = info.mark {
+                    Text(verbatim: mark.text)
+                        .font(textSize.font(.footnote))
+                        .foregroundStyle(LintelBrand.secondaryText)
+                        .accessibilityHidden(true)
+                }
             }
+            .environment(\.noteShowsQuotes, info.showsQuotes && preferences.showQuotes)
             .padding(.leading, 6)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -42,7 +47,10 @@ extension NoteAuthor {
     var gutterText: String {
         switch self {
         case .agent: "AI"
-        case .human: String(localized: "You", comment: "Document: author bar of a block the user wrote")
+        case .human:
+            String(
+                localized: "document.author.you", defaultValue: "You",
+                comment: "Document: author bar of a block the user wrote (the gutter label and the legend)")
         case .stt: "STT"
         default: ""
         }
@@ -57,37 +65,62 @@ extension NoteAuthor {
         default: ""
         }
     }
+
+    /// The bar's colour (prototype `.gt.ag`, `.you`, `.stt`).
+    @MainActor var barColor: Color {
+        switch self {
+        case .agent: LintelBrand.accent
+        case .human: LintelBrand.ink
+        default: LintelBrand.secondaryText.opacity(0.5)
+        }
+    }
 }
 
-@MainActor private func barColor(_ author: NoteAuthor) -> Color {
-    switch author {
-    case .agent: LintelBrand.accent
-    case .human: LintelBrand.ink
-    default: LintelBrand.secondaryText.opacity(0.5)
+extension BlockMark {
+    /// What the block says about itself (spec "Attribution and verification invariant").
+    var text: String {
+        switch self {
+        case .revisedNotChecked:
+            String(
+                localized: "Revised, not checked against the recording",
+                comment: "Document: an AI block that was changed after it was checked against the recording")
+        case .addedByYou:
+            String(localized: "Added by you", comment: "Document: a block the user wrote or edited in an AI note")
+        }
+    }
+}
+
+extension BlockAttributionInfo {
+    /// The author in words, then the mark: what VoiceOver says at this block.
+    var spokenLabel: String {
+        guard let mark else { return author.spokenName }
+        return "\(author.spokenName), \(mark.text)"
     }
 }
 
 struct AuthorGutter: View {
-    let author: NoteAuthor
-    let showsLabel: Bool
+    let info: BlockAttributionInfo
+    let showsBars: Bool
     @Environment(\.lintelTextSize) private var textSize
 
     var body: some View {
-        Text(verbatim: author.gutterText)
+        Text(verbatim: info.author.gutterText)
             .font(textSize.font(.caption1).monospaced())
             .foregroundStyle(LintelBrand.secondaryText)
-            .opacity(showsLabel ? 1 : 0)
             .padding(.top, 5 * textSize.scale)
             .padding(.trailing, 10)
             .frame(width: 4.2 * 12.5 * textSize.scale, alignment: .trailing)
             .frame(maxHeight: .infinity, alignment: .top)
             .overlay(alignment: .trailing) {
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(barColor(author))
+                    .fill(info.author.barColor)
                     .frame(width: 3)
                     .padding(.vertical, 3)
             }
-            .accessibilityLabel(Text(verbatim: author.spokenName))
+            // The prototype's `.noauth .gt{visibility:hidden}`: nothing is drawn, but the author stays spoken.
+            .opacity(showsBars ? 1 : 0)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(verbatim: info.spokenLabel))
     }
 }
 
@@ -97,6 +130,7 @@ struct QuoteChip: View {
     let document: NoteDocumentModel
     let timeMs: Int
     @Environment(\.lintelTextSize) private var textSize
+    @Environment(\.noteShowsQuotes) private var showsQuotes
 
     var body: some View {
         let label = Text(verbatim: NoteQuote.clock(milliseconds: timeMs))
@@ -104,7 +138,9 @@ struct QuoteChip: View {
             .foregroundStyle(LintelBrand.accentText)
             .padding(.horizontal, 6)
             .background(LintelBrand.fill, in: RoundedRectangle(cornerRadius: 4))
-        if document.transcriptLayer != nil {
+        if !showsQuotes {
+            EmptyView()
+        } else if document.transcriptLayer != nil {
             Button {
                 document.jumpToTranscript(atMs: timeMs)
             } label: {

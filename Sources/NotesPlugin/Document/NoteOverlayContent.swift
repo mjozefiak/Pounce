@@ -8,6 +8,8 @@ struct OverlayLayerHead: Sendable, Equatable {
     var provenance: [NoteBlockProvenance]
     /// The speakers the seed kept (transcript layers); used only when there is no source to ask.
     var seedSpeakers: [NoteSpeaker]
+    /// Who wrote each block and which blocks keep their quote chips (step 4.3).
+    var attribution: LayerAttribution?
 }
 
 /// Puts overlays and sources together for one open note (spec "Components": the document shows the head revision,
@@ -27,9 +29,14 @@ enum NoteOverlayContent {
                 $1.provenance(blockIndex: $0)
             }
             var speakers: [NoteSpeaker] = []
-            if let first = try store.revisions(of: document.id).first { speakers = seedSpeakers(first.metaJSON) }
+            let chain = try store.revisions(of: document.id)
+            if let first = chain.first { speakers = seedSpeakers(first.metaJSON) }
+            // The layer's own author is the seed's (an overlay of a manual note is all `human`).
+            let layerAuthor = NoteAuthor(rawValue: chain.first?.author ?? NoteAuthor.human.rawValue)
             return OverlayLayerHead(
-                layerID: document.layer, markdown: head.body, provenance: provenance, seedSpeakers: speakers)
+                layerID: document.layer, markdown: head.body, provenance: provenance, seedSpeakers: speakers,
+                attribution: .overlay(
+                    layerAuthor: layerAuthor, chain: chain, head: StoredBlocks.decode(head.blocksJSON)))
         }
     }
 
@@ -46,6 +53,11 @@ enum NoteOverlayContent {
         guard let data = json?.data(using: .utf8), let meta = try? JSONDecoder().decode(SeedMeta.self, from: data)
         else { return [] }
         return (meta.speakers ?? []).map { NoteSpeaker(id: $0.id, name: $0.name, isSelf: $0.isSelf) }
+    }
+
+    /// The attribution of every overlaid layer, by layer id; a layer without an overlay is the source's own text.
+    static func attributions(heads: [OverlayLayerHead]) -> [String: LayerAttribution] {
+        Dictionary(heads.compactMap { head in head.attribution.map { (head.layerID, $0) } }) { first, _ in first }
     }
 
     /// What the document model gets. `source` is what the source returned (`nil`: gone or never asked).

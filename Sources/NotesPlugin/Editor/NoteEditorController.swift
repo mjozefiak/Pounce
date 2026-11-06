@@ -1,4 +1,5 @@
 import AppKit
+import LintelCore
 import LintelKit
 import LintelUI
 
@@ -22,6 +23,14 @@ final class NoteEditorController: NSObject, NSTextStorageDelegate, NSTextViewDel
     var onEdit: (NoteEditorEdit) -> Void = { _ in }
     /// The editor gained or lost focus (a save point, spec "Saving").
     var onFocusChange: (Bool) -> Void = { _ in }
+
+    /// The author gutter beside the text (the scroll view's ruler), set by the SwiftUI wrapper.
+    var gutter: AuthorGutterRuler?
+    /// Who wrote each block of the buffer, asked with the blocks of the current text (spec step 4.3); `nil` draws
+    /// no gutter. It runs on every change, so it stays a dictionary lookup per block.
+    var attribution: (([String]) -> [BlockAttributionInfo])? {
+        didSet { refreshGutter() }
+    }
 
     private let pasteboard: any PasteboardClient
     private var isReplacingText = false
@@ -57,6 +66,23 @@ final class NoteEditorController: NSObject, NSTextStorageDelegate, NSTextViewDel
         isReplacingText = false
         textView.undoManager?.removeAllActions()
         textView.typingAttributes = styler.theme.baseAttributes
+        refreshGutter()
+    }
+
+    /// Locates every block of the buffer and hands the gutter its author. Called after the text changed.
+    func refreshGutter() {
+        guard let gutter else { return }
+        guard let attribution else {
+            gutter.blocks = []
+            return
+        }
+        let text = textView.string
+        let blocks = MarkdownBlocks.split(text)
+        let infos = attribution(blocks)
+        let ranges = BlockLocator.ranges(of: blocks, in: text)
+        gutter.blocks = zip(infos, ranges).compactMap { info, range in
+            range.map { AuthorGutterRuler.Block(range: $0, info: info) }
+        }
     }
 
     func setTextSize(_ size: TextSize) {
@@ -116,6 +142,7 @@ final class NoteEditorController: NSObject, NSTextStorageDelegate, NSTextViewDel
     func textDidChange(_ notification: Notification) {
         guard !isReplacingText, let edit = lastEdit else { return }
         lastEdit = nil
+        refreshGutter()
         onEdit(
             NoteEditorEdit(
                 text: textView.string, range: edit.range.location..<(edit.range.location + edit.range.length),

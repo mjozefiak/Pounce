@@ -28,6 +28,8 @@ final class NotesWorkspaceModel {
         var calendar: Calendar = .current
         var locale: Locale = .current
         var pageSize = 100
+        /// `plugins.notes.*`, for the inspector's Details toggles; `nil` keeps them in memory (tests).
+        var settings: PluginSettings?
         /// The clock and budget of a source's `content(for:)`, like the listing's: a source that does not answer in
         /// time leaves the tab "unavailable" and does not hold up the other tabs.
         var clock: any Clock<Duration> = ContinuousClock()
@@ -52,6 +54,10 @@ final class NotesWorkspaceModel {
 
     let environment: Environment
     let presentation: NoteRowPresentation
+    /// The Details toggles (author bars, source quotes, wrapped lines).
+    let preferences: NoteViewPreferences
+    /// The inspector on the right (Details today; History and Comments join it in steps 4.5 and 5.2).
+    var inspectorVisible = true
 
     private(set) var loadState: LoadState = .loading
     private(set) var rows: [NoteRow] = []
@@ -91,6 +97,8 @@ final class NotesWorkspaceModel {
     var initialSearch: String?
     /// `plugins.notes.qaEditor`: `on` or `readonly` shows the open note in the editor.
     var qaEditor: String?
+    /// `plugins.notes.qaAttribution=mixed`.
+    var qaMixedAuthors = false
     #endif
 
     private(set) var tabs = NoteTabSet()
@@ -99,6 +107,7 @@ final class NotesWorkspaceModel {
     init(environment: Environment) {
         self.environment = environment
         presentation = NoteRowPresentation(calendar: environment.calendar, locale: environment.locale)
+        preferences = NoteViewPreferences(settings: environment.settings)
     }
 
     // MARK: Listing
@@ -327,7 +336,7 @@ final class NotesWorkspaceModel {
             if let content = NoteOverlayContent.compose(
                 item: id, source: nil, heads: heads, summary: row(for: id)?.summary)
             {
-                document.apply(content)
+                document.apply(content, attributions: NoteOverlayContent.attributions(heads: heads))
                 document.setActions([])
             } else {
                 document.markUnavailable()
@@ -350,9 +359,12 @@ final class NotesWorkspaceModel {
         case .value(let read):
             let heads = await environment.overlayHeads(id)
             guard isCurrent(epoch, id, document) else { return }
-            document.apply(NoteOverlayContent.compose(item: id, source: read, heads: heads, summary: nil))
+            document.apply(
+                NoteOverlayContent.compose(item: id, source: read, heads: heads, summary: nil),
+                attributions: NoteOverlayContent.attributions(heads: heads))
             document.setActions(source.actions(for: key))
             #if DEBUG
+            if qaMixedAuthors { document.qaMixAuthors() }
             if let layer = preferredLayers.removeValue(forKey: id) { document.selectLayer(layer) }
             #endif
         case .failed, .timedOut:

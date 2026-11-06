@@ -98,16 +98,20 @@ struct NoteDocumentHeader: View {
                 .foregroundStyle(LintelBrand.ink)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
-            HStack(spacing: 6 * textSize.scale) {
+            // The prototype's `.dm{display:flex;flex-wrap:wrap}`: the layer switch drops to its own line when the
+            // chips and the switch do not fit (narrow window, large text, Polish).
+            NoteWrapLayout(spacing: 6 * textSize.scale, lineSpacing: 6 * textSize.scale) {
                 ForEach(chips, id: \.self) { chip in
                     Text(verbatim: chip)
                         .font(textSize.font(.footnote))
                         .foregroundStyle(LintelBrand.secondaryText)
+                        .lineLimit(1)
                         .padding(.horizontal, 8)
                         .overlay(RoundedRectangle(cornerRadius: 6).stroke(LintelBrand.hairline))
                 }
-                Spacer(minLength: 0)
-                if document.layers.count > 1 { LayerSwitch(document: document) }
+                if document.layers.count > 1 {
+                    LayerSwitch(document: document).layoutValue(key: NoteWrapTrailingKey.self, value: true)
+                }
             }
         }
         .padding(.top, 20 * textSize.scale)
@@ -143,6 +147,8 @@ struct LayerSwitch: View {
                     Text(verbatim: NoteDocumentModel.title(ofLayer: layer.id))
                         .font(textSize.font(.callout, weight: isOn ? .semibold : .regular))
                         .foregroundStyle(isOn ? LintelBrand.ink : LintelBrand.secondaryText)
+                        .lineLimit(1)
+                        .fixedSize()
                         .padding(.horizontal, 12 * textSize.scale)
                         .padding(.vertical, 2 * textSize.scale)
                         .background(isOn ? LintelBrand.card : Color.clear, in: RoundedRectangle(cornerRadius: 5))
@@ -156,5 +162,63 @@ struct LayerSwitch: View {
         .background(LintelBrand.fill, in: RoundedRectangle(cornerRadius: 7))
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text("Show", comment: "Accessibility label of the switch between a note's layers"))
+    }
+}
+
+struct NoteWrapTrailingKey: LayoutValueKey {
+    static let defaultValue = false
+}
+
+/// Lays its children out in rows, left to right, starting a new row when one does not fit (CSS `flex-wrap`).
+struct NoteWrapLayout: Layout {
+    var spacing: CGFloat = 6
+    var lineSpacing: CGFloat = 6
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let rows = arrange(in: proposal.width ?? .infinity, subviews: subviews)
+        let width =
+            rows.map { $0.reduce(0) { $0 + $1.size.width } + spacing * CGFloat(max($0.count - 1, 0)) }.max() ?? 0
+        let height =
+            rows.reduce(CGFloat(0)) { $0 + (($1.map(\.size.height).max()) ?? 0) } + lineSpacing
+            * CGFloat(max(rows.count - 1, 0))
+        return CGSize(width: proposal.width ?? width, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var y = bounds.minY
+        for row in arrange(in: bounds.width, subviews: subviews) {
+            var x = bounds.minX
+            let height = row.map(\.size.height).max() ?? 0
+            for item in row {
+                // The prototype's `.sp` spacer: a trailing item sits at the right end of its row.
+                let left = subviews[item.index][NoteWrapTrailingKey.self] ? max(x, bounds.maxX - item.size.width) : x
+                subviews[item.index].place(
+                    at: CGPoint(x: left, y: y + (height - item.size.height) / 2), proposal: ProposedViewSize(item.size))
+                x += item.size.width + spacing
+            }
+            y += height + lineSpacing
+        }
+    }
+
+    private struct Item {
+        var index: Int
+        var size: CGSize
+    }
+
+    private func arrange(in width: CGFloat, subviews: Subviews) -> [[Item]] {
+        var rows: [[Item]] = [[]]
+        var used: CGFloat = 0
+        for index in subviews.indices {
+            let size = subviews[index].sizeThatFits(.unspecified)
+            let needed = rows[rows.count - 1].isEmpty ? size.width : used + spacing + size.width
+            if needed > width, !rows[rows.count - 1].isEmpty {
+                rows.append([])
+                used = size.width
+            } else {
+                used = needed
+            }
+            rows[rows.count - 1].append(Item(index: index, size: size))
+        }
+        return rows
     }
 }

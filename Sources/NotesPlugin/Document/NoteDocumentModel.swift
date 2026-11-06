@@ -1,4 +1,5 @@
 import Foundation
+import LintelCore
 import LintelKit
 import Observation
 
@@ -42,6 +43,9 @@ final class NoteDocumentModel {
     /// editor shows). `apply` keeps their text and version.
     private(set) var frozenLayers: Set<String> = []
     private var parsed: [String: [NoteBlock]] = [:]
+    /// The attribution of the layers that have an overlay (`NoteOverlayContent.attributions`); the others are the
+    /// source's own text.
+    private(set) var attributions: [String: LayerAttribution] = [:]
 
     init(id: NoteItemID) {
         self.id = id
@@ -57,7 +61,8 @@ final class NoteDocumentModel {
     var transcriptLayer: NoteLayer? { layers.first { $0.id == Self.transcriptLayerID } }
 
     /// Takes what the source returned: `nil` means the note is gone. The shown layer stays when it still exists.
-    func apply(_ incoming: NoteContent?) {
+    func apply(_ incoming: NoteContent?, attributions: [String: LayerAttribution] = [:]) {
+        self.attributions = attributions
         var content = incoming
         // The editor froze these layers at the first keystroke: the view never reloads them from the source.
         if var updated = content {
@@ -76,6 +81,7 @@ final class NoteDocumentModel {
             blocks = []
             parsed = [:]
             layerID = nil
+            blockInfos = []
             return
         }
         self.content = content
@@ -86,7 +92,15 @@ final class NoteDocumentModel {
             highlightedBlock = nil
         }
         blocks = blocks(of: layerID)
+        refreshInfos()
     }
+
+    #if DEBUG
+    fileprivate func attributionsOverride(_ layer: String, _ attribution: LayerAttribution) {
+        attributions[layer] = attribution
+        refreshInfos()
+    }
+    #endif
 
     func freezeLayer(_ id: String) { frozenLayers.insert(id) }
 
@@ -97,6 +111,31 @@ final class NoteDocumentModel {
         if content == nil { phase = .unavailable }
     }
 
+    // MARK: Attribution
+
+    /// The attribution of a layer: its overlay's, else the source's own text (every block the layer's author).
+    func attribution(ofLayer id: String) -> LayerAttribution {
+        attributions[id] ?? .source(author: layers.first { $0.id == id }?.author ?? .stt)
+    }
+
+    /// Who wrote each block of the shown layer, and which blocks keep their quote chips.
+    private(set) var blockInfos: [BlockAttributionInfo] = []
+
+    private func refreshInfos() {
+        guard let layerID else {
+            blockInfos = []
+            return
+        }
+        blockInfos = attribution(ofLayer: layerID).infos(blocks: blocks.map(\.source))
+    }
+
+    func info(forBlockAt index: Int) -> BlockAttributionInfo {
+        index < blockInfos.count
+            ? blockInfos[index]
+            : BlockAttributionInfo(
+                index: index, author: selectedLayer?.author ?? .stt, mark: nil, showsQuotes: true)
+    }
+
     // MARK: Layers
 
     func selectLayer(_ id: String) {
@@ -104,6 +143,7 @@ final class NoteDocumentModel {
         layerID = id
         highlightedBlock = nil
         blocks = blocks(of: id)
+        refreshInfos()
     }
 
     private func blocks(of layerID: String?) -> [NoteBlock] {
@@ -160,3 +200,29 @@ final class NoteDocumentModel {
         return NoteMarkdownExport.markdown(content, layerID: layerID)
     }
 }
+
+#if DEBUG
+extension NoteDocumentModel {
+    /// `plugins.notes.qaAttribution=mixed`: draws the agent's layers as if the user had added one block and the
+    /// agent had revised another, so QA sees every bar, mark and chip rule without a store. Nothing is written.
+    func qaMixAuthors() {
+        for layer in layers where layer.author == .agent {
+            let blocks = MarkdownBlocks.split(layer.markdown)
+            guard blocks.count > 3 else { continue }
+            var seeded = Set(blocks)
+            var first = Dictionary(blocks.map { ($0, NoteAuthor.agent.rawValue) }) { first, _ in first }
+            first[blocks[2]] = NoteAuthor.human.rawValue
+            seeded.remove(blocks[2])
+            first[blocks[3]] = NoteAuthor.agent.rawValue
+            seeded.remove(blocks[3])
+            qaSetAttribution(
+                LayerAttribution(layerAuthor: .agent, firstAuthors: first, storedAuthors: nil, seededTexts: seeded),
+                for: layer.id)
+        }
+    }
+
+    private func qaSetAttribution(_ attribution: LayerAttribution, for layer: String) {
+        attributionsOverride(layer, attribution)
+    }
+}
+#endif

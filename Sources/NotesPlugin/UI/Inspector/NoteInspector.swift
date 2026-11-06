@@ -1,0 +1,172 @@
+import LintelKit
+import LintelUI
+import SwiftUI
+
+/// The inspector on the right of the document (prototype `.insp`): a tab strip and the pane. Details is the only
+/// pane so far (History arrives in step 4.5, Comments in step 5.2); the strip is built so they slot in.
+struct NoteInspector: View {
+    let model: NotesWorkspaceModel
+    let document: NoteDocumentModel
+    @Environment(\.lintelTextSize) private var textSize
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 4) {
+                Label {
+                    Text("Details", comment: "Inspector: tab with the view toggles and the note's facts")
+                        .font(textSize.font(.callout, weight: .bold))
+                } icon: {
+                    Image(systemName: "slider.horizontal.3").accessibilityHidden(true)
+                }
+                .foregroundStyle(LintelBrand.accentText)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(LintelBrand.windowSelectionTint, in: RoundedRectangle(cornerRadius: 6))
+                .accessibilityAddTraits(.isSelected)
+                Spacer(minLength: 0)
+                Button {
+                    model.inspectorVisible = false
+                } label: {
+                    Image(systemName: "sidebar.right")
+                        .font(textSize.font(.callout))
+                        .foregroundStyle(LintelBrand.secondaryText)
+                        .frame(width: 26 * textSize.scale, height: 26 * textSize.scale)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("Hide the inspector", comment: "Accessibility label of the inspector's close"))
+                .help(Text("Hide the inspector", comment: "Tooltip of the inspector's close button"))
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 33.75 * textSize.scale)
+            .overlay(alignment: .bottom) { LintelDivider() }
+            ScrollView {
+                NoteDetailsPane(model: model, document: document)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .frame(width: min(23 * 12.5 * textSize.scale, 300))
+        .background(LintelBrand.sidebarBackground)
+        .overlay(alignment: .leading) { LintelDivider(axis: .vertical) }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(Text("Inspector", comment: "Accessibility label of the note inspector"))
+    }
+}
+
+/// Details (prototype `lib-details`): the view toggles with the author legend, then what the source says about
+/// the note. Every toggle writes its `plugins.notes.*` setting at once.
+struct NoteDetailsPane: View {
+    let model: NotesWorkspaceModel
+    let document: NoteDocumentModel
+    @Environment(\.lintelTextSize) private var textSize
+
+    var body: some View {
+        @Bindable var preferences = model.preferences
+        return VStack(alignment: .leading, spacing: 0) {
+            sectionHeader(Text("View", comment: "Inspector, Details: heading of the view toggles"), first: true)
+            toggleRow(
+                Text("Author bars", comment: "Inspector, Details: toggle for the author bars"),
+                hint: Text(
+                    "Who wrote each block: AI, You, STT.", comment: "Inspector, Details: what the author bars show"),
+                isOn: $preferences.showAuthorBars)
+            AuthorLegend()
+            toggleRow(
+                Text("Source quotes", comment: "Inspector, Details: toggle for the quote chips"),
+                hint: Text(
+                    "Timestamps that open the transcript.", comment: "Inspector, Details: what the quote chips do"),
+                isOn: $preferences.showQuotes)
+            toggleRow(
+                Text("Wrap lines", comment: "Inspector, Details: toggle for wrapping long lines in the editor"),
+                hint: nil, isOn: $preferences.wrapLines)
+            let facts = noteFacts
+            if !facts.isEmpty {
+                sectionHeader(Text("Note", comment: "Inspector, Details: heading of the note's facts"), first: false)
+                ForEach(Array(facts.enumerated()), id: \.offset) { _, fact in
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        Text(fact.label)
+                            .foregroundStyle(LintelBrand.secondaryText)
+                        Spacer(minLength: 0)
+                        Text(verbatim: fact.value)
+                            .foregroundStyle(LintelBrand.ink)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    .font(textSize.font(.callout))
+                    .padding(.vertical, 4)
+                    .accessibilityElement(children: .combine)
+                }
+            }
+        }
+    }
+
+    /// What the source supplies (spec deviation 3: Details shows `NoteContent.details`), led by the app.
+    private var noteFacts: [NoteDetail] {
+        var facts: [NoteDetail] = []
+        if let app = document.summary?.sourceApp, !app.isEmpty {
+            facts.append(
+                NoteDetail(
+                    label: LocalizedStringResource(
+                        "Source", comment: "Inspector, Details: the app a recording came from"),
+                    value: app))
+        }
+        facts += document.content?.details ?? []
+        return facts
+    }
+
+    private func sectionHeader(_ title: Text, first: Bool) -> some View {
+        title
+            .font(textSize.font(.caption1, weight: .semibold))
+            .textCase(.uppercase)
+            .tracking(0.5)
+            .foregroundStyle(LintelBrand.secondaryText)
+            .padding(.top, first ? 2 : 14)
+            .padding(.bottom, 4)
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    private func toggleRow(_ title: Text, hint: Text?, isOn: Binding<Bool>) -> some View {
+        HStack(alignment: .center, spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                title.font(textSize.font(.callout)).foregroundStyle(LintelBrand.ink)
+                if let hint {
+                    hint.font(textSize.font(.footnote)).foregroundStyle(LintelBrand.secondaryText)
+                }
+            }
+            Spacer(minLength: 0)
+            Toggle(isOn: isOn) { title }
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .tint(LintelBrand.accent)
+        }
+        .padding(.vertical, 6)
+        .overlay(alignment: .bottom) { LintelDivider() }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// The author legend: what each bar colour means. It sits under the Author bars toggle and is read as words.
+struct AuthorLegend: View {
+    @Environment(\.lintelTextSize) private var textSize
+
+    var body: some View {
+        HStack(spacing: 14) {
+            ForEach(Self.authors, id: \.rawValue) { author in
+                HStack(spacing: 6) {
+                    RoundedRectangle(cornerRadius: 2).fill(author.barColor).frame(width: 3, height: 12 * textSize.scale)
+                    Text(verbatim: author.gutterText)
+                        .font(textSize.font(.footnote).monospaced())
+                        .foregroundStyle(LintelBrand.secondaryText)
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(verbatim: author.spokenName))
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 6)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(Text("Author legend", comment: "Accessibility label of the legend of the author bars"))
+    }
+
+    nonisolated static let authors: [NoteAuthor] = [.agent, .human, .stt]
+}

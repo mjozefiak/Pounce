@@ -1,6 +1,132 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Added by you" : {
+      "comment" : "Document: a block the user wrote or edited in an AI note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Added by you"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodane przez Ciebie"
+          }
+        }
+      }
+    },
+    "Author bars" : {
+      "comment" : "Inspector, Details: toggle for the author bars",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Author bars"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paski autorów"
+          }
+        }
+      }
+    },
+    "Author legend" : {
+      "comment" : "Accessibility label of the legend of the author bars",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Author legend"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legenda autorów"
+          }
+        }
+      }
+    },
+    "Details" : {
+      "comment" : "Inspector: tab with the view toggles and the note's facts",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szczegóły"
+          }
+        }
+      }
+    },
+    "document.author.you" : {
+      "comment" : "Document: author bar of a block the user wrote (the gutter label and the legend)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ty"
+          }
+        }
+      }
+    },
+    "Hide the inspector" : {
+      "comment" : "Accessibility label of the inspector's close",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide the inspector"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukryj panel boczny"
+          }
+        }
+      }
+    },
+    "Inspector" : {
+      "comment" : "Accessibility label of the note inspector",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inspector"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panel boczny"
+          }
+        }
+      }
+    },
     "Press %@ again to delete" : {
       "comment" : "Panel footer: the key to press again; the key symbols",
       "extractionState" : "manual",
@@ -3889,6 +4015,24 @@
         }
       }
     },
+    "Revised, not checked against the recording" : {
+      "comment" : "Document: an AI block that was changed after it was checked against the recording",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revised, not checked against the recording"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poprawione, niesprawdzone z nagraniem"
+          }
+        }
+      }
+    },
     "Search apps and files, paste from history, dictate, keep meeting notes. All on this Mac." : {
       "comment" : "Welcome screen: text of the first page",
       "extractionState" : "manual",
@@ -3943,6 +4087,24 @@
         }
       }
     },
+    "Show the inspector" : {
+      "comment" : "Path bar: shows the inspector",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show the inspector"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż panel boczny"
+          }
+        }
+      }
+    },
     "Some features are off." : {
       "comment" : "Settings → Features banner detail",
       "extractionState" : "manual",
@@ -3957,6 +4119,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Niektóre funkcje są wyłączone."
+          }
+        }
+      }
+    },
+    "Source" : {
+      "comment" : "Inspector, Details: the app a recording came from",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Źródło"
+          }
+        }
+      }
+    },
+    "Source quotes" : {
+      "comment" : "Inspector, Details: toggle for the quote chips",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source quotes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cytaty ze źródła"
           }
         }
       }
@@ -4591,6 +4789,24 @@
         }
       }
     },
+    "Timestamps that open the transcript." : {
+      "comment" : "Inspector, Details: what the quote chips do",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timestamps that open the transcript."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Znaczniki czasu otwierające transkrypt."
+          }
+        }
+      }
+    },
     "Try Again (dictation history)" : {
       "comment" : "Settings → Dictation banner button that opens the dictation history again",
       "extractionState" : "manual",
@@ -4641,6 +4857,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Używane przez: %@"
+          }
+        }
+      }
+    },
+    "View" : {
+      "comment" : "Inspector, Details: heading of the view toggles",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Widok"
           }
         }
       }
@@ -7129,6 +7363,24 @@
         }
       }
     },
+    "Who wrote each block: AI, You, STT." : {
+      "comment" : "Inspector, Details: what the author bars show",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Who wrote each block: AI, You, STT."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kto napisał każdy blok: AI, Ty, STT."
+          }
+        }
+      }
+    },
     "Window" : {
       "comment" : "Main menu item",
       "extractionState" : "manual",
@@ -7179,6 +7431,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bez pełnego dostępu do dysku Biurko, Dokumenty i Pobrane rzeczy nie są przeszukiwane."
+          }
+        }
+      }
+    },
+    "Wrap lines" : {
+      "comment" : "Inspector, Details: toggle for wrapping long lines in the editor",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wrap lines"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zawijaj wiersze"
           }
         }
       }

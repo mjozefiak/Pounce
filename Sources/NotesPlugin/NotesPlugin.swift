@@ -109,6 +109,7 @@ public final class NotesPlugin: LintelPlugin {
         var environment = NotesWorkspaceModel.Environment(
             library: library, pasteboard: context.pasteboard, sourceSetChanges: context.noteSourcesChanged,
             openSettings: context.openSettings, openModels: { context.openModels(nil) })
+        environment.settings = context.settings
         if usesStore {
             environment.registry = registry
             environment.overlayHeads = { item in
@@ -151,6 +152,7 @@ public final class NotesPlugin: LintelPlugin {
         }
         if let text = context.settings.string(NotesSettingsKey.qaSearch), !text.isEmpty { model.initialSearch = text }
         model.qaEditor = context.settings.string(NotesSettingsKey.qaEditor)
+        model.qaMixedAuthors = context.settings.string(NotesSettingsKey.qaAttribution) == "mixed"
     }
 
     /// `plugins.notes.qaOpen`: opens the named notes in tabs, the last one current.

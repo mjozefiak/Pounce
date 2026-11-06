@@ -19,10 +19,22 @@ struct NoteQAEditorDocument: View {
     }
 
     var body: some View {
-        NoteEditorSurface(text: $buffer, pasteboard: model.environment.pasteboard, isReadOnly: readOnly) {
-            if let summary = document.summary {
-                NoteDocumentHeader(model: model, document: document, summary: summary)
-            }
+        NoteEditorSurface(
+            text: $buffer, pasteboard: model.environment.pasteboard, isReadOnly: readOnly,
+            wrapsLines: model.preferences.wrapLines, attribution: attribution,
+            showsAuthorBars: model.preferences.showAuthorBars,
+            header: {
+                if let summary = document.summary {
+                    NoteDocumentHeader(model: model, document: document, summary: summary)
+                }
+            })
+    }
+
+    /// What typing on top of the layer shows: the layer's blocks keep their authors, new text is `human`.
+    private var attribution: ([String]) -> [BlockAttributionInfo] {
+        { [document] blocks in
+            guard let layer = document.selectedLayer else { return [] }
+            return (document.attributions[layer.id] ?? .seeding(layer: layer)).infos(blocks: blocks, useStored: false)
         }
     }
 }
