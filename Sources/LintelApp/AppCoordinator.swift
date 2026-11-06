@@ -77,6 +77,7 @@ final class AppCoordinator {
                     claimEscapeKey: { onEscape in hotkeys.claimEscape(onEscape) },
                     openSettings: { settingsRelay.open(manifest.id.rawValue) },
                     openModels: { packageID in settingsRelay.openModels(manifest.id.rawValue, packageID) },
+                    availableCommands: { noteRelay.commands() },
                     noteSources: { noteRelay.sources() },
                     noteSourcesChanged: { noteRelay.changes() },
                     openNote: { key in noteRelay.openNote(WorkspaceRoute(kind: "openNote", id: key.rawValue)) },
@@ -108,11 +109,29 @@ final class AppCoordinator {
                 host, report: { if reported.insert($0).inserted { logger.error("\($0, privacy: .public)") } })
         }
         noteRelay.openNote = { [weak self] route in self?.openNote(route) ?? false }
+        noteRelay.commands = { [weak self] in self?.paletteCommands() ?? [] }
         noteRelay.keptCopies = { [weak self] owner in await self?.host.keptNoteCopies(ofOwner: owner) ?? 0 }
         noteRelay.deleteKeptCopies = { [weak self] owner, erased in
             await self?.host.deleteKeptNoteCopies(ofOwner: owner, ownerErased: erased) ?? true
         }
         observeNoteSources()
+    }
+
+    /// The commands of the Notes palette: every active plugin command that is not a key-event command, with its
+    /// current shortcut, then Open Settings (⌘,). A `panelMode` command opens the launcher panel in that mode.
+    func paletteCommands() -> [CommandInfo] {
+        var commands = host.activeCommands.filter { $0.onKeyEvent == nil }.map { command in
+            CommandInfo(
+                title: command.title,
+                shortcut: hotkeys.commandShortcut(command.id)?.keyShortcut,
+                run: { [weak self] in self?.perform(command) })
+        }
+        commands.append(
+            CommandInfo(
+                title: LocalizedStringResource("Open Settings", comment: "Command palette: opens Settings"),
+                shortcut: KeyShortcut(key: ",", modifiers: [.command]),
+                run: { [weak self] in self?.openSettings() }))
+        return commands
     }
 
     /// The active plugins' note sources. A source whose `pluginID` is not its plugin's id, and any later source

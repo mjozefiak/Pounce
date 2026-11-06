@@ -46,6 +46,11 @@ enum NotesSettingsKey {
     /// (step 6.2): `waiting` ("Waiting for the model"), `writing` (the lock strip, the editor read-only), `done`,
     /// `skipped`, `rejected`, `conflict`, `timedOut`, `needsModel`. Nothing runs and nothing is written.
     static let qaRevise = "qaRevise"
+    /// DEBUG only, with `--qa-notes`: opens the command palette once the list is in (step 7.1); the value is what is
+    /// typed into it (`open` for nothing). Not a contract.
+    static let qaPalette = "qaPalette"
+    /// DEBUG only, with `--qa-notes`: `on` starts with "Hide content" on (step 7.1). Not a contract.
+    static let qaHidden = "qaHidden"
     /// DEBUG only, with `--qa-notes`: `meeting`, `dictation`, `manual` or `copy` opens that delete confirmation sheet
     /// (step 4.6). Nothing is deleted unless the sheet is confirmed.
     static let qaDelete = "qaDelete"

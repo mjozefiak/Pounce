@@ -5168,7 +5168,7 @@
       }
     },
     "Open Settings" : {
-      "comment" : "Button that opens Settings from the panel",
+      "comment" : "Command palette: opens Settings",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -17997,6 +17997,186 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "Go to a note or run a command" : {
+      "comment" : "Command palette: placeholder and accessibility label of the field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go to a note or run a command"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przejdź do notatki lub uruchom polecenie"
+          }
+        }
+      }
+    },
+    "Go to Note…" : {
+      "comment" : "Notes menu: opens the command palette",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go to Note…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przejdź do notatki…"
+          }
+        }
+      }
+    },
+    "Hide content" : {
+      "comment" : "Command palette and menu: blurs the notes for screen sharing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide content"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukryj treść"
+          }
+        }
+      }
+    },
+    "Show content" : {
+      "comment" : "Command palette and menu: shows hidden content again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show content"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż treść"
+          }
+        }
+      }
+    },
+    "Content hidden. Press ⌘⇧H to show it again." : {
+      "comment" : "Notes: strip while content is hidden for screen sharing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Content hidden. Press ⌘⇧H to show it again."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Treść ukryta. Naciśnij ⌘⇧H, aby ją pokazać."
+          }
+        }
+      }
+    },
+    "meeting" : {
+      "comment" : "Command palette: a note that is a meeting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "meeting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "spotkanie"
+          }
+        }
+      }
+    },
+    "dictation" : {
+      "comment" : "Command palette: a note that is a dictation",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "dictation"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "dyktowanie"
+          }
+        }
+      }
+    },
+    "note" : {
+      "comment" : "Command palette: a note you wrote",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "note"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "notatka"
+          }
+        }
+      }
+    },
+    "No matches" : {
+      "comment" : "Command palette: nothing fits what was typed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No matches"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak wyników"
+          }
+        }
+      }
+    },
+    "Command palette" : {
+      "comment" : "Accessibility label of the command palette",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command palette"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paleta poleceń"
           }
         }
       }

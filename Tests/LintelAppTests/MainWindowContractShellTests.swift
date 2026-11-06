@@ -90,17 +90,17 @@ final class PanePlugin: LintelPlugin {
 /// Every registered plugin: its Settings pane can be built and drawn while the plugin is off without touching
 /// the Keychain or its `Plugins/<id>/` folder (`BACKWARD_COMPATIBILITY.md` section 1).
 @Suite struct InactiveSettingsPaneTests {
-    nonisolated static let pluginIDs = ["apps", "files", "clipboard", "dictation", "meetings"]
+    nonisolated static let pluginIDs = ["apps", "files", "clipboard", "dictation", "meetings", "notes"]
 
     @Test func theListCoversEveryRegisteredPlugin() {
-        let registered = PluginRegistry.shipped.map { $0.manifest.id.rawValue }.sorted()
+        let registered = PluginRegistry.all.map { $0.manifest.id.rawValue }.sorted()
         #expect(registered == Self.pluginIDs.sorted())
     }
 
     @Test func registeredPluginsUseTheNewDefaultsAndTheirGroups() throws {
         let env = try TestEnvironment()
         defer { env.tearDown() }
-        let host = env.makeHost(PluginRegistry.shipped)
+        let host = env.makeHost(PluginRegistry.all)
         let groups = Dictionary(uniqueKeysWithValues: host.entries.map { ($0.manifest.id, $0.manifest.settingsGroup) })
         #expect(groups["apps"] == .search)
         #expect(groups["files"] == .search)
@@ -121,7 +121,7 @@ final class PanePlugin: LintelPlugin {
         // its headings through `resultsTitle`.
         #expect(
             host.entries.map { String(localized: $0.manifest.displayName) } == [
-                "Apps", "Files", "Clipboard", "Dictation", "Meetings",
+                "Notes", "Apps", "Files", "Clipboard", "Dictation", "Meetings",
             ])
         let results = Dictionary(
             uniqueKeysWithValues: host.entries.map { ($0.manifest.id, String(localized: $0.manifest.resultsTitle)) })
@@ -130,14 +130,17 @@ final class PanePlugin: LintelPlugin {
         #expect(results["clipboard"] == "Clipboard History")
         #expect(results["dictation"] == "Dictation")
         #expect(results["meetings"] == "Meetings")
-        #expect(host.settingsPanes().map(\.title) == ["Apps", "Files", "Clipboard", "Dictation", "Meetings"])
+        #expect(results["notes"] == "Notes")
+        #expect(
+            host.settingsPanes().map(\.title) == ["Notes", "Apps", "Files", "Clipboard", "Dictation", "Meetings"])
         for entry in host.entries {
             let plugin = entry.plugin
             let sections = plugin.workspaceSections.count
             let hasStatus = plugin.settingsStatus != nil
             let kinds = plugin.modelUsage.map(\.kind)
-            #expect(entry.manifest.canBeDisabled)
-            #expect(sections == 0)
+            // Notes (step 7.1) is the one plugin that cannot be switched off and the one with a workspace section.
+            #expect(entry.manifest.canBeDisabled == (entry.manifest.id != "notes"))
+            #expect(sections == (entry.manifest.id == "notes" ? 1 : 0))
             // Step 4.3: Files always has a banner ("Indexing hasn’t started" before the first scan); step 5.1:
             // Dictation too (the speech model, the microphone, else Ready); step 5.2: Meetings too.
             #expect(hasStatus == ["files", "dictation", "meetings"].contains(entry.manifest.id))
@@ -145,6 +148,7 @@ final class PanePlugin: LintelPlugin {
             switch entry.manifest.id {
             case "dictation": #expect(kinds == [.speech, .llm])
             case "meetings": #expect(kinds == [.speech, .diarization, .llm])
+            case "notes": #expect(kinds == [.llm])
             default: #expect(kinds.isEmpty)
             }
         }
@@ -168,7 +172,7 @@ final class PanePlugin: LintelPlugin {
             registersGlobalHotkeys: false,
             fullDiskAccess: .denied
         )
-        let types = PluginRegistry.shipped.filter { $0.manifest.id.rawValue == id }
+        let types = PluginRegistry.all.filter { $0.manifest.id.rawValue == id }
         try #require(types.count == 1)
         let host = PluginHost(
             pluginTypes: types,

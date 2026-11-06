@@ -360,13 +360,8 @@ struct DictationPaneContent: View {
 
 extension HistorySection {
     /// Clear History: also says that copies edited or commented on in Notes stay, with the "Also delete kept
-    /// copies" checkbox (owner decision L1-39). DEBUG only until Notes ships (spec `2026-11-04-notes-workspace`,
-    /// step 7.1 removes the guard); release builds show `confirmation`.
+    /// copies" checkbox (owner decision L1-39).
     static func confirmationInMainWindow(keptCopies: Int) -> DestructiveConfirmation {
-        #if DEBUG
         keptCopies > 0 ? confirmation.with(option: .keptNotesCopies(count: keptCopies)) : confirmation
-        #else
-        confirmation
-        #endif
     }
 }

@@ -347,8 +347,7 @@ private func entry(
         #expect(try store.count() == 0)
     }
 
-    #if DEBUG
-    /// Notes workspace step 3.2: "Open in Lintel" exists only when the plugin wires it (DEBUG until step 7.1).
+    /// Notes workspace step 3.2: "Open in Lintel" exists only when the plugin wires it (in every build since step 7.1).
     @Test func openInLintelIsAnExtraActionOnlyWhenWired() async throws {
         let (source, store, _, directory) = try rig()
         defer { withExtendedLifetime(directory) {} }
@@ -367,7 +366,6 @@ private func entry(
         let row = try #require(DictationPresentation.entryID(candidate.itemKey))
         #expect(opened.all == ["\(row)"])
     }
-    #endif
 
     @Test func titlesUseTheFirstSentence() {
         let long = entry("to jest pierwsze zdanie. a to drugie zdanie, którego nie widać")

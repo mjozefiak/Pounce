@@ -16,6 +16,8 @@ final class NoteSourcesRelay: Sendable {
     @MainActor var sources: () -> [any NoteSource] = { [] }
     /// An `openNote` request: `true` when a section handled it. Set by the coordinator.
     @MainActor var openNote: (WorkspaceRoute) -> Bool = { _ in false }
+    /// The commands for the Notes palette (`PluginContext.availableCommands`). Set by the coordinator.
+    @MainActor var commands: () -> [CommandInfo] = { [] }
     /// What Notes keeps of a plugin's recordings (edited or commented copies) and its removal. Set by the coordinator.
     @MainActor var keptCopies: (PluginID) async -> Int = { _ in 0 }
     @MainActor var deleteKeptCopies: (PluginID, Bool) async -> Bool = { _, _ in true }

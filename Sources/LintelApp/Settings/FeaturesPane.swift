@@ -279,16 +279,11 @@ struct FeatureEraseRow: View {
     }
 
     /// Erase Data: for Meetings and Dictation it also says that copies edited or commented on in Notes stay,
-    /// with the "Also delete kept copies" checkbox. DEBUG only until Notes ships (spec
-    /// `2026-11-04-notes-workspace`, step 7.1 removes the guard); release builds show `eraseConfirmation`.
+    /// with the "Also delete kept copies" checkbox.
     static func confirmation(for manifest: PluginManifest, keptCopies: Int = 0) -> DestructiveConfirmation {
         let confirmation = eraseConfirmation(for: manifest)
-        #if DEBUG
         guard featuresWithNotesCopies.contains(manifest.id), keptCopies > 0 else { return confirmation }
         return confirmation.with(option: .keptNotesCopies(count: keptCopies))
-        #else
-        return confirmation
-        #endif
     }
 
     var body: some View {

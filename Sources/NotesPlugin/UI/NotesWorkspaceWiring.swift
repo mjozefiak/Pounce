@@ -109,8 +109,12 @@ extension NotesWorkspaceModel.Environment {
     /// The history of a layer, read from `notes.sqlite` (a detached overlay too, read-only). Opens the store on
     /// the first need; a store that cannot be read is `.failed`, a layer without an overlay is `.none`.
     @MainActor
-    mutating func installHistory(store: @escaping @MainActor @Sendable () -> NotesStore?) {
+    mutating func installHistory(
+        store: @escaping @MainActor @Sendable () -> NotesStore?,
+        exists: @escaping @MainActor @Sendable () -> Bool = { true }
+    ) {
         loadHistory = { item, layer in
+            guard exists() else { return .none }
             guard let opened = store() else { return .failed }
             return await Task.detached { () -> HistoryState in
                 do {

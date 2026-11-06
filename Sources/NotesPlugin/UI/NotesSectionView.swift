@@ -13,6 +13,16 @@ struct NotesSectionView: View {
         detail: LocalizedStringResource("This can’t be undone.", comment: "Notes: delete sheet text"),
         confirmTitle: LocalizedStringResource("Delete", comment: "Notes: delete sheet button"))
 
+    @Environment(\.lintelTextSize) private var textSize
+
+    /// The inspector of the open note, when it is loaded.
+    private var inspectorDocument: NoteDocumentModel? {
+        guard model.inspectorVisible, let document = model.currentDocument, document.phase == .loaded else {
+            return nil
+        }
+        return document
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
@@ -22,16 +32,39 @@ struct NotesSectionView: View {
                     NoteTabBar(model: model)
                     NotePathBar(model: model)
                     NoteCenter(model: model)
+                        .hiddenContent(model.hidesContent)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(LintelBrand.windowBackground)
-                if model.inspectorVisible, let document = model.currentDocument, document.phase == .loaded {
+                // Next to the document when there is room; over its right edge when the section is narrow (the
+                // path bar's button asked for it), so Comments and History stay reachable at the largest text size.
+                .overlay(alignment: .trailing) {
+                    if let document = inspectorDocument, !model.inspectorFits {
+                        NoteInspector(model: model, document: document)
+                            .hiddenContent(model.hidesContent)
+                            .shadow(color: LintelBrand.ink.opacity(0.2), radius: 14, x: -4)
+                    }
+                }
+                if let document = inspectorDocument, model.inspectorFits {
                     NoteInspector(model: model, document: document)
+                        .hiddenContent(model.hidesContent)
                 }
             }
             NotesStatusBar(model: model)
         }
         .background(LintelBrand.windowBackground)
+        .overlay {
+            if model.palette != nil { NoteCommandPalette(model: model) }
+        }
+        .onGeometryChange(for: CGFloat.self) {
+            $0.size.width
+        } action: { width in
+            model.updateInspectorFit(sectionWidth: width, textScale: textSize.scale)
+        }
+        // The text size changes what the centre column needs, so the same width may now be too narrow.
+        .onChange(of: textSize.scale) {
+            model.updateInspectorFit(sectionWidth: model.sectionWidth, textScale: textSize.scale)
+        }
         .environment(model.preferences)
         .task { await model.run() }
         .destructiveConfirmation(

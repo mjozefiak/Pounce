@@ -92,6 +92,8 @@ final class NotesWorkspaceModel {
         var isReviseQueued: @MainActor (NoteItemID, Int64) -> Bool = { _, _ in false }
         /// Renames the title of a recorded note in its owner (`NoteSourceEditing`); `false` when it was not changed.
         var renameTitle: @MainActor (NoteKey, String) async -> Bool = { _, _ in false }
+        /// The commands of the active plugins and the shell for the command palette (`PluginContext.availableCommands`).
+        var availableCommands: @MainActor () -> [CommandInfo] = { [] }
     }
 
     enum LoadState: Equatable {
@@ -108,6 +110,17 @@ final class NotesWorkspaceModel {
     /// The inspector on the right (Comments, History and Details).
     var inspectorVisible = true
     var inspectorTab: NoteInspectorTab = .comments
+    /// "Hide content" (⌘⇧H): the explorer, the document and the inspector are blurred and titles are masked, for
+    /// screen sharing. Session-only: never written to a setting, so a new launch shows everything.
+    var hidesContent = false
+    /// The command palette (⌘P), `nil` while closed.
+    var palette: PaletteState?
+    /// Whether the section is wide enough for the inspector next to the document (it grows with the text size).
+    var inspectorFits = true
+    /// The section's last measured width (unbounded until the first measure).
+    var sectionWidth: CGFloat = .infinity
+    /// The inspector was hidden by a narrow section, not by the user: it comes back when the room does.
+    var inspectorHiddenForWidth = false
     /// The question the delete sheet shows, `nil` when none is open.
     var pendingDelete: DeleteRequest?
 

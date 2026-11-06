@@ -5,8 +5,8 @@ import Testing
 @testable import DictationPlugin
 
 /// Spec `2026-11-04-lintel-main-window`, step 5.3 (owner decision L1-39): Clear History says that copies edited
-/// or commented on in Notes stay and offers "Also delete kept copies", off by default; in DEBUG only until Notes
-/// ships.
+/// or commented on in Notes stay and offers "Also delete kept copies", off by default; in every build since Notes was
+/// enabled (step 7.1).
 @MainActor
 @Suite struct DictationKeptCopiesConfirmationTests {
     private static let root: URL = {
@@ -36,16 +36,12 @@ import Testing
         #expect(!views.contains("keptNotesCopies") && !views.contains("confirmationInMainWindow"))
     }
 
-    @Test func theCheckboxIsGuardedAndThePaneHandsItsStateToTheAction() throws {
+    @Test func theCheckboxIsInEveryBuildAndThePaneHandsItsStateToTheAction() throws {
         let pane = try Self.source("DictationSettingsPane.swift")
         #expect(pane.contains("history.clear(alsoDeleteKeptCopies: alsoDeleteKeptCopies)"))
-        let guarded = try #require(
-            pane.range(
-                of:
-                    "#if DEBUG\n        keptCopies > 0 ? confirmation.with(option: .keptNotesCopies(count: keptCopies)) : confirmation"
-            ))
-        let release = try #require(pane.range(of: "#else\n        confirmation\n        #endif"))
-        #expect(guarded.upperBound <= release.lowerBound)
+        // Notes is enabled (spec B step 7.1): the sentence is not behind `#if DEBUG` any more.
+        #expect(pane.contains(".keptNotesCopies(count: keptCopies)"))
+        #expect(!pane.contains("#if DEBUG"))
     }
 
     @Test func withoutKeptCopiesTheSheetHasNoCheckbox() {

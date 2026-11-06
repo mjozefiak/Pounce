@@ -72,14 +72,16 @@ import Testing
         #expect(FeatureEraseRow.eraseConfirmation(for: Self.manifest("meetings")).option == nil)
     }
 
-    @Test func theCheckboxIsGuardedAndReachesTheEraseAction() throws {
+    @Test func theCheckboxIsInEveryBuildAndReachesTheEraseAction() throws {
         let url = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
             .deletingLastPathComponent().deletingLastPathComponent()
         let pane = try String(
             contentsOf: url.appending(path: "Sources/LintelApp/Settings/FeaturesPane.swift"), encoding: .utf8)
         #expect(pane.contains("entry.manifest.id, alsoDeleteKeptCopies: alsoDeleteKeptCopies"))
-        let guarded = try #require(pane.range(of: "#if DEBUG\n        guard featuresWithNotesCopies"))
-        let release = try #require(pane.range(of: "#else\n        return confirmation\n        #endif"))
-        #expect(guarded.upperBound <= release.lowerBound)
+        #expect(pane.contains("guard featuresWithNotesCopies"))
+        // Step 7.1 removed the guard: no line of the sentence is left out of a release build.
+        let debugOnly = ReleaseGateTests.debugOnlyLines(pane).joined(separator: "\n")
+        #expect(!debugOnly.contains("featuresWithNotesCopies"))
+        #expect(!debugOnly.contains("keptNotesCopies"))
     }
 }

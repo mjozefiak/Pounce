@@ -137,6 +137,22 @@ extension NotesWorkspaceModel {
     /// The strips under the path bar, most important first.
     var strips: [Strip] {
         var result: [Strip] = []
+        if hidesContent {
+            // Prototype `lib-hidden`: the accent strip under the path bar.
+            result.append(
+                Strip(
+                    id: "hidden", tone: .accent,
+                    text: String(
+                        localized: "Content hidden. Press ⌘⇧H to show it again.",
+                        comment: "Notes: strip while content is hidden for screen sharing"),
+                    actions: [
+                        Strip.Action(
+                            id: "hidden.show",
+                            title: String(
+                                localized: "Show content",
+                                comment: "Command palette and menu: shows hidden content again"))
+                    ]))
+        }
         if !overlaysAvailable && !rows.isEmpty {
             result.append(
                 Strip(
@@ -254,6 +270,7 @@ extension NotesWorkspaceModel {
     /// A strip's action button or its close button.
     func perform(_ actionID: String) async {
         switch actionID {
+        case "hidden.show": toggleHideContent()
         case "locked.retry": await refresh()
         case "save.retry": await saveMarkdown(retry: true)
         case "save.other": await saveMarkdown()

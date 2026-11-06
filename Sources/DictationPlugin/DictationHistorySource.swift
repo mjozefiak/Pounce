@@ -18,11 +18,8 @@ struct DictationHistorySource: PanelModeSource {
     let paste: @Sendable (String) async -> Void
     let delete: @Sendable (Int64) async throws -> Void
     var now: @Sendable () -> Date = { Date() }
-    #if DEBUG
-    /// Shows the entry in the Notes section of the main window (Notes workspace, step 3.2). DEBUG only until the
-    /// Notes plugin ships (step 7.1); `nil` adds no action.
+    /// Shows the entry in the Notes section of the main window (Notes workspace, step 3.2); `nil` adds no action.
     var openInNotes: (@Sendable (Int64) async -> Void)?
-    #endif
 
     func search(_ query: NormalizedQuery, filter: PanelModeFilter.ID?, limit: Int) async throws -> [Candidate] {
         guard let store = store() else { return [] }
@@ -86,7 +83,6 @@ struct DictationHistorySource: PanelModeSource {
                 confirmation: Self.deleteConfirmation
             ) { _ in try await delete(id) },
         ]
-        #if DEBUG
         if let openInNotes {
             actions.append(
                 ResultAction(
@@ -97,7 +93,6 @@ struct DictationHistorySource: PanelModeSource {
                     shortcut: KeyShortcut(key: "o", modifiers: .command)
                 ) { _ in await openInNotes(id) })
         }
-        #endif
         return actions
     }
 

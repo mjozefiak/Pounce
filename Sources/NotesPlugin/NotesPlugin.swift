@@ -89,7 +89,18 @@ public final class NotesPlugin: LintelPlugin {
                     title: LocalizedStringResource("New Note", comment: "Notes menu: creates a note"),
                     shortcut: KeyShortcut(key: "n", modifiers: [.command]),
                     isEnabled: { [self] in workspace.canCreateNote },
-                    run: { [self] in Task { await workspace.newNote() } })
+                    run: { [self] in Task { await workspace.newNote() } }),
+                // Go to Note… (⌘P) opens the command palette; Hide content (⌘⇧H) blurs the section for screen
+                // sharing, for this session only (step 7.1).
+                CommandInfo(
+                    title: LocalizedStringResource("Go to Note…", comment: "Notes menu: opens the command palette"),
+                    shortcut: NotesWorkspaceModel.paletteShortcut,
+                    run: { [self] in workspace.togglePalette() }),
+                CommandInfo(
+                    title: LocalizedStringResource(
+                        "Hide content", comment: "Command palette and menu: blurs the notes for screen sharing"),
+                    shortcut: NotesWorkspaceModel.hideContentShortcut,
+                    run: { [self] in workspace.toggleHideContent() }),
             ]
         )
     }
@@ -102,13 +113,21 @@ public final class NotesPlugin: LintelPlugin {
         }
     }
 
+    /// Whether a library exists to read: the file is there or the store is open. A fresh profile has neither, so
+    /// listing, reconciling and loading history or comments answer "nothing" without a Keychain lookup, a key or a
+    /// database (the lazy-store rule, spec "Phasing"); only a write opens the library.
+    var hasLibrary: @MainActor @Sendable () -> Bool {
+        { [library] in library.store != nil || library.storeFileExists }
+    }
+
     private func makeWorkspace() -> NotesWorkspaceModel {
         let context = context
         let provider = noteSourceProvider
         let registry = documents
         let storeProvider = storeProvider
+        let hasLibrary = hasLibrary
         registry.cleanup = { open in
-            guard let store = await storeProvider() else { return }
+            guard await hasLibrary(), let store = await storeProvider() else { return }
             _ = try? store.deleteUnkeptDetached(excluding: open)
         }
         #if DEBUG
@@ -126,19 +145,21 @@ public final class NotesPlugin: LintelPlugin {
         if locked {
             overlays = NotesQALockedOverlays()
         } else if usesStore {
-            overlays = LazyStoreOverlays(store: storeProvider, registry: registry)
+            overlays = LazyStoreOverlays(store: storeProvider, registry: registry, exists: hasLibrary)
         } else {
             overlays = NoOverlays()
         }
         #else
         let usesStore = true
-        let overlays: any OverlayIndex & OverlayDetacher = LazyStoreOverlays(store: storeProvider, registry: registry)
+        let overlays: any OverlayIndex & OverlayDetacher = LazyStoreOverlays(
+            store: storeProvider, registry: registry, exists: hasLibrary)
         #endif
         let library = NoteLibrary(sources: provider, overlays: overlays, detacher: overlays)
         var environment = NotesWorkspaceModel.Environment(
             library: library, pasteboard: context.pasteboard, sourceSetChanges: context.noteSourcesChanged,
             openSettings: context.openSettings, openModels: { context.openModels(nil) })
         environment.settings = context.settings
+        environment.availableCommands = context.availableCommands
         environment.preferences = preferences
         // A recorded note's title is renamed in its owner (`NoteSourceEditing`), never in `notes.sqlite`.
         environment.renameTitle = { key, title in
@@ -156,8 +177,8 @@ public final class NotesPlugin: LintelPlugin {
         }
         if usesStore {
             environment.registry = registry
-            environment.installHistory(store: storeProvider)
-            environment.installComments(store: storeProvider)
+            environment.installHistory(store: storeProvider, exists: hasLibrary)
+            environment.installComments(store: storeProvider, exists: hasLibrary)
             if !NotesSettings(context.settings).readOnly {
                 environment.installRevise(
                     service: reviseService, store: storeProvider, registry: registry, clock: context.clock)
@@ -170,7 +191,7 @@ public final class NotesPlugin: LintelPlugin {
                 try await NoteDeleter(library: library, store: store, registry: registry).delete(item)
             }
             environment.overlayHeads = { item in
-                guard let store = await storeProvider() else { return [] }
+                guard await hasLibrary(), let store = await storeProvider() else { return [] }
                 return (try? NoteOverlayContent.heads(for: item, in: store)) ?? []
             }
             let clock = context.clock
@@ -180,11 +201,11 @@ public final class NotesPlugin: LintelPlugin {
                     registry: registry, clock: clock)
             }
             environment.reconcile = { key in
-                guard let store = await storeProvider() else { return }
+                guard await hasLibrary(), let store = await storeProvider() else { return }
                 await makeReconciler(store).reconcile(key)
             }
             environment.sweepLoop = {
-                guard let store = await storeProvider() else { return }
+                guard await hasLibrary(), let store = await storeProvider() else { return }
                 await makeReconciler(store).runSweeps()
             }
         }
@@ -219,6 +240,14 @@ public final class NotesPlugin: LintelPlugin {
             qaCreateComments(comments, in: model)
         }
         if let delete = context.settings.string(NotesSettingsKey.qaDelete) { qaRequestDelete(delete, in: model) }
+        if context.settings.string(NotesSettingsKey.qaHidden) == "on" { model.hidesContent = true }
+        if let typed = context.settings.string(NotesSettingsKey.qaPalette) {
+            Task { @MainActor in
+                await model.refresh()
+                model.showPalette()
+                model.setPaletteQuery(typed == "open" ? "" : typed)
+            }
+        }
     }
 
     /// `plugins.notes.qaManual`: `new` makes a note with no title and opens it in the editor (what ⌘N does);

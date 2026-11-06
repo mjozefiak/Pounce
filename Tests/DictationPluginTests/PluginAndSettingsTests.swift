@@ -221,6 +221,16 @@ import Testing
         #expect(command.defaultShortcut == nil)
     }
 
+    /// Step 7.1: the history's "Open in Lintel" action is wired in every build (it was DEBUG only before).
+    @Test func theHistoryModeWiresOpenInLintel() throws {
+        let harness = try DictationHarness()
+        defer { harness.tearDown() }
+        let plugin = DictationPlugin(context: harness.context)
+        let mode = try #require(plugin.panelModes.first)
+        let source = try #require(mode.source as? DictationHistorySource)
+        #expect(source.openInNotes != nil)
+    }
+
     @Test func activatingOpensTheHistoryWithItsOwnKeychainItem() async throws {
         let keychain = MemoryKeychain()
         let harness = try DictationHarness(keychain: keychain)

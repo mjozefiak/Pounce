@@ -10,6 +10,8 @@ final class MemorySettings: SettingsStore {
     private let values = Mutex<[String: SettingValue]>([:])
     func value(forKey key: String) -> SettingValue? { values.withLock { $0[key] } }
     func setValue(_ value: SettingValue?, forKey key: String) { values.withLock { $0[key] = value } }
+    /// No key was ever written (a read never writes).
+    var isEmpty: Bool { values.withLock { $0.values.allSatisfy { $0 == nil } } }
 }
 
 /// Counts every call, so a test can prove the plugin never touched the Keychain.

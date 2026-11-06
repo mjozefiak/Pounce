@@ -54,6 +54,43 @@ import Testing
         #expect(!FileManager.default.fileExists(atPath: storage.path))
     }
 
+    /// The lazy-store rule in a release build (spec "Phasing", step 7.1): on a fresh profile showing the section,
+    /// listing, opening a note, reading its history and comments and the sweeps leave no Keychain item, no
+    /// `notes.sqlite` and no `plugins.notes.*` key; only the first write (a new note) opens the library.
+    @Test func aFreshProfileShowsTheSectionWithoutAKeychainItemAFileOrAKey() async throws {
+        let storage = FileManager.default.temporaryDirectory.appending(
+            path: "lintel-notes-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: storage) }
+        let keychain = CountingKeychain()
+        let settings = MemorySettings()
+        let key = Fixtures.key("meetings", "orchard")
+        let source = ScriptedNoteSource(
+            "meetings",
+            items: [NoteSummary(id: key, kind: .meeting, title: "Orchard", startedAt: Fixtures.epoch)])
+        source.contents[key] = NoteContent(
+            summary: source.items[0],
+            layers: [NoteLayer(id: "notes", author: .agent, markdown: "Ship it.", version: "1")], speakers: [],
+            details: [])
+        let plugin = NotesPlugin(
+            context: makeContext(
+                storage: storage, settings: settings, keychain: keychain, noteSources: { [source] }))
+        try await plugin.activate()
+        let model = plugin.workspace
+        await model.refresh()
+        #expect(model.rows.map(\.id.key) == [key])
+        model.open(.live(key))
+        await model.loadContent(.live(key))
+        await model.loadHistory(for: .live(key))
+        await plugin.documents.flushAll()
+        await model.environment.reconcile(key)
+        #expect(keychain.calls == 0)
+        #expect(!FileManager.default.fileExists(atPath: storage.path))
+        #expect(settings.isEmpty)
+        // The first write is the first need: it opens the library.
+        await model.newNote()
+        #expect(keychain.calls > 0)
+    }
+
     @Test func fixturesAppearOnlyWhenTheQAKeyIsOn() async {
         // Without fixtures the listing reads the store, which opens on that first need: in a temporary folder.
         let storage = FileManager.default.temporaryDirectory.appending(

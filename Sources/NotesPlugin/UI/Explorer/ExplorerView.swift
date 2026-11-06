@@ -32,6 +32,7 @@ struct ExplorerView: View {
                 .padding(.vertical, 2)
             }
             .frame(maxHeight: .infinity)
+            .hiddenContent(model.hidesContent)
             .accessibilityLabel(Text("Notes list", comment: "Accessibility label of the explorer's list"))
             footer
         }

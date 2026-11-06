@@ -24,6 +24,23 @@ struct StoreOverlayIndex: OverlayIndex, OverlayDetacher {
 struct LazyStoreOverlays: OverlayIndex, OverlayDetacher {
     let store: @MainActor @Sendable () -> NotesStore?
     let registry: NoteDocumentRegistry
+    /// Whether a library exists. When it says no, the reads answer "no overlays" without opening anything (a fresh
+    /// profile has no key and no file until the user writes something). `nil` always opens.
+    var exists: (@MainActor @Sendable () -> Bool)?
+
+    init(
+        store: @escaping @MainActor @Sendable () -> NotesStore?, registry: NoteDocumentRegistry,
+        exists: (@MainActor @Sendable () -> Bool)? = nil
+    ) {
+        self.store = store
+        self.registry = registry
+        self.exists = exists
+    }
+
+    private func libraryExists() async -> Bool {
+        guard let exists else { return true }
+        return await exists()
+    }
 
     private func opened() async throws -> NotesStore {
         guard let store = await store() else { throw NotesError.keyUnavailable }
@@ -31,16 +48,25 @@ struct LazyStoreOverlays: OverlayIndex, OverlayDetacher {
     }
 
     func overlays(for keys: [NoteKey]) async throws -> [OverlayRecord] {
-        try await StoreOverlayIndex(store: opened()).overlays(for: keys)
+        guard await libraryExists() else { return [] }
+        return try await StoreOverlayIndex(store: opened()).overlays(for: keys)
     }
-    func manualNotes() async throws -> [OverlayRecord] { try await StoreOverlayIndex(store: opened()).manualNotes() }
+    func manualNotes() async throws -> [OverlayRecord] {
+        guard await libraryExists() else { return [] }
+        return try await StoreOverlayIndex(store: opened()).manualNotes()
+    }
     func detachedOverlays() async throws -> [OverlayRecord] {
-        try await StoreOverlayIndex(store: opened()).detachedOverlays()
+        guard await libraryExists() else { return [] }
+        return try await StoreOverlayIndex(store: opened()).detachedOverlays()
     }
     func keptOverlays(excludingPlugins excluding: Set<PluginID>) async throws -> [OverlayRecord] {
-        try await StoreOverlayIndex(store: opened()).keptOverlays(excludingPlugins: excluding)
+        guard await libraryExists() else { return [] }
+        return try await StoreOverlayIndex(store: opened()).keptOverlays(excludingPlugins: excluding)
     }
-    func liveOverlayKeys() async throws -> [NoteKey] { try await StoreOverlayIndex(store: opened()).liveOverlayKeys() }
+    func liveOverlayKeys() async throws -> [NoteKey] {
+        guard await libraryExists() else { return [] }
+        return try await StoreOverlayIndex(store: opened()).liveOverlayKeys()
+    }
     func detach(_ key: NoteKey, reason: OverlayDetachReason) async throws {
         try await RegistryOverlayDetacher(store: opened(), registry: registry).detach(key, reason: reason)
     }

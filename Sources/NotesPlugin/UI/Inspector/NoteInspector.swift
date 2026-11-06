@@ -62,7 +62,7 @@ struct NoteInspector: View {
                     title: Text("Details", comment: "Inspector: tab with the view toggles and the note's facts"))
                 Spacer(minLength: 0)
                 Button {
-                    model.inspectorVisible = false
+                    model.setInspectorVisible(false)
                 } label: {
                     Image(systemName: "sidebar.right")
                         .font(textSize.font(.callout))

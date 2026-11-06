@@ -4,46 +4,79 @@ import Testing
 
 @testable import LintelApp
 
-extension PluginRegistry {
-    /// The plugins users get today: `all` without Notes, which a DEBUG build registers early (spec step 1.2) and
-    /// which has its own tests. Step 7.1 removes this filter together with the `#if DEBUG`.
-    static var shipped: [any LintelPlugin.Type] { all.filter { $0.manifest.id != "notes" } }
-}
-
-/// Notes is registered only in DEBUG builds until step 7.1 of the Notes spec (`2026-11-04-notes-workspace`), so a
-/// release build has no Notes plugin, no Keychain item and no `notes.sqlite`.
+/// Notes is enabled in every build since step 7.1 of the Notes spec (`2026-11-04-notes-workspace`, ADR 0008
+/// "Release gate"): the registry has it unconditionally and nothing the feature adds to the shell, Meetings or
+/// Dictation is still behind `#if DEBUG` (`ReleaseGateTests` keeps the main window itself in every build). The
+/// sources are scanned because the tests run in a DEBUG configuration and cannot tell the two builds apart.
 @Suite struct NotesRegistrationTests {
-    private func registrySource() throws -> String {
-        let root = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-            .deletingLastPathComponent()
-        return try String(
-            contentsOf: root.appending(path: "Sources/LintelApp/PluginRegistry.swift"), encoding: .utf8)
+    private static let root = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        .deletingLastPathComponent()
+
+    private func debugOnlyText(_ path: String) throws -> String {
+        // The scanner of the release gate: the lines a release build does not compile.
+        ReleaseGateTests.debugOnlyLines(try String(contentsOf: Self.root.appending(path: path), encoding: .utf8))
+            .joined(separator: "\n")
     }
 
-    /// The registry is source-scanned because the tests themselves run in a DEBUG configuration.
-    @Test func theRegistryNamesNotesOnlyInsideAnIfDebugBlock() throws {
-        let lines = try registrySource().split(separator: "\n", omittingEmptySubsequences: false)
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-        let uses = lines.indices.filter { lines[$0].contains("NotesPlugin.self") }
-        #expect(uses.count == 1)
-        let use = try #require(uses.first)
-        let open = try #require(lines[..<use].lastIndex { $0.hasPrefix("#if") })
-        #expect(lines[open] == "#if DEBUG")
-        let close = try #require(lines[use...].firstIndex { $0.hasPrefix("#endif") })
-        // No other conditional between the `#if DEBUG` and the line, and the block closes after it.
-        #expect(!lines[open + 1..<use].contains { $0.hasPrefix("#else") || $0.hasPrefix("#elseif") })
-        #expect(close > use)
-        #expect(!lines[use..<close].contains { $0.hasPrefix("#else") || $0.hasPrefix("#elseif") })
+    private func text(_ path: String) throws -> String {
+        try String(contentsOf: Self.root.appending(path: path), encoding: .utf8)
     }
 
-    #if DEBUG
-    @Test func aDebugBuildRegistersNotesThatCannotBeDisabled() throws {
+    /// `marker` is in `path` and not in a line that a release build leaves out.
+    private func expectNoDebugGuard(around marker: String, in path: String) throws {
+        #expect(try text(path).contains(marker), "\(path) no longer mentions \(marker)")
+        #expect(!(try debugOnlyText(path)).contains(marker), "\(path) has \(marker) inside #if DEBUG again")
+    }
+
+    @Test func theRegistryNamesNotesOutsideAnyDebugBlock() throws {
+        try expectNoDebugGuard(around: "NotesPlugin.self", in: "Sources/LintelApp/PluginRegistry.swift")
+        #expect(!(try text("Sources/LintelApp/PluginRegistry.swift")).contains("#if"))
+    }
+
+    @Test func theNotesSentenceOfTheConfirmationSheetsIsNotDebugOnly() throws {
+        for path in [
+            "Sources/LintelApp/Settings/FeaturesPane.swift",
+            "Sources/MeetingsPlugin/UI/MeetingsSettingsPane.swift",
+            "Sources/DictationPlugin/DictationSettingsPane.swift",
+        ] {
+            try expectNoDebugGuard(around: ".keptNotesCopies", in: path)
+        }
+    }
+
+    @Test func theDictationOpenInLintelActionIsNotDebugOnly() throws {
+        try expectNoDebugGuard(
+            around: "dictation.history.openInLintel", in: "Sources/DictationPlugin/DictationHistorySource.swift")
+        try expectNoDebugGuard(around: "openInNotes", in: "Sources/DictationPlugin/DictationHistorySource.swift")
+        try expectNoDebugGuard(around: "openInNotes", in: "Sources/DictationPlugin/DictationPlugin.swift")
+    }
+
+    @Test func everyBuildRegistersNotesThatCannotBeDisabled() throws {
         let notes = try #require(PluginRegistry.all.first { $0.manifest.id == "notes" })
         #expect(!notes.manifest.canBeDisabled)
+        #expect(PluginRegistry.all.filter { $0.manifest.id == "notes" }.count == 1)
     }
-    #else
-    @Test func aReleaseBuildHasNoNotesPlugin() {
-        #expect(!PluginRegistry.all.contains { $0.manifest.id == "notes" })
+}
+
+@MainActor
+@Suite struct PaletteCommandsTests {
+    @Test func theNotesPaletteListsActivePluginCommandsThenOpenSettings() async throws {
+        let test = try TestEnvironment()
+        defer { test.tearDown() }
+        let coordinator = AppCoordinator(
+            environment: test.environment, pluginTypes: [AlphaPlugin.self, BetaPlugin.self],
+            registrar: InMemoryHotkeyRegistrar(), occupiedShortcuts: { [] }, launchAtLogin: NoLaunchAtLogin())
+        await coordinator.host.start()
+        let commands = coordinator.paletteCommands()
+        // Beta is off by default, so its command is not offered.
+        #expect(commands.map { String(localized: $0.title) } == ["Open Alpha", "Open Settings"])
+        #expect(commands.last?.shortcut == KeyShortcut(key: ",", modifiers: [.command]))
+        // The context a plugin gets answers with the same list.
+        #expect(try #require(coordinator.host.entries.first).plugin is AlphaPlugin)
     }
-    #endif
+
+    @Test func aHotkeyShortcutConvertsToTheContractsKeyShortcut() {
+        let record = HotkeyShortcut(carbonKeyCode: 46, carbonModifiers: 4096 | 2048)  // ⌃⌥M
+        #expect(record.keyShortcut == KeyShortcut(key: "m", modifiers: [.control, .option]))
+        #expect(HotkeyShortcut.commandSpace.keyShortcut == KeyShortcut(key: " ", modifiers: [.command]))
+    }
 }

@@ -124,9 +124,12 @@ extension NotesWorkspaceModel.Environment {
     /// writes go through `CommentService`, which the store refuses while it is on.
     @MainActor
     mutating func installComments(
-        store: @escaping @MainActor @Sendable () -> NotesStore?, now: @escaping @Sendable () -> Date = { Date() }
+        store: @escaping @MainActor @Sendable () -> NotesStore?,
+        exists: @escaping @MainActor @Sendable () -> Bool = { true },
+        now: @escaping @Sendable () -> Date = { Date() }
     ) {
         loadComments = { item, layer in
+            guard exists() else { return .none }
             guard let opened = store() else { return .failed }
             return await Task.detached { () -> CommentsState in
                 do {

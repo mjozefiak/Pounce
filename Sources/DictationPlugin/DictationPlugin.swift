@@ -273,13 +273,11 @@ public final class DictationPlugin: LintelPlugin {
             store: { history.storeBox.value },
             paste: { text in await relay.pasteFromHistory(text) },
             delete: { id in try await history.delete([id]) })
-        #if DEBUG
         let openNote = context.openNote
         source.openInNotes = { row in
             guard let storeID = history.storeID else { return }
             _ = await openNote(DictationNoteSource.key(storeID: storeID, row: row))
         }
-        #endif
         return [
             PanelMode(
                 id: Self.historyModeID,
@@ -315,8 +313,7 @@ public final class DictationPlugin: LintelPlugin {
     public var noteSources: [any NoteSource] { [noteSource] }
 
     /// Offers a history entry to the shell's Notes workspace (`PluginContext.openNote`). `true` only when a
-    /// section took it; the default handler returns `false`. The history's "Open in Lintel" action (⌘O, inside
-    /// `#if DEBUG` until step 7.1) goes through the same context call.
+    /// section took it; the default handler returns `false`. The history's "Open in Lintel" action (⌘O) goes through the same context call.
     func openNote(entryID: Int64) -> Bool {
         guard let storeID = history.storeID else { return false }
         return context.openNote(DictationNoteSource.key(storeID: storeID, row: entryID))

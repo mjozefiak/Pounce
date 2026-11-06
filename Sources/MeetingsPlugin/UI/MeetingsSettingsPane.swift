@@ -489,13 +489,8 @@ extension NotesSettingsModel {
 
 extension MeetingsConfirmations {
     /// Clear Library: also says that copies edited or commented on in Notes stay, with the "Also delete kept
-    /// copies" checkbox (owner decision L1-39). DEBUG only until Notes ships (spec `2026-11-04-notes-workspace`,
-    /// step 7.1 removes the guard); release builds show `clearLibrary`.
+    /// copies" checkbox (owner decision L1-39).
     static func clearLibraryInMainWindow(keptCopies: Int) -> DestructiveConfirmation {
-        #if DEBUG
         keptCopies > 0 ? clearLibrary.with(option: .keptNotesCopies(count: keptCopies)) : clearLibrary
-        #else
-        clearLibrary
-        #endif
     }
 }

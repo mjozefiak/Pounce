@@ -78,6 +78,7 @@ struct AppEnvironment {
     ///   - claimEscapeKey: the shell's temporary Escape claim.
     ///   - openSettings: opens the plugin's own Settings pane.
     ///   - openModels: opens the Models pane, or the pane that shows the model (`MainWindowRouter`).
+    ///   - availableCommands: the commands of the active plugins and the shell for the Notes palette.
     ///   - noteSources: the active plugins' note sources (`NoteSourcesRelay`).
     ///   - noteSourcesChanged: yields when a plugin was switched on or off.
     ///   - openNote: asks the main window's sections to show a note.
@@ -92,6 +93,7 @@ struct AppEnvironment {
             EscapeKeyClaim = { _ in .inactive },
         openSettings: @escaping @MainActor @Sendable () -> Void = {},
         openModels: @escaping @MainActor @Sendable (String?) -> Void = { _ in },
+        availableCommands: @escaping @MainActor @Sendable () -> [CommandInfo] = { [] },
         noteSources: @escaping @MainActor @Sendable () -> [any NoteSource] = { [] },
         noteSourcesChanged: @escaping @Sendable () -> AsyncStream<Void> = { AsyncStream { $0.finish() } },
         openNote: @escaping @MainActor @Sendable (NoteKey) -> Bool = { _ in false },
@@ -115,6 +117,7 @@ struct AppEnvironment {
             claimEscapeKey: claimEscapeKey,
             openSettings: openSettings,
             modelsDirectory: modelsDirectory,
+            availableCommands: availableCommands,
             openModels: openModels,
             noteSources: noteSources,
             noteSourcesChanged: noteSourcesChanged,

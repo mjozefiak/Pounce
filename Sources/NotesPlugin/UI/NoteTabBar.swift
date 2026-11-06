@@ -37,7 +37,7 @@ struct NoteTabView: View {
     private var hasProposal: Bool { (model.documents[tab.id]?.totalPendingProposals ?? 0) > 0 }
 
     private var spokenTitle: String {
-        var parts = [tab.title]
+        var parts = [model.shown(tab.title)]
         if tab.isBusy {
             parts.append(String(localized: "Working", comment: "Accessibility: a note is being worked on"))
         }
@@ -56,7 +56,7 @@ struct NoteTabView: View {
                 HStack(spacing: 7 * textSize.scale) {
                     Image(systemName: tab.kind.symbolName)
                         .accessibilityHidden(true)
-                    Text(verbatim: tab.title)
+                    Text(verbatim: model.shown(tab.title))
                         .lineLimit(1)
                         .truncationMode(.tail)
                     if hasProposal {
@@ -116,7 +116,7 @@ struct NotePathBar: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
-                if let path = model.pathComponents {
+                if let path = model.pathComponents.map(model.shownPath) {
                     Text(verbatim: path.joined(separator: " / "))
                         .font(textSize.font(.footnote).monospaced())
                         .foregroundStyle(LintelBrand.secondaryText)
@@ -177,7 +177,7 @@ struct NotePathBar: View {
                 iconButton(
                     "sidebar.right", label: Text("Show the inspector", comment: "Path bar: shows the inspector")
                 ) {
-                    model.inspectorVisible = true
+                    model.setInspectorVisible(true)
                 }
             }
             iconButton(

@@ -105,9 +105,10 @@ private let appSources = URL(filePath: #filePath)
         #expect(text.hasPrefix("#if DEBUG") || text.contains("\n#if DEBUG"))
     }
 
-    @Test func theKeptCopiesOptionStaysDebugOnlyUntilNotesShips() throws {
-        // Spec B step 7.1 removes this guard, not 6.3a.
-        let debugOnly = Self.debugOnlyLines(try source("Settings/FeaturesPane.swift")).joined(separator: "\n")
-        #expect(debugOnly.contains("keptNotesCopies"))
+    @Test func theKeptCopiesOptionIsInEveryBuildSinceNotesShipped() throws {
+        // Spec B step 7.1 removed this guard (`NotesRegistrationTests` scans the other files).
+        let text = try source("Settings/FeaturesPane.swift")
+        #expect(text.contains("keptNotesCopies"))
+        #expect(!Self.debugOnlyLines(text).joined(separator: "\n").contains("keptNotesCopies"))
     }
 }
