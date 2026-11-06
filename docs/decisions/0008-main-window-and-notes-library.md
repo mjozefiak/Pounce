@@ -99,3 +99,28 @@ Other numbers: set the whole 50 054-character attributed string and lay out the 
 - **Task lists are not parsed by Foundation** (see 0.2): `- [ ]` is a plain list item. The editor draws no checkboxes unless Notes post-processes the marker itself.
 - **Not measured, because it cannot be done headlessly:** the real key event path (`NSEvent` to input context to `insertText`, key repeat, input methods and dead keys for Polish, marked text), frame latency through the compositor (`displayIfNeeded` on an offscreen, occluded window may not include GPU presentation), memory and layout cost while scrolling quickly through the whole document, VoiceOver, undo/redo grouping, live popover presentation and its focus behaviour, light appearance, and any other hardware (only an M4 Max was available; an M1-class Mac will be slower). Step 4.1 must repeat the typing measurement on the real editor in a real window and record it in `docs/perf.md`.
 - The spike converted attributes itself; the production renderer must also ignore `link`, `imageURL` and any inline HTML run (display text only, never load or open anything, see 0.2).
+
+#### 0.2 Foundation Markdown on the subset: GO, with one design condition
+
+**Method.** A scratch script (outside the tree) parsed the real `MarkdownExporter` golden outputs from `Tests/MeetingsPluginTests/Fixtures/` (`export-plain.md`, `export-hostile.md`, `export-minimal.md`) with `AttributedString(markdown:options:)`, `interpretedSyntax = .full`, `failurePolicy = .throwError`, then compared the parsed block text with an independent oracle (the source lines with block prefixes and unescaped `*` markers removed and backslash escapes resolved). It then probed the subset with small inputs. Swift 6.4.2, macOS 27.0.1.
+
+**Results.**
+
+| Check | Result |
+|---|---|
+| Real exporter output parses without an error | all three fixtures, including the hostile one |
+| Body text equals the oracle | **yes for all three** (block text joined, a soft break read as one space). The exporter's backslash escapes (`\:`, `\*`, `\#`, `\<`, ...) are resolved to the literal character, so the hostile title, speaker names and transcript text come out as the plain text they were. |
+| Hostile content stays inert | no run in any fixture has a `link` or `imageURL`; `<b>`, `<iframe ...>` and `![x](http://...)` appear as literal text; `<b>` typed unescaped becomes a run with the inline-HTML intent (text kept, not rendered) |
+| Headings, paragraphs, bullet and ordered lists, nested lists, block quote, fenced code block, strong, emphasis, inline code, strikethrough | parsed, with `PresentationIntent` / `InlinePresentationIntent` |
+| Tables | parsed: table, header row, rows, cells, column alignments (`left`, `center`, `right`); `\|` inside a cell is a literal pipe; inline styles inside cells are kept |
+
+**Gaps.**
+
+1. **Task lists are not recognized.** `- [ ] open` and `- [x] done` are ordinary list items whose text starts with `[ ] ` or `[x] `. Notes must treat that prefix itself if it wants checkboxes (a post-pass on the list item's first characters); until then they show as text, which is lossless.
+2. **No serializer.** Foundation parses Markdown into an `AttributedString` but cannot write one back to Markdown. A design that edits the rendered attributed text therefore has no way back to the stored Markdown, and the text offsets of the rendered form are not the source offsets (markers and escapes are gone). **Condition for GO: the editor's text storage is the Markdown source itself, markers visible, and Foundation's parse is used only to compute styling (attributes) per block.** Then the stored string is never regenerated, "round-trip unchanged" holds by construction, comment anchors and `BlockAttribution` operate on source offsets and blocks, and the Meetings escapes are shown as the author wrote them. This variant was measured too (same spike, source text with per-line attributes, 50 024 characters): typing median 0.89 ms, p95 1.22 ms, p99 1.43 ms in the middle, 1.08 ms median with a paragraph restyle, so the 0.1 numbers hold. It also makes tables simple (monospaced pipe rows in the source, which the 0.1 table limit then no longer matters for). A later "reading view" may render the parsed form read-only.
+3. **Soft breaks become spaces.** The exporter's transcript lines `[hh:mm:ss] Name: text`, one per line, are one paragraph for the parser and would read as one run-on line in a rendered view. The Notes transcript layer is one block per segment (blank-line separated), so this only affects reading the Meetings export as Markdown, not the layer.
+4. **Links and autolinks.** A bare `https://...` in non-exported text gets a `link` attribute (the exporter escapes `:`, so its output never does). The renderer must ignore `link` and `imageURL` (display only, no click-through, no loading), per the contract's "text only" rule.
+5. **Ragged tables.** A row with fewer cells than the header parses with fewer cells (not padded); a renderer that aligns columns must pad.
+6. **Lenient parser.** No failure was found with `.throwError` on any input tried, so it is not a validator; Notes must not rely on a parse error to reject text.
+
+**Decision: GO**, on the condition in gap 2 (Markdown source is the storage; parse for styling only). This changes the 0.1 sketch (which stored rendered text) and should be reflected in step 4.1's description.
