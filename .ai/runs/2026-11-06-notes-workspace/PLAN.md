@@ -27,8 +27,8 @@
 | 3 | 3.1 | NoteLibrary aggregator | dispatch:capable | done | 267ec06 |
 | 3 | 3.2 | Explorer, tab bar, path bar, status bar, NotesSection (DEBUG only) | dispatch:capable | done | 428211a |
 | 3 | 3.3 | Read-only document views, Copy Markdown, Save .md | dispatch:capable | done | c369886 |
-| 3 | 3.4 | Search across sources | dispatch | todo | — |
-| 3 | 3.5 | Notes states and screenshot set | dispatch | todo | — |
+| 3 | 3.4 | Search across sources | dispatch | done | 7996a51 |
+| 3 | 3.5 | Notes states and screenshot set | dispatch | done | ae378e7 |
 | 4 | 4.0 | Store: NotesKeyStore, NotesLibraryOpener, v1-notes migration, NotesSettings, eraseData | dispatch:capable | todo | — |
 | 4 | 4.1 | NoteEditor per Phase 0 decision, format bar, pasteboard markers | dispatch:capable | todo | — |
 | 4 | 4.2 | RevisionWriter, OverlaySeeder, SourceReconciler | dispatch:capable | todo | — |
