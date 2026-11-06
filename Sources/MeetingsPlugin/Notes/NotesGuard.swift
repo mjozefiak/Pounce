@@ -350,8 +350,8 @@ struct NotesGuard: Sendable {
     /// for the quote `dha chciał`).
     static let maxSkippedTranscriptWords = 2
 
-    /// The first place in the transcript where all quote words follow each other (by `wordsMatch`) within one
-    /// sentence; with several, the one closest in time to `near`. An exact match (no gaps) wins over one that
+    /// The first place in the transcript where all quote words follow each other (by `wordsMatch`): a literal
+    /// match within one speaker's words (it may cross a sentence end), one with gaps within one sentence; with several, the one closest in time to `near`. An exact match (no gaps) wins over one that
     /// skips up to `maxSkippedTranscriptWords` filler words; the first and the last quote word never have a gap
     /// at the edge, and a skipped word is never a negation, a number, a word with a digit or a capitalised name
     /// the quote does not contain.
@@ -366,9 +366,10 @@ struct NotesGuard: Sendable {
         var best: Match?
         var bestDistance = Int.max
         for start in 0...(words.count - quote.count) where NotesText.wordsMatch(words[start], quote[0]) {
-            guard let end = matchEnd(quote, index: 1, after: start, skips: skips) else { continue }
-            // No splicing across sentences (and so not across a sentence end between two speakers).
-            guard wordSentence[start] == wordSentence[end - 1] else { continue }
+            guard let end = matchEnd(quote, index: 1, after: start, skips: skips, literal: skips == 0) else { continue }
+            // A match with gaps stays in one sentence. A literal one (`matchEnd` with `literal`) may run over a
+            // sentence end, but only within what one speaker says, so two people are never spliced into one.
+            if skips > 0 { guard wordSentence[start] == wordSentence[end - 1] else { continue } }
             let range = start..<end
             let distance = abs(utterances[wordUtterance[start]].startMs - time)
             if distance < bestDistance {
@@ -381,22 +382,30 @@ struct NotesGuard: Sendable {
     }
 
     /// The end (exclusive) of the transcript words matching `quote[index...]` after the word at `position`,
-    /// skipping at most `skips` words in all, or nil.
-    private func matchEnd(_ quote: [String], index: Int, after position: Int, skips: Int) -> Int? {
+    /// skipping at most `skips` words in all, or nil. A `literal` match stays with one speaker, any other within
+    /// one sentence.
+    private func matchEnd(_ quote: [String], index: Int, after position: Int, skips: Int, literal: Bool) -> Int? {
         if index == quote.count { return position + 1 }
         for gap in 0...skips {
             let next = position + 1 + gap
             guard next < words.count else { return nil }
-            guard wordSentence[next] == wordSentence[position] else { return nil }
+            if literal {
+                guard speaker(of: next) == speaker(of: position) else { return nil }
+            } else {
+                guard wordSentence[next] == wordSentence[position] else { return nil }
+            }
             if gap > 0, !canSkip(position + gap, quote: quote) { return nil }
             if NotesText.wordsMatch(words[next], quote[index]),
-                let end = matchEnd(quote, index: index + 1, after: next, skips: skips - gap)
+                let end = matchEnd(quote, index: index + 1, after: next, skips: skips - gap, literal: literal)
             {
                 return end
             }
         }
         return nil
     }
+
+    /// The speaker's label (consecutive utterances of one speaker are one speaker).
+    private func speaker(of word: Int) -> String { utterances[wordUtterance[word]].speaker }
 
     /// Whether the transcript word at `index` may be left out of a quote.
     private func canSkip(_ index: Int, quote: [String]) -> Bool {
