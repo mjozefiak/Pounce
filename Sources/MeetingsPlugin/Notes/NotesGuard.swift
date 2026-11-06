@@ -346,26 +346,65 @@ struct NotesGuard: Sendable {
         return text
     }
 
+    /// How many transcript words, in all, a quote may skip between its first and last word (`dha czy chciał`
+    /// for the quote `dha chciał`).
+    static let maxSkippedTranscriptWords = 2
+
     /// The first place in the transcript where all quote words follow each other (by `wordsMatch`) within one
-    /// sentence; with several, the one closest in time to `near`.
+    /// sentence; with several, the one closest in time to `near`. An exact match (no gaps) wins over one that
+    /// skips up to `maxSkippedTranscriptWords` filler words; the first and the last quote word never have a gap
+    /// at the edge, and a skipped word is never a negation, a number, a word with a digit or a capitalised name
+    /// the quote does not contain.
     private func find(_ quote: [String], near time: Int) -> Match? {
         guard !quote.isEmpty, words.count >= quote.count else { return nil }
+        if let exact = find(quote, near: time, skips: 0) { return exact }
+        guard quote.count >= 2, Self.maxSkippedTranscriptWords > 0 else { return nil }
+        return find(quote, near: time, skips: Self.maxSkippedTranscriptWords)
+    }
+
+    private func find(_ quote: [String], near time: Int, skips: Int) -> Match? {
         var best: Match?
         var bestDistance = Int.max
         for start in 0...(words.count - quote.count) where NotesText.wordsMatch(words[start], quote[0]) {
-            var index = 1
-            while index < quote.count, NotesText.wordsMatch(words[start + index], quote[index]) { index += 1 }
-            guard index == quote.count else { continue }
+            guard let end = matchEnd(quote, index: 1, after: start, skips: skips) else { continue }
             // No splicing across sentences (and so not across a sentence end between two speakers).
-            guard wordSentence[start] == wordSentence[start + quote.count - 1] else { continue }
-            let range = start..<(start + quote.count)
+            guard wordSentence[start] == wordSentence[end - 1] else { continue }
+            let range = start..<end
             let distance = abs(utterances[wordUtterance[start]].startMs - time)
             if distance < bestDistance {
                 bestDistance = distance
-                best = Match(range: range, wholeUtterance: isWhole(range))
+                // A match with gaps is never a whole utterance: it must not get round `quoteTooShort`.
+                best = Match(range: range, wholeUtterance: range.count == quote.count && isWhole(range))
             }
         }
         return best
+    }
+
+    /// The end (exclusive) of the transcript words matching `quote[index...]` after the word at `position`,
+    /// skipping at most `skips` words in all, or nil.
+    private func matchEnd(_ quote: [String], index: Int, after position: Int, skips: Int) -> Int? {
+        if index == quote.count { return position + 1 }
+        for gap in 0...skips {
+            let next = position + 1 + gap
+            guard next < words.count else { return nil }
+            guard wordSentence[next] == wordSentence[position] else { return nil }
+            if gap > 0, !canSkip(position + gap, quote: quote) { return nil }
+            if NotesText.wordsMatch(words[next], quote[index]),
+                let end = matchEnd(quote, index: index + 1, after: next, skips: skips - gap)
+            {
+                return end
+            }
+        }
+        return nil
+    }
+
+    /// Whether the transcript word at `index` may be left out of a quote.
+    private func canSkip(_ index: Int, quote: [String]) -> Bool {
+        let word = words[index]
+        if Self.negations.contains(word) || NotesText.isNumberWord(word) { return false }
+        if word.contains(where: \.isNumber) { return false }
+        if capitalised[index], !quote.contains(where: { NotesText.wordsMatch($0, word) }) { return false }
+        return true
     }
 
     private func isWhole(_ range: Range<Int>) -> Bool {
