@@ -246,3 +246,35 @@ import Testing
         #expect(source.renamedTitles.count == 1)
     }
 }
+
+extension NoteDeletionTests {
+    @Test func aFailedDeleteOfAManualNoteKeepsTheTextBeingTypedAndSaysSo() async throws {
+        let r = try ReconRig()
+        let manual = try r.store.createManualNote(now: Date(timeIntervalSince1970: 100))
+        let docID = try #require(try r.store.liveDocument(key: manual, layer: NotesStore.manualLayer)).id
+        let writer = r.registry.writer(for: .live(manual, layer: NotesStore.manualLayer), item: .live(manual)) {
+            r.rig.writer(.existing(docID: docID))
+        }
+        writer.submit("typed, not yet saved")
+        try r.store.close()
+        await #expect(throws: NoteDeleter.Failure.copyNotDeleted) {
+            try await NoteDeleter(library: r.library, store: r.store, registry: r.registry).delete(.live(manual))
+        }
+        #expect(writer.hasPendingText, "a failed delete never discards typed text")
+        #expect(!r.registry.documentIDs.isEmpty)
+    }
+
+    @Test func aFailedDeleteOfAManualNoteSaysDeleteFailedNotOwnerDeleted() async throws {
+        let r = try ReconRig()
+        let manual = try r.store.createManualNote(now: Date(timeIntervalSince1970: 100))
+        let model = model(r)
+        await model.refresh()
+        model.open(.live(manual))
+        await model.requestDelete(.live(manual))
+        let request = try #require(model.pendingDelete)
+        try r.store.close()
+        await model.confirmDelete(request)
+        #expect(model.feedback == .deleteFailed)
+        #expect(model.tabs.contains(.live(manual)))
+    }
+}

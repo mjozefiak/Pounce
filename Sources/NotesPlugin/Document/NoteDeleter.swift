@@ -14,6 +14,9 @@ struct NoteDeleter {
         case sourceFailed
         /// The owner deleted the note but the copy in Notes could not be removed (the next sweep detaches it).
         case overlaysNotRemoved
+        /// A manual note or a copy of a removed recording could not be deleted: there is no owner, nothing was
+        /// deleted and the text still being typed is kept.
+        case copyNotDeleted
     }
 
     let library: NoteLibrary
@@ -23,7 +26,7 @@ struct NoteDeleter {
     func delete(_ item: NoteItemID) async throws {
         switch item {
         case .live(let key) where key.pluginID == NotesStore.manualPluginID:
-            try removeOverlays(of: item) { try store.deleteLiveOverlays(of: key) }
+            try removeOverlays(of: item, ownerDeleted: false) { try store.deleteLiveOverlays(of: key) }
         case .live(let key):
             guard let source = await library.source(for: key) else { throw Failure.sourceUnavailable }
             do {
@@ -31,15 +34,16 @@ struct NoteDeleter {
             } catch {
                 throw Failure.sourceFailed
             }
-            try removeOverlays(of: item) { try store.deleteLiveOverlays(of: key) }
+            try removeOverlays(of: item, ownerDeleted: true) { try store.deleteLiveOverlays(of: key) }
         case .detached(let key, let started):
-            try removeOverlays(of: item) { try store.deleteDetachedOverlays(key: key, startedAtMs: started) }
+            try removeOverlays(of: item, ownerDeleted: false) { try store.deleteDetachedOverlays(key: key, startedAtMs: started) }
         }
     }
 
-    private func removeOverlays(of item: NoteItemID, _ delete: () throws -> Int) throws {
-        // The text typed into an open document goes with the note the user confirmed deleting.
+    private func removeOverlays(of item: NoteItemID, ownerDeleted: Bool, _ delete: () throws -> Int) throws {
+        do { _ = try delete() } catch { throw ownerDeleted ? Failure.overlaysNotRemoved : Failure.copyNotDeleted }
+        // The text typed into an open document goes with the note the user confirmed deleting, but only once the
+        // rows are gone: a failed delete keeps the buffer (never lose user-written text).
         registry.discard(item: item)
-        do { _ = try delete() } catch { throw Failure.overlaysNotRemoved }
     }
 }
