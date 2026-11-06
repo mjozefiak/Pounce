@@ -220,4 +220,42 @@ import Testing
         #expect(ReviseBlockKind.of("| a | b |\n|---|---|\n| 1 | 2 |") == .table)
         #expect(ReviseBlockKind.of("plain") == .paragraph)
     }
+
+    // MARK: Link tokens (review fix M3)
+
+    @Test(arguments: [
+        "profile: Marek", "Metadata: none", "hotel: booked", "Intel: slow", "mobile: ready", "Data: 12 May",
+        "Tel: 555 0100", "Plik: notes.md", "version 1.2.3 and v2.0.1", "see notes.md or e.g. the pilot", "i.e. later",
+    ])
+    func wordsEndingInASchemeNameAreNoLinks(_ text: String) {
+        #expect(ReviseTokens.of(text).isEmpty, "\(text)")
+    }
+
+    @Test(arguments: [
+        ("see https://example.com/a", "url:https://example.com/a"), ("file:///tmp/x", "url:file:///tmp/x"),
+        ("call tel:+48500100200", "url:tel:+48500100200"),
+        ("data:text/plain;base64,AAA", "url:data:text/plain;base64,aaa"),
+        ("(mailto:a@b.pl)", "url:mailto:a@b.pl"), ("go to www.example.com", "url:www.example.com"),
+        ("example.com/path", "url:example.com/path"),
+    ])
+    func realLinksAreStillTokens(_ text: String, _ token: String) {
+        #expect(ReviseTokens.of(text).contains(token), "\(text)")
+    }
+
+    @Test func trailingPunctuationIsNotPartOfTheLink() {
+        let base = ReviseTokens.of("Spec at https://example.com/spec for now")
+        for tail in [".", ",", ";", ":", "!", "?", "?!"] {
+            #expect(ReviseTokens.of("Spec at https://example.com/spec\(tail) for now") == base, "tail \(tail)")
+        }
+        #expect(ReviseTokens.of("www.example.com.") == ReviseTokens.of("www.example.com"))
+    }
+
+    @Test func aPeriodAddedAfterAnExistingLinkIsNotANewLink() throws {
+        let note = "- Spec at https://example.com/spec now"
+        let thread = try ReviseFixtures.thread(1, quote: "now", in: note)
+        let verdict = try ReviseGuard.check(
+            head: note, plan: ReviseFixtures.plan(note, [thread]),
+            answer: "[[unit 1]]\n- Spec at https://example.com/spec.")
+        #expect(verdict.applied.map(\.unitID) == [1] && verdict.rejected.isEmpty)
+    }
 }

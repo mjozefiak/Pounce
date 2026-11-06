@@ -262,7 +262,8 @@ extension NotesStore {
                     blocksJSON: blocksJSON, metaJSON: metaJSON, now: now, expectedHeadID: expectedHeadID),
                 in: db)
             try db.execute(
-                sql: "UPDATE note_revision SET state = 'discarded', meta_json = \(Self.markResolvedSQL) WHERE id = ? AND doc_id = ?",
+                sql:
+                    "UPDATE note_revision SET state = 'discarded', meta_json = \(Self.markResolvedSQL) WHERE id = ? AND doc_id = ?",
                 arguments: [proposalID, docID])
             return id
         }
@@ -363,7 +364,8 @@ extension NotesStore {
                     FROM note_revision r WHERE r.doc_id = ? ORDER BY r.seq
                     """, arguments: [docID]
             ).map {
-                Item(id: $0["id"], seq: $0["seq"], author: $0["author"], state: $0["state"], userWriting: $0["writing"],
+                Item(
+                    id: $0["id"], seq: $0["seq"], author: $0["author"], state: $0["state"], userWriting: $0["writing"],
                     unconfirmed: $0["unconfirmed"])
             }
             let excess = items.count - cap

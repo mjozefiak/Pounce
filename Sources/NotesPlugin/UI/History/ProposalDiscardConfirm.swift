@@ -11,9 +11,12 @@ struct ProposalDiscardConfirm: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6 * textSize.scale) {
-            Text("Remove your text for good?", comment: "Compare and History: asks before the user's own kept text is removed")
-                .font(textSize.font(.footnote, weight: .semibold))
-                .foregroundStyle(LintelBrand.ink)
+            Text(
+                "Remove your text for good?",
+                comment: "Compare and History: asks before the user's own kept text is removed"
+            )
+            .font(textSize.font(.footnote, weight: .semibold))
+            .foregroundStyle(LintelBrand.ink)
             HStack(spacing: 8 * textSize.scale) {
                 Button {
                     model.cancelDiscard()

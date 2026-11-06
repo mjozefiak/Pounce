@@ -253,11 +253,17 @@ enum ReviseTokens {
         for match in withoutImages.matches(of: /<\/?[A-Za-z][^>]*>|<!--/) {
             tokens.insert("html:" + match.output.lowercased())
         }
-        // Any other scheme a link can carry, `www.` and a bare domain with a path: none may appear from nowhere.
+        // Any other scheme a link can carry, `www.` and a bare domain with a path: none may appear from nowhere. A
+        // scheme starts at a word boundary and needs text after the colon, so `profile:`, `Intel:`, `Data: ` and
+        // `mobile:` are no links; trailing sentence punctuation is not part of the link.
         let lowered = withoutImages.lowercased()
         let urlPattern =
-            /(?:(?:https?|ftp|ftps|sftp|ssh|file|tel|sms|data|javascript|vbscript|mailto|callto|facetime|slack|zoommtg|zoomus|webcal):[^\s)>\]]*|www\.[^\s)>\]]+|(?:[a-z0-9-]+\.)+[a-z]{2,}\/[^\s)>\]]*)/
-        for match in lowered.matches(of: urlPattern) { tokens.insert("url:" + match.output) }
+            /\b(?:(?:https?|ftp|ftps|sftp|ssh|file|tel|sms|data|javascript|vbscript|mailto|callto|facetime|slack|zoommtg|zoomus|webcal):[^\s)>\]]+|www\.[^\s)>\]]+|(?:[a-z0-9-]+\.)+[a-z]{2,}\/[^\s)>\]]*)/
+        for match in lowered.matches(of: urlPattern) {
+            var token = String(match.output)
+            while let last = token.last, ".,;:!?".contains(last) { token.removeLast() }
+            if !token.isEmpty { tokens.insert("url:" + token) }
+        }
         return tokens
     }
 }

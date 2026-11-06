@@ -21,7 +21,7 @@ import Testing
         #expect(
             Set(cases.map(\.name)) == [
                 "pl-sprint", "en-one-unit", "extra-unit-injection", "markup-bait", "delimiters-in-text",
-                "model-keeps-block", "mixed-structure", "edited-after-comment",
+                "model-keeps-block", "mixed-structure", "edited-after-comment", "colon-words-and-link-period",
             ])
         #expect(Set(cases.map(\.language)) == ["pl", "en"])
         for corpus in cases {
