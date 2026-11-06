@@ -155,9 +155,10 @@ extension NotesStore {
         try Bool.fetchOne(
             db,
             sql: """
-                SELECT EXISTS (SELECT 1 FROM note_revision r WHERE r.doc_id = ? AND r.state = 'applied'
-                    AND (r.author = 'human'
-                        OR (r.author = 'agent' AND CASE WHEN json_valid(r.meta_json)
+                SELECT EXISTS (SELECT 1 FROM note_revision r WHERE r.doc_id = ?
+                    AND ((r.state = 'applied' AND r.author = 'human')
+                        OR (r.state = 'proposed' AND r.author = 'human')
+                        OR (r.state = 'applied' AND r.author = 'agent' AND CASE WHEN json_valid(r.meta_json)
                                 THEN json_extract(r.meta_json, '$.comment_ids') END IS NOT NULL)))
                 """, arguments: [docID]) ?? false
     }

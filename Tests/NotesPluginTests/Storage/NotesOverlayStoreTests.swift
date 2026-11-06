@@ -153,6 +153,21 @@ import Testing
         #expect(try store.deleteUnkeptDetached() == 1)  // the one that was open goes once it is closed
     }
 
+    @Test func aProposedHumanRevisionIsUserWritingAndKeepsADetachedRow() throws {
+        let harness = try NotesHarness()
+        defer { withExtendedLifetime(harness) {} }
+        let store = try harness.openStore()
+        let row = try store.insertDocument(.overlay("p", state: .detached))
+        #expect(!(try store.hasUserWriting(row.docID)))
+        try store.appendRevision(
+            NewNoteRevision(
+                docID: row.docID, author: "human", state: .proposed, body: "kept after a lost compare-and-set",
+                now: Date()))
+        #expect(try store.hasUserWriting(row.docID))
+        #expect(try store.deleteUnkeptDetached() == 0)
+        #expect(try store.read { db in try Int64.fetchAll(db, sql: "SELECT id FROM note_doc") } == [row.docID])
+    }
+
     @Test func deletingLiveOverlaysLeavesDetachedOnes() throws {
         let harness = try NotesHarness()
         defer { withExtendedLifetime(harness) {} }

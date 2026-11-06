@@ -256,7 +256,7 @@ import Testing
         #expect(try rig.head(seed.id).id == intruder)  // never auto-applied
         #expect(rig.log.errors.contains { $0.contains(NotesError.casConflict.code) })
         #expect(!rig.log.all.joined().contains("mine again"))
-        // A proposed human revision is not user writing; the applied "mine" before it still is.
+        // A proposed human revision is user writing too: it is never deleted with a detached row.
         #expect(try rig.store.hasUserWriting(seed.id))
     }
 
