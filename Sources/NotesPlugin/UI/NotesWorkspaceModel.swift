@@ -28,6 +28,10 @@ final class NotesWorkspaceModel {
         var calendar: Calendar = .current
         var locale: Locale = .current
         var pageSize = 100
+        /// The clock and budget of a source's `content(for:)`, like the listing's: a source that does not answer in
+        /// time leaves the tab "unavailable" and does not hold up the other tabs.
+        var clock: any Clock<Duration> = ContinuousClock()
+        var contentBudget: Duration = SourceFanOut.defaultBudget
     }
 
     enum LoadState: Equatable {
@@ -49,6 +53,15 @@ final class NotesWorkspaceModel {
     private(set) var overlaysAvailable = true
     private(set) var activePlugins: Set<PluginID> = []
     private var cursor: NoteListCursor?
+    /// Counts every `refresh()`: an answer that arrives after a newer refresh began is dropped.
+    private var listEpoch = 0
+    private var isLoadingMore = false
+    /// Changes whenever the rows or the cursor change; the explorer's "load more" sentinel is keyed on it, so it
+    /// asks again while it is still on screen after a page came in.
+    private(set) var pageToken = 0
+    /// Counts the reads of each open note's content: only the newest read of a note may apply its answer.
+    private var contentEpochs: [NoteItemID: Int] = [:]
+    private var isSaving = false
 
     /// What the explorer's search field holds; `runSearch()` lists with it.
     var searchText = ""
@@ -84,10 +97,12 @@ final class NotesWorkspaceModel {
     /// Lists the first page again (the first read, or a source said its notes changed) and refreshes the tabs'
     /// titles and the open documents. While a search is on, it is the search's first page.
     func refresh() async {
+        listEpoch += 1
+        let epoch = listEpoch
         let query = searchQuery
         let listing = await environment.library.list(matching: query, after: nil, limit: environment.pageSize)
-        guard query == searchQuery else { return }
         let plugins = Set(await environment.library.activePluginIDs)
+        guard epoch == listEpoch, query == searchQuery else { return }
         rows = listing.rows
         cursor = listing.next
         total = listing.total
@@ -95,16 +110,21 @@ final class NotesWorkspaceModel {
         overlaysAvailable = listing.overlaysAvailable
         activePlugins = plugins
         loadState = .loaded
+        pageToken += 1
         regroup()
         syncTabs()
         await reloadOpenDocuments()
     }
 
     func loadMore() async {
-        guard let cursor else { return }
+        guard let cursor, !isLoadingMore else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        let epoch = listEpoch
         let query = searchQuery
         let listing = await environment.library.list(matching: query, after: cursor, limit: environment.pageSize)
-        guard query == searchQuery else { return }
+        // A refresh (or another query) began meanwhile: its rows and cursor are newer than this page.
+        guard epoch == listEpoch, query == searchQuery else { return }
         guard listing.restarted == false else {
             await refresh()
             return
@@ -114,6 +134,7 @@ final class NotesWorkspaceModel {
         self.cursor = listing.next
         total = listing.total
         unavailable = listing.unavailable
+        pageToken += 1
         regroup()
         syncTabs()
     }
@@ -229,6 +250,7 @@ final class NotesWorkspaceModel {
     func close(_ id: NoteItemID) {
         tabs.close(id)
         documents[id] = nil
+        contentEpochs[id] = nil
     }
 
     /// ⌘W: closes the current tab. Returns `true` when other tabs stay, so the window stays; the last tab closes
@@ -266,23 +288,40 @@ final class NotesWorkspaceModel {
     /// an answer of "no such note" makes it gone.
     func loadContent(_ id: NoteItemID) async {
         guard let document = documents[id] else { return }
+        let epoch = (contentEpochs[id] ?? 0) + 1
+        contentEpochs[id] = epoch
         guard let source = await environment.library.source(for: id.key) else {
-            document.markUnavailable()
+            if isCurrent(epoch, id, document) { document.markUnavailable() }
             return
         }
-        do {
-            document.apply(try await source.content(for: id.key))
-            document.setActions(source.actions(for: id.key))
+        let key = id.key
+        let outcome = await SourceFanOut.call(budget: environment.contentBudget, clock: environment.clock) {
+            try await source.content(for: key)
+        }
+        // The tab was closed, or a newer read of this note began: its answer wins.
+        guard isCurrent(epoch, id, document) else { return }
+        switch outcome {
+        case .value(let content):
+            document.apply(content)
+            document.setActions(source.actions(for: key))
             #if DEBUG
             if let layer = preferredLayers.removeValue(forKey: id) { document.selectLayer(layer) }
             #endif
-        } catch {
+        case .failed, .timedOut:
             document.markUnavailable()
+        case .cancelled:
+            break
         }
     }
 
+    private func isCurrent(_ epoch: Int, _ id: NoteItemID, _ document: NoteDocumentModel) -> Bool {
+        contentEpochs[id] == epoch && documents[id] === document
+    }
+
+    /// Every open tab is read on its own, so a source that does not answer holds up only its own tabs.
     private func reloadOpenDocuments() async {
-        for tab in tabs.tabs { await loadContent(tab.id) }
+        let reads = tabs.tabs.map { tab in Task { await loadContent(tab.id) } }
+        for read in reads { await read.value }
     }
 
     // MARK: Path bar and status bar
@@ -356,6 +395,10 @@ final class NotesWorkspaceModel {
         guard let document = currentDocument, let text = document.markdown, let summary = document.summary else {
             return
         }
+        // One save panel at a time: a second ⌘S while the panel is open would stack another.
+        guard !isSaving else { return }
+        isSaving = true
+        defer { isSaving = false }
         let name = NoteMarkdownExport.fileName(summary)
         do {
             let saved =
