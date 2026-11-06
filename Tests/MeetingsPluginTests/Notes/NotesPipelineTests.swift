@@ -29,7 +29,7 @@ import Testing
         #expect(result.droppedCount == 0)
         #expect(result.failedChunks.isEmpty)
         #expect(!result.reduceFailed)
-        #expect(result.promptVersion == "1")
+        #expect(result.promptVersion == "2")
         let markdown = try #require(result.markdown)
         #expect(markdown.contains("### Decyzje"))
         #expect(markdown.contains("Zatwierdzamy ten budżet bez zmian."))

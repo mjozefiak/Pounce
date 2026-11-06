@@ -4,8 +4,18 @@ import Testing
 @testable import MeetingsPlugin
 
 @Suite struct NotesPromptTests {
-    @Test func theVersionIsOneUntilThePromptChanges() {
-        #expect(NotesPrompt.version == 1)
+    @Test func theVersionIsTwoUntilThePromptChanges() {
+        #expect(NotesPrompt.version == 2)
+    }
+
+    @Test func theMapPromptAsksForTheLanguageOfTheTranscriptNotForPolish() {
+        let prompt = NotesPrompt.mapSystem
+        #expect(prompt.contains("w języku transkryptu"))
+        #expect(prompt.contains("in the language of the transcript"))
+        #expect(!prompt.contains("i po polsku"))
+        #expect(!prompt.contains("krótki i po polsku"))
+        // The only "Po polsku" left is the heading of the Polish summary of the rules.
+        #expect(prompt.components(separatedBy: "po polsku").count == 1)
     }
 
     @Test func theMapRequestHasTheInstructionsTheExamplesAndTheWrappedTranscript() {
@@ -56,6 +66,6 @@ import Testing
             [NotesPrompt.mapMessages(chunk: chunk), reduce, summary].map { messages in
                 messages.map { "### \($0.role)\n\($0.content)" }.joined(separator: "\n\n")
             }.joined(separator: "\n\n==========\n\n") + "\n"
-        try Golden.check(text, named: "notes-prompt-v1.txt")
+        try Golden.check(text, named: "notes-prompt-v2.txt")
     }
 }
