@@ -63,6 +63,7 @@
 | 6 | 6.3 | Proposed revisions: Compare with Apply/Discard | dispatch | done | 503df23 |
 | 6 | 6.4 | Revise regression corpus, RealReviseTests, perf budgets | dispatch | done | 405dfd5 |
 | 6 | 6.x-review-fix | Deterministic budget tests: wait for the answering source's deadline to be cancelled (NotesSearchTests flake) | inline | done | 7ca0cbc |
+| 6 | 6.x-review-fix | Review fixes for 6.3/6.4: confirm before discarding the user's own kept text and never prune it unconfirmed (M2), link tokens need a word boundary and no trailing punctuation (M3), injective prompt escaping (L1), a run clears only its own entry (L2), ADR 0008 deviations 10 and 11 (L3), Apply no longer the Return key in Compare | inline | done | 1c394dd, d76fb84, 6fd02af, aa360a8, 61377b4, f9d4d20 |
 | 7 | 7.4 | Docs: AGENTS.md, BACKWARD_COMPATIBILITY.md, qa.md, perf.md, localization check | inline | done | e890150 |
 | 7 | 7.1 | ENABLES NOTES FOR USERS: palette, Hide content, remove DEBUG guards | inline | todo | — |
 | 7 | 7.2 | ENABLES NOTES FOR USERS: Welcome mentions Notes | dispatch | todo | — |
