@@ -24,10 +24,12 @@ After a GitHub Release is published, rebuild the Lintel website (`lintel-web`, C
 
 ## Progress
 
+PR: #60
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: C1
 
-- [ ] 1.1 Add the deploy-hook step to the publish job
-- [ ] 1.2 Write the release-asset contract into BACKWARD_COMPATIBILITY.md
-- [ ] 1.3 Verify the step script against a stub server (set, unset, failing hook)
+- [x] 1.1 Add the deploy-hook step to the publish job — 7b5024a
+- [x] 1.2 Write the release-asset contract into BACKWARD_COMPATIBILITY.md — 7b5024a
+- [x] 1.3 Verify the step script against a stub server (set, unset, failing hook) — 7b5024a
