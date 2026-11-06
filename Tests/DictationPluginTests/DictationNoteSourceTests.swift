@@ -1,9 +1,17 @@
 import Foundation
 import LintelKit
+import Synchronization
 import Testing
 import os
 
 @testable import DictationPlugin
+
+final class SeenKeys: Sendable {
+    private let state: Mutex<[NoteKey]>
+    init(_ value: [NoteKey]) { state = Mutex(value) }
+    func get() -> [NoteKey] { state.withLock { $0 } }
+    func update(_ change: (inout [NoteKey]) -> Void) { state.withLock { change(&$0) } }
+}
 
 private func query(_ text: String) -> NormalizedQuery {
     NormalizedQuery(raw: text, normalized: text.lowercased())
@@ -256,5 +264,47 @@ struct DictationNotePrivacyTests {
         for forbidden in ["Logger", "logger", "print(", "NSLog", "os_log", "debugPrint", "dump("] {
             #expect(!text.contains(forbidden), "uses \(forbidden)")
         }
+    }
+}
+
+@MainActor
+@Suite("DictationPlugin: openNote")
+struct DictationOpenNoteTests {
+    private func plugin(handler: @escaping @MainActor @Sendable (NoteKey) -> Bool) throws -> DictationPlugin {
+        let harness = try DictationHarness(keychain: MemoryKeychain())
+        let base = harness.context
+        let context = PluginContext(
+            storageDirectory: base.storageDirectory, settings: base.settings, usage: base.usage, logger: base.logger,
+            keychain: base.keychain, pasteboard: base.pasteboard, events: base.events, workspace: base.workspace,
+            permissions: base.permissions, clock: base.clock, modelsDirectory: base.modelsDirectory,
+            openNote: handler)
+        return DictationPlugin(context: context)
+    }
+
+    @Test("with the default handler (false) the entry is not taken, and a closed history takes nothing")
+    func declined() async throws {
+        let seen = SeenKeys([])
+        let plugin = try plugin { key in
+            seen.update { $0.append(key) }
+            return false
+        }
+        #expect(!plugin.openNote(entryID: 1))  // history not open: no store id, no key
+        #expect(seen.get().isEmpty)
+        plugin.history.open()
+        #expect(!plugin.openNote(entryID: 1))
+        #expect(seen.get().count == 1)
+    }
+
+    @Test("a handler that returns true gets dictation:<store id>/<row id>")
+    func accepted() async throws {
+        let seen = SeenKeys([])
+        let plugin = try plugin { key in
+            seen.update { $0.append(key) }
+            return true
+        }
+        plugin.history.open()
+        let storeID = try #require(plugin.history.storeID)
+        #expect(plugin.openNote(entryID: 7))
+        #expect(seen.get().map(\.rawValue) == ["dictation:\(storeID)/7"])
     }
 }

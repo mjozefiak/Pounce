@@ -31,6 +31,9 @@ final class MeetingsLibraryActions {
     private let changed: @Sendable () -> Void
     private let notes: NotesBoard?
     private let openNotesModel: @MainActor () -> Void
+    /// `PluginContext.openNote`: `true` once a section of the main window (the Notes workspace) took the note.
+    /// The default shell handler returns `false`, so ⌘O keeps opening the meeting window until step 3.2.
+    private let openNote: @MainActor (NoteKey) -> Bool
     /// The meeting windows belong to the store they were opened for: a library that was closed and opened
     /// again has a new store, and its windows start over (the old ones are closed first). The plugin owns the
     /// one `MeetingsLibraryActions`, so there is one window per meeting for the whole plugin.
@@ -48,6 +51,7 @@ final class MeetingsLibraryActions {
         timeZone: TimeZone = .current, regenerate: (@MainActor (Int64) -> Void)? = nil,
         changed: @escaping @Sendable () -> Void = {},
         notes: NotesBoard? = nil, openNotesModel: @escaping @MainActor () -> Void = {},
+        openNote: @escaping @MainActor (NoteKey) -> Bool = { _ in false },
         makeWindows:
             @escaping @MainActor (@escaping @MainActor (Int64) -> MeetingWindowModel) -> any MeetingWindowPresenting =
             { MeetingWindowController(makeModel: $0) }
@@ -62,6 +66,7 @@ final class MeetingsLibraryActions {
         self.changed = changed
         self.notes = notes
         self.openNotesModel = openNotesModel
+        self.openNote = openNote
     }
 
     /// Return: puts the meeting on the pasteboard as Markdown, marked transient and concealed so clipboard
@@ -77,9 +82,15 @@ final class MeetingsLibraryActions {
         MeetingPasteboard.writeMarkdown(text, to: pasteboard)
     }
 
-    /// ⌘O: the meeting window (one per meeting, reused when it is open).
+    /// ⌘O: offers the note to the shell first (`openNote`); when nothing handles it, the meeting window (one
+    /// per meeting, reused when it is open).
     func open(_ id: Int64) {
         guard let store = library.store else { return }
+        if let uuid = try? store.meetingUUID(id: id),
+            openNote(NoteKey(pluginID: MeetingLibraryPresentation.pluginID, id: uuid))
+        {
+            return
+        }
         if windows?.store !== store {
             windows?.controller.closeAll()
             windows = nil

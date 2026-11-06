@@ -508,3 +508,78 @@ struct MeetingNotePrivacyTests {
         #expect(UUID(uuidString: key.id) != nil)
     }
 }
+
+@MainActor
+@Suite("MeetingsLibraryActions: openNote")
+struct MeetingOpenNoteTests {
+    private func actions(
+        _ rig: LibraryRig, windows: FakeWindows, openNote: (@MainActor (NoteKey) -> Bool)? = nil
+    ) -> MeetingsLibraryActions {
+        if let openNote {
+            return MeetingsLibraryActions(
+                library: rig.library, pasteboard: rig.pasteboard, labels: .english, timeZone: ExportFixtures.utc,
+                openNote: openNote, makeWindows: { _ in windows })
+        }
+        // The default handler, as in the shell until step 3.2.
+        return MeetingsLibraryActions(
+            library: rig.library, pasteboard: rig.pasteboard, labels: .english, timeZone: ExportFixtures.utc,
+            makeWindows: { _ in windows })
+    }
+
+    @Test("with the default handler (false) ⌘O still opens the meeting window")
+    func defaultHandlerOpensTheWindow() throws {
+        let rig = try LibraryRig()
+        let windows = FakeWindows()
+        let id = try #require(rig.ids["notes"])
+        actions(rig, windows: windows).open(id)
+        #expect(windows.shown == [id])
+    }
+
+    @Test("a handler that returns false still opens the window, and sees the meeting's key")
+    func decliningHandler() throws {
+        let rig = try LibraryRig()
+        let windows = FakeWindows()
+        let id = try #require(rig.ids["notes"])
+        let seen = Shared<[NoteKey]>([])
+        actions(rig, windows: windows) { key in
+            seen.update { $0.append(key) }
+            return false
+        }.open(id)
+        #expect(windows.shown == [id])
+        #expect(seen.get() == [NoteKey(pluginID: "meetings", id: try #require(try rig.store.meetingUUID(id: id)))])
+    }
+
+    @Test("a handler that returns true gets the key and no window opens")
+    func acceptingHandler() throws {
+        let rig = try LibraryRig()
+        let windows = FakeWindows()
+        let id = try #require(rig.ids["notes"])
+        let seen = Shared<[NoteKey]>([])
+        actions(rig, windows: windows) { key in
+            seen.update { $0.append(key) }
+            return true
+        }.open(id)
+        #expect(windows.shown.isEmpty)
+        #expect(seen.get().count == 1)
+        #expect(seen.get().first?.pluginID == "meetings")
+    }
+
+    @Test("the library's ⌘O action goes through open")
+    func theActionUsesIt() async throws {
+        let rig = try LibraryRig()
+        let windows = FakeWindows()
+        let handled = Shared<Int>(0)
+        let actions = actions(rig, windows: windows) { _ in
+            handled.update { $0 += 1 }
+            return true
+        }
+        let source = MeetingsLibrarySource(store: { rig.library.store }, actions: actions)
+        let row = try #require(
+            try await source.search(NormalizedQuery(raw: "", normalized: ""), filter: nil, limit: 5).first)
+        let open = try #require(source.actions(for: row).first { $0.id == "meetings.library.open" })
+        #expect(open.shortcut == KeyShortcut(key: "o", modifiers: .command))
+        try await open.perform(ActionContext(previousApp: nil, panel: rig.panel))
+        #expect(handled.get() == 1)
+        #expect(windows.shown.isEmpty)
+    }
+}

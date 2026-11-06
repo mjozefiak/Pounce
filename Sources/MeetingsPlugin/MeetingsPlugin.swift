@@ -107,7 +107,8 @@ public final class MeetingsPlugin: LintelPlugin {
         libraryActions = MeetingsLibraryActions(
             library: library, pasteboard: context.pasteboard, regenerate: { notes.regenerate($0) },
             changed: changed, notes: notes.board,
-            openNotesModel: { [openModels = context.openModels] in openModels(settings.builtInLLMModel.id) })
+            openNotesModel: { [openModels = context.openModels] in openModels(settings.builtInLLMModel.id) },
+            openNote: context.openNote)
         noteSource = MeetingNoteSource(
             library: library, board: notes.board, hub: noteChanges,
             regenerate: { [weak notes] id in notes?.regenerate(id) },

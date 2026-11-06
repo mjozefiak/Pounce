@@ -301,6 +301,14 @@ public final class DictationPlugin: LintelPlugin {
 
     public var noteSources: [any NoteSource] { [noteSource] }
 
+    /// Offers a history entry to the shell's Notes workspace (`PluginContext.openNote`). `true` only when a
+    /// section took it; the default handler returns `false`. Nothing calls it yet: the history list keeps its
+    /// own actions, and the "Open in Lintel" action arrives with step 3.2 (inside `#if DEBUG`).
+    func openNote(entryID: Int64) -> Bool {
+        guard let storeID = history.storeID else { return false }
+        return context.openNote(DictationNoteSource.key(storeID: storeID, row: entryID))
+    }
+
     public var requiredPermissions: Set<Permission> { [.microphone, .accessibility] }
 
     /// The models dictation uses, for the shell's Models pane (spec `2026-11-04-lintel-main-window`, step 3.2):
