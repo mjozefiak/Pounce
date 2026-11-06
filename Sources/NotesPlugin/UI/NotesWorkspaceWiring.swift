@@ -22,6 +22,15 @@ extension NotesWorkspaceModel.Environment {
             return await Task.detached { (try? opened.setTitleOverride(key: key, title: title, now: now())) == true }
                 .value
         }
+        restoreRevision = { item, layer, revisionID in
+            guard let opened = store(), case .live(let key) = item,
+                let document = try? opened.liveDocument(key: key, layer: layer)
+            else { return false }
+            let writer = registry.writer(for: .live(key, layer: layer), item: item) {
+                RevisionWriter(store: opened, target: .existing(docID: document.id), clock: clock, now: now)
+            }
+            return (try? await writer.restore(revisionID: revisionID)) != nil
+        }
         let library = self.library
         let budget = contentBudget
         makeEditingSession = { content, layerID, document in
@@ -41,6 +50,37 @@ extension NotesWorkspaceModel.Environment {
                 content: content, layerID: layerID, store: opened, registry: registry, model: document,
                 readOnly: NotesSettings(settings).readOnly, readOnlyNow: { NotesSettings(settings).readOnly },
                 sourceStartedAtMs: startedAt, clock: clock, now: now)
+        }
+    }
+}
+
+extension NotesWorkspaceModel.Environment {
+    /// The history of a layer, read from `notes.sqlite` (a detached overlay too, read-only). Opens the store on
+    /// the first need; a store that cannot be read is `.failed`, a layer without an overlay is `.none`.
+    @MainActor
+    mutating func installHistory(store: @escaping @MainActor @Sendable () -> NotesStore?) {
+        loadHistory = { item, layer in
+            guard let opened = store() else { return .failed }
+            return await Task.detached { () -> HistoryState in
+                do {
+                    let document: DocumentRecord?
+                    switch item {
+                    case .live(let key): document = try opened.liveDocument(key: key, layer: layer)
+                    case .detached(let key, let started):
+                        document = try opened.detachedDocuments(key: key, startedAtMs: started).first {
+                            $0.layer == layer
+                        }
+                    }
+                    guard let document else { return .none }
+                    let revisions = try opened.revisions(of: document.id)
+                    return .loaded(
+                        HistorySnapshot(
+                            docID: document.id, layer: layer, headID: document.headRevisionID, revisions: revisions,
+                            isDetached: document.sourceState == .detached))
+                } catch {
+                    return .failed
+                }
+            }.value
         }
     }
 }

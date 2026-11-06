@@ -108,7 +108,7 @@ struct NotePathBar: View {
                         .accessibilityLabel(Text(verbatim: path.joined(separator: ", ")))
                 }
                 Spacer(minLength: 0)
-                if let feedback = model.feedback, feedback != .saveFailed {
+                if let feedback = model.feedback, feedback != .saveFailed, feedback != .restoreFailed {
                     Text(verbatim: Self.text(feedback))
                         .font(textSize.font(.footnote))
                         .foregroundStyle(LintelBrand.accentText)
@@ -127,7 +127,7 @@ struct NotePathBar: View {
             guard let feedback = model.feedback else { return }
             AccessibilityNotification.Announcement(Self.text(feedback)).post()
             // The save-error strip stays until it is dismissed or the save is tried again.
-            guard feedback != .saveFailed else { return }
+            guard feedback != .saveFailed, feedback != .restoreFailed else { return }
             try? await Task.sleep(for: .seconds(2))
             if !Task.isCancelled { model.dismissFeedback() }
         }
@@ -199,6 +199,12 @@ struct NotePathBar: View {
             String(localized: "The note couldn’t be created.", comment: "Notes: a new note could not be written")
         case .titleFailed:
             String(localized: "The title couldn’t be saved.", comment: "Notes: a note's title could not be written")
+        case .restored:
+            String(localized: "Version restored", comment: "Path bar: an earlier version became the current text")
+        case .restoreFailed:
+            String(
+                localized: "That version couldn’t be restored. Nothing was changed.",
+                comment: "Notes: restoring an earlier version failed")
         }
     }
 }

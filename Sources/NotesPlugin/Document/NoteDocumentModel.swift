@@ -47,6 +47,10 @@ final class NoteDocumentModel {
     /// source's own text.
     private(set) var attributions: [String: LayerAttribution] = [:]
 
+    /// The History of the shown layer and the Compare on screen (step 4.5); both belong to the layer.
+    private(set) var history: HistoryState = .idle
+    private(set) var compare: CompareState?
+
     /// The editor's connection to its writer while the note is being edited (step 4.4); `nil` when it is only read.
     private(set) var session: NoteEditingSession?
     /// A new note opens straight in the editor: set before its content is read, taken once it is loaded.
@@ -168,8 +172,14 @@ final class NoteDocumentModel {
 
     // MARK: Layers
 
+    func setHistory(_ state: HistoryState) { history = state }
+
+    func setCompare(_ state: CompareState?) { compare = state }
+
     func selectLayer(_ id: String) {
         guard layers.contains(where: { $0.id == id }), id != layerID else { return }
+        compare = nil
+        if history != .idle { history = .loading }
         // The editor belongs to the layer it was opened on.
         leaveEditing()
         layerID = id

@@ -89,6 +89,13 @@ struct NoteRowPresentation: Sendable {
 
     func dayAndTime(_ date: Date) -> String { dateTime(date) }
 
+    /// History's "today 15:02" (prototype `hEntry`): the time alone, under "today", else the day and time.
+    func historyTime(_ date: Date, now: Date) -> String {
+        guard calendar.isDate(date, inSameDayAs: now) else { return dateTime(date) }
+        let clock = time(date)
+        return String(localized: "today \(clock)", comment: "Inspector, History: the time of a version made today")
+    }
+
     // MARK: State
 
     static func level(_ badge: NoteBadge?) -> NoteStateLevel {

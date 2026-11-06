@@ -159,7 +159,27 @@ extension NotesWorkspaceModel {
                                 comment: "Notes: saves the Markdown file somewhere else")),
                     ], isDismissible: true))
         }
+        if feedback == .restoreFailed {
+            result.append(
+                Strip(
+                    id: "restore", tone: .error, text: NotePathBar.text(.restoreFailed), isDismissible: true))
+        }
         if let document = currentDocument, document.phase == .loaded {
+            if document.session?.keptAsProposal == true {
+                result.append(
+                    Strip(
+                        id: "proposal", tone: .attention,
+                        text: String(
+                            localized: "Your edits were kept as a proposal.",
+                            comment:
+                                "Notes: strip after the note changed under the editor and the typed text was set aside"),
+                        actions: [
+                            Strip.Action(
+                                id: "proposal.compare",
+                                title: String(
+                                    localized: "Compare", comment: "Notes: opens the comparison of two versions"))
+                        ]))
+            }
             if document.session?.saveFailed == true {
                 result.append(
                     Strip(
@@ -232,6 +252,7 @@ extension NotesWorkspaceModel {
         case "save.other": await saveMarkdown()
         case "models.open": environment.openModels()
         case "edit.save.retry": await currentDocument?.session?.retry()
+        case "proposal.compare": await showProposalCompare()
         default:
             guard actionID.hasPrefix("doc."), let id = currentID, let document = documents[id] else { return }
             let name = String(actionID.dropFirst(4))
@@ -248,7 +269,7 @@ extension NotesWorkspaceModel {
 
     func dismissStrip(_ id: String) {
         switch id {
-        case "save": dismissFeedback()
+        case "save", "restore": dismissFeedback()
         case "actionFailed": currentDocument?.actionFailed = false
         default: break
         }

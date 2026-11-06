@@ -35,6 +35,9 @@ enum NotesSettingsKey {
     /// DEBUG only, with `--qa-notes`: `new` presses ⌘N once the list is in, `written` creates a manual note with a
     /// title and some text (step 4.4). The store is the QA run's own. Not a contract.
     static let qaManual = "qaManual"
+    /// DEBUG only, with `--qa-notes`: `history` gives the fixture meeting's notes an agent revision and two of yours
+    /// in the QA run's own `notes.sqlite` and shows History (step 4.5); `compare` also opens the comparison.
+    static let qaHistory = "qaHistory"
     /// DEBUG only: text typed into the explorer's search field once the first list is in.
     static let qaSearch = "qaSearch"
     #endif

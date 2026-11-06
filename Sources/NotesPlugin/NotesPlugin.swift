@@ -81,7 +81,7 @@ public final class NotesPlugin: LintelPlugin {
     }
 
     /// The store, opened the first time something needs it (the listing, an open note, a sweep).
-    private var storeProvider: @MainActor @Sendable () -> NotesStore? {
+    var storeProvider: @MainActor @Sendable () -> NotesStore? {
         { [library] in
             library.open()
             return library.store
@@ -102,7 +102,9 @@ public final class NotesPlugin: LintelPlugin {
         // (they need the store); `locked` shows the locked state.
         let locked = qaState == "locked" || qaState == "locked-rows"
         let fixtures = context.settings.bool(NotesSettingsKey.qaFixtures, default: false)
-        let qaManual = context.settings.string(NotesSettingsKey.qaManual) != nil
+        let qaManual =
+            context.settings.string(NotesSettingsKey.qaManual) != nil
+            || context.settings.string(NotesSettingsKey.qaHistory) != nil
         let usesStore = !locked && (!fixtures || qaManual)
         let overlays: any OverlayIndex & OverlayDetacher
         if locked {
@@ -127,6 +129,7 @@ public final class NotesPlugin: LintelPlugin {
         }
         if usesStore {
             environment.registry = registry
+            environment.installHistory(store: storeProvider)
             environment.overlayHeads = { item in
                 guard let store = await storeProvider() else { return [] }
                 return (try? NoteOverlayContent.heads(for: item, in: store)) ?? []
@@ -170,6 +173,7 @@ public final class NotesPlugin: LintelPlugin {
         model.qaEditor = context.settings.string(NotesSettingsKey.qaEditor)
         model.qaMixedAuthors = context.settings.string(NotesSettingsKey.qaAttribution) == "mixed"
         if let manual = context.settings.string(NotesSettingsKey.qaManual) { qaCreateManualNote(manual, in: model) }
+        if let history = context.settings.string(NotesSettingsKey.qaHistory) { qaCreateHistory(history, in: model) }
     }
 
     /// `plugins.notes.qaManual`: `new` makes a note with no title and opens it in the editor (what ⌘N does);

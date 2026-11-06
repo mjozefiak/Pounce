@@ -15210,6 +15210,582 @@
           }
         }
       }
+    },
+    "Compare" : {
+      "comment" : "Inspector, History: shows what a version changed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compare"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Porównaj"
+          }
+        }
+      }
+    },
+    "compare.title" : {
+      "comment" : "Compare: title of the comparison of two versions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compare"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Porównanie"
+          }
+        }
+      }
+    },
+    "Restore" : {
+      "comment" : "Inspector, History: makes an earlier version the text again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywróć"
+          }
+        }
+      }
+    },
+    "Inline" : {
+      "comment" : "Compare: the changes are shown in the text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inline"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W tekście"
+          }
+        }
+      }
+    },
+    "No differences." : {
+      "comment" : "Compare: the two versions have the same text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No differences."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak różnic."
+          }
+        }
+      }
+    },
+    "Back to the note" : {
+      "comment" : "Compare: returns to the note's text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back to the note"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wróć do notatki"
+          }
+        }
+      }
+    },
+    "Loading history…" : {
+      "comment" : "Inspector, History: while the versions are read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading history…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wczytuję historię…"
+          }
+        }
+      }
+    },
+    "Nothing has been changed here yet. Edits by you and by the agent are listed here, with who made them." : {
+      "comment" : "Inspector, History: the layer has no edits",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing has been changed here yet. Edits by you and by the agent are listed here, with who made them."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nic tu jeszcze nie zmieniono. Zmiany wprowadzone przez Ciebie i agenta pojawią się tutaj razem z informacją, kto je zrobił."
+          }
+        }
+      }
+    },
+    "History can’t be read right now. Nothing was changed." : {
+      "comment" : "Inspector, History: notes.sqlite could not be read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History can’t be read right now. Nothing was changed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie można teraz odczytać historii. Nic nie zmieniono."
+          }
+        }
+      }
+    },
+    "History stays on this Mac, encrypted, as long as the note." : {
+      "comment" : "Inspector, History: where the versions are kept",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History stays on this Mac, encrypted, as long as the note."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historia zostaje na tym Macu, zaszyfrowana, tak długo jak notatka."
+          }
+        }
+      }
+    },
+    "Cleaned up the text" : {
+      "comment" : "Inspector, History: first version by the agent, dictation",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cleaned up the text"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oczyszczono tekst"
+          }
+        }
+      }
+    },
+    "Wrote the notes" : {
+      "comment" : "Inspector, History: first version by the agent",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wrote the notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Napisał notatki"
+          }
+        }
+      }
+    },
+    "Started the note" : {
+      "comment" : "Inspector, History: first version of a manual note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Started the note"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozpoczęto notatkę"
+          }
+        }
+      }
+    },
+    "Text as recorded" : {
+      "comment" : "Inspector, History: first version, from speech recognition",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text as recorded"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekst z nagrania"
+          }
+        }
+      }
+    },
+    "Restored an earlier version" : {
+      "comment" : "Inspector, History: a Restore",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restored an earlier version"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywrócono wcześniejszą wersję"
+          }
+        }
+      }
+    },
+    "Kept as a proposal, not applied" : {
+      "comment" : "Inspector, History: a version that was set aside instead of replacing the text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kept as a proposal, not applied"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zachowano jako propozycję, niezastosowaną"
+          }
+        }
+      }
+    },
+    "No change in the text" : {
+      "comment" : "Inspector, History: a version equal to the one before",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No change in the text"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekst bez zmian"
+          }
+        }
+      }
+    },
+    "Edited %lld blocks" : {
+      "comment" : "Inspector, History: how many blocks changed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Edited %lld block"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Edited %lld blocks"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zmieniono %lld blok"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zmieniono %lld bloki"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zmieniono %lld bloków"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zmieniono %lld bloku"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Added %lld blocks" : {
+      "comment" : "Inspector, History: how many blocks were added",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Added %lld block"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Added %lld blocks"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Dodano %lld blok"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Dodano %lld bloki"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Dodano %lld bloków"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Dodano %lld bloku"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Removed %lld blocks" : {
+      "comment" : "Inspector, History: how many blocks went",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Removed %lld block"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Removed %lld blocks"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Usunięto %lld blok"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Usunięto %lld bloki"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Usunięto %lld bloków"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Usunięto %lld bloku"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Removed: %@" : {
+      "comment" : "Accessibility: a block the newer version no longer has",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Removed: %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunięto: %@"
+          }
+        }
+      }
+    },
+    "Added: %@" : {
+      "comment" : "Accessibility: a block the newer version has",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Added: %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodano: %@"
+          }
+        }
+      }
+    },
+    "Version restored" : {
+      "comment" : "Path bar: an earlier version became the current text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version restored"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywrócono wersję"
+          }
+        }
+      }
+    },
+    "That version couldn’t be restored. Nothing was changed." : {
+      "comment" : "Notes: restoring an earlier version failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That version couldn’t be restored. Nothing was changed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się przywrócić tej wersji. Nic nie zmieniono."
+          }
+        }
+      }
+    },
+    "Your edits were kept as a proposal." : {
+      "comment" : "Notes: strip after the note changed under the editor and the typed text was set aside",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your edits were kept as a proposal."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Twoje zmiany zachowano jako propozycję."
+          }
+        }
+      }
+    },
+    "today %@" : {
+      "comment" : "Inspector, History: the time of a version made today",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "today %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "dziś %@"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

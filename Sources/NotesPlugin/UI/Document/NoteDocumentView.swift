@@ -36,7 +36,9 @@ struct NoteDocumentView: View {
 
     /// The editor while the note is being edited, else the read-only blocks.
     @ViewBuilder private var loaded: some View {
-        if let session = document.session {
+        if let compare = document.compare {
+            NoteCompareView(model: model, document: document, compare: compare)
+        } else if let session = document.session {
             NoteEditingDocument(model: model, document: document, session: session)
                 .id(document.layerID)
         } else {

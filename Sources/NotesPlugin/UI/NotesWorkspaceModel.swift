@@ -55,6 +55,11 @@ final class NotesWorkspaceModel {
         var makeEditingSession: @MainActor (NoteContent, String, NoteDocumentModel) -> NoteEditingSession? = {
             _, _, _ in nil
         }
+        /// The history of a layer (its revisions) from `notes.sqlite`; `.none` when the layer has no overlay.
+        var loadHistory: @MainActor (NoteItemID, String) async -> HistoryState = { _, _ in .none }
+        /// Restore: a new `human` revision with the text and authors of the revision, through the layer's one
+        /// writer. `false` when nothing was written (read-only, store locked, the revision is gone).
+        var restoreRevision: @MainActor (NoteItemID, String, Int64) async -> Bool = { _, _, _ in false }
     }
 
     enum LoadState: Equatable {
@@ -68,8 +73,9 @@ final class NotesWorkspaceModel {
     let presentation: NoteRowPresentation
     /// The Details toggles (author bars, source quotes, wrapped lines).
     let preferences: NoteViewPreferences
-    /// The inspector on the right (Details today; History and Comments join it in steps 4.5 and 5.2).
+    /// The inspector on the right (Details and History; Comments join it in step 5.2).
     var inspectorVisible = true
+    var inspectorTab: NoteInspectorTab = .details
 
     private(set) var loadState: LoadState = .loading
     private(set) var rows: [NoteRow] = []
@@ -361,6 +367,7 @@ final class NotesWorkspaceModel {
             {
                 document.apply(content, attributions: NoteOverlayContent.attributions(heads: heads))
                 document.setActions([])
+                await refreshHistoryIfShown(id)
             } else {
                 document.markUnavailable()
             }
@@ -376,6 +383,7 @@ final class NotesWorkspaceModel {
                 document.apply(content, attributions: NoteOverlayContent.attributions(heads: heads))
                 document.setActions([])
                 if document.wantsEditing { beginEditing(id) }
+                await refreshHistoryIfShown(id)
             } else {
                 document.markUnavailable()
             }
@@ -401,6 +409,7 @@ final class NotesWorkspaceModel {
                 NoteOverlayContent.compose(item: id, source: read, heads: heads, summary: nil),
                 attributions: NoteOverlayContent.attributions(heads: heads))
             document.setActions(source.actions(for: key))
+            await refreshHistoryIfShown(id)
             #if DEBUG
             if qaMixedAuthors { document.qaMixAuthors() }
             if let layer = preferredLayers.removeValue(forKey: id) { document.selectLayer(layer) }
@@ -516,6 +525,12 @@ final class NotesWorkspaceModel {
         if documents[id]?.layerID == NoteDocumentModel.transcriptLayerID {
             parts.append(NoteDocumentModel.title(ofLayer: NoteDocumentModel.transcriptLayerID))
         }
+        if documents[id]?.compare != nil {
+            parts.append(
+                String(
+                    localized: "compare.title", defaultValue: "Compare",
+                    comment: "Path bar: the note's versions are being compared"))
+        }
         return parts
     }
 
@@ -542,6 +557,8 @@ final class NotesWorkspaceModel {
         case saveFailed
         case createFailed
         case titleFailed
+        case restored
+        case restoreFailed
     }
 
     private(set) var feedback: Feedback?
@@ -553,7 +570,7 @@ final class NotesWorkspaceModel {
     func qaShow(_ feedback: Feedback) { show(feedback) }
     #endif
 
-    private func show(_ feedback: Feedback?) {
+    func show(_ feedback: Feedback?) {
         self.feedback = feedback
         feedbackSerial += 1
     }

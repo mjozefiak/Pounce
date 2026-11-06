@@ -2,27 +2,44 @@ import LintelKit
 import LintelUI
 import SwiftUI
 
-/// The inspector on the right of the document (prototype `.insp`): a tab strip and the pane. Details is the only
-/// pane so far (History arrives in step 4.5, Comments in step 5.2); the strip is built so they slot in.
+/// The inspector on the right of the document (prototype `.insp`): a tab strip and the pane. History and Details; Comments
+/// join the strip in step 5.2.
 struct NoteInspector: View {
     let model: NotesWorkspaceModel
     let document: NoteDocumentModel
     @Environment(\.lintelTextSize) private var textSize
 
+    /// A tab of the strip (prototype `.it`): the icon, and the name in bold on the one that is on.
+    private func tab(_ tab: NoteInspectorTab, symbol: String, title: Text) -> some View {
+        let isOn = model.inspectorTab == tab
+        return Button {
+            model.selectInspectorTab(tab)
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: symbol).accessibilityHidden(true)
+                if isOn { title.font(textSize.font(.callout, weight: .bold)) }
+            }
+            .font(textSize.font(.callout))
+            .foregroundStyle(isOn ? LintelBrand.accentText : LintelBrand.secondaryText)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(isOn ? LintelBrand.windowSelectionTint : Color.clear, in: RoundedRectangle(cornerRadius: 6))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(isOn ? .isSelected : [])
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 4) {
-                Label {
-                    Text("Details", comment: "Inspector: tab with the view toggles and the note's facts")
-                        .font(textSize.font(.callout, weight: .bold))
-                } icon: {
-                    Image(systemName: "slider.horizontal.3").accessibilityHidden(true)
-                }
-                .foregroundStyle(LintelBrand.accentText)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(LintelBrand.windowSelectionTint, in: RoundedRectangle(cornerRadius: 6))
-                .accessibilityAddTraits(.isSelected)
+                tab(
+                    .history, symbol: "clock",
+                    title: Text("History", comment: "Inspector: tab with the versions of the text"))
+                tab(
+                    .details, symbol: "slider.horizontal.3",
+                    title: Text("Details", comment: "Inspector: tab with the view toggles and the note's facts"))
                 Spacer(minLength: 0)
                 Button {
                     model.inspectorVisible = false
@@ -41,11 +58,20 @@ struct NoteInspector: View {
             .frame(height: 33.75 * textSize.scale)
             .overlay(alignment: .bottom) { LintelDivider() }
             ScrollView {
-                NoteDetailsPane(model: model, document: document)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                Group {
+                    switch model.inspectorTab {
+                    case .history: NoteHistoryPane(model: model, document: document)
+                    case .details: NoteDetailsPane(model: model, document: document)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
+            if model.inspectorTab == .history { NoteHistoryFooter() }
+        }
+        .task(id: HistoryTaskKey(tab: model.inspectorTab, layer: document.layerID, note: document.id)) {
+            if model.inspectorTab == .history { await model.loadHistory(for: document.id) }
         }
         .frame(width: min(23 * 12.5 * textSize.scale, 300))
         .background(LintelBrand.sidebarBackground)
@@ -53,6 +79,12 @@ struct NoteInspector: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text("Inspector", comment: "Accessibility label of the note inspector"))
     }
+}
+
+private struct HistoryTaskKey: Equatable {
+    var tab: NoteInspectorTab
+    var layer: String?
+    var note: NoteItemID
 }
 
 /// Details (prototype `lib-details`): the view toggles with the author legend, then what the source says about
