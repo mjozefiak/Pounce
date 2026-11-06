@@ -148,6 +148,34 @@ final class NotesTraceLog: Sendable {
         }
     }
 
+    // MARK: Codable
+
+    @Test func theEventsOfEveryScenarioSurviveEncodingAndDecoding() async throws {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        var checked = 0
+        for (index, scenario) in scenarios().enumerated() {
+            let log = NotesTraceLog()
+            _ = try await run(scenario, trace: log)
+            let data = try encoder.encode(log.all)
+            let decoded = try JSONDecoder().decode([NotesTraceEvent].self, from: data)
+            #expect(decoded == log.all, "scenario \(index)")
+            checked += log.all.count
+        }
+        #expect(checked > 0)
+    }
+
+    @Test func theDropReasonsAreWrittenAsAnObjectKeyedByTheReason() throws {
+        let verdict = NotesGuard.PointVerdict(verified: [], dropped: 0, reasons: [:])
+        var verification = NotesTraceVerification(proposed: 0, verdict: verdict)
+        verification.reasons = [.quoteTooShort: 2]
+        let data = try JSONEncoder().encode(verification)
+        let object = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let reasons = try #require(object["reasons"] as? [String: Int])
+        #expect(reasons == [NotesGuard.DropReason.quoteTooShort.rawValue: 2])
+        #expect(try JSONDecoder().decode(NotesTraceVerification.self, from: data) == verification)
+    }
+
     // MARK: Fates
 
     @Test func aMisfiledAndAnOmittedPointAreAccountedForWithTheirReasons() async throws {
