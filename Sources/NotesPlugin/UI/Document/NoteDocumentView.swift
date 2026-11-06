@@ -19,7 +19,15 @@ struct NoteDocumentView: View {
             case .gone:
                 message(Text("This note no longer exists.", comment: "Document: its source no longer has the note"))
             case .loaded:
+                #if DEBUG
+                if let mode = model.qaEditor, !mode.isEmpty {
+                    NoteQAEditorDocument(model: model, document: document, readOnly: mode == "readonly")
+                } else {
+                    NoteDocumentBody(model: model, document: document)
+                }
+                #else
                 NoteDocumentBody(model: model, document: document)
+                #endif
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

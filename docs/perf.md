@@ -20,6 +20,7 @@ Machine for every row: Apple M4 Max, 16 cores, macOS 27.0.1, 2026-10-31. An M1 r
 | Path mode query, folder of 1 000 entries (file path search spec) | p95 < 20 ms | p95 8.3 ms read cold, 11.4 ms while typing a filter (release build, SSD; `PathModeBenchmarks`) | Met |
 | App suggestions query, empty panel (app suggestions spec, 2026-11-02) | < 5 ms (source budget 150 ms) | p95 0.51 ms with 300 apps, p95 2.22 ms with 1 000 apps, every app with activity (max 2.57 ms; release build; `AppBenchmarks/suggestApps`) | Met |
 | One-time Spotlight seed of app activity (app suggestions spec, 2026-11-02) | in the background, no budget | 57 ms for the 43 apps in `/Applications` of the measurement Mac, 24 of them with used dates (`AppBenchmarks/seedFromSpotlight`, reads real Spotlight metadata, writes only to a temporary directory) | Measured |
+| Typing in the Notes editor, p99, 50 000 characters (notes workspace spec step 4.1, budget proposed in ADR 0008 addendum 0.1) | < 8 ms | not yet measured in a real window (the `EditorBenchmarks` text path, below, is a part of it) | To be measured |
 | Main window visible after a Dock click (main window spec, 2026-11-04) | < 200 ms | not yet measured | To be measured |
 | Settings pane switch in the main window (main window spec, 2026-11-04) | < 100 ms | not yet measured | To be measured |
 | Models pane first paint with downloads running (main window spec, 2026-11-04) | < 150 ms | not yet measured | To be measured |
@@ -284,3 +285,18 @@ Measurement checklist (copy into the PR that records the numbers):
 - [ ] The weaker Mac (8 or 16 GB): the 4B model only, 1 h case, and whether the 8 minute aim holds.
 - [ ] Dictation tail with a notes job running.
 - [ ] If a figure differs from the table above by a large factor, change `notesChunkTokens` / `notesReduceInputTokens` here and in `MeetingsSettings`, and record why.
+
+### How the Notes editor row is measured (step 4.1)
+
+The budget is the time from a key press to the updated line on screen at 50 000 characters. Two parts:
+
+- **Text path, headless** (`Tests/NotesPluginTests/Editor/EditorBenchmarks.swift`, off by default): per keystroke the
+  insert into the text storage, the scan for block boundaries, the restyle of the one edited block and the
+  `onEdit` callback (the whole text as a `String`), 300 keystrokes each at the start, middle and end of a document
+  of about 50 000 characters. `LINTEL_BENCHMARKS=1 swift test -c release -Xswiftc -enable-testing --filter EditorBenchmarks`.
+  It has no layout, drawing or event path, so it is a lower bound.
+- **Real window** (still to do): a release build with `--qa-notes --qa-setting plugins.notes.qaEditor=on` and a
+  50 000 character note, typing through `NSEvent` key events (key repeat, the Polish dead keys and marked text
+  included), measuring key-down to the next display with a signpost around `keyDown`. Only this number is entered
+  in the table above. ADR 0008 addendum 0.1 measured the TextKit 2 layout and display side at p99 1.5 ms in a
+  headless window; that run did not include the event path, the compositor or other hardware.

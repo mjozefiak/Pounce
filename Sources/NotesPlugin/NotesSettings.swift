@@ -26,6 +26,9 @@ enum NotesSettingsKey {
     /// (no notes, recording on), `off` (no recording plugin), `locked` (nothing readable, `notes.sqlite` locked),
     /// `locked-rows` (the sources are listed, `notes.sqlite` is locked), `save-error` (the save-error strip).
     static let qaState = "qaState"
+    /// DEBUG only, with `--qa-notes`: shows the open note in the editor (step 4.1, before saving exists in 4.2): `on`,
+    /// or `readonly` for the editor as `plugins.notes.readOnly` shows it. Nothing is saved.
+    static let qaEditor = "qaEditor"
     /// DEBUG only: text typed into the explorer's search field once the first list is in.
     static let qaSearch = "qaSearch"
     #endif

@@ -98,6 +98,7 @@ public final class NotesPlugin: LintelPlugin {
         default: break
         }
         if let text = context.settings.string(NotesSettingsKey.qaSearch), !text.isEmpty { model.initialSearch = text }
+        model.qaEditor = context.settings.string(NotesSettingsKey.qaEditor)
     }
 
     /// `plugins.notes.qaOpen`: opens the named notes in tabs, the last one current.

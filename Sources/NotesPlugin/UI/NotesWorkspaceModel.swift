@@ -80,6 +80,8 @@ final class NotesWorkspaceModel {
     var holdsLoading = false
     /// QA (`plugins.notes.qaSearch`): the text typed into the search field once the first list is in.
     var initialSearch: String?
+    /// `plugins.notes.qaEditor`: `on` or `readonly` shows the open note in the editor.
+    var qaEditor: String?
     #endif
 
     private(set) var tabs = NoteTabSet()
