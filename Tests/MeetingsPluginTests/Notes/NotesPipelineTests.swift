@@ -16,6 +16,24 @@ import Testing
         return .done("")
     }
 
+    // MARK: Language of the prompt
+
+    @Test func theMapPromptIsTheOneOfTheTranscriptLanguage() async throws {
+        let english = [
+            NotesUtterance(startMs: 5_000, speaker: "Sam", text: "We should move the release to the next week."),
+            NotesUtterance(startMs: 21_000, speaker: "Kim", text: "I think the team will be ready for it."),
+        ]
+        let englishRig = NotesRig()
+        _ = try await englishRig.pipeline().run(utterances: english, onEvent: { _ in })
+        let englishMap = try #require(englishRig.llm.calls.first { NotesFake.isMap($0.messages) })
+        #expect(englishMap.messages.first?.content == NotesPrompt.mapSystem(language: .english))
+
+        let polishRig = NotesRig()
+        _ = try await polishRig.pipeline().run(utterances: NotesFixtures.meeting(), onEvent: { _ in })
+        let polishMap = try #require(polishRig.llm.calls.first { NotesFake.isMap($0.messages) })
+        #expect(polishMap.messages.first?.content == NotesPrompt.mapSystem(language: .polish))
+    }
+
     // MARK: Success
 
     @Test func aMeetingBecomesNotesInOneMapAndOneReduce() async throws {
@@ -29,7 +47,7 @@ import Testing
         #expect(result.droppedCount == 0)
         #expect(result.failedChunks.isEmpty)
         #expect(!result.reduceFailed)
-        #expect(result.promptVersion == "1")
+        #expect(result.promptVersion == "3")
         let markdown = try #require(result.markdown)
         #expect(markdown.contains("### Decyzje"))
         #expect(markdown.contains("Zatwierdzamy ten budżet bez zmian."))
@@ -39,7 +57,7 @@ import Testing
 
         let calls = rig.llm.calls
         #expect(calls.count == 2)
-        #expect(calls[0].maxTokens == 700)
+        #expect(calls[0].maxTokens == 1000)
         #expect(calls[1].maxTokens == 1500)
         #expect(NotesFake.isMap(calls[0].messages))
         #expect(NotesFake.isReduce(calls[1].messages))
@@ -193,7 +211,7 @@ import Testing
         }
         let result = try await rig.pipeline().run(utterances: NotesFixtures.meeting())
         #expect(result.status == .ok)
-        #expect(rig.llm.calls.prefix(2).map(\.maxTokens) == [700, 1400])
+        #expect(rig.llm.calls.prefix(2).map(\.maxTokens) == [1000, 2000])
     }
 
     @Test func anAnswerCutOffTwiceIsAFailureNeverAFinishedResult() async throws {
@@ -203,7 +221,7 @@ import Testing
         #expect(result.status == .failed)
         #expect(result.markdown == nil)
         #expect(result.verifiedPointCount == 0)
-        #expect(rig.llm.calls.map(\.maxTokens) == [700, 1400])
+        #expect(rig.llm.calls.map(\.maxTokens) == [1000, 2000])
     }
 
     @Test func aReduceCutOffByTheLimitIsRetriedAndThenFallsBackToCodeOrder() async throws {

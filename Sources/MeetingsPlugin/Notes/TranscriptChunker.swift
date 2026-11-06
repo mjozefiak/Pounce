@@ -8,9 +8,18 @@ struct NotesUtterance: Equatable, Sendable {
 
     /// The utterances of a meeting, in time order. Speaker names and text are single-line plain text, and a
     /// transcript tag in the text is removed so a speaker cannot close the `<transcript>` block of the prompt.
-    static func make(from document: MeetingDocument) -> [NotesUtterance] {
+    ///
+    /// `selfName` replaces the default label of the speaker who is the user (`SpeakerLabels.me`) when it is not
+    /// empty and the meeting was diarized: with channels the "Ja" speaker is the whole microphone, which can
+    /// hold several people. A label the user changed is kept.
+    static func make(from document: MeetingDocument, selfName: String? = nil) -> [NotesUtterance] {
+        let ownerName = selfName.map(sanitized) ?? ""
+        let useOwnerName = !ownerName.isEmpty && document.speakerMode == .diarized
         let names = Dictionary(
-            document.speakers.map { ($0.id, sanitized($0.label)) }, uniquingKeysWith: { first, _ in first })
+            document.speakers.map { speaker -> (Int64, String) in
+                if useOwnerName, speaker.isSelf, speaker.label == SpeakerLabels.me { return (speaker.id, ownerName) }
+                return (speaker.id, sanitized(speaker.label))
+            }, uniquingKeysWith: { first, _ in first })
         let ordered = document.segments.enumerated().sorted {
             ($0.element.startMs, $0.element.id, $0.offset) < ($1.element.startMs, $1.element.id, $1.offset)
         }

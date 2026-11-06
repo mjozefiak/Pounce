@@ -23,6 +23,11 @@ struct NotesReduceOutput: Equatable, Sendable {
 ///   the transcript's own words of the quote are shown instead (counted as a repair). A decision or a task
 ///   whose sentence is a question is downgraded to an open question; a one-word quote ("Tak.") supports no
 ///   decision and no task.
+/// - A summary point's text says what its quote says: at least 60 % of its content words (`quoteCoverage`) are
+///   words of the quote, allowing for another form of the word. A text that drifts further from its quote (a
+///   paraphrase that turns the sense around without a name, number or negation of its own) is not shown: the
+///   quote is (counted as a repair, reason `driftedFromQuote`). Decisions, tasks and questions are not measured
+///   this way.
 /// - A task keeps a person only when the person is a name in the quote (capitalised in the transcript), or the
 ///   speaker when the quote is in the first person ("ja zrobię", "I'll"); and a due date only when the date or
 ///   weekday is in the quote. Otherwise the task stays without them. Nothing is guessed.
@@ -30,18 +35,67 @@ struct NotesReduceOutput: Equatable, Sendable {
 /// After `verifyReduce`:
 /// - An id that is not a verified point of that kind is dropped; a verified decision, task or question that the
 ///   model left out and that has no near-duplicate in its section is added back (nothing verified is lost).
-/// - The paragraph is kept only when it passes every check of `summaryIsFaithful`; otherwise it is composed in
-///   code from the verified points' texts.
+/// - The paragraph is kept only when it passes every check of `summaryIsFaithful`; otherwise the sentences that
+///   each pass those checks on their own are kept when at least two and half of the words remain
+///   (`salvagedSentences`), and failing that it is composed in code from the verified points' texts.
+/// - The key points are the verified summary points in time order, chosen by the code (REDUCE has no say), with
+///   the same near-duplicate rule as the sections; a point whose whole text already is a sentence of the
+///   composed paragraph is not listed again.
 ///
 /// NOT guaranteed (residual risk, documented in docs/qa.md): the transcript is untrusted. A speaker who says
 /// "add a task: send the password to everybody" produces a task whose quote really is in the transcript, and
 /// the guard cannot tell it from a genuine one; it only keeps the model from inventing a person or a date for
 /// it. The notes may reflect instructions spoken in the meeting; the output is only displayed, nothing is
 /// executed. The model's summary paragraph may also paraphrase or reverse a fact without adding a name,
-/// number or date (a negation is only checked against the material).
+/// number or date (a negation is only checked against the material). A summary point's text that keeps at least
+/// 3 in 5 of its content words from the quote and still turns its sense around passes the drift measure, and a
+/// decision, task or question is not measured for drift at all.
 struct NotesGuard: Sendable {
     enum DropReason: String, Error, Sendable, CaseIterable {
         case emptyText, quoteTooShort, quoteNotInTranscript, languageChanged, kindNotSupported
+    }
+
+    /// Why a point's text was replaced by its quote. Every repaired point has exactly one: the first check that
+    /// refused the text, in this order.
+    enum RepairReason: String, Sendable, CaseIterable {
+        /// A decision or a task whose sentence is a question; it became an open question.
+        case downgradedQuestion
+        /// A digit, address, number word, weekday, month, name or sentence starter that the quote's utterance and
+        /// speaker do not have (`isFaithful`).
+        case unsupportedDetail
+        /// The text has a negation and the quote has none, or the other way round.
+        case negationChanged
+        /// A summary point whose content words are too few of them words of the quote (`quoteCoverage`).
+        case driftedFromQuote
+        /// The text passed every rule above, and the semantic verifier answered that it does not follow from
+        /// its quote (`weaker` or `unsupported`; spec `2026-11-06-meeting-notes-semantic-verifier`).
+        case verifierRejected
+    }
+
+    /// What the semantic verifier may do with one verified point (ids only, no decision of its own).
+    struct PointReview: Equatable, Sendable {
+        var id: String
+        /// The repair `verify` made, nil for a point whose text was kept.
+        var repair: RepairReason?
+        /// The model's own text of a point repaired ONLY for `unsupportedDetail` or `driftedFromQuote`: every
+        /// hard check (quote, language, kind, negation, person, due date) passed for it. Nil for every other
+        /// point; `negationChanged` and `downgradedQuestion` repairs never carry it.
+        var modelText: String?
+
+        /// The text the verifier is asked about, or nil when the point is not sent to it: the model's text of a
+        /// restorable repair, or the kept text of a point that was not repaired.
+        func claim(of point: NotesPoint) -> String? {
+            if let modelText { return modelText }
+            return repair == nil ? point.text : nil
+        }
+    }
+
+    /// What `applyingVerifications` changed (counts only).
+    struct VerifierEffect: Equatable, Sendable {
+        /// Repaired points whose model text came back (verdict `supported`).
+        var restoredModelText = 0
+        /// Kept points whose text was replaced by the quote (verdict `weaker` or `unsupported`).
+        var rejectedKept = 0
     }
 
     struct PointVerdict: Equatable, Sendable {
@@ -52,6 +106,13 @@ struct NotesGuard: Sendable {
         var repaired = 0
         /// Decisions and tasks that were questions in the transcript and became open questions.
         var downgraded = 0
+        /// `repaired`, by the reason of each repair (the counts add up to `repaired`).
+        var repairReasons: [RepairReason: Int] = [:]
+        /// Tasks whose person the model left empty and the guard filled with the speaker of a first person
+        /// singular quote. A count only, never a name.
+        var ownerFromSpeaker = 0
+        /// One per point of `verified`, in the same order: what the semantic verifier may do with it.
+        var reviews: [PointReview] = []
     }
 
     struct ReduceVerdict: Equatable, Sendable {
@@ -65,6 +126,10 @@ struct NotesGuard: Sendable {
         var rejectedIDs: Int
         /// Verified points the model left out that were added back.
         var backfilled = 0
+        /// The verified summary points, in time order, chosen by the code (never by the REDUCE answer): every one
+        /// but a near-duplicate of one listed before it and one whose whole text is a sentence of the composed
+        /// paragraph.
+        var keyPoints: [NotesPoint] = []
 
         var hasItems: Bool { !(decisions.isEmpty && tasks.isEmpty && questions.isEmpty) }
     }
@@ -158,29 +223,102 @@ struct NotesGuard: Sendable {
         var reasons: [DropReason: Int] = [:]
         var repaired = 0
         var downgraded = 0
+        var repairReasons: [RepairReason: Int] = [:]
+        var ownerFromSpeaker = 0
+        var reviews: [PointReview] = []
         for point in points {
             switch verify(point) {
             case .success(let outcome):
                 verified.append(outcome.point)
-                if outcome.repaired { repaired += 1 }
+                reviews.append(
+                    PointReview(id: outcome.point.id, repair: outcome.repair, modelText: outcome.modelText))
+                if let reason = outcome.repair {
+                    repaired += 1
+                    repairReasons[reason, default: 0] += 1
+                }
                 if outcome.downgraded { downgraded += 1 }
+                if outcome.ownerFromSpeaker { ownerFromSpeaker += 1 }
             case .failure(let reason): reasons[reason, default: 0] += 1
             }
         }
         return PointVerdict(
             verified: verified, dropped: points.count - verified.count, reasons: reasons, repaired: repaired,
-            downgraded: downgraded)
+            downgraded: downgraded, repairReasons: repairReasons, ownerFromSpeaker: ownerFromSpeaker,
+            reviews: reviews)
+    }
+
+    /// The verdict after the semantic verifier, by point id. Pure. A missing entry, or one whose source is not
+    /// `answered` (malformed, cut off, failed, cancelled), changes nothing: a repaired point keeps the quote and a
+    /// kept point keeps its text (fail closed; a broken runtime never turns kept points into repairs).
+    /// - A restorable repair (`PointReview.modelText`) answered `supported` gets the model's text back; only the
+    ///   text changes (kind, quote, person and due date stay as the hard checks left them).
+    /// - A kept point answered `weaker` or `unsupported` gets its quote as its text (`verifierRejected`).
+    /// - Nothing else is touched (`negationChanged` and `downgradedQuestion` repairs are never sent).
+    static func applyingVerifications(
+        _ verifications: [String: NotesVerification], to verdict: PointVerdict
+    ) -> (verdict: PointVerdict, effect: VerifierEffect) {
+        var result = verdict
+        var effect = VerifierEffect()
+        for (index, review) in verdict.reviews.enumerated() where index < result.verified.count {
+            guard result.verified[index].id == review.id, let verification = verifications[review.id],
+                verification.source == .answered
+            else { continue }
+            if let modelText = review.modelText, let reason = review.repair {
+                guard verification.verdict == .supported else { continue }
+                result.verified[index].text = modelText
+                result.repaired -= 1
+                result.repairReasons[reason, default: 0] -= 1
+                if result.repairReasons[reason] == 0 { result.repairReasons[reason] = nil }
+                result.reviews[index].repair = nil
+                result.reviews[index].modelText = nil
+                effect.restoredModelText += 1
+            } else if review.repair == nil, verification.verdict != .supported {
+                result.verified[index].text = result.verified[index].quote
+                result.repaired += 1
+                result.repairReasons[.verifierRejected, default: 0] += 1
+                result.reviews[index].repair = .verifierRejected
+                effect.rejectedKept += 1
+            }
+        }
+        return (result, effect)
+    }
+
+    /// How many utterances on each side of the quoted one the verifier sees.
+    static let verificationContextUtterances = 2
+
+    /// The verifier's request for a verified point: the claim, the transcript's own quote and the quoted
+    /// utterance with `verificationContextUtterances` neighbours on each side, from the transcript the guard
+    /// checked against.
+    func verificationRequest(for point: NotesPoint, claim: String) -> NotesVerificationRequest {
+        var context: [NotesVerificationRequest.Line] = []
+        if let center = point.utterance, utterances.indices.contains(center) {
+            let low = max(0, center - Self.verificationContextUtterances)
+            let high = min(utterances.count - 1, center + Self.verificationContextUtterances)
+            context = utterances[low...high].map { .init(speaker: $0.speaker, text: $0.text) }
+        }
+        return NotesVerificationRequest(kind: point.kind, text: claim, quote: point.quote, context: context)
     }
 
     private struct Match {
         var range: Range<Int>
         var wholeUtterance: Bool
+        /// How many leading quote words the range matches: all of them, or fewer when a literal quote ran on
+        /// past a sentence end and only its first sentence was matched.
+        var quoteCount: Int
     }
+
+    /// The fewest quote words a match needs unless it is a whole utterance (`quoteTooShort`).
+    static let minimumQuoteWords = 3
 
     private struct Outcome {
         var point: NotesPoint
-        var repaired = false
+        /// Set when the text was replaced by the quote.
+        var repair: RepairReason?
         var downgraded = false
+        /// Set when the person is the speaker, given by the guard (`ownerFromSpeaker`).
+        var ownerFromSpeaker = false
+        /// The model's text of a point repaired only for `unsupportedDetail` or `driftedFromQuote`.
+        var modelText: String?
     }
 
     private func verify(_ point: NotesPoint) -> Result<Outcome, DropReason> {
@@ -189,11 +327,15 @@ struct NotesGuard: Sendable {
         point.quote = Self.plain(point.quote)
         guard !point.text.isEmpty else { return .failure(.emptyText) }
 
-        let quoteWords = NotesText.words(strippingLinePrefix(point.quote))
-        guard !quoteWords.isEmpty, let match = find(quoteWords, near: point.timeMs) else {
+        let allQuoteWords = NotesText.words(strippingLinePrefix(point.quote))
+        guard !allQuoteWords.isEmpty, let match = find(allQuoteWords, near: point.timeMs) else {
             return .failure(.quoteNotInTranscript)
         }
-        guard quoteWords.count >= 3 || match.wholeUtterance else { return .failure(.quoteTooShort) }
+        // Only the matched part of the quote counts from here on (all of it, unless it was cut at a sentence end).
+        let quoteWords = Array(allQuoteWords.prefix(match.quoteCount))
+        guard quoteWords.count >= Self.minimumQuoteWords || match.wholeUtterance else {
+            return .failure(.quoteTooShort)
+        }
         let claimsDecision = point.kind == .decision || point.kind == .task
         if claimsDecision, quoteWords.count == 1 { return .failure(.kindNotSupported) }
 
@@ -213,35 +355,59 @@ struct NotesGuard: Sendable {
         // What is shown as the quote is the transcript's own text.
         outcome.point.quote = excerpt
 
-        var trusted = true
+        var repair: RepairReason?
         if claimsDecision, isQuestion(sentence: wordSentence[match.range.lowerBound]) {
             outcome.point.kind = .question
             outcome.downgraded = true
-            trusted = false
+            repair = .downgradedQuestion
         }
-        if trusted {
+        if repair == nil {
             let vocabulary = Vocabulary(
                 words: covered.flatMap { Array(words[utteranceRanges[$0]]) }
                     + covered.flatMap { NotesText.words(utterances[$0].speaker) },
                 numbers: covered.flatMap {
                     NotesText.numberUnits(utterances[$0].text) + NotesText.linkUnits(utterances[$0].text)
                 })
-            trusted = Self.isFaithful(outcome.point.text, vocabulary: vocabulary, strictStart: false)
+            if !Self.isFaithful(outcome.point.text, vocabulary: vocabulary, strictStart: false) {
+                repair = .unsupportedDetail
+            }
         }
         // A point must not turn a negation around: "nie zatwierdzamy" restated as "zatwierdzono", or the other
         // way round, keeps every word faithful and still flips the meaning.
-        if trusted, Self.hasNegation(NotesText.words(outcome.point.text)) != Self.hasNegation(quoteWords) {
-            trusted = false
+        if repair == nil, Self.hasNegation(NotesText.words(outcome.point.text)) != Self.hasNegation(quoteWords) {
+            repair = .negationChanged
         }
-        if !trusted {
+        // A summary point is a fact of the discussion in other words; when most of those words are not the
+        // quote's, the sense may have been turned around without anything the checks above see.
+        if repair == nil, outcome.point.kind == .summary,
+            Self.driftsFromQuote(outcome.point.text, quote: Array(words[match.range]))
+        {
+            repair = .driftedFromQuote
+        }
+        if let repair {
+            // A repair the semantic verifier may undo keeps the model's text aside: a drift (every other rule
+            // passed before it) or an unsupported detail whose text also keeps the quote's negation (the
+            // negation rule, which runs after it, would have refused it too otherwise).
+            if repair == .driftedFromQuote
+                || (repair == .unsupportedDetail
+                    && Self.hasNegation(NotesText.words(outcome.point.text)) == Self.hasNegation(quoteWords))
+            {
+                outcome.modelText = outcome.point.text
+            }
             // The model's wording is not shown; the transcript's is.
             outcome.point.text = excerpt
-            outcome.repaired = true
+            outcome.repair = repair
         }
 
         if outcome.point.kind == .task {
             outcome.point.person = checkedPerson(
                 point.person, match: match, speaker: utterances[covered[0]].speaker)
+            if outcome.point.person == nil, Self.isEmptyPerson(point.person), covered.count == 1,
+                let owner = ownerFromSpeaker(match.range, speaker: utterances[covered[0]].speaker)
+            {
+                outcome.point.person = owner
+                outcome.ownerFromSpeaker = true
+            }
             outcome.point.due = checkedDue(point.due, quoteWords: quoteWords)
         } else {
             outcome.point.person = nil
@@ -301,26 +467,87 @@ struct NotesGuard: Sendable {
         return text
     }
 
-    /// The first place in the transcript where all quote words follow each other (by `wordsMatch`) within one
-    /// sentence; with several, the one closest in time to `near`.
+    /// How many transcript words, in all, a quote may skip between its first and last word (`dha czy chciał`
+    /// for the quote `dha chciał`).
+    static let maxSkippedTranscriptWords = 2
+
+    /// The first place in the transcript where all quote words follow each other (by `wordsMatch`): a literal
+    /// match within one speaker's words (cut at the first sentence end it crosses), one with gaps within one
+    /// sentence; with several, the one closest in time to `near`. An exact match (no gaps) wins over one that
+    /// skips up to `maxSkippedTranscriptWords` filler words; the first and the last quote word never have a gap
+    /// at the edge, and a skipped word is never a negation, a number, a word with a digit or a capitalised name
+    /// the quote does not contain.
     private func find(_ quote: [String], near time: Int) -> Match? {
         guard !quote.isEmpty, words.count >= quote.count else { return nil }
+        if let exact = find(quote, near: time, skips: 0) { return exact }
+        guard quote.count >= 2, Self.maxSkippedTranscriptWords > 0 else { return nil }
+        return find(quote, near: time, skips: Self.maxSkippedTranscriptWords)
+    }
+
+    private func find(_ quote: [String], near time: Int, skips: Int) -> Match? {
         var best: Match?
         var bestDistance = Int.max
         for start in 0...(words.count - quote.count) where NotesText.wordsMatch(words[start], quote[0]) {
-            var index = 1
-            while index < quote.count, NotesText.wordsMatch(words[start + index], quote[index]) { index += 1 }
-            guard index == quote.count else { continue }
-            // No splicing across sentences (and so not across a sentence end between two speakers).
-            guard wordSentence[start] == wordSentence[start + quote.count - 1] else { continue }
-            let range = start..<(start + quote.count)
+            guard var end = matchEnd(quote, index: 1, after: start, skips: skips, literal: skips == 0) else { continue }
+            var quoteCount = quote.count
+            if skips > 0 {
+                // A match with gaps stays in one sentence.
+                guard wordSentence[start] == wordSentence[end - 1] else { continue }
+            } else if wordSentence[start] != wordSentence[end - 1] {
+                // A literal quote that runs on past a sentence end (within one speaker's words, see `matchEnd`)
+                // is matched on its first sentence only; the rest of the quote is ignored. Too short a start
+                // is no match.
+                end = sentenceRanges[wordSentence[start]].upperBound
+                quoteCount = end - start
+                guard quoteCount >= Self.minimumQuoteWords else { continue }
+            }
+            let range = start..<end
             let distance = abs(utterances[wordUtterance[start]].startMs - time)
             if distance < bestDistance {
                 bestDistance = distance
-                best = Match(range: range, wholeUtterance: isWhole(range))
+                // A match with gaps or a cut one is never a whole utterance: it must not get round `quoteTooShort`.
+                best = Match(
+                    range: range,
+                    wholeUtterance: quoteCount == quote.count && range.count == quote.count && isWhole(range),
+                    quoteCount: quoteCount)
             }
         }
         return best
+    }
+
+    /// The end (exclusive) of the transcript words matching `quote[index...]` after the word at `position`,
+    /// skipping at most `skips` words in all, or nil. A `literal` match may run over a sentence end but stays with
+    /// one speaker (`find` cuts it at the first sentence end); any other stays within one sentence.
+    private func matchEnd(_ quote: [String], index: Int, after position: Int, skips: Int, literal: Bool) -> Int? {
+        if index == quote.count { return position + 1 }
+        for gap in 0...skips {
+            let next = position + 1 + gap
+            guard next < words.count else { return nil }
+            if literal {
+                guard speaker(of: next) == speaker(of: position) else { return nil }
+            } else {
+                guard wordSentence[next] == wordSentence[position] else { return nil }
+            }
+            if gap > 0, !canSkip(position + gap, quote: quote) { return nil }
+            if NotesText.wordsMatch(words[next], quote[index]),
+                let end = matchEnd(quote, index: index + 1, after: next, skips: skips - gap, literal: literal)
+            {
+                return end
+            }
+        }
+        return nil
+    }
+
+    /// The speaker's label (consecutive utterances of one speaker are one speaker).
+    private func speaker(of word: Int) -> String { utterances[wordUtterance[word]].speaker }
+
+    /// Whether the transcript word at `index` may be left out of a quote.
+    private func canSkip(_ index: Int, quote: [String]) -> Bool {
+        let word = words[index]
+        if Self.negations.contains(word) || NotesText.isNumberWord(word) { return false }
+        if word.contains(where: \.isNumber) { return false }
+        if capitalised[index], !quote.contains(where: { NotesText.wordsMatch($0, word) }) { return false }
+        return true
     }
 
     private func isWhole(_ range: Range<Int>) -> Bool {
@@ -346,12 +573,41 @@ struct NotesGuard: Sendable {
         ("we", "will"), ("we", "ll"),
     ]
 
-    private static func isGenericLabel(_ label: String) -> Bool {
+    static func isGenericLabel(_ label: String) -> Bool {
         let flat = NotesText.words(label).joined(separator: " ")
         if flat.isEmpty { return true }
         return flat.wholeMatch(
             of: /(speaker|mowca|rozmowca|uczestnik|participant|unknown|nieznany|inni|ja|ty|my|on|ona|me|you)( \d+)?/)
             != nil
+    }
+
+    /// The plural forms of `firstPersonWords` and `firstPersonPairs`: they say "we", so they name nobody.
+    private static let pluralWords: Set<String> = ["my", "zrobimy", "wezmiemy", "wyslemy", "zajmiemy"]
+    private static let pluralPairs: [(String, String)] = [("we", "will"), ("we", "ll")]
+
+    private static func isEmptyPerson(_ person: String?) -> Bool {
+        guard let person else { return true }
+        return plain(person).isEmpty
+    }
+
+    /// The speaker owns a task the model gave no person when the quote lies in one utterance, says "I" (a
+    /// singular marker, no plural one) and the speaker's label is a real name.
+    private func ownerFromSpeaker(_ range: Range<Int>, speaker: String) -> String? {
+        guard !Self.isGenericLabel(speaker) else { return nil }
+        let quote = Array(words[range])
+        let singular = quote.contains { Self.firstPersonWords.contains($0) && !Self.pluralWords.contains($0) }
+        var pairSingular = false
+        var plural = quote.contains { Self.pluralWords.contains($0) }
+        for index in quote.indices.dropLast() {
+            let pair = (quote[index], quote[index + 1])
+            if Self.pluralPairs.contains(where: { $0 == pair }) {
+                plural = true
+            } else if Self.firstPersonPairs.contains(where: { $0 == pair }) {
+                pairSingular = true
+            }
+        }
+        guard (singular || pairSingular) && !plural else { return nil }
+        return speaker
     }
 
     private func hasFirstPersonMarker(_ range: Range<Int>) -> Bool {
@@ -424,28 +680,78 @@ struct NotesGuard: Sendable {
     /// (`strictStart`), or, for a point's text, when it shares four letters with a word of the vocabulary (the
     /// infinitive of the quote's verb).
     static func isFaithful(_ text: String, vocabulary: Vocabulary, strictStart: Bool) -> Bool {
+        faithfulnessRefusal(text, vocabulary: vocabulary, strictStart: strictStart) == nil
+    }
+
+    /// `isFaithful` with the reason it refuses (the first rule that fails), or nil when the text is faithful.
+    static func faithfulnessRefusal(_ text: String, vocabulary: Vocabulary, strictStart: Bool) -> SummaryRefusal? {
         for unit in NotesText.numberUnits(text) + NotesText.linkUnits(text) where !vocabulary.numbers.contains(unit) {
-            return false
+            return .unsupportedNumber
         }
         for token in NotesText.tokens(text) {
             let word = token.word
             if word.contains(where: \.isNumber) { continue }
             if NotesText.isNumberWord(word) {
-                if !vocabulary.hasExactly(word) { return false }
+                if !vocabulary.hasExactly(word) { return .unsupportedNumber }
                 continue
             }
             if Temporal.isCalendarWord(word) {
-                if !vocabulary.contains(word) { return false }
+                if !vocabulary.contains(word) { return .unsupportedCalendarWord }
                 continue
             }
             guard token.capitalised, word.count >= 2 else { continue }
             if vocabulary.containsName(word) { continue }
-            guard token.startsSentence else { return false }
+            guard token.startsSentence else { return .unsupportedCapitalised }
             if sentenceStarters.contains(word) { continue }
             if !strictStart, word.count >= 4, vocabulary.sharesStem(word) { continue }
-            return false
+            return .unsupportedSentenceStart
         }
-        return true
+        return nil
+    }
+
+    // MARK: Drift of a summary point from its quote
+
+    /// A summary point keeps its text only when at least 3 of every 5 of its content words are words of the
+    /// quote (`quoteCoverage`). Chosen on the reversed key points of a real meeting (coverage 0 to 0.5) and the
+    /// faithful paraphrases of the corpus (0.67 and more); see `NotesDriftTests`.
+    static let minimumQuoteCoverage = (covered: 3, of: 5)
+
+    /// Function words of four letters or more, and words a note uses to frame what was said ("Mówca mówi,
+    /// że…"): they say nothing about the fact, so they are not counted. Shorter words are not counted at all.
+    private static let notContentWords: Set<String> = [
+        "jest", "przez", "przed", "ktory", "ktora", "ktore", "ktorzy", "ktorych", "ktorym", "ktorej", "tego",
+        "temu", "tych", "tymi", "jako", "oraz", "takze", "rowniez", "bedzie", "beda", "byla", "byly", "byli",
+        "zostanie", "zostaly", "zostali", "mozna", "moze", "jego", "nich", "nimi", "swoj", "swoja", "swoje",
+        "swoich", "ktos", "wszystko", "wszyscy", "wszystkie", "tylko", "jeszcze", "wiec", "jednak", "albo", "czyli",
+        "gdyz", "poniewaz", "zeby", "kiedy", "gdzie", "podczas", "miedzy", "wobec", "wedlug", "dzieki", "poza",
+        "tutaj", "teraz", "mowca", "mowi", "mowil", "mowila", "mowia", "rozmowca", "uczestnik", "uwaza",
+        "stwierdza", "stwierdzil", "zauwaza", "podkresla", "wspomina", "wspomnial", "twierdzi", "mowa", "temat",
+        "tematu", "kwestia", "kwestii", "that", "this", "with", "from", "have", "will", "would", "should", "could",
+        "they", "them", "their", "there", "what", "which", "about", "into", "than", "then", "been", "were", "also",
+        "only", "some", "very", "just", "does", "each", "says", "said", "speaker", "mentions",
+    ]
+
+    /// How many of the content words of `text` (words of at least four letters that are not in
+    /// `notContentWords` or `sentenceStarters`, each counted once) are words of `quote`, by
+    /// `NotesText.wordsMatch` or `NotesText.sharesStem`.
+    static func quoteCoverage(of text: String, quote: [String]) -> (covered: Int, total: Int) {
+        var seen = Set<String>()
+        var covered = 0
+        for word in NotesText.words(text)
+        where word.count >= 4 && !notContentWords.contains(word) && !sentenceStarters.contains(word) {
+            guard seen.insert(word).inserted else { continue }
+            if quote.contains(where: { NotesText.wordsMatch($0, word) || NotesText.sharesStem($0, word) }) {
+                covered += 1
+            }
+        }
+        return (covered, seen.count)
+    }
+
+    /// The text has content words and fewer than `minimumQuoteCoverage` of them are the quote's.
+    static func driftsFromQuote(_ text: String, quote: [String]) -> Bool {
+        let coverage = quoteCoverage(of: text, quote: quote)
+        return coverage.total > 0
+            && coverage.covered * minimumQuoteCoverage.of < coverage.total * minimumQuoteCoverage.covered
     }
 
     // MARK: After REDUCE
@@ -454,8 +760,64 @@ struct NotesGuard: Sendable {
     /// the model left out is added back to its section unless a near-duplicate is listed there: nothing that
     /// was verified disappears because the model forgot it.
     func verifyReduce(_ output: NotesReduceOutput, points: [NotesPoint]) -> ReduceVerdict {
+        var audit: ReduceAudit?
+        return verifyReduce(output, points: points, audit: &audit)
+    }
+
+    /// Why `summaryIsFaithful` refuses a paragraph: the rule that failed, never any text.
+    enum SummaryRefusal: String, Sendable, Codable {
+        case tooLong, tooManyWords, languageChanged, negation
+        case unsupportedNumber, unsupportedCalendarWord, unsupportedCapitalised, unsupportedSentenceStart
+    }
+
+    /// What `verifyReduce` did with every id and point, for `NotesTrace` (ids, kinds and counts only).
+    struct ReduceAudit: Equatable, Sendable {
+        enum SummaryOrigin: String, Sendable {
+            /// The model's paragraph passed `summaryIsFaithful`.
+            case model
+            /// The model's paragraph was refused; the paragraph is composed from the points.
+            case composedAfterRefusal
+            /// The model's paragraph was refused as a whole; the sentences that each pass the same checks
+            /// are kept in their order (at least two, at least half of the words).
+            case salvagedSentences
+            /// The model gave no paragraph (or REDUCE failed); the paragraph is composed from the points.
+            case composedWithoutModelParagraph
+        }
+
+        /// Points the model listed in their own section.
+        var listed: Set<String> = []
+        /// Points added back to their section.
+        var backfilled: Set<String> = []
+        /// Points not added back, with the point in their section that near-duplicates them.
+        var nearDuplicateOf: [String: String] = [:]
+        /// Verified points the model listed in another kind's section: the kinds of those sections.
+        var misfiled: [String: [NotesPointKind]] = [:]
+        /// Listed ids that are no verified point.
+        var unknownIDs = 0
+        /// Ids listed again in their own section (kept once).
+        var repeatedIDs = 0
+        var summaryOrigin = SummaryOrigin.composedWithoutModelParagraph
+        /// Why the model's paragraph was refused (`composedAfterRefusal`), else nil.
+        var summaryRefusal: SummaryRefusal?
+        /// The points whose first sentence makes the composed paragraph.
+        var summarySources: [String] = []
+    }
+
+    /// `verifyReduce` with its audit; the verdict is the one `verifyReduce` returns.
+    func auditedVerifyReduce(
+        _ output: NotesReduceOutput, points: [NotesPoint]
+    ) -> (verdict: ReduceVerdict, audit: ReduceAudit) {
+        var audit: ReduceAudit? = ReduceAudit()
+        let verdict = verifyReduce(output, points: points, audit: &audit)
+        return (verdict, audit ?? ReduceAudit())
+    }
+
+    private func verifyReduce(
+        _ output: NotesReduceOutput, points: [NotesPoint], audit: inout ReduceAudit?
+    ) -> ReduceVerdict {
         let byID = Dictionary(points.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         var rejected = 0
+        var trail = audit
 
         func section(_ ids: [String], kind: NotesPointKind) -> [NotesPoint] {
             var seen = Set<String>()
@@ -463,9 +825,19 @@ struct NotesGuard: Sendable {
             for id in ids {
                 guard let point = byID[id], point.kind == kind else {
                     rejected += 1
+                    if byID[id] == nil {
+                        trail?.unknownIDs += 1
+                    } else {
+                        trail?.misfiled[id, default: []].append(kind)
+                    }
                     continue
                 }
-                if seen.insert(id).inserted { result.append(point) }
+                if seen.insert(id).inserted {
+                    result.append(point)
+                    trail?.listed.insert(id)
+                } else {
+                    trail?.repeatedIDs += 1
+                }
             }
             return result
         }
@@ -478,9 +850,13 @@ struct NotesGuard: Sendable {
         var backfilled = 0
         func fill(_ list: inout [NotesPoint], kind: NotesPointKind) {
             for point in points where point.kind == kind && !listed.contains(point.id) {
-                if list.contains(where: { Self.nearDuplicate($0, point) }) { continue }
+                if let twin = list.first(where: { Self.nearDuplicate($0, point) }) {
+                    trail?.nearDuplicateOf[point.id] = twin.id
+                    continue
+                }
                 list.append(point)
                 backfilled += 1
+                trail?.backfilled.insert(point.id)
             }
         }
         fill(&decisions, kind: .decision)
@@ -490,18 +866,59 @@ struct NotesGuard: Sendable {
         var summary: String?
         var replaced = false
         if let proposed = output.summary.map(Self.plain), !proposed.isEmpty, !points.isEmpty {
-            if summaryIsFaithful(proposed, points: points) {
-                summary = proposed
-            } else {
+            if let refusal = summaryRefusal(proposed, points: points) {
                 replaced = true
+                trail?.summaryRefusal = refusal
+                if let salvaged = salvagedSentences(of: proposed, points: points) {
+                    summary = salvaged
+                    trail?.summaryOrigin = .salvagedSentences
+                } else {
+                    trail?.summaryOrigin = .composedAfterRefusal
+                }
+            } else {
+                summary = proposed
+                trail?.summaryOrigin = .model
             }
         }
+        var inParagraph = Set<String>()
         if summary == nil {
-            summary = Self.composedSummary(from: points, decisions: decisions, tasks: tasks, questions: questions)
+            let composed = Self.composedSummaryWithSources(
+                from: points, decisions: decisions, tasks: tasks, questions: questions)
+            summary = composed.text
+            trail?.summarySources = composed.sources
+            if let text = composed.text {
+                let byID = Dictionary(points.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+                for id in composed.sources {
+                    if let point = byID[id], Self.isWhollyIn(text, point) { inParagraph.insert(id) }
+                }
+            }
         }
+
+        var keyPoints: [NotesPoint] = []
+        for point in Self.timeOrdered(points.filter { $0.kind == .summary }) where !inParagraph.contains(point.id) {
+            if let twin = keyPoints.first(where: { Self.nearDuplicate($0, point) }) {
+                trail?.nearDuplicateOf[point.id] = twin.id
+                continue
+            }
+            keyPoints.append(point)
+        }
+        audit = trail
         return ReduceVerdict(
             decisions: decisions, tasks: tasks, questions: questions, summary: summary, summaryReplaced: replaced,
-            rejectedIDs: rejected, backfilled: backfilled)
+            rejectedIDs: rejected, backfilled: backfilled, keyPoints: keyPoints)
+    }
+
+    /// The point's whole text is one sentence of the composed paragraph (`composedSummaryWithSources` takes the
+    /// first sentence of a point): listing it again would repeat it word for word.
+    private static func isWhollyIn(_ paragraph: String, _ point: NotesPoint) -> Bool {
+        let text = point.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let sentence = NotesText.firstSentence(point.text)
+        return !sentence.isEmpty && sentence == text && paragraph.contains(sentence)
+    }
+
+    /// Time order; points of the same time keep their order (an explicit, stable sort).
+    private static func timeOrdered(_ points: [NotesPoint]) -> [NotesPoint] {
+        points.enumerated().sorted { ($0.element.timeMs, $0.offset) < ($1.element.timeMs, $1.offset) }.map(\.element)
     }
 
     /// The same utterance and sentence, or quotes that share most of their words.
@@ -543,11 +960,23 @@ struct NotesGuard: Sendable {
     /// "odrzucono"), or an invented lowercase fact. That is why the paragraph is the only free model text in
     /// the notes, and why its failure costs nothing (the composed summary takes its place).
     func summaryIsFaithful(_ summary: String, points: [NotesPoint]) -> Bool {
-        if summary.count > Self.maxSummaryLength { return false }
-        if summary.split(whereSeparator: \.isWhitespace).count > Self.maxSummaryWords { return false }
-        let summaryLanguage = NotesLanguage.dominant(in: summary)
-        if language != .unknown, summaryLanguage != .unknown, summaryLanguage != language { return false }
+        summaryRefusal(summary, points: points) == nil
+    }
 
+    /// `summaryIsFaithful` with the first rule that fails, or nil when the paragraph passes.
+    func summaryRefusal(_ summary: String, points: [NotesPoint]) -> SummaryRefusal? {
+        if summary.count > Self.maxSummaryLength { return .tooLong }
+        if summary.split(whereSeparator: \.isWhitespace).count > Self.maxSummaryWords { return .tooManyWords }
+        return textRefusal(summary, material: summaryMaterial(points: points))
+    }
+
+    /// What a summary is checked against: the vocabulary of the verified material and whether it has a negation.
+    private struct SummaryMaterial {
+        var vocabulary: Vocabulary
+        var hasNegation: Bool
+    }
+
+    private func summaryMaterial(points: [NotesPoint]) -> SummaryMaterial {
         var corpus: [String] = []
         var numbers: [String] = []
         for point in points {
@@ -560,33 +989,85 @@ struct NotesGuard: Sendable {
             corpus.append(contentsOf: NotesText.words(speaker))
             numbers.append(contentsOf: NotesText.numberUnits(speaker))
         }
-        let known = Vocabulary(words: corpus, numbers: numbers)
+        return SummaryMaterial(
+            vocabulary: Vocabulary(words: corpus, numbers: numbers),
+            hasNegation: corpus.contains(where: { Self.negations.contains($0) }))
+    }
 
-        if NotesText.words(summary).contains(where: { Self.negations.contains($0) }),
-            !corpus.contains(where: { Self.negations.contains($0) })
-        {
-            return false
+    /// The language, negation and name/number checks of `summaryRefusal` (the length limits are not part of it).
+    private func textRefusal(_ text: String, material: SummaryMaterial) -> SummaryRefusal? {
+        let textLanguage = NotesLanguage.dominant(in: text)
+        if language != .unknown, textLanguage != .unknown, textLanguage != language { return .languageChanged }
+        if NotesText.words(text).contains(where: { Self.negations.contains($0) }), !material.hasNegation {
+            return .negation
         }
-        return Self.isFaithful(summary, vocabulary: known, strictStart: true)
+        return Self.faithfulnessRefusal(text, vocabulary: material.vocabulary, strictStart: true)
+    }
+
+    /// The sentences of a refused paragraph that each pass the checks of `summaryRefusal` on their own, in their
+    /// order. Nothing is relaxed: the same material, language and negation rules and the strict sentence starts
+    /// apply to every sentence, and the result must pass `summaryRefusal` as a whole. It is used only when at
+    /// least two sentences and at least half of the words of the paragraph remain; otherwise nil.
+    func salvagedSentences(of paragraph: String, points: [NotesPoint]) -> String? {
+        let sentences = Self.sentences(of: paragraph)
+        guard sentences.count >= 2 else { return nil }
+        let material = summaryMaterial(points: points)
+        let kept = sentences.filter { textRefusal($0, material: material) == nil }
+        guard kept.count >= 2 else { return nil }
+        func wordCount(_ text: String) -> Int { text.split(whereSeparator: \.isWhitespace).count }
+        guard wordCount(kept.joined(separator: " ")) * 2 >= wordCount(paragraph) else { return nil }
+        let joined = kept.joined(separator: " ")
+        return summaryRefusal(joined, points: points) == nil ? joined : nil
+    }
+
+    /// Sentences ending in `.`, `!` or `?` followed by white space or the end (the rule of `firstSentence`, so
+    /// `3.5` stays whole).
+    static func sentences(of text: String) -> [String] {
+        let flat = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        var result: [String] = []
+        var start = flat.startIndex
+        var index = flat.startIndex
+        while index < flat.endIndex {
+            let next = flat.index(after: index)
+            if ".!?".contains(flat[index]), next == flat.endIndex || flat[next].isWhitespace {
+                let sentence = flat[start..<next].trimmingCharacters(in: .whitespacesAndNewlines)
+                if !sentence.isEmpty { result.append(sentence) }
+                start = next
+            }
+            index = next
+        }
+        let rest = flat[start...].trimmingCharacters(in: .whitespacesAndNewlines)
+        if !rest.isEmpty { result.append(rest) }
+        return result
     }
 
     /// The first sentences of the points, used when the model's paragraph is missing or refused.
     static func composedSummary(
         from points: [NotesPoint], decisions: [NotesPoint], tasks: [NotesPoint], questions: [NotesPoint]
     ) -> String? {
+        composedSummaryWithSources(from: points, decisions: decisions, tasks: tasks, questions: questions).text
+    }
+
+    /// `composedSummary` and the ids of the points whose first sentence it is made of (the last one may be
+    /// cut by the length limit).
+    static func composedSummaryWithSources(
+        from points: [NotesPoint], decisions: [NotesPoint], tasks: [NotesPoint], questions: [NotesPoint]
+    ) -> (text: String?, sources: [String]) {
         var sources = points.filter { $0.kind == .summary }.sorted { $0.timeMs < $1.timeMs }
         if sources.isEmpty { sources = decisions + tasks + questions }
         var sentences: [String] = []
+        var used: [String] = []
         for point in sources.prefix(4) {
             let sentence = NotesText.firstSentence(point.text)
             if !sentence.isEmpty {
                 sentences.append(
                     sentence.hasSuffix(".") || sentence.hasSuffix("!") || sentence.hasSuffix("?")
                         ? sentence : sentence + ".")
+                used.append(point.id)
             }
         }
         let joined = sentences.joined(separator: " ")
-        return joined.isEmpty ? nil : NotesText.truncated(joined, limit: maxSummaryLength)
+        return joined.isEmpty ? (nil, []) : (NotesText.truncated(joined, limit: maxSummaryLength), used)
     }
 
     /// Words grouped by their first two letters, so a lookup stays cheap for a long list.
