@@ -313,6 +313,8 @@ struct NotesTraceSummary: Equatable, Sendable, Codable {
     var sourceIDs: [String]
     var sourceStartMs: Int?
     var sourceEndMs: Int?
+    /// Why the model's paragraph was refused (a rule, never text); nil for older traces and for no refusal.
+    var refusal: NotesGuard.SummaryRefusal?
 }
 
 struct NotesTracePoint: Equatable, Sendable, Codable {
@@ -460,7 +462,7 @@ final class NotesTraceRecorder: Sendable {
                 NotesTraceSummary(
                     origin: audit.summaryOrigin, present: verdict.summary != nil, shown: summaryShown,
                     sourceIDs: audit.summarySources, sourceStartMs: sourceTimes.min(),
-                    sourceEndMs: sourceTimes.max())))
+                    sourceEndMs: sourceTimes.max(), refusal: audit.summaryRefusal)))
 
         let proposedKinds = Dictionary(proposed.map { ($0.id, $0.kind) }, uniquingKeysWith: { first, _ in first })
         for point in points {

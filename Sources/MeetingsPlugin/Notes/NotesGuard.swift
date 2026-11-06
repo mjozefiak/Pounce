@@ -468,28 +468,33 @@ struct NotesGuard: Sendable {
     /// (`strictStart`), or, for a point's text, when it shares four letters with a word of the vocabulary (the
     /// infinitive of the quote's verb).
     static func isFaithful(_ text: String, vocabulary: Vocabulary, strictStart: Bool) -> Bool {
+        faithfulnessRefusal(text, vocabulary: vocabulary, strictStart: strictStart) == nil
+    }
+
+    /// `isFaithful` with the reason it refuses (the first rule that fails), or nil when the text is faithful.
+    static func faithfulnessRefusal(_ text: String, vocabulary: Vocabulary, strictStart: Bool) -> SummaryRefusal? {
         for unit in NotesText.numberUnits(text) + NotesText.linkUnits(text) where !vocabulary.numbers.contains(unit) {
-            return false
+            return .unsupportedNumber
         }
         for token in NotesText.tokens(text) {
             let word = token.word
             if word.contains(where: \.isNumber) { continue }
             if NotesText.isNumberWord(word) {
-                if !vocabulary.hasExactly(word) { return false }
+                if !vocabulary.hasExactly(word) { return .unsupportedNumber }
                 continue
             }
             if Temporal.isCalendarWord(word) {
-                if !vocabulary.contains(word) { return false }
+                if !vocabulary.contains(word) { return .unsupportedCalendarWord }
                 continue
             }
             guard token.capitalised, word.count >= 2 else { continue }
             if vocabulary.containsName(word) { continue }
-            guard token.startsSentence else { return false }
+            guard token.startsSentence else { return .unsupportedCapitalised }
             if sentenceStarters.contains(word) { continue }
             if !strictStart, word.count >= 4, vocabulary.sharesStem(word) { continue }
-            return false
+            return .unsupportedSentenceStart
         }
-        return true
+        return nil
     }
 
     // MARK: Drift of a summary point from its quote
@@ -547,6 +552,12 @@ struct NotesGuard: Sendable {
         return verifyReduce(output, points: points, audit: &audit)
     }
 
+    /// Why `summaryIsFaithful` refuses a paragraph: the rule that failed, never any text.
+    enum SummaryRefusal: String, Sendable, Codable {
+        case tooLong, tooManyWords, languageChanged, negation
+        case unsupportedNumber, unsupportedCalendarWord, unsupportedCapitalised, unsupportedSentenceStart
+    }
+
     /// What `verifyReduce` did with every id and point, for `NotesTrace` (ids, kinds and counts only).
     struct ReduceAudit: Equatable, Sendable {
         enum SummaryOrigin: String, Sendable {
@@ -571,6 +582,8 @@ struct NotesGuard: Sendable {
         /// Ids listed again in their own section (kept once).
         var repeatedIDs = 0
         var summaryOrigin = SummaryOrigin.composedWithoutModelParagraph
+        /// Why the model's paragraph was refused (`composedAfterRefusal`), else nil.
+        var summaryRefusal: SummaryRefusal?
         /// The points whose first sentence makes the composed paragraph.
         var summarySources: [String] = []
     }
@@ -638,12 +651,13 @@ struct NotesGuard: Sendable {
         var summary: String?
         var replaced = false
         if let proposed = output.summary.map(Self.plain), !proposed.isEmpty, !points.isEmpty {
-            if summaryIsFaithful(proposed, points: points) {
-                summary = proposed
-                trail?.summaryOrigin = .model
-            } else {
+            if let refusal = summaryRefusal(proposed, points: points) {
                 replaced = true
                 trail?.summaryOrigin = .composedAfterRefusal
+                trail?.summaryRefusal = refusal
+            } else {
+                summary = proposed
+                trail?.summaryOrigin = .model
             }
         }
         var inParagraph = Set<String>()
@@ -726,10 +740,15 @@ struct NotesGuard: Sendable {
     /// "odrzucono"), or an invented lowercase fact. That is why the paragraph is the only free model text in
     /// the notes, and why its failure costs nothing (the composed summary takes its place).
     func summaryIsFaithful(_ summary: String, points: [NotesPoint]) -> Bool {
-        if summary.count > Self.maxSummaryLength { return false }
-        if summary.split(whereSeparator: \.isWhitespace).count > Self.maxSummaryWords { return false }
+        summaryRefusal(summary, points: points) == nil
+    }
+
+    /// `summaryIsFaithful` with the first rule that fails, or nil when the paragraph passes.
+    func summaryRefusal(_ summary: String, points: [NotesPoint]) -> SummaryRefusal? {
+        if summary.count > Self.maxSummaryLength { return .tooLong }
+        if summary.split(whereSeparator: \.isWhitespace).count > Self.maxSummaryWords { return .tooManyWords }
         let summaryLanguage = NotesLanguage.dominant(in: summary)
-        if language != .unknown, summaryLanguage != .unknown, summaryLanguage != language { return false }
+        if language != .unknown, summaryLanguage != .unknown, summaryLanguage != language { return .languageChanged }
 
         var corpus: [String] = []
         var numbers: [String] = []
@@ -748,9 +767,9 @@ struct NotesGuard: Sendable {
         if NotesText.words(summary).contains(where: { Self.negations.contains($0) }),
             !corpus.contains(where: { Self.negations.contains($0) })
         {
-            return false
+            return .negation
         }
-        return Self.isFaithful(summary, vocabulary: known, strictStart: true)
+        return Self.faithfulnessRefusal(summary, vocabulary: known, strictStart: true)
     }
 
     /// The first sentences of the points, used when the model's paragraph is missing or refused.
