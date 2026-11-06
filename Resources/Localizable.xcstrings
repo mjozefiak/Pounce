@@ -3853,24 +3853,6 @@
         }
       }
     },
-    "Open Lintel with %@. Settings and meetings are in the Lintel window: click the Dock icon or press ⌘,." : {
-      "comment" : "Welcome screen: final page text; the argument is the main shortcut, such as ⌘Space",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open Lintel with %@. Settings and meetings are in the Lintel window: click the Dock icon or press ⌘,."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Otwórz Lintel skrótem %@. Ustawienia i spotkania są w oknie aplikacji Lintel: kliknij ikonę w Docku albo naciśnij ⌘,."
-          }
-        }
-      }
-    },
     "Optional: let a model on this Mac write notes after each meeting. It is a large download that starts only when you press the button." : {
       "comment" : "Meetings onboarding step about the notes model",
       "extractionState" : "manual",
@@ -7737,24 +7719,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "macOS może pytać, zanim aplikacja odczyta schowek. Zezwól aplikacji Lintel, aby historia była dalej zapisywana."
-          }
-        }
-      }
-    },
-    "Settings and meetings are in the Lintel window: click the Dock icon or press ⌘,." : {
-      "comment" : "Welcome screen: final page text while no main shortcut is set",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Settings and meetings are in the Lintel window: click the Dock icon or press ⌘,."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ustawienia i spotkania są w oknie aplikacji Lintel: kliknij ikonę w Docku albo naciśnij ⌘,."
           }
         }
       }
@@ -18177,6 +18141,60 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Paleta poleceń"
+          }
+        }
+      }
+    },
+    "Open Lintel with %@. Your notes live in the Lintel window: click the Dock icon or press ⌘,." : {
+      "comment" : "Welcome screen: final page text; the argument is the main shortcut, such as ⌘Space",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Lintel with %@. Your notes live in the Lintel window: click the Dock icon or press ⌘,."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz Lintel skrótem %@. Notatki są w oknie aplikacji Lintel: kliknij ikonę w Docku albo naciśnij ⌘,."
+          }
+        }
+      }
+    },
+    "Your notes live in the Lintel window: click the Dock icon or press ⌘,." : {
+      "comment" : "Welcome screen: final page text while no main shortcut is set",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your notes live in the Lintel window: click the Dock icon or press ⌘,."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki są w oknie aplikacji Lintel: kliknij ikonę w Docku albo naciśnij ⌘,."
+          }
+        }
+      }
+    },
+    "Open Notes" : {
+      "comment" : "Welcome screen: the final page's button that opens the Lintel window",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz Notatki"
           }
         }
       }
