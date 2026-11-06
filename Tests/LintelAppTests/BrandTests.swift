@@ -1,49 +1,9 @@
 import AppKit
+import LintelUI
 import SwiftUI
 import Testing
 
 @testable import LintelApp
-
-@Suite struct BrandContrastTests {
-    // Worst-case backgrounds under the glass panel, from the brand design: light glass over a dark wallpaper and
-    // dark glass over a light one, and the selected row (the accent tint over that glass).
-    private let lightGlass: UInt32 = 0xE1DFDC
-    private let darkGlass: UInt32 = 0x2D2924
-    private var lightSelected: UInt32 {
-        BrandPalette.blend(BrandPalette.accentLight, alpha: LintelBrand.selectionTintAlpha.light, over: lightGlass)
-    }
-    private var darkSelected: UInt32 {
-        BrandPalette.blend(BrandPalette.accentDark, alpha: LintelBrand.selectionTintAlpha.dark, over: darkGlass)
-    }
-
-    @Test func accentTextIsReadableOnTheGlassAndOnTheSelectedRow() {
-        #expect(BrandPalette.contrast(BrandPalette.accentTextLight, lightGlass) >= 4.5)
-        #expect(BrandPalette.contrast(BrandPalette.accentTextLight, lightSelected) >= 4.5)
-        #expect(BrandPalette.contrast(BrandPalette.accentTextDark, darkGlass) >= 4.5)
-        #expect(BrandPalette.contrast(BrandPalette.accentTextDark, darkSelected) >= 4.5)
-    }
-
-    @Test func theAccentAsAGraphicHasThreeToOne() {
-        // The caret, the selection bar and the level bars.
-        #expect(BrandPalette.contrast(BrandPalette.accentLight, lightGlass) >= 3)
-        #expect(BrandPalette.contrast(BrandPalette.accentLight, lightSelected) >= 3)
-        #expect(BrandPalette.contrast(BrandPalette.accentDark, darkGlass) >= 3)
-        #expect(BrandPalette.contrast(BrandPalette.accentDark, darkSelected) >= 3)
-    }
-
-    @Test func textOnAnAccentFillIsReadable() {
-        // Primary buttons and the selected filter chip.
-        #expect(BrandPalette.contrast(BrandPalette.onAccentLight, BrandPalette.accentLight) >= 4.5)
-        #expect(BrandPalette.contrast(BrandPalette.onAccentDark, BrandPalette.accentDark) >= 4.5)
-    }
-
-    @Test func theBrandSurfacesKeepTheInkReadable() {
-        #expect(BrandPalette.contrast(BrandPalette.inkLight, BrandPalette.surfaceLight) >= 7)
-        #expect(BrandPalette.contrast(BrandPalette.inkDark, BrandPalette.surfaceDark) >= 7)
-        #expect(BrandPalette.contrast(BrandPalette.accentTextLight, BrandPalette.surfaceLight) >= 4.5)
-        #expect(BrandPalette.contrast(BrandPalette.accentTextDark, BrandPalette.surfaceDark) >= 4.5)
-    }
-}
 
 @MainActor
 @Suite struct LintelMarkTests {

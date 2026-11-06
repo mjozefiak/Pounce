@@ -10,3 +10,4 @@ Whole-app design outside the launcher panel: main window (Notes + Settings), Mod
 - Simulations: all data is fictional; toggles, tabs and buttons inside screens are static (only the toolbar is interactive).
 - Review comments: no comment engine (the scaffold was not used); feedback goes through the owner's reply, keyed by screen ID.
 - Evidence: screenshots were kept outside the repository (they show only fictional data); the prototype's section 8 lists what was and was not inspected.
+- Deviations: the specs' deviation tables are applied (step 0.2): marked-later screens (`shell-menu-rec`, `shell-welcome-denied`), no Dictation Language row, Notes pane in the settings sidebar, comment shortcut Shift-Command-M. See the "Deviations applied" section of `index.html`.

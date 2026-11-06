@@ -1,69 +1,75 @@
+import LintelUI
 import SwiftUI
 
-/// Settings → General: the main shortcut, launch at login, the Dock icon and the panel's text size.
+/// Settings → General: the main shortcut, launch at login, the Dock icon and the panel's text size, on the
+/// `SettingsPane` template (prototype `set-general`, spec step 4.1). The "Ready" banner is the host's
+/// (`ShellPaneBanners.general`).
 struct GeneralPane: View {
     let hotkeys: HotkeyService
     @Bindable var settings: AppSettings
     let launchAtLogin: any LaunchAtLoginClient
 
+    var body: some View {
+        GeneralPaneContent(hotkeys: hotkeys, settings: settings, launchAtLogin: launchAtLogin)
+    }
+}
+
+/// The General pane: one Basics section, no Advanced and no Data (prototype `set-general`).
+struct GeneralPaneContent: View {
+    let hotkeys: HotkeyService
+    @Bindable var settings: AppSettings
+    let launchAtLogin: any LaunchAtLoginClient
+
+    @Environment(\.lintelTextSize) private var textSize
     @State private var launchesAtLogin = false
     @State private var launchError: String?
 
     var body: some View {
-        Form {
+        SettingsPane {
             Section {
                 LabeledContent {
                     MainShortcutRecorder(hotkeys: hotkeys)
                 } label: {
-                    Text("Open Lintel", comment: "Settings label of the main shortcut")
+                    Text("Launcher shortcut", comment: "Settings → General: label of the main shortcut")
+                        .font(textSize.font(.body))
                 }
                 if hotkeys.spotlightHoldsCommandSpace {
                     SpotlightShortcutBanner()
+                        .font(textSize.font(.callout))
                 }
-            } header: {
-                Text("Shortcut", comment: "Settings section title")
-            }
-
-            Section {
                 Toggle(isOn: launchBinding) {
-                    Text("Launch at login", comment: "Settings toggle")
+                    Text("Open at login", comment: "Settings → General: launch at login switch")
+                        .font(textSize.font(.body))
+                    if let launchError {
+                        Text(launchError)
+                            .font(textSize.font(.callout))
+                            .foregroundStyle(LintelBrand.secondaryText)
+                    }
                 }
-                if let launchError {
-                    Text(launchError)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                }
+                .toggleStyle(.switch)
                 Toggle(isOn: $settings.showInDock) {
-                    Text("Show in Dock", comment: "Settings toggle")
+                    Text("Show icon in the Dock", comment: "Settings → General: Dock icon switch")
+                        .font(textSize.font(.body))
+                    Text("The Dock icon opens this window.", comment: "Settings → General: help under the Dock switch")
+                        .font(textSize.font(.callout))
+                        .foregroundStyle(LintelBrand.secondaryText)
                 }
-            } footer: {
-                Text("Lintel stays in the menu bar either way.", comment: "Settings footer for the Dock toggle")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-
-            Section {
+                .toggleStyle(.switch)
                 Picker(selection: $settings.textSize) {
                     ForEach(TextSize.allCases) { size in
-                        Text(size.title)
-                            .accessibilityLabel(Text(size.accessibilityName))
-                            .tag(size)
+                        Text(size.accessibilityName).tag(size)
                     }
                 } label: {
                     Text("Text size", comment: "Settings label of the panel text size")
+                        .font(textSize.font(.body))
                 }
-                .pickerStyle(.segmented)
-                // The segments show S, M, L and XL; VoiceOver reads the size in words.
-                .accessibilityValue(Text(settings.textSize.accessibilityName))
-            } footer: {
-                Text("Changes the size of text in the Lintel panel.", comment: "Settings footer for text size")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                .pickerStyle(.menu)
+                .lintelSecondaryTint()
+            } header: {
+                Text("Basics", comment: "Settings pane section title: the main settings of a pane")
+                    .settingsSectionHeader()
             }
         }
-        .formStyle(.grouped)
-        .frame(width: 600)
-        .fixedSize(horizontal: false, vertical: true)
         .onAppear {
             launchesAtLogin = launchAtLogin.isEnabled
         }

@@ -59,6 +59,8 @@ final class MeetingController {
         var clock: any Clock<Duration>
         var openSettings: @MainActor () -> Void
         var openURL: @MainActor (URL) -> Void
+        /// `PluginContext.openModels`: where the HUD's model problems lead (the speech model's download).
+        var openModels: @MainActor (_ packageID: String?) -> Void = { _ in }
         var changed: @Sendable () -> Void = {}
         var logger = Logger(subsystem: "com.lintelapp", category: "meetings")
         /// How long the consent reminder stays on the HUD.
@@ -202,6 +204,7 @@ final class MeetingController {
         switch action {
         case .stop: stop()
         case .openSettings: deps.openSettings()
+        case .openModels: deps.openModels(deps.settings.speechModelID)
         case .openMicrophoneSettings:
             if let url = Self.microphonePrivacyURL { deps.openURL(url) }
         case .recordSystemAudioOnly:

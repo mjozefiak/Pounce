@@ -1,5 +1,6 @@
 import Foundation
 import LintelKit
+import LintelUI
 import Testing
 
 @testable import MeetingsPlugin
@@ -196,5 +197,16 @@ import Testing
         try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: url.path)
         try SavePanelFileSaver.write("y", to: url)
         #expect(try FileManager.default.attributesOfItem(atPath: url.path)[.posixPermissions] as? Int == 0o600)
+    }
+
+    @Test func theWindowFollowsTheAppsTextSize() {
+        // `AppCoordinator` sets `AppTextSize.current` from `app.textSize`; the window reads it while it renders.
+        let previous = AppTextSize.current
+        defer { AppTextSize.current = previous }
+        let controller = MeetingWindowController(makeModel: { _ in preconditionFailure("not opened") })
+        AppTextSize.current = { .extraLarge }
+        #expect(controller.textSize() == .extraLarge)
+        AppTextSize.current = { .small }
+        #expect(controller.textSize() == .small)
     }
 }

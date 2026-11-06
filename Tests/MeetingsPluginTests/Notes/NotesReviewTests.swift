@@ -177,7 +177,7 @@ final class StuckLoadLLM: LLMRuntime, @unchecked Sendable {
         let source = MeetingsLibrarySource(
             store: { rig.library.store },
             actions: MeetingsLibraryActions(library: rig.library, pasteboard: InertPasteboard()),
-            notes: rig.service.board, openSettings: {})
+            notes: rig.service.board, openNotesModel: {})
         let rows = try await source.search(NormalizedQuery(raw: "", normalized: ""), filter: nil, limit: 10)
         let badges = Dictionary(
             uniqueKeysWithValues: rows.map { (MeetingLibraryPresentation.meetingID($0.itemKey), $0.badge) })

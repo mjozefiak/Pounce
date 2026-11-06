@@ -19,8 +19,8 @@ struct MeetingsLibrarySource: PanelModeSource {
     var appName: @Sendable (String) -> String? = MeetingLibraryPresentation.installedAppName
     /// What the notes service is doing and whether its model is missing; `nil` shows the stored status only.
     var notes: NotesBoard?
-    /// Opens Settings ("Download Notes Model").
-    var openSettings: @MainActor @Sendable () -> Void = {}
+    /// `PluginContext.openModels` for the notes model ("Download Notes Model").
+    var openNotesModel: @MainActor @Sendable () -> Void = {}
 
     func search(_ query: NormalizedQuery, filter: PanelModeFilter.ID?, limit: Int) async throws -> [Candidate] {
         guard let store = await store() else { return [] }
@@ -80,14 +80,14 @@ struct MeetingsLibrarySource: PanelModeSource {
                 ) { _ in await actions.regenerate(id) })
         }
         if notes?.snapshot.needsModel(for: id) == true, candidate.badge == MeetingLibraryPresentation.needsModelBadge {
-            let openSettings = openSettings
+            let openNotesModel = openNotesModel
             result.append(
                 ResultAction(
                     id: "meetings.library.notesModel",
                     title: LocalizedStringResource(
                         "Download Notes Model", comment: "Meeting library action that opens the notes model settings"),
                     symbolName: "arrow.down.circle"
-                ) { _ in await openSettings() })
+                ) { _ in await openNotesModel() })
         }
         result.append(
             ResultAction(

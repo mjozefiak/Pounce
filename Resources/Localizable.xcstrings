@@ -1,6 +1,78 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@ (off)" : {
+      "comment" : "Models pane chip: a feature that is off uses the model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (off)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (wył.)"
+          }
+        }
+      }
+    },
+    "%lld entries (clipboard maximum)" : {
+      "comment" : "Settings → Clipboard: a choice of the maximum number of entries",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld entry"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld entries"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld wpisy"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld wpisów"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld wpis"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld wpisu"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%@ items indexed" : {
       "comment" : "File index status; item count",
       "extractionState" : "manual",
@@ -163,6 +235,114 @@
         }
       }
     },
+    "%lld entries. Nothing new is added." : {
+      "comment" : "Settings → Clipboard banner detail while paused: the number of entries",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld entry. Nothing new is added."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld entries. Nothing new is added."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld wpisy. Nic nowego nie jest dodawane."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld wpisów. Nic nowego nie jest dodawane."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld wpis. Nic nowego nie jest dodawane."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld wpisu. Nic nowego nie jest dodawane."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld models are needed" : {
+      "comment" : "Models pane banner: required models",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld model is needed"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld models are needed"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Potrzebny %lld model"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Potrzebne %lld modele"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Potrzebnych %lld modeli"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Potrzeba %lld modelu"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld points not backed by the recording were left out" : {
       "comment" : "Notes: how many points had no quote in the transcript and were left out",
       "extractionState" : "manual",
@@ -217,6 +397,60 @@
         }
       }
     },
+    "%lld things to do" : {
+      "comment" : "Settings banner: the number of things needed (Permissions pane and plugin panes)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld thing to do"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld things to do"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rzecz do zrobienia"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rzeczy do zrobienia"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rzeczy do zrobienia"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rzeczy do zrobienia"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld." : {
       "comment" : "Position in the result order list",
       "extractionState" : "manual",
@@ -231,6 +465,60 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld."
+          }
+        }
+      }
+    },
+    "1 thing to do" : {
+      "comment" : "Settings banner: one thing is needed before the feature works",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 thing to do"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 rzecz do zrobienia"
+          }
+        }
+      }
+    },
+    "2 things to do" : {
+      "comment" : "Settings banner: two things are needed before the feature works",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2 things to do"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2 rzeczy do zrobienia"
+          }
+        }
+      }
+    },
+    "A feature couldn't start" : {
+      "comment" : "Settings → Features banner: a plugin failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A feature couldn't start"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jedna z funkcji nie wystartowała"
           }
         }
       }
@@ -253,6 +541,24 @@
         }
       }
     },
+    "A new history was started" : {
+      "comment" : "Settings → Clipboard banner after the history was reset",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A new history was started"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaczęto nową historię"
+          }
+        }
+      }
+    },
     "About Lintel" : {
       "comment" : "Menu bar menu item that opens the About window",
       "extractionState" : "manual",
@@ -266,7 +572,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Lintel"
+            "value" : "O aplikacji Lintel"
           }
         }
       }
@@ -415,24 +721,6 @@
         }
       }
     },
-    "After a meeting, a model that runs on this Mac writes a summary, decisions, action items and open questions in the background. Every point must quote the recording, and points without a matching quote are left out. The notes can still contain mistakes. Nothing is sent anywhere." : {
-      "comment" : "Meetings settings footer under the notes",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "After a meeting, a model that runs on this Mac writes a summary, decisions, action items and open questions in the background. Every point must quote the recording, and points without a matching quote are left out. The notes can still contain mistakes. Nothing is sent anywhere."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Po spotkaniu model działający na tym Macu pisze w tle podsumowanie, decyzje, zadania i otwarte pytania. Każdy punkt musi cytować nagranie, a punkty bez pasującego cytatu są pomijane. Notatki nadal mogą zawierać błędy. Nic nie jest nigdzie wysyłane."
-          }
-        }
-      }
-    },
     "All" : {
       "comment" : "Announced when a panel filter is cleared",
       "extractionState" : "manual",
@@ -451,20 +739,56 @@
         }
       }
     },
-    "All entries are deleted. This cannot be undone." : {
+    "All entries are deleted. This can’t be undone." : {
       "comment" : "Clear History confirmation message",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "All entries are deleted. This cannot be undone."
+            "value" : "All entries are deleted. This can’t be undone."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wszystkie wpisy zostaną usunięte. Tej operacji nie można cofnąć."
+          }
+        }
+      }
+    },
+    "All features are on." : {
+      "comment" : "Settings → Features banner detail",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All features are on."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wszystkie funkcje są włączone."
+          }
+        }
+      }
+    },
+    "All set" : {
+      "comment" : "Settings → Features banner",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All set"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wszystko gotowe"
           }
         }
       }
@@ -519,6 +843,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zezwól na mikrofon"
+          }
+        }
+      }
+    },
+    "Allow the microphone and get the speech model." : {
+      "comment" : "Settings banner detail: the microphone was not asked yet and the speech model is missing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow the microphone and get the speech model."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól na mikrofon i pobierz model mowy."
+          }
+        }
+      }
+    },
+    "Allow the microphone so Lintel can hear you." : {
+      "comment" : "Settings → Dictation banner detail: macOS has not asked for the microphone yet",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow the microphone so Lintel can hear you."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól na mikrofon, aby Lintel mógł cię słyszeć."
           }
         }
       }
@@ -613,8 +973,26 @@
         }
       }
     },
+    "Always on" : {
+      "comment" : "Settings → Features: chip of a feature that cannot be turned off",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Always on"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zawsze włączone"
+          }
+        }
+      }
+    },
     "Applications" : {
-      "comment" : "Results section and plugin name for apps",
+      "comment" : "Results section title for apps",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -649,8 +1027,8 @@
         }
       }
     },
-    "At most" : {
-      "comment" : "Dictation settings label of the entry limit",
+    "At most (clipboard)" : {
+      "comment" : "Settings → Clipboard: label of the maximum number of entries",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -662,7 +1040,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Najwyżej"
+            "value" : "Maksymalnie"
           }
         }
       }
@@ -681,6 +1059,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wstecz"
+          }
+        }
+      }
+    },
+    "Basics" : {
+      "comment" : "Settings pane section title: the main settings of a pane",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Basics"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podstawy"
+          }
+        }
+      }
+    },
+    "Built-in model fixes punctuation and filler words." : {
+      "comment" : "Settings → Dictation: help under Clean up text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Built-in model fixes punctuation and filler words."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wbudowany model poprawia interpunkcję i wtręty."
           }
         }
       }
@@ -717,24 +1131,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Anuluj dyktowanie"
-          }
-        }
-      }
-    },
-    "Changes the size of text in the Lintel panel." : {
-      "comment" : "Settings footer for text size",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Changes the size of text in the Lintel panel."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zmienia rozmiar tekstu w panelu Lintel."
           }
         }
       }
@@ -811,6 +1207,24 @@
         }
       }
     },
+    "Choose Folder… (models)" : {
+      "comment" : "Models pane: use a model folder downloaded by hand",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Folder…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybierz folder…"
+          }
+        }
+      }
+    },
     "Choose the folder that contains the speech model's files." : {
       "comment" : "Message of the model folder picker",
       "extractionState" : "manual",
@@ -829,20 +1243,20 @@
         }
       }
     },
-    "Clean up the text with a local model" : {
-      "comment" : "Dictation settings toggle for formatting",
+    "Clean up text" : {
+      "comment" : "Settings → Dictation: switch that formats the text",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Clean up the text with a local model"
+            "value" : "Clean up text"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Porządkuj tekst lokalnym modelem"
+            "value" : "Poprawiaj tekst"
           }
         }
       }
@@ -969,6 +1383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Historia schowka jest niedostępna, dopóki pęk kluczy jest zablokowany."
+          }
+        }
+      }
+    },
+    "Collapsed" : {
+      "comment" : "Disclosure state, spoken",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collapsed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zwinięte"
           }
         }
       }
@@ -1225,6 +1657,24 @@
         }
       }
     },
+    "Cut" : {
+      "comment" : "Main menu item",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cut"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wytnij"
+          }
+        }
+      }
+    },
     "Delete" : {
       "comment" : "Clipboard action that deletes the entry",
       "extractionState" : "manual",
@@ -1441,6 +1891,24 @@
         }
       }
     },
+    "Download" : {
+      "comment" : "Models pane: downloads a model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobierz"
+          }
+        }
+      }
+    },
     "Download (≈ %@ from huggingface.co)" : {
       "comment" : "Button that downloads the speech model",
       "extractionState" : "manual",
@@ -1513,20 +1981,20 @@
         }
       }
     },
-    "Download the model first." : {
-      "comment" : "Meetings settings: the notes example needs the model",
+    "Download progress" : {
+      "comment" : "Models pane: progress bar label",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Download the model first."
+            "value" : "Download progress"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Najpierw pobierz model."
+            "value" : "Postęp pobierania"
           }
         }
       }
@@ -1545,6 +2013,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pobrano"
+          }
+        }
+      }
+    },
+    "Downloading %@" : {
+      "comment" : "Models pane: a download in progress",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloading %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobieranie %@"
           }
         }
       }
@@ -1585,20 +2071,56 @@
         }
       }
     },
-    "Engine" : {
-      "comment" : "Dictation settings label of the speech engine choice",
+    "Drag to change the order in the launcher." : {
+      "comment" : "Settings → Features: footer of the result order",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Engine"
+            "value" : "Drag to change the order in the launcher."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Silnik"
+            "value" : "Przeciągnij, aby zmienić kolejność w launcherze."
+          }
+        }
+      }
+    },
+    "Edit" : {
+      "comment" : "Main menu item",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edycja"
+          }
+        }
+      }
+    },
+    "Encrypted on this Mac." : {
+      "comment" : "Settings → Clipboard: help under History in Data",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encrypted on this Mac."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaszyfrowana na tym Macu."
           }
         }
       }
@@ -1729,24 +2251,6 @@
         }
       }
     },
-    "Example" : {
-      "comment" : "Meetings settings label of the notes example",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Example"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Przykład"
-          }
-        }
-      }
-    },
     "Exclusions" : {
       "comment" : "Settings section title",
       "extractionState" : "manual",
@@ -1761,6 +2265,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wykluczenia"
+          }
+        }
+      }
+    },
+    "Expanded" : {
+      "comment" : "Disclosure state, spoken",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expanded"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozwinięte"
           }
         }
       }
@@ -1815,6 +2337,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Funkcje"
+          }
+        }
+      }
+    },
+    "Features that are on can't work without them. Download them below." : {
+      "comment" : "Models pane banner detail: required models are missing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Features that are on can't work without them. Download them below."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Włączone funkcje nie działają bez nich. Pobierz je poniżej."
           }
         }
       }
@@ -1963,6 +2503,24 @@
         }
       }
     },
+    "For %@" : {
+      "comment" : "Models pane: choose a model folder for one feature",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dla: %@"
+          }
+        }
+      }
+    },
     "Formatted" : {
       "comment" : "Dictation history filter",
       "extractionState" : "manual",
@@ -2089,20 +2647,20 @@
         }
       }
     },
-    "Get Started" : {
-      "comment" : "Welcome screen button on the first page",
+    "Get It in Models" : {
+      "comment" : "Settings banner button: opens the Models pane on the missing model",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Get Started"
+            "value" : "Get It in Models"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zaczynamy"
+            "value" : "Pobierz w Modelach"
           }
         }
       }
@@ -2139,6 +2697,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Historia"
+          }
+        }
+      }
+    },
+    "History is paused" : {
+      "comment" : "Settings → Clipboard banner when the history key cannot be read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History is paused"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historia jest wstrzymana"
+          }
+        }
+      }
+    },
+    "History is paused (dictation)" : {
+      "comment" : "Settings → Dictation banner when the dictation history cannot be opened",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History is paused"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historia jest wstrzymana"
           }
         }
       }
@@ -2323,74 +2917,56 @@
         }
       }
     },
-    "Input level" : {
-      "comment" : "Accessibility label of the level meter",
+    "Installed" : {
+      "comment" : "Models pane: the model is on this Mac",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Input level"
+            "value" : "Installed"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Poziom wejścia"
+            "value" : "Zainstalowany"
           }
         }
       }
     },
-    "Keep a history of dictations" : {
-      "comment" : "Dictation settings toggle for the history",
+    "Keep a history" : {
+      "comment" : "Settings → Dictation: switch that keeps finished dictations",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keep a history of dictations"
+            "value" : "Keep a history"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zapisuj historię dyktowania"
+            "value" : "Zapisuj historię"
           }
         }
       }
     },
-    "Keep at most" : {
-      "comment" : "Settings label of the maximum number of clipboard entries",
+    "Keep clipboard history" : {
+      "comment" : "Settings → Clipboard: switch that pauses or resumes recording",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keep at most"
+            "value" : "Keep clipboard history"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Przechowuj najwyżej"
-          }
-        }
-      }
-    },
-    "Keep entries for" : {
-      "comment" : "Settings label of the clipboard retention period",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keep entries for"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Przechowuj wpisy przez"
+            "value" : "Zapisuj historię schowka"
           }
         }
       }
@@ -2467,20 +3043,20 @@
         }
       }
     },
-    "Launch at login" : {
-      "comment" : "Settings toggle",
+    "Launcher shortcut" : {
+      "comment" : "Settings → General: label of the main shortcut",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Launch at login"
+            "value" : "Launcher shortcut"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Uruchamiaj przy logowaniu"
+            "value" : "Skrót launchera"
           }
         }
       }
@@ -2498,25 +3074,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pozwala Lintel słyszeć Cię podczas dyktowania i nagrywania spotkania. Dźwięk dyktowania nigdy nie jest zapisywany; dźwięk spotkania jest przechowywany w zaszyfrowanej postaci na tym Macu, dopóki transkrypt nie będzie kompletny, a dźwięk niedokończonych spotkań jest przechowywany przez ograniczony czas."
-          }
-        }
-      }
-    },
-    "Lets Lintel hear you while you dictate. Audio stays on this Mac and is never saved." : {
-      "comment" : "Explanation of the Microphone permission",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lets Lintel hear you while you dictate. Audio stays on this Mac and is never saved."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pozwala Lintel słuchać, gdy dyktujesz. Dźwięk zostaje na tym Macu i nigdy nie jest zapisywany."
+            "value" : "Pozwala aplikacji Lintel słyszeć Cię podczas dyktowania i nagrywania spotkania. Dźwięk dyktowania nigdy nie jest zapisywany; dźwięk spotkania jest przechowywany w zaszyfrowanej postaci na tym Macu, dopóki transkrypt nie będzie kompletny, a dźwięk niedokończonych spotkań jest przechowywany przez ograniczony czas."
           }
         }
       }
@@ -2534,7 +3092,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pozwala Lintel wklejać do aplikacji, której używałeś. Bez tego Lintel tylko kopiuje."
+            "value" : "Pozwala aplikacji Lintel wklejać tam, gdzie pracowałeś. Bez tego Lintel tylko kopiuje."
           }
         }
       }
@@ -2575,20 +3133,74 @@
         }
       }
     },
-    "Lintel stays in the menu bar either way." : {
-      "comment" : "Settings footer for the Dock toggle",
+    "Lintel can’t read the history’s key. Nothing was deleted." : {
+      "comment" : "Settings → Dictation banner detail when the history key cannot be read",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lintel stays in the menu bar either way."
+            "value" : "Lintel can’t read the history’s key. Nothing was deleted."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lintel zawsze zostaje na pasku menu."
+            "value" : "Lintel nie może odczytać klucza historii. Nic nie zostało usunięte."
+          }
+        }
+      }
+    },
+    "Lintel can’t read the key. Nothing was deleted." : {
+      "comment" : "Settings → Clipboard banner detail when the keychain denied access to the key",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel can’t read the key. Nothing was deleted."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel nie może odczytać klucza. Nic nie zostało usunięte."
+          }
+        }
+      }
+    },
+    "Lintel isn’t allowed to read the clipboard." : {
+      "comment" : "Settings → Clipboard banner detail when pasteboard access is denied",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel isn’t allowed to read the clipboard."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel nie ma pozwolenia na odczyt schowka."
+          }
+        }
+      }
+    },
+    "Lintel pastes through the clipboard and puts back what was there a second later." : {
+      "comment" : "Settings → Dictation: footer under the clipboard restore switch",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel pastes through the clipboard and puts back what was there a second later."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel wkleja przez schowek i sekundę później przywraca jego zawartość."
           }
         }
       }
@@ -2683,6 +3295,60 @@
         }
       }
     },
+    "macOS asks before every read. Allow Lintel in Privacy & Security." : {
+      "comment" : "Settings → Clipboard banner detail when pasteboard access asks each time",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS asks before every read. Allow Lintel in Privacy & Security."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS pyta przed każdym odczytem. Zezwól aplikacji Lintel w sekcji Prywatność i ochrona."
+          }
+        }
+      }
+    },
+    "Meeting notes" : {
+      "comment" : "Models pane: what Meetings uses the language model for",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meeting notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki ze spotkań"
+          }
+        }
+      }
+    },
+    "Meeting transcripts" : {
+      "comment" : "Models pane: what Meetings uses the speech model for",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meeting transcripts"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkrypcje spotkań"
+          }
+        }
+      }
+    },
     "Meetings" : {
       "comment" : "Plugin name of meeting transcription",
       "extractionState" : "manual",
@@ -2719,6 +3385,42 @@
         }
       }
     },
+    "Minimize" : {
+      "comment" : "Main menu item",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minimize"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zminimalizuj"
+          }
+        }
+      }
+    },
+    "No shortcut is set" : {
+      "comment" : "Settings → General banner: no main shortcut",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No shortcut is set"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie ustawiono skrótu"
+          }
+        }
+      }
+    },
     "Not available while a meeting is being recorded or processed." : {
       "comment" : "Meetings: why the system audio test is switched off during a meeting",
       "extractionState" : "manual",
@@ -2737,6 +3439,24 @@
         }
       }
     },
+    "Not downloaded (models)" : {
+      "comment" : "Models pane: the model is not on this Mac",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not downloaded"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niepobrany"
+          }
+        }
+      }
+    },
     "Notes are on, but their model is not downloaded." : {
       "comment" : "Meeting window banner when the notes model is missing",
       "extractionState" : "manual",
@@ -2751,24 +3471,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Notatki są włączone, ale ich model nie jest pobrany."
-          }
-        }
-      }
-    },
-    "Notes for a made-up meeting. Nothing was saved." : {
-      "comment" : "Meetings settings: caption above the example notes",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Notes for a made-up meeting. Nothing was saved."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Notatki z wymyślonego spotkania. Nic nie zostało zapisane."
           }
         }
       }
@@ -2809,6 +3511,78 @@
         }
       }
     },
+    "Nothing is recorded" : {
+      "comment" : "Settings → Clipboard banner when the clipboard cannot be read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing is recorded"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nic nie jest zapisywane"
+          }
+        }
+      }
+    },
+    "Open at login" : {
+      "comment" : "Settings → General: launch at login switch",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open at login"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uruchamiaj przy logowaniu"
+          }
+        }
+      }
+    },
+    "Open its pane to try again. Nothing was deleted." : {
+      "comment" : "Settings → Features banner detail: a plugin failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open its pane to try again. Nothing was deleted."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz jej panel, aby spróbować ponownie. Nic nie zostało usunięte."
+          }
+        }
+      }
+    },
+    "Open Lintel with %@. Settings and meetings are in the Lintel window: click the Dock icon or press ⌘,." : {
+      "comment" : "Welcome screen: final page text; the argument is the main shortcut, such as ⌘Space",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Lintel with %@. Settings and meetings are in the Lintel window: click the Dock icon or press ⌘,."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz Lintel skrótem %@. Ustawienia i spotkania są w oknie aplikacji Lintel: kliknij ikonę w Docku albo naciśnij ⌘,."
+          }
+        }
+      }
+    },
     "Optional: let a model on this Mac write notes after each meeting. It is a large download that starts only when you press the button." : {
       "comment" : "Meetings onboarding step about the notes model",
       "extractionState" : "manual",
@@ -2827,20 +3601,290 @@
         }
       }
     },
-    "System Audio Recording" : {
-      "comment" : "Permission name in Settings → Permissions",
+    "Partly downloaded" : {
+      "comment" : "Models pane: an interrupted download can continue",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "System Audio Recording"
+            "value" : "Partly downloaded"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nagrywanie dźwięku systemu"
+            "value" : "Pobrany częściowo"
+          }
+        }
+      }
+    },
+    "Press %@ to open Lintel." : {
+      "comment" : "Settings → General banner detail; the main shortcut, for example ⌘Space",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press %@ to open Lintel."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naciśnij %@, aby otworzyć Lintel."
+          }
+        }
+      }
+    },
+    "Press to start and again to stop, or hold." : {
+      "comment" : "Settings → Dictation: help under the Dictate shortcut",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press to start and again to stop, or hold."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naciśnij, aby zacząć i zakończyć, albo przytrzymaj."
+          }
+        }
+      }
+    },
+    "Record one below to open Lintel from any app." : {
+      "comment" : "Settings → General banner detail: no main shortcut",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record one below to open Lintel from any app."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagraj go poniżej, aby otwierać Lintel z każdej aplikacji."
+          }
+        }
+      }
+    },
+    "Recording is paused (banner)" : {
+      "comment" : "Settings → Clipboard banner while recording is paused",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording is paused"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywanie jest wstrzymane"
+          }
+        }
+      }
+    },
+    "Recording. %lld entries." : {
+      "comment" : "Settings → Clipboard banner detail while recording: the number of entries",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Recording. %lld entry."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Recording. %lld entries."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Nagrywanie włączone. %lld wpisy."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Nagrywanie włączone. %lld wpisów."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Nagrywanie włączone. %lld wpis."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Nagrywanie włączone. %lld wpisu."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Redo" : {
+      "comment" : "Main menu item",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redo"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ponów"
+          }
+        }
+      }
+    },
+    "Result order" : {
+      "comment" : "Settings → Features: section title of the result order",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Result order"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kolejność wyników"
+          }
+        }
+      }
+    },
+    "Search apps and files, paste from history, dictate, keep meeting notes. All on this Mac." : {
+      "comment" : "Welcome screen: text of the first page",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search apps and files, paste from history, dictate, keep meeting notes. All on this Mac."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szukaj aplikacji i plików, wklejaj z historii, dyktuj, miej notatki ze spotkań. Wszystko na tym Macu."
+          }
+        }
+      }
+    },
+    "Select All" : {
+      "comment" : "Main menu item",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select All"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaznacz wszystko"
+          }
+        }
+      }
+    },
+    "Show icon in the Dock" : {
+      "comment" : "Settings → General: Dock icon switch",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show icon in the Dock"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż ikonę w Docku"
+          }
+        }
+      }
+    },
+    "Some features are off." : {
+      "comment" : "Settings → Features banner detail",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some features are off."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niektóre funkcje są wyłączone."
+          }
+        }
+      }
+    },
+    "Speaker model" : {
+      "comment" : "Settings → Meetings label of the model that tells the speakers apart",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speaker model"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model mówców"
+          }
+        }
+      }
+    },
+    "Speech model: %@." : {
+      "comment" : "Settings → Dictation and Meetings banner detail when the feature is ready: the speech model's name",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speech model: %@."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model mowy: %@."
           }
         }
       }
@@ -2858,7 +3902,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pozwala Lintel przechwytywać to, co mówią inni uczestnicy spotkania, tylko podczas nagrywania spotkania. Dźwięk jest przetwarzany na tym Macu i nigdy nie jest wysyłany."
+            "value" : "Pozwala aplikacji Lintel przechwytywać to, co mówią inni uczestnicy spotkania, tylko podczas nagrywania spotkania. Dźwięk jest przetwarzany na tym Macu i nigdy nie jest wysyłany."
           }
         }
       }
@@ -2899,24 +3943,6 @@
         }
       }
     },
-    "Microphone allowed" : {
-      "comment" : "Dictation microphone status",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Microphone allowed"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mikrofon dozwolony"
-          }
-        }
-      }
-    },
     "Microphone not allowed" : {
       "comment" : "Dictation HUD when microphone access is denied",
       "extractionState" : "manual",
@@ -2931,24 +3957,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mikrofon niedozwolony"
-          }
-        }
-      }
-    },
-    "Microphone not asked yet" : {
-      "comment" : "Dictation microphone status",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Microphone not asked yet"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mikrofon jeszcze nie był pytany"
           }
         }
       }
@@ -3025,20 +4033,20 @@
         }
       }
     },
-    "Needed by: %@" : {
-      "comment" : "Settings → Permissions: the features that need a permission",
+    "No feature that is on needs it." : {
+      "comment" : "Settings → Permissions: a permission no enabled feature needs",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Needed by: %@"
+            "value" : "No feature that is on needs it."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Potrzebne dla: %@"
+            "value" : "Żadna włączona funkcja go nie potrzebuje."
           }
         }
       }
@@ -3206,7 +4214,7 @@
       }
     },
     "Not downloaded" : {
-      "comment" : "Dictation model status",
+      "comment" : "Models pane: the model is not on this Mac",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3349,56 +4357,236 @@
         }
       }
     },
-    "Off" : {
-      "comment" : "Feature state",
+    "The Dock icon opens this window." : {
+      "comment" : "Settings → General: help under the Dock switch",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Off"
+            "value" : "The Dock icon opens this window."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wyłączona"
+            "value" : "Ikona w Docku otwiera to okno."
           }
         }
       }
     },
-    "Older entries are deleted automatically." : {
-      "comment" : "Settings footer of clipboard retention",
+    "The history couldn’t be opened. Dictation still works." : {
+      "comment" : "Settings → Dictation banner detail when the history database cannot be opened",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Older entries are deleted automatically."
+            "value" : "The history couldn’t be opened. Dictation still works."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Starsze wpisy są usuwane automatycznie."
+            "value" : "Nie udało się otworzyć historii. Dyktowanie nadal działa."
           }
         }
       }
     },
-    "On" : {
-      "comment" : "Feature state",
+    "The key was missing. The old history stays encrypted and is deleted after 30 days." : {
+      "comment" : "Settings → Clipboard banner detail after the history was reset",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "On"
+            "value" : "The key was missing. The old history stays encrypted and is deleted after 30 days."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Włączona"
+            "value" : "Brakowało klucza. Stara historia pozostaje zaszyfrowana i zostanie usunięta po 30 dniach."
+          }
+        }
+      }
+    },
+    "The keychain is locked. Nothing was deleted." : {
+      "comment" : "Settings → Clipboard banner detail while the login keychain is locked",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The keychain is locked. Nothing was deleted."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pęk kluczy jest zablokowany. Nic nie zostało usunięte."
+          }
+        }
+      }
+    },
+    "The speech model isn’t installed." : {
+      "comment" : "Settings banner detail: the speech model is missing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The speech model isn’t installed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model mowy nie jest zainstalowany."
+          }
+        }
+      }
+    },
+    "The speech model’s folder isn’t available." : {
+      "comment" : "Settings → Dictation and Meetings banner detail: the folder the user chose for the speech model is gone",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The speech model’s folder isn’t available."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder modelu mowy jest niedostępny."
+          }
+        }
+      }
+    },
+    "The transcript, notes and any saved audio are removed from this Mac. This cannot be undone." : {
+      "comment" : "Meeting window: delete confirmation message",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The transcript, notes and any saved audio are removed from this Mac. This cannot be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkrypt, notatki i zapisany dźwięk zostaną usunięte z tego Maca. Tej operacji nie można cofnąć."
+          }
+        }
+      }
+    },
+    "Try Again (dictation history)" : {
+      "comment" : "Settings → Dictation banner button that opens the dictation history again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try Again"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spróbuj ponownie"
+          }
+        }
+      }
+    },
+    "Try Again (download)" : {
+      "comment" : "Models pane: downloads a model again after an error",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try Again"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spróbuj ponownie"
+          }
+        }
+      }
+    },
+    "Used by %@" : {
+      "comment" : "Models pane: the features that use a model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used by %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Używane przez: %@"
+          }
+        }
+      }
+    },
+    "Voice" : {
+      "comment" : "Settings group",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voice"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Głos"
+          }
+        }
+      }
+    },
+    "Needs attention" : {
+      "comment" : "Settings sidebar item state, spoken",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs attention"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wymaga uwagi"
+          }
+        }
+      }
+    },
+    "Back to Workspace" : {
+      "comment" : "Settings sidebar: returns to the workspace",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back to Workspace"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wróć do przestrzeni roboczej"
           }
         }
       }
@@ -3453,24 +4641,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Otwórz ustawienia Dostępności"
-          }
-        }
-      }
-    },
-    "Open Clipboard History" : {
-      "comment" : "Settings label of the clipboard history shortcut",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open Clipboard History"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Otwórz historię schowka"
           }
         }
       }
@@ -3579,24 +4749,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Otwórz Ustawienia"
-          }
-        }
-      }
-    },
-    "Open System Settings…" : {
-      "comment" : "Button that opens a permission's page in System Settings",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open System Settings…"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Otwórz Ustawienia systemowe…"
           }
         }
       }
@@ -3884,7 +5036,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nie można uruchomić Lintel"
+            "value" : "Nie można uruchomić aplikacji Lintel"
           }
         }
       }
@@ -3943,60 +5095,6 @@
         }
       }
     },
-    "Lintel moves the results you pick often to the top. Resetting forgets what it learned; your apps, files and clipboard history stay." : {
-      "comment" : "Settings explanation of Reset Ranking",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel moves the results you pick often to the top. Resetting forgets what it learned; your apps, files and clipboard history stay."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel przesuwa na górę wyniki, które często wybierasz. Reset zapomina to, czego się nauczył; aplikacje, pliki i historia schowka zostają."
-          }
-        }
-      }
-    },
-    "Lintel never asks for a permission on its own. Changes in System Settings apply right away." : {
-      "comment" : "Settings → Permissions footer",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel never asks for a permission on its own. Changes in System Settings apply right away."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel nigdy sam nie prosi o uprawnienia. Zmiany w Ustawieniach systemowych działają od razu."
-          }
-        }
-      }
-    },
-    "Lintel opens with a shortcut from anywhere and lives in the menu bar. The next steps set it up; you can skip any of them and change everything later in Settings." : {
-      "comment" : "Welcome screen introduction",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel opens with a shortcut from anywhere and lives in the menu bar. The next steps set it up; you can skip any of them and change everything later in Settings."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel otwierasz skrótem z dowolnego miejsca, a mieszka w pasku menu. Kolejne kroki go skonfigurują; każdy możesz pominąć i wszystko zmienić później w Ustawieniach."
-          }
-        }
-      }
-    },
     "Lintel scans the searched folders again. Results stay available while it runs." : {
       "comment" : "Rebuild confirmation message",
       "extractionState" : "manual",
@@ -4011,24 +5109,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lintel ponownie przeskanuje przeszukiwane foldery. Wyniki pozostają dostępne w trakcie."
-          }
-        }
-      }
-    },
-    "Lintel sends the text only to a server on this Mac (Ollama, LM Studio, llama-server). The server may keep prompts in its own log. If it does not answer, the raw text is pasted." : {
-      "comment" : "Dictation settings footer under the formatting toggle",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel sends the text only to a server on this Mac (Ollama, LM Studio, llama-server). The server may keep prompts in its own log. If it does not answer, the raw text is pasted."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel wysyła tekst tylko do serwera na tym Macu (Ollama, LM Studio, llama-server). Serwer może zapisywać prompty we własnym logu. Jeśli nie odpowie, wklejany jest surowy tekst."
           }
         }
       }
@@ -4051,42 +5131,6 @@
         }
       }
     },
-    "Press to start and press again to stop. Or hold the keys while you talk. Esc cancels." : {
-      "comment" : "Dictation settings footer under the shortcut",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Press to start and press again to stop. Or hold the keys while you talk. Esc cancels."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Naciśnij, aby zacząć, i naciśnij ponownie, aby skończyć. Albo przytrzymaj klawisze, gdy mówisz. Esc anuluje."
-          }
-        }
-      }
-    },
-    "Privacy" : {
-      "comment" : "Dictation settings section title",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Privacy"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Prywatność"
-          }
-        }
-      }
-    },
     "Quit Lintel" : {
       "comment" : "Menu bar menu item that quits the app",
       "extractionState" : "manual",
@@ -4101,24 +5145,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zakończ Lintel"
-          }
-        }
-      }
-    },
-    "Ranking" : {
-      "comment" : "Settings label of the ranking reset",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ranking"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ranking"
           }
         }
       }
@@ -4177,24 +5203,6 @@
         }
       }
     },
-    "Rebuild Index…" : {
-      "comment" : "Button that deletes the file index and scans again",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rebuild Index…"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Odbuduj indeks…"
-          }
-        }
-      }
-    },
     "Rebuild the file index?" : {
       "comment" : "Rebuild confirmation title",
       "extractionState" : "manual",
@@ -4245,24 +5253,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Polecany: Qwen3.6-35B-A3B (4-bit). Najlepszy polski: Bielik-11B-v3.0-Instruct. Lekki: Qwen3-4B-Instruct-2507."
-          }
-        }
-      }
-    },
-    "Record clipboard history" : {
-      "comment" : "Settings toggle that pauses or resumes recording",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Record clipboard history"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nagrywaj historię schowka"
           }
         }
       }
@@ -4519,24 +5509,6 @@
         }
       }
     },
-    "Result Order" : {
-      "comment" : "Settings section title",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Result Order"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kolejność wyników"
-          }
-        }
-      }
-    },
     "Results" : {
       "comment" : "Accessibility label of the panel's result list",
       "extractionState" : "manual",
@@ -4555,14 +5527,14 @@
         }
       }
     },
-    "Results go back to the order of how well they match. It cannot be undone." : {
+    "Results go back to the order of how well they match. This can’t be undone." : {
       "comment" : "Reset Ranking confirmation message",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Results go back to the order of how well they match. It cannot be undone."
+            "value" : "Results go back to the order of how well they match. This can’t be undone."
           }
         },
         "pl" : {
@@ -4753,24 +5725,6 @@
         }
       }
     },
-    "Sections appear in the panel in this order." : {
-      "comment" : "Settings footer of the result order",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sections appear in the panel in this order."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sekcje pojawiają się w panelu w tej kolejności."
-          }
-        }
-      }
-    },
     "Server" : {
       "comment" : "Dictation settings label of the formatting server",
       "extractionState" : "manual",
@@ -4875,24 +5829,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Skrót otwierający Lintel"
-          }
-        }
-      }
-    },
-    "Show in Dock" : {
-      "comment" : "Settings toggle",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show in Dock"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pokaż w Docku"
           }
         }
       }
@@ -5077,24 +6013,6 @@
         }
       }
     },
-    "Start Indexing" : {
-      "comment" : "Button that starts the first file scan",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Start Indexing"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rozpocznij indeksowanie"
-          }
-        }
-      }
-    },
     "Starting…" : {
       "comment" : "Feature state",
       "extractionState" : "manual",
@@ -5185,24 +6103,6 @@
         }
       }
     },
-    "Test" : {
-      "comment" : "Button that shows the microphone level for a moment",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Test"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Test"
-          }
-        }
-      }
-    },
     "Text" : {
       "comment" : "Clipboard entry kind and filter",
       "extractionState" : "manual",
@@ -5235,42 +6135,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rozmiar tekstu"
-          }
-        }
-      }
-    },
-    "The example did not work. Try again in a moment." : {
-      "comment" : "Meetings settings: the notes example failed",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The example did not work. Try again in a moment."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Przykład się nie udał. Spróbuj ponownie za chwilę."
-          }
-        }
-      }
-    },
-    "The Keychain needs no permission. A feature that keeps a key there shows its state in its own pane." : {
-      "comment" : "Settings → Permissions note about the Keychain",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The Keychain needs no permission. A feature that keeps a key there shows its state in its own pane."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pęk kluczy nie wymaga uprawnienia. Funkcja, która trzyma w nim klucz, pokazuje jego stan we własnym panelu."
           }
         }
       }
@@ -5473,24 +6337,6 @@
         }
       }
     },
-    "The model runs on this Mac. Audio is never sent anywhere and never saved." : {
-      "comment" : "Dictation settings footer under the speech model",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The model runs on this Mac. Audio is never sent anywhere and never saved."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Model działa na tym Macu. Dźwięk nigdy nie jest nigdzie wysyłany ani zapisywany."
-          }
-        }
-      }
-    },
     "The model you chose does not fit this Mac, so %@ is used." : {
       "comment" : "Meetings settings: the stored notes model is replaced by the default one",
       "extractionState" : "manual",
@@ -5689,42 +6535,6 @@
         }
       }
     },
-    "The text is pasted through the clipboard. Lintel puts back what was there a second later, unless it was a password or you copied something else meanwhile." : {
-      "comment" : "Dictation settings footer under the clipboard restore toggle",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The text is pasted through the clipboard. Lintel puts back what was there a second later, unless it was a password or you copied something else meanwhile."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tekst jest wklejany przez schowek. Lintel przywraca po sekundzie to, co w nim było, chyba że było to hasło albo w międzyczasie coś skopiowałeś."
-          }
-        }
-      }
-    },
-    "The text of every dictation is stored on this Mac, encrypted with a key in your Keychain. Audio is never stored. Open it from the menu bar: Dictation History." : {
-      "comment" : "Dictation settings footer under the history toggle",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The text of every dictation is stored on this Mac, encrypted with a key in your Keychain. Audio is never stored. Open it from the menu bar: Dictation History."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tekst każdego dyktowania jest zapisany na tym Macu, zaszyfrowany kluczem z Pęku kluczy. Dźwięk nigdy nie jest zapisywany. Otwórz go z paska menu: Historia dyktowania."
-          }
-        }
-      }
-    },
     "These notes miss parts of the recording that could not be read." : {
       "comment" : "Meeting library preview: notice above partial notes",
       "extractionState" : "manual",
@@ -5761,14 +6571,14 @@
         }
       }
     },
-    "This deletes every saved dictation. It cannot be undone." : {
+    "This deletes every saved dictation. This can’t be undone." : {
       "comment" : "Dictation settings confirmation text",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This deletes every saved dictation. It cannot be undone."
+            "value" : "This deletes every saved dictation. This can’t be undone."
           }
         },
         "pl" : {
@@ -5779,14 +6589,14 @@
         }
       }
     },
-    "This deletes everything the feature stored on this Mac. It cannot be undone." : {
+    "This deletes everything the feature stored on this Mac. This can’t be undone." : {
       "comment" : "Erase confirmation message",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This deletes everything the feature stored on this Mac. It cannot be undone."
+            "value" : "This deletes everything the feature stored on this Mac. This can’t be undone."
           }
         },
         "pl" : {
@@ -5887,6 +6697,24 @@
         }
       }
     },
+    "Try Again (plugin)" : {
+      "comment" : "Settings banner button: starts a plugin that failed to start again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try Again"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spróbuj ponownie"
+          }
+        }
+      }
+    },
     "Try it" : {
       "comment" : "Dictation settings button that cleans up a sample text",
       "extractionState" : "manual",
@@ -5901,42 +6729,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wypróbuj"
-          }
-        }
-      }
-    },
-    "Try it on an example" : {
-      "comment" : "Meetings settings button that writes notes for a sample meeting",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Try it on an example"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wypróbuj na przykładzie"
-          }
-        }
-      }
-    },
-    "Turning a feature off stops it and hides its results. Its data stays until you erase it." : {
-      "comment" : "Settings footer for the feature list",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Turning a feature off stops it and hides its results. Its data stays until you erase it."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wyłączenie funkcji zatrzymuje ją i ukrywa jej wyniki. Jej dane zostają, dopóki ich nie usuniesz."
           }
         }
       }
@@ -5973,6 +6765,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Niedostępna: %@"
+          }
+        }
+      }
+    },
+    "Undo" : {
+      "comment" : "Main menu item",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Undo"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cofnij"
           }
         }
       }
@@ -6188,25 +6998,43 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Witaj w Lintel"
+            "value" : "Witaj w aplikacji Lintel"
           }
         }
       }
     },
-    "Whisper does not guess the language: it listens for the one you choose. If Parakeet turns your Polish into English, switch to Whisper." : {
-      "comment" : "Dictation settings note about the pinned language",
+    "Whisper listens for the language you choose." : {
+      "comment" : "Settings → Dictation: help under the language of the Whisper model",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Whisper does not guess the language: it listens for the one you choose. If Parakeet turns your Polish into English, switch to Whisper."
+            "value" : "Whisper listens for the language you choose."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Whisper nie zgaduje języka: słucha tego, który wybierzesz. Jeśli Parakeet zamienia Twój polski na angielski, przełącz się na Whisper."
+            "value" : "Whisper słucha w wybranym przez ciebie języku."
+          }
+        }
+      }
+    },
+    "Window" : {
+      "comment" : "Main menu item",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Window"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Okno"
           }
         }
       }
@@ -6243,24 +7071,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bez pełnego dostępu do dysku Biurko, Dokumenty i Pobrane rzeczy nie są przeszukiwane."
-          }
-        }
-      }
-    },
-    "Without Full Disk Access, adding a folder here makes macOS ask once for that folder." : {
-      "comment" : "Settings footer of the protected folders",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Without Full Disk Access, adding a folder here makes macOS ask once for that folder."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bez pełnego dostępu do dysku dodanie folderu tutaj sprawi, że macOS raz zapyta o ten folder."
           }
         }
       }
@@ -6440,7 +7250,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOS pyta przed każdym odczytem schowka, więc nic nie jest zapisywane. Aby nagrywać, zezwól Lintel w ustawieniach Prywatność i ochrona."
+            "value" : "macOS pyta przed każdym odczytem schowka, więc nic nie jest zapisywane. Aby nagrywać, zezwól aplikacji Lintel w ustawieniach Prywatność i ochrona."
           }
         }
       }
@@ -6458,7 +7268,79 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOS może pytać, zanim aplikacja odczyta schowek. Zezwól Lintel, aby historia była dalej zapisywana."
+            "value" : "macOS może pytać, zanim aplikacja odczyta schowek. Zezwól aplikacji Lintel, aby historia była dalej zapisywana."
+          }
+        }
+      }
+    },
+    "Settings and meetings are in the Lintel window: click the Dock icon or press ⌘,." : {
+      "comment" : "Welcome screen: final page text while no main shortcut is set",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings and meetings are in the Lintel window: click the Dock icon or press ⌘,."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ustawienia i spotkania są w oknie aplikacji Lintel: kliknij ikonę w Docku albo naciśnij ⌘,."
+          }
+        }
+      }
+    },
+    "Your server on this Mac fixes punctuation and filler words." : {
+      "comment" : "Settings → Dictation: help under Clean up text when the user's server formats",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your server on this Mac fixes punctuation and filler words."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Twój serwer na tym Macu poprawia interpunkcję i wtręty."
+          }
+        }
+      }
+    },
+    "You’re set" : {
+      "comment" : "Welcome screen: title of the final page",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You’re set"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gotowe"
+          }
+        }
+      }
+    },
+    "Zoom" : {
+      "comment" : "Main menu item",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoom"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Powiększ"
           }
         }
       }
@@ -6571,24 +7453,6 @@
         }
       }
     },
-    "The model runs inside Lintel on this Mac. Nothing is sent anywhere. It loads while you talk and is freed after a while. If it is not ready in time, the raw text is pasted." : {
-      "comment" : "Dictation settings footer under the built-in formatting model",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The model runs inside Lintel on this Mac. Nothing is sent anywhere. It loads while you talk and is freed after a while. If it is not ready in time, the raw text is pasted."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Model działa wewnątrz Lintel na tym Macu. Nic nie jest nigdzie wysyłane. Ładuje się, gdy mówisz, i po jakimś czasie jest zwalniany z pamięci. Jeśli nie jest gotowy na czas, wklejany jest surowy tekst."
-          }
-        }
-      }
-    },
     "Download %@, about %@ of memory while loaded. %@ licence." : {
       "comment" : "Dictation settings size and memory of the built-in model",
       "extractionState" : "manual",
@@ -6643,114 +7507,6 @@
         }
       }
     },
-    "App activity was saved by a newer version of Lintel. Suggestions are off until you update." : {
-      "comment" : "Settings message when activity.json comes from a newer version",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "App activity was saved by a newer version of Lintel. Suggestions are off until you update."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aktywność aplikacji zapisała nowsza wersja Lintel. Sugestie są wyłączone do czasu aktualizacji."
-          }
-        }
-      }
-    },
-    "App index" : {
-      "comment" : "Settings section title",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "App index"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Indeks aplikacji"
-          }
-        }
-      }
-    },
-    "App suggestions keep their own history; clear it in Settings → Applications." : {
-      "comment" : "Settings note that Reset Ranking does not clear app activity",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "App suggestions keep their own history; clear it in Settings → Applications."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sugestie aplikacji mają własną historię; wyczyścisz ją w Ustawieniach → Aplikacje."
-          }
-        }
-      }
-    },
-    "Clear App Activity" : {
-      "comment" : "Clear App Activity confirmation button",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clear App Activity"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wyczyść aktywność aplikacji"
-          }
-        }
-      }
-    },
-    "Clear App Activity…" : {
-      "comment" : "Button that deletes the recorded app activity",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clear App Activity…"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wyczyść aktywność aplikacji…"
-          }
-        }
-      }
-    },
-    "Clear the app activity?" : {
-      "comment" : "Clear App Activity confirmation title",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clear the app activity?"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wyczyścić aktywność aplikacji?"
-          }
-        }
-      }
-    },
     "Contents need Full Disk Access" : {
       "comment" : "Subtitle of a folder result whose contents Lintel may not read without Full Disk Access",
       "extractionState" : "manual",
@@ -6787,24 +7543,6 @@
         }
       }
     },
-    "Hidden from suggestions" : {
-      "comment" : "Settings label above the list of hidden apps",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hidden from suggestions"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ukryte w sugestiach"
-          }
-        }
-      }
-    },
     "Hide from Suggestions" : {
       "comment" : "Result action that stops suggesting the selected app",
       "extractionState" : "manual",
@@ -6837,42 +7575,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Brak dostępu do zawartości"
-          }
-        }
-      }
-    },
-    "Lintel records on this Mac which apps you use and how often, to suggest them. Nothing leaves your Mac." : {
-      "comment" : "Settings description of what app suggestions record",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel records on this Mac which apps you use and how often, to suggest them. Nothing leaves your Mac."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel zapisuje na tym Macu, których aplikacji używasz i jak często, żeby je sugerować. Nic nie opuszcza Twojego Maca."
-          }
-        }
-      }
-    },
-    "Recorded activity" : {
-      "comment" : "Settings label next to Clear App Activity",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recorded activity"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zapisana aktywność"
           }
         }
       }
@@ -6931,24 +7633,6 @@
         }
       }
     },
-    "Suggest Apps" : {
-      "comment" : "Settings toggle that turns app suggestions on",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Suggest Apps"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sugeruj aplikacje"
-          }
-        }
-      }
-    },
     "Suggested" : {
       "comment" : "Panel section with suggested apps",
       "extractionState" : "manual",
@@ -6963,42 +7647,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sugerowane"
-          }
-        }
-      }
-    },
-    "Suggestions" : {
-      "comment" : "Settings section title",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Suggestions"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sugestie"
-          }
-        }
-      }
-    },
-    "Suggestions start again from the apps you use next. This cannot be undone." : {
-      "comment" : "Clear App Activity confirmation message",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Suggestions start again from the apps you use next. This cannot be undone."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sugestie zaczną się od nowa od aplikacji, których użyjesz. Tej operacji nie można cofnąć."
           }
         }
       }
@@ -7088,7 +7736,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kopiuje spotkanie jako Markdown. Historia schowka Lintel go nie zapisuje."
+            "value" : "Kopiuje spotkanie jako Markdown. Historia schowka w aplikacji Lintel go nie zapisuje."
           }
         }
       }
@@ -7125,6 +7773,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Data"
+          }
+        }
+      }
+    },
+    "Data" : {
+      "comment" : "Settings pane section title for the data a feature keeps",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dane"
           }
         }
       }
@@ -7633,24 +8299,6 @@
         }
       }
     },
-    "The transcript, notes and any saved audio are removed from this Mac. This cannot be undone." : {
-      "comment" : "Meeting window: delete confirmation message",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The transcript, notes and any saved audio are removed from this Mac. This cannot be undone."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transkrypt, notatki i zapisany dźwięk zostaną usunięte z tego Maca. Tej operacji nie można cofnąć."
-          }
-        }
-      }
-    },
     "The transcript is still being prepared." : {
       "comment" : "Meeting window banner while processing",
       "extractionState" : "manual",
@@ -8011,96 +8659,6 @@
         }
       }
     },
-    "Record meeting" : {
-      "comment" : "Meetings settings label of the record shortcut",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Record meeting"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nagrywaj spotkanie"
-          }
-        }
-      }
-    },
-    "Press to start recording a meeting and press again to stop." : {
-      "comment" : "Meetings settings footer under the shortcut",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Press to start recording a meeting and press again to stop."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Naciśnij, aby zacząć nagrywać spotkanie, i naciśnij ponownie, aby zakończyć."
-          }
-        }
-      }
-    },
-    "Reduce echo from the speakers" : {
-      "comment" : "Meetings settings toggle of voice processing",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reduce echo from the speakers"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zmniejsz echo z głośników"
-          }
-        }
-      }
-    },
-    "Audio" : {
-      "comment" : "Meetings settings section title",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Audio"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dźwięk"
-          }
-        }
-      }
-    },
-    "Lintel records your microphone and what the other side says, only while you record a meeting. Echo reduction can lower the volume of other apps, so it is off by default." : {
-      "comment" : "Meetings settings footer under the audio section",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel records your microphone and what the other side says, only while you record a meeting. Echo reduction can lower the volume of other apps, so it is off by default."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel nagrywa Twój mikrofon i to, co mówi druga strona, tylko podczas nagrywania spotkania. Redukcja echa może ściszać inne aplikacje, więc domyślnie jest wyłączona."
-          }
-        }
-      }
-    },
     "Models" : {
       "comment" : "Meetings settings section title",
       "extractionState" : "manual",
@@ -8115,42 +8673,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Modele"
-          }
-        }
-      }
-    },
-    "The models run on this Mac. Audio is never sent anywhere. The speech model is shared with dictation." : {
-      "comment" : "Meetings settings footer under the models",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The models run on this Mac. Audio is never sent anywhere. The speech model is shared with dictation."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Modele działają na tym Macu. Dźwięk nigdy nigdzie nie jest wysyłany. Model mowy jest wspólny z dyktowaniem."
-          }
-        }
-      }
-    },
-    "Remind me to tell people I am recording" : {
-      "comment" : "Meetings settings toggle",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remind me to tell people I am recording"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Przypominaj, żeby powiedzieć ludziom o nagrywaniu"
           }
         }
       }
@@ -8209,24 +8731,6 @@
         }
       }
     },
-    "Recordings are encrypted and deleted once a meeting is processed. A deleted file is not overwritten: on an SSD or in a backup a copy may remain for a while, though it is encrypted and unreadable without the key. Erase Data removes the key too." : {
-      "comment" : "Meetings settings footer about deleted data on an SSD",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recordings are encrypted and deleted once a meeting is processed. A deleted file is not overwritten: on an SSD or in a backup a copy may remain for a while, though it is encrypted and unreadable without the key. Erase Data removes the key too."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nagrania są szyfrowane i usuwane po przetworzeniu spotkania. Usunięty plik nie jest nadpisywany: na dysku SSD lub w kopii zapasowej jego kopia może zostać na jakiś czas, ale jest zaszyfrowana i nieczytelna bez klucza. „Usuń dane” usuwa też klucz."
-          }
-        }
-      }
-    },
     "Delete all meetings?" : {
       "comment" : "Meetings settings confirmation title",
       "extractionState" : "manual",
@@ -8263,14 +8767,14 @@
         }
       }
     },
-    "Every transcript, note and recording is deleted. A meeting that is being recorded is kept. This cannot be undone." : {
+    "Every transcript, note and recording is deleted. A meeting that is being recorded is kept. This can’t be undone." : {
       "comment" : "Meetings settings confirmation text of Clear Library",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Every transcript, note and recording is deleted. A meeting that is being recorded is kept. This cannot be undone."
+            "value" : "Every transcript, note and recording is deleted. A meeting that is being recorded is kept. This can’t be undone."
           }
         },
         "pl" : {
@@ -8857,25 +9361,7 @@
         }
       }
     },
-    "Meetings older than the period you choose are deleted, together with their transcripts and notes." : {
-      "comment" : "Meetings settings footer under the retention choice",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Meetings older than the period you choose are deleted, together with their transcripts and notes."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Spotkania starsze niż wybrany okres są usuwane razem z transkrypcjami i notatkami."
-          }
-        }
-      }
-    },
-    "%lld meetings are older than the new limit and are deleted now. This cannot be undone." : {
+    "%lld meetings are older than the new limit and are deleted now. This can’t be undone." : {
       "comment" : "Meetings settings confirmation text of a shorter retention",
       "extractionState" : "manual",
       "localizations" : {
@@ -8885,13 +9371,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld meeting is older than the new limit and is deleted now. This cannot be undone."
+                  "value" : "%lld meeting is older than the new limit and is deleted now. This can’t be undone."
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld meetings are older than the new limit and are deleted now. This cannot be undone."
+                  "value" : "%lld meetings are older than the new limit and are deleted now. This can’t be undone."
                 }
               }
             }
@@ -10311,6 +10797,2148 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lintel nie może potwierdzić, że wykrywanie działa na tym Macu: żadna aplikacja nie zgłosiła jeszcze użycia mikrofonu."
+          }
+        }
+      }
+    },
+    "This feature is off" : {
+      "comment" : "Settings banner: the plugin is turned off",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This feature is off"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ta funkcja jest wyłączona"
+          }
+        }
+      }
+    },
+    "Turn it on to use it." : {
+      "comment" : "Settings banner detail: plugin is off",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn it on to use it."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Włącz ją, aby z niej korzystać."
+          }
+        }
+      }
+    },
+    "Turn On" : {
+      "comment" : "Settings banner button: turns a plugin on",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn On"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Włącz"
+          }
+        }
+      }
+    },
+    "This feature couldn't start" : {
+      "comment" : "Settings banner: the plugin failed to start",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This feature couldn't start"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ta funkcja nie mogła się uruchomić"
+          }
+        }
+      }
+    },
+    "Nothing was deleted." : {
+      "comment" : "Settings banner detail: the plugin failed to start",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing was deleted."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nic nie zostało usunięte."
+          }
+        }
+      }
+    },
+    "Open System Settings" : {
+      "comment" : "Settings banner button: opens a permission's page",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open System Settings"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz Ustawienia systemu"
+          }
+        }
+      }
+    },
+    "%@ can't be checked" : {
+      "comment" : "Settings banner: a permission whose state macOS does not report; the permission name",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ can't be checked"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie można sprawdzić: %@"
+          }
+        }
+      }
+    },
+    "macOS doesn't report this permission. Lintel finds out when it's first used." : {
+      "comment" : "Settings banner detail: a permission whose state cannot be read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS doesn't report this permission. Lintel finds out when it's first used."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS nie zgłasza stanu tego uprawnienia. Lintel dowie się o nim przy pierwszym użyciu."
+          }
+        }
+      }
+    },
+    "Ready" : {
+      "comment" : "Settings banner level, spoken",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ready"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gotowe"
+          }
+        }
+      }
+    },
+    "Error" : {
+      "comment" : "Settings banner level, spoken",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Błąd"
+          }
+        }
+      }
+    },
+    "Information" : {
+      "comment" : "Settings banner level, spoken",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Information"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Informacja"
+          }
+        }
+      }
+    },
+    "%@: not allowed" : {
+      "comment" : "Settings banner: a required permission is denied; the permission name",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: not allowed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: brak zgody"
+          }
+        }
+      }
+    },
+    "Some permissions aren't allowed" : {
+      "comment" : "Settings banner: several permissions are denied",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some permissions aren't allowed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brakuje niektórych uprawnień"
+          }
+        }
+      }
+    },
+    "Allow it in System Settings." : {
+      "comment" : "Settings banner detail: a permission is denied",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow it in System Settings."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól w Ustawieniach systemu."
+          }
+        }
+      }
+    },
+    "%@ · %@" : {
+      "comment" : "Settings model summary: the model's name and its state, for example Parakeet Ultra · not installed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %@"
+          }
+        }
+      }
+    },
+    "installed" : {
+      "comment" : "Settings model summary: the model is on this Mac",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "installed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "zainstalowany"
+          }
+        }
+      }
+    },
+    "your folder" : {
+      "comment" : "Settings model summary: the model is in a folder the user chose",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "your folder"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Twój folder"
+          }
+        }
+      }
+    },
+    "downloading" : {
+      "comment" : "Settings model summary: the model is being downloaded",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "downloading"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pobieranie"
+          }
+        }
+      }
+    },
+    "not installed" : {
+      "comment" : "Settings model summary: the model is not on this Mac",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "not installed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "niezainstalowany"
+          }
+        }
+      }
+    },
+    "Get it in Models" : {
+      "comment" : "Settings model summary link that opens the Models pane",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get it in Models"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobierz w Modelach"
+          }
+        }
+      }
+    },
+    "Manage in Models" : {
+      "comment" : "Settings model summary link that opens the Models pane",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manage in Models"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zarządzaj w Modelach"
+          }
+        }
+      }
+    },
+    "Speech" : {
+      "comment" : "Models pane section: speech models",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speech"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mowa"
+          }
+        }
+      }
+    },
+    "Writing" : {
+      "comment" : "Models pane section: built-in language models",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Writing"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pisanie"
+          }
+        }
+      }
+    },
+    "Speaker separation" : {
+      "comment" : "Models pane: the speaker recognition model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speaker separation"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozpoznawanie osób"
+          }
+        }
+      }
+    },
+    "Needs about %@ of memory while writing." : {
+      "comment" : "Models pane footer under Writing: memory a loaded language model takes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs about %@ of memory while writing."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podczas pisania potrzebuje ok. %@ pamięci."
+          }
+        }
+      }
+    },
+    "The speech model is used by %@." : {
+      "comment" : "Models pane banner detail: one needed speech model; the argument lists the features",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The speech model is used by %@."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model mowy jest używany przez %@."
+          }
+        }
+      }
+    },
+    "The writing model is used by %@." : {
+      "comment" : "Models pane banner detail: one needed language model; the argument lists the features",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The writing model is used by %@."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model pisania jest używany przez %@."
+          }
+        }
+      }
+    },
+    "The speaker model is used by %@." : {
+      "comment" : "Models pane banner detail: one needed speaker model; the argument lists the features",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The speaker model is used by %@."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model rozpoznawania osób jest używany przez %@."
+          }
+        }
+      }
+    },
+    "Download %@" : {
+      "comment" : "Models pane banner button: downloads the first needed model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobierz %@"
+          }
+        }
+      }
+    },
+    "Nothing downloaded yet." : {
+      "comment" : "Models pane storage: no model is downloaded",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing downloaded yet."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nic jeszcze nie pobrano."
+          }
+        }
+      }
+    },
+    "%@ in Application Support" : {
+      "comment" : "Models pane storage: the size of the downloads",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ in Application Support"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ w Application Support"
+          }
+        }
+      }
+    },
+    "On this Mac" : {
+      "comment" : "Models pane storage: where the models live",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On this Mac"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Na tym Macu"
+          }
+        }
+      }
+    },
+    "Storage" : {
+      "comment" : "Models pane: disclosure group for where models are kept",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Storage"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Miejsce"
+          }
+        }
+      }
+    },
+    "Models run on this Mac. Audio never leaves it." : {
+      "comment" : "Models pane footer: models run locally",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Models run on this Mac. Audio never leaves it."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modele działają na tym Macu. Dźwięk go nie opuszcza."
+          }
+        }
+      }
+    },
+    "Suggest apps" : {
+      "comment" : "Settings → Apps: switch that turns app suggestions on",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggest apps"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podpowiadaj aplikacje"
+          }
+        }
+      }
+    },
+    "Shown when the launcher is empty." : {
+      "comment" : "Settings → Apps: help under the Suggest apps switch",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shown when the launcher is empty."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Widoczne przy pustym launcherze."
+          }
+        }
+      }
+    },
+    "Manage…" : {
+      "comment" : "Settings → Apps: button that lists the apps hidden from suggestions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manage…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zarządzaj…"
+          }
+        }
+      }
+    },
+    "Hidden suggestions" : {
+      "comment" : "Settings → Apps: label of the hidden apps row",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hidden suggestions"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukryte podpowiedzi"
+          }
+        }
+      }
+    },
+    "Usage history" : {
+      "comment" : "Settings → Apps: label of the recorded app activity row",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usage history"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historia użycia"
+          }
+        }
+      }
+    },
+    "Stored on this Mac only." : {
+      "comment" : "Settings → Apps: help under Usage history",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stored on this Mac only."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tylko na tym Macu."
+          }
+        }
+      }
+    },
+    "Reset Suggestions…" : {
+      "comment" : "Settings → Apps: button that deletes the recorded app activity",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Suggestions…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zresetuj podpowiedzi…"
+          }
+        }
+      }
+    },
+    "Reset suggestions?" : {
+      "comment" : "Settings → Apps: Reset Suggestions confirmation title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset suggestions?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zresetować podpowiedzi?"
+          }
+        }
+      }
+    },
+    "Lintel forgets which apps you used. This can’t be undone." : {
+      "comment" : "Settings → Apps: Reset Suggestions confirmation message",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel forgets which apps you used. This can’t be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel zapomni historię używanych aplikacji. Nie można tego cofnąć."
+          }
+        }
+      }
+    },
+    "Reset Suggestions" : {
+      "comment" : "Settings → Apps: Reset Suggestions confirmation button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Suggestions"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zresetuj podpowiedzi"
+          }
+        }
+      }
+    },
+    "No apps are hidden. Hide one from its suggestion in the launcher." : {
+      "comment" : "Settings → Apps: the hidden apps sheet when nothing is hidden",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No apps are hidden. Hide one from its suggestion in the launcher."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Żadna aplikacja nie jest ukryta. Ukryj ją z jej podpowiedzi w launcherze."
+          }
+        }
+      }
+    },
+    "Suggestions are off" : {
+      "comment" : "Settings → Apps banner: activity.json comes from a newer version",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggestions are off"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podpowiedzi są wyłączone"
+          }
+        }
+      }
+    },
+    "App activity was saved by a newer version of Lintel. Update to turn them on." : {
+      "comment" : "Settings → Apps banner detail: activity.json comes from a newer version",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App activity was saved by a newer version of Lintel. Update to turn them on."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktywność aplikacji zapisała nowsza wersja Lintel. Zaktualizuj, aby je włączyć."
+          }
+        }
+      }
+    },
+    "%lld apps indexed." : {
+      "comment" : "Settings → Apps banner detail: the number of apps found",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld app indexed."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld apps indexed."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zindeksowano %lld aplikację."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zindeksowano %lld aplikacje."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zindeksowano %lld aplikacji."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zindeksowano %lld aplikacji."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Allow Full Disk Access" : {
+      "comment" : "Settings → Files banner button: opens the Full Disk Access settings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Full Disk Access"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól na pełny dostęp"
+          }
+        }
+      }
+    },
+    "Start Indexing (banner)" : {
+      "comment" : "Settings → Files banner button: starts the first file scan",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start Indexing"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zacznij indeksować"
+          }
+        }
+      }
+    },
+    "Indexing hasn’t started" : {
+      "comment" : "Settings → Files banner before the first file scan",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indexing hasn’t started"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indeksowanie jeszcze się nie zaczęło"
+          }
+        }
+      }
+    },
+    "Start indexing to find files by name." : {
+      "comment" : "Settings → Files banner detail before the first scan, with Full Disk Access",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start indexing to find files by name."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zacznij indeksować, aby szukać plików po nazwie."
+          }
+        }
+      }
+    },
+    "Full Disk Access adds Documents and Desktop." : {
+      "comment" : "Settings → Files banner detail: what Full Disk Access adds to the index",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Full Disk Access adds Documents and Desktop."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pełny dostęp do dysku dodaje Dokumenty i Pulpit."
+          }
+        }
+      }
+    },
+    "Indexing…" : {
+      "comment" : "Settings → Files banner while files are indexed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indexing…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indeksowanie…"
+          }
+        }
+      }
+    },
+    "%lld items so far." : {
+      "comment" : "Settings → Files banner detail while indexing: the number of items so far",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld item so far."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld items so far."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Na razie %lld element."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Na razie %lld elementy."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Na razie %lld elementów."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Na razie %lld elementu."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld items indexed." : {
+      "comment" : "Settings → Files banner detail: the number of indexed files and folders",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld item indexed."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld items indexed."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zindeksowano %lld element."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zindeksowano %lld elementy."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zindeksowano %lld elementów."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zindeksowano %lld elementu."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld items indexed. Full Disk Access adds Documents and Desktop." : {
+      "comment" : "Settings → Files banner detail without Full Disk Access: the number of items",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld item indexed. Full Disk Access adds Documents and Desktop."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld items indexed. Full Disk Access adds Documents and Desktop."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zindeksowano %lld element. Pełny dostęp do dysku dodaje Dokumenty i Pulpit."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zindeksowano %lld elementy. Pełny dostęp do dysku dodaje Dokumenty i Pulpit."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zindeksowano %lld elementów. Pełny dostęp do dysku dodaje Dokumenty i Pulpit."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zindeksowano %lld elementu. Pełny dostęp do dysku dodaje Dokumenty i Pulpit."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Folders to index" : {
+      "comment" : "Settings → Files: label of the searched folders row",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folders to index"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foldery do indeksowania"
+          }
+        }
+      }
+    },
+    "Home folder and Applications" : {
+      "comment" : "Settings → Files: the default searched folders",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Home folder and Applications"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder domowy i Aplikacje"
+          }
+        }
+      }
+    },
+    "Include iCloud Drive" : {
+      "comment" : "Settings → Files: switch that indexes iCloud Drive",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Include iCloud Drive"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uwzględnij iCloud Drive"
+          }
+        }
+      }
+    },
+    "Without Full Disk Access, macOS asks once for this folder." : {
+      "comment" : "Settings → Files: help under Include iCloud Drive without Full Disk Access",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Without Full Disk Access, macOS asks once for this folder."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bez pełnego dostępu do dysku macOS zapyta raz o ten folder."
+          }
+        }
+      }
+    },
+    "Not built yet" : {
+      "comment" : "Settings → Files: the index before the first scan",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not built yet"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jeszcze nie zbudowany"
+          }
+        }
+      }
+    },
+    "Rebuild…" : {
+      "comment" : "Settings → Files: button that deletes the file index and scans again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rebuild…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odbuduj…"
+          }
+        }
+      }
+    },
+    "Home folder" : {
+      "comment" : "Settings → Files: the home folder in the folder list",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Home folder"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder domowy"
+          }
+        }
+      }
+    },
+    "Fix Next" : {
+      "comment" : "Settings banner button: fixes the first of several things to do",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fix Next"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Napraw kolejne"
+          }
+        }
+      }
+    },
+    "Privacy and data" : {
+      "comment" : "Settings → Meetings section title: the reminder and the library",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy and data"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prywatność i dane"
+          }
+        }
+      }
+    },
+    "Library" : {
+      "comment" : "Settings → Meetings row of the meeting library",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Library"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biblioteka"
+          }
+        }
+      }
+    },
+    "Notes model" : {
+      "comment" : "Settings → Meetings label of the model that writes the notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes model"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model notatek"
+          }
+        }
+      }
+    },
+    "Reduce echo from speakers" : {
+      "comment" : "Settings → Meetings switch of voice processing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reduce echo from speakers"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redukuj echo z głośników"
+          }
+        }
+      }
+    },
+    "Can lower other apps’ volume." : {
+      "comment" : "Settings → Meetings: help under Reduce echo",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can lower other apps’ volume."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Może ściszać inne aplikacje."
+          }
+        }
+      }
+    },
+    "Press to start and again to stop." : {
+      "comment" : "Settings → Meetings: help under the Record meeting shortcut",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press to start and again to stop."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naciśnij, aby zacząć i zakończyć."
+          }
+        }
+      }
+    },
+    "Summary, decisions, tasks. Needs the notes model." : {
+      "comment" : "Settings → Meetings: help under Write notes after each meeting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Summary, decisions, tasks. Needs the notes model."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podsumowanie, decyzje, zadania. Wymaga modelu notatek."
+          }
+        }
+      }
+    },
+    "Remind me to say I am recording" : {
+      "comment" : "Settings → Meetings switch of the consent reminder",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remind me to say I am recording"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przypominaj, by powiedzieć, że nagrywam"
+          }
+        }
+      }
+    },
+    "Temporary recordings" : {
+      "comment" : "Settings → Meetings row of the audio of interrupted meetings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temporary recordings"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tymczasowe nagrania"
+          }
+        }
+      }
+    },
+    "Audio of interrupted meetings." : {
+      "comment" : "Settings → Meetings: help under Temporary recordings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio of interrupted meetings."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dźwięk przerwanych spotkań."
+          }
+        }
+      }
+    },
+    "Allow the microphone so Lintel can hear the meeting." : {
+      "comment" : "Settings → Meetings banner detail: macOS has not asked for the microphone yet",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow the microphone so Lintel can hear the meeting."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól na mikrofon, aby Lintel słyszał spotkanie."
+          }
+        }
+      }
+    },
+    "Meetings are paused" : {
+      "comment" : "Settings → Meetings banner when the library cannot be opened",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meetings are paused"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spotkania są wstrzymane"
+          }
+        }
+      }
+    },
+    "Lintel can’t read the library’s key. Nothing was deleted." : {
+      "comment" : "Settings → Meetings banner detail when the library key cannot be read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel can’t read the library’s key. Nothing was deleted."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel nie może odczytać klucza biblioteki. Nic nie zostało usunięte."
+          }
+        }
+      }
+    },
+    "The library couldn’t be opened. Nothing was deleted." : {
+      "comment" : "Settings → Meetings banner detail when the library database cannot be opened",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The library couldn’t be opened. Nothing was deleted."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się otworzyć biblioteki. Nic nie zostało usunięte."
+          }
+        }
+      }
+    },
+    "Try Again (meetings library)" : {
+      "comment" : "Settings → Meetings banner button that opens the library again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try Again"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spróbuj ponownie"
+          }
+        }
+      }
+    },
+    "Test (system audio)" : {
+      "comment" : "Settings → Meetings button that starts the system audio test",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testuj"
+          }
+        }
+      }
+    },
+    "Copies you edited or commented on in Notes stay until you delete them there." : {
+      "comment" : "Confirmation sheet: Clear or Erase in Meetings and Dictation keeps the edited copies in Notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copies you edited or commented on in Notes stay until you delete them there."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopie edytowane lub skomentowane w Notatkach zostają, dopóki ich tam nie usuniesz."
+          }
+        }
+      }
+    },
+    "Also delete kept copies" : {
+      "comment" : "Confirmation sheet checkbox: also delete the copies kept in Notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Also delete kept copies"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń też zachowane kopie"
+          }
+        }
+      }
+    },
+    "Needed for: %@" : {
+      "comment" : "Settings → Permissions: the features that need a permission",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needed for: %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Potrzebne do: %@"
+          }
+        }
+      }
+    },
+    "Not asked yet" : {
+      "comment" : "Permission state: macOS has not asked the user yet",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not asked yet"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jeszcze nie pytano"
+          }
+        }
+      }
+    },
+    "%@ can't start until %@ is allowed." : {
+      "comment" : "Settings → Permissions banner detail: the features and the one permission they wait for",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ can't start until %@ is allowed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ nie uruchomią się, dopóki nie zezwolisz na: %2$@."
+          }
+        }
+      }
+    },
+    "%@ can't start until %@ are allowed." : {
+      "comment" : "Settings → Permissions banner detail: the features and the permissions they wait for",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ can't start until %@ are allowed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ nie uruchomią się, dopóki nie zezwolisz na: %2$@."
+          }
+        }
+      }
+    },
+    "Forgets which results you open most." : {
+      "comment" : "Settings → Advanced: explanation of Reset Ranking",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forgets which results you open most."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapomina, które wyniki otwierasz najczęściej."
+          }
+        }
+      }
+    },
+    "About…" : {
+      "comment" : "Settings → Advanced: button that opens the About window",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O programie…"
+          }
+        }
+      }
+    },
+    "Version %@ · licences" : {
+      "comment" : "Settings → Advanced: About row detail with the version",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version %@ · licences"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wersja %@ · licencje"
+          }
+        }
+      }
+    },
+    "Licences" : {
+      "comment" : "Settings → Advanced: About row detail",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Licences"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Licencje"
+          }
+        }
+      }
+    },
+    "settings.advanced.welcome" : {
+      "comment" : "Settings → Advanced: label of the welcome row",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welcome"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Powitanie"
+          }
+        }
+      }
+    },
+    "settings.sidebar.search" : {
+      "comment" : "Settings sidebar: group title of the search plugins",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szukanie"
+          }
+        }
+      }
+    },
+    "settings.sidebar.off" : {
+      "comment" : "Settings sidebar: badge of a switched-off feature",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wył."
+          }
+        }
+      }
+    },
+    "settings.sidebar.off.spoken" : {
+      "comment" : "Settings sidebar: spoken state of a switched-off feature",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyłączone"
+          }
+        }
+      }
+    },
+    "Record meeting (settings)" : {
+      "comment" : "Settings → Meetings: label of the record shortcut in the main window",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record meeting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagraj spotkanie"
+          }
+        }
+      }
+    },
+    "Suggest recording (settings)" : {
+      "comment" : "Settings → Meetings: switch of suggestions in the main window",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggest recording when a meeting starts"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proponuj nagranie, gdy zaczyna się spotkanie"
+          }
+        }
+      }
+    },
+    "Test System Audio (settings)" : {
+      "comment" : "Settings → Meetings: label of the system audio test in the main window",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test System Audio"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przetestuj dźwięk systemu"
+          }
+        }
+      }
+    },
+    "At most (dictation)" : {
+      "comment" : "Settings → Dictation: label of the entry limit in the main window",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "At most"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maksymalnie"
+          }
+        }
+      }
+    },
+    "Find and open apps." : {
+      "comment" : "Settings → Features: what Apps does",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find and open apps."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szukaj i otwieraj aplikacje."
+          }
+        }
+      }
+    },
+    "Find files by name." : {
+      "comment" : "Settings → Features: what Files does",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find files by name."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szukaj plików po nazwie."
+          }
+        }
+      }
+    },
+    "Paste from history." : {
+      "comment" : "Settings → Features: what Clipboard does",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste from history."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wklejaj z historii."
+          }
+        }
+      }
+    },
+    "Speak instead of typing." : {
+      "comment" : "Settings → Features: what Dictation does",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speak instead of typing."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mów zamiast pisać."
+          }
+        }
+      }
+    },
+    "Record meetings, keep notes." : {
+      "comment" : "Settings → Features: what Meetings does",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record meetings, keep notes."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywaj spotkania, miej notatki."
+          }
+        }
+      }
+    },
+    "In “%@”" : {
+      "comment" : "Models pane: the model is used from a folder the user chose; the folder's name",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In “%@”"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W folderze „%@”"
+          }
+        }
+      }
+    },
+    "Apps" : {
+      "comment" : "Plugin name of app search in Settings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikacje"
+          }
+        }
+      }
+    },
+    "Clipboard" : {
+      "comment" : "Plugin name of the clipboard history in Settings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clipboard"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schowek"
+          }
+        }
+      }
+    },
+    "System audio recording" : {
+      "comment" : "Permission name in Settings → Permissions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System audio recording"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywanie dźwięku systemu"
+          }
+        }
+      }
+    },
+    "Not granted" : {
+      "comment" : "State of an optional permission the user has not given",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not granted"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie przyznano"
+          }
+        }
+      }
+    },
+    "Only permissions of features that are on are required." : {
+      "comment" : "Settings → Permissions footer",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only permissions of features that are on are required."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wymagane są tylko uprawnienia włączonych funkcji."
+          }
+        }
+      }
+    },
+    "Needed for: %@ · optional" : {
+      "comment" : "Settings → Permissions: the features that can use an optional permission",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needed for: %@ · optional"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Potrzebne do: %@ · opcjonalne"
           }
         }
       }

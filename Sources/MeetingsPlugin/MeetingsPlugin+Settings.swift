@@ -15,22 +15,26 @@ final class MeetingsUI {
     static let llmDirectoryName = "llm"
 
     let model: MeetingsSettingsModel
+    /// The "in use" check and the removal reservation the model cards use; the Models pane gets the same through
+    /// `MeetingsPlugin.modelUsage`.
+    let usage: MeetingsModelUsage
+    /// `Models/llm/`, shared with dictation; the notes model's file is found here.
+    let llmManager: ModelManager
 
     init(
         context: PluginContext, settings: MeetingsSettings, library: MeetingsLibrary, activity: MeetingActivity,
-        authorizer: any MicrophoneAuthorizer = SystemMicrophoneAuthorizer(),
+        authorizer: any MicrophoneAuthorizer,
         manager: @MainActor (URL) -> ModelManager = { url in
             ModelManagers.shared.manager(for: url)
         },
-        makeSelfTest: @escaping @MainActor () -> SystemAudioSelfTest = {
-            SystemAudioSelfTest(backend: CoreAudioProcessTapBackend(), player: AVAudioEngineTonePlayer())
-        },
+        makeSelfTest: @escaping @MainActor () -> SystemAudioSelfTest,
         pickFolder: @escaping @MainActor () -> URL? = { MeetingsUI.chooseModelFolder() },
         usage: MeetingsModelUsage? = nil, notes service: NotesService
     ) {
         let usage =
             usage
             ?? .live(activity: activity, isProcessing: { [weak library] in library?.isProcessing ?? false })
+        self.usage = usage
         let speechManager = manager(
             context.modelsDirectory.appending(path: Self.speechDirectoryName, directoryHint: .isDirectory))
         let diarizationManager = manager(
@@ -45,6 +49,7 @@ final class MeetingsUI {
             setCustomFolder: { settings.setDiarizationModelFolder($0) }, pickFolder: pickFolder)
         let llmManager = manager(
             context.modelsDirectory.appending(path: Self.llmDirectoryName, directoryHint: .isDirectory))
+        self.llmManager = llmManager
         let workspace = context.workspace
         model = MeetingsSettingsModel(
             settings: settings, library: library,
@@ -77,7 +82,8 @@ extension MeetingsPlugin {
             OnboardingStep(
                 id: MeetingsUI.onboardingStepID,
                 title: LocalizedStringResource("Meetings", comment: "Plugin name of meeting transcription"),
-                symbolName: "person.2.wave.2"
+                symbolName: "person.2.wave.2",
+                text: MeetingsSetupView.text
             ) {
                 AnyView(MeetingsSetupView(model: model))
             }
@@ -89,7 +95,9 @@ extension MeetingsPlugin {
         let recorder =
             commands.contains { $0.id == MeetingsUI.recordCommandID }
             ? context.makeShortcutRecorder(MeetingsUI.recordCommandID) : nil
-        return AnyView(MeetingsSettingsPane(model: ui.model, recorder: recorder))
+        return AnyView(
+            MeetingsSettingsPane(
+                model: ui.model, recorder: recorder, isActive: controller != nil, openModels: context.openModels))
     }
 
     public func permissionAccessory(for permission: Permission) -> AnyView? {

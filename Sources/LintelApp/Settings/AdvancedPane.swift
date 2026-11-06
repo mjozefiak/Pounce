@@ -1,5 +1,6 @@
 import LintelKit
 import LintelPersistence
+import LintelUI
 import SwiftUI
 
 /// A usage store that can forget everything at once: Settings → Advanced → "Reset Ranking".
@@ -32,6 +33,34 @@ struct AdvancedControls {
     let usage: any UsageRecorder
     /// Called after a successful reset, so an open panel searches again.
     let onReset: () -> Void
+    /// "Show Again": the welcome flow from its first page.
+    let showWelcome: () -> Void
+    /// "About…": the About window.
+    let showAbout: () -> Void
+    /// The version shown under "About Lintel"; `nil` for an unbundled build.
+    let version: String?
+
+    init(
+        usage: any UsageRecorder, showWelcome: @escaping () -> Void = {}, showAbout: @escaping () -> Void = {},
+        version: String? = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
+        onReset: @escaping () -> Void
+    ) {
+        self.usage = usage
+        self.showWelcome = showWelcome
+        self.showAbout = showAbout
+        self.version = version
+        self.onReset = onReset
+    }
+
+    /// "Version 1.0 · licences", or just "Licences" without a bundle version.
+    var aboutDetail: String {
+        guard let version else {
+            return String(localized: "Licences", comment: "Settings → Advanced: About row detail")
+        }
+        return String(
+            localized: "Version \(version) · licences",
+            comment: "Settings → Advanced: About row detail with the version")
+    }
 
     /// "Reset Ranking": forgets every use and query association of every plugin. Returns the error message
     /// to show, or `nil` when it worked.
@@ -49,40 +78,97 @@ struct AdvancedControls {
     }
 }
 
-/// Settings → Advanced: "Reset Ranking…" with a confirmation.
+/// Settings → Advanced: Reset Ranking with a confirmation, and the Welcome and About rows (prototype
+/// `set-advanced`).
 struct AdvancedPane: View {
     let controls: AdvancedControls
 
+    static let confirmation = DestructiveConfirmation(
+        prompt: LocalizedStringResource("Reset the ranking?", comment: "Reset Ranking confirmation title"),
+        detail: LocalizedStringResource(
+            "Results go back to the order of how well they match. This can’t be undone.",
+            comment: "Reset Ranking confirmation message in the main window"),
+        confirmTitle: LocalizedStringResource(
+            "Reset Ranking", comment: "Confirmation button that clears the learned ranking"))
+
+    var body: some View {
+        AdvancedPaneContent(controls: controls)
+    }
+}
+
+extension View {
+    /// The Reset Ranking confirmation, the result announcement and the failure alert.
+    func resetRankingFlow(
+        controls: AdvancedControls, confirms: Binding<Bool>, done: Binding<Bool>, error: Binding<String?>
+    ) -> some View {
+        destructiveConfirmation(isPresented: confirms, AdvancedPane.confirmation) {
+            Task {
+                error.wrappedValue = await controls.resetRanking()
+                done.wrappedValue = error.wrappedValue == nil
+                if done.wrappedValue {
+                    AccessibilityNotification.Announcement(
+                        String(localized: "The ranking was reset.", comment: "Settings message after Reset Ranking")
+                    ).post()
+                }
+            }
+        }
+        .alert(
+            Text("The ranking could not be reset.", comment: "Alert title when Reset Ranking fails"),
+            isPresented: Binding(get: { error.wrappedValue != nil }, set: { if !$0 { error.wrappedValue = nil } })
+        ) {
+            Button {
+                error.wrappedValue = nil
+            } label: {
+                Text("OK", comment: "Button that dismisses an alert")
+            }
+        } message: {
+            Text(error.wrappedValue ?? "")
+        }
+    }
+}
+
+/// The main window's Advanced pane: three rows in one card, no section header (the host titles the pane).
+struct AdvancedPaneContent: View {
+    let controls: AdvancedControls
+
+    @Environment(\.lintelTextSize) private var textSize
     @State private var confirmsReset = false
     @State private var resetDone = false
     @State private var resetError: String?
 
     var body: some View {
-        Form {
+        SettingsPane {
             Section {
-                LabeledContent {
+                row(
+                    title: Text("Reset Ranking", comment: "Settings → Advanced: label of the ranking reset"),
+                    detail: Text(
+                        "Forgets which results you open most.",
+                        comment: "Settings → Advanced: explanation of Reset Ranking")
+                ) {
                     Button {
                         confirmsReset = true
                     } label: {
                         Text("Reset Ranking…", comment: "Settings button that clears the learned ranking")
                     }
-                } label: {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Ranking", comment: "Settings label of the ranking reset")
-                        Text(
-                            "Lintel moves the results you pick often to the top. Resetting forgets what it learned; your apps, files and clipboard history stay.",
-                            comment: "Settings explanation of Reset Ranking"
-                        )
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        Text(
-                            "App suggestions keep their own history; clear it in Settings → Applications.",
-                            comment: "Settings note that Reset Ranking does not clear app activity"
-                        )
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    .lintelDestructiveButton()
+                }
+                row(
+                    title: Text(
+                        LocalizedStringResource(
+                            "settings.advanced.welcome", defaultValue: "Welcome",
+                            comment: "Settings → Advanced: label of the welcome row")),
+                    detail: nil
+                ) {
+                    Button(action: controls.showWelcome) {
+                        Text("Show Again", comment: "Settings → Advanced: button that shows the welcome flow again")
+                    }
+                }
+                row(
+                    title: Text("About Lintel", comment: "Settings → Advanced: label of the About row"),
+                    detail: Text(controls.aboutDetail)
+                ) {
+                    Button(action: controls.showAbout) {
+                        Text("About…", comment: "Settings → Advanced: button that opens the About window")
                     }
                 }
                 if resetDone {
@@ -92,50 +178,34 @@ struct AdvancedPane: View {
                         Image(systemName: "checkmark.circle")
                             .accessibilityHidden(true)
                     }
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .font(textSize.font(.callout))
+                    .foregroundStyle(LintelBrand.secondaryText)
                 }
-            } header: {
-                Text("Advanced", comment: "Settings section title")
             }
         }
-        .formStyle(.grouped)
-        .frame(width: 600)
-        .fixedSize(horizontal: false, vertical: true)
-        .confirmationDialog(
-            Text("Reset the ranking?", comment: "Reset Ranking confirmation title"),
-            isPresented: $confirmsReset
-        ) {
-            Button(role: .destructive) {
-                Task {
-                    resetError = await controls.resetRanking()
-                    resetDone = resetError == nil
-                    if resetDone {
-                        AccessibilityNotification.Announcement(
-                            String(localized: "The ranking was reset.", comment: "Settings message after Reset Ranking")
-                        ).post()
-                    }
+        // No banner and no section title, so the card starts where the other panes' banner does (prototype
+        // `set-advanced`, the title's 12 pt margin), not under the grouped form's top margin, which is sized for a
+        // section header.
+        .padding(.top, -Self.headerlessLift)
+        .resetRankingFlow(
+            controls: controls, confirms: $confirmsReset, done: $resetDone, error: $resetError)
+    }
+
+    static let headerlessLift: CGFloat = 16
+
+    private func row<Action: View>(title: Text, detail: Text?, @ViewBuilder action: () -> Action) -> some View {
+        LabeledContent {
+            action()
+        } label: {
+            VStack(alignment: .leading, spacing: 2) {
+                title.font(textSize.font(.body))
+                if let detail {
+                    detail
+                        .font(textSize.font(.callout))
+                        .foregroundStyle(LintelBrand.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-            } label: {
-                Text("Reset Ranking", comment: "Confirmation button that clears the learned ranking")
             }
-        } message: {
-            Text(
-                "Results go back to the order of how well they match. It cannot be undone.",
-                comment: "Reset Ranking confirmation message"
-            )
-        }
-        .alert(
-            Text("The ranking could not be reset.", comment: "Alert title when Reset Ranking fails"),
-            isPresented: Binding(get: { resetError != nil }, set: { if !$0 { resetError = nil } })
-        ) {
-            Button {
-                resetError = nil
-            } label: {
-                Text("OK", comment: "Button that dismisses an alert")
-            }
-        } message: {
-            Text(resetError ?? "")
         }
     }
 }

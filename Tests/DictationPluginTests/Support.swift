@@ -85,6 +85,15 @@ final class NoUsage: UsageRecorder {
     var callCount: Int { calls.withLock { $0 } }
 }
 
+/// Counts `PluginContext.resultsChanged` signals.
+final class ChangeCounter: Sendable {
+    private let count = Mutex(0)
+
+    var value: Int { count.withLock { $0 } }
+
+    func bump() { count.withLock { $0 += 1 } }
+}
+
 /// A plugin context wired to fakes: a named pasteboard, in-memory settings, a temporary folder.
 @MainActor
 struct DictationHarness {
@@ -95,6 +104,8 @@ struct DictationHarness {
     let events = FakeEvents()
     let permissions = FakePermissions()
     let usage = NoUsage()
+    /// How many times the plugin signalled `resultsChanged`.
+    let changes = ChangeCounter()
     let context: PluginContext
 
     init(settings initial: [String: SettingValue] = [:], keychain: any KeychainClient = NoKeychain()) throws {
@@ -105,6 +116,7 @@ struct DictationHarness {
         let events = events
         let permissions = permissions
         let usage = usage
+        let changes = changes
         self.directory = directory
         self.settings = settings
         context = PluginContext(
@@ -118,6 +130,7 @@ struct DictationHarness {
             workspace: workspace,
             permissions: permissions,
             clock: ContinuousClock(),
+            resultsChanged: { changes.bump() },
             modelsDirectory: directory.url.appending(path: "Models", directoryHint: .isDirectory)
         )
     }

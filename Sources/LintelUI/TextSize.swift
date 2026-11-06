@@ -1,22 +1,23 @@
 import AppKit
 import SwiftUI
 
-/// Settings → General → Text Size. macOS has no Dynamic Type, so this scales the panel's text styles.
-enum TextSize: String, CaseIterable, Identifiable {
+/// Settings → General → Text Size. macOS has no Dynamic Type, so this scales the panel's text styles. Hosts pass
+/// it down with `.lintelTextSize(_:)`; views read it from the environment value `lintelTextSize`.
+public nonisolated enum TextSize: String, CaseIterable, Identifiable, Sendable {
     case small = "s"
     case medium = "m"
     case large = "l"
     case extraLarge = "xl"
 
-    var id: String { rawValue }
+    public var id: String { rawValue }
 
-    static let `default` = TextSize.medium
+    public static let `default` = TextSize.medium
 
-    init(setting: String?) {
+    public init(setting: String?) {
         self = setting.flatMap(TextSize.init(rawValue:)) ?? .default
     }
 
-    var title: LocalizedStringResource {
+    public var title: LocalizedStringResource {
         switch self {
         case .small: LocalizedStringResource("S", comment: "Text size option: small")
         case .medium: LocalizedStringResource("M", comment: "Text size option: medium")
@@ -25,7 +26,7 @@ enum TextSize: String, CaseIterable, Identifiable {
         }
     }
 
-    var accessibilityName: LocalizedStringResource {
+    public var accessibilityName: LocalizedStringResource {
         switch self {
         case .small: LocalizedStringResource("Small", comment: "Text size option, spoken")
         case .medium: LocalizedStringResource("Medium", comment: "Text size option, spoken")
@@ -35,7 +36,7 @@ enum TextSize: String, CaseIterable, Identifiable {
     }
 
     /// Factor applied to every text style and to the row metrics.
-    var scale: CGFloat {
+    public var scale: CGFloat {
         switch self {
         case .small: 0.9
         case .medium: 1
@@ -44,7 +45,7 @@ enum TextSize: String, CaseIterable, Identifiable {
         }
     }
 
-    var dynamicTypeSize: DynamicTypeSize {
+    public var dynamicTypeSize: DynamicTypeSize {
         switch self {
         case .small: .medium
         case .medium: .large
@@ -55,7 +56,7 @@ enum TextSize: String, CaseIterable, Identifiable {
 
     /// A system text style scaled for this size: still the system font and the style's weight, never a
     /// fixed point size.
-    func font(_ style: NSFont.TextStyle, weight: NSFont.Weight? = nil) -> Font {
+    @MainActor public func font(_ style: NSFont.TextStyle, weight: NSFont.Weight? = nil) -> Font {
         let base = NSFont.preferredFont(forTextStyle: style)
         var font = base.withSize(base.pointSize * scale)
         if let weight {
@@ -64,7 +65,17 @@ enum TextSize: String, CaseIterable, Identifiable {
         return Font(font)
     }
 
-    func nsFont(_ style: NSFont.TextStyle) -> NSFont {
+    /// The title above a Settings pane in the main window (prototype `.pane h3`: 20 pt bold at Medium): the
+    /// `title1` style at `paneTitleRatio` of its size, scaled like every other style.
+    @MainActor public var paneTitleFont: Font {
+        let base = NSFont.preferredFont(forTextStyle: .title1)
+        return Font(NSFont.systemFont(ofSize: (base.pointSize * Self.paneTitleRatio * scale).rounded(), weight: .bold))
+    }
+
+    /// 20 pt of the 22 pt `title1` style.
+    public static let paneTitleRatio: CGFloat = 20.0 / 22.0
+
+    @MainActor public func nsFont(_ style: NSFont.TextStyle) -> NSFont {
         let base = NSFont.preferredFont(forTextStyle: style)
         return base.withSize(base.pointSize * scale)
     }

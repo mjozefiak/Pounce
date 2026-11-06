@@ -168,6 +168,13 @@ struct FilesPluginTests {
         #expect(FilesPlugin.manifest.id == "files")
         #expect(harness.plugin.requiredPermissions == [.fullDiskAccess])
         #expect(harness.plugin.onboardingSteps.map(\.id) == ["files.fullDiskAccess"])
+        // Step 6.6f: the welcome page's line under the heading comes from the step, the view has the controls.
+        let step = try #require(harness.plugin.onboardingSteps.first)
+        #expect(String(localized: step.title) == "File Search")
+        #expect(
+            step.text.map { String(localized: $0) }
+                == "Lintel finds files and folders by name, using its own index that stays on this Mac. It never reads what is inside your files."
+        )
         #expect(harness.plugin.searchSources.map(\.id) == ["files.names", "files.path"])
         #expect(harness.plugin.settingsPane() != nil)
     }

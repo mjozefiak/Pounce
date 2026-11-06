@@ -22,9 +22,13 @@ import os
 public final class AppsPlugin: LintelPlugin {
     public nonisolated static let manifest = PluginManifest(
         id: "apps",
-        displayName: LocalizedStringResource("Applications", comment: "Results section and plugin name for apps"),
+        displayName: LocalizedStringResource("Apps", comment: "Plugin name of app search in Settings"),
         symbolName: "square.grid.2x2",
-        order: 10
+        order: 10,
+        settingsGroup: .search,
+        summary: LocalizedStringResource("Find and open apps.", comment: "Settings → Features: what Apps does"),
+        // The launcher keeps its heading (prototype `lintel-brand`); Settings says "Apps" (prototype `set-apps`).
+        sectionTitle: LocalizedStringResource("Applications", comment: "Results section title for apps")
     )
 
     /// Spotlight updates arrive in bursts; one rescan follows each quiet period of this length.
@@ -134,6 +138,31 @@ public final class AppsPlugin: LintelPlugin {
 
     public func settingsPane() -> AnyView? {
         AnyView(AppsSettingsPane(model: makeSettingsModel()))
+    }
+
+    /// The main window's banner (prototype `set-apps`): "Ready · 312 apps indexed." once a list is published,
+    /// attention while the activity file comes from a newer version; read by the shell only while active.
+    public var settingsStatus: SettingsStatus? {
+        Self.status(appCount: store.apps.count, activityIsReadOnly: activity.snapshot.isReadOnly)
+    }
+
+    /// The banner for an index of `appCount` apps; `nil` (the shell's derived "Ready") before the first list.
+    nonisolated static func status(appCount: Int, activityIsReadOnly: Bool) -> SettingsStatus? {
+        if activityIsReadOnly {
+            return SettingsStatus(
+                level: .attention,
+                title: LocalizedStringResource(
+                    "Suggestions are off", comment: "Settings → Apps banner: activity.json comes from a newer version"),
+                detail: LocalizedStringResource(
+                    "App activity was saved by a newer version of Lintel. Update to turn them on.",
+                    comment: "Settings → Apps banner detail: activity.json comes from a newer version"))
+        }
+        guard appCount > 0 else { return nil }
+        return SettingsStatus(
+            level: .ok,
+            title: LocalizedStringResource("Ready", comment: "Settings banner level, spoken"),
+            detail: LocalizedStringResource(
+                "\(appCount) apps indexed.", comment: "Settings → Apps banner detail: the number of apps found"))
     }
 
     func makeSettingsModel() -> AppsSettingsModel {

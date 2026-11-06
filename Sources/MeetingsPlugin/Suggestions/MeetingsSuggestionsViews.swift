@@ -1,3 +1,4 @@
+import LintelUI
 import SwiftUI
 
 /// Settings → Meetings → "Podpowiedzi spotkań": the switch, the apps the user muted and the extra apps.
@@ -33,7 +34,7 @@ struct MeetingsSuggestionsSection: View {
             }
             if !model.mutedApps.isEmpty {
                 Text("Apps you muted", comment: "Meetings settings: list of apps with suggestions turned off")
-                    .font(.subheadline).foregroundStyle(.secondary)
+                    .font(.subheadline).foregroundStyle(LintelBrand.secondaryText)
                 ForEach(model.mutedApps) { app in
                     appRow(app, actionTitle: String(localized: "Ask again", comment: "Button that unmutes an app")) {
                         model.unmute(app.id)
@@ -43,7 +44,7 @@ struct MeetingsSuggestionsSection: View {
             Text(
                 "Other apps that count as meetings", comment: "Meetings settings: list of apps added by the user"
             )
-            .font(.subheadline).foregroundStyle(.secondary)
+            .font(.subheadline).foregroundStyle(LintelBrand.secondaryText)
             ForEach(model.extraApps) { app in
                 appRow(app, actionTitle: String(localized: "Remove", comment: "Button that removes an added app")) {
                     model.removeExtraApp(app.id)
@@ -73,7 +74,7 @@ struct MeetingsSuggestionsSection: View {
                 "Lintel only checks which app is using the microphone, never what it hears. It knows Zoom, Teams, Slack, FaceTime, Webex and Discord, and asks before recording; it never starts by itself. A browser counts only if you add it above, because a web page using the microphone can be a false alarm. Only these lists and, for a meeting you start from a suggestion, the app's ID are stored. Apps built on Safari's engine (WebKit helpers) may not be detected, and the pill cannot be operated from the keyboard; VoiceOver reads it and can press its buttons.",
                 comment: "Meetings settings footer under the meeting suggestions"
             )
-            .font(.callout).foregroundStyle(.secondary)
+            .font(.callout).foregroundStyle(LintelBrand.secondaryText)
         }
     }
 
@@ -96,7 +97,7 @@ struct MeetingsSuggestionsSection: View {
             VStack(alignment: .leading) {
                 Text(app.name)
                 if app.name != app.id {
-                    Text(app.id).font(.caption).foregroundStyle(.secondary)
+                    Text(app.id).font(.caption).foregroundStyle(LintelBrand.secondaryText)
                 }
             }
         }
@@ -121,28 +122,24 @@ struct MeetingsSuggestionsSetupPart: View {
     @Bindable var model: MeetingsSettingsModel
 
     var body: some View {
-        Label {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(
-                    "Optional: Lintel can suggest recording when Zoom, Teams or another meeting app starts using the microphone. It only checks which app uses the microphone, never what it hears, and never records without your click.",
-                    comment: "Meetings onboarding step about meeting suggestions"
-                )
-                .fixedSize(horizontal: false, vertical: true)
-                Toggle(isOn: $model.suggestMeetings) {
-                    Text("Suggest recording when a meeting starts", comment: "Meetings settings toggle of suggestions")
-                }
-                if model.suggestionStatus == .unavailable {
-                    Text(
-                        "Not available on this Mac: macOS does not report which apps use the microphone here.",
-                        comment: "Meetings settings: the process audio API is unavailable"
-                    )
-                    .foregroundStyle(.orange)
-                } else if model.suggestionStatus == .noData {
-                    Text(MeetingsSuggestionsSection.noDataMessage).foregroundStyle(.orange)
-                }
+        // A part of the welcome page's single column (`WelcomeStepColumn`), without an icon.
+        WelcomeStepItem(
+            Text(
+                "Optional: Lintel can suggest recording when Zoom, Teams or another meeting app starts using the microphone. It only checks which app uses the microphone, never what it hears, and never records without your click.",
+                comment: "Meetings onboarding step about meeting suggestions")
+        ) {
+            Toggle(isOn: $model.suggestMeetings) {
+                Text("Suggest recording when a meeting starts", comment: "Meetings settings toggle of suggestions")
             }
-        } icon: {
-            Image(systemName: "person.2.wave.2").accessibilityHidden(true)
+            if model.suggestionStatus == .unavailable {
+                Text(
+                    "Not available on this Mac: macOS does not report which apps use the microphone here.",
+                    comment: "Meetings settings: the process audio API is unavailable"
+                )
+                .foregroundStyle(LintelBrand.statusAttention)
+            } else if model.suggestionStatus == .noData {
+                Text(MeetingsSuggestionsSection.noDataMessage).foregroundStyle(LintelBrand.statusAttention)
+            }
         }
     }
 }

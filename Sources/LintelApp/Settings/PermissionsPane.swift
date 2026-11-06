@@ -1,5 +1,6 @@
 import AppKit
 import LintelKit
+import LintelUI
 import SwiftUI
 
 /// One permission the enabled plugins need, with the names of the plugins that ask for it.
@@ -18,17 +19,39 @@ struct PermissionRequirement: Identifiable, Equatable {
 /// `PermissionsReader` the plugins use, so reading them never shows a system prompt.
 @Observable
 final class PermissionsModel {
-    @ObservationIgnored private let host: PluginHost
+    @ObservationIgnored let host: PluginHost
     @ObservationIgnored private let reader: any PermissionsReader
     @ObservationIgnored private let openURL: (URL) -> Void
+    @ObservationIgnored private let requester: any PermissionRequester
 
     /// The last read state of each required permission; refreshed by `refresh()`.
     private(set) var statuses: [Permission: PermissionStatus] = [:]
 
-    init(host: PluginHost, reader: any PermissionsReader, openURL: @escaping (URL) -> Void) {
+    init(
+        host: PluginHost, reader: any PermissionsReader,
+        requester: any PermissionRequester = SystemPermissionRequester(),
+        openURL: @escaping (URL) -> Void
+    ) {
         self.host = host
         self.reader = reader
+        self.requester = requester
         self.openURL = openURL
+    }
+
+    /// The rows to draw, one per permission in `Permission.allCases` order; the ones no enabled feature needs are
+    /// dimmed (spec D5).
+    var rows: [PermissionRowState] {
+        let required = Dictionary(uniqueKeysWithValues: requirements.map { ($0.permission, $0.pluginNames) })
+        return Permission.allCases.map { permission in
+            PermissionRowState(
+                permission: permission, status: status(of: permission), pluginNames: required[permission] ?? [])
+        }
+    }
+
+    /// "Allow Microphone": the user's click, so the system prompt may appear. Reads the states again after.
+    func allow(_ permission: Permission) async {
+        await requester.request(permission)
+        refresh()
     }
 
     /// The permissions of the enabled plugins, in `Permission.allCases` order.
@@ -48,14 +71,16 @@ final class PermissionsModel {
     }
 
     func status(of permission: Permission) -> PermissionStatus {
-        statuses[permission] ?? .notDetermined
+        // A model that has not refreshed yet (the host rebuilt it) still answers with the real state: the reader
+        // only preflights, so reading it here never shows a prompt.
+        statuses[permission] ?? (permission.isReadable ? reader.status(of: permission) : .notDetermined)
     }
 
-    /// Re-reads every required permission ("Check Again", the pane appearing, Lintel becoming active).
+    /// Re-reads every readable permission ("Check Again", the pane appearing, Lintel becoming active).
     func refresh() {
         var result: [Permission: PermissionStatus] = [:]
-        for requirement in requirements {
-            result[requirement.permission] = reader.status(of: requirement.permission)
+        for permission in Permission.allCases where permission.isReadable {
+            result[permission] = reader.status(of: permission)
         }
         statuses = result
     }
@@ -84,16 +109,6 @@ extension Permission {
             ?? URL(filePath: "/System/Applications/System Settings.app")
     }
 
-    var symbolName: String {
-        switch self {
-        case .accessibility: "accessibility"
-        case .fullDiskAccess: "externaldrive"
-        case .pasteboard: "doc.on.clipboard"
-        case .microphone: "mic"
-        case .systemAudioRecording: "speaker.wave.2"
-        }
-    }
-
     var title: String {
         switch self {
         case .accessibility:
@@ -105,7 +120,7 @@ extension Permission {
         case .microphone:
             String(localized: "Microphone", comment: "Permission name in Settings → Permissions")
         case .systemAudioRecording:
-            String(localized: "System Audio Recording", comment: "Permission name in Settings → Permissions")
+            String(localized: "System audio recording", comment: "Permission name in Settings → Permissions")
         }
     }
 
@@ -160,124 +175,134 @@ extension Permission {
     }
 }
 
-extension PermissionStatus {
-    var symbolName: String {
-        switch self {
-        case .granted: "checkmark.circle.fill"
-        case .denied: "hand.raised"
-        case .notDetermined: "questionmark.circle"
-        }
-    }
+/// How a permission row reads: a state in words, never colour alone.
+enum PermissionTone: Equatable {
+    case ok
+    /// A readable permission the user has refused.
+    case problem
+    /// Not granted yet, or macOS cannot report it (System Audio Recording): never a problem.
+    case neutral
 }
 
-/// Settings → Permissions: each permission the enabled features need, its state and a button to its page
-/// in System Settings (spec: Pasek menu i Ustawienia → Uprawnienia).
-struct PermissionsPane: View {
-    let model: PermissionsModel
-
-    var body: some View {
-        Form {
-            Section {
-                let requirements = model.requirements
-                if requirements.isEmpty {
-                    Text(
-                        "The features that are on need no system permissions.",
-                        comment: "Settings → Permissions when no enabled feature needs a permission"
-                    )
-                    .foregroundStyle(.secondary)
-                }
-                ForEach(requirements) { requirement in
-                    PermissionRow(
-                        requirement: requirement,
-                        status: model.status(of: requirement.permission),
-                        accessories: model.accessories(for: requirement.permission),
-                        open: { model.openSettings(for: requirement.permission) }
-                    )
-                }
-            } header: {
-                Text("Permissions", comment: "Settings section title")
-            } footer: {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text(
-                            "Lintel never asks for a permission on its own. Changes in System Settings apply right away.",
-                            comment: "Settings → Permissions footer"
-                        )
-                        Spacer()
-                        Button {
-                            model.refresh()
-                        } label: {
-                            Text("Check Again", comment: "Button that re-reads the permission states")
-                        }
-                    }
-                    Text(
-                        "The Keychain needs no permission. A feature that keeps a key there shows its state in its own pane.",
-                        comment: "Settings → Permissions note about the Keychain"
-                    )
-                }
-                .font(.callout)
-                .foregroundStyle(.secondary)
-            }
-        }
-        .formStyle(.grouped)
-        .frame(width: 600)
-        .fixedSize(horizontal: false, vertical: true)
-        .onAppear { model.refresh() }
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            model.refresh()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
-            model.refresh()
-        }
-    }
-}
-
-struct PermissionRow: View {
-    let requirement: PermissionRequirement
+/// What one `PermissionRow` shows, kept out of the view so it is tested.
+struct PermissionRowState: Identifiable, Equatable {
+    let permission: Permission
     let status: PermissionStatus
-    var accessories: [AnyView] = []
-    let open: () -> Void
+    /// Display names of the enabled plugins that need it; empty when no enabled feature does.
+    let pluginNames: [String]
+
+    var id: Permission { permission }
+    /// No enabled feature needs it: the row is dimmed.
+    var isDimmed: Bool { pluginNames.isEmpty }
+    var stateText: String { permission.statusText(status) }
+
+    /// Full Disk Access: Files works without it and only skips the protected folders (prototype
+    /// `set-permissions`, "· optional"), so not having it is never a problem.
+    var isOptional: Bool { permission == .fullDiskAccess }
+
+    /// The state line of the row: "Not asked yet" where `stateText` says "Unknown", "Not granted" for an optional
+    /// permission the user has not given.
+    var mainStateText: String {
+        if isOptional, status != .granted {
+            return String(localized: "Not granted", comment: "State of an optional permission the user has not given")
+        }
+        guard permission.isReadable, permission != .pasteboard, status == .notDetermined else { return stateText }
+        return String(localized: "Not asked yet", comment: "Permission state: macOS has not asked the user yet")
+    }
+
+    /// Row order: permissions that need the user first (denied, not asked), then the allowed ones, then an
+    /// optional one not given (prototype `set-permissions`), then the ones no enabled feature needs. Stable inside
+    /// each group.
+    static func problemsFirst(_ rows: [PermissionRowState]) -> [PermissionRowState] {
+        func rank(_ row: PermissionRowState) -> Int {
+            if row.isDimmed { return 3 }
+            if row.tone == .ok { return 1 }
+            return row.isOptional ? 2 : 0
+        }
+        return rows.enumerated().sorted { (rank($0.element), $0.offset) < (rank($1.element), $1.offset) }
+            .map(\.element)
+    }
+
+    var tone: PermissionTone {
+        guard permission.isReadable, !(isOptional && status != .granted) else { return .neutral }
+        switch status {
+        case .granted: return .ok
+        case .denied: return .problem
+        case .notDetermined: return .neutral
+        }
+    }
+
+    /// "Allow Microphone" while macOS has not asked yet; every other state goes through System Settings.
+    var allowTitle: String? {
+        guard permission == .microphone, status == .notDetermined else { return nil }
+        return String(localized: "Allow Microphone", comment: "Button that asks for microphone access")
+    }
+}
+
+/// Settings → Permissions: a row per permission with its state and a button to its page in System Settings.
+/// Every permission is listed; the ones no enabled feature needs are dimmed (spec D5).
+struct PermissionsPane: View {
+    /// Kept in `@State`: `SettingsHost` builds the pane again whenever its own state changes, and a new model
+    /// would start with no states.
+    @State private var model: PermissionsModel
+
+    init(model: PermissionsModel) {
+        _model = State(initialValue: model)
+    }
+
+    @Environment(\.lintelTextSize) private var textSize
 
     var body: some View {
-        let permission = requirement.permission
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: permission.symbolName)
-                .symbolRenderingMode(.hierarchical)
-                .font(.title3)
-                .frame(width: 24)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(permission.title)
-                    .accessibilityAddTraits(.isHeader)
-                Label {
-                    Text(permission.statusText(status))
-                } icon: {
-                    Image(systemName: status.symbolName)
-                        .symbolRenderingMode(.hierarchical)
-                        .accessibilityHidden(true)
+        mainForm
+            .onAppear { model.refresh() }
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+                model.refresh()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
+                model.refresh()
+            }
+    }
+
+    /// No section header (the host's title names the pane), problems first, one footer.
+    private var mainForm: some View {
+        SettingsPane {
+            Section {
+                let rows = PermissionRowState.problemsFirst(model.rows)
+                if rows.isEmpty {
+                    emptyText
                 }
-                .font(.callout.weight(.medium))
-                Text(permission.explanation)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(
-                    "Needed by: \(requirement.pluginNames.formatted(.list(type: .and)))",
-                    comment: "Settings → Permissions: the features that need a permission"
-                )
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                ForEach(accessories.indices, id: \.self) { accessories[$0] }
+                ForEach(rows) { row in
+                    PermissionRow(
+                        state: row,
+                        accessories: model.accessories(for: row.permission),
+                        allow: { Task { await model.allow(row.permission) } },
+                        open: { model.openSettings(for: row.permission) }
+                    )
+                }
+            } footer: {
+                HStack(alignment: .firstTextBaseline) {
+                    SettingsFooter("Only permissions of features that are on are required.")
+                    Spacer()
+                    checkAgain
+                }
             }
-            Spacer(minLength: 12)
-            Button(action: open) {
-                Text("Open System Settings…", comment: "Button that opens a permission's page in System Settings")
-            }
-            .accessibilityHint(
-                Text(
-                    "Opens \(permission.title) in System Settings",
-                    comment: "Accessibility hint of the button that opens a permission's settings"))
         }
-        .accessibilityElement(children: .contain)
+    }
+
+    private var emptyText: some View {
+        Text(
+            "The features that are on need no system permissions.",
+            comment: "Settings → Permissions when no enabled feature needs a permission"
+        )
+        .font(textSize.font(.body))
+        .foregroundStyle(LintelBrand.secondaryText)
+    }
+
+    private var checkAgain: some View {
+        Button {
+            model.refresh()
+        } label: {
+            Text("Check Again", comment: "Button that re-reads the permission states")
+        }
     }
 }

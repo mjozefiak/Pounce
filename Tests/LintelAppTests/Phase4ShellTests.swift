@@ -87,7 +87,7 @@ final class FakePermissionsReader: PermissionsReader {
         #expect(model.requirements.isEmpty)
     }
 
-    @Test func refreshReadsOnlyTheRequiredPermissions() async throws {
+    @Test func refreshReadsEveryReadablePermission() async throws {
         let test = try TestEnvironment()
         defer { test.tearDown() }
         let host = test.makeHost([PastingPlugin.self, IndexingPlugin.self])
@@ -96,9 +96,11 @@ final class FakePermissionsReader: PermissionsReader {
         reader.answers = [.accessibility: .granted, .pasteboard: .denied, .fullDiskAccess: .granted]
         let model = PermissionsModel(host: host, reader: reader) { _ in }
 
-        #expect(model.status(of: .accessibility) == .notDetermined)
+        // Before the first refresh the model answers from the reader instead of "unknown".
+        #expect(model.status(of: .accessibility) == .granted)
         model.refresh()
-        #expect(Set(reader.reads) == [.accessibility, .pasteboard])
+        // Every permission has a row (the unused ones dimmed), so every readable one is read.
+        #expect(Set(reader.reads) == Set(Permission.allCases.filter(\.isReadable)))
         #expect(model.status(of: .accessibility) == .granted)
         #expect(model.status(of: .pasteboard) == .denied)
 
@@ -135,7 +137,6 @@ final class FakePermissionsReader: PermissionsReader {
         #expect(permission.statusText(.notDetermined) != permission.statusText(.denied))
         #expect(permission.settingsURL.absoluteString.hasSuffix("?Privacy_AudioCapture"))
         #expect(!permission.explanation.isEmpty)
-        #expect(NSImage(systemSymbolName: permission.symbolName, accessibilityDescription: nil) != nil)
     }
 
     @Test func theSystemAudioRowAppearsOnlyWhenAnEnabledPluginRequiresIt() async throws {
@@ -178,22 +179,17 @@ final class FakePermissionsReader: PermissionsReader {
             registrar: InMemoryHotkeyRegistrar(), settings: InMemorySettingsStore(), readOccupied: { [] })
         let controller = OnboardingController(hotkeys: hotkeys, settings: settings) { steps }
         settings.shortcutOnboardingCompleted = true
-        #expect(controller.pendingPages.map(\.id) == ["recording.intro"])
+        #expect(controller.pendingPages.map(\.id) == ["recording.intro", "done"])
     }
 
-    @Test func everyStateHasTextAndASymbol() {
+    @Test func everyStateHasText() {
         let statuses: [PermissionStatus] = [.granted, .denied, .notDetermined]
         for permission in Permission.allCases {
             #expect(!permission.title.isEmpty)
             #expect(!permission.explanation.isEmpty)
-            #expect(NSImage(systemSymbolName: permission.symbolName, accessibilityDescription: nil) != nil)
             let texts = statuses.map { permission.statusText($0) }
             #expect(Set(texts).count == statuses.count, "\(permission) states must read differently")
         }
-        for status in statuses {
-            #expect(NSImage(systemSymbolName: status.symbolName, accessibilityDescription: nil) != nil)
-        }
-        #expect(Set(statuses.map(\.symbolName)).count == statuses.count)
     }
 
     @Test func qaPasteboardAccessDecidesThePasteboardRow() {
@@ -253,19 +249,6 @@ actor PlainRecorder: UsageRecorder {
 }
 
 @MainActor
-@Suite struct SettingsTabTests {
-    @Test func shellPanesSurroundThePluginPanes() {
-        #expect(SettingsWindowController.tabIndex(of: .general, pluginPaneCount: 3) == 0)
-        #expect(SettingsWindowController.tabIndex(of: .features, pluginPaneCount: 3) == 1)
-        #expect(SettingsWindowController.tabIndex(of: .permissions, pluginPaneCount: 3) == 5)
-        #expect(SettingsWindowController.tabIndex(of: .advanced, pluginPaneCount: 3) == 6)
-        #expect(SettingsWindowController.tabIndex(of: .permissions, pluginPaneCount: 0) == 2)
-        #expect(SettingsWindowController.tabIndex(ofPlugin: "files", in: ["apps", "files"]) == 3)
-        #expect(SettingsWindowController.tabIndex(ofPlugin: "gone", in: ["apps"]) == nil)
-    }
-}
-
-@MainActor
 @Suite struct WelcomeScreenTests {
     private func step(_ id: String) -> OnboardingStep {
         OnboardingStep(id: id, title: "Step \(id)", symbolName: "star") { AnyView(EmptyView()) }
@@ -285,12 +268,15 @@ actor PlainRecorder: UsageRecorder {
     @Test func firstLaunchCombinesTheIntroTheShortcutAndEveryPluginStep() {
         let store = InMemorySettingsStore()
         let (controller, settings) = makeController(store, steps: ["clipboard.intro", "files.fullDiskAccess"])
-        #expect(controller.pendingPages.map(\.id) == ["intro", "shortcut", "clipboard.intro", "files.fullDiskAccess"])
+        #expect(
+            controller.pendingPages.map(\.id) == [
+                "intro", "shortcut", "clipboard.intro", "files.fullDiskAccess", "done",
+            ])
 
         // After an update only the new plugin step is pending: no introduction, no Shortcut step.
         settings.shortcutOnboardingCompleted = true
         settings.completedOnboardingSteps = ["clipboard.intro"]
-        #expect(controller.pendingPages.map(\.id) == ["files.fullDiskAccess"])
+        #expect(controller.pendingPages.map(\.id) == ["files.fullDiskAccess", "done"])
 
         settings.completedOnboardingSteps = ["clipboard.intro", "files.fullDiskAccess"]
         #expect(controller.pendingPages.isEmpty)
@@ -306,7 +292,6 @@ actor PlainRecorder: UsageRecorder {
         flow.onComplete = { completed += 1 }
 
         #expect(flow.isFirst)
-        #expect(flow.current?.isSkippable == false)
         flow.back()
         #expect(flow.index == 0)
         flow.advance()
@@ -342,6 +327,8 @@ actor PlainRecorder: UsageRecorder {
         #expect(settings.completedOnboardingSteps == ["clipboard.intro"])
         flow.advance()
         #expect(settings.completedOnboardingSteps == ["clipboard.intro", "files.fullDiskAccess"])
+        #expect(flow.current?.id == "done")
+        flow.advance()
         #expect(controller.flow == nil)
         #expect(!controller.isVisible)
         #expect(!controller.hasPendingSteps)
@@ -356,6 +343,8 @@ actor PlainRecorder: UsageRecorder {
         controller.flow?.advance()
         #expect(settings.shortcutOnboardingCompleted)
         #expect(store.value(forKey: SettingsKeys.hotkeyUserDefined) == .bool(true))
+        // The final page.
+        controller.flow?.advance()
         #expect(controller.flow == nil)
     }
 
@@ -367,7 +356,7 @@ actor PlainRecorder: UsageRecorder {
         #expect(controller.currentPluginStep == "clipboard.intro")
         controller.close()
         #expect(settings.completedOnboardingSteps == ["clipboard.intro"])
-        #expect(controller.pendingPages.map(\.id) == ["files.fullDiskAccess"])
+        #expect(controller.pendingPages.map(\.id) == ["files.fullDiskAccess", "done"])
     }
 
     @Test func qaShowsEveryPageFromTheRequestedOne() {
@@ -377,8 +366,163 @@ actor PlainRecorder: UsageRecorder {
         settings.completedOnboardingSteps = ["clipboard.intro"]
         controller.showAllSteps(startingAt: "shortcut")
         defer { controller.close() }
-        #expect(controller.flow?.pages.map(\.id) == ["intro", "shortcut", "clipboard.intro"])
+        #expect(controller.flow?.pages.map(\.id) == ["intro", "shortcut", "clipboard.intro", "done"])
         #expect(controller.flow?.current?.id == "shortcut")
+    }
+
+    private func gatedController(steps: [String] = ["clipboard.intro"]) -> (OnboardingController, AppSettings) {
+        let store = InMemorySettingsStore()
+        let settings = AppSettings(store: store)
+        let hotkeys = HotkeyService(registrar: InMemoryHotkeyRegistrar(), settings: store, readOccupied: { [] })
+        let controller = OnboardingController(hotkeys: hotkeys, settings: settings) { [self] in steps.map(step) }
+        controller.activatesApp = false
+        return (controller, settings)
+    }
+
+    @Test func theFinalPageEndsEveryNonEmptyFlow() {
+        let (enabled, enabledSettings) = gatedController()
+        #expect(enabled.pendingPages.map(\.id) == ["intro", "shortcut", "clipboard.intro", "done"])
+        enabled.showAllSteps()
+        #expect(enabled.flow?.pages.last?.id == "done")
+        enabled.close()
+
+        // Nothing pending: no welcome screen, so no lone "You're set" page.
+        enabledSettings.shortcutOnboardingCompleted = true
+        enabledSettings.completedOnboardingSteps = ["clipboard.intro"]
+        #expect(enabled.pendingPages.isEmpty)
+        #expect(!enabled.hasPendingSteps)
+        enabled.showPendingSteps()
+        #expect(enabled.flow == nil)
+    }
+
+    @Test func theFinalPageCompletesTheFlow() {
+        let (controller, _) = gatedController(steps: [])
+        controller.showAllSteps(startingAt: "done")
+        #expect(controller.flow?.current?.id == "done")
+        var completed = false
+        controller.flow?.onComplete = { completed = true }
+        controller.flow?.advance()
+        #expect(completed)
+    }
+
+    @Test func theFinalPageButtonOpensTheMainWindowThroughTheRouter() {
+        var shown = 0
+        var targets = MainWindowRouter.Targets()
+        targets.showMainWindow = { shown += 1 }
+        let router = MainWindowRouter(targets: targets)
+        let (controller, _) = gatedController()
+        controller.openMainWindow = { router.openMainWindow() }
+        controller.openMainWindow()
+        #expect(shown == 1)
+    }
+
+    // MARK: Layouts (step 6.5g)
+
+    private func makeFooters(_ pages: [WelcomePage]) -> [WelcomeFooter] {
+        pages.indices.map { index in
+            WelcomeFooter(page: pages[index], isFirst: index == 0, isLast: index == pages.count - 1)
+        }
+    }
+
+    @Test func theSingleColumnFooterFollowsThePrototype() {
+        let pages = [
+            WelcomePage(kind: .intro), WelcomePage(kind: .shortcut), WelcomePage(kind: .plugin(step("a"))),
+            WelcomePage(kind: .done),
+        ]
+        let footers = makeFooters(pages)
+        #expect(footers.map(\.primary) == [.continueToNext, .useShortcut, .continueToNext, .openNotes])
+        #expect(footers.map(\.primaryTitle) == ["Continue", "Use This Shortcut", "Continue", "Open Lintel"])
+        // Skip on every page as drawn; Back only after the first page.
+        #expect(footers.map(\.showsSkip) == [true, true, true, true])
+        #expect(footers.map(\.showsBack) == [false, true, true, true])
+        #expect(makeFooters(Array(pages.prefix(3)))[2].primary == .done)
+    }
+
+    @Test func singleColumnPagesHaveTheMarkHeadingAndText() {
+        #expect(WelcomePage(kind: .intro).heading == "Welcome to Lintel")
+        #expect(WelcomePage(kind: .shortcut).heading == "Shortcut")
+        #expect(WelcomePage(kind: .plugin(step("a"))).heading == "Step a")
+        #expect(WelcomePage(kind: .done).heading == "You’re set")
+        #expect(
+            WelcomeColumnView.text(for: WelcomePage(kind: .intro), shortcut: nil)
+                == "Search apps and files, paste from history, dictate, keep meeting notes. All on this Mac.")
+        #expect(
+            WelcomeColumnView.text(for: WelcomePage(kind: .shortcut), shortcut: nil)
+                == ShortcutStepContent.explanation)
+        #expect(WelcomeColumnView.text(for: WelcomePage(kind: .plugin(step("a"))), shortcut: nil) == nil)
+        // Step 6.6f: a plugin page shows its step's line under the heading.
+        let described = OnboardingStep(id: "b", title: "B", symbolName: "star", text: "What B does.") {
+            AnyView(EmptyView())
+        }
+        #expect(WelcomeColumnView.text(for: WelcomePage(kind: .plugin(described)), shortcut: nil) == "What B does.")
+        #expect(
+            WelcomeColumnView.text(for: WelcomePage(kind: .done), shortcut: "⌘Space")
+                == "Open Lintel with ⌘Space. Settings and meetings are in the Lintel window: click the Dock icon or press ⌘,."
+        )
+        #expect(
+            WelcomeColumnView.text(for: WelcomePage(kind: .done), shortcut: nil)
+                == "Settings and meetings are in the Lintel window: click the Dock icon or press ⌘,.")
+    }
+
+    @Test func singleColumnKeyboardActionsKeepTheCompletionKeys() throws {
+        let store = InMemorySettingsStore()
+        store.setValue(.bool(true), forKey: SettingsKeys.hotkeyUserDefined)
+        let settings = AppSettings(store: store)
+        let hotkeys = HotkeyService(registrar: InMemoryHotkeyRegistrar(), settings: store, readOccupied: { [] })
+        let controller = OnboardingController(hotkeys: hotkeys, settings: settings) {
+            [self] in ["clipboard.intro", "files.fullDiskAccess"].map(step)
+        }
+        controller.activatesApp = false
+        var opened = 0
+        controller.openMainWindow = { opened += 1 }
+        controller.showPendingSteps()
+        let flow = try #require(controller.flow)
+        func footer() throws -> WelcomeFooter { try #require(WelcomeFooter(flow: flow)) }
+
+        // Escape on the introduction moves on without recording anything.
+        try footer().performSkip(flow)
+        #expect(flow.current?.id == "shortcut")
+        #expect(!settings.shortcutOnboardingCompleted)
+        // Escape on the Shortcut step keeps the default, as in the step list.
+        try footer().performSkip(flow)
+        #expect(settings.shortcutOnboardingCompleted)
+        #expect(store.value(forKey: SettingsKeys.hotkeyUserDefined) == nil)
+        // Escape skips a plugin step, Return finishes the next one; both are recorded.
+        try footer().performSkip(flow)
+        try footer().performPrimary(flow, openMainWindow: controller.openMainWindow)
+        #expect(settings.completedOnboardingSteps == ["clipboard.intro", "files.fullDiskAccess"])
+        #expect(opened == 0)
+        // Return on the final page opens the main window and closes the welcome screen.
+        let finalFooter = try footer()
+        #expect(finalFooter.primary == .openNotes)
+        try footer().performPrimary(flow, openMainWindow: controller.openMainWindow)
+        #expect(opened == 1)
+        #expect(controller.flow == nil)
+        #expect(!controller.hasPendingSteps)
+    }
+
+    @Test func escapeOnTheFinalPageClosesWithoutOpeningTheWindow() throws {
+        let (controller, _) = gatedController(steps: [])
+        var opened = 0
+        controller.openMainWindow = { opened += 1 }
+        controller.showAllSteps(startingAt: "done")
+        let flow = try #require(controller.flow)
+        try #require(WelcomeFooter(flow: flow)).performSkip(flow)
+        #expect(opened == 0)
+        #expect(controller.flow == nil)
+    }
+
+    @Test func theQAArgumentAcceptsEveryPageAndTheFinalOne() {
+        let ids = ["clipboard.intro"]
+        for id in ["intro", "shortcut", "clipboard.intro", "done"] {
+            #expect(OnboardingController.isKnownPage(id, pluginStepIDs: ids))
+        }
+        #expect(!OnboardingController.isKnownPage("missing", pluginStepIDs: ids))
+
+        let (controller, _) = gatedController()
+        controller.showAllSteps(startingAt: "done")
+        defer { controller.close() }
+        #expect(controller.flow?.current?.id == "done")
     }
 }
 

@@ -1,4 +1,5 @@
 import AppKit
+import LintelUI
 import SwiftUI
 
 /// The ring of the Lintel mark on its 256-point grid: an outer radius of 112, an inner radius of 66 and a 60°

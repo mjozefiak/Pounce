@@ -20,6 +20,12 @@ import Testing
         #expect(plugin.commands.map(\.id) == ["meetings.record", "meetings.library"])
         #expect(plugin.panelModes.map(\.id) == ["meetings.library"])
         #expect(plugin.onboardingSteps.map(\.id) == ["meetings.setup"])
+        // Step 6.6f: the welcome page's line under the heading comes from the step, the view has the controls.
+        let step = try #require(plugin.onboardingSteps.first)
+        #expect(
+            step.text.map { String(localized: $0) }
+                == "Record meetings and get a transcript with the speakers told apart. Everything runs on this Mac and nothing is uploaded."
+        )
         #expect(plugin.searchSources.isEmpty)
         #expect(plugin.settingsPane() != nil)
     }
@@ -106,7 +112,8 @@ import Testing
         try await plugin.activate()
         release.open()
         await first.waitUntilEnded()
-        await eventually("the lingering controller was released") { plugin.lingeringController == nil }
+        // Nothing signals the release (the plugin's own task), so this looks again; `eventually` slept 60 s here.
+        await eventuallyPolling("the lingering controller was released") { plugin.lingeringController == nil }
         #expect(plugin.library.status == .ready)
         await plugin.deactivate()
         #expect(plugin.library.status == .closed)

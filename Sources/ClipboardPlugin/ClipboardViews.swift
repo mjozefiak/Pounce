@@ -1,5 +1,6 @@
 import AppKit
 import LintelKit
+import LintelUI
 import SwiftUI
 
 /// What the plugin's views can ask the plugin to do.
@@ -10,6 +11,8 @@ struct ClipboardActions: Sendable {
     static let privacySettings = URL(string: "x-apple.systempreferences:com.apple.preference.security")
 
     var resume: @MainActor @Sendable () -> Void = {}
+    /// Re-reads Accessibility and pasteboard access (the Settings pane appeared).
+    var recheck: @MainActor @Sendable () -> Void = {}
     var retry: @MainActor @Sendable () -> Void = {}
     var dismissReset: @MainActor @Sendable () -> Void = {}
     var openAccessibilitySettings: @MainActor @Sendable () -> Void = {}
@@ -337,62 +340,39 @@ enum ClipPreviewContent {
 }
 
 /// The first-launch step: what is recorded, what never is, and the controls.
+/// The clipboard welcome page's controls (prototype `shell-welcome-*`): the explanation is the step's `text`,
+/// this view is the shortcut note, what is never recorded and the Accessibility part. Nothing is asked: the
+/// button only opens System Settings.
 struct ClipboardOnboardingView: View {
     let state: ClipboardState
     let actions: ClipboardActions
 
+    static let text = LocalizedStringResource(
+        "Lintel keeps what you copy so you can paste it again with ⌘⇧V. The history stays on this Mac, encrypted, for 30 days or 1000 entries.",
+        comment: "Clipboard onboarding text")
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(
-                "Lintel keeps what you copy so you can paste it again with ⌘⇧V. The history stays on this Mac, encrypted, for 30 days or 1000 entries.",
-                comment: "Clipboard onboarding text"
-            )
-            .fixedSize(horizontal: false, vertical: true)
-            Text(
-                "In Chrome, Slack and Google Docs ⌘⇧V means “paste without formatting”. Lintel takes this shortcut over; you can change it in Settings.",
-                comment: "Clipboard onboarding note about the shortcut conflict"
-            )
-            .font(.callout)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
-            Label {
+        WelcomeStepColumn {
+            WelcomeStepNote(
+                Text(
+                    "In Chrome, Slack and Google Docs ⌘⇧V means “paste without formatting”. Lintel takes this shortcut over; you can change it in Settings.",
+                    comment: "Clipboard onboarding note about the shortcut conflict"))
+            WelcomeStepItem(
                 Text(
                     "Passwords, concealed content and apps like password managers are never recorded. You can pause recording from the menu bar.",
-                    comment: "Clipboard onboarding text about privacy"
-                )
-                .fixedSize(horizontal: false, vertical: true)
-            } icon: {
-                Image(systemName: "lock.shield")
-                    .accessibilityHidden(true)
-            }
-            Label {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(
-                        "To paste into the app you were using, Lintel needs Accessibility. Without it, Return copies the entry and you paste with ⌘V.",
-                        comment: "Clipboard onboarding text about Accessibility"
-                    )
-                    .fixedSize(horizontal: false, vertical: true)
-                    if state.pasteAllowed {
-                        Label {
-                            Text("Accessibility is allowed.", comment: "Clipboard onboarding status")
-                        } icon: {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
-                                .accessibilityHidden(true)
-                        }
-                    } else {
-                        Button {
-                            actions.openAccessibilitySettings()
-                        } label: {
-                            Text(
-                                "Open Accessibility Settings",
-                                comment: "Button that opens Accessibility privacy settings")
-                        }
-                    }
+                    comment: "Clipboard onboarding text about privacy"))
+            WelcomeStepItem(
+                Text(
+                    "To paste into the app you were using, Lintel needs Accessibility. Without it, Return copies the entry and you paste with ⌘V.",
+                    comment: "Clipboard onboarding text about Accessibility"),
+                isDone: state.pasteAllowed,
+                doneText: Text("Accessibility is allowed.", comment: "Clipboard onboarding status")
+            ) {
+                Button {
+                    actions.openAccessibilitySettings()
+                } label: {
+                    Text("Open Accessibility Settings", comment: "Button that opens Accessibility privacy settings")
                 }
-            } icon: {
-                Image(systemName: "keyboard")
-                    .accessibilityHidden(true)
             }
         }
     }

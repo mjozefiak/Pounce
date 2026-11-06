@@ -36,8 +36,9 @@ final class HistorySettingsModel {
         maximumEntries = settings.maximumEntries
     }
 
-    /// "Clear History": every entry is deleted.
-    func clear() {
+    /// "Clear History": every entry is deleted. `alsoDeleteKeptCopies` is the sheet's "Also delete kept copies"
+    /// checkbox; ignored until Notes exists (spec `2026-11-04-notes-workspace`, step 4.6 deletes the copies).
+    func clear(alsoDeleteKeptCopies: Bool = false) {
         do {
             try history.clear()
             errorMessage = nil

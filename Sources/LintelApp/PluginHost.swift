@@ -92,8 +92,11 @@ final class PluginHost {
         entries.first { $0.manifest.id == id }?.state
     }
 
+    /// A plugin whose manifest says `canBeDisabled == false` is always enabled; a stored `false` (for example
+    /// from `defaults write`) is ignored.
     func isEnabled(_ id: PluginID) -> Bool {
         guard let entry = entries.first(where: { $0.manifest.id == id }) else { return false }
+        guard entry.manifest.canBeDisabled else { return true }
         guard case .bool(let enabled) = settings.value(forKey: SettingsKeys.pluginEnabled(id)) else {
             return entry.manifest.defaultEnabled
         }
@@ -144,9 +147,11 @@ final class PluginHost {
         }
     }
 
-    /// Persists the toggle and activates or deactivates the plugin without a restart.
+    /// Persists the toggle and activates or deactivates the plugin without a restart. Switching off a plugin
+    /// that cannot be disabled does nothing.
     func setEnabled(_ enabled: Bool, for id: PluginID) async {
-        guard entries.contains(where: { $0.manifest.id == id }) else { return }
+        guard let entry = entries.first(where: { $0.manifest.id == id }) else { return }
+        guard enabled || entry.manifest.canBeDisabled else { return }
         settings.setValue(.bool(enabled), forKey: SettingsKeys.pluginEnabled(id))
         await enqueue(id) { host in
             if enabled {

@@ -186,6 +186,22 @@ struct ClipboardPluginLifecycleTests {
         await harness.tearDown()
     }
 
+    /// Step 4.4 review fix: one copy is one `resultsChanged`, sent once the count is known.
+    @Test func aCopySignalsOnceWithTheNewCount() async throws {
+        let harness = try PluginHarness()
+        try await harness.plugin.activate()
+        try await Task.sleep(for: .milliseconds(100))
+        let before = harness.changes.value
+        let watcher = try #require(harness.plugin.watcher)
+        harness.pasteboard.setString("fake copied once")
+        #expect(watcher.check())
+        #expect(await eventually { harness.changes.value > before })
+        #expect(harness.plugin.state.entryCount == 1)
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(harness.changes.value == before + 1)
+        await harness.tearDown()
+    }
+
     @Test func ignoredAppsAreNotRecorded() async throws {
         let harness = try PluginHarness()
         try await harness.plugin.activate()
@@ -241,8 +257,17 @@ struct ClipboardPluginLifecycleTests {
         #expect(history.defaultShortcut == KeyShortcut(key: "v", modifiers: [.command, .shift]))
         let mode = try #require(harness.plugin.panelModes.first)
         #expect(mode.isListMode)
+        // Owner decision 6.6d: Settings says "Clipboard", the launcher's list mode keeps "Clipboard History".
+        #expect(String(localized: mode.title) == "Clipboard History")
+        #expect(String(localized: ClipboardPlugin.manifest.displayName) == "Clipboard")
         #expect(mode.filters.map(\.id) == ["text", "rich", "image", "file", "url"])
         #expect(harness.plugin.onboardingSteps.map(\.id) == [ClipboardPlugin.onboardingStepID])
+        // Step 6.6f: the welcome page's line under the heading comes from the step, the view has the controls.
+        let step = try #require(harness.plugin.onboardingSteps.first)
+        #expect(
+            step.text.map { String(localized: $0) }
+                == "Lintel keeps what you copy so you can paste it again with ⌘⇧V. The history stays on this Mac, encrypted, for 30 days or 1000 entries."
+        )
         #expect(harness.plugin.requiredPermissions == [.accessibility, .pasteboard])
         #expect(harness.plugin.settingsPane() != nil)
     }

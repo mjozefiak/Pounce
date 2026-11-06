@@ -1,5 +1,6 @@
 import Foundation
 import LintelKit
+import LintelUI
 import SwiftUI
 import os
 
@@ -19,9 +20,13 @@ import os
 public final class ClipboardPlugin: LintelPlugin {
     public nonisolated static let manifest = PluginManifest(
         id: "clipboard",
-        displayName: LocalizedStringResource("Clipboard History", comment: "Plugin name of the clipboard history"),
+        displayName: LocalizedStringResource("Clipboard", comment: "Plugin name of the clipboard history in Settings"),
         symbolName: "doc.on.clipboard",
-        order: 30
+        order: 30,
+        settingsGroup: .search,
+        summary: LocalizedStringResource("Paste from history.", comment: "Settings → Features: what Clipboard does"),
+        // The launcher's list mode and an unavailable section keep "Clipboard History"; Settings says "Clipboard".
+        sectionTitle: LocalizedStringResource("Clipboard History", comment: "Plugin name of the clipboard history")
     )
 
     static let modeID: PanelModeID = "clipboard"
@@ -38,6 +43,9 @@ public final class ClipboardPlugin: LintelPlugin {
     private var retention: RetentionJob?
     private var sessionTask: Task<Void, Never>?
     private var isActive = false
+    /// Where app activations are posted (tests use their own centre).
+    var appActivationCenter: NotificationCenter = .default
+    private var activationObserver: AppActivationObserver?
     private lazy var pasteService = PasteService(
         pasteboard: context.pasteboard,
         events: context.events,
@@ -75,6 +83,10 @@ public final class ClipboardPlugin: LintelPlugin {
                 self?.retryIfUnavailable()
             }
         }
+        // Coming back from System Settings: Accessibility and pasteboard access may have changed.
+        activationObserver = AppActivationObserver(center: appActivationCenter) { [weak self] in
+            self?.recheckEnvironment()
+        }
         let retention = RetentionJob(clock: context.clock, logger: context.logger)
         self.retention = retention
         retention.start(
@@ -94,6 +106,8 @@ public final class ClipboardPlugin: LintelPlugin {
 
     public func deactivate() async {
         isActive = false
+        activationObserver?.stop()
+        activationObserver = nil
         watcher?.stop()
         watcher = nil
         retention?.stop()
@@ -146,7 +160,7 @@ public final class ClipboardPlugin: LintelPlugin {
         return [
             PanelMode(
                 id: Self.modeID,
-                title: Self.manifest.displayName,
+                title: Self.manifest.resultsTitle,
                 symbolName: Self.manifest.symbolName,
                 source: searchSource,
                 filters: ClipKind.allCases.map(\.filter),
@@ -167,7 +181,8 @@ public final class ClipboardPlugin: LintelPlugin {
             OnboardingStep(
                 id: Self.onboardingStepID,
                 title: LocalizedStringResource("Clipboard History", comment: "Plugin name of the clipboard history"),
-                symbolName: "doc.on.clipboard"
+                symbolName: "doc.on.clipboard",
+                text: ClipboardOnboardingView.text
             ) {
                 AnyView(ClipboardOnboardingView(state: state, actions: actions))
             }
@@ -186,6 +201,124 @@ public final class ClipboardPlugin: LintelPlugin {
                 clearHistory: { [weak self] in await self?.clearHistory() ?? false }
             )
         )
+    }
+
+    /// The main window's banner (prototypes `set-clipboard` and `set-error`), read by the shell only while the
+    /// plugin is active and while the view draws, so it only reads: pasteboard access is re-checked when the pane
+    /// appears and when Lintel becomes the active app (`recheckEnvironment()`). Accessibility is left to the
+    /// shell, which derives it from `requiredPermissions`.
+    public var settingsStatus: SettingsStatus? {
+        let actions = statusActions
+        return Self.settingsStatus(
+            availability: state.availability, access: state.access, isPaused: state.isPaused,
+            historyWasReset: state.historyWasReset, entryCount: state.entryCount,
+            retry: { actions.retry() }, resume: { actions.resume() }, dismissReset: { actions.dismissReset() })
+    }
+
+    /// The banner ids of the plugin's own actions.
+    nonisolated static let retryActionID = "retry"
+    nonisolated static let resumeActionID = "resume"
+    nonisolated static let dismissResetActionID = "dismissReset"
+
+    /// Most important first: a key that cannot be read (error, Try Again; nothing is deleted), pasteboard access
+    /// that keeps anything from being recorded, the reset notice, a paused recording, else "Ready · Recording.
+    /// N entries."
+    nonisolated static func settingsStatus(
+        availability: HistoryAvailability,
+        access: PasteboardAccess,
+        isPaused: Bool,
+        historyWasReset: Bool,
+        entryCount: Int,
+        retry: @escaping @MainActor @Sendable () async -> Void,
+        resume: @escaping @MainActor @Sendable () async -> Void,
+        dismissReset: @escaping @MainActor @Sendable () async -> Void
+    ) -> SettingsStatus? {
+        let tryAgain = SettingsStatusAction(
+            title: LocalizedStringResource("Try Again", comment: "Button that retries opening the clipboard history"),
+            destination: .plugin(id: retryActionID, perform: retry))
+        let paused = LocalizedStringResource(
+            "History is paused", comment: "Settings → Clipboard banner when the history key cannot be read")
+        switch availability {
+        case .inactive:
+            return nil
+        case .keychainLocked:
+            return SettingsStatus(
+                level: .error, title: paused,
+                detail: LocalizedStringResource(
+                    "The keychain is locked. Nothing was deleted.",
+                    comment: "Settings → Clipboard banner detail while the login keychain is locked"),
+                fix: [tryAgain])
+        case .keychainUnavailable:
+            return SettingsStatus(
+                level: .error, title: paused,
+                detail: LocalizedStringResource(
+                    "Lintel can’t read the key. Nothing was deleted.",
+                    comment: "Settings → Clipboard banner detail when the keychain denied access to the key"),
+                fix: [tryAgain])
+        case .ready:
+            break
+        }
+        let openPrivacy = SettingsStatusAction(
+            title: LocalizedStringResource(
+                "Open Privacy Settings", comment: "Button that opens Privacy & Security settings"),
+            destination: .systemSettings(.pasteboard))
+        switch access {
+        case .alwaysDeny:
+            return SettingsStatus(
+                level: .attention,
+                title: LocalizedStringResource(
+                    "Nothing is recorded", comment: "Settings → Clipboard banner when the clipboard cannot be read"),
+                detail: LocalizedStringResource(
+                    "Lintel isn’t allowed to read the clipboard.",
+                    comment: "Settings → Clipboard banner detail when pasteboard access is denied"),
+                fix: [openPrivacy])
+        case .ask:
+            return SettingsStatus(
+                level: .attention,
+                title: LocalizedStringResource(
+                    "Nothing is recorded", comment: "Settings → Clipboard banner when the clipboard cannot be read"),
+                detail: LocalizedStringResource(
+                    "macOS asks before every read. Allow Lintel in Privacy & Security.",
+                    comment: "Settings → Clipboard banner detail when pasteboard access asks each time"),
+                fix: [openPrivacy])
+        case .alwaysAllow, .systemDefault:
+            break
+        }
+        if historyWasReset {
+            return SettingsStatus(
+                level: .attention,
+                title: LocalizedStringResource(
+                    "A new history was started", comment: "Settings → Clipboard banner after the history was reset"),
+                detail: LocalizedStringResource(
+                    "The key was missing. The old history stays encrypted and is deleted after 30 days.",
+                    comment: "Settings → Clipboard banner detail after the history was reset"),
+                fix: [
+                    SettingsStatusAction(
+                        title: LocalizedStringResource("Dismiss", comment: "Button that dismisses a notice"),
+                        destination: .plugin(id: dismissResetActionID, perform: dismissReset))
+                ])
+        }
+        if isPaused {
+            return SettingsStatus(
+                level: .neutral,
+                title: LocalizedStringResource(
+                    "Recording is paused (banner)", defaultValue: "Recording is paused",
+                    comment: "Settings → Clipboard banner while recording is paused"),
+                detail: LocalizedStringResource(
+                    "\(entryCount) entries. Nothing new is added.",
+                    comment: "Settings → Clipboard banner detail while paused: the number of entries"),
+                fix: [
+                    SettingsStatusAction(
+                        title: LocalizedStringResource("Resume", comment: "Button that resumes clipboard recording"),
+                        destination: .plugin(id: resumeActionID, perform: resume))
+                ])
+        }
+        return SettingsStatus(
+            level: .ok,
+            title: LocalizedStringResource("Ready", comment: "Settings banner level, spoken"),
+            detail: LocalizedStringResource(
+                "Recording. \(entryCount) entries.",
+                comment: "Settings → Clipboard banner detail while recording: the number of entries"))
     }
 
     // MARK: Search and actions
@@ -219,6 +352,7 @@ public final class ClipboardPlugin: LintelPlugin {
     var statusActions: ClipboardActions {
         ClipboardActions(
             resume: { [weak self] in self?.settings.setPaused(false) },
+            recheck: { [weak self] in self?.recheckEnvironment() },
             retry: { [weak self] in self?.retryIfUnavailable() },
             dismissReset: { [weak self] in self?.dismissResetNotice() },
             openAccessibilitySettings: { [weak self] in self?.open(ClipboardActions.accessibilitySettings) },
@@ -285,16 +419,35 @@ public final class ClipboardPlugin: LintelPlugin {
         updateRecording()
     }
 
-    /// Re-reads what the system may have changed: Accessibility and pasteboard access.
-    func refreshEnvironment() {
-        state.pasteAllowed = context.permissions.status(of: .accessibility) == .granted
-        shared.setPasteAllowed(state.pasteAllowed)
-        state.access = context.pasteboard.accessBehavior
+    /// Re-reads what the system may have changed: Accessibility and pasteboard access. Returns whether either
+    /// changed.
+    @discardableResult func refreshEnvironment() -> Bool {
+        let pasteAllowed = context.permissions.status(of: .accessibility) == .granted
+        let access = context.pasteboard.accessBehavior
+        let changed = pasteAllowed != state.pasteAllowed || access != state.access
+        state.pasteAllowed = pasteAllowed
+        shared.setPasteAllowed(pasteAllowed)
+        state.access = access
+        return changed
+    }
+
+    /// The pane appeared or Lintel became the active app: re-reads the environment, starts or stops recording to
+    /// match, and tells the shell when the banner changes. Does nothing while the plugin is off.
+    func recheckEnvironment() {
+        guard isActive else { return }
+        guard refreshEnvironment() else { return }
+        updateRecording()
+        context.resultsChanged()
     }
 
     private func settingsChanged() {
+        let pauseChanged = state.isPaused != settings.isPaused
         state.isPaused = settings.isPaused
         updateRecording()
+        if pauseChanged {
+            // The Settings banner ("Recording is paused") follows.
+            context.resultsChanged()
+        }
         if let store, let retention {
             let policy = settings.retention
             Task { [weak self] in
@@ -324,6 +477,7 @@ public final class ClipboardPlugin: LintelPlugin {
         guard state.access != access else { return }
         context.logger.notice("Pasteboard access changed to \(access.rawValue, privacy: .public)")
         state.access = access
+        context.resultsChanged()
     }
 
     private func makeWatcher() -> PasteboardWatcher {
@@ -342,7 +496,6 @@ public final class ClipboardPlugin: LintelPlugin {
     private func store(_ capture: Capture) {
         guard let store else { return }
         let logger = context.logger
-        let resultsChanged = context.resultsChanged
         Task.detached(priority: .utility) { [weak self] in
             guard
                 let draft = ClipClassifier.draft(
@@ -350,8 +503,8 @@ public final class ClipboardPlugin: LintelPlugin {
             else { return }
             do {
                 try store.insert(draft)
-                resultsChanged()
-                await self?.refreshCount()
+                // One signal per copy, once the count is known (the list and the Settings banner both follow).
+                await self?.refreshCount(changed: true)
             } catch {
                 logger.error("Cannot store a clipboard entry: \(String(describing: error), privacy: .private)")
             }
@@ -359,18 +512,25 @@ public final class ClipboardPlugin: LintelPlugin {
     }
 
     private func historyChanged() {
-        context.resultsChanged()
-        refreshCount()
+        refreshCount(changed: true)
     }
 
-    func refreshCount() {
+    /// Reads the entry count again and signals `resultsChanged` once: when the count changed (the Settings
+    /// banner counts the entries) or when `changed` says the history did.
+    func refreshCount(changed: Bool = false) {
         guard let store else {
             state.entryCount = 0
+            if changed { context.resultsChanged() }
             return
         }
         Task { [weak self] in
             let count = await Task.detached { (try? store.count()) ?? 0 }.value
-            self?.state.entryCount = count
+            guard let self else { return }
+            let countChanged = self.state.entryCount != count
+            self.state.entryCount = count
+            if changed || countChanged {
+                self.context.resultsChanged()
+            }
         }
     }
 

@@ -1,5 +1,6 @@
 import Foundation
 import LintelKit
+import LintelUI
 import Observation
 
 /// The shell's own settings (`app.*`) that views bind to.

@@ -1,257 +1,16 @@
 import LintelKit
 import LintelSpeech
+import LintelUI
 import SwiftUI
 
-/// Settings → Meetings: the notes (a built-in model card, Phase 2) and the meeting suggestions (Phase 3,
-/// `MeetingsSuggestionsSection`) have their own sections.
-struct MeetingsSettingsPane: View {
-    @Bindable var model: MeetingsSettingsModel
-    /// The shortcut recorder, or `nil` while the `meetings.record` command does not exist.
-    let recorder: AnyView?
-    @State private var confirmation: PrivacyConfirmation?
-
-    private enum PrivacyConfirmation: Identifiable {
-        case clearLibrary
-        case deleteRecordings
-        var id: Self { self }
-    }
-
-    var body: some View {
-        Form {
-            Section {
-                LabeledContent {
-                    if let recorder {
-                        recorder
-                    } else {
-                        Text("Not available yet", comment: "Meetings settings: the shortcut row without a command")
-                            .foregroundStyle(.secondary)
-                    }
-                } label: {
-                    Text("Record meeting", comment: "Meetings settings label of the record shortcut")
-                }
-                .disabled(recorder == nil)
-            } header: {
-                Text("Shortcut", comment: "Settings section title")
-            } footer: {
-                Text(
-                    "Press to start recording a meeting and press again to stop.",
-                    comment: "Meetings settings footer under the shortcut"
-                )
-                .font(.callout).foregroundStyle(.secondary)
-            }
-
-            Section {
-                MeetingsMicrophoneRows(model: model)
-                Toggle(isOn: $model.voiceProcessing) {
-                    Text("Reduce echo from the speakers", comment: "Meetings settings toggle of voice processing")
-                }
-                SystemAudioTestRows(test: model.systemAudioTest, openSettings: { model.openSystemAudioSettings() })
-            } header: {
-                Text("Audio", comment: "Meetings settings section title")
-            } footer: {
-                Text(
-                    "Lintel records your microphone and what the other side says, only while you record a meeting. Echo reduction can lower the volume of other apps, so it is off by default.",
-                    comment: "Meetings settings footer under the audio section"
-                )
-                .font(.callout).foregroundStyle(.secondary)
-            }
-
-            Section {
-                Picker(selection: Binding(get: { model.speechPackageID }, set: { model.selectSpeechModel($0) })) {
-                    ForEach(model.speechPackages) { package in
-                        Text(package.title).tag(package.id)
-                    }
-                } label: {
-                    Text("Engine", comment: "Dictation settings label of the speech engine choice")
-                }
-                if model.usesPinnedLanguage {
-                    Picker(selection: $model.speechLanguage) {
-                        Text("Polish", comment: "Dictation language choice").tag("pl")
-                        Text("English", comment: "Dictation language choice").tag("en")
-                    } label: {
-                        Text("Language", comment: "Dictation settings label of the pinned language")
-                    }
-                }
-                MeetingsModelCard(card: model.speech)
-                MeetingsModelCard(card: model.diarization)
-            } header: {
-                Text("Models", comment: "Meetings settings section title")
-            } footer: {
-                Text(
-                    "The models run on this Mac. Audio is never sent anywhere. The speech model is shared with dictation.",
-                    comment: "Meetings settings footer under the models"
-                )
-                .font(.callout).foregroundStyle(.secondary)
-            }
-
-            Section {
-                NotesSettingsRows(model: model.notes)
-            } header: {
-                Text("Notes", comment: "Meetings settings section title of the notes")
-            } footer: {
-                Text(
-                    "After a meeting, a model that runs on this Mac writes a summary, decisions, action items and open questions in the background. Every point must quote the recording, and points without a matching quote are left out. The notes can still contain mistakes. Nothing is sent anywhere.",
-                    comment: "Meetings settings footer under the notes"
-                )
-                .font(.callout).foregroundStyle(.secondary)
-            }
-
-            MeetingsSuggestionsSection(model: model)
-
-            Section {
-                Toggle(isOn: $model.consentReminder) {
-                    Text("Remind me to tell people I am recording", comment: "Meetings settings toggle")
-                }
-                Picker(selection: Binding(get: { model.retentionDays }, set: { model.selectRetention($0) })) {
-                    ForEach(model.retentionChoices(), id: \.self) { days in
-                        Text(Self.retentionTitle(days)).tag(days)
-                    }
-                } label: {
-                    Text("Keep meetings for", comment: "Meetings settings label of the retention choice")
-                }
-                Button(role: .destructive) {
-                    confirmation = .clearLibrary
-                } label: {
-                    Text("Clear Library…", comment: "Meetings settings button that deletes all meetings")
-                }
-                .disabled(!model.canChangeLibrary)
-                Button(role: .destructive) {
-                    confirmation = .deleteRecordings
-                } label: {
-                    Text(
-                        "Delete Temporary Recordings…",
-                        comment: "Meetings settings button that deletes the audio of interrupted meetings")
-                }
-                .disabled(!model.canChangeLibrary)
-                if let message = model.privacyMessage {
-                    Label {
-                        Text(message).fixedSize(horizontal: false, vertical: true)
-                    } icon: {
-                        Image(systemName: model.privacyFailed ? "exclamationmark.triangle" : "checkmark.circle")
-                            .accessibilityHidden(true)
-                    }
-                    .foregroundStyle(model.privacyFailed ? Color.orange : Color.secondary)
-                    .accessibilityElement(children: .combine)
-                }
-            } header: {
-                Text("Privacy", comment: "Dictation settings section title")
-            } footer: {
-                Text(
-                    "Meetings older than the period you choose are deleted, together with their transcripts and notes.",
-                    comment: "Meetings settings footer under the retention choice"
-                )
-                .font(.callout).foregroundStyle(.secondary)
-                Text(
-                    "Recordings are encrypted and deleted once a meeting is processed. A deleted file is not overwritten: on an SSD or in a backup a copy may remain for a while, though it is encrypted and unreadable without the key. Erase Data removes the key too.",
-                    comment: "Meetings settings footer about deleted data on an SSD"
-                )
-                .font(.callout).foregroundStyle(.secondary)
-            }
-        }
-        .formStyle(.grouped)
-        .task { await model.refresh() }
-        .onChange(of: model.privacyMessage) { _, message in
-            if let message { AccessibilityNotification.Announcement(message).post() }
-        }
-        .confirmationDialog(
-            Text("Delete older meetings?", comment: "Meetings settings confirmation title of a shorter retention"),
-            isPresented: Binding(
-                get: { model.pendingRetention != nil }, set: { if !$0 { model.cancelRetention() } }),
-            titleVisibility: .visible
-        ) {
-            Button(role: .destructive) {
-                model.confirmRetention()
-            } label: {
-                Text("Delete Older Meetings", comment: "Meetings settings confirmation button")
-            }
-        } message: {
-            Text(
-                "\(model.pendingRetention?.affected ?? 0) meetings are older than the new limit and are deleted now. This cannot be undone.",
-                comment: "Meetings settings confirmation text of a shorter retention")
-        }
-        .confirmationDialog(
-            Text("Delete all meetings?", comment: "Meetings settings confirmation title"),
-            isPresented: Binding(
-                get: { confirmation == .clearLibrary }, set: { if !$0 { confirmation = nil } }),
-            titleVisibility: .visible
-        ) {
-            Button(role: .destructive) {
-                model.clearLibrary()
-            } label: {
-                Text("Delete All Meetings", comment: "Meetings settings confirmation button")
-            }
-        } message: {
-            Text(
-                "Every transcript, note and recording is deleted. A meeting that is being recorded is kept. This cannot be undone.",
-                comment: "Meetings settings confirmation text of Clear Library")
-        }
-        .confirmationDialog(
-            Text("Delete temporary recordings?", comment: "Meetings settings confirmation title"),
-            isPresented: Binding(
-                get: { confirmation == .deleteRecordings }, set: { if !$0 { confirmation = nil } }),
-            titleVisibility: .visible
-        ) {
-            Button(role: .destructive) {
-                model.deleteTemporaryRecordings()
-            } label: {
-                Text("Delete Recordings", comment: "Meetings settings confirmation button")
-            }
-        } message: {
-            Text(
-                "The audio of interrupted meetings is deleted, so they can no longer be finished. Their transcripts stay.",
-                comment: "Meetings settings confirmation text of Delete Temporary Recordings")
-        }
-    }
-
-    static func retentionTitle(_ days: Int) -> String {
-        days == 0
-            ? String(localized: "Until I delete them", comment: "Meetings settings retention choice without a limit")
-            : String(localized: "\(days) days", comment: "Meetings settings retention choice")
-    }
-}
-
-/// Input device, microphone permission and the Allow / Open Settings buttons.
-struct MeetingsMicrophoneRows: View {
-    @Bindable var model: MeetingsSettingsModel
-
-    var body: some View {
-        Picker(selection: $model.inputDevice) {
-            Text("System default", comment: "Dictation input device choice that follows the system").tag(String?.none)
-            ForEach(model.devices) { device in
-                Text(device.name).tag(Optional(device.uid))
-            }
-        } label: {
-            Text("Input device", comment: "Dictation settings label")
-        }
-        HStack {
-            switch model.microphone {
-            case .granted:
-                Label {
-                    Text("Microphone allowed", comment: "Dictation microphone status")
-                } icon: {
-                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityHidden(true)
-                }
-            case .notDetermined:
-                Text("Microphone not asked yet", comment: "Dictation microphone status")
-                Spacer()
-                Button {
-                    model.requestMicrophone()
-                } label: {
-                    Text("Allow Microphone", comment: "Button that asks for microphone access")
-                }
-            case .denied:
-                Label {
-                    Text("Microphone not allowed", comment: "Dictation HUD when microphone access is denied")
-                } icon: {
-                    Image(systemName: "mic.slash").foregroundStyle(.orange).accessibilityHidden(true)
-                }
-                Spacer()
-                Button {
-                    model.openMicrophoneSettings()
-                } label: {
-                    Text("Open Microphone Settings", comment: "Button that opens microphone privacy settings")
-                }
-            }
+extension MeetingsModelCardModel {
+    /// The model's state for the one-line summary.
+    var choiceState: ModelChoiceRow.State {
+        if progress != nil { return .downloading }
+        switch location {
+        case .installed: return .installed
+        case .customFolder: return .customFolder
+        case .customFolderUnavailable, .partial, .missing: return .notInstalled
         }
     }
 }
@@ -277,7 +36,7 @@ struct SystemAudioTestRows: View {
                         "Not available while a meeting is being recorded or processed.",
                         comment: "Meetings: why the system audio test is switched off during a meeting"
                     )
-                    .font(.callout).foregroundStyle(.secondary)
+                    .font(.callout).foregroundStyle(LintelBrand.secondaryText)
                 }
                 if let outcome = test.lastOutcome {
                     verdict(outcome)
@@ -287,7 +46,7 @@ struct SystemAudioTestRows: View {
                     "Lintel will play a short tone through your speakers and check that it can hear it. macOS may ask you to allow System Audio Recording first. Lower the volume if you like.",
                     comment: "Meetings: explanation before the system audio test plays its signal"
                 )
-                .font(.callout).foregroundStyle(.secondary)
+                .font(.callout).foregroundStyle(LintelBrand.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
                 HStack {
                     Button {
@@ -373,10 +132,10 @@ struct MeetingsModelCard: View {
             } label: {
                 Text(card.package.title).font(.headline)
             }
-            Text(card.package.attribution).font(.caption).foregroundStyle(.secondary)
+            Text(card.package.attribution).font(.caption).foregroundStyle(LintelBrand.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
             Text("Size: \(size)", comment: "Meetings model card: download size")
-                .font(.callout).foregroundStyle(.secondary)
+                .font(.callout).foregroundStyle(LintelBrand.secondaryText)
             statusRow
             if let progress = card.progress {
                 ProgressView(value: progress.fraction) {
@@ -491,7 +250,7 @@ struct MeetingsModelCard: View {
         }
         if card.isInUse, case .installed = card.location {
             Text(MeetingsModelMessages.inUse)
-                .font(.callout).foregroundStyle(.secondary)
+                .font(.callout).foregroundStyle(LintelBrand.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
         }
         if card.isVerifying {
@@ -505,19 +264,19 @@ struct MeetingsModelCard: View {
 struct MeetingsSetupView: View {
     @Bindable var model: MeetingsSettingsModel
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text(
-                "Record meetings and get a transcript with the speakers told apart. Everything runs on this Mac and nothing is uploaded.",
-                comment: "Meetings onboarding text"
-            )
-            .fixedSize(horizontal: false, vertical: true)
+    static let text = LocalizedStringResource(
+        "Record meetings and get a transcript with the speakers told apart. Everything runs on this Mac and nothing is uploaded.",
+        comment: "Meetings onboarding text")
 
-            part(
-                symbol: "mic", done: model.setupProgress.isDone(.microphone),
-                text: Text(
+    var body: some View {
+        // The welcome page's controls (prototype `shell-welcome-*`); the explanation is the step's `text`.
+        // Nothing is asked or downloaded until its button is clicked.
+        WelcomeStepColumn {
+            WelcomeStepItem(
+                Text(
                     "Allow the microphone. Lintel listens only while you record a meeting.",
-                    comment: "Meetings onboarding step")
+                    comment: "Meetings onboarding step"),
+                isDone: model.setupProgress.isDone(.microphone)
             ) {
                 if model.microphone == .denied {
                     Button {
@@ -534,20 +293,20 @@ struct MeetingsSetupView: View {
                 }
             }
 
-            part(
-                symbol: "speaker.wave.2", done: model.setupProgress.isDone(.systemAudio),
-                text: Text(
+            WelcomeStepItem(
+                Text(
                     "Check that Lintel can hear the other side of a call. Nothing is asked until you press the button.",
-                    comment: "Meetings onboarding step")
+                    comment: "Meetings onboarding step"),
+                isDone: model.setupProgress.isDone(.systemAudio)
             ) {
                 SystemAudioTestRows(test: model.systemAudioTest, openSettings: { model.openSystemAudioSettings() })
             }
 
-            part(
-                symbol: "arrow.down.circle", done: model.setupProgress.isDone(.models),
-                text: Text(
+            WelcomeStepItem(
+                Text(
                     "Get the speech model and the speaker model, or point to ones you already have.",
-                    comment: "Meetings onboarding step")
+                    comment: "Meetings onboarding step"),
+                isDone: model.setupProgress.isDone(.models)
             ) {
                 VStack(alignment: .leading, spacing: 12) {
                     MeetingsModelCard(card: model.speech)
@@ -556,42 +315,45 @@ struct MeetingsSetupView: View {
             }
 
             // Optional and never counted in the checkmarks: notes are off until the user turns them on.
-            Label {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(
-                        "Optional: let a model on this Mac write notes after each meeting. It is a large download that starts only when you press the button.",
-                        comment: "Meetings onboarding step about the notes model"
-                    )
-                    .fixedSize(horizontal: false, vertical: true)
-                    NotesSettingsRows(model: model.notes, showsTryIt: false)
-                }
-            } icon: {
-                Image(systemName: "text.badge.checkmark").accessibilityHidden(true)
+            WelcomeStepItem(
+                Text(
+                    "Optional: let a model on this Mac write notes after each meeting. It is a large download that starts only when you press the button.",
+                    comment: "Meetings onboarding step about the notes model")
+            ) {
+                NotesSettingsRows(model: model.notes)
             }
 
             MeetingsSuggestionsSetupPart(model: model)
         }
         .task { await model.refresh() }
     }
+}
 
-    private func part<Action: View>(
-        symbol: String, done: Bool, text: Text, @ViewBuilder action: () -> Action
-    ) -> some View {
-        Label {
-            VStack(alignment: .leading, spacing: 6) {
-                text.fixedSize(horizontal: false, vertical: true)
-                if done {
-                    Label {
-                        Text("Done", comment: "Onboarding status of a finished step")
-                    } icon: {
-                        Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityHidden(true)
-                    }
-                } else {
-                    action()
-                }
-            }
-        } icon: {
-            Image(systemName: symbol).accessibilityHidden(true)
-        }
+/// The words of the destructive actions in Settings → Meetings.
+enum MeetingsConfirmations {
+    static func olderMeetings(count: Int) -> DestructiveConfirmation {
+        DestructiveConfirmation(
+            prompt: LocalizedStringResource(
+                "Delete older meetings?", comment: "Meetings settings confirmation title of a shorter retention"),
+            detail: LocalizedStringResource(
+                "\(count) meetings are older than the new limit and are deleted now. This can’t be undone.",
+                comment: "Meetings settings confirmation text of a shorter retention in the main window"),
+            confirmTitle: LocalizedStringResource(
+                "Delete Older Meetings", comment: "Meetings settings confirmation button"))
     }
+
+    static let clearLibrary = DestructiveConfirmation(
+        prompt: LocalizedStringResource("Delete all meetings?", comment: "Meetings settings confirmation title"),
+        detail: LocalizedStringResource(
+            "Every transcript, note and recording is deleted. A meeting that is being recorded is kept. This can’t be undone.",
+            comment: "Meetings settings confirmation text of Clear Library in the main window"),
+        confirmTitle: LocalizedStringResource("Delete All Meetings", comment: "Meetings settings confirmation button"))
+
+    static let deleteRecordings = DestructiveConfirmation(
+        prompt: LocalizedStringResource(
+            "Delete temporary recordings?", comment: "Meetings settings confirmation title"),
+        detail: LocalizedStringResource(
+            "The audio of interrupted meetings is deleted, so they can no longer be finished. Their transcripts stay.",
+            comment: "Meetings settings confirmation text of Delete Temporary Recordings"),
+        confirmTitle: LocalizedStringResource("Delete Recordings", comment: "Meetings settings confirmation button"))
 }

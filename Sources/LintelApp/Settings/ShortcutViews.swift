@@ -1,4 +1,5 @@
 import KeyboardShortcuts
+import LintelUI
 import SwiftUI
 
 /// The main-shortcut recorder. KeyboardShortcuts stores what the user records; the service then marks the

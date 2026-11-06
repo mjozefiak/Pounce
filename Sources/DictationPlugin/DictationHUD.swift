@@ -34,6 +34,13 @@ final class HUDModel {
     var reducesMotion = false
     @ObservationIgnored var onCancel: () -> Void = {}
     @ObservationIgnored var onOpenSettings: () -> Void = {}
+    /// The model problems' button: `PluginContext.openModels` for the speech model.
+    @ObservationIgnored var onOpenModels: () -> Void = {}
+
+    /// The HUD's link: the Models pane for a model problem, else Settings.
+    func openLink() {
+        if state.opensModels { onOpenModels() } else { onOpenSettings() }
+    }
 }
 
 /// A small pill at the bottom of the screen with the mouse cursor. A non-activating panel: it never takes
@@ -48,11 +55,13 @@ final class DictationHUDPanel: HUDPresenter {
 
     init(
         onCancel: @escaping () -> Void, onOpenSettings: @escaping () -> Void,
+        onOpenModels: @escaping () -> Void = {},
         reducesMotion: @escaping () -> Bool = { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
     ) {
         self.reducesMotion = reducesMotion
         model.onCancel = onCancel
         model.onOpenSettings = onOpenSettings
+        model.onOpenModels = onOpenModels
     }
 
     func show(_ state: HUDState) {
@@ -151,7 +160,7 @@ struct DictationHUDView: View {
                 Spacer(minLength: 0)
             }
             if state.offersSettings {
-                Button(state.detail ?? "") { model.onOpenSettings() }
+                Button(state.detail ?? "") { model.openLink() }
                     .buttonStyle(.link)
                     // The brand's text-grade accent (4.5:1 on the glass) from the app's asset catalog; the system
                     // accent when the catalog is missing (`swift run`, tests).

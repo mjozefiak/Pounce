@@ -8,13 +8,19 @@ import os
 /// microphone and its permission. Shared by both screens.
 @MainActor @Observable
 final class DictationSettingsModel {
-    private(set) var location = ModelLocation.missing
+    private(set) var location = ModelLocation.missing {
+        didSet { if location != oldValue { onStatusChange?() } }
+    }
     private(set) var progress: ModelProgress?
     private(set) var errorMessage: String?
     private(set) var isVerifying = false
-    private(set) var microphone = MicrophoneAccess.notDetermined
+    private(set) var microphone = MicrophoneAccess.notDetermined {
+        didSet { if microphone != oldValue { onStatusChange?() } }
+    }
+    /// Called when the model, its place or the microphone access changed, so the plugin can tell the shell to read
+    /// its banner again (`PluginContext.resultsChanged`).
+    @ObservationIgnored var onStatusChange: (@MainActor () -> Void)?
     private(set) var devices: [MicrophoneCapture.InputDevice] = []
-    private(set) var level: Float?
     var inputDevice: String? {
         didSet { settings.setInputDevice(inputDevice) }
     }
@@ -22,8 +28,10 @@ final class DictationSettingsModel {
         didSet { settings.setRestoresClipboard(restoresClipboard) }
     }
 
-    /// The package of the engine chosen in Settings.
-    private(set) var package: ModelPackage
+    /// The package of the engine chosen in Settings. The Ready banner names it, so a change signals too.
+    private(set) var package: ModelPackage {
+        didSet { if package != oldValue { onStatusChange?() } }
+    }
     /// The speech models to choose from.
     let packages: [ModelPackage]
     @ObservationIgnored private let manager: ModelManager
@@ -32,17 +40,14 @@ final class DictationSettingsModel {
     @ObservationIgnored private let listDevices: () -> [MicrophoneCapture.InputDevice]
     @ObservationIgnored private let pickFolder: @MainActor () -> URL?
     @ObservationIgnored private let openURL: @MainActor (URL) -> Void
-    @ObservationIgnored private let makeCapture: (String?) -> any AudioInput
     @ObservationIgnored private var downloadTask: Task<Void, Never>?
-    @ObservationIgnored private var testTask: Task<Void, Never>?
     @ObservationIgnored private let logger = Logger(subsystem: "com.lintelapp", category: "dictation")
 
     init(
         package: ModelPackage, packages: [ModelPackage]? = nil, manager: ModelManager, settings: DictationSettings,
         authorizer: any MicrophoneAuthorizer,
         listDevices: @escaping () -> [MicrophoneCapture.InputDevice] = MicrophoneCapture.inputDevices,
-        pickFolder: @escaping @MainActor () -> URL?, openURL: @escaping @MainActor (URL) -> Void,
-        makeCapture: @escaping (String?) -> any AudioInput = { MicrophoneCapture(deviceUID: $0) }
+        pickFolder: @escaping @MainActor () -> URL?, openURL: @escaping @MainActor (URL) -> Void
     ) {
         self.packages = packages ?? ModelCatalog.all
         self.package = package
@@ -52,7 +57,6 @@ final class DictationSettingsModel {
         self.listDevices = listDevices
         self.pickFolder = pickFolder
         self.openURL = openURL
-        self.makeCapture = makeCapture
         inputDevice = settings.inputDevice
         restoresClipboard = settings.restoresClipboard
     }
@@ -81,12 +85,26 @@ final class DictationSettingsModel {
 
     var isDownloading: Bool { progress != nil }
     var isInstalled: Bool { location.folder != nil }
+    /// The model comes from a folder the user chose (also when that folder is gone): the pane offers "Use
+    /// Downloaded Model" to go back.
+    var usesCustomFolder: Bool {
+        switch location {
+        case .customFolder, .customFolderUnavailable: true
+        default: false
+        }
+    }
 
     /// Re-reads the model's place, the microphone and the device list (the pane calls it when it appears).
     func refresh() async {
+        await refreshStatus()
+        devices = listDevices()
+    }
+
+    /// Re-reads only what the Settings banner shows: the model's place and the microphone access. Reads files
+    /// and the permission state, never asks for anything.
+    func refreshStatus() async {
         location = await manager.location(of: package, customFolder: settings.speechModelFolder)
         microphone = authorizer.status()
-        devices = listDevices()
     }
 
     // MARK: Model
@@ -185,10 +203,13 @@ final class DictationSettingsModel {
 
     /// "Allow": the user's click, so the system prompt may appear.
     func requestMicrophone() {
-        Task {
-            _ = await authorizer.requestAccess()
-            microphone = authorizer.status()
-        }
+        Task { await requestMicrophoneAccess() }
+    }
+
+    /// The same as `requestMicrophone()`, finished when the answer is known (the Settings banner's action).
+    func requestMicrophoneAccess() async {
+        _ = await authorizer.requestAccess()
+        microphone = authorizer.status()
     }
 
     func openMicrophoneSettings() {
@@ -200,27 +221,6 @@ final class DictationSettingsModel {
     func openAccessibilitySettings() {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
             openURL(url)
-        }
-    }
-
-    /// "Test": shows the input level for a few seconds. Nothing is kept.
-    func testMicrophone() {
-        guard testTask == nil, microphone == .granted else { return }
-        let capture = makeCapture(inputDevice)
-        testTask = Task { [weak self] in
-            do {
-                let stream = try await capture.start { value in
-                    Task { @MainActor in self?.level = value }
-                }
-                try? await Task.sleep(for: .seconds(4))
-                await capture.stop()
-                for await _ in stream {}
-            } catch {
-                self?.errorMessage = String(
-                    localized: "No microphone found", comment: "Dictation HUD when there is no input device")
-            }
-            self?.level = nil
-            self?.testTask = nil
         }
     }
 }

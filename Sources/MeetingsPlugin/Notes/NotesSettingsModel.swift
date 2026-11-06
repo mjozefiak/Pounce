@@ -2,19 +2,12 @@ import Foundation
 import LintelSpeech
 import Observation
 
-/// What the notes section of Settings → Meetings and the `meetings.setup` step show and do: the switch, the
+/// What the notes section of Settings → Meetings and the `meetings.setup` step show and do: the switch and the
 /// built-in model (the catalog models this Mac has the memory for, their size, download with progress and
-/// removal) and "Try it". The switch is written only when the user flips it.
+/// removal). The switch is written only when the user flips it. ("Try it on an example" was dropped with the
+/// old Settings window: the prototype `set-meetings` has no such row.)
 @MainActor @Observable
 final class NotesSettingsModel {
-    enum TryState: Equatable {
-        case idle
-        case running
-        case result(String)
-        case failed
-        case modelMissing
-    }
-
     /// Automatic notes after each meeting. Never written until the user chooses.
     var enabled: Bool {
         didSet {
@@ -31,7 +24,6 @@ final class NotesSettingsModel {
     private(set) var progress: ModelProgress?
     private(set) var errorMessage: String?
     private(set) var isInUse = false
-    private(set) var tryState = TryState.idle
 
     @ObservationIgnored private let settings: MeetingsSettings
     @ObservationIgnored private let service: NotesService
@@ -39,7 +31,6 @@ final class NotesSettingsModel {
     @ObservationIgnored private let lease: LLMLease
     @ObservationIgnored private var downloadTask: Task<Void, Never>?
     @ObservationIgnored private var downloadGeneration = 0
-    @ObservationIgnored private var tryTask: Task<Void, Never>?
 
     init(settings: MeetingsSettings, service: NotesService, manager: ModelManager, lease: LLMLease = .shared) {
         self.settings = settings
@@ -78,7 +69,6 @@ final class NotesSettingsModel {
         cancelDownload()
         settings.setBuiltInLLMModel(chosen)
         errorMessage = nil
-        tryState = .idle
         await refresh()
     }
 
@@ -137,31 +127,8 @@ final class NotesSettingsModel {
         } catch {
             errorMessage = MeetingsModelMessages.message(for: error)
         }
-        tryState = .idle
         await refresh()
     }
-
-    // MARK: Try it
-
-    /// "Try it on an example": the notes of the bundled sample transcript, shown here and stored nowhere.
-    func tryIt() {
-        guard tryTask == nil, isInstalled else { return }
-        tryState = .running
-        let run = service.runSample()
-        tryTask = Task { [weak self] in
-            let outcome = await run.value
-            guard let self else { return }
-            switch outcome {
-            case .notes(let markdown): tryState = .result(markdown)
-            case .modelMissing: tryState = .modelMissing
-            case .failed: tryState = .failed
-            }
-            tryTask = nil
-        }
-    }
-
-    /// Resolves once "Try it" has ended (tests).
-    func waitForTry() async { await tryTask?.value }
 }
 
 enum NotesMessages {

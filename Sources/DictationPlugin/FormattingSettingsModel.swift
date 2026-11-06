@@ -45,8 +45,6 @@ final class FormattingSettingsModel {
     let builtInModels: [LLMModel]
     private(set) var builtInModel: LLMModel
     private(set) var builtInLocation = ModelLocation.missing
-    private(set) var builtInProgress: ModelProgress?
-    private(set) var builtInError: String?
 
     @ObservationIgnored private let settings: DictationSettings
     @ObservationIgnored private let probe: EndpointProbe
@@ -54,7 +52,6 @@ final class FormattingSettingsModel {
     @ObservationIgnored private let llmModels: ModelManager?
     @ObservationIgnored private let runtime: KeepWarmRuntime?
     @ObservationIgnored private var tryTask: Task<Void, Never>?
-    @ObservationIgnored private var downloadTask: Task<Void, Never>?
 
     /// - Parameters:
     ///   - llmModels: the manager of the built-in models; `nil` hides the built-in source.
@@ -89,7 +86,6 @@ final class FormattingSettingsModel {
     var offersBuiltIn: Bool { llmModels != nil }
     var isBuiltIn: Bool { source == .builtIn && offersBuiltIn }
     var isBuiltInInstalled: Bool { builtInLocation.folder != nil }
-    var isDownloadingBuiltIn: Bool { builtInProgress != nil }
 
     var hasTarget: Bool {
         isBuiltIn ? isBuiltInInstalled : (selectedEndpoint != nil && selectedModel != nil)
@@ -118,68 +114,10 @@ final class FormattingSettingsModel {
 
     func chooseBuiltInModel(_ id: String) {
         guard id != builtInModel.id, let chosen = builtInModels.first(where: { $0.id == id }) else { return }
-        cancelDownload()
         builtInModel = chosen
         settings.setBuiltInLLMModel(chosen)
-        builtInError = nil
         tryState = .idle
         Task { await refreshBuiltIn() }
-    }
-
-    func downloadBuiltIn() {
-        guard let llmModels, downloadTask == nil else { return }
-        builtInError = nil
-        let package = builtInModel.package
-        builtInProgress = ModelProgress(bytesDone: 0, bytesTotal: package.totalBytes)
-        downloadTask = Task { [weak self] in
-            do {
-                try await llmModels.install(package) { value in
-                    Task { @MainActor in self?.builtInProgress = value }
-                }
-            } catch is CancellationError {
-            } catch {
-                self?.builtInError = DictationSettingsModel.message(for: error)
-            }
-            self?.builtInProgress = nil
-            self?.downloadTask = nil
-            await self?.refreshBuiltIn()
-        }
-    }
-
-    func cancelDownload() {
-        downloadTask?.cancel()
-    }
-
-    /// Deletes the downloaded model; the loaded copy is freed first so the file is not held open.
-    func removeBuiltIn() {
-        guard let llmModels else { return }
-        let package = builtInModel.package
-        Task {
-            // The file is open while a request uses the model: wait for the user to try again.
-            if await runtime?.isInUse() == true {
-                builtInError = String(
-                    localized: "The model is in use right now. Try again in a moment.",
-                    comment: "Dictation settings error when the built-in model is being used and cannot be removed")
-                return
-            }
-            await runtime?.unload()
-            do {
-                // Checked again right before the delete: a request may have started while the model was freed.
-                let removed = try await llmModels.delete(package) { @Sendable in
-                    await self.runtime?.isInUse() == true
-                }
-                builtInError =
-                    removed
-                    ? nil
-                    : String(
-                        localized: "The model is in use right now. Try again in a moment.",
-                        comment:
-                            "Dictation settings error when the built-in model is being used and cannot be removed")
-            } catch {
-                builtInError = DictationSettingsModel.message(for: error)
-            }
-            await refreshBuiltIn()
-        }
     }
 
     func chooseEndpoint(_ url: URL) {

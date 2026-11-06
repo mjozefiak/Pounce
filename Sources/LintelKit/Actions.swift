@@ -61,6 +61,9 @@ public struct ResultAction: Identifiable, Sendable {
     /// calls `PluginContext.resultsChanged` so the list catches up. Added in Phase 2; `false` hides the
     /// panel first, as before.
     public let keepsPanelOpen: Bool
+    /// When set, the shell asks for a confirmation before it runs the action. Added with the main window;
+    /// `nil` runs it at once, as before.
+    public let confirmation: ActionConfirmation?
     public let perform: @Sendable (ActionContext) async throws -> Void
 
     public init(
@@ -69,6 +72,7 @@ public struct ResultAction: Identifiable, Sendable {
         symbolName: String,
         shortcut: KeyShortcut? = nil,
         keepsPanelOpen: Bool = false,
+        confirmation: ActionConfirmation? = nil,
         perform: @escaping @Sendable (ActionContext) async throws -> Void
     ) {
         self.id = id
@@ -76,6 +80,7 @@ public struct ResultAction: Identifiable, Sendable {
         self.symbolName = symbolName
         self.shortcut = shortcut
         self.keepsPanelOpen = keepsPanelOpen
+        self.confirmation = confirmation
         self.perform = perform
     }
 }

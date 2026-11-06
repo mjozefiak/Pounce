@@ -2,6 +2,7 @@ import AppKit
 import Carbon.HIToolbox
 import Foundation
 import LintelKit
+import LintelUI
 import SwiftUI
 import Synchronization
 import Testing
@@ -89,6 +90,18 @@ final class FruitPlugin: LintelPlugin {
 
     var searchSources: [any SearchSource] {
         [FixedSource(id: "fruit.all", pluginID: "fruit", titles: ["Apple", "Apricot", "Banana"], log: Self.log)]
+    }
+}
+
+/// A plugin whose launcher heading differs from its Settings name (as Apps: "Applications" / "Apps").
+final class TitledFruitPlugin: LintelPlugin {
+    static let manifest = PluginManifest(
+        id: "titledfruit", displayName: "Fruit", symbolName: "leaf", order: 6, sectionTitle: "Fruit Basket")
+
+    init(context: PluginContext) {}
+
+    var searchSources: [any SearchSource] {
+        [FixedSource(id: "titledfruit.all", pluginID: "titledfruit", titles: ["Apple"], log: FruitPlugin.log)]
     }
 }
 
@@ -552,6 +565,20 @@ private func waitUntil(_ condition: () -> Bool) async throws {
         let found = try #require(await coordinator.search("ap"))
         #expect(found.sections.map(\.kind) == [.unavailable("broken"), .results])
         #expect(found.items.map(\.candidate.title) == ["Apricot", "Apple"])
+        await host.stop()
+    }
+
+    /// Owner decision 6.6d: the launcher's section heading and row kind come from `resultsTitle`, not the Settings
+    /// name.
+    @Test func sectionsUseTheResultsTitle() async throws {
+        let test = try TestEnvironment()
+        defer { test.tearDown() }
+        let host = test.makeHost([TitledFruitPlugin.self])
+        await host.start()
+        let coordinator = SearchCoordinator(host: host, usage: test.environment.usage)
+        let found = try #require(await coordinator.search("ap"))
+        #expect(found.sections.map { String(localized: $0.title) } == ["Fruit Basket"])
+        #expect(found.items.map { String(localized: $0.kind) } == ["Fruit Basket"])
         await host.stop()
     }
 

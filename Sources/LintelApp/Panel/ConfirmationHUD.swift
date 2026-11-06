@@ -1,4 +1,5 @@
 import AppKit
+import LintelUI
 import SwiftUI
 
 /// A brief, non-activating message bubble ("Copied") shown after the panel closed, for example when

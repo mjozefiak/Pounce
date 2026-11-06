@@ -1,5 +1,6 @@
 import Foundation
 import LintelKit
+import LintelUI
 import Observation
 import SwiftUI
 import Synchronization
@@ -30,7 +31,9 @@ public final class FilesPlugin: LintelPlugin {
         id: "files",
         displayName: LocalizedStringResource("Files", comment: "Results section and plugin name for files"),
         symbolName: "doc",
-        order: 20
+        order: 20,
+        settingsGroup: .search,
+        summary: LocalizedStringResource("Find files by name.", comment: "Settings → Features: what Files does")
     )
 
     static let onboardingStepID = "files.fullDiskAccess"
@@ -51,6 +54,9 @@ public final class FilesPlugin: LintelPlugin {
     private var runTask: Task<Void, Never>?
     private var isActive = false
     private var lastAccessCheck: ContinuousClock.Instant?
+    /// Where app activations are posted (tests use their own centre).
+    var appActivationCenter: NotificationCenter = .default
+    private var activationObserver: AppActivationObserver?
 
     public init(context: PluginContext) {
         self.context = context
@@ -65,10 +71,16 @@ public final class FilesPlugin: LintelPlugin {
         isActive = true
         refreshAccess()
         startIfReady()
+        // Coming back from System Settings: a Full Disk Access grant replans the index and updates the banner.
+        activationObserver = AppActivationObserver(center: appActivationCenter) { [weak self] in
+            self?.refreshAccess()
+        }
     }
 
     public func deactivate() async {
         isActive = false
+        activationObserver?.stop()
+        activationObserver = nil
         let task = runTask
         runTask = nil
         controller = nil
@@ -105,7 +117,8 @@ public final class FilesPlugin: LintelPlugin {
             OnboardingStep(
                 id: Self.onboardingStepID,
                 title: LocalizedStringResource("File Search", comment: "Onboarding step title for file search"),
-                symbolName: "doc.text.magnifyingglass"
+                symbolName: "doc.text.magnifyingglass",
+                text: FilesOnboardingView.text
             ) {
                 AnyView(FilesOnboardingView(model: model))
             }
@@ -116,6 +129,90 @@ public final class FilesPlugin: LintelPlugin {
 
     public func settingsPane() -> AnyView? {
         AnyView(FilesSettingsPane(model: viewModel))
+    }
+
+    /// The main window's banner (prototype `set-files`), read by the shell only while active and while the view
+    /// draws, so it only reads: Full Disk Access is re-checked when the pane appears and when Lintel becomes the
+    /// active app (`refreshAccess()`), which signals `resultsChanged` so the shell reads the banner again.
+    public var settingsStatus: SettingsStatus? {
+        Self.settingsStatus(
+            status: state.status,
+            setupCompleted: settings.setupCompleted,
+            fullDiskAccess: state.fullDiskAccess,
+            startIndexing: { [weak self] in self?.completeSetup() }
+        )
+    }
+
+    /// The banner id of "Start Indexing".
+    nonisolated static let startIndexingActionID = "startIndexing"
+
+    /// "Indexing hasn't started" with Start Indexing and Allow Full Disk Access before the first scan, progress
+    /// while the index loads or scans, "Ready · N items indexed." after. Indexing without Full Disk Access is
+    /// intended (protected folders are skipped), so the banner acknowledges it and offers it itself.
+    nonisolated static func settingsStatus(
+        status: IndexStatus,
+        setupCompleted: Bool,
+        fullDiskAccess: PermissionStatus,
+        startIndexing: @escaping @MainActor @Sendable () async -> Void
+    ) -> SettingsStatus {
+        let hasAccess = fullDiskAccess == .granted
+        let allowAccess = SettingsStatusAction(
+            title: LocalizedStringResource(
+                "Allow Full Disk Access", comment: "Settings → Files banner button: opens the Full Disk Access settings"
+            ),
+            destination: .systemSettings(.fullDiskAccess))
+        let accessFix = hasAccess ? [] : [allowAccess]
+        let acknowledged: Set<Permission> = hasAccess ? [] : [.fullDiskAccess]
+        guard setupCompleted else {
+            let start = SettingsStatusAction(
+                title: LocalizedStringResource(
+                    "Start Indexing (banner)", defaultValue: "Start Indexing",
+                    comment: "Settings → Files banner button: starts the first file scan"),
+                destination: .plugin(id: startIndexingActionID, perform: startIndexing))
+            return SettingsStatus(
+                level: .attention,
+                title: LocalizedStringResource(
+                    "Indexing hasn’t started", comment: "Settings → Files banner before the first file scan"),
+                detail: hasAccess
+                    ? LocalizedStringResource(
+                        "Start indexing to find files by name.",
+                        comment: "Settings → Files banner detail before the first scan, with Full Disk Access")
+                    : LocalizedStringResource(
+                        "Full Disk Access adds Documents and Desktop.",
+                        comment: "Settings → Files banner detail: what Full Disk Access adds to the index"),
+                fix: [start] + accessFix,
+                acknowledgedPermissions: acknowledged)
+        }
+        switch status.phase {
+        case .waiting, .loading:
+            return SettingsStatus(
+                level: .neutral,
+                title: LocalizedStringResource(
+                    "Loading the file index…", comment: "Panel progress while the saved index loads"),
+                acknowledgedPermissions: acknowledged)
+        case .scanning:
+            return SettingsStatus(
+                level: .neutral,
+                title: LocalizedStringResource("Indexing…", comment: "Settings → Files banner while files are indexed"),
+                detail: LocalizedStringResource(
+                    "\(status.count) items so far.",
+                    comment: "Settings → Files banner detail while indexing: the number of items so far"),
+                fix: accessFix,
+                acknowledgedPermissions: acknowledged)
+        case .ready:
+            return SettingsStatus(
+                level: .ok,
+                title: LocalizedStringResource("Ready", comment: "Settings banner level, spoken"),
+                detail: hasAccess
+                    ? LocalizedStringResource(
+                        "\(status.count) items indexed.",
+                        comment: "Settings → Files banner detail: the number of indexed files and folders")
+                    : LocalizedStringResource(
+                        "\(status.count) items indexed. Full Disk Access adds Documents and Desktop.",
+                        comment: "Settings → Files banner detail without Full Disk Access: the number of items"),
+                fix: accessFix,
+                acknowledgedPermissions: acknowledged)
+        }
     }
 
     /// Indexing progress, a "not set up yet" notice before the first scan, and the "no Full Disk Access"
@@ -268,7 +365,8 @@ public final class FilesPlugin: LintelPlugin {
 
     // MARK: Access
 
-    /// Re-reads Full Disk Access and replans when it changed.
+    /// Re-reads Full Disk Access; when it changed, replans and tells the shell (the banner and the panel
+    /// notices follow it).
     func refreshAccess() {
         lastAccessCheck = .now
         let status = context.permissions.status(of: .fullDiskAccess)
@@ -276,6 +374,7 @@ public final class FilesPlugin: LintelPlugin {
         guard status != state.fullDiskAccess else { return }
         state.fullDiskAccess = status
         startIfReady()
+        context.resultsChanged()
     }
 
     private func refreshAccessIfStale() {

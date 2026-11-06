@@ -66,7 +66,11 @@ import Testing
         rig.lookup = .missing
         rig.controller.start()
         await eventually { rig.hud.last == .problem(.modelMissing) }
-        #expect(rig.hud.last?.actions == [.openSettings])
+        #expect(rig.hud.last?.actions == [.openModels])
+        // The button leads to the speech model's download, not to Settings.
+        rig.controller.perform(.openModels)
+        #expect(rig.modelsOpened == [rig.harness.meetingsSettings.speechModelID])
+        #expect(rig.settingsOpened == 0)
         #expect(rig.sessions.isEmpty)
         #expect(rig.authorizer.requests == 0)
         #expect(rig.controller.phase == .idle)

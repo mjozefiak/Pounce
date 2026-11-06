@@ -1,6 +1,7 @@
 import Foundation
 import LintelKit
 import LintelSpeech
+import LintelUI
 import SwiftUI
 
 /// Meeting transcription and notes (spec: Transkrypcja spotkań i notatki). Registered in `PluginRegistry`
@@ -18,7 +19,10 @@ public final class MeetingsPlugin: LintelPlugin {
         displayName: LocalizedStringResource("Meetings", comment: "Plugin name of meeting transcription"),
         symbolName: "person.2.wave.2",
         order: 50,
-        defaultEnabled: false
+        defaultEnabled: false,
+        settingsGroup: .voice,
+        summary: LocalizedStringResource(
+            "Record meetings, keep notes.", comment: "Settings → Features: what Meetings does")
     )
 
     let context: PluginContext
@@ -32,7 +36,9 @@ public final class MeetingsPlugin: LintelPlugin {
     /// Writes the notes of finished meetings in the background (Phase 2).
     let notes: NotesService
     private let relay = MeetingControllerRelay()
-    private let hud: MeetingHUDPanel
+    private let hud: any HUDPresenter
+    /// The HUDs, Core Audio, the tone, the microphone permission and the sessions (`MeetingsSystem`).
+    let system: MeetingsSystem
     /// Exists while the plugin is active.
     private(set) var controller: MeetingController?
     /// A controller whose session was still processing when the plugin was switched off. It keeps the library
@@ -47,10 +53,22 @@ public final class MeetingsPlugin: LintelPlugin {
     /// Core Audio).
     var adjustDetectorDependencies: ((inout MeetingDetector.Dependencies) -> Void)?
     let suggestionRelay = SuggestionRelay()
-    let suggestionHUD: SuggestionHUDPanel
+    let suggestionHUD: any SuggestionPresenter
+    /// Where app activations are posted (tests use their own centre).
+    var appActivationCenter: NotificationCenter = .default
+    private var activationObserver: AppActivationObserver?
 
-    public init(context: PluginContext) {
+    /// The shell builds the plugin from its type; `MeetingsSystem.standard` is `live` in the app.
+    public convenience init(context: PluginContext) {
+        self.init(context: context, authorizer: nil, system: .standard)
+    }
+
+    /// `authorizer` replaces the system's microphone permission in the settings and the banner (tests); `nil`
+    /// takes the one of `system`. `system` holds everything that reaches the screen, the speakers, the
+    /// microphone or Core Audio (tests pass fakes).
+    init(context: PluginContext, authorizer: (any MicrophoneAuthorizer)?, system: MeetingsSystem = .standard) {
         self.context = context
+        self.system = system
         let settings = MeetingsSettings(context.settings)
         self.settings = settings
         let runtime = MeetingsRuntime(context: context, settings: settings)
@@ -70,18 +88,24 @@ public final class MeetingsPlugin: LintelPlugin {
                 modelFile: { model in
                     await llmManager.location(of: model.package).folder.flatMap { model.fileURL(in: $0) }
                 },
-                openSettings: context.openSettings, changed: context.resultsChanged, logger: context.logger))
+                openModels: context.openModels, changed: context.resultsChanged, logger: context.logger))
         self.notes = notes
         library.onMeetingReady = { [weak notes] id in notes?.meetingBecameReady(id) }
         library.onWillClose = { [weak notes] in notes?.cancelJobs() }
         libraryActions = MeetingsLibraryActions(
             library: library, pasteboard: context.pasteboard, regenerate: { notes.regenerate($0) },
-            changed: context.resultsChanged, notes: notes.board, openNotesSettings: context.openSettings)
-        ui = MeetingsUI(context: context, settings: settings, library: library, activity: activity, notes: notes)
+            changed: context.resultsChanged, notes: notes.board,
+            openNotesModel: { [openModels = context.openModels] in openModels(settings.builtInLLMModel.id) })
+        ui = MeetingsUI(
+            context: context, settings: settings, library: library, activity: activity,
+            authorizer: authorizer ?? system.microphoneAuthorizer(), makeSelfTest: system.makeSelfTest, notes: notes)
+        // The banner reads the speech model's place and the microphone; a change makes the shell read it again.
+        let resultsChanged = context.resultsChanged
+        ui.model.onStatusChange = { resultsChanged() }
         let relay = relay
-        hud = MeetingHUDPanel(onAction: { relay.controller?.perform($0) })
+        hud = system.makeHUD { relay.controller?.perform($0) }
         let suggestionRelay = suggestionRelay
-        suggestionHUD = SuggestionHUDPanel(onAction: { suggestionRelay.detector?.perform($0) })
+        suggestionHUD = system.makeSuggestionHUD { suggestionRelay.detector?.perform($0) }
         wireSuggestionSettings()
     }
 
@@ -93,18 +117,26 @@ public final class MeetingsPlugin: LintelPlugin {
         let detector = makeDetector()
         let workspace = context.workspace
         let runtime = runtime
+        let makeSession = system.makeSession
         var dependencies = MeetingController.Dependencies(
-            library: library, settings: settings, authorizer: SystemMicrophoneAuthorizer(), activity: activity,
-            speechModel: { await runtime.speechLookup() }, makeSession: { runtime.makeSession($0) },
+            library: library, settings: settings, authorizer: system.microphoneAuthorizer(), activity: activity,
+            speechModel: { await runtime.speechLookup() }, makeSession: { makeSession(runtime, $0) },
             hud: hud, clock: context.clock, openSettings: context.openSettings,
-            openURL: { url in Task { try? await workspace.open(url) } }, changed: context.resultsChanged,
-            logger: context.logger)
+            openURL: { url in Task { try? await workspace.open(url) } }, openModels: context.openModels,
+            changed: context.resultsChanged, logger: context.logger)
         dependencies.recordingObserver = detector
         adjustControllerDependencies?(&dependencies)
         let controller = MeetingController(dependencies)
         self.controller = controller
         relay.controller = controller
         startDetector(detector)
+        // The banner's state is known before the shell first reads it; coming back from System Settings or from
+        // a download in the Models pane reads it again.
+        let model = ui.model
+        await model.refreshStatus()
+        activationObserver = AppActivationObserver(center: appActivationCenter) {
+            Task { await model.refreshStatus() }
+        }
     }
 
     /// Switches the plugin off. A recording in progress is finished first, for at most the controller's
@@ -113,6 +145,8 @@ public final class MeetingsPlugin: LintelPlugin {
     /// closed by a background task as soon as the session ends, unless the plugin was activated again by then.
     /// So after `deactivate()` returns, `library.status` is `.closed` only when nothing was still running.
     public func deactivate() async {
+        activationObserver?.stop()
+        activationObserver = nil
         stopDetector()
         // A running notes job is cancelled and puts its status back before the library can close.
         await notes.shutDown()

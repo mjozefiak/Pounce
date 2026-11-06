@@ -252,6 +252,22 @@ func eventually(
     #expect(condition(), message)
 }
 
+/// `eventually` for a condition nothing signals (the plugin lets a lingering controller go in a task of its
+/// own): it looks again every 10 ms instead of sleeping until the 60 s timeout.
+@MainActor
+func eventuallyPolling(
+    _ message: Comment = "condition", timeout: Duration = .seconds(60), _ condition: @MainActor () -> Bool
+) async {
+    let poller = Task { @MainActor in
+        while !Task.isCancelled {
+            try? await Task.sleep(for: .milliseconds(10))
+            ChangeSignal.shared.fire()
+        }
+    }
+    await eventually(message, timeout: timeout, condition)
+    poller.cancel()
+}
+
 /// The controller with fakes for everything it touches. Nothing real is captured, shown or stored.
 @MainActor
 final class ControllerRig {
@@ -267,6 +283,8 @@ final class ControllerRig {
     private(set) var requests: [MeetingSessionRequest] = []
     private(set) var openedURLs: [URL] = []
     private(set) var settingsOpened = 0
+    /// The packages `openModels` was called with.
+    private(set) var modelsOpened: [String?] = []
     private(set) var changes = Shared(0)
     private(set) var controller: MeetingController!
     private var markers = 0
@@ -295,6 +313,7 @@ final class ControllerRig {
                     return session
                 }, hud: hud, clock: clock, openSettings: { [unowned self] in self.settingsOpened += 1 },
                 openURL: { [unowned self] url in self.openedURLs.append(url) },
+                openModels: { [unowned self] id in self.modelsOpened.append(id) },
                 changed: { changes.update { $0 += 1 } }, shutdownTimeout: shutdownTimeout,
                 stateChanged: { ChangeSignal.shared.fire() }, recordingObserver: observer))
     }

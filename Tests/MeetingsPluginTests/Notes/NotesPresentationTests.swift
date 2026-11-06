@@ -8,12 +8,12 @@ import Testing
 @MainActor
 private func windowModel(
     _ rig: WindowRig, board: NotesBoard? = nil, regenerate: (@MainActor (Int64) -> Void)? = nil,
-    openSettings: @escaping @MainActor () -> Void = {}
+    openNotesModel: @escaping @MainActor () -> Void = {}
 ) -> MeetingWindowModel {
     MeetingWindowModel(
         meetingID: rig.meetingID, store: rig.store, spool: rig.spool, pasteboard: RecordingPasteboard(),
         saver: FakeFileSaver(), regenerate: regenerate, labels: .english, timeZone: ExportFixtures.utc, notes: board,
-        openNotesSettings: openSettings, pollInterval: .milliseconds(1), sleep: { _ in await Task.yield() })
+        openNotesModel: openNotesModel, pollInterval: .milliseconds(1), sleep: { _ in await Task.yield() })
 }
 
 @MainActor
@@ -58,9 +58,9 @@ private func windowModel(
         #expect(await banners(try WindowRig(status: .incomplete), board: wanting) == [.incomplete(canFinish: true)])
     }
 
-    @Test func theDownloadButtonOpensTheSettings() async throws {
+    @Test func theDownloadButtonOpensTheNotesModel() async throws {
         let opened = Box(0)
-        let model = windowModel(try WindowRig(), openSettings: { opened.withLock { $0 += 1 } })
+        let model = windowModel(try WindowRig(), openNotesModel: { opened.withLock { $0 += 1 } })
         model.downloadNotesModel()
         #expect(opened.withLock { $0 } == 1)
     }
@@ -188,8 +188,6 @@ extension Database {
             "Notes are on, but their model is not downloaded.",
             "The notes model is in use right now. Try again when the notes are written.",
             "Write notes after each meeting", "The model you chose does not fit this Mac, so %@ is used.",
-            "Try it on an example", "Example", "Notes for a made-up meeting. Nothing was saved.",
-            "The example did not work. Try again in a moment.", "Download the model first.",
         ]
         for key in keys {
             let entry = try #require(catalog.strings[key], "\(key) is missing")
@@ -199,9 +197,13 @@ extension Database {
             }
         }
         #expect(catalog.strings["Notes are generated in a later version of Lintel."] == nil)
-        #expect(
-            catalog.strings["Try it on an example"]?.localizations?["pl"]?.stringUnit?.value
-                == "Wypróbuj na przykładzie")
+        // "Try it on an example" went with the old Settings window (step 6.3c-fix-a): its strings are gone too.
+        for removed in [
+            "Try it on an example", "Example", "Notes for a made-up meeting. Nothing was saved.",
+            "The example did not work. Try again in a moment.", "Download the model first.",
+        ] {
+            #expect(catalog.strings[removed] == nil, "\(removed)")
+        }
         #expect(catalog.strings["Waiting for the model"]?.localizations?["pl"]?.stringUnit?.value == "Czeka na model")
         #expect(
             catalog.strings["Download Notes Model"]?.localizations?["pl"]?.stringUnit?.value == "Pobierz model notatek")

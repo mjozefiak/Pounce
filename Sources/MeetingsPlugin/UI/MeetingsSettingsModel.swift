@@ -6,7 +6,12 @@ import Observation
 /// downloaded in one shows as downloaded in the other.
 @MainActor @Observable
 final class MeetingsSettingsModel {
-    private(set) var microphone = MicrophoneAccess.notDetermined
+    private(set) var microphone = MicrophoneAccess.notDetermined {
+        didSet { if microphone != oldValue { onStatusChange?() } }
+    }
+    /// Called when the speech model, its place or the microphone access changed, so the plugin can tell the shell
+    /// to read its banner again (`PluginContext.resultsChanged`).
+    @ObservationIgnored var onStatusChange: (@MainActor () -> Void)?
     private(set) var devices: [MicrophoneCapture.InputDevice] = []
     var inputDevice: String? {
         didSet { settings.setInputDevice(inputDevice) }
@@ -86,6 +91,7 @@ final class MeetingsSettingsModel {
         retentionDays = settings.retentionDays
         suggestMeetings = settings.suggestMeetings
         reloadSuggestionLists()
+        speech.onLocationChange = { [weak self] in self?.onStatusChange?() }
     }
 
     // MARK: Refresh
@@ -98,6 +104,13 @@ final class MeetingsSettingsModel {
         await speech.refresh()
         await diarization.refresh()
         await notes.refresh()
+    }
+
+    /// Re-reads only what the Settings banner shows: the speech model's place and the microphone access. Reads
+    /// files and the permission state, never asks for anything.
+    func refreshStatus() async {
+        microphone = authorizer.status()
+        await speech.refresh()
     }
 
     // MARK: Speech engine
@@ -115,16 +128,21 @@ final class MeetingsSettingsModel {
         speechPackageID = id
         settings.setSpeechModelID(id)
         speech.use(chosen)
+        // The Ready banner names the model: the shell reads it again even when the new one is in the same place.
+        onStatusChange?()
     }
 
     // MARK: Microphone
 
     /// "Allow Microphone": the user's click, so the system prompt may appear. Never called otherwise.
     func requestMicrophone() {
-        Task {
-            _ = await authorizer.requestAccess()
-            microphone = authorizer.status()
-        }
+        Task { await requestMicrophoneAccess() }
+    }
+
+    /// The same as `requestMicrophone()`, finished when the answer is known (the Settings banner's action).
+    func requestMicrophoneAccess() async {
+        _ = await authorizer.requestAccess()
+        microphone = authorizer.status()
     }
 
     func openMicrophoneSettings() {
@@ -195,8 +213,9 @@ final class MeetingsSettingsModel {
     /// audio are in use).
     var canChangeLibrary: Bool { library.status == .ready && !library.isProcessing }
 
-    /// Called after the pane's confirmation.
-    func clearLibrary() {
+    /// Called after the pane's confirmation. `alsoDeleteKeptCopies` is the sheet's "Also delete kept copies"
+    /// checkbox; ignored until Notes exists (spec `2026-11-04-notes-workspace`, step 4.6 deletes the copies).
+    func clearLibrary(alsoDeleteKeptCopies: Bool = false) {
         run {
             let report = try privacy.clearLibrary()
             return (Self.removedMessage(report.removed), report.failed)

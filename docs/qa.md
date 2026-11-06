@@ -35,7 +35,7 @@ Any `--qa…` argument turns QA mode on:
 | Pasteboard | `NSPasteboard.general` | private named pasteboard `com.lintelapp.qa.<pid>` |
 | Global hotkeys | registered | never registered, so ⌘Space and ⌘⇧V stay with the tester; the shortcut recorders show the would-be shortcut from the volatile registration domain |
 | Caches | `~/Library/Caches/Lintel` | `Caches/` under the data root |
-| Focus | the panel and Settings activate Lintel | windows are ordered front without activating Lintel or taking key focus, and the panel does not close when another app has focus |
+| Focus | the panel and the main window activate Lintel | windows are ordered front without activating Lintel or taking key focus, and the panel does not close when another app has focus |
 | Launch at Login | `SMAppService.mainApp` | in memory; the toggle never registers anything |
 | Paste keystroke | ⌘V posted to the previous app (needs Accessibility) | never posted; the paste is only logged |
 | File index | the home folder and `/Applications` | only `plugins.files.roots`, resolved against the fake home `plugins.files.qaHome`; both default to an empty `files-home/` folder in the data root, so the real home and `/Applications` are never scanned |
@@ -59,11 +59,12 @@ If that domain did not exist before a QA session, remove it afterwards with
 | `--qa-panel <mode>` | Phase 1 | Open the panel after launch without the global hotkey: `search`, or a plugin's panel mode id. |
 | `--qa-query <text>` | Phase 1 | Type this query into the panel opened with `--qa-panel`. |
 | `--qa-record-use <item key>` | Phase 1 | Record a use of `<plugin id>:<key>` in the QA ranking database before launch (repeatable), so the empty query shows "Recently Used". |
-| `--qa-settings general\|features\|permissions\|advanced\|<plugin id>` | Phase 1, plugin panes Phase 2, `permissions` and `advanced` Phase 4 | Open the Settings window on that pane, for example `clipboard`. |
+| `--qa-window workspace\|settings` | Main window, step 1.2 | Open the main window in that mode. Workspace mode falls back to Settings while no workspace section is registered. |
+| `--qa-settings general\|features\|permissions\|advanced\|models\|<plugin id>` | Phase 1, plugin panes Phase 2, `permissions` and `advanced` Phase 4, `models` main window step 3.2 | Select that pane in the main window's Settings mode, for example `clipboard`. With `--qa-window settings` the window opens on that pane. |
 | `--qa-onboarding` | Phase 1; the whole welcome screen since Phase 4 | Show the welcome screen with every page (introduction, Shortcut, every active plugin's step), whatever was completed. |
 | `--qa-fail-action` | Phase 1 | With `--qa-panel`: once results load, show the failed-action message for the selected row's first action without running it. |
 | `--qa-spotlight on\|off` | Phase 1 | Pretend Spotlight does or does not hold ⌘Space instead of reading the system's symbolic hotkeys. |
-| `--qa-onboarding-step <step id>` | Phase 2; the welcome screen since Phase 4 | Show the welcome screen on one page: `intro`, `shortcut` or a plugin step such as `clipboard.intro`. |
+| `--qa-onboarding-step <step id>` | Phase 2; the welcome screen since Phase 4 | Show the welcome screen on one page: `intro`, `shortcut`, a plugin step such as `clipboard.intro`, or the final page `done` ("You're set", which opens the main window). The welcome screen is the single-column layout of the prototype `shell-welcome-*`. |
 | `--qa-pasteboard-access allow\|default\|ask\|deny` | Phase 2 | The pasteboard access behaviour plugins see (`NSPasteboard.accessBehavior`), for the clipboard's permission banners. |
 | `--qa-accessibility granted\|denied` | Phase 2 | The Accessibility status plugins see. Without it the real status is read, never changed. |
 | `--qa-full-disk-access granted\|denied` | Phase 3 | The Full Disk Access status plugins see (default `denied` in QA mode). Never read from, or changed in, the system. |
@@ -148,7 +149,7 @@ dist/Lintel.app/Contents/MacOS/Lintel "${COMMON[@]}" --qa-panel search --qa-appe
 # Suggested and "Recently Used" without duplicates:
 dist/Lintel.app/Contents/MacOS/Lintel "${COMMON[@]}" --qa-record-use apps:com.example.mail \
   --qa-record-use apps:com.example.music --qa-panel search
-# Settings → Applications (Suggest Apps, hidden apps, Clear App Activity…), with one hidden app:
+# Settings → Apps (Suggest Apps, hidden apps, Clear App Activity…), with one hidden app:
 dist/Lintel.app/Contents/MacOS/Lintel "${COMMON[@]}" \
   --qa-setting plugins.apps.suggestions.hidden=com.example.maps --qa-settings apps
 # Suggestions turned off: no section, the history stays:
@@ -159,7 +160,7 @@ dist/Lintel.app/Contents/MacOS/Lintel "${COMMON[@]}" --qa-setting plugins.apps.s
 The "Running" badge comes from the real running apps, so fixture bundles never show it; check it by
 hand with a real app (for example `--qa-setting plugins.apps.roots=/System/Applications --qa-activity
 com.apple.Notes` while Notes is open). With `--qa-activity-live` the tracker records the tester's real
-app switches into the QA data root only. The newer-version message in Settings → Applications needs an
+app switches into the QA data root only. The newer-version message in Settings → Apps needs an
 `activity.json` with `"version": 2` in `<data root>/Plugins/apps/` (pass `--qa-data-root`).
 
 ## File search with a fixture folder
@@ -282,14 +283,14 @@ Capture only Lintel's own windows, never the full screen:
 The microphone grant is tied to the app's code signature. Every ad-hoc rebuild (`scripts/make-app.sh`) has a
 new signature, so macOS asks for the microphone again (and the Accessibility grant also has to be renewed
 for Command-V to work). Both are manual QA items: the QA flags isolate settings, data and shortcuts, but the
-microphone permission, a real recording, the real model (about 630 MB, downloaded from the Settings pane) and
+microphone permission, a real recording, the real model (about 630 MB, downloaded from Settings → Models) and
 pasting into another app cannot be faked. Check the HUD, the Settings pane and the setup step with
 `--qa --qa-panel`-style runs, and everything that records or pastes by hand.
 
 ### Dictation formatting (Phase 2)
 
 The formatting server is the user's own, so it cannot be faked in CI. With Ollama (or LM Studio,
-llama-server) running and a model pulled, turn on Settings → Dictation → Formatting and check:
+llama-server) running and a model pulled, turn on Settings → Dictation → Basics → Clean up text and check:
 
 - the server and model are found and chosen by themselves, "Try it" shows a cleaned sample;
 - an address such as `http://example.com` or `192.168.1.5` is refused in the Address field;
@@ -407,7 +408,7 @@ Flow to check, in light and dark mode and once in Polish (`-AppleLanguages '(pl)
   you flip it; the model list shows only models that fit this Mac's memory (an 8 GB Mac lists the small one only), with
   the download size and the memory; with a stored model that does not fit, the pane says which one is used instead;
   Download shows progress and can be cancelled, Remove is refused while notes are being written or dictation uses the
-  model, "Try it on an example" shows notes for the bundled made-up meeting and stores nothing.
+  model.
 - The `meetings.setup` step has an optional notes row: nothing is downloaded until the button is pressed.
 - With the switch on and the model present, stop a recording: the library row shows "Writing notes 1 of N", then
   "Notes". With the model missing it shows "Notes model needed" and the row has a "Download Notes Model" action (also a

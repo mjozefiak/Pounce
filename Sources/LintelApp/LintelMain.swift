@@ -44,7 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        if DockPresence.reopenAction(hasVisibleWindows: flag) == .openSettings { coordinator?.reopen() }
+        coordinator?.reopen()
         return true
     }
 
@@ -128,12 +128,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if options.showsAbout {
             coordinator?.showAbout()
         }
-        if let pane = options.settingsPane {
-            if let shellPane = SettingsWindowController.Pane(rawValue: pane) {
-                coordinator?.openSettings(shellPane)
-            } else {
-                coordinator?.openPluginSettings(pane)
-            }
+        // `--qa-settings <pane>` selects the pane in the main window's Settings mode; with `--qa-window settings`
+        // the window opens on that pane below.
+        if let pane = options.settingsPane, options.windowMode != .settings {
+            coordinator?.openSettings(pane: pane)
+        }
+        if let mode = options.windowMode {
+            coordinator?.showMainWindowForQA(mode, settingsPane: options.settingsPane)
         }
         if let mode = options.panelMode {
             let panelMode: PanelModel.Mode = mode == "search" ? .search : .plugin(PanelModeID(rawValue: mode))

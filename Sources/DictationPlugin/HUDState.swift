@@ -133,6 +133,15 @@ extension HUDState {
         return false
     }
 
+    /// Whether the HUD's button leads to the speech model's download (`PluginContext.openModels`) rather than to
+    /// Settings: the model problems.
+    var opensModels: Bool {
+        switch self {
+        case .problem(.modelMissing), .problem(.modelUnavailable), .problem(.modelFailedToLoad): true
+        default: false
+        }
+    }
+
     /// Whether the HUD has a button that opens Settings (the model and microphone problems).
     var offersSettings: Bool {
         switch self {

@@ -148,17 +148,23 @@ public struct OnboardingStep: Identifiable, Sendable {
     public let id: String
     public let title: LocalizedStringResource
     public let symbolName: String
+    /// The explanatory line the welcome screen shows under the step's heading (prototype `shell-welcome-*`), so
+    /// `makeView` draws only the step's controls. `nil` (the default) shows no line: the view brings its own
+    /// text. Added with the welcome screen's single column (PR #52, step 6.6f).
+    public let text: LocalizedStringResource?
     public let makeView: @MainActor @Sendable () -> AnyView
 
     public init(
         id: String,
         title: LocalizedStringResource,
         symbolName: String,
+        text: LocalizedStringResource? = nil,
         makeView: @escaping @MainActor @Sendable () -> AnyView
     ) {
         self.id = id
         self.title = title
         self.symbolName = symbolName
+        self.text = text
         self.makeView = makeView
     }
 }
@@ -178,6 +184,10 @@ public enum Permission: String, Hashable, Sendable, CaseIterable {
     /// always answers `PermissionStatus.notDetermined` for it and a plugin finds out only when the tap
     /// fails to start. Added with meeting notes.
     case systemAudioRecording
+
+    /// Whether `PermissionsReader` can read the permission's state. `false` for `.systemAudioRecording`, whose
+    /// state macOS does not report. Added with the main window.
+    public var isReadable: Bool { self != .systemAudioRecording }
 }
 
 /// What the host knows about a permission.

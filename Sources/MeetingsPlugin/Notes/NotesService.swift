@@ -51,13 +51,6 @@ final class NotesBoard: Sendable {
     }
 }
 
-/// The result of "Try it" (nothing is stored).
-enum NotesSampleOutcome: Equatable, Sendable {
-    case notes(String)
-    case modelMissing
-    case failed
-}
-
 /// Writes the notes of finished meetings in the background (spec: Proposed Solution, step 4, and Phase 2).
 ///
 /// - After a meeting becomes `ready` and only when `notesEnabled` was switched on by the user, the meeting is
@@ -89,7 +82,8 @@ final class NotesService {
         var now: @Sendable () -> Date = { Date() }
         /// How long `shutDown` waits for a job that does not stop (a model load cannot be cancelled).
         var shutdownLimit: Duration = .seconds(5)
-        var openSettings: @MainActor () -> Void = {}
+        /// `PluginContext.openModels`: a "Regenerate" without the notes model leads to its download.
+        var openModels: @MainActor (_ packageID: String?) -> Void = { _ in }
         var changed: @Sendable () -> Void = {}
         var logger = Logger(subsystem: "com.lintelapp", category: "meetings")
     }
@@ -113,7 +107,6 @@ final class NotesService {
     private var rerun: Set<Int64> = []
     /// Bumped by `shutDown`: a job that did not stop in time must not touch the state of a later start.
     private var epoch = 0
-    private var sampleTask: Task<NotesSampleOutcome, Never>?
     private var accepting = false
 
     init(_ dependencies: Dependencies) {
@@ -137,17 +130,13 @@ final class NotesService {
         queue = []
         rerun = []
         epoch += 1
-        sampleTask?.cancel()
         jobTask?.cancel()
         worker?.cancel()
         let worker = worker
-        let sampleTask = sampleTask
         _ = await Self.within(deps.shutdownLimit, sleep: deps.sleep) {
             await worker?.value
-            _ = await sampleTask?.value
         }
         self.worker = nil
-        self.sampleTask = nil
         jobTask = nil
         current = nil
         board.update {
@@ -167,7 +156,6 @@ final class NotesService {
         }
         rerun = []
         jobTask?.cancel()
-        sampleTask?.cancel()
     }
 
     /// True when `operation` finished within `limit`; false when the limit came first (the operation is
@@ -184,7 +172,7 @@ final class NotesService {
     }
 
     /// Whether any job is queued or running (the model's file is in use then).
-    var isBusy: Bool { current != nil || !queue.isEmpty || sampleTask != nil }
+    var isBusy: Bool { current != nil || !queue.isEmpty }
 
     /// Re-reads the notes switch and whether the chosen model is downloaded (Settings calls it after a
     /// download, a removal or a change of the switch or the model).
@@ -270,7 +258,7 @@ final class NotesService {
             }) {
                 deps.changed()
             }
-            if job.requested { deps.openSettings() }
+            if job.requested { deps.openModels(model.id) }
             return
         }
         board.update {
@@ -366,38 +354,5 @@ final class NotesService {
         }
         deps.library.refreshCount()
         return again
-    }
-
-    // MARK: Try it
-
-    /// "Wypróbuj na przykładzie": the pipeline on the bundled sample, nothing stored.
-    func runSample() -> Task<NotesSampleOutcome, Never> {
-        if let sampleTask { return sampleTask }
-        let task = Task { [weak self] () -> NotesSampleOutcome in
-            guard let self else { return .failed }
-            let outcome = await self.sample()
-            self.sampleTask = nil
-            return outcome
-        }
-        sampleTask = task
-        return task
-    }
-
-    private func sample() async -> NotesSampleOutcome {
-        guard let file = await deps.modelFile(deps.settings.builtInLLMModel) else { return .modelMissing }
-        var configuration = NotesPipeline.Configuration()
-        configuration.chunkTokens = deps.settings.notesChunkTokens
-        configuration.reduceInputTokens = deps.settings.notesReduceInputTokens
-        deps.configure(&configuration)
-        let pipeline = NotesPipeline(
-            model: NotesModel(lease: deps.lease, runtime: deps.makeRuntime(), modelURL: file),
-            configuration: configuration, sleep: deps.sleep)
-        do {
-            let result = try await pipeline.run(utterances: NotesSample.utterances)
-            if let markdown = result.markdown, result.status != .failed { return .notes(markdown) }
-            return .failed
-        } catch {
-            return .failed
-        }
     }
 }

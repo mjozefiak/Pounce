@@ -152,7 +152,7 @@ import Testing
 
         #expect(rig.llm.calls.isEmpty)
         #expect(try rig.record(id).status == .none)
-        #expect(rig.settingsOpened.get() == 0)
+        #expect(rig.modelsOpened.get().isEmpty)
         let entry = try #require(try rig.store.libraryEntries(matching: nil, filter: .all, limit: 5).first)
         #expect(MeetingLibraryPresentation.badge(entry, needsNotesModel: true) == "Notes model needed")
         #expect(MeetingLibraryPresentation.badge(entry) == nil)
@@ -161,7 +161,7 @@ import Testing
         let source = MeetingsLibrarySource(
             store: { rig.library.store },
             actions: MeetingsLibraryActions(library: rig.library, pasteboard: InertPasteboard()),
-            notes: rig.service.board, openSettings: { rig.settingsOpened.update { $0 += 1 } })
+            notes: rig.service.board, openNotesModel: { rig.modelsOpened.update { $0.append(nil) } })
         let rows = try await source.search(NormalizedQuery(raw: "", normalized: ""), filter: nil, limit: 10)
         let row = try #require(rows.first)
         #expect(row.badge == "Notes model needed")
@@ -169,10 +169,11 @@ import Testing
         let ready = Candidate(itemKey: row.itemKey, title: row.title, icon: row.icon, match: row.match, badge: "Notes")
         #expect(!source.actions(for: ready).contains { $0.id == "meetings.library.notesModel" })
 
-        // An explicit request opens Settings, and the model arriving makes the next one work.
+        // An explicit request opens the Models pane on the notes model, and the model arriving makes the next one
+        // work.
         rig.service.regenerate(id)
         #expect(await rig.settle())
-        #expect(rig.settingsOpened.get() == 1)
+        #expect(rig.modelsOpened.get() == [rig.settings.builtInLLMModel.id])
         rig.file.update { $0 = URL(filePath: "/models/llm/notes-test.gguf") }
         await rig.service.refreshAvailability()
         #expect(!rig.service.board.snapshot.needsModel)
@@ -464,28 +465,5 @@ import Testing
     @Test func aSmallMacStillOffersTheDefaultModel() throws {
         let rig = try NotesServiceRig(physicalMemory: 4 * NotesServiceRig.gibibyte)
         #expect(rig.settings.offeredLLMModels.map(\.id) == [LLMModelCatalog.defaultModel.id])
-    }
-
-    @Test func theSampleRunsTheNotesAndStoresNothing() async throws {
-        let rig = try NotesServiceRig()
-        await rig.start()
-        let outcome = await rig.service.runSample().value
-        guard case .notes(let markdown) = outcome else {
-            Issue.record("Expected notes, got \(outcome)")
-            return
-        }
-        #expect(!markdown.isEmpty)
-        #expect(try rig.store.meetingCount() == 0)
-        #expect(!rig.llm.calls.isEmpty)
-        #expect(await rig.lease.activeLeases == 0)
-
-        rig.file.update { $0 = nil }
-        #expect(await rig.service.runSample().value == .modelMissing)
-    }
-
-    @Test func aFailingModelFailsTheSampleWithoutTrapping() async throws {
-        let rig = try NotesServiceRig { _, _, _ in throw NotesFake.Failure() }
-        await rig.start()
-        #expect(await rig.service.runSample().value == .failed)
     }
 }

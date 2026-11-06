@@ -8,7 +8,11 @@ import Observation
 @MainActor @Observable
 final class MeetingsModelCardModel {
     private(set) var package: ModelPackage
-    private(set) var location = ModelLocation.missing
+    private(set) var location = ModelLocation.missing {
+        didSet { if location != oldValue { onLocationChange?() } }
+    }
+    /// Called when the model's place changed, so the plugin can tell the shell to read its banner again.
+    @ObservationIgnored var onLocationChange: (@MainActor () -> Void)?
     private(set) var progress: ModelProgress?
     private(set) var errorMessage: String?
     private(set) var isVerifying = false
@@ -38,6 +42,14 @@ final class MeetingsModelCardModel {
 
     var isDownloading: Bool { progress != nil }
     var isInstalled: Bool { location.folder != nil }
+    /// The model comes from a folder the user chose (also when that folder is gone): the pane offers "Use
+    /// Downloaded Model" to go back.
+    var usesCustomFolder: Bool {
+        switch location {
+        case .customFolder, .customFolderUnavailable: true
+        default: false
+        }
+    }
 
     /// Shows another package (the engine picker of the speech card).
     func use(_ package: ModelPackage) {

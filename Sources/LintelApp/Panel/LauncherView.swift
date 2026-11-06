@@ -1,5 +1,6 @@
 import AppKit
 import LintelKit
+import LintelUI
 import SwiftUI
 
 /// The panel's content: search field, result sections and the action footer. No backgrounds of its own:

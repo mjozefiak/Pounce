@@ -238,6 +238,33 @@ import Testing
         }
     }
 
+    /// Spec step 2.2: the banner's Try Again (`.enablePlugin`) re-runs activation on a failed plugin.
+    @Test func aFailedPluginActivatesAgainThroughTheBannersEnablePlugin() async {
+        defer { env.tearDown() }
+        RecoveringPlugin.failuresLeft = 1
+        let host = env.makeHost([RecoveringPlugin.self])
+        await host.start()
+        guard case .failed = host.state(of: "recovering") else {
+            Issue.record("expected the first activation to fail")
+            return
+        }
+        var changed = 0
+        var navigation = SettingsHostModel.Navigation()
+        navigation.pluginsChanged = { changed += 1 }
+        let model = SettingsHostModel(host: host, reader: FakePermissionsReader(), navigation: navigation)
+        model.show("recovering")
+        #expect(model.banner?.level == .error)
+        let retry = model.banner?.actions.first
+        #expect(retry.map(ActionKind.init) == .enablePlugin)
+
+        if let retry { await model.perform(retry) }
+        #expect(host.state(of: "recovering")?.isActive == true)
+        #expect(LifecycleLog.shared.events.filter { $0 == "recovering.activate" }.count == 2)
+        #expect(changed == 1)
+        #expect(model.banner?.level == .ok)
+        #expect(model.attention["recovering"] == nil)
+    }
+
     private func isDisabled(_ state: PluginState) -> Bool {
         if case .disabled = state { return true }
         return false

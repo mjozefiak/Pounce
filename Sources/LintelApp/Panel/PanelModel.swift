@@ -1,6 +1,7 @@
 import Foundation
 import LintelCore
 import LintelKit
+import LintelUI
 import Observation
 import SwiftUI
 import os
