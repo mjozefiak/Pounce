@@ -17640,6 +17640,24 @@
           }
         }
       }
+    },
+    "Select a shorter passage to comment on it." : {
+      "comment" : "Format bar: why Comment is off when the selection is too long",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a shorter passage to comment on it."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaznacz krótszy fragment, aby go skomentować."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

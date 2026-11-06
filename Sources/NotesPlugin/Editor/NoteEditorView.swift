@@ -26,6 +26,8 @@ struct NoteEditorSurface<Header: View>: View {
     @State private var controller: NoteEditorController
     @State private var selection = NSRange(location: 0, length: 0)
     @State private var draft: CommentDraft?
+    /// Told when the shortcut finds a selection a comment cannot point at (it shows a strip and VoiceOver speaks it).
+    var onCommentRefused: ((CommentFailure) -> Void)?
     #if DEBUG
     /// QA: select this text and open the popover once the editor is on screen (`plugins.notes.qaComments=popover`).
     var qaSelect: String?
@@ -58,7 +60,7 @@ struct NoteEditorSurface<Header: View>: View {
             if !isReadOnly {
                 NoteFormatBar(
                     controller: controller, canComment: onAddComment != nil && selection.length > 0 && draft == nil,
-                    onComment: openComment)
+                    selectionTooLong: selection.length > CommentAnchors.maxQuoteLength, onComment: openComment)
             }
             header
             NoteEditorRepresentable(
@@ -98,7 +100,15 @@ struct NoteEditorSurface<Header: View>: View {
     private func openComment() {
         guard onAddComment != nil, draft == nil else { return }
         let range = controller.textView.selectedRange()
-        guard range.length > 0, CommentAnchors.make(in: controller.text, range: range) != nil else { return }
+        guard range.length > 0 else { return }
+        guard range.length <= CommentAnchors.maxQuoteLength else {
+            onCommentRefused?(.selectionTooLong)
+            return
+        }
+        guard CommentAnchors.make(in: controller.text, range: range) != nil else {
+            onCommentRefused?(.invalid)
+            return
+        }
         let rect =
             controller.scrollView.flatMap { controller.rect(of: range, in: $0) }
             ?? CGRect(x: 24, y: 24, width: 0, height: 0)
@@ -220,6 +230,8 @@ struct NoteFormatBar: View {
     let controller: NoteEditorController
     /// Something is selected that a comment can point at.
     let canComment: Bool
+    /// The selection is longer than one comment can point at (`CommentAnchors.maxQuoteLength`).
+    var selectionTooLong = false
     let onComment: () -> Void
     @Environment(\.lintelTextSize) private var textSize
 
@@ -275,13 +287,24 @@ struct NoteFormatBar: View {
         }
         .buttonStyle(.plain)
         .keyboardShortcut("m", modifiers: [.command, .shift])
-        .disabled(!canComment)
+        .disabled(!canComment || selectionTooLong)
+        .help(
+            selectionTooLong
+                ? Text(Self.tooLongHelp) : Text("Comment", comment: "Format bar: comment on the selected text")
+        )
         .accessibilityLabel(Text("Comment", comment: "Format bar: comment on the selected text"))
         .accessibilityHint(
-            Text(
-                "Select text first. Opens a field for your comment.",
-                comment: "Accessibility hint of the format bar's Comment button"))
+            selectionTooLong
+                ? Text(Self.tooLongHelp)
+                : Text(
+                    "Select text first. Opens a field for your comment.",
+                    comment: "Accessibility hint of the format bar's Comment button"))
     }
+
+    /// Why Comment is off for a long selection.
+    private static let tooLongHelp = LocalizedStringResource(
+        "Select a shorter passage to comment on it.",
+        comment: "Format bar: why Comment is off when the selection is too long")
 
     struct Item {
         var id: String { String(describing: action) }

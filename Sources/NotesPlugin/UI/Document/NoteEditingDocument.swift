@@ -42,6 +42,9 @@ struct NoteEditingDocument: View {
                     NoteDocumentHeader(model: model, document: document, summary: summary)
                 }
             })
+        surface.onCommentRefused = { failure in
+            model.show(failure == .selectionTooLong ? .commentSelectionTooLong : .commentSelectionInvalid)
+        }
         #if DEBUG
         surface.qaSelect = document.qaCommentQuote
         #endif

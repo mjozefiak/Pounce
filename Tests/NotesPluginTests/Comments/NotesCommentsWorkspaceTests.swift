@@ -258,6 +258,33 @@ import Testing
         _ = try controller.textView.performKeyEquivalent(with: #require(event([.command, .shift])))
         #expect(count == 1)  // read-only: no comment
     }
+
+    @Test func theShortcutFollowsThePhysicalKeyOnANonLatinLayout() throws {
+        func event(_ chars: String, keyCode: UInt16) throws -> NSEvent {
+            try #require(
+                NSEvent.keyEvent(
+                    with: .keyDown, location: .zero, modifierFlags: [.command, .shift], timestamp: 0, windowNumber: 0,
+                    context: nil, characters: chars, charactersIgnoringModifiers: chars, isARepeat: false,
+                    keyCode: keyCode))
+        }
+        #expect(NoteEditorTextView.isCommentKey(try event("m", keyCode: 46)))
+        #expect(NoteEditorTextView.isCommentKey(try event("ь", keyCode: 46)))  // Russian: the same key
+        #expect(!NoteEditorTextView.isCommentKey(try event("n", keyCode: 45)))
+        #expect(!NoteEditorTextView.isCommentKey(try event("x", keyCode: 46)))  // a Latin layout with x there
+    }
+
+    @Test func aStaleLongSelectionThatReachesTheServiceShowsTheRightStrip() async throws {
+        let s = try await setup()
+        s.model.beginEditing(s.item)
+        let long = String(repeating: "word ", count: 500)
+        let wrote = await s.model.addComment(
+            body: "x", selection: NSRange(location: 0, length: CommentAnchors.maxQuoteLength + 1), buffer: long)
+        #expect(!wrote)
+        #expect(s.model.feedback == .commentSelectionTooLong)
+        let none = await s.model.addComment(body: "x", selection: NSRange(location: 2, length: 0), buffer: notes)
+        #expect(!none)
+        #expect(s.model.feedback == .commentSelectionInvalid)
+    }
 }
 
 final class CommentBox<Value>: @unchecked Sendable {

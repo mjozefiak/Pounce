@@ -151,6 +151,15 @@ final class NoteEditorTextView: NSTextView {
 
     // MARK: Shortcuts
 
+    /// ⇧⌘M: the character "m", or, on a layout whose letters are not Latin (Cyrillic, Greek, ...), the physical
+    /// key where the ANSI M sits (key code 46), so the shortcut does not depend on the layout's characters.
+    static func isCommentKey(_ event: NSEvent) -> Bool {
+        let chars = event.charactersIgnoringModifiers?.lowercased() ?? ""
+        if chars == "m" { return true }
+        let isLatinLetter = chars.unicodeScalars.contains { $0.isASCII && $0.properties.isAlphabetic }
+        return event.keyCode == 46 && !isLatinLetter
+    }
+
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         if isEditable, flags == .command, let key = event.charactersIgnoringModifiers {
@@ -164,9 +173,7 @@ final class NoteEditorTextView: NSTextView {
             default: break
             }
         }
-        if isEditable, flags == [.command, .shift], event.charactersIgnoringModifiers?.lowercased() == "m",
-            let commentShortcut
-        {
+        if isEditable, flags == [.command, .shift], Self.isCommentKey(event), let commentShortcut {
             commentShortcut()
             return true
         }
