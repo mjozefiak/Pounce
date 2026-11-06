@@ -190,9 +190,11 @@ struct NotesTraceVerification: Equatable, Sendable, Codable {
     var downgraded: Int
     /// `repaired` by the reason of each repair (schema 3; empty when decoded from an older trace).
     var repairReasons: [NotesGuard.RepairReason: Int]
+    /// Tasks whose person is the speaker, given by the guard (a count; empty trace field reads as 0).
+    var ownerFromSpeaker = 0
 
     private enum CodingKeys: String, CodingKey {
-        case proposed, verified, dropped, reasons, repaired, downgraded, repairReasons
+        case proposed, verified, dropped, reasons, repaired, downgraded, repairReasons, ownerFromSpeaker
     }
 
     /// `reasons` and `repairReasons` are written as objects keyed by the reason's raw value (a dictionary keyed
@@ -211,6 +213,7 @@ struct NotesTraceVerification: Equatable, Sendable, Codable {
             ? try Self.decodeCounts(
                 NotesGuard.RepairReason.self, forKey: .repairReasons, in: container, unknown: "Unknown repair reason")
             : [:]
+        ownerFromSpeaker = try container.decodeIfPresent(Int.self, forKey: .ownerFromSpeaker) ?? 0
     }
 
     private static func decodeCounts<Reason: RawRepresentable & Hashable>(
@@ -239,6 +242,7 @@ struct NotesTraceVerification: Equatable, Sendable, Codable {
         try container.encode(
             Dictionary(uniqueKeysWithValues: repairReasons.map { ($0.key.rawValue, $0.value) }),
             forKey: .repairReasons)
+        try container.encode(ownerFromSpeaker, forKey: .ownerFromSpeaker)
     }
 
     init(proposed: Int, verdict: NotesGuard.PointVerdict) {
@@ -249,6 +253,7 @@ struct NotesTraceVerification: Equatable, Sendable, Codable {
         repaired = verdict.repaired
         downgraded = verdict.downgraded
         repairReasons = verdict.repairReasons
+        ownerFromSpeaker = verdict.ownerFromSpeaker
     }
 }
 

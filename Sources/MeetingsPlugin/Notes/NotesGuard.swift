@@ -79,6 +79,9 @@ struct NotesGuard: Sendable {
         var downgraded = 0
         /// `repaired`, by the reason of each repair (the counts add up to `repaired`).
         var repairReasons: [RepairReason: Int] = [:]
+        /// Tasks whose person the model left empty and the guard filled with the speaker of a first person
+        /// singular quote. A count only, never a name.
+        var ownerFromSpeaker = 0
     }
 
     struct ReduceVerdict: Equatable, Sendable {
@@ -190,6 +193,7 @@ struct NotesGuard: Sendable {
         var repaired = 0
         var downgraded = 0
         var repairReasons: [RepairReason: Int] = [:]
+        var ownerFromSpeaker = 0
         for point in points {
             switch verify(point) {
             case .success(let outcome):
@@ -199,12 +203,13 @@ struct NotesGuard: Sendable {
                     repairReasons[reason, default: 0] += 1
                 }
                 if outcome.downgraded { downgraded += 1 }
+                if outcome.ownerFromSpeaker { ownerFromSpeaker += 1 }
             case .failure(let reason): reasons[reason, default: 0] += 1
             }
         }
         return PointVerdict(
             verified: verified, dropped: points.count - verified.count, reasons: reasons, repaired: repaired,
-            downgraded: downgraded, repairReasons: repairReasons)
+            downgraded: downgraded, repairReasons: repairReasons, ownerFromSpeaker: ownerFromSpeaker)
     }
 
     private struct Match {
@@ -223,6 +228,8 @@ struct NotesGuard: Sendable {
         /// Set when the text was replaced by the quote.
         var repair: RepairReason?
         var downgraded = false
+        /// Set when the person is the speaker, given by the guard (`ownerFromSpeaker`).
+        var ownerFromSpeaker = false
     }
 
     private func verify(_ point: NotesPoint) -> Result<Outcome, DropReason> {
@@ -297,6 +304,12 @@ struct NotesGuard: Sendable {
         if outcome.point.kind == .task {
             outcome.point.person = checkedPerson(
                 point.person, match: match, speaker: utterances[covered[0]].speaker)
+            if outcome.point.person == nil, Self.isEmptyPerson(point.person), covered.count == 1,
+                let owner = ownerFromSpeaker(match.range, speaker: utterances[covered[0]].speaker)
+            {
+                outcome.point.person = owner
+                outcome.ownerFromSpeaker = true
+            }
             outcome.point.due = checkedDue(point.due, quoteWords: quoteWords)
         } else {
             outcome.point.person = nil
@@ -468,6 +481,35 @@ struct NotesGuard: Sendable {
         return flat.wholeMatch(
             of: /(speaker|mowca|rozmowca|uczestnik|participant|unknown|nieznany|inni|ja|ty|my|on|ona|me|you)( \d+)?/)
             != nil
+    }
+
+    /// The plural forms of `firstPersonWords` and `firstPersonPairs`: they say "we", so they name nobody.
+    private static let pluralWords: Set<String> = ["my", "zrobimy", "wezmiemy", "wyslemy", "zajmiemy"]
+    private static let pluralPairs: [(String, String)] = [("we", "will"), ("we", "ll")]
+
+    private static func isEmptyPerson(_ person: String?) -> Bool {
+        guard let person else { return true }
+        return plain(person).isEmpty
+    }
+
+    /// The speaker owns a task the model gave no person when the quote lies in one utterance, says "I" (a
+    /// singular marker, no plural one) and the speaker's label is a real name.
+    private func ownerFromSpeaker(_ range: Range<Int>, speaker: String) -> String? {
+        guard !Self.isGenericLabel(speaker) else { return nil }
+        let quote = Array(words[range])
+        let singular = quote.contains { Self.firstPersonWords.contains($0) && !Self.pluralWords.contains($0) }
+        var pairSingular = false
+        var plural = quote.contains { Self.pluralWords.contains($0) }
+        for index in quote.indices.dropLast() {
+            let pair = (quote[index], quote[index + 1])
+            if Self.pluralPairs.contains(where: { $0 == pair }) {
+                plural = true
+            } else if Self.firstPersonPairs.contains(where: { $0 == pair }) {
+                pairSingular = true
+            }
+        }
+        guard (singular || pairSingular) && !plural else { return nil }
+        return speaker
     }
 
     private func hasFirstPersonMarker(_ range: Range<Int>) -> Bool {
