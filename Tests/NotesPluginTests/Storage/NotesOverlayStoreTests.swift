@@ -220,4 +220,23 @@ import Testing
         #expect(rows[1].badge == .recordingRemoved)
         #expect(try frozen.detachedOverlays().isEmpty)
     }
+
+    @Test func aMalformedMetaJSONNeverMakesListingsOrTheRetentionDeleteThrow() throws {
+        let harness = try NotesHarness()
+        defer { withExtendedLifetime(harness) {} }
+        let store = try harness.openStore()
+        let bad = try store.insertDocument(.overlay("bad", author: "agent", state: .detached))
+        let good = try store.insertDocument(.overlay("good", author: "agent", state: .detached))
+        try store.write { db in
+            try db.execute(
+                sql: "UPDATE note_revision SET meta_json = '{not json' WHERE doc_id = ?", arguments: [bad.docID])
+            try db.execute(
+                sql: "UPDATE note_revision SET meta_json = '{\"comment_ids\":[1]}' WHERE doc_id = ?",
+                arguments: [good.docID])
+        }
+        #expect(try store.detachedOverlays().map(\.isKept).sorted { !$0 && $1 } == [false, true])
+        #expect(try store.keptOverlays(excludingPlugins: []).isEmpty)  // both are detached, not live
+        #expect(try store.deleteUnkeptDetached() == 1)
+        #expect(try store.detachedOverlays().map(\.docID) == [good.docID])
+    }
 }

@@ -154,11 +154,13 @@ extension NotesStore {
     }
 
     /// User writing (an applied `human` revision, or an applied `agent` revision with `comment_ids`, one
-    /// definition) or an open comment: the overlay is never deleted with its source.
+    /// definition) or an open comment: the overlay is never deleted with its source. A malformed `meta_json` counts
+    /// as no `comment_ids` (`json_valid` guards `json_extract`, so one bad row cannot make a listing throw).
     static let keptSQL = """
         (EXISTS (SELECT 1 FROM note_revision r WHERE r.doc_id = d.id AND r.state = 'applied'
                     AND (r.author = 'human'
-                        OR (r.author = 'agent' AND json_extract(r.meta_json, '$.comment_ids') IS NOT NULL)))
+                        OR (r.author = 'agent' AND CASE WHEN json_valid(r.meta_json)
+                                THEN json_extract(r.meta_json, '$.comment_ids') END IS NOT NULL)))
             OR EXISTS (SELECT 1 FROM note_comment c WHERE c.doc_id = d.id AND c.status = 'open'))
         """
 }
