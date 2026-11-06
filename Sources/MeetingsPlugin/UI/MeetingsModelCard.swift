@@ -24,13 +24,16 @@ final class MeetingsModelCardModel {
     @ObservationIgnored private let setCustomFolder: (URL?) -> Void
     @ObservationIgnored private let pickFolder: @MainActor () -> URL?
     @ObservationIgnored private let usage: MeetingsModelUsage
+    /// Checks a folder the user chose. The manager's check unless a caller (a test) supplies its own.
+    @ObservationIgnored private let verifyFolder: @Sendable (URL, ModelPackage) async throws -> Void
     @ObservationIgnored private var downloadTask: Task<Void, Never>?
     /// Tells a progress report of the running download from a late one of an earlier download.
     @ObservationIgnored private var downloadGeneration = 0
 
     init(
         package: ModelPackage, manager: ModelManager, usage: MeetingsModelUsage, customFolder: @escaping () -> URL?,
-        setCustomFolder: @escaping (URL?) -> Void, pickFolder: @escaping @MainActor () -> URL?
+        setCustomFolder: @escaping (URL?) -> Void, pickFolder: @escaping @MainActor () -> URL?,
+        verifyFolder: (@Sendable (URL, ModelPackage) async throws -> Void)? = nil
     ) {
         self.package = package
         self.manager = manager
@@ -38,6 +41,8 @@ final class MeetingsModelCardModel {
         self.customFolder = customFolder
         self.setCustomFolder = setCustomFolder
         self.pickFolder = pickFolder
+        self.verifyFolder =
+            verifyFolder ?? { folder, package in try await manager.verify(folder: folder, for: package) }
     }
 
     var isDownloading: Bool { progress != nil }
@@ -110,7 +115,7 @@ final class MeetingsModelCardModel {
         errorMessage = nil
         isVerifying = true
         do {
-            try await manager.verify(folder: folder, for: package)
+            try await verifyFolder(folder, package)
             if package.id == chosenFor { setCustomFolder(folder) }
         } catch {
             if package.id == chosenFor { errorMessage = MeetingsModelMessages.message(for: error) }

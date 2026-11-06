@@ -146,6 +146,16 @@ import os
         }
     }
 
+    /// A Spotlight stand-in that reports no applications, so the scan and the seed see only the fixture.
+    @MainActor final class QuietMetadataSource: AppMetadataSource {
+        private(set) var started = 0
+        func start() -> AsyncStream<[String]> {
+            started += 1
+            return AsyncStream { _ in }
+        }
+        func stop() {}
+    }
+
     @Test func theSeedWaitsForTheFirstFinishedScan() async throws {
         let harness = try makeHarness { settings in
             settings.setValue(.bool(true), forKey: "plugins.apps.spotlight")
@@ -156,20 +166,19 @@ import os
         try AppCache(directory: harness.plugin.context.cachesDirectory).save(cached)
         let reader = RecordingUsageDatesReader()
         harness.plugin.usageDatesReader = reader
+        let metadata = QuietMetadataSource()
+        harness.plugin.makeMetadataSource = { metadata }
         try await harness.plugin.activate()
+        #expect(metadata.started == 1)
         #expect(!harness.plugin.store.apps.isEmpty)
         #expect(harness.plugin.seedPending)
         #expect(harness.plugin.seedTask == nil)
         #expect(reader.paths.withLock { $0 }.isEmpty)
 
-        // Spotlight is on, so its first answer may replace the scan that is running: wait until a scan that
-        // was not replaced has seeded.
-        for _ in 0..<500 {
-            await harness.plugin.waitForRefresh()
-            await harness.plugin.waitForSeed()
-            if !reader.paths.withLock({ $0 }).isEmpty { break }
-            try await Task.sleep(for: .milliseconds(10))
-        }
+        // Spotlight is on, but the scripted source never answers: the first scan is the only one, and it
+        // is the one that starts the seed.
+        await harness.plugin.waitForRefresh()
+        await harness.plugin.waitForSeed()
         #expect(reader.paths.withLock { Set($0) } == ["Mail.app", "Notes.app"])
         let seededAt = harness.plugin.activity.snapshot.seededAt
         #expect(seededAt != nil && seededAt != ActivityStore.seedSkipped)

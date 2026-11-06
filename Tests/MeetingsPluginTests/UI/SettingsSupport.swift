@@ -113,12 +113,18 @@ final class SettingsRig {
     let activity = MeetingActivity()
     let notesService: NotesService
     let llmModels: ModelRig
+    /// Opens when a folder check starts, so a test knows the card is verifying without polling.
+    let verificationStarted = Latch()
+    /// When set, a folder check waits for it to open: the check stays "in flight" until the test lets it end.
+    let verificationRelease: Latch?
 
     init(
         settings: [String: SettingValue] = [:], access: MicrophoneAccess = .notDetermined,
+        holdVerification: Bool = false,
         openURL: @escaping @MainActor (URL) -> Void = { _ in }
     ) throws {
         harness = try MeetingsHarness(settings: settings)
+        verificationRelease = holdVerification ? Latch() : nil
         models = try ModelRig(id: "rig-speech")
         diarizationModels = try ModelRig(id: "rig-diarization")
         authorizer = FakeAuthorizer(access)
@@ -135,7 +141,12 @@ final class SettingsRig {
         let speech = MeetingsModelCardModel(
             package: models.package, manager: models.manager, usage: usage,
             customFolder: { meetingsSettings.speechModelFolder },
-            setCustomFolder: { meetingsSettings.setSpeechModelFolder($0) }, pickFolder: { picked.get() })
+            setCustomFolder: { meetingsSettings.setSpeechModelFolder($0) }, pickFolder: { picked.get() },
+            verifyFolder: { [verificationStarted, verificationRelease, manager = models.manager] folder, package in
+                verificationStarted.open()
+                await verificationRelease?.wait()
+                try await manager.verify(folder: folder, for: package)
+            })
         let diarization = MeetingsModelCardModel(
             package: diarizationModels.package, manager: diarizationModels.manager, usage: usage,
             customFolder: { meetingsSettings.diarizationModelFolder },
