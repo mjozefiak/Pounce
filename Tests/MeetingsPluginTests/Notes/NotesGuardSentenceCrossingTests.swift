@@ -3,91 +3,106 @@ import Testing
 
 @testable import MeetingsPlugin
 
-/// A literal quote (no skipped words) may run over a sentence end when one speaker says all of it; a change of
-/// speaker still blocks it, and a quote with a skipped word stays within one sentence.
+/// A literal quote that runs on past a sentence end inside one speaker's words is matched on its first sentence
+/// only (the rest of the quote is ignored), provided that part is long enough. A crossing at a speaker change, or
+/// by a quote with a skipped word, is no match at all.
 @Suite struct NotesGuardSentenceCrossingTests {
-    private static let twoSentences =
-        "If it's not that urgent, I can take it. I just won't be able to get to it."
-    private static let quote = "If it's not that urgent, I can take it. I just won't be able to get to it."
+    private static let first = "If it's not that urgent, I can take it."
+    private static let second = "I just won't be able to get to it."
+    private static let both = first + " " + second
 
-    private func verdict(_ utterances: [NotesUtterance], quote: String, kind: NotesPointKind = .summary)
-        -> NotesGuard.PointVerdict
-    {
-        NotesGuard(utterances: utterances).verifyPoints([
-            GuardFixtures.point(
-                "p1", kind, quote: quote, text: "I can take it, but not soon.", person: nil)
-        ])
+    private func verify(
+        _ utterances: [NotesUtterance], quote: String, text: String = "I can take it if it is not urgent.",
+        kind: NotesPointKind = .summary
+    ) -> NotesGuard.PointVerdict {
+        NotesGuard(utterances: utterances).verifyPoints([GuardFixtures.point("p1", kind, quote: quote, text: text)])
     }
 
-    @Test func aLiteralQuoteOfTwoSentencesBySameSpeakerInOneSegmentIsMatched() {
-        let result = verdict(
-            [NotesUtterance(startMs: 0, speaker: "Anna", text: Self.twoSentences)], quote: Self.quote)
+    private func anna(_ text: String) -> [NotesUtterance] {
+        [NotesUtterance(startMs: 0, speaker: "Anna", text: text)]
+    }
+
+    @Test func aTwoSentenceQuoteIsMatchedOnItsFirstSentenceOnly() {
+        let result = verify(anna(Self.both), quote: Self.both)
         #expect(result.dropped == 0)
-        // The shown quote is the transcript's text of both sentences.
-        #expect(result.verified.first?.quote == Self.twoSentences)
+        #expect(result.repaired == 0)
+        // The shown quote (the covered range) ends at the end of the first sentence, terminator included, and
+        // holds nothing of the second.
+        #expect(result.verified.first?.quote == Self.first)
+        #expect(result.verified.first?.quote.contains("won't") == false)
     }
 
-    @Test func aSentenceEndAtASpeakerChangeStillBlocksTheQuote() {
-        let result = verdict(
+    @Test func aPointThatNeedsTheSecondSentenceIsRepairedToTheFirstOne() {
+        // "next week" is in no word of the first sentence: the usual faithfulness check replaces the text.
+        let result = verify(
+            anna(Self.both), quote: Self.both, text: "I won't be able to get to it before next week.")
+        #expect(result.dropped == 0)
+        #expect(result.repaired == 1)
+        #expect(result.verified.first?.text == Self.first)
+        // A negation that only the second sentence has is not in the matched quote: the negation check
+        // repairs the text to the first sentence.
+        let transcript = anna("We ship on Friday. We will not ship on Monday.")
+        let negated = verify(transcript, quote: "We ship on Friday. We will not ship", text: "We will not ship.")
+        #expect(negated.repaired == 1)
+        #expect(negated.verified.first?.text == "We ship on Friday.")
+    }
+
+    @Test func aQuestionTailAndTheNextStatementOfOneSpeakerAreStillNoMatch() {
+        let result = verify(
             [
-                NotesUtterance(startMs: 0, speaker: "Anna", text: "If it's not that urgent, I can take it."),
-                NotesUtterance(startMs: 4000, speaker: "Marek", text: "I just won't be able to get to it."),
-            ], quote: Self.quote)
+                NotesUtterance(startMs: 0, speaker: "Anna", text: "Czy to nie?"),
+                NotesUtterance(startMs: 3000, speaker: "Anna", text: "Zatwierdzamy budżet"),
+            ], quote: "nie zatwierdzamy budżet", text: "Odrzucono.", kind: .decision)
         #expect(result.reasons[.quoteNotInTranscript] == 1)
     }
 
-    @Test func aLiteralQuoteAcrossTwoSegmentsOfTheSameSpeakerIsMatched() {
-        let result = verdict(
+    @Test func aCrossingAtASpeakerChangeIsStillNoMatch() {
+        let result = verify(
             [
-                NotesUtterance(startMs: 0, speaker: "Anna", text: "If it's not that urgent, I can take it."),
-                NotesUtterance(startMs: 4000, speaker: "Anna", text: "I just won't be able to get to it."),
-            ], quote: Self.quote)
-        #expect(result.dropped == 0)
-        // The excerpt joins the pieces of the two segments; the full stop at the segment boundary is not kept.
-        #expect(
-            result.verified.first?.quote == "If it's not that urgent, I can take it I just won't be able to get to it.")
-        #expect(result.verified.first?.utterance == 0)
+                NotesUtterance(startMs: 0, speaker: "Anna", text: Self.first),
+                NotesUtterance(startMs: 4000, speaker: "Marek", text: Self.second),
+            ], quote: Self.both)
+        #expect(result.reasons[.quoteNotInTranscript] == 1)
     }
 
     @Test func aQuoteWithASkippedWordDoesNotCrossASentenceEnd() {
-        // "really" is left out of the quote; the quote spans the sentence end.
-        let result = verdict(
-            [
-                NotesUtterance(
-                    startMs: 0, speaker: "Anna",
-                    text: "If it's not that urgent, I can take it. I just won't really be able to get to it.")
-            ], quote: Self.quote)
+        let result = verify(
+            anna("If it's not that urgent, I can take it. I just won't really be able to get to it."),
+            quote: Self.both)
         #expect(result.reasons[.quoteNotInTranscript] == 1)
-        // The same text with a gap inside one sentence still matches.
-        let inside = verdict(
-            [NotesUtterance(startMs: 0, speaker: "Anna", text: "I just won't really be able to get to it.")],
-            quote: "I just won't be able to get to it")
+        // A gap inside one sentence still matches.
+        let inside = verify(
+            anna("I just won't really be able to get to it."), quote: "I just won't be able to get to it")
         #expect(inside.dropped == 0)
     }
 
-    @Test func aLiteralQuoteInOneSentenceAndAShortQuoteWorkAsBefore() {
-        let transcript = [
-            NotesUtterance(startMs: 0, speaker: "Anna", text: "I can take it. I just won't be able to get to it.")
-        ]
-        #expect(verdict(transcript, quote: "I just won't be able to get to it").dropped == 0)
-        #expect(verdict(transcript, quote: "take it").reasons[.quoteTooShort] == 1)
+    @Test func aSingleSentenceQuoteAndAShortQuoteWorkAsBefore() {
+        let transcript = anna("I can take it. I just won't be able to get to it.")
+        #expect(verify(transcript, quote: "I just won't be able to get to it").dropped == 0)
+        #expect(verify(transcript, quote: "take it").reasons[.quoteTooShort] == 1)
     }
 
-    @Test func aQuoteOverTwoSentencesRepairsFromBothAndTakesTheFirstSentenceAsItsPlace() {
-        // A statement then a question: `sentence` and the question check look at the first sentence only.
-        let transcript = [
-            NotesUtterance(startMs: 0, speaker: "Anna", text: "We will ship on Friday. Who writes the notes?")
-        ]
-        let result = NotesGuard(utterances: transcript).verifyPoints([
-            GuardFixtures.point(
-                "p1", .decision, quote: "We will ship on Friday. Who writes the notes?",
-                text: "Shipping moved to 12 May 2031.")
-        ])
+    @Test func aFirstSentenceOfExactlyTheMinimumIsEnough() {
+        // Three words, then the sentence end; the quote runs into the second sentence.
+        let transcript = anna("We ship Friday. Nobody objects to that plan.")
+        let result = verify(
+            transcript, quote: "We ship Friday. Nobody objects", text: "We ship on Friday.")
         #expect(result.dropped == 0)
-        #expect(result.repaired == 1)
-        // The replacement is the whole two-sentence excerpt: no length limit, no "first sentence" cut.
-        #expect(result.verified.first?.text == "We will ship on Friday. Who writes the notes?")
-        #expect(result.verified.first?.sentence == 0)
-        #expect(result.verified.first?.kind == .decision)
+        #expect(result.verified.first?.quote == "We ship Friday.")
+        // Two words are below the minimum.
+        let tooShort = verify(anna("We ship. Nobody objects to that plan."), quote: "We ship. Nobody objects")
+        #expect(tooShort.reasons[.quoteNotInTranscript] == 1)
+    }
+
+    @Test func aCutRangeInTwoSegmentsOfOneSpeakerKeepsItsOwnTerminator() {
+        // The first sentence is cut by the recognizer in two segments and the quote runs past its end: the
+        // range ends with the sentence, so the terminator is shown and none of the next sentence.
+        let result = verify(
+            [
+                NotesUtterance(startMs: 0, speaker: "Anna", text: "If it's not that urgent, I can"),
+                NotesUtterance(startMs: 4000, speaker: "Anna", text: "take it. I just won't be able."),
+            ], quote: "If it's not that urgent, I can take it. I just won't")
+        #expect(result.dropped == 0)
+        #expect(result.verified.first?.quote == "If it's not that urgent, I can take it.")
     }
 }

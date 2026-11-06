@@ -143,9 +143,8 @@ import Testing
     @Test func aQuoteSplicedFromTwoUtterancesOfAQuestionIsNotInTheTranscript() {
         let guardrail = NotesGuard(utterances: [
             NotesUtterance(startMs: 0, speaker: "Anna", text: "Czy to nie?"),
-            NotesUtterance(startMs: 3000, speaker: "Marek", text: "Zatwierdzamy budżet"),
+            NotesUtterance(startMs: 3000, speaker: "Anna", text: "Zatwierdzamy budżet"),
         ])
-        // Two speakers (a literal quote may cross a sentence end only within one speaker's words).
         let spliced = GuardFixtures.point("p1", .decision, quote: "nie zatwierdzamy budżet", text: "Odrzucono.")
         #expect(guardrail.verifyPoints([spliced]).reasons[.quoteNotInTranscript] == 1)
         let honest = GuardFixtures.point("p2", .decision, quote: "Zatwierdzamy budżet", text: "Zatwierdzamy budżet.")
@@ -158,10 +157,8 @@ import Testing
             NotesUtterance(startMs: 9000, speaker: "Anna", text: "Mamy też wniosek o dodatkowe"),
             NotesUtterance(startMs: 12_000, speaker: "Marek", text: "środki na reklamę w tym roku."),
         ])
-        // A gap ("zrobimy" left out) may not jump the sentence end; a literal quote may, see
-        // `NotesGuardSentenceCrossingTests`.
         let sentences = GuardFixtures.point(
-            "p1", .decision, quote: "nie zatwierdzamy budżet marketingowy", text: "Nie.")
+            "p1", .decision, quote: "nie zrobimy zatwierdzamy budżet marketingowy", text: "Nie.")
         let speakers = GuardFixtures.point(
             "p2", .decision, quote: "wniosek o dodatkowe środki na reklamę", text: "Wniosek.")
         let verdict = guardrail.verifyPoints([sentences, speakers])
