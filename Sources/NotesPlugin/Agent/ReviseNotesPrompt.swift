@@ -45,17 +45,23 @@ enum ReviseNotesPrompt {
         """
 
     /// The delimiters of the user message (`<blocks>`, `<comments>`, `<before>`, `<after>`, `<unit>` and the answer's
-    /// `[[unit N]]` markers) cannot be forged by a note or a comment: inside the data a backslash is put after the
-    /// opening `<` (or between `[[`), and the guard takes it out of the answer again (`unescape`), so a block that
-    /// really contains such text still comes back as it was. The system prompt is unchanged, so `version` is too.
+    /// `[[unit N]]` markers) cannot be forged by a note or a comment: inside the data one more backslash is put
+    /// after the opening `<` (or between `[[`), after any backslashes already there, and the guard takes exactly one
+    /// out of the answer again (`unescape`). The two are inverse and the escape is injective, so a block that already
+    /// contains `<\unit` or `[\[unit` comes back as it was. Text without such a delimiter is not touched, and the
+    /// system prompt is unchanged, so `version` is too.
     static func escape(_ text: String) -> String {
-        text.replacing(/<(\/?)(blocks|comments|before|after|unit)/.ignoresCase()) { "<\\\($0.output.1)\($0.output.2)" }
-            .replacing(/\[\[(\s*unit)/.ignoresCase()) { "[\\[\($0.output.1)" }
+        text.replacing(/<(\\*)(\/?)(blocks|comments|before|after|unit)/.ignoresCase()) {
+            "<\($0.output.1)\\\($0.output.2)\($0.output.3)"
+        }
+        .replacing(/\[(\\*)\[(\s*unit)/.ignoresCase()) { "[\($0.output.1)\\[\($0.output.2)" }
     }
 
     static func unescape(_ text: String) -> String {
-        text.replacing(/<\\(\/?)(blocks|comments|before|after|unit)/.ignoresCase()) { "<\($0.output.1)\($0.output.2)" }
-            .replacing(/\[\\\[(\s*unit)/.ignoresCase()) { "[[\($0.output.1)" }
+        text.replacing(/<\\(\\*)(\/?)(blocks|comments|before|after|unit)/.ignoresCase()) {
+            "<\($0.output.1)\($0.output.2)\($0.output.3)"
+        }
+        .replacing(/\[\\(\\*)\[(\s*unit)/.ignoresCase()) { "[\($0.output.1)[\($0.output.2)" }
     }
 
     /// The chat for one run: the system prompt and the units. Blocks are separated by one blank line.
