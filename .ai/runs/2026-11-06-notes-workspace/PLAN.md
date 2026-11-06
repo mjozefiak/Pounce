@@ -68,6 +68,8 @@
 | 7 | 7.1 | ENABLES NOTES FOR USERS: palette, Hide content, remove DEBUG guards | inline | done | 08865c4 |
 | 7 | 7.2 | ENABLES NOTES FOR USERS: Welcome mentions Notes | dispatch | done | d6cdc85 |
 | 7 | 7.3 | ENABLES NOTES FOR USERS: remove Meetings window after parity checklist | inline | BLOCKED (parity gap: rename speaker, mark self, finish with the gap accepted have no Notes control; nothing removed) | — |
+| 7 | 7.x-final-1to1 | Final 1:1 pass: "Finish with a Gap" Notes action (closes parity gap 3 of 3 for 7.3) | inline | done | 09b90dd |
+| 7 | 7.x-final-1to1 | Explorer row "Agent writing notes 2/5" like the prototype | inline | done | a30a953 |
 
 ## Goal
 
