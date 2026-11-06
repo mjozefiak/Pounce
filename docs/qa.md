@@ -459,6 +459,26 @@ stands on a quote that is in the recording; no task owner nobody named; none of 
 `NOTES-BENCH` lines with the timings, chunk count, dropped count and memory (`docs/perf.md`). It prints no transcript
 text. Record the lines in the PR body together with the model and the Mac.
 
+### Notes workspace: `--qa-notes` and the DEBUG QA keys (steps 1.2 to 6.4)
+
+`--qa-notes` (DEBUG builds only until step 7.1) turns on `plugins.notes.qaFixtures`: the Notes section lists fixture notes with invented text (a meeting, a dictation, a manual note) that come before the real plugins' sources, and the run uses its own `notes.sqlite` under `--qa-data-root`, so no real recording, Keychain item or file is touched. Every key below is set with `--qa-setting <key>=<value>`, needs `--qa-notes`, exists only in DEBUG builds and is NOT a contract (`BACKWARD_COMPATIBILITY.md` section 3):
+
+| Key | Values | Shows |
+|---|---|---|
+| `plugins.notes.qaFixtures` | set by `--qa-notes` | the fixture notes |
+| `plugins.notes.qaOpen` | `<key>[@<layer>],…` | those notes in tabs, the last one current |
+| `plugins.notes.qaSearch` | text | the explorer's search field filled in |
+| `plugins.notes.qaState` | `loading`, `empty`, `off`, `locked`, `locked-rows`, `save-error` and the others of the `qaState` row above | one whole-section state |
+| `plugins.notes.qaEditor` | `on`, `readonly` | the Markdown editor on the open note |
+| `plugins.notes.qaAttribution` | `mixed` | the author gutter with a mixed human and agent layer |
+| `plugins.notes.qaManual` | `new`, `written` | a new manual note, a written one |
+| `plugins.notes.qaHistory` | `history`, `compare`, `proposal`, `proposal-compare` | the History tab, Compare, a pending proposal |
+| `plugins.notes.qaComments` | `threads`, `popover`, `changed` | the comment threads, the popover, a changed block |
+| `plugins.notes.qaRevise` | `waiting`, `writing`, `done`, `skipped`, `rejected`, `conflict`, `timedOut`, `needsModel` | the agent revise strips and the editor lock |
+| `plugins.notes.qaDelete` | `meeting`, `meeting-edited`, `dictation`, `manual`, `copy` | the delete confirmation sheets |
+
+`--qa-settings notes` opens Settings → Notes. `--qa-snapshot <path>` with `--qa-quit-after` writes the main window's content as a PNG just before quitting (use it for the light and dark screenshots of every state). Run each state once in light and once in dark, with Increase Contrast on once, and attach the PNGs to the PR. QA never starts a real recording or a model: the revise states use scripted answers.
+
 ### Notes revise corpus (Notes workspace, step 6.4)
 
 `Tests/NotesPluginTests/Fixtures/revise/` holds eight short notes (Polish, English, Polish with English terms) with their

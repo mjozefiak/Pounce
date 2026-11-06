@@ -159,3 +159,13 @@ Where steps 3.x to 4.7 of `.ai/specs/2026-11-04-notes-workspace.md` ended up dif
 7. **Restore.** Restore accepts only an applied revision of the same document that is not the head, and says why it failed (the note changed, read-only, not an earlier version) instead of one generic message.
 8. **Recorded titles.** A recorded note's title is renamed in its owner through `NoteSourceEditing`, never in `notes.sqlite`; only manual notes keep a title override in Notes.
 9. **Registration.** Notes is registered `#if DEBUG` until step 7.1, and 7.1 to 7.3 are the last three commits so the owner can cut them (PLAN.md ordering deviation).
+
+### Addendum: Notes enabled, the release-gate flip (steps 7.1 to 7.3)
+
+Written with step 7.4, so the docs describe what the three last commits of the stack do. Terms as in "Release gate": **Notes enabled** is the state after 7.1.
+
+- **7.1** removes the `#if DEBUG` around `NotesPlugin` in `PluginRegistry` (it is then part of the shipped set), adds the command palette (⌘P) and "Hide content" (⌘⇧H), and replaces `NotesRegistrationTests` by a source-scanning test that `NotesPlugin` and `MainWindowController` are not inside `#if DEBUG`. From this build on every user has the Notes section, the plugin's `plugins.notes.*` keys and, on the first need, `Plugins/notes/notes.sqlite` with the Keychain item `com.lintelapp.notes` (created lazily, never on launch).
+- **7.2** and **7.3** ship the remaining visibility work (the empty state and the first-run hint, and the removal of `MeetingWindowController` once the reader replaces it). `--qa-notes`, `--qa-snapshot` and every `plugins.notes.qa…` key stay DEBUG-only.
+- **Nothing is migrated.** Recordings stay in their owners' stores; Notes keeps only overlays (copies of text the user edited or commented) and manual notes.
+- **Rollback.** A revert of 7.1 to 7.3 hides the section and stops the plugin; `notes.sqlite` and the Keychain item stay on disk unread, so the next build that enables Notes finds the user's edits again. The file is encrypted with a key in the login keychain, so a copy of the file alone is unreadable and a user who has to remove the Keychain item or reset the Mac loses it. Therefore **export first**: Settings → Notes → "Export All Notes…" writes one Markdown file per note and `manifest.json`. A support instruction to stop all writing without reverting is the hidden `plugins.notes.readOnly` (BC section 3). Erase Notes Data removes the store and the Keychain item and never touches the sources.
+- A release tag inside the stack is allowed before 7.1 only because Notes is DEBUG-only; after 7.1 the tag is a release that ships Notes, and `BACKWARD_COMPATIBILITY.md` sections 1, 2, 3 and 5 apply to it as written.

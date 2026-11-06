@@ -286,6 +286,19 @@ Measurement checklist (copy into the PR that records the numbers):
 - [ ] Dictation tail with a notes job running.
 - [ ] If a figure differs from the table above by a large factor, change `notesChunkTokens` / `notesReduceInputTokens` here and in `MeetingsSettings`, and record why.
 
+## Notes workspace (spec: Notes workspace, budgets of the spec; none measured yet)
+
+None of these figures has been measured. The Notes workspace adds no search source, so the launcher panel keeps its < 50 ms show budget. The typing row is in the first table of this file and the revise rows are in the section below.
+
+| What | Budget | Measured | How to measure |
+|---|---|---|---|
+| Open a note of 20 000 characters, to first paint | < 150 ms | not yet measured | Release build, `--qa-notes`, a 20 000 character note, stopwatch or Instruments signpost |
+| Typing latency, notes up to 50 000 characters | < 16 ms per keystroke (the editor's own p99 row is < 8 ms) | not yet measured | `EditorBenchmarks` (off by default) and a real window |
+| List of 1 000 summaries | < 200 ms | not yet measured | Scripted sources with 1 000 notes, time `NotesWorkspaceModel.refresh()` |
+| Window search, fan-out | within the 150 ms per-source budget | not yet measured | Time a query against a scripted slow source; the budget cut is tested on a manual clock |
+| `notes.sqlite` writes | off the main thread | not yet measured | Time Profiler on a typing session |
+| Size of one document's history | per document below the pruning cap (200 revisions) | not yet measured | 200 revisions of 200 000 characters would be about 40 MB; compress only if a real document is above budget |
+
 ### Notes revise run (spec: Notes workspace, steps 6.2 and 6.4)
 
 The agent rewrites only the commented blocks on the notes model (`ReviseService`, `ReviseNotesPrompt`, `ReviseGuard`). It
