@@ -156,7 +156,10 @@ struct MeetingEvalTests {
             let runtime = LlamaRuntime(contextLength: NotesModel.contextLength)
             let notesModel = NotesModel(
                 lease: LLMLease(), runtime: runtime, modelURL: modelURL, keepWarm: { .seconds(1) })
-            let pipeline = NotesPipeline(model: notesModel, configuration: configuration)
+            let traceEvents = Mutex<[NotesTraceEvent]>([])
+            let pipeline = NotesPipeline(
+                model: notesModel, configuration: configuration,
+                trace: { event in traceEvents.withLock { $0.append(event) } })
             let utterances = rows.map { NotesUtterance(startMs: $0.startMs, speaker: $0.speaker ?? "?", text: $0.text) }
             let footprint = FootprintSampler()
             footprint.start()
@@ -179,6 +182,14 @@ struct MeetingEvalTests {
                 status: notes.status.rawValue, chunkCount: notes.chunkCount, verifiedPoints: notes.verifiedPointCount,
                 dropped: notes.droppedCount, failedChunks: notes.failedChunks.count, reduceFailed: notes.reduceFailed,
                 markdown: notes.markdown ?? "")
+            let events = traceEvents.withLock { $0 }
+            let balance = NotesTrace.balance(of: events)
+            let traceURL = try EvalResultWriter.write(NotesTraceFile(recording: name, events: events), to: outDirectory)
+            print(
+                "MEETING-EVAL notes-trace events=\(events.count) verified=\(balance.verified)"
+                    + " rendered=\(balance.rendered) notRendered=\(balance.notRendered)"
+                    + " unexplained=\(balance.unexplained)")
+            print("MEETING-EVAL wrote \(traceURL.path)")
             print(
                 "MEETING-EVAL notes seconds=\(Self.ms(seconds)) peakMB=\(Self.ms(peak)) status=\(notes.status.rawValue)"
                     + " chunks=\(notes.chunkCount) points=\(notes.verifiedPointCount) dropped=\(notes.droppedCount)")
