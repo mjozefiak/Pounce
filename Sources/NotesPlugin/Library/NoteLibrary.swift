@@ -30,6 +30,11 @@ actor NoteLibrary {
     private var hasLoadedSources = false
     private var loading: Task<Void, Never>?
     private var reportedDrops = Set<NoteSourceSet.Drop>()
+    /// Overlays whose `startedAt` no longer matches the source but whose detach threw (a newer schema, a locked
+    /// store): shown as detached ("Recording removed") in memory, by `docID`, so the old text is never shown as
+    /// the live note's and a kept one is not lost from the list. A later successful detach makes the store the
+    /// owner of the row again.
+    private var detachedInMemory: [Int64: OverlayRecord] = [:]
 
     init(
         sources provider: @escaping @MainActor @Sendable () -> [any NoteSource], overlays: any OverlayIndex,
@@ -341,6 +346,7 @@ actor NoteLibrary {
                     try await detacher.detach(summary.id, reason: .startedAtChanged(sourceStartedAtMs: started))
                 } catch {
                     logger.error("detach failed: \(String(describing: type(of: error)), privacy: .public)")
+                    for record in found { detachedInMemory[record.docID] = record }
                 }
                 items.append(SourceProgress.Item(summary: summary, overlays: []))
             } else {
@@ -360,7 +366,10 @@ actor NoteLibrary {
                 rows.append(
                     NoteRow(id: .live(record.key), summary: summary, badge: nil, overlays: [record], isReadOnly: false))
             }
-            rows.append(contentsOf: Self.detachedRows(try await overlays.detachedOverlays()))
+            var detached = try await overlays.detachedOverlays()
+            let stored = Set(detached.map(\.docID))
+            detached += detachedInMemory.values.filter { !stored.contains($0.docID) }.sorted { $0.docID < $1.docID }
+            rows.append(contentsOf: Self.detachedRows(detached))
             rows.append(contentsOf: Self.offRows(try await overlays.keptOverlays(excludingPlugins: live)))
         } catch {
             logger.error(

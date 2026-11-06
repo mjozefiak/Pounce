@@ -179,4 +179,45 @@ import Testing
         #expect(NoteKey(rawValue: "garbage") == nil)
         #expect(NoteKey(rawValue: "meetings:abc")?.id == "abc")
     }
+
+    @Test func aStartedAtMismatchDetachesUnderReadOnlyAndShowsAsDetachedUnderANewerSchema() async throws {
+        let harness = try NotesHarness()
+        defer { withExtendedLifetime(harness) {} }
+        let first = harness.opener()
+        first.open()
+        let store = try #require(first.store)
+        try store.insertDocument(.overlay("m1", layer: "notes", author: "human", startedAtMs: 1_000))
+        let source = ScriptedNoteSource("meetings", items: [Fixtures.summary("meetings", "m1", secondsAgo: 10)])
+
+        // readOnly on: the detach still works (it only re-keys).
+        harness.settings.set(true, for: NotesSettingsKey.readOnly)
+        let index = StoreOverlayIndex(store: store)
+        let library = NoteLibrary(sources: { [source] }, overlays: index, detacher: index)
+        let listing = await library.list(matching: nil, after: nil, limit: 5)
+        #expect(listing.rows.count == 2)
+        #expect(try store.detachedOverlays().count == 1)
+        #expect(try store.liveOverlays(for: [meeting]).isEmpty)
+
+        // A newer schema: the detach throws, the old text is still shown as detached, never as live.
+        let second = try NotesHarness()
+        defer { withExtendedLifetime(second) {} }
+        let other = second.opener()
+        other.open()
+        let newer = try #require(other.store)
+        try newer.insertDocument(.overlay("m1", layer: "notes", author: "human", startedAtMs: 1_000))
+        try newer.write { db in
+            try db.execute(sql: "INSERT INTO grdb_migrations(identifier) VALUES ('v2-future')")
+        }
+        other.close()
+        let reopened = second.opener()
+        reopened.open()
+        let frozen = try #require(reopened.store)
+        let frozenIndex = StoreOverlayIndex(store: frozen)
+        let frozenLibrary = NoteLibrary(sources: { [source] }, overlays: frozenIndex, detacher: frozenIndex)
+        let rows = await frozenLibrary.list(matching: nil, after: nil, limit: 5).rows
+        #expect(rows.count == 2)
+        #expect(rows[0].overlays.isEmpty)
+        #expect(rows[1].badge == .recordingRemoved)
+        #expect(try frozen.detachedOverlays().isEmpty)
+    }
 }

@@ -338,8 +338,13 @@ struct NoteLibraryOverlayTests {
         let source = ScriptedNoteSource("meetings", items: [Fixtures.summary("meetings", "a", secondsAgo: 10)])
         let listing = await NoteLibrary(box: SourceBox([source]), store: store).list(
             matching: nil, after: nil, limit: 5)
-        #expect(listing.rows.count == 1)
+        #expect(listing.rows.count == 2)
+        #expect(listing.rows[0].id == .live(key))
         #expect(listing.rows[0].overlays.isEmpty)
+        // The stale overlay is shown as detached in memory, never as the live note's text.
+        let old = NoteTime.milliseconds(Fixtures.epoch.addingTimeInterval(-5_000))
+        #expect(listing.rows[1].id == .detached(key, startedAtMs: old))
+        #expect(listing.rows[1].badge == .recordingRemoved)
     }
 
     @Test("a kept overlay of an off source is listed read-only with its badge, an unedited recording is not")
