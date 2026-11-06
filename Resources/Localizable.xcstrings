@@ -14384,7 +14384,7 @@
       }
     },
     "Try again" : {
-      "comment" : "Notes: saves the Markdown file again",
+      "comment" : "Notes: strip action that tries the failed step again",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -17655,6 +17655,78 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zaznacz krótszy fragment, aby go skomentować."
+          }
+        }
+      }
+    },
+    "The agent found nothing to change. The comments stay open." : {
+      "comment" : "Notes: strip when the agent left every commented block as it was",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The agent found nothing to change. The comments stay open."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent nie znalazł nic do zmiany. Komentarze pozostają otwarte."
+          }
+        }
+      }
+    },
+    "%lld comments couldn’t be resolved and stay open." : {
+      "comment" : "Notes: strip when a revised comment thread changed or could not be resolved",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld comment couldn’t be resolved and stays open."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld comments couldn’t be resolved and stay open."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Nie udało się rozwiązać %lld komentarza. Pozostaje otwarty."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Nie udało się rozwiązać %lld komentarzy. Pozostają otwarte."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Nie udało się rozwiązać %lld komentarzy. Pozostają otwarte."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Nie udało się rozwiązać %lld komentarza. Pozostaje otwarty."
+                }
+              }
+            }
           }
         }
       }

@@ -31,6 +31,11 @@ extension NotesWorkspaceModel {
     /// Whether the user may comment, reply, resolve and re-anchor here: the store can be written and the document is
     /// not a detached overlay.
     func canWriteComments(_ document: NoteDocumentModel) -> Bool {
+        canWriteCommentsIgnoringLock(document) && !document.lock.isActive
+    }
+
+    /// The same without the agent's run: "Ask agent" is queued behind a run that is going on, it writes nothing.
+    func canWriteCommentsIgnoringLock(_ document: NoteDocumentModel) -> Bool {
         environment.canEditNotes && !document.commentsAreDetached && !isDetached(document)
     }
 
@@ -42,7 +47,9 @@ extension NotesWorkspaceModel {
     /// selected and the Comments tab shows it.
     @discardableResult
     func addComment(body: String, selection: NSRange, buffer: String) async -> Bool {
-        guard let id = currentID, let document = documents[id], let session = document.session else { return false }
+        guard let id = currentID, let document = documents[id], let session = document.session,
+            canWriteComments(document)
+        else { return false }
         do {
             let thread = try await session.addComment(body: body, selection: selection, buffer: buffer)
             document.commentFilter = .open
@@ -59,19 +66,23 @@ extension NotesWorkspaceModel {
     }
 
     func reply(to thread: CommentThread, body: String) async -> Bool {
-        guard case .loaded(let snapshot)? = currentDocument?.comments else { return false }
+        guard let document = currentDocument, canWriteComments(document),
+            case .loaded(let snapshot) = document.comments
+        else { return false }
         return await write(.reply(docID: snapshot.docID, threadID: thread.id, body: body))
     }
 
     func setStatus(_ status: CommentStatus, of thread: CommentThread) async {
-        guard case .loaded(let snapshot)? = currentDocument?.comments else { return }
+        guard let document = currentDocument, canWriteComments(document),
+            case .loaded(let snapshot) = document.comments
+        else { return }
         await write(.setStatus(docID: snapshot.docID, threadID: thread.id, status: status))
     }
 
     /// "Text changed" -> the editor's selection becomes the thread's new anchor.
     func reanchor(_ thread: CommentThread) async {
         guard let id = currentID, let document = documents[id], let session = document.session,
-            case .loaded(let snapshot) = document.comments
+            canWriteComments(document), case .loaded(let snapshot) = document.comments
         else { return }
         do {
             try await session.reanchor(docID: snapshot.docID, threadID: thread.id)

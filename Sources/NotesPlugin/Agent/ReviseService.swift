@@ -21,11 +21,17 @@ enum ReviseOutcome: Equatable, Sendable {
         var skipped: [ReviseSkip]
         /// Units the guard left as they were.
         var rejected: Int
+        /// Revised threads that could not be answered and resolved (a reply arrived meanwhile, or a store error):
+        /// they stay open.
+        var unresolved: Int = 0
     }
 
     case applied(Applied)
     /// Nothing was asked of the model: every thread was skipped (or there was none left to revise).
     case nothingToRevise(skipped: [ReviseSkip])
+    /// The model answered, but left every block as it was (its own "cannot be applied"): no revision is written and
+    /// the threads stay open.
+    case nothingToChange(skipped: [ReviseSkip])
     case needsModel
     /// The answer could not be used (the guard rejected it, or it was cut off). Nothing was changed.
     case rejected
@@ -103,18 +109,16 @@ final class ReviseService {
         while true {
             let current = next
             let item = request.item
-            let task = Task { () -> ReviseOutcome in
-                let outcome = await self.perform(current)
-                self.runs[item] = nil
-                return outcome
-            }
+            // `runs[item]` is cleared only here, in the same main-actor step that looks at the queue, so no second
+            // `start` can slip in between the end of a run and the next one.
+            let task = Task { await self.perform(current) }
             runs[item] = task
             let outcome = await task.value
             runs[request.item] = nil
             // Whatever was asked while it ran goes next; a cancel, a missing model or an error drops it.
             guard let waiting = queued.removeValue(forKey: request.item) else { return outcome }
             switch outcome {
-            case .applied, .nothingToRevise, .conflict, .rejected:
+            case .applied, .nothingToRevise, .nothingToChange, .conflict, .rejected:
                 guard reservations == 0 else { return outcome }
                 next.threads = waiting
             default:
@@ -143,6 +147,8 @@ final class ReviseService {
         let all = Array(runs.values)
         for task in all { task.cancel() }
         for task in all { _ = await task.value }
+        // The waiting `start` calls clear their own entry when they resume; nothing is "running" from here on.
+        for (item, task) in runs where all.contains(task) { runs[item] = nil }
     }
 
     // MARK: Run
@@ -291,8 +297,12 @@ final class ReviseService {
             return end(lock, .rejected, .rejected)
         }
         if verdict.applied.isEmpty {
-            return verdict.rejected.isEmpty
-                ? complete(lock, .nothingToRevise(skipped: verdict.skipped)) : end(lock, .rejected, .rejected)
+            // Nothing is written: no empty `agent` revision, and the threads stay open.
+            if !verdict.rejected.isEmpty { return end(lock, .rejected, .rejected) }
+            return complete(
+                lock,
+                verdict.unchanged.isEmpty
+                    ? .nothingToRevise(skipped: verdict.skipped) : .nothingToChange(skipped: verdict.skipped))
         }
         try Task.checkCancellation()
 
@@ -318,12 +328,13 @@ final class ReviseService {
         } catch {
             return end(lock, .failed, .failed)
         }
-        await Self.resolve(appliedIDs, docID: head.docID, store: request.store, now: deps.now())
+        let planned = threads.filter { appliedIDs.contains($0.id) }.map { ($0.id, $0.comments.map(\.id)) }
+        let unresolved = await Self.resolve(planned, docID: head.docID, store: request.store, now: deps.now())
         lock.move(to: .idle, at: deps.clock.now())
         return .applied(
             ReviseOutcome.Applied(
                 revisionID: revisionID, blocks: blocks, threads: appliedIDs.count, skipped: verdict.skipped,
-                rejected: verdict.rejected.count))
+                rejected: verdict.rejected.count, unresolved: unresolved))
     }
 
     // MARK: Store
@@ -338,16 +349,24 @@ final class ReviseService {
         }.value
     }
 
-    /// The agent answers each revised thread with a short "Revised" and resolves it.
-    private static func resolve(_ threadIDs: Set<Int64>, docID: Int64, store: NotesStore, now: Date) async {
+    /// The agent answers each revised thread with a short "Revised" and resolves it, in one write per thread and only
+    /// when the thread still has the comments the run planned on. Returns how many threads were left open.
+    private static func resolve(_ planned: [(thread: Int64, comments: [Int64])], docID: Int64, store: NotesStore, now: Date)
+        async -> Int
+    {
         await Task.detached {
-            for id in threadIDs.sorted() {
-                _ = try? store.addReply(
-                    docID: docID, threadID: id, author: NoteAuthor.agent.rawValue,
-                    body: String(localized: "Revised", comment: "Comments: the agent's reply on a thread it revised"),
-                    now: now)
-                _ = try? store.setThreadStatus(docID: docID, threadID: id, status: .resolved, now: now)
+            var open = 0
+            for item in planned.sorted(by: { $0.thread < $1.thread }) {
+                let done =
+                    (try? store.resolveRevised(
+                        docID: docID, threadID: item.thread, commentIDs: item.comments,
+                        author: NoteAuthor.agent.rawValue,
+                        body: String(
+                            localized: "Revised", comment: "Comments: the agent's reply on a thread it revised"),
+                        now: now)) ?? false
+                if !done { open += 1 }
             }
+            return open
         }.value
     }
 
@@ -357,6 +376,7 @@ final class ReviseService {
         switch outcome {
         case .applied: "applied"
         case .nothingToRevise: "nothingToRevise"
+        case .nothingToChange: "nothingToChange"
         case .needsModel: "needsModel"
         case .rejected: "rejected"
         case .conflict: "casConflict"

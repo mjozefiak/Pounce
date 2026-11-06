@@ -146,7 +146,7 @@ struct NoteScreenView: View {
                 Button {
                     Task { await model.perform("locked.retry") }
                 } label: {
-                    Text("Try again", comment: "Notes: saves the Markdown file again")
+                    Text("Try again", comment: "Notes: strip action that tries the failed step again")
                         .font(textSize.font(.callout, weight: .semibold))
                         .foregroundStyle(LintelBrand.accentText)
                 }

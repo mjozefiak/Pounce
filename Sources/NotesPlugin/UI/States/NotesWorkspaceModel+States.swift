@@ -201,7 +201,7 @@ extension NotesWorkspaceModel {
     }
 
     private static var tryAgain: String {
-        String(localized: "Try again", comment: "Notes: saves the Markdown file again")
+        String(localized: "Try again", comment: "Notes: strip action that tries the failed step again")
     }
 
     private func stateStrips(for document: NoteDocumentModel) -> [Strip] {

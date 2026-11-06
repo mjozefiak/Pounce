@@ -108,6 +108,29 @@ import Testing
         #expect(!stripIDs(s).contains("revise.writing"))
     }
 
+    @Test func commentsCannotBeChangedWhileTheAgentWritesButAskAgentStaysQueueable() async throws {
+        let gate = ReviseGate()
+        let handle = ScriptedReviseHandle([.after(gate, answer)])
+        let s = try await setup(steps: [.handle(handle)])
+        await comment(s, "next sprint")
+        let document = try #require(s.model.documents[s.item])
+        guard case .loaded(let snapshot) = document.comments, let thread = snapshot.threads.first else {
+            Issue.record("no thread")
+            return
+        }
+        let task = Task { await s.model.revise() }
+        await handle.generating.wait()
+        #expect(!s.model.canWriteComments(document))
+        #expect(s.model.canAskAgent(document))
+        #expect(await s.model.reply(to: thread, body: "Too late.") == false)
+        await s.model.setStatus(.resolved, of: thread)
+        #expect(await s.model.addComment(body: "No.", selection: NSRange(location: 0, length: 5), buffer: notes) == false)
+        gate.open()
+        await task.value
+        let records = try s.r.store.comments(of: snapshot.docID)
+        #expect(!records.contains { $0.body == "Too late." || $0.body == "No." })
+    }
+
     @Test func cancelInTheStripStopsTheRunAndTheNoteStaysAsItWas() async throws {
         let handle = ScriptedReviseHandle([.hang])
         let s = try await setup(steps: [.handle(handle)])
@@ -202,6 +225,7 @@ import Testing
         #expect(texts(.nothingToRevise(skipped: [one])) == ["You edited 1 blocks, so they were not changed."])
         let two = ReviseSkip(threadIDs: [2, 3], reason: .editedAfterComment)
         #expect(texts(.nothingToRevise(skipped: [one, two])) == ["You edited 3 blocks, so they were not changed."])
+        #expect(texts(.nothingToChange(skipped: [])) == ["The agent found nothing to change. The comments stay open."])
 
         let applied = ReviseOutcome.Applied(revisionID: 9, blocks: 2, threads: 2, skipped: [one], rejected: 1)
         let ids = M.reportStrips(.applied(applied)).map(\.id)

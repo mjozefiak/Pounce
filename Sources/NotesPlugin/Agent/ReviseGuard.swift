@@ -41,6 +41,11 @@ enum ReviseGuard {
         var reason: BlockRejection
     }
 
+    struct Unchanged: Equatable, Sendable {
+        var unitID: Int
+        var threadIDs: [Int64]
+    }
+
     struct Verdict: Equatable, Sendable {
         /// The note with the accepted units replaced; equal to the head when nothing was accepted.
         var body: String
@@ -48,6 +53,9 @@ enum ReviseGuard {
         var rejected: [Rejected]
         /// Threads the guard left alone because a human edited their block.
         var skipped: [ReviseSkip]
+        /// Units whose answer is the input blocks unchanged (the model's own "cannot be applied" answer): not
+        /// applied, not counted, and their threads stay open.
+        var unchanged: [Unchanged] = []
 
         var changedBlockCount: Int { applied.reduce(0) { $0 + $1.blockRange.count } }
     }
@@ -58,7 +66,7 @@ enum ReviseGuard {
     static let minimumAllowance = 120
 
     static func check(head: String, plan: RevisePlan, answer rawAnswer: String) throws -> Verdict {
-        let answers = parse(MarkdownText.strippingBidiAndControls(rawAnswer))
+        let answers = parse(MarkdownText.strippingBidiAndControls(rawAnswer)).mapValues(ReviseNotesPrompt.unescape)
         guard !answers.isEmpty else { throw RunRejection.unusableAnswer }
         let known = Set(plan.units.map(\.id))
         guard answers.keys.allSatisfy({ known.contains($0) }) else { throw RunRejection.outsideBlockChanged }
@@ -86,6 +94,10 @@ enum ReviseGuard {
                 continue
             }
             let newBlocks = MarkdownBlocks.split(answer)
+            if newBlocks == unit.blocks {
+                verdict.unchanged.append(Unchanged(unitID: unit.id, threadIDs: unit.threadIDs))
+                continue
+            }
             // The text between two blocks of the unit stays as the note had it (a list keeps its line breaks).
             let source = head as NSString
             var text = ""
@@ -241,9 +253,11 @@ enum ReviseTokens {
         for match in withoutImages.matches(of: /<\/?[A-Za-z][^>]*>|<!--/) {
             tokens.insert("html:" + match.output.lowercased())
         }
-        for match in withoutImages.matches(of: /(?:https?:\/\/|www\.|mailto:)[^\s)>\]]+/) {
-            tokens.insert("url:" + match.output.lowercased())
-        }
+        // Any other scheme a link can carry, `www.` and a bare domain with a path: none may appear from nowhere.
+        let lowered = withoutImages.lowercased()
+        let urlPattern =
+            /(?:(?:https?|ftp|ftps|sftp|ssh|file|tel|sms|data|javascript|vbscript|mailto|callto|facetime|slack|zoommtg|zoomus|webcal):[^\s)>\]]*|www\.[^\s)>\]]+|(?:[a-z0-9-]+\.)+[a-z]{2,}\/[^\s)>\]]*)/
+        for match in lowered.matches(of: urlPattern) { tokens.insert("url:" + match.output) }
         return tokens
     }
 }

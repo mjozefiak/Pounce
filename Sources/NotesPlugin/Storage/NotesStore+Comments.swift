@@ -131,6 +131,37 @@ extension NotesStore {
         }
     }
 
+    /// The agent's "Revised" reply and the resolve of a thread in ONE transaction, only while the thread still has
+    /// exactly the comments the run planned on (`commentIDs`): a reply added since keeps the thread open and
+    /// unanswered. `false` when the thread changed or is gone.
+    func resolveRevised(
+        docID: Int64, threadID: Int64, commentIDs: [Int64], author: String, body: String, now: Date
+    ) throws -> Bool {
+        let clean = try Self.checkedComment(body)
+        return try write { db in
+            let current = try Int64.fetchAll(
+                db, sql: "SELECT id FROM note_comment WHERE doc_id = ? AND thread_id = ? ORDER BY id",
+                arguments: [docID, threadID])
+            guard !current.isEmpty, current == commentIDs.sorted(),
+                let root = try Row.fetchOne(
+                    db,
+                    sql:
+                        "SELECT \(Self.commentColumns) FROM note_comment WHERE doc_id = ? AND thread_id = ? ORDER BY id LIMIT 1",
+                    arguments: [docID, threadID]
+                ).flatMap(Self.commentRecord)
+            else { return false }
+            // Resolved by the user meanwhile: nothing is left open, and nothing to answer.
+            if root.status != .open { return true }
+            try Self.insertComment(
+                docID: docID, threadID: threadID, author: author, body: clean, anchor: root.anchor,
+                anchorRevisionID: root.anchorRevisionID, status: .resolved, resolvedAt: now, now: now, in: db)
+            try db.execute(
+                sql: "UPDATE note_comment SET status = ?, resolved_at = ? WHERE doc_id = ? AND thread_id = ?",
+                arguments: [CommentStatus.resolved.rawValue, now.timeIntervalSince1970, docID, threadID])
+            return true
+        }
+    }
+
     /// `anchorRevisionGone` when the revision is not (any more) one of the document's.
     private static func requireRevision(_ id: Int64, of docID: Int64, in db: Database) throws {
         let exists =

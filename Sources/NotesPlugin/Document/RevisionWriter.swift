@@ -274,11 +274,11 @@ final class RevisionWriter: Sendable {
 
     /// An applied revision by `author` (a Revise result, an Apply). The buffer is flushed first; the head moves
     /// with compare-and-set.
-    @discardableResult
     ///
     /// `expectingHead` is the head a run captured (`base_head_id`): when the head is another one, nothing is written
     /// and `casConflict` is thrown. Text typed since (a buffer that is not empty) is never overwritten either: the
     /// same error, and the buffer stays for its own write.
+    @discardableResult
     func appendApplied(
         author: NoteAuthor, body: String, summary: String? = nil, metaJSON: String? = nil, expectingHead: Int64? = nil
     ) async throws -> Int64 {

@@ -19,12 +19,12 @@ extension NotesWorkspaceModel {
     var canRevise: Bool {
         guard let document = currentDocument else { return false }
         return reviseCount > 0 && environment.revise != nil && environment.canEditNotes
-            && canWriteComments(document) && !document.lock.isActive
+            && canWriteComments(document)
     }
 
     /// "Ask agent" on one thread: revises only that thread; queued behind a run that is going on.
     func canAskAgent(_ document: NoteDocumentModel) -> Bool {
-        environment.revise != nil && environment.canEditNotes && canWriteComments(document)
+        environment.revise != nil && environment.canEditNotes && canWriteCommentsIgnoringLock(document)
     }
 
     func isAskQueued(_ document: NoteDocumentModel, thread: CommentThread) -> Bool {
@@ -105,7 +105,7 @@ extension NotesWorkspaceModel {
 
     private static var tryAgain: Strip.Action {
         Strip.Action(
-            id: "revise.retry", title: String(localized: "Try again", comment: "Notes: saves the Markdown file again"))
+            id: "revise.retry", title: String(localized: "Try again", comment: "Notes: strip action that tries the failed step again"))
     }
 
     static func reportStrips(_ outcome: ReviseOutcome) -> [Strip] {
@@ -128,9 +128,27 @@ extension NotesWorkspaceModel {
                             comment: "Notes: strip when the guard rejected the agent's answer for some blocks"),
                         isDismissible: true))
             }
+            if applied.unresolved > 0 {
+                result.append(
+                    Strip(
+                        id: "revise.unresolved", tone: .attention,
+                        text: String(
+                            localized: "\(applied.unresolved) comments couldn’t be resolved and stay open.",
+                            comment: "Notes: strip when a revised comment thread changed or could not be resolved"),
+                        isDismissible: true))
+            }
             return result + skipStrips(applied.skipped)
         case .nothingToRevise(let skipped):
             return skipStrips(skipped)
+        case .nothingToChange(let skipped):
+            return [
+                Strip(
+                    id: "revise.nothingToChange", tone: .accent,
+                    text: String(
+                        localized: "The agent found nothing to change. The comments stay open.",
+                        comment: "Notes: strip when the agent left every commented block as it was"),
+                    isDismissible: true)
+            ] + skipStrips(skipped)
         case .needsModel:
             return [
                 Strip(
