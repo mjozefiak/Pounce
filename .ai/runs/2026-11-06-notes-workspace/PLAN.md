@@ -8,9 +8,9 @@
 
 | Phase | Step | Title | Exec | Status | Commit |
 |-------|------|-------|------|--------|--------|
-| 0 | 0.1 | Editor spike (TextKit 2) and ADR 0008 addendum with measurements | inline | todo | — |
-| 0 | 0.2 | Verify AttributedString(markdown:) subset and Meetings export round-trip | inline | todo | — |
-| 0 | 0.3 | Prototype BlockAttribution on revision fixtures (gate: all pass) | inline | todo | — |
+| 0 | 0.1 | Editor spike (TextKit 2) and ADR 0008 addendum with measurements | inline | done | 1d1c964 |
+| 0 | 0.2 | Verify AttributedString(markdown:) subset and Meetings export round-trip | inline | done | c5cb0c3 |
+| 0 | 0.3 | Prototype BlockAttribution on revision fixtures (gate: all pass) | inline | done | d95aae3 |
 | 1 | 1.1 | LintelKit note contract (NoteSource, NoteKey, PasteboardWriteOptions) with defaults | dispatch:capable | todo | — |
 | 1 | 1.2 | NotesPlugin and NotesPluginTests targets, DEBUG-only registration, --qa-notes | dispatch | todo | — |
 | 1 | 1.3 | LintelCore MarkdownBlocks.split | dispatch:cheap | todo | — |
