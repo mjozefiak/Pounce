@@ -184,8 +184,6 @@ import Testing
             docID: doc.docID, author: "human", state: .applied, body: "two", now: Date(),
             expectedHeadID: doc.revisionID)
         #expect(throws: NotesError.readOnly) { try store.appendRevision(revision) }
-        #expect(throws: NotesError.readOnly) { try store.deleteDocument(doc.docID) }
-        #expect(throws: NotesError.readOnly) { try store.detach(NoteKey(pluginID: "meetings", id: "x")) }
         let count = try store.read { db in try Int.fetchOne(db, sql: "SELECT count(*) FROM note_revision") }
         #expect(count == 1)
         #expect(try store.manualOverlays().count == 1)
@@ -194,6 +192,49 @@ import Testing
         #expect(opener.canEdit)
         try store.appendRevision(revision)
         #expect(try store.read { db in try Int.fetchOne(db, sql: "SELECT count(*) FROM note_revision") } == 2)
+    }
+
+    @Test func theHiddenReadOnlyKeyStillAllowsDeleteDetachAndTheRetentionDeletes() throws {
+        let harness = try NotesHarness()
+        let store = try harness.openStore()
+        let manual = try store.insertDocument(.manual("a", body: "one"))
+        try store.insertDocument(.overlay("m1", layer: "notes", startedAtMs: 5))
+        try store.insertDocument(.overlay("m2", layer: "notes", startedAtMs: 6, state: .detached))
+        try store.insertDocument(.overlay("m3", layer: "notes", startedAtMs: 7))
+        harness.settings.set(true, for: NotesSettingsKey.readOnly)
+        let revisions = try store.read { db in try Int.fetchOne(db, sql: "SELECT count(*) FROM note_revision") }
+
+        #expect(try store.detach(NoteKey(pluginID: "meetings", id: "m1")) == 1)
+        #expect(try store.deleteUnkeptDetached() == 2)
+        #expect(try store.deleteLiveOverlays(of: NoteKey(pluginID: "meetings", id: "m3")) == 1)
+        try store.deleteDocument(manual.docID)
+        #expect(try store.manualOverlays().isEmpty)
+        // No revision, comment or overlay was written by any of it.
+        #expect(
+            try store.read { db in try Int.fetchOne(db, sql: "SELECT count(*) FROM note_revision") }
+                == (revisions ?? 0) - 4)
+        #expect(try store.read { db in try Int.fetchOne(db, sql: "SELECT count(*) FROM note_comment") } == 0)
+        #expect(throws: NotesError.readOnly) { try store.insertDocument(.manual("b")) }
+    }
+
+    @Test func aNewerSchemaStillBlocksEveryWriteIncludingDeletesAndDetach() throws {
+        let harness = try NotesHarness()
+        let first = harness.opener()
+        first.open()
+        let store = try #require(first.store)
+        let doc = try store.insertDocument(.manual("a"))
+        try store.insertDocument(.overlay("m1", layer: "notes", startedAtMs: 5))
+        try store.write { db in
+            try db.execute(sql: "INSERT INTO grdb_migrations(identifier) VALUES ('v2-future')")
+        }
+        first.close()
+        let opener = harness.opener()
+        opener.open()
+        let reopened = try #require(opener.store)
+        #expect(throws: NotesError.schemaNewer) { try reopened.deleteDocument(doc.docID) }
+        #expect(throws: NotesError.schemaNewer) { try reopened.detach(NoteKey(pluginID: "meetings", id: "m1")) }
+        #expect(throws: NotesError.schemaNewer) { try reopened.deleteUnkeptDetached() }
+        #expect(try reopened.manualOverlays().count == 1)
     }
 
     @Test func eraseDataRemovesTheKeychainItemAndTheFolderWithoutOpeningAnything() throws {

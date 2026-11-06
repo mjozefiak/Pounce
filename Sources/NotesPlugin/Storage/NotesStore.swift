@@ -20,8 +20,11 @@ enum NoteSourceState: String, Sendable {
 /// title and the head body of applied revisions (spec "Data Model"). GRDB serialises access, so the store is
 /// safe to use from any task. Titles, bodies and comments never reach a log.
 ///
-/// Every write goes through `write`, which refuses while the store is read-only: a database from a newer
+/// Every content write goes through `write`, which refuses while the store is read-only: a database from a newer
 /// Lintel (`schemaNewer`), or the hidden `plugins.notes.readOnly` setting (`readOnly`). Reads always work.
+/// Deletes, the retention deletes and `detach` (a re-key, not a content write) go through `writeMaintenance`:
+/// the hidden `readOnly` key never blocks them (spec L1-40: export, copy and delete still work), a newer
+/// schema still does (nothing is touched in a database this build does not understand).
 final class NotesStore: Sendable {
     static let fileName = "notes.sqlite"
 
@@ -53,6 +56,12 @@ final class NotesStore: Sendable {
     /// One write transaction. Throws `schemaNewer` or `readOnly` without touching the database.
     func write<T>(_ updates: (Database) throws -> T) throws -> T {
         if let reason = blockedReason { throw reason }
+        return try access { try $0.write(updates) }
+    }
+
+    /// A delete, a retention delete or a detach. Refused only by a newer schema, never by `readOnly`.
+    func writeMaintenance<T>(_ updates: (Database) throws -> T) throws -> T {
+        if hasNewerSchema { throw NotesError.schemaNewer }
         return try access { try $0.write(updates) }
     }
 

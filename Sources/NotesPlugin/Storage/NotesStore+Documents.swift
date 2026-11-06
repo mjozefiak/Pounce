@@ -107,13 +107,13 @@ extension NotesStore {
     }
 
     func deleteDocument(_ id: Int64) throws {
-        try write { db in try db.execute(sql: "DELETE FROM note_doc WHERE id = ?", arguments: [id]) }
+        try writeMaintenance { db in try db.execute(sql: "DELETE FROM note_doc WHERE id = ?", arguments: [id]) }
     }
 
     /// Deletes every live overlay of a recorded note (after the source deleted it). Detached rows stay.
     @discardableResult
     func deleteLiveOverlays(of key: NoteKey) throws -> Int {
-        try write { db in
+        try writeMaintenance { db in
             try db.execute(
                 sql: "DELETE FROM note_doc WHERE key = ? AND source_state IS NOT 'detached'", arguments: [key.rawValue])
             return db.changesCount
@@ -124,7 +124,7 @@ extension NotesStore {
     /// of an open document, the pending-write bookkeeping): when that throws, nothing is detached.
     @discardableResult
     func detach(_ key: NoteKey, alongside: (Database) throws -> Void = { _ in }) throws -> Int {
-        try write { db in
+        try writeMaintenance { db in
             try db.execute(
                 sql: """
                     UPDATE note_doc SET source_state = 'detached'
@@ -141,7 +141,7 @@ extension NotesStore {
     /// the registry (`openDocIDs`), is deleted. Returns how many were deleted.
     @discardableResult
     func deleteUnkeptDetached(excluding openDocIDs: Set<Int64> = []) throws -> Int {
-        try write { db in
+        try writeMaintenance { db in
             let ids = try Int64.fetchAll(
                 db,
                 sql: """
