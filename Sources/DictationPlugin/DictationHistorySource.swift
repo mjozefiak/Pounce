@@ -8,6 +8,10 @@ import SwiftUI
 struct DictationHistorySource: PanelModeSource {
     static let recentWindow = 500
     static let fullTextLimit = 200
+    /// ⌃X asks first: the shell shows this with "Press ⌃X again to delete" (spec 2026-11-04, step 6.2).
+    static let deleteConfirmation = ActionConfirmation(
+        prompt: LocalizedStringResource(
+            "Delete this dictation?", comment: "Dictation history list: asked before ⌃X deletes the entry"))
 
     let store: @Sendable () -> DictationStore?
     /// Pastes text into the app that was in front before the panel opened.
@@ -73,7 +77,8 @@ struct DictationHistorySource: PanelModeSource {
                 title: LocalizedStringResource("Delete", comment: "Dictation history action that deletes the entry"),
                 symbolName: "trash",
                 shortcut: KeyShortcut(key: "x", modifiers: .control),
-                keepsPanelOpen: true
+                keepsPanelOpen: true,
+                confirmation: Self.deleteConfirmation
             ) { _ in try await delete(id) },
         ]
     }

@@ -42,6 +42,9 @@ struct QAOptions: Equatable {
     /// `--qa-fail-action`: once the panel's results load, shows the failed-action message for the selected
     /// row's first action without running it (the state a moved or deleted app produces).
     var failsAction = false
+    /// `--qa-confirm-action`: once the panel's results load, shows the "Press ⌃X again" confirmation of the
+    /// selected row's first action that asks first, without running it and without the 5 s timeout.
+    var confirmsAction = false
     /// `--qa-settings general|features|permissions|advanced|models|<plugin id>`: opens the main window's Settings
     /// mode on that pane.
     var settingsPane: String?
@@ -183,6 +186,8 @@ struct QAOptions: Equatable {
                 }
             case "--qa-fail-action":
                 options.failsAction = true
+            case "--qa-confirm-action":
+                options.confirmsAction = true
             case "--qa-spotlight":
                 guard let value = iterator.next() else { throw .missingValue(argument) }
                 switch value {
