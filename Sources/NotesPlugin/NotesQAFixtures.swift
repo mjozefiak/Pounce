@@ -135,8 +135,30 @@ struct NotesQAFixtureSource: NoteSource {
 
     private var items: [NoteSummary] { NotesQAFixtures.summaries(now: now).filter { $0.id.pluginID == pluginID } }
 
-    func list(matching: NormalizedQuery?, after: NoteCursor?, limit: Int) async throws -> NotePage {
-        let all = items
+    /// A query keeps the notes whose title or text holds it (case and accents ignored) and names the line of
+    /// the first layer that does, the way a real source reports `matches`.
+    private func matching(_ query: NormalizedQuery?) -> [NoteSummary] {
+        guard let query, !query.isEmpty else { return items }
+        let options: String.CompareOptions = [.caseInsensitive, .diacriticInsensitive]
+        return items.compactMap { summary in
+            var found = summary
+            let layers = NotesQAFixtures.content(for: summary.id, now: now)?.layers ?? []
+            for layer in layers {
+                let line = layer.markdown.split(separator: "\n").first {
+                    $0.range(of: query.raw, options: options) != nil
+                }
+                if let line {
+                    found.matches.append(
+                        NoteLayerMatch(layerID: layer.id, snippet: String(line.prefix(120))))
+                }
+            }
+            let titled = summary.title?.range(of: query.raw, options: options) != nil
+            return titled || !found.matches.isEmpty ? found : nil
+        }
+    }
+
+    func list(matching query: NormalizedQuery?, after: NoteCursor?, limit: Int) async throws -> NotePage {
+        let all = matching(query)
         let start = after.flatMap { Int($0.token) } ?? 0
         let end = min(all.count, start + limit)
         return NotePage(

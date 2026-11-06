@@ -14040,6 +14040,78 @@
           }
         }
       }
+    },
+    "Search notes" : {
+      "comment" : "Explorer: placeholder of the search field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szukaj w notatkach"
+          }
+        }
+      }
+    },
+    "Clear search" : {
+      "comment" : "Accessibility label of the search field's clear button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear search"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyczyść wyszukiwanie"
+          }
+        }
+      }
+    },
+    "No notes match “%@”." : {
+      "comment" : "Explorer: a search found nothing; the query",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No notes match “%@”."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak notatek dla „%@”."
+          }
+        }
+      }
+    },
+    "Search covers titles, notes, transcripts and dictations." : {
+      "comment" : "Explorer: what a search looks in",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search covers titles, notes, transcripts and dictations."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szukam w tytułach, notatkach, transkryptach i dyktowaniach."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

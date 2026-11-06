@@ -134,8 +134,34 @@ struct NoteRowPresentation: Sendable {
     }
 
     /// The whole row for VoiceOver: title, second line and state in words.
-    func accessibilityLabel(_ row: NoteRow, showsDate: Bool) -> String {
-        [title(row.summary), subtitle(row.summary, showsDate: showsDate), Self.stateText(row.badge)]
+    func accessibilityLabel(_ row: NoteRow, showsDate: Bool, snippet: String? = nil) -> String {
+        [title(row.summary), snippet ?? subtitle(row.summary, showsDate: showsDate), Self.stateText(row.badge)]
             .compactMap { $0 }.joined(separator: ", ")
+    }
+
+    /// Where the words of a search stand in a snippet: every word of the query, found without regard to case or
+    /// accents, merged when they touch. Pure, so the highlight is tested without a view.
+    static func highlightRanges(in snippet: String, query: String) -> [Range<String.Index>] {
+        var found: [Range<String.Index>] = []
+        for word in query.split(whereSeparator: \.isWhitespace) {
+            var from = snippet.startIndex
+            while from < snippet.endIndex,
+                let range = snippet.range(
+                    of: word, options: [.caseInsensitive, .diacriticInsensitive], range: from..<snippet.endIndex)
+            {
+                found.append(range)
+                from = range.upperBound
+            }
+        }
+        found.sort { $0.lowerBound < $1.lowerBound }
+        var merged: [Range<String.Index>] = []
+        for range in found {
+            if let last = merged.last, range.lowerBound <= last.upperBound {
+                merged[merged.count - 1] = last.lowerBound..<max(last.upperBound, range.upperBound)
+            } else {
+                merged.append(range)
+            }
+        }
+        return merged
     }
 }

@@ -65,11 +65,17 @@ public final class NotesPlugin: LintelPlugin {
                 openSettings: context.openSettings))
         #if DEBUG
         openQAFixtureTabs(in: model)
+        applyQAState(to: model)
         #endif
         return model
     }
 
     #if DEBUG
+    /// `plugins.notes.qaSearch`: a typed search for QA.
+    private func applyQAState(to model: NotesWorkspaceModel) {
+        if let text = context.settings.string(NotesSettingsKey.qaSearch), !text.isEmpty { model.initialSearch = text }
+    }
+
     /// `plugins.notes.qaOpen`: opens the named notes in tabs, the last one current.
     private func openQAFixtureTabs(in model: NotesWorkspaceModel) {
         let list = context.settings.string(NotesSettingsKey.qaOpen) ?? ""

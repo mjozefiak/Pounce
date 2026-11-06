@@ -1,4 +1,5 @@
 import Foundation
+import LintelCore
 import LintelKit
 import Observation
 
@@ -41,6 +42,11 @@ final class NotesWorkspaceModel {
     private(set) var total = 0
     private(set) var unavailable: [UnavailableSource] = []
     private var cursor: NoteListCursor?
+
+    /// What the explorer's search field holds; `runSearch()` lists with it.
+    var searchText = ""
+    /// The query the rows on screen answer, `nil` while browsing.
+    private(set) var searchQuery: NormalizedQuery?
     var collapsed: Set<NoteGroupKey> = []
 
     var grouping: NoteGrouping = .time {
@@ -50,6 +56,8 @@ final class NotesWorkspaceModel {
     #if DEBUG
     /// QA (`plugins.notes.qaOpen`): the layer a note shows once its content has been read.
     var preferredLayers: [NoteItemID: String] = [:]
+    /// QA (`plugins.notes.qaSearch`): the text typed into the search field once the first list is in.
+    var initialSearch: String?
     #endif
 
     private(set) var tabs = NoteTabSet()
@@ -65,9 +73,11 @@ final class NotesWorkspaceModel {
     var hasMore: Bool { cursor != nil }
 
     /// Lists the first page again (the first read, or a source said its notes changed) and refreshes the tabs'
-    /// titles and the open documents.
+    /// titles and the open documents. While a search is on, it is the search's first page.
     func refresh() async {
-        let listing = await environment.library.list(matching: nil, after: nil, limit: environment.pageSize)
+        let query = searchQuery
+        let listing = await environment.library.list(matching: query, after: nil, limit: environment.pageSize)
+        guard query == searchQuery else { return }
         rows = listing.rows
         cursor = listing.next
         total = listing.total
@@ -80,7 +90,9 @@ final class NotesWorkspaceModel {
 
     func loadMore() async {
         guard let cursor else { return }
-        let listing = await environment.library.list(matching: nil, after: cursor, limit: environment.pageSize)
+        let query = searchQuery
+        let listing = await environment.library.list(matching: query, after: cursor, limit: environment.pageSize)
+        guard query == searchQuery else { return }
         guard listing.restarted == false else {
             await refresh()
             return
@@ -94,10 +106,46 @@ final class NotesWorkspaceModel {
         syncTabs()
     }
 
+    // MARK: Search
+
+    /// Lists with the text in the search field: every source's `list(matching:)` merged newest first, paged like
+    /// the browse list. An empty (or blank) field goes back to the browse list. Notes' own manual notes and the
+    /// full-text hits of `notes.sqlite` join a query with the store (step 4.0).
+    func runSearch() async {
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let query = trimmed.isEmpty ? nil : TextNormalizer.query(trimmed)
+        let next = (query?.isEmpty == false) ? query : nil
+        if next == searchQuery { return }
+        searchQuery = next
+        await refresh()
+    }
+
+    /// The field's clear button and Escape.
+    func clearSearch() async {
+        searchText = ""
+        await runSearch()
+    }
+
+    var isSearching: Bool { searchQuery != nil }
+
+    /// While a search is on: the first matched layer's snippet (plain text; the view marks the query's words).
+    func snippetText(of row: NoteRow) -> String? {
+        guard searchQuery != nil else { return nil }
+        let text = row.summary.matches.first?.snippet.trimmingCharacters(in: .whitespacesAndNewlines)
+        return text?.isEmpty == false ? text : nil
+    }
+
     /// The section's lifetime: reads the list, then again whenever a source (or the set of sources) changes.
     /// Returns when cancelled.
     func run() async {
         await refresh()
+        #if DEBUG
+        if let text = initialSearch {
+            initialSearch = nil
+            searchText = text
+            await runSearch()
+        }
+        #endif
         for await _ in environment.library.changes(sourceSetChanges: environment.sourceSetChanges()) {
             if Task.isCancelled { return }
             await refresh()
@@ -105,6 +153,11 @@ final class NotesWorkspaceModel {
     }
 
     private func regroup() {
+        // A search answer is one flat list, best newest first, so the groups would only get in the way.
+        guard searchQuery == nil else {
+            groups = []
+            return
+        }
         groups = NoteGroupingRules.group(
             rows, by: grouping, now: environment.now(), calendar: environment.calendar)
     }
@@ -281,8 +334,9 @@ final class NotesWorkspaceModel {
         guard let document = currentDocument, let text = document.markdown, let summary = document.summary else {
             return
         }
+        let name = NoteMarkdownExport.fileName(summary)
         do {
-            let saved = try await environment.saver.save(text, suggestedName: NoteMarkdownExport.fileName(summary))
+            let saved = try await environment.saver.save(text, suggestedName: name)
             show(saved ? .saved : nil)
         } catch {
             show(.saveFailed)
