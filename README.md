@@ -2,7 +2,7 @@
 
 A fast, native macOS launcher with just three things: app search, file search and clipboard history.
 
-Website: [mjozefiak.github.io/Pounce](https://mjozefiak.github.io/Pounce/)
+Website: [lintelapp.com](https://lintelapp.com/)
 
 ## Features
 
