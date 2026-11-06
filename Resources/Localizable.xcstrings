@@ -15786,6 +15786,402 @@
           }
         }
       }
+    },
+    "%lld copies in Notes are kept. They stay until you delete them there." : {
+      "comment" : "Confirmation sheet: how many edited or commented copies stay in Notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld copy in Notes is kept. It stays until you delete it there."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld copies in Notes are kept. They stay until you delete them there."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld kopia w Notatkach zostaje. Zostaje, dopóki jej tam nie usuniesz."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld kopie w Notatkach zostają. Zostają, dopóki ich tam nie usuniesz."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld kopii w Notatkach zostaje. Zostają, dopóki ich tam nie usuniesz."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld kopii w Notatkach zostaje. Zostają, dopóki ich tam nie usuniesz."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "The meetings were deleted, but some copies in Notes could not be removed." : {
+      "comment" : "Meetings settings: Also delete kept copies failed after the library was cleared",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The meetings were deleted, but some copies in Notes could not be removed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spotkania zostały usunięte, ale nie udało się usunąć części kopii w Notatkach."
+          }
+        }
+      }
+    },
+    "The history was cleared, but some copies in Notes could not be removed." : {
+      "comment" : "Dictation settings error when Also delete kept copies fails after Clear History",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The history was cleared, but some copies in Notes could not be removed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historia została wyczyszczona, ale nie udało się usunąć części kopii w Notatkach."
+          }
+        }
+      }
+    },
+    "The data was erased, but some copies in Notes could not be removed." : {
+      "comment" : "Alert text: Erase Data worked but Also delete kept copies did not",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The data was erased, but some copies in Notes could not be removed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dane zostały usunięte, ale nie udało się usunąć części kopii w Notatkach."
+          }
+        }
+      }
+    },
+    "note.deleted" : {
+      "comment" : "Path bar: the note was deleted",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deleted"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunięto"
+          }
+        }
+      }
+    },
+    "The note couldn’t be deleted. Nothing was changed." : {
+      "comment" : "Notes: deleting a note failed or was refused",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The note couldn’t be deleted. Nothing was changed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się usunąć notatki. Nic nie zmieniono."
+          }
+        }
+      }
+    },
+    "The note was deleted, but the copy in Notes couldn’t be removed yet." : {
+      "comment" : "Notes: the owner deleted the note but its edited copy stayed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The note was deleted, but the copy in Notes couldn’t be removed yet."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatka została usunięta, ale kopii w Notatkach nie udało się jeszcze usunąć."
+          }
+        }
+      }
+    },
+    "Delete “%@”?" : {
+      "comment" : "Notes: title of the delete sheet",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete “%@”?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunąć „%@”?"
+          }
+        }
+      }
+    },
+    "Its notes and transcript, and your edits to them, are removed from this Mac. This can’t be undone." : {
+      "comment" : "Notes: delete sheet of a meeting with edits",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Its notes and transcript, and your edits to them, are removed from this Mac. This can’t be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jego notatki i transkrypt oraz Twoje zmiany w nich zostaną usunięte z tego Maca. Nie można tego cofnąć."
+          }
+        }
+      }
+    },
+    "Its notes and transcript are removed from this Mac. This can’t be undone." : {
+      "comment" : "Notes: delete sheet of a meeting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Its notes and transcript are removed from this Mac. This can’t be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jego notatki i transkrypt zostaną usunięte z tego Maca. Nie można tego cofnąć."
+          }
+        }
+      }
+    },
+    "The text, and your edits to it, are removed from your history. This can’t be undone." : {
+      "comment" : "Notes: delete sheet of a dictation with edits",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The text, and your edits to it, are removed from your history. This can’t be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekst oraz Twoje zmiany w nim zostaną usunięte z historii. Nie można tego cofnąć."
+          }
+        }
+      }
+    },
+    "The text is removed from your history. This can’t be undone." : {
+      "comment" : "Notes: delete sheet of a dictation",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The text is removed from your history. This can’t be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekst zostanie usunięty z historii. Nie można tego cofnąć."
+          }
+        }
+      }
+    },
+    "The note is removed from this Mac. This can’t be undone." : {
+      "comment" : "Notes: delete sheet of a note you wrote",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The note is removed from this Mac. This can’t be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatka zostanie usunięta z tego Maca. Nie można tego cofnąć."
+          }
+        }
+      }
+    },
+    "Your edited copy of this note is removed from this Mac. This can’t be undone." : {
+      "comment" : "Notes: delete sheet of the copy of a recording that is gone",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your edited copy of this note is removed from this Mac. This can’t be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Twoja zmieniona kopia tej notatki zostanie usunięta z tego Maca. Nie można tego cofnąć."
+          }
+        }
+      }
+    },
+    "Delete Dictation" : {
+      "comment" : "Notes: delete sheet button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Dictation"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń dyktowanie"
+          }
+        }
+      }
+    },
+    "Delete Note" : {
+      "comment" : "Notes: delete sheet button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Note"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń notatkę"
+          }
+        }
+      }
+    },
+    "Delete Copy" : {
+      "comment" : "Notes: delete sheet button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Copy"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń kopię"
+          }
+        }
+      }
+    },
+    "Delete this note?" : {
+      "comment" : "Notes: title of the delete sheet",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete this note?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunąć tę notatkę?"
+          }
+        }
+      }
+    },
+    "This can’t be undone." : {
+      "comment" : "Notes: delete sheet text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This can’t be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie można tego cofnąć."
+          }
+        }
+      }
+    },
+    "Actions" : {
+      "comment" : "Inspector, Details: heading of the note's actions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actions"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akcje"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

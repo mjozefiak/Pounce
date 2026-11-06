@@ -34,6 +34,8 @@ final class NoteDocumentRegistry {
     var onRekey: @MainActor (NoteKey, Int64) -> Bool = { _, _ in true }
     /// A tab closed (or the quit flush ran) while its text could not be written: the text is kept and retried.
     var onSaveFailure: @MainActor (NoteItemID) -> Void = { _ in }
+    /// A deletion removed these notes' documents behind the UI's back (Also delete kept copies): their tabs close.
+    var onDiscard: @MainActor (Set<NoteItemID>) -> Void = { _ in }
 
     init(log: any NotesLogging = OSNotesLog()) {
         self.log = log
@@ -128,6 +130,27 @@ final class NoteDocumentRegistry {
         }
         _ = failed
         await cleanup(await openDocIDs())
+    }
+
+    /// A deletion removed the documents of `item`: their writers are forgotten WITHOUT writing (the text is deleted
+    /// with them, after the user confirmed it) and their timers and retries stop.
+    func discard(item: NoteItemID) {
+        for (id, entry) in entries where entry.item == item {
+            entry.writer.discardPending()
+            entries[id] = nil
+        }
+    }
+
+    /// The same for documents named by row (the kept copies of one owner); their tabs are told through `onDiscard`.
+    func discard(docIDs: Set<Int64>) async {
+        var items = Set<NoteItemID>()
+        for (id, entry) in Array(entries) {
+            guard let docID = await entry.writer.docID, docIDs.contains(docID) else { continue }
+            entry.writer.discardPending()
+            entries[id] = nil
+            items.insert(entry.item)
+        }
+        if !items.isEmpty { onDiscard(items) }
     }
 
     /// After a detach: the open documents of the key move to `.detached(docID)` (their writers keep their rows, so

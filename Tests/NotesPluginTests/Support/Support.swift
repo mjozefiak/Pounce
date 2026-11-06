@@ -59,7 +59,8 @@ func makeContext(
     storage: URL = FileManager.default.temporaryDirectory.appending(
         path: "lintel-notes-tests-\(UUID().uuidString)", directoryHint: .isDirectory),
     settings: MemorySettings = MemorySettings(),
-    keychain: any KeychainClient = CountingKeychain()
+    keychain: any KeychainClient = CountingKeychain(),
+    noteSources: @escaping @MainActor @Sendable () -> [any NoteSource] = { [] }
 ) -> PluginContext {
     PluginContext(
         storageDirectory: storage,
@@ -71,7 +72,8 @@ func makeContext(
         events: NoEvents(),
         workspace: NoWorkspace(),
         permissions: NoPermissions(),
-        clock: ContinuousClock()
+        clock: ContinuousClock(),
+        noteSources: noteSources
     )
 }
 

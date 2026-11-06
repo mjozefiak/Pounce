@@ -150,7 +150,7 @@ import Testing
         await model.restore(revisionID: try #require(before.first).id)
         #expect(try r.store.revisions(of: doc.id) == before)
         #expect(model.feedback == .restoreFailed)
-        #expect(model.strips.contains { $0.id == "restore" })
+        #expect(model.strips.contains { $0.id == "feedback" })
     }
 
     @Test func aLayerWithoutAnOverlayHasNoHistoryAndADetachedOneCannotBeRestored() async throws {

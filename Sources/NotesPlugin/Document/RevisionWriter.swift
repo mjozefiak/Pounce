@@ -112,6 +112,23 @@ final class RevisionWriter: Sendable {
     /// to a recording that is gone), so a later flush throws instead of writing against the wrong note.
     func retire() { pending.withLock { $0.retired = true } }
 
+    /// The document is being deleted (the user confirmed it): the buffered text goes with it, no timer or retry
+    /// writes it again, and the writer stays retired.
+    func discardPending() {
+        let tasks = pending.withLock { state -> [Task<Void, Never>?] in
+            let all = [state.debounce, state.idle, state.maxWait, state.retry]
+            state.text = nil
+            state.debounce = nil
+            state.idle = nil
+            state.maxWait = nil
+            state.retry = nil
+            state.failed = false
+            state.retired = true
+            return all
+        }
+        for task in tasks { task?.cancel() }
+    }
+
     // MARK: Typing
 
     /// The editor's whole buffer after a change. Synchronous: stores it and restarts the 1 s timer.

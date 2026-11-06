@@ -81,6 +81,8 @@ struct AppEnvironment {
     ///   - noteSources: the active plugins' note sources (`NoteSourcesRelay`).
     ///   - noteSourcesChanged: yields when a plugin was switched on or off.
     ///   - openNote: asks the main window's sections to show a note.
+    ///   - keptNoteCopies, deleteKeptNoteCopies: what Notes keeps of a plugin's recordings and its removal
+    ///     (`NoteSourcesRelay`, answered by the plugin that implements `keptNoteCopyCount`).
     func makeContext(
         for manifest: PluginManifest,
         resultsChanged: @escaping @Sendable () -> Void = {},
@@ -92,7 +94,9 @@ struct AppEnvironment {
         openModels: @escaping @MainActor @Sendable (String?) -> Void = { _ in },
         noteSources: @escaping @MainActor @Sendable () -> [any NoteSource] = { [] },
         noteSourcesChanged: @escaping @Sendable () -> AsyncStream<Void> = { AsyncStream { $0.finish() } },
-        openNote: @escaping @MainActor @Sendable (NoteKey) -> Bool = { _ in false }
+        openNote: @escaping @MainActor @Sendable (NoteKey) -> Bool = { _ in false },
+        keptNoteCopies: @escaping @MainActor @Sendable (PluginID) async -> Int = { _ in 0 },
+        deleteKeptNoteCopies: @escaping @MainActor @Sendable (PluginID, Bool) async -> Bool = { _, _ in true }
     ) -> PluginContext {
         PluginContext(
             storageDirectory: storageDirectory(for: manifest.id),
@@ -114,7 +118,9 @@ struct AppEnvironment {
             openModels: openModels,
             noteSources: noteSources,
             noteSourcesChanged: noteSourcesChanged,
-            openNote: openNote
+            openNote: openNote,
+            keptNoteCopies: keptNoteCopies,
+            deleteKeptNoteCopies: deleteKeptNoteCopies
         )
     }
 

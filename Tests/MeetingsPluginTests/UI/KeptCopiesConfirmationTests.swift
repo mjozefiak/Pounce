@@ -10,13 +10,17 @@ import Testing
 @MainActor
 @Suite struct MeetingsKeptCopiesConfirmationTests {
     @Test func clearLibraryHasTheNotesSentenceAndAnUncheckedBox() throws {
-        let confirmation = MeetingsConfirmations.clearLibraryInMainWindow
+        let confirmation = MeetingsConfirmations.clearLibraryInMainWindow(keptCopies: 3)
         let option = try #require(confirmation.option)
         #expect(option.title.key == "Also delete kept copies")
         #expect(option.explanation?.key.contains("Notes") == true)
         #expect(option.isOnByDefault == false)
         #expect(confirmation.prompt.key == MeetingsConfirmations.clearLibrary.prompt.key)
         #expect(confirmation.confirmTitle.key == "Delete All Meetings")
+    }
+
+    @Test func withoutKeptCopiesTheSheetHasNoCheckbox() {
+        #expect(MeetingsConfirmations.clearLibraryInMainWindow(keptCopies: 0).option == nil)
     }
 
     @Test func theOtherActionsHaveNoCheckbox() {
@@ -30,17 +34,56 @@ import Testing
             contentsOf: TestPaths.meetingsSources.appending(path: "UI/MeetingsSettingsPane.swift"), encoding: .utf8)
         #expect(pane.contains("model.clearLibrary(alsoDeleteKeptCopies: alsoDeleteKeptCopies)"))
         // Release builds keep today's words until Notes ships (spec B step 7.1 removes the guard).
-        let guarded = try #require(pane.range(of: "#if DEBUG\n        clearLibrary.with(option: .keptNotesCopies)"))
+        let guarded = try #require(
+            pane.range(
+                of:
+                    "#if DEBUG\n        keptCopies > 0 ? clearLibrary.with(option: .keptNotesCopies(count: keptCopies)) : clearLibrary"
+            ))
         let release = try #require(pane.range(of: "#else\n        clearLibrary\n        #endif"))
         #expect(guarded.upperBound <= release.lowerBound)
     }
 
-    @Test func clearingWithTheFlagStillWorksOnAnEmptyLibrary() throws {
+    @Test func clearingWithTheFlagStillWorksOnAnEmptyLibrary() async throws {
         let rig = try SettingsRig()
         rig.library.open()
-        rig.model.clearLibrary(alsoDeleteKeptCopies: true)
+        await rig.model.clearLibrary(alsoDeleteKeptCopies: true)?.value
         #expect(rig.library.meetingCount == 0)
         #expect(!rig.model.privacyFailed)
         rig.library.close()
+    }
+
+    // MARK: Kept copies in Notes: only with the box, only after the library was cleared
+
+    @Test func theCopiesAreDeletedOnlyWhenTheBoxIsTickedAndAfterTheLibraryWasCleared() async throws {
+        let rig = try SettingsRig()
+        rig.library.open()
+        var order: [String] = []
+        let library = rig.library
+        rig.model.deleteKeptCopies = {
+            order.append("copies after \(library.meetingCount) meetings")
+            return true
+        }
+        rig.model.clearLibrary(alsoDeleteKeptCopies: false)
+        #expect(order.isEmpty, "unticked: nothing in Notes is deleted")
+        await rig.model.clearLibrary(alsoDeleteKeptCopies: true)?.value
+        #expect(order == ["copies after 0 meetings"])
+        rig.library.close()
+    }
+
+    @Test func aFailedCopyRemovalSaysSoAfterTheLibraryWasCleared() async throws {
+        let rig = try SettingsRig()
+        rig.library.open()
+        rig.model.deleteKeptCopies = { false }
+        await rig.model.clearLibrary(alsoDeleteKeptCopies: true)?.value
+        #expect(rig.model.privacyFailed)
+        rig.library.close()
+    }
+
+    @Test func theNumberOfKeptCopiesIsReadFromNotesBeforeTheSheetOpens() async throws {
+        let rig = try SettingsRig()
+        rig.model.keptCopies = { 4 }
+        #expect(rig.model.keptCopyCount == 0)
+        await rig.model.refreshKeptCopies()
+        #expect(rig.model.keptCopyCount == 4)
     }
 }

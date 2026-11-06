@@ -100,6 +100,15 @@ public protocol LintelPlugin: AnyObject {
     /// The recorded notes this plugin owns, read by the Notes section (`NoteSource`). Added with the Notes
     /// workspace; the default has none.
     var noteSources: [any NoteSource] { get }
+    /// Notes only (step 4.6): how many copies of `owner`'s recordings the plugin keeps because the user edited or
+    /// commented on them, so that Clear Library, Clear History, Erase Data and Delete in the owner can say so.
+    /// Added with the Notes workspace; the default is 0.
+    func keptNoteCopyCount(ofOwner owner: PluginID) async -> Int
+    /// Notes only (step 4.6): deletes those copies, after the owner's own deletion succeeded and the user ticked
+    /// "Also delete kept copies". `ownerErased` is true after Erase Data, when the owner can no longer be asked
+    /// which recordings are gone. Returns `false` when something could not be deleted. The default deletes
+    /// nothing and returns `true`.
+    func deleteKeptNoteCopies(ofOwner owner: PluginID, ownerErased: Bool) async -> Bool
 
     /// Removes data the plugin keeps outside its storage directory (for example a Keychain item).
     /// "Erase Data" calls `deactivate()`, then this method, and then the host deletes the whole
@@ -123,5 +132,7 @@ extension LintelPlugin {
     public var settingsStatus: SettingsStatus? { nil }
     public var modelUsage: [ModelUsage] { [] }
     public var noteSources: [any NoteSource] { [] }
+    public func keptNoteCopyCount(ofOwner owner: PluginID) async -> Int { 0 }
+    public func deleteKeptNoteCopies(ofOwner owner: PluginID, ownerErased: Bool) async -> Bool { true }
     public func eraseData() async throws {}
 }

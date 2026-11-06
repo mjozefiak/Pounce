@@ -59,6 +59,16 @@ struct ScriptedNoteSource: NoteSource {
         #expect(finished)
     }
 
+    @Test func keptCopiesDefaultsKeepAndDeleteNothing() async {
+        // Step 4.6: a plugin written before it keeps no copies and deletes none (additive, BC section 1).
+        let plugin: any LintelPlugin = PreNotesPlugin(context: TestContext.make())
+        #expect(await plugin.keptNoteCopyCount(ofOwner: "meetings") == 0)
+        #expect(await plugin.deleteKeptNoteCopies(ofOwner: "meetings", ownerErased: false))
+        let context = TestContext.make()
+        #expect(await context.keptNoteCopies("meetings") == 0)
+        #expect(await context.deleteKeptNoteCopies("meetings", true))
+    }
+
     @Test func noteKeyRoundTrips() throws {
         let key = NoteKey(pluginID: "dictation", id: "store:1/42")
         #expect(key.rawValue == "dictation:store:1/42")

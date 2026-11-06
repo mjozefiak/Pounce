@@ -3,7 +3,8 @@ import Foundation
 // Contract additions for the Notes workspace (spec `.ai/specs/2026-11-04-notes-workspace.md`, step 1.1, ADR 0008).
 // All of them are additive: `LintelPlugin.noteSources`, `PluginContext.noteSources` / `noteSourcesChanged` /
 // `openNote` and `PasteboardClient.write(_:options:)` have defaults, so a plugin written before them compiles
-// unchanged. Note sources carry plain `String` text only: no attributed, HTML or other markup is ever returned.
+// unchanged. Step 4.6 adds `LintelPlugin.keptNoteCopyCount(ofOwner:)` / `deleteKeptNoteCopies(ofOwner:ownerErased:)` and
+// `PluginContext.keptNoteCopies` / `deleteKeptNoteCopies` (same rule: defaults). Note sources carry plain `String` text only: no attributed, HTML or other markup is ever returned.
 
 /// Key of one note in the persisted format `<plugin id>:<id>` (`meetings:<uuid>`, `dictation:<store id>/<row id>`,
 /// `notes:<uuid>`). Only the first `:` separates the plugin id from the rest. Never reused after Erase Data or a

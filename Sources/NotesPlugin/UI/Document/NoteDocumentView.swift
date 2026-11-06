@@ -105,7 +105,7 @@ struct NoteDocumentHeader: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8 * textSize.scale) {
-            if document.isManual {
+            if document.isManual || model.canRenameTitle(document) {
                 NoteTitleField(model: model, document: document, summary: summary)
             } else {
                 Text(verbatim: model.presentation.title(summary))
@@ -258,7 +258,10 @@ struct NoteTitleField: View {
 
     var body: some View {
         TextField(
-            text: $draft, prompt: Text("Untitled note", comment: "Notes: placeholder of a note's title field")
+            text: $draft,
+            prompt: document.isManual
+                ? Text("Untitled note", comment: "Notes: placeholder of a note's title field")
+                : Text(verbatim: model.presentation.title(summary))
         ) {
             Text("Title", comment: "Accessibility label of a note's title field")
         }
@@ -270,7 +273,7 @@ struct NoteTitleField: View {
         .onChange(of: focused) { _, isFocused in if !isFocused { commit() } }
         .onChange(of: summary.title) { _, title in if !focused { draft = title ?? "" } }
         .onDisappear(perform: commit)
-        .disabled(!model.environment.canEditNotes)
+        .disabled(!model.canEditTitle(document))
         .accessibilityAddTraits(.isHeader)
     }
 

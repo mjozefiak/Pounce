@@ -79,7 +79,9 @@ final class AppCoordinator {
                     openModels: { packageID in settingsRelay.openModels(manifest.id.rawValue, packageID) },
                     noteSources: { noteRelay.sources() },
                     noteSourcesChanged: { noteRelay.changes() },
-                    openNote: { key in noteRelay.openNote(WorkspaceRoute(kind: "openNote", id: key.rawValue)) }
+                    openNote: { key in noteRelay.openNote(WorkspaceRoute(kind: "openNote", id: key.rawValue)) },
+                    keptNoteCopies: { owner in await noteRelay.keptCopies(owner) },
+                    deleteKeptNoteCopies: { owner, erased in await noteRelay.deleteKeptCopies(owner, erased) }
                 )
             },
             settings: environment.settings
@@ -106,6 +108,10 @@ final class AppCoordinator {
                 host, report: { if reported.insert($0).inserted { logger.error("\($0, privacy: .public)") } })
         }
         noteRelay.openNote = { [weak self] route in self?.openNote(route) ?? false }
+        noteRelay.keptCopies = { [weak self] owner in await self?.host.keptNoteCopies(ofOwner: owner) ?? 0 }
+        noteRelay.deleteKeptCopies = { [weak self] owner, erased in
+            await self?.host.deleteKeptNoteCopies(ofOwner: owner, ownerErased: erased) ?? true
+        }
         observeNoteSources()
     }
 

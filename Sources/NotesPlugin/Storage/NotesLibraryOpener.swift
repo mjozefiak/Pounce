@@ -52,6 +52,11 @@ final class NotesLibraryOpener {
     /// Editing, comments and new notes are allowed: the store is open, current and the hidden read-only key is off.
     var canEdit: Bool { status == .ready && !settings.readOnly }
 
+    /// Whether `notes.sqlite` exists, without opening it (no Keychain lookup).
+    var storeFileExists: Bool {
+        FileManager.default.fileExists(atPath: directory.appending(path: NotesStore.fileName).path)
+    }
+
     /// The store can be read (it may still refuse writes).
     var canRead: Bool { store != nil }
 

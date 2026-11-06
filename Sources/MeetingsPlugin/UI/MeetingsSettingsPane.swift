@@ -79,7 +79,7 @@ struct MeetingsPaneContent: View {
         .destructiveConfirmation(
             isPresented: Binding(
                 get: { confirmation == .clearLibrary }, set: { if !$0 { confirmation = nil } }),
-            MeetingsConfirmations.clearLibraryInMainWindow,
+            MeetingsConfirmations.clearLibraryInMainWindow(keptCopies: model.keptCopyCount),
             onConfirmWithOption: { alsoDeleteKeptCopies in
                 model.clearLibrary(alsoDeleteKeptCopies: alsoDeleteKeptCopies)
             }
@@ -335,7 +335,11 @@ struct MeetingsPaneContent: View {
         .toggleStyle(.switch)
         LabeledContent {
             Button(role: .destructive) {
-                confirmation = .clearLibrary
+                // The number of copies Notes keeps is read first, so the sheet can say it.
+                Task {
+                    await model.refreshKeptCopies()
+                    confirmation = .clearLibrary
+                }
             } label: {
                 Text("Clear Library…", comment: "Meetings settings button that deletes all meetings")
                     .font(textSize.font(.body))
@@ -487,9 +491,9 @@ extension MeetingsConfirmations {
     /// Clear Library: also says that copies edited or commented on in Notes stay, with the "Also delete kept
     /// copies" checkbox (owner decision L1-39). DEBUG only until Notes ships (spec `2026-11-04-notes-workspace`,
     /// step 7.1 removes the guard); release builds show `clearLibrary`.
-    static var clearLibraryInMainWindow: DestructiveConfirmation {
+    static func clearLibraryInMainWindow(keptCopies: Int) -> DestructiveConfirmation {
         #if DEBUG
-        clearLibrary.with(option: .keptNotesCopies)
+        keptCopies > 0 ? clearLibrary.with(option: .keptNotesCopies(count: keptCopies)) : clearLibrary
         #else
         clearLibrary
         #endif

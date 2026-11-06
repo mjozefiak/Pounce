@@ -122,6 +122,10 @@ public final class DictationPlugin: LintelPlugin {
             })
         noteSource = DictationNoteSource(history: history, hub: noteChanges)
         historyModel = HistorySettingsModel(settings: settings, history: history)
+        let keptNoteCopies = context.keptNoteCopies
+        let deleteKeptNoteCopies = context.deleteKeptNoteCopies
+        historyModel.keptCopies = { await keptNoteCopies(Self.manifest.id) }
+        historyModel.deleteKeptCopies = { await deleteKeptNoteCopies(Self.manifest.id, false) }
         let transport = LoopbackTransport()
         self.transport = transport
         formattingModel = FormattingSettingsModel(

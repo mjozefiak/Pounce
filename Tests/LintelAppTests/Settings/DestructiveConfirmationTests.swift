@@ -49,13 +49,19 @@ import Testing
 
     @Test func meetingsAndDictationOfferTheUncheckedBox() throws {
         for id: PluginID in ["meetings", "dictation"] {
-            let confirmation = FeatureEraseRow.confirmation(for: Self.manifest(id))
+            let confirmation = FeatureEraseRow.confirmation(for: Self.manifest(id), keptCopies: 3)
             let option = try #require(confirmation.option)
             #expect(option.isOnByDefault == false)
             #expect(option.title.key == "Also delete kept copies")
             try DestructiveConfirmationTests.expectTranslated(option.title)
             try DestructiveConfirmationTests.expectTranslated(try #require(option.explanation))
             #expect(confirmation.confirmTitle.key == "Erase Data")
+        }
+    }
+
+    @Test func withoutKeptCopiesThereIsNoCheckbox() {
+        for id: PluginID in ["meetings", "dictation"] {
+            #expect(FeatureEraseRow.confirmation(for: Self.manifest(id), keptCopies: 0).option == nil)
         }
     }
 

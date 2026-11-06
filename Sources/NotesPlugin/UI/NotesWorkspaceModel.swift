@@ -60,6 +60,14 @@ final class NotesWorkspaceModel {
         /// Restore: a new `human` revision with the text and authors of the revision, through the layer's one
         /// writer. `false` when nothing was written (read-only, store locked, the revision is gone).
         var restoreRevision: @MainActor (NoteItemID, String, Int64) async -> Bool = { _, _, _ in false }
+        /// Delete: the owner first, the overlays only after it succeeded (`NoteDeleter`); throws a
+        /// `NoteDeleter.Failure`. Off (`canDeleteNotes` false) without the store.
+        var canDeleteNotes = false
+        var deleteNote: @MainActor (NoteItemID) async throws -> Void = { _ in
+            throw NoteDeleter.Failure.sourceUnavailable
+        }
+        /// Renames the title of a recorded note in its owner (`NoteSourceEditing`); `false` when it was not changed.
+        var renameTitle: @MainActor (NoteKey, String) async -> Bool = { _, _ in false }
     }
 
     enum LoadState: Equatable {
@@ -76,6 +84,8 @@ final class NotesWorkspaceModel {
     /// The inspector on the right (Details and History; Comments join it in step 5.2).
     var inspectorVisible = true
     var inspectorTab: NoteInspectorTab = .details
+    /// The question the delete sheet shows, `nil` when none is open.
+    var pendingDelete: DeleteRequest?
 
     private(set) var loadState: LoadState = .loading
     private(set) var rows: [NoteRow] = []
@@ -409,6 +419,7 @@ final class NotesWorkspaceModel {
                 NoteOverlayContent.compose(item: id, source: read, heads: heads, summary: nil),
                 attributions: NoteOverlayContent.attributions(heads: heads))
             document.setActions(source.actions(for: key))
+            document.canRenameTitle = source is any NoteSourceEditing
             await refreshHistoryIfShown(id)
             #if DEBUG
             if qaMixedAuthors { document.qaMixAuthors() }
@@ -419,6 +430,14 @@ final class NotesWorkspaceModel {
         case .cancelled:
             break
         }
+    }
+
+    /// The note is gone (deleted): its tab and document go without writing anything again (the registry already
+    /// discarded the writers).
+    func dropTab(_ id: NoteItemID) {
+        tabs.close(id)
+        documents[id] = nil
+        contentEpochs[id] = nil
     }
 
     private func isCurrent(_ epoch: Int, _ id: NoteItemID, _ document: NoteDocumentModel) -> Bool {
@@ -455,14 +474,30 @@ final class NotesWorkspaceModel {
         await loadContent(id)
     }
 
+    /// Whether the title of a recorded note is a field: its owner supports renaming and the note is still there.
+    func canRenameTitle(_ document: NoteDocumentModel) -> Bool {
+        if case .detached = document.id { return false }
+        return document.canRenameTitle && !document.isManual
+    }
+
+    /// Whether the title field accepts typing: a manual note needs the store; a recorded one only its owner.
+    func canEditTitle(_ document: NoteDocumentModel) -> Bool {
+        document.isManual ? environment.canEditNotes : canRenameTitle(document)
+    }
+
     /// A manual note's title: the line above its text. Trimmed and cleaned like `NotesStore.cleanTitle`; an empty
     /// one clears it. Nothing happens when it did not change.
     func setTitle(_ id: NoteItemID, to text: String) async {
-        guard documents[id]?.isManual == true else { return }
+        guard let document = documents[id], document.isManual || canRenameTitle(document) else { return }
         let clean = NotesStore.cleanTitle(text)
-        let current = NotesStore.cleanTitle(row(for: id)?.summary.title ?? documents[id]?.summary?.title)
+        let current = NotesStore.cleanTitle(row(for: id)?.summary.title ?? document.summary?.title)
         guard clean != current else { return }
-        guard await environment.setTitle(id.key, clean) else {
+        // A manual note's title is Notes' own (`title_override`); a recorded note's belongs to its owner and is
+        // renamed through `NoteSourceEditing`, never in `notes.sqlite`.
+        let written =
+            document.isManual
+            ? await environment.setTitle(id.key, clean) : await environment.renameTitle(id.key, clean ?? "")
+        guard written else {
             show(.titleFailed)
             return
         }
@@ -559,6 +594,9 @@ final class NotesWorkspaceModel {
         case titleFailed
         case restored
         case restoreFailed
+        case deleted
+        case deleteFailed
+        case copyNotRemoved
     }
 
     private(set) var feedback: Feedback?

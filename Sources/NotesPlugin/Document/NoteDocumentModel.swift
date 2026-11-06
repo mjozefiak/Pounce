@@ -36,6 +36,8 @@ final class NoteDocumentModel {
     private(set) var scrollRequest: ScrollRequest?
     /// What the source offers for this note (finish an interrupted meeting, ...), read with the content.
     private(set) var actions: [NoteSourceAction] = []
+    /// The source can rename the note's title (`NoteSourceEditing`): the header's title is a field (step 4.6).
+    var canRenameTitle = false
     /// An action of the source threw: the strip says so until it is dismissed or tried again.
     var actionFailed = false
     private var serial = 0

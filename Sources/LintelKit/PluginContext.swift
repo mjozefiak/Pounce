@@ -137,6 +137,13 @@ public struct PluginContext: Sendable {
     /// Asks the shell to show a note in the Notes section. Returns `true` only when a section handled it.
     /// Added with the Notes workspace; the default returns `false`.
     public let openNote: @MainActor @Sendable (NoteKey) -> Bool
+    /// How many copies of the plugin's own recordings Notes keeps because the user edited or commented on them
+    /// (the "N copies in Notes are kept" of Clear and Erase). Added with the Notes workspace; the default is 0.
+    public let keptNoteCopies: @MainActor @Sendable (_ owner: PluginID) async -> Int
+    /// Deletes those copies. Call it only AFTER the plugin's own deletion succeeded and only when the user ticked
+    /// "Also delete kept copies"; `ownerErased` is true after Erase Data. Returns `false` when something could not
+    /// be deleted. Added with the Notes workspace; the default deletes nothing and returns `true`.
+    public let deleteKeptNoteCopies: @MainActor @Sendable (_ owner: PluginID, _ ownerErased: Bool) async -> Bool
 
     public init(
         storageDirectory: URL,
@@ -163,7 +170,11 @@ public struct PluginContext: Sendable {
         openModels: @escaping @MainActor @Sendable (_ packageID: String?) -> Void = { _ in },
         noteSources: @escaping @MainActor @Sendable () -> [any NoteSource] = { [] },
         noteSourcesChanged: @escaping @Sendable () -> AsyncStream<Void> = { AsyncStream { $0.finish() } },
-        openNote: @escaping @MainActor @Sendable (NoteKey) -> Bool = { _ in false }
+        openNote: @escaping @MainActor @Sendable (NoteKey) -> Bool = { _ in false },
+        keptNoteCopies: @escaping @MainActor @Sendable (_ owner: PluginID) async -> Int = { _ in 0 },
+        deleteKeptNoteCopies: @escaping @MainActor @Sendable (_ owner: PluginID, _ ownerErased: Bool) async -> Bool = {
+            _, _ in true
+        }
     ) {
         self.storageDirectory = storageDirectory
         self.settings = settings
@@ -188,5 +199,7 @@ public struct PluginContext: Sendable {
         self.noteSources = noteSources
         self.noteSourcesChanged = noteSourcesChanged
         self.openNote = openNote
+        self.keptNoteCopies = keptNoteCopies
+        self.deleteKeptNoteCopies = deleteKeptNoteCopies
     }
 }

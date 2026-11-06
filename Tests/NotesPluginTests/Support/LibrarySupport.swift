@@ -167,6 +167,10 @@ final class ScriptedNoteSource: NoteSource, Sendable {
         var continuations: [UUID: AsyncStream<Void>.Continuation] = [:]
         var listGate: Gate?
         var contentGate: Gate?
+        var deleteFails = false
+        var onDelete: (@Sendable (NoteKey) -> Void)?
+        var renameFails = false
+        var renamed: [(NoteKey, String)] = []
     }
 
     private let listStarts = CountLatch()
@@ -278,7 +282,27 @@ final class ScriptedNoteSource: NoteSource, Sendable {
         case .answers: return content
         }
     }
-    func delete(_ key: NoteKey) async throws { deletes.increment() }
+    func delete(_ key: NoteKey) async throws {
+        deletes.increment()
+        let (fails, hook) = state.withLock { ($0.deleteFails, $0.onDelete) }
+        hook?(key)
+        if fails { throw ScriptedError() }
+    }
+    /// Makes `delete` throw, like an active meeting or a locked store.
+    var deleteFails: Bool {
+        get { state.withLock { $0.deleteFails } }
+        set { state.withLock { $0.deleteFails = newValue } }
+    }
+    /// Runs inside `delete`, before it answers: a test looks at what Notes still holds at that moment.
+    var onDelete: (@Sendable (NoteKey) -> Void)? {
+        get { state.withLock { $0.onDelete } }
+        set { state.withLock { $0.onDelete = newValue } }
+    }
+    var renameFails: Bool {
+        get { state.withLock { $0.renameFails } }
+        set { state.withLock { $0.renameFails = newValue } }
+    }
+    var renamedTitles: [(NoteKey, String)] { state.withLock { $0.renamed } }
     /// How many times Notes asked the source to delete a note.
     var deleteCalls: Int { deletes.count }
     /// How many times `content(for:)` was called.
@@ -306,6 +330,18 @@ final class ScriptedNoteSource: NoteSource, Sendable {
 }
 
 extension ScriptedNoteSource.Behavior: Equatable {}
+
+extension ScriptedNoteSource: NoteSourceEditing {
+    func renameTitle(_ key: NoteKey, to title: String) async throws {
+        let fails = state.withLock { state -> Bool in
+            state.renamed.append((key, title))
+            return state.renameFails
+        }
+        if fails { throw ScriptedError() }
+    }
+    func renameSpeaker(_ key: NoteKey, speakerID: String, to name: String) async throws {}
+    func markSelf(_ key: NoteKey, speakerID: String) async throws {}
+}
 
 /// The overlay store of a library test: both the read port and the detacher, so a detach is visible to the
 /// next read. Metadata only.

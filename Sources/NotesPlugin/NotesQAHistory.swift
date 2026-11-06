@@ -59,3 +59,37 @@ extension NotesPlugin {
     }
 }
 #endif
+
+#if DEBUG
+extension NotesPlugin {
+    /// `plugins.notes.qaDelete=meeting|dictation|manual|copy`: opens that delete confirmation (fixture notes, the
+    /// QA run's own store). Confirming deletes only the fixture; nothing real is reachable in QA mode.
+    func qaRequestDelete(_ mode: String, in model: NotesWorkspaceModel) {
+        let storeProvider = storeProvider
+        Task { @MainActor in
+            await model.refresh()
+            let request: NotesWorkspaceModel.DeleteRequest
+            switch mode {
+            case "dictation":
+                request = .init(
+                    id: .live(NotesQAFixtures.dictationID), title: "Hi Kasia, I moved the review to Thursday at 10.",
+                    subject: .dictation, hasEdits: false)
+            case "manual":
+                guard let store = storeProvider(), let key = try? store.createManualNote(now: Date()) else { return }
+                _ = try? store.setTitleOverride(key: key, title: "Release checklist", now: Date())
+                await model.refresh()
+                request = .init(id: .live(key), title: "Release checklist", subject: .manual, hasEdits: true)
+            case "copy":
+                request = .init(
+                    id: .detached(NotesQAFixtures.meetingID, startedAtMs: 0), title: "Orchard weekly sync",
+                    subject: .copy, hasEdits: true)
+            default:
+                request = .init(
+                    id: .live(NotesQAFixtures.meetingID), title: "Orchard weekly sync", subject: .meeting,
+                    hasEdits: mode == "meeting-edited")
+            }
+            model.pendingDelete = request
+        }
+    }
+}
+#endif

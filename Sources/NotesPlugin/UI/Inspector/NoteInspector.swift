@@ -129,7 +129,54 @@ struct NoteDetailsPane: View {
                     .accessibilityElement(children: .combine)
                 }
             }
+            actions
         }
+    }
+
+    /// Prototype `.acl`: what can be done with the note. Regenerate comes with the agent (step 6.x).
+    private var actions: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            sectionHeader(Text("Actions", comment: "Inspector, Details: heading of the note's actions"), first: false)
+            actionRow(
+                "doc.on.doc", Text("Copy Markdown", comment: "Path bar: copies the note as Markdown"), keys: "⌘⇧C",
+                tint: LintelBrand.ink
+            ) { model.copyMarkdown() }
+            actionRow(
+                "square.and.arrow.down", Text("Save .md…", comment: "Path bar: saves the note as a Markdown file"),
+                keys: nil, tint: LintelBrand.ink
+            ) { Task { await model.saveMarkdown() } }
+            if model.canDelete(document.id) {
+                actionRow(
+                    "trash", Text("Delete…", comment: "Explorer: deletes the note after a confirmation"), keys: "⌘⌫",
+                    tint: LintelBrand.statusError
+                ) { Task { await model.requestDelete(document.id) } }
+            }
+        }
+    }
+
+    private func actionRow(
+        _ symbol: String, _ title: Text, keys: String?, tint: Color, action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: symbol).accessibilityHidden(true)
+                title
+                Spacer(minLength: 0)
+                if let keys {
+                    Text(verbatim: keys)
+                        .font(textSize.font(.caption1, weight: .semibold))
+                        .foregroundStyle(LintelBrand.secondaryText)
+                        .padding(.horizontal, 6)
+                        .background(LintelBrand.fill, in: RoundedRectangle(cornerRadius: 5))
+                        .accessibilityHidden(true)
+                }
+            }
+            .font(textSize.font(.callout))
+            .foregroundStyle(tint)
+            .padding(.vertical, 5)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     /// What the source supplies (spec deviation 3: Details shows `NoteContent.details`), led by the app.

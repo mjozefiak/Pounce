@@ -7,6 +7,12 @@ import SwiftUI
 struct NotesSectionView: View {
     let model: NotesWorkspaceModel
 
+    /// Never shown: the sheet is presented only while a request exists.
+    private static let placeholder = DestructiveConfirmation(
+        prompt: LocalizedStringResource("Delete this note?", comment: "Notes: title of the delete sheet"),
+        detail: LocalizedStringResource("This can’t be undone.", comment: "Notes: delete sheet text"),
+        confirmTitle: LocalizedStringResource("Delete", comment: "Notes: delete sheet button"))
+
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
@@ -28,6 +34,15 @@ struct NotesSectionView: View {
         .background(LintelBrand.windowBackground)
         .environment(model.preferences)
         .task { await model.run() }
+        .destructiveConfirmation(
+            isPresented: Binding(
+                get: { model.pendingDelete != nil }, set: { if !$0 { model.cancelDelete() } }),
+            model.pendingDelete.map(NoteDeleteConfirmation.make) ?? Self.placeholder
+        ) {
+            // Closing the sheet clears the request, so the task takes it now.
+            guard let request = model.pendingDelete else { return }
+            Task { await model.confirmDelete(request) }
+        }
     }
 }
 

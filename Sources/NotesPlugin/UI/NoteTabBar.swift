@@ -108,7 +108,10 @@ struct NotePathBar: View {
                         .accessibilityLabel(Text(verbatim: path.joined(separator: ", ")))
                 }
                 Spacer(minLength: 0)
-                if let feedback = model.feedback, feedback != .saveFailed, feedback != .restoreFailed {
+                if let feedback = model.feedback, feedback != .saveFailed, feedback != .restoreFailed,
+                    feedback != .deleteFailed,
+                    feedback != .copyNotRemoved
+                {
                     Text(verbatim: Self.text(feedback))
                         .font(textSize.font(.footnote))
                         .foregroundStyle(LintelBrand.accentText)
@@ -127,7 +130,7 @@ struct NotePathBar: View {
             guard let feedback = model.feedback else { return }
             AccessibilityNotification.Announcement(Self.text(feedback)).post()
             // The save-error strip stays until it is dismissed or the save is tried again.
-            guard feedback != .saveFailed, feedback != .restoreFailed else { return }
+            guard ![.saveFailed, .restoreFailed, .deleteFailed, .copyNotRemoved].contains(feedback) else { return }
             try? await Task.sleep(for: .seconds(2))
             if !Task.isCancelled { model.dismissFeedback() }
         }
@@ -199,6 +202,16 @@ struct NotePathBar: View {
             String(localized: "The note couldn’t be created.", comment: "Notes: a new note could not be written")
         case .titleFailed:
             String(localized: "The title couldn’t be saved.", comment: "Notes: a note's title could not be written")
+        case .deleted:
+            String(localized: "note.deleted", defaultValue: "Deleted", comment: "Path bar: the note was deleted")
+        case .deleteFailed:
+            String(
+                localized: "The note couldn’t be deleted. Nothing was changed.",
+                comment: "Notes: deleting a note failed or was refused")
+        case .copyNotRemoved:
+            String(
+                localized: "The note was deleted, but the copy in Notes couldn’t be removed yet.",
+                comment: "Notes: the owner deleted the note but its edited copy stayed")
         case .restored:
             String(localized: "Version restored", comment: "Path bar: an earlier version became the current text")
         case .restoreFailed:

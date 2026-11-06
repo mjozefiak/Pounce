@@ -218,6 +218,21 @@ struct ExplorerRowView: View {
         )
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .accessibilityHint(Text("Opens the note in a tab", comment: "Accessibility hint of an explorer row"))
+        .contextMenu {
+            if model.canDelete(row.id) {
+                Button(role: .destructive) {
+                    Task { await model.requestDelete(row.id) }
+                } label: {
+                    Text("Delete…", comment: "Explorer: deletes the note after a confirmation")
+                }
+            }
+        }
+        // ⌘⌫ deletes the note of the focused row only; in the editor it stays "delete to the start of the line".
+        .onKeyPress(.delete, phases: .down) { press in
+            guard press.modifiers == .command, model.canDelete(row.id) else { return .ignored }
+            Task { await model.requestDelete(row.id) }
+            return .handled
+        }
     }
 }
 

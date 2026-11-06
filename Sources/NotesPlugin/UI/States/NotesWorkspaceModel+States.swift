@@ -159,10 +159,11 @@ extension NotesWorkspaceModel {
                                 comment: "Notes: saves the Markdown file somewhere else")),
                     ], isDismissible: true))
         }
-        if feedback == .restoreFailed {
+        for failed in [Feedback.restoreFailed, .deleteFailed, .copyNotRemoved] where feedback == failed {
             result.append(
                 Strip(
-                    id: "restore", tone: .error, text: NotePathBar.text(.restoreFailed), isDismissible: true))
+                    id: "feedback", tone: failed == .copyNotRemoved ? .attention : .error,
+                    text: NotePathBar.text(failed), isDismissible: true))
         }
         if let document = currentDocument, document.phase == .loaded {
             if document.session?.keptAsProposal == true {
@@ -269,7 +270,7 @@ extension NotesWorkspaceModel {
 
     func dismissStrip(_ id: String) {
         switch id {
-        case "save", "restore": dismissFeedback()
+        case "save", "feedback": dismissFeedback()
         case "actionFailed": currentDocument?.actionFailed = false
         default: break
         }

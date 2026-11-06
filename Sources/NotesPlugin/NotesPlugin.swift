@@ -105,6 +105,7 @@ public final class NotesPlugin: LintelPlugin {
         let qaManual =
             context.settings.string(NotesSettingsKey.qaManual) != nil
             || context.settings.string(NotesSettingsKey.qaHistory) != nil
+            || context.settings.string(NotesSettingsKey.qaDelete) != nil
         let usesStore = !locked && (!fixtures || qaManual)
         let overlays: any OverlayIndex & OverlayDetacher
         if locked {
@@ -123,6 +124,16 @@ public final class NotesPlugin: LintelPlugin {
             library: library, pasteboard: context.pasteboard, sourceSetChanges: context.noteSourcesChanged,
             openSettings: context.openSettings, openModels: { context.openModels(nil) })
         environment.settings = context.settings
+        // A recorded note's title is renamed in its owner (`NoteSourceEditing`), never in `notes.sqlite`.
+        environment.renameTitle = { key, title in
+            guard let editing = await library.source(for: key) as? any NoteSourceEditing else { return false }
+            do {
+                try await editing.renameTitle(key, to: title)
+                return true
+            } catch {
+                return false
+            }
+        }
         if usesStore && !NotesSettings(context.settings).readOnly {
             environment.installWriting(
                 store: storeProvider, registry: registry, settings: context.settings, clock: context.clock)
@@ -130,6 +141,13 @@ public final class NotesPlugin: LintelPlugin {
         if usesStore {
             environment.registry = registry
             environment.installHistory(store: storeProvider)
+            // Delete (also with `plugins.notes.readOnly`: export, copy and delete keep working): the owner first,
+            // the overlays only after it succeeded.
+            environment.canDeleteNotes = true
+            environment.deleteNote = { item in
+                guard let store = storeProvider() else { throw NoteDeleter.Failure.sourceUnavailable }
+                try await NoteDeleter(library: library, store: store, registry: registry).delete(item)
+            }
             environment.overlayHeads = { item in
                 guard let store = await storeProvider() else { return [] }
                 return (try? NoteOverlayContent.heads(for: item, in: store)) ?? []
@@ -152,6 +170,7 @@ public final class NotesPlugin: LintelPlugin {
         let model = NotesWorkspaceModel(environment: environment)
         registry.onRekey = { [weak model] key, started in model?.rekeyDetached(key: key, startedAtMs: started) ?? false
         }
+        registry.onDiscard = { [weak model] items in model?.documentsDiscarded(items) }
         #if DEBUG
         openQAFixtureTabs(in: model)
         applyQAState(to: model)
@@ -174,6 +193,7 @@ public final class NotesPlugin: LintelPlugin {
         model.qaMixedAuthors = context.settings.string(NotesSettingsKey.qaAttribution) == "mixed"
         if let manual = context.settings.string(NotesSettingsKey.qaManual) { qaCreateManualNote(manual, in: model) }
         if let history = context.settings.string(NotesSettingsKey.qaHistory) { qaCreateHistory(history, in: model) }
+        if let delete = context.settings.string(NotesSettingsKey.qaDelete) { qaRequestDelete(delete, in: model) }
     }
 
     /// `plugins.notes.qaManual`: `new` makes a note with no title and opens it in the editor (what ⌘N does);
@@ -217,7 +237,7 @@ public final class NotesPlugin: LintelPlugin {
 
     /// The sources the library reads: the active plugins' (`PluginContext.noteSources`); with `--qa-notes` the
     /// fixture sources come first, so they win over a real plugin of the same id.
-    private var noteSourceProvider: @MainActor @Sendable () -> [any NoteSource] {
+    var noteSourceProvider: @MainActor @Sendable () -> [any NoteSource] {
         let real = context.noteSources
         #if DEBUG
         if context.settings.bool(NotesSettingsKey.qaFixtures, default: false) {
