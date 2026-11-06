@@ -103,14 +103,18 @@ struct NotesPipeline: Sendable {
     let model: NotesModel
     let configuration: Configuration
     private let sleep: @Sendable (Duration) async throws -> Void
+    /// Where the stage trace goes (`NotesTrace`); `nil`, the default, records nothing.
+    private let trace: NotesTraceSink?
 
     init(
         model: NotesModel, configuration: Configuration = Configuration(),
-        sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+        sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) },
+        trace: NotesTraceSink? = nil
     ) {
         self.model = model
         self.configuration = configuration
         self.sleep = sleep
+        self.trace = trace
     }
 
     /// Writes the notes. Throws `CancellationError` when cancelled and `NotesFailure` when the model cannot be
@@ -120,17 +124,26 @@ struct NotesPipeline: Sendable {
     ) async throws -> NotesResult {
         let chunks = TranscriptChunker(chunkTokens: configuration.chunkTokens).chunks(from: utterances)
         let verifier = NotesGuard(utterances: utterances)
+        let recorder = trace.map { NotesTraceRecorder(sink: $0) }
+        recorder?.emit(
+            .started(
+                schemaVersion: NotesTrace.schemaVersion, promptVersion: NotesPrompt.version,
+                utterances: utterances.count, chunks: chunks.count))
         guard !chunks.isEmpty else {
-            return NotesResult(
+            let result = NotesResult(
                 status: .ok, markdown: nil, droppedCount: 0, failedChunks: [], chunkCount: 0, verifiedPointCount: 0,
                 reduceFailed: false, summaryReplaced: false, rejectedIDs: 0, language: verifier.language,
                 promptVersion: String(NotesPrompt.version))
+            recorder?.finish(result)
+            return result
         }
         let lease = NotesLease(model: model, configuration: configuration, sleep: sleep, onEvent: onEvent)
         try await lease.open()
         do {
             let result = try await work(
-                chunks: chunks, utterances: utterances, verifier: verifier, lease: lease, onEvent: onEvent)
+                chunks: chunks, utterances: utterances, verifier: verifier, lease: lease, recorder: recorder,
+                onEvent: onEvent)
+            recorder?.finish(result)
             await lease.release()
             return result
         } catch {
@@ -143,7 +156,7 @@ struct NotesPipeline: Sendable {
 
     private func work(
         chunks: [TranscriptChunk], utterances: [NotesUtterance], verifier: NotesGuard, lease: NotesLease,
-        onEvent: @Sendable (NotesEvent) -> Void
+        recorder: NotesTraceRecorder?, onEvent: @Sendable (NotesEvent) -> Void
     ) async throws -> NotesResult {
         var proposed: [NotesPoint] = []
         var failed: [String] = []
@@ -151,7 +164,8 @@ struct NotesPipeline: Sendable {
         for (index, chunk) in chunks.enumerated() {
             try Task.checkCancellation()
             onEvent(.map(done: index, total: chunks.count))
-            let outcome = try await mapChunk(chunk, lease: lease, canSplit: true)
+            let outcome = try await mapChunk(
+                chunk, lease: lease, canSplit: true, firstPoint: proposed.count + 1, recorder: recorder)
             proposed.append(contentsOf: outcome.points)
             failed.append(contentsOf: outcome.failed)
             if outcome.failed.contains(chunk.id) { failedWhole += 1 }
@@ -175,7 +189,12 @@ struct NotesPipeline: Sendable {
         // The code, not the model, names the points.
         for index in proposed.indices { proposed[index].id = "p\(index + 1)" }
         let verdict = verifier.verifyPoints(proposed)
-        let points = Self.ordered(Self.deduplicated(verdict.verified))
+        recorder?.emit(.verified(NotesTraceVerification(proposed: proposed.count, verdict: verdict)))
+        let unique = Self.deduplicated(verdict.verified)
+        let points = Self.ordered(unique)
+        recorder?.emit(
+            .deduplicated(
+                removedIDs: NotesTrace.removedIDs(from: verdict.verified, kept: unique), keptIDs: points.map(\.id)))
 
         onEvent(.reduce)
         let participants = Self.participants(of: utterances)
@@ -193,9 +212,19 @@ struct NotesPipeline: Sendable {
                 downgraded: verdict.downgraded)
         }
 
-        let reduced = try await reduce(points: points, lease: lease)
+        let reduced = try await reduce(points: points, lease: lease, recorder: recorder)
         onEvent(.finishing)
-        let final = verifier.verifyReduce(reduced.output, points: points)
+        let final: NotesGuard.ReduceVerdict
+        if let recorder {
+            // The same check as `verifyReduce`, with the guard's record of every id for the trace.
+            let audited = verifier.auditedVerifyReduce(reduced.output, points: points)
+            final = audited.verdict
+            recorder.reduced(
+                points: points, proposed: proposed, verdict: final, audit: audited.audit,
+                reduceFailed: reduced.failed, summaryShown: NotesComposer.shownSummary(of: final) != nil)
+        } else {
+            final = verifier.verifyReduce(reduced.output, points: points)
+        }
         let markdown = NotesComposer.markdown(verdict: final, participants: participants, labels: labels)
         return result(
             status: reduced.failed ? .partial : flowStatus, markdown: markdown, dropped: verdict.dropped,
@@ -236,23 +265,43 @@ struct NotesPipeline: Sendable {
         var failed: [String] = []
     }
 
-    private func mapChunk(_ chunk: TranscriptChunk, lease: NotesLease, canSplit: Bool) async throws -> MapOutcome {
+    /// `firstPoint` is the number the code gives the chunk's first proposed point (`p<firstPoint>`).
+    private func mapChunk(
+        _ chunk: TranscriptChunk, lease: NotesLease, canSplit: Bool, firstPoint: Int, recorder: NotesTraceRecorder?
+    ) async throws -> MapOutcome {
+        var attempts = NotesTraceAttempts()
         let completion = try await complete(
             lease, maxTokens: configuration.mapMaxTokens, timeout: configuration.mapTimeout,
             messages: { NotesPrompt.mapMessages(chunk: chunk, reminder: $0) },
             parse: { raw -> [NotesPoint]? in
                 if case .points(let points) = NotesParser.parseMap(raw) { points } else { nil }
-            })
+            }, attempts: &attempts)
+        let tried = attempts
+        func report(_ outcome: NotesTraceChunk.Outcome, _ points: [NotesPoint] = []) {
+            recorder?.emit(
+                .mapChunk(
+                    NotesTraceChunk(
+                        chunk: chunk, attempts: tried, outcome: outcome, proposed: points, firstPointNumber: firstPoint
+                    )))
+        }
         switch completion {
         case .value(let points):
+            report(.points, points)
             return MapOutcome(points: points)
         case .failed:
+            report(.failed)
             return MapOutcome(failed: [chunk.id])
         case .promptTooLong:
-            guard canSplit, let halves = chunk.split() else { return MapOutcome(failed: [chunk.id]) }
+            guard canSplit, let halves = chunk.split() else {
+                report(.failed)
+                return MapOutcome(failed: [chunk.id])
+            }
+            report(.split)
             var merged = MapOutcome()
             for half in halves {
-                let outcome = try await mapChunk(half, lease: lease, canSplit: false)
+                let outcome = try await mapChunk(
+                    half, lease: lease, canSplit: false, firstPoint: firstPoint + merged.points.count,
+                    recorder: recorder)
                 merged.points.append(contentsOf: outcome.points)
                 merged.failed.append(contentsOf: outcome.failed)
             }
@@ -271,44 +320,62 @@ struct NotesPipeline: Sendable {
         NotesText.estimateTokens(NotesPrompt.reduceLine(point), fallback: .unknown) + 4
     }
 
-    private func reduce(points: [NotesPoint], lease: NotesLease) async throws -> Reduced {
+    private func reduce(
+        points: [NotesPoint], lease: NotesLease, recorder: NotesTraceRecorder?
+    ) async throws -> Reduced {
         if points.count <= 1 || points.reduce(0, { $0 + cost(of: $1) }) <= configuration.reduceInputTokens {
-            return try await reduceSingle(points, lease: lease)
+            recorder?.reduceBatches(1)
+            return try await reduceSingle(points, lease: lease, recorder: recorder)
         }
         let batches = Self.batches(points, budget: configuration.reduceInputTokens, cost: { cost(of: $0) })
-        return try await reduceBatches(batches, lease: lease)
+        recorder?.reduceBatches(batches.count)
+        return try await reduceBatches(batches, lease: lease, recorder: recorder)
     }
 
     /// One request per batch, then the sections joined in order and the partial summaries merged into one.
-    private func reduceBatches(_ batches: [[NotesPoint]], lease: NotesLease) async throws -> Reduced {
+    private func reduceBatches(
+        _ batches: [[NotesPoint]], lease: NotesLease, recorder: NotesTraceRecorder?
+    ) async throws -> Reduced {
         var merged = Reduced()
         var summaries: [String] = []
         for batch in batches {
-            let part = try await reduceSingle(batch, lease: lease)
+            let part = try await reduceSingle(batch, lease: lease, recorder: recorder)
             merged.output.decisions.append(contentsOf: part.output.decisions)
             merged.output.tasks.append(contentsOf: part.output.tasks)
             merged.output.questions.append(contentsOf: part.output.questions)
             if let summary = part.output.summary { summaries.append(summary) }
             merged.failed = merged.failed || part.failed
         }
-        let summary = try await mergeSummaries(summaries, lease: lease)
+        let summary = try await mergeSummaries(summaries, lease: lease, recorder: recorder)
         merged.output.summary = summary.text
         merged.failed = merged.failed || summary.failed
         return merged
     }
 
-    private func reduceSingle(_ points: [NotesPoint], lease: NotesLease) async throws -> Reduced {
+    private func reduceSingle(
+        _ points: [NotesPoint], lease: NotesLease, recorder: NotesTraceRecorder?
+    ) async throws -> Reduced {
+        var attempts = NotesTraceAttempts()
         let completion = try await complete(
             lease, maxTokens: configuration.reduceMaxTokens, timeout: configuration.reduceTimeout,
             messages: { NotesPrompt.reduceMessages(points: points, reminder: $0) },
-            parse: { NotesParser.parseReduce($0) })
+            parse: { NotesParser.parseReduce($0) }, attempts: &attempts)
+        let tried = attempts
+        func report(_ outcome: NotesTraceReduceRequest.Outcome) {
+            recorder?.reduceRequest(
+                stage: .sections, inputs: points.count, pointIDs: points.map(\.id), attempts: tried, outcome: outcome)
+        }
         switch completion {
         case .value(let output):
+            report(.value)
             return Reduced(output: output)
         case .promptTooLong where points.count > 1:
+            report(.split)
             let middle = points.count / 2
-            return try await reduceBatches([Array(points[..<middle]), Array(points[middle...])], lease: lease)
+            return try await reduceBatches(
+                [Array(points[..<middle]), Array(points[middle...])], lease: lease, recorder: recorder)
         case .promptTooLong, .failed:
+            report(.codeOrder)
             return Reduced(output: Self.codeOrder(points), failed: true)
         }
     }
@@ -347,7 +414,7 @@ struct NotesPipeline: Sendable {
     /// two of them do not fit together (or the levels run out) it gives up with `failed`, and the guard composes
     /// the paragraph from the points.
     private func mergeSummaries(
-        _ summaries: [String], lease: NotesLease, depth: Int = 0
+        _ summaries: [String], lease: NotesLease, recorder: NotesTraceRecorder?, depth: Int = 0
     ) async throws -> (text: String?, failed: Bool) {
         let texts = summaries.map(NotesGuard.plain).filter { !$0.isEmpty }.map {
             NotesText.truncated($0, limit: NotesGuard.maxSummaryLength)
@@ -356,14 +423,25 @@ struct NotesPipeline: Sendable {
         if texts.count == 1 { return (texts[0], false) }
         let total = texts.reduce(0) { $0 + NotesText.estimateTokens($1, fallback: .unknown) + 4 }
         if total <= configuration.reduceInputTokens {
+            var attempts = NotesTraceAttempts()
             let completion = try await complete(
                 lease, maxTokens: configuration.reduceMaxTokens, timeout: configuration.reduceTimeout,
                 messages: { NotesPrompt.summaryMessages(summaries: texts, reminder: $0) },
-                parse: { NotesParser.parseSummary($0) })
-            if case .value(let text) = completion { return (text, false) }
+                parse: { NotesParser.parseSummary($0) }, attempts: &attempts)
+            let tried = attempts
+            if case .value(let text) = completion {
+                recorder?.reduceRequest(
+                    stage: .summaryMerge, inputs: texts.count, pointIDs: [], attempts: tried, outcome: .value)
+                return (text, false)
+            }
+            recorder?.reduceRequest(
+                stage: .summaryMerge, inputs: texts.count, pointIDs: [], attempts: tried, outcome: .failed)
             return (nil, true)
         }
-        if texts.count <= 2 || depth >= Self.maxMergeDepth { return (nil, true) }
+        if texts.count <= 2 || depth >= Self.maxMergeDepth {
+            recorder?.summaryMergeGivenUp()
+            return (nil, true)
+        }
         var size = texts.count - 1
         var used = 0
         for (index, text) in texts.enumerated() {
@@ -373,24 +451,24 @@ struct NotesPipeline: Sendable {
                 break
             }
         }
-        return try await mergeInBatches(texts, size: size, lease: lease, depth: depth + 1)
+        return try await mergeInBatches(texts, size: size, lease: lease, recorder: recorder, depth: depth + 1)
     }
 
-    private func mergeInBatches(_ texts: [String], size: Int, lease: NotesLease, depth: Int) async throws -> (
-        text: String?, failed: Bool
-    ) {
+    private func mergeInBatches(
+        _ texts: [String], size: Int, lease: NotesLease, recorder: NotesTraceRecorder?, depth: Int
+    ) async throws -> (text: String?, failed: Bool) {
         var next: [String] = []
         var failed = false
         var start = 0
         while start < texts.count {
             let batch = Array(texts[start..<min(start + size, texts.count)])
             start += size
-            let merged = try await mergeSummaries(batch, lease: lease, depth: depth)
+            let merged = try await mergeSummaries(batch, lease: lease, recorder: recorder, depth: depth)
             failed = failed || merged.failed
             if let text = merged.text { next.append(text) }
         }
         if next.count <= 1 { return (next.first, failed) }
-        let final = try await mergeSummaries(next, lease: lease, depth: depth)
+        let final = try await mergeSummaries(next, lease: lease, recorder: recorder, depth: depth)
         return (final.text, failed || final.failed)
     }
 
@@ -416,23 +494,32 @@ struct NotesPipeline: Sendable {
     /// (with a format reminder); an answer cut off by the token limit once more with a larger limit (twice, but
     /// never so large that prompt and answer exceed the context; when there is no room to grow, the cut-off
     /// answer is a failure) and is never used as it is. A prompt that does not fit the context is reported to
-    /// the caller, which splits its input. The time limit counts generation only (`NotesDeadline`).
+    /// the caller, which splits its input. The time limit counts generation only (`NotesDeadline`). `attempts`
+    /// counts what happened, for the trace; it changes nothing.
     private func complete<Value: Sendable>(
         _ lease: NotesLease, maxTokens: Int, timeout: Duration, messages: (Bool) -> [ChatMessage],
-        parse: (String) -> Value?
+        parse: (String) -> Value?, attempts: inout NotesTraceAttempts
     ) async throws -> Completion<Value> {
         var limit = maxTokens
         var reminder = false
         var retried = false
         let context = model.key.contextLength
         let sleep = self.sleep
+        attempts.firstMaxTokens = maxTokens
         while true {
             try Task.checkCancellation()
             let prompt = messages(reminder)
-            let room = context - Self.promptTokens(prompt) - Self.templateMargin
-            guard room > 0 else { return .promptTooLong }
+            let estimate = Self.promptTokens(prompt)
+            if attempts.requests == 0 { attempts.promptTokens = estimate }
+            let room = context - estimate - Self.templateMargin
+            guard room > 0 else {
+                attempts.promptTooLong = true
+                return .promptTooLong
+            }
             limit = min(limit, room)
             let tokens = limit
+            attempts.requests += 1
+            attempts.lastMaxTokens = tokens
             do {
                 let generated = try await NotesDeadline.run(limit: timeout, sleep: sleep) { phase in
                     try await lease.generateResult(messages: prompt, maxTokens: tokens, onPhase: phase)
@@ -447,11 +534,21 @@ struct NotesPipeline: Sendable {
                 // The model cannot be had (busy for too long, or gone): the job ends, nothing is retried.
                 throw error
             } catch let error as LlamaError {
-                if case .promptTooLong = error { return .promptTooLong }
+                if case .promptTooLong = error {
+                    attempts.promptTooLong = true
+                    return .promptTooLong
+                }
+                attempts.errors += 1
                 if retried { return .failed }
                 retried = true
             } catch {
                 try Task.checkCancellation()
+                switch error as? AttemptError {
+                case .truncated?: attempts.truncated += 1
+                case .malformed?: attempts.malformed += 1
+                case .timedOut?: attempts.timedOut += 1
+                case nil: attempts.errors += 1
+                }
                 if retried { return .failed }
                 retried = true
                 switch error as? AttemptError {

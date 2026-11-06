@@ -56,7 +56,7 @@ enum NotesComposer {
             lines.append(contentsOf: items.map { "- " + $0 })
         }
 
-        if let summary = verdict.summary.map({ inertParagraph(flat($0)) }), !summary.isEmpty {
+        if let summary = shownSummary(of: verdict) {
             heading(labels.summary)
             lines.append(summary)
         }
@@ -79,6 +79,12 @@ enum NotesComposer {
             bullets(names)
         }
         return NotesMarkdown.render(lines.joined(separator: "\n"))
+    }
+
+    /// The paragraph `markdown` shows under the summary heading; `nil` when it shows none.
+    static func shownSummary(of verdict: NotesGuard.ReduceVerdict) -> String? {
+        guard let summary = verdict.summary.map({ inertParagraph(flat($0)) }), !summary.isEmpty else { return nil }
+        return summary
     }
 
     /// The point's text, the person and the date of a task, and the time of the quote, on one line.
