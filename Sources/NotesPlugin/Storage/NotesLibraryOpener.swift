@@ -57,6 +57,17 @@ final class NotesLibraryOpener {
         FileManager.default.fileExists(atPath: directory.appending(path: NotesStore.fileName).path)
     }
 
+    /// Opens the library only to READ it for a count or a removal, and never in a way that could reset it: the
+    /// file must exist and the Keychain item must be found. A missing item (which `open()` would answer with an
+    /// archive and a reset), a locked Keychain or a failed open leaves every file alone and answers `nil`.
+    func openIfKeyPresent() -> NotesStore? {
+        if let store { return store }
+        guard storeFileExists else { return nil }
+        guard case .found = NotesKeyStore(keychain: keychain).lookup() else { return nil }
+        open()
+        return store
+    }
+
     /// The store can be read (it may still refuse writes).
     var canRead: Bool { store != nil }
 

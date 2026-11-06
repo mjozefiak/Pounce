@@ -136,4 +136,36 @@ import Testing
         #expect(!writer.hasPendingText)
         #expect(try try #require(r.store).document(id: docID) == nil)
     }
+
+    @Test func aMissingKeychainItemWithAnExistingLibraryNeverArchivesOrResetsWhenCounting() async throws {
+        let storage = FileManager.default.temporaryDirectory.appending(
+            path: "lintel-notes-kept-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: storage) }
+        let first = NotesPlugin(context: makeContext(storage: storage, keychain: MemoryKeychain()))
+        first.library.open()
+        #expect(first.library.store != nil)
+        first.library.close()
+        let file = storage.appending(path: NotesStore.fileName)
+        let before = try Data(contentsOf: file)
+        // The same folder, but the Keychain no longer holds the key (what `open()` would answer with a reset).
+        let keychain = CountingKeychain()
+        let second = NotesPlugin(context: makeContext(storage: storage, keychain: keychain))
+        #expect(await second.keptNoteCopyCount(ofOwner: "meetings") == 0)
+        #expect(await second.deleteKeptNoteCopies(ofOwner: "meetings", ownerErased: true))
+        #expect(second.library.store == nil && second.library.resetArchive == nil)
+        #expect(try Data(contentsOf: file) == before, "the library is untouched")
+        let names = try FileManager.default.contentsOfDirectory(atPath: storage.path)
+        #expect(!names.contains { $0.contains("unreadable") }, "nothing was archived")
+        #expect(keychain.calls == 2, "one lookup per call, no create")
+    }
+
+    @Test func aFeatureWithoutNotesCopiesNeverOpensTheLibrary() async throws {
+        let r = try rig(openStore: false)
+        defer { try? FileManager.default.removeItem(at: r.storage) }
+        try FileManager.default.createDirectory(at: r.storage, withIntermediateDirectories: true)
+        FileManager.default.createFile(
+            atPath: r.storage.appending(path: NotesStore.fileName).path, contents: Data("x".utf8))
+        #expect(await r.plugin.keptNoteCopyCount(ofOwner: "files") == 0)
+        #expect(r.keychain.calls == 0)
+    }
 }
