@@ -149,6 +149,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     model.actionFailed(action, itemTitle: model.selectedItem?.candidate.title)
                 }
             }
+            if options.confirmsAction, let model = coordinator?.panelModel {
+                Task {
+                    // A seeded list (for example `plugins.clipboard.qaSeed`) reloads once after launch, and a
+                    // reload cancels the confirmation: wait for it to settle first.
+                    try? await Task.sleep(for: .seconds(2))
+                    await model.waitForSearch()
+                    model.showConfirmationForQA()
+                }
+            }
         }
         if let quitAfter = options.quitAfter {
             schedule(after: quitAfter) { [weak self] in

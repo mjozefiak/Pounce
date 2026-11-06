@@ -11,6 +11,10 @@ import LintelKit
 struct ClipboardSearchSource: PanelModeSource {
     static let recentWindow = 1000
     static let fullTextLimit = 200
+    /// ⌃X asks first: the shell shows this with "Press ⌃X again to delete" (spec 2026-11-04, step 6.2).
+    static let deleteConfirmation = ActionConfirmation(
+        prompt: LocalizedStringResource(
+            "Delete this clipboard entry?", comment: "Clipboard list: asked before ⌃X deletes the entry"))
 
     let shared: ClipboardShared
     let paste: @Sendable (Int64, ActionContext) async throws -> Void
@@ -90,7 +94,8 @@ struct ClipboardSearchSource: PanelModeSource {
                 title: LocalizedStringResource("Delete", comment: "Clipboard action that deletes the entry"),
                 symbolName: "trash",
                 shortcut: KeyShortcut(key: "x", modifiers: .control),
-                keepsPanelOpen: true
+                keepsPanelOpen: true,
+                confirmation: Self.deleteConfirmation
             ) { _ in try await delete(id) },
         ]
     }

@@ -361,9 +361,9 @@ struct LibraryRig {
 
         let row = try #require(try await rig.search().first { $0.itemKey == MeetingLibraryPresentation.itemKey(id) })
         let delete = try #require(rig.source.actions(for: row).last)
-        // The first ⌃X only asks.
-        try await delete.perform(context(rig))
-        #expect(try store.loadDocument(id: id) != nil)
+        // The shell asks first (`confirmation`, step 6.2) and runs the action on the second ⌃X; the action
+        // itself deletes at once.
+        #expect(delete.confirmation != nil)
         try await delete.perform(context(rig))
 
         #expect(try store.loadDocument(id: id) == nil)

@@ -730,10 +730,12 @@ final class CloseRecorder: NSObject, NSWindowDelegate {
                 "Lintel", "--qa-panel", "search", "--qa-query", "Te", "--qa-settings", "features",
                 "--qa-onboarding", "--qa-spotlight", "on", "--qa-setting", "plugins.apps.spotlight=false",
                 "--qa-setting", "plugins.apps.roots=/tmp/apps", "--qa-setting", "app.panelLevel=statusBar",
-                "--qa-record-use", "apps:com.apple.TextEdit", "--qa-fail-action",
+                "--qa-record-use", "apps:com.apple.TextEdit", "--qa-fail-action", "--qa-confirm-action",
             ])
         )
         #expect(options.failsAction)
+        #expect(options.confirmsAction)
+        #expect(try QAOptions.parse(["--qa"])?.confirmsAction == false)
         #expect(try QAOptions.parse(["--qa"])?.failsAction == false)
         #expect(options.panelMode == "search")
         #expect(options.query == "Te")

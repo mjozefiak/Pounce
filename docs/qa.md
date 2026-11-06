@@ -63,6 +63,7 @@ If that domain did not exist before a QA session, remove it afterwards with
 | `--qa-settings general\|features\|permissions\|advanced\|models\|<plugin id>` | Phase 1, plugin panes Phase 2, `permissions` and `advanced` Phase 4, `models` main window step 3.2 | Select that pane in the main window's Settings mode, for example `clipboard`. With `--qa-window settings` the window opens on that pane. |
 | `--qa-onboarding` | Phase 1; the whole welcome screen since Phase 4 | Show the welcome screen with every page (introduction, Shortcut, every active plugin's step), whatever was completed. |
 | `--qa-fail-action` | Phase 1 | With `--qa-panel`: once results load, show the failed-action message for the selected row's first action without running it. |
+| `--qa-confirm-action` | main window 6.2 | With `--qa-panel <list mode>`: once results load, show the "Press ⌃X again to delete" footer of the selected row's delete (the first action with a confirmation) without running it and without the 5 s timeout. |
 | `--qa-spotlight on\|off` | Phase 1 | Pretend Spotlight does or does not hold ⌘Space instead of reading the system's symbolic hotkeys. |
 | `--qa-onboarding-step <step id>` | Phase 2; the welcome screen since Phase 4 | Show the welcome screen on one page: `intro`, `shortcut`, a plugin step such as `clipboard.intro`, or the final page `done` ("You're set", which opens the main window). The welcome screen is the single-column layout of the prototype `shell-welcome-*`. |
 | `--qa-pasteboard-access allow\|default\|ask\|deny` | Phase 2 | The pasteboard access behaviour plugins see (`NSPasteboard.accessBehavior`), for the clipboard's permission banners. |
@@ -379,8 +380,9 @@ States to screenshot, in light and dark mode (and once in Polish):
 
 - the HUD while recording (both tracks, the level, the hint after 20 s of a silent system track) and while finishing;
 - the meeting window (transcript with times, speakers, a rename, the banners for `incomplete`, `failed` and stale notes);
-- the library: ⌃X asks first ("Press ⌃X again to delete this meeting", within 3 s; for an unfinished meeting that
-  still has audio, "... and its audio") and a meeting being recorded or processed says it cannot be deleted; the
+- the library: ⌃X asks first in the panel footer ("Delete this meeting? Press ⌃X again to delete · Esc cancels",
+  within 5 s; the shell's confirmation, step 6.2 of the main-window spec) and a meeting being recorded or processed
+  says it cannot be deleted; the
   "Needs Attention" filter shows incomplete and failed meetings, and also meetings whose notes failed or are
   outdated (a deliberate extension of the spec's incomplete/failed/stale list); the audio claim on the landing page
   and in Settings → Permissions matches the behaviour (deleted once the transcript is ready; an interrupted

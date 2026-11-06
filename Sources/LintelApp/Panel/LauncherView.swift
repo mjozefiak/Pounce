@@ -35,8 +35,7 @@ struct LauncherView: View {
                 ResultList(model: model, icons: icons)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 Divider()
-                ActionFooter(
-                    actions: model.selectedActions, textSize: model.textSize, limit: model.footerActionLimit)
+                PanelFooter(model: model, limit: model.footerActionLimit)
             }
         }
         .frame(width: PanelModel.Metrics.width, height: model.preferredHeight, alignment: .top)
@@ -391,6 +390,57 @@ struct IconView: View {
     }
 }
 
+/// The footer: the selected row's actions, or, while a destructive action waits for its second press,
+/// the confirmation (prototype `shell-panel-confirm`).
+struct PanelFooter: View {
+    let model: PanelModel
+    var limit = 2
+
+    var body: some View {
+        if let pending = model.pendingConfirmation {
+            ConfirmationFooter(pending: pending, textSize: model.textSize)
+        } else {
+            ActionFooter(actions: model.selectedActions, textSize: model.textSize, limit: limit)
+        }
+    }
+}
+
+/// "🗑 Delete this meeting?  Press ⌃X again to delete · Esc cancels". Keyboard only: the second press
+/// runs the action, Esc cancels. The model announces it, so VoiceOver reads it once as one element.
+struct ConfirmationFooter: View {
+    let pending: PendingConfirmation
+    let textSize: TextSize
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: pending.symbolName)
+                .foregroundStyle(LintelBrand.statusError)
+                .accessibilityHidden(true)
+            Text(pending.prompt)
+                .fontWeight(.semibold)
+                .foregroundStyle(LintelBrand.ink)
+            HStack(spacing: 6) {
+                Text(verbatim: pending.hint)
+                Text(verbatim: "·")
+                    .accessibilityHidden(true)
+                Text(verbatim: "Esc")
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 1)
+                    .background(Capsule().fill(.quaternary))
+                Text("cancels", comment: "Panel footer after the Esc key: Esc cancels the pending delete")
+            }
+            .foregroundStyle(.secondary)
+            Spacer(minLength: 0)
+        }
+        .font(textSize.font(.caption1))
+        .lineLimit(1)
+        .padding(.horizontal, 14)
+        .frame(height: PanelModel.Metrics.footerHeight)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(verbatim: pending.spokenText))
+    }
+}
+
 /// The selected row's actions, generated from `actions(for:)`: title and key as text in a capsule.
 struct ActionFooter: View {
     let actions: [ResultAction]
@@ -502,7 +552,7 @@ struct ListModeView: View {
                 }
             }
             Divider()
-            ActionFooter(actions: model.selectedActions, textSize: model.textSize)
+            PanelFooter(model: model)
         }
     }
 
