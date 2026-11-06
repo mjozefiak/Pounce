@@ -107,13 +107,43 @@ extension NotesWorkspaceModel {
     }
 
     /// Discard: the proposal is set aside (the row stays in the store, hidden from History); the text is unchanged.
+    /// A proposal that holds the user's own text (`human`) is not discarded at once: `pendingDiscard` asks first,
+    /// and only `confirmDiscard` removes it (spec: never discard user text silently).
     func discardProposal(revisionID: Int64) async {
+        guard let id = currentID, let document = documents[id],
+            case .loaded(let snapshot) = document.history, canResolveProposals(document, snapshot),
+            let entry = snapshot.revisions.first(where: { $0.id == revisionID && $0.state == .proposed })
+        else { return }
+        if entry.author == "human" {
+            document.setPendingDiscard(revisionID)
+            return
+        }
+        await performDiscard(revisionID: revisionID, confirmed: false)
+    }
+
+    /// The user confirmed that their own kept text goes.
+    func confirmDiscard(revisionID: Int64) async {
+        guard let id = currentID, documents[id]?.pendingDiscard == revisionID else { return }
+        await performDiscard(revisionID: revisionID, confirmed: true)
+    }
+
+    func isDiscardPending(revisionID: Int64) -> Bool {
+        currentID.flatMap { documents[$0]?.pendingDiscard } == revisionID
+    }
+
+    func cancelDiscard() {
+        guard let id = currentID else { return }
+        documents[id]?.setPendingDiscard(nil)
+    }
+
+    private func performDiscard(revisionID: Int64, confirmed: Bool) async {
         guard let id = currentID, let document = documents[id], let layer = document.layerID,
             case .loaded(let snapshot) = document.history, canResolveProposals(document, snapshot),
             snapshot.revisions.contains(where: { $0.id == revisionID && $0.state == .proposed })
         else { return }
+        document.setPendingDiscard(nil)
         document.setCompare(nil)
-        switch await environment.discardProposal(id, layer, revisionID) {
+        switch await environment.discardProposal(id, layer, revisionID, confirmed) {
         case nil: show(.proposalDiscarded)
         default: show(.proposalFailed)
         }
@@ -140,7 +170,7 @@ extension NotesWorkspaceModel {
         case .changed?: show(.restoreChanged)
         case .readOnly?: show(.restoreReadOnly)
         case .badTarget?: show(.restoreTargetInvalid)
-        case .other?: show(.restoreFailed)
+        case .other?, .needsConfirmation?: show(.restoreFailed)
         }
         await loadContent(id)
         await loadHistory(for: id)

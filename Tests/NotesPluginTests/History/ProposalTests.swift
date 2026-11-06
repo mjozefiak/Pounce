@@ -200,6 +200,52 @@ import Testing
         #expect(try r.store.revision(id: proposal.id) != nil)
     }
 
+    @Test func discardingTheUsersOwnKeptTextAsksFirstAndKeepsItUntilConfirmed() async throws {
+        let r = try ReconRig()
+        let notes = r.rig.layer("Original notes.", id: "notes", version: "n1")
+        r.publish([notes])
+        let doc = try await r.editedOverlay(notes, text: "My edited notes.")
+        let writer = r.rig.writer(.existing(docID: doc.id))
+        let proposalID = try await writer.appendProposal(author: .human, body: "Words I typed.")
+        let model = model(r)
+        let item = NoteItemID.live(r.key)
+        model.open(item)
+        await model.loadContent(item)
+        model.selectInspectorTab(.history)
+        await model.loadHistory(for: item)
+        let document = try #require(model.documents[item])
+        // Discard only asks; nothing is written.
+        await model.discardProposal(revisionID: proposalID)
+        #expect(document.pendingDiscard == proposalID && model.isDiscardPending(revisionID: proposalID))
+        #expect(try r.store.revision(id: proposalID)?.state == .proposed)
+        // Keep my text: the question goes away, the proposal stays pending.
+        model.cancelDiscard()
+        #expect(document.pendingDiscard == nil)
+        #expect(try r.store.revision(id: proposalID)?.state == .proposed)
+        // A confirmation without a question is ignored.
+        await model.confirmDiscard(revisionID: proposalID)
+        #expect(try r.store.revision(id: proposalID)?.state == .proposed)
+        // Ask, then confirm: discarded, with the confirmation recorded.
+        await model.discardProposal(revisionID: proposalID)
+        await model.confirmDiscard(revisionID: proposalID)
+        #expect(model.feedback == .proposalDiscarded)
+        let record = try #require(try r.store.revision(id: proposalID))
+        #expect(record.state == .discarded && record.metaJSON?.contains("\"resolved\":1") == true)
+        #expect(document.pendingDiscard == nil)
+    }
+
+    @Test func theStoreRefusesToDiscardTheUsersOwnKeptTextWithoutTheConfirmation() async throws {
+        let r = try ReconRig()
+        let notes = r.rig.layer("Original notes.", id: "notes", version: "n1")
+        let doc = try await r.editedOverlay(notes, text: "My edited notes.")
+        let writer = r.rig.writer(.existing(docID: doc.id))
+        let proposalID = try await writer.appendProposal(author: .human, body: "Words I typed.")
+        await #expect(throws: NotesError.guardRejected(rule: "discardNeedsConfirmation")) {
+            try await writer.discardProposal(id: proposalID)
+        }
+        #expect(try r.store.revision(id: proposalID)?.state == .proposed)
+    }
+
     @Test func applyAfterTheNoteChangedIsRefusedWithAStripAndWritesNothing() async throws {
         let r = try ReconRig()
         let (doc, proposal, _) = try await proposed(r)

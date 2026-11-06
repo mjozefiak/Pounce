@@ -299,9 +299,9 @@ final class RevisionWriter: Sendable {
     }
 
     /// Discard: the proposal is set aside for good (it stays in the store, hidden from History).
-    func discardProposal(id: Int64) async throws {
+    func discardProposal(id: Int64, confirmedRemoval: Bool = false) async throws {
         try await flush(closingSession: true)
-        try await core.discardProposal(id)
+        try await core.discardProposal(id, confirmedRemoval: confirmedRemoval)
     }
 
     /// A `proposed` revision: never moves the head.
@@ -633,10 +633,11 @@ final class RevisionWriter: Sendable {
             return id
         }
 
-        func discardProposal(_ proposalID: Int64) throws {
+        func discardProposal(_ proposalID: Int64, confirmedRemoval: Bool) throws {
             if let reason = store.blockedReason { throw reason }
             guard let docID else { throw NotesError.guardRejected(rule: "noDocument") }
-            guard try store.discardProposal(docID: docID, proposalID: proposalID) else {
+            guard try store.discardProposal(
+                docID: docID, proposalID: proposalID, confirmedRemoval: confirmedRemoval) else {
                 throw NotesError.guardRejected(rule: "proposalTarget")
             }
             if conflictProposalID == proposalID { conflictProposalID = nil }

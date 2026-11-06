@@ -58,6 +58,8 @@ final class NoteDocumentModel {
     /// The History of the shown layer and the Compare on screen (step 4.5); both belong to the layer.
     private(set) var history: HistoryState = .idle
     private(set) var compare: CompareState?
+    /// A discard of the user's own kept text waits for the confirmation (the revision id): the text is removed for good.
+    private(set) var pendingDiscard: Int64?
 
     /// The comments of the shown layer (step 5.2), the chip that filters them and the thread the user picked (in the
     /// inspector or by putting the caret in its highlight).
@@ -209,6 +211,8 @@ final class NoteDocumentModel {
     func setHistory(_ state: HistoryState) { history = state }
 
     func setCompare(_ state: CompareState?) { compare = state }
+
+    func setPendingDiscard(_ id: Int64?) { pendingDiscard = id }
 
     #if DEBUG
     /// `plugins.notes.qaComments=popover`: the editor selects this text and opens the new-comment popover.

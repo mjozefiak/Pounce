@@ -62,7 +62,7 @@ extension NotesWorkspaceModel.Environment {
                 return .other
             }
         }
-        discardProposal = { item, layer, proposalID in
+        discardProposal = { item, layer, proposalID, confirmedRemoval in
             guard let opened = store(), case .live(let key) = item,
                 let document = try? opened.liveDocument(key: key, layer: layer)
             else { return .other }
@@ -70,12 +70,14 @@ extension NotesWorkspaceModel.Environment {
                 RevisionWriter(store: opened, target: .existing(docID: document.id), clock: clock, now: now)
             }
             do {
-                try await writer.discardProposal(id: proposalID)
+                try await writer.discardProposal(id: proposalID, confirmedRemoval: confirmedRemoval)
                 return nil
             } catch NotesError.readOnly, NotesError.schemaNewer {
                 return .readOnly
             } catch NotesError.guardRejected(let rule) where rule == "proposalTarget" {
                 return .badTarget
+            } catch NotesError.guardRejected(let rule) where rule == "discardNeedsConfirmation" {
+                return .needsConfirmation
             } catch {
                 return .other
             }

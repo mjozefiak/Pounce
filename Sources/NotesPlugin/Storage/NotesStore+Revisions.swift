@@ -262,19 +262,35 @@ extension NotesStore {
                     blocksJSON: blocksJSON, metaJSON: metaJSON, now: now, expectedHeadID: expectedHeadID),
                 in: db)
             try db.execute(
-                sql: "UPDATE note_revision SET state = 'discarded' WHERE id = ? AND doc_id = ?",
+                sql: "UPDATE note_revision SET state = 'discarded', meta_json = \(Self.markResolvedSQL) WHERE id = ? AND doc_id = ?",
                 arguments: [proposalID, docID])
             return id
         }
     }
 
-    /// Discard: the proposal is hidden from History and never applied; the row stays (it is the first thing pruned).
-    /// `false` when the revision is not a proposal of this document (already applied or discarded).
+    /// `meta_json` with `"resolved": 1`: the user decided about this proposal (applied, or confirmed its removal),
+    /// so `prune` may take it. A `discarded` proposal of the user's own text without it is never pruned.
+    static let markResolvedSQL =
+        "CASE WHEN json_valid(meta_json) AND json_type(meta_json) = 'object' THEN json_set(meta_json, '$.resolved', 1) ELSE '{\"resolved\":1}' END"
+
+    /// Discard: the proposal is hidden from History and never applied; the row stays. A proposal that holds the user's
+    /// own text (`human`, kept after a compare-and-set loss) is removed only with `confirmedRemoval`: without it
+    /// `guardRejected("discardNeedsConfirmation")` is thrown and nothing changes. Such a row is kept by `prune`
+    /// until the confirmation is recorded in its meta. `false` when the revision is not a proposal of this document.
     @discardableResult
-    func discardProposal(docID: Int64, proposalID: Int64) throws -> Bool {
+    func discardProposal(docID: Int64, proposalID: Int64, confirmedRemoval: Bool = false) throws -> Bool {
         try write { db in
+            let author = try String.fetchOne(
+                db, sql: "SELECT author FROM note_revision WHERE id = ? AND doc_id = ? AND state = 'proposed'",
+                arguments: [proposalID, docID])
+            if author == "human", !confirmedRemoval {
+                throw NotesError.guardRejected(rule: "discardNeedsConfirmation")
+            }
             try db.execute(
-                sql: "UPDATE note_revision SET state = 'discarded' WHERE id = ? AND doc_id = ? AND state = 'proposed'",
+                sql: """
+                    UPDATE note_revision SET state = 'discarded', meta_json = \(Self.markResolvedSQL)
+                    WHERE id = ? AND doc_id = ? AND state = 'proposed'
+                    """,
                 arguments: [proposalID, docID])
             return db.changesCount > 0
         }
@@ -322,7 +338,7 @@ extension NotesStore {
 
     /// Keeps a document at `cap` revisions: `discarded` ones first, then the oldest unreferenced applied `human`
     /// snapshots. Never pruned: the head, the first `stt`/`agent` revision, the last user-writing revision, a
-    /// `proposed` revision and one a `base_head_id` / `restored_from` names. A comment anchored to a revision that
+    /// `proposed` revision, a `discarded` proposal of the user's own text whose removal was never confirmed and one a `base_head_id` / `restored_from` names. A comment anchored to a revision that
     /// goes is first re-anchored to the nearest kept revision (by sequence). Returns how many were removed.
     @discardableResult
     func prune(docID: Int64, cap: Int = NotesStore.revisionCap) throws -> Int {
@@ -333,18 +349,22 @@ extension NotesStore {
                 var author: String
                 var state: String
                 var userWriting: Bool
+                var unconfirmed: Bool
             }
             let items = try Row.fetchAll(
                 db,
                 sql: """
                     SELECT r.id, r.seq, r.author, r.state,
+                        (r.state = 'discarded' AND r.author = 'human' AND NOT (CASE WHEN json_valid(r.meta_json)
+                            THEN COALESCE(json_extract(r.meta_json, '$.resolved'), 0) = 1 ELSE 0 END)) AS unconfirmed,
                         (r.state = 'applied' AND (r.author = 'human'
                             OR (r.author = 'agent' AND CASE WHEN json_valid(r.meta_json)
                                     THEN json_extract(r.meta_json, '$.comment_ids') END IS NOT NULL))) AS writing
                     FROM note_revision r WHERE r.doc_id = ? ORDER BY r.seq
                     """, arguments: [docID]
             ).map {
-                Item(id: $0["id"], seq: $0["seq"], author: $0["author"], state: $0["state"], userWriting: $0["writing"])
+                Item(id: $0["id"], seq: $0["seq"], author: $0["author"], state: $0["state"], userWriting: $0["writing"],
+                    unconfirmed: $0["unconfirmed"])
             }
             let excess = items.count - cap
             guard excess > 0 else { return 0 }
@@ -354,7 +374,7 @@ extension NotesStore {
             if let headID { protected.insert(headID) }
             if let first = items.first(where: { $0.author != "human" }) { protected.insert(first.id) }
             if let last = items.last(where: { $0.userWriting }) { protected.insert(last.id) }
-            for item in items where item.state == "proposed" { protected.insert(item.id) }
+            for item in items where item.state == "proposed" || item.unconfirmed { protected.insert(item.id) }
             let named = try Row.fetchAll(
                 db,
                 sql: """

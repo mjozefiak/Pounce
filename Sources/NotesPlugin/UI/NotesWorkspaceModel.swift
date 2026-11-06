@@ -69,7 +69,10 @@ final class NotesWorkspaceModel {
         var applyProposal: @MainActor (NoteItemID, String, Int64, Int64) async -> RestoreFailure? = { _, _, _, _ in
             .other
         }
-        var discardProposal: @MainActor (NoteItemID, String, Int64) async -> RestoreFailure? = { _, _, _ in .other }
+        /// Discarding the user's own kept text needs `confirmedRemoval` (the store refuses it otherwise).
+        var discardProposal: @MainActor (NoteItemID, String, Int64, Bool) async -> RestoreFailure? = { _, _, _, _ in
+            .other
+        }
         /// Delete: the owner first, the overlays only after it succeeded (`NoteDeleter`); throws a
         /// `NoteDeleter.Failure`. Off (`canDeleteNotes` false) without the store.
         var canDeleteNotes = false
@@ -617,6 +620,8 @@ final class NotesWorkspaceModel {
     /// Why a restore wrote nothing.
     enum RestoreFailure: Equatable, Sendable {
         case changed, readOnly, badTarget, other
+        /// Discard of the user's own kept text without the confirmation.
+        case needsConfirmation
     }
 
     /// What the path bar just did, in words for the screen and for VoiceOver.

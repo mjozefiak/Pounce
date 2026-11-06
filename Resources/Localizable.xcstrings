@@ -17839,6 +17839,78 @@
         }
       }
     },
+    "This is text you typed, set aside when the note changed. Apply puts it back; removing it deletes it for good." : {
+      "comment" : "Compare: explains a kept proposal that holds the user's own text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is text you typed, set aside when the note changed. Apply puts it back; removing it deletes it for good."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To tekst, który wpisano i odłożono na bok, gdy notatka się zmieniła. „Zastosuj” przywraca go, a usunięcie kasuje go bezpowrotnie."
+          }
+        }
+      }
+    },
+    "Remove your text for good?" : {
+      "comment" : "Compare and History: asks before the user's own kept text is removed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove your text for good?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunąć Twój tekst bezpowrotnie?"
+          }
+        }
+      }
+    },
+    "Remove my text" : {
+      "comment" : "Compare and History: confirms removing the user's own kept text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove my text"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń mój tekst"
+          }
+        }
+      }
+    },
+    "Keep my text" : {
+      "comment" : "Compare and History: cancels removing the user's own kept text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep my text"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zachowaj mój tekst"
+          }
+        }
+      }
+    },
     "Discard" : {
       "comment" : "Inspector, History and Compare: sets a proposed version aside",
       "extractionState" : "manual",

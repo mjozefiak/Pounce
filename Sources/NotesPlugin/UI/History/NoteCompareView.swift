@@ -80,13 +80,26 @@ struct NoteCompareView: View {
                     .layoutValue(key: NoteWrapTrailingKey.self, value: true)
             }
             if compare.isProposal {
-                Text(
-                    "A proposed version, not applied. Your text stays as it is until you apply it.",
-                    comment: "Compare: explains a proposal before Apply or Discard"
-                )
-                .font(textSize.font(.footnote))
-                .foregroundStyle(LintelBrand.secondaryText)
-                .fixedSize(horizontal: false, vertical: true)
+                if compare.author == .human {
+                    Text(
+                        "This is text you typed, set aside when the note changed. Apply puts it back; removing it deletes it for good.",
+                        comment: "Compare: explains a kept proposal that holds the user's own text"
+                    )
+                    .font(textSize.font(.footnote))
+                    .foregroundStyle(LintelBrand.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text(
+                        "A proposed version, not applied. Your text stays as it is until you apply it.",
+                        comment: "Compare: explains a proposal before Apply or Discard"
+                    )
+                    .font(textSize.font(.footnote))
+                    .foregroundStyle(LintelBrand.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+                if let id = compare.proposalID, document.pendingDiscard == id {
+                    ProposalDiscardConfirm(model: model, revisionID: id)
+                }
             }
         }
         .padding(.top, 20 * textSize.scale)
@@ -128,7 +141,6 @@ struct NoteCompareView: View {
                         .background(LintelBrand.accent, in: RoundedRectangle(cornerRadius: 8))
                 }
                 .buttonStyle(.plain)
-                .keyboardShortcut(.defaultAction)
             }
         }
     }

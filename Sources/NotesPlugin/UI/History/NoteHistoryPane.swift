@@ -115,6 +115,9 @@ struct NoteHistoryRow: View {
                         }
                     }
                 }
+                if entry.isProposal, model.isDiscardPending(revisionID: entry.id) {
+                    ProposalDiscardConfirm(model: model, revisionID: entry.id)
+                }
             }
         }
         .padding(.bottom, 12)

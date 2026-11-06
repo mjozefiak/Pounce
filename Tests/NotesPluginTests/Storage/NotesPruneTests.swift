@@ -37,12 +37,50 @@ import Testing
         let (docID, ids) = try fill(rig, humans: 199)  // 200 in all
         for index in 0..<3 {
             try rig.store.appendRevision(
-                NewNoteRevision(docID: docID, author: "human", state: .discarded, body: "d\(index)", now: Date()))
+                NewNoteRevision(docID: docID, author: "agent", state: .discarded, body: "d\(index)", now: Date()))
         }
         #expect(try rig.store.prune(docID: docID) == 3)
         let remaining = try rig.store.revisions(of: docID)
         #expect(remaining.filter { $0.state == .discarded }.isEmpty)
         #expect(remaining.map(\.id).contains(ids[1]))
+    }
+
+    /// Spec: the user's own text is never discarded silently. A `discarded` human proposal whose removal was not
+    /// confirmed survives pruning at the cap; one whose removal was confirmed goes like any other discarded row.
+    @Test func aDiscardedHumanProposalSurvivesPruningUntilItsRemovalWasConfirmed() throws {
+        let rig = try DocRig()
+        let (docID, _) = try fill(rig, humans: 199)  // 200 in all
+        let kept = try rig.store.appendRevision(
+            NewNoteRevision(docID: docID, author: "human", state: .discarded, body: "my words", now: Date()))
+        let confirmed = try rig.store.appendRevision(
+            NewNoteRevision(docID: docID, author: "human", state: .proposed, body: "gone", now: Date()))
+        try rig.store.discardProposal(docID: docID, proposalID: confirmed, confirmedRemoval: true)
+        #expect(try rig.store.prune(docID: docID) == 2)
+        let ids = Set(try rig.store.revisions(of: docID).map(\.id))
+        #expect(ids.contains(kept) && !ids.contains(confirmed))
+        // Still there after more writes beyond the cap.
+        for index in 0..<30 {
+            try rig.store.appendRevision(
+                NewNoteRevision(
+                    docID: docID, author: "human", state: .applied, body: "w\(index)", now: Date(),
+                    expectedHeadID: try rig.head(docID).id))
+            try rig.store.prune(docID: docID)
+        }
+        #expect(try rig.store.revision(id: kept)?.body == "my words")
+    }
+
+    @Test func discardingAHumanProposalNeedsTheConfirmationAndRecordsIt() throws {
+        let rig = try DocRig()
+        let (docID, _) = try fill(rig, humans: 2)
+        let proposal = try rig.store.appendRevision(
+            NewNoteRevision(docID: docID, author: "human", state: .proposed, body: "typed", now: Date()))
+        #expect(throws: NotesError.guardRejected(rule: "discardNeedsConfirmation")) {
+            try rig.store.discardProposal(docID: docID, proposalID: proposal)
+        }
+        #expect(try rig.store.revision(id: proposal)?.state == .proposed)
+        #expect(try rig.store.discardProposal(docID: docID, proposalID: proposal, confirmedRemoval: true))
+        let record = try #require(try rig.store.revision(id: proposal))
+        #expect(record.state == .discarded && record.metaJSON?.contains("\"resolved\":1") == true)
     }
 
     @Test func aCommentAnchoredToAPrunedRevisionIsReAnchoredFirst() throws {
