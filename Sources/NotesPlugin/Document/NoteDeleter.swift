@@ -36,7 +36,9 @@ struct NoteDeleter {
             }
             try removeOverlays(of: item, ownerDeleted: true) { try store.deleteLiveOverlays(of: key) }
         case .detached(let key, let started):
-            try removeOverlays(of: item, ownerDeleted: false) { try store.deleteDetachedOverlays(key: key, startedAtMs: started) }
+            try removeOverlays(of: item, ownerDeleted: false) {
+                try store.deleteDetachedOverlays(key: key, startedAtMs: started)
+            }
         }
     }
 
