@@ -15,7 +15,8 @@ struct RejectionDumpTests {
         let fake = ScriptedLLM { _, _, _ in GenerationResult(text: Self.answer, stoppedByTokenLimit: false) }
         let recorder = RecordingRuntime(fake)
         _ = try await recorder.generateResult(
-            messages: [ChatMessage(role: "system", content: NotesPrompt.mapSystem)], maxTokens: 1000)
+            messages: [ChatMessage(role: "system", content: NotesPrompt.mapSystem(language: .unknown))], maxTokens: 1000
+        )
         _ = try await recorder.generateResult(
             messages: [ChatMessage(role: "system", content: "other")], maxTokens: 1500)
         return recorder.records

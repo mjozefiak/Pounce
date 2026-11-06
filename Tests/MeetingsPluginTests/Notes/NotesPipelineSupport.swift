@@ -12,7 +12,9 @@ enum NotesFake {
 
     static func lastUser(_ messages: [ChatMessage]) -> String { messages.last?.content ?? "" }
 
-    static func isMap(_ messages: [ChatMessage]) -> Bool { messages.first?.content == NotesPrompt.mapSystem }
+    static func isMap(_ messages: [ChatMessage]) -> Bool {
+        messages.first.map { NotesPrompt.isMapSystem($0.content) } ?? false
+    }
     static func isReduce(_ messages: [ChatMessage]) -> Bool { messages.first?.content == NotesPrompt.reduceSystem }
     static func isSummary(_ messages: [ChatMessage]) -> Bool { messages.first?.content == NotesPrompt.summarySystem }
 
