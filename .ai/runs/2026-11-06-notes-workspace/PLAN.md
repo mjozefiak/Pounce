@@ -24,7 +24,7 @@
 | 2 | 2.2-review-fix | NoteSource.exists skips foreign or malformed keys per key | inline | done | db415df |
 | 2 | 2.3-review-fix | MeetingWindowModel keeps its earlier edit behaviour | inline | done | 72487e7 |
 | 2 | 2.4-review-fix | Comments on stream end versus reads corrected | inline | done | 68f9a36 |
-| 3 | 3.1 | NoteLibrary aggregator | dispatch:capable | todo | — |
+| 3 | 3.1 | NoteLibrary aggregator | dispatch:capable | done | 267ec06 |
 | 3 | 3.2 | Explorer, tab bar, path bar, status bar, NotesSection (DEBUG only) | dispatch:capable | todo | — |
 | 3 | 3.3 | Read-only document views, Copy Markdown, Save .md | dispatch:capable | todo | — |
 | 3 | 3.4 | Search across sources | dispatch | todo | — |
