@@ -72,7 +72,8 @@ final class ReviseService {
     }
 
     private let deps: Dependencies
-    @ObservationIgnored private var runs: [NoteItemID: Task<ReviseOutcome, Never>] = [:]
+    /// The run of each note; internal so a test can stand in for a newer run that replaced this one.
+    @ObservationIgnored var runs: [NoteItemID: Task<ReviseOutcome, Never>] = [:]
     @ObservationIgnored private var queued: [NoteItemID: Set<Int64>?] = [:]
     private var reservations = 0
 
@@ -114,7 +115,9 @@ final class ReviseService {
             let task = Task { await self.perform(current) }
             runs[item] = task
             let outcome = await task.value
-            runs[request.item] = nil
+            // Only this run's own entry: `cancelAll` may have cleared it and a newer `start` taken its place.
+            guard runs[item] == task else { return outcome }
+            runs[item] = nil
             // Whatever was asked while it ran goes next; a cancel, a missing model or an error drops it.
             guard let waiting = queued.removeValue(forKey: request.item) else { return outcome }
             switch outcome {

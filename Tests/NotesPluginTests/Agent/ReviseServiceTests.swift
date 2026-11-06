@@ -244,6 +244,24 @@ import Testing
         #expect(handle.releases == 1)
     }
 
+    /// Review fix L2: a finished run clears only its own entry, never a newer run's.
+    @Test func aFinishedRunDoesNotWipeTheEntryOfANewerRun() async throws {
+        let gate = ReviseGate()
+        let handle = ScriptedReviseHandle([.after(gate, answer)])
+        let rig = try ReviseRig(steps: [.handle(handle)])
+        try await rig.comment("next sprint")
+        let task = Task { await rig.service.start(rig.request()) }
+        await handle.generating.wait()
+        // `cancelAll` cleared this run's entry and a newer `start` took its place.
+        let newer = Task<ReviseOutcome, Never> { .cancelled }
+        rig.service.runs[rig.item] = newer
+        gate.open()
+        _ = await task.value
+        #expect(rig.service.runs[rig.item] == newer)
+        #expect(rig.service.isRunning(rig.item))
+        rig.service.runs[rig.item] = nil
+    }
+
     // MARK: Compare-and-set
 
     @Test func aHeadThatMovedDuringTheRunIsAConflictAndNothingOfTheAgentIsWritten() async throws {
