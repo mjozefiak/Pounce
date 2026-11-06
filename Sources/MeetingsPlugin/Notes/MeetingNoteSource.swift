@@ -202,7 +202,7 @@ final class MeetingNoteSource: NoteSource {
         if protected.contains(id) { throw MeetingNoteSourceError.active }
         let spool = library.spoolStorage
         do {
-            try await Task.detached { try store.deleteMeeting(id, spool: spool) }.value
+            _ = try await Task.detached { try store.deleteMeeting(id, spool: spool) }.value
         } catch MeetingActionError.active {
             throw MeetingNoteSourceError.active
         }

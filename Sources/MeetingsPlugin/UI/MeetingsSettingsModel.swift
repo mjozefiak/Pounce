@@ -41,10 +41,10 @@ final class MeetingsSettingsModel {
         }
     }
     /// Whether the detector listens, cannot (the Core Audio process API is missing here) or is off.
-    internal(set) var suggestionStatus = MeetingDetector.Status.off
-    internal(set) var mutedApps: [SuggestionApp] = []
-    internal(set) var extraApps: [SuggestionApp] = []
-    internal(set) var extraAppError: ExtraAppError?
+    var suggestionStatus = MeetingDetector.Status.off
+    var mutedApps: [SuggestionApp] = []
+    var extraApps: [SuggestionApp] = []
+    var extraAppError: ExtraAppError?
     @ObservationIgnored var suggestionsChanged: () -> Void = {}
     @ObservationIgnored var appName: @MainActor (String) -> String = {
         KnownMeetingApp.name(of: $0) ?? MeetingLibraryPresentation.installedAppName($0) ?? $0
