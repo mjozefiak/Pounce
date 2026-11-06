@@ -201,29 +201,23 @@ private let words: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
 
 @MainActor
 @Suite struct ChooseFolderRaceTests {
-    private func rig(picks: Shared<Int>) throws -> (SettingsRig, URL) {
-        let rig = try SettingsRig()
+    private func rig(holdVerification: Bool = false) throws -> (SettingsRig, URL) {
+        let rig = try SettingsRig(holdVerification: holdVerification)
         let folder = try rig.models.makeUserFolder()
         rig.pick(folder)
-        _ = picks
         return (rig, folder)
     }
 
-    /// Lets the started task run until it is verifying. One `Task.yield()` is not enough under parallel load,
-    /// when the task has not been scheduled yet.
-    private static func untilVerifying(_ card: MeetingsModelCardModel) async {
-        let deadline = ContinuousClock.now + .seconds(30)
-        while !card.isVerifying, ContinuousClock.now < deadline { try? await Task.sleep(for: .milliseconds(2)) }
-    }
-
     @Test func aResultForAnotherPackageIsDropped() async throws {
-        let (rig, _) = try rig(picks: Shared(0))
+        let (rig, _) = try rig(holdVerification: true)
         let card = rig.model.speech
         let other = rig.diarizationModels.package
         let task = Task { await card.chooseFolder() }
-        await Self.untilVerifying(card)
+        // The check is held, so the card stays verifying until the test opens the gate.
+        await rig.verificationStarted.wait()
         #expect(card.isVerifying)
         card.use(other)
+        rig.verificationRelease?.open()
         await task.value
         #expect(rig.harness.meetingsSettings.speechModelFolder == nil)
         #expect(card.errorMessage == nil)
@@ -231,20 +225,21 @@ private let words: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
     }
 
     @Test func aSecondChooseWhileVerifyingDoesNothing() async throws {
-        let (rig, folder) = try rig(picks: Shared(0))
+        let (rig, folder) = try rig(holdVerification: true)
         let card = rig.model.speech
         let first = Task { await card.chooseFolder() }
-        await Self.untilVerifying(card)
+        await rig.verificationStarted.wait()
         #expect(card.isVerifying)
         rig.pick(nil)
         await card.chooseFolder()
         #expect(card.isVerifying)
+        rig.verificationRelease?.open()
         await first.value
         #expect(rig.harness.meetingsSettings.speechModelFolder == folder)
     }
 
     @Test func theLoadPathAsksForTheFolderNowNotTheStoredSetting() async throws {
-        let (rig, folder) = try rig(picks: Shared(0))
+        let (rig, folder) = try rig()
         let card = rig.model.speech
         await card.chooseFolder()
         #expect(await card.loadableFolder() == folder)
