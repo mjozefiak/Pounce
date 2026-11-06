@@ -124,3 +124,24 @@ Other numbers: set the whole 50 054-character attributed string and lay out the 
 6. **Lenient parser.** No failure was found with `.throwError` on any input tried, so it is not a validator; Notes must not rely on a parse error to reject text.
 
 **Decision: GO**, on the condition in gap 2 (Markdown source is the storage; parse for styling only). This changes the 0.1 sketch (which stored rendered text) and should be reflected in step 4.1's description.
+
+#### 0.3 Content-addressed `BlockAttribution`: GO
+
+**Where.** `Tests/LintelCoreTests/BlockAttributionPrototypeTests.swift` (test-only, 12 Swift Testing tests, pure and deterministic, no I/O). It is a test file, not production code, because `NotesPlugin` and `LintelCore.MarkdownBlocks` do not exist yet. Step 4.3 moves `BlockAttribution` to `Sources/NotesPlugin/Attribution/` and `split` to `Sources/LintelCore/MarkdownBlocks.swift` and keeps these tests as its fixtures. The prototype also holds the per-layer overlay rules the spec's case (e) needs (`reconcile`, `edit`, the render-time speaker lookup), as a sketch of `SourceReconciler` for step 4.2.
+
+**Rules prototyped.** A block's author is the author of the earliest revision in the chain containing an identical block; "untouched" is "the head's blocks equal the seed revision's blocks". Blocks: blank-line separated, a fenced code block and a table stay whole, each top-level list item is its own block. A layer without an overlay shows the source's current text; an overlay without human writing follows the source (auto-apply); an overlay with human writing gets a proposal and keeps its head; the layer `version` is a SHA-256 of markdown and provenance (segment reference, start time) and contains no speaker id or name.
+
+**Gate: all pass** (`swift test --filter BlockAttributionPrototypeTests`, 12 of 12):
+
+- (a) editing one paragraph makes only that block `human`; (b) adding a block makes only the new block `human`; (c) edit then revert gives the original author back and "untouched" is true; (d) a split marks both halves `human`, a merge marks the merged block `human`;
+- (e) an edit of the transcript layer while notes are `none` creates only a transcript overlay; notes that arrive and regenerate are shown from the source (no notes overlay, nothing shadowed); the transcript overlay keeps segment references and timestamps (including through an edit that changes the block count); regenerating notes creates no transcript revision or proposal; a Finish-time transcript change creates no notes proposal (no notes overlay); notes the user then writes on get a proposal on the next regeneration, while an overlay without user writing is auto-applied; a speaker rename or a second `applySpeakerPlan` changes no layer version, creates no proposal, and the speaker name resolves through the segment's current speaker with the stored id only as a fallback.
+
+**Known limits (for 4.3, none blocks it).**
+
+- Content addressing means a block a human retypes **identically to an earlier agent block** gets the agent as author (the same rule that makes revert work). A human block that equals a later agent block keeps the human as first author (tested).
+- A list item is one block, so editing one item marks that item only, but renumbering an ordered list marks every renumbered item `human`.
+- Splitting, then merging back to the original text, returns the original authors (identical text), by design.
+- Provenance is carried by block index while the count is unchanged and by identical text otherwise; an edited block after a count-changing edit loses its provenance (shown in the tests: an inserted block has none, the following block keeps its own). Step 4.2 should decide whether a block edited in the same save as an insertion keeps a reference (nearest-neighbour match) or loses the jump target.
+- Duplicate blocks with identical text share one author entry.
+
+**Phase 0 outcome: GO / GO (with the 0.2 condition) / GO.** Nothing in Phase 0 needs the fallback; no owner decision is required, but the 0.2 condition (Markdown source as the editor's storage) should be adopted in the text of step 4.1.
