@@ -93,9 +93,15 @@ final class ManualClock: Clock, Sendable {
 
     private let state = Mutex(State())
     private let sleeps = CountLatch()
+    private let cancelledSleeps = CountLatch()
 
     /// Returns once `sleep` was asked for `count` times in all; the deadline of the last one is then set.
     func waitForSleeps(_ count: Int) async { await sleeps.wait(atLeast: count) }
+
+    /// Returns once `count` sleeps ended by cancellation. A budget's deadline is cancelled only after its source
+    /// answered, so a test that advances the clock waits for it: otherwise the deadline of a source that did answer
+    /// could fire first under load and cut it.
+    func waitForCancelledSleeps(_ count: Int) async { await cancelledSleeps.wait(atLeast: count) }
 
     var now: Instant { state.withLock { $0.now } }
 
@@ -107,26 +113,31 @@ final class ManualClock: Clock, Sendable {
 
     func sleep(until deadline: Instant, tolerance: Duration?) async throws {
         let id = UUID()
-        try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
-                enum Outcome { case wait, fire, cancel }
-                let outcome = state.withLock { state -> Outcome in
-                    state.sleepCalls += 1
-                    if Task.isCancelled { return .cancel }
-                    if deadline <= state.now { return .fire }
-                    state.sleepers[id] = Sleeper(deadline: deadline, continuation: continuation)
-                    return .wait
+        do {
+            try await withTaskCancellationHandler {
+                try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+                    enum Outcome { case wait, fire, cancel }
+                    let outcome = state.withLock { state -> Outcome in
+                        state.sleepCalls += 1
+                        if Task.isCancelled { return .cancel }
+                        if deadline <= state.now { return .fire }
+                        state.sleepers[id] = Sleeper(deadline: deadline, continuation: continuation)
+                        return .wait
+                    }
+                    switch outcome {
+                    case .wait: break
+                    case .fire: continuation.resume()
+                    case .cancel: continuation.resume(throwing: CancellationError())
+                    }
+                    sleeps.increment()
                 }
-                switch outcome {
-                case .wait: break
-                case .fire: continuation.resume()
-                case .cancel: continuation.resume(throwing: CancellationError())
-                }
-                sleeps.increment()
+            } onCancel: {
+                let sleeper = state.withLock { $0.sleepers.removeValue(forKey: id) }
+                sleeper?.continuation.resume(throwing: CancellationError())
             }
-        } onCancel: {
-            let sleeper = state.withLock { $0.sleepers.removeValue(forKey: id) }
-            sleeper?.continuation.resume(throwing: CancellationError())
+        } catch {
+            cancelledSleeps.increment()
+            throw error
         }
     }
 

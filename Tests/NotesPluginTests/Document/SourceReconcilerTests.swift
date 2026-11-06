@@ -246,6 +246,7 @@ extension RevisionWriter.Reconciliation {
         await r.source.waitForExistsStarts(1)
         // The fan-out's own deadline sleeps once; the sweeper's sleep is the second.
         await r.rig.clock.waitForSleeps(2)
+        await r.rig.clock.waitForCancelledSleeps(1)  // the answered call's deadline is gone
         r.rig.clock.advance(by: .seconds(599))
         #expect(r.source.existsCalls.count == 1)
         r.rig.clock.advance(by: .seconds(1))

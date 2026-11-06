@@ -191,6 +191,8 @@ struct NoteLibrarySearchTests {
         )
         let task = Task { await slow.list(matching: query, after: nil, limit: 3) }
         await clock.waitForSleeps(2)
+        // The answering source's deadline is cancelled once it answered; only the hanging one's is left to fire.
+        await clock.waitForCancelledSleeps(1)
         clock.advance(by: .milliseconds(150))
         let result = await task.value
         #expect(result.rows.map(\.id.key.rawValue) == ["meetings:m0", "meetings:m1", "meetings:m2"])

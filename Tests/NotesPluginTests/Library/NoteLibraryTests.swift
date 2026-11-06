@@ -133,6 +133,8 @@ struct NoteLibraryBudgetTests {
         // Time moves only here; the budget fires once both sources have been asked.
         // Both sources were asked and each has set its deadline.
         await clock.waitForSleeps(2)
+        // The answering source's deadline is cancelled once it answered; only the hanging one's is left to fire.
+        await clock.waitForCancelledSleeps(1)
         clock.advance(by: .milliseconds(150))
         let listing = await task.value
         #expect(ids(listing.rows) == ["meetings:a"])
