@@ -1,10 +1,18 @@
 import Foundation
 
+/// Where the plugin gets the application paths Spotlight knows. The real one is `AppMetadataWatcher`;
+/// tests supply a scripted one, so no test depends on what Spotlight has indexed on the machine.
+@MainActor
+protocol AppMetadataSource: AnyObject {
+    func start() -> AsyncStream<[String]>
+    func stop()
+}
+
 /// Keeps a live Spotlight query for application bundles (`kMDItemContentTypeTree ==
 /// com.apple.application-bundle`) and publishes the paths it finds. It only supplements the directory
 /// scan: when Spotlight is off or still indexing, the scan alone is complete enough.
 @MainActor
-final class AppMetadataWatcher {
+final class AppMetadataWatcher: AppMetadataSource {
     private var query: NSMetadataQuery?
     private var observers: [any NSObjectProtocol] = []
     private var continuation: AsyncStream<[String]>.Continuation?

@@ -32,7 +32,7 @@ public final class AppsPlugin: LintelPlugin {
 
     let context: PluginContext
     let store = AppStore()
-    private var watcher: AppMetadataWatcher?
+    private var watcher: (any AppMetadataSource)?
     private var watcherTask: Task<Void, Never>?
     private var refreshTask: Task<Void, Never>?
     private var pendingRefresh: Task<Void, Never>?
@@ -46,6 +46,8 @@ public final class AppsPlugin: LintelPlugin {
     var now: @Sendable () -> Date = { Date() }
     /// Where the seed reads Spotlight's used dates (tests inject a fake one).
     var usageDatesReader: any UsageDatesReader = SpotlightUsageDatesReader()
+    /// Where the Spotlight supplement comes from (tests inject a scripted one).
+    var makeMetadataSource: () -> any AppMetadataSource = { AppMetadataWatcher() }
     var tracker: ActivityTracker?
     var seedTask: Task<Void, Never>?
     /// The seed waits for the first finished scan of this activation.
@@ -224,7 +226,7 @@ public final class AppsPlugin: LintelPlugin {
     }
 
     private func startSpotlight() {
-        let watcher = AppMetadataWatcher()
+        let watcher = makeMetadataSource()
         self.watcher = watcher
         let stream = watcher.start()
         watcherTask = Task { [weak self] in
