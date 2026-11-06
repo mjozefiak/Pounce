@@ -2,8 +2,9 @@ import Foundation
 import LintelCore
 
 /// The edits a person makes to a meeting that must stay in the owner: the title, a speaker's name and "this is
-/// me". Both the meeting window and the Notes workspace (`MeetingNoteSource`) call them, so the rules (what
-/// counts as a blank name, which meetings accept "this is me", that the notes become `stale`) live once.
+/// me", as the Notes workspace asks for them (`MeetingNoteSource`, `NoteSourceEditing` semantics: an unknown
+/// speaker is `notFound`, "this is me" on a recording is `refused`). The meeting window keeps its own earlier
+/// behaviour (it guards in the model and calls the store directly); only `visible` is shared.
 enum MeetingEdits {
     enum Failure: Error, Equatable {
         /// There is no such meeting or speaker.
