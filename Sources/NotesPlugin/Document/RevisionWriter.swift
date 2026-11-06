@@ -636,8 +636,10 @@ final class RevisionWriter: Sendable {
         func discardProposal(_ proposalID: Int64, confirmedRemoval: Bool) throws {
             if let reason = store.blockedReason { throw reason }
             guard let docID else { throw NotesError.guardRejected(rule: "noDocument") }
-            guard try store.discardProposal(
-                docID: docID, proposalID: proposalID, confirmedRemoval: confirmedRemoval) else {
+            guard
+                try store.discardProposal(
+                    docID: docID, proposalID: proposalID, confirmedRemoval: confirmedRemoval)
+            else {
                 throw NotesError.guardRejected(rule: "proposalTarget")
             }
             if conflictProposalID == proposalID { conflictProposalID = nil }
