@@ -210,7 +210,13 @@ struct NotesGuard: Sendable {
     private struct Match {
         var range: Range<Int>
         var wholeUtterance: Bool
+        /// How many leading quote words the range matches: all of them, or fewer when a literal quote ran on
+        /// past a sentence end and only its first sentence was matched.
+        var quoteCount: Int
     }
+
+    /// The fewest quote words a match needs unless it is a whole utterance (`quoteTooShort`).
+    static let minimumQuoteWords = 3
 
     private struct Outcome {
         var point: NotesPoint
@@ -225,11 +231,15 @@ struct NotesGuard: Sendable {
         point.quote = Self.plain(point.quote)
         guard !point.text.isEmpty else { return .failure(.emptyText) }
 
-        let quoteWords = NotesText.words(strippingLinePrefix(point.quote))
-        guard !quoteWords.isEmpty, let match = find(quoteWords, near: point.timeMs) else {
+        let allQuoteWords = NotesText.words(strippingLinePrefix(point.quote))
+        guard !allQuoteWords.isEmpty, let match = find(allQuoteWords, near: point.timeMs) else {
             return .failure(.quoteNotInTranscript)
         }
-        guard quoteWords.count >= 3 || match.wholeUtterance else { return .failure(.quoteTooShort) }
+        // Only the matched part of the quote counts from here on (all of it, unless it was cut at a sentence end).
+        let quoteWords = Array(allQuoteWords.prefix(match.quoteCount))
+        guard quoteWords.count >= Self.minimumQuoteWords || match.wholeUtterance else {
+            return .failure(.quoteTooShort)
+        }
         let claimsDecision = point.kind == .decision || point.kind == .task
         if claimsDecision, quoteWords.count == 1 { return .failure(.kindNotSupported) }
 
@@ -351,7 +361,8 @@ struct NotesGuard: Sendable {
     static let maxSkippedTranscriptWords = 2
 
     /// The first place in the transcript where all quote words follow each other (by `wordsMatch`): a literal
-    /// match within one speaker's words (it may cross a sentence end), one with gaps within one sentence; with several, the one closest in time to `near`. An exact match (no gaps) wins over one that
+    /// match within one speaker's words (cut at the first sentence end it crosses), one with gaps within one
+    /// sentence; with several, the one closest in time to `near`. An exact match (no gaps) wins over one that
     /// skips up to `maxSkippedTranscriptWords` filler words; the first and the last quote word never have a gap
     /// at the edge, and a skipped word is never a negation, a number, a word with a digit or a capitalised name
     /// the quote does not contain.
@@ -366,24 +377,36 @@ struct NotesGuard: Sendable {
         var best: Match?
         var bestDistance = Int.max
         for start in 0...(words.count - quote.count) where NotesText.wordsMatch(words[start], quote[0]) {
-            guard let end = matchEnd(quote, index: 1, after: start, skips: skips, literal: skips == 0) else { continue }
-            // A match with gaps stays in one sentence. A literal one (`matchEnd` with `literal`) may run over a
-            // sentence end, but only within what one speaker says, so two people are never spliced into one.
-            if skips > 0 { guard wordSentence[start] == wordSentence[end - 1] else { continue } }
+            guard var end = matchEnd(quote, index: 1, after: start, skips: skips, literal: skips == 0) else { continue }
+            var quoteCount = quote.count
+            if skips > 0 {
+                // A match with gaps stays in one sentence.
+                guard wordSentence[start] == wordSentence[end - 1] else { continue }
+            } else if wordSentence[start] != wordSentence[end - 1] {
+                // A literal quote that runs on past a sentence end (within one speaker's words, see `matchEnd`)
+                // is matched on its first sentence only; the rest of the quote is ignored. Too short a start
+                // is no match.
+                end = sentenceRanges[wordSentence[start]].upperBound
+                quoteCount = end - start
+                guard quoteCount >= Self.minimumQuoteWords else { continue }
+            }
             let range = start..<end
             let distance = abs(utterances[wordUtterance[start]].startMs - time)
             if distance < bestDistance {
                 bestDistance = distance
-                // A match with gaps is never a whole utterance: it must not get round `quoteTooShort`.
-                best = Match(range: range, wholeUtterance: range.count == quote.count && isWhole(range))
+                // A match with gaps or a cut one is never a whole utterance: it must not get round `quoteTooShort`.
+                best = Match(
+                    range: range,
+                    wholeUtterance: quoteCount == quote.count && range.count == quote.count && isWhole(range),
+                    quoteCount: quoteCount)
             }
         }
         return best
     }
 
     /// The end (exclusive) of the transcript words matching `quote[index...]` after the word at `position`,
-    /// skipping at most `skips` words in all, or nil. A `literal` match stays with one speaker, any other within
-    /// one sentence.
+    /// skipping at most `skips` words in all, or nil. A `literal` match may run over a sentence end but stays with
+    /// one speaker (`find` cuts it at the first sentence end); any other stays within one sentence.
     private func matchEnd(_ quote: [String], index: Int, after position: Int, skips: Int, literal: Bool) -> Int? {
         if index == quote.count { return position + 1 }
         for gap in 0...skips {
