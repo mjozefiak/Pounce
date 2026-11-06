@@ -56,6 +56,11 @@ final class NotesLibraryOpener {
     var canRead: Bool { store != nil }
 
     /// Opens the library once; later calls do nothing while it is open.
+    ///
+    /// This runs the Keychain lookup, the SQLCipher open and the migration synchronously on the main actor, on
+    /// purpose: `MeetingsLibrary.open()` does the same, the open is lazy (the first thing that needs the store),
+    /// and the store type is created and used on the main actor by the shell. Moving it off would make `status`
+    /// and `store` change under the views that read them. The `open` log line carries the duration.
     func open() {
         guard store == nil else { return }
         let started = ContinuousClock.now
@@ -75,15 +80,17 @@ final class NotesLibraryOpener {
                 if opened.hasNewerSchema { log.error(NotesLogEvent("open", code: NotesError.schemaNewer.code)) }
                 if archive != nil { log.notice(NotesLogEvent("reset")) }
                 log.notice(NotesLogEvent("open", durationMs: Self.milliseconds(since: started)))
+                // Only a successful open may delete anything: a locked Keychain or a failed open keeps every file.
+                opener.purgeOldArchives(now: now())
             case .unavailable(let error):
                 status = .unavailable(error)
                 log.error(NotesLogEvent("open", code: NotesError.keyUnavailable.code))
             }
         } catch {
             status = .failed
-            log.error(NotesLogEvent("open", code: "openFailed"))
+            let code = (error as? NotesError)?.code ?? "openFailed"
+            log.error(NotesLogEvent("open", code: code))
         }
-        opener.purgeOldArchives(now: now())
     }
 
     func close() {

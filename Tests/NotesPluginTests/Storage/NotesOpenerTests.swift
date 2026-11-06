@@ -143,6 +143,41 @@ import Testing
         #expect(!FileManager.default.fileExists(atPath: archive.path))
     }
 
+    @Test func archivesAreNeverPurgedWhenTheKeychainIsLocked() throws {
+        let harness = try NotesHarness()
+        try FileManager.default.createDirectory(at: harness.directory, withIntermediateDirectories: true)
+        let old = Date(timeIntervalSince1970: 1_700_000_000)
+        let archive = harness.directory.appending(
+            path: "notes.sqlite.unreadable-\(EncryptedDatabaseOpener.stamp(old))")
+        try Data("x".utf8).write(to: archive)
+        harness.keychain.failReads(with: .accessDenied)
+        let opener = harness.opener(now: { old.addingTimeInterval(40 * 86_400) })
+        opener.open()
+        #expect(opener.status == .unavailable(.denied))
+        #expect(FileManager.default.fileExists(atPath: archive.path))
+    }
+
+    @Test func aFailedMigrationIsLoggedWithItsStepAndDeletesNothing() throws {
+        let harness = try NotesHarness()
+        let first = harness.opener()
+        first.open()
+        try #require(first.store).write { db in try db.execute(sql: "DELETE FROM grdb_migrations") }
+        first.close()
+        try FileManager.default.createDirectory(at: harness.directory, withIntermediateDirectories: true)
+        let old = Date(timeIntervalSince1970: 1_700_000_000)
+        let archive = harness.directory.appending(
+            path: "notes.sqlite.unreadable-\(EncryptedDatabaseOpener.stamp(old))")
+        try Data("x".utf8).write(to: archive)
+
+        let opener = harness.opener(now: { old.addingTimeInterval(40 * 86_400) })
+        opener.open()
+        #expect(opener.status == .failed)
+        #expect(harness.log.errors.contains { $0.contains("migrationFailed(v1-notes)") })
+        #expect(!harness.log.errors.contains { $0.contains("openFailed") })
+        #expect(FileManager.default.fileExists(atPath: archive.path))
+        #expect(FileManager.default.fileExists(atPath: harness.directory.appending(path: "notes.sqlite").path))
+    }
+
     @Test func aDatabaseFromANewerLintelIsReadableAndNeverWritten() throws {
         let harness = try NotesHarness()
         let first = harness.opener()
