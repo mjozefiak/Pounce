@@ -258,6 +258,12 @@ private func entry(
         try history.erase()
     }
 
+    @Test func clearingAHistoryThatIsNotOpenThrows() throws {
+        let (history, _, directory) = try make(MemoryKeychain())
+        defer { withExtendedLifetime(directory) {} }
+        #expect(throws: DictationStoreError.self) { try history.clear() }
+    }
+
     // MARK: Helpers
 
     private func waitForFile(_ directory: TemporaryDirectory) async throws {

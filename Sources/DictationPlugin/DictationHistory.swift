@@ -172,9 +172,10 @@ final class DictationHistory {
         entryCount = (try? store.count()) ?? 0
     }
 
-    /// "Clear History": every entry goes; the key and the database stay.
+    /// "Clear History": every entry goes; the key and the database stay. A history that is not open cannot be
+    /// cleared, and says so: the caller must not report success (or go on to remove the kept copies in Notes).
     func clear() throws {
-        guard let store else { return }
+        guard let store else { throw DictationStoreError.closed }
         try store.deleteAll()
         try? store.vacuum()
         refreshCount()
