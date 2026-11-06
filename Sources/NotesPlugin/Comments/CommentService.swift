@@ -40,31 +40,42 @@ struct CommentService: Sendable {
     /// is written. Returns the new thread's id.
     func add(body: String, selection: NSRange, buffer: String, writer: RevisionWriter) async throws -> Int64 {
         do {
-            guard let clean = NotesStore.cleanComment(body) else { throw CommentFailure.invalid }
-            guard clean.count <= NotesStore.commentLimit else { throw CommentFailure.tooLong }
-            if selection.length > CommentAnchors.maxQuoteLength { throw CommentFailure.selectionTooLong }
-            guard let anchor = CommentAnchors.make(in: buffer, range: selection) else { throw CommentFailure.invalid }
-            let head = try await writer.ensureDocument()
-            // Escape cancelled the popover while the text was being saved: write no comment.
-            try Task.checkCancellation()
-            // The anchor is built on the head's own text, so the offsets belong to the revision it names.
-            let target: CommentAnchor
-            if head.body == buffer {
-                target = anchor
-            } else if let range = AnchorResolver.resolve(anchor, in: head.body).range,
-                let found = CommentAnchors.make(in: head.body, range: range)
-            {
-                target = found
-            } else {
-                throw CommentFailure.changed
+            do {
+                return try await addOnce(body: body, selection: selection, buffer: buffer, writer: writer)
+            } catch NotesError.guardRejected(let rule) where rule == "anchorRevisionGone" {
+                // The head's revision was pruned between reading it and writing the thread: read the head again.
+                return try await addOnce(body: body, selection: selection, buffer: buffer, writer: writer)
             }
-            return try store.addThread(
-                docID: head.docID, author: Self.userAuthor, body: body, anchor: target,
-                anchorRevisionID: head.revisionID,
-                now: now())
         } catch {
             throw Self.failure(error)
         }
+    }
+
+    private func addOnce(body: String, selection: NSRange, buffer: String, writer: RevisionWriter) async throws
+        -> Int64
+    {
+        guard let clean = NotesStore.cleanComment(body) else { throw CommentFailure.invalid }
+        guard clean.count <= NotesStore.commentLimit else { throw CommentFailure.tooLong }
+        if selection.length > CommentAnchors.maxQuoteLength { throw CommentFailure.selectionTooLong }
+        guard let anchor = CommentAnchors.make(in: buffer, range: selection) else { throw CommentFailure.invalid }
+        let head = try await writer.ensureDocument()
+        // Escape cancelled the popover while the text was being saved: write no comment.
+        try Task.checkCancellation()
+        // The anchor is built on the head's own text, so the offsets belong to the revision it names.
+        let target: CommentAnchor
+        if head.body == buffer {
+            target = anchor
+        } else if let range = AnchorResolver.resolve(anchor, in: head.body).range,
+            let found = CommentAnchors.make(in: head.body, range: range)
+        {
+            target = found
+        } else {
+            throw CommentFailure.changed
+        }
+        return try store.addThread(
+            docID: head.docID, author: Self.userAuthor, body: body, anchor: target,
+            anchorRevisionID: head.revisionID,
+            now: now())
     }
 
     func reply(docID: Int64, threadID: Int64, body: String) throws {
@@ -122,6 +133,7 @@ struct CommentService: Sendable {
         case .guardRejected(let rule)? where rule == "emptyComment": return .invalid
         case .guardRejected(let rule)? where rule == "commentTooLong": return .tooLong
         case .guardRejected(let rule)? where rule == "startedAtChanged": return .changed
+        case .guardRejected(let rule)? where rule == "anchorRevisionGone": return .changed
         default: return .other
         }
     }

@@ -96,6 +96,8 @@ extension NotesStore {
     ) throws -> Int64 {
         let clean = try Self.checkedComment(body)
         return try write { db in
+            // The revision was read before this transaction; a prune (or a delete) in between could have taken it.
+            try Self.requireRevision(anchorRevisionID, of: docID, in: db)
             let thread =
                 (try Int64.fetchOne(
                     db, sql: "SELECT COALESCE(MAX(thread_id), 0) FROM note_comment WHERE doc_id = ?",
@@ -127,6 +129,15 @@ extension NotesStore {
                 in: db)
             return true
         }
+    }
+
+    /// `anchorRevisionGone` when the revision is not (any more) one of the document's.
+    private static func requireRevision(_ id: Int64, of docID: Int64, in db: Database) throws {
+        let exists =
+            try Bool.fetchOne(
+                db, sql: "SELECT EXISTS (SELECT 1 FROM note_revision WHERE id = ? AND doc_id = ?)",
+                arguments: [id, docID]) ?? false
+        guard exists else { throw NotesError.guardRejected(rule: "anchorRevisionGone") }
     }
 
     private static func insertComment(
@@ -166,6 +177,7 @@ extension NotesStore {
     @discardableResult
     func reanchorThread(docID: Int64, threadID: Int64, anchor: CommentAnchor, anchorRevisionID: Int64) throws -> Bool {
         try write { db in
+            try Self.requireRevision(anchorRevisionID, of: docID, in: db)
             try db.execute(
                 sql: """
                     UPDATE note_comment SET anchor_revision_id = ?, anchor_start = ?, anchor_end = ?,

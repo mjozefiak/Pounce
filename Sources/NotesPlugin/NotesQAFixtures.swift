@@ -1,6 +1,7 @@
-#if DEBUG
 import Foundation
 import LintelKit
+
+#if DEBUG
 
 /// Fixture notes for `--qa-notes`: invented text only, shaped like the accepted prototype's sample data (one
 /// finished meeting with notes and a transcript, a dictation, a meeting still writing its notes, an interrupted

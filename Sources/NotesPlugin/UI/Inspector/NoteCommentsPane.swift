@@ -124,8 +124,9 @@ struct NoteThreadCard: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
         .background(LintelBrand.windowBackground, in: RoundedRectangle(cornerRadius: 8))
+        // A resolved thread is told apart by a tint, not by fading its text: the text keeps its full contrast.
+        .background(thread.isOpen ? Color.clear : LintelBrand.fill, in: RoundedRectangle(cornerRadius: 8))
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(isSelected ? LintelBrand.accent : LintelBrand.hairline))
-        .opacity(thread.isOpen ? 1 : 0.6)
         .padding(.bottom, 8)
         .contentShape(RoundedRectangle(cornerRadius: 8))
         .onTapGesture { select() }

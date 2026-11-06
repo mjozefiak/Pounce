@@ -277,3 +277,33 @@ import Testing
         #expect(try doc.map { try rig.store.comments(of: $0.id).count } ?? 0 == 0)
     }
 }
+
+/// Review fix: a comment never points at a revision that is gone (pruned between reading the head and writing).
+@MainActor
+@Suite(.timeLimit(.minutes(1))) struct CommentAnchorRevisionTests {
+    private let notes = "## Decisions\n\n- Ship onboarding on 12 Nov."
+
+    @Test func aGoneOrForeignRevisionIsRefusedInTheSameTransactionAndNothingIsWritten() async throws {
+        let rig = try DocRig(readOnly: false)
+        let writer = rig.writer(.seed(try rig.plan(rig.layer(notes))))
+        let head = try await writer.ensureDocument()
+        let range = (notes as NSString).range(of: "Ship")
+        let anchor = try #require(CommentAnchors.make(in: notes, range: range))
+        #expect(throws: NotesError.guardRejected(rule: "anchorRevisionGone")) {
+            try rig.store.addThread(
+                docID: head.docID, author: "human", body: "x", anchor: anchor, anchorRevisionID: head.revisionID + 999,
+                now: Date())
+        }
+        #expect(throws: NotesError.guardRejected(rule: "anchorRevisionGone")) {
+            try rig.store.reanchorThread(
+                docID: head.docID, threadID: 1, anchor: anchor, anchorRevisionID: head.revisionID + 999)
+        }
+        #expect(try rig.store.comments(of: head.docID).isEmpty)
+        #expect(CommentService.failure(NotesError.guardRejected(rule: "anchorRevisionGone")) == .changed)
+        // The real head works.
+        let thread = try rig.store.addThread(
+            docID: head.docID, author: "human", body: "x", anchor: anchor, anchorRevisionID: head.revisionID,
+            now: Date())
+        #expect(thread == 1)
+    }
+}
