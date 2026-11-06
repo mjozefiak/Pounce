@@ -74,7 +74,7 @@ enum NotesTrace {
 
 /// One step of the notes, in the order the pipeline takes them. A run that throws (cancelled, or the model
 /// could not be had) ends without `finished`.
-enum NotesTraceEvent: Equatable, Sendable {
+enum NotesTraceEvent: Equatable, Sendable, Codable {
     case started(schemaVersion: Int, promptVersion: Int, utterances: Int, chunks: Int)
     /// One MAP request of a chunk or of a half of one (a split chunk is followed by its halves).
     case mapChunk(NotesTraceChunk)
@@ -93,7 +93,7 @@ enum NotesTraceEvent: Equatable, Sendable {
 }
 
 /// Points by kind.
-struct NotesTraceKinds: Equatable, Sendable {
+struct NotesTraceKinds: Equatable, Sendable, Codable {
     var summary = 0
     var decision = 0
     var task = 0
@@ -116,7 +116,7 @@ struct NotesTraceKinds: Equatable, Sendable {
 }
 
 /// What one completion (a request with its retry rules) went through.
-struct NotesTraceAttempts: Equatable, Sendable {
+struct NotesTraceAttempts: Equatable, Sendable, Codable {
     /// Generation requests sent (one retry at most; a takeover by dictation repeats the request inside one).
     var requests = 0
     /// Answers cut off by the token limit (never used).
@@ -137,8 +137,8 @@ struct NotesTraceAttempts: Equatable, Sendable {
     var retried: Bool { requests > 1 }
 }
 
-struct NotesTraceChunk: Equatable, Sendable {
-    enum Outcome: String, Sendable {
+struct NotesTraceChunk: Equatable, Sendable, Codable {
+    enum Outcome: String, Sendable, Codable {
         /// The answer gave points (maybe none).
         case points
         /// The chunk could not be processed; it is in `NotesResult.failedChunks`.
@@ -176,13 +176,49 @@ struct NotesTraceChunk: Equatable, Sendable {
     }
 }
 
-struct NotesTraceVerification: Equatable, Sendable {
+struct NotesTraceVerification: Equatable, Sendable, Codable {
     var proposed: Int
     var verified: NotesTraceKinds
     var dropped: Int
     var reasons: [NotesGuard.DropReason: Int]
     var repaired: Int
     var downgraded: Int
+
+    private enum CodingKeys: String, CodingKey {
+        case proposed, verified, dropped, reasons, repaired, downgraded
+    }
+
+    /// `reasons` is written as an object keyed by the reason's raw value (a dictionary keyed by an enum would
+    /// become an array of alternating keys and values).
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        proposed = try container.decode(Int.self, forKey: .proposed)
+        verified = try container.decode(NotesTraceKinds.self, forKey: .verified)
+        dropped = try container.decode(Int.self, forKey: .dropped)
+        let raw = try container.decode([String: Int].self, forKey: .reasons)
+        var decoded: [NotesGuard.DropReason: Int] = [:]
+        for (key, count) in raw {
+            guard let reason = NotesGuard.DropReason(rawValue: key) else {
+                throw DecodingError.dataCorruptedError(
+                    forKey: .reasons, in: container, debugDescription: "Unknown drop reason")
+            }
+            decoded[reason] = count
+        }
+        reasons = decoded
+        repaired = try container.decode(Int.self, forKey: .repaired)
+        downgraded = try container.decode(Int.self, forKey: .downgraded)
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(proposed, forKey: .proposed)
+        try container.encode(verified, forKey: .verified)
+        try container.encode(dropped, forKey: .dropped)
+        try container.encode(
+            Dictionary(uniqueKeysWithValues: reasons.map { ($0.key.rawValue, $0.value) }), forKey: .reasons)
+        try container.encode(repaired, forKey: .repaired)
+        try container.encode(downgraded, forKey: .downgraded)
+    }
 
     init(proposed: Int, verdict: NotesGuard.PointVerdict) {
         self.proposed = proposed
@@ -194,9 +230,9 @@ struct NotesTraceVerification: Equatable, Sendable {
     }
 }
 
-struct NotesTraceReduceRequest: Equatable, Sendable {
-    enum Stage: String, Sendable { case sections, summaryMerge }
-    enum Outcome: String, Sendable {
+struct NotesTraceReduceRequest: Equatable, Sendable, Codable {
+    enum Stage: String, Sendable, Codable { case sections, summaryMerge }
+    enum Outcome: String, Sendable, Codable {
         case value
         /// The prompt did not fit; the points went on in two batches.
         case split
@@ -215,7 +251,7 @@ struct NotesTraceReduceRequest: Equatable, Sendable {
     var outcome: Outcome
 }
 
-struct NotesTraceReduce: Equatable, Sendable {
+struct NotesTraceReduce: Equatable, Sendable, Codable {
     /// Batches of the first level (1 when the points fit one request).
     var batches = 0
     var sectionRequests = 0
@@ -243,7 +279,7 @@ struct NotesTraceReduce: Equatable, Sendable {
     var summaryReplaced = false
 }
 
-struct NotesTraceSummary: Equatable, Sendable {
+struct NotesTraceSummary: Equatable, Sendable, Codable {
     var origin: NotesGuard.ReduceAudit.SummaryOrigin
     /// The verdict has a paragraph, and the composer shows it.
     var present: Bool
@@ -254,8 +290,8 @@ struct NotesTraceSummary: Equatable, Sendable {
     var sourceEndMs: Int?
 }
 
-struct NotesTracePoint: Equatable, Sendable {
-    enum Section: String, Sendable {
+struct NotesTracePoint: Equatable, Sendable, Codable {
+    enum Section: String, Sendable, Codable {
         case summary, decisions, tasks, questions
 
         init?(kind: NotesPointKind) {
@@ -273,7 +309,7 @@ struct NotesTracePoint: Equatable, Sendable {
     }
 
     /// How a shown point got into its section.
-    enum Route: String, Sendable {
+    enum Route: String, Sendable, Codable {
         /// REDUCE listed it in its section.
         case reduce
         /// REDUCE failed for its batch and the code listed every point of the batch.
@@ -284,7 +320,7 @@ struct NotesTracePoint: Equatable, Sendable {
         case composedSummary
     }
 
-    enum Loss: Equatable, Sendable {
+    enum Loss: Equatable, Sendable, Codable {
         /// A summary point (no section of its own) and the paragraph shown is the model's.
         case summaryKindModelParagraph
         /// A summary point that is not among the first four sources of the composed paragraph.
@@ -298,7 +334,7 @@ struct NotesTracePoint: Equatable, Sendable {
         case unexplained
     }
 
-    enum Fate: Equatable, Sendable {
+    enum Fate: Equatable, Sendable, Codable {
         case rendered(Section, via: Route)
         case notRendered(Loss)
     }
@@ -445,3 +481,9 @@ final class NotesTraceRecorder: Sendable {
         return .notRendered(.unexplained)
     }
 }
+
+// The enums that live in other files get their `Codable` here (their raw values are the coded form).
+extension NotesPointKind: Codable {}
+extension NotesResult.Status: Codable {}
+extension NotesGuard.DropReason: Codable {}
+extension NotesGuard.ReduceAudit.SummaryOrigin: Codable {}
