@@ -58,14 +58,19 @@ final class DictationNoteSource: NoteSource {
     private let history: DictationHistory
     private let hub: NoteChangeHub
     private let appName: @Sendable (String) -> String?
+    /// Runs between the lookup of the entry and the delete on the main actor. A test seam: production passes
+    /// nothing, tests close the history here to reproduce the history closing in that gap.
+    private let beforeDelete: @Sendable () async -> Void
 
     init(
         history: DictationHistory, hub: NoteChangeHub,
-        appName: @escaping @Sendable (String) -> String? = DictationNoteSource.installedAppName
+        appName: @escaping @Sendable (String) -> String? = DictationNoteSource.installedAppName,
+        beforeDelete: @escaping @Sendable () async -> Void = {}
     ) {
         self.history = history
         self.hub = hub
         self.appName = appName
+        self.beforeDelete = beforeDelete
     }
 
     static func installedAppName(_ bundleID: String) -> String? {
@@ -190,8 +195,15 @@ final class DictationNoteSource: NoteSource {
         let (store, storeID) = try open
         guard let row = try rowID(of: key, storeID: storeID) else { return }
         guard try store.entry(row) != nil else { return }
+        await beforeDelete()
         let history = history
-        try await MainActor.run { try history.delete([row]) }
+        // `DictationHistory.delete` does nothing while the store is gone, which would read as success: the
+        // store is checked again after the hop, where the delete itself runs.
+        let source = self
+        try await MainActor.run {
+            _ = try source.open
+            try history.delete([row])
+        }
     }
 
     func actions(for key: NoteKey) -> [NoteSourceAction] { [] }

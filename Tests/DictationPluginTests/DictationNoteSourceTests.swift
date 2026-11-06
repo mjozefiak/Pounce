@@ -235,6 +235,23 @@ struct DictationNoteSourceTests {
         #expect(rig.source.actions(for: key).isEmpty)
     }
 
+    @Test("delete throws when the history closes after the lookup, instead of reporting success")
+    func deletingWhileClosed() async throws {
+        let rig = try DictationNoteRig()
+        rig.history.open()
+        let key = try rig.add(entry("x", at: 1))
+        let history = rig.history
+        let closing = DictationNoteSource(
+            history: history, hub: rig.hub, appName: { _ in nil },
+            beforeDelete: { await MainActor.run { history.close() } })
+        await #expect(throws: DictationNoteSourceError.storeUnavailable) { try await closing.delete(key) }
+        // Closed from the start: the same error, and the entry is still in the file after a reopen.
+        await #expect(throws: DictationNoteSourceError.storeUnavailable) { try await rig.source.delete(key) }
+        history.open()
+        let reopened = DictationNoteSource(history: history, hub: rig.hub, appName: { _ in nil })
+        #expect(try await reopened.content(for: key) != nil)
+    }
+
     @Test("the plugin hands the source out and its change streams end on deactivate")
     func plugin() async throws {
         let harness = try DictationHarness(keychain: MemoryKeychain())
