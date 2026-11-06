@@ -52,9 +52,9 @@
 | 4 | 4.6-review-fix | Review fix: removal false when the owner cannot answer (M3) | inline | done | 02524e8 |
 | 4 | 4.5-review-fix | Review fix: restore target guard and reasons (Low) | inline | done | 33cfd93 |
 | 4 | 4.x-review-fix | Review fix: ADR 0008 deviations addendum, chip test (M4) | inline | done | c0f4a6a, 2c5b844 |
-| 5 | 5.1 | note_comment store, anchors, re-anchoring | dispatch | todo | — |
-| 5 | 5.2 | Comment popover, inspector Comments pane, highlights | dispatch | todo | — |
-| 5 | 5.3 | Revise-with-N-comments counts and accessibility | dispatch | todo | — |
+| 5 | 5.1 | note_comment store, anchors, re-anchoring | dispatch | done | 250572a |
+| 5 | 5.2 | Comment popover, inspector Comments pane, highlights | dispatch | done | d965d70 |
+| 5 | 5.3 | Revise-with-N-comments counts and accessibility | dispatch | done | d965d70 (same commit as 5.2) |
 | 6 | 6.1 | ReviseNotesPrompt and ReviseGuard | dispatch | todo | — |
 | 6 | 6.2 | ReviseService, EditLock state machine through LLMLease | dispatch:capable | todo | — |
 | 6 | 6.3 | Proposed revisions: Compare with Apply/Discard | dispatch | todo | — |
