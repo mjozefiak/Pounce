@@ -43,8 +43,8 @@
 | 4 | 4.2-review-fix (M3 proposed human kept) | review fix | inline | done | e0d479f |
 | 4 | 4.2-review-fix (H1 H2 M4-M8, Lows) | review fix: durable release, retired text, max-wait, retry, conflict, stale seed, registry races | inline | done | afadff3 |
 | 4 | 4.2-review-fix (M9 TSan NotesPluginTests) | review fix | inline | done | 8c8116d |
-| 4 | 4.5 | History pane, Compare, Restore | dispatch | todo | — |
-| 4 | 4.6 | Delete with confirmation sheets and kept-copies option | dispatch | todo | — |
+| 4 | 4.5 | History pane, Compare, Restore | dispatch | done | e73ba6a |
+| 4 | 4.6 | Delete with confirmation sheets and kept-copies option | dispatch | done | 0401065 |
 | 4 | 4.7 | Notes settings pane, retention rules, Export All, Erase | dispatch | todo | — |
 | 5 | 5.1 | note_comment store, anchors, re-anchoring | dispatch | todo | — |
 | 5 | 5.2 | Comment popover, inspector Comments pane, highlights | dispatch | todo | — |
