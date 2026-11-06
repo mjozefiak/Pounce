@@ -29,6 +29,11 @@
 | 3 | 3.3 | Read-only document views, Copy Markdown, Save .md | dispatch:capable | done | c369886 |
 | 3 | 3.4 | Search across sources | dispatch | done | 7996a51 |
 | 3 | 3.5 | Notes states and screenshot set | dispatch | done | ae378e7 |
+| 3 | 3.3-review-fix | Export sanitises body and speaker names (M1) | inline | done | 8686172 |
+| 3 | 3.2-review-fix | Content read budget and epochs, stale page dropped, one save panel (M2, M3) | inline | done | 3b29f61 |
+| 3 | 3.2-review-fix | Explorer sentinel keyed on the page token (M4) | inline | done | 642958c |
+| 3 | 3.2-review-fix | No force unwrap, ensureSources, save-error announcement, identical source set, stale comment (M5, lows) | inline | done | 6d98fa1 |
+| 3 | 3.x-review-fix | Deterministic test waits and tests for the fixes | inline | done | 6b9fa52 |
 | 4 | 4.0 | Store: NotesKeyStore, NotesLibraryOpener, v1-notes migration, NotesSettings, eraseData | dispatch:capable | todo | — |
 | 4 | 4.1 | NoteEditor per Phase 0 decision, format bar, pasteboard markers | dispatch:capable | todo | — |
 | 4 | 4.2 | RevisionWriter, OverlaySeeder, SourceReconciler | dispatch:capable | todo | — |
