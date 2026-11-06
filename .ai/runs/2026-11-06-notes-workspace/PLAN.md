@@ -15,6 +15,8 @@
 | 1 | 1.2 | NotesPlugin and NotesPluginTests targets, DEBUG-only registration, --qa-notes | dispatch | done | 6602edf |
 | 1 | 1.3 | LintelCore MarkdownBlocks.split | dispatch:cheap | done | 563521d |
 | 1 | 1.4 | LintelCore MarkdownText (cleaned moves from MarkdownExporter, strippingBidiAndControls) | dispatch:cheap | done | 317b0e7 |
+| 1 | 1.3-review-fix | MarkdownBlocks: backtick info strings, fences inside list items | inline | done | 14d69ee |
+| 1 | 1.1-review-fix | PasteboardClient test: empty options replace | inline | done | 5ab5eec |
 | 2 | 2.1 | MeetingNoteSource in MeetingsPlugin | dispatch:capable | done | a59bbfb |
 | 2 | 2.2 | DictationNoteSource in DictationPlugin | dispatch | done | a5cc47a |
 | 2 | 2.3 | openNote wiring without changing the current Cmd+O | dispatch | done | 863378c |
