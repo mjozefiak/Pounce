@@ -220,22 +220,23 @@ final class MeetingNoteSource: NoteSource {
         let library = library
         var result: [NoteSourceAction] = []
         if entry.status == .incomplete, entry.audioSpooled {
+            // "Finish Transcript" keeps a meeting with unreadable audio incomplete; "Finish with a Gap" closes it
+            // from the transcript that exists (`MeetingsLibrary.finish(meetingID:acceptGap:)`).
             result.append(
                 NoteSourceAction(
                     id: "meetings.finish",
-                    title: LocalizedStringResource("Finish", comment: "Notes: finish an interrupted transcript"),
+                    title: LocalizedStringResource(
+                        "Finish Transcript", comment: "Notes: finish an interrupted transcript"),
                     symbolName: "checkmark.circle"
-                ) {
-                    guard let handle = await MainActor.run(body: { library.finish(meetingID: id) }) else {
-                        throw MeetingNoteSourceError.unavailable
-                    }
-                    for await _ in handle.events {}
-                    switch await handle.outcome {
-                    case .unavailable, .databaseUnwritable, .failed, .notResumable:
-                        throw MeetingNoteSourceError.unavailable
-                    default: break
-                    }
-                })
+                ) { try await Self.finish(id, acceptGap: false, library: library) })
+            result.append(
+                NoteSourceAction(
+                    id: "meetings.finishWithGap",
+                    title: LocalizedStringResource(
+                        "Finish with a Gap",
+                        comment: "Meeting window button: close the meeting although audio is missing"),
+                    symbolName: "exclamationmark.circle"
+                ) { try await Self.finish(id, acceptGap: true, library: library) })
         }
         let snapshot = board?.snapshot
         if let regenerate, entry.status == .ready, entry.notesStatus != .running, snapshot?.phases[id] == nil {
@@ -258,6 +259,20 @@ final class MeetingNoteSource: NoteSource {
                 ) { await MainActor.run { openNotesModel() } })
         }
         return result
+    }
+
+    /// Runs the finish of one meeting and waits for it. Anything that leaves the meeting unchanged because it
+    /// could not run (no handle, a busy or unwritable library, a spool error) is `unavailable`.
+    private static func finish(_ id: Int64, acceptGap: Bool, library: MeetingsLibrary) async throws {
+        guard let handle = await MainActor.run(body: { library.finish(meetingID: id, acceptGap: acceptGap) }) else {
+            throw MeetingNoteSourceError.unavailable
+        }
+        for await _ in handle.events {}
+        switch await handle.outcome {
+        case .unavailable, .databaseUnwritable, .failed, .notResumable:
+            throw MeetingNoteSourceError.unavailable
+        default: break
+        }
     }
 
     func makeChanges() -> AsyncStream<Void> { hub.makeStream() }

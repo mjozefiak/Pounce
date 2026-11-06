@@ -191,15 +191,21 @@ struct NotesQAFixtureSource: NoteSource {
         key.pluginID == pluginID ? NotesQAFixtures.content(for: key, now: now) : nil
     }
     func delete(_ key: NoteKey) async throws {}
-    /// The interrupted meeting offers "Finish" (it does nothing here), the way Meetings does for a spooled one.
+    /// The interrupted meeting offers "Finish Transcript" and "Finish with a Gap" (they do nothing here), the way Meetings does for a spooled one.
     func actions(for key: NoteKey) -> [NoteSourceAction] {
         guard key == NotesQAFixtures.interruptedID else { return [] }
         return [
             NoteSourceAction(
                 id: "fixture.finish",
-                title: LocalizedStringResource("Finish", comment: "Notes: finish an interrupted transcript"),
+                title: LocalizedStringResource("Finish Transcript", comment: "Notes: finish an interrupted transcript"),
                 symbolName: "checkmark.circle"
-            ) {}
+            ) {},
+            NoteSourceAction(
+                id: "fixture.finishWithGap",
+                title: LocalizedStringResource(
+                    "Finish with a Gap", comment: "Meeting window button: close the meeting although audio is missing"),
+                symbolName: "exclamationmark.circle"
+            ) {},
         ]
     }
     func makeChanges() -> AsyncStream<Void> { AsyncStream { $0.finish() } }

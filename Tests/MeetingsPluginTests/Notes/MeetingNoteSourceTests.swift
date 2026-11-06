@@ -410,7 +410,7 @@ struct MeetingNoteEditingTests {
         func ids(_ name: String) throws -> [String] { try rig.source.actions(for: rig.key(name)).map(\.id) }
         #expect(try ids("notes") == ["meetings.regenerate"])
         #expect(try ids("failed").isEmpty)
-        #expect(try ids("incomplete") == ["meetings.finish"])
+        #expect(try ids("incomplete") == ["meetings.finish", "meetings.finishWithGap"])
         try rig.store.write { db in
             try db.execute(sql: "UPDATE meeting SET audio_state = 'deleted' WHERE status = 'incomplete'")
         }

@@ -9037,6 +9037,24 @@
         }
       }
     },
+    "Finish Transcript" : {
+      "comment" : "Notes: finish an interrupted transcript",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish Transcript"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dokończ transkrypt"
+          }
+        }
+      }
+    },
     "Finish with a Gap" : {
       "comment" : "Meeting window button: close the meeting although audio is missing",
       "extractionState" : "manual",
