@@ -145,3 +145,17 @@ Other numbers: set the whole 50 054-character attributed string and lay out the 
 - Duplicate blocks with identical text share one author entry.
 
 **Phase 0 outcome: GO / GO (with the 0.2 condition) / GO.** Nothing in Phase 0 needs the fallback; no owner decision is required, but the 0.2 condition (Markdown source as the editor's storage) should be adopted in the text of step 4.1.
+
+### Addendum: Notes workspace implementation deviations (2026-11-06)
+
+Where steps 3.x to 4.7 of `.ai/specs/2026-11-04-notes-workspace.md` ended up different from the spec text. The spec file is not edited; this list is the record, found in the review of PR #56.
+
+1. **Panel delete keeps copies.** The launcher panel's ⌃X confirmation is keyboard-only and has no "Also delete kept copies" checkbox. A copy of a recording deleted there stays in Notes and is badged "Recording removed". The checkbox exists only in the confirmation sheets of Clear Library, Clear History and Erase Data (and the Notes window's delete sheet, where the note has no owner left to ask).
+2. **Shortened retention is not confirmed.** The spec asks for a confirmation when the user shortens a retention period and copies would go. It is not wired for Notes: retention only deletes detached rows without user writing and without an open comment, so no edited text is lost by it, and the confirmation was left out. Revisit if Notes ever deletes user-written text by age.
+3. **Chip eligibility.** A block keeps its quote chips when its text equals a block of the seed, and also when it equals a block of an APPLIED revision that the source reconciliation wrote (marked `source_version` in `meta_json`), because a regenerate by the owner is checked against the recording by the owner. A `proposed` revision never seeds chips, even with that marker (`LayerAttributionTests`).
+4. **Source editor, not rendered blocks.** The editor stores and shows the Markdown source with visible markers (the Phase 0 condition above, gap 2); the styling per block is computed from the parse. The prototype shows rendered blocks while typing, so the typing view differs visually from it. The read-only view is rendered.
+5. **Kept-copy contract is additive and owner-scoped.** `LintelPlugin.keptNoteCopyCount(ofOwner:)`, `deleteKeptNoteCopies(ofOwner:ownerErased:)` and the `PluginContext` closures were added in step 4.6 (not in the spec's step 1.1 list); they are listed in `BACKWARD_COMPATIBILITY.md` section 1. Counting never opens a library it could reset: it needs the file and the Keychain item, and only asks for the owners that have Notes copies (Meetings, Dictation). Removal answers `false` when the owner could not say which recordings are gone and copies remain.
+6. **Delete order and failures.** The owner deletes first, the overlays after; typed text in an open document is discarded only after the rows were deleted. A manual note or a copy that cannot be deleted says "couldn't be deleted" and keeps its tab.
+7. **Restore.** Restore accepts only an applied revision of the same document that is not the head, and says why it failed (the note changed, read-only, not an earlier version) instead of one generic message.
+8. **Recorded titles.** A recorded note's title is renamed in its owner through `NoteSourceEditing`, never in `notes.sqlite`; only manual notes keep a title override in Notes.
+9. **Registration.** Notes is registered `#if DEBUG` until step 7.1, and 7.1 to 7.3 are the last three commits so the owner can cut them (PLAN.md ordering deviation).
