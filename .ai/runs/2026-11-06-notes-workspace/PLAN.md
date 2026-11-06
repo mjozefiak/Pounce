@@ -1,0 +1,104 @@
+# Plan — notes-workspace
+
+**Source spec:** `.ai/specs/2026-11-04-notes-workspace.md` (spec B). Branch `feat/notes-workspace`, base `main`.
+
+## Tasks
+
+> Authoritative status table. `Status` is one of `todo` or `done`. On landing a Step, flip `Status` to `done` and fill the `Commit` column with the short SHA. The first row whose `Status` is not `done` is the resume point for `om-auto-continue-pr-loop`. Step ids and `Exec` cells are immutable once the plan is committed — per-Step commits touch only `Status` and `Commit`.
+
+| Phase | Step | Title | Exec | Status | Commit |
+|-------|------|-------|------|--------|--------|
+| 0 | 0.1 | Editor spike (TextKit 2) and ADR 0008 addendum with measurements | inline | todo | — |
+| 0 | 0.2 | Verify AttributedString(markdown:) subset and Meetings export round-trip | inline | todo | — |
+| 0 | 0.3 | Prototype BlockAttribution on revision fixtures (gate: all pass) | inline | todo | — |
+| 1 | 1.1 | LintelKit note contract (NoteSource, NoteKey, PasteboardWriteOptions) with defaults | dispatch:capable | todo | — |
+| 1 | 1.2 | NotesPlugin and NotesPluginTests targets, DEBUG-only registration, --qa-notes | dispatch | todo | — |
+| 1 | 1.3 | LintelCore MarkdownBlocks.split | dispatch:cheap | todo | — |
+| 1 | 1.4 | LintelCore MarkdownText (cleaned moves from MarkdownExporter, strippingBidiAndControls) | dispatch:cheap | todo | — |
+| 2 | 2.1 | MeetingNoteSource in MeetingsPlugin | dispatch:capable | todo | — |
+| 2 | 2.2 | DictationNoteSource in DictationPlugin | dispatch | todo | — |
+| 2 | 2.3 | openNote wiring without changing the current Cmd+O | dispatch | todo | — |
+| 3 | 3.1 | NoteLibrary aggregator | dispatch:capable | todo | — |
+| 3 | 3.2 | Explorer, tab bar, path bar, status bar, NotesSection (DEBUG only) | dispatch:capable | todo | — |
+| 3 | 3.3 | Read-only document views, Copy Markdown, Save .md | dispatch:capable | todo | — |
+| 3 | 3.4 | Search across sources | dispatch | todo | — |
+| 3 | 3.5 | Notes states and screenshot set | dispatch | todo | — |
+| 4 | 4.0 | Store: NotesKeyStore, NotesLibraryOpener, v1-notes migration, NotesSettings, eraseData | dispatch:capable | todo | — |
+| 4 | 4.1 | NoteEditor per Phase 0 decision, format bar, pasteboard markers | dispatch:capable | todo | — |
+| 4 | 4.2 | RevisionWriter, OverlaySeeder, SourceReconciler | dispatch:capable | todo | — |
+| 4 | 4.3 | BlockAttribution gutter, legend, Details toggle | dispatch | todo | — |
+| 4 | 4.4 | Manual notes (Cmd+N, notes:<uuid>, title editing) | dispatch | todo | — |
+| 4 | 4.5 | History pane, Compare, Restore | dispatch | todo | — |
+| 4 | 4.6 | Delete with confirmation sheets and kept-copies option | dispatch | todo | — |
+| 4 | 4.7 | Notes settings pane, retention rules, Export All, Erase | dispatch | todo | — |
+| 5 | 5.1 | note_comment store, anchors, re-anchoring | dispatch | todo | — |
+| 5 | 5.2 | Comment popover, inspector Comments pane, highlights | dispatch | todo | — |
+| 5 | 5.3 | Revise-with-N-comments counts and accessibility | dispatch | todo | — |
+| 6 | 6.1 | ReviseNotesPrompt and ReviseGuard | dispatch | todo | — |
+| 6 | 6.2 | ReviseService, EditLock state machine through LLMLease | dispatch:capable | todo | — |
+| 6 | 6.3 | Proposed revisions: Compare with Apply/Discard | dispatch | todo | — |
+| 6 | 6.4 | Revise regression corpus, RealReviseTests, perf budgets | dispatch | todo | — |
+| 7 | 7.4 | Docs: AGENTS.md, BACKWARD_COMPATIBILITY.md, qa.md, perf.md, localization check | inline | todo | — |
+| 7 | 7.1 | ENABLES NOTES FOR USERS: palette, Hide content, remove DEBUG guards | inline | todo | — |
+| 7 | 7.2 | ENABLES NOTES FOR USERS: Welcome mentions Notes | dispatch | todo | — |
+| 7 | 7.3 | ENABLES NOTES FOR USERS: remove Meetings window after parity checklist | inline | todo | — |
+
+## Goal
+
+Implement the Notes workspace (NotesPlugin, editor, comments, history, agent revisions) exactly as the spec's Implementation Plan describes, hidden from users until the final commits.
+
+## Scope and owner decisions
+
+- One PR, one commit per Step (owner, 2026-11-06). Spec step bodies are the acceptance criteria; read the step text in the spec, do not paraphrase from this table.
+- **Ordering deviation:** the spec lists 7.1–7.4; here 7.4 (docs) runs first and **7.1, 7.2, 7.3 are the last three commits**, each titled "ENABLES NOTES FOR USERS", so the owner can cut them. Merging them enables Notes for users.
+- Until 7.1, `NotesPlugin` is registered only `#if DEBUG`; no Keychain item, `notes.sqlite`, `plugins.notes.*` key or panel reaches users. No store code before 4.0.
+- Phase 0 is a spike with go/no-go; a fallback or no-go result stops the run for an owner decision.
+
+## Non-goals
+
+Spec A behaviour, new dependencies, runtime-loaded plugins, anything the spec's "Not doing" lists.
+
+## Risks
+
+Editor (TextKit 2) performance, migrations, agent revisions unverified in isolation; risk-high; flaky time-dependent tests (use injected clocks).
+
+## Binding rules (every Step)
+
+Worktree only; no stash, no amend or force-push of pushed commits; never add `qa-approved` / `merge-queue`. LintelKit changes additive with defaults; plugins never import each other or LintelApp (Meetings/Dictation only through `NoteSource`); colours via LintelBrand; every Localizable key has en and pl, PL never inflects "Lintel"; settings keys in BACKWARD_COMPATIBILITY.md §3, contract fields §1; "Pounce" only on `LEGACY-POUNCE` lines; never log note, transcript or dictation text; no `fatalError`/`try!`/force unwrap in plugin production code; Swift Testing, no real windows/HUD/mic/Keychain/UserDefaults, deterministic tests. Stop and ask the owner on: new dependency, protected surface change beyond the spec, spec contradicting main, test failing after 2 fix attempts, anything deleting user data.
+
+## Implementation Plan
+
+- **0.1** Editor spike (TextKit 2) and ADR 0008 addendum with measurements
+- **0.2** Verify AttributedString(markdown:) subset and Meetings export round-trip
+- **0.3** Prototype BlockAttribution on revision fixtures (gate: all pass)
+- **1.1** LintelKit note contract (NoteSource, NoteKey, PasteboardWriteOptions) with defaults
+- **1.2** NotesPlugin and NotesPluginTests targets, DEBUG-only registration, --qa-notes
+- **1.3** LintelCore MarkdownBlocks.split
+- **1.4** LintelCore MarkdownText (cleaned moves from MarkdownExporter, strippingBidiAndControls)
+- **2.1** MeetingNoteSource in MeetingsPlugin
+- **2.2** DictationNoteSource in DictationPlugin
+- **2.3** openNote wiring without changing the current Cmd+O
+- **3.1** NoteLibrary aggregator
+- **3.2** Explorer, tab bar, path bar, status bar, NotesSection (DEBUG only)
+- **3.3** Read-only document views, Copy Markdown, Save .md
+- **3.4** Search across sources
+- **3.5** Notes states and screenshot set
+- **4.0** Store: NotesKeyStore, NotesLibraryOpener, v1-notes migration, NotesSettings, eraseData
+- **4.1** NoteEditor per Phase 0 decision, format bar, pasteboard markers
+- **4.2** RevisionWriter, OverlaySeeder, SourceReconciler
+- **4.3** BlockAttribution gutter, legend, Details toggle
+- **4.4** Manual notes (Cmd+N, notes:<uuid>, title editing)
+- **4.5** History pane, Compare, Restore
+- **4.6** Delete with confirmation sheets and kept-copies option
+- **4.7** Notes settings pane, retention rules, Export All, Erase
+- **5.1** note_comment store, anchors, re-anchoring
+- **5.2** Comment popover, inspector Comments pane, highlights
+- **5.3** Revise-with-N-comments counts and accessibility
+- **6.1** ReviseNotesPrompt and ReviseGuard
+- **6.2** ReviseService, EditLock state machine through LLMLease
+- **6.3** Proposed revisions: Compare with Apply/Discard
+- **6.4** Revise regression corpus, RealReviseTests, perf budgets
+- **7.4** Docs: AGENTS.md, BACKWARD_COMPATIBILITY.md, qa.md, perf.md, localization check
+- **7.1** ENABLES NOTES FOR USERS: palette, Hide content, remove DEBUG guards
+- **7.2** ENABLES NOTES FOR USERS: Welcome mentions Notes
+- **7.3** ENABLES NOTES FOR USERS: remove Meetings window after parity checklist
