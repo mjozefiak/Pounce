@@ -21,6 +21,18 @@ import Testing
         #expect(client.string() == "fake note")
     }
 
+    @Test func writeWithEmptyOptionsReplacesThePreviousItem() {
+        let client = SystemPasteboardClient(name: name)
+        defer { NSPasteboard(name: name).releaseGlobally() }
+        client.setString("fake old")
+        let item = PasteboardItem(representations: [
+            PasteboardRepresentation(type: "public.utf8-plain-text", data: Data("fake new".utf8))
+        ])
+        _ = client.write([item], options: [])
+        #expect(client.string() == "fake new")
+        #expect(client.itemTypes().count == 1)
+    }
+
     @Test func writesAndReadsEveryItemAndRepresentation() throws {
         let client = SystemPasteboardClient(name: name)
         defer { NSPasteboard(name: name).releaseGlobally() }
