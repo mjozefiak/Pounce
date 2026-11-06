@@ -13050,6 +13050,60 @@
           }
         }
       }
+    },
+    "Audio" : {
+      "comment" : "Notes details: what is left of the recording",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dźwięk"
+          }
+        }
+      }
+    },
+    "Kept for recovery" : {
+      "comment" : "Notes details: the audio of the meeting is still stored",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kept for recovery"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zachowany do odzyskania"
+          }
+        }
+      }
+    },
+    "Deleted" : {
+      "comment" : "Notes details: the audio of the meeting is gone",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deleted"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunięty"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

@@ -291,11 +291,15 @@ public struct NoteSourceAction: Identifiable, Sendable {
 public protocol NoteSource: Sendable {
     var pluginID: PluginID { get }
     /// `list`, `exists` and `content` throw whenever the owner's store is not open (switched off, Keychain locked
-    /// or denied, failed, not yet opened); only an open store may report absence.
+    /// or denied, failed, not yet opened); only an open store may report absence. The error type is the source's
+    /// own (a plugin cannot import Notes, so the contract names none): the consumer treats ANY thrown error as
+    /// "source unavailable", never as "the note is gone", and never detaches or reports absence because of one.
     func list(matching: NormalizedQuery?, after: NoteCursor?, limit: Int) async throws -> NotePage
-    /// Batch for the detach sweep: the subset of `keys` that still exist. A thrown error means "unknown".
+    /// Batch for the detach sweep: the subset of `keys` that still exist. Any thrown error means "unknown"
+    /// (store not open), never "none exist".
     func exists(_ keys: [NoteKey]) async throws -> Set<NoteKey>
-    /// `nil` means the note is gone; a thrown error means "unknown" (source off, failed, locked).
+    /// `nil` means the note is gone (the store is open and has no such note); any thrown error means "unknown"
+    /// (source off, failed, locked).
     func content(for key: NoteKey) async throws -> NoteContent?
     func delete(_ key: NoteKey) async throws
     func actions(for key: NoteKey) -> [NoteSourceAction]

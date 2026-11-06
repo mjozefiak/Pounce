@@ -35,6 +35,11 @@ public final class MeetingsPlugin: LintelPlugin {
     let libraryActions: MeetingsLibraryActions
     /// Writes the notes of finished meetings in the background (Phase 2).
     let notes: NotesService
+    /// The recorded meetings as a Notes source (`noteSources`); its change streams end on `deactivate()`.
+    let noteSource: MeetingNoteSource
+    private let noteChanges = NoteChangeHub()
+    /// `resultsChanged` plus a signal for the Notes source's change streams.
+    private let changed: @Sendable () -> Void
     private let relay = MeetingControllerRelay()
     private let hud: any HUDPresenter
     /// The HUDs, Core Audio, the tone, the microphone permission and the sessions (`MeetingsSystem`).
@@ -73,12 +78,19 @@ public final class MeetingsPlugin: LintelPlugin {
         self.settings = settings
         let runtime = MeetingsRuntime(context: context, settings: settings)
         self.runtime = runtime
+        let resultsChanged = context.resultsChanged
+        let noteChanges = noteChanges
+        let changed: @Sendable () -> Void = {
+            resultsChanged()
+            noteChanges.notify()
+        }
+        self.changed = changed
         library = MeetingsLibrary(
             directory: context.storageDirectory, keychain: context.keychain, settings: settings,
             clock: context.clock,
             spool: SpoolStorage(pluginDirectory: context.storageDirectory),
             makeResumer: { store, keys, spool in runtime.makeResumer(store: store, keys: keys, spool: spool) },
-            logger: context.logger, changed: context.resultsChanged)
+            logger: context.logger, changed: changed)
         let llmManager = ModelManagers.shared.manager(
             for: context.modelsDirectory.appending(path: MeetingsUI.llmDirectoryName, directoryHint: .isDirectory),
             logger: context.logger)
@@ -88,19 +100,23 @@ public final class MeetingsPlugin: LintelPlugin {
                 modelFile: { model in
                     await llmManager.location(of: model.package).folder.flatMap { model.fileURL(in: $0) }
                 },
-                openModels: context.openModels, changed: context.resultsChanged, logger: context.logger))
+                openModels: context.openModels, changed: changed, logger: context.logger))
         self.notes = notes
         library.onMeetingReady = { [weak notes] id in notes?.meetingBecameReady(id) }
         library.onWillClose = { [weak notes] in notes?.cancelJobs() }
         libraryActions = MeetingsLibraryActions(
             library: library, pasteboard: context.pasteboard, regenerate: { notes.regenerate($0) },
-            changed: context.resultsChanged, notes: notes.board,
+            changed: changed, notes: notes.board,
             openNotesModel: { [openModels = context.openModels] in openModels(settings.builtInLLMModel.id) })
+        noteSource = MeetingNoteSource(
+            library: library, board: notes.board, hub: noteChanges,
+            regenerate: { [weak notes] id in notes?.regenerate(id) },
+            openNotesModel: { [openModels = context.openModels] in openModels(settings.builtInLLMModel.id) },
+            changed: changed)
         ui = MeetingsUI(
             context: context, settings: settings, library: library, activity: activity,
             authorizer: authorizer ?? system.microphoneAuthorizer(), makeSelfTest: system.makeSelfTest, notes: notes)
         // The banner reads the speech model's place and the microphone; a change makes the shell read it again.
-        let resultsChanged = context.resultsChanged
         ui.model.onStatusChange = { resultsChanged() }
         let relay = relay
         hud = system.makeHUD { relay.controller?.perform($0) }
@@ -123,7 +139,7 @@ public final class MeetingsPlugin: LintelPlugin {
             speechModel: { await runtime.speechLookup() }, makeSession: { makeSession(runtime, $0) },
             hud: hud, clock: context.clock, openSettings: context.openSettings,
             openURL: { url in Task { try? await workspace.open(url) } }, openModels: context.openModels,
-            changed: context.resultsChanged, logger: context.logger)
+            changed: changed, logger: context.logger)
         dependencies.recordingObserver = detector
         adjustControllerDependencies?(&dependencies)
         let controller = MeetingController(dependencies)
@@ -145,6 +161,8 @@ public final class MeetingsPlugin: LintelPlugin {
     /// closed by a background task as soon as the session ends, unless the plugin was activated again by then.
     /// So after `deactivate()` returns, `library.status` is `.closed` only when nothing was still running.
     public func deactivate() async {
+        // Readers of the Notes source see the end of their stream first, then every read throws.
+        defer { noteChanges.finishAll() }
         activationObserver?.stop()
         activationObserver = nil
         stopDetector()
@@ -194,6 +212,8 @@ public final class MeetingsPlugin: LintelPlugin {
             libraryCommand,
         ]
     }
+
+    public var noteSources: [any NoteSource] { [noteSource] }
 
     public var requiredPermissions: Set<Permission> { [.microphone, .systemAudioRecording] }
 }

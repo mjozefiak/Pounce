@@ -239,9 +239,7 @@ final class MeetingWindowModel {
     }
 
     /// The text without invisible characters, trimmed: empty when nothing visible is left.
-    static func visible(_ text: String) -> String {
-        MarkdownText.cleaned(text, keepNewlines: false).trimmingCharacters(in: .whitespacesAndNewlines)
-    }
+    static func visible(_ text: String) -> String { MeetingEdits.visible(text) }
 
     /// "To ja" needs a speaker who is not "Ja" yet, and a meeting that is not in `channels` mode.
     func canMarkSelf(_ speaker: MeetingDocument.Speaker) -> Bool {
@@ -279,12 +277,17 @@ final class MeetingWindowModel {
         guard let current = document?.speaker(id: speakerID), !trimmed.isEmpty, trimmed != current.label else {
             return
         }
-        await mutate { try $0.renameSpeaker(speakerID, label: trimmed) }
+        let meetingID = meetingID
+        await mutate { try MeetingEdits.renameSpeaker(speakerID, of: meetingID, to: trimmed, in: $0) }
     }
 
     func markSelf(_ speakerID: Int64) async {
         guard let speaker = document?.speaker(id: speakerID), canMarkSelf(speaker) else { return }
-        await mutate { _ = try $0.markSelf(speakerID: speakerID) }
+        let meetingID = meetingID
+        await mutate {
+            // A refusal (the meeting changed since the button was drawn) changes nothing, as before.
+            do { try MeetingEdits.markSelf(speakerID, of: meetingID, in: $0) } catch MeetingEdits.Failure.refused {}
+        }
     }
 
     func renameTitle(_ title: String) async {
@@ -292,7 +295,7 @@ final class MeetingWindowModel {
         pendingTitle = nil
         let trimmed = Self.visible(title)
         guard trimmed != (document?.title ?? "") else { return }
-        await mutate { try $0.renameMeeting(id, title: trimmed) }
+        await mutate { try MeetingEdits.renameTitle(id, to: trimmed, in: $0) }
     }
 
     /// Saves a title that was typed but not submitted (the window is closing).
