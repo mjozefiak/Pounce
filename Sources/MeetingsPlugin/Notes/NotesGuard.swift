@@ -462,7 +462,7 @@ struct NotesGuard: Sendable {
         ("we", "will"), ("we", "ll"),
     ]
 
-    private static func isGenericLabel(_ label: String) -> Bool {
+    static func isGenericLabel(_ label: String) -> Bool {
         let flat = NotesText.words(label).joined(separator: " ")
         if flat.isEmpty { return true }
         return flat.wholeMatch(
