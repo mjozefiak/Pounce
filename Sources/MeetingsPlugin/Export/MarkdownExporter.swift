@@ -1,4 +1,5 @@
 import Foundation
+import LintelCore
 
 /// `Meeting → String` (spec: Architecture → `MarkdownExporter`). Pure and deterministic: the same document,
 /// labels and time zone always give the same text.
@@ -137,7 +138,7 @@ enum MarkdownExporter {
 
     /// Plain text on one line, safe to put anywhere in the document.
     static func plain(_ text: String) -> String {
-        escape(cleaned(text, keepNewlines: false).trimmingCharacters(in: .whitespacesAndNewlines))
+        escape(MarkdownText.cleaned(text, keepNewlines: false).trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
     /// Backslash-escapes every Markdown special. Works on unicode scalars, not characters: a combining mark
@@ -154,47 +155,6 @@ enum MarkdownExporter {
     /// `www.` starts an autolink in GitHub flavoured Markdown; the escape of its dot ends that.
     static func breakAutolinks(_ text: String) -> String {
         text.replacing(/(?i)www\./) { "\($0.output.dropLast())\\." }
-    }
-
-    /// Removes invisible and bidirectional control characters; control characters and line breaks become
-    /// spaces (line breaks stay when kept). The zero-width (non-)joiner stay: scripts and emoji need them.
-    static func cleaned(_ text: String, keepNewlines: Bool) -> String {
-        var result = String.UnicodeScalarView()
-        var previousWasSpace = false
-        for scalar in text.replacingOccurrences(of: "\r\n", with: "\n").unicodeScalars {
-            if scalar == "\n" || scalar == "\r" || scalar == "\u{2028}" || scalar == "\u{2029}" || scalar == "\u{85}" {
-                if keepNewlines {
-                    result.append("\n")
-                    previousWasSpace = false
-                } else if !previousWasSpace {
-                    result.append(" ")
-                    previousWasSpace = true
-                }
-                continue
-            }
-            if scalar.value < 0x20 || (0x7F...0x9F).contains(scalar.value) {
-                if !previousWasSpace {
-                    result.append(" ")
-                    previousWasSpace = true
-                }
-                continue
-            }
-            if isInvisible(scalar) { continue }
-            result.append(scalar)
-            previousWasSpace = scalar == " "
-        }
-        return String(result)
-    }
-
-    /// Characters that draw nothing or reorder text. U+200C and U+200D (joiners) are not among them.
-    private static func isInvisible(_ scalar: Unicode.Scalar) -> Bool {
-        switch scalar.value {
-        case 0x00AD, 0x034F, 0x061C, 0x115F, 0x1160, 0x17B4, 0x17B5, 0x180B...0x180F: true
-        case 0x200B, 0x200E, 0x200F, 0x202A...0x202E, 0x2060...0x2064, 0x2066...0x206F: true
-        case 0x2800, 0x3164, 0xFEFF, 0xFFA0, 0xFFF9...0xFFFB: true
-        case 0xFE00...0xFE0D, 0xE0000...0xE007F: true
-        default: false
-        }
     }
 
     /// Model-composed notes, re-rendered through an allow-list (`NotesMarkdown`).

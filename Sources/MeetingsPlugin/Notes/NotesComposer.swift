@@ -1,4 +1,5 @@
 import Foundation
+import LintelCore
 
 /// Writes the notes. The Markdown is composed here from verified points. What is guaranteed:
 /// - the headings, labels, participants and the person and due-date wording are the code's own;
@@ -109,7 +110,7 @@ enum NotesComposer {
     }
 
     private static func flat(_ text: String) -> String {
-        MarkdownExporter.cleaned(text, keepNewlines: false).trimmingCharacters(in: .whitespacesAndNewlines)
+        MarkdownText.cleaned(text, keepNewlines: false).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// "3 punkty bez pokrycia w nagraniu pominięto" and its English twin, for the library.

@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import LintelCore
 import LintelKit
 import os
 
@@ -120,7 +121,7 @@ enum MeetingLibraryPresentation {
 
     /// The text without invisible characters, trimmed (what the meeting window shows too).
     static func visible(_ text: String) -> String {
-        MarkdownExporter.cleaned(text, keepNewlines: false).trimmingCharacters(in: .whitespacesAndNewlines)
+        MarkdownText.cleaned(text, keepNewlines: false).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// The title as typed, or "Meeting 3 Nov, 2:05 PM" (in the system language) when there is none.

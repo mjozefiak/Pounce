@@ -1,5 +1,6 @@
 import Foundation
 import GRDB
+import LintelCore
 
 /// A read-only snapshot of one meeting: what the meeting window shows and `MarkdownExporter` writes.
 struct MeetingDocument: Sendable, Equatable {
@@ -83,7 +84,7 @@ extension MeetingsStore {
     /// Sets the title of a meeting; a blank title (also one of invisible characters only) clears it (the
     /// library shows the date instead). The title is not part of the notes text, so the notes stay current.
     func renameMeeting(_ id: Int64, title: String) throws {
-        let cleaned = MarkdownExporter.cleaned(title, keepNewlines: false)
+        let cleaned = MarkdownText.cleaned(title, keepNewlines: false)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         try setTitle(id, title: cleaned.isEmpty ? nil : cleaned)
     }
