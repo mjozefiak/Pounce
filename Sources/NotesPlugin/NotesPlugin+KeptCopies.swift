@@ -29,17 +29,22 @@ extension NotesPlugin {
         let storeProvider = storeProvider
         let registry = documents
         let overlays = LazyStoreOverlays(store: storeProvider, registry: registry)
+        var undecided = false
         if !ownerErased {
             // Clear and Delete leave the owner running: ask it which recordings are gone, so their copies detach.
             let library = NoteLibrary(sources: noteSourceProvider, overlays: overlays, detacher: overlays)
             let reconciler = SourceReconciler(
                 store: store, library: library, detacher: overlays, registry: registry, clock: context.clock)
             _ = await reconciler.sweep()
+            undecided = await library.undecidedOwners.contains(owner)
         }
         do {
             let ids = try store.overlayIDs(ofOwner: owner, detachedOnly: !ownerErased)
             await registry.discard(docIDs: Set(ids))
             try store.deleteDocuments(ids)
+            // An owner that could not say which recordings are gone leaves the copies the count promised: say so
+            // instead of "removed".
+            if undecided, try store.keptCopyCount(owner: owner) > 0 { return false }
             return true
         } catch {
             return false

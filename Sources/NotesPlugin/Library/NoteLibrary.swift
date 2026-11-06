@@ -82,6 +82,9 @@ actor NoteLibrary {
         loading = nil
     }
 
+    /// Plugins with overlays whose existence the last sweep could not decide (off, failed, no answer, timed out).
+    private(set) var undecidedOwners: Set<PluginID> = []
+
     /// The plugins whose sources the library uses, in the order the shell handed them over.
     var activePluginIDs: [PluginID] { sources.order }
 
@@ -427,6 +430,7 @@ actor NoteLibrary {
     @discardableResult
     func sweep() async -> [NoteKey] {
         await ensureSources()
+        undecidedOwners = []
         let keys: [NoteKey]
         do {
             keys = try await overlays.liveOverlayKeys()
@@ -439,7 +443,10 @@ actor NoteLibrary {
         for key in keys { byPlugin[key.pluginID, default: []].append(key) }
         var detached: [NoteKey] = []
         for (plugin, pluginKeys) in byPlugin.sorted(by: { $0.key < $1.key }) {
-            guard let source = sources.accepted[plugin] else { continue }
+            guard let source = sources.accepted[plugin] else {
+                undecidedOwners.insert(plugin)
+                continue
+            }
             var existing = Set<NoteKey>()
             var answered = true
             for start in stride(from: 0, to: pluginKeys.count, by: 500) {
@@ -451,7 +458,10 @@ actor NoteLibrary {
                 }
                 existing.formUnion(found)
             }
-            guard answered else { continue }
+            guard answered else {
+                undecidedOwners.insert(plugin)
+                continue
+            }
             for key in pluginKeys where !existing.contains(key) {
                 do {
                     try await detacher.detach(key, reason: .sourceGone)

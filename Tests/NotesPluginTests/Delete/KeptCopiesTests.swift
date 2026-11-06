@@ -94,7 +94,9 @@ import Testing
         defer { try? FileManager.default.removeItem(at: r.storage) }
         let copy = try overlay(r, id: "m", edited: true, startedAt: started)
         r.source.existsBehavior = .throwsError
-        #expect(await r.plugin.deleteKeptNoteCopies(ofOwner: "meetings", ownerErased: false))
+        #expect(
+            await !r.plugin.deleteKeptNoteCopies(ofOwner: "meetings", ownerErased: false),
+            "the copies the count promised are still there")
         #expect(try try #require(r.store).document(id: copy) != nil, "unknown is not gone")
     }
 
