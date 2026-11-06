@@ -246,7 +246,7 @@ final class NotesService {
         if !job.requested, !deps.settings.notesEnabled { return }
         guard let document = try? await MeetingLibraryIO.document(store: store, id: id), document.status == .ready
         else { return }
-        let utterances = NotesUtterance.make(from: document)
+        let utterances = NotesUtterance.make(from: document, selfName: deps.settings.selfName)
         guard !utterances.isEmpty else { return }
 
         let model = deps.settings.builtInLLMModel

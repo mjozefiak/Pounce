@@ -8785,6 +8785,96 @@
         }
       }
     },
+    "Your name" : {
+      "comment" : "Meetings settings: label of the owner's name field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your name"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Twoje imię"
+          }
+        }
+      }
+    },
+    "Used in notes so tasks get an owner." : {
+      "comment" : "Settings → Meetings: help under the Your name field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used in notes so tasks get an owner."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Używane w notatkach, żeby zadania miały właściciela."
+          }
+        }
+      }
+    },
+    "Use: %@" : {
+      "comment" : "Meetings settings: button that fills Your name; the name",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use: %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Użyj: %@"
+          }
+        }
+      }
+    },
+    "Use a real name, not a word like “I” or “Speaker 1”." : {
+      "comment" : "Meetings settings: the name was rejected as a generic word",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use a real name, not a word like “I” or “Speaker 1”."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wpisz prawdziwe imię, a nie słowo w rodzaju „Ja” czy „Mówca 1”."
+          }
+        }
+      }
+    },
+    "The name is too long (60 characters at most)." : {
+      "comment" : "Meetings settings: the name was rejected as too long",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The name is too long (60 characters at most)."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imię jest za długie (najwyżej 60 znaków)."
+          }
+        }
+      }
+    },
     "Keep meetings for" : {
       "comment" : "Meetings settings label of the retention choice",
       "extractionState" : "manual",
