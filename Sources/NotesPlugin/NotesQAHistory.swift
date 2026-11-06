@@ -4,9 +4,10 @@ import LintelCore
 import LintelKit
 
 extension NotesPlugin {
-    /// `plugins.notes.qaHistory=history|compare`: gives the fixture meeting's notes a history in the QA run's own
+    /// `plugins.notes.qaHistory=history|compare|proposal|proposal-compare`: gives the fixture meeting's notes a history in the QA run's own
     /// store (the agent's seed, then two edits of yours) and opens the note with the History tab, `compare` with
-    /// the comparison of the last edit. Invented text only; a QA aid, not a contract.
+    /// the comparison of the last edit; `proposal` adds a pending proposal from the source (the tab and the History tab show it),
+    /// `proposal-compare` opens its Compare with Apply and Discard. Invented text only; a QA aid, not a contract.
     func qaCreateHistory(_ mode: String, in model: NotesWorkspaceModel) {
         let storeProvider = storeProvider
         Task { @MainActor in
@@ -43,6 +44,19 @@ extension NotesPlugin {
                 attribution.add(author: step.author, body: step.body)
                 previous = Array(zip(MarkdownBlocks.split(step.body), stored.blocks)).map { (text: $0, block: $1) }
             }
+            var proposalID: Int64?
+            if mode.hasPrefix("proposal") {
+                // The source wrote the notes again while the note had your edits: a proposal, the text unchanged.
+                let rewritten =
+                    edited.replacingOccurrences(
+                        of: "(Marek confirmed on Thursday)", with: "(confirmed by Marek, owner: Ola)")
+                    + "\n\n- Send the pricing copy to legal"
+                let stored = attribution.stored(body: rewritten, author: "agent", previous: previous)
+                proposalID = try? store.appendRevision(
+                    NewNoteRevision(
+                        docID: doc.id, author: "agent", state: .proposed, body: rewritten, blocksJSON: stored.json,
+                        now: ago(0.5)))
+            }
             await model.refresh()
             model.handle(NoteRoute.route(for: NotesQAFixtures.meetingID))
             let id = NoteItemID.live(NotesQAFixtures.meetingID)
@@ -50,6 +64,7 @@ extension NotesPlugin {
             while model.documents[id]?.phase != .loaded { try? await Task.sleep(for: .milliseconds(50)) }
             model.selectInspectorTab(.history)
             await model.loadHistory(for: id)
+            if mode == "proposal-compare", let proposalID { await model.showCompare(revisionID: proposalID) }
             if mode == "compare", case .loaded(let snapshot)? = model.documents[id]?.history,
                 let last = snapshot.entries.first
             {
