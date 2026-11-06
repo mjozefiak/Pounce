@@ -9,13 +9,18 @@ struct CommentPopover: View {
     let onCancel: () -> Void
     @State private var text = ""
     @State private var isSending = false
+    /// The write in flight: Cancel and Escape cancel it, so a comment the user gave up on is not written.
+    @State private var sending: Task<Void, Never>?
     @FocusState private var focused: Bool
     @Environment(\.lintelTextSize) private var textSize
 
     /// The prototype's `width:20em` of the 12.5 pt root.
     static func width(_ size: TextSize) -> CGFloat { 20 * 12.5 * size.scale }
 
-    private var canSend: Bool { !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isSending }
+    private var canSend: Bool {
+        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isSending
+            && !CommentLengthHint.isTooLong(text)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -39,8 +44,9 @@ struct CommentPopover: View {
             .padding(.vertical, 6)
             .overlay(RoundedRectangle(cornerRadius: 7).stroke(LintelBrand.accent))
             HStack(spacing: 12) {
+                CommentLengthHint(text: text)
                 Spacer(minLength: 0)
-                Button(action: onCancel) {
+                Button(action: cancel) {
                     Text("Cancel", comment: "Comment popover: closes without writing")
                         .font(textSize.font(.callout))
                         .foregroundStyle(LintelBrand.accentText)
@@ -70,10 +76,16 @@ struct CommentPopover: View {
         .onAppear { focused = true }
     }
 
+    private func cancel() {
+        sending?.cancel()
+        sending = nil
+        onCancel()
+    }
+
     private func send() {
         guard canSend else { return }
         isSending = true
-        Task {
+        sending = Task {
             let written = await onSubmit(text)
             isSending = false
             if !written { focused = true }

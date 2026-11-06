@@ -9,8 +9,14 @@ enum CommentFailure: Error, Equatable, Sendable {
     case invalid
     /// The selected text is not in the saved note (it moved under the writer): nothing was written.
     case changed
+    /// The comment is longer than `NotesStore.commentLimit`: nothing was written and nothing was cut.
+    case tooLong
+    /// The selected passage is longer than `CommentAnchors.maxQuoteLength`: nothing was written.
+    case selectionTooLong
     /// The thread is not in the document any more.
     case missing
+    /// The user cancelled while the write was waiting: nothing was written.
+    case cancelled
     case other
 }
 
@@ -34,10 +40,13 @@ struct CommentService: Sendable {
     /// is written. Returns the new thread's id.
     func add(body: String, selection: NSRange, buffer: String, writer: RevisionWriter) async throws -> Int64 {
         do {
-            guard NotesStore.cleanComment(body) != nil,
-                let anchor = CommentAnchors.make(in: buffer, range: selection)
-            else { throw CommentFailure.invalid }
+            guard let clean = NotesStore.cleanComment(body) else { throw CommentFailure.invalid }
+            guard clean.count <= NotesStore.commentLimit else { throw CommentFailure.tooLong }
+            if selection.length > CommentAnchors.maxQuoteLength { throw CommentFailure.selectionTooLong }
+            guard let anchor = CommentAnchors.make(in: buffer, range: selection) else { throw CommentFailure.invalid }
             let head = try await writer.ensureDocument()
+            // Escape cancelled the popover while the text was being saved: write no comment.
+            try Task.checkCancellation()
             // The anchor is built on the head's own text, so the offsets belong to the revision it names.
             let target: CommentAnchor
             if head.body == buffer {
@@ -83,6 +92,7 @@ struct CommentService: Sendable {
         async throws
     {
         do {
+            if selection.length > CommentAnchors.maxQuoteLength { throw CommentFailure.selectionTooLong }
             guard let anchor = CommentAnchors.make(in: buffer, range: selection) else { throw CommentFailure.invalid }
             let head: RevisionWriter.Head
             if let writer {
@@ -106,9 +116,11 @@ struct CommentService: Sendable {
 
     static func failure(_ error: Error) -> CommentFailure {
         if let failure = error as? CommentFailure { return failure }
+        if error is CancellationError { return .cancelled }
         switch error as? NotesError {
         case .readOnly?, .schemaNewer?: return .readOnly
         case .guardRejected(let rule)? where rule == "emptyComment": return .invalid
+        case .guardRejected(let rule)? where rule == "commentTooLong": return .tooLong
         case .guardRejected(let rule)? where rule == "startedAtChanged": return .changed
         default: return .other
         }

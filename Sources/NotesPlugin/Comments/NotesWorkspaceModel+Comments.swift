@@ -49,7 +49,8 @@ extension NotesWorkspaceModel {
             await loadContent(id)
             return true
         } catch {
-            show(feedback(for: error))
+            // Cancelled by the popover (Escape): nothing was written, nothing to say.
+            if CommentService.failure(error) != .cancelled { show(feedback(for: error)) }
             return false
         }
     }
@@ -89,9 +90,16 @@ extension NotesWorkspaceModel {
     }
 
     private func feedback(for error: Error) -> Feedback {
-        switch CommentService.failure(error) {
+        feedback(for: CommentService.failure(error))
+    }
+
+    private func feedback(for failure: CommentFailure) -> Feedback {
+        switch failure {
         case .readOnly: .commentReadOnly
         case .changed: .commentChanged
+        case .tooLong: .commentTooLong
+        case .selectionTooLong: .commentSelectionTooLong
+        case .invalid: .commentSelectionInvalid
         default: .commentFailed
         }
     }

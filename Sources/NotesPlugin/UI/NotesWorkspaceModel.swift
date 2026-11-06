@@ -631,12 +631,19 @@ final class NotesWorkspaceModel {
         case commentReadOnly
         /// The selected text is not in the saved note, so it cannot be commented on.
         case commentChanged
+        /// The comment is longer than `NotesStore.commentLimit`; nothing was cut or written.
+        case commentTooLong
+        /// The selected passage is longer than `CommentAnchors.maxQuoteLength`.
+        case commentSelectionTooLong
+        /// The selection is empty, blank or no longer inside the note.
+        case commentSelectionInvalid
 
         /// A message that stays as a strip until dismissed, instead of fading from the path bar.
         var isStrip: Bool {
             switch self {
             case .saveFailed, .restoreFailed, .restoreChanged, .restoreReadOnly, .restoreTargetInvalid, .deleteFailed,
-                .copyNotRemoved, .commentFailed, .commentReadOnly, .commentChanged:
+                .copyNotRemoved, .commentFailed, .commentReadOnly, .commentChanged, .commentTooLong,
+                .commentSelectionTooLong, .commentSelectionInvalid:
                 true
             default: false
             }

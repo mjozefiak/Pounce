@@ -225,3 +225,55 @@ import Testing
         #expect(!rig.log.all.joined().contains("Ship onboarding"))
     }
 }
+
+/// Review fix (M1): a long comment is refused, never cut; Escape writes nothing.
+@MainActor
+@Suite(.timeLimit(.minutes(1))) struct CommentLimitTests {
+    private let notes = "## Decisions\n\n- Ship onboarding on 12 Nov.\n- Pricing page moves to the next sprint."
+
+    private func rig() throws -> (DocRig, RevisionWriter, CommentService) {
+        let rig = try DocRig(readOnly: false)
+        let writer = rig.writer(.seed(try rig.plan(rig.layer(notes))))
+        return (rig, writer, CommentService(store: rig.store, now: { Date(timeIntervalSince1970: 1_800_000_100) }))
+    }
+
+    @Test func aCommentAtTheLimitIsKeptWholeAndOneOverIsRefused() async throws {
+        let (rig, writer, service) = try rig()
+        let range = (notes as NSString).range(of: "Ship")
+        let exact = String(repeating: "ą", count: NotesStore.commentLimit)
+        let thread = try await service.add(body: exact, selection: range, buffer: notes, writer: writer)
+        let doc = try #require(try rig.store.liveDocument(key: rig.meeting, layer: "notes"))
+        #expect(try rig.store.comments(of: doc.id).first?.body == exact)
+        await #expect(throws: CommentFailure.tooLong) {
+            try await service.add(body: exact + "x", selection: range, buffer: notes, writer: writer)
+        }
+        #expect(throws: CommentFailure.tooLong) {
+            try service.reply(docID: doc.id, threadID: thread, body: exact + "x")
+        }
+        #expect(try rig.store.comments(of: doc.id).count == 1)  // nothing was cut and saved
+        #expect(NotesStore.commentLength(of: "  " + exact + "x ") == NotesStore.commentLimit + 1)
+    }
+
+    @Test func aSelectionAboveTheCapIsReportedAsTooLongAndWritesNothing() async throws {
+        let (rig, writer, service) = try rig()
+        let long = String(repeating: "word ", count: 500)
+        await #expect(throws: CommentFailure.selectionTooLong) {
+            try await service.add(
+                body: "x", selection: NSRange(location: 0, length: CommentAnchors.maxQuoteLength + 1), buffer: long,
+                writer: writer)
+        }
+        #expect(try rig.store.liveDocument(key: rig.meeting, layer: "notes") == nil)
+    }
+
+    @Test func aCancelledAddWritesNoComment() async throws {
+        let (rig, writer, service) = try rig()
+        let range = (notes as NSString).range(of: "Ship")
+        let task = Task { () -> Int64? in
+            withUnsafeCurrentTask { $0?.cancel() }  // Escape arrives while the text is being saved
+            return try? await service.add(body: "x", selection: range, buffer: notes, writer: writer)
+        }
+        #expect(await task.value == nil)
+        let doc = try rig.store.liveDocument(key: rig.meeting, layer: "notes")
+        #expect(try doc.map { try rig.store.comments(of: $0.id).count } ?? 0 == 0)
+    }
+}

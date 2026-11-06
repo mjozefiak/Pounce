@@ -17568,6 +17568,78 @@
           }
         }
       }
+    },
+    "That comment is too long. Shorten it; nothing was saved." : {
+      "comment" : "Notes: a comment was refused because it is longer than the limit",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That comment is too long. Shorten it; nothing was saved."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten komentarz jest za długi. Skróć go; nic nie zapisano."
+          }
+        }
+      }
+    },
+    "That passage is too long to comment on. Select a shorter one." : {
+      "comment" : "Notes: a comment was refused because the selected passage is too long",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That passage is too long to comment on. Select a shorter one."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten fragment jest za długi, by go komentować. Zaznacz krótszy."
+          }
+        }
+      }
+    },
+    "Select some text in the note first, then comment." : {
+      "comment" : "Notes: a comment was refused because the selection is empty or outside the note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select some text in the note first, then comment."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Najpierw zaznacz tekst w notatce, potem dodaj komentarz."
+          }
+        }
+      }
+    },
+    "Length %lld of %lld" : {
+      "comment" : "Comment field: how many characters the comment has and the most it may have",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Length %lld of %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Długość: %lld z %lld"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

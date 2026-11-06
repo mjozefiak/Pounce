@@ -45,12 +45,23 @@ extension NotesStore {
             status: status, resolvedAt: resolvedAt.map(Date.init(timeIntervalSince1970:)))
     }
 
-    /// A comment as it is stored: bidi and control characters stripped, trimmed, at most `commentLimit` characters;
-    /// `nil` when nothing is left.
+    /// A comment as it is stored: bidi and control characters stripped and trimmed; `nil` when nothing is left. It is
+    /// never cut: a comment longer than `commentLimit` characters is refused by the writes (`commentTooLong`), so the
+    /// user's words are saved whole or not at all.
     static func cleanComment(_ body: String) -> String? {
         let clean = MarkdownText.strippingBidiAndControls(body).trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !clean.isEmpty else { return nil }
-        return String(clean.prefix(commentLimit))
+        return clean.isEmpty ? nil : clean
+    }
+
+    /// How many characters of `body` would be stored (what the popover and the reply field count against
+    /// `commentLimit`).
+    static func commentLength(of body: String) -> Int { cleanComment(body)?.count ?? 0 }
+
+    /// The cleaned comment, or the reason it is refused.
+    private static func checkedComment(_ body: String) throws -> String {
+        guard let clean = cleanComment(body) else { throw NotesError.guardRejected(rule: "emptyComment") }
+        guard clean.count <= commentLimit else { throw NotesError.guardRejected(rule: "commentTooLong") }
+        return clean
     }
 
     // MARK: Reads
@@ -83,7 +94,7 @@ extension NotesStore {
     func addThread(
         docID: Int64, author: String, body: String, anchor: CommentAnchor, anchorRevisionID: Int64, now: Date
     ) throws -> Int64 {
-        guard let clean = Self.cleanComment(body) else { throw NotesError.guardRejected(rule: "emptyComment") }
+        let clean = try Self.checkedComment(body)
         return try write { db in
             let thread =
                 (try Int64.fetchOne(
@@ -100,7 +111,7 @@ extension NotesStore {
     /// thread.
     @discardableResult
     func addReply(docID: Int64, threadID: Int64, author: String, body: String, now: Date) throws -> Bool {
-        guard let clean = Self.cleanComment(body) else { throw NotesError.guardRejected(rule: "emptyComment") }
+        let clean = try Self.checkedComment(body)
         return try write { db in
             guard
                 let root = try Row.fetchOne(

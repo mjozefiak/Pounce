@@ -94,6 +94,7 @@ struct NoteThreadCard: View {
     let thread: CommentThread
     @State private var isReplying = false
     @State private var replyText = ""
+    @State private var sendingReply: Task<Void, Never>?
     @Environment(\.lintelTextSize) private var textSize
 
     private var canWrite: Bool { model.canWriteComments(document) }
@@ -213,12 +214,15 @@ struct NoteThreadCard: View {
             .padding(.vertical, 5)
             .overlay(RoundedRectangle(cornerRadius: 7).stroke(LintelBrand.accent))
             HStack(spacing: 12) {
+                CommentLengthHint(text: replyText)
                 link(Text("Cancel", comment: "Comment popover: closes without writing")) {
+                    sendingReply?.cancel()
+                    sendingReply = nil
                     isReplying = false
                     replyText = ""
                 }
                 link(Text("Send", comment: "Inspector, Comments: sends a reply")) {
-                    Task {
+                    sendingReply = Task {
                         if await model.reply(to: thread, body: replyText) {
                             replyText = ""
                             isReplying = false
@@ -226,7 +230,9 @@ struct NoteThreadCard: View {
                     }
                 }
                 .keyboardShortcut(.return, modifiers: .command)
-                .disabled(replyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(
+                    replyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        || CommentLengthHint.isTooLong(replyText))
             }
         }
     }

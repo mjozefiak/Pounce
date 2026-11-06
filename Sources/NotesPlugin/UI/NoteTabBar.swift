@@ -235,6 +235,18 @@ struct NotePathBar: View {
             String(
                 localized: "That text is not in the saved note. Select it again.",
                 comment: "Notes: a comment was refused because the selected text is not in the saved note")
+        case .commentTooLong:
+            String(
+                localized: "That comment is too long. Shorten it; nothing was saved.",
+                comment: "Notes: a comment was refused because it is longer than the limit")
+        case .commentSelectionTooLong:
+            String(
+                localized: "That passage is too long to comment on. Select a shorter one.",
+                comment: "Notes: a comment was refused because the selected passage is too long")
+        case .commentSelectionInvalid:
+            String(
+                localized: "Select some text in the note first, then comment.",
+                comment: "Notes: a comment was refused because the selection is empty or outside the note")
         case .restoreFailed:
             String(
                 localized: "That version couldn’t be restored. Nothing was changed.",
