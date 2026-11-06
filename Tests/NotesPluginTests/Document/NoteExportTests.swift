@@ -62,7 +62,8 @@ struct NoteExportTests {
         #expect(text.contains("**Eve \\# Injected** (0:01): Helloevil"))
         #expect(!text.contains("\n# Injected"))
         let notes = NoteContent(
-            summary: summary, layers: [NoteLayer(id: "notes", author: .agent, markdown: "A\u{202E}B\r\nC", version: "1")],
+            summary: summary,
+            layers: [NoteLayer(id: "notes", author: .agent, markdown: "A\u{202E}B\r\nC", version: "1")],
             speakers: [], details: [])
         #expect(NoteMarkdownExport.markdown(notes, layerID: "notes") == "# T\n\nAB\nC\n")
     }
