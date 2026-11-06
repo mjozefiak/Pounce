@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Runs MeetingEvalTests in a release build and prints the path of the JSON it wrote.
 # Usage: run.sh --audio <wav> --out <dir> --name <n> --engine <parakeet-ultra|whisper-large-v3-turbo>
-#               --language <pl|en> --speech-folder <dir> [--notes-model <gguf>] [--diarization-folder <dir>] [--allow-dirty]
+#               --language <pl|en> --speech-folder <dir> [--notes-model <gguf>] [--diarization-folder <dir>] [--speaker-names <json>] [--allow-dirty]
 # Exit codes: 0 ok, 2 usage/input error, 3 dirty Sources/Package.swift refused, 4 test failure, 5 build failure.
 # Uses `swift build -c release -Xswiftc -enable-testing` (`swift test -c release` fails to link
 # ClipboardPluginTests) and then runs ONLY MeetingEvalTests by calling the Swift Testing helper
@@ -11,7 +11,7 @@ set -euo pipefail
 
 die() { printf 'run.sh: %s\n' "$1" >&2; exit "${2:-2}"; }
 
-audio="" out="" name="" engine="" language="" speech="" notes="" diar="" allow_dirty=0
+audio="" out="" name="" engine="" language="" speech="" notes="" diar="" names="" allow_dirty=0
 while [[ $# -gt 0 ]]; do
   if [[ "$1" == "--allow-dirty" ]]; then allow_dirty=1; shift; continue; fi
   [[ $# -ge 2 ]] || die "missing value for $1"
@@ -24,6 +24,7 @@ while [[ $# -gt 0 ]]; do
     --speech-folder) speech="$2" ;;
     --notes-model) notes="$2" ;;
     --diarization-folder) diar="$2" ;;
+    --speaker-names) names="$2" ;;
     *) die "unknown argument: $1" ;;
   esac
   shift 2
@@ -35,6 +36,7 @@ done
 [[ -d "$speech" ]] || die "speech folder not found: $speech"
 [[ -z "$notes" || -f "$notes" ]] || die "notes model not found: $notes"
 [[ -z "$diar" || -d "$diar" ]] || die "diarization folder not found: $diar"
+[[ -z "$names" || -f "$names" ]] || die "speaker names file not found: $names"
 case "$engine" in parakeet-ultra | whisper-large-v3-turbo) ;; *) die "bad engine: $engine" ;; esac
 case "$language" in pl | en) ;; *) die "bad language: $language" ;; esac
 
@@ -47,6 +49,7 @@ audio="$(cd "$(dirname "$audio")" && pwd)/$(basename "$audio")"
 speech="$(abs "$speech")"
 [[ -z "$notes" ]] || notes="$(cd "$(dirname "$notes")" && pwd)/$(basename "$notes")"
 [[ -z "$diar" ]] || diar="$(abs "$diar")"
+[[ -z "$names" ]] || names="$(cd "$(dirname "$names")" && pwd)/$(basename "$names")"
 
 version="$(git rev-parse --short HEAD)"
 if [[ -n "$(git status --porcelain -- Sources Package.swift Package.resolved)" ]]; then
@@ -95,6 +98,7 @@ env LINTEL_MEETING_EVAL_AUDIO="$audio" \
   LINTEL_MEETING_EVAL_CODE_VERSION="$version" \
   ${notes:+LINTEL_MEETING_EVAL_NOTES_MODEL="$notes"} \
   ${diar:+LINTEL_MEETING_EVAL_DIARIZATION_FOLDER="$diar"} \
+  ${names:+LINTEL_MEETING_EVAL_SPEAKER_NAMES="$names"} \
   DYLD_FRAMEWORK_PATH="$platform/Library/Frameworks" \
   DYLD_LIBRARY_PATH="$platform/usr/lib" \
   "$helper" --test-bundle-path "$binary" --testing-library swift-testing \
