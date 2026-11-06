@@ -17,7 +17,8 @@ struct NoteSearchHit: Sendable, Equatable {
 extension NotesStore {
     /// The words of a query as FTS5 prefix terms, folded like the index. `nil` when nothing searchable is left.
     static func matchWords(_ query: String) -> [String]? {
-        let folded = NotesFullTextFolding.fold(query)
+        // Composed first, so a decomposed "ó" is one letter and is not split at its combining mark.
+        let folded = NotesFullTextFolding.fold(query.precomposedStringWithCanonicalMapping)
         let words = folded.split { !($0.isLetter || $0.isNumber) }.map(String.init)
         return words.isEmpty ? nil : words
     }
@@ -54,16 +55,21 @@ extension NotesStore {
         }
     }
 
-    /// About 80 characters around the first occurrence of a word, compared without case and diacritics.
+    /// About 80 characters around the first occurrence of a word, compared without case and diacritics and with
+    /// the index's folding (`ł` matches `l`), as plain text: Markdown markers are removed.
     static func snippet(in body: String, words: [String]) -> String {
         let options: String.CompareOptions = [.caseInsensitive, .diacriticInsensitive]
-        let hit = words.compactMap { body.range(of: $0, options: options) }.min { $0.lowerBound < $1.lowerBound }
-        let start =
-            hit.map { body.index($0.lowerBound, offsetBy: -30, limitedBy: body.startIndex) ?? body.startIndex }
-            ?? body.startIndex
+        // The folding replaces one letter by one letter, so offsets in `folded` are offsets in `body`.
+        let folded = NotesFullTextFolding.fold(body)
+        let hit = words.compactMap { folded.range(of: $0, options: options) }.min { $0.lowerBound < $1.lowerBound }
+        let position = hit.map { folded.distance(from: folded.startIndex, to: $0.lowerBound) } ?? 0
+        let from = max(0, position - 30)
+        let start = body.index(body.startIndex, offsetBy: from, limitedBy: body.endIndex) ?? body.startIndex
         let end = body.index(start, offsetBy: 80, limitedBy: body.endIndex) ?? body.endIndex
-        return String(body[start..<end]).replacingOccurrences(of: "\n", with: " ")
-            .trimmingCharacters(in: .whitespaces)
+        let markers = CharacterSet(charactersIn: "#*_`>|~[]")
+        let plain = String(body[start..<end]).unicodeScalars.filter { !markers.contains($0) }
+            .reduce(into: "") { $0.unicodeScalars.append($1) }
+        return plain.split(whereSeparator: \.isWhitespace).joined(separator: " ")
     }
 }
 

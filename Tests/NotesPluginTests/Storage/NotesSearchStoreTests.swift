@@ -63,6 +63,29 @@ import Testing
         #expect(try store.search("strasse").map(\.key.id) == ["c"])
     }
 
+    @Test func aSnippetCentresOnAFoldedHitAndIsPlainText() throws {
+        let harness = try NotesHarness()
+        defer { withExtendedLifetime(harness) {} }
+        let store = try harness.openStore()
+        let filler = String(repeating: "word ", count: 20)
+        try store.insertDocument(.manual("a", body: "# Title\n\n\(filler)**Spotkanie w Łodzi** jutro `kod` > cytat"))
+        let hit = try #require(store.search("lodzi").first)
+        #expect(hit.snippet.contains("Łodzi"))
+        #expect(!hit.snippet.contains("*"))
+        #expect(!hit.snippet.contains("`"))
+        #expect(!hit.snippet.contains("#"))
+        #expect(!hit.snippet.contains("\n"))
+    }
+
+    @Test func aDecomposedQueryMatchesLikeAComposedOne() throws {
+        let harness = try NotesHarness()
+        defer { withExtendedLifetime(harness) {} }
+        let store = try harness.openStore()
+        try store.insertDocument(.manual("a", body: "Żółć"))
+        #expect(NotesStore.matchWords("Z\u{0307}o\u{0301}ł") == ["Żól"])
+        #expect(try store.search("Z\u{0307}o\u{0301}łc").map(\.key.id) == ["a"])
+    }
+
     @Test func theIndexRowIdIsTheDocumentId() throws {
         let harness = try NotesHarness()
         defer { withExtendedLifetime(harness) {} }
