@@ -152,6 +152,13 @@ enum EvalResultWriter {
         try writeAtomically(try data(for: trace), named: "\(trace.recording).notes-trace.json", to: directory)
     }
 
+    /// Writes `<directory>/<recording>.notes-rejections.json` the same way.
+    @discardableResult
+    static func write(_ report: NotesRejectionReport, to directory: URL) throws -> URL {
+        try writeAtomically(
+            try encoded(report), named: "\(report.recording).notes-rejections.json", to: directory)
+    }
+
     private static func writeAtomically(_ body: Data, named name: String, to directory: URL) throws -> URL {
         let manager = FileManager.default
         try manager.createDirectory(at: directory, withIntermediateDirectories: true)

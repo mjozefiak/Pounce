@@ -13,7 +13,9 @@ import Testing
 ///     LINTEL_MEETING_EVAL_SPEECH_FOLDER=<Models>/speech/parakeet-ultra swift test -c release --filter MeetingEvalTests
 ///
 /// Optional: `_NAME`, `_ENGINE` (`parakeet-ultra` | `whisper-large-v3-turbo`), `_LANGUAGE` (`pl` | `en`, Whisper
-/// only), `_CODE_VERSION`, `_NOTES_MODEL` (a .gguf), `_DIARIZATION_FOLDER`, `_ALLOW_DEBUG`. The WAV must be
+/// only), `_CODE_VERSION`, `_NOTES_MODEL` (a .gguf), `_DUMP_REJECTIONS` (`1`: also write
+/// `<name>.notes-rejections.json` with the text of every refused point; the only file that holds notes text
+/// besides the result), `_DIARIZATION_FOLDER`, `_ALLOW_DEBUG`. The WAV must be
 /// 16 kHz mono. The transcript goes only into the JSON; the test prints numbers, never text.
 @Suite(
     .serialized,
@@ -154,8 +156,9 @@ struct MeetingEvalTests {
             configuration.chunkTokens = MeetingsSettings.defaultNotesChunkTokens
             configuration.reduceInputTokens = MeetingsSettings.defaultNotesReduceInputTokens
             let runtime = LlamaRuntime(contextLength: NotesModel.contextLength)
+            let recorder = RecordingRuntime(runtime)
             let notesModel = NotesModel(
-                lease: LLMLease(), runtime: runtime, modelURL: modelURL, keepWarm: { .seconds(1) })
+                lease: LLMLease(), runtime: recorder, modelURL: modelURL, keepWarm: { .seconds(1) })
             let traceEvents = Mutex<[NotesTraceEvent]>([])
             let pipeline = NotesPipeline(
                 model: notesModel, configuration: configuration,
@@ -190,6 +193,16 @@ struct MeetingEvalTests {
                     + " rendered=\(balance.rendered) notRendered=\(balance.notRendered)"
                     + " unexplained=\(balance.unexplained)")
             print("MEETING-EVAL wrote \(traceURL.path)")
+            // Off unless asked for: the file holds transcript-derived text, so only numbers are printed.
+            if let dump = try NotesRejectionReport.writeIfEnabled(
+                Self.value("DUMP_REJECTIONS") == "1", recording: name, records: recorder.records,
+                utterances: utterances, to: outDirectory)
+            {
+                print(
+                    "MEETING-EVAL notes-rejections answers=\(dump.report.answers.count)"
+                        + " points=\(dump.report.pointCount) rejected=\(dump.report.rejectedCount)")
+                print("MEETING-EVAL wrote \(dump.url.path)")
+            }
             print(
                 "MEETING-EVAL notes seconds=\(Self.ms(seconds)) peakMB=\(Self.ms(peak)) status=\(notes.status.rawValue)"
                     + " chunks=\(notes.chunkCount) points=\(notes.verifiedPointCount) dropped=\(notes.droppedCount)")
