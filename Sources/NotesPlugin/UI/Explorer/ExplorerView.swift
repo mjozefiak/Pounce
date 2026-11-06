@@ -26,7 +26,7 @@ struct ExplorerView: View {
                         ExplorerGroupView(model: model, group: group)
                     }
                     if model.hasMore {
-                        Color.clear.frame(height: 1).task { await model.loadMore() }
+                        Color.clear.frame(height: 1).task(id: model.pageToken) { await model.loadMore() }
                     }
                 }
                 .padding(.vertical, 2)
