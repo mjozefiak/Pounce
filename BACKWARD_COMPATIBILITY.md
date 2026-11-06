@@ -130,7 +130,7 @@ Not a hard contract, but changes need a release note:
 
 ## 6. Release assets (the website reads them)
 
-The Lintel website (`lintel-web`, <https://lintelapp.com>) is built from the latest GitHub Release: it picks the download link, size, version and SHA-256 from the release assets, and `.github/workflows/release.yml` asks it to rebuild after each release (`LINTEL_WEB_DEPLOY_HOOK`).
+The Lintel website (`lintel-web`, <https://lintelapp.com>) is built from the latest GitHub Release: it picks the download link, size, version and SHA-256 from the release assets, and `.github/workflows/release.yml` asks it to rebuild after each release by sending a `release-published` `repository_dispatch` event to `lintel-web` (secret `LINTEL_WEB_DISPATCH_TOKEN`, skipped when unset, never fails the release).
 
 **Surface:** every release published from a `v<CFBundleShortVersionString>` tag carries exactly one asset whose name ends in `.dmg` (today `Lintel.dmg`) and exactly one whose name ends in `.dmg.sha256` (today `Lintel.dmg.sha256`, content `<64 hex characters>  <dmg name>`, as `shasum -a 256` prints it). The site matches on the suffixes, takes the version from the tag without the `v`, and shows no SHA line when the checksum asset is missing or unreadable.
 

@@ -8,7 +8,7 @@ After a GitHub Release is published, rebuild the Lintel website (`lintel-web`, C
 
 ## Scope
 
-- `.github/workflows/release.yml`: a last step in the `publish` job that POSTs to the secret `LINTEL_WEB_DEPLOY_HOOK`. Skipped when the secret is unset; a failure is logged as a warning and never fails the release.
+- `.github/workflows/release.yml`: a last step in the `publish` job that sends a `release-published` `repository_dispatch` to `mjozefiak/lintel-web` with the secret `LINTEL_WEB_DISPATCH_TOKEN` (revised 2026-11-06: the Cloudflare Pages project is direct upload and has no deploy hook, so lintel-web's `deploy.yml` listens for the dispatch). Skipped when the secret is unset; a failure is logged as a warning and never fails the release.
 - `BACKWARD_COMPATIBILITY.md`: a new protected surface, "Release assets" (one `*.dmg`, one `*.dmg.sha256`, tag shape).
 
 ## Non-goals
@@ -19,8 +19,8 @@ After a GitHub Release is published, rebuild the Lintel website (`lintel-web`, C
 
 ## Risks
 
-- A hook URL is a secret: it goes through `env`, is read by `curl -K -` (not on the command line), and is never echoed.
-- The hook is an unauthenticated POST; an unset or wrong secret must not turn a published release red.
+- The dispatch token is a secret: it goes through `env` (`GH_TOKEN`) to `gh api`, never on a command line, and is never echoed. It is a fine-grained PAT limited to `lintel-web` (Contents: read and write).
+- An unset or wrong token must not turn a published release red.
 
 ## Progress
 
@@ -33,3 +33,4 @@ PR: #60
 - [x] 1.1 Add the deploy-hook step to the publish job — 7b5024a
 - [x] 1.2 Write the release-asset contract into BACKWARD_COMPATIBILITY.md — 7b5024a
 - [x] 1.3 Verify the step script against a stub server (set, unset, failing hook) — 7b5024a
+- [x] 1.4 Rework the step from a deploy hook to a repository_dispatch (stub `gh`: unset, ok, failing; the token never appears in arguments)

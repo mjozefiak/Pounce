@@ -235,20 +235,24 @@ jobs:
             --generate-notes
 
       # The website (lintel-web, Cloudflare Pages) reads the latest release at build time: version, DMG size
-      # and SHA-256. This asks it to rebuild. It runs only after the release exists, and it can never fail the
-      # release: a missing secret skips it, a failed call is a warning (the site can also be rebuilt by hand
-      # with workflow_dispatch on lintel-web). The URL is a secret, so curl reads it from stdin, not from argv.
+      # and SHA-256. This sends it a `release-published` repository_dispatch so it rebuilds. It runs only after
+      # the release exists, and it can never fail the release: a missing token skips it, a failed call is a
+      # warning (lintel-web can also be redeployed by hand with workflow_dispatch). The token (a fine-grained
+      # personal access token limited to lintel-web, Contents: read and write) is passed to `gh` through the
+      # environment only, never on a command line, and the payload carries just the tag.
       - name: Rebuild the website
         env:
-          LINTEL_WEB_DEPLOY_HOOK: ${{ secrets.LINTEL_WEB_DEPLOY_HOOK }}
+          GH_TOKEN: ${{ secrets.LINTEL_WEB_DISPATCH_TOKEN }}
+          WEBSITE_REPO: mjozefiak/lintel-web
         run: |
-          if [[ -z "$LINTEL_WEB_DEPLOY_HOOK" ]]; then
-            echo "LINTEL_WEB_DEPLOY_HOOK is not set; the website is not rebuilt."
+          if [[ -z "$GH_TOKEN" ]]; then
+            echo "LINTEL_WEB_DISPATCH_TOKEN is not set; the website is not rebuilt."
             exit 0
           fi
-          if printf 'url = "%s"\n' "$LINTEL_WEB_DEPLOY_HOOK" \
-            | curl --config - --request POST --fail --silent --max-time 30 --retry 2 --output /dev/null; then
+          if gh api --method POST "repos/${WEBSITE_REPO}/dispatches" \
+            -f event_type=release-published \
+            -f "client_payload[tag]=${GITHUB_REF_NAME}" >/dev/null 2>&1; then
             echo "Website rebuild requested."
           else
-            echo "::warning::The website deploy hook failed. The release is published; rebuild lintel-web by hand (workflow_dispatch)."
+            echo "::warning::The website dispatch failed. The release is published; redeploy lintel-web by hand (workflow_dispatch)."
           fi
