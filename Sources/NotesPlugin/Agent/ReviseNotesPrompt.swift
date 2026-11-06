@@ -63,8 +63,11 @@ enum ReviseNotesPrompt {
         var user = ""
         for unit in units {
             user += "<unit id=\"\(unit.id)\">\n"
-            if !unit.before.isEmpty { user += "<before>\n\(escape(unit.before.joined(separator: "\n\n")))\n</before>\n" }
-            user += "<blocks count=\"\(unit.blocks.count)\">\n\(escape(unit.blocks.joined(separator: "\n\n")))\n</blocks>\n"
+            if !unit.before.isEmpty {
+                user += "<before>\n\(escape(unit.before.joined(separator: "\n\n")))\n</before>\n"
+            }
+            user +=
+                "<blocks count=\"\(unit.blocks.count)\">\n\(escape(unit.blocks.joined(separator: "\n\n")))\n</blocks>\n"
             if !unit.after.isEmpty { user += "<after>\n\(escape(unit.after.joined(separator: "\n\n")))\n</after>\n" }
             user += "<comments>\n"
             for comment in unit.comments { user += "- \(escape(comment.replacingOccurrences(of: "\n", with: " ")))\n" }

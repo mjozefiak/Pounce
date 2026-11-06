@@ -120,7 +120,9 @@ import Testing
 
     @Test func aSecondStartWhileARunIsEndingIsQueuedNeverRunInParallel() async throws {
         let gate = ReviseGate()
-        let first = ScriptedReviseHandle([.after(gate, ReviseRig.unit("- Pricing page moves to the next sprint (owner: Marek)."))])
+        let first = ScriptedReviseHandle([
+            .after(gate, ReviseRig.unit("- Pricing page moves to the next sprint (owner: Marek)."))
+        ])
         let rig = try ReviseRig(steps: [.handle(first)])
         let one = try await rig.comment("next sprint")
         let two = try await rig.comment("demo build", body: "Name the build.")

@@ -351,7 +351,9 @@ final class ReviseService {
 
     /// The agent answers each revised thread with a short "Revised" and resolves it, in one write per thread and only
     /// when the thread still has the comments the run planned on. Returns how many threads were left open.
-    private static func resolve(_ planned: [(thread: Int64, comments: [Int64])], docID: Int64, store: NotesStore, now: Date)
+    private static func resolve(
+        _ planned: [(thread: Int64, comments: [Int64])], docID: Int64, store: NotesStore, now: Date
+    )
         async -> Int
     {
         await Task.detached {

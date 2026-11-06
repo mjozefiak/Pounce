@@ -124,7 +124,8 @@ import Testing
         #expect(s.model.canAskAgent(document))
         #expect(await s.model.reply(to: thread, body: "Too late.") == false)
         await s.model.setStatus(.resolved, of: thread)
-        #expect(await s.model.addComment(body: "No.", selection: NSRange(location: 0, length: 5), buffer: notes) == false)
+        #expect(
+            await s.model.addComment(body: "No.", selection: NSRange(location: 0, length: 5), buffer: notes) == false)
         gate.open()
         await task.value
         let records = try s.r.store.comments(of: snapshot.docID)

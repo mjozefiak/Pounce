@@ -105,7 +105,8 @@ extension NotesWorkspaceModel {
 
     private static var tryAgain: Strip.Action {
         Strip.Action(
-            id: "revise.retry", title: String(localized: "Try again", comment: "Notes: strip action that tries the failed step again"))
+            id: "revise.retry",
+            title: String(localized: "Try again", comment: "Notes: strip action that tries the failed step again"))
     }
 
     static func reportStrips(_ outcome: ReviseOutcome) -> [Strip] {
