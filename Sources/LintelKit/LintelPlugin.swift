@@ -97,6 +97,9 @@ public protocol LintelPlugin: AnyObject {
     /// The downloadable models the plugin uses, for the Models pane. Added with the main window; the default
     /// uses none.
     var modelUsage: [ModelUsage] { get }
+    /// The recorded notes this plugin owns, read by the Notes section (`NoteSource`). Added with the Notes
+    /// workspace; the default has none.
+    var noteSources: [any NoteSource] { get }
 
     /// Removes data the plugin keeps outside its storage directory (for example a Keychain item).
     /// "Erase Data" calls `deactivate()`, then this method, and then the host deletes the whole
@@ -119,5 +122,6 @@ extension LintelPlugin {
     public var workspaceSections: [WorkspaceSection] { [] }
     public var settingsStatus: SettingsStatus? { nil }
     public var modelUsage: [ModelUsage] { [] }
+    public var noteSources: [any NoteSource] { [] }
     public func eraseData() async throws {}
 }

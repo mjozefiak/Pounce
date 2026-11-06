@@ -127,6 +127,16 @@ public struct PluginContext: Sendable {
     /// Opens the Models pane of Settings, scrolled to the package's row when it is given. Added with the main
     /// window; the default does nothing.
     public let openModels: @MainActor @Sendable (_ packageID: String?) -> Void
+    /// The note sources of the ACTIVE plugins, for the Notes section. The shell drops (and logs once) a source
+    /// whose `pluginID` differs from its plugin's `manifest.id`, and any later source of the same `PluginID`.
+    /// Added with the Notes workspace; the default has none.
+    public let noteSources: @MainActor @Sendable () -> [any NoteSource]
+    /// One stream per call that yields when the set of note sources changes (a plugin switched on or off).
+    /// Added with the Notes workspace; the default finishes at once.
+    public let noteSourcesChanged: @Sendable () -> AsyncStream<Void>
+    /// Asks the shell to show a note in the Notes section. Returns `true` only when a section handled it.
+    /// Added with the Notes workspace; the default returns `false`.
+    public let openNote: @MainActor @Sendable (NoteKey) -> Bool
 
     public init(
         storageDirectory: URL,
@@ -150,7 +160,10 @@ public struct PluginContext: Sendable {
         openSettings: @escaping @MainActor @Sendable () -> Void = {},
         modelsDirectory: URL? = nil,
         availableCommands: @escaping @MainActor @Sendable () -> [CommandInfo] = { [] },
-        openModels: @escaping @MainActor @Sendable (_ packageID: String?) -> Void = { _ in }
+        openModels: @escaping @MainActor @Sendable (_ packageID: String?) -> Void = { _ in },
+        noteSources: @escaping @MainActor @Sendable () -> [any NoteSource] = { [] },
+        noteSourcesChanged: @escaping @Sendable () -> AsyncStream<Void> = { AsyncStream { $0.finish() } },
+        openNote: @escaping @MainActor @Sendable (NoteKey) -> Bool = { _ in false }
     ) {
         self.storageDirectory = storageDirectory
         self.settings = settings
@@ -172,5 +185,8 @@ public struct PluginContext: Sendable {
             modelsDirectory ?? storageDirectory.appending(path: "Models", directoryHint: .isDirectory)
         self.availableCommands = availableCommands
         self.openModels = openModels
+        self.noteSources = noteSources
+        self.noteSourcesChanged = noteSourcesChanged
+        self.openNote = openNote
     }
 }
