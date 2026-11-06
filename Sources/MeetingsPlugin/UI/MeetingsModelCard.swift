@@ -37,7 +37,8 @@ final class MeetingsModelCardModel {
         self.customFolder = customFolder
         self.setCustomFolder = setCustomFolder
         self.pickFolder = pickFolder
-        self.verifyFolder = verifyFolder ?? { folder, package in try await manager.verify(folder: folder, for: package) }
+        self.verifyFolder =
+            verifyFolder ?? { folder, package in try await manager.verify(folder: folder, for: package) }
     }
 
     var isDownloading: Bool { progress != nil }
