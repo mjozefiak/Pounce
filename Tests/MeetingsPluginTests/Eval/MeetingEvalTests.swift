@@ -15,7 +15,7 @@ import Testing
 /// Optional: `_NAME`, `_ENGINE` (`parakeet-ultra` | `whisper-large-v3-turbo`), `_LANGUAGE` (`pl` | `en`, Whisper
 /// only), `_CODE_VERSION`, `_NOTES_MODEL` (a .gguf), `_DUMP_REJECTIONS` (`1`: also write
 /// `<name>.notes-rejections.json` with the text of every refused point; the only file that holds notes text
-/// besides the result), `_DIARIZATION_FOLDER`, `_ALLOW_DEBUG`. The WAV must be
+/// besides the result), `_DIARIZATION_FOLDER`, `_SPEAKER_NAMES` (a JSON of oracle names that replace "Mówca N" after diarization), `_ALLOW_DEBUG`. The WAV must be
 /// 16 kHz mono. The transcript goes only into the JSON; the test prints numbers, never text.
 @Suite(
     .serialized,
@@ -145,6 +145,20 @@ struct MeetingEvalTests {
                     rows[index].speaker = plan.speakers[speaker].label
                 }
             }
+            // Experiment only: replace "Mówca N" with oracle names (JSON `{"Mówca N": {"name": ...}}`). The names are
+            // text, so they reach the notes pipeline input and nothing else (no trace, no printed output).
+            if let path = Self.value("SPEAKER_NAMES") {
+                let mapping = try JSONDecoder().decode(
+                    [String: OracleSpeakerName].self, from: Data(contentsOf: URL(filePath: path)))
+                var replaced = 0
+                for index in rows.indices {
+                    if let label = rows[index].speaker, let name = mapping[label]?.name, !name.isEmpty {
+                        rows[index].speaker = name
+                        replaced += 1
+                    }
+                }
+                print("MEETING-EVAL speaker-names replaced=\(replaced)")
+            }
             result.asr.segments = rows
             print(
                 "MEETING-EVAL diarization seconds=\(Self.ms(seconds)) peakMB=\(Self.ms(peak)) speakers=\(speakers)")
@@ -212,6 +226,9 @@ struct MeetingEvalTests {
         print("MEETING-EVAL wrote \(written.path)")
     }
 }
+
+/// One entry of the oracle speaker-name file; only `name` is read.
+private struct OracleSpeakerName: Decodable { let name: String? }
 
 /// An in-memory source of Float chunks for the diarizer (the evaluation has no spool for it).
 private final class EvalArraySource: AudioSampleSource {
