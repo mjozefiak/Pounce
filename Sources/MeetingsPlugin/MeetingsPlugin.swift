@@ -162,7 +162,8 @@ public final class MeetingsPlugin: LintelPlugin {
     /// closed by a background task as soon as the session ends, unless the plugin was activated again by then.
     /// So after `deactivate()` returns, `library.status` is `.closed` only when nothing was still running.
     public func deactivate() async {
-        // Readers of the Notes source see the end of their stream first, then every read throws.
+        // The streams end when this method returns (the `defer` runs last), after the library is closed or
+        // handed to a lingering session; a read that starts before that may still answer, a later one throws.
         defer { noteChanges.finishAll() }
         activationObserver?.stop()
         activationObserver = nil

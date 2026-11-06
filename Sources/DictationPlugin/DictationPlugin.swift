@@ -215,6 +215,8 @@ public final class DictationPlugin: LintelPlugin {
     }
 
     public func deactivate() async {
+        // The streams end when this method returns, after the history is closed: a read that started earlier may
+        // still answer, a read after the history closed throws.
         defer { noteChanges.finishAll() }
         activationObserver?.stop()
         activationObserver = nil
