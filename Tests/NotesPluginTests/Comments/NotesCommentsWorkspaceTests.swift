@@ -18,7 +18,8 @@ import Testing
     }
 
     private func setup(
-        canEdit: Bool = true, revise: (@MainActor (ReviseCall) async -> ReviseOutcome)? = nil
+        canEdit: Bool = true, revise: (@MainActor (ReviseCall) async -> ReviseOutcome)? = nil,
+        afterLoad: (@MainActor (Int) async -> Void)? = nil
     ) async throws -> Setup {
         let r = try ReconRig()
         let layers = [r.rig.layer(notes, id: "notes", version: "n1")]
@@ -30,6 +31,17 @@ import Testing
         environment.canEditNotes = canEdit
         environment.installComments(store: { store })
         environment.revise = revise
+        if let afterLoad {
+            let original = environment.loadComments
+            let calls = CommentBox(0)
+            environment.loadComments = { item, layer in
+                calls.value += 1
+                let number = calls.value
+                let state = await original(item, layer)
+                await afterLoad(number)
+                return state
+            }
+        }
         environment.makeEditingSession = { content, layerID, document in
             NoteEditingSession.make(
                 content: content, layerID: layerID, store: store, registry: r.registry, model: document,
@@ -95,10 +107,12 @@ import Testing
         #expect(!document.isTextChanged(thread))
         // The editor's buffer no longer has the quote: the highlight goes, the thread says "text changed".
         document.setEditorText(notes.replacingOccurrences(of: "next sprint", with: "week 46"))
+        document.flushResolutions()  // the quotes are searched once typing paused
         #expect(document.isTextChanged(thread))
         #expect(document.highlights.isEmpty)
         // An edit before the quote only moves the highlight.
         document.setEditorText("Intro line.\n\n" + notes)
+        document.flushResolutions()
         #expect(!document.isTextChanged(thread))
         let range = try #require(document.highlights.first?.range)
         #expect((("Intro line.\n\n" + notes) as NSString).substring(with: range) == "next sprint")
@@ -139,6 +153,98 @@ import Testing
         #expect(copy.openCommentCount == 1)
         #expect(!s.model.canWriteComments(copy))
         _ = document
+    }
+
+    // MARK: Review fixes
+
+    @Test func typingSearchesNoQuoteUntilItPausesAndReadsNeverSearch() async throws {
+        let s = try await setup()
+        let document = try #require(s.model.documents[s.item])
+        _ = try await comment(s, "Ship", "a")
+        _ = try await comment(s, "Pricing", "b")
+        _ = try await comment(s, "next sprint", "c")
+        let searches = CommentBox(0)
+        document.resolveAnchor = { anchor, text in
+            searches.value += 1
+            return AnchorResolver.resolve(anchor, in: text)
+        }
+        document.resolveDelay = .seconds(3600)  // the pause never ends inside the test
+        document.refreshResolutions()
+        #expect(searches.value == 3)  // one search per open thread
+        var typed = notes
+        for index in 0..<50 {
+            typed += "x"
+            let at = (typed as NSString).length - 1
+            document.setEditorText(
+                typed, edit: NoteEditorEdit(text: typed, range: at..<(at + 1), changeInLength: 1))
+            _ = index
+        }
+        for _ in 0..<20 {  // redraws: highlights and labels come from the cache
+            _ = document.highlights
+            _ = document.commentThreads.map(document.isTextChanged)
+        }
+        #expect(searches.value == 3)  // 50 keystrokes and 20 redraws searched nothing
+        document.flushResolutions()
+        #expect(searches.value == 6)  // once for the pause
+        #expect(document.highlights.count == 3)
+        document.flushResolutions()
+        #expect(searches.value == 9)
+    }
+
+    @Test func anEditBeforeAQuoteMovesItsHighlightWithoutSearching() async throws {
+        let s = try await setup()
+        let document = try #require(s.model.documents[s.item])
+        _ = try await comment(s, "next sprint", "c")
+        document.resolveDelay = .seconds(3600)
+        let typed = "Intro. " + notes
+        document.setEditorText(typed, edit: NoteEditorEdit(text: typed, range: 0..<7, changeInLength: 7))
+        let range = try #require(document.highlights.first?.range)
+        #expect((typed as NSString).substring(with: range) == "next sprint")
+    }
+
+    @Test func theReviseCountLeavesOutThreadsTheRunWouldSkip() async throws {
+        let s = try await setup()
+        let document = try #require(s.model.documents[s.item])
+        _ = try await comment(s, "Ship", "a")
+        _ = try await comment(s, "next sprint", "b")
+        #expect(s.model.reviseCount == 2)
+        #expect(document.openCommentCount == 2)
+        // "next sprint" is deleted: that thread is "Text changed" and a run would skip it.
+        document.setEditorText(notes.replacingOccurrences(of: "next sprint", with: "week 46"))
+        document.flushResolutions()
+        #expect(s.model.reviseCount == 1)
+        #expect(document.openCommentCount == 2)  // the tab still counts every open thread
+    }
+
+    @Test func aSlowCommentReadNeverOverwritesANewerOne() async throws {
+        let entered = AsyncStream<Void>.makeStream()
+        let release = AsyncStream<Void>.makeStream()
+        let armed = CommentBox(false)
+        let s = try await setup(afterLoad: { _ in
+            guard armed.value else { return }  // only the read started after arming is slow
+            armed.value = false
+            entered.continuation.yield()
+            for await _ in release.stream { return }
+        })
+        let document = try #require(s.model.documents[s.item])
+        _ = try await comment(s, "Ship", "first")
+        #expect(document.commentThreads.count == 1)
+        armed.value = true
+        let slow = Task { await s.model.refreshComments(s.item) }
+        for await _ in entered.stream { break }
+        // While it waits, a second thread is written and read.
+        let doc = try #require(try s.r.store.liveDocument(key: s.r.key, layer: "notes"))
+        let head = try #require(try s.r.store.headRevision(of: doc.id))
+        let range = (notes as NSString).range(of: "Pricing")
+        _ = try s.r.store.addThread(
+            docID: doc.id, author: "human", body: "second",
+            anchor: try #require(CommentAnchors.make(in: head.body, range: range)),
+            anchorRevisionID: head.id, now: Date())
+        await s.model.refreshComments(s.item)
+        #expect(document.commentThreads.count == 2)
+        release.continuation.yield()
+        await slow.value
+        #expect(document.commentThreads.count == 2)  // the stale snapshot (1 thread) was dropped
     }
 
     // MARK: Revise with N comments (step 5.3)

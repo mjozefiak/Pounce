@@ -60,6 +60,18 @@ final class NoteDocumentModel {
     var selectedThreadID: Int64?
     /// The editor's buffer while it is open: the quotes are looked for in it, so a highlight follows typing.
     private(set) var editorText: String?
+    /// Where the open threads' quotes are now (a cache: see `NoteDocumentModel+Comments`). Only that extension
+    /// writes it.
+    var resolutions = CommentResolutions()
+    /// How the quotes are searched; a test counts the calls.
+    @ObservationIgnored var resolveAnchor: @MainActor (CommentAnchor, String) -> AnchorResolution = {
+        AnchorResolver.resolve($0, in: $1)
+    }
+    /// The pending re-resolve after typing and how long it waits for more typing.
+    @ObservationIgnored var resolutionTask: Task<Void, Never>?
+    @ObservationIgnored var resolveDelay: Duration = .milliseconds(250)
+    /// Counts the comment reads of this document, so a slow read that finishes late cannot overwrite a newer one.
+    @ObservationIgnored var commentEpoch = 0
 
     /// The editor's connection to its writer while the note is being edited (step 4.4); `nil` when it is only read.
     private(set) var session: NoteEditingSession?
@@ -88,6 +100,7 @@ final class NoteDocumentModel {
         guard let ended = session else { return }
         session = nil
         editorText = nil
+        refreshResolutions()
         if notifying { onEditingEnded?(ended) }
     }
 
@@ -193,7 +206,10 @@ final class NoteDocumentModel {
     var qaCommentQuote: String?
     #endif
 
-    func setComments(_ state: CommentsState) { comments = state }
+    func setComments(_ state: CommentsState) {
+        comments = state
+        refreshResolutions()
+    }
 
     /// The edit lock of this note's revise run (step 6.2) and how the last run ended, for the strips. The editor
     /// is read-only from `generating` to the end.
@@ -202,8 +218,12 @@ final class NoteDocumentModel {
 
     func setReviseReport(_ outcome: ReviseOutcome?) { reviseReport = outcome }
 
-    func setEditorText(_ text: String?) {
-        if editorText != text { editorText = text }
+    /// `edit` (when the editor tells it) moves the highlights at once; the quotes are searched again after a pause.
+    func setEditorText(_ text: String?, edit: NoteEditorEdit? = nil) {
+        guard editorText != text else { return }
+        editorText = text
+        if let edit { resolutions.apply(edit) }
+        if text == nil { refreshResolutions() } else { scheduleResolutions() }
     }
 
     func selectLayer(_ id: String) {

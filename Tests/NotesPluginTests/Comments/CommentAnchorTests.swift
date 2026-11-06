@@ -121,6 +121,49 @@ import Testing
         #expect(AnchorResolver.resolve(anchor, in: many).range != nil)
     }
 
+    @Test func aDeletedShortQuoteDoesNotJumpToAnotherOccurrence() throws {
+        let original = "Is the date fine?\n\nok\n\nThe book is long."
+        let anchor = try makeAnchor("ok", in: original)
+        // The commented passage is deleted; the only "ok" left is inside "book", far away and in other context.
+        let edited = "Is the date fine?\n\nThe book is long."
+        #expect(AnchorResolver.resolve(anchor, in: edited) == .changed)
+        // The same quote with its neighbours intact is found, also after an edit elsewhere.
+        let moved = "Intro.\n\n" + original
+        #expect(AnchorResolver.resolve(anchor, in: moved).range != nil)
+    }
+
+    @Test func aLoneMatchWithAMatchingBlockOrALongQuoteIsKept() throws {
+        let original = "Intro.\n\nAgree: ok\n\nEnd."
+        let anchor = try makeAnchor("ok", in: original)
+        // Both sides of the quote were edited, but its block hash... changed too: no trust, so text changed.
+        #expect(AnchorResolver.resolve(anchor, in: "Intro.\n\nSure: ok!\n\nEnd.") == .changed)
+        // A long quote is distinctive: its lone match is the passage even when the context changed.
+        let long = "the migration finishes before the Friday release"
+        let text = "Plan: \(long). Done."
+        let longAnchor = try makeAnchor(long, in: text)
+        #expect(AnchorResolver.resolve(longAnchor, in: "Totally new start \(long) and new ending").range != nil)
+        // The block hash of an untouched block also vouches for a short quote whose context was cut.
+        let block = "- ok"
+        let blockAnchor = try makeAnchor("ok", in: block)
+        #expect(AnchorResolver.resolve(blockAnchor, in: "# New\n\n- ok").range != nil)
+    }
+
+    @Test func aMatchNeverStartsOrEndsInsideAComposedCharacter() throws {
+        let anchor = try makeAnchor("e", in: "a e b")
+        // "é" written as e + combining acute is one character: the quote "e" is not in it.
+        #expect(AnchorResolver.resolve(anchor, in: "caf\u{65}\u{301} only") == .changed)
+        #expect(AnchorResolver.resolve(anchor, in: "a e b").range != nil)
+        let emojiAnchor = try makeAnchor("\u{1F468}", in: "x \u{1F468} y")
+        #expect(AnchorResolver.resolve(emojiAnchor, in: "x \u{1F468}\u{200D}\u{1F469} y") == .changed)
+    }
+
+    @Test func manyMatchesScoreOnlyTheNearestOnes() throws {
+        let many = String(repeating: "ab ", count: 8000)
+        let anchor = try #require(CommentAnchors.make(in: many, range: NSRange(location: 300, length: 1)))
+        let range = try #require(AnchorResolver.resolve(anchor, in: many).range)
+        #expect(abs(range.location - 300) < 200)
+    }
+
     @Test func threadsGroupByIdWithRepliesAfterTheirComment() {
         func record(_ id: Int64, thread: Int64, status: CommentStatus = .open) -> CommentRecord {
             CommentRecord(

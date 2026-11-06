@@ -12,8 +12,8 @@ struct ReviseCall {
 /// "Revise with N comments" and "Ask agent" (step 6.2): the workspace asks the service, shows the lock strip while it
 /// runs and the report strips afterwards. Nothing here reads or logs a note, a comment or an answer.
 extension NotesWorkspaceModel {
-    /// The N of "Revise with N comments": the open threads of the note on screen.
-    var reviseCount: Int { currentDocument?.openCommentCount ?? 0 }
+    /// The N of "Revise with N comments": the open threads of the note on screen that a run would revise.
+    var reviseCount: Int { currentDocument?.revisableCommentCount ?? 0 }
 
     /// The button is on when there is something to revise, the agent is wired and no run is going on in the note.
     var canRevise: Bool {

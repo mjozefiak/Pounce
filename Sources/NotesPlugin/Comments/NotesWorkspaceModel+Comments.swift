@@ -20,8 +20,11 @@ extension NotesWorkspaceModel {
     func refreshComments(_ id: NoteItemID) async {
         guard let document = documents[id], let layer = document.layerID else { return }
         if document.comments == .idle { document.setComments(.loading) }
+        document.commentEpoch += 1
+        let epoch = document.commentEpoch
         let state = await environment.loadComments(id, layer)
-        guard documents[id] === document, document.layerID == layer else { return }
+        // A newer read started meanwhile: its snapshot is the later one, this one must not overwrite it.
+        guard documents[id] === document, document.layerID == layer, document.commentEpoch == epoch else { return }
         document.setComments(state)
     }
 

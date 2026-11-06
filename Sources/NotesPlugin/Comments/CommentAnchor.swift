@@ -84,12 +84,25 @@ enum AnchorResolution: Equatable, Sendable {
     }
 }
 
-/// Re-anchoring (spec "Data Model", `note_comment`): finds `anchor_quote` in the text; when several matches exist
-/// it picks the one whose neighbours best match the stored prefix and suffix, then the one nearest the original
-/// offset. No match leaves the comment visible as "text changed". Pure, so an edit before the quote only moves it.
+/// Re-anchoring (spec "Data Model", `note_comment`): finds `anchor_quote` in the text, on whole characters only (a
+/// match never starts or ends inside a composed character, so `e` does not match the `e` of a decomposed `é`).
+/// When several matches exist it picks the one whose neighbours best match the stored prefix and suffix, then the one
+/// nearest the original offset. Pure, so an edit before the quote only moves it.
+///
+/// Trust rule: the best match counts as the quoted passage only when
+/// - the quote is at least `distinctiveQuoteLength` UTF-16 units long (a long quote does not repeat by chance), or
+/// - the text around it still shares at least `minimumContext` characters of the stored prefix and suffix (all of
+///   them when the anchor stored fewer), or
+/// - the blocks it touches still hash to `anchor_block_hash`.
+/// Otherwise the passage was deleted and a short quote (`ok`) merely appears somewhere else, so the thread is
+/// "text changed" instead of silently jumping to another occurrence, and the user re-anchors it on purpose.
 enum AnchorResolver {
     /// A quote that matches more often than this is not searched further (a one-letter quote in a long note).
     static let matchLimit = 5000
+    /// With more matches than this only the ones nearest the stored offset are scored (bounded work for tiny quotes).
+    static let scoredLimit = 64
+    static let distinctiveQuoteLength = 24
+    static let minimumContext = 8
 
     static func resolve(_ anchor: CommentAnchor, in text: String) -> AnchorResolution {
         let source = text as NSString
@@ -101,20 +114,51 @@ enum AnchorResolver {
             let found = source.range(
                 of: anchor.quote, options: [.literal], range: NSRange(location: from, length: source.length - from))
             if found.location == NSNotFound { break }
-            matches.append(found)
+            if isOnCharacterBoundaries(found, in: source) { matches.append(found) }
             from = found.location + 1
         }
-        guard let first = matches.first else { return .changed }
-        if matches.count == 1 { return .found(first) }
-        let best = matches.min { lhs, rhs in
-            let a = score(lhs, anchor: anchor, in: source)
-            let b = score(rhs, anchor: anchor, in: source)
-            if a != b { return a > b }
-            let distanceA = abs(lhs.location - anchor.start)
-            let distanceB = abs(rhs.location - anchor.start)
-            return distanceA == distanceB ? lhs.location < rhs.location : distanceA < distanceB
+        guard !matches.isEmpty else { return .changed }
+        var candidates = matches
+        if candidates.count > scoredLimit {
+            candidates.sort { abs($0.location - anchor.start) < abs($1.location - anchor.start) }
+            candidates = Array(candidates.prefix(scoredLimit))
         }
-        return .found(best ?? first)
+        var best: (range: NSRange, score: Int)?
+        for range in candidates {
+            let score = score(range, anchor: anchor, in: source)
+            guard let current = best else {
+                best = (range, score)
+                continue
+            }
+            if score != current.score {
+                if score > current.score { best = (range, score) }
+                continue
+            }
+            let distance = abs(range.location - anchor.start)
+            let currentDistance = abs(current.range.location - anchor.start)
+            if distance < currentDistance || (distance == currentDistance && range.location < current.range.location) {
+                best = (range, score)
+            }
+        }
+        guard let best else { return .changed }
+        return isTrusted(best.range, score: best.score, anchor: anchor, in: text) ? .found(best.range) : .changed
+    }
+
+    private static func isTrusted(_ range: NSRange, score: Int, anchor: CommentAnchor, in text: String) -> Bool {
+        if range.length >= distinctiveQuoteLength { return true }
+        let stored = anchor.prefix.utf16.count + anchor.suffix.utf16.count
+        if score >= min(minimumContext, stored) { return true }
+        return CommentAnchors.blockHash(in: text, range: range) == anchor.blockHash
+    }
+
+    /// Both ends of `range` sit between composed character sequences.
+    private static func isOnCharacterBoundaries(_ range: NSRange, in source: NSString) -> Bool {
+        if range.location > 0, source.rangeOfComposedCharacterSequence(at: range.location).location != range.location {
+            return false
+        }
+        let end = NSMaxRange(range)
+        if end < source.length, source.rangeOfComposedCharacterSequence(at: end).location != end { return false }
+        return true
     }
 
     /// How many characters of the stored context the text around `range` still shares.

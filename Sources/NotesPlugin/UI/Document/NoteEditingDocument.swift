@@ -35,7 +35,7 @@ struct NoteEditingDocument: View {
             },
             onEdit: {
                 session.handle($0)
-                document.setEditorText($0.text)
+                document.setEditorText($0.text, edit: $0)
             },
             header: {
                 if let summary = document.summary {
