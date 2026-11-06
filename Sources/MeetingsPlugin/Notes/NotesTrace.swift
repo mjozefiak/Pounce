@@ -18,8 +18,10 @@ enum NotesTrace {
     /// Bumped when an event or a field changes meaning or goes away (adding one does not). 2: the verified
     /// summary points are shown as key points (`Section.keyPoints`, `Route.listedByCode`), so their fates and
     /// `NotesTraceReduce.nearDuplicatesSkipped` mean something else than in 1, and `NotesTraceReduce.keyPoints`
-    /// is new.
-    static let schemaVersion = 2
+    /// is new. 3: a summary point whose text drifts from its quote is repaired (`NotesGuard.RepairReason
+    /// .driftedFromQuote`), so `NotesTraceVerification.repaired` counts more than in 2, and
+    /// `NotesTraceVerification.repairReasons` is new.
+    static let schemaVersion = 3
 
     /// The points of `verified` that the deduplication took out, in their order.
     static func removedIDs(from verified: [NotesPoint], kept: [NotesPoint]) -> [String] {
@@ -186,30 +188,43 @@ struct NotesTraceVerification: Equatable, Sendable, Codable {
     var reasons: [NotesGuard.DropReason: Int]
     var repaired: Int
     var downgraded: Int
+    /// `repaired` by the reason of each repair (schema 3; empty when decoded from an older trace).
+    var repairReasons: [NotesGuard.RepairReason: Int]
 
     private enum CodingKeys: String, CodingKey {
-        case proposed, verified, dropped, reasons, repaired, downgraded
+        case proposed, verified, dropped, reasons, repaired, downgraded, repairReasons
     }
 
-    /// `reasons` is written as an object keyed by the reason's raw value (a dictionary keyed by an enum would
-    /// become an array of alternating keys and values).
+    /// `reasons` and `repairReasons` are written as objects keyed by the reason's raw value (a dictionary keyed
+    /// by an enum would become an array of alternating keys and values).
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         proposed = try container.decode(Int.self, forKey: .proposed)
         verified = try container.decode(NotesTraceKinds.self, forKey: .verified)
         dropped = try container.decode(Int.self, forKey: .dropped)
-        let raw = try container.decode([String: Int].self, forKey: .reasons)
-        var decoded: [NotesGuard.DropReason: Int] = [:]
-        for (key, count) in raw {
-            guard let reason = NotesGuard.DropReason(rawValue: key) else {
-                throw DecodingError.dataCorruptedError(
-                    forKey: .reasons, in: container, debugDescription: "Unknown drop reason")
+        reasons = try Self.decodeCounts(
+            NotesGuard.DropReason.self, forKey: .reasons, in: container, unknown: "Unknown drop reason")
+        repaired = try container.decode(Int.self, forKey: .repaired)
+        downgraded = try container.decode(Int.self, forKey: .downgraded)
+        repairReasons =
+            container.contains(.repairReasons)
+            ? try Self.decodeCounts(
+                NotesGuard.RepairReason.self, forKey: .repairReasons, in: container, unknown: "Unknown repair reason")
+            : [:]
+    }
+
+    private static func decodeCounts<Reason: RawRepresentable & Hashable>(
+        _ type: Reason.Type, forKey key: CodingKeys, in container: KeyedDecodingContainer<CodingKeys>,
+        unknown: String
+    ) throws -> [Reason: Int] where Reason.RawValue == String {
+        var decoded: [Reason: Int] = [:]
+        for (raw, count) in try container.decode([String: Int].self, forKey: key) {
+            guard let reason = Reason(rawValue: raw) else {
+                throw DecodingError.dataCorruptedError(forKey: key, in: container, debugDescription: unknown)
             }
             decoded[reason] = count
         }
-        reasons = decoded
-        repaired = try container.decode(Int.self, forKey: .repaired)
-        downgraded = try container.decode(Int.self, forKey: .downgraded)
+        return decoded
     }
 
     func encode(to encoder: any Encoder) throws {
@@ -221,6 +236,9 @@ struct NotesTraceVerification: Equatable, Sendable, Codable {
             Dictionary(uniqueKeysWithValues: reasons.map { ($0.key.rawValue, $0.value) }), forKey: .reasons)
         try container.encode(repaired, forKey: .repaired)
         try container.encode(downgraded, forKey: .downgraded)
+        try container.encode(
+            Dictionary(uniqueKeysWithValues: repairReasons.map { ($0.key.rawValue, $0.value) }),
+            forKey: .repairReasons)
     }
 
     init(proposed: Int, verdict: NotesGuard.PointVerdict) {
@@ -230,6 +248,7 @@ struct NotesTraceVerification: Equatable, Sendable, Codable {
         reasons = verdict.reasons
         repaired = verdict.repaired
         downgraded = verdict.downgraded
+        repairReasons = verdict.repairReasons
     }
 }
 
@@ -504,4 +523,5 @@ final class NotesTraceRecorder: Sendable {
 extension NotesPointKind: Codable {}
 extension NotesResult.Status: Codable {}
 extension NotesGuard.DropReason: Codable {}
+extension NotesGuard.RepairReason: Codable {}
 extension NotesGuard.ReduceAudit.SummaryOrigin: Codable {}
