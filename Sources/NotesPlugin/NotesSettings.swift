@@ -32,6 +32,9 @@ enum NotesSettingsKey {
     /// DEBUG only, with `--qa-notes`: `mixed` draws the agent's layers with one block added by the user and one
     /// revised by the agent (step 4.3), so the gutter, the marks and the chip rule can be looked at without a store.
     static let qaAttribution = "qaAttribution"
+    /// DEBUG only, with `--qa-notes`: `new` presses ⌘N once the list is in, `written` creates a manual note with a
+    /// title and some text (step 4.4). The store is the QA run's own. Not a contract.
+    static let qaManual = "qaManual"
     /// DEBUG only: text typed into the explorer's search field once the first list is in.
     static let qaSearch = "qaSearch"
     #endif

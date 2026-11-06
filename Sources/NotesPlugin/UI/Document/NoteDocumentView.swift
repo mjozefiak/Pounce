@@ -23,15 +23,25 @@ struct NoteDocumentView: View {
                 if let mode = model.qaEditor, !mode.isEmpty {
                     NoteQAEditorDocument(model: model, document: document, readOnly: mode == "readonly")
                 } else {
-                    NoteDocumentBody(model: model, document: document)
+                    loaded
                 }
                 #else
-                NoteDocumentBody(model: model, document: document)
+                loaded
                 #endif
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .task(id: document.id) { await model.loadContent(document.id) }
+    }
+
+    /// The editor while the note is being edited, else the read-only blocks.
+    @ViewBuilder private var loaded: some View {
+        if let session = document.session {
+            NoteEditingDocument(model: model, document: document, session: session)
+                .id(document.layerID)
+        } else {
+            NoteDocumentBody(model: model, document: document)
+        }
     }
 
     private func message(_ text: Text) -> some View {
@@ -93,11 +103,15 @@ struct NoteDocumentHeader: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8 * textSize.scale) {
-            Text(verbatim: model.presentation.title(summary))
-                .font(textSize.font(.title1, weight: .bold))
-                .foregroundStyle(LintelBrand.ink)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.isHeader)
+            if document.isManual {
+                NoteTitleField(model: model, document: document, summary: summary)
+            } else {
+                Text(verbatim: model.presentation.title(summary))
+                    .font(textSize.font(.title1, weight: .bold))
+                    .foregroundStyle(LintelBrand.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+            }
             // The prototype's `.dm{display:flex;flex-wrap:wrap}`: the layer switch drops to its own line when the
             // chips and the switch do not fit (narrow window, large text, Polish).
             NoteWrapLayout(spacing: 6 * textSize.scale, lineSpacing: 6 * textSize.scale) {
@@ -220,5 +234,46 @@ struct NoteWrapLayout: Layout {
             rows[rows.count - 1].append(Item(index: index, size: size))
         }
         return rows
+    }
+}
+
+/// The title of a manual note (`title_override`): a line you type over, in the header's face. It is written when
+/// you press Return or leave the field, never on every key. Empty means "Untitled note".
+struct NoteTitleField: View {
+    let model: NotesWorkspaceModel
+    let document: NoteDocumentModel
+    let summary: NoteSummary
+    @State private var draft: String
+    @FocusState private var focused: Bool
+    @Environment(\.lintelTextSize) private var textSize
+
+    init(model: NotesWorkspaceModel, document: NoteDocumentModel, summary: NoteSummary) {
+        self.model = model
+        self.document = document
+        self.summary = summary
+        _draft = State(initialValue: summary.title ?? "")
+    }
+
+    var body: some View {
+        TextField(
+            text: $draft, prompt: Text("Untitled note", comment: "Notes: placeholder of a note's title field")
+        ) {
+            Text("Title", comment: "Accessibility label of a note's title field")
+        }
+        .textFieldStyle(.plain)
+        .font(textSize.font(.title1, weight: .bold))
+        .foregroundStyle(LintelBrand.ink)
+        .focused($focused)
+        .onSubmit(commit)
+        .onChange(of: focused) { _, isFocused in if !isFocused { commit() } }
+        .onChange(of: summary.title) { _, title in if !focused { draft = title ?? "" } }
+        .onDisappear(perform: commit)
+        .disabled(!model.environment.canEditNotes)
+        .accessibilityAddTraits(.isHeader)
+    }
+
+    private func commit() {
+        let text = draft
+        Task { await model.setTitle(document.id, to: text) }
     }
 }

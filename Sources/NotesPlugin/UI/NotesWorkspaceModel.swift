@@ -43,6 +43,18 @@ final class NotesWorkspaceModel {
         var reconcile: @Sendable (NoteKey) async -> Void = { _ in }
         /// The detach sweep loop: runs on source activation and every 10 minutes while the section is alive.
         var sweepLoop: @Sendable () async -> Void = {}
+        /// New notes and editing need the store (and `plugins.notes.readOnly` off); without it ⌘N and the pen are off.
+        var canCreateNotes = false
+        var canEditNotes = false
+        /// Creates a manual note (`notes:<uuid>`) and returns its key; `nil` when it could not be written.
+        var createManualNote: @Sendable () async -> NoteKey? = { nil }
+        /// Writes a manual note's `title_override` (`nil` clears it); `false` when it could not be written.
+        var setTitle: @Sendable (NoteKey, String?) async -> Bool = { _, _ in false }
+        /// The editor's session for a layer of a loaded note (its writer and the rules of seeding); `nil` when the
+        /// layer cannot be edited now.
+        var makeEditingSession: @MainActor (NoteContent, String, NoteDocumentModel) -> NoteEditingSession? = {
+            _, _, _ in nil
+        }
     }
 
     enum LoadState: Equatable {
@@ -262,7 +274,16 @@ final class NotesWorkspaceModel {
         let title = row.map(title(of:)) ?? id.key.rawValue
         tabs.open(
             NoteTab(id: id, kind: row?.summary.kind ?? .manual, title: title, isBusy: Self.isBusy(row?.badge)))
-        if documents[id] == nil { documents[id] = NoteDocumentModel(id: id) }
+        if documents[id] == nil { documents[id] = makeDocument(id) }
+    }
+
+    /// A document model whose editor, when it ends, writes what is typed and reads the note again.
+    private func makeDocument(_ id: NoteItemID) -> NoteDocumentModel {
+        let document = NoteDocumentModel(id: id)
+        document.onEditingEnded = { [weak self] session in
+            Task { @MainActor in await self?.finishEditing(id, session) }
+        }
+        return document
     }
 
     func select(_ id: NoteItemID) {
@@ -284,7 +305,7 @@ final class NotesWorkspaceModel {
         let old = NoteItemID.live(key)
         let new = NoteItemID.detached(key, startedAtMs: startedAtMs)
         guard tabs.rekey(from: old, to: new) else { return }
-        documents[new] = documents.removeValue(forKey: old).map { _ in NoteDocumentModel(id: new) }
+        documents[new] = documents.removeValue(forKey: old).map { _ in makeDocument(new) }
         contentEpochs[old] = nil
         let title = tabs.tabs.first { $0.id == new }?.title ?? key.rawValue
         tabs.update(new, title: title, isBusy: false)
@@ -343,6 +364,21 @@ final class NotesWorkspaceModel {
             }
             return
         }
+        if document.isManual {
+            // A manual note has no source: its text is the head of its own document.
+            let heads = await environment.overlayHeads(id)
+            guard isCurrent(epoch, id, document) else { return }
+            if let content = NoteOverlayContent.compose(
+                item: id, source: nil, heads: heads, summary: row(for: id)?.summary)
+            {
+                document.apply(content, attributions: NoteOverlayContent.attributions(heads: heads))
+                document.setActions([])
+                if document.wantsEditing { beginEditing(id) }
+            } else {
+                document.markUnavailable()
+            }
+            return
+        }
         guard let source = await environment.library.source(for: id.key) else {
             if isCurrent(epoch, id, document) { document.markUnavailable() }
             return
@@ -384,6 +420,87 @@ final class NotesWorkspaceModel {
         for read in reads { await read.value }
     }
 
+    // MARK: New notes (step 4.4)
+
+    /// ⌘N and the explorer's "+": possible with the store open for writing.
+    var canCreateNote: Bool { environment.canCreateNotes && overlaysAvailable && !isCreatingNote }
+
+    private var isCreatingNote = false
+
+    /// Creates a manual note, lists it, and opens it in its tab with the editor ready. A search in the explorer
+    /// is cleared first, so the new row is visible.
+    func newNote() async {
+        guard canCreateNote else { return }
+        isCreatingNote = true
+        defer { isCreatingNote = false }
+        guard let key = await environment.createManualNote() else {
+            show(.createFailed)
+            return
+        }
+        if isSearching { await clearSearch() } else { await refresh() }
+        let id = NoteItemID.live(key)
+        open(id)
+        documents[id]?.wantsEditing = true
+        await loadContent(id)
+    }
+
+    /// A manual note's title: the line above its text. Trimmed and cleaned like `NotesStore.cleanTitle`; an empty
+    /// one clears it. Nothing happens when it did not change.
+    func setTitle(_ id: NoteItemID, to text: String) async {
+        guard documents[id]?.isManual == true else { return }
+        let clean = NotesStore.cleanTitle(text)
+        let current = NotesStore.cleanTitle(row(for: id)?.summary.title ?? documents[id]?.summary?.title)
+        guard clean != current else { return }
+        guard await environment.setTitle(id.key, clean) else {
+            show(.titleFailed)
+            return
+        }
+        await refresh()
+    }
+
+    // MARK: Editing (step 4.4)
+
+    /// The most that opens in the editor; a longer layer (a 3-hour transcript) stays read-only with Export.
+    static let editableLimit = 200_000
+
+    /// Whether the pen is on for the open layer (spec: seeding only in the states it allows, an overlay or a manual
+    /// note always, never with `plugins.notes.readOnly`, never beyond the size limit or on a detached note).
+    func canEdit(_ document: NoteDocumentModel) -> Bool {
+        guard environment.canEditNotes, document.phase == .loaded, let content = document.content,
+            let layer = document.selectedLayer
+        else { return false }
+        if case .detached = document.id { return false }
+        if layer.markdown.utf16.count > Self.editableLimit { return false }
+        if document.isManual || document.attributions[layer.id] != nil { return true }
+        return OverlaySeeder.canSeed(state: content.summary.state, layer: layer)
+    }
+
+    /// The pen of the path bar: the editor for the shown layer, or back to reading.
+    func toggleEditing() {
+        guard let id = currentID, let document = documents[id] else { return }
+        if document.isEditing {
+            document.leaveEditing()
+        } else {
+            beginEditing(id)
+        }
+    }
+
+    func beginEditing(_ id: NoteItemID) {
+        guard let document = documents[id], !document.isEditing, canEdit(document), let content = document.content,
+            let layerID = document.layerID,
+            let session = environment.makeEditingSession(content, layerID, document), session.isEditable
+        else { return }
+        document.startEditing(session)
+    }
+
+    /// Editing ended: what is typed is written, the layers show the head again and the note is read once more.
+    private func finishEditing(_ id: NoteItemID, _ session: NoteEditingSession) async {
+        _ = await session.flush(closingSession: true)
+        guard let document = documents[id] else { return }
+        document.unfreezeAll()
+        await loadContent(id)
+    }
+
     // MARK: Path bar and status bar
 
     /// Where the open note sits: its group, its title and, past the first layer, the layer shown.
@@ -421,6 +538,8 @@ final class NotesWorkspaceModel {
         case copied
         case saved
         case saveFailed
+        case createFailed
+        case titleFailed
     }
 
     private(set) var feedback: Feedback?

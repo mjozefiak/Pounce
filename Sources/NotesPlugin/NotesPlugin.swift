@@ -68,7 +68,15 @@ public final class NotesPlugin: LintelPlugin {
             makeView: { [self] in AnyView(NotesSectionView(model: workspace)) },
             handleRoute: { [self] route in workspace.handle(route) },
             willHide: { [self] in await documents.flushAll() },
-            handleClose: { [self] in workspace.closeCurrentTab() }
+            handleClose: { [self] in workspace.closeCurrentTab() },
+            menuItems: [
+                // New Note (⌘N) is a menu item of the Notes section, window-only (spec "NotesPlugin").
+                CommandInfo(
+                    title: LocalizedStringResource("New Note", comment: "Notes menu: creates a note"),
+                    shortcut: KeyShortcut(key: "n", modifiers: [.command]),
+                    isEnabled: { [self] in workspace.canCreateNote },
+                    run: { [self] in Task { await workspace.newNote() } })
+            ]
         )
     }
 
@@ -90,9 +98,12 @@ public final class NotesPlugin: LintelPlugin {
             _ = try? store.deleteUnkeptDetached(excluding: open)
         }
         #if DEBUG
-        // QA fixtures stand in for the sources and have no overlays; `locked` shows the locked state.
+        // QA fixtures stand in for the sources and have no overlays, unless `qaManual` asks for notes of Notes' own
+        // (they need the store); `locked` shows the locked state.
         let locked = qaState == "locked" || qaState == "locked-rows"
-        let usesStore = !(locked || context.settings.bool(NotesSettingsKey.qaFixtures, default: false))
+        let fixtures = context.settings.bool(NotesSettingsKey.qaFixtures, default: false)
+        let qaManual = context.settings.string(NotesSettingsKey.qaManual) != nil
+        let usesStore = !locked && (!fixtures || qaManual)
         let overlays: any OverlayIndex & OverlayDetacher
         if locked {
             overlays = NotesQALockedOverlays()
@@ -110,6 +121,10 @@ public final class NotesPlugin: LintelPlugin {
             library: library, pasteboard: context.pasteboard, sourceSetChanges: context.noteSourcesChanged,
             openSettings: context.openSettings, openModels: { context.openModels(nil) })
         environment.settings = context.settings
+        if usesStore && !NotesSettings(context.settings).readOnly {
+            environment.installWriting(
+                store: storeProvider, registry: registry, settings: context.settings, clock: context.clock)
+        }
         if usesStore {
             environment.registry = registry
             environment.overlayHeads = { item in
@@ -153,6 +168,33 @@ public final class NotesPlugin: LintelPlugin {
         if let text = context.settings.string(NotesSettingsKey.qaSearch), !text.isEmpty { model.initialSearch = text }
         model.qaEditor = context.settings.string(NotesSettingsKey.qaEditor)
         model.qaMixedAuthors = context.settings.string(NotesSettingsKey.qaAttribution) == "mixed"
+        if let manual = context.settings.string(NotesSettingsKey.qaManual) { qaCreateManualNote(manual, in: model) }
+    }
+
+    /// `plugins.notes.qaManual`: `new` makes a note with no title and opens it in the editor (what ⌘N does);
+    /// `written` makes one with a title and some text and opens it for reading. The store is the QA one.
+    private func qaCreateManualNote(_ mode: String, in model: NotesWorkspaceModel) {
+        let storeProvider = storeProvider
+        Task { @MainActor in
+            guard let store = storeProvider() else { return }
+            if mode == "written", let key = try? store.createManualNote(now: Date()) {
+                try? store.setTitleOverride(key: key, title: "Release checklist", now: Date())
+                let body =
+                    "## Before Friday\n\n- Update the changelog\n- Ask Marek about the pricing copy\n\nShip it when both are done."
+                if let docID = try? store.liveDocument(key: key, layer: NotesStore.manualLayer)?.id {
+                    let blocks = BlockAttribution().stored(body: body, author: "human", previous: [])
+                    _ = try? store.appendRevision(
+                        NewNoteRevision(
+                            docID: docID, author: "human", state: .applied, body: body, blocksJSON: blocks.json,
+                            now: Date(), expectedHeadID: (try? store.headRevision(of: docID))?.id))
+                }
+                await model.refresh()
+                model.handle(NoteRoute.route(for: key))
+            } else if mode == "new" {
+                await model.refresh()
+                await model.newNote()
+            }
+        }
     }
 
     /// `plugins.notes.qaOpen`: opens the named notes in tabs, the last one current.

@@ -160,6 +160,15 @@ extension NotesWorkspaceModel {
                     ], isDismissible: true))
         }
         if let document = currentDocument, document.phase == .loaded {
+            if document.session?.saveFailed == true {
+                result.append(
+                    Strip(
+                        id: "edit.save", tone: .error,
+                        text: String(
+                            localized: "Your last change couldn’t be saved. The text is kept and saved again.",
+                            comment: "Notes: strip when the editor's text could not be written"),
+                        actions: [Strip.Action(id: "edit.save.retry", title: Self.tryAgain)]))
+            }
             result.append(contentsOf: stateStrips(for: document))
         }
         return result
@@ -222,6 +231,7 @@ extension NotesWorkspaceModel {
         case "save.retry": await saveMarkdown(retry: true)
         case "save.other": await saveMarkdown()
         case "models.open": environment.openModels()
+        case "edit.save.retry": await currentDocument?.session?.retry()
         default:
             guard actionID.hasPrefix("doc."), let id = currentID, let document = documents[id] else { return }
             let name = String(actionID.dropFirst(4))

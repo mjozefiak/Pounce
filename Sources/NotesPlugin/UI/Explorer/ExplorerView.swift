@@ -52,6 +52,7 @@ struct ExplorerView: View {
                         : Text("\(model.total) notes", comment: "Accessibility: how many notes the list holds"))
             Spacer(minLength: 0)
             groupingMenu
+            NewNoteButton(model: model, style: .explorer)
         }
         .foregroundStyle(LintelBrand.secondaryText)
         .padding(.horizontal, 14 * textSize.scale)

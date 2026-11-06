@@ -65,6 +65,11 @@ enum NoteOverlayContent {
         item: NoteItemID, source: NoteContent?, heads: [OverlayLayerHead], summary: NoteSummary?
     ) -> NoteContent? {
         switch item {
+        case .live(let key) where key.pluginID == NotesStore.manualPluginID:
+            // A manual note has no source: its one `body` layer is the head of its document, written by the user.
+            guard !heads.isEmpty else { return nil }
+            let summary = summary ?? NoteSummary(id: key, kind: .manual, startedAt: Date(), state: .ready)
+            return NoteContent(summary: summary, layers: ownLayers(heads), speakers: [])
         case .live:
             guard var content = source else { return nil }
             for head in heads {
@@ -78,13 +83,16 @@ enum NoteOverlayContent {
             let summary =
                 summary
                 ?? NoteSummary(id: key, kind: .meeting, startedAt: NoteTime.date(milliseconds: started), state: .ready)
-            let layers = heads.sorted { $0.layerID < $1.layerID }.map {
-                NoteLayer(
-                    id: $0.layerID, author: .human, markdown: $0.markdown, provenance: $0.provenance, version: "")
-            }
             return NoteContent(
-                summary: summary, layers: layers, speakers: heads.first { !$0.seedSpeakers.isEmpty }?.seedSpeakers ?? []
-            )
+                summary: summary, layers: ownLayers(heads),
+                speakers: heads.first { !$0.seedSpeakers.isEmpty }?.seedSpeakers ?? [])
+        }
+    }
+
+    /// The layers of a note that has no source to ask (manual, detached): the heads themselves.
+    private static func ownLayers(_ heads: [OverlayLayerHead]) -> [NoteLayer] {
+        heads.sorted { $0.layerID < $1.layerID }.map {
+            NoteLayer(id: $0.layerID, author: .human, markdown: $0.markdown, provenance: $0.provenance, version: "")
         }
     }
 }

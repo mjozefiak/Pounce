@@ -91,6 +91,24 @@
         }
       }
     },
+    "Done editing" : {
+      "comment" : "Path bar: leaves the editor",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done editing"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zakończ edycję"
+          }
+        }
+      }
+    },
     "Hide the inspector" : {
       "comment" : "Accessibility label of the inspector's close",
       "extractionState" : "manual",
@@ -123,6 +141,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Panel boczny"
+          }
+        }
+      }
+    },
+    "New Note" : {
+      "comment" : "Notes menu: creates a note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Note"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nowa notatka"
+          }
+        }
+      }
+    },
+    "New note (⌘N)" : {
+      "comment" : "Tooltip of the new-note button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New note (⌘N)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nowa notatka (⌘N)"
           }
         }
       }
@@ -4735,6 +4789,24 @@
         }
       }
     },
+    "The note couldn’t be created." : {
+      "comment" : "Notes: a new note could not be written",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The note couldn’t be created."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się utworzyć notatki."
+          }
+        }
+      }
+    },
     "The speech model isn’t installed." : {
       "comment" : "Settings banner detail: the speech model is missing",
       "extractionState" : "manual",
@@ -4767,6 +4839,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Folder modelu mowy jest niedostępny."
+          }
+        }
+      }
+    },
+    "The title couldn’t be saved." : {
+      "comment" : "Notes: a note's title could not be written",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The title couldn’t be saved."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się zapisać tytułu."
           }
         }
       }
@@ -7665,6 +7755,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ustawienia i spotkania są w oknie aplikacji Lintel: kliknij ikonę w Docku albo naciśnij ⌘,."
+          }
+        }
+      }
+    },
+    "Your last change couldn’t be saved. The text is kept and saved again." : {
+      "comment" : "Notes: strip when the editor's text could not be written",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your last change couldn’t be saved. The text is kept and saved again."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ostatniej zmiany nie udało się zapisać. Tekst został zachowany i zapisze się ponownie."
           }
         }
       }

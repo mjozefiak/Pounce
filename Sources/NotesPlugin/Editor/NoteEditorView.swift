@@ -16,6 +16,8 @@ struct NoteEditorSurface<Header: View>: View {
     /// Who wrote each block of the buffer (step 4.3); `nil` shows no author gutter.
     let attribution: (([String]) -> [BlockAttributionInfo])?
     let showsAuthorBars: Bool
+    /// The editor gained or lost focus (a save point).
+    let onFocusChange: ((Bool) -> Void)?
     let header: Header
     @State private var controller: NoteEditorController
     @Environment(\.lintelTextSize) private var textSize
@@ -23,10 +25,11 @@ struct NoteEditorSurface<Header: View>: View {
     init(
         text: Binding<String>, pasteboard: any PasteboardClient, isReadOnly: Bool = false, wrapsLines: Bool = true,
         onComment: (() -> Void)? = nil, attribution: (([String]) -> [BlockAttributionInfo])? = nil,
-        showsAuthorBars: Bool = true, onEdit: @escaping (NoteEditorEdit) -> Void = { _ in },
-        @ViewBuilder header: () -> Header
+        showsAuthorBars: Bool = true, onFocusChange: ((Bool) -> Void)? = nil,
+        onEdit: @escaping (NoteEditorEdit) -> Void = { _ in }, @ViewBuilder header: () -> Header
     ) {
         self.header = header()
+        self.onFocusChange = onFocusChange
         self.attribution = attribution
         self.showsAuthorBars = showsAuthorBars
         _text = text
@@ -43,7 +46,8 @@ struct NoteEditorSurface<Header: View>: View {
             header
             NoteEditorRepresentable(
                 controller: controller, text: $text, isReadOnly: isReadOnly, wrapsLines: wrapsLines,
-                textSize: textSize, attribution: attribution, showsAuthorBars: showsAuthorBars, onEdit: onEdit)
+                textSize: textSize, attribution: attribution, showsAuthorBars: showsAuthorBars,
+                onFocusChange: onFocusChange, onEdit: onEdit)
         }
     }
 }
@@ -52,11 +56,13 @@ extension NoteEditorSurface where Header == EmptyView {
     init(
         text: Binding<String>, pasteboard: any PasteboardClient, isReadOnly: Bool = false, wrapsLines: Bool = true,
         onComment: (() -> Void)? = nil, attribution: (([String]) -> [BlockAttributionInfo])? = nil,
-        showsAuthorBars: Bool = true, onEdit: @escaping (NoteEditorEdit) -> Void = { _ in }
+        showsAuthorBars: Bool = true, onFocusChange: ((Bool) -> Void)? = nil,
+        onEdit: @escaping (NoteEditorEdit) -> Void = { _ in }
     ) {
         self.init(
             text: text, pasteboard: pasteboard, isReadOnly: isReadOnly, wrapsLines: wrapsLines, onComment: onComment,
-            attribution: attribution, showsAuthorBars: showsAuthorBars, onEdit: onEdit, header: { EmptyView() })
+            attribution: attribution, showsAuthorBars: showsAuthorBars, onFocusChange: onFocusChange, onEdit: onEdit,
+            header: { EmptyView() })
     }
 }
 
@@ -69,6 +75,7 @@ struct NoteEditorRepresentable: NSViewRepresentable {
     let textSize: TextSize
     let attribution: (([String]) -> [BlockAttributionInfo])?
     let showsAuthorBars: Bool
+    let onFocusChange: ((Bool) -> Void)?
     let onEdit: (NoteEditorEdit) -> Void
 
     func makeNSView(context: Context) -> NSScrollView {
@@ -107,6 +114,7 @@ struct NoteEditorRepresentable: NSViewRepresentable {
             onEdit(edit)
         }
         controller.isReadOnly = isReadOnly
+        if let onFocusChange { controller.onFocusChange = onFocusChange }
         controller.setTextSize(textSize)
         controller.setWrapsLines(wrapsLines)
         if let attribution, controller.attribution == nil { controller.attribution = attribution }

@@ -1,5 +1,6 @@
 import Foundation
 import GRDB
+import LintelCore
 import LintelKit
 
 /// A new document (a manual note, or an overlaid layer of a recorded note) with its first revision.
@@ -39,6 +40,55 @@ struct NewNoteRevision: Sendable {
 extension NotesStore {
     /// The manual-note plugin id (`source_plugin_id` of a manual note).
     static let manualPluginID = PluginID(rawValue: "notes")
+
+    /// The one layer of a manual note.
+    static let manualLayer = "body"
+    /// A title is a line of at most this many characters.
+    static let titleLimit = 200
+
+    /// A manual note (step 4.4): key `notes:<uuid>`, layer `body`, kind manual, no title, an empty body written by
+    /// `human`. The key is new for every note and never reused (spec "Data Model", Identity).
+    @discardableResult
+    func createManualNote(id: UUID = UUID(), now: Date) throws -> NoteKey {
+        let key = NoteKey(pluginID: Self.manualPluginID, id: id.uuidString.lowercased())
+        try insertDocument(
+            NewNoteDocument(
+                key: key, layer: Self.manualLayer, kind: .manual, sourcePluginID: Self.manualPluginID,
+                titleOverride: nil, sourceState: nil, sourceStartedAtMs: nil, sourceVersionSeen: nil,
+                author: NoteAuthor.human.rawValue, body: "", summary: nil,
+                blocksJSON: StoredBlocks(blocks: []).json, metaJSON: nil, now: now))
+        return key
+    }
+
+    /// `title_override` of a manual note (the only kind that has one): one line without control or bidirectional
+    /// characters, at most `titleLimit` characters; empty clears it. The full-text index follows in the same
+    /// statement (trigger `note_fts_doc_au`). Returns whether a manual note was updated.
+    @discardableResult
+    func setTitleOverride(key: NoteKey, title: String?, now: Date) throws -> Bool {
+        let clean = Self.cleanTitle(title)
+        return try write { db in
+            try db.execute(
+                sql: """
+                    UPDATE note_doc SET title_override = ?, updated_at = ?
+                    WHERE key = ? AND layer = ? AND source_plugin_id = ?
+                    """,
+                arguments: [
+                    clean, now.timeIntervalSince1970, key.rawValue, Self.manualLayer, Self.manualPluginID.rawValue,
+                ])
+            return db.changesCount > 0
+        }
+    }
+
+    /// A title as it is stored: its lines joined, bidi and control characters stripped, trimmed, cut at the limit;
+    /// `nil` when nothing is left.
+    static func cleanTitle(_ title: String?) -> String? {
+        guard let title else { return nil }
+        let oneLine = title.components(separatedBy: .newlines).filter { !$0.isEmpty }.joined(separator: " ")
+            .replacingOccurrences(of: "\t", with: " ")
+        let clean = MarkdownText.strippingBidiAndControls(oneLine).trimmingCharacters(in: .whitespaces)
+        guard !clean.isEmpty else { return nil }
+        return String(clean.prefix(titleLimit))
+    }
 
     /// Inserts the document and its first revision, and points the head at it, in one transaction.
     @discardableResult

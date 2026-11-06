@@ -15,6 +15,7 @@ struct NoteTabBar: View {
                     ForEach(model.tabs.tabs) { tab in
                         NoteTabView(model: model, tab: tab, isSelected: model.currentID == tab.id)
                     }
+                    NewNoteButton(model: model, style: .tab)
                 }
             }
             .frame(height: 33.75 * textSize.scale)
@@ -134,6 +135,23 @@ struct NotePathBar: View {
 
     private var actions: some View {
         HStack(spacing: 2) {
+            if let document = model.currentDocument, model.canEdit(document) || document.isEditing {
+                // Prototype `.ib.on`: the pen is lit while the note is in the editor.
+                iconButton(
+                    "pencil",
+                    label: document.isEditing
+                        ? Text("Done editing", comment: "Path bar: leaves the editor")
+                        : Text("Edit", comment: "Path bar: opens the note in the editor"),
+                    tint: document.isEditing ? LintelBrand.accentText : LintelBrand.secondaryText
+                ) {
+                    model.toggleEditing()
+                }
+                .background(
+                    document.isEditing ? LintelBrand.windowSelectionTint : Color.clear,
+                    in: RoundedRectangle(cornerRadius: 6)
+                )
+                .accessibilityAddTraits(document.isEditing ? .isSelected : [])
+            }
             iconButton("doc.on.doc", label: Text("Copy Markdown", comment: "Path bar: copies the note as Markdown")) {
                 model.copyMarkdown()
             }
@@ -154,11 +172,13 @@ struct NotePathBar: View {
         }
     }
 
-    private func iconButton(_ symbol: String, label: Text, action: @escaping () -> Void) -> some View {
+    private func iconButton(
+        _ symbol: String, label: Text, tint: Color = LintelBrand.secondaryText, action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
                 .font(textSize.font(.callout))
-                .foregroundStyle(LintelBrand.secondaryText)
+                .foregroundStyle(tint)
                 .frame(width: 26.25 * textSize.scale, height: 26.25 * textSize.scale)
                 .contentShape(Rectangle())
         }
@@ -175,6 +195,10 @@ struct NotePathBar: View {
             String(
                 localized: "The .md file couldn’t be saved. Check that the folder is writable.",
                 comment: "Notes: saving the Markdown file failed")
+        case .createFailed:
+            String(localized: "The note couldn’t be created.", comment: "Notes: a new note could not be written")
+        case .titleFailed:
+            String(localized: "The title couldn’t be saved.", comment: "Notes: a note's title could not be written")
         }
     }
 }
@@ -248,5 +272,30 @@ struct StatusLineView: View {
         case .error: LintelBrand.statusError
         default: LintelBrand.hairline
         }
+    }
+}
+
+/// "New note" (⌘N): the explorer's "+" and the tab bar's plus tab (prototype `.ico` and `.tb.pl`).
+struct NewNoteButton: View {
+    enum Style { case explorer, tab }
+    let model: NotesWorkspaceModel
+    let style: Style
+    @Environment(\.lintelTextSize) private var textSize
+
+    var body: some View {
+        Button {
+            Task { await model.newNote() }
+        } label: {
+            Image(systemName: "plus")
+                .font(textSize.font(style == .tab ? .callout : .caption1, weight: .semibold))
+                .foregroundStyle(LintelBrand.secondaryText)
+                .padding(.horizontal, style == .tab ? 12 : 4)
+                .frame(maxHeight: style == .tab ? .infinity : nil)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!model.canCreateNote)
+        .accessibilityLabel(Text("New note", comment: "Accessibility label of the new-note button"))
+        .help(Text("New note (⌘N)", comment: "Tooltip of the new-note button"))
     }
 }

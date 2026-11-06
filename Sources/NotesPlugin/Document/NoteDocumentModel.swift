@@ -47,9 +47,36 @@ final class NoteDocumentModel {
     /// source's own text.
     private(set) var attributions: [String: LayerAttribution] = [:]
 
+    /// The editor's connection to its writer while the note is being edited (step 4.4); `nil` when it is only read.
+    private(set) var session: NoteEditingSession?
+    /// A new note opens straight in the editor: set before its content is read, taken once it is loaded.
+    var wantsEditing = false
+    /// Editing ended (the pen, another layer): the session still has text to write. Set by the workspace model.
+    var onEditingEnded: ((NoteEditingSession) -> Void)?
+
     init(id: NoteItemID) {
         self.id = id
     }
+
+    /// A note of Notes' own: one `body` layer, a title of its own.
+    var isManual: Bool { id.key.pluginID == NotesStore.manualPluginID }
+
+    var isEditing: Bool { session != nil }
+
+    func startEditing(_ session: NoteEditingSession) {
+        self.session = session
+        wantsEditing = false
+    }
+
+    /// Leaves the editor. The session is handed to `onEditingEnded`, which writes what is typed and reloads.
+    func leaveEditing() {
+        guard let ended = session else { return }
+        session = nil
+        onEditingEnded?(ended)
+    }
+
+    /// After the last write: the layers show the head again instead of the text the editor froze.
+    func unfreezeAll() { frozenLayers = [] }
 
     // MARK: Content
 
@@ -140,6 +167,8 @@ final class NoteDocumentModel {
 
     func selectLayer(_ id: String) {
         guard layers.contains(where: { $0.id == id }), id != layerID else { return }
+        // The editor belongs to the layer it was opened on.
+        leaveEditing()
         layerID = id
         highlightedBlock = nil
         blocks = blocks(of: id)
