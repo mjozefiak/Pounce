@@ -68,6 +68,13 @@ final class RevisionWriter: Sendable {
         case proposed(revisionID: Int64)
     }
 
+    /// The document a writer writes to, and its head revision.
+    struct Head: Sendable, Equatable {
+        var docID: Int64
+        var revisionID: Int64
+        var body: String
+    }
+
     private struct Pending {
         var text: String?
         var serial = 0
@@ -286,6 +293,14 @@ final class RevisionWriter: Sendable {
             author: author.rawValue, body: body, summary: summary, metaJSON: metaJSON, state: .proposed)
     }
 
+    /// The document row and its head, creating the overlay first when the layer has none (a comment without
+    /// editing seeds it, spec "Overlay model"). The buffer is flushed and the session closed first, so a comment's
+    /// anchor revision is a revision that is never amended afterwards.
+    func ensureDocument() async throws -> Head {
+        try await flush(closingSession: true)
+        return try await core.ensureDocument()
+    }
+
     /// The source layer moved: compares `layer.version` with the document's `source_version_seen` (the SAME
     /// layer only). The buffer is flushed first, so a human revision exists before the choice between an
     /// `agent`/`stt` revision and a proposal.
@@ -360,6 +375,29 @@ final class RevisionWriter: Sendable {
         private var keyForLog: String? { logKey ?? seed.map(\.key.rawValue) }
 
         func closeSession() { sessionRevisionID = nil }
+
+        /// Seeds the overlay when there is none (only the seed revision, no human one), then reports the head.
+        func ensureDocument() async throws -> Head {
+            if let reason = store.blockedReason { throw reason }
+            if docID == nil {
+                guard let plan = seed else { throw NotesError.guardRejected(rule: "seed") }
+                if let current = await sourceStartedAtMs?(), current != plan.startedAtMs {
+                    // The recording was recreated since the editor rendered it: its text is not this note's.
+                    log.error(NotesLogEvent("seed", code: "startedAtChanged", key: keyForLog))
+                    throw NotesError.guardRejected(rule: "startedAtChanged")
+                }
+                let document = try OverlaySeeder.seed(plan, in: store, now: now())
+                if let started = document.sourceStartedAtMs, started != plan.startedAtMs {
+                    throw NotesError.guardRejected(rule: "startedAtChanged")
+                }
+                docID = document.id
+                seed = nil
+                needsReload = true
+            }
+            try reloadIfNeeded()
+            guard let docID else { throw NotesError.guardRejected(rule: "noDocument") }
+            return Head(docID: docID, revisionID: headID, body: headBody)
+        }
 
         private func reloadIfNeeded() throws {
             guard needsReload, let docID else { return }
