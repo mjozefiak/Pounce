@@ -459,6 +459,33 @@ stands on a quote that is in the recording; no task owner nobody named; none of 
 `NOTES-BENCH` lines with the timings, chunk count, dropped count and memory (`docs/perf.md`). It prints no transcript
 text. Record the lines in the PR body together with the model and the Mac.
 
+### Notes revise corpus (Notes workspace, step 6.4)
+
+`Tests/NotesPluginTests/Fixtures/revise/` holds eight short notes (Polish, English, Polish with English terms) with their
+comments and the answer of a model that goes wrong in one known way each: it does what was asked, it answers for a unit
+nobody asked for (spoken or written instructions, a forged `[[unit 2]]`), it adds an image, a script tag or a link, it
+returns the block unchanged, it breaks the block structure (two blocks for one, a heading turned into text, an empty
+or far too long answer, a missing unit), it meets text that really contains the prompt's delimiters, and a block the
+user edited after commenting. `ReviseRegressionTests` feeds each `modelAnswer` through the real planner, prompt and
+`ReviseGuard` and checks what must stay and what must not, plus the snapshots in `Fixtures/revise/snapshots/`: the
+user message the model is sent (`<name>.prompt.txt`) and the note after the guard (`<name>.expected.md`), under the
+prompt version in `PROMPT_VERSION`. After a deliberate change to the prompt or the guard, write them again with
+`LINTEL_REVISE_WRITE_SNAPSHOTS=1 swift test --filter ReviseRegressionTests`, read the diff and bump
+`ReviseNotesPrompt.version` when the prompt text changed (BACKWARD_COMPATIBILITY.md section 5).
+
+`RealReviseTests` runs the same notes and comments on a real model. It is **off by default**, never runs in CI and must
+be run by hand:
+
+```sh
+LINTEL_REVISE_LLM_MODEL=/path/to/Qwen3-4B-Instruct-2507-Q4_K_M.gguf \
+  swift test -c release --filter RealReviseTests
+```
+
+It asserts only what must hold for any model (nothing outside the commented blocks changes, no markup or link the
+note did not have, no bait text) and prints `REVISE-BENCH` lines (`outcome` applied, nothing or refused, the guard's
+counts, seconds, memory); a refused answer is a valid outcome. It prints no note, comment or answer. Record the lines
+in the PR body with the model and the Mac (`docs/perf.md`, all "not yet measured").
+
 ### Meeting notes: what the guard does and does not promise (Phase 2)
 
 The notes come from the built-in model, and the transcript they are written from is untrusted. Every point is checked

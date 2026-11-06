@@ -1,0 +1,39 @@
+{
+  "name": "edited-after-comment",
+  "language": "en",
+  "description": "The user rewrote the first commented block after commenting on it. It is skipped and reported, never rewritten; the other comment is revised.",
+  "noteWhenCommented": "## Plan\n\nThe launch is next month.\n\nHire a designer.",
+  "note": "## Plan\n\nThe launch moved to the autumn.\n\nHire a designer.",
+  "comments": [
+    {
+      "quote": "launch",
+      "bodies": [
+        "Give the month."
+      ]
+    },
+    {
+      "quote": "designer",
+      "bodies": [
+        "Senior or junior?"
+      ]
+    }
+  ],
+  "modelAnswer": "[[unit 1]]\nHire a senior designer.",
+  "expect": {
+    "applied": [
+      1
+    ],
+    "rejected": {},
+    "unchanged": [],
+    "skipped": [
+      "editedAfterComment"
+    ],
+    "keep": [
+      "The launch moved to the autumn.",
+      "Hire a senior designer."
+    ],
+    "drop": [
+      "October"
+    ]
+  }
+}

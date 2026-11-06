@@ -200,7 +200,8 @@ let package = Package(
             dependencies: [
                 "NotesPlugin", "LintelKit", "LintelCore", "LintelPersistence", "LintelSpeech", "LintelUI",
                 .product(name: "GRDB", package: "GRDBCipher"),
-            ]
+            ],
+            resources: [.copy("Fixtures")]
         ),
         .testTarget(
             name: "LintelSpeechTests",

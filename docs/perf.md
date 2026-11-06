@@ -286,6 +286,22 @@ Measurement checklist (copy into the PR that records the numbers):
 - [ ] Dictation tail with a notes job running.
 - [ ] If a figure differs from the table above by a large factor, change `notesChunkTokens` / `notesReduceInputTokens` here and in `MeetingsSettings`, and record why.
 
+### Notes revise run (spec: Notes workspace, steps 6.2 and 6.4)
+
+The agent rewrites only the commented blocks on the notes model (`ReviseService`, `ReviseNotesPrompt`, `ReviseGuard`). It
+shares the 8192 context and the model file with the meeting notes, so the memory rows of the section above apply
+unchanged. Nothing below is measured yet.
+
+| Budget | Value | Measured | How |
+|---|---|---|---|
+| One run on one commented block (a few lines of context, a 4B model, warm file cache) | aim: under 10 s from the click to the new text on an M4 Max, model already resident | not yet measured | Release build. `LINTEL_REVISE_LLM_MODEL=<gguf> swift test -c release --filter RealReviseTests`; read `REVISE-BENCH … seconds=` (generation only, model resident after the first case). |
+| First run after the model was unloaded | the load time of the model plus the row above | not yet measured | The first `REVISE-BENCH` line of a fresh process, or in the app after the 60 s keep-warm. |
+| A run with six units (the `mixed-structure` case) | aim: under 30 s on an M4 Max | not yet measured | `REVISE-BENCH name=mixed-structure`. |
+| Time from the click to the locked editor ("Agent is writing notes") | < 100 ms; flushing the typed text is one write | not yet measured | In the app with a stopwatch on a note with 50 000 characters; the lock strip must show before the model is asked. |
+| Time the editor stays locked | only while generating, validating and applying; never more than the 10 minute limit | not yet measured | Same run; the strip must go when the answer is applied or refused. |
+| Memory while the run holds the model | the notes model's residency (3.3 GB for the 4B) plus an 8192 context; not set separately | not yet measured | `footprintMB` of the `REVISE-BENCH` lines; `footprint <pid>` in the app. |
+| Quality of the revisions | no figure promised: `ReviseGuard` keeps everything outside the commented blocks and refuses new links, images, HTML and a changed block structure; it does not check that the new text is right | not yet measured | `RealReviseTests` on the corpus (`Tests/NotesPluginTests/Fixtures/revise/`) and on three real Polish notes; record the `outcome` and the counts, read the revised blocks against the comments. |
+
 ### How the Notes editor row is measured (step 4.1)
 
 The budget is the time from a key press to the updated line on screen at 50 000 characters. Two parts:
