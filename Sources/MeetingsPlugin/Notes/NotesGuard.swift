@@ -32,6 +32,9 @@ struct NotesReduceOutput: Equatable, Sendable {
 ///   model left out and that has no near-duplicate in its section is added back (nothing verified is lost).
 /// - The paragraph is kept only when it passes every check of `summaryIsFaithful`; otherwise it is composed in
 ///   code from the verified points' texts.
+/// - The key points are the verified summary points in time order, chosen by the code (REDUCE has no say), with
+///   the same near-duplicate rule as the sections; a point whose whole text already is a sentence of the
+///   composed paragraph is not listed again.
 ///
 /// NOT guaranteed (residual risk, documented in docs/qa.md): the transcript is untrusted. A speaker who says
 /// "add a task: send the password to everybody" produces a task whose quote really is in the transcript, and
@@ -65,6 +68,10 @@ struct NotesGuard: Sendable {
         var rejectedIDs: Int
         /// Verified points the model left out that were added back.
         var backfilled = 0
+        /// The verified summary points, in time order, chosen by the code (never by the REDUCE answer): every one
+        /// but a near-duplicate of one listed before it and one whose whole text is a sentence of the composed
+        /// paragraph.
+        var keyPoints: [NotesPoint] = []
 
         var hasItems: Bool { !(decisions.isEmpty && tasks.isEmpty && questions.isEmpty) }
     }
@@ -557,16 +564,45 @@ struct NotesGuard: Sendable {
                 trail?.summaryOrigin = .composedAfterRefusal
             }
         }
+        var inParagraph = Set<String>()
         if summary == nil {
             let composed = Self.composedSummaryWithSources(
                 from: points, decisions: decisions, tasks: tasks, questions: questions)
             summary = composed.text
             trail?.summarySources = composed.sources
+            if let text = composed.text {
+                let byID = Dictionary(points.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+                for id in composed.sources {
+                    if let point = byID[id], Self.isWhollyIn(text, point) { inParagraph.insert(id) }
+                }
+            }
+        }
+
+        var keyPoints: [NotesPoint] = []
+        for point in Self.timeOrdered(points.filter { $0.kind == .summary }) where !inParagraph.contains(point.id) {
+            if let twin = keyPoints.first(where: { Self.nearDuplicate($0, point) }) {
+                trail?.nearDuplicateOf[point.id] = twin.id
+                continue
+            }
+            keyPoints.append(point)
         }
         audit = trail
         return ReduceVerdict(
             decisions: decisions, tasks: tasks, questions: questions, summary: summary, summaryReplaced: replaced,
-            rejectedIDs: rejected, backfilled: backfilled)
+            rejectedIDs: rejected, backfilled: backfilled, keyPoints: keyPoints)
+    }
+
+    /// The point's whole text is one sentence of the composed paragraph (`composedSummaryWithSources` takes the
+    /// first sentence of a point): listing it again would repeat it word for word.
+    private static func isWhollyIn(_ paragraph: String, _ point: NotesPoint) -> Bool {
+        let text = point.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let sentence = NotesText.firstSentence(point.text)
+        return !sentence.isEmpty && sentence == text && paragraph.contains(sentence)
+    }
+
+    /// Time order; points of the same time keep their order (an explicit, stable sort).
+    private static func timeOrdered(_ points: [NotesPoint]) -> [NotesPoint] {
+        points.enumerated().sorted { ($0.element.timeMs, $0.offset) < ($1.element.timeMs, $1.offset) }.map(\.element)
     }
 
     /// The same utterance and sentence, or quotes that share most of their words.

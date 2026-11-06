@@ -15,8 +15,11 @@ typealias NotesTraceSink = @Sendable (NotesTraceEvent) -> Void
 /// person, a due date, a speaker, the summary or the notes, and never an id the model wrote that is not one of
 /// the points (those are only counted).
 enum NotesTrace {
-    /// Bumped when an event or a field changes meaning or goes away (adding one does not).
-    static let schemaVersion = 1
+    /// Bumped when an event or a field changes meaning or goes away (adding one does not). 2: the verified
+    /// summary points are shown as key points (`Section.keyPoints`, `Route.listedByCode`), so their fates and
+    /// `NotesTraceReduce.nearDuplicatesSkipped` mean something else than in 1, and `NotesTraceReduce.keyPoints`
+    /// is new.
+    static let schemaVersion = 2
 
     /// The points of `verified` that the deduplication took out, in their order.
     static func removedIDs(from verified: [NotesPoint], kept: [NotesPoint]) -> [String] {
@@ -274,8 +277,11 @@ struct NotesTraceReduce: Equatable, Sendable, Codable {
     /// An id listed twice in its own section (kept once, not rejected).
     var repeatedIDs = 0
     var backfilled = 0
-    /// Points left out and not added back because a near-duplicate is in their section.
+    /// Points left out and not added back because a near-duplicate is in their section (the key points
+    /// included).
     var nearDuplicatesSkipped = 0
+    /// The summary points shown as key points.
+    var keyPoints = 0
     var summaryReplaced = false
 }
 
@@ -293,6 +299,8 @@ struct NotesTraceSummary: Equatable, Sendable, Codable {
 struct NotesTracePoint: Equatable, Sendable, Codable {
     enum Section: String, Sendable, Codable {
         case summary, decisions, tasks, questions
+        /// The key points: the verified summary points the code lists (`NotesGuard.ReduceVerdict.keyPoints`).
+        case keyPoints
 
         init?(kind: NotesPointKind) {
             switch kind {
@@ -318,12 +326,16 @@ struct NotesTracePoint: Equatable, Sendable, Codable {
         case backfilled
         /// A summary point whose first sentence is in the paragraph composed by the code.
         case composedSummary
+        /// A summary point the code lists among the key points (REDUCE does not choose them).
+        case listedByCode
     }
 
     enum Loss: Equatable, Sendable, Codable {
-        /// A summary point (no section of its own) and the paragraph shown is the model's.
+        /// Schema 1 only (summary points had no section then): a summary point and the paragraph shown is the
+        /// model's. Not produced since schema 2, where the point is a key point.
         case summaryKindModelParagraph
-        /// A summary point that is not among the first four sources of the composed paragraph.
+        /// Schema 1 only: a summary point that is not among the first four sources of the composed paragraph.
+        /// Not produced since schema 2, where the point is a key point.
         case summaryKindNotInComposedParagraph
         /// A source of the composed paragraph, but the composer shows no paragraph.
         case summaryNotShown
@@ -416,6 +428,7 @@ final class NotesTraceRecorder: Sendable {
             state.reduce.repeatedIDs = audit.repeatedIDs
             state.reduce.backfilled = verdict.backfilled
             state.reduce.nearDuplicatesSkipped = audit.nearDuplicateOf.count
+            state.reduce.keyPoints = verdict.keyPoints.count
             state.reduce.summaryReplaced = verdict.summaryReplaced
             return (state.reduce, state.codeOrderIDs)
         }
@@ -454,24 +467,29 @@ final class NotesTraceRecorder: Sendable {
                 notRendered: notRendered))
     }
 
-    /// Read from the verdict and the guard's audit: the composer shows every point of `decisions`, `tasks` and
-    /// `questions` as a bullet and nothing else, and the paragraph when `NotesComposer.shownSummary` has one.
+    /// Read from the verdict and the guard's audit: the composer shows every point of `keyPoints`, `decisions`,
+    /// `tasks` and `questions` as a bullet and nothing else, and the paragraph when `NotesComposer.shownSummary`
+    /// has one. A summary point both listed and in the composed paragraph counts as a key point (the bullet
+    /// shows its whole text).
     static func fate(
         of point: NotesPoint, verdict: NotesGuard.ReduceVerdict, audit: NotesGuard.ReduceAudit,
         codeOrderIDs: Set<String>, summaryShown: Bool
     ) -> NotesTracePoint.Fate {
         guard let section = NotesTracePoint.Section(kind: point.kind) else {
+            if verdict.keyPoints.contains(where: { $0.id == point.id }) {
+                return .rendered(.keyPoints, via: .listedByCode)
+            }
             if audit.summarySources.contains(point.id) {
                 return summaryShown ? .rendered(.summary, via: .composedSummary) : .notRendered(.summaryNotShown)
             }
-            return .notRendered(
-                audit.summaryOrigin == .model ? .summaryKindModelParagraph : .summaryKindNotInComposedParagraph)
+            if let other = audit.nearDuplicateOf[point.id] { return .notRendered(.nearDuplicateInSection(of: other)) }
+            return .notRendered(.unexplained)
         }
         let list: [NotesPoint]
         switch section {
         case .decisions: list = verdict.decisions
         case .tasks: list = verdict.tasks
-        case .questions, .summary: list = verdict.questions
+        case .questions, .summary, .keyPoints: list = verdict.questions
         }
         if list.contains(where: { $0.id == point.id }) {
             if audit.backfilled.contains(point.id) { return .rendered(section, via: .backfilled) }

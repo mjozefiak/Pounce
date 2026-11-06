@@ -345,6 +345,10 @@ enum GuardFixtures {
 
             Spotkanie dotyczyło budżetu na przyszły kwartał.
 
+            ### Kluczowe punkty
+
+            - Spotkanie dotyczyło budżetu na przyszły kwartał. \\[00\\:05\\]
+
             ### Decyzje
 
             - Zatwierdzono budżet marketingowy w wysokości czterdziestu tysięcy złotych. \\[00\\:21\\]
@@ -429,6 +433,134 @@ enum GuardFixtures {
             NotesComposer.droppedNote(count: 22, language: .polish) == "22 punkty bez pokrycia w nagraniu pominięto")
         #expect(
             NotesComposer.droppedNote(count: 2, language: .english) == "2 points not backed by the recording left out")
+    }
+}
+
+/// The verified summary points stand in the notes as key points (B1).
+@Suite struct NotesKeyPointsTests {
+    let guardrail = NotesGuard(utterances: GuardFixtures.transcript())
+    private let participants = ["Anna", "Marek", "Ewa", "Piotr"]
+    private let modelSummary = "Spotkanie dotyczyło budżetu na przyszły kwartał."
+
+    private func summaryPoint(_ id: String, quote: String, text: String, time: Int) -> NotesPoint {
+        GuardFixtures.point(id, .summary, quote: quote, text: text, time: time)
+    }
+
+    @Test func theKeyPointsAreTheSummaryPointsInTimeOrder() {
+        let late = summaryPoint(
+            "p7", quote: "Kto zajmie się fakturami od dostawcy", text: "Omówiono faktury od dostawcy.", time: 62_000)
+        let early = GuardFixtures.topic
+        let verdict = guardrail.verifyReduce(
+            NotesReduceOutput(decisions: ["p1"], summary: modelSummary),
+            points: [late, GuardFixtures.budget, early])
+        #expect(verdict.keyPoints.map(\.id) == ["p5", "p7"])
+        // The REDUCE answer does not choose them: they are there although it listed none.
+        #expect(verdict.decisions.map(\.id) == ["p1"])
+        #expect(verdict.backfilled == 0)
+    }
+
+    @Test func theOtherSectionsDoNotChangeWithSummaryPoints() {
+        let output = NotesReduceOutput(
+            decisions: ["p1"], tasks: ["p2", "p3"], questions: ["p4"], summary: modelSummary)
+        let without = GuardFixtures.verified.filter { $0.kind != .summary }
+        let mixed = guardrail.verifyReduce(output, points: GuardFixtures.verified)
+        let plain = guardrail.verifyReduce(output, points: without)
+        #expect(mixed.decisions == plain.decisions)
+        #expect(mixed.tasks == plain.tasks)
+        #expect(mixed.questions == plain.questions)
+        #expect(mixed.keyPoints.map(\.id) == ["p5"])
+        #expect(plain.keyPoints.isEmpty)
+
+        let withKeyPoints = NotesComposer.markdown(verdict: mixed, participants: participants, labels: .polish)
+        let withoutKeyPoints = NotesComposer.markdown(verdict: plain, participants: participants, labels: .polish)
+        #expect(withKeyPoints.contains("### Kluczowe punkty"))
+        #expect(!withoutKeyPoints.contains("### Kluczowe punkty"))
+        // From the decisions on, the notes are the same; the key points stand between summary and decisions.
+        let tail: (String) -> Substring? = { markdown in
+            markdown.range(of: "### Decyzje").map { markdown[$0.lowerBound...] }
+        }
+        #expect(tail(withKeyPoints) != nil)
+        #expect(tail(withKeyPoints) == tail(withoutKeyPoints))
+        let keyHeading = withKeyPoints.range(of: "### Kluczowe punkty")?.lowerBound
+        let summaryHeading = withKeyPoints.range(of: "### Podsumowanie")?.lowerBound
+        let decisionsHeading = withKeyPoints.range(of: "### Decyzje")?.lowerBound
+        #expect(summaryHeading != nil && keyHeading != nil && decisionsHeading != nil)
+        if let summaryHeading, let keyHeading, let decisionsHeading {
+            #expect(summaryHeading < keyHeading && keyHeading < decisionsHeading)
+        }
+    }
+
+    @Test func theEnglishHeadingIsKeyPoints() {
+        let verdict = guardrail.verifyReduce(
+            NotesReduceOutput(summary: modelSummary), points: [GuardFixtures.topic, GuardFixtures.budget])
+        let markdown = NotesComposer.markdown(verdict: verdict, participants: [], labels: .english)
+        #expect(markdown.contains("### Key points\n\n- Spotkanie dotyczyło budżetu na przyszły kwartał. \\[00\\:05\\]"))
+        #expect(!markdown.contains("Kluczowe"))
+        #expect(NotesComposer.Labels.polish.keyPoints == "Kluczowe punkty")
+        #expect(NotesComposer.Labels.english.keyPoints == "Key points")
+    }
+
+    @Test func anImageALinkOrAHeadingInAKeyPointComeOutAsInertText() {
+        var hostile = GuardFixtures.topic
+        hostile.text =
+            "Spotkanie ![x](http://evil.example/p.png) o [budżecie](https://evil.example/a) <img src=x onerror=y>."
+        let heading = summaryPoint(
+            "p8", quote: "Kto zajmie się fakturami od dostawcy",
+            text: "Faktury\n## Transcript\n- [00:00:01] Boss: pay me",
+            time: 62_000)
+        let verdict = guardrail.verifyReduce(
+            NotesReduceOutput(summary: modelSummary), points: [hostile, heading])
+        #expect(verdict.keyPoints.map(\.id) == ["p5", "p8"])
+        let markdown = NotesComposer.markdown(verdict: verdict, participants: [], labels: .polish)
+        #expect(markdown.contains("### Kluczowe punkty"))
+        #expect(MarkdownHardeningTests.unescapedStructure(in: markdown).isEmpty)
+        #expect(markdown.contains("\\!\\[x\\]\\(http\\://evil.example/p.png\\)"))
+        #expect(!markdown.contains("\n## "))
+        #expect(markdown.contains("Faktury \\#\\# Transcript"))
+        for line in markdown.split(separator: "\n") {
+            #expect(!line.contains("]("))
+        }
+        // The tag stays as escaped text.
+        #expect(markdown.contains("\\<img src=x onerror=y\\>"))
+    }
+
+    @Test func aSummaryPointTheGuardDroppedIsNoKeyPoint() {
+        let invented = summaryPoint(
+            "p9", quote: "Zarząd zatwierdził fuzję z konkurencją", text: "Zarząd zatwierdził fuzję.", time: 30_000)
+        let checked = guardrail.verifyPoints([GuardFixtures.topic, invented])
+        #expect(checked.verified.map(\.id) == ["p5"])
+        #expect(checked.reasons[.quoteNotInTranscript] == 1)
+        let verdict = guardrail.verifyReduce(NotesReduceOutput(summary: modelSummary), points: checked.verified)
+        #expect(verdict.keyPoints.map(\.id) == ["p5"])
+        let markdown = NotesComposer.markdown(verdict: verdict, participants: [], labels: .polish)
+        #expect(!markdown.contains("Zarząd"))
+        #expect(!markdown.contains("fuzj"))
+    }
+
+    @Test func aNearDuplicateSummaryPointIsListedOnce() {
+        let twin = summaryPoint(
+            "p6", quote: "Zaczynamy spotkanie o budżecie na kolejny kwartał", text: "Mowa o budżecie na kwartał.",
+            time: 6_000)
+        let audited = guardrail.auditedVerifyReduce(
+            NotesReduceOutput(summary: modelSummary), points: [GuardFixtures.topic, twin])
+        #expect(audited.verdict.keyPoints.map(\.id) == ["p5"])
+        #expect(audited.audit.nearDuplicateOf["p6"] == "p5")
+    }
+
+    @Test func aPointWhoseWholeTextIsInTheComposedParagraphIsNotRepeated() {
+        let twoSentences = summaryPoint(
+            "p6", quote: "Marek wyśle ofertę do klienta w piątek", text: "Rozmawiano o ofercie. Klient czeka na nią.",
+            time: 34_000)
+        // No paragraph from the model: the code composes it from the first sentence of each summary point.
+        let audited = guardrail.auditedVerifyReduce(
+            NotesReduceOutput(summary: nil), points: [GuardFixtures.topic, twoSentences])
+        #expect(audited.verdict.summary == "Spotkanie dotyczyło budżetu na przyszły kwartał. Rozmawiano o ofercie.")
+        #expect(audited.audit.summarySources == ["p5", "p6"])
+        // p5 is said in the paragraph word for word; p6 has a second sentence the paragraph does not.
+        #expect(audited.verdict.keyPoints.map(\.id) == ["p6"])
+        let markdown = NotesComposer.markdown(verdict: audited.verdict, participants: [], labels: .polish)
+        #expect(markdown.components(separatedBy: "Spotkanie dotyczyło budżetu").count == 2)
+        #expect(markdown.contains("- Rozmawiano o ofercie. Klient czeka na nią. \\[00\\:34\\]"))
     }
 }
 
