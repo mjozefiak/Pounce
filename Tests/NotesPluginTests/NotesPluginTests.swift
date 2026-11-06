@@ -55,7 +55,11 @@ import Testing
     }
 
     @Test func fixturesAppearOnlyWhenTheQAKeyIsOn() async {
-        let off = NotesPlugin(context: makeContext())
+        // Without fixtures the listing reads the store, which opens on that first need: in a temporary folder.
+        let storage = FileManager.default.temporaryDirectory.appending(
+            path: "lintel-notes-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: storage) }
+        let off = NotesPlugin(context: makeContext(storage: storage, keychain: MemoryKeychain()))
         await off.workspace.refresh()
         #expect(off.workspace.rows.isEmpty)
         let settings = MemorySettings()
@@ -88,5 +92,22 @@ import Testing
         #expect(plugin.workspace.tabs.tabs.count == 2)
         #expect(section.handleClose())
         #expect(!section.handleClose())
+    }
+
+    @Test func deactivateWritesTheTypedTextBeforeTheStoreCloses() async throws {
+        let harness = try NotesHarness()
+        let plugin = NotesPlugin(
+            context: makeContext(
+                storage: harness.directory, settings: harness.settingsStore, keychain: harness.keychain))
+        plugin.library.open()
+        let store = try #require(plugin.library.store)
+        let created = try store.insertDocument(.overlay("m1"))
+        let key = NoteKey(pluginID: "meetings", id: "m1")
+        let writer = RevisionWriter(store: store, target: .existing(docID: created.docID), log: harness.log)
+        _ = plugin.documents.writer(for: .live(key, layer: "notes"), item: .live(key)) { writer }
+        writer.submit("typed just before quitting")
+        await plugin.deactivate()
+        let reopened = try harness.openStore()
+        #expect(try reopened.headRevision(of: created.docID)?.body == "typed just before quitting")
     }
 }

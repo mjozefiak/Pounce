@@ -36,7 +36,12 @@ public final class NotesPlugin: LintelPlugin {
     /// Nothing to start: the store opens on first need, so activation touches no file and no Keychain.
     public func activate() async throws {}
 
+    /// The open documents: one `RevisionWriter` each, flushed on blur, tab close, window close and here.
+    private(set) lazy var documents = NoteDocumentRegistry()
+
+    /// Typed text is written before the store closes (spec "Saving": quit loses nothing).
     public func deactivate() async {
+        await documents.flushAll()
         library.close()
     }
 
@@ -62,24 +67,71 @@ public final class NotesPlugin: LintelPlugin {
             order: Self.manifest.order,
             makeView: { [self] in AnyView(NotesSectionView(model: workspace)) },
             handleRoute: { [self] route in workspace.handle(route) },
+            willHide: { [self] in await documents.flushAll() },
             handleClose: { [self] in workspace.closeCurrentTab() }
         )
+    }
+
+    /// The store, opened the first time something needs it (the listing, an open note, a sweep).
+    private var storeProvider: @MainActor @Sendable () -> NotesStore? {
+        { [library] in
+            library.open()
+            return library.store
+        }
     }
 
     private func makeWorkspace() -> NotesWorkspaceModel {
         let context = context
         let provider = noteSourceProvider
+        let registry = documents
+        let storeProvider = storeProvider
+        registry.cleanup = { open in
+            guard let store = await storeProvider() else { return }
+            _ = try? store.deleteUnkeptDetached(excluding: open)
+        }
         #if DEBUG
+        // QA fixtures stand in for the sources and have no overlays; `locked` shows the locked state.
         let locked = qaState == "locked" || qaState == "locked-rows"
-        let overlays: any OverlayIndex & OverlayDetacher = locked ? NotesQALockedOverlays() : NoOverlays()
+        let usesStore = !(locked || context.settings.bool(NotesSettingsKey.qaFixtures, default: false))
+        let overlays: any OverlayIndex & OverlayDetacher
+        if locked {
+            overlays = NotesQALockedOverlays()
+        } else if usesStore {
+            overlays = LazyStoreOverlays(store: storeProvider, registry: registry)
+        } else {
+            overlays = NoOverlays()
+        }
         #else
-        let overlays: any OverlayIndex & OverlayDetacher = NoOverlays()
+        let usesStore = true
+        let overlays: any OverlayIndex & OverlayDetacher = LazyStoreOverlays(store: storeProvider, registry: registry)
         #endif
         let library = NoteLibrary(sources: provider, overlays: overlays, detacher: overlays)
-        let model = NotesWorkspaceModel(
-            environment: NotesWorkspaceModel.Environment(
-                library: library, pasteboard: context.pasteboard, sourceSetChanges: context.noteSourcesChanged,
-                openSettings: context.openSettings, openModels: { context.openModels(nil) }))
+        var environment = NotesWorkspaceModel.Environment(
+            library: library, pasteboard: context.pasteboard, sourceSetChanges: context.noteSourcesChanged,
+            openSettings: context.openSettings, openModels: { context.openModels(nil) })
+        if usesStore {
+            environment.registry = registry
+            environment.overlayHeads = { item in
+                guard let store = await storeProvider() else { return [] }
+                return (try? NoteOverlayContent.heads(for: item, in: store)) ?? []
+            }
+            let clock = context.clock
+            let makeReconciler: @Sendable (NotesStore) -> SourceReconciler = { store in
+                SourceReconciler(
+                    store: store, library: library, detacher: RegistryOverlayDetacher(store: store, registry: registry),
+                    registry: registry, clock: clock)
+            }
+            environment.reconcile = { key in
+                guard let store = await storeProvider() else { return }
+                await makeReconciler(store).reconcile(key)
+            }
+            environment.sweepLoop = {
+                guard let store = await storeProvider() else { return }
+                await makeReconciler(store).runSweeps()
+            }
+        }
+        let model = NotesWorkspaceModel(environment: environment)
+        registry.onRekey = { [weak model] key, started in model?.rekeyDetached(key: key, startedAtMs: started) }
         #if DEBUG
         openQAFixtureTabs(in: model)
         applyQAState(to: model)

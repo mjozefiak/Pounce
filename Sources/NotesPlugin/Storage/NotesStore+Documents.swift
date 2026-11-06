@@ -32,6 +32,8 @@ struct NewNoteRevision: Sendable {
     var now: Date
     /// For an `applied` revision: the head the writer saw; the head moves only when it is still this one.
     var expectedHeadID: Int64?
+    /// Set in the same transaction (a reconciliation): the source layer version this revision was made against.
+    var sourceVersionSeen: String?
 }
 
 extension NotesStore {
@@ -41,34 +43,38 @@ extension NotesStore {
     /// Inserts the document and its first revision, and points the head at it, in one transaction.
     @discardableResult
     func insertDocument(_ document: NewNoteDocument) throws -> (docID: Int64, revisionID: Int64) {
-        try write { db in
-            try db.execute(
-                sql: """
-                    INSERT INTO note_doc (key, layer, kind, source_plugin_id, title_override, head_revision_id,
-                        created_at, updated_at, source_state, source_started_at_ms, source_version_seen)
-                    VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)
-                    """,
-                arguments: [
-                    document.key.rawValue, document.layer, document.kind.rawValue, document.sourcePluginID.rawValue,
-                    document.titleOverride, document.now.timeIntervalSince1970, document.now.timeIntervalSince1970,
-                    document.sourceState?.rawValue, document.sourceStartedAtMs, document.sourceVersionSeen,
-                ])
-            let docID = db.lastInsertedRowID
-            try db.execute(
-                sql: """
-                    INSERT INTO note_revision (doc_id, seq, author, state, created_at, summary, body_markdown,
-                        blocks_json, meta_json)
-                    VALUES (?, 1, ?, 'applied', ?, ?, ?, ?, ?)
-                    """,
-                arguments: [
-                    docID, document.author, document.now.timeIntervalSince1970, document.summary, document.body,
-                    document.blocksJSON, document.metaJSON,
-                ])
-            let revisionID = db.lastInsertedRowID
-            try db.execute(
-                sql: "UPDATE note_doc SET head_revision_id = ? WHERE id = ?", arguments: [revisionID, docID])
-            return (docID, revisionID)
-        }
+        try write { db in try Self.insertDocument(document, in: db) }
+    }
+
+    static func insertDocument(_ document: NewNoteDocument, in db: Database) throws -> (
+        docID: Int64, revisionID: Int64
+    ) {
+        try db.execute(
+            sql: """
+                INSERT INTO note_doc (key, layer, kind, source_plugin_id, title_override, head_revision_id,
+                    created_at, updated_at, source_state, source_started_at_ms, source_version_seen)
+                VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)
+                """,
+            arguments: [
+                document.key.rawValue, document.layer, document.kind.rawValue, document.sourcePluginID.rawValue,
+                document.titleOverride, document.now.timeIntervalSince1970, document.now.timeIntervalSince1970,
+                document.sourceState?.rawValue, document.sourceStartedAtMs, document.sourceVersionSeen,
+            ])
+        let docID = db.lastInsertedRowID
+        try db.execute(
+            sql: """
+                INSERT INTO note_revision (doc_id, seq, author, state, created_at, summary, body_markdown,
+                    blocks_json, meta_json)
+                VALUES (?, 1, ?, 'applied', ?, ?, ?, ?, ?)
+                """,
+            arguments: [
+                docID, document.author, document.now.timeIntervalSince1970, document.summary, document.body,
+                document.blocksJSON, document.metaJSON,
+            ])
+        let revisionID = db.lastInsertedRowID
+        try db.execute(
+            sql: "UPDATE note_doc SET head_revision_id = ? WHERE id = ?", arguments: [revisionID, docID])
+        return (docID, revisionID)
     }
 
     /// Appends a revision. An `applied` one moves the head with compare-and-set, in the same transaction; when
@@ -76,34 +82,40 @@ extension NotesStore {
     /// `discarded` one never moves the head.
     @discardableResult
     func appendRevision(_ revision: NewNoteRevision) throws -> Int64 {
-        try write { db in
-            let seq =
-                try Int.fetchOne(
-                    db, sql: "SELECT COALESCE(MAX(seq), 0) + 1 FROM note_revision WHERE doc_id = ?",
-                    arguments: [revision.docID]) ?? 1
+        try write { db in try Self.appendRevision(revision, in: db) }
+    }
+
+    static func appendRevision(_ revision: NewNoteRevision, in db: Database) throws -> Int64 {
+        let seq =
+            try Int.fetchOne(
+                db, sql: "SELECT COALESCE(MAX(seq), 0) + 1 FROM note_revision WHERE doc_id = ?",
+                arguments: [revision.docID]) ?? 1
+        try db.execute(
+            sql: """
+                INSERT INTO note_revision (doc_id, seq, author, state, created_at, summary, body_markdown,
+                    blocks_json, meta_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+            arguments: [
+                revision.docID, seq, revision.author, revision.state.rawValue,
+                revision.now.timeIntervalSince1970, revision.summary, revision.body, revision.blocksJSON,
+                revision.metaJSON,
+            ])
+        let id = db.lastInsertedRowID
+        if revision.state == .applied {
             try db.execute(
                 sql: """
-                    INSERT INTO note_revision (doc_id, seq, author, state, created_at, summary, body_markdown,
-                        blocks_json, meta_json)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    UPDATE note_doc SET head_revision_id = ?, updated_at = ?
+                    WHERE id = ? AND head_revision_id = ?
                     """,
-                arguments: [
-                    revision.docID, seq, revision.author, revision.state.rawValue,
-                    revision.now.timeIntervalSince1970, revision.summary, revision.body, revision.blocksJSON,
-                    revision.metaJSON,
-                ])
-            let id = db.lastInsertedRowID
-            if revision.state == .applied {
-                try db.execute(
-                    sql: """
-                        UPDATE note_doc SET head_revision_id = ?, updated_at = ?
-                        WHERE id = ? AND head_revision_id = ?
-                        """,
-                    arguments: [id, revision.now.timeIntervalSince1970, revision.docID, revision.expectedHeadID])
-                if db.changesCount != 1 { throw NotesError.casConflict }
-            }
-            return id
+                arguments: [id, revision.now.timeIntervalSince1970, revision.docID, revision.expectedHeadID])
+            if db.changesCount != 1 { throw NotesError.casConflict }
         }
+        if let seen = revision.sourceVersionSeen {
+            try db.execute(
+                sql: "UPDATE note_doc SET source_version_seen = ? WHERE id = ?", arguments: [seen, revision.docID])
+        }
+        return id
     }
 
     func deleteDocument(_ id: Int64) throws {

@@ -442,8 +442,8 @@ actor NoteLibrary {
             guard let source = sources.accepted[plugin] else { continue }
             var existing = Set<NoteKey>()
             var answered = true
-            for start in stride(from: 0, to: pluginKeys.count, by: 400) {
-                let batch = Array(pluginKeys[start..<min(start + 400, pluginKeys.count)])
+            for start in stride(from: 0, to: pluginKeys.count, by: 500) {
+                let batch = Array(pluginKeys[start..<min(start + 500, pluginKeys.count)])
                 let outcome = await SourceFanOut.call(budget: budget, clock: clock) { try await source.exists(batch) }
                 guard case .value(let found) = outcome else {
                     answered = false

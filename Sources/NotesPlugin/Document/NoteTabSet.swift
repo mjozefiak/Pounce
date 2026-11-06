@@ -50,5 +50,18 @@ struct NoteTabSet: Equatable, Sendable {
         tabs[index].isBusy = isBusy
     }
 
+    /// A detach changed what the tab names (`.live(key)` to `.detached(key, startedAtMs:)`): the tab keeps its
+    /// place and selection. Returns `false` when there was no such tab or the new identity already has one.
+    @discardableResult
+    mutating func rekey(from old: NoteItemID, to new: NoteItemID, title: String? = nil) -> Bool {
+        guard let index = tabs.firstIndex(where: { $0.id == old }), !tabs.contains(where: { $0.id == new }) else {
+            return false
+        }
+        tabs[index].id = new
+        if let title { tabs[index].title = title }
+        if current == old { current = new }
+        return true
+    }
+
     func contains(_ id: NoteItemID) -> Bool { tabs.contains { $0.id == id } }
 }

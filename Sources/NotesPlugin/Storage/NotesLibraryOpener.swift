@@ -82,6 +82,13 @@ final class NotesLibraryOpener {
                 log.notice(NotesLogEvent("open", durationMs: Self.milliseconds(since: started)))
                 // Only a successful open may delete anything: a locked Keychain or a failed open keeps every file.
                 opener.purgeOldArchives(now: now())
+                // The persistent rule: a detached row without user writing and without an open comment is
+                // deleted (nothing is open yet, so a leftover from a crash or a quit goes now).
+                if !opened.hasNewerSchema {
+                    do { try opened.deleteUnkeptDetached() } catch {
+                        log.error(NotesLogEvent("open", code: (error as? NotesError)?.code ?? "cleanupFailed"))
+                    }
+                }
             case .unavailable(let error):
                 status = .unavailable(error)
                 log.error(NotesLogEvent("open", code: NotesError.keyUnavailable.code))

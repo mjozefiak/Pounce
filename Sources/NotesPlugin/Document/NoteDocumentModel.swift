@@ -38,6 +38,9 @@ final class NoteDocumentModel {
     /// An action of the source threw: the strip says so until it is dismissed or tried again.
     var actionFailed = false
     private var serial = 0
+    /// Layers whose text the editor holds since the first keystroke (spec "Saving": seeding is pinned to what the
+    /// editor shows). `apply` keeps their text and version.
+    private(set) var frozenLayers: Set<String> = []
     private var parsed: [String: [NoteBlock]] = [:]
 
     init(id: NoteItemID) {
@@ -54,7 +57,19 @@ final class NoteDocumentModel {
     var transcriptLayer: NoteLayer? { layers.first { $0.id == Self.transcriptLayerID } }
 
     /// Takes what the source returned: `nil` means the note is gone. The shown layer stays when it still exists.
-    func apply(_ content: NoteContent?) {
+    func apply(_ incoming: NoteContent?) {
+        var content = incoming
+        // The editor froze these layers at the first keystroke: the view never reloads them from the source.
+        if var updated = content {
+            for id in frozenLayers {
+                if let old = self.content?.layers.first(where: { $0.id == id }),
+                    let index = updated.layers.firstIndex(where: { $0.id == id })
+                {
+                    updated.layers[index] = old
+                }
+            }
+            content = updated
+        }
         guard let content else {
             self.content = nil
             phase = .gone
@@ -72,6 +87,8 @@ final class NoteDocumentModel {
         }
         blocks = blocks(of: layerID)
     }
+
+    func freezeLayer(_ id: String) { frozenLayers.insert(id) }
 
     func setActions(_ actions: [NoteSourceAction]) { self.actions = actions }
 

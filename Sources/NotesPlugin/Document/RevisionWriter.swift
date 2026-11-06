@@ -1,0 +1,462 @@
+import Foundation
+import LintelCore
+import LintelKit
+import Synchronization
+
+/// The one writer of one layer document (spec "Saving", "One writer"). Every head-moving write for a
+/// `NoteDocumentID` goes through it: autosave, Restore, Apply, a Revise result and the source reconciler.
+///
+/// - The editor hands every change to `submit`, which only stores the buffer and (re)starts a 1 s timer on the
+///   INJECTED clock; the timer, a blur, a tab close, a mode switch, a window close, `deactivate()` and any other
+///   write call `flush`, which takes the buffer and writes it. Writes are serialised by an actor and run off the
+///   main thread; a write older than one already applied is dropped.
+/// - Writes in one edit session amend that session's `human` revision until it is referenced (a comment anchor,
+///   `base_head_id`, `restored_from`). A comment, Revise, Apply, Restore and a reconciliation close the session
+///   (`flush(closingSession:)`); one also closes after the idle time (5 min, on the injected clock).
+/// - The first write of an overlay inserts the seed (the layer as rendered, with its version) and the first
+///   `human` revision in ONE transaction.
+/// - A compare-and-set loss is a defect path: the human text is stored as a `proposed` revision (never discarded,
+///   never applied), `casConflict` is logged and the outcome says so.
+/// - With `plugins.notes.readOnly` (or a newer schema) the store refuses and no revision is ever written; the
+///   buffer is kept so a later retry can save it.
+///
+/// Note, transcript and dictated text never reach a log; only codes, counts and the hashed key do.
+final class RevisionWriter: Sendable {
+    struct Timing: Sendable {
+        /// Typing is written at most this long after the last keystroke.
+        var debounce: Duration = .seconds(1)
+        /// A history granularity: a new `human` revision starts after this much idle time.
+        var sessionIdle: Duration = .seconds(300)
+    }
+
+    /// Hooks for tests and the UI: a buffered write finished, the idle timer closed the session.
+    struct Observer: Sendable {
+        var wrote: @Sendable (Outcome) -> Void = { _ in }
+        var idleClosed: @Sendable () -> Void = {}
+    }
+
+    enum Target: Sendable {
+        case existing(docID: Int64)
+        /// No row yet: the first write seeds it from this plan.
+        case seed(SeedPlan)
+    }
+
+    enum Outcome: Sendable, Equatable {
+        case nothing
+        case seeded(docID: Int64, revisionID: Int64)
+        case amended(revisionID: Int64)
+        case appended(revisionID: Int64)
+        /// The head moved under the writer: the text was kept as a `proposed` revision.
+        case keptAsProposal(revisionID: Int64)
+    }
+
+    enum Reconciliation: Sendable, Equatable {
+        case unchanged
+        /// The source's text equals the head's: only `source_version_seen` moved.
+        case versionOnly
+        /// No user writing: a revision authored as the layer's author was appended.
+        case applied(revisionID: Int64)
+        /// User writing: a `proposed` revision, the head unchanged.
+        case proposed(revisionID: Int64)
+    }
+
+    private struct Pending {
+        var text: String?
+        var serial = 0
+        var debounce: Task<Void, Never>?
+        var idle: Task<Void, Never>?
+        var retired = false
+    }
+
+    private let core: Core
+    private let clock: any Clock<Duration>
+    private let timing: Timing
+    private let observer: Observer
+    private let pending = Mutex(Pending())
+
+    init(
+        store: NotesStore, target: Target, clock: any Clock<Duration> = ContinuousClock(),
+        now: @escaping @Sendable () -> Date = { Date() }, timing: Timing = Timing(),
+        observer: Observer = Observer(), log: any NotesLogging = OSNotesLog()
+    ) {
+        self.clock = clock
+        self.timing = timing
+        self.observer = observer
+        core = Core(store: store, target: target, now: now, log: log)
+    }
+
+    /// The row's id once it exists (a seed that was never written has none).
+    var docID: Int64? { get async { await core.docID } }
+
+    /// `true` while typed text waits for the next write.
+    var hasPendingText: Bool { pending.withLock { $0.text != nil } }
+
+    /// Stops a document whose recording was detached before it had a row: it can never seed (its snapshot belongs
+    /// to a recording that is gone), so a later flush throws instead of writing against the wrong note.
+    func retire() { pending.withLock { $0.retired = true } }
+
+    // MARK: Typing
+
+    /// The editor's whole buffer after a change. Synchronous: stores it and restarts the 1 s timer.
+    func submit(_ text: String) {
+        let timer = Task { [weak self, clock, debounce = timing.debounce] in
+            do { try await clock.sleep(for: debounce) } catch { return }
+            guard let self else { return }
+            _ = try? await self.flush()
+        }
+        let old = pending.withLock { state -> Task<Void, Never>? in
+            let old = state.debounce
+            state.text = text
+            state.serial += 1
+            state.debounce = timer
+            return old
+        }
+        old?.cancel()
+    }
+
+    /// Writes what is buffered. `closingSession` ends the edit session afterwards (a comment, Revise, Apply,
+    /// Restore, a reconciliation). A write that fails keeps the text for a retry.
+    @discardableResult
+    func flush(closingSession: Bool = false) async throws -> Outcome {
+        let taken = pending.withLock { state -> (text: String, serial: Int)? in
+            state.debounce?.cancel()
+            state.debounce = nil
+            guard let text = state.text else { return nil }
+            state.text = nil
+            return (text, state.serial)
+        }
+        var outcome = Outcome.nothing
+        if let taken {
+            if pending.withLock({ $0.retired }), await core.docID == nil {
+                throw NotesError.guardRejected(rule: "detached")
+            }
+            do {
+                outcome = try await core.writeHuman(taken.text, serial: taken.serial)
+                observer.wrote(outcome)
+            } catch {
+                pending.withLock { if $0.text == nil { $0.text = taken.text } }
+                throw error
+            }
+        }
+        if closingSession {
+            await core.closeSession()
+            cancelIdleTimer()
+        } else if outcome != .nothing {
+            startIdleTimer()
+        }
+        return outcome
+    }
+
+    func closeSession() async {
+        await core.closeSession()
+        cancelIdleTimer()
+    }
+
+    // MARK: Other head-moving writes
+
+    /// Restore: a new applied `human` revision with the text and the authors of `revisionID`, recording
+    /// `restored_from`. The buffer is flushed first.
+    @discardableResult
+    func restore(revisionID: Int64) async throws -> Int64 {
+        try await flush(closingSession: true)
+        return try await core.restore(revisionID)
+    }
+
+    /// An applied revision by `author` (a Revise result, an Apply). The buffer is flushed first; the head moves
+    /// with compare-and-set.
+    @discardableResult
+    func appendApplied(author: NoteAuthor, body: String, summary: String? = nil, metaJSON: String? = nil)
+        async throws -> Int64
+    {
+        try await flush(closingSession: true)
+        return try await core.append(
+            author: author.rawValue, body: body, summary: summary, metaJSON: metaJSON, state: .applied)
+    }
+
+    /// A `proposed` revision: never moves the head.
+    @discardableResult
+    func appendProposal(author: NoteAuthor, body: String, summary: String? = nil, metaJSON: String? = nil)
+        async throws -> Int64
+    {
+        try await flush(closingSession: true)
+        return try await core.append(
+            author: author.rawValue, body: body, summary: summary, metaJSON: metaJSON, state: .proposed)
+    }
+
+    /// The source layer moved: compares `layer.version` with the document's `source_version_seen` (the SAME
+    /// layer only). The buffer is flushed first, so a human revision exists before the choice between an
+    /// `agent`/`stt` revision and a proposal.
+    func reconcile(layer: NoteLayer) async throws -> Reconciliation {
+        try await flush(closingSession: true)
+        return try await core.reconcile(layer)
+    }
+
+    // MARK: Timers
+
+    private func startIdleTimer() {
+        let timer = Task { [weak self, clock, idle = timing.sessionIdle] in
+            do { try await clock.sleep(for: idle) } catch { return }
+            guard let self else { return }
+            await self.core.closeSession()
+            self.observer.idleClosed()
+        }
+        let old = pending.withLock { state -> Task<Void, Never>? in
+            let old = state.idle
+            state.idle = timer
+            return old
+        }
+        old?.cancel()
+    }
+
+    private func cancelIdleTimer() {
+        let old = pending.withLock { state -> Task<Void, Never>? in
+            let old = state.idle
+            state.idle = nil
+            return old
+        }
+        old?.cancel()
+    }
+
+    // MARK: Core
+
+    private actor Core {
+        let store: NotesStore
+        let now: @Sendable () -> Date
+        let log: any NotesLogging
+        var docID: Int64?
+        var seed: SeedPlan?
+        var needsReload = false
+        var headID: Int64 = 0
+        var headBody = ""
+        var headBlocks: [(text: String, block: StoredBlock)] = []
+        var attribution = BlockAttribution()
+        var sessionRevisionID: Int64?
+        var lastSerial = 0
+
+        init(store: NotesStore, target: Target, now: @escaping @Sendable () -> Date, log: any NotesLogging) {
+            self.store = store
+            self.now = now
+            self.log = log
+            switch target {
+            case .existing(let id):
+                docID = id
+                needsReload = true
+            case .seed(let plan):
+                seed = plan
+            }
+        }
+
+        private var logKey: String?
+        private var keyForLog: String? { logKey ?? seed.map(\.key.rawValue) }
+
+        func closeSession() { sessionRevisionID = nil }
+
+        private func reloadIfNeeded() throws {
+            guard needsReload, let docID else { return }
+            guard let document = try store.document(id: docID) else {
+                throw NotesError.guardRejected(rule: "noDocument")
+            }
+            logKey = document.key.rawValue
+            let chain = try store.revisions(of: docID)
+            attribution = BlockAttribution(
+                chain: chain.filter { $0.state == .applied }.map { ($0.author, $0.body) })
+            if let head = chain.first(where: { $0.id == document.headRevisionID }) {
+                setHead(head.id, body: head.body, stored: StoredBlocks.decode(head.blocksJSON), author: head.author)
+            }
+            sessionRevisionID = nil
+            needsReload = false
+        }
+
+        private func setHead(_ id: Int64, body: String, stored: StoredBlocks?, author: String) {
+            headID = id
+            headBody = body
+            let texts = MarkdownBlocks.split(body)
+            if let stored, stored.blocks.count == texts.count {
+                headBlocks = Array(zip(texts, stored.blocks)).map { ($0, $1) }
+            } else {
+                headBlocks = texts.map { ($0, StoredBlock(author: author)) }
+            }
+        }
+
+        // MARK: Typing
+
+        func writeHuman(_ text: String, serial: Int) throws -> Outcome {
+            guard serial > lastSerial else { return .nothing }
+            if let reason = store.blockedReason { throw reason }
+            if docID == nil { return try seedAndWrite(text, serial: serial) }
+            try reloadIfNeeded()
+            guard let docID else { return .nothing }
+            if text == headBody {
+                lastSerial = serial
+                return .nothing
+            }
+            let blocks = attribution.stored(body: text, author: "human", previous: headBlocks)
+            if let session = sessionRevisionID, session == headID,
+                try store.amendHead(docID: docID, revisionID: session, body: text, blocksJSON: blocks.json, now: now())
+            {
+                attribution.add(author: "human", body: text)
+                setHead(session, body: text, stored: blocks, author: "human")
+                lastSerial = serial
+                return .amended(revisionID: session)
+            }
+            sessionRevisionID = nil
+            let revision = NewNoteRevision(
+                docID: docID, author: "human", state: .applied, body: text, blocksJSON: blocks.json, now: now(),
+                expectedHeadID: headID)
+            do {
+                let id = try store.appendRevision(revision)
+                attribution.add(author: "human", body: text)
+                setHead(id, body: text, stored: blocks, author: "human")
+                sessionRevisionID = id
+                lastSerial = serial
+                pruneAfterWrite()
+                return .appended(revisionID: id)
+            } catch NotesError.casConflict {
+                // The head moved under the writer (a defect path: only this writer moves heads). Keep the text.
+                log.error(NotesLogEvent("write", code: NotesError.casConflict.code, key: keyForLog))
+                var proposal = revision
+                proposal.state = .proposed
+                proposal.expectedHeadID = nil
+                proposal.metaJSON = NoteMeta.json(["cas_conflict": true])
+                let id = try store.appendRevision(proposal)
+                needsReload = true
+                lastSerial = serial
+                return .keptAsProposal(revisionID: id)
+            }
+        }
+
+        private func seedAndWrite(_ text: String, serial: Int) throws -> Outcome {
+            guard let plan = seed else { throw NotesError.guardRejected(rule: "seed") }
+            if let existing = try store.liveDocument(key: plan.key, layer: plan.layerID) {
+                // Another writer (a comment, the agent) seeded the layer first: write on top of it.
+                docID = existing.id
+                seed = nil
+                needsReload = true
+                return try writeHuman(text, serial: serial)
+            }
+            if text == plan.snapshot.markdown {
+                lastSerial = serial
+                return .nothing
+            }
+            var seeded = BlockAttribution()
+            seeded.add(author: plan.snapshot.author.rawValue, body: plan.snapshot.markdown)
+            let seedBlocks = BlockAttribution.seeded(layer: plan.snapshot)
+            setHead(0, body: plan.snapshot.markdown, stored: seedBlocks, author: plan.snapshot.author.rawValue)
+            let blocks = seeded.stored(body: text, author: "human", previous: headBlocks)
+            let human = NewNoteRevision(
+                docID: 0, author: "human", state: .applied, body: text, blocksJSON: blocks.json, now: now())
+            let result = try store.insertSeededDocument(OverlaySeeder.document(for: plan, now: now()), human: human)
+            seeded.add(author: "human", body: text)
+            attribution = seeded
+            docID = result.docID
+            seed = nil
+            setHead(result.humanID, body: text, stored: blocks, author: "human")
+            sessionRevisionID = result.humanID
+            lastSerial = serial
+            return .seeded(docID: result.docID, revisionID: result.humanID)
+        }
+
+        // MARK: Other writes
+
+        func restore(_ revisionID: Int64) throws -> Int64 {
+            if let reason = store.blockedReason { throw reason }
+            guard docID != nil else { throw NotesError.guardRejected(rule: "noDocument") }
+            try reloadIfNeeded()
+            guard let docID, let target = try store.revision(id: revisionID), target.docID == docID else {
+                throw NotesError.guardRejected(rule: "restoreTarget")
+            }
+            let stored = StoredBlocks.decode(target.blocksJSON)
+            let id = try storeApplied(
+                author: "human", body: target.body, summary: nil,
+                metaJSON: NoteMeta.json(["restored_from": revisionID]), blocks: stored)
+            return id
+        }
+
+        func append(author: String, body: String, summary: String?, metaJSON: String?, state: NoteRevisionState)
+            throws -> Int64
+        {
+            if let reason = store.blockedReason { throw reason }
+            guard let docID else { throw NotesError.guardRejected(rule: "noDocument") }
+            try reloadIfNeeded()
+            if state == .applied {
+                return try storeApplied(author: author, body: body, summary: summary, metaJSON: metaJSON, blocks: nil)
+            }
+            let blocks = attribution.stored(body: body, author: author, previous: headBlocks)
+            return try store.appendRevision(
+                NewNoteRevision(
+                    docID: docID, author: author, state: .proposed, body: body, summary: summary,
+                    blocksJSON: blocks.json, metaJSON: metaJSON, now: now()))
+        }
+
+        private func storeApplied(
+            author: String, body: String, summary: String?, metaJSON: String?, blocks: StoredBlocks?,
+            sourceVersion: String? = nil
+        ) throws -> Int64 {
+            guard let docID else { throw NotesError.guardRejected(rule: "noDocument") }
+            let stored = blocks ?? attribution.stored(body: body, author: author, previous: headBlocks)
+            let id = try store.appendRevision(
+                NewNoteRevision(
+                    docID: docID, author: author, state: .applied, body: body, summary: summary,
+                    blocksJSON: stored.json, metaJSON: metaJSON, now: now(), expectedHeadID: headID,
+                    sourceVersionSeen: sourceVersion))
+            attribution.add(author: author, body: body)
+            setHead(id, body: body, stored: stored, author: author)
+            sessionRevisionID = nil
+            pruneAfterWrite()
+            return id
+        }
+
+        func reconcile(_ layer: NoteLayer) throws -> Reconciliation {
+            if let reason = store.blockedReason { throw reason }
+            guard let docID else { return .unchanged }
+            try reloadIfNeeded()
+            guard let document = try store.document(id: docID) else {
+                throw NotesError.guardRejected(rule: "noDocument")
+            }
+            guard document.sourceVersionSeen != layer.version else { return .unchanged }
+            sessionRevisionID = nil
+            if headBody == layer.markdown {
+                try store.setSourceVersionSeen(docID: docID, version: layer.version)
+                return .versionOnly
+            }
+            let author = layer.author.rawValue
+            var sourceBlocks = BlockAttribution.seeded(layer: layer)
+            let texts = MarkdownBlocks.split(layer.markdown)
+            for index in sourceBlocks.blocks.indices where index < texts.count {
+                sourceBlocks.blocks[index].author = attribution.author(of: texts[index]) ?? author
+            }
+            let meta = NoteMeta.json(["source_version": layer.version])
+            if try store.hasUserWriting(docID) {
+                let id = try store.appendRevision(
+                    NewNoteRevision(
+                        docID: docID, author: author, state: .proposed, body: layer.markdown,
+                        blocksJSON: sourceBlocks.json, metaJSON: meta, now: now(), sourceVersionSeen: layer.version))
+                return .proposed(revisionID: id)
+            }
+            let id = try storeApplied(
+                author: author, body: layer.markdown, summary: nil, metaJSON: meta, blocks: sourceBlocks,
+                sourceVersion: layer.version)
+            return .applied(revisionID: id)
+        }
+
+        private func pruneAfterWrite() {
+            guard let docID else { return }
+            do {
+                try store.prune(docID: docID)
+            } catch {
+                log.error(NotesLogEvent("prune", code: (error as? NotesError)?.code ?? "pruneFailed"))
+            }
+        }
+    }
+}
+
+/// `note_revision.meta_json`: model id, prompt version, comment ids, `restored_from`, `base_head_id`. Built with
+/// a serializer, never by string interpolation.
+enum NoteMeta {
+    static func json(_ values: [String: Any]) -> String? {
+        guard JSONSerialization.isValidJSONObject(values),
+            let data = try? JSONSerialization.data(withJSONObject: values, options: [.sortedKeys])
+        else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+}

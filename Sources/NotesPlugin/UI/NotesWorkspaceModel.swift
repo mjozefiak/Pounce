@@ -32,6 +32,15 @@ final class NotesWorkspaceModel {
         /// time leaves the tab "unavailable" and does not hold up the other tabs.
         var clock: any Clock<Duration> = ContinuousClock()
         var contentBudget: Duration = SourceFanOut.defaultBudget
+        /// The open documents (one writer each). `nil` until the store is wired (tests, QA without a store).
+        var registry: NoteDocumentRegistry?
+        /// The overlaid layers of a note, read from `notes.sqlite` when it is opened; empty when there are none or
+        /// the store cannot be read.
+        var overlayHeads: @Sendable (NoteItemID) async -> [OverlayLayerHead] = { _ in [] }
+        /// Reconciles a note's overlays with its source when it is opened.
+        var reconcile: @Sendable (NoteKey) async -> Void = { _ in }
+        /// The detach sweep loop: runs on source activation and every 10 minutes while the section is alive.
+        var sweepLoop: @Sendable () async -> Void = {}
     }
 
     enum LoadState: Equatable {
@@ -176,6 +185,8 @@ final class NotesWorkspaceModel {
         #if DEBUG
         if holdsLoading { return }
         #endif
+        let sweeps = Task { await environment.sweepLoop() }
+        defer { sweeps.cancel() }
         await refresh()
         #if DEBUG
         if let text = initialSearch {
@@ -253,6 +264,22 @@ final class NotesWorkspaceModel {
         tabs.close(id)
         documents[id] = nil
         contentEpochs[id] = nil
+        // The buffer is written before the document is forgotten, then the deferred delete of a detached row runs.
+        if let registry = environment.registry { Task { await registry.release(item: id) } }
+    }
+
+    /// A detach re-keyed an open note: its tab and document move from `.live(key)` to
+    /// `.detached(key, startedAtMs:)` and are labelled "Recording removed". A new live note with the same key
+    /// (a recreated store's row 1) is a different identity and opens in its own tab.
+    func rekeyDetached(key: NoteKey, startedAtMs: Int64) {
+        let old = NoteItemID.live(key)
+        let new = NoteItemID.detached(key, startedAtMs: startedAtMs)
+        guard tabs.rekey(from: old, to: new) else { return }
+        documents[new] = documents.removeValue(forKey: old).map { _ in NoteDocumentModel(id: new) }
+        contentEpochs[old] = nil
+        let title = tabs.tabs.first { $0.id == new }?.title ?? key.rawValue
+        tabs.update(new, title: title, isBusy: false)
+        Task { await loadContent(new) }
     }
 
     /// ⌘W: closes the current tab. Returns `true` when other tabs stay, so the window stays; the last tab closes
@@ -292,19 +319,38 @@ final class NotesWorkspaceModel {
         guard let document = documents[id] else { return }
         let epoch = (contentEpochs[id] ?? 0) + 1
         contentEpochs[id] = epoch
+        if case .detached = id {
+            // A detached note shows only its overlaid layers; the source is never asked (it would answer with
+            // the text of another recording, or of none).
+            let heads = await environment.overlayHeads(id)
+            guard isCurrent(epoch, id, document) else { return }
+            if let content = NoteOverlayContent.compose(
+                item: id, source: nil, heads: heads, summary: row(for: id)?.summary)
+            {
+                document.apply(content)
+                document.setActions([])
+            } else {
+                document.markUnavailable()
+            }
+            return
+        }
         guard let source = await environment.library.source(for: id.key) else {
             if isCurrent(epoch, id, document) { document.markUnavailable() }
             return
         }
         let key = id.key
+        await environment.reconcile(key)
+        guard isCurrent(epoch, id, document) else { return }
         let outcome = await SourceFanOut.call(budget: environment.contentBudget, clock: environment.clock) {
             try await source.content(for: key)
         }
         // The tab was closed, or a newer read of this note began: its answer wins.
         guard isCurrent(epoch, id, document) else { return }
         switch outcome {
-        case .value(let content):
-            document.apply(content)
+        case .value(let read):
+            let heads = await environment.overlayHeads(id)
+            guard isCurrent(epoch, id, document) else { return }
+            document.apply(NoteOverlayContent.compose(item: id, source: read, heads: heads, summary: nil))
             document.setActions(source.actions(for: key))
             #if DEBUG
             if let layer = preferredLayers.removeValue(forKey: id) { document.selectLayer(layer) }

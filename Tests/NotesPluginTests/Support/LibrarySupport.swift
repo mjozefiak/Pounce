@@ -173,6 +173,7 @@ final class ScriptedNoteSource: NoteSource, Sendable {
     private let existsStarts = CountLatch()
     private let contentStarts = CountLatch()
     private let changeStreamsOpened = CountLatch()
+    private let deletes = CountLatch()
 
     let pluginID: PluginID
     private let state: Mutex<State>
@@ -277,7 +278,11 @@ final class ScriptedNoteSource: NoteSource, Sendable {
         case .answers: return content
         }
     }
-    func delete(_ key: NoteKey) async throws {}
+    func delete(_ key: NoteKey) async throws { deletes.increment() }
+    /// How many times Notes asked the source to delete a note.
+    var deleteCalls: Int { deletes.count }
+    /// How many times `content(for:)` was called.
+    var contentCalls: Int { contentStarts.count }
     func actions(for key: NoteKey) -> [NoteSourceAction] { state.withLock { $0.actions } }
     func setActions(_ actions: [NoteSourceAction]) { state.withLock { $0.actions = actions } }
 
