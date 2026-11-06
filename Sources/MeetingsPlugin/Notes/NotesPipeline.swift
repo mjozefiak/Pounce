@@ -89,7 +89,7 @@ struct NotesPipeline: Sendable {
     struct Configuration: Sendable {
         var chunkTokens = TranscriptChunker.defaultChunkTokens
         var reduceInputTokens = 4500
-        var mapMaxTokens = 700
+        var mapMaxTokens = 1000
         var reduceMaxTokens = 1500
         var mapTimeout: Duration = .seconds(300)
         var reduceTimeout: Duration = .seconds(600)
