@@ -26,10 +26,12 @@ Remove the GitHub Pages landing page that the new Next.js site replaces, and poi
 
 ## Progress
 
+PR: #61
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: C2
 
-- [ ] 1.1 Remove the old page, its workflow and its test
-- [ ] 1.2 Repoint AGENTS.md, SDLC.md, README.md, the About URL and the UI checklist
-- [ ] 1.3 Run the validation gate
+- [x] 1.1 Remove the old page, its workflow and its test — 33fed3e
+- [x] 1.2 Repoint AGENTS.md, SDLC.md, README.md, the About URL and the UI checklist — 33fed3e
+- [x] 1.3 Run the validation gate — 33fed3e
