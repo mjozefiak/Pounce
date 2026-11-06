@@ -153,12 +153,11 @@ struct DictationNoteSourceTests {
         #expect(try await rig.source.content(for: foreign) == nil)
         try await rig.source.delete(removed)  // idempotent
         try await rig.source.delete(foreign)  // belongs to an earlier store: nothing to delete
-        await #expect(throws: DictationNoteSourceError.invalidArgument) {
-            _ = try await rig.source.exists([NoteKey(pluginID: "dictation", id: "nonsense")])
-        }
-        await #expect(throws: DictationNoteSourceError.invalidArgument) {
-            _ = try await rig.source.exists([NoteKey(pluginID: "meetings", id: "\(storeID)/1")])
-        }
+        // A malformed key or a key of another plugin in the batch does not fail the others.
+        let malformed = NoteKey(pluginID: "dictation", id: "nonsense")
+        let other = NoteKey(pluginID: "meetings", id: "\(storeID)/1")
+        #expect(try await rig.source.exists([malformed, kept, other]) == [kept])
+        #expect(try await rig.source.exists([malformed, other]).isEmpty)
     }
 
     @Test("the store id is stable across launches and changes after Erase Data")

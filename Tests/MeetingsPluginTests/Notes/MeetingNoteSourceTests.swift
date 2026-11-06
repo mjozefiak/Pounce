@@ -133,6 +133,16 @@ struct MeetingNoteSourceReadingTests {
         }
     }
 
+    @Test("a foreign or empty key in an exists batch is left out and never fails the other keys")
+    func foreignKeysInBatch() async throws {
+        let rig = try NoteSourceRig()
+        let known = try rig.key("plain")
+        let foreign = NoteKey(pluginID: "dictation", id: "abcd/1")
+        let empty = NoteKey(pluginID: "meetings", id: "")
+        #expect(try await rig.source.exists([foreign, known, empty]) == [known])
+        #expect(try await rig.source.exists([foreign, empty]).isEmpty)
+    }
+
     @Test("exists answers a large batch")
     func largeBatch() async throws {
         let rig = try NoteSourceRig()

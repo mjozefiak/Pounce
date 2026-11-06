@@ -143,9 +143,11 @@ final class DictationNoteSource: NoteSource {
 
     func exists(_ keys: [NoteKey]) async throws -> Set<NoteKey> {
         let (store, storeID) = try open
+        // A key that is not this source's (another plugin, or not `<store id>/<row id>`) is not in the batch's
+        // answer; it never fails the keys that are. The store is open here, so absence is a real answer.
         var wanted: [Int64: NoteKey] = [:]
         for key in keys {
-            if let row = try rowID(of: key, storeID: storeID) { wanted[row] = key }
+            if let row = (try? rowID(of: key, storeID: storeID)) ?? nil { wanted[row] = key }
         }
         return try await Self.existing(store: store, wanted: wanted)
     }

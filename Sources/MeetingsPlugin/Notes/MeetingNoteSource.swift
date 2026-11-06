@@ -146,7 +146,9 @@ final class MeetingNoteSource: NoteSource {
 
     func exists(_ keys: [NoteKey]) async throws -> Set<NoteKey> {
         let store = try openStore
-        let wanted = try keys.map { try uuid(of: $0) }
+        // A key that is not this source's (another plugin, or an empty id) is not in the answer; it never fails
+        // the keys that are. The store is open here, so absence is a real answer.
+        let wanted = keys.compactMap { try? uuid(of: $0) }
         return try await Self.existing(store: store, uuids: wanted, pluginID: pluginID)
     }
 
