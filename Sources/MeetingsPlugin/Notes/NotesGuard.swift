@@ -35,8 +35,9 @@ struct NotesReduceOutput: Equatable, Sendable {
 /// After `verifyReduce`:
 /// - An id that is not a verified point of that kind is dropped; a verified decision, task or question that the
 ///   model left out and that has no near-duplicate in its section is added back (nothing verified is lost).
-/// - The paragraph is kept only when it passes every check of `summaryIsFaithful`; otherwise it is composed in
-///   code from the verified points' texts.
+/// - The paragraph is kept only when it passes every check of `summaryIsFaithful`; otherwise the sentences that
+///   each pass those checks on their own are kept when at least two and half of the words remain
+///   (`salvagedSentences`), and failing that it is composed in code from the verified points' texts.
 /// - The key points are the verified summary points in time order, chosen by the code (REDUCE has no say), with
 ///   the same near-duplicate rule as the sections; a point whose whole text already is a sentence of the
 ///   composed paragraph is not listed again.
@@ -565,6 +566,9 @@ struct NotesGuard: Sendable {
             case model
             /// The model's paragraph was refused; the paragraph is composed from the points.
             case composedAfterRefusal
+            /// The model's paragraph was refused as a whole; the sentences that each pass the same checks
+            /// are kept in their order (at least two, at least half of the words).
+            case salvagedSentences
             /// The model gave no paragraph (or REDUCE failed); the paragraph is composed from the points.
             case composedWithoutModelParagraph
         }
@@ -653,8 +657,13 @@ struct NotesGuard: Sendable {
         if let proposed = output.summary.map(Self.plain), !proposed.isEmpty, !points.isEmpty {
             if let refusal = summaryRefusal(proposed, points: points) {
                 replaced = true
-                trail?.summaryOrigin = .composedAfterRefusal
                 trail?.summaryRefusal = refusal
+                if let salvaged = salvagedSentences(of: proposed, points: points) {
+                    summary = salvaged
+                    trail?.summaryOrigin = .salvagedSentences
+                } else {
+                    trail?.summaryOrigin = .composedAfterRefusal
+                }
             } else {
                 summary = proposed
                 trail?.summaryOrigin = .model
@@ -747,9 +756,16 @@ struct NotesGuard: Sendable {
     func summaryRefusal(_ summary: String, points: [NotesPoint]) -> SummaryRefusal? {
         if summary.count > Self.maxSummaryLength { return .tooLong }
         if summary.split(whereSeparator: \.isWhitespace).count > Self.maxSummaryWords { return .tooManyWords }
-        let summaryLanguage = NotesLanguage.dominant(in: summary)
-        if language != .unknown, summaryLanguage != .unknown, summaryLanguage != language { return .languageChanged }
+        return textRefusal(summary, material: summaryMaterial(points: points))
+    }
 
+    /// What a summary is checked against: the vocabulary of the verified material and whether it has a negation.
+    private struct SummaryMaterial {
+        var vocabulary: Vocabulary
+        var hasNegation: Bool
+    }
+
+    private func summaryMaterial(points: [NotesPoint]) -> SummaryMaterial {
         var corpus: [String] = []
         var numbers: [String] = []
         for point in points {
@@ -762,14 +778,56 @@ struct NotesGuard: Sendable {
             corpus.append(contentsOf: NotesText.words(speaker))
             numbers.append(contentsOf: NotesText.numberUnits(speaker))
         }
-        let known = Vocabulary(words: corpus, numbers: numbers)
+        return SummaryMaterial(
+            vocabulary: Vocabulary(words: corpus, numbers: numbers),
+            hasNegation: corpus.contains(where: { Self.negations.contains($0) }))
+    }
 
-        if NotesText.words(summary).contains(where: { Self.negations.contains($0) }),
-            !corpus.contains(where: { Self.negations.contains($0) })
-        {
+    /// The language, negation and name/number checks of `summaryRefusal` (the length limits are not part of it).
+    private func textRefusal(_ text: String, material: SummaryMaterial) -> SummaryRefusal? {
+        let textLanguage = NotesLanguage.dominant(in: text)
+        if language != .unknown, textLanguage != .unknown, textLanguage != language { return .languageChanged }
+        if NotesText.words(text).contains(where: { Self.negations.contains($0) }), !material.hasNegation {
             return .negation
         }
-        return Self.faithfulnessRefusal(summary, vocabulary: known, strictStart: true)
+        return Self.faithfulnessRefusal(text, vocabulary: material.vocabulary, strictStart: true)
+    }
+
+    /// The sentences of a refused paragraph that each pass the checks of `summaryRefusal` on their own, in their
+    /// order. Nothing is relaxed: the same material, language and negation rules and the strict sentence starts
+    /// apply to every sentence, and the result must pass `summaryRefusal` as a whole. It is used only when at
+    /// least two sentences and at least half of the words of the paragraph remain; otherwise nil.
+    func salvagedSentences(of paragraph: String, points: [NotesPoint]) -> String? {
+        let sentences = Self.sentences(of: paragraph)
+        guard sentences.count >= 2 else { return nil }
+        let material = summaryMaterial(points: points)
+        let kept = sentences.filter { textRefusal($0, material: material) == nil }
+        guard kept.count >= 2 else { return nil }
+        func wordCount(_ text: String) -> Int { text.split(whereSeparator: \.isWhitespace).count }
+        guard wordCount(kept.joined(separator: " ")) * 2 >= wordCount(paragraph) else { return nil }
+        let joined = kept.joined(separator: " ")
+        return summaryRefusal(joined, points: points) == nil ? joined : nil
+    }
+
+    /// Sentences ending in `.`, `!` or `?` followed by white space or the end (the rule of `firstSentence`, so
+    /// `3.5` stays whole).
+    static func sentences(of text: String) -> [String] {
+        let flat = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        var result: [String] = []
+        var start = flat.startIndex
+        var index = flat.startIndex
+        while index < flat.endIndex {
+            let next = flat.index(after: index)
+            if ".!?".contains(flat[index]), next == flat.endIndex || flat[next].isWhitespace {
+                let sentence = flat[start..<next].trimmingCharacters(in: .whitespacesAndNewlines)
+                if !sentence.isEmpty { result.append(sentence) }
+                start = next
+            }
+            index = next
+        }
+        let rest = flat[start...].trimmingCharacters(in: .whitespacesAndNewlines)
+        if !rest.isEmpty { result.append(rest) }
+        return result
     }
 
     /// The first sentences of the points, used when the model's paragraph is missing or refused.
