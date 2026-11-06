@@ -128,6 +128,16 @@ Not a hard contract, but changes need a release note:
 - **First launch** (v1.0): one welcome screen (welcome, shortcut, then each enabled plugin's steps, each skippable) replaces the separate shortcut window. **About Lintel** opens Lintel's own window with the third-party notices instead of the standard panel.
 - **The main window** (spec `2026-11-04-lintel-main-window`, step 6.3a; ADR 0008 "Release gate"): a click on the Dock icon, ⌘, and the menu bar's "Settings…" open the Lintel main window (Settings mode while no workspace section is registered) (the toolbar Settings window no longer exists), and so do the launcher's and the plugins' "Open Settings" and "Download model" links (the Models pane). While the main window (or its sheet, popover or panel) is key it installs Lintel's main menu (Settings… ⌘,, Edit, Window and the section's menu, with no Quit, Hide or Close item); the launcher panel is unaffected, so ⌘Q and ⌘H never fire while it has focus (`MainMenuPolicy`). `app.showInDock` still decides whether the Dock icon exists; with it off the window opens from the menu bar or ⌘,. The welcome screen is one column and ends on a "You're set" page that opens the main window. The window restores its mode, section and pane (`app.mainWindow.*`, section 3) and its frame. Every Clear, Erase and Reset in a settings pane asks through a sheet ("This can't be undone."). Rollback: reverting the commits of steps 6.3a–c restores the old Settings window; no data or key changes with it, so nothing needs exporting.
 
+## 6. Release assets (the website reads them)
+
+The Lintel website (`lintel-web`, <https://lintelapp.com>) is built from the latest GitHub Release: it picks the download link, size, version and SHA-256 from the release assets, and `.github/workflows/release.yml` asks it to rebuild after each release (`LINTEL_WEB_DEPLOY_HOOK`).
+
+**Surface:** every release published from a `v<CFBundleShortVersionString>` tag carries exactly one asset whose name ends in `.dmg` (today `Lintel.dmg`) and exactly one whose name ends in `.dmg.sha256` (today `Lintel.dmg.sha256`, content `<64 hex characters>  <dmg name>`, as `shasum -a 256` prints it). The site matches on the suffixes, takes the version from the tag without the `v`, and shows no SHA line when the checksum asset is missing or unreadable.
+
+**Breaking:** a release with no `.dmg` asset or with more than one; dropping or renaming the `.dmg.sha256` suffix; changing the checksum file to another layout; a tag that is not `v` + the app version; moving releases to another repository without updating the site's `GITHUB_REPO`.
+
+**Required path:** change the site and this contract in the same change (a PR on `lintel-web` that reads the new shape first, then the release workflow). The release notes are free text and are not parsed.
+
 ## Not protected
 
 Internal types outside `LintelKit`, `LintelCore` internals, view layout, caches under `~/Library/Caches/Lintel/`, log messages, build scripts' internals and CI workflow structure may change freely, as long as the validation gate stays green.
