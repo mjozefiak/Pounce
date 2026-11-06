@@ -3,7 +3,8 @@ import Foundation
 /// Writes the notes. The Markdown is composed here from verified points. What is guaranteed:
 /// - the headings, labels, participants and the person and due-date wording are the code's own;
 /// - every bullet is a verified point's text (checked against its quote, or the transcript's own words of the
-///   quote when it was not) with the time of the quote;
+///   quote when it was not) with the time of the quote; the key points are the verified summary points in time
+///   order (`NotesGuard.ReduceVerdict.keyPoints`), between the summary and the decisions;
 /// - the summary paragraph is either composed in code from those texts or the model's paragraph, which is the
 ///   one piece of model wording that can appear, and only after `NotesGuard.summaryIsFaithful` found no name,
 ///   number, date or negation in it that the verified material lacks (a paraphrase is possible);
@@ -17,6 +18,7 @@ import Foundation
 enum NotesComposer {
     struct Labels: Sendable, Equatable {
         var summary: String
+        var keyPoints: String
         var decisions: String
         var tasks: String
         var questions: String
@@ -26,12 +28,12 @@ enum NotesComposer {
         var nothing: String
 
         static let polish = Labels(
-            summary: "Podsumowanie", decisions: "Decyzje", tasks: "Zadania", questions: "Otwarte pytania",
-            participants: "Uczestnicy", person: "osoba", due: "termin",
+            summary: "Podsumowanie", keyPoints: "Kluczowe punkty", decisions: "Decyzje", tasks: "Zadania",
+            questions: "Otwarte pytania", participants: "Uczestnicy", person: "osoba", due: "termin",
             nothing: "W nagraniu nie znaleziono decyzji, zadań ani otwartych pytań.")
         static let english = Labels(
-            summary: "Summary", decisions: "Decisions", tasks: "Action items", questions: "Open questions",
-            participants: "Participants", person: "owner", due: "due",
+            summary: "Summary", keyPoints: "Key points", decisions: "Decisions", tasks: "Action items",
+            questions: "Open questions", participants: "Participants", person: "owner", due: "due",
             nothing: "No decisions, action items or open questions were found in the recording.")
 
         /// Labels in the language of the transcript; `fallback` when the text does not tell.
@@ -59,6 +61,10 @@ enum NotesComposer {
         if let summary = shownSummary(of: verdict) {
             heading(labels.summary)
             lines.append(summary)
+        }
+        if !verdict.keyPoints.isEmpty {
+            heading(labels.keyPoints)
+            bullets(verdict.keyPoints.map { item($0, labels: labels) })
         }
         if !verdict.decisions.isEmpty {
             heading(labels.decisions)

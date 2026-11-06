@@ -187,7 +187,7 @@ final class NotesTraceLog: Sendable {
         #expect(result.rejectedIDs == 2)
         #expect(result.backfilledCount == 2)
         let points = log.points
-        #expect(points["p1"]?.fate == .notRendered(.summaryKindModelParagraph))
+        #expect(points["p1"]?.fate == .rendered(.keyPoints, via: .listedByCode))
         #expect(points["p2"]?.fate == .rendered(.decisions, via: .reduce))
         #expect(points["p3"]?.fate == .rendered(.tasks, via: .backfilled))
         #expect(points["p4"]?.fate == .notRendered(.nearDuplicateInSection(of: "p2")))
@@ -199,8 +199,8 @@ final class NotesTraceLog: Sendable {
         let balance = log.balance
         #expect(balance.isBalanced)
         #expect(balance.verified == 5)
-        #expect(balance.rendered == 3)
-        #expect(balance.notRendered == 2)
+        #expect(balance.rendered == 4)
+        #expect(balance.notRendered == 1)
 
         let reduce = try #require(log.reduce)
         #expect(reduce.rejectedIDs == 2)
@@ -209,12 +209,14 @@ final class NotesTraceLog: Sendable {
         #expect(reduce.backfilled == 2)
         #expect(reduce.nearDuplicatesSkipped == 1)
         #expect(reduce.decisions == 1 && reduce.tasks == 1 && reduce.questions == 1)
+        #expect(reduce.keyPoints == 1)
         #expect(reduce.batches == 1 && reduce.sectionRequests == 1 && !reduce.reduceFailed)
         #expect(log.summary == NotesTraceSummary(origin: .model, present: true, shown: true, sourceIDs: []))
-        #expect(log.all.last == .finished(status: .ok, verified: 5, rendered: 3, notRendered: 2))
+        #expect(log.all.last == .finished(status: .ok, verified: 5, rendered: 4, notRendered: 1))
 
         // The composer shows what the trace says it shows.
         let markdown = try #require(result.markdown)
+        #expect(markdown.contains("### Kluczowe punkty"))
         #expect(markdown.contains("Zatwierdzamy budżet marketingu na ten kwartał."))
         #expect(!markdown.contains("bez zmian"))
     }
@@ -286,6 +288,112 @@ final class NotesTraceLog: Sendable {
         #expect(points["p3"]?.fate == .rendered(.tasks, via: .codeOrder))
         #expect(points["p4"]?.fate == .rendered(.questions, via: .codeOrder))
         #expect(log.balance.isBalanced)
+    }
+
+    // MARK: Key points
+
+    /// Six utterances with nothing in common but the language: a podcast, where MAP finds summary points only.
+    private func podcast() -> [NotesUtterance] {
+        [
+            NotesUtterance(
+                startMs: 5_000, speaker: "Anna",
+                text: "Przejdźmy do budżetu, na marketing zostało czterdzieści tysięcy złotych."),
+            NotesUtterance(
+                startMs: 20_000, speaker: "Marek", text: "Kampania w telewizji kosztowała więcej niż zakładaliśmy."),
+            NotesUtterance(startMs: 40_000, speaker: "Ewa", text: "Klienci chwalą nową aplikację mobilną."),
+            NotesUtterance(startMs: 60_000, speaker: "Piotr", text: "Konkurencja obniżyła ceny w zeszłym miesiącu."),
+            NotesUtterance(startMs: 80_000, speaker: "Anna", text: "Zespół sprzedaży potrzebuje dwóch nowych osób."),
+            NotesUtterance(
+                startMs: 100_000, speaker: "Marek", text: "Serwer produkcyjny działał stabilnie przez cały kwartał."),
+        ]
+    }
+
+    /// MAP gives a summary point for every line and one more whose quote nobody said (the last, so `p7`);
+    /// REDUCE lists nothing and writes `paragraph`.
+    private static func summaryOnly(paragraph: String) -> ScriptedLLM.Handler {
+        { _, messages, _ in
+            if NotesFake.isMap(messages) {
+                var lines = NotesFake.transcriptLines(messages).map { line in
+                    let quote = line.text.trimmingCharacters(in: CharacterSet(charactersIn: ".?!"))
+                    return "SUM | \(line.time) | \"\(quote)\" | \(quote)."
+                }
+                lines.append("SUM | 00:30 | \"Zarząd zatwierdził fuzję z konkurencją\" | Zarząd zatwierdził fuzję.")
+                return .done(lines.joined(separator: "\n"))
+            }
+            if NotesFake.isReduce(messages) {
+                return .done("SUMMARY: \(paragraph)\nDECISIONS: -\nTASKS: -\nQUESTIONS: -")
+            }
+            return .done(NotesFake.answer(messages))
+        }
+    }
+
+    /// The bullets under the key points heading, in order.
+    private static func keyPointLines(_ markdown: String) -> [String] {
+        let lines = markdown.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        guard let start = lines.firstIndex(of: "### Kluczowe punkty") else { return [] }
+        return Array(lines[(start + 1)...].drop { $0.isEmpty }.prefix { $0.hasPrefix("- ") })
+    }
+
+    @Test func summaryPointsOnlyAreAllShownAsKeyPointsInTimeOrder() async throws {
+        let log = NotesTraceLog()
+        let (result, _) = try await run(
+            Scenario(utterances: podcast(), handler: Self.summaryOnly(paragraph: "Spotkanie dotyczyło budżetu.")),
+            trace: log)
+        #expect(result.status == .ok)
+        #expect(result.droppedCount == 1)
+        #expect(result.verifiedPointCount == 6)
+        #expect(result.keyPoints.map(\.id) == ["p1", "p2", "p3", "p4", "p5", "p6"])
+        #expect(result.points.isEmpty)
+        let markdown = try #require(result.markdown)
+        #expect(
+            Self.keyPointLines(markdown) == [
+                "- Przejdźmy do budżetu, na marketing zostało czterdzieści tysięcy złotych. \\[00\\:05\\]",
+                "- Kampania w telewizji kosztowała więcej niż zakładaliśmy. \\[00\\:20\\]",
+                "- Klienci chwalą nową aplikację mobilną. \\[00\\:40\\]",
+                "- Konkurencja obniżyła ceny w zeszłym miesiącu. \\[01\\:00\\]",
+                "- Zespół sprzedaży potrzebuje dwóch nowych osób. \\[01\\:20\\]",
+                "- Serwer produkcyjny działał stabilnie przez cały kwartał. \\[01\\:40\\]",
+            ])
+        #expect(!markdown.contains("fuzj"))
+        #expect(!markdown.contains("### Decyzje"))
+        #expect(log.summary?.origin == .model)
+        #expect(log.points.values.allSatisfy { $0.fate == .rendered(.keyPoints, via: .listedByCode) })
+        #expect(log.reduce?.keyPoints == 6)
+        let balance = log.balance
+        #expect(balance.isBalanced)
+        #expect(balance.verified == 6 && balance.rendered == 6 && balance.notRendered == 0 && balance.unexplained == 0)
+    }
+
+    /// The measured case: the model's paragraph is refused, the code composes it from the first four summary
+    /// points, and the others stand as key points; nothing is said twice and nothing is lost.
+    @Test func aRefusedParagraphLeavesTheOtherSummaryPointsAsKeyPoints() async throws {
+        let log = NotesTraceLog()
+        let (result, _) = try await run(
+            Scenario(
+                utterances: podcast(), handler: Self.summaryOnly(paragraph: "Kowalski zgodził się na 50 tysięcy.")),
+            trace: log)
+        #expect(result.summaryReplaced)
+        #expect(log.summary?.origin == .composedAfterRefusal)
+        #expect(log.summary?.sourceIDs == ["p1", "p2", "p3", "p4"])
+        #expect(result.keyPoints.map(\.id) == ["p5", "p6"])
+        let markdown = try #require(result.markdown)
+        #expect(
+            Self.keyPointLines(markdown) == [
+                "- Zespół sprzedaży potrzebuje dwóch nowych osób. \\[01\\:20\\]",
+                "- Serwer produkcyjny działał stabilnie przez cały kwartał. \\[01\\:40\\]",
+            ])
+        #expect(markdown.components(separatedBy: "Klienci chwalą nową aplikację mobilną.").count == 2)
+        #expect(!markdown.contains("fuzj"))
+        let points = log.points
+        for id in ["p1", "p2", "p3", "p4"] {
+            #expect(points[id]?.fate == .rendered(.summary, via: .composedSummary), "\(id)")
+        }
+        for id in ["p5", "p6"] { #expect(points[id]?.fate == .rendered(.keyPoints, via: .listedByCode), "\(id)") }
+        #expect(!points.values.contains { $0.fate == .notRendered(.summaryKindNotInComposedParagraph) })
+        let balance = log.balance
+        #expect(balance.isBalanced)
+        #expect(balance.verified == 6 && balance.rendered == 6 && balance.unexplained == 0)
+        #expect(log.all.last == .finished(status: .ok, verified: 6, rendered: 6, notRendered: 0))
     }
 
     // MARK: Attempts
