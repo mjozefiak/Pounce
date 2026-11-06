@@ -13,7 +13,7 @@ struct NoteDocumentView: View {
         VStack(alignment: .leading, spacing: 0) {
             switch document.phase {
             case .loading:
-                Color.clear
+                NoteSkeletonDocument()
             case .unavailable:
                 message(Text("This note is not available right now.", comment: "Document: its source did not answer"))
             case .gone:
@@ -49,7 +49,9 @@ struct NoteDocumentBody: View {
                         NoteDocumentHeader(model: model, document: document, summary: summary)
                     }
                     if document.blocks.isEmpty {
-                        Text("This note has no text yet.", comment: "Document: the shown layer has no text")
+                        (document.state == .interrupted
+                            ? Text("No transcript yet.", comment: "Document: an interrupted meeting has no transcript")
+                            : Text("This note has no text yet.", comment: "Document: the shown layer has no text"))
                             .font(textSize.font(.callout))
                             .foregroundStyle(LintelBrand.secondaryText)
                             .padding(.leading, 5.4 * 12.5 * textSize.scale)

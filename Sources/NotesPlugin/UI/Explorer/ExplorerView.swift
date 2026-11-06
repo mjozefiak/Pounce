@@ -16,9 +16,7 @@ struct ExplorerView: View {
             header
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    if model.isSearching, model.rows.isEmpty, let query = model.searchQuery {
-                        ExplorerNoResults(query: query.raw)
-                    }
+                    ExplorerPlaceholder(screen: model.screen)
                     if model.isSearching {
                         ForEach(model.rows) { row in
                             ExplorerRowView(model: model, row: row)
@@ -45,11 +43,13 @@ struct ExplorerView: View {
         HStack(spacing: 4) {
             Text("Notes", comment: "Explorer: label above the list")
                 .font(textSize.font(.callout, weight: .semibold))
-            Text(verbatim: "\(model.total)")
+            Text(verbatim: model.screen == .locked ? "—" : "\(model.total)")
                 .font(textSize.font(.callout, weight: .semibold))
                 .opacity(0.7)
                 .accessibilityLabel(
-                    Text("\(model.total) notes", comment: "Accessibility: how many notes the list holds"))
+                    model.screen == .locked
+                        ? Text("Locked", comment: "Explorer: the notes are locked")
+                        : Text("\(model.total) notes", comment: "Accessibility: how many notes the list holds"))
             Spacer(minLength: 0)
             groupingMenu
         }

@@ -119,7 +119,7 @@ struct NotePathBar: View {
             .padding(.trailing, 12 * textSize.scale)
             .frame(height: 32.5 * textSize.scale)
             LintelDivider()
-            if model.feedback == .saveFailed { SaveErrorStrip(model: model) }
+            ForEach(model.strips) { strip in NoteStripView(strip: strip, model: model) }
         }
         .accessibilityElement(children: .contain)
         .task(id: model.feedbackSerial) {
@@ -170,47 +170,6 @@ struct NotePathBar: View {
     }
 }
 
-/// The strip under the path bar when saving failed (prototype `lib-saveerror`).
-struct SaveErrorStrip: View {
-    let model: NotesWorkspaceModel
-    @Environment(\.lintelTextSize) private var textSize
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 10) {
-                Circle().fill(LintelBrand.statusError).frame(width: 7 * textSize.scale, height: 7 * textSize.scale)
-                    .accessibilityHidden(true)
-                Text(verbatim: NotePathBar.text(.saveFailed))
-                    .font(textSize.font(.callout))
-                    .foregroundStyle(LintelBrand.ink)
-                Spacer(minLength: 0)
-                Button {
-                    Task { await model.saveMarkdown() }
-                } label: {
-                    Text("Try again", comment: "Notes: saves the Markdown file again")
-                        .font(textSize.font(.callout, weight: .semibold))
-                        .foregroundStyle(LintelBrand.accentText)
-                }
-                .buttonStyle(.plain)
-                Button {
-                    model.dismissFeedback()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(textSize.font(.caption2, weight: .semibold))
-                        .foregroundStyle(LintelBrand.secondaryText)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(Text("Dismiss", comment: "Accessibility label of a strip's close button"))
-            }
-            .padding(.horizontal, 16 * textSize.scale)
-            .frame(minHeight: 28.75 * textSize.scale)
-            .background(LintelBrand.statusError.opacity(0.11))
-            LintelDivider()
-        }
-        .accessibilityElement(children: .contain)
-    }
-}
-
 /// The status bar (prototype `.sbar`): what is true of the whole section, in words.
 struct NotesStatusBar: View {
     let model: NotesWorkspaceModel
@@ -220,13 +179,16 @@ struct NotesStatusBar: View {
         VStack(spacing: 0) {
             LintelDivider()
             HStack(spacing: 14) {
-                Label {
-                    Text("Encrypted on this Mac", comment: "Notes status bar: where the notes are stored")
-                } icon: {
-                    Image(systemName: "lock")
+                if let line = model.statusLine { StatusLineView(line: line) }
+                if model.showsEncryptionNote {
+                    Label {
+                        Text("Encrypted on this Mac", comment: "Notes status bar: where the notes are stored")
+                    } icon: {
+                        Image(systemName: "lock")
+                    }
                 }
                 Spacer(minLength: 0)
-                Text(verbatim: model.statusSummary)
+                Text(verbatim: model.statusRight)
             }
             .font(textSize.font(.footnote))
             .foregroundStyle(LintelBrand.secondaryText)
@@ -235,5 +197,47 @@ struct NotesStatusBar: View {
             .background(LintelBrand.sidebarBackground)
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// The dot or the spinner, the words and, while the length is known, the progress bar (prototype `.pb`).
+struct StatusLineView: View {
+    let line: NotesWorkspaceModel.StatusLine
+    @Environment(\.lintelTextSize) private var textSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        HStack(spacing: 6) {
+            switch line.kind {
+            case .busy:
+                Image(systemName: "arrow.triangle.2.circlepath")
+                    .foregroundStyle(LintelBrand.accentText)
+                    .accessibilityHidden(true)
+            default:
+                Circle().fill(color).frame(width: 7 * textSize.scale, height: 7 * textSize.scale)
+                    .accessibilityHidden(true)
+            }
+            Text(verbatim: line.text)
+            if case .busy(let progress?) = line.kind {
+                ZStack(alignment: .leading) {
+                    Capsule().fill(LintelBrand.hairline)
+                    GeometryReader { proxy in
+                        Capsule().fill(LintelBrand.accent).frame(width: proxy.size.width * progress)
+                    }
+                }
+                .frame(width: 8 * 12.5 * textSize.scale, height: 4)
+                .padding(.leading, 2)
+                .accessibilityHidden(true)
+            }
+        }
+    }
+
+    private var color: Color {
+        switch line.kind {
+        case .ok: LintelBrand.statusOk
+        case .attention: LintelBrand.statusAttention
+        case .error: LintelBrand.statusError
+        default: LintelBrand.hairline
+        }
     }
 }

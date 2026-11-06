@@ -11,6 +11,10 @@ enum NotesSettingsKey {
     /// DEBUG only: note keys to open in tabs when the section is built, comma separated, each optionally with
     /// `@<layer id>` for the layer to show (`--qa-setting plugins.notes.qaOpen=meetings:<id>@transcript`).
     static let qaOpen = "qaOpen"
+    /// DEBUG only, with `--qa-notes`: shows one whole-section state: `loading` (never finishes reading), `empty`
+    /// (no notes, recording on), `off` (no recording plugin), `locked` (nothing readable, `notes.sqlite` locked),
+    /// `locked-rows` (the sources are listed, `notes.sqlite` is locked), `save-error` (the save-error strip).
+    static let qaState = "qaState"
     /// DEBUG only: text typed into the explorer's search field once the first list is in.
     static let qaSearch = "qaSearch"
     #endif

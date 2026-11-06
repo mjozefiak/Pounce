@@ -57,12 +57,17 @@ public final class NotesPlugin: LintelPlugin {
     private func makeWorkspace() -> NotesWorkspaceModel {
         let context = context
         let provider = noteSourceProvider
-        let none = NoOverlays()
-        let library = NoteLibrary(sources: provider, overlays: none, detacher: none)
+        #if DEBUG
+        let locked = qaState == "locked" || qaState == "locked-rows"
+        let overlays: any OverlayIndex & OverlayDetacher = locked ? NotesQALockedOverlays() : NoOverlays()
+        #else
+        let overlays: any OverlayIndex & OverlayDetacher = NoOverlays()
+        #endif
+        let library = NoteLibrary(sources: provider, overlays: overlays, detacher: overlays)
         let model = NotesWorkspaceModel(
             environment: NotesWorkspaceModel.Environment(
                 library: library, pasteboard: context.pasteboard, sourceSetChanges: context.noteSourcesChanged,
-                openSettings: context.openSettings))
+                openSettings: context.openSettings, openModels: { context.openModels(nil) }))
         #if DEBUG
         openQAFixtureTabs(in: model)
         applyQAState(to: model)
@@ -71,8 +76,15 @@ public final class NotesPlugin: LintelPlugin {
     }
 
     #if DEBUG
-    /// `plugins.notes.qaSearch`: a typed search for QA.
+    private var qaState: String { context.settings.string(NotesSettingsKey.qaState) ?? "" }
+
+    /// `plugins.notes.qaState` and `plugins.notes.qaSearch`: whole-section states and a typed search for QA.
     private func applyQAState(to model: NotesWorkspaceModel) {
+        switch qaState {
+        case "loading": model.holdsLoading = true
+        case "save-error": model.qaShow(.saveFailed)
+        default: break
+        }
         if let text = context.settings.string(NotesSettingsKey.qaSearch), !text.isEmpty { model.initialSearch = text }
     }
 
@@ -95,8 +107,13 @@ public final class NotesPlugin: LintelPlugin {
         let real = context.noteSources
         #if DEBUG
         if context.settings.bool(NotesSettingsKey.qaFixtures, default: false) {
-            let fixtures = NotesQAFixtureSource.all()
-            return { fixtures + real() }
+            switch qaState {
+            case "off", "locked":
+                return { [] }
+            default:
+                let fixtures = NotesQAFixtureSource.all(empty: qaState == "empty")
+                return { fixtures + real() }
+            }
         }
         #endif
         return real

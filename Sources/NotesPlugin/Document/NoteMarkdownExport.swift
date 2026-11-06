@@ -80,16 +80,44 @@ enum NoteClipboard {
 protocol NoteFileSaving: Sendable {
     /// `true` when the file was written, `false` when the user cancelled; throws when the write failed.
     @MainActor func save(_ text: String, suggestedName: String) async throws -> Bool
+    /// "Try again" after a failed write: the same place without asking again. Defaults to asking.
+    @MainActor func retry(_ text: String, suggestedName: String) async throws -> Bool
 }
 
-struct NoteSavePanel: NoteFileSaving {
-    @MainActor func save(_ text: String, suggestedName: String) async throws -> Bool {
+extension NoteFileSaving {
+    @MainActor func retry(_ text: String, suggestedName: String) async throws -> Bool {
+        try await save(text, suggestedName: suggestedName)
+    }
+}
+
+/// The real saver. It remembers the file whose write failed, so "Try again" writes there and "Choose another
+/// place…" (a plain `save`) asks again.
+@MainActor
+final class NoteSavePanel: NoteFileSaving {
+    private var failedURL: URL?
+
+    func save(_ text: String, suggestedName: String) async throws -> Bool {
         let panel = NSSavePanel()
         panel.nameFieldStringValue = suggestedName
         panel.allowedContentTypes = [.init(filenameExtension: "md") ?? .plainText]
         panel.canCreateDirectories = true
         guard await panel.begin() == .OK, let url = panel.url else { return false }
-        try Data(text.utf8).write(to: url, options: .atomic)
-        return true
+        return try write(text, to: url)
+    }
+
+    func retry(_ text: String, suggestedName: String) async throws -> Bool {
+        guard let url = failedURL else { return try await save(text, suggestedName: suggestedName) }
+        return try write(text, to: url)
+    }
+
+    private func write(_ text: String, to url: URL) throws -> Bool {
+        do {
+            try Data(text.utf8).write(to: url, options: .atomic)
+            failedURL = nil
+            return true
+        } catch {
+            failedURL = url
+            throw error
+        }
     }
 }

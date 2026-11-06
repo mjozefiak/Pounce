@@ -92,6 +92,7 @@ final class ScriptedNoteSource: NoteSource, Sendable {
         var started = 0
         var contents: [NoteKey: NoteContent] = [:]
         var contentBehavior: Behavior = .answers
+        var actions: [NoteSourceAction] = []
         var continuations: [UUID: AsyncStream<Void>.Continuation] = [:]
     }
 
@@ -176,7 +177,8 @@ final class ScriptedNoteSource: NoteSource, Sendable {
         return content
     }
     func delete(_ key: NoteKey) async throws {}
-    func actions(for key: NoteKey) -> [NoteSourceAction] { [] }
+    func actions(for key: NoteKey) -> [NoteSourceAction] { state.withLock { $0.actions } }
+    func setActions(_ actions: [NoteSourceAction]) { state.withLock { $0.actions = actions } }
 
     func makeChanges() -> AsyncStream<Void> {
         let (stream, continuation) = AsyncStream.makeStream(of: Void.self, bufferingPolicy: .bufferingNewest(1))

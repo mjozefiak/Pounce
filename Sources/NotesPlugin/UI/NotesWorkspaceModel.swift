@@ -20,6 +20,10 @@ final class NotesWorkspaceModel {
         /// The context's `noteSourcesChanged`: one stream per call.
         var sourceSetChanges: @Sendable () -> AsyncStream<Void> = { AsyncStream { $0.finish() } }
         var openSettings: @MainActor () -> Void = {}
+        /// "Open Models" of the needs-model strip (`PluginContext.openModels`).
+        var openModels: @MainActor () -> Void = {}
+        /// The plugins whose recordings Notes lists; with none of them active the section says recording is off.
+        var recordingPluginIDs: Set<PluginID> = ["meetings", "dictation"]
         var now: @Sendable () -> Date = { Date() }
         var calendar: Calendar = .current
         var locale: Locale = .current
@@ -33,7 +37,7 @@ final class NotesWorkspaceModel {
 
     static let sectionID = "notes"
 
-    private let environment: Environment
+    let environment: Environment
     let presentation: NoteRowPresentation
 
     private(set) var loadState: LoadState = .loading
@@ -41,6 +45,9 @@ final class NotesWorkspaceModel {
     private(set) var groups: [NoteGroup] = []
     private(set) var total = 0
     private(set) var unavailable: [UnavailableSource] = []
+    /// `false` when `notes.sqlite` could not be read: the sources stay listed, writing is off (spec "Edge Cases").
+    private(set) var overlaysAvailable = true
+    private(set) var activePlugins: Set<PluginID> = []
     private var cursor: NoteListCursor?
 
     /// What the explorer's search field holds; `runSearch()` lists with it.
@@ -56,6 +63,8 @@ final class NotesWorkspaceModel {
     #if DEBUG
     /// QA (`plugins.notes.qaOpen`): the layer a note shows once its content has been read.
     var preferredLayers: [NoteItemID: String] = [:]
+    /// QA (`plugins.notes.qaState=loading`): `run()` never reads, so the loading screen stays.
+    var holdsLoading = false
     /// QA (`plugins.notes.qaSearch`): the text typed into the search field once the first list is in.
     var initialSearch: String?
     #endif
@@ -78,10 +87,13 @@ final class NotesWorkspaceModel {
         let query = searchQuery
         let listing = await environment.library.list(matching: query, after: nil, limit: environment.pageSize)
         guard query == searchQuery else { return }
+        let plugins = Set(await environment.library.activePluginIDs)
         rows = listing.rows
         cursor = listing.next
         total = listing.total
         unavailable = listing.unavailable
+        overlaysAvailable = listing.overlaysAvailable
+        activePlugins = plugins
         loadState = .loaded
         regroup()
         syncTabs()
@@ -138,6 +150,9 @@ final class NotesWorkspaceModel {
     /// The section's lifetime: reads the list, then again whenever a source (or the set of sources) changes.
     /// Returns when cancelled.
     func run() async {
+        #if DEBUG
+        if holdsLoading { return }
+        #endif
         await refresh()
         #if DEBUG
         if let text = initialSearch {
@@ -257,6 +272,7 @@ final class NotesWorkspaceModel {
         }
         do {
             document.apply(try await source.content(for: id.key))
+            document.setActions(source.actions(for: id.key))
             #if DEBUG
             if let layer = preferredLayers.removeValue(forKey: id) { document.selectLayer(layer) }
             #endif
@@ -312,6 +328,11 @@ final class NotesWorkspaceModel {
     /// Changes with every `feedback`, so the view can clear a message after a moment and announce it.
     private(set) var feedbackSerial = 0
 
+    #if DEBUG
+    /// QA (`plugins.notes.qaState=saveError`): shows the save-error strip without writing anything.
+    func qaShow(_ feedback: Feedback) { show(feedback) }
+    #endif
+
     private func show(_ feedback: Feedback?) {
         self.feedback = feedback
         feedbackSerial += 1
@@ -329,14 +350,18 @@ final class NotesWorkspaceModel {
         show(.copied)
     }
 
-    /// Save .md…: a save panel, then the file. A cancelled panel says nothing; a failed write says so.
-    func saveMarkdown() async {
+    /// Save .md…: a save panel, then the file. A cancelled panel says nothing; a failed write says so. `retry`
+    /// writes to the place that just failed instead of asking again ("Try again" of the save-error strip).
+    func saveMarkdown(retry: Bool = false) async {
         guard let document = currentDocument, let text = document.markdown, let summary = document.summary else {
             return
         }
         let name = NoteMarkdownExport.fileName(summary)
         do {
-            let saved = try await environment.saver.save(text, suggestedName: name)
+            let saved =
+                retry
+                ? try await environment.saver.retry(text, suggestedName: name)
+                : try await environment.saver.save(text, suggestedName: name)
             show(saved ? .saved : nil)
         } catch {
             show(.saveFailed)

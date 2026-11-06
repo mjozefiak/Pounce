@@ -33,6 +33,10 @@ final class NoteDocumentModel {
     /// The transcript block a quote chip jumped to; cleared by `clearHighlight()` or by switching layers.
     private(set) var highlightedBlock: Int?
     private(set) var scrollRequest: ScrollRequest?
+    /// What the source offers for this note (finish an interrupted meeting, ...), read with the content.
+    private(set) var actions: [NoteSourceAction] = []
+    /// An action of the source threw: the strip says so until it is dismissed or tried again.
+    var actionFailed = false
     private var serial = 0
     private var parsed: [String: [NoteBlock]] = [:]
 
@@ -45,6 +49,7 @@ final class NoteDocumentModel {
     var layers: [NoteLayer] { content?.layers ?? [] }
     var selectedLayer: NoteLayer? { layers.first { $0.id == layerID } }
     var summary: NoteSummary? { content?.summary }
+    var state: NoteState? { content?.summary.state }
     var speakers: [NoteSpeaker] { content?.speakers ?? [] }
     var transcriptLayer: NoteLayer? { layers.first { $0.id == Self.transcriptLayerID } }
 
@@ -67,6 +72,8 @@ final class NoteDocumentModel {
         }
         blocks = blocks(of: layerID)
     }
+
+    func setActions(_ actions: [NoteSourceAction]) { self.actions = actions }
 
     /// The source did not answer; what was shown before stays.
     func markUnavailable() {

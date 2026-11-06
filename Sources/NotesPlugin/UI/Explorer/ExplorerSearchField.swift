@@ -53,23 +53,3 @@ struct ExplorerSearchField: View {
         }
     }
 }
-
-/// What the explorer says when a search found nothing (prototype `.nr`): what was asked and where a search looks.
-struct ExplorerNoResults: View {
-    let query: String
-    @Environment(\.lintelTextSize) private var textSize
-
-    var body: some View {
-        VStack(spacing: 0) {
-            Text("No notes match “\(query)”.", comment: "Explorer: a search found nothing; the query")
-            Text(
-                "Search covers titles, notes, transcripts and dictations.", comment: "Explorer: what a search looks in")
-        }
-        .font(textSize.font(.callout))
-        .foregroundStyle(LintelBrand.secondaryText)
-        .multilineTextAlignment(.center)
-        .padding(18 * textSize.scale)
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .combine)
-    }
-}

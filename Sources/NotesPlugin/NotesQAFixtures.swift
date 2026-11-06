@@ -11,6 +11,7 @@ enum NotesQAFixtures {
     static let writingID = NoteKey(pluginID: "meetings", id: "00000000-0000-0000-0000-000000000004")
     static let interruptedID = NoteKey(pluginID: "meetings", id: "00000000-0000-0000-0000-000000000005")
     static let reminderID = NoteKey(pluginID: "dictation", id: "fixture/2")
+    static let needsModelID = NoteKey(pluginID: "meetings", id: "00000000-0000-0000-0000-000000000007")
     static let failedID = NoteKey(pluginID: "meetings", id: "00000000-0000-0000-0000-000000000006")
 
     /// The notes, newest first, dated relative to `now` so a QA run always shows today and yesterday.
@@ -32,6 +33,9 @@ enum NotesQAFixtures {
             NoteSummary(
                 id: reminderID, kind: .dictation, title: "Reminder: renew the domain before Friday", startedAt: ago(30),
                 durationMs: 7_000, state: .ready),
+            NoteSummary(
+                id: needsModelID, kind: .meeting, title: "Planning", startedAt: ago(52), durationMs: 1_500_000,
+                sourceApp: "Zoom", state: .needsModel),
             NoteSummary(
                 id: failedID, kind: .meeting, title: "Design review", startedAt: ago(96), durationMs: 3_480_000,
                 sourceApp: "Meet", state: .failed),
@@ -121,6 +125,19 @@ enum NotesQAFixtures {
                         id: "cleaned", author: .agent, markdown: "Reminder: renew the domain before Friday.",
                         version: "1")
                 ], speakers: [], details: [])
+        case needsModelID:
+            return NoteContent(
+                summary: summary,
+                layers: [
+                    NoteLayer(
+                        id: "transcript", author: .stt,
+                        markdown: segments.map { $0.text }.joined(separator: "\n\n"),
+                        provenance: segments.enumerated().map { index, segment in
+                            NoteBlockProvenance(
+                                blockIndex: index, speakerID: segment.speaker, startMs: segment.start,
+                                segmentRef: "\(index)")
+                        }, version: "1")
+                ], speakers: speakers, details: [])
         default:
             return NoteContent(summary: summary, layers: [], speakers: [], details: [])
         }
@@ -133,7 +150,9 @@ struct NotesQAFixtureSource: NoteSource {
     let pluginID: PluginID
     var now: Date = Date()
 
-    private var items: [NoteSummary] { NotesQAFixtures.summaries(now: now).filter { $0.id.pluginID == pluginID } }
+    private var items: [NoteSummary] {
+        isEmpty ? [] : NotesQAFixtures.summaries(now: now).filter { $0.id.pluginID == pluginID }
+    }
 
     /// A query keeps the notes whose title or text holds it (case and accents ignored) and names the line of
     /// the first layer that does, the way a real source reports `matches`.
@@ -171,11 +190,37 @@ struct NotesQAFixtureSource: NoteSource {
         key.pluginID == pluginID ? NotesQAFixtures.content(for: key, now: now) : nil
     }
     func delete(_ key: NoteKey) async throws {}
-    func actions(for key: NoteKey) -> [NoteSourceAction] { [] }
+    /// The interrupted meeting offers "Finish" (it does nothing here), the way Meetings does for a spooled one.
+    func actions(for key: NoteKey) -> [NoteSourceAction] {
+        guard key == NotesQAFixtures.interruptedID else { return [] }
+        return [
+            NoteSourceAction(
+                id: "fixture.finish",
+                title: LocalizedStringResource("Finish", comment: "Notes: finish an interrupted transcript"),
+                symbolName: "checkmark.circle"
+            ) {}
+        ]
+    }
     func makeChanges() -> AsyncStream<Void> { AsyncStream { $0.finish() } }
 
-    static func all(now: Date = Date()) -> [any NoteSource] {
-        ["meetings", "dictation"].map { NotesQAFixtureSource(pluginID: PluginID(rawValue: $0), now: now) }
+    var isEmpty = false
+
+    static func all(now: Date = Date(), empty: Bool = false) -> [any NoteSource] {
+        ["meetings", "dictation"].map {
+            NotesQAFixtureSource(pluginID: PluginID(rawValue: $0), now: now, isEmpty: empty)
+        }
     }
 }
 #endif
+
+/// An overlay index that cannot be read (`plugins.notes.qaState=locked`): the library lists the sources without
+/// overlays and reports `overlaysAvailable == false`, the state of a Keychain error opening `notes.sqlite`.
+struct NotesQALockedOverlays: OverlayIndex, OverlayDetacher {
+    struct Locked: Error {}
+    func overlays(for keys: [NoteKey]) async throws -> [OverlayRecord] { throw Locked() }
+    func manualNotes() async throws -> [OverlayRecord] { throw Locked() }
+    func detachedOverlays() async throws -> [OverlayRecord] { throw Locked() }
+    func keptOverlays(excludingPlugins excluding: Set<PluginID>) async throws -> [OverlayRecord] { throw Locked() }
+    func liveOverlayKeys() async throws -> [NoteKey] { throw Locked() }
+    func detach(_ key: NoteKey, reason: OverlayDetachReason) async throws {}
+}

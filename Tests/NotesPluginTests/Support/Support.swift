@@ -101,6 +101,14 @@ final class ScriptedSaver: NoteFileSaving {
     }
 
     private let state = Mutex<(answer: Answer, saved: [Saved])>((.saved, []))
+    private let retried = Mutex(0)
+    /// How many times "Try again" asked for the place that failed.
+    var retries: Int { retried.withLock { $0 } }
+
+    @MainActor func retry(_ text: String, suggestedName: String) async throws -> Bool {
+        retried.withLock { $0 += 1 }
+        return try await save(text, suggestedName: suggestedName)
+    }
     var answer: Answer {
         get { state.withLock { $0.answer } }
         set { state.withLock { $0.answer = newValue } }

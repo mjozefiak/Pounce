@@ -27,7 +27,7 @@ struct NotesSectionView: View {
     }
 }
 
-/// What is under the path bar: the open note's document, or the hint when no tab is open.
+/// What is under the path bar: the open note's document, or what the section has to say when no tab is open.
 struct NoteCenter: View {
     let model: NotesWorkspaceModel
     @Environment(\.lintelTextSize) private var textSize
@@ -37,20 +37,25 @@ struct NoteCenter: View {
             NoteDocumentView(model: model, document: document)
                 .id(document.id)
         } else {
-            VStack(spacing: 6 * textSize.scale) {
-                Image(systemName: "note.text")
-                    .font(textSize.font(.largeTitle))
-                    .foregroundStyle(LintelBrand.secondaryText)
-                    .accessibilityHidden(true)
-                Text("No note open", comment: "Notes: centre column when no tab is open")
-                    .font(textSize.font(.title3, weight: .semibold))
-                    .foregroundStyle(LintelBrand.ink)
-                Text("Choose a note in the list.", comment: "Notes: hint under the title when no tab is open")
-                    .font(textSize.font(.callout))
-                    .foregroundStyle(LintelBrand.secondaryText)
+            switch model.screen {
+            case .list:
+                VStack(spacing: 6 * textSize.scale) {
+                    Image(systemName: "note.text")
+                        .font(textSize.font(.largeTitle))
+                        .foregroundStyle(LintelBrand.secondaryText)
+                        .accessibilityHidden(true)
+                    Text("No note open", comment: "Notes: centre column when no tab is open")
+                        .font(textSize.font(.title3, weight: .semibold))
+                        .foregroundStyle(LintelBrand.ink)
+                    Text("Choose a note in the list.", comment: "Notes: hint under the title when no tab is open")
+                        .font(textSize.font(.callout))
+                        .foregroundStyle(LintelBrand.secondaryText)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityElement(children: .combine)
+            case let screen:
+                NoteScreenView(model: model, screen: screen)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .accessibilityElement(children: .combine)
         }
     }
 }
