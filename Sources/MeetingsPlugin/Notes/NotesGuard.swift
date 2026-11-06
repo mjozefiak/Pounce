@@ -67,6 +67,35 @@ struct NotesGuard: Sendable {
         case negationChanged
         /// A summary point whose content words are too few of them words of the quote (`quoteCoverage`).
         case driftedFromQuote
+        /// The text passed every rule above, and the semantic verifier answered that it does not follow from
+        /// its quote (`weaker` or `unsupported`; spec `2026-11-06-meeting-notes-semantic-verifier`).
+        case verifierRejected
+    }
+
+    /// What the semantic verifier may do with one verified point (ids only, no decision of its own).
+    struct PointReview: Equatable, Sendable {
+        var id: String
+        /// The repair `verify` made, nil for a point whose text was kept.
+        var repair: RepairReason?
+        /// The model's own text of a point repaired ONLY for `unsupportedDetail` or `driftedFromQuote`: every
+        /// hard check (quote, language, kind, negation, person, due date) passed for it. Nil for every other
+        /// point; `negationChanged` and `downgradedQuestion` repairs never carry it.
+        var modelText: String?
+
+        /// The text the verifier is asked about, or nil when the point is not sent to it: the model's text of a
+        /// restorable repair, or the kept text of a point that was not repaired.
+        func claim(of point: NotesPoint) -> String? {
+            if let modelText { return modelText }
+            return repair == nil ? point.text : nil
+        }
+    }
+
+    /// What `applyingVerifications` changed (counts only).
+    struct VerifierEffect: Equatable, Sendable {
+        /// Repaired points whose model text came back (verdict `supported`).
+        var restoredModelText = 0
+        /// Kept points whose text was replaced by the quote (verdict `weaker` or `unsupported`).
+        var rejectedKept = 0
     }
 
     struct PointVerdict: Equatable, Sendable {
@@ -82,6 +111,8 @@ struct NotesGuard: Sendable {
         /// Tasks whose person the model left empty and the guard filled with the speaker of a first person
         /// singular quote. A count only, never a name.
         var ownerFromSpeaker = 0
+        /// One per point of `verified`, in the same order: what the semantic verifier may do with it.
+        var reviews: [PointReview] = []
     }
 
     struct ReduceVerdict: Equatable, Sendable {
@@ -194,10 +225,13 @@ struct NotesGuard: Sendable {
         var downgraded = 0
         var repairReasons: [RepairReason: Int] = [:]
         var ownerFromSpeaker = 0
+        var reviews: [PointReview] = []
         for point in points {
             switch verify(point) {
             case .success(let outcome):
                 verified.append(outcome.point)
+                reviews.append(
+                    PointReview(id: outcome.point.id, repair: outcome.repair, modelText: outcome.modelText))
                 if let reason = outcome.repair {
                     repaired += 1
                     repairReasons[reason, default: 0] += 1
@@ -209,7 +243,60 @@ struct NotesGuard: Sendable {
         }
         return PointVerdict(
             verified: verified, dropped: points.count - verified.count, reasons: reasons, repaired: repaired,
-            downgraded: downgraded, repairReasons: repairReasons, ownerFromSpeaker: ownerFromSpeaker)
+            downgraded: downgraded, repairReasons: repairReasons, ownerFromSpeaker: ownerFromSpeaker,
+            reviews: reviews)
+    }
+
+    /// The verdict after the semantic verifier, by point id. Pure. A missing entry, or one whose source is not
+    /// `answered` (malformed, cut off, failed, cancelled), changes nothing: a repaired point keeps the quote and a
+    /// kept point keeps its text (fail closed; a broken runtime never turns kept points into repairs).
+    /// - A restorable repair (`PointReview.modelText`) answered `supported` gets the model's text back; only the
+    ///   text changes (kind, quote, person and due date stay as the hard checks left them).
+    /// - A kept point answered `weaker` or `unsupported` gets its quote as its text (`verifierRejected`).
+    /// - Nothing else is touched (`negationChanged` and `downgradedQuestion` repairs are never sent).
+    static func applyingVerifications(
+        _ verifications: [String: NotesVerification], to verdict: PointVerdict
+    ) -> (verdict: PointVerdict, effect: VerifierEffect) {
+        var result = verdict
+        var effect = VerifierEffect()
+        for (index, review) in verdict.reviews.enumerated() where index < result.verified.count {
+            guard result.verified[index].id == review.id, let verification = verifications[review.id],
+                verification.source == .answered
+            else { continue }
+            if let modelText = review.modelText, let reason = review.repair {
+                guard verification.verdict == .supported else { continue }
+                result.verified[index].text = modelText
+                result.repaired -= 1
+                result.repairReasons[reason, default: 0] -= 1
+                if result.repairReasons[reason] == 0 { result.repairReasons[reason] = nil }
+                result.reviews[index].repair = nil
+                result.reviews[index].modelText = nil
+                effect.restoredModelText += 1
+            } else if review.repair == nil, verification.verdict != .supported {
+                result.verified[index].text = result.verified[index].quote
+                result.repaired += 1
+                result.repairReasons[.verifierRejected, default: 0] += 1
+                result.reviews[index].repair = .verifierRejected
+                effect.rejectedKept += 1
+            }
+        }
+        return (result, effect)
+    }
+
+    /// How many utterances on each side of the quoted one the verifier sees.
+    static let verificationContextUtterances = 2
+
+    /// The verifier's request for a verified point: the claim, the transcript's own quote and the quoted
+    /// utterance with `verificationContextUtterances` neighbours on each side, from the transcript the guard
+    /// checked against.
+    func verificationRequest(for point: NotesPoint, claim: String) -> NotesVerificationRequest {
+        var context: [NotesVerificationRequest.Line] = []
+        if let center = point.utterance, utterances.indices.contains(center) {
+            let low = max(0, center - Self.verificationContextUtterances)
+            let high = min(utterances.count - 1, center + Self.verificationContextUtterances)
+            context = utterances[low...high].map { .init(speaker: $0.speaker, text: $0.text) }
+        }
+        return NotesVerificationRequest(kind: point.kind, text: claim, quote: point.quote, context: context)
     }
 
     private struct Match {
@@ -230,6 +317,8 @@ struct NotesGuard: Sendable {
         var downgraded = false
         /// Set when the person is the speaker, given by the guard (`ownerFromSpeaker`).
         var ownerFromSpeaker = false
+        /// The model's text of a point repaired only for `unsupportedDetail` or `driftedFromQuote`.
+        var modelText: String?
     }
 
     private func verify(_ point: NotesPoint) -> Result<Outcome, DropReason> {
@@ -296,6 +385,15 @@ struct NotesGuard: Sendable {
             repair = .driftedFromQuote
         }
         if let repair {
+            // A repair the semantic verifier may undo keeps the model's text aside: a drift (every other rule
+            // passed before it) or an unsupported detail whose text also keeps the quote's negation (the
+            // negation rule, which runs after it, would have refused it too otherwise).
+            if repair == .driftedFromQuote
+                || (repair == .unsupportedDetail
+                    && Self.hasNegation(NotesText.words(outcome.point.text)) == Self.hasNegation(quoteWords))
+            {
+                outcome.modelText = outcome.point.text
+            }
             // The model's wording is not shown; the transcript's is.
             outcome.point.text = excerpt
             outcome.repair = repair

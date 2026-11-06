@@ -192,9 +192,12 @@ struct NotesTraceVerification: Equatable, Sendable, Codable {
     var repairReasons: [NotesGuard.RepairReason: Int]
     /// Tasks whose person is the speaker, given by the guard (a count; empty trace field reads as 0).
     var ownerFromSpeaker = 0
+    /// What the semantic verifier did (counts only); nil when it did not run and in older traces. `repaired`
+    /// and `repairReasons` above are the counts after it.
+    var verifier: NotesTraceVerifier?
 
     private enum CodingKeys: String, CodingKey {
-        case proposed, verified, dropped, reasons, repaired, downgraded, repairReasons, ownerFromSpeaker
+        case proposed, verified, dropped, reasons, repaired, downgraded, repairReasons, ownerFromSpeaker, verifier
     }
 
     /// `reasons` and `repairReasons` are written as objects keyed by the reason's raw value (a dictionary keyed
@@ -214,6 +217,7 @@ struct NotesTraceVerification: Equatable, Sendable, Codable {
                 NotesGuard.RepairReason.self, forKey: .repairReasons, in: container, unknown: "Unknown repair reason")
             : [:]
         ownerFromSpeaker = try container.decodeIfPresent(Int.self, forKey: .ownerFromSpeaker) ?? 0
+        verifier = try container.decodeIfPresent(NotesTraceVerifier.self, forKey: .verifier)
     }
 
     private static func decodeCounts<Reason: RawRepresentable & Hashable>(
@@ -243,9 +247,11 @@ struct NotesTraceVerification: Equatable, Sendable, Codable {
             Dictionary(uniqueKeysWithValues: repairReasons.map { ($0.key.rawValue, $0.value) }),
             forKey: .repairReasons)
         try container.encode(ownerFromSpeaker, forKey: .ownerFromSpeaker)
+        try container.encodeIfPresent(verifier, forKey: .verifier)
     }
 
-    init(proposed: Int, verdict: NotesGuard.PointVerdict) {
+    init(proposed: Int, verdict: NotesGuard.PointVerdict, verifier: NotesTraceVerifier? = nil) {
+        self.verifier = verifier
         self.proposed = proposed
         verified = NotesTraceKinds(verdict.verified)
         dropped = verdict.dropped
@@ -255,6 +261,30 @@ struct NotesTraceVerification: Equatable, Sendable, Codable {
         repairReasons = verdict.repairReasons
         ownerFromSpeaker = verdict.ownerFromSpeaker
     }
+}
+
+/// The semantic verifier of one run: counts, flags and the prompt version, never text.
+struct NotesTraceVerifier: Equatable, Sendable, Codable {
+    var promptVersion: Int
+    /// Points that could be asked: kept by the guard, or repaired only for `unsupportedDetail` or
+    /// `driftedFromQuote` (after deduplication).
+    var eligible = 0
+    /// Points that got an answer of any kind before the time limit (`supported + weaker + unsupported + failed`).
+    var asked = 0
+    var supported = 0
+    var weaker = 0
+    var unsupported = 0
+    /// Answers that were malformed, cut off, failed or cancelled: the point stays as the guard left it.
+    var failed = 0
+    /// Eligible points left without an answer because the time ran out (or the run was stopped).
+    var notAsked = 0
+    /// Repaired points that got the model's text back.
+    var restoredModelText = 0
+    /// Kept points replaced by their quote (`NotesGuard.RepairReason.verifierRejected`).
+    var rejectedKept = 0
+    var budgetExceeded = false
+    /// Wall-clock time of the verifier stage.
+    var elapsedMs = 0
 }
 
 struct NotesTraceReduceRequest: Equatable, Sendable, Codable {

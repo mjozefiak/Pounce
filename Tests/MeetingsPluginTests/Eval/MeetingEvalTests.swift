@@ -174,9 +174,13 @@ struct MeetingEvalTests {
             let notesModel = NotesModel(
                 lease: LLMLease(), runtime: recorder, modelURL: modelURL, keepWarm: { .seconds(1) })
             let traceEvents = Mutex<[NotesTraceEvent]>([])
+            // `LINTEL_MEETING_EVAL_NO_VERIFIER=1`: a control run without the semantic verifier on the same build.
+            let noVerifier = Self.value("NO_VERIFIER") == "1"
+            print("MEETING-EVAL notes verifier=\(noVerifier ? "off" : "on")")
             let pipeline = NotesPipeline(
                 model: notesModel, configuration: configuration,
-                trace: { event in traceEvents.withLock { $0.append(event) } })
+                trace: { event in traceEvents.withLock { $0.append(event) } },
+                verifier: noVerifier ? nil : { @Sendable runtime in LLMNotesVerifier(runtime: runtime) })
             let utterances = rows.map { NotesUtterance(startMs: $0.startMs, speaker: $0.speaker ?? "?", text: $0.text) }
             let footprint = FootprintSampler()
             footprint.start()

@@ -29,6 +29,15 @@ enum NotesVerdict: String, Equatable, Sendable, CaseIterable {
 /// Judges whether a point's text is faithful to its quote. Never throws: every failure is `unsupported`.
 protocol NotesVerifying: Sendable {
     func verify(_ request: NotesVerificationRequest) async -> NotesVerdict
+    /// The verdict and how it was reached; the pipeline acts only on `answered` ones (fail closed).
+    func verification(_ request: NotesVerificationRequest) async -> NotesVerification
+}
+
+extension NotesVerifying {
+    /// A verifier that cannot tell how it reached its verdict reports every one as answered.
+    func verification(_ request: NotesVerificationRequest) async -> NotesVerification {
+        NotesVerification(verdict: await verify(request), source: .answered)
+    }
 }
 
 /// A verdict and how it was reached, without any text (for counters and the evaluation).
