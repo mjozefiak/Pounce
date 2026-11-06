@@ -42,13 +42,13 @@ import Testing
 
         let kept = Dictionary(
             uniqueKeysWithValues: try store.keptOverlays(excludingPlugins: []).map { ($0.key.id, $0.isKept) })
-        #expect(Set(kept.keys) == ["human", "revise"])
+        #expect(Set(kept.keys) == ["human", "revise", "proposed"])
         let all = try store.liveOverlays(
             for: ["seed", "human", "revise", "regen", "proposed", "discarded"].map {
                 NoteKey(pluginID: "meetings", id: $0)
             })
         #expect(all.count == 6)
-        #expect(Set(all.filter(\.isKept).map(\.key.id)) == ["human", "revise"])
+        #expect(Set(all.filter(\.isKept).map(\.key.id)) == ["human", "revise", "proposed"])
         _ = seeded
     }
 
