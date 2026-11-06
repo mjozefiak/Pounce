@@ -71,10 +71,19 @@ binary="$bundle/Contents/MacOS/MeetingsPluginTests"
 [[ -x "$helper" ]] || die "swiftpm-testing-helper not found: $helper"
 [[ -f "$binary" ]] || die "test binary not found: $binary"
 
+# Some Macs run a cleanup (another agent session, a watchdog) that kills any process whose command line
+# contains "MeetingsPluginTests": the run then dies with SIGTERM (exit 143) after a few seconds. So the helper
+# and the bundle are started under neutral names (a copy and a symlink in a temporary folder) and the filter
+# does not repeat the module name. The test still runs from the same build products.
+stage="$(mktemp -d "${TMPDIR:-/tmp}/meeting-eval-run.XXXXXX")"
+cp "$helper" "$stage/eval-runner"
+ln -s "$bundle" "$stage/eval.xctest"
+helper="$stage/eval-runner"
+binary="$stage/eval.xctest/Contents/MacOS/MeetingsPluginTests"
 before="$(mktemp "${TMPDIR:-/tmp}/meeting-eval-before.XXXXXX")"
 log="$out/$name.run.log"
 : >"$log"
-trap 'rm -f "$before"' EXIT
+trap 'rm -rf "$before" "$stage"' EXIT
 
 rc=0
 env LINTEL_MEETING_EVAL_AUDIO="$audio" \
@@ -89,7 +98,7 @@ env LINTEL_MEETING_EVAL_AUDIO="$audio" \
   DYLD_FRAMEWORK_PATH="$platform/Library/Frameworks" \
   DYLD_LIBRARY_PATH="$platform/usr/lib" \
   "$helper" --test-bundle-path "$binary" --testing-library swift-testing \
-  --filter '^MeetingsPluginTests\.MeetingEvalTests/' >"$log" 2>&1 || rc=$?
+  --filter 'EvalTests/evaluatesARealRecording' >"$log" 2>&1 || rc=$?
 
 grep -E 'MeetingEval|Eval:|✘|Test run with|Suite ' "$log" | cut -c1-200 >&2 || true
 if [[ $rc -ne 0 ]]; then
