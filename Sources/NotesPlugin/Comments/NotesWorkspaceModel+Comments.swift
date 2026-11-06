@@ -95,19 +95,6 @@ extension NotesWorkspaceModel {
         default: .commentFailed
         }
     }
-
-    // MARK: Revise with N comments (step 5.3)
-
-    /// The N of "Revise with N comments": the open threads of the note on screen.
-    var reviseCount: Int { currentDocument?.openCommentCount ?? 0 }
-
-    /// The button is on when there is something to revise and the agent is wired (step 6.2).
-    var canRevise: Bool { reviseCount > 0 && environment.revise != nil && environment.canEditNotes }
-
-    func revise() async {
-        guard canRevise, let id = currentID, let run = environment.revise else { return }
-        await run(id)
-    }
 }
 
 extension NotesWorkspaceModel.Environment {

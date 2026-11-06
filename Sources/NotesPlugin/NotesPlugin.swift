@@ -39,8 +39,13 @@ public final class NotesPlugin: LintelPlugin {
     /// The open documents: one `RevisionWriter` each, flushed on blur, tab close, window close and here.
     private(set) lazy var documents = NoteDocumentRegistry()
 
-    /// Typed text is written before the store closes (spec "Saving": quit loses nothing).
+    /// The revise service: one run per document, cancelled on quit.
+    private(set) lazy var reviseService = makeReviseService()
+
+    /// A run is cancelled first (the document stays as it was), then typed text is written before the store closes
+    /// (spec "Saving": quit loses nothing).
     public func deactivate() async {
+        await reviseService.cancelAll()
         await documents.flushAll()
         library.close()
     }
@@ -153,6 +158,10 @@ public final class NotesPlugin: LintelPlugin {
             environment.registry = registry
             environment.installHistory(store: storeProvider)
             environment.installComments(store: storeProvider)
+            if !NotesSettings(context.settings).readOnly {
+                environment.installRevise(
+                    service: reviseService, store: storeProvider, registry: registry, clock: context.clock)
+            }
             // Delete (also with `plugins.notes.readOnly`: export, copy and delete keep working): the owner first,
             // the overlays only after it succeeded.
             environment.canDeleteNotes = true

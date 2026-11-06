@@ -175,6 +175,21 @@ struct NoteThreadCard: View {
                     }
                 }
             }
+            if canWrite && thread.isOpen && model.canAskAgent(document) {
+                if model.isAskQueued(document, thread: thread) {
+                    Text("Queued", comment: "Inspector, Comments: Ask agent waits behind a running run")
+                        .font(textSize.font(.footnote, weight: .semibold))
+                        .foregroundStyle(LintelBrand.secondaryText)
+                } else {
+                    link(
+                        Text("Ask agent", comment: "Inspector, Comments: asks the agent to revise this one thread")
+                    ) { Task { await model.askAgent(thread) } }
+                    .accessibilityHint(
+                        Text(
+                            "The agent revises only the commented blocks.",
+                            comment: "Accessibility hint of Ask agent"))
+                }
+            }
             if canWrite && textChanged && document.isEditing {
                 link(
                     Text(
@@ -228,7 +243,7 @@ struct NoteThreadCard: View {
 }
 
 /// The footer under the threads (prototype `.ipb`): the primary button with the number of open threads, and what
-/// it does. The agent comes in step 6.2: until then the button is off, but its count and label are real.
+/// it does. The button runs the agent on every open thread (step 6.2); it is off while a run is going on.
 struct NoteCommentsFooter: View {
     let model: NotesWorkspaceModel
     @Environment(\.lintelTextSize) private var textSize

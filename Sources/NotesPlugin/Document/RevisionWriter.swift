@@ -275,12 +275,18 @@ final class RevisionWriter: Sendable {
     /// An applied revision by `author` (a Revise result, an Apply). The buffer is flushed first; the head moves
     /// with compare-and-set.
     @discardableResult
-    func appendApplied(author: NoteAuthor, body: String, summary: String? = nil, metaJSON: String? = nil)
-        async throws -> Int64
-    {
+    ///
+    /// `expectingHead` is the head a run captured (`base_head_id`): when the head is another one, nothing is written
+    /// and `casConflict` is thrown. Text typed since (a buffer that is not empty) is never overwritten either: the
+    /// same error, and the buffer stays for its own write.
+    func appendApplied(
+        author: NoteAuthor, body: String, summary: String? = nil, metaJSON: String? = nil, expectingHead: Int64? = nil
+    ) async throws -> Int64 {
+        if expectingHead != nil, hasPendingText { throw NotesError.casConflict }
         try await flush(closingSession: true)
         return try await core.append(
-            author: author.rawValue, body: body, summary: summary, metaJSON: metaJSON, state: .applied)
+            author: author.rawValue, body: body, summary: summary, metaJSON: metaJSON, state: .applied,
+            expectingHead: expectingHead)
     }
 
     /// A `proposed` revision: never moves the head.
@@ -572,12 +578,14 @@ final class RevisionWriter: Sendable {
             return id
         }
 
-        func append(author: String, body: String, summary: String?, metaJSON: String?, state: NoteRevisionState)
-            throws -> Int64
-        {
+        func append(
+            author: String, body: String, summary: String?, metaJSON: String?, state: NoteRevisionState,
+            expectingHead: Int64? = nil
+        ) throws -> Int64 {
             if let reason = store.blockedReason { throw reason }
             guard let docID else { throw NotesError.guardRejected(rule: "noDocument") }
             try reloadIfNeeded()
+            if let expectingHead, expectingHead != headID { throw NotesError.casConflict }
             if state == .applied {
                 return try storeApplied(author: author, body: body, summary: summary, metaJSON: metaJSON, blocks: nil)
             }

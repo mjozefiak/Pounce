@@ -30,7 +30,7 @@ extension NotesWorkspaceModel {
 
     /// Whether Restore is offered: the store can be written and the document is not a detached overlay.
     func canRestore(_ document: NoteDocumentModel, _ snapshot: HistorySnapshot) -> Bool {
-        environment.canEditNotes && !snapshot.isDetached
+        environment.canEditNotes && !snapshot.isDetached && !document.lock.isActive
     }
 
     // MARK: Compare

@@ -18,7 +18,7 @@ import Testing
     }
 
     private func setup(
-        canEdit: Bool = true, revise: (@MainActor (NoteItemID) async -> Void)? = nil
+        canEdit: Bool = true, revise: (@MainActor (ReviseCall) async -> ReviseOutcome)? = nil
     ) async throws -> Setup {
         let r = try ReconRig()
         let layers = [r.rig.layer(notes, id: "notes", version: "n1")]
@@ -153,7 +153,10 @@ import Testing
 
     @Test func theReviseButtonRunsTheAgentWithTheNoteOnceWired() async throws {
         let ran = CommentBox<[NoteItemID]>([])
-        let s = try await setup(revise: { id in ran.value.append(id) })
+        let s = try await setup(revise: { call in
+            ran.value.append(call.item)
+            return .nothingToRevise(skipped: [])
+        })
         #expect(!s.model.canRevise)  // nothing open yet
         _ = try await comment(s, "Ship", "Date?")
         #expect(s.model.canRevise)

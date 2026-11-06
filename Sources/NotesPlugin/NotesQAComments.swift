@@ -59,6 +59,33 @@ extension NotesPlugin {
             await model.refreshComments(id)
             model.beginEditing(id)
             if mode == "popover" { model.documents[id]?.qaCommentQuote = "next sprint" }
+            if let revise = context.settings.string(NotesSettingsKey.qaRevise) { model.qaRevise(revise, id) }
+        }
+    }
+}
+
+extension NotesWorkspaceModel {
+    /// `plugins.notes.qaRevise`: puts the open note's lock in a phase, or shows how a run ended.
+    func qaRevise(_ mode: String, _ id: NoteItemID) {
+        guard let document = documents[id] else { return }
+        let skipped = [ReviseSkip(threadIDs: [1], reason: .editedAfterComment)]
+        switch mode {
+        case "waiting":
+            document.lock.move(to: .flushing)
+            document.lock.move(to: .waitingForModel)
+        case "writing":
+            document.lock.move(to: .flushing)
+            document.lock.move(to: .waitingForModel)
+            document.lock.move(to: .generating)
+        case "done":
+            document.setReviseReport(
+                .applied(.init(revisionID: 1, blocks: 2, threads: 2, skipped: skipped, rejected: 1)))
+        case "skipped": document.setReviseReport(.nothingToRevise(skipped: skipped))
+        case "rejected": document.setReviseReport(.rejected)
+        case "conflict": document.setReviseReport(.conflict)
+        case "timedOut": document.setReviseReport(.timedOut)
+        case "needsModel": document.setReviseReport(.needsModel)
+        default: break
         }
     }
 }

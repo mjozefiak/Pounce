@@ -33,7 +33,8 @@ final class NoteEditingSession {
     private let readOnlyNow: (@MainActor () -> Bool)?
     private weak var controller: NoteEditorController?
 
-    var isEditable: Bool { block == nil && !(readOnlyNow?() ?? false) }
+    /// Typing is off while the agent writes (the edit lock, from `generating` to the end).
+    var isEditable: Bool { block == nil && !(readOnlyNow?() ?? false) && !(model?.lock.isLocked ?? false) }
 
     init(
         documentID: NoteDocumentID, writer: RevisionWriter, model: NoteDocumentModel?, block: Block?,

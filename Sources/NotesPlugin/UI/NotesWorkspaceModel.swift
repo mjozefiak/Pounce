@@ -74,8 +74,13 @@ final class NotesWorkspaceModel {
         var loadComments: @MainActor (NoteItemID, String) async -> CommentsState = { _, _ in .none }
         /// A reply, a resolve or a reopen on a loaded thread; `nil` when it was written, else why not.
         var writeComment: @MainActor (CommentWrite) async -> CommentFailure? = { _ in .other }
-        /// "Revise with N comments" (step 6.2): `nil` until the agent is wired, and the button stays off.
-        var revise: (@MainActor (NoteItemID) async -> Void)?
+        /// "Revise with N comments" and "Ask agent" (step 6.2): runs the revise service for a layer document and says
+        /// how the run ended; `nil` without the store or the agent, and the button stays off.
+        var revise: (@MainActor (ReviseCall) async -> ReviseOutcome)?
+        /// Cancel in the lock strip, a closed tab: stops the note's run (the document stays as it was).
+        var cancelRevise: @MainActor (NoteItemID) -> Void = { _ in }
+        /// Whether "Ask agent" on this thread waits behind a running run.
+        var isReviseQueued: @MainActor (NoteItemID, Int64) -> Bool = { _, _ in false }
         /// Renames the title of a recorded note in its owner (`NoteSourceEditing`); `false` when it was not changed.
         var renameTitle: @MainActor (NoteKey, String) async -> Bool = { _, _ in false }
     }
@@ -317,6 +322,8 @@ final class NotesWorkspaceModel {
     }
 
     func close(_ id: NoteItemID) {
+        // A run for a note whose tab closes is cancelled: nothing is applied to a document nobody sees.
+        environment.cancelRevise(id)
         tabs.close(id)
         documents[id] = nil
         contentEpochs[id] = nil
@@ -445,6 +452,7 @@ final class NotesWorkspaceModel {
     /// The note is gone (deleted): its tab and document go without writing anything again (the registry already
     /// discarded the writers).
     func dropTab(_ id: NoteItemID) {
+        environment.cancelRevise(id)
         tabs.close(id)
         documents[id] = nil
         contentEpochs[id] = nil
@@ -550,7 +558,7 @@ final class NotesWorkspaceModel {
     }
 
     /// Editing ended: what is typed is written, the layers show the head again and the note is read once more.
-    private func finishEditing(_ id: NoteItemID, _ session: NoteEditingSession) async {
+    func finishEditing(_ id: NoteItemID, _ session: NoteEditingSession) async {
         _ = await session.flush(closingSession: true)
         guard let document = documents[id] else { return }
         document.unfreezeAll()

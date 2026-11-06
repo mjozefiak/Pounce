@@ -42,6 +42,10 @@ enum NotesSettingsKey {
     /// in the QA run's own store and opens the note in the editor with the Comments tab (step 5.2); `popover` also opens
     /// the new-comment popover on a selection; `changed` makes one comment's text disappear ("Text changed").
     static let qaComments = "qaComments"
+    /// DEBUG only, with `--qa-notes` and `qaComments`: shows the revise run's lock and report strips without a model
+    /// (step 6.2): `waiting` ("Waiting for the model"), `writing` (the lock strip, the editor read-only), `done`,
+    /// `skipped`, `rejected`, `conflict`, `timedOut`, `needsModel`. Nothing runs and nothing is written.
+    static let qaRevise = "qaRevise"
     /// DEBUG only, with `--qa-notes`: `meeting`, `dictation`, `manual` or `copy` opens that delete confirmation sheet
     /// (step 4.6). Nothing is deleted unless the sheet is confirmed.
     static let qaDelete = "qaDelete"

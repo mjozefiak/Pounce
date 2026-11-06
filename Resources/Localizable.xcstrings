@@ -17064,6 +17064,510 @@
           }
         }
       }
+    },
+    "Agent is writing notes · read-only until it finishes" : {
+      "comment" : "Notes: lock strip while the agent revises the commented blocks",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent is writing notes · read-only until it finishes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent pisze notatki · tylko do odczytu do końca"
+          }
+        }
+      }
+    },
+    "Revised %lld blocks from comments. Restore is in History." : {
+      "comment" : "Notes: strip after the agent revised the commented blocks",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Revised %lld block from comments. Restore is in History."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Revised %lld blocks from comments. Restore is in History."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Poprawiono %lld blok według komentarzy. Przywrócisz go w Historii."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Poprawiono %lld bloki według komentarzy. Przywrócisz je w Historii."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Poprawiono %lld bloków według komentarzy. Przywrócisz je w Historii."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Poprawiono %lld bloku według komentarzy. Przywrócisz je w Historii."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld blocks couldn’t be revised and were left as they are." : {
+      "comment" : "Notes: strip when the guard rejected the agent's answer for some blocks",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld block couldn’t be revised and was left as it is."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld blocks couldn’t be revised and were left as they are."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld blok nie mógł zostać poprawiony i został bez zmian."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld bloki nie mogły zostać poprawione i zostały bez zmian."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld bloków nie mogło zostać poprawionych i zostało bez zmian."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld bloku nie mogło zostać poprawionych i zostało bez zmian."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "The agent’s answer couldn’t be used. Nothing was changed." : {
+      "comment" : "Notes: strip when the guard rejected the whole answer of the agent",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The agent’s answer couldn’t be used. Nothing was changed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odpowiedź agenta nie nadaje się do użycia. Nic nie zostało zmienione."
+          }
+        }
+      }
+    },
+    "The note changed while the agent was working. Nothing was changed." : {
+      "comment" : "Notes: strip when the note changed under a running agent",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The note changed while the agent was working. Nothing was changed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatka zmieniła się, gdy agent pracował. Nic nie zostało zmienione."
+          }
+        }
+      }
+    },
+    "The agent took too long. Nothing was changed." : {
+      "comment" : "Notes: strip when the agent's run hit the time limit",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The agent took too long. Nothing was changed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent pracował zbyt długo. Nic nie zostało zmienione."
+          }
+        }
+      }
+    },
+    "The agent couldn’t finish. Nothing was changed." : {
+      "comment" : "Notes: strip when the agent's run failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The agent couldn’t finish. Nothing was changed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent nie dokończył. Nic nie zostało zmienione."
+          }
+        }
+      }
+    },
+    "The notes model is being removed. Try again in a moment." : {
+      "comment" : "Notes: strip when Models is removing the notes model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The notes model is being removed. Try again in a moment."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model notatek jest usuwany. Spróbuj ponownie za chwilę."
+          }
+        }
+      }
+    },
+    "You edited %lld blocks, so they were not changed." : {
+      "comment" : "Notes: strip listing the comments skipped because their block was edited",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "You edited this block, so it was not changed."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "You edited %lld blocks, so they were not changed."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Ten blok został przez Ciebie zmieniony, więc go nie poprawiono."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld bloki zostały przez Ciebie zmienione, więc ich nie poprawiono."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld bloków zostało przez Ciebie zmienionych, więc ich nie poprawiono."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld bloku zostało przez Ciebie zmienionych, więc ich nie poprawiono."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "The text of %lld comments is gone, so they were not revised." : {
+      "comment" : "Notes: strip listing the comments skipped because their text is not in the note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The text of %lld comment is gone, so it was not revised."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The text of %lld comments is gone, so they were not revised."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Tekstu %lld komentarza już nie ma, więc go nie poprawiono."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Tekstu %lld komentarzy już nie ma, więc ich nie poprawiono."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Tekstu %lld komentarzy już nie ma, więc ich nie poprawiono."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Tekstu %lld komentarza już nie ma, więc go nie poprawiono."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld comments are too much for one run and stay open." : {
+      "comment" : "Notes: strip listing the comments left for the next run",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld comment is too much for one run and stays open."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld comments are too much for one run and stay open."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld komentarz to za dużo na jedno uruchomienie i zostaje otwarty."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld komentarze to za dużo na jedno uruchomienie i zostają otwarte."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld komentarzy to za dużo na jedno uruchomienie i zostaje otwartych."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld komentarza to za dużo na jedno uruchomienie i zostaje otwartych."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Queued" : {
+      "comment" : "Inspector, Comments: Ask agent waits behind a running run",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Queued"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W kolejce"
+          }
+        }
+      }
+    },
+    "Ask agent" : {
+      "comment" : "Inspector, Comments: asks the agent to revise this one thread",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ask agent"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapytaj agenta"
+          }
+        }
+      }
+    },
+    "The agent revises only the commented blocks." : {
+      "comment" : "Accessibility hint of Ask agent",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The agent revises only the commented blocks."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent poprawia tylko skomentowane bloki."
+          }
+        }
+      }
+    },
+    "Revised %lld blocks from comments" : {
+      "comment" : "History: the summary of a revision the agent wrote from comments",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Revised %lld block from comments"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Revised %lld blocks from comments"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Poprawiono %lld blok według komentarzy"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Poprawiono %lld bloki według komentarzy"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Poprawiono %lld bloków według komentarzy"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Poprawiono %lld bloku według komentarzy"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Revised" : {
+      "comment" : "Comments: the agent's reply on a thread it revised",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revised"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poprawiono"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

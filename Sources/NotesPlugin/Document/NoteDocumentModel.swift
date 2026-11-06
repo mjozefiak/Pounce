@@ -83,11 +83,12 @@ final class NoteDocumentModel {
     }
 
     /// Leaves the editor. The session is handed to `onEditingEnded`, which writes what is typed and reloads.
-    func leaveEditing() {
+    /// `notifying: false` is for a caller that reads the note again itself (a revise run that applied).
+    func leaveEditing(notifying: Bool = true) {
         guard let ended = session else { return }
         session = nil
         editorText = nil
-        onEditingEnded?(ended)
+        if notifying { onEditingEnded?(ended) }
     }
 
     /// After the last write: the layers show the head again instead of the text the editor froze.
@@ -193,6 +194,13 @@ final class NoteDocumentModel {
     #endif
 
     func setComments(_ state: CommentsState) { comments = state }
+
+    /// The edit lock of this note's revise run (step 6.2) and how the last run ended, for the strips. The editor
+    /// is read-only from `generating` to the end.
+    let lock = EditLock()
+    private(set) var reviseReport: ReviseOutcome?
+
+    func setReviseReport(_ outcome: ReviseOutcome?) { reviseReport = outcome }
 
     func setEditorText(_ text: String?) {
         if editorText != text { editorText = text }

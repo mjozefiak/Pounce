@@ -194,6 +194,7 @@ extension NotesWorkspaceModel {
                         actions: [Strip.Action(id: "edit.save.retry", title: Self.tryAgain)]))
             }
             result.append(contentsOf: stateStrips(for: document))
+            result.append(contentsOf: reviseStrips(for: document))
         }
         return result
     }
@@ -257,6 +258,7 @@ extension NotesWorkspaceModel {
         case "models.open": environment.openModels()
         case "edit.save.retry": await currentDocument?.session?.retry()
         case "proposal.compare": await showProposalCompare()
+        case "revise.cancel", "revise.retry": _ = await performRevise(actionID)
         default:
             guard actionID.hasPrefix("doc."), let id = currentID, let document = documents[id] else { return }
             let name = String(actionID.dropFirst(4))
@@ -275,7 +277,7 @@ extension NotesWorkspaceModel {
         switch id {
         case "save", "feedback": dismissFeedback()
         case "actionFailed": currentDocument?.actionFailed = false
-        default: break
+        default: dismissReviseStrip(id)
         }
     }
 }

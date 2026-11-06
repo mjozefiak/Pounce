@@ -28,16 +28,10 @@ extension NotesPlugin {
     }
 
     /// The model that writes and revises notes: the stored choice, else the first installed one, else the catalog
-    /// default. Optional for the Models pane (revise and regenerate say "Notes need a model" on demand).
-    /// `isInUse` stays at its default: the run that holds the model (revise, regenerate, step 6.2) reports it there.
+    /// default. Optional for the Models pane (revise and regenerate say "Notes need a model" on demand); it is in
+    /// use while a revise run is going on or a lease holds its file (step 6.2, `notesModelUsage`).
     public var modelUsage: [ModelUsage] {
-        let current = NotesSettings(context.settings).builtInLLMModel(installedIDs: installedModelIDs)
-        return [
-            ModelUsage(
-                packageID: current.id, kind: .llm,
-                role: LocalizedStringResource("Notes", comment: "Models pane: what Notes uses the language model for"),
-                isRequired: false, isSelected: true)
-        ]
+        [notesModelUsage]
     }
 
     // MARK: Export and erase
