@@ -13,6 +13,8 @@ public enum MarkdownBlocks {
         var current: [Substring] = []
         // The opening fence: its character and length. A closing fence repeats the character at least as often.
         var openFence: (marker: Character, length: Int)?
+        // True when the open fence is indented inside a list item: it stays in the item's block.
+        var fenceInItem = false
 
         func flush() {
             let text = current.joined(separator: "\n").trimmingCharacters(in: CharacterSet(charactersIn: " \t\n"))
@@ -30,12 +32,20 @@ public enum MarkdownBlocks {
                     trimmed.dropFirst(fence.length).allSatisfy({ $0 == " " || $0 == "\t" })
                 {
                     openFence = nil
-                    flush()
+                    if fenceInItem {
+                        fenceInItem = false
+                    } else {
+                        flush()
+                    }
                 }
                 continue
             }
             if let fence = fence(in: trimmed) {
-                flush()
+                if trimmed.count < line.count, let first = current.first, isListItemStart(first) {
+                    fenceInItem = true
+                } else {
+                    flush()
+                }
                 current.append(line)
                 openFence = fence
             } else if trimmed.isEmpty {
@@ -56,7 +66,10 @@ public enum MarkdownBlocks {
     private static func fence(in trimmed: Substring) -> (marker: Character, length: Int)? {
         guard let first = trimmed.first, first == "`" || first == "~" else { return nil }
         let length = trimmed.prefix { $0 == first }.count
-        return length >= 3 ? (first, length) : nil
+        guard length >= 3 else { return nil }
+        // The info string of a backtick fence cannot contain a backtick: "```x```" is inline code.
+        if first == "`", trimmed.dropFirst(length).contains("`") { return nil }
+        return (first, length)
     }
 
     /// A top-level list item: no indentation, `- `, `* `, `+ ` or digits followed by `. ` or `) `.

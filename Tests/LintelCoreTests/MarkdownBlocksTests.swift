@@ -49,6 +49,26 @@ import Testing
         #expect(MarkdownBlocks.split("text\n```\ncode\n```\ntail") == ["text", "```\ncode\n```", "tail"])
     }
 
+    @Test func aBacktickRunWithABacktickInTheInfoStringIsInlineCode() {
+        #expect(MarkdownBlocks.split("```x```\n\nb") == ["```x```", "b"])
+        #expect(MarkdownBlocks.split("```x``` y\nmore\n\nb") == ["```x``` y\nmore", "b"])
+        #expect(MarkdownBlocks.split("~~~a`b\nc\n\nd\n~~~") == ["~~~a`b\nc\n\nd\n~~~"])
+    }
+
+    @Test func aFencedBlockIndentedInAListItemStaysWithTheItem() {
+        #expect(
+            MarkdownBlocks.split("- item\n  ```\n  code\n\n  more\n  ```\n  tail\n- next")
+                == ["- item\n  ```\n  code\n\n  more\n  ```\n  tail", "- next"])
+        #expect(
+            MarkdownBlocks.split("1. item\n   ~~~\n   - not an item\n   ~~~\n\nafter")
+                == ["1. item\n   ~~~\n   - not an item\n   ~~~", "after"])
+    }
+
+    @Test func aTopLevelFenceAfterAListStillSplitsAndKeepsIndices() {
+        #expect(
+            MarkdownBlocks.split("- item\n```\ncode\n```\ntail") == ["- item", "```\ncode\n```", "tail"])
+    }
+
     @Test func windowsLineEndingsSplitLikeUnixOnes() {
         #expect(MarkdownBlocks.split("a\r\n\r\n- b\r\n- c") == ["a", "- b", "- c"])
     }
