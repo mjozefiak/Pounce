@@ -38,8 +38,8 @@
 | 4 | 4.0-review-fix | Store review: readOnly keeps delete and detach, in-memory detach, opener purge and migrationFailed, json_valid, snippet folding | inline | done | f362b8c, e88ccea, ea0ffb5, ddfb91a, 61cef1f |
 | 4 | 4.1 | NoteEditor per Phase 0 decision, format bar, pasteboard markers | dispatch:capable | done | 74d7ce3 |
 | 4 | 4.2 | RevisionWriter, OverlaySeeder, SourceReconciler | dispatch:capable | done | e53dcc6 |
-| 4 | 4.3 | BlockAttribution gutter, legend, Details toggle | dispatch | todo | — |
-| 4 | 4.4 | Manual notes (Cmd+N, notes:<uuid>, title editing) | dispatch | todo | — |
+| 4 | 4.3 | BlockAttribution gutter, legend, Details toggle | dispatch | done | 8808486 |
+| 4 | 4.4 | Manual notes (Cmd+N, notes:<uuid>, title editing) | dispatch | done | 3299d7f |
 | 4 | 4.5 | History pane, Compare, Restore | dispatch | todo | — |
 | 4 | 4.6 | Delete with confirmation sheets and kept-copies option | dispatch | todo | — |
 | 4 | 4.7 | Notes settings pane, retention rules, Export All, Erase | dispatch | todo | — |
