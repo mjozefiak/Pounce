@@ -45,7 +45,7 @@
 | 4 | 4.2-review-fix (M9 TSan NotesPluginTests) | review fix | inline | done | 8c8116d |
 | 4 | 4.5 | History pane, Compare, Restore | dispatch | done | e73ba6a |
 | 4 | 4.6 | Delete with confirmation sheets and kept-copies option | dispatch | done | 0401065 |
-| 4 | 4.7 | Notes settings pane, retention rules, Export All, Erase | dispatch | todo | — |
+| 4 | 4.7 | Notes settings pane, retention rules, Export All, Erase | dispatch | done | 35ac222 |
 | 5 | 5.1 | note_comment store, anchors, re-anchoring | dispatch | todo | — |
 | 5 | 5.2 | Comment popover, inspector Comments pane, highlights | dispatch | todo | — |
 | 5 | 5.3 | Revise-with-N-comments counts and accessibility | dispatch | todo | — |
