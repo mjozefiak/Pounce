@@ -209,6 +209,21 @@ import Testing
         #expect(plan.skipped == [ReviseSkip(threadIDs: [2], reason: .deferred)])
     }
 
+    /// The answer repeats the unit's blocks and is capped: a unit longer than that would be cut off and rejected
+    /// on every try, so it is deferred, even as the first unit of the run.
+    @Test func aUnitLongerThanTheAnswerCanHoldIsDeferredEvenWhenFirst() throws {
+        let long = "Long paragraph " + String(repeating: "word ", count: 800)
+        let text = "## Notes\n\n\(long)\n\nShort one."
+        let threads = [
+            try ReviseFixtures.thread(1, quote: "Long paragraph", in: text),
+            try ReviseFixtures.thread(2, quote: "Short one", in: text),
+        ]
+        let plan = ReviseUnitPlanner.plan(head: text, threads: threads)
+        #expect(long.count > ReviseUnitPlanner.outputBudget)
+        #expect(plan.units.map(\.threadIDs) == [[2]])
+        #expect(plan.skipped == [ReviseSkip(threadIDs: [1], reason: .deferred)])
+    }
+
     @Test func blockKindsFollowTheFirstLine() {
         #expect(ReviseBlockKind.of("## Title") == .heading(2))
         #expect(ReviseBlockKind.of("#hash") == .paragraph)

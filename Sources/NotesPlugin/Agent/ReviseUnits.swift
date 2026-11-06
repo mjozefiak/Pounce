@@ -44,8 +44,14 @@ enum ReviseUnitPlanner {
     /// The most characters of blocks, context and comments one run sends (the context is 8192 tokens, and the
     /// answer needs room too).
     static let inputBudget = 9000
+    /// The most characters of unit blocks one run asks back: the answer repeats them and is capped at 2048 tokens
+    /// (`ReviseNotesPrompt.maxTokens`, about two characters a token after its 256-token margin). A unit that alone
+    /// would not fit is deferred too, never sent to be cut off and rejected on every try.
+    static let outputBudget = (2048 - 256) * 2
 
-    static func plan(head: String, threads: [CommentThread], inputBudget: Int = inputBudget) -> RevisePlan {
+    static func plan(
+        head: String, threads: [CommentThread], inputBudget: Int = inputBudget, outputBudget: Int = outputBudget
+    ) -> RevisePlan {
         let blocks = MarkdownBlocks.split(head)
         let located = BlockLocator.ranges(of: blocks, in: head)
         var skipped: [ReviseSkip] = []
@@ -83,17 +89,20 @@ enum ReviseUnitPlanner {
         }
         var units: [ReviseUnit] = []
         var used = 0
+        var asked = 0
         for group in groups {
             let unitBlocks = Array(blocks[group.lo...group.hi])
             let comments = group.threads.flatMap { $0.comments.map(\.body) }
             let before = Array(blocks[max(0, group.lo - contextBlocks)..<group.lo])
             let after = Array(blocks[(group.hi + 1)..<min(blocks.count, group.hi + 1 + contextBlocks)])
             let cost = (unitBlocks + comments + before + after).reduce(0) { $0 + $1.count }
-            if used + cost > inputBudget, !units.isEmpty {
+            let answer = unitBlocks.reduce(0) { $0 + $1.count }
+            if (used + cost > inputBudget && !units.isEmpty) || asked + answer > outputBudget {
                 skipped.append(ReviseSkip(threadIDs: group.threads.map(\.id), reason: .deferred))
                 continue
             }
             used += cost
+            asked += answer
             units.append(
                 ReviseUnit(
                     id: units.count + 1, threadIDs: group.threads.map(\.id), blockRange: group.lo...group.hi,
