@@ -16182,6 +16182,294 @@
           }
         }
       }
+    },
+    "Choose where to save the folder with your notes." : {
+      "comment" : "Notes settings: message of the Export All Notes save panel",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose where to save the folder with your notes."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybierz, gdzie zapisać folder z notatkami."
+          }
+        }
+      }
+    },
+    "Export" : {
+      "comment" : "Notes settings: button of the Export All Notes panel",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksportuj"
+          }
+        }
+      }
+    },
+    "Lintel Notes" : {
+      "comment" : "Notes settings: suggested name of the folder Export All Notes makes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel Notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki Lintel"
+          }
+        }
+      }
+    },
+    "Notes can’t be read right now, so nothing was exported." : {
+      "comment" : "Notes settings: Export All failed because the library is locked",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes can’t be read right now, so nothing was exported."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatek nie można teraz odczytać, więc nic nie wyeksportowano."
+          }
+        }
+      }
+    },
+    "The notes couldn’t be exported. Nothing was written." : {
+      "comment" : "Notes settings: Export All failed while writing the folder",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The notes couldn’t be exported. Nothing was written."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się wyeksportować notatek. Nic nie zapisano."
+          }
+        }
+      }
+    },
+    "Notes data was erased." : {
+      "comment" : "Notes settings: the result of Erase Notes Data",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes data was erased."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dane Notatek zostały usunięte."
+          }
+        }
+      }
+    },
+    "Notes data couldn’t be erased." : {
+      "comment" : "Notes settings: Erase Notes Data failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes data couldn’t be erased."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się usunąć danych Notatek."
+          }
+        }
+      }
+    },
+    "Erase all Notes data?" : {
+      "comment" : "Notes settings confirmation title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erase all Notes data?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunąć wszystkie dane Notatek?"
+          }
+        }
+      }
+    },
+    "The notes you wrote, your edits and comments on recorded notes and their history are removed from this Mac, with the library’s key. Recordings in Meetings and Dictation stay. This can’t be undone." : {
+      "comment" : "Notes settings confirmation text of Erase Notes Data",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The notes you wrote, your edits and comments on recorded notes and their history are removed from this Mac, with the library’s key. Recordings in Meetings and Dictation stay. This can’t be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Napisane przez Ciebie notatki, Twoje zmiany i komentarze w nagranych notatkach oraz ich historia zostaną usunięte z tego Maca razem z kluczem biblioteki. Nagrania w Spotkaniach i Dyktowaniu zostają. Nie można tego cofnąć."
+          }
+        }
+      }
+    },
+    "Export All Notes…" : {
+      "comment" : "Notes settings button that exports every note to a folder",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export All Notes…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksportuj wszystkie notatki…"
+          }
+        }
+      }
+    },
+    "One Markdown file per note, and a manifest." : {
+      "comment" : "Notes settings: help under Export All Notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One Markdown file per note, and a manifest."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jeden plik Markdown na notatkę i manifest."
+          }
+        }
+      }
+    },
+    "Erase Notes Data…" : {
+      "comment" : "Notes settings button that erases the Notes library",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erase Notes Data…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń dane Notatek…"
+          }
+        }
+      }
+    },
+    "Notes you wrote and your edits. Recordings stay." : {
+      "comment" : "Notes settings: help under Erase Notes Data",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes you wrote and your edits. Recordings stay."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Twoje notatki i zmiany. Nagrania zostają."
+          }
+        }
+      }
+    },
+    "%lld notes exported to “%@”." : {
+      "comment" : "Notes settings: the result of Export All Notes, the number of files and the folder name",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld note exported to “%@”."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld notes exported to “%@”."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld notatka wyeksportowana do „%@”."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld notatki wyeksportowane do „%@”."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld notatek wyeksportowanych do „%@”."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld notatki wyeksportowano do „%@”."
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

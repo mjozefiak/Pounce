@@ -50,6 +50,15 @@ public final class NotesPlugin: LintelPlugin {
         try library.erase()
     }
 
+    /// The Details toggles, shared by the inspector and Settings → Notes (a change shows in both at once).
+    private(set) lazy var preferences = NoteViewPreferences(settings: context.settings)
+
+    /// Set when the workspace was built, so Erase Notes Data does not build it only to refresh it.
+    private(set) var builtWorkspace: NotesWorkspaceModel?
+    var cachedPaneModel: NotesPaneModel?
+    /// Catalog models found installed by the pane's last refresh (the Models pane reads it, never the disk).
+    var installedModelIDs: Set<String> { cachedPaneModel?.installedIDs ?? [] }
+
     /// The Notes section's state, built when the section is first shown or a route reaches it.
     private(set) lazy var workspace: NotesWorkspaceModel = makeWorkspace()
 
@@ -124,6 +133,7 @@ public final class NotesPlugin: LintelPlugin {
             library: library, pasteboard: context.pasteboard, sourceSetChanges: context.noteSourcesChanged,
             openSettings: context.openSettings, openModels: { context.openModels(nil) })
         environment.settings = context.settings
+        environment.preferences = preferences
         // A recorded note's title is renamed in its owner (`NoteSourceEditing`), never in `notes.sqlite`.
         environment.renameTitle = { key, title in
             guard let editing = await library.source(for: key) as? any NoteSourceEditing else { return false }
@@ -168,6 +178,7 @@ public final class NotesPlugin: LintelPlugin {
             }
         }
         let model = NotesWorkspaceModel(environment: environment)
+        builtWorkspace = model
         registry.onRekey = { [weak model] key, started in model?.rekeyDetached(key: key, startedAtMs: started) ?? false
         }
         registry.onDiscard = { [weak model] items in model?.documentsDiscarded(items) }

@@ -106,7 +106,7 @@ final class SourceReconciler: Sendable {
     func sweep() async -> [NoteKey] {
         let detached = await library.sweep()
         do {
-            try store.deleteUnkeptDetached(excluding: await registry.openDocIDs())
+            try store.applyRetention(excluding: await registry.openDocIDs(), now: now())
         } catch {
             log.error(NotesLogEvent("sweep", code: (error as? NotesError)?.code ?? "sweepFailed"))
         }

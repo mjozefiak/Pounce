@@ -90,7 +90,7 @@ final class NotesLibraryOpener {
                 // The persistent rule: a detached row without user writing and without an open comment is
                 // deleted (nothing is open yet, so a leftover from a crash or a quit goes now).
                 if !opened.hasNewerSchema {
-                    do { try opened.deleteUnkeptDetached() } catch {
+                    do { try opened.applyRetention(now: now()) } catch {
                         log.error(NotesLogEvent("open", code: (error as? NotesError)?.code ?? "cleanupFailed"))
                     }
                 }

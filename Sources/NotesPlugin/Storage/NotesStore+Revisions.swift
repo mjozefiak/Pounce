@@ -272,14 +272,7 @@ extension NotesStore {
     /// Documents Export All may write: every head except a `detached` row without user writing and without an
     /// open comment (that row is leftover, deleted as soon as it is not open).
     func exportableDocumentIDs() throws -> [Int64] {
-        try read { db in
-            try Int64.fetchAll(
-                db,
-                sql: """
-                    SELECT d.id FROM note_doc d
-                    WHERE NOT (d.source_state = 'detached' AND NOT \(Self.keptSQL)) ORDER BY d.id
-                    """)
-        }
+        try exportRows().map(\.docID)
     }
 
     // MARK: Pruning

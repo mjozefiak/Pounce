@@ -33,7 +33,7 @@ import Testing
         #expect(plugin.onboardingSteps.isEmpty)
         #expect(plugin.requiredPermissions.isEmpty)
         #expect(plugin.noteSources.isEmpty)
-        #expect(plugin.modelUsage.isEmpty)
+        #expect(plugin.modelUsage.count == 1)  // the optional notes model (step 4.7)
     }
 
     @Test func activationAndDeactivationTouchNeitherFilesNorKeychain() async throws {

@@ -30,6 +30,8 @@ final class NotesWorkspaceModel {
         var pageSize = 100
         /// `plugins.notes.*`, for the inspector's Details toggles; `nil` keeps them in memory (tests).
         var settings: PluginSettings?
+        /// The Details toggles shared with Settings → Notes; `nil` makes them from `settings`.
+        var preferences: NoteViewPreferences?
         /// The clock and budget of a source's `content(for:)`, like the listing's: a source that does not answer in
         /// time leaves the tab "unavailable" and does not hold up the other tabs.
         var clock: any Clock<Duration> = ContinuousClock()
@@ -135,7 +137,7 @@ final class NotesWorkspaceModel {
     init(environment: Environment) {
         self.environment = environment
         presentation = NoteRowPresentation(calendar: environment.calendar, locale: environment.locale)
-        preferences = NoteViewPreferences(settings: environment.settings)
+        preferences = environment.preferences ?? NoteViewPreferences(settings: environment.settings)
     }
 
     // MARK: Listing

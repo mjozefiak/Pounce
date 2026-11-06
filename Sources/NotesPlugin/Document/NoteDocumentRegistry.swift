@@ -141,6 +141,18 @@ final class NoteDocumentRegistry {
         }
     }
 
+    /// Erase Notes Data: every writer is forgotten WITHOUT writing (the user confirmed the erase), and the tabs
+    /// are told through `onDiscard`.
+    func discardAll() {
+        var items = Set<NoteItemID>()
+        for entry in entries.values {
+            entry.writer.discardPending()
+            items.insert(entry.item)
+        }
+        entries = [:]
+        if !items.isEmpty { onDiscard(items) }
+    }
+
     /// The same for documents named by row (the kept copies of one owner); their tabs are told through `onDiscard`.
     func discard(docIDs: Set<Int64>) async {
         var items = Set<NoteItemID>()

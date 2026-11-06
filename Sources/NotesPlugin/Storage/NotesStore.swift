@@ -30,6 +30,8 @@ final class NotesStore: Sendable {
 
     private let database: DatabaseQueue
     private let closed = Mutex(false)
+    /// When the last `VACUUM` of this session ran (`vacuumIfDue`); in memory, like Meetings' retention job.
+    let lastVacuum = Mutex<Date?>(nil)
     /// Why writes are refused right now, or `nil`. Read on every write, so the setting applies at once.
     private let writeBlock: @Sendable () -> NotesError?
     /// The database was written by a newer Lintel (a migration this build does not know is applied).
