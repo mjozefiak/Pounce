@@ -1,6 +1,6 @@
 # Retire the old landing page (landing page companion C2)
 
-Source doc: `.ai/specs/2026-11-06-landing-page.md` ("Companion changes", C2).
+Source doc: `docs/specs/2026-11-06-landing-page.md` in `mjozefiak/lintel-web` ("Companion changes", C2).
 
 > **MERGE AFTER LAUNCH.** This PR stays a draft labelled `do-not-merge` until the new site (`lintel-web`, https://lintelapp.com) is live and `SITE_LIVE=1` is set in production (spec Phase 3.2). Merging earlier takes the only public page offline.
 
