@@ -107,10 +107,12 @@ struct NoteDocumentHeader: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8 * textSize.scale) {
-            if document.isManual || model.canRenameTitle(document) {
+            // Hide content masks the title instead of only blurring it; the field (an AppKit text field) is not
+            // shown at all then, and writes its draft as it goes.
+            if !model.hidesContent, document.isManual || model.canRenameTitle(document) {
                 NoteTitleField(model: model, document: document, summary: summary)
             } else {
-                Text(verbatim: model.presentation.title(summary))
+                Text(verbatim: model.shown(model.presentation.title(summary)))
                     .font(textSize.font(.title1, weight: .bold))
                     .foregroundStyle(LintelBrand.ink)
                     .fixedSize(horizontal: false, vertical: true)
@@ -281,6 +283,7 @@ struct NoteTitleField: View {
 
     private func commit() {
         let text = draft
-        Task { await model.setTitle(document.id, to: text) }
+        let document = document
+        Task { await model.setTitle(of: document, to: text) }
     }
 }

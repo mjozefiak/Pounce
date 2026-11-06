@@ -152,6 +152,21 @@ import Testing
         #expect(model.title(of: try #require(model.row(for: id))) == "Untitled note")
     }
 
+    /// ⌘W or the tab's ×: `close` forgets the document before the title field's last commit runs, and the title
+    /// typed into the field is still written.
+    @Test func aTitleTypedBeforeTheTabClosesIsWritten() async throws {
+        let r = try ReconRig()
+        let model = model(r)
+        await model.refresh()
+        await model.newNote()
+        let id = try #require(model.currentID)
+        let document = try #require(model.currentDocument)
+        model.close(id)
+        #expect(model.documents[id] == nil)
+        await model.setTitle(of: document, to: "Typed before closing")
+        #expect(model.row(for: id).map { model.title(of: $0) } == "Typed before closing")
+    }
+
     @Test func aTitleIsOneLineOfAtMostTwoHundredCharacters() {
         #expect(NotesStore.cleanTitle(String(repeating: "a", count: 500))?.count == 200)
         #expect(NotesStore.cleanTitle("a\r\nb") == "a b")

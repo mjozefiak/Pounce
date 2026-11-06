@@ -102,6 +102,12 @@ struct NotesSearchTests {
         model.searchText = "sync"
         await model.runSearch()
         #expect(model.snippetText(of: model.rows[0]) == "…move the pricing page…")
+        // Hide content: the row's title is masked and its snippet (the note's own text) is not drawn at all.
+        model.hidesContent = true
+        #expect(model.snippetText(of: model.rows[0]) == nil)
+        #expect(model.shownTitle(of: model.rows[0]) == NotesWorkspaceModel.maskedTitle)
+        model.hidesContent = false
+        #expect(model.shownTitle(of: model.rows[0]) == "Sync")
     }
 
     @Test("the highlight marks every word of the query, ignoring case and accents, and merges touching marks")

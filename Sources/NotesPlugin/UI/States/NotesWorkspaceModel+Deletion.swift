@@ -41,7 +41,7 @@ extension NotesWorkspaceModel {
         case .live: subject = (summary?.kind ?? .meeting) == .dictation ? .dictation : .meeting
         }
         let title = summary.map(presentation.title) ?? tabs.tabs.first { $0.id == id }?.title ?? id.key.rawValue
-        pendingDelete = DeleteRequest(id: id, title: title, subject: subject, hasEdits: !heads.isEmpty)
+        pendingDelete = DeleteRequest(id: id, title: shown(title), subject: subject, hasEdits: !heads.isEmpty)
     }
 
     func cancelDelete() { pendingDelete = nil }

@@ -177,7 +177,7 @@ struct ExplorerRowView: View {
                     .padding(.top, 5 * textSize.scale)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(verbatim: model.title(of: row))
+                    Text(verbatim: model.shownTitle(of: row))
                         .font(textSize.font(.callout, weight: .medium))
                         .foregroundStyle(isSelected ? LintelBrand.accentText : LintelBrand.ink)
                         .lineLimit(1)

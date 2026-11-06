@@ -248,7 +248,8 @@ final class NotesWorkspaceModel {
 
     /// While a search is on: the first matched layer's snippet (plain text; the view marks the query's words).
     func snippetText(of row: NoteRow) -> String? {
-        guard searchQuery != nil else { return nil }
+        // Hide content: a snippet is the note's own text, so it is not drawn at all (blur alone is not enough).
+        guard searchQuery != nil, !hidesContent else { return nil }
         let text = row.summary.matches.first?.snippet.trimmingCharacters(in: .whitespacesAndNewlines)
         return text?.isEmpty == false ? text : nil
     }
@@ -296,6 +297,9 @@ final class NotesWorkspaceModel {
     }
 
     func title(of row: NoteRow) -> String { presentation.title(row.summary) }
+
+    /// The row's title as the explorer draws it: masked while Hide content is on.
+    func shownTitle(of row: NoteRow) -> String { shown(title(of: row)) }
 
     func title(of group: NoteGroup) -> String {
         switch group.key {
@@ -533,7 +537,15 @@ final class NotesWorkspaceModel {
     /// A manual note's title: the line above its text. Trimmed and cleaned like `NotesStore.cleanTitle`; an empty
     /// one clears it. Nothing happens when it did not change.
     func setTitle(_ id: NoteItemID, to text: String) async {
-        guard let document = documents[id], document.isManual || canRenameTitle(document) else { return }
+        guard let document = documents[id] else { return }
+        await setTitle(of: document, to: text)
+    }
+
+    /// The same for the document the title field belongs to, which may already be closed: the field writes its
+    /// last draft when it disappears (⌘W, the tab's ×, the window), after `close` forgot the document.
+    func setTitle(of document: NoteDocumentModel, to text: String) async {
+        guard document.isManual || canRenameTitle(document) else { return }
+        let id = document.id
         let clean = NotesStore.cleanTitle(text)
         let current = NotesStore.cleanTitle(row(for: id)?.summary.title ?? document.summary?.title)
         guard clean != current else { return }
