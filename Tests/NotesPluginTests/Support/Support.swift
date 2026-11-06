@@ -73,3 +73,49 @@ func makeContext(
         clock: ContinuousClock()
     )
 }
+
+/// A pasteboard that remembers what was written and with which options.
+final class RecordingPasteboard: PasteboardClient {
+    struct Write: Sendable {
+        var items: [PasteboardItem]
+        var options: PasteboardWriteOptions
+    }
+
+    private let log = Mutex<[Write]>([])
+    var writes: [Write] { log.withLock { $0 } }
+    @MainActor var changeCount: Int { log.withLock { $0.count } }
+    @MainActor func string() -> String? { nil }
+    @MainActor func setString(_ string: String) -> Int { 0 }
+    @MainActor func write(_ items: [PasteboardItem], options: PasteboardWriteOptions) -> Int {
+        log.withLock { $0.append(Write(items: items, options: options)) }
+        return log.withLock { $0.count }
+    }
+}
+
+/// A save panel that answers as scripted and remembers what it was asked to write.
+final class ScriptedSaver: NoteFileSaving {
+    enum Answer: Sendable { case saved, cancelled, fails }
+    struct Saved: Sendable, Equatable {
+        var text: String
+        var name: String
+    }
+
+    private let state = Mutex<(answer: Answer, saved: [Saved])>((.saved, []))
+    var answer: Answer {
+        get { state.withLock { $0.answer } }
+        set { state.withLock { $0.answer = newValue } }
+    }
+    var saved: [Saved] { state.withLock { $0.saved } }
+
+    @MainActor func save(_ text: String, suggestedName: String) async throws -> Bool {
+        let answer = state.withLock { state -> Answer in
+            state.saved.append(Saved(text: text, name: suggestedName))
+            return state.answer
+        }
+        switch answer {
+        case .saved: return true
+        case .cancelled: return false
+        case .fails: throw ScriptedError()
+        }
+    }
+}

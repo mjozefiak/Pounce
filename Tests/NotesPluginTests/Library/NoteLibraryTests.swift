@@ -6,11 +6,6 @@ import Testing
 
 private func ids(_ rows: [NoteRow]) -> [String] { rows.map { $0.id.key.rawValue } }
 
-/// Lets pending tasks run without waiting for time.
-private func settle(_ times: Int = 200) async {
-    for _ in 0..<times { await Task.yield() }
-}
-
 @Suite("NoteLibrary: merging and paging")
 struct NoteLibraryMergeTests {
     @Test("sources and manual notes merge newest first, and a source's own key is its row")
@@ -136,8 +131,8 @@ struct NoteLibraryBudgetTests {
         let library = NoteLibrary(box: SourceBox([fast, slow]), clock: clock)
         let task = Task { await library.list(matching: nil, after: nil, limit: 10) }
         // Time moves only here; the budget fires once both sources have been asked.
-        while slow.started == 0 || fast.started == 0 { await Task.yield() }
-        await settle()
+        // Both sources were asked and each has set its deadline.
+        while slow.started == 0 || fast.started == 0 || clock.sleepCalls < 2 { await Task.yield() }
         clock.advance(by: .milliseconds(150))
         let listing = await task.value
         #expect(ids(listing.rows) == ["meetings:a"])
@@ -400,8 +395,7 @@ struct NoteLibrarySweepTests {
         let clock = ManualClock()
         let slow = NoteLibrary(box: SourceBox([source]), store: store, clock: clock)
         let task = Task { await slow.sweep() }
-        while source.existsCalls.isEmpty { await Task.yield() }
-        await settle()
+        while source.existsCalls.isEmpty || clock.sleepCalls < 1 { await Task.yield() }
         clock.advance(by: .milliseconds(150))
         #expect(await task.value.isEmpty)
         #expect(store.detachCalls.isEmpty)

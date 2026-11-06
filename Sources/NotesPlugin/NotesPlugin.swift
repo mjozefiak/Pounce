@@ -59,10 +59,29 @@ public final class NotesPlugin: LintelPlugin {
         let provider = noteSourceProvider
         let none = NoOverlays()
         let library = NoteLibrary(sources: provider, overlays: none, detacher: none)
-        return NotesWorkspaceModel(
+        let model = NotesWorkspaceModel(
             environment: NotesWorkspaceModel.Environment(
-                library: library, sourceSetChanges: context.noteSourcesChanged, openSettings: context.openSettings))
+                library: library, pasteboard: context.pasteboard, sourceSetChanges: context.noteSourcesChanged,
+                openSettings: context.openSettings))
+        #if DEBUG
+        openQAFixtureTabs(in: model)
+        #endif
+        return model
     }
+
+    #if DEBUG
+    /// `plugins.notes.qaOpen`: opens the named notes in tabs, the last one current.
+    private func openQAFixtureTabs(in model: NotesWorkspaceModel) {
+        let list = context.settings.string(NotesSettingsKey.qaOpen) ?? ""
+        for entry in list.split(separator: ",") {
+            let parts = entry.split(separator: "@", maxSplits: 1).map(String.init)
+            guard let raw = parts.first else { continue }
+            let route = WorkspaceRoute(kind: NoteRoute.kind, id: raw)
+            guard model.handle(route), let id = NoteRoute.itemID(for: route) else { continue }
+            if parts.count == 2 { model.preferredLayers[id] = parts[1] }
+        }
+    }
+    #endif
 
     /// The sources the library reads: the active plugins' (`PluginContext.noteSources`); with `--qa-notes` the
     /// fixture sources come first, so they win over a real plugin of the same id.

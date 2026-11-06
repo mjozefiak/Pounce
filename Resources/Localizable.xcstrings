@@ -13824,6 +13824,222 @@
           }
         }
       }
+    },
+    "This note has no text yet." : {
+      "comment" : "Document: the shown layer has no text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This note has no text yet."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ta notatka nie ma jeszcze tekstu."
+          }
+        }
+      }
+    },
+    "Written by AI" : {
+      "comment" : "Accessibility: who wrote a block",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Written by AI"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Napisane przez AI"
+          }
+        }
+      }
+    },
+    "Written by you" : {
+      "comment" : "Accessibility: who wrote a block",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Written by you"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Napisane przez Ciebie"
+          }
+        }
+      }
+    },
+    "Speech to text" : {
+      "comment" : "Accessibility: who wrote a block",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speech to text"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zamiana mowy na tekst"
+          }
+        }
+      }
+    },
+    "Show %@ in the transcript" : {
+      "comment" : "Accessibility: a quote chip",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show %@ in the transcript"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż %@ w transkrypcie"
+          }
+        }
+      }
+    },
+    "Switches to the transcript" : {
+      "comment" : "Accessibility hint of a quote chip",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switches to the transcript"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełącza na transkrypt"
+          }
+        }
+      }
+    },
+    "Quoted from %@" : {
+      "comment" : "Accessibility: a quote time",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quoted from %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cytat z %@"
+          }
+        }
+      }
+    },
+    "Not done" : {
+      "comment" : "Accessibility: an open task in a note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not done"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niezrobione"
+          }
+        }
+      }
+    },
+    "Saved" : {
+      "comment" : "Path bar: the Markdown file was saved",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisano"
+          }
+        }
+      }
+    },
+    "The .md file couldn’t be saved. Check that the folder is writable." : {
+      "comment" : "Notes: saving the Markdown file failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The .md file couldn’t be saved. Check that the folder is writable."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się zapisać pliku .md. Sprawdź, czy folder pozwala na zapis."
+          }
+        }
+      }
+    },
+    "Try again" : {
+      "comment" : "Notes: saves the Markdown file again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spróbuj ponownie"
+          }
+        }
+      }
+    },
+    "Note" : {
+      "comment" : "Default file name of a saved note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatka"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

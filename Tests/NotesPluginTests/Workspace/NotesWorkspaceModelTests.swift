@@ -19,6 +19,8 @@ private struct Rig {
     let model: NotesWorkspaceModel
     let sourceSet: AsyncStream<Void>.Continuation
     let settingsOpened = Counter()
+    let pasteboard = RecordingPasteboard()
+    let saver = ScriptedSaver()
 
     final class Counter { var count = 0 }
 
@@ -60,7 +62,8 @@ private struct Rig {
         let counter = settingsOpened
         model = NotesWorkspaceModel(
             environment: NotesWorkspaceModel.Environment(
-                library: library, sourceSetChanges: { stream }, openSettings: { counter.count += 1 },
+                library: library, pasteboard: pasteboard, saver: saver, sourceSetChanges: { stream },
+                openSettings: { counter.count += 1 },
                 now: { now }, calendar: utc, locale: english))
     }
 }
@@ -225,6 +228,17 @@ struct NotesWorkspaceModelTests {
         #expect(rig.model.pathComponents == ["Today", "Orchard weekly sync", "Transcript"])
     }
 
+    @Test("a dictation's path ends in its kind and time, not its text")
+    func dictationPath() async {
+        let rig = Rig()
+        await rig.model.refresh()
+        rig.model.open(.live(Rig.dictationKey))
+        let path = rig.model.pathComponents
+        #expect(path?.first == "Today")
+        #expect(path?.last?.hasPrefix("Dictation") == true)
+        #expect(path?.contains("Hi Kasia") == false)
+    }
+
     @Test("a change signalled by the set of sources reads the list again")
     func followsTheSourceSet() async {
         let rig = Rig()
@@ -243,5 +257,64 @@ struct NotesWorkspaceModelTests {
         let rig = Rig()
         rig.model.openSettings()
         #expect(rig.settingsOpened.count == 1)
+    }
+
+    // MARK: Copy and save
+
+    private func openMeeting(_ rig: Rig) async {
+        await rig.model.refresh()
+        let id = NoteItemID.live(Rig.meetingKey)
+        rig.model.open(id)
+        await rig.model.loadContent(id)
+    }
+
+    @Test("Copy Markdown writes the layer on screen and says so")
+    func copy() async throws {
+        let rig = Rig()
+        await openMeeting(rig)
+        rig.model.copyMarkdown()
+        let write = try #require(rig.pasteboard.writes.first)
+        #expect(write.options == [.currentHostOnly])
+        let text = write.items.first.flatMap { $0.data(for: PasteboardRepresentation.plainTextType) }
+        #expect(text.map { String(decoding: $0, as: UTF8.self) } == "# Orchard weekly sync\n\n## Summary\n\nShip it.\n")
+        #expect(rig.model.feedback == .copied)
+        let serial = rig.model.feedbackSerial
+        rig.model.dismissFeedback()
+        #expect(rig.model.feedback == nil)
+        #expect(rig.model.feedbackSerial == serial + 1)
+        // Nothing is open: nothing is copied.
+        rig.model.close(.live(Rig.meetingKey))
+        rig.model.copyMarkdown()
+        #expect(rig.pasteboard.writes.count == 1)
+    }
+
+    @Test("Save .md writes the text under a file name; cancelling says nothing; a failure says so")
+    func save() async {
+        let rig = Rig()
+        await openMeeting(rig)
+        await rig.model.saveMarkdown()
+        #expect(rig.saver.saved.map(\.name) == ["Orchard weekly sync.md"])
+        #expect(rig.saver.saved.first?.text.hasPrefix("# Orchard weekly sync") == true)
+        #expect(rig.model.feedback == .saved)
+        rig.saver.answer = .cancelled
+        await rig.model.saveMarkdown()
+        #expect(rig.model.feedback == nil)
+        rig.saver.answer = .fails
+        await rig.model.saveMarkdown()
+        #expect(rig.model.feedback == .saveFailed)
+        // Trying again after the disk is fine clears the error.
+        rig.saver.answer = .saved
+        await rig.model.saveMarkdown()
+        #expect(rig.model.feedback == .saved)
+    }
+
+    @Test("the transcript is what is copied once it is shown")
+    func copyTranscript() async throws {
+        let rig = Rig()
+        await openMeeting(rig)
+        try #require(rig.model.currentDocument).selectLayer("transcript")
+        rig.model.copyMarkdown()
+        let data = rig.pasteboard.writes.first?.items.first?.data(for: PasteboardRepresentation.plainTextType)
+        #expect(String(decoding: data ?? Data(), as: UTF8.self).contains("Agreed."))
     }
 }

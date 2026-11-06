@@ -88,10 +88,12 @@ struct NoteTabView: View {
     }
 }
 
-/// The path bar (prototype `.crb`): where the note sits in the explorer, in the monospaced face.
+/// The path bar (prototype `.crb`): where the note sits in the explorer, in the monospaced face, and the two
+/// actions of a read-only note: Copy Markdown (⌘⇧C) and Save .md….
 struct NotePathBar: View {
     let model: NotesWorkspaceModel
     @Environment(\.lintelTextSize) private var textSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: 0) {
@@ -102,14 +104,107 @@ struct NotePathBar: View {
                         .foregroundStyle(LintelBrand.secondaryText)
                         .lineLimit(1)
                         .truncationMode(.middle)
-                        .accessibilityLabel(
-                            Text(verbatim: path.joined(separator: ", ")))
+                        .accessibilityLabel(Text(verbatim: path.joined(separator: ", ")))
                 }
                 Spacer(minLength: 0)
+                if let feedback = model.feedback, feedback != .saveFailed {
+                    Text(verbatim: Self.text(feedback))
+                        .font(textSize.font(.footnote))
+                        .foregroundStyle(LintelBrand.accentText)
+                        .accessibilityHidden(true)
+                }
+                if model.currentDocument?.markdown != nil { actions }
             }
             .padding(.leading, 16 * textSize.scale)
             .padding(.trailing, 12 * textSize.scale)
             .frame(height: 32.5 * textSize.scale)
+            LintelDivider()
+            if model.feedback == .saveFailed { SaveErrorStrip(model: model) }
+        }
+        .accessibilityElement(children: .contain)
+        .task(id: model.feedbackSerial) {
+            guard let feedback = model.feedback, feedback != .saveFailed else { return }
+            AccessibilityNotification.Announcement(Self.text(feedback)).post()
+            try? await Task.sleep(for: .seconds(2))
+            if !Task.isCancelled { model.dismissFeedback() }
+        }
+    }
+
+    private var actions: some View {
+        HStack(spacing: 2) {
+            iconButton("doc.on.doc", label: Text("Copy Markdown", comment: "Path bar: copies the note as Markdown")) {
+                model.copyMarkdown()
+            }
+            .keyboardShortcut("c", modifiers: [.command, .shift])
+            iconButton(
+                "square.and.arrow.down",
+                label: Text("Save .md…", comment: "Path bar: saves the note as a Markdown file")
+            ) {
+                Task { await model.saveMarkdown() }
+            }
+        }
+    }
+
+    private func iconButton(_ symbol: String, label: Text, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(textSize.font(.callout))
+                .foregroundStyle(LintelBrand.secondaryText)
+                .frame(width: 26.25 * textSize.scale, height: 26.25 * textSize.scale)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+        .help(label)
+    }
+
+    static func text(_ feedback: NotesWorkspaceModel.Feedback) -> String {
+        switch feedback {
+        case .copied: String(localized: "Copied", comment: "Path bar: the Markdown was copied")
+        case .saved: String(localized: "Saved", comment: "Path bar: the Markdown file was saved")
+        case .saveFailed:
+            String(
+                localized: "The .md file couldn’t be saved. Check that the folder is writable.",
+                comment: "Notes: saving the Markdown file failed")
+        }
+    }
+}
+
+/// The strip under the path bar when saving failed (prototype `lib-saveerror`).
+struct SaveErrorStrip: View {
+    let model: NotesWorkspaceModel
+    @Environment(\.lintelTextSize) private var textSize
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                Circle().fill(LintelBrand.statusError).frame(width: 7 * textSize.scale, height: 7 * textSize.scale)
+                    .accessibilityHidden(true)
+                Text(verbatim: NotePathBar.text(.saveFailed))
+                    .font(textSize.font(.callout))
+                    .foregroundStyle(LintelBrand.ink)
+                Spacer(minLength: 0)
+                Button {
+                    Task { await model.saveMarkdown() }
+                } label: {
+                    Text("Try again", comment: "Notes: saves the Markdown file again")
+                        .font(textSize.font(.callout, weight: .semibold))
+                        .foregroundStyle(LintelBrand.accentText)
+                }
+                .buttonStyle(.plain)
+                Button {
+                    model.dismissFeedback()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(textSize.font(.caption2, weight: .semibold))
+                        .foregroundStyle(LintelBrand.secondaryText)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("Dismiss", comment: "Accessibility label of a strip's close button"))
+            }
+            .padding(.horizontal, 16 * textSize.scale)
+            .frame(minHeight: 28.75 * textSize.scale)
+            .background(LintelBrand.statusError.opacity(0.11))
             LintelDivider()
         }
         .accessibilityElement(children: .contain)

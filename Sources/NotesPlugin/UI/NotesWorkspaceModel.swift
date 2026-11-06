@@ -12,6 +12,10 @@ final class NotesWorkspaceModel {
     /// What the model needs from the outside, replaced by fakes in tests.
     struct Environment {
         var library: NoteLibrary
+        /// Where Copy Markdown writes (the context's pasteboard).
+        var pasteboard: any PasteboardClient
+        /// Where Save .md asks for a place and writes.
+        var saver: any NoteFileSaving = NoteSavePanel()
         /// The context's `noteSourcesChanged`: one stream per call.
         var sourceSetChanges: @Sendable () -> AsyncStream<Void> = { AsyncStream { $0.finish() } }
         var openSettings: @MainActor () -> Void = {}
@@ -42,6 +46,11 @@ final class NotesWorkspaceModel {
     var grouping: NoteGrouping = .time {
         didSet { if grouping != oldValue { regroup() } }
     }
+
+    #if DEBUG
+    /// QA (`plugins.notes.qaOpen`): the layer a note shows once its content has been read.
+    var preferredLayers: [NoteItemID: String] = [:]
+    #endif
 
     private(set) var tabs = NoteTabSet()
     private(set) var documents: [NoteItemID: NoteDocumentModel] = [:]
@@ -195,6 +204,9 @@ final class NotesWorkspaceModel {
         }
         do {
             document.apply(try await source.content(for: id.key))
+            #if DEBUG
+            if let layer = preferredLayers.removeValue(forKey: id) { document.selectLayer(layer) }
+            #endif
         } catch {
             document.markUnavailable()
         }
@@ -212,11 +224,10 @@ final class NotesWorkspaceModel {
         var parts: [String] = []
         let row = row(for: id)
         if let group = groups.first(where: { $0.rows.contains { $0.id == id } }) { parts.append(title(of: group)) }
-        parts.append(row.map(title(of:)) ?? tabs.tabs.first { $0.id == id }?.title ?? id.key.rawValue)
-        if let document = documents[id], document.layers.count > 1, let layerID = document.layerID,
-            layerID != document.layers.first?.id
-        {
-            parts.append(NoteDocumentModel.title(ofLayer: layerID))
+        let fallback = tabs.tabs.first { $0.id == id }?.title ?? id.key.rawValue
+        parts.append(row.map { presentation.pathTitle($0.summary) } ?? fallback)
+        if documents[id]?.layerID == NoteDocumentModel.transcriptLayerID {
+            parts.append(NoteDocumentModel.title(ofLayer: NoteDocumentModel.transcriptLayerID))
         }
         return parts
     }
@@ -233,6 +244,49 @@ final class NotesWorkspaceModel {
 
     var writingCount: Int {
         rows.filter { if case .writing = $0.badge { true } else { false } }.count
+    }
+
+    // MARK: Copy and save
+
+    /// What the path bar just did, in words for the screen and for VoiceOver.
+    enum Feedback: Equatable {
+        case copied
+        case saved
+        case saveFailed
+    }
+
+    private(set) var feedback: Feedback?
+    /// Changes with every `feedback`, so the view can clear a message after a moment and announce it.
+    private(set) var feedbackSerial = 0
+
+    private func show(_ feedback: Feedback?) {
+        self.feedback = feedback
+        feedbackSerial += 1
+    }
+
+    func dismissFeedback() {
+        if feedback != nil { show(nil) }
+    }
+
+    /// ⌘⇧C: the Markdown of the layer on screen goes to the pasteboard with the transient and concealed markers,
+    /// for this Mac only.
+    func copyMarkdown() {
+        guard let text = currentDocument?.markdown else { return }
+        NoteClipboard.copy(text, to: environment.pasteboard)
+        show(.copied)
+    }
+
+    /// Save .md…: a save panel, then the file. A cancelled panel says nothing; a failed write says so.
+    func saveMarkdown() async {
+        guard let document = currentDocument, let text = document.markdown, let summary = document.summary else {
+            return
+        }
+        do {
+            let saved = try await environment.saver.save(text, suggestedName: NoteMarkdownExport.fileName(summary))
+            show(saved ? .saved : nil)
+        } catch {
+            show(.saveFailed)
+        }
     }
 
     // MARK: Chrome

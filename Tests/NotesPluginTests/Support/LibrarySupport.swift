@@ -22,11 +22,17 @@ final class ManualClock: Clock, Sendable {
     private struct State {
         var now = Instant(offset: .zero)
         var sleepers: [UUID: Sleeper] = [:]
+        var sleepCalls = 0
     }
 
     private let state = Mutex(State())
 
     var now: Instant { state.withLock { $0.now } }
+
+    /// How many times `sleep` was asked for, cancelled ones included. A test waits for the sleeps it expects
+    /// before it advances time, so the deadline is always set before the clock moves (otherwise a deadline set
+    /// after the advance would never fire).
+    var sleepCalls: Int { state.withLock { $0.sleepCalls } }
     var minimumResolution: Duration { .zero }
 
     func sleep(until deadline: Instant, tolerance: Duration?) async throws {
@@ -35,6 +41,7 @@ final class ManualClock: Clock, Sendable {
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
                 enum Outcome { case wait, fire, cancel }
                 let outcome = state.withLock { state -> Outcome in
+                    state.sleepCalls += 1
                     if Task.isCancelled { return .cancel }
                     if deadline <= state.now { return .fire }
                     state.sleepers[id] = Sleeper(deadline: deadline, continuation: continuation)

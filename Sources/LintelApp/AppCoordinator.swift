@@ -519,6 +519,23 @@ final class AppCoordinator {
         }
     }
 
+    /// QA (`--qa-snapshot`): the main window's content as a PNG, rendered by the app itself.
+    func writeMainWindowSnapshotForQA(to path: String) {
+        guard let view = mainWindow?.window?.contentView,
+            let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds)
+        else {
+            logger.error("No main window to snapshot")
+            return
+        }
+        view.cacheDisplay(in: view.bounds, to: bitmap)
+        guard let data = bitmap.representation(using: .png, properties: [:]) else { return }
+        do {
+            try data.write(to: URL(filePath: path))
+        } catch {
+            logger.error("Cannot write the snapshot: \(String(describing: error), privacy: .public)")
+        }
+    }
+
     /// QA: shows the whole welcome screen regardless of what was completed.
     func showOnboardingForQA() {
         onboarding?.showAllSteps()

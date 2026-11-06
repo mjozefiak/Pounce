@@ -31,6 +31,9 @@ struct QAOptions: Equatable {
     var showsMenu = false
     /// `--qa-quit-after <seconds>`: closes any open menu and quits after the delay.
     var quitAfter: Duration?
+    /// `--qa-snapshot <path>`: before `--qa-quit-after` quits, writes the main window's content as a PNG. It renders
+    /// the app's own views (`cacheDisplay`), so it needs no screen-recording permission.
+    var snapshotPath: String?
     /// `--qa-setting <key>=<value>` (repeatable): seeds the in-memory settings. `true`/`false` become
     /// booleans, integers become integers, anything else a string.
     var settings: [String: SettingValue] = [:]
@@ -134,6 +137,9 @@ struct QAOptions: Equatable {
                     throw .invalidValue(argument, value)
                 }
                 options.quitAfter = .milliseconds(Int(seconds * 1000))
+            case "--qa-snapshot":
+                guard let value = iterator.next() else { throw .missingValue(argument) }
+                options.snapshotPath = value
             case "--qa-setting":
                 guard let value = iterator.next() else { throw .missingValue(argument) }
                 guard let separator = value.firstIndex(of: "="), separator != value.startIndex else {

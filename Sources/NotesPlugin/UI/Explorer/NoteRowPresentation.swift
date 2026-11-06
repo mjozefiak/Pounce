@@ -40,6 +40,13 @@ struct NoteRowPresentation: Sendable {
         }
     }
 
+    /// The last part of the path bar: a dictation is "Dictation 11:20" (its text is long), any other note its title.
+    func pathTitle(_ summary: NoteSummary) -> String {
+        guard summary.kind == .dictation else { return title(summary) }
+        let when = time(summary.startedAt)
+        return String(localized: "Dictation \(when)", comment: "Explorer: name of a dictation without text")
+    }
+
     // MARK: Second line
 
     /// "14:05 · 42 min · Zoom": the time (the date too outside today and yesterday), the length and the app.

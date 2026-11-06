@@ -2,8 +2,8 @@ import LintelKit
 import LintelUI
 import SwiftUI
 
-/// The open note (prototype `.ed`). Step 3.2 draws the header: the title, what is known about the note and the
-/// switch between its layers; the text under it comes with step 3.3.
+/// The open note (prototype `.ed`): the header, then the blocks of the layer on screen. Read-only: notes with
+/// their tables and quote chips, the transcript with speakers and times, a dictation's cleaned or original text.
 struct NoteDocumentView: View {
     let model: NotesWorkspaceModel
     let document: NoteDocumentModel
@@ -19,11 +19,8 @@ struct NoteDocumentView: View {
             case .gone:
                 message(Text("This note no longer exists.", comment: "Document: its source no longer has the note"))
             case .loaded:
-                if let summary = document.summary {
-                    NoteDocumentHeader(model: model, document: document, summary: summary)
-                }
+                NoteDocumentBody(model: model, document: document)
             }
-            Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .task(id: document.id) { await model.loadContent(document.id) }
@@ -34,6 +31,46 @@ struct NoteDocumentView: View {
             .font(textSize.font(.callout))
             .foregroundStyle(LintelBrand.secondaryText)
             .padding(24 * textSize.scale)
+    }
+}
+
+/// The scrolling part: the header and one row per block. A quote chip asks the document to show the transcript;
+/// the view then scrolls to the block it named.
+struct NoteDocumentBody: View {
+    let model: NotesWorkspaceModel
+    let document: NoteDocumentModel
+    @Environment(\.lintelTextSize) private var textSize
+
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    if let summary = document.summary {
+                        NoteDocumentHeader(model: model, document: document, summary: summary)
+                    }
+                    if document.blocks.isEmpty {
+                        Text("This note has no text yet.", comment: "Document: the shown layer has no text")
+                            .font(textSize.font(.callout))
+                            .foregroundStyle(LintelBrand.secondaryText)
+                            .padding(.leading, 5.4 * 12.5 * textSize.scale)
+                            .padding(.top, 8 * textSize.scale)
+                    }
+                    ForEach(document.blocks) { block in
+                        NoteBlockRow(document: document, block: block, previous: previous(of: block))
+                            .id(block.index)
+                    }
+                }
+                .padding(.bottom, 24 * textSize.scale)
+            }
+            .onChange(of: document.scrollRequest) { _, request in
+                guard let request else { return }
+                proxy.scrollTo(request.blockIndex, anchor: .center)
+            }
+        }
+    }
+
+    private func previous(of block: NoteBlock) -> NoteBlock? {
+        block.index > 0 && block.index - 1 < document.blocks.count ? document.blocks[block.index - 1] : nil
     }
 }
 
@@ -50,6 +87,7 @@ struct NoteDocumentHeader: View {
                 .font(textSize.font(.title1, weight: .bold))
                 .foregroundStyle(LintelBrand.ink)
                 .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
             HStack(spacing: 6 * textSize.scale) {
                 ForEach(chips, id: \.self) { chip in
                     Text(verbatim: chip)
