@@ -23,6 +23,11 @@ struct NotesReduceOutput: Equatable, Sendable {
 ///   the transcript's own words of the quote are shown instead (counted as a repair). A decision or a task
 ///   whose sentence is a question is downgraded to an open question; a one-word quote ("Tak.") supports no
 ///   decision and no task.
+/// - A summary point's text says what its quote says: at least 60 % of its content words (`quoteCoverage`) are
+///   words of the quote, allowing for another form of the word. A text that drifts further from its quote (a
+///   paraphrase that turns the sense around without a name, number or negation of its own) is not shown: the
+///   quote is (counted as a repair, reason `driftedFromQuote`). Decisions, tasks and questions are not measured
+///   this way.
 /// - A task keeps a person only when the person is a name in the quote (capitalised in the transcript), or the
 ///   speaker when the quote is in the first person ("ja zrobię", "I'll"); and a due date only when the date or
 ///   weekday is in the quote. Otherwise the task stays without them. Nothing is guessed.
@@ -41,10 +46,26 @@ struct NotesReduceOutput: Equatable, Sendable {
 /// the guard cannot tell it from a genuine one; it only keeps the model from inventing a person or a date for
 /// it. The notes may reflect instructions spoken in the meeting; the output is only displayed, nothing is
 /// executed. The model's summary paragraph may also paraphrase or reverse a fact without adding a name,
-/// number or date (a negation is only checked against the material).
+/// number or date (a negation is only checked against the material). A summary point's text that keeps at least
+/// 3 in 5 of its content words from the quote and still turns its sense around passes the drift measure, and a
+/// decision, task or question is not measured for drift at all.
 struct NotesGuard: Sendable {
     enum DropReason: String, Error, Sendable, CaseIterable {
         case emptyText, quoteTooShort, quoteNotInTranscript, languageChanged, kindNotSupported
+    }
+
+    /// Why a point's text was replaced by its quote. Every repaired point has exactly one: the first check that
+    /// refused the text, in this order.
+    enum RepairReason: String, Sendable, CaseIterable {
+        /// A decision or a task whose sentence is a question; it became an open question.
+        case downgradedQuestion
+        /// A digit, address, number word, weekday, month, name or sentence starter that the quote's utterance and
+        /// speaker do not have (`isFaithful`).
+        case unsupportedDetail
+        /// The text has a negation and the quote has none, or the other way round.
+        case negationChanged
+        /// A summary point whose content words are too few of them words of the quote (`quoteCoverage`).
+        case driftedFromQuote
     }
 
     struct PointVerdict: Equatable, Sendable {
@@ -55,6 +76,8 @@ struct NotesGuard: Sendable {
         var repaired = 0
         /// Decisions and tasks that were questions in the transcript and became open questions.
         var downgraded = 0
+        /// `repaired`, by the reason of each repair (the counts add up to `repaired`).
+        var repairReasons: [RepairReason: Int] = [:]
     }
 
     struct ReduceVerdict: Equatable, Sendable {
@@ -165,18 +188,22 @@ struct NotesGuard: Sendable {
         var reasons: [DropReason: Int] = [:]
         var repaired = 0
         var downgraded = 0
+        var repairReasons: [RepairReason: Int] = [:]
         for point in points {
             switch verify(point) {
             case .success(let outcome):
                 verified.append(outcome.point)
-                if outcome.repaired { repaired += 1 }
+                if let reason = outcome.repair {
+                    repaired += 1
+                    repairReasons[reason, default: 0] += 1
+                }
                 if outcome.downgraded { downgraded += 1 }
             case .failure(let reason): reasons[reason, default: 0] += 1
             }
         }
         return PointVerdict(
             verified: verified, dropped: points.count - verified.count, reasons: reasons, repaired: repaired,
-            downgraded: downgraded)
+            downgraded: downgraded, repairReasons: repairReasons)
     }
 
     private struct Match {
@@ -186,7 +213,8 @@ struct NotesGuard: Sendable {
 
     private struct Outcome {
         var point: NotesPoint
-        var repaired = false
+        /// Set when the text was replaced by the quote.
+        var repair: RepairReason?
         var downgraded = false
     }
 
@@ -220,30 +248,39 @@ struct NotesGuard: Sendable {
         // What is shown as the quote is the transcript's own text.
         outcome.point.quote = excerpt
 
-        var trusted = true
+        var repair: RepairReason?
         if claimsDecision, isQuestion(sentence: wordSentence[match.range.lowerBound]) {
             outcome.point.kind = .question
             outcome.downgraded = true
-            trusted = false
+            repair = .downgradedQuestion
         }
-        if trusted {
+        if repair == nil {
             let vocabulary = Vocabulary(
                 words: covered.flatMap { Array(words[utteranceRanges[$0]]) }
                     + covered.flatMap { NotesText.words(utterances[$0].speaker) },
                 numbers: covered.flatMap {
                     NotesText.numberUnits(utterances[$0].text) + NotesText.linkUnits(utterances[$0].text)
                 })
-            trusted = Self.isFaithful(outcome.point.text, vocabulary: vocabulary, strictStart: false)
+            if !Self.isFaithful(outcome.point.text, vocabulary: vocabulary, strictStart: false) {
+                repair = .unsupportedDetail
+            }
         }
         // A point must not turn a negation around: "nie zatwierdzamy" restated as "zatwierdzono", or the other
         // way round, keeps every word faithful and still flips the meaning.
-        if trusted, Self.hasNegation(NotesText.words(outcome.point.text)) != Self.hasNegation(quoteWords) {
-            trusted = false
+        if repair == nil, Self.hasNegation(NotesText.words(outcome.point.text)) != Self.hasNegation(quoteWords) {
+            repair = .negationChanged
         }
-        if !trusted {
+        // A summary point is a fact of the discussion in other words; when most of those words are not the
+        // quote's, the sense may have been turned around without anything the checks above see.
+        if repair == nil, outcome.point.kind == .summary,
+            Self.driftsFromQuote(outcome.point.text, quote: Array(words[match.range]))
+        {
+            repair = .driftedFromQuote
+        }
+        if let repair {
             // The model's wording is not shown; the transcript's is.
             outcome.point.text = excerpt
-            outcome.repaired = true
+            outcome.repair = repair
         }
 
         if outcome.point.kind == .task {
@@ -453,6 +490,51 @@ struct NotesGuard: Sendable {
             return false
         }
         return true
+    }
+
+    // MARK: Drift of a summary point from its quote
+
+    /// A summary point keeps its text only when at least 3 of every 5 of its content words are words of the
+    /// quote (`quoteCoverage`). Chosen on the reversed key points of a real meeting (coverage 0 to 0.5) and the
+    /// faithful paraphrases of the corpus (0.67 and more); see `NotesDriftTests`.
+    static let minimumQuoteCoverage = (covered: 3, of: 5)
+
+    /// Function words of four letters or more, and words a note uses to frame what was said ("Mówca mówi,
+    /// że…"): they say nothing about the fact, so they are not counted. Shorter words are not counted at all.
+    private static let notContentWords: Set<String> = [
+        "jest", "przez", "przed", "ktory", "ktora", "ktore", "ktorzy", "ktorych", "ktorym", "ktorej", "tego",
+        "temu", "tych", "tymi", "jako", "oraz", "takze", "rowniez", "bedzie", "beda", "byla", "byly", "byli",
+        "zostanie", "zostaly", "zostali", "mozna", "moze", "jego", "nich", "nimi", "swoj", "swoja", "swoje",
+        "swoich", "ktos", "wszystko", "wszyscy", "wszystkie", "tylko", "jeszcze", "wiec", "jednak", "albo", "czyli",
+        "gdyz", "poniewaz", "zeby", "kiedy", "gdzie", "podczas", "miedzy", "wobec", "wedlug", "dzieki", "poza",
+        "tutaj", "teraz", "mowca", "mowi", "mowil", "mowila", "mowia", "rozmowca", "uczestnik", "uwaza",
+        "stwierdza", "stwierdzil", "zauwaza", "podkresla", "wspomina", "wspomnial", "twierdzi", "mowa", "temat",
+        "tematu", "kwestia", "kwestii", "that", "this", "with", "from", "have", "will", "would", "should", "could",
+        "they", "them", "their", "there", "what", "which", "about", "into", "than", "then", "been", "were", "also",
+        "only", "some", "very", "just", "does", "each", "says", "said", "speaker", "mentions",
+    ]
+
+    /// How many of the content words of `text` (words of at least four letters that are not in
+    /// `notContentWords` or `sentenceStarters`, each counted once) are words of `quote`, by
+    /// `NotesText.wordsMatch` or `NotesText.sharesStem`.
+    static func quoteCoverage(of text: String, quote: [String]) -> (covered: Int, total: Int) {
+        var seen = Set<String>()
+        var covered = 0
+        for word in NotesText.words(text)
+        where word.count >= 4 && !notContentWords.contains(word) && !sentenceStarters.contains(word) {
+            guard seen.insert(word).inserted else { continue }
+            if quote.contains(where: { NotesText.wordsMatch($0, word) || NotesText.sharesStem($0, word) }) {
+                covered += 1
+            }
+        }
+        return (covered, seen.count)
+    }
+
+    /// The text has content words and fewer than `minimumQuoteCoverage` of them are the quote's.
+    static func driftsFromQuote(_ text: String, quote: [String]) -> Bool {
+        let coverage = quoteCoverage(of: text, quote: quote)
+        return coverage.total > 0
+            && coverage.covered * minimumQuoteCoverage.of < coverage.total * minimumQuoteCoverage.covered
     }
 
     // MARK: After REDUCE

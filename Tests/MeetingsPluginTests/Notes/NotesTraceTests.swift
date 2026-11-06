@@ -176,6 +176,63 @@ final class NotesTraceLog: Sendable {
         #expect(try JSONDecoder().decode(NotesTraceVerification.self, from: data) == verification)
     }
 
+    @Test func theRepairReasonsAreWrittenAsAnObjectAndAnOlderTraceHasNone() throws {
+        let verdict = NotesGuard.PointVerdict(
+            verified: [], dropped: 0, reasons: [:], repaired: 3, downgraded: 1,
+            repairReasons: [.driftedFromQuote: 2, .downgradedQuestion: 1])
+        let verification = NotesTraceVerification(proposed: 3, verdict: verdict)
+        let data = try JSONEncoder().encode(verification)
+        let object = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let reasons = try #require(object["repairReasons"] as? [String: Int])
+        #expect(reasons == ["driftedFromQuote": 2, "downgradedQuestion": 1])
+        #expect(try JSONDecoder().decode(NotesTraceVerification.self, from: data) == verification)
+
+        // Schema 2 had no repair reasons.
+        var older = object
+        older.removeValue(forKey: "repairReasons")
+        let decoded = try JSONDecoder().decode(
+            NotesTraceVerification.self, from: JSONSerialization.data(withJSONObject: older))
+        #expect(decoded.repairReasons.isEmpty)
+        #expect(decoded.repaired == 3)
+        // An unknown reason is refused, as an unknown drop reason is.
+        older["repairReasons"] = ["guessed": 1]
+        let unknown = try JSONSerialization.data(withJSONObject: older)
+        #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(NotesTraceVerification.self, from: unknown)
+        }
+        #expect(NotesTrace.schemaVersion == 3)
+    }
+
+    @Test func theVerifiedEventCountsTheSummaryPointsRepairedForDrift() async throws {
+        let utterances = [
+            NotesUtterance(
+                startMs: 0, speaker: "Mówca 1",
+                text:
+                    "To jest zupełnie nowa sytuacja. Tworzy się generacja programistów, którzy świata przed LLM-ami nie znają."
+            ),
+            NotesUtterance(startMs: 20_000, speaker: "Mówca 2", text: "Zatwierdzamy ten budżet bez zmian."),
+        ]
+        let handler: ScriptedLLM.Handler = { _, messages, _ in
+            guard NotesFake.isMap(messages) else { return .done(NotesFake.answer(messages)) }
+            return .done(
+                """
+                SUM | 00:00 | "tworzy się generacja programistów, którzy świata przed LLM-ami nie znają" | Nowa generacja programistów nie ma doświadczenia z LLM-ami.
+                DEC | 00:20 | "Zatwierdzamy ten budżet bez zmian" | Budżet zatwierdzono bez zmian.
+                """)
+        }
+        let log = NotesTraceLog()
+        let (result, _) = try await run(Scenario(utterances: utterances, handler: handler), trace: log)
+        let verified = try #require(
+            log.all.lazy.compactMap { if case .verified(let v) = $0 { v } else { nil } }.first)
+        #expect(verified.repaired == 1)
+        #expect(verified.repairReasons == [.driftedFromQuote: 1])
+        #expect(result.repairedCount == 1)
+        let markdown = try #require(result.markdown)
+        #expect(!markdown.contains("doświadczenia"))
+        #expect(markdown.contains("Budżet zatwierdzono bez zmian."))
+        #expect(log.balance.isBalanced)
+    }
+
     // MARK: Fates
 
     @Test func aMisfiledAndAnOmittedPointAreAccountedForWithTheirReasons() async throws {
