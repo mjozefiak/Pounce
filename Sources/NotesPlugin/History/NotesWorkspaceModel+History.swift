@@ -85,8 +85,13 @@ extension NotesWorkspaceModel {
             document.leaveEditing()
         }
         document.setCompare(nil)
-        let done = await environment.restoreRevision(id, layer, revisionID)
-        show(done ? .restored : .restoreFailed)
+        switch await environment.restoreRevision(id, layer, revisionID) {
+        case nil: show(.restored)
+        case .changed?: show(.restoreChanged)
+        case .readOnly?: show(.restoreReadOnly)
+        case .badTarget?: show(.restoreTargetInvalid)
+        case .other?: show(.restoreFailed)
+        }
         await loadContent(id)
         await loadHistory(for: id)
     }

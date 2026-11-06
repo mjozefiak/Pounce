@@ -60,8 +60,10 @@ final class NotesWorkspaceModel {
         /// The history of a layer (its revisions) from `notes.sqlite`; `.none` when the layer has no overlay.
         var loadHistory: @MainActor (NoteItemID, String) async -> HistoryState = { _, _ in .none }
         /// Restore: a new `human` revision with the text and authors of the revision, through the layer's one
-        /// writer. `false` when nothing was written (read-only, store locked, the revision is gone).
-        var restoreRevision: @MainActor (NoteItemID, String, Int64) async -> Bool = { _, _, _ in false }
+        /// writer. `nil` when it was written, else why nothing was.
+        var restoreRevision: @MainActor (NoteItemID, String, Int64) async -> RestoreFailure? = { _, _, _ in
+            .other
+        }
         /// Delete: the owner first, the overlays only after it succeeded (`NoteDeleter`); throws a
         /// `NoteDeleter.Failure`. Off (`canDeleteNotes` false) without the store.
         var canDeleteNotes = false
@@ -587,6 +589,11 @@ final class NotesWorkspaceModel {
 
     // MARK: Copy and save
 
+    /// Why a restore wrote nothing.
+    enum RestoreFailure: Equatable, Sendable {
+        case changed, readOnly, badTarget, other
+    }
+
     /// What the path bar just did, in words for the screen and for VoiceOver.
     enum Feedback: Equatable {
         case copied
@@ -596,9 +603,24 @@ final class NotesWorkspaceModel {
         case titleFailed
         case restored
         case restoreFailed
+        /// The note changed under the restore (the head moved): nothing was written.
+        case restoreChanged
+        case restoreReadOnly
+        /// The version is not an earlier applied version of this note.
+        case restoreTargetInvalid
         case deleted
         case deleteFailed
         case copyNotRemoved
+
+        /// A message that stays as a strip until dismissed, instead of fading from the path bar.
+        var isStrip: Bool {
+            switch self {
+            case .saveFailed, .restoreFailed, .restoreChanged, .restoreReadOnly, .restoreTargetInvalid, .deleteFailed,
+                .copyNotRemoved:
+                true
+            default: false
+            }
+        }
     }
 
     private(set) var feedback: Feedback?

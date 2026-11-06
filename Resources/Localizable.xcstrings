@@ -15751,6 +15751,60 @@
         }
       }
     },
+    "The note changed in the meantime. Open the history again and restore from there." : {
+      "comment" : "Notes: a restore was refused because the note changed meanwhile",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The note changed in the meantime. Open the history again and restore from there."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatka zmieniła się w międzyczasie. Otwórz historię ponownie i przywróć wersję stamtąd."
+          }
+        }
+      }
+    },
+    "Notes are read-only, so nothing can be restored." : {
+      "comment" : "Notes: a restore was refused because editing is off",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes are read-only, so nothing can be restored."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki są tylko do odczytu, więc nic nie można przywrócić."
+          }
+        }
+      }
+    },
+    "That is not an earlier saved version of this note. Nothing was changed." : {
+      "comment" : "Notes: a restore target was not an earlier applied version",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That is not an earlier saved version of this note. Nothing was changed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To nie jest wcześniejsza zapisana wersja tej notatki. Nic nie zmieniono."
+          }
+        }
+      }
+    },
     "Your edits were kept as a proposal." : {
       "comment" : "Notes: strip after the note changed under the editor and the typed text was set aside",
       "extractionState" : "manual",

@@ -108,10 +108,7 @@ struct NotePathBar: View {
                         .accessibilityLabel(Text(verbatim: path.joined(separator: ", ")))
                 }
                 Spacer(minLength: 0)
-                if let feedback = model.feedback, feedback != .saveFailed, feedback != .restoreFailed,
-                    feedback != .deleteFailed,
-                    feedback != .copyNotRemoved
-                {
+                if let feedback = model.feedback, !feedback.isStrip {
                     Text(verbatim: Self.text(feedback))
                         .font(textSize.font(.footnote))
                         .foregroundStyle(LintelBrand.accentText)
@@ -130,7 +127,7 @@ struct NotePathBar: View {
             guard let feedback = model.feedback else { return }
             AccessibilityNotification.Announcement(Self.text(feedback)).post()
             // The save-error strip stays until it is dismissed or the save is tried again.
-            guard ![.saveFailed, .restoreFailed, .deleteFailed, .copyNotRemoved].contains(feedback) else { return }
+            guard !feedback.isStrip else { return }
             try? await Task.sleep(for: .seconds(2))
             if !Task.isCancelled { model.dismissFeedback() }
         }
@@ -214,6 +211,18 @@ struct NotePathBar: View {
                 comment: "Notes: the owner deleted the note but its edited copy stayed")
         case .restored:
             String(localized: "Version restored", comment: "Path bar: an earlier version became the current text")
+        case .restoreChanged:
+            String(
+                localized: "The note changed in the meantime. Open the history again and restore from there.",
+                comment: "Notes: a restore was refused because the note changed meanwhile")
+        case .restoreReadOnly:
+            String(
+                localized: "Notes are read-only, so nothing can be restored.",
+                comment: "Notes: a restore was refused because editing is off")
+        case .restoreTargetInvalid:
+            String(
+                localized: "That is not an earlier saved version of this note. Nothing was changed.",
+                comment: "Notes: a restore target was not an earlier applied version")
         case .restoreFailed:
             String(
                 localized: "That version couldn’t be restored. Nothing was changed.",

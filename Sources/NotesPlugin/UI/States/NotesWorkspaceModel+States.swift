@@ -159,7 +159,10 @@ extension NotesWorkspaceModel {
                                 comment: "Notes: saves the Markdown file somewhere else")),
                     ], isDismissible: true))
         }
-        for failed in [Feedback.restoreFailed, .deleteFailed, .copyNotRemoved] where feedback == failed {
+        for failed in [
+            Feedback.restoreFailed, .restoreChanged, .restoreReadOnly, .restoreTargetInvalid, .deleteFailed,
+            .copyNotRemoved,
+        ] where feedback == failed {
             result.append(
                 Strip(
                     id: "feedback", tone: failed == .copyNotRemoved ? .attention : .error,

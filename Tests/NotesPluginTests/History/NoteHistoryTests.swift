@@ -149,7 +149,7 @@ import Testing
         await model.loadHistory(for: item)
         await model.restore(revisionID: try #require(before.first).id)
         #expect(try r.store.revisions(of: doc.id) == before)
-        #expect(model.feedback == .restoreFailed)
+        #expect(model.feedback == .restoreReadOnly)
         #expect(model.strips.contains { $0.id == "feedback" })
     }
 
@@ -209,6 +209,33 @@ import Testing
         await model.loadHistory(for: item)
         await model.showCompare(revisionID: try #require(revisions.first).id)
         #expect(model.documents[item]?.compare == nil)
+    }
+
+    @Test func restoreRefusesTheHeadAndAProposedRevisionAndSaysWhy() async throws {
+        let r = try ReconRig()
+        let (doc, revisions) = try await chain(r)
+        let head = try #require(revisions.last)
+        let writer = r.rig.writer(.existing(docID: doc.id))
+        await #expect(throws: NotesError.guardRejected(rule: "restoreTarget")) {
+            try await writer.restore(revisionID: head.id)
+        }
+        let proposed = try r.store.appendRevision(
+            NewNoteRevision(
+                docID: doc.id, author: "agent", state: .proposed, body: "proposal text",
+                now: Date(timeIntervalSince1970: 300), expectedHeadID: nil))
+        await #expect(throws: NotesError.guardRejected(rule: "restoreTarget")) {
+            try await writer.restore(revisionID: proposed)
+        }
+        #expect(try r.store.revisions(of: doc.id).count == revisions.count + 1, "nothing was written")
+        let model = model(r)
+        let item = NoteItemID.live(r.key)
+        model.open(item)
+        model.inspectorTab = .history
+        await model.loadContent(item)
+        await model.loadHistory(for: item)
+        // The model refuses a proposed target itself; the strip for a bad target comes from the writer's refusal.
+        await model.restore(revisionID: proposed)
+        #expect(try r.store.revisions(of: doc.id).count == revisions.count + 1)
     }
 }
 

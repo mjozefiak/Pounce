@@ -520,7 +520,11 @@ final class RevisionWriter: Sendable {
             if let reason = store.blockedReason { throw reason }
             guard docID != nil else { throw NotesError.guardRejected(rule: "noDocument") }
             try reloadIfNeeded()
-            guard let docID, let target = try store.revision(id: revisionID), target.docID == docID else {
+            // Only an applied revision of this document that is not already the head: a proposed or discarded one
+            // was never the text, and restoring the head would write a copy of what is there.
+            guard let docID, let target = try store.revision(id: revisionID), target.docID == docID,
+                target.state == .applied, target.id != headID
+            else {
                 throw NotesError.guardRejected(rule: "restoreTarget")
             }
             let stored = StoredBlocks.decode(target.blocksJSON)

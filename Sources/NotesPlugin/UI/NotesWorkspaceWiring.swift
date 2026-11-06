@@ -25,11 +25,22 @@ extension NotesWorkspaceModel.Environment {
         restoreRevision = { item, layer, revisionID in
             guard let opened = store(), case .live(let key) = item,
                 let document = try? opened.liveDocument(key: key, layer: layer)
-            else { return false }
+            else { return .other }
             let writer = registry.writer(for: .live(key, layer: layer), item: item) {
                 RevisionWriter(store: opened, target: .existing(docID: document.id), clock: clock, now: now)
             }
-            return (try? await writer.restore(revisionID: revisionID)) != nil
+            do {
+                try await writer.restore(revisionID: revisionID)
+                return nil
+            } catch NotesError.casConflict {
+                return .changed
+            } catch NotesError.readOnly, NotesError.schemaNewer {
+                return .readOnly
+            } catch NotesError.guardRejected(let rule) where rule == "restoreTarget" {
+                return .badTarget
+            } catch {
+                return .other
+            }
         }
         let library = self.library
         let budget = contentBudget
