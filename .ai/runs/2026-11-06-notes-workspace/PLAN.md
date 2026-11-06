@@ -46,6 +46,12 @@
 | 4 | 4.5 | History pane, Compare, Restore | dispatch | done | e73ba6a |
 | 4 | 4.6 | Delete with confirmation sheets and kept-copies option | dispatch | done | 0401065 |
 | 4 | 4.7 | Notes settings pane, retention rules, Export All, Erase | dispatch | done | 35ac222 |
+| 4 | 4.6-review-fix | Review fix: kept-copy contract in BACKWARD_COMPATIBILITY (H1) | inline | done | 6299fbe |
+| 4 | 4.6-review-fix | Review fix: discard typed text only after the delete (M1) | inline | done | fc51978 |
+| 4 | 4.6-review-fix | Review fix: counting never resets the library (M2) | inline | done | a82c09c |
+| 4 | 4.6-review-fix | Review fix: removal false when the owner cannot answer (M3) | inline | done | 02524e8 |
+| 4 | 4.5-review-fix | Review fix: restore target guard and reasons (Low) | inline | done | 33cfd93 |
+| 4 | 4.x-review-fix | Review fix: ADR 0008 deviations addendum, chip test (M4) | inline | done | c0f4a6a, 2c5b844 |
 | 5 | 5.1 | note_comment store, anchors, re-anchoring | dispatch | todo | — |
 | 5 | 5.2 | Comment popover, inspector Comments pane, highlights | dispatch | todo | — |
 | 5 | 5.3 | Revise-with-N-comments counts and accessibility | dispatch | todo | — |
