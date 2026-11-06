@@ -168,7 +168,8 @@ struct NotesPipeline: Sendable {
             try Task.checkCancellation()
             onEvent(.map(done: index, total: chunks.count))
             let outcome = try await mapChunk(
-                chunk, lease: lease, canSplit: true, firstPoint: proposed.count + 1, recorder: recorder)
+                chunk, language: verifier.language, lease: lease, canSplit: true, firstPoint: proposed.count + 1,
+                recorder: recorder)
             proposed.append(contentsOf: outcome.points)
             failed.append(contentsOf: outcome.failed)
             if outcome.failed.contains(chunk.id) { failedWhole += 1 }
@@ -271,12 +272,13 @@ struct NotesPipeline: Sendable {
 
     /// `firstPoint` is the number the code gives the chunk's first proposed point (`p<firstPoint>`).
     private func mapChunk(
-        _ chunk: TranscriptChunk, lease: NotesLease, canSplit: Bool, firstPoint: Int, recorder: NotesTraceRecorder?
+        _ chunk: TranscriptChunk, language: NotesLanguage, lease: NotesLease, canSplit: Bool, firstPoint: Int,
+        recorder: NotesTraceRecorder?
     ) async throws -> MapOutcome {
         var attempts = NotesTraceAttempts()
         let completion = try await complete(
             lease, maxTokens: configuration.mapMaxTokens, timeout: configuration.mapTimeout,
-            messages: { NotesPrompt.mapMessages(chunk: chunk, reminder: $0) },
+            messages: { NotesPrompt.mapMessages(chunk: chunk, language: language, reminder: $0) },
             parse: { raw -> [NotesPoint]? in
                 if case .points(let points) = NotesParser.parseMap(raw) { points } else { nil }
             }, attempts: &attempts)
@@ -304,7 +306,8 @@ struct NotesPipeline: Sendable {
             var merged = MapOutcome()
             for half in halves {
                 let outcome = try await mapChunk(
-                    half, lease: lease, canSplit: false, firstPoint: firstPoint + merged.points.count,
+                    half, language: language, lease: lease, canSplit: false,
+                    firstPoint: firstPoint + merged.points.count,
                     recorder: recorder)
                 merged.points.append(contentsOf: outcome.points)
                 merged.failed.append(contentsOf: outcome.failed)

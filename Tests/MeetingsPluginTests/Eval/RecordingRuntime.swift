@@ -34,7 +34,7 @@ final class RecordingRuntime: LLMRuntime {
 
     func generateResult(messages: [ChatMessage], maxTokens: Int) async throws -> GenerationResult {
         let result = try await inner.generateResult(messages: messages, maxTokens: maxTokens)
-        let isMap = messages.first?.content == NotesPrompt.mapSystem
+        let isMap = messages.first.map { NotesPrompt.isMapSystem($0.content) } ?? false
         storage.withLock {
             $0.append(
                 Record(
