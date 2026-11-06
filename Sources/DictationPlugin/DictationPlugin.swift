@@ -52,6 +52,9 @@ public final class DictationPlugin: LintelPlugin {
     private let formattingModel: FormattingSettingsModel
     private let transport: any HTTPTransport
     let history: DictationHistory
+    /// The history as a Notes source (`noteSources`); its change streams end on `deactivate()`.
+    let noteSource: DictationNoteSource
+    private let noteChanges = NoteChangeHub()
     private let historyModel: HistorySettingsModel
     private(set) var controller: DictationController?
     /// Where app activations are posted (tests use their own centre).
@@ -109,9 +112,15 @@ public final class DictationPlugin: LintelPlugin {
         // The banner reads the model's place and the microphone; a change makes the shell read it again.
         let resultsChanged = context.resultsChanged
         settingsModel.onStatusChange = { resultsChanged() }
+        let noteChanges = noteChanges
         history = DictationHistory(
             directory: context.storageDirectory, keychain: context.keychain, settings: settings,
-            clock: context.clock, logger: context.logger, changed: context.resultsChanged)
+            clock: context.clock, logger: context.logger,
+            changed: {
+                resultsChanged()
+                noteChanges.notify()
+            })
+        noteSource = DictationNoteSource(history: history, hub: noteChanges)
         historyModel = HistorySettingsModel(settings: settings, history: history)
         let transport = LoopbackTransport()
         self.transport = transport
@@ -206,6 +215,7 @@ public final class DictationPlugin: LintelPlugin {
     }
 
     public func deactivate() async {
+        defer { noteChanges.finishAll() }
         activationObserver?.stop()
         activationObserver = nil
         await controller?.shutDown()
@@ -288,6 +298,8 @@ public final class DictationPlugin: LintelPlugin {
                 makeEmptyView: { AnyView(DictationHistoryEmptyView(history: history)) })
         ]
     }
+
+    public var noteSources: [any NoteSource] { [noteSource] }
 
     public var requiredPermissions: Set<Permission> { [.microphone, .accessibility] }
 

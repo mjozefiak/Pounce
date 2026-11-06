@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import LintelKit
 import LintelPersistence
@@ -47,6 +48,12 @@ final class DictationHistory {
         get { storeBox.value }
         set { storeBox.value = newValue }
     }
+    /// The identity of the open store for note keys (`dictation:<store id>/<row id>`): lowercase hex of the first 8
+    /// bytes of the `note-identity` sub-key. Kept in memory only, never written to `dictation.sqlite`; it changes
+    /// whenever the Keychain item is recreated (Erase Data, a missing key), so a recreated store never reuses a
+    /// key. `nil` while the store is not open.
+    @ObservationIgnored let identityBox = Mutex<String?>(nil)
+    nonisolated var storeID: String? { identityBox.withLock { $0 } }
     @ObservationIgnored private let directory: URL
     @ObservationIgnored private let keychain: any KeychainClient
     @ObservationIgnored private let settings: DictationSettings
@@ -95,10 +102,15 @@ final class DictationHistory {
         let opener = opener
         let directory = directory
         do {
-            let outcome = try opener.open(now: now()) { keys in try DictationStore.open(in: directory, keys: keys) }
+            var identity: String?
+            let outcome = try opener.open(now: now()) { keys in
+                identity = Self.storeID(of: keys)
+                return try DictationStore.open(in: directory, keys: keys)
+            }
             switch outcome {
             case .opened(let opened, let archive):
                 store = opened
+                identityBox.withLock { $0 = identity }
                 resetArchive = archive
                 status = .ready
                 refreshCount()
@@ -119,7 +131,15 @@ final class DictationHistory {
         retentionTask = nil
         try? store?.close()
         store = nil
+        identityBox.withLock { $0 = nil }
         status = .closed
+    }
+
+    /// Lowercase hex of the first 8 bytes of the `note-identity` sub-key.
+    static func storeID(of keys: MasterKeys) -> String {
+        keys.derived(info: "note-identity").withUnsafeBytes { bytes in
+            bytes.prefix(8).map { String(format: "%02x", $0) }.joined()
+        }
     }
 
     /// Switching history off or on in Settings.

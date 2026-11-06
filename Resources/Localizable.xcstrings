@@ -13104,6 +13104,24 @@
           }
         }
       }
+    },
+    "Cleanup model" : {
+      "comment" : "Notes details: the model that cleaned the text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cleanup model"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model czyszczenia tekstu"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
