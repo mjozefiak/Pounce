@@ -25,8 +25,8 @@
 | 2 | 2.3-review-fix | MeetingWindowModel keeps its earlier edit behaviour | inline | done | 72487e7 |
 | 2 | 2.4-review-fix | Comments on stream end versus reads corrected | inline | done | 68f9a36 |
 | 3 | 3.1 | NoteLibrary aggregator | dispatch:capable | done | 267ec06 |
-| 3 | 3.2 | Explorer, tab bar, path bar, status bar, NotesSection (DEBUG only) | dispatch:capable | todo | — |
-| 3 | 3.3 | Read-only document views, Copy Markdown, Save .md | dispatch:capable | todo | — |
+| 3 | 3.2 | Explorer, tab bar, path bar, status bar, NotesSection (DEBUG only) | dispatch:capable | done | 428211a |
+| 3 | 3.3 | Read-only document views, Copy Markdown, Save .md | dispatch:capable | done | c369886 |
 | 3 | 3.4 | Search across sources | dispatch | todo | — |
 | 3 | 3.5 | Notes states and screenshot set | dispatch | todo | — |
 | 4 | 4.0 | Store: NotesKeyStore, NotesLibraryOpener, v1-notes migration, NotesSettings, eraseData | dispatch:capable | todo | — |
