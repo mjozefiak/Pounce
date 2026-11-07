@@ -70,8 +70,9 @@
 | 7 | 7.3 | ENABLES NOTES FOR USERS: remove Meetings window after parity checklist | inline | BLOCKED (parity gap: rename speaker, mark self, finish with the gap accepted have no Notes control; nothing removed) | — |
 | 7 | 7.x-final-1to1 | Final 1:1 pass: "Finish with a Gap" Notes action (closes parity gap 3 of 3 for 7.3) | inline | done | 09b90dd |
 | 7 | 7.x-final-1to1 | Explorer row "Agent writing notes 2/5" like the prototype | inline | done | a30a953 |
-| 7 | owner-feedback-A | Prominent "New note ⌘N" button under the explorer search (header "+" dropped), ADR 0008 deviation 12 | inline | done | (this commit) |
-| 7 | owner-feedback-B | Short ease animations (tabs, inspector, selection, strips, editor/reader, pen) through NotesMotion; Reduce Motion and QA runs get none | inline | done | (this commit) |
+| 7 | owner-feedback-A | Prominent "New note ⌘N" button under the explorer search (header "+" dropped), ADR 0008 deviation 12 | inline | done | b8b65ac |
+| 7 | owner-feedback-B | Short ease animations (tabs, inspector, selection, strips, editor/reader, pen) through NotesMotion; Reduce Motion and QA runs get none | inline | done | 8399d29 |
+| 7 | owner-feedback-C | Formatted / Raw editor view (same buffer, path bar switch, ⌥⌘R, session-only, QA qaEditorMode=raw) | inline | done | (this commit) |
 
 ## Goal
 

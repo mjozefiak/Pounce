@@ -199,6 +199,60 @@
         }
       }
     },
+    "Switch with ⌥⌘R" : {
+      "comment" : "Tooltip of the Formatted / Raw switch",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch with ⌥⌘R"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełącz: ⌥⌘R"
+          }
+        }
+      }
+    },
+    "Editor view" : {
+      "comment" : "Accessibility label of the Formatted / Raw switch",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editor view"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Widok edytora"
+          }
+        }
+      }
+    },
+    "Toggle Raw Markdown" : {
+      "comment" : "Notes menu: switches the editor between Formatted and Raw",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toggle Raw Markdown"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełącz surowy Markdown"
+          }
+        }
+      }
+    },
     "Press %@ again to delete" : {
       "comment" : "Panel footer: the key to press again; the key symbols",
       "extractionState" : "manual",

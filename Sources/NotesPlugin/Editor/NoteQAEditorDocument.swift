@@ -21,7 +21,7 @@ struct NoteQAEditorDocument: View {
     var body: some View {
         NoteEditorSurface(
             text: $buffer, pasteboard: model.environment.pasteboard, isReadOnly: readOnly,
-            wrapsLines: model.preferences.wrapLines, attribution: attribution,
+            wrapsLines: model.preferences.wrapLines, mode: model.editorMode, attribution: attribution,
             showsAuthorBars: model.preferences.showAuthorBars,
             header: {
                 if let summary = document.summary {

@@ -29,6 +29,8 @@ enum NotesSettingsKey {
     /// DEBUG only, with `--qa-notes`: shows the open note in the editor (step 4.1, before saving exists in 4.2): `on`,
     /// or `readonly` for the editor as `plugins.notes.readOnly` shows it. Nothing is saved.
     static let qaEditor = "qaEditor"
+    /// DEBUG only, with `--qa-notes`: `raw` starts every editor in Raw (plain monospaced Markdown). Not a contract.
+    static let qaEditorMode = "qaEditorMode"
     /// DEBUG only, with `--qa-notes`: `mixed` draws the agent's layers with one block added by the user and one
     /// revised by the agent (step 4.3), so the gutter, the marks and the chip rule can be looked at without a store.
     static let qaAttribution = "qaAttribution"

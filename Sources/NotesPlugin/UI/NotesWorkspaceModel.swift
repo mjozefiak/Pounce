@@ -166,6 +166,10 @@ final class NotesWorkspaceModel {
     var qaMixedAuthors = false
     #endif
 
+    /// Formatted or Raw for every editor of this window. Kept in memory for the session only: no setting, so a new
+    /// window or launch starts in Formatted. Switching never touches a note (`NoteEditorMode`).
+    var editorMode: NoteEditorMode = .formatted
+
     /// QA runs (`--qa-notes`) show no animation, so a snapshot never catches one half way (`NotesMotion`).
     var animationsDisabled = false
 

@@ -14,10 +14,13 @@ final class NoteEditorTheme {
     nonisolated static let headingScale: [CGFloat] = [1.6, 1.3, 1.12]
 
     let textSize: TextSize
+    /// `.raw` gives every character the same plain monospaced attributes, whatever its Markdown style.
+    let mode: NoteEditorMode
     private var cache: [MarkdownSourceScanner.Style: Attributes] = [:]
 
-    init(textSize: TextSize) {
+    init(textSize: TextSize, mode: NoteEditorMode = .formatted) {
         self.textSize = textSize
+        self.mode = mode
     }
 
     var bodyPointSize: CGFloat { NSFont.preferredFont(forTextStyle: .body).pointSize * textSize.scale }
@@ -26,6 +29,7 @@ final class NoteEditorTheme {
 
     /// The attributes of a run with `style`: a pure function of the style, so equal styles look equal.
     func attributes(for style: MarkdownSourceScanner.Style) -> Attributes {
+        if mode == .raw { return rawAttributes }
         if let cached = cache[style] { return cached }
         let paragraph = NSMutableParagraphStyle()
         paragraph.lineHeightMultiple = Self.lineHeightMultiple
@@ -56,6 +60,17 @@ final class NoteEditorTheme {
         result[.paragraphStyle] = paragraph
         cache[style] = result
         return result
+    }
+
+    /// Raw: the source as plain text in the monospaced face, in the ink colour, at the body size.
+    private var rawAttributes: Attributes {
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineHeightMultiple = Self.lineHeightMultiple
+        return [
+            .font: monospaced(size: bodyPointSize * 0.92, bold: false),
+            .foregroundColor: LintelBrand.inkColor,
+            .paragraphStyle: paragraph,
+        ]
     }
 
     private func proportional(size: CGFloat, bold: Bool, italic: Bool) -> NSFont {

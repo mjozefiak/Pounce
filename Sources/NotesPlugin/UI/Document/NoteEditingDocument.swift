@@ -22,7 +22,7 @@ struct NoteEditingDocument: View {
     var body: some View {
         var surface = NoteEditorSurface(
             text: $buffer, pasteboard: model.environment.pasteboard, isReadOnly: !session.isEditable,
-            wrapsLines: preferences.wrapLines,
+            wrapsLines: preferences.wrapLines, mode: model.editorMode,
             onAddComment: model.canWriteComments(document) && session.canComment
                 ? { body, selection, text in await model.addComment(body: body, selection: selection, buffer: text) }
                 : nil,

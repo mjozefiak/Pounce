@@ -41,7 +41,8 @@ final class NoteEditorStyler {
         storage.setAttributes(theme.baseAttributes, range: NSRange(location: 0, length: storage.length))
         var blocks = 0
         for segment in segments where segment.isBlock {
-            apply(segment.range, units: units, to: storage)
+            // Raw has nothing to style: the base attributes already cover the block.
+            if theme.mode.stylesBlocks { apply(segment.range, units: units, to: storage) }
             blocks += 1
         }
         lastReport = Report(restyledBlocks: blocks, restyledGaps: 0, totalBlocks: blocks)
@@ -71,7 +72,11 @@ final class NoteEditorStyler {
         var gaps = 0
         for segment in fresh where !unchanged.contains(segment) {
             if segment.isBlock {
-                apply(segment.range, units: units, to: storage)
+                if theme.mode.stylesBlocks {
+                    apply(segment.range, units: units, to: storage)
+                } else {
+                    storage.setAttributes(theme.baseAttributes, range: NSRange(segment.range))
+                }
                 blocks += 1
             } else {
                 storage.setAttributes(theme.baseAttributes, range: NSRange(segment.range))

@@ -160,6 +160,7 @@ struct NotePathBar: View {
 
     private var actions: some View {
         HStack(spacing: 2) {
+            if model.canSwitchEditorMode { NoteEditorModeSwitch(model: model) }
             if let document = model.currentDocument, model.canEdit(document) || document.isEditing {
                 // Prototype `.ib.on`: the pen is lit while the note is in the editor.
                 iconButton(

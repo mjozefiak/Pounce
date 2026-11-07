@@ -144,8 +144,19 @@ final class NoteEditorController: NSObject, NSTextStorageDelegate, NSTextViewDel
 
     func setTextSize(_ size: TextSize) {
         guard size != styler.theme.textSize, let storage = textView.textStorage else { return }
-        styler.setTheme(NoteEditorTheme(textSize: size), storage: storage)
+        styler.setTheme(NoteEditorTheme(textSize: size, mode: styler.theme.mode), storage: storage)
         textView.typingAttributes = styler.theme.baseAttributes
+    }
+
+    var mode: NoteEditorMode { styler.theme.mode }
+
+    /// Formatted or Raw. Only the attributes of the one text storage change: the characters, the selection and
+    /// the undo history stay, and no `onEdit` fires, so nothing is saved or revised by switching.
+    func setMode(_ mode: NoteEditorMode) {
+        guard mode != styler.theme.mode, let storage = textView.textStorage else { return }
+        styler.setTheme(NoteEditorTheme(textSize: styler.theme.textSize, mode: mode), storage: storage)
+        textView.typingAttributes = styler.theme.baseAttributes
+        refreshGutter()
     }
 
     func setWrapsLines(_ wraps: Bool) {
@@ -163,7 +174,7 @@ final class NoteEditorController: NSObject, NSTextStorageDelegate, NSTextViewDel
     /// the editor is read-only.
     @discardableResult
     func perform(_ action: NoteFormatAction) -> Bool {
-        guard !isReadOnly else { return false }
+        guard !isReadOnly, mode.offersFormatting else { return false }
         let selection = textView.selectedRange()
         guard
             let edit = MarkdownFormatting.edit(

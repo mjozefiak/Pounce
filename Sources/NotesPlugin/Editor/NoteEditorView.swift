@@ -10,6 +10,8 @@ struct NoteEditorSurface<Header: View>: View {
     @Binding var text: String
     let isReadOnly: Bool
     let wrapsLines: Bool
+    /// Formatted or Raw: the same buffer shown two ways (`NoteEditorMode`).
+    let mode: NoteEditorMode
     let onEdit: (NoteEditorEdit) -> Void
     /// Writes a comment on a selection of the buffer (text, selection, the buffer); `true` when it was written.
     /// `nil` turns the Comment button off (a layer that cannot be commented on).
@@ -36,11 +38,13 @@ struct NoteEditorSurface<Header: View>: View {
 
     init(
         text: Binding<String>, pasteboard: any PasteboardClient, isReadOnly: Bool = false, wrapsLines: Bool = true,
+        mode: NoteEditorMode = .formatted,
         onAddComment: ((String, NSRange, String) async -> Bool)? = nil, highlights: [CommentHighlight] = [],
         onSelectThread: ((Int64) -> Void)? = nil, attribution: (([String]) -> [BlockAttributionInfo])? = nil,
         showsAuthorBars: Bool = true, onFocusChange: ((Bool) -> Void)? = nil,
         onEdit: @escaping (NoteEditorEdit) -> Void = { _ in }, @ViewBuilder header: () -> Header
     ) {
+        self.mode = mode
         self.highlights = highlights
         self.onSelectThread = onSelectThread
         self.header = header()
@@ -59,12 +63,13 @@ struct NoteEditorSurface<Header: View>: View {
         VStack(spacing: 0) {
             if !isReadOnly {
                 NoteFormatBar(
-                    controller: controller, canComment: onAddComment != nil && selection.length > 0 && draft == nil,
+                    controller: controller, showsFormatting: mode.offersFormatting,
+                    canComment: onAddComment != nil && selection.length > 0 && draft == nil,
                     selectionTooLong: selection.length > CommentAnchors.maxQuoteLength, onComment: openComment)
             }
             header
             NoteEditorRepresentable(
-                controller: controller, text: $text, isReadOnly: isReadOnly, wrapsLines: wrapsLines,
+                controller: controller, text: $text, isReadOnly: isReadOnly, wrapsLines: wrapsLines, mode: mode,
                 textSize: textSize, attribution: attribution, showsAuthorBars: showsAuthorBars,
                 highlights: highlights, pending: draft?.range, onSelectionChange: selectionChanged,
                 onComment: openComment, onFocusChange: onFocusChange, onEdit: onEdit
@@ -147,13 +152,14 @@ struct CommentDraft: Equatable {
 extension NoteEditorSurface where Header == EmptyView {
     init(
         text: Binding<String>, pasteboard: any PasteboardClient, isReadOnly: Bool = false, wrapsLines: Bool = true,
+        mode: NoteEditorMode = .formatted,
         onAddComment: ((String, NSRange, String) async -> Bool)? = nil, highlights: [CommentHighlight] = [],
         onSelectThread: ((Int64) -> Void)? = nil, attribution: (([String]) -> [BlockAttributionInfo])? = nil,
         showsAuthorBars: Bool = true, onFocusChange: ((Bool) -> Void)? = nil,
         onEdit: @escaping (NoteEditorEdit) -> Void = { _ in }
     ) {
         self.init(
-            text: text, pasteboard: pasteboard, isReadOnly: isReadOnly, wrapsLines: wrapsLines,
+            text: text, pasteboard: pasteboard, isReadOnly: isReadOnly, wrapsLines: wrapsLines, mode: mode,
             onAddComment: onAddComment, highlights: highlights, onSelectThread: onSelectThread,
             attribution: attribution, showsAuthorBars: showsAuthorBars, onFocusChange: onFocusChange, onEdit: onEdit,
             header: { EmptyView() })
@@ -166,6 +172,7 @@ struct NoteEditorRepresentable: NSViewRepresentable {
     @Binding var text: String
     let isReadOnly: Bool
     let wrapsLines: Bool
+    let mode: NoteEditorMode
     let textSize: TextSize
     let attribution: (([String]) -> [BlockAttributionInfo])?
     let showsAuthorBars: Bool
@@ -205,7 +212,7 @@ struct NoteEditorRepresentable: NSViewRepresentable {
         scroll.contentInsets = NSEdgeInsets(
             top: 6 * scale, left: (hasGutter ? 6 : 5.4 * 12.5 + 6) * scale, bottom: 24 * scale, right: 28 * scale)
         controller.gutter?.textScale = scale
-        controller.gutter?.showsBars = showsAuthorBars
+        controller.gutter?.showsBars = mode.showsAuthorBars(preference: showsAuthorBars)
         scroll.hasHorizontalScroller = !wrapsLines
         let binding = $text
         controller.onEdit = { edit in
@@ -217,6 +224,7 @@ struct NoteEditorRepresentable: NSViewRepresentable {
         controller.textView.commentShortcut = onComment
         if let onFocusChange { controller.onFocusChange = onFocusChange }
         controller.setTextSize(textSize)
+        controller.setMode(mode)
         controller.setWrapsLines(wrapsLines)
         if let attribution, controller.attribution == nil { controller.attribution = attribution }
         if controller.text != text { controller.setText(text) }
@@ -228,6 +236,8 @@ struct NoteEditorRepresentable: NSViewRepresentable {
 /// quote prefixes and a link, then the Comment button on the right.
 struct NoteFormatBar: View {
     let controller: NoteEditorController
+    /// The formatting buttons are shown (Formatted); Raw keeps only Comment, the user types the markers.
+    var showsFormatting = true
     /// Something is selected that a comment can point at.
     let canComment: Bool
     /// The selection is longer than one comment can point at (`CommentAnchors.maxQuoteLength`).
@@ -237,9 +247,11 @@ struct NoteFormatBar: View {
 
     var body: some View {
         HStack(spacing: 2) {
-            ForEach(Self.groups.indices, id: \.self) { group in
-                if group > 0 { separator }
-                ForEach(Self.groups[group], id: \.id) { item in button(item) }
+            if showsFormatting {
+                ForEach(Self.groups.indices, id: \.self) { group in
+                    if group > 0 { separator }
+                    ForEach(Self.groups[group], id: \.id) { item in button(item) }
+                }
             }
             Spacer(minLength: 0)
             commentButton

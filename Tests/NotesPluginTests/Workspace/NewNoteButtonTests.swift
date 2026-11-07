@@ -61,3 +61,29 @@ struct NewNoteButtonTests {
         #expect(NewNoteAffordance.shortcutHint == "⌘N")
     }
 }
+
+@MainActor
+@Suite("Notes: Formatted / Raw switch state")
+struct EditorModeModelTests {
+    @Test("the mode is in memory only, starts Formatted, and cannot be switched with no note in the editor")
+    func inMemoryAndGuarded() {
+        let (stream, _) = AsyncStream.makeStream(of: Void.self, bufferingPolicy: .bufferingNewest(1))
+        let model = NotesWorkspaceModel(
+            environment: NotesWorkspaceModel.Environment(
+                library: NoteLibrary(box: SourceBox([ScriptedNoteSource("meetings", items: [])])),
+                pasteboard: RecordingPasteboard(), saver: ScriptedSaver(), sourceSetChanges: { stream }))
+        #expect(model.editorMode == .formatted)
+        #expect(!model.canSwitchEditorMode)
+        model.toggleEditorMode()
+        #expect(model.editorMode == .formatted, "no editor, no switch")
+    }
+
+    @Test("⌥⌘R is the shortcut and collides with no other Notes shortcut")
+    func shortcut() {
+        let shortcut = NotesWorkspaceModel.editorModeShortcut
+        #expect(shortcut.key == "r" && shortcut.modifiers == [.command, .option])
+        for other in [NotesWorkspaceModel.paletteShortcut, NotesWorkspaceModel.hideContentShortcut] {
+            #expect(other != shortcut)
+        }
+    }
+}

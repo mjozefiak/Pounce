@@ -100,6 +100,12 @@ public final class NotesPlugin: LintelPlugin {
                     run: { [self] in workspace.togglePalette() }),
                 CommandInfo(
                     title: LocalizedStringResource(
+                        "Toggle Raw Markdown", comment: "Notes menu: switches the editor between Formatted and Raw"),
+                    shortcut: NotesWorkspaceModel.editorModeShortcut,
+                    isEnabled: { [self] in workspace.canSwitchEditorMode },
+                    run: { [self] in workspace.toggleEditorMode() }),
+                CommandInfo(
+                    title: LocalizedStringResource(
                         "Hide content", comment: "Command palette and menu: blurs the notes for screen sharing"),
                     shortcut: NotesWorkspaceModel.hideContentShortcut,
                     run: { [self] in workspace.toggleHideContent() }),
@@ -235,6 +241,7 @@ public final class NotesPlugin: LintelPlugin {
         }
         if let text = context.settings.string(NotesSettingsKey.qaSearch), !text.isEmpty { model.initialSearch = text }
         model.qaEditor = context.settings.string(NotesSettingsKey.qaEditor)
+        model.editorMode = NoteEditorMode.qa(context.settings.string(NotesSettingsKey.qaEditorMode))
         if context.settings.bool(NotesSettingsKey.qaFixtures, default: false) { model.animationsDisabled = true }
         model.qaMixedAuthors = context.settings.string(NotesSettingsKey.qaAttribution) == "mixed"
         if let manual = context.settings.string(NotesSettingsKey.qaManual) { qaCreateManualNote(manual, in: model) }
