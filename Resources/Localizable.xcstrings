@@ -181,6 +181,24 @@
         }
       }
     },
+    "Creates a note and opens it for writing" : {
+      "comment" : "Accessibility hint of the new-note button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creates a note and opens it for writing"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tworzy notatkę i otwiera ją do pisania"
+          }
+        }
+      }
+    },
     "Press %@ again to delete" : {
       "comment" : "Panel footer: the key to press again; the key symbols",
       "extractionState" : "manual",

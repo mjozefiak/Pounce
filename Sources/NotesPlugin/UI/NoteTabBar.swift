@@ -356,27 +356,67 @@ struct StatusLineView: View {
     }
 }
 
-/// "New note" (⌘N): the explorer's "+" and the tab bar's plus tab (prototype `.ico` and `.tb.pl`).
+/// What the "New note" buttons show and whether they work. One value for the explorer's button and the tab bar's
+/// plus, built from the same `canCreateNote` as the ⌘N menu item, so they are on and off together (read-only mode,
+/// no store, a note being created).
+struct NewNoteAffordance: Equatable {
+    /// The key hint shown on the explorer's button (the menu item's shortcut).
+    static let shortcutHint = "⌘N"
+    let isEnabled: Bool
+}
+
+extension NotesWorkspaceModel {
+    var newNoteAffordance: NewNoteAffordance { NewNoteAffordance(isEnabled: canCreateNote) }
+}
+
+/// "New note" (⌘N): the explorer's prominent button under the search field (owner request after manual testing)
+/// and the tab bar's plus tab (prototype `.tb.pl`). Both run `NotesWorkspaceModel.newNote`, like the menu item.
 struct NewNoteButton: View {
-    enum Style { case explorer, tab }
+    enum Style { case prominent, tab }
     let model: NotesWorkspaceModel
     let style: Style
     @Environment(\.lintelTextSize) private var textSize
 
     var body: some View {
+        let isEnabled = model.newNoteAffordance.isEnabled
         Button {
             Task { await model.newNote() }
         } label: {
-            Image(systemName: "plus")
-                .font(textSize.font(style == .tab ? .callout : .caption1, weight: .semibold))
-                .foregroundStyle(LintelBrand.secondaryText)
-                .padding(.horizontal, style == .tab ? 12 : 4)
-                .frame(maxHeight: style == .tab ? .infinity : nil)
-                .contentShape(Rectangle())
+            switch style {
+            case .tab:
+                Image(systemName: "plus")
+                    .font(textSize.font(.callout, weight: .semibold))
+                    .foregroundStyle(LintelBrand.secondaryText)
+                    .padding(.horizontal, 12)
+                    .frame(maxHeight: .infinity)
+                    .contentShape(Rectangle())
+            case .prominent:
+                HStack(spacing: 8 * textSize.scale) {
+                    Image(systemName: "plus")
+                        .font(textSize.font(.callout, weight: .semibold))
+                        .accessibilityHidden(true)
+                    Text("New note", comment: "Explorer: the button that creates a note")
+                        .font(textSize.font(.callout, weight: .semibold))
+                    Spacer(minLength: 0)
+                    Text(verbatim: NewNoteAffordance.shortcutHint)
+                        .font(textSize.font(.caption1, weight: .semibold))
+                        .opacity(0.8)
+                        .accessibilityHidden(true)
+                }
+                .foregroundStyle(LintelBrand.onAccent)
+                .padding(.horizontal, 12 * textSize.scale)
+                .padding(.vertical, 7 * textSize.scale)
+                .background(LintelBrand.accent, in: RoundedRectangle(cornerRadius: 7))
+                .opacity(isEnabled ? 1 : 0.45)
+                .contentShape(RoundedRectangle(cornerRadius: 7))
+            }
         }
         .buttonStyle(.plain)
-        .disabled(!model.canCreateNote)
+        .disabled(!isEnabled)
         .accessibilityLabel(Text("New note", comment: "Accessibility label of the new-note button"))
+        .accessibilityHint(
+            Text("Creates a note and opens it for writing", comment: "Accessibility hint of the new-note button")
+        )
         .help(Text("New note (⌘N)", comment: "Tooltip of the new-note button"))
     }
 }

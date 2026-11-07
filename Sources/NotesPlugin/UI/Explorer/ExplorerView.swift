@@ -2,7 +2,7 @@ import LintelKit
 import LintelUI
 import SwiftUI
 
-/// The explorer (prototype `.ex`): the "Notes N" label with the grouping menu, the groups with their rows, and
+/// The explorer (prototype `.ex`): a prominent "New note" button, the "Notes N" label with the grouping menu, the groups with their rows, and
 /// the Settings link at the bottom. Rows and groups carry text for VoiceOver; arrow keys move the selection.
 struct ExplorerView: View {
     let model: NotesWorkspaceModel
@@ -13,6 +13,9 @@ struct ExplorerView: View {
     var body: some View {
         VStack(spacing: 0) {
             ExplorerSearchField(model: model)
+            NewNoteButton(model: model, style: .prominent)
+                .padding(.horizontal, 10 * textSize.scale)
+                .padding(.bottom, 2 * textSize.scale)
             header
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
@@ -53,7 +56,6 @@ struct ExplorerView: View {
                         : Text("\(model.total) notes", comment: "Accessibility: how many notes the list holds"))
             Spacer(minLength: 0)
             groupingMenu
-            NewNoteButton(model: model, style: .explorer)
         }
         .foregroundStyle(LintelBrand.secondaryText)
         .padding(.horizontal, 14 * textSize.scale)

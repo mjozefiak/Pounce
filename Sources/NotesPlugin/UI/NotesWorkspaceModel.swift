@@ -501,7 +501,7 @@ final class NotesWorkspaceModel {
 
     // MARK: New notes (step 4.4)
 
-    /// ⌘N and the explorer's "+": possible with the store open for writing.
+    /// ⌘N, the explorer's "New note" button and the tab bar's plus: possible with the store open for writing.
     var canCreateNote: Bool { environment.canCreateNotes && overlaysAvailable && !isCreatingNote }
 
     private var isCreatingNote = false
