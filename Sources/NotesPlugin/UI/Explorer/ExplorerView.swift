@@ -8,7 +8,8 @@ struct ExplorerView: View {
     let model: NotesWorkspaceModel
     @Environment(\.lintelTextSize) private var textSize
 
-    private var width: CGFloat { min(19 * 12.5 * textSize.scale, 250) }
+    /// Set by the section from `NotesWorkspaceModel.paneWidth` (a dragged width, else the default).
+    let width: CGFloat
 
     var body: some View {
         VStack(spacing: 0) {

@@ -117,6 +117,8 @@ final class NotesWorkspaceModel {
     var palette: PaletteState?
     /// Whether the section is wide enough for the inspector next to the document (it grows with the text size).
     var inspectorFits = true
+    /// A divider drag in progress: the pane and the width shown. Never stored; `endPaneDrag` stores it.
+    var paneDrag: (pane: NotesPane, width: CGFloat)?
     /// The section's last measured width (unbounded until the first measure).
     var sectionWidth: CGFloat = .infinity
     /// The inspector was hidden by a narrow section, not by the user: it comes back when the room does.

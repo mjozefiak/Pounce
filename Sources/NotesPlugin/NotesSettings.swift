@@ -11,6 +11,10 @@ enum NotesSettingsKey {
     static let showQuotes = "showQuotes"
     static let showComments = "showComments"
     static let wrapLines = "wrapLines"
+    /// Width of the explorer and of the inspector in whole points, set by dragging their dividers; 0 or missing
+    /// means the default width (a double-click on the divider writes 0).
+    static let explorerWidth = "explorerWidth"
+    static let inspectorWidth = "inspectorWidth"
     /// An `LLMModelCatalog` id; default: the first installed model, else the catalog default.
     static let builtInLLMModel = "builtInLLMModel"
     /// HIDDEN, no UI: the editor is read-only and no revision is ever written; export, copy and delete still
@@ -78,6 +82,9 @@ struct NotesSettings: Sendable {
     var showQuotes: Bool { settings.bool(NotesSettingsKey.showQuotes, default: true) }
     var showComments: Bool { settings.bool(NotesSettingsKey.showComments, default: true) }
     var wrapLines: Bool { settings.bool(NotesSettingsKey.wrapLines, default: true) }
+    /// Whole points; 0 is the default width.
+    var explorerWidth: Int { settings.integer(NotesSettingsKey.explorerWidth, default: 0) }
+    var inspectorWidth: Int { settings.integer(NotesSettingsKey.inspectorWidth, default: 0) }
 
     /// Hidden: the editor is read-only and no revision is written.
     var readOnly: Bool { settings.bool(NotesSettingsKey.readOnly, default: false) }

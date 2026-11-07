@@ -26,8 +26,9 @@ struct NotesSectionView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
-                ExplorerView(model: model)
-                LintelDivider(axis: .vertical)
+                ExplorerView(model: model, width: model.paneWidth(.explorer, textScale: textSize.scale))
+                    .transaction(value: model.paneWidth(.explorer, textScale: textSize.scale)) { $0.animation = nil }
+                NotesPaneDivider(model: model, pane: .explorer)
                 VStack(spacing: 0) {
                     NoteTabBar(model: model)
                     NotePathBar(model: model)
@@ -40,16 +41,22 @@ struct NotesSectionView: View {
                 // path bar's button asked for it), so Comments and History stay reachable at the largest text size.
                 .overlay(alignment: .trailing) {
                     if let document = inspectorDocument, !model.inspectorFits {
-                        NoteInspector(model: model, document: document)
-                            .hiddenContent(model.hidesContent)
-                            .shadow(color: LintelBrand.ink.opacity(0.2), radius: 14, x: -4)
-                            .notesFade(.inspector)
+                        NoteInspector(
+                            model: model, document: document,
+                            width: model.paneWidth(.inspector, textScale: textSize.scale)
+                        )
+                        .hiddenContent(model.hidesContent)
+                        .shadow(color: LintelBrand.ink.opacity(0.2), radius: 14, x: -4)
+                        .notesFade(.inspector)
                     }
                 }
                 if let document = inspectorDocument, model.inspectorFits {
-                    NoteInspector(model: model, document: document)
-                        .hiddenContent(model.hidesContent)
-                        .notesFade(.inspector)
+                    NoteInspector(
+                        model: model, document: document,
+                        width: model.paneWidth(.inspector, textScale: textSize.scale)
+                    )
+                    .hiddenContent(model.hidesContent)
+                    .notesFade(.inspector)
                 }
             }
             .notesAnimation(.inspector, value: inspectorDocument != nil)

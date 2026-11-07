@@ -33,19 +33,25 @@ extension NotesWorkspaceModel {
 
     /// What the centre column needs next to the explorer and the inspector, in points at Medium; it grows with
     /// the text size, so at the largest size the inspector gives way first.
-    static let centreMinimumWidth: CGFloat = 420
+    static let centreMinimumWidth: CGFloat = NotesPaneLayout.centreMinimumWidth
     static let explorerWidth: CGFloat = 250
     static let inspectorWidth: CGFloat = 300
 
-    static func inspectorFits(sectionWidth: CGFloat, textScale: CGFloat) -> Bool {
-        sectionWidth >= explorerWidth + inspectorWidth + centreMinimumWidth * max(textScale, 1)
+    /// `explorer` and `inspector` are the widths the user may have dragged the panes to (the defaults otherwise).
+    static func inspectorFits(
+        sectionWidth: CGFloat, textScale: CGFloat, explorer: CGFloat = explorerWidth,
+        inspector: CGFloat = inspectorWidth
+    ) -> Bool {
+        sectionWidth >= explorer + inspector + centreMinimumWidth * max(textScale, 1)
     }
 
     /// Called by the section with its width: a narrow section hides the inspector (the path bar's button shows it
     /// over the document again) and a wide one brings back what it hid.
     func updateInspectorFit(sectionWidth: CGFloat, textScale: CGFloat) {
         self.sectionWidth = sectionWidth
-        let fits = Self.inspectorFits(sectionWidth: sectionWidth, textScale: textScale)
+        let fits = Self.inspectorFits(
+            sectionWidth: sectionWidth, textScale: textScale, explorer: desiredPaneWidth(.explorer),
+            inspector: desiredPaneWidth(.inspector))
         guard fits != inspectorFits else { return }
         inspectorFits = fits
         if !fits, inspectorVisible {

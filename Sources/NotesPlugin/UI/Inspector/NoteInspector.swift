@@ -7,6 +7,8 @@ import SwiftUI
 struct NoteInspector: View {
     let model: NotesWorkspaceModel
     let document: NoteDocumentModel
+    /// Set by the section from `NotesWorkspaceModel.paneWidth` (a dragged width, else the default).
+    let width: CGFloat
     @Environment(\.lintelTextSize) private var textSize
 
     /// A tab of the strip (prototype `.it`): the icon, and the name in bold on the one that is on.
@@ -95,9 +97,10 @@ struct NoteInspector: View {
         .task(id: HistoryTaskKey(tab: model.inspectorTab, layer: document.layerID, note: document.id)) {
             if model.inspectorTab == .history { await model.loadHistory(for: document.id) }
         }
-        .frame(width: min(23 * 12.5 * textSize.scale, 300))
+        .frame(width: width)
         .background(LintelBrand.sidebarBackground)
-        .overlay(alignment: .leading) { LintelDivider(axis: .vertical) }
+        .transaction(value: width) { $0.animation = nil }
+        .overlay(alignment: .leading) { NotesPaneDivider(model: model, pane: .inspector) }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text("Inspector", comment: "Accessibility label of the note inspector"))
     }

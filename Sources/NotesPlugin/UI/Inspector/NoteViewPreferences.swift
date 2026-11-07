@@ -20,6 +20,16 @@ final class NoteViewPreferences {
         didSet { if wrapLines != oldValue { settings?.set(wrapLines, for: NotesSettingsKey.wrapLines) } }
     }
 
+    /// Dragged widths of the side panes in whole points; 0 is the default width (`NotesPaneLayout`).
+    var explorerWidth: Int {
+        didSet { if explorerWidth != oldValue { settings?.set(explorerWidth, for: NotesSettingsKey.explorerWidth) } }
+    }
+    var inspectorWidth: Int {
+        didSet {
+            if inspectorWidth != oldValue { settings?.set(inspectorWidth, for: NotesSettingsKey.inspectorWidth) }
+        }
+    }
+
     @ObservationIgnored private let settings: PluginSettings?
 
     init(settings: PluginSettings? = nil) {
@@ -29,6 +39,8 @@ final class NoteViewPreferences {
         showQuotes = current?.showQuotes ?? true
         showComments = current?.showComments ?? true
         wrapLines = current?.wrapLines ?? true
+        explorerWidth = current?.explorerWidth ?? 0
+        inspectorWidth = current?.inspectorWidth ?? 0
     }
 }
 

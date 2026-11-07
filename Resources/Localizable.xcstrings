@@ -18324,6 +18324,60 @@
           }
         }
       }
+    },
+    "Explorer width" : {
+      "comment" : "Accessibility label of the explorer's divider",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Explorer width"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szerokość listy notatek"
+          }
+        }
+      }
+    },
+    "Inspector width" : {
+      "comment" : "Accessibility label of the inspector's divider",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inspector width"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szerokość panelu szczegółów"
+          }
+        }
+      }
+    },
+    "Drag to resize. Double-click to reset." : {
+      "comment" : "Tooltip of a pane divider in the Notes section",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag to resize. Double-click to reset."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przeciągnij, aby zmienić szerokość. Kliknij dwukrotnie, aby przywrócić."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
