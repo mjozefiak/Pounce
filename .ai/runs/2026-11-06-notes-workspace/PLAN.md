@@ -77,6 +77,8 @@
 | 7 | owner-feedback-E | Middle-click closes a tab (same path as the x and Cmd+W), AppKit overlay that only receives middle-button events | inline | done | 6da8a75 |
 | 7 | owner-feedback-F | Drag tabs to reorder (NoteTabSet.move, private drag type, Move Left / Move Right accessibility actions); not persisted, tabs are not | inline | done | 93f2ab3 |
 | 7 | owner-feedback-G | Separate Notes / Dictations lists in the explorer (owner decision 2026-11-07, ADR 0008 deviation 14; `NoteCollection`, QA `qaView=dictations`) | inline | done | 82307c3 |
+| 7 | owner-feedback-H | "Make note" on a dictation: copies the cleaned text into a NEW manual note, no link back, ADR 0008 deviation 15 | inline | done | bca6893 |
+| 7 | owner-feedback-I | Records: ADR 0008 deviations 14 and 15 (reversal of spec B, open question about a link), docs/qa.md `qaView`, AGENTS.md; they live in the G and H commits | inline | done | 82307c3, bca6893 |
 
 ## Goal
 
