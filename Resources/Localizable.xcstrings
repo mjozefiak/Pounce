@@ -1,6 +1,258 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Added by you" : {
+      "comment" : "Document: a block the user wrote or edited in an AI note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Added by you"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodane przez Ciebie"
+          }
+        }
+      }
+    },
+    "Author bars" : {
+      "comment" : "Inspector, Details: toggle for the author bars",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Author bars"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paski autorów"
+          }
+        }
+      }
+    },
+    "Author legend" : {
+      "comment" : "Accessibility label of the legend of the author bars",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Author legend"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legenda autorów"
+          }
+        }
+      }
+    },
+    "Details" : {
+      "comment" : "Inspector: tab with the view toggles and the note's facts",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szczegóły"
+          }
+        }
+      }
+    },
+    "document.author.you" : {
+      "comment" : "Document: author bar of a block the user wrote (the gutter label and the legend)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ty"
+          }
+        }
+      }
+    },
+    "Done editing" : {
+      "comment" : "Path bar: leaves the editor",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done editing"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zakończ edycję"
+          }
+        }
+      }
+    },
+    "Hide the inspector" : {
+      "comment" : "Accessibility label of the inspector's close",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide the inspector"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukryj panel boczny"
+          }
+        }
+      }
+    },
+    "Inspector" : {
+      "comment" : "Accessibility label of the note inspector",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inspector"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panel boczny"
+          }
+        }
+      }
+    },
+    "New Note" : {
+      "comment" : "Notes menu: creates a note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Note"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nowa notatka"
+          }
+        }
+      }
+    },
+    "New note (⌘N)" : {
+      "comment" : "Tooltip of the new-note button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New note (⌘N)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nowa notatka (⌘N)"
+          }
+        }
+      }
+    },
+    "Creates a note and opens it for writing" : {
+      "comment" : "Accessibility hint of the new-note button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creates a note and opens it for writing"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tworzy notatkę i otwiera ją do pisania"
+          }
+        }
+      }
+    },
+    "Switch with ⌥⌘R" : {
+      "comment" : "Tooltip of the Formatted / Raw switch",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch with ⌥⌘R"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełącz: ⌥⌘R"
+          }
+        }
+      }
+    },
+    "Editor view" : {
+      "comment" : "Accessibility label of the Formatted / Raw switch",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editor view"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Widok edytora"
+          }
+        }
+      }
+    },
+    "Toggle Raw Markdown" : {
+      "comment" : "Notes menu: switches the editor between Formatted and Raw",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toggle Raw Markdown"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełącz surowy Markdown"
+          }
+        }
+      }
+    },
     "Press %@ again to delete" : {
       "comment" : "Panel footer: the key to press again; the key symbols",
       "extractionState" : "manual",
@@ -3673,24 +3925,6 @@
         }
       }
     },
-    "Open Lintel with %@. Settings and meetings are in the Lintel window: click the Dock icon or press ⌘,." : {
-      "comment" : "Welcome screen: final page text; the argument is the main shortcut, such as ⌘Space",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open Lintel with %@. Settings and meetings are in the Lintel window: click the Dock icon or press ⌘,."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Otwórz Lintel skrótem %@. Ustawienia i spotkania są w oknie aplikacji Lintel: kliknij ikonę w Docku albo naciśnij ⌘,."
-          }
-        }
-      }
-    },
     "Optional: let a model on this Mac write notes after each meeting. It is a large download that starts only when you press the button." : {
       "comment" : "Meetings onboarding step about the notes model",
       "extractionState" : "manual",
@@ -3889,6 +4123,24 @@
         }
       }
     },
+    "Revised, not checked against the recording" : {
+      "comment" : "Document: an AI block that was changed after it was checked against the recording",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revised, not checked against the recording"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poprawione, niesprawdzone z nagraniem"
+          }
+        }
+      }
+    },
     "Search apps and files, paste from history, dictate, keep meeting notes. All on this Mac." : {
       "comment" : "Welcome screen: text of the first page",
       "extractionState" : "manual",
@@ -3943,6 +4195,24 @@
         }
       }
     },
+    "Show the inspector" : {
+      "comment" : "Path bar: shows the inspector",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show the inspector"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż panel boczny"
+          }
+        }
+      }
+    },
     "Some features are off." : {
       "comment" : "Settings → Features banner detail",
       "extractionState" : "manual",
@@ -3957,6 +4227,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Niektóre funkcje są wyłączone."
+          }
+        }
+      }
+    },
+    "Source" : {
+      "comment" : "Inspector, Details: the app a recording came from",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Źródło"
+          }
+        }
+      }
+    },
+    "Source quotes" : {
+      "comment" : "Inspector, Details: toggle for the quote chips",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source quotes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cytaty ze źródła"
           }
         }
       }
@@ -4537,6 +4843,24 @@
         }
       }
     },
+    "The note couldn’t be created." : {
+      "comment" : "Notes: a new note could not be written",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The note couldn’t be created."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się utworzyć notatki."
+          }
+        }
+      }
+    },
     "The speech model isn’t installed." : {
       "comment" : "Settings banner detail: the speech model is missing",
       "extractionState" : "manual",
@@ -4573,6 +4897,24 @@
         }
       }
     },
+    "The title couldn’t be saved." : {
+      "comment" : "Notes: a note's title could not be written",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The title couldn’t be saved."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się zapisać tytułu."
+          }
+        }
+      }
+    },
     "The transcript, notes and any saved audio are removed from this Mac. This cannot be undone." : {
       "comment" : "Meeting window: delete confirmation message",
       "extractionState" : "manual",
@@ -4587,6 +4929,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Transkrypt, notatki i zapisany dźwięk zostaną usunięte z tego Maca. Tej operacji nie można cofnąć."
+          }
+        }
+      }
+    },
+    "Timestamps that open the transcript." : {
+      "comment" : "Inspector, Details: what the quote chips do",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timestamps that open the transcript."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Znaczniki czasu otwierające transkrypt."
           }
         }
       }
@@ -4641,6 +5001,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Używane przez: %@"
+          }
+        }
+      }
+    },
+    "View" : {
+      "comment" : "Inspector, Details: heading of the view toggles",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Widok"
           }
         }
       }
@@ -4844,7 +5222,7 @@
       }
     },
     "Open Settings" : {
-      "comment" : "Button that opens Settings from the panel",
+      "comment" : "Command palette: opens Settings",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -7129,6 +7507,24 @@
         }
       }
     },
+    "Who wrote each block: AI, You, STT." : {
+      "comment" : "Inspector, Details: what the author bars show",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Who wrote each block: AI, You, STT."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kto napisał każdy blok: AI, Ty, STT."
+          }
+        }
+      }
+    },
     "Window" : {
       "comment" : "Main menu item",
       "extractionState" : "manual",
@@ -7179,6 +7575,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bez pełnego dostępu do dysku Biurko, Dokumenty i Pobrane rzeczy nie są przeszukiwane."
+          }
+        }
+      }
+    },
+    "Wrap lines" : {
+      "comment" : "Inspector, Details: toggle for wrapping long lines in the editor",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wrap lines"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zawijaj wiersze"
           }
         }
       }
@@ -7381,20 +7795,20 @@
         }
       }
     },
-    "Settings and meetings are in the Lintel window: click the Dock icon or press ⌘,." : {
-      "comment" : "Welcome screen: final page text while no main shortcut is set",
+    "Your last change couldn’t be saved. The text is kept and saved again." : {
+      "comment" : "Notes: strip when the editor's text could not be written",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Settings and meetings are in the Lintel window: click the Dock icon or press ⌘,."
+            "value" : "Your last change couldn’t be saved. The text is kept and saved again."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ustawienia i spotkania są w oknie aplikacji Lintel: kliknij ikonę w Docku albo naciśnij ⌘,."
+            "value" : "Ostatniej zmiany nie udało się zapisać. Tekst został zachowany i zapisze się ponownie."
           }
         }
       }
@@ -8119,6 +8533,42 @@
         }
       }
     },
+    "No notes yet" : {
+      "comment" : "Notes section: nothing to show",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No notes yet"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak notatek"
+          }
+        }
+      }
+    },
+    "Read, edit and comment on your recordings and notes." : {
+      "comment" : "Settings → Features: what Notes does",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read, edit and comment on your recordings and notes."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Czytaj, edytuj i komentuj nagrania i notatki."
+          }
+        }
+      }
+    },
     "Participants" : {
       "comment" : "Markdown export: label of the speakers",
       "extractionState" : "manual",
@@ -8655,6 +9105,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "To ja"
+          }
+        }
+      }
+    },
+    "Finish Transcript" : {
+      "comment" : "Notes: finish an interrupted transcript",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish Transcript"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dokończ transkrypt"
           }
         }
       }
@@ -13011,6 +13479,5136 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Potrzebne do: %@ · opcjonalne"
+          }
+        }
+      }
+    },
+    "Audio" : {
+      "comment" : "Notes details: what is left of the recording",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dźwięk"
+          }
+        }
+      }
+    },
+    "Kept for recovery" : {
+      "comment" : "Notes details: the audio of the meeting is still stored",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kept for recovery"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zachowany do odzyskania"
+          }
+        }
+      }
+    },
+    "Deleted" : {
+      "comment" : "Notes details: the audio of the meeting is gone",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deleted"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunięty"
+          }
+        }
+      }
+    },
+    "Cleanup model" : {
+      "comment" : "Notes details: the model that cleaned the text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cleanup model"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model czyszczenia tekstu"
+          }
+        }
+      }
+    },
+    "Dictation %@" : {
+      "comment" : "Explorer: name of a dictation without text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictation %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dyktowanie %@"
+          }
+        }
+      }
+    },
+    "Untitled note" : {
+      "comment" : "Explorer: name of a note without a title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Untitled note"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatka bez tytułu"
+          }
+        }
+      }
+    },
+    "Processing the recording" : {
+      "comment" : "Explorer: state line while the transcript is made",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Processing the recording"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przetwarzanie nagrania"
+          }
+        }
+      }
+    },
+    "Some notes are missing" : {
+      "comment" : "Explorer: state line of partial notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some notes are missing"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brakuje części notatek"
+          }
+        }
+      }
+    },
+    "Notes are out of date" : {
+      "comment" : "Explorer: state line of stale notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes are out of date"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki są nieaktualne"
+          }
+        }
+      }
+    },
+    "Interrupted · finish it" : {
+      "comment" : "Explorer: state line of an interrupted meeting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interrupted · finish it"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przerwane · dokończ"
+          }
+        }
+      }
+    },
+    "Needs a notes model" : {
+      "comment" : "Explorer: state line when the notes model is missing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs a notes model"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wymaga modelu notatek"
+          }
+        }
+      }
+    },
+    "Recording removed" : {
+      "comment" : "Explorer: state line of a kept copy without its recording",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording removed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagranie usunięte"
+          }
+        }
+      }
+    },
+    "Its source is off" : {
+      "comment" : "Explorer: state line of a kept copy whose source is off",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Its source is off"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jego źródło jest wyłączone"
+          }
+        }
+      }
+    },
+    "Today" : {
+      "comment" : "Explorer: group of today's notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dzisiaj"
+          }
+        }
+      }
+    },
+    "Yesterday" : {
+      "comment" : "Explorer: group of yesterday's notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yesterday"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wczoraj"
+          }
+        }
+      }
+    },
+    "Previous 7 Days" : {
+      "comment" : "Explorer: group of the last week's notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous 7 Days"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poprzednie 7 dni"
+          }
+        }
+      }
+    },
+    "Previous 30 Days" : {
+      "comment" : "Explorer: group of the last month's notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous 30 Days"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poprzednie 30 dni"
+          }
+        }
+      }
+    },
+    "Earlier" : {
+      "comment" : "Explorer: group of older notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Earlier"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wcześniej"
+          }
+        }
+      }
+    },
+    "%lld notes" : {
+      "comment" : "Notes status bar: how many notes the list holds",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld note"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld notes"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld notatka"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld notatki"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld notatek"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld notatki"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld writing" : {
+      "comment" : "Notes status bar: how many notes are being written",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld writing"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld w toku"
+          }
+        }
+      }
+    },
+    "Cleaned" : {
+      "comment" : "Document: switch to the cleaned text of a dictation",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cleaned"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Po formatowaniu"
+          }
+        }
+      }
+    },
+    "Original" : {
+      "comment" : "Document: switch to the speech-to-text of a dictation",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oryginał"
+          }
+        }
+      }
+    },
+    "No note open" : {
+      "comment" : "Notes: centre column when no tab is open",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No note open"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak otwartej notatki"
+          }
+        }
+      }
+    },
+    "Choose a note in the list." : {
+      "comment" : "Notes: hint under the title when no tab is open",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a note in the list."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybierz notatkę z listy."
+          }
+        }
+      }
+    },
+    "Notes list" : {
+      "comment" : "Accessibility label of the explorer's list",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes list"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lista notatek"
+          }
+        }
+      }
+    },
+    "By Time" : {
+      "comment" : "Explorer: group the notes by time",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "By Time"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Według czasu"
+          }
+        }
+      }
+    },
+    "By Source" : {
+      "comment" : "Explorer: group the notes by where they come from",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "By Source"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Według źródła"
+          }
+        }
+      }
+    },
+    "Group Notes" : {
+      "comment" : "Explorer: label of the grouping choice",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group Notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grupuj notatki"
+          }
+        }
+      }
+    },
+    "Group notes" : {
+      "comment" : "Accessibility label of the explorer's grouping menu",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grupuj notatki"
+          }
+        }
+      }
+    },
+    "Settings" : {
+      "comment" : "Explorer: opens Settings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ustawienia"
+          }
+        }
+      }
+    },
+    "Opens Lintel Settings" : {
+      "comment" : "Accessibility hint of the explorer's Settings link",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens Lintel Settings"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwiera ustawienia aplikacji Lintel"
+          }
+        }
+      }
+    },
+    "Shows or hides the notes of this group" : {
+      "comment" : "Accessibility hint of an explorer group",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows or hides the notes of this group"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuje lub ukrywa notatki z tej grupy"
+          }
+        }
+      }
+    },
+    "Opens the note in a tab" : {
+      "comment" : "Accessibility hint of an explorer row",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens the note in a tab"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwiera notatkę w karcie"
+          }
+        }
+      }
+    },
+    "Open notes" : {
+      "comment" : "Accessibility label of the tab bar",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwarte notatki"
+          }
+        }
+      }
+    },
+    "Working" : {
+      "comment" : "Accessibility: a note is being worked on",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Working"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W toku"
+          }
+        }
+      }
+    },
+    "Close tab" : {
+      "comment" : "Accessibility label of a tab's close button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close tab"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zamknij kartę"
+          }
+        }
+      }
+    },
+    "Encrypted on this Mac" : {
+      "comment" : "Notes status bar: where the notes are stored",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encrypted on this Mac"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaszyfrowane na tym Macu"
+          }
+        }
+      }
+    },
+    "This note is not available right now." : {
+      "comment" : "Document: its source did not answer",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This note is not available right now."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ta notatka jest teraz niedostępna."
+          }
+        }
+      }
+    },
+    "This note no longer exists." : {
+      "comment" : "Document: its source no longer has the note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This note no longer exists."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ta notatka już nie istnieje."
+          }
+        }
+      }
+    },
+    "Show" : {
+      "comment" : "Accessibility label of the switch between a note's layers",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż"
+          }
+        }
+      }
+    },
+    "Open in Lintel" : {
+      "comment" : "Dictation history action that shows the entry in the Notes section",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open in Lintel"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz w aplikacji Lintel"
+          }
+        }
+      }
+    },
+    "This note has no text yet." : {
+      "comment" : "Document: the shown layer has no text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This note has no text yet."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ta notatka nie ma jeszcze tekstu."
+          }
+        }
+      }
+    },
+    "Written by AI" : {
+      "comment" : "Accessibility: who wrote a block",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Written by AI"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Napisane przez AI"
+          }
+        }
+      }
+    },
+    "Written by you" : {
+      "comment" : "Accessibility: who wrote a block",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Written by you"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Napisane przez Ciebie"
+          }
+        }
+      }
+    },
+    "Speech to text" : {
+      "comment" : "Accessibility: who wrote a block",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speech to text"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zamiana mowy na tekst"
+          }
+        }
+      }
+    },
+    "Show %@ in the transcript" : {
+      "comment" : "Accessibility: a quote chip",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show %@ in the transcript"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż %@ w transkrypcie"
+          }
+        }
+      }
+    },
+    "Switches to the transcript" : {
+      "comment" : "Accessibility hint of a quote chip",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switches to the transcript"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełącza na transkrypt"
+          }
+        }
+      }
+    },
+    "Quoted from %@" : {
+      "comment" : "Accessibility: a quote time",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quoted from %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cytat z %@"
+          }
+        }
+      }
+    },
+    "Not done" : {
+      "comment" : "Accessibility: an open task in a note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not done"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niezrobione"
+          }
+        }
+      }
+    },
+    "Saved" : {
+      "comment" : "Path bar: the Markdown file was saved",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisano"
+          }
+        }
+      }
+    },
+    "The .md file couldn’t be saved. Check that the folder is writable." : {
+      "comment" : "Notes: saving the Markdown file failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The .md file couldn’t be saved. Check that the folder is writable."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się zapisać pliku .md. Sprawdź, czy folder pozwala na zapis."
+          }
+        }
+      }
+    },
+    "Try again" : {
+      "comment" : "Notes: strip action that tries the failed step again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spróbuj ponownie"
+          }
+        }
+      }
+    },
+    "Note" : {
+      "comment" : "Default file name of a saved note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatka"
+          }
+        }
+      }
+    },
+    "Opening notes…" : {
+      "comment" : "Notes status bar while the list is read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opening notes…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwieram notatki…"
+          }
+        }
+      }
+    },
+    "Key unavailable" : {
+      "comment" : "Notes status bar: the key to the notes is missing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Key unavailable"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klucz niedostępny"
+          }
+        }
+      }
+    },
+    "Agent writing notes %lld/%lld" : {
+      "comment" : "Explorer: state line while the notes are written",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent writing notes %lld/%lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent pisze notatki %lld/%lld"
+          }
+        }
+      }
+    },
+    "Writing notes %lld/%lld" : {
+      "comment" : "Notes status bar while the open note's notes are written",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Writing notes %lld/%lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Piszę notatki %lld/%lld"
+          }
+        }
+      }
+    },
+    "Notes model not installed" : {
+      "comment" : "Notes status bar: the notes model is missing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes model not installed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model notatek niezainstalowany"
+          }
+        }
+      }
+    },
+    "Recording off" : {
+      "comment" : "Notes status bar: Meetings and Dictation are off",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording off"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywanie wyłączone"
+          }
+        }
+      }
+    },
+    "Lintel can’t read the key to your notes. Nothing was deleted." : {
+      "comment" : "Notes: strip when the key to notes.sqlite cannot be read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel can’t read the key to your notes. Nothing was deleted."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel nie może odczytać klucza do notatek. Nic nie zostało usunięte."
+          }
+        }
+      }
+    },
+    "Choose another place…" : {
+      "comment" : "Notes: saves the Markdown file somewhere else",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose another place…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybierz inne miejsce…"
+          }
+        }
+      }
+    },
+    "This meeting was interrupted. Lintel can transcribe the part it recorded." : {
+      "comment" : "Notes: strip on an interrupted meeting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This meeting was interrupted. Lintel can transcribe the part it recorded."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To spotkanie zostało przerwane. Lintel może przepisać nagraną część."
+          }
+        }
+      }
+    },
+    "Notes need a model. It downloads once and runs on this Mac." : {
+      "comment" : "Notes: strip when the notes model is missing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes need a model. It downloads once and runs on this Mac."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki wymagają modelu. Pobiera się raz i działa na tym Macu."
+          }
+        }
+      }
+    },
+    "Open Models" : {
+      "comment" : "Notes: opens the Models pane",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Models"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz Modele"
+          }
+        }
+      }
+    },
+    "Agent is writing notes · %lld of %lld · read-only until it finishes" : {
+      "comment" : "Notes: strip while the notes of the open note are written",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent is writing notes · %lld of %lld · read-only until it finishes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent pisze notatki · %lld z %lld · tylko do odczytu do końca"
+          }
+        }
+      }
+    },
+    "That didn’t finish. Nothing was changed." : {
+      "comment" : "Notes: strip when an action of the source failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That didn’t finish. Nothing was changed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To się nie udało. Nic nie zostało zmienione."
+          }
+        }
+      }
+    },
+    "Lintel can’t read the key to your notes" : {
+      "comment" : "Notes: title when the notes key is missing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel can’t read the key to your notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel nie może odczytać klucza do notatek"
+          }
+        }
+      }
+    },
+    "Nothing was deleted. Unlock your login keychain and try again." : {
+      "comment" : "Notes: what to do when the notes key is missing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing was deleted. Unlock your login keychain and try again."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nic nie zostało usunięte. Odblokuj pęk kluczy logowania i spróbuj ponownie."
+          }
+        }
+      }
+    },
+    "Write a note, or turn on recording" : {
+      "comment" : "Notes: empty library, recording is off",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write a note, or turn on recording"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Napisz notatkę albo włącz nagrywanie"
+          }
+        }
+      }
+    },
+    "Notes work without recording. Meetings and Dictation add recorded notes." : {
+      "comment" : "Notes: what recording adds to the notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes work without recording. Meetings and Dictation add recorded notes."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki działają bez nagrywania. Spotkania i Dyktowanie dodają notatki z nagrań."
+          }
+        }
+      }
+    },
+    "New note" : {
+      "comment" : "Notes: shortcut hint",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New note"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nowa notatka"
+          }
+        }
+      }
+    },
+    "Go to a note" : {
+      "comment" : "Notes: shortcut hint",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go to a note"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przejdź do notatki"
+          }
+        }
+      }
+    },
+    "Turn on recording in Settings…" : {
+      "comment" : "Notes: opens Settings to switch recording on",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn on recording in Settings…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Włącz nagrywanie w Ustawieniach…"
+          }
+        }
+      }
+    },
+    "Your notes will appear here" : {
+      "comment" : "Notes: empty library",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your notes will appear here"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu pojawią się Twoje notatki"
+          }
+        }
+      }
+    },
+    "Meeting notes and dictations are kept on this Mac." : {
+      "comment" : "Notes: empty library, where they live",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meeting notes and dictations are kept on this Mac."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki ze spotkań i dyktowania zostają na tym Macu."
+          }
+        }
+      }
+    },
+    "Record a meeting" : {
+      "comment" : "Notes: shortcut hint",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record a meeting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagraj spotkanie"
+          }
+        }
+      }
+    },
+    "Select a note" : {
+      "comment" : "Notes: centre column when no tab is open",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a note"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybierz notatkę"
+          }
+        }
+      }
+    },
+    "Its notes or text open here." : {
+      "comment" : "Notes: hint under the title when no tab is open",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Its notes or text open here."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jej notatki lub tekst otworzą się tutaj."
+          }
+        }
+      }
+    },
+    "Loading notes" : {
+      "comment" : "Accessibility label while the notes are read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wczytuję notatki"
+          }
+        }
+      }
+    },
+    "Search notes" : {
+      "comment" : "Explorer: placeholder of the search field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szukaj w notatkach"
+          }
+        }
+      }
+    },
+    "Clear search" : {
+      "comment" : "Accessibility label of the search field's clear button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear search"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyczyść wyszukiwanie"
+          }
+        }
+      }
+    },
+    "Locked" : {
+      "comment" : "Explorer: the notes are locked",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Locked"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zablokowane"
+          }
+        }
+      }
+    },
+    "No notes yet." : {
+      "comment" : "Explorer: the library is empty",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No notes yet."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak notatek."
+          }
+        }
+      }
+    },
+    "No notes match “%@”." : {
+      "comment" : "Explorer: a search found nothing; the query",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No notes match “%@”."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak notatek dla „%@”."
+          }
+        }
+      }
+    },
+    "Search covers titles, notes, transcripts and dictations." : {
+      "comment" : "Explorer: what a search looks in",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search covers titles, notes, transcripts and dictations."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szukam w tytułach, notatkach, transkryptach i dyktowaniach."
+          }
+        }
+      }
+    },
+    "No transcript yet." : {
+      "comment" : "Document: an interrupted meeting has no transcript",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No transcript yet."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak transkryptu."
+          }
+        }
+      }
+    },
+    "Note text" : {
+      "comment" : "Accessibility label of the Markdown editor of a note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note text"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekst notatki"
+          }
+        }
+      }
+    },
+    "Comment" : {
+      "comment" : "Format bar: comment on the selected text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comment"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Komentarz"
+          }
+        }
+      }
+    },
+    "Paragraph" : {
+      "comment" : "Format bar: turn the line into a paragraph",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paragraph"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akapit"
+          }
+        }
+      }
+    },
+    "Heading 1" : {
+      "comment" : "Format bar: heading level 1",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heading 1"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagłówek 1"
+          }
+        }
+      }
+    },
+    "Heading 2" : {
+      "comment" : "Format bar: heading level 2",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heading 2"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagłówek 2"
+          }
+        }
+      }
+    },
+    "Heading 3" : {
+      "comment" : "Format bar: heading level 3",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heading 3"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagłówek 3"
+          }
+        }
+      }
+    },
+    "Bold" : {
+      "comment" : "Format bar: bold",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bold"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pogrubienie"
+          }
+        }
+      }
+    },
+    "Italic" : {
+      "comment" : "Format bar: italic",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Italic"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kursywa"
+          }
+        }
+      }
+    },
+    "Strikethrough" : {
+      "comment" : "Format bar: strikethrough",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strikethrough"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przekreślenie"
+          }
+        }
+      }
+    },
+    "Bulleted list" : {
+      "comment" : "Format bar: bulleted list",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bulleted list"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lista punktowana"
+          }
+        }
+      }
+    },
+    "Task list" : {
+      "comment" : "Format bar: task list",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Task list"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lista zadań"
+          }
+        }
+      }
+    },
+    "Quote" : {
+      "comment" : "Format bar: quote",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quote"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cytat"
+          }
+        }
+      }
+    },
+    "Compare" : {
+      "comment" : "Inspector, History: shows what a version changed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compare"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Porównaj"
+          }
+        }
+      }
+    },
+    "compare.title" : {
+      "comment" : "Compare: title of the comparison of two versions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compare"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Porównanie"
+          }
+        }
+      }
+    },
+    "Restore" : {
+      "comment" : "Inspector, History: makes an earlier version the text again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywróć"
+          }
+        }
+      }
+    },
+    "Inline" : {
+      "comment" : "Compare: the changes are shown in the text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inline"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W tekście"
+          }
+        }
+      }
+    },
+    "No differences." : {
+      "comment" : "Compare: the two versions have the same text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No differences."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak różnic."
+          }
+        }
+      }
+    },
+    "Back to the note" : {
+      "comment" : "Compare: returns to the note's text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back to the note"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wróć do notatki"
+          }
+        }
+      }
+    },
+    "Loading history…" : {
+      "comment" : "Inspector, History: while the versions are read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading history…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wczytuję historię…"
+          }
+        }
+      }
+    },
+    "Nothing has been changed here yet. Edits by you and by the agent are listed here, with who made them." : {
+      "comment" : "Inspector, History: the layer has no edits",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing has been changed here yet. Edits by you and by the agent are listed here, with who made them."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nic tu jeszcze nie zmieniono. Zmiany wprowadzone przez Ciebie i agenta pojawią się tutaj razem z informacją, kto je zrobił."
+          }
+        }
+      }
+    },
+    "History can’t be read right now. Nothing was changed." : {
+      "comment" : "Inspector, History: notes.sqlite could not be read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History can’t be read right now. Nothing was changed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie można teraz odczytać historii. Nic nie zmieniono."
+          }
+        }
+      }
+    },
+    "History stays on this Mac, encrypted, as long as the note." : {
+      "comment" : "Inspector, History: where the versions are kept",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History stays on this Mac, encrypted, as long as the note."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historia zostaje na tym Macu, zaszyfrowana, tak długo jak notatka."
+          }
+        }
+      }
+    },
+    "Cleaned up the text" : {
+      "comment" : "Inspector, History: first version by the agent, dictation",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cleaned up the text"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oczyszczono tekst"
+          }
+        }
+      }
+    },
+    "Wrote the notes" : {
+      "comment" : "Inspector, History: first version by the agent",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wrote the notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Napisał notatki"
+          }
+        }
+      }
+    },
+    "Started the note" : {
+      "comment" : "Inspector, History: first version of a manual note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Started the note"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozpoczęto notatkę"
+          }
+        }
+      }
+    },
+    "Text as recorded" : {
+      "comment" : "Inspector, History: first version, from speech recognition",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text as recorded"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekst z nagrania"
+          }
+        }
+      }
+    },
+    "Restored an earlier version" : {
+      "comment" : "Inspector, History: a Restore",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restored an earlier version"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywrócono wcześniejszą wersję"
+          }
+        }
+      }
+    },
+    "Kept as a proposal, not applied" : {
+      "comment" : "Inspector, History: a version that was set aside instead of replacing the text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kept as a proposal, not applied"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zachowano jako propozycję, niezastosowaną"
+          }
+        }
+      }
+    },
+    "No change in the text" : {
+      "comment" : "Inspector, History: a version equal to the one before",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No change in the text"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekst bez zmian"
+          }
+        }
+      }
+    },
+    "Edited %lld blocks" : {
+      "comment" : "Inspector, History: how many blocks changed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Edited %lld block"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Edited %lld blocks"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zmieniono %lld blok"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zmieniono %lld bloki"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zmieniono %lld bloków"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zmieniono %lld bloku"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Added %lld blocks" : {
+      "comment" : "Inspector, History: how many blocks were added",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Added %lld block"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Added %lld blocks"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Dodano %lld blok"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Dodano %lld bloki"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Dodano %lld bloków"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Dodano %lld bloku"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Removed %lld blocks" : {
+      "comment" : "Inspector, History: how many blocks went",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Removed %lld block"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Removed %lld blocks"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Usunięto %lld blok"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Usunięto %lld bloki"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Usunięto %lld bloków"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Usunięto %lld bloku"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Removed: %@" : {
+      "comment" : "Accessibility: a block the newer version no longer has",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Removed: %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunięto: %@"
+          }
+        }
+      }
+    },
+    "Added: %@" : {
+      "comment" : "Accessibility: a block the newer version has",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Added: %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodano: %@"
+          }
+        }
+      }
+    },
+    "Version restored" : {
+      "comment" : "Path bar: an earlier version became the current text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version restored"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywrócono wersję"
+          }
+        }
+      }
+    },
+    "That version couldn’t be restored. Nothing was changed." : {
+      "comment" : "Notes: restoring an earlier version failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That version couldn’t be restored. Nothing was changed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się przywrócić tej wersji. Nic nie zmieniono."
+          }
+        }
+      }
+    },
+    "The note changed in the meantime. Open the history again and restore from there." : {
+      "comment" : "Notes: a restore was refused because the note changed meanwhile",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The note changed in the meantime. Open the history again and restore from there."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatka zmieniła się w międzyczasie. Otwórz historię ponownie i przywróć wersję stamtąd."
+          }
+        }
+      }
+    },
+    "Notes are read-only, so nothing can be restored." : {
+      "comment" : "Notes: a restore was refused because editing is off",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes are read-only, so nothing can be restored."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki są tylko do odczytu, więc nic nie można przywrócić."
+          }
+        }
+      }
+    },
+    "That is not an earlier saved version of this note. Nothing was changed." : {
+      "comment" : "Notes: a restore target was not an earlier applied version",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That is not an earlier saved version of this note. Nothing was changed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To nie jest wcześniejsza zapisana wersja tej notatki. Nic nie zmieniono."
+          }
+        }
+      }
+    },
+    "Your edits were kept as a proposal." : {
+      "comment" : "Notes: strip after the note changed under the editor and the typed text was set aside",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your edits were kept as a proposal."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Twoje zmiany zachowano jako propozycję."
+          }
+        }
+      }
+    },
+    "today %@" : {
+      "comment" : "Inspector, History: the time of a version made today",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "today %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "dziś %@"
+          }
+        }
+      }
+    },
+    "%lld copies in Notes are kept. They stay until you delete them there." : {
+      "comment" : "Confirmation sheet: how many edited or commented copies stay in Notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld copy in Notes is kept. It stays until you delete it there."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld copies in Notes are kept. They stay until you delete them there."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld kopia w Notatkach zostaje. Zostaje, dopóki jej tam nie usuniesz."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld kopie w Notatkach zostają. Zostają, dopóki ich tam nie usuniesz."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld kopii w Notatkach zostaje. Zostają, dopóki ich tam nie usuniesz."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld kopii w Notatkach zostaje. Zostają, dopóki ich tam nie usuniesz."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "The meetings were deleted, but some copies in Notes could not be removed." : {
+      "comment" : "Meetings settings: Also delete kept copies failed after the library was cleared",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The meetings were deleted, but some copies in Notes could not be removed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spotkania zostały usunięte, ale nie udało się usunąć części kopii w Notatkach."
+          }
+        }
+      }
+    },
+    "The history was cleared, but some copies in Notes could not be removed." : {
+      "comment" : "Dictation settings error when Also delete kept copies fails after Clear History",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The history was cleared, but some copies in Notes could not be removed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historia została wyczyszczona, ale nie udało się usunąć części kopii w Notatkach."
+          }
+        }
+      }
+    },
+    "The data was erased, but some copies in Notes could not be removed." : {
+      "comment" : "Alert text: Erase Data worked but Also delete kept copies did not",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The data was erased, but some copies in Notes could not be removed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dane zostały usunięte, ale nie udało się usunąć części kopii w Notatkach."
+          }
+        }
+      }
+    },
+    "note.deleted" : {
+      "comment" : "Path bar: the note was deleted",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deleted"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunięto"
+          }
+        }
+      }
+    },
+    "The note couldn’t be deleted. Nothing was changed." : {
+      "comment" : "Notes: deleting a note failed or was refused",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The note couldn’t be deleted. Nothing was changed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się usunąć notatki. Nic nie zmieniono."
+          }
+        }
+      }
+    },
+    "The note was deleted, but the copy in Notes couldn’t be removed yet." : {
+      "comment" : "Notes: the owner deleted the note but its edited copy stayed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The note was deleted, but the copy in Notes couldn’t be removed yet."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatka została usunięta, ale kopii w Notatkach nie udało się jeszcze usunąć."
+          }
+        }
+      }
+    },
+    "Delete “%@”?" : {
+      "comment" : "Notes: title of the delete sheet",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete “%@”?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunąć „%@”?"
+          }
+        }
+      }
+    },
+    "Its notes and transcript, and your edits to them, are removed from this Mac. This can’t be undone." : {
+      "comment" : "Notes: delete sheet of a meeting with edits",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Its notes and transcript, and your edits to them, are removed from this Mac. This can’t be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jego notatki i transkrypt oraz Twoje zmiany w nich zostaną usunięte z tego Maca. Nie można tego cofnąć."
+          }
+        }
+      }
+    },
+    "Its notes and transcript are removed from this Mac. This can’t be undone." : {
+      "comment" : "Notes: delete sheet of a meeting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Its notes and transcript are removed from this Mac. This can’t be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jego notatki i transkrypt zostaną usunięte z tego Maca. Nie można tego cofnąć."
+          }
+        }
+      }
+    },
+    "The text, and your edits to it, are removed from your history. This can’t be undone." : {
+      "comment" : "Notes: delete sheet of a dictation with edits",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The text, and your edits to it, are removed from your history. This can’t be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekst oraz Twoje zmiany w nim zostaną usunięte z historii. Nie można tego cofnąć."
+          }
+        }
+      }
+    },
+    "The text is removed from your history. This can’t be undone." : {
+      "comment" : "Notes: delete sheet of a dictation",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The text is removed from your history. This can’t be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekst zostanie usunięty z historii. Nie można tego cofnąć."
+          }
+        }
+      }
+    },
+    "The note is removed from this Mac. This can’t be undone." : {
+      "comment" : "Notes: delete sheet of a note you wrote",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The note is removed from this Mac. This can’t be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatka zostanie usunięta z tego Maca. Nie można tego cofnąć."
+          }
+        }
+      }
+    },
+    "Your edited copy of this note is removed from this Mac. This can’t be undone." : {
+      "comment" : "Notes: delete sheet of the copy of a recording that is gone",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your edited copy of this note is removed from this Mac. This can’t be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Twoja zmieniona kopia tej notatki zostanie usunięta z tego Maca. Nie można tego cofnąć."
+          }
+        }
+      }
+    },
+    "Delete Dictation" : {
+      "comment" : "Notes: delete sheet button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Dictation"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń dyktowanie"
+          }
+        }
+      }
+    },
+    "Delete Note" : {
+      "comment" : "Notes: delete sheet button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Note"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń notatkę"
+          }
+        }
+      }
+    },
+    "Delete Copy" : {
+      "comment" : "Notes: delete sheet button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Copy"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń kopię"
+          }
+        }
+      }
+    },
+    "Delete this note?" : {
+      "comment" : "Notes: title of the delete sheet",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete this note?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunąć tę notatkę?"
+          }
+        }
+      }
+    },
+    "This can’t be undone." : {
+      "comment" : "Notes: delete sheet text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This can’t be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie można tego cofnąć."
+          }
+        }
+      }
+    },
+    "Actions" : {
+      "comment" : "Inspector, Details: heading of the note's actions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actions"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akcje"
+          }
+        }
+      }
+    },
+    "Choose where to save the folder with your notes." : {
+      "comment" : "Notes settings: message of the Export All Notes save panel",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose where to save the folder with your notes."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybierz, gdzie zapisać folder z notatkami."
+          }
+        }
+      }
+    },
+    "Export" : {
+      "comment" : "Notes settings: button of the Export All Notes panel",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksportuj"
+          }
+        }
+      }
+    },
+    "Lintel Notes" : {
+      "comment" : "Notes settings: suggested name of the folder Export All Notes makes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel Notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki Lintel"
+          }
+        }
+      }
+    },
+    "Notes can’t be read right now, so nothing was exported." : {
+      "comment" : "Notes settings: Export All failed because the library is locked",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes can’t be read right now, so nothing was exported."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatek nie można teraz odczytać, więc nic nie wyeksportowano."
+          }
+        }
+      }
+    },
+    "There are no notes to export yet." : {
+      "comment" : "Notes settings: Export All on a Mac where Notes has never stored anything",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There are no notes to export yet."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie ma jeszcze notatek do wyeksportowania."
+          }
+        }
+      }
+    },
+    "The notes couldn’t be exported. Nothing was written." : {
+      "comment" : "Notes settings: Export All failed while writing the folder",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The notes couldn’t be exported. Nothing was written."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się wyeksportować notatek. Nic nie zapisano."
+          }
+        }
+      }
+    },
+    "Notes data was erased." : {
+      "comment" : "Notes settings: the result of Erase Notes Data",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes data was erased."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dane Notatek zostały usunięte."
+          }
+        }
+      }
+    },
+    "Notes data couldn’t be erased." : {
+      "comment" : "Notes settings: Erase Notes Data failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes data couldn’t be erased."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się usunąć danych Notatek."
+          }
+        }
+      }
+    },
+    "Erase all Notes data?" : {
+      "comment" : "Notes settings confirmation title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erase all Notes data?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunąć wszystkie dane Notatek?"
+          }
+        }
+      }
+    },
+    "The notes you wrote, your edits and comments on recorded notes and their history are removed from this Mac, with the library’s key. Recordings in Meetings and Dictation stay. This can’t be undone." : {
+      "comment" : "Notes settings confirmation text of Erase Notes Data",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The notes you wrote, your edits and comments on recorded notes and their history are removed from this Mac, with the library’s key. Recordings in Meetings and Dictation stay. This can’t be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Napisane przez Ciebie notatki, Twoje zmiany i komentarze w nagranych notatkach oraz ich historia zostaną usunięte z tego Maca razem z kluczem biblioteki. Nagrania w Spotkaniach i Dyktowaniu zostają. Nie można tego cofnąć."
+          }
+        }
+      }
+    },
+    "Export All Notes…" : {
+      "comment" : "Notes settings button that exports every note to a folder",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export All Notes…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksportuj wszystkie notatki…"
+          }
+        }
+      }
+    },
+    "One Markdown file per note, and a manifest." : {
+      "comment" : "Notes settings: help under Export All Notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One Markdown file per note, and a manifest."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jeden plik Markdown na notatkę i manifest."
+          }
+        }
+      }
+    },
+    "Erase Notes Data…" : {
+      "comment" : "Notes settings button that erases the Notes library",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erase Notes Data…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń dane Notatek…"
+          }
+        }
+      }
+    },
+    "Notes you wrote and your edits. Recordings stay." : {
+      "comment" : "Notes settings: help under Erase Notes Data",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes you wrote and your edits. Recordings stay."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Twoje notatki i zmiany. Nagrania zostają."
+          }
+        }
+      }
+    },
+    "%lld notes exported to “%@”." : {
+      "comment" : "Notes settings: the result of Export All Notes, the number of files and the folder name",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld note exported to “%@”."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld notes exported to “%@”."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld notatka wyeksportowana do „%@”."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld notatki wyeksportowane do „%@”."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld notatek wyeksportowanych do „%@”."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld notatki wyeksportowano do „%@”."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Comments" : {
+      "comment" : "Inspector: tab with the comment threads",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comments"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Komentarze"
+          }
+        }
+      }
+    },
+    "Select text first. Opens a field for your comment." : {
+      "comment" : "Accessibility hint of the format bar's Comment button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select text first. Opens a field for your comment."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Najpierw zaznacz tekst. Otwiera pole na komentarz."
+          }
+        }
+      }
+    },
+    "Open: %lld" : {
+      "comment" : "Accessibility value of the Comments tab",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open: %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwarte: %lld"
+          }
+        }
+      }
+    },
+    "Comments in text" : {
+      "comment" : "Inspector, Details: toggle for the comment highlights in the editor",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comments in text"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Komentarze w tekście"
+          }
+        }
+      }
+    },
+    "New comment" : {
+      "comment" : "Comment popover: title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New comment"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nowy komentarz"
+          }
+        }
+      }
+    },
+    "Send" : {
+      "comment" : "Inspector, Comments: sends a reply",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyślij"
+          }
+        }
+      }
+    },
+    "Reply" : {
+      "comment" : "Inspector, Comments: answers a thread",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reply"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odpowiedz"
+          }
+        }
+      }
+    },
+    "Resolve" : {
+      "comment" : "Inspector, Comments: closes a thread",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resolve"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozwiąż"
+          }
+        }
+      }
+    },
+    "Reopen" : {
+      "comment" : "Inspector, Comments: opens a resolved thread again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reopen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz ponownie"
+          }
+        }
+      }
+    },
+    "Use selection" : {
+      "comment" : "Inspector, Comments: points a thread whose text changed at the selected text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use selection"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Użyj zaznaczenia"
+          }
+        }
+      }
+    },
+    "Text changed" : {
+      "comment" : "Inspector, Comments: the commented text is no longer in the note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text changed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekst się zmienił"
+          }
+        }
+      }
+    },
+    "Open %lld" : {
+      "comment" : "Inspector, Comments: filter of the open threads and how many",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwarte %lld"
+          }
+        }
+      }
+    },
+    "Resolved %lld" : {
+      "comment" : "Inspector, Comments: filter of the resolved threads and how many",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resolved %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozwiązane %lld"
+          }
+        }
+      }
+    },
+    "Loading comments…" : {
+      "comment" : "Inspector, Comments: while the comments are read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading comments…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wczytywanie komentarzy…"
+          }
+        }
+      }
+    },
+    "Comments can’t be read right now. Nothing was changed." : {
+      "comment" : "Inspector, Comments: notes.sqlite could not be read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comments can’t be read right now. Nothing was changed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie można teraz odczytać komentarzy. Nic nie zmieniono."
+          }
+        }
+      }
+    },
+    "No comments yet. Select text in the editor and choose Comment." : {
+      "comment" : "Inspector, Comments: how to start a comment",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No comments yet. Select text in the editor and choose Comment."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak komentarzy. Zaznacz tekst w edytorze i wybierz Komentarz."
+          }
+        }
+      }
+    },
+    "No open comments." : {
+      "comment" : "Inspector, Comments: nothing is open",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No open comments."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak otwartych komentarzy."
+          }
+        }
+      }
+    },
+    "No resolved comments." : {
+      "comment" : "Inspector, Comments: nothing is resolved",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No resolved comments."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak rozwiązanych komentarzy."
+          }
+        }
+      }
+    },
+    "The agent rewrites only commented blocks. Your edits stay." : {
+      "comment" : "Inspector, Comments: what Revise does",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The agent rewrites only commented blocks. Your edits stay."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent poprawia tylko skomentowane bloki. Twoje zmiany zostają."
+          }
+        }
+      }
+    },
+    "Revise with %lld comments" : {
+      "comment" : "Inspector, Comments: revises the commented blocks",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Revise with %lld comment"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Revise with %lld comments"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Popraw według %lld komentarza"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Popraw według %lld komentarzy"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Popraw według %lld komentarzy"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Popraw według %lld komentarza"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Comment on “%@”" : {
+      "comment" : "Accessibility label of an open comment thread, naming the commented text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comment on “%@”"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Komentarz do „%@”"
+          }
+        }
+      }
+    },
+    "Resolved comment on “%@”" : {
+      "comment" : "Accessibility label of a resolved comment thread, naming the commented text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resolved comment on “%@”"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozwiązany komentarz do „%@”"
+          }
+        }
+      }
+    },
+    "The text changed." : {
+      "comment" : "Accessibility: the commented text is no longer in the note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The text changed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekst się zmienił."
+          }
+        }
+      }
+    },
+    "The comment couldn’t be saved. Nothing was changed." : {
+      "comment" : "Notes: writing a comment failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The comment couldn’t be saved. Nothing was changed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się zapisać komentarza. Nic nie zmieniono."
+          }
+        }
+      }
+    },
+    "Notes are read-only, so nothing can be commented." : {
+      "comment" : "Notes: a comment was refused because editing is off",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes are read-only, so nothing can be commented."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki są tylko do odczytu, więc nie można ich komentować."
+          }
+        }
+      }
+    },
+    "That text is not in the saved note. Select it again." : {
+      "comment" : "Notes: a comment was refused because the selected text is not in the saved note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That text is not in the saved note. Select it again."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tego tekstu nie ma w zapisanej notatce. Zaznacz go ponownie."
+          }
+        }
+      }
+    },
+    "comment.author.you" : {
+      "comment" : "Comments: the user's own comment",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ty"
+          }
+        }
+      }
+    },
+    "comment.author.ai" : {
+      "comment" : "Comments: a comment written by the agent",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        }
+      }
+    },
+    "Agent is writing notes · read-only until it finishes" : {
+      "comment" : "Notes: lock strip while the agent revises the commented blocks",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent is writing notes · read-only until it finishes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent pisze notatki · tylko do odczytu do końca"
+          }
+        }
+      }
+    },
+    "Revised %lld blocks from comments. Restore is in History." : {
+      "comment" : "Notes: strip after the agent revised the commented blocks",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Revised %lld block from comments. Restore is in History."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Revised %lld blocks from comments. Restore is in History."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Poprawiono %lld blok według komentarzy. Przywrócisz go w Historii."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Poprawiono %lld bloki według komentarzy. Przywrócisz je w Historii."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Poprawiono %lld bloków według komentarzy. Przywrócisz je w Historii."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Poprawiono %lld bloku według komentarzy. Przywrócisz je w Historii."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld blocks couldn’t be revised and were left as they are." : {
+      "comment" : "Notes: strip when the guard rejected the agent's answer for some blocks",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld block couldn’t be revised and was left as it is."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld blocks couldn’t be revised and were left as they are."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld blok nie mógł zostać poprawiony i został bez zmian."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld bloki nie mogły zostać poprawione i zostały bez zmian."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld bloków nie mogło zostać poprawionych i zostało bez zmian."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld bloku nie mogło zostać poprawionych i zostało bez zmian."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "The agent’s answer couldn’t be used. Nothing was changed." : {
+      "comment" : "Notes: strip when the guard rejected the whole answer of the agent",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The agent’s answer couldn’t be used. Nothing was changed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odpowiedź agenta nie nadaje się do użycia. Nic nie zostało zmienione."
+          }
+        }
+      }
+    },
+    "The note changed while the agent was working. Nothing was changed." : {
+      "comment" : "Notes: strip when the note changed under a running agent",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The note changed while the agent was working. Nothing was changed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatka zmieniła się, gdy agent pracował. Nic nie zostało zmienione."
+          }
+        }
+      }
+    },
+    "The agent took too long. Nothing was changed." : {
+      "comment" : "Notes: strip when the agent's run hit the time limit",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The agent took too long. Nothing was changed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent pracował zbyt długo. Nic nie zostało zmienione."
+          }
+        }
+      }
+    },
+    "The agent couldn’t finish. Nothing was changed." : {
+      "comment" : "Notes: strip when the agent's run failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The agent couldn’t finish. Nothing was changed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent nie dokończył. Nic nie zostało zmienione."
+          }
+        }
+      }
+    },
+    "The notes model is being removed. Try again in a moment." : {
+      "comment" : "Notes: strip when Models is removing the notes model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The notes model is being removed. Try again in a moment."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model notatek jest usuwany. Spróbuj ponownie za chwilę."
+          }
+        }
+      }
+    },
+    "You edited %lld blocks, so they were not changed." : {
+      "comment" : "Notes: strip listing the comments skipped because their block was edited",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "You edited this block, so it was not changed."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "You edited %lld blocks, so they were not changed."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Ten blok został przez Ciebie zmieniony, więc go nie poprawiono."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld bloki zostały przez Ciebie zmienione, więc ich nie poprawiono."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld bloków zostało przez Ciebie zmienionych, więc ich nie poprawiono."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld bloku zostało przez Ciebie zmienionych, więc ich nie poprawiono."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "The text of %lld comments is gone, so they were not revised." : {
+      "comment" : "Notes: strip listing the comments skipped because their text is not in the note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The text of %lld comment is gone, so it was not revised."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The text of %lld comments is gone, so they were not revised."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Tekstu %lld komentarza już nie ma, więc go nie poprawiono."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Tekstu %lld komentarzy już nie ma, więc ich nie poprawiono."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Tekstu %lld komentarzy już nie ma, więc ich nie poprawiono."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Tekstu %lld komentarza już nie ma, więc go nie poprawiono."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld comments are too much for one run and stay open." : {
+      "comment" : "Notes: strip listing the comments left for the next run",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld comment is too much for one run and stays open."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld comments are too much for one run and stay open."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld komentarz to za dużo na jedno uruchomienie i zostaje otwarty."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld komentarze to za dużo na jedno uruchomienie i zostają otwarte."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld komentarzy to za dużo na jedno uruchomienie i zostaje otwartych."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld komentarza to za dużo na jedno uruchomienie i zostaje otwartych."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Queued" : {
+      "comment" : "Inspector, Comments: Ask agent waits behind a running run",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Queued"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W kolejce"
+          }
+        }
+      }
+    },
+    "Ask agent" : {
+      "comment" : "Inspector, Comments: asks the agent to revise this one thread",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ask agent"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapytaj agenta"
+          }
+        }
+      }
+    },
+    "The agent revises only the commented blocks." : {
+      "comment" : "Accessibility hint of Ask agent",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The agent revises only the commented blocks."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent poprawia tylko skomentowane bloki."
+          }
+        }
+      }
+    },
+    "Revised %lld blocks from comments" : {
+      "comment" : "History: the summary of a revision the agent wrote from comments",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Revised %lld block from comments"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Revised %lld blocks from comments"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Poprawiono %lld blok według komentarzy"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Poprawiono %lld bloki według komentarzy"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Poprawiono %lld bloków według komentarzy"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Poprawiono %lld bloku według komentarzy"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Revised" : {
+      "comment" : "Comments: the agent's reply on a thread it revised",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revised"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poprawiono"
+          }
+        }
+      }
+    },
+    "That comment is too long. Shorten it; nothing was saved." : {
+      "comment" : "Notes: a comment was refused because it is longer than the limit",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That comment is too long. Shorten it; nothing was saved."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten komentarz jest za długi. Skróć go; nic nie zapisano."
+          }
+        }
+      }
+    },
+    "That passage is too long to comment on. Select a shorter one." : {
+      "comment" : "Notes: a comment was refused because the selected passage is too long",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That passage is too long to comment on. Select a shorter one."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten fragment jest za długi, by go komentować. Zaznacz krótszy."
+          }
+        }
+      }
+    },
+    "Select some text in the note first, then comment." : {
+      "comment" : "Notes: a comment was refused because the selection is empty or outside the note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select some text in the note first, then comment."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Najpierw zaznacz tekst w notatce, potem dodaj komentarz."
+          }
+        }
+      }
+    },
+    "Length %lld of %lld" : {
+      "comment" : "Comment field: how many characters the comment has and the most it may have",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Length %lld of %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Długość: %lld z %lld"
+          }
+        }
+      }
+    },
+    "Select a shorter passage to comment on it." : {
+      "comment" : "Format bar: why Comment is off when the selection is too long",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a shorter passage to comment on it."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaznacz krótszy fragment, aby go skomentować."
+          }
+        }
+      }
+    },
+    "The agent found nothing to change. The comments stay open." : {
+      "comment" : "Notes: strip when the agent left every commented block as it was",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The agent found nothing to change. The comments stay open."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent nie znalazł nic do zmiany. Komentarze pozostają otwarte."
+          }
+        }
+      }
+    },
+    "%lld comments couldn’t be resolved and stay open." : {
+      "comment" : "Notes: strip when a revised comment thread changed or could not be resolved",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld comment couldn’t be resolved and stays open."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld comments couldn’t be resolved and stay open."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Nie udało się rozwiązać %lld komentarza. Pozostaje otwarty."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Nie udało się rozwiązać %lld komentarzy. Pozostają otwarte."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Nie udało się rozwiązać %lld komentarzy. Pozostają otwarte."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Nie udało się rozwiązać %lld komentarza. Pozostaje otwarty."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Proposal applied" : {
+      "comment" : "Path bar: a proposed version became the current text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proposal applied"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Propozycja zastosowana"
+          }
+        }
+      }
+    },
+    "Proposal discarded" : {
+      "comment" : "Path bar: a proposed version was set aside",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proposal discarded"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Propozycja odrzucona"
+          }
+        }
+      }
+    },
+    "The note changed in the meantime. Compare again before applying." : {
+      "comment" : "Notes: Apply was refused because the note changed after the comparison",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The note changed in the meantime. Compare again before applying."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatka zmieniła się w międzyczasie. Porównaj jeszcze raz, zanim zastosujesz."
+          }
+        }
+      }
+    },
+    "That proposal couldn’t be applied. Nothing was changed." : {
+      "comment" : "Notes: applying or discarding a proposal failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That proposal couldn’t be applied. Nothing was changed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się zastosować tej propozycji. Nic nie zostało zmienione."
+          }
+        }
+      }
+    },
+    "Has a proposal" : {
+      "comment" : "Accessibility: a version of the note waits for Apply",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Has a proposal"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ma propozycję"
+          }
+        }
+      }
+    },
+    "Apply" : {
+      "comment" : "Inspector, History and Compare: makes a proposed version the text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zastosuj"
+          }
+        }
+      }
+    },
+    "This is text you typed, set aside when the note changed. Apply puts it back; removing it deletes it for good." : {
+      "comment" : "Compare: explains a kept proposal that holds the user's own text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is text you typed, set aside when the note changed. Apply puts it back; removing it deletes it for good."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To tekst, który wpisano i odłożono na bok, gdy notatka się zmieniła. „Zastosuj” przywraca go, a usunięcie kasuje go bezpowrotnie."
+          }
+        }
+      }
+    },
+    "Remove your text for good?" : {
+      "comment" : "Compare and History: asks before the user's own kept text is removed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove your text for good?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunąć Twój tekst bezpowrotnie?"
+          }
+        }
+      }
+    },
+    "Remove my text" : {
+      "comment" : "Compare and History: confirms removing the user's own kept text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove my text"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń mój tekst"
+          }
+        }
+      }
+    },
+    "Keep my text" : {
+      "comment" : "Compare and History: cancels removing the user's own kept text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep my text"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zachowaj mój tekst"
+          }
+        }
+      }
+    },
+    "Discard" : {
+      "comment" : "Inspector, History and Compare: sets a proposed version aside",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discard"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odrzuć"
+          }
+        }
+      }
+    },
+    "A proposed version, not applied. Your text stays as it is until you apply it." : {
+      "comment" : "Compare: explains a proposal before Apply or Discard",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A proposed version, not applied. Your text stays as it is until you apply it."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proponowana wersja, jeszcze niezastosowana. Twój tekst zostaje bez zmian, dopóki jej nie zastosujesz."
+          }
+        }
+      }
+    },
+    "Proposals waiting: %lld" : {
+      "comment" : "Accessibility value of the History tab: versions waiting for Apply or Discard",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Proposal waiting: %lld"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Proposals waiting: %lld"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Propozycja czeka: %lld"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Propozycje czekają: %lld"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Propozycji czeka: %lld"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Propozycji czeka: %lld"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Go to a note or run a command" : {
+      "comment" : "Command palette: placeholder and accessibility label of the field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go to a note or run a command"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przejdź do notatki lub uruchom polecenie"
+          }
+        }
+      }
+    },
+    "Go to Note…" : {
+      "comment" : "Notes menu: opens the command palette",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go to Note…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przejdź do notatki…"
+          }
+        }
+      }
+    },
+    "Hide content" : {
+      "comment" : "Command palette and menu: blurs the notes for screen sharing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide content"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukryj treść"
+          }
+        }
+      }
+    },
+    "Show content" : {
+      "comment" : "Command palette and menu: shows hidden content again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show content"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż treść"
+          }
+        }
+      }
+    },
+    "Content hidden. Press ⌘⇧H to show it again." : {
+      "comment" : "Notes: strip while content is hidden for screen sharing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Content hidden. Press ⌘⇧H to show it again."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Treść ukryta. Naciśnij ⌘⇧H, aby ją pokazać."
+          }
+        }
+      }
+    },
+    "meeting" : {
+      "comment" : "Command palette: a note that is a meeting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "meeting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "spotkanie"
+          }
+        }
+      }
+    },
+    "dictation" : {
+      "comment" : "Command palette: a note that is a dictation",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "dictation"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "dyktowanie"
+          }
+        }
+      }
+    },
+    "note" : {
+      "comment" : "Command palette: a note you wrote",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "note"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "notatka"
+          }
+        }
+      }
+    },
+    "No matches" : {
+      "comment" : "Command palette: nothing fits what was typed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No matches"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak wyników"
+          }
+        }
+      }
+    },
+    "Command palette" : {
+      "comment" : "Accessibility label of the command palette",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command palette"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paleta poleceń"
+          }
+        }
+      }
+    },
+    "Open Lintel with %@. Your notes live in the Lintel window: click the Dock icon or press ⌘,." : {
+      "comment" : "Welcome screen: final page text; the argument is the main shortcut, such as ⌘Space",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Lintel with %@. Your notes live in the Lintel window: click the Dock icon or press ⌘,."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz Lintel skrótem %@. Notatki są w oknie aplikacji Lintel: kliknij ikonę w Docku albo naciśnij ⌘,."
+          }
+        }
+      }
+    },
+    "Your notes live in the Lintel window: click the Dock icon or press ⌘,." : {
+      "comment" : "Welcome screen: final page text while no main shortcut is set",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your notes live in the Lintel window: click the Dock icon or press ⌘,."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki są w oknie aplikacji Lintel: kliknij ikonę w Docku albo naciśnij ⌘,."
+          }
+        }
+      }
+    },
+    "Open Notes" : {
+      "comment" : "Welcome screen: the final page's button that opens the Lintel window",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Notes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz Notatki"
+          }
+        }
+      }
+    },
+    "Explorer width" : {
+      "comment" : "Accessibility label of the explorer's divider",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Explorer width"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szerokość listy notatek"
+          }
+        }
+      }
+    },
+    "Inspector width" : {
+      "comment" : "Accessibility label of the inspector's divider",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inspector width"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szerokość panelu szczegółów"
+          }
+        }
+      }
+    },
+    "Drag to resize. Double-click to reset." : {
+      "comment" : "Tooltip of a pane divider in the Notes section",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag to resize. Double-click to reset."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przeciągnij, aby zmienić szerokość. Kliknij dwukrotnie, aby przywrócić."
+          }
+        }
+      }
+    },
+    "Move Left" : {
+      "comment" : "Accessibility action: moves a tab one place left",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move Left"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przesuń w lewo"
+          }
+        }
+      }
+    },
+    "Move Right" : {
+      "comment" : "Accessibility action: moves a tab one place right",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move Right"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przesuń w prawo"
+          }
+        }
+      }
+    },
+    "Dictations" : {
+      "comment" : "Explorer: the switch and the label above the list of dictations",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictations"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dyktowania"
+          }
+        }
+      }
+    },
+    "%lld dictations" : {
+      "comment" : "Notes status bar: how many dictations the list holds",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dictation"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dictations"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dyktowanie"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dyktowania"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dyktowań"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dyktowania"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Search dictations" : {
+      "comment" : "Explorer: placeholder of the search field in the Dictations list",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search dictations"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szukaj w dyktowaniach"
+          }
+        }
+      }
+    },
+    "No dictations match “%@”." : {
+      "comment" : "Explorer: a search in the dictations found nothing; the query",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No dictations match “%@”."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak dyktowań dla „%@”."
+          }
+        }
+      }
+    },
+    "Dictations list" : {
+      "comment" : "Accessibility label of the explorer's list of dictations",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictations list"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lista dyktowań"
+          }
+        }
+      }
+    },
+    "Show notes or dictations" : {
+      "comment" : "Accessibility label of the explorer's Notes / Dictations switch",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show notes or dictations"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż notatki lub dyktowania"
+          }
+        }
+      }
+    },
+    "Make note" : {
+      "comment" : "Path bar and explorer: copies a dictation into a new note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Make note"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utwórz notatkę"
+          }
+        }
+      }
+    },
+    "Note created" : {
+      "comment" : "Path bar: a dictation was copied into a new note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note created"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatka utworzona"
+          }
+        }
+      }
+    },
+    "The note couldn’t be created. The dictation is unchanged." : {
+      "comment" : "Notes: Make note on a dictation failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The note couldn’t be created. The dictation is unchanged."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się utworzyć notatki. Dyktowanie pozostało bez zmian."
           }
         }
       }

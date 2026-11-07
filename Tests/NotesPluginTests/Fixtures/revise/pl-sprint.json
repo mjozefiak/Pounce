@@ -1,0 +1,38 @@
+{
+  "name": "pl-sprint",
+  "language": "pl",
+  "description": "Polish meeting notes, two comments in two blocks, a model that does what the comments ask. Both blocks change, nothing else does.",
+  "note": "## Ustalenia\n\n- Wdrożenie onboardingu 12 listopada.\n- Strona cennika przechodzi do następnego sprintu.\n\n## Zadania\n\nWysłać wersję demo do QA.\n\nZadzwonić do dostawcy w sprawie faktury.",
+  "comments": [
+    {
+      "quote": "następnego sprintu",
+      "bodies": [
+        "Podaj numer sprintu i osobę odpowiedzialną."
+      ]
+    },
+    {
+      "quote": "faktury",
+      "bodies": [
+        "Dopisz termin."
+      ]
+    }
+  ],
+  "modelAnswer": "[[unit 1]]\n- Strona cennika przechodzi do sprintu 14 (odpowiada: Marek).\n[[unit 2]]\nZadzwonić do dostawcy w sprawie faktury do piątku.",
+  "expect": {
+    "applied": [
+      1,
+      2
+    ],
+    "rejected": {},
+    "unchanged": [],
+    "skipped": [],
+    "keep": [
+      "sprintu 14 (odpowiada: Marek)",
+      "faktury do piątku",
+      "Wysłać wersję demo do QA."
+    ],
+    "drop": [
+      "[[unit"
+    ]
+  }
+}

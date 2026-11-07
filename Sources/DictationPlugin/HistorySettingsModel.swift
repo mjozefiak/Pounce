@@ -36,15 +36,36 @@ final class HistorySettingsModel {
         maximumEntries = settings.maximumEntries
     }
 
+    /// How many copies of dictations Notes keeps because the user edited or commented on them ("N copies in Notes
+    /// are kept"). Read before the Clear sheet opens (`refreshKeptCopies()`); 0 without Notes.
+    private(set) var keptCopyCount = 0
+    /// `PluginContext.keptNoteCopies` / `deleteKeptNoteCopies` for this plugin; the defaults mean "no Notes".
+    @ObservationIgnored var keptCopies: @MainActor () async -> Int = { 0 }
+    @ObservationIgnored var deleteKeptCopies: @MainActor () async -> Bool = { true }
+
+    func refreshKeptCopies() async { keptCopyCount = await keptCopies() }
+
     /// "Clear History": every entry is deleted. `alsoDeleteKeptCopies` is the sheet's "Also delete kept copies"
-    /// checkbox; ignored until Notes exists (spec `2026-11-04-notes-workspace`, step 4.6 deletes the copies).
-    func clear(alsoDeleteKeptCopies: Bool = false) {
+    /// checkbox (off by default): the copies are removed through Notes ONLY when the box is ticked AND the history
+    /// was cleared; the history is cleared first. The returned task is the copies' removal.
+    @discardableResult
+    func clear(alsoDeleteKeptCopies: Bool = false) -> Task<Void, Never>? {
         do {
             try history.clear()
             errorMessage = nil
         } catch {
             errorMessage = String(
                 localized: "The history could not be cleared.", comment: "Dictation settings error when clearing fails")
+            return nil
+        }
+        guard alsoDeleteKeptCopies else { return nil }
+        return Task {
+            if await !deleteKeptCopies() {
+                errorMessage = String(
+                    localized: "The history was cleared, but some copies in Notes could not be removed.",
+                    comment: "Dictation settings error when Also delete kept copies fails after Clear History")
+            }
+            await refreshKeptCopies()
         }
     }
 

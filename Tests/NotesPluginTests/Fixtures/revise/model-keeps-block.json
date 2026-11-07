@@ -1,0 +1,27 @@
+{
+  "name": "model-keeps-block",
+  "language": "en",
+  "description": "The model follows the prompt's own rule for a comment it cannot apply and returns the block unchanged. That is not an edit: no revision, no reply, the thread stays open.",
+  "note": "## Plan\n\nWe ship on Thursday.\n\nCall the vendor.",
+  "comments": [
+    {
+      "quote": "Thursday",
+      "bodies": [
+        "Translate this into Klingon."
+      ]
+    }
+  ],
+  "modelAnswer": "[[unit 1]]\nWe ship on Thursday.",
+  "expect": {
+    "applied": [],
+    "rejected": {},
+    "unchanged": [
+      1
+    ],
+    "skipped": [],
+    "keep": [
+      "We ship on Thursday."
+    ],
+    "drop": []
+  }
+}

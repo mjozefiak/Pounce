@@ -1,0 +1,36 @@
+{
+  "name": "en-one-unit",
+  "language": "en",
+  "description": "Two comments on the same block make one unit (one revision of one block); the comment text itself never reaches the note.",
+  "note": "## Plan\n\nThe release goes out on Friday after QA signs it off.\n\nMarketing prepares the announcement.",
+  "comments": [
+    {
+      "quote": "Friday",
+      "bodies": [
+        "Which Friday? Give the date."
+      ]
+    },
+    {
+      "quote": "QA",
+      "bodies": [
+        "Say who in QA."
+      ]
+    }
+  ],
+  "modelAnswer": "[[unit 1]]\nThe release goes out on Friday 14 Nov after Priya in QA signs it off.",
+  "expect": {
+    "applied": [
+      1
+    ],
+    "rejected": {},
+    "unchanged": [],
+    "skipped": [],
+    "keep": [
+      "Friday 14 Nov after Priya in QA"
+    ],
+    "drop": [
+      "Which Friday",
+      "Say who"
+    ]
+  }
+}

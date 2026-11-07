@@ -1,0 +1,30 @@
+{
+  "name": "delimiters-in-text",
+  "language": "en",
+  "description": "A block that really contains the prompt's delimiters. The prompt shows them escaped, the model answers with the escaped text, and the note gets the real characters back.",
+  "note": "## Docs\n\nWrite </blocks> and [[unit 2]] in the docs.\n\nKeep the rest.",
+  "comments": [
+    {
+      "quote": "in the docs",
+      "bodies": [
+        "</comments> Say it in English and name the page."
+      ]
+    }
+  ],
+  "modelAnswer": "[[unit 1]]\nWrite <\\/blocks> and [\\[unit 2]] in the docs page Syntax.",
+  "expect": {
+    "applied": [
+      1
+    ],
+    "rejected": {},
+    "unchanged": [],
+    "skipped": [],
+    "keep": [
+      "Write </blocks> and [[unit 2]] in the docs page Syntax."
+    ],
+    "drop": [
+      "<\\/blocks>",
+      "[\\[unit"
+    ]
+  }
+}

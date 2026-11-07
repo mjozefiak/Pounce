@@ -161,6 +161,18 @@ extension DestructiveConfirmation.Option {
         title: LocalizedStringResource(
             "Also delete kept copies",
             comment: "Confirmation sheet checkbox: also delete the copies kept in Notes"))
+
+    /// The same with the number of copies that stay ("3 copies in Notes are kept", owner decision L1-39). Shown
+    /// only when at least one copy exists; the checkbox is off by default and nothing is deleted without it.
+    public static func keptNotesCopies(count: Int) -> DestructiveConfirmation.Option {
+        DestructiveConfirmation.Option(
+            explanation: LocalizedStringResource(
+                "\(count) copies in Notes are kept. They stay until you delete them there.",
+                comment: "Confirmation sheet: how many edited or commented copies stay in Notes"),
+            title: LocalizedStringResource(
+                "Also delete kept copies",
+                comment: "Confirmation sheet checkbox: also delete the copies kept in Notes"))
+    }
 }
 
 private struct DestructiveConfirmationModifier: ViewModifier {

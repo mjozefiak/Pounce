@@ -400,7 +400,7 @@ struct NotesGuard: Sendable {
 
     /// One line of plain text: reasoning blocks and control characters out.
     static func plain(_ text: String) -> String {
-        MarkdownExporter.cleaned(NotesText.clean(text), keepNewlines: false).trimmingCharacters(
+        MarkdownText.cleaned(NotesText.clean(text), keepNewlines: false).trimmingCharacters(
             in: .whitespacesAndNewlines)
     }
 

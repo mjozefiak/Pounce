@@ -1,0 +1,30 @@
+{
+  "name": "colon-words-and-link-period",
+  "language": "en",
+  "description": "Words that end in a scheme name (profile:, Intel:, Data:, mobile:), versions, file names and e.g. are not links, and a period after an existing link is not a new link.",
+  "note": "## Notes\n\nProfile: the mobile app ships, Intel: builds are slow. Data: 12 May (notes.md, v1.2.3, e.g. the pilot). Spec at https://example.com/spec for now.",
+  "comments": [
+    {
+      "quote": "builds",
+      "bodies": [
+        "How slow? Give a number."
+      ]
+    }
+  ],
+  "modelAnswer": "[[unit 1]]\nProfile: the mobile app ships, Intel: builds take 40 minutes. Data: 12 May (notes.md, v1.2.3, e.g. the pilot). Spec at https://example.com/spec.",
+  "expect": {
+    "applied": [
+      1
+    ],
+    "rejected": {},
+    "unchanged": [],
+    "skipped": [],
+    "keep": [
+      "builds take 40 minutes",
+      "https://example.com/spec."
+    ],
+    "drop": [
+      "How slow"
+    ]
+  }
+}

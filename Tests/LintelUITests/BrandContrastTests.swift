@@ -150,3 +150,28 @@ import Testing
         #expect(BrandPalette.onStatusLight == 0xFFFFFF && BrandPalette.onStatusDark == 0x161310)
     }
 }
+
+/// The Notes comment cards (prototype `.th`) sit on the window colour; a resolved card adds the `fill` tint and no
+/// longer fades its text, so every text colour on it must still be 4.5:1.
+@Suite struct CommentCardContrastTests {
+    @Test func textOnOpenAndResolvedCardsIsReadableInBothAppearances() {
+        let cases: [(String, UInt32, UInt32, UInt32, UInt32, UInt32, Double)] = [
+            (
+                "light", BrandPalette.windowLight, BrandPalette.fillLight, BrandPalette.inkLight,
+                BrandPalette.secondaryTextLight, BrandPalette.accentTextLight, BrandPalette.fillAlpha.light
+            ),
+            (
+                "dark", BrandPalette.windowDark, BrandPalette.fillDark, BrandPalette.inkDark,
+                BrandPalette.secondaryTextDark, BrandPalette.accentTextDark, BrandPalette.fillAlpha.dark
+            ),
+        ]
+        for (name, window, fill, ink, secondary, accent, alpha) in cases {
+            let resolved = BrandPalette.blend(fill, alpha: alpha, over: window)
+            for (surface, background) in [("open", window), ("resolved", resolved)] {
+                #expect(BrandPalette.contrast(ink, background) >= 4.5, "\(name) \(surface) ink")
+                #expect(BrandPalette.contrast(secondary, background) >= 4.5, "\(name) \(surface) secondary")
+                #expect(BrandPalette.contrast(accent, background) >= 4.5, "\(name) \(surface) action link")
+            }
+        }
+    }
+}

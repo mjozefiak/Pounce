@@ -6,7 +6,7 @@ import Testing
 @Suite struct DependencyRuleTests {
     private static let repositoryTargets = [
         "LintelKit", "LintelCore", "LintelPersistence", "LintelUI", "LintelApp", "AppsPlugin", "FilesPlugin",
-        "ClipboardPlugin", "DictationPlugin", "MeetingsPlugin",
+        "ClipboardPlugin", "DictationPlugin", "MeetingsPlugin", "NotesPlugin",
     ]
 
     private func manifest() throws -> String {

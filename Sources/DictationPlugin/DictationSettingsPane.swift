@@ -54,7 +54,8 @@ struct DictationPaneContent: View {
             historyRows
         }
         .destructiveConfirmation(
-            isPresented: $confirmsClear, HistorySection.confirmationInMainWindow,
+            isPresented: $confirmsClear,
+            HistorySection.confirmationInMainWindow(keptCopies: history.keptCopyCount),
             onConfirmWithOption: { alsoDeleteKeptCopies in
                 history.clear(alsoDeleteKeptCopies: alsoDeleteKeptCopies)
             }
@@ -326,7 +327,11 @@ struct DictationPaneContent: View {
         .disabled(!history.isEnabled)
         LabeledContent {
             Button(role: .destructive) {
-                confirmsClear = true
+                // The number of copies Notes keeps is read first, so the sheet can say it.
+                Task {
+                    await history.refreshKeptCopies()
+                    confirmsClear = true
+                }
             } label: {
                 Text("Clear History…", comment: "Dictation settings button that deletes the history")
                     .font(textSize.font(.body))
@@ -355,13 +360,8 @@ struct DictationPaneContent: View {
 
 extension HistorySection {
     /// Clear History: also says that copies edited or commented on in Notes stay, with the "Also delete kept
-    /// copies" checkbox (owner decision L1-39). DEBUG only until Notes ships (spec `2026-11-04-notes-workspace`,
-    /// step 7.1 removes the guard); release builds show `confirmation`.
-    static var confirmationInMainWindow: DestructiveConfirmation {
-        #if DEBUG
-        confirmation.with(option: .keptNotesCopies)
-        #else
-        confirmation
-        #endif
+    /// copies" checkbox (owner decision L1-39).
+    static func confirmationInMainWindow(keptCopies: Int) -> DestructiveConfirmation {
+        keptCopies > 0 ? confirmation.with(option: .keptNotesCopies(count: keptCopies)) : confirmation
     }
 }

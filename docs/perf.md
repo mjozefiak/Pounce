@@ -20,6 +20,7 @@ Machine for every row: Apple M4 Max, 16 cores, macOS 27.0.1, 2026-10-31. An M1 r
 | Path mode query, folder of 1 000 entries (file path search spec) | p95 < 20 ms | p95 8.3 ms read cold, 11.4 ms while typing a filter (release build, SSD; `PathModeBenchmarks`) | Met |
 | App suggestions query, empty panel (app suggestions spec, 2026-11-02) | < 5 ms (source budget 150 ms) | p95 0.51 ms with 300 apps, p95 2.22 ms with 1 000 apps, every app with activity (max 2.57 ms; release build; `AppBenchmarks/suggestApps`) | Met |
 | One-time Spotlight seed of app activity (app suggestions spec, 2026-11-02) | in the background, no budget | 57 ms for the 43 apps in `/Applications` of the measurement Mac, 24 of them with used dates (`AppBenchmarks/seedFromSpotlight`, reads real Spotlight metadata, writes only to a temporary directory) | Measured |
+| Typing in the Notes editor, p99, 50 000 characters (notes workspace spec step 4.1, budget proposed in ADR 0008 addendum 0.1) | < 8 ms | not yet measured in a real window (the `EditorBenchmarks` text path, below, is a part of it) | To be measured |
 | Main window visible after a Dock click (main window spec, 2026-11-04) | < 200 ms | not yet measured | To be measured |
 | Settings pane switch in the main window (main window spec, 2026-11-04) | < 100 ms | not yet measured | To be measured |
 | Models pane first paint with downloads running (main window spec, 2026-11-04) | < 150 ms | not yet measured | To be measured |
@@ -284,3 +285,47 @@ Measurement checklist (copy into the PR that records the numbers):
 - [ ] The weaker Mac (8 or 16 GB): the 4B model only, 1 h case, and whether the 8 minute aim holds.
 - [ ] Dictation tail with a notes job running.
 - [ ] If a figure differs from the table above by a large factor, change `notesChunkTokens` / `notesReduceInputTokens` here and in `MeetingsSettings`, and record why.
+
+## Notes workspace (spec: Notes workspace, budgets of the spec; none measured yet)
+
+None of these figures has been measured. The Notes workspace adds no search source, so the launcher panel keeps its < 50 ms show budget. The typing row is in the first table of this file and the revise rows are in the section below.
+
+| What | Budget | Measured | How to measure |
+|---|---|---|---|
+| Open a note of 20 000 characters, to first paint | < 150 ms | not yet measured | Release build, `--qa-notes`, a 20 000 character note, stopwatch or Instruments signpost |
+| Typing latency, notes up to 50 000 characters | < 16 ms per keystroke (the editor's own p99 row is < 8 ms) | not yet measured | `EditorBenchmarks` (off by default) and a real window |
+| List of 1 000 summaries | < 200 ms | not yet measured | Scripted sources with 1 000 notes, time `NotesWorkspaceModel.refresh()` |
+| Window search, fan-out | within the 150 ms per-source budget | not yet measured | Time a query against a scripted slow source; the budget cut is tested on a manual clock |
+| `notes.sqlite` writes | off the main thread | not yet measured | Time Profiler on a typing session |
+| Size of one document's history | per document below the pruning cap (200 revisions) | not yet measured | 200 revisions of 200 000 characters would be about 40 MB; compress only if a real document is above budget |
+
+### Notes revise run (spec: Notes workspace, steps 6.2 and 6.4)
+
+The agent rewrites only the commented blocks on the notes model (`ReviseService`, `ReviseNotesPrompt`, `ReviseGuard`). It
+shares the 8192 context and the model file with the meeting notes, so the memory rows of the section above apply
+unchanged. Nothing below is measured yet.
+
+| Budget | Value | Measured | How |
+|---|---|---|---|
+| One run on one commented block (a few lines of context, a 4B model, warm file cache) | aim: under 10 s from the click to the new text on an M4 Max, model already resident | not yet measured | Release build. `LINTEL_REVISE_LLM_MODEL=<gguf> swift test -c release --filter RealReviseTests`; read `REVISE-BENCH … seconds=` (generation only, model resident after the first case). |
+| First run after the model was unloaded | the load time of the model plus the row above | not yet measured | The first `REVISE-BENCH` line of a fresh process, or in the app after the 60 s keep-warm. |
+| A run with six units (the `mixed-structure` case) | aim: under 30 s on an M4 Max | not yet measured | `REVISE-BENCH name=mixed-structure`. |
+| Time from the click to the locked editor ("Agent is writing notes") | < 100 ms; flushing the typed text is one write | not yet measured | In the app with a stopwatch on a note with 50 000 characters; the lock strip must show before the model is asked. |
+| Time the editor stays locked | only while generating, validating and applying; never more than the 10 minute limit | not yet measured | Same run; the strip must go when the answer is applied or refused. |
+| Memory while the run holds the model | the notes model's residency (3.3 GB for the 4B) plus an 8192 context; not set separately | not yet measured | `footprintMB` of the `REVISE-BENCH` lines; `footprint <pid>` in the app. |
+| Quality of the revisions | no figure promised: `ReviseGuard` keeps everything outside the commented blocks and refuses new links, images, HTML and a changed block structure; it does not check that the new text is right | not yet measured | `RealReviseTests` on the corpus (`Tests/NotesPluginTests/Fixtures/revise/`) and on three real Polish notes; record the `outcome` and the counts, read the revised blocks against the comments. |
+
+### How the Notes editor row is measured (step 4.1)
+
+The budget is the time from a key press to the updated line on screen at 50 000 characters. Two parts:
+
+- **Text path, headless** (`Tests/NotesPluginTests/Editor/EditorBenchmarks.swift`, off by default): per keystroke the
+  insert into the text storage, the scan for block boundaries, the restyle of the one edited block and the
+  `onEdit` callback (the whole text as a `String`), 300 keystrokes each at the start, middle and end of a document
+  of about 50 000 characters. `LINTEL_BENCHMARKS=1 swift test -c release -Xswiftc -enable-testing --filter EditorBenchmarks`.
+  It has no layout, drawing or event path, so it is a lower bound.
+- **Real window** (still to do): a release build with `--qa-notes --qa-setting plugins.notes.qaEditor=on` and a
+  50 000 character note, typing through `NSEvent` key events (key repeat, the Polish dead keys and marked text
+  included), measuring key-down to the next display with a signpost around `keyDown`. Only this number is entered
+  in the table above. ADR 0008 addendum 0.1 measured the TextKit 2 layout and display side at p99 1.5 ms in a
+  headless window; that run did not include the event path, the compositor or other hardware.
