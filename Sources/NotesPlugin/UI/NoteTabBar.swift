@@ -105,6 +105,7 @@ struct NoteTabView: View {
         }
         .notesAnimation(.tab, value: isSelected)
         .notesFade(.tab)
+        .overlay { NoteTabMiddleClickArea { model.handleTabOtherMouseUp(tab.id, buttonNumber: 2) } }
         .overlay(alignment: .trailing) { LintelDivider(axis: .vertical) }
     }
 }
