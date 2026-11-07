@@ -18378,6 +18378,42 @@
           }
         }
       }
+    },
+    "Move Left" : {
+      "comment" : "Accessibility action: moves a tab one place left",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move Left"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przesuń w lewo"
+          }
+        }
+      }
+    },
+    "Move Right" : {
+      "comment" : "Accessibility action: moves a tab one place right",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move Right"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przesuń w prawo"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

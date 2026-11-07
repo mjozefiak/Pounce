@@ -44,6 +44,26 @@ struct NoteTabSet: Equatable, Sendable {
         current = tabs.isEmpty ? nil : tabs[min(index, tabs.count - 1)].id
     }
 
+    /// Moves a tab so that it ends up at `index` (the others shift by one); the current tab stays current. Returns
+    /// `false`, and changes nothing, for an unknown tab, an index outside the tabs or the place it already has.
+    @discardableResult
+    mutating func move(_ id: NoteItemID, toIndex index: Int) -> Bool {
+        guard let from = tabs.firstIndex(where: { $0.id == id }), tabs.indices.contains(index), from != index else {
+            return false
+        }
+        tabs.insert(tabs.remove(at: from), at: index)
+        return true
+    }
+
+    /// Moves a tab by `offset` places (negative: to the left). `false` when it would leave the bar.
+    @discardableResult
+    mutating func move(_ id: NoteItemID, by offset: Int) -> Bool {
+        guard let from = tabs.firstIndex(where: { $0.id == id }) else { return false }
+        return move(id, toIndex: from + offset)
+    }
+
+    func index(of id: NoteItemID) -> Int? { tabs.firstIndex { $0.id == id } }
+
     mutating func update(_ id: NoteItemID, title: String, isBusy: Bool) {
         guard let index = tabs.firstIndex(where: { $0.id == id }) else { return }
         tabs[index].title = title

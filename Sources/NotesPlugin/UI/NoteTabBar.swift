@@ -7,6 +7,8 @@ import SwiftUI
 struct NoteTabBar: View {
     let model: NotesWorkspaceModel
     @Environment(\.lintelTextSize) private var textSize
+    /// The tab being dragged, while a drag of one of this bar's tabs is going on.
+    @State private var dragged: NoteItemID?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -14,6 +16,20 @@ struct NoteTabBar: View {
                 HStack(spacing: 0) {
                     ForEach(model.tabs.tabs) { tab in
                         NoteTabView(model: model, tab: tab, isSelected: model.currentID == tab.id)
+                            .onDrag {
+                                dragged = tab.id
+                                let provider = NSItemProvider()
+                                provider.registerDataRepresentation(
+                                    forTypeIdentifier: NoteTabDrag.type.identifier, visibility: .ownProcess
+                                ) { completion in
+                                    completion(Data(), nil)
+                                    return nil
+                                }
+                                return provider
+                            }
+                            .onDrop(
+                                of: [NoteTabDrag.type],
+                                delegate: NoteTabDropDelegate(model: model, target: tab.id, dragged: $dragged))
                     }
                     NewNoteButton(model: model, style: .tab)
                 }
@@ -96,6 +112,18 @@ struct NoteTabView: View {
             .buttonStyle(.plain)
             .padding(.trailing, 4 * textSize.scale)
             .accessibilityLabel(Text("Close tab", comment: "Accessibility label of a tab's close button"))
+        }
+        .accessibilityActions {
+            if model.canMoveTab(tab.id, by: -1) {
+                Button(String(localized: "Move Left", comment: "Accessibility action: moves a tab one place left")) {
+                    model.moveTab(tab.id, by: -1)
+                }
+            }
+            if model.canMoveTab(tab.id, by: 1) {
+                Button(String(localized: "Move Right", comment: "Accessibility action: moves a tab one place right")) {
+                    model.moveTab(tab.id, by: 1)
+                }
+            }
         }
         .frame(minWidth: 96 * textSize.scale, maxWidth: 15 * 12.5 * textSize.scale)
         .frame(maxHeight: .infinity)

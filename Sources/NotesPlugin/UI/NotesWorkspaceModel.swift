@@ -356,6 +356,15 @@ final class NotesWorkspaceModel {
         tabs.select(id)
     }
 
+    /// Moves a tab to `index` (a drop, or Move Left / Move Right). The open-tabs state is the same `NoteTabSet`,
+    /// so the current tab stays current and nothing else changes. Not persisted: the workspace does not keep its
+    /// tabs between launches.
+    @discardableResult
+    func moveTab(_ id: NoteItemID, toIndex index: Int) -> Bool { tabs.move(id, toIndex: index) }
+
+    @discardableResult
+    func moveTab(_ id: NoteItemID, by offset: Int) -> Bool { tabs.move(id, by: offset) }
+
     func close(_ id: NoteItemID) {
         // A run for a note whose tab closes is cancelled: nothing is applied to a document nobody sees.
         environment.cancelRevise(id)
