@@ -75,20 +75,33 @@ struct NotesPaletteTests {
         let items = rig.model.paletteItems
         #expect(
             items.map(\.title) == [
-                "Orchard weekly sync", "Łódź plan", "Design review", "Record a meeting", "Open Settings",
-                "Hide content",
+                "Orchard weekly sync", "Design review", "Record a meeting", "Open Settings", "Hide content",
             ])
         #expect(Array(items.map(\.detail).suffix(3)) == ["⌃⌥M", "⌘,", "⌘⇧H"], "\(items.map(\.detail))")
         #expect(items[0].detail.hasSuffix("· meeting"))
-        #expect(items[1].detail.hasSuffix("· dictation"))
+    }
+
+    @Test("⌘P follows the explorer's list: in Dictations it goes to dictations, never to notes")
+    func followsTheList() async {
+        let rig = await PaletteRig()
+        await rig.model.setCollection(.dictations)
+        rig.model.showPalette()
+        let items = rig.model.paletteItems
+        #expect(items.map(\.title).prefix(1) == ["Łódź plan"])
+        #expect(!items.contains { $0.title == "Orchard weekly sync" || $0.title == "Design review" })
+        #expect(items[0].detail.hasSuffix("· dictation"))
+        rig.model.runPalette()
+        #expect(rig.model.currentID == .live(PaletteRig.dictation))
     }
 
     @Test("a query keeps what holds every word, ignoring case and accents, with prefix matches first")
     func filtering() async {
         let rig = await PaletteRig()
         rig.model.showPalette()
+        rig.model.setPaletteQuery("review")
+        #expect(rig.model.paletteItems.map(\.title) == ["Design review"])
         rig.model.setPaletteQuery("lodz")
-        #expect(rig.model.paletteItems.map(\.title) == ["Łódź plan"])
+        #expect(rig.model.paletteItems.isEmpty)
         rig.model.setPaletteQuery("RE")
         // "Record a meeting" and "Design review" both hold "re"; the one that starts with it comes first within its kind.
         #expect(rig.model.paletteItems.map(\.title) == ["Design review", "Record a meeting"])
@@ -103,7 +116,7 @@ struct NotesPaletteTests {
         rig.model.movePaletteSelection(by: 1)
         rig.model.runPalette()
         #expect(rig.model.palette == nil)
-        #expect(rig.model.currentID == .live(PaletteRig.dictation))
+        #expect(rig.model.currentID == .live(PaletteRig.review))
     }
 
     @Test("a command runs once; a disabled command is not offered")

@@ -71,15 +71,18 @@ private struct Rig {
 @MainActor
 @Suite("Notes workspace: listing, tabs and routes")
 struct NotesWorkspaceModelTests {
-    @Test("the first read lists every source's notes newest first, grouped by time")
+    @Test("the first read lists the notes newest first, grouped by time; dictations are their own list")
     func listing() async {
         let rig = Rig()
         #expect(rig.model.loadState == .loading)
         await rig.model.refresh()
         #expect(rig.model.loadState == .loaded)
-        #expect(rig.model.rows.map(\.id.key.rawValue) == ["meetings:orchard", "dictation:store/7", "meetings:call"])
+        #expect(rig.model.rows.map(\.id.key.rawValue) == ["meetings:orchard", "meetings:call"])
         #expect(rig.model.groups.map { rig.model.title(of: $0) } == ["Today", "Yesterday"])
-        #expect(rig.model.total == 3)
+        #expect(rig.model.total == 2)
+        await rig.model.setCollection(.dictations)
+        #expect(rig.model.rows.map(\.id.key.rawValue) == ["dictation:store/7"])
+        #expect(rig.model.total == 1)
     }
 
     @Test("grouping by source follows the plugins")
@@ -87,7 +90,9 @@ struct NotesWorkspaceModelTests {
         let rig = Rig()
         await rig.model.refresh()
         rig.model.grouping = .source
-        #expect(rig.model.groups.map { rig.model.title(of: $0) } == ["Meetings", "Dictation"])
+        #expect(rig.model.groups.map { rig.model.title(of: $0) } == ["Meetings"])
+        await rig.model.setCollection(.dictations)
+        #expect(rig.model.groups.map { rig.model.title(of: $0) } == ["Dictation"])
     }
 
     @Test("a route selects the key and opens one tab for the note")
@@ -231,7 +236,7 @@ struct NotesWorkspaceModelTests {
     @Test("a dictation's path ends in its kind and time, not its text")
     func dictationPath() async {
         let rig = Rig()
-        await rig.model.refresh()
+        await rig.model.setCollection(.dictations)
         rig.model.open(.live(Rig.dictationKey))
         let path = rig.model.pathComponents
         #expect(path?.first == "Today")
@@ -244,12 +249,12 @@ struct NotesWorkspaceModelTests {
         let rig = Rig()
         let running = Task { await rig.model.run() }
         await waitUntil { rig.model.loadState == .loaded }
-        #expect(rig.model.rows.count == 3)
-        rig.dictation.items = []
-        rig.sourceSet.yield()
-        await waitUntil { rig.model.rows.count == 2 }
-        running.cancel()
         #expect(rig.model.rows.count == 2)
+        rig.meetings.items = [rig.meetings.items[0]]
+        rig.sourceSet.yield()
+        await waitUntil { rig.model.rows.count == 1 }
+        running.cancel()
+        #expect(rig.model.rows.count == 1)
     }
 
     @Test("the Settings link asks the shell")

@@ -240,6 +240,7 @@ public final class NotesPlugin: LintelPlugin {
         default: break
         }
         if let text = context.settings.string(NotesSettingsKey.qaSearch), !text.isEmpty { model.initialSearch = text }
+        if context.settings.string(NotesSettingsKey.qaView) == "dictations" { model.prepareCollection(.dictations) }
         model.qaEditor = context.settings.string(NotesSettingsKey.qaEditor)
         model.editorMode = NoteEditorMode.qa(context.settings.string(NotesSettingsKey.qaEditorMode))
         if context.settings.bool(NotesSettingsKey.qaFixtures, default: false) { model.animationsDisabled = true }

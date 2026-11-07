@@ -18414,6 +18414,150 @@
           }
         }
       }
+    },
+    "Dictations" : {
+      "comment" : "Explorer: the switch and the label above the list of dictations",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictations"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dyktowania"
+          }
+        }
+      }
+    },
+    "%lld dictations" : {
+      "comment" : "Notes status bar: how many dictations the list holds",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dictation"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dictations"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dyktowanie"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dyktowania"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dyktowań"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dyktowania"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Search dictations" : {
+      "comment" : "Explorer: placeholder of the search field in the Dictations list",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search dictations"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szukaj w dyktowaniach"
+          }
+        }
+      }
+    },
+    "No dictations match “%@”." : {
+      "comment" : "Explorer: a search in the dictations found nothing; the query",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No dictations match “%@”."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak dyktowań dla „%@”."
+          }
+        }
+      }
+    },
+    "Dictations list" : {
+      "comment" : "Accessibility label of the explorer's list of dictations",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictations list"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lista dyktowań"
+          }
+        }
+      }
+    },
+    "Show notes or dictations" : {
+      "comment" : "Accessibility label of the explorer's Notes / Dictations switch",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show notes or dictations"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż notatki lub dyktowania"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

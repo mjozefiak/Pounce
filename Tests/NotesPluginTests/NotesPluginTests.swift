@@ -103,8 +103,12 @@ import Testing
         PluginSettings(pluginID: "notes", store: settings).set(true, for: NotesSettingsKey.qaFixtures)
         let on = NotesPlugin(context: makeContext(settings: settings))
         await on.workspace.refresh()
-        #expect(on.workspace.rows.count == NotesQAFixtures.summaries().count)
+        let notes = NotesQAFixtures.summaries().filter { NoteCollection.of(key: $0.id, kind: $0.kind) == .notes }
+        #expect(on.workspace.rows.count == notes.count)
         #expect(on.workspace.rows.count > 0)
+        await on.workspace.setCollection(.dictations)
+        #expect(on.workspace.rows.count == NotesQAFixtures.summaries().count - notes.count)
+        #expect(on.workspace.rows.count == 2)
     }
 
     @Test func fixtureKeysBelongToTheirOwnersAndAreUnique() {

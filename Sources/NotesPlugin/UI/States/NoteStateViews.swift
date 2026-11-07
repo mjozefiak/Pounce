@@ -237,6 +237,7 @@ struct NoteSkeletonDocument: View {
 /// The explorer body when there is no list to show (prototype `.nr`, `.skel` rows).
 struct ExplorerPlaceholder: View {
     let screen: NotesWorkspaceModel.Screen
+    var collection: NoteCollection = .notes
     @Environment(\.lintelTextSize) private var textSize
 
     var body: some View {
@@ -271,14 +272,22 @@ struct ExplorerPlaceholder: View {
             .frame(maxWidth: .infinity)
             .accessibilityElement(children: .combine)
         case .empty:
-            Text("No notes yet.", comment: "Explorer: the library is empty")
+            (collection == .dictations
+                ? Text("No dictations yet.", comment: "Dictation history empty state")
+                : Text("No notes yet.", comment: "Explorer: the library is empty"))
                 .font(textSize.font(.callout))
                 .foregroundStyle(LintelBrand.secondaryText)
                 .padding(18 * textSize.scale)
                 .frame(maxWidth: .infinity)
         case .noResults(let query):
             VStack(spacing: 0) {
-                Text("No notes match “\(query)”.", comment: "Explorer: a search found nothing; the query")
+                if collection == .dictations {
+                    Text(
+                        "No dictations match “\(query)”.",
+                        comment: "Explorer: a search in the dictations found nothing; the query")
+                } else {
+                    Text("No notes match “\(query)”.", comment: "Explorer: a search found nothing; the query")
+                }
                 Text(
                     "Search covers titles, notes, transcripts and dictations.",
                     comment: "Explorer: what a search looks in")

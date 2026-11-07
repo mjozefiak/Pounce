@@ -15,7 +15,11 @@ struct ExplorerSearchField: View {
                 .accessibilityHidden(true)
             TextField(
                 text: $model.searchText,
-                prompt: Text("Search notes", comment: "Explorer: placeholder of the search field")
+                prompt: model.collection == .dictations
+                    ? Text(
+                        "Search dictations", comment: "Explorer: placeholder of the search field in the Dictations list"
+                    )
+                    : Text("Search notes", comment: "Explorer: placeholder of the search field")
             ) {
                 Text("Search notes", comment: "Accessibility label of the explorer's search field")
             }

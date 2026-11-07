@@ -72,10 +72,10 @@
 | 7 | 7.x-final-1to1 | Explorer row "Agent writing notes 2/5" like the prototype | inline | done | a30a953 |
 | 7 | owner-feedback-A | Prominent "New note ⌘N" button under the explorer search (header "+" dropped), ADR 0008 deviation 12 | inline | done | b8b65ac |
 | 7 | owner-feedback-B | Short ease animations (tabs, inspector, selection, strips, editor/reader, pen) through NotesMotion; Reduce Motion and QA runs get none | inline | done | 8399d29 |
-| 7 | owner-feedback-C | Formatted / Raw editor view (same buffer, path bar switch, ⌥⌘R, session-only, QA qaEditorMode=raw) | inline | done | (this commit) |
+| 7 | owner-feedback-C | Formatted / Raw editor view (same buffer, path bar switch, ⌥⌘R, session-only, QA qaEditorMode=raw) | inline | done | fce51e8 |
 | 7 | owner-feedback-D | Resizable explorer and inspector (drag the divider, double-click resets, clamped, persisted as plugins.notes.explorerWidth / inspectorWidth) | inline | done | 490b6f8 |
 | 7 | owner-feedback-E | Middle-click closes a tab (same path as the x and Cmd+W), AppKit overlay that only receives middle-button events | inline | done | 6da8a75 |
-| 7 | owner-feedback-F | Drag tabs to reorder (NoteTabSet.move, private drag type, Move Left / Move Right accessibility actions); not persisted, tabs are not | inline | done | (this commit) |
+| 7 | owner-feedback-F | Drag tabs to reorder (NoteTabSet.move, private drag type, Move Left / Move Right accessibility actions); not persisted, tabs are not | inline | done | 93f2ab3 |
 
 ## Goal
 

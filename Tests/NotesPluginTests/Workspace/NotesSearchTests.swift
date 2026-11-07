@@ -20,6 +20,7 @@ struct NotesSearchTests {
                 Fixtures.summary("meetings", "a", secondsAgo: 10, title: "Pricing sync"),
                 Fixtures.summary("meetings", "b", secondsAgo: 30, title: "Standup"),
                 Fixtures.summary("meetings", "c", secondsAgo: 50, title: "Pricing tiers"),
+                Fixtures.summary("meetings", "d", secondsAgo: 60, title: "Pricing FAQ"),
             ])
         let dictation = ScriptedNoteSource(
             "dictation",
@@ -45,9 +46,13 @@ struct NotesSearchTests {
         await model.runSearch()
         #expect(model.isSearching)
         #expect(model.searchQuery?.normalized == "pricing")
-        #expect(model.rows.map(\.id.key.rawValue) == ["meetings:a", "dictation:x"])
+        #expect(model.rows.map(\.id.key.rawValue) == ["meetings:a", "meetings:c"])
         #expect(model.groups.isEmpty)
         #expect(model.total == 3)
+        await model.setCollection(.dictations)
+        #expect(model.isSearching)
+        #expect(model.rows.map(\.id.key.rawValue) == ["dictation:x"])
+        #expect(model.total == 1)
     }
 
     @Test("results page by the library's cursor across sources and never repeat a note")
@@ -57,7 +62,7 @@ struct NotesSearchTests {
         await model.runSearch()
         #expect(model.hasMore)
         await model.loadMore()
-        #expect(model.rows.map(\.id.key.rawValue) == ["meetings:a", "dictation:x", "meetings:c"])
+        #expect(model.rows.map(\.id.key.rawValue) == ["meetings:a", "meetings:c", "meetings:d"])
         #expect(!model.hasMore)
         await model.loadMore()
         #expect(model.rows.count == 3)
@@ -84,8 +89,12 @@ struct NotesSearchTests {
         meetings.behavior = .throwsError
         model.searchText = "pricing"
         await model.runSearch()
-        #expect(model.rows.map(\.id.key.rawValue) == ["dictation:x"])
+        #expect(model.rows.isEmpty)
         #expect(model.unavailable.map(\.pluginID) == ["meetings"])
+        // The Dictations list does not ask Meetings at all, so it is not affected.
+        await model.setCollection(.dictations)
+        #expect(model.rows.map(\.id.key.rawValue) == ["dictation:x"])
+        #expect(model.unavailable.isEmpty)
     }
 
     @Test("a hit shows the snippet of the first matched layer, only while searching")

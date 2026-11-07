@@ -13,6 +13,7 @@ struct ExplorerView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            ExplorerCollectionSwitch(model: model)
             ExplorerSearchField(model: model)
             NewNoteButton(model: model, style: .prominent)
                 .padding(.horizontal, 10 * textSize.scale)
@@ -20,7 +21,7 @@ struct ExplorerView: View {
             header
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    ExplorerPlaceholder(screen: model.screen)
+                    ExplorerPlaceholder(screen: model.screen, collection: model.collection)
                     if model.isSearching {
                         ForEach(model.rows) { row in
                             ExplorerRowView(model: model, row: row)
@@ -37,7 +38,10 @@ struct ExplorerView: View {
             }
             .frame(maxHeight: .infinity)
             .hiddenContent(model.hidesContent)
-            .accessibilityLabel(Text("Notes list", comment: "Accessibility label of the explorer's list"))
+            .accessibilityLabel(
+                model.collection == .dictations
+                    ? Text("Dictations list", comment: "Accessibility label of the explorer's list of dictations")
+                    : Text("Notes list", comment: "Accessibility label of the explorer's list"))
             footer
         }
         .frame(width: width)
@@ -46,7 +50,9 @@ struct ExplorerView: View {
 
     private var header: some View {
         HStack(spacing: 4) {
-            Text("Notes", comment: "Explorer: label above the list")
+            (model.collection == .dictations
+                ? Text("Dictations", comment: "Explorer: the switch and the label above the list of dictations")
+                : Text("Notes", comment: "Explorer: label above the list"))
                 .font(textSize.font(.callout, weight: .semibold))
             Text(verbatim: model.screen == .locked ? "—" : "\(model.total)")
                 .font(textSize.font(.callout, weight: .semibold))
@@ -54,7 +60,11 @@ struct ExplorerView: View {
                 .accessibilityLabel(
                     model.screen == .locked
                         ? Text("Locked", comment: "Explorer: the notes are locked")
-                        : Text("\(model.total) notes", comment: "Accessibility: how many notes the list holds"))
+                        : model.collection == .dictations
+                            ? Text(
+                                "\(model.total) dictations",
+                                comment: "Notes status bar: how many dictations the list holds")
+                            : Text("\(model.total) notes", comment: "Accessibility: how many notes the list holds"))
             Spacer(minLength: 0)
             groupingMenu
         }
@@ -255,5 +265,50 @@ enum HighlightedSnippet {
             text[lower..<upper].inlinePresentationIntent = .stronglyEmphasized
         }
         return text
+    }
+}
+
+/// The segmented switch at the top of the explorer: Notes (meetings and manual notes) or Dictations. Drawn like the
+/// editor's Formatted / Raw switch; the choice lives in the model for this window only.
+struct ExplorerCollectionSwitch: View {
+    let model: NotesWorkspaceModel
+    @Environment(\.lintelTextSize) private var textSize
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(NoteCollection.allCases, id: \.self) { collection in
+                let isOn = model.collection == collection
+                Button {
+                    Task { await model.setCollection(collection) }
+                } label: {
+                    label(collection)
+                        .font(textSize.font(.footnote, weight: isOn ? .semibold : .regular))
+                        .foregroundStyle(isOn ? LintelBrand.ink : LintelBrand.secondaryText)
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 3 * textSize.scale)
+                        .background(isOn ? LintelBrand.card : Color.clear, in: RoundedRectangle(cornerRadius: 5))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(isOn ? .isSelected : [])
+            }
+        }
+        .padding(2)
+        .background(LintelBrand.fill, in: RoundedRectangle(cornerRadius: 7))
+        .notesAnimation(.selection, value: model.collection)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(
+            Text("Show notes or dictations", comment: "Accessibility label of the explorer's Notes / Dictations switch")
+        )
+        .padding(.horizontal, 10 * textSize.scale)
+        .padding(.top, 10 * textSize.scale)
+    }
+
+    private func label(_ collection: NoteCollection) -> Text {
+        switch collection {
+        case .notes: Text("Notes", comment: "Explorer: label above the list")
+        case .dictations: Text("Dictations", comment: "Explorer: the switch and the label above the list of dictations")
+        }
     }
 }

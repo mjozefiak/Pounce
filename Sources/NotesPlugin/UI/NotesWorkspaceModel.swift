@@ -151,6 +151,11 @@ final class NotesWorkspaceModel {
     private(set) var searchQuery: NormalizedQuery?
     var collapsed: Set<NoteGroupKey> = []
 
+    /// The explorer's switch: meetings and manual notes, or dictations (ADR 0008 deviation 14). Kept in memory for
+    /// this window only (no setting): a new window starts on Notes. Search, the count, the empty states, paging and
+    /// the command palette all follow it.
+    private(set) var collection: NoteCollection = .notes
+
     var grouping: NoteGrouping = .time {
         didSet { if grouping != oldValue { regroup() } }
     }
@@ -194,9 +199,11 @@ final class NotesWorkspaceModel {
         listEpoch += 1
         let epoch = listEpoch
         let query = searchQuery
-        let listing = await environment.library.list(matching: query, after: nil, limit: environment.pageSize)
+        let shown = collection
+        let listing = await environment.library.list(
+            matching: query, after: nil, limit: environment.pageSize, collection: shown)
         let plugins = Set(await environment.library.activePluginIDs)
-        guard epoch == listEpoch, query == searchQuery else { return }
+        guard epoch == listEpoch, query == searchQuery, shown == collection else { return }
         rows = listing.rows
         cursor = listing.next
         total = listing.total
@@ -216,9 +223,11 @@ final class NotesWorkspaceModel {
         defer { isLoadingMore = false }
         let epoch = listEpoch
         let query = searchQuery
-        let listing = await environment.library.list(matching: query, after: cursor, limit: environment.pageSize)
-        // A refresh (or another query) began meanwhile: its rows and cursor are newer than this page.
-        guard epoch == listEpoch, query == searchQuery else { return }
+        let shown = collection
+        let listing = await environment.library.list(
+            matching: query, after: cursor, limit: environment.pageSize, collection: shown)
+        // A refresh (or another query or view) began meanwhile: its rows and cursor are newer than this page.
+        guard epoch == listEpoch, query == searchQuery, shown == collection else { return }
         guard listing.restarted == false else {
             await refresh()
             return
@@ -231,6 +240,38 @@ final class NotesWorkspaceModel {
         pageToken += 1
         regroup()
         syncTabs()
+    }
+
+    // MARK: Notes / Dictations switch
+
+    /// Shows the other list: the rows are dropped at once (so a dictation never flashes in the notes list) and the
+    /// first page of the new list is read with the same search text. Opened tabs stay open.
+    func setCollection(_ next: NoteCollection) async {
+        guard prepareCollection(next) else { return }
+        await refresh()
+    }
+
+    /// The switch itself, without the read; `false` when nothing changes.
+    @discardableResult
+    func prepareCollection(_ next: NoteCollection) -> Bool {
+        guard next != collection else { return false }
+        collection = next
+        listEpoch += 1
+        rows = []
+        groups = []
+        total = 0
+        cursor = nil
+        unavailable = []
+        loadState = .loading
+        pageToken += 1
+        return true
+    }
+
+    /// Opening a note of the other list (a route, ⌘O of the dictation history) shows its list: the switch moves
+    /// at once and the list is read in the background.
+    private func showCollection(of id: NoteItemID) {
+        guard prepareCollection(NoteCollection.of(id)) else { return }
+        Task { await refresh() }
     }
 
     // MARK: Search
@@ -336,10 +377,12 @@ final class NotesWorkspaceModel {
 
     /// Opens a note in its one tab, or selects that tab. The text is read by `loadContent`.
     func open(_ id: NoteItemID) {
+        showCollection(of: id)
         let row = row(for: id)
         let title = row.map(title(of:)) ?? id.key.rawValue
+        let fallbackKind: NoteKind = NoteCollection.of(id) == .dictations ? .dictation : .manual
         tabs.open(
-            NoteTab(id: id, kind: row?.summary.kind ?? .manual, title: title, isBusy: Self.isBusy(row?.badge)))
+            NoteTab(id: id, kind: row?.summary.kind ?? fallbackKind, title: title, isBusy: Self.isBusy(row?.badge)))
         if documents[id] == nil { documents[id] = makeDocument(id) }
     }
 
@@ -646,7 +689,11 @@ final class NotesWorkspaceModel {
 
     /// "27 notes · 1 writing".
     var statusSummary: String {
-        let notes = String(localized: "\(total) notes", comment: "Notes status bar: how many notes the list holds")
+        let notes =
+            collection == .dictations
+            ? String(
+                localized: "\(total) dictations", comment: "Notes status bar: how many dictations the list holds")
+            : String(localized: "\(total) notes", comment: "Notes status bar: how many notes the list holds")
         let writing = writingCount
         guard writing > 0 else { return notes }
         let active = String(

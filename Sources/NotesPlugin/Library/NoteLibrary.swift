@@ -132,7 +132,11 @@ actor NoteLibrary {
     // MARK: Listing
 
     /// One page of rows, newest first. `after` is the `next` of the previous page.
-    func list(matching query: NormalizedQuery?, after: NoteListCursor?, limit: Int) async -> NoteListing {
+    /// `collection` limits the page to notes or to dictations (the explorer's switch); `nil` lists everything. A
+    /// cursor belongs to the collection it was made for.
+    func list(
+        matching query: NormalizedQuery?, after: NoteListCursor?, limit: Int, collection: NoteCollection? = nil
+    ) async -> NoteListing {
         await ensureSources()
         let size = max(1, limit)
         let text = (query?.isEmpty == false) ? query : nil
@@ -149,7 +153,8 @@ actor NoteLibrary {
         var overlaysAvailable = true
 
         // 1. Fill every source's buffer, all of them at once, each under its budget.
-        let fills = await fill(accepted, progress: progress, query: text, size: size)
+        let included = accepted.order.filter { collection?.includesSource($0) ?? true }
+        let fills = await fill(accepted, ids: included, progress: progress, query: text, size: size)
         for fill in fills {
             var state = progress[fill.pluginID] ?? SourceProgress()
             state.next = fill.next
@@ -179,7 +184,7 @@ actor NoteLibrary {
         var local: [NoteRow] = []
         if text == nil {
             let rows = await localRows(excludingPlugins: live)
-            local = rows.rows
+            local = rows.rows.filter { collection == nil || NoteCollection.of($0) == collection }
             if !rows.available { overlaysAvailable = false }
         }
         let localCount = local.count
@@ -193,7 +198,7 @@ actor NoteLibrary {
         var localIndex = 0
         while rows.count < size {
             var best: (position: NoteSortPosition, plugin: PluginID?)?
-            for id in accepted.order {
+            for id in included {
                 guard let head = progress[id]?.buffer.first else { continue }
                 let position = NoteSortPosition(date: head.summary.startedAt, tie: head.summary.id.rawValue)
                 if let current = best, !position.isBefore(current.position) { continue }
@@ -222,7 +227,7 @@ actor NoteLibrary {
 
         // 4. The cursor, and the total.
         let remainingLocal = localIndex < local.count
-        let moreFromSources = accepted.order.contains { id in
+        let moreFromSources = included.contains { id in
             guard let state = progress[id] else { return false }
             return !state.buffer.isEmpty || (!state.exhausted && !down.contains(id))
         }
@@ -232,7 +237,7 @@ actor NoteLibrary {
                 generation: currentGeneration, boundary: rows.last.map(NoteSortPosition.init) ?? boundary,
                 sources: progress)
             : nil
-        let total = progress.values.reduce(0) { $0 + $1.total } + localCount
+        let total = included.reduce(0) { $0 + (progress[$1]?.total ?? 0) } + localCount
         return NoteListing(
             rows: rows, next: next, total: total, unavailable: unavailable, overlaysAvailable: overlaysAvailable,
             restarted: restarted)
@@ -256,13 +261,14 @@ actor NoteLibrary {
     }
 
     private func fill(
-        _ set: NoteSourceSet, progress: [PluginID: SourceProgress], query: NormalizedQuery?, size: Int
+        _ set: NoteSourceSet, ids: [PluginID], progress: [PluginID: SourceProgress], query: NormalizedQuery?,
+        size: Int
     ) async -> [Fill] {
         let budget = budget
         let clock = clock
         let logger = logger
         return await withTaskGroup(of: Fill?.self) { group in
-            for id in set.order {
+            for id in ids {
                 guard let source = set.accepted[id] else { continue }
                 let state = progress[id] ?? SourceProgress()
                 if state.exhausted || state.buffer.count >= size { continue }

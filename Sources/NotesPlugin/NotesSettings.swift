@@ -60,6 +60,9 @@ enum NotesSettingsKey {
     /// DEBUG only, with `--qa-notes`: `meeting`, `dictation`, `manual` or `copy` opens that delete confirmation sheet
     /// (step 4.6). Nothing is deleted unless the sheet is confirmed.
     static let qaDelete = "qaDelete"
+    /// DEBUG only, with `--qa-notes`: `dictations` starts the explorer on its Dictations list (owner feedback G).
+    /// Not a contract.
+    static let qaView = "qaView"
     /// DEBUG only: text typed into the explorer's search field once the first list is in.
     static let qaSearch = "qaSearch"
     #endif
