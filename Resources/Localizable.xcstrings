@@ -18558,6 +18558,60 @@
           }
         }
       }
+    },
+    "Make note" : {
+      "comment" : "Path bar and explorer: copies a dictation into a new note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Make note"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utwórz notatkę"
+          }
+        }
+      }
+    },
+    "Note created" : {
+      "comment" : "Path bar: a dictation was copied into a new note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note created"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatka utworzona"
+          }
+        }
+      }
+    },
+    "The note couldn’t be created. The dictation is unchanged." : {
+      "comment" : "Notes: Make note on a dictation failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The note couldn’t be created. The dictation is unchanged."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się utworzyć notatki. Dyktowanie pozostało bez zmian."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

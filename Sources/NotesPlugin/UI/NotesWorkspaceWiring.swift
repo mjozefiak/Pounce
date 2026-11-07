@@ -17,6 +17,10 @@ extension NotesWorkspaceModel.Environment {
             guard let opened = await store() else { return nil }
             return await Task.detached { try? opened.createManualNote(now: now()) }.value
         }
+        createNote = { text in
+            guard let opened = await store() else { return nil }
+            return await Task.detached { try? opened.createManualNote(body: text, now: now()) }.value
+        }
         setTitle = { key, title in
             guard let opened = await store() else { return false }
             return await Task.detached { (try? opened.setTitleOverride(key: key, title: title, now: now())) == true }

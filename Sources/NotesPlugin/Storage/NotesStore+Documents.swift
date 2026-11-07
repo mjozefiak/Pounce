@@ -49,14 +49,20 @@ extension NotesStore {
     /// A manual note (step 4.4): key `notes:<uuid>`, layer `body`, kind manual, no title, an empty body written by
     /// `human`. The key is new for every note and never reused (spec "Data Model", Identity).
     @discardableResult
-    func createManualNote(id: UUID = UUID(), now: Date) throws -> NoteKey {
+    func createManualNote(id: UUID = UUID(), body: String = "", now: Date) throws -> NoteKey {
         let key = NoteKey(pluginID: Self.manualPluginID, id: id.uuidString.lowercased())
+        // A note made from a dictation ("Make note") starts with that text, written by `human`: it is the user's own
+        // speech, copied once, with no link to where it came from.
+        let blocks =
+            body.isEmpty
+            ? StoredBlocks(blocks: []).json
+            : BlockAttribution().stored(body: body, author: NoteAuthor.human.rawValue, previous: []).json
         try insertDocument(
             NewNoteDocument(
                 key: key, layer: Self.manualLayer, kind: .manual, sourcePluginID: Self.manualPluginID,
                 titleOverride: nil, sourceState: nil, sourceStartedAtMs: nil, sourceVersionSeen: nil,
-                author: NoteAuthor.human.rawValue, body: "", summary: nil,
-                blocksJSON: StoredBlocks(blocks: []).json, metaJSON: nil, now: now))
+                author: NoteAuthor.human.rawValue, body: body, summary: nil,
+                blocksJSON: blocks, metaJSON: nil, now: now))
         return key
     }
 

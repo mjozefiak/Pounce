@@ -166,6 +166,14 @@ struct NoteDetailsPane: View {
     private var actions: some View {
         VStack(alignment: .leading, spacing: 0) {
             sectionHeader(Text("Actions", comment: "Inspector, Details: heading of the note's actions"), first: false)
+            if NoteCollection.of(document.id) == .dictations {
+                actionRow(
+                    "note.text.badge.plus",
+                    Text("Make note", comment: "Path bar and explorer: copies a dictation into a new note"), keys: nil,
+                    tint: LintelBrand.accentText
+                ) { Task { await model.makeNote(from: document.id) } }
+                .disabled(!model.canMakeNote(document.id) || document.phase != .loaded)
+            }
             actionRow(
                 "doc.on.doc", Text("Copy Markdown", comment: "Path bar: copies the note as Markdown"), keys: "⌘⇧C",
                 tint: LintelBrand.ink

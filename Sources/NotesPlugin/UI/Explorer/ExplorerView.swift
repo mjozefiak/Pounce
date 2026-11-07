@@ -234,6 +234,14 @@ struct ExplorerRowView: View {
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .accessibilityHint(Text("Opens the note in a tab", comment: "Accessibility hint of an explorer row"))
         .contextMenu {
+            if NoteCollection.of(row) == .dictations {
+                Button {
+                    Task { await model.makeNote(from: row.id) }
+                } label: {
+                    Text("Make note", comment: "Path bar and explorer: copies a dictation into a new note")
+                }
+                .disabled(!model.canMakeNote(row.id))
+            }
             if model.canDelete(row.id) {
                 Button(role: .destructive) {
                     Task { await model.requestDelete(row.id) }

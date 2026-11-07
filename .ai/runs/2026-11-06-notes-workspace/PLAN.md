@@ -76,6 +76,7 @@
 | 7 | owner-feedback-D | Resizable explorer and inspector (drag the divider, double-click resets, clamped, persisted as plugins.notes.explorerWidth / inspectorWidth) | inline | done | 490b6f8 |
 | 7 | owner-feedback-E | Middle-click closes a tab (same path as the x and Cmd+W), AppKit overlay that only receives middle-button events | inline | done | 6da8a75 |
 | 7 | owner-feedback-F | Drag tabs to reorder (NoteTabSet.move, private drag type, Move Left / Move Right accessibility actions); not persisted, tabs are not | inline | done | 93f2ab3 |
+| 7 | owner-feedback-G | Separate Notes / Dictations lists in the explorer (owner decision 2026-11-07, ADR 0008 deviation 14; `NoteCollection`, QA `qaView=dictations`) | inline | done | 82307c3 |
 
 ## Goal
 

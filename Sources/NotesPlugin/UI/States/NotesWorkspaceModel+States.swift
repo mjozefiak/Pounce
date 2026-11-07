@@ -177,7 +177,7 @@ extension NotesWorkspaceModel {
         }
         for failed in [
             Feedback.restoreFailed, .restoreChanged, .restoreReadOnly, .restoreTargetInvalid, .proposalChanged,
-            .proposalFailed, .deleteFailed,
+            .proposalFailed, .deleteFailed, .makeNoteFailed,
             .copyNotRemoved, .commentFailed, .commentReadOnly, .commentChanged, .commentTooLong,
             .commentSelectionTooLong, .commentSelectionInvalid,
         ] where feedback == failed {

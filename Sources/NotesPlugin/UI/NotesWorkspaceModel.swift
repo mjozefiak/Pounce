@@ -50,6 +50,9 @@ final class NotesWorkspaceModel {
         var canEditNotes = false
         /// Creates a manual note (`notes:<uuid>`) and returns its key; `nil` when it could not be written.
         var createManualNote: @Sendable () async -> NoteKey? = { nil }
+        /// "Make note" on a dictation: creates a NEW manual note that starts with this text (a copy, no link back) and
+        /// returns its key; `nil` when it could not be written. The text is never logged.
+        var createNote: @Sendable (String) async -> NoteKey? = { _ in nil }
         /// Writes a manual note's `title_override` (`nil` clears it); `false` when it could not be written.
         var setTitle: @Sendable (NoteKey, String?) async -> Bool = { _, _ in false }
         /// The editor's session for a layer of a loaded note (its writer and the rules of seeding); `nil` when the
@@ -584,6 +587,72 @@ final class NotesWorkspaceModel {
         await loadContent(id)
     }
 
+    // MARK: Make note (owner feedback H)
+
+    /// The dictation layers whose text a made note starts with: the cleaned text, else (no cleaned text was kept)
+    /// the transcript the dictation was pasted with. The raw transcript of an entry that has a cleaned text stays
+    /// in the dictation only.
+    static let dictationTextLayers = ["cleaned", "original"]
+
+    /// "Make note" is running: the action is off until it ends, so one tap makes one note.
+    private(set) var isMakingNote = false
+
+    static func dictationText(in content: NoteContent) -> String? {
+        for id in dictationTextLayers {
+            guard let layer = content.layers.first(where: { $0.id == id }) else { continue }
+            let text = MarkdownText.strippingBidiAndControls(layer.markdown)
+            if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return text }
+        }
+        return nil
+    }
+
+    /// Offered for a live dictation while notes can be written (not with `plugins.notes.readOnly`, not without the
+    /// store) and no other "Make note" is running.
+    func canMakeNote(_ id: NoteItemID) -> Bool {
+        guard environment.canCreateNotes, environment.canEditNotes, overlaysAvailable, !isMakingNote else {
+            return false
+        }
+        if case .detached = id { return false }
+        return NoteCollection.of(id) == .dictations
+    }
+
+    /// Copies the dictation's text into a NEW manual note, opens it in the editor in its tab and shows the Notes
+    /// list. The note is independent: no link back, so deleting either never touches the other, and the dictation
+    /// gets no overlay, revision or comment. A second call after this one ended makes a second note. When the note
+    /// cannot be written nothing changes and a strip says so; the dictation still holds the text.
+    func makeNote(from id: NoteItemID) async {
+        guard canMakeNote(id) else { return }
+        isMakingNote = true
+        defer { isMakingNote = false }
+        guard let text = await dictationText(of: id) else {
+            show(.makeNoteFailed)
+            return
+        }
+        guard let key = await environment.createNote(text) else {
+            show(.makeNoteFailed)
+            return
+        }
+        prepareCollection(.notes)
+        if isSearching { await clearSearch() } else { await refresh() }
+        let made = NoteItemID.live(key)
+        open(made)
+        documents[made]?.wantsEditing = true
+        await loadContent(made)
+        show(.noteMade)
+    }
+
+    /// The text of a dictation: from its open document, else from its source (under the content budget).
+    private func dictationText(of id: NoteItemID) async -> String? {
+        if let content = documents[id]?.content { return Self.dictationText(in: content) }
+        guard let source = await environment.library.source(for: id.key) else { return nil }
+        let key = id.key
+        let outcome = await SourceFanOut.call(budget: environment.contentBudget, clock: environment.clock) {
+            try await source.content(for: key)
+        }
+        guard case .value(.some(let content)) = outcome else { return nil }
+        return Self.dictationText(in: content)
+    }
+
     /// Whether the title of a recorded note is a field: its owner supports renaming and the note is still there.
     func canRenameTitle(_ document: NoteDocumentModel) -> Bool {
         if case .detached = document.id { return false }
@@ -720,6 +789,9 @@ final class NotesWorkspaceModel {
         case saved
         case saveFailed
         case createFailed
+        /// "Make note" made a note / could not (the dictation is unchanged either way).
+        case noteMade
+        case makeNoteFailed
         case titleFailed
         case restored
         case restoreFailed
@@ -753,7 +825,7 @@ final class NotesWorkspaceModel {
         /// A message that stays as a strip until dismissed, instead of fading from the path bar.
         var isStrip: Bool {
             switch self {
-            case .saveFailed, .restoreFailed, .restoreChanged, .restoreReadOnly, .restoreTargetInvalid,
+            case .saveFailed, .makeNoteFailed, .restoreFailed, .restoreChanged, .restoreReadOnly, .restoreTargetInvalid,
                 .proposalChanged,
                 .proposalFailed, .deleteFailed,
                 .copyNotRemoved, .commentFailed, .commentReadOnly, .commentChanged, .commentTooLong,

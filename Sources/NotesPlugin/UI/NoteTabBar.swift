@@ -208,6 +208,15 @@ struct NotePathBar: View {
                 .accessibilityAddTraits(document.isEditing ? .isSelected : [])
                 .notesAnimation(.pen, value: document.isEditing)
             }
+            if let document = model.currentDocument, NoteCollection.of(document.id) == .dictations {
+                iconButton(
+                    "note.text.badge.plus",
+                    label: Text("Make note", comment: "Path bar and explorer: copies a dictation into a new note")
+                ) {
+                    Task { await model.makeNote(from: document.id) }
+                }
+                .disabled(!model.canMakeNote(document.id) || document.phase != .loaded)
+            }
             iconButton("doc.on.doc", label: Text("Copy Markdown", comment: "Path bar: copies the note as Markdown")) {
                 model.copyMarkdown()
             }
@@ -253,6 +262,12 @@ struct NotePathBar: View {
                 comment: "Notes: saving the Markdown file failed")
         case .createFailed:
             String(localized: "The note couldn’t be created.", comment: "Notes: a new note could not be written")
+        case .noteMade:
+            String(localized: "Note created", comment: "Path bar: a dictation was copied into a new note")
+        case .makeNoteFailed:
+            String(
+                localized: "The note couldn’t be created. The dictation is unchanged.",
+                comment: "Notes: Make note on a dictation failed")
         case .titleFailed:
             String(localized: "The title couldn’t be saved.", comment: "Notes: a note's title could not be written")
         case .deleted:
