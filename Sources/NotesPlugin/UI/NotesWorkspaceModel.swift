@@ -166,6 +166,9 @@ final class NotesWorkspaceModel {
     var qaMixedAuthors = false
     #endif
 
+    /// QA runs (`--qa-notes`) show no animation, so a snapshot never catches one half way (`NotesMotion`).
+    var animationsDisabled = false
+
     private(set) var tabs = NoteTabSet()
     private(set) var documents: [NoteItemID: NoteDocumentModel] = [:]
 

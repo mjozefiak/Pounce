@@ -38,14 +38,21 @@ struct NoteDocumentView: View {
 
     /// The editor while the note is being edited, else the read-only blocks.
     @ViewBuilder private var loaded: some View {
-        if let compare = document.compare {
-            NoteCompareView(model: model, document: document, compare: compare)
-        } else if let session = document.session {
-            NoteEditingDocument(model: model, document: document, session: session)
-                .id(document.layerID)
-        } else {
-            NoteDocumentBody(model: model, document: document)
+        Group {
+            if let compare = document.compare {
+                NoteCompareView(model: model, document: document, compare: compare)
+                    .notesFade(.editorSwitch)
+            } else if let session = document.session {
+                NoteEditingDocument(model: model, document: document, session: session)
+                    .id(document.layerID)
+                    .notesFade(.editorSwitch)
+            } else {
+                NoteDocumentBody(model: model, document: document)
+                    .notesFade(.editorSwitch)
+            }
         }
+        .notesAnimation(.editorSwitch, value: document.isEditing)
+        .notesAnimation(.editorSwitch, value: document.compare != nil)
     }
 
     private func message(_ text: Text) -> some View {

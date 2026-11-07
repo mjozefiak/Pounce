@@ -17,6 +17,7 @@ struct NoteTabBar: View {
                     }
                     NewNoteButton(model: model, style: .tab)
                 }
+                .notesAnimation(.tab, value: model.tabs.tabs.map(\.id))
             }
             .frame(height: 33.75 * textSize.scale)
             .background(LintelBrand.sidebarBackground)
@@ -100,8 +101,10 @@ struct NoteTabView: View {
         .frame(maxHeight: .infinity)
         .background(isSelected ? LintelBrand.windowBackground : Color.clear)
         .overlay(alignment: .bottom) {
-            if isSelected { LintelBrand.accent.frame(height: 2) }
+            LintelBrand.accent.frame(height: 2).opacity(isSelected ? 1 : 0)
         }
+        .notesAnimation(.tab, value: isSelected)
+        .notesFade(.tab)
         .overlay(alignment: .trailing) { LintelDivider(axis: .vertical) }
     }
 }
@@ -130,6 +133,7 @@ struct NotePathBar: View {
                         .font(textSize.font(.footnote))
                         .foregroundStyle(LintelBrand.accentText)
                         .accessibilityHidden(true)
+                        .notesFade(.strip)
                 }
                 if model.currentDocument?.markdown != nil { actions }
             }
@@ -137,8 +141,12 @@ struct NotePathBar: View {
             .padding(.trailing, 12 * textSize.scale)
             .frame(height: 32.5 * textSize.scale)
             LintelDivider()
-            ForEach(model.strips) { strip in NoteStripView(strip: strip, model: model) }
+            ForEach(model.strips) { strip in
+                NoteStripView(strip: strip, model: model).notesFade(.strip)
+            }
         }
+        .notesAnimation(.strip, value: model.strips.map(\.id))
+        .notesAnimation(.strip, value: model.feedbackSerial)
         .accessibilityElement(children: .contain)
         .task(id: model.feedbackSerial) {
             guard let feedback = model.feedback else { return }
@@ -168,6 +176,7 @@ struct NotePathBar: View {
                     in: RoundedRectangle(cornerRadius: 6)
                 )
                 .accessibilityAddTraits(document.isEditing ? .isSelected : [])
+                .notesAnimation(.pen, value: document.isEditing)
             }
             iconButton("doc.on.doc", label: Text("Copy Markdown", comment: "Path bar: copies the note as Markdown")) {
                 model.copyMarkdown()

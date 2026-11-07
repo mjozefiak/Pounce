@@ -210,6 +210,7 @@ struct ExplorerRowView: View {
                 isSelected ? LintelBrand.windowSelectionTint : Color.clear, in: RoundedRectangle(cornerRadius: 7)
             )
             .contentShape(Rectangle())
+            .notesAnimation(.selection, value: isSelected)
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 6 * textSize.scale)

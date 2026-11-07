@@ -43,13 +43,16 @@ struct NotesSectionView: View {
                         NoteInspector(model: model, document: document)
                             .hiddenContent(model.hidesContent)
                             .shadow(color: LintelBrand.ink.opacity(0.2), radius: 14, x: -4)
+                            .notesFade(.inspector)
                     }
                 }
                 if let document = inspectorDocument, model.inspectorFits {
                     NoteInspector(model: model, document: document)
                         .hiddenContent(model.hidesContent)
+                        .notesFade(.inspector)
                 }
             }
+            .notesAnimation(.inspector, value: inspectorDocument != nil)
             NotesStatusBar(model: model)
         }
         .background(LintelBrand.windowBackground)
@@ -66,6 +69,7 @@ struct NotesSectionView: View {
             model.updateInspectorFit(sectionWidth: model.sectionWidth, textScale: textSize.scale)
         }
         .environment(model.preferences)
+        .environment(\.notesAnimationsDisabled, model.animationsDisabled)
         .task { await model.run() }
         .destructiveConfirmation(
             isPresented: Binding(
@@ -85,9 +89,14 @@ struct NoteCenter: View {
     @Environment(\.lintelTextSize) private var textSize
 
     var body: some View {
+        centre.notesAnimation(.tab, value: model.currentID)
+    }
+
+    @ViewBuilder private var centre: some View {
         if let document = model.currentDocument {
             NoteDocumentView(model: model, document: document)
                 .id(document.id)
+                .notesFade(.tab)
         } else {
             switch model.screen {
             case .list:

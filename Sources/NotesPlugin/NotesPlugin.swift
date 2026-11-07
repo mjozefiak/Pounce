@@ -235,6 +235,7 @@ public final class NotesPlugin: LintelPlugin {
         }
         if let text = context.settings.string(NotesSettingsKey.qaSearch), !text.isEmpty { model.initialSearch = text }
         model.qaEditor = context.settings.string(NotesSettingsKey.qaEditor)
+        if context.settings.bool(NotesSettingsKey.qaFixtures, default: false) { model.animationsDisabled = true }
         model.qaMixedAuthors = context.settings.string(NotesSettingsKey.qaAttribution) == "mixed"
         if let manual = context.settings.string(NotesSettingsKey.qaManual) { qaCreateManualNote(manual, in: model) }
         if let history = context.settings.string(NotesSettingsKey.qaHistory) { qaCreateHistory(history, in: model) }
