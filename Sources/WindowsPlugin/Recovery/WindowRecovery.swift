@@ -12,6 +12,9 @@ struct RecoveryReport: Equatable, Sendable {
     var onAnotherSpace = 0
     /// Windows the app did not move (hung, refused); they stay in the journal.
     var failed = 0
+    /// The journal comes from a newer version (or cannot be read): entries cannot be cleared, so one pass per
+    /// process is all there is, and it never counts as a launch with parked windows.
+    var readOnly = false
     /// Accessibility is not trusted, so nothing was moved and everything stays in the journal.
     var needsAccessibility = false
 
@@ -19,7 +22,7 @@ struct RecoveryReport: Equatable, Sendable {
     var remaining: Int { onAnotherSpace + failed }
     /// Whether anything was to do or left.
     var isEmpty: Bool { restored == 0 && remaining == 0 && !needsAccessibility }
-    var outcome: RecoveryOutcome { remaining == 0 && !needsAccessibility ? .done : .deferred }
+    var outcome: RecoveryOutcome { (remaining == 0 || readOnly) && !needsAccessibility ? .done : .deferred }
 }
 
 /// Puts the windows of the journal back (spec: Edge Cases, "Lintel crashes or is killed while windows are
@@ -43,7 +46,11 @@ enum WindowRecovery {
         } catch {
             // The journal could not be cleaned (read-only file): still restore what matches.
             logger.error("Cannot drop stale journal entries")
-            entries = await store.hidden.filter { client.processStart(of: $0.windowID.pid) != nil }
+            // The start time is still compared: a reused pid must never be moved.
+            entries = await store.hidden.filter { entry in
+                guard let live = client.processStart(of: entry.windowID.pid) else { return false }
+                return abs(live - entry.processStart) <= StateStore.processStartTolerance
+            }
         }
         return await restore(
             store: store, client: client, trusted: trusted, excluding: excluding, logger: logger, entries: entries)
@@ -54,6 +61,7 @@ enum WindowRecovery {
         entries all: [HiddenEntry]
     ) async -> RecoveryReport {
         var report = RecoveryReport()
+        report.readOnly = await store.isReadOnly
         let entries = all.filter { !excluding.contains($0.windowID) }
         guard !entries.isEmpty else { return report }
         guard trusted else {

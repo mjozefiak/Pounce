@@ -148,6 +148,41 @@ import Testing
         #expect(settings.parkedLaunches == 0)
     }
 
+    // MARK: A journal from a newer version (review M1, M4)
+
+    private func newerJournal(_ harness: WindowsHarness, processStart: Double) throws {
+        let json = """
+            {"version":99,"workspaces":{},"hidden":[{"windowID":{"pid":100,"number":1},"processStart":\(processStart),\
+            "homeFrame":{"x":100,"y":100,"width":800,"height":600}}]}
+            """
+        try Data(json.utf8).write(to: harness.directory.appending(path: "state.json"))
+    }
+
+    @Test func aReadOnlyJournalRestoresOncePerProcessAndNeverCountsTowardSafeMode() async throws {
+        let harness = try WindowsHarness()
+        defer { harness.tearDown() }
+        let client = FakeWindowClient(windows: [makeWindow(1, frame: parked)])
+        let context = harness.context(windows: client, permissions: ScriptedPermissions(granted: true))
+        try newerJournal(harness, processStart: 1_100)
+        let first = await WindowsPlugin.recover(context: context, isLaunch: true) { _ in }
+        #expect(first == .done)
+        #expect(client.frame(of: id(1)) == home)
+        _ = await WindowsPlugin.recover(context: context, isLaunch: true) { _ in }
+        let settings = WindowsSettings(context.settings)
+        #expect(settings.parkedLaunches == 0)
+        #expect(!settings.safeMode)
+    }
+
+    @Test func aReadOnlyJournalStillComparesTheProcessStart() async throws {
+        let harness = try WindowsHarness()
+        defer { harness.tearDown() }
+        let client = FakeWindowClient(windows: [makeWindow(1, frame: parked)])
+        let context = harness.context(windows: client, permissions: ScriptedPermissions(granted: true))
+        try newerJournal(harness, processStart: 5)
+        _ = await WindowsPlugin.recover(context: context, isLaunch: true) { _ in }
+        #expect(client.calls.isEmpty)
+    }
+
     // MARK: Disable, quit, restore all
 
     @MainActor

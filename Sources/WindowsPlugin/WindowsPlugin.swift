@@ -157,7 +157,7 @@ public final class WindowsPlugin: LintelPlugin {
         let first = isLaunch ?? LaunchCounter.isFirstRun(for: context.storageDirectory)
         let report = await restoreFromJournal(context: context)
         let settings = WindowsSettings(context.settings)
-        if first {
+        if first, !report.readOnly {
             // A launch that found parked windows is counted; the second in a row starts the plugin in safe mode.
             if report.isEmpty {
                 settings.setParkedLaunches(0)
