@@ -90,7 +90,8 @@ import Testing
 
     @Test func aRetryNeverStartsASecondRecoveryBesideOneThatIsStillRunning() async {
         defer { env.tearDown() }
-        OverrunRecoveryPlugin.entered.withLock { $0 = 0 }
+        OverrunRecoveryPlugin.reset()
+        defer { OverrunRecoveryPlugin.release() }
         let host = env.makeHost([OverrunRecoveryPlugin.self], recoveryBudget: .milliseconds(30))
         await host.start()
         await host.waitForRecoveries()

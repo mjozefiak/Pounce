@@ -248,7 +248,8 @@ nonisolated final class RecoveryScript: @unchecked Sendable {
     }
 }
 
-/// A `recoverAtLaunch` that blocks well beyond the host's bound and counts how often it was entered.
+/// A `recoverAtLaunch` that ignores its bound and cancellation until the test releases it, and counts how often it
+/// was entered. Nothing here depends on how long the test takes, so a busy machine cannot finish it early.
 final class OverrunRecoveryPlugin: LintelPlugin {
     static let manifest = PluginManifest(
         id: "overrunrecovery", displayName: "Overrun recovery", symbolName: "tortoise", order: 7,
@@ -258,9 +259,38 @@ final class OverrunRecoveryPlugin: LintelPlugin {
 
     nonisolated static let entered = Mutex(0)
 
+    private struct Gate {
+        var released = false
+        var waiting: CheckedContinuation<Void, Never>?
+    }
+
+    private nonisolated static let gate = Mutex(Gate())
+
+    nonisolated static func reset() {
+        entered.withLock { $0 = 0 }
+        gate.withLock { $0 = Gate() }
+    }
+
+    /// Lets every pending and later call return.
+    nonisolated static func release() {
+        let waiting = gate.withLock { gate -> CheckedContinuation<Void, Never>? in
+            gate.released = true
+            defer { gate.waiting = nil }
+            return gate.waiting
+        }
+        waiting?.resume()
+    }
+
     nonisolated static func recoverAtLaunch(context: PluginContext) async -> RecoveryOutcome {
         entered.withLock { $0 += 1 }
-        await Task.detached { blockCurrentThread(microseconds: 600_000) }.value
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            let proceed = gate.withLock { gate -> Bool in
+                if gate.released { return true }
+                gate.waiting = continuation
+                return false
+            }
+            if proceed { continuation.resume() }
+        }
         return .done
     }
 }
