@@ -13,6 +13,9 @@ struct WindowsSettings: Sendable {
         static let defaultKind = "defaultKind"
         static let innerGap = "gap.inner"
         static let outerGap = "gap.outer"
+        /// Layout ids: the zone layout of a display with no assignment, by the shape of the display (spec Q19).
+        static let defaultZoneLayoutLandscape = "defaultZoneLayout.landscape"
+        static let defaultZoneLayoutPortrait = "defaultZoneLayout.portrait"
         /// One versioned JSON value with the per-workspace overrides (`WorkspaceOverrides`).
         static let workspaces = "workspaces"
         static let stripEnabled = "strip.enabled"
@@ -74,6 +77,19 @@ struct WindowsSettings: Sendable {
     var innerGap: Int { Self.clampGap(settings.integer(Key.innerGap, default: Self.defaultInnerGap)) }
     var outerGap: Int { Self.clampGap(settings.integer(Key.outerGap, default: Self.defaultOuterGap)) }
 
+    /// The zone layout of a display that has no assignment, by the display's shape: `Columns 2` for landscape and
+    /// `Rows 2` for portrait unless the user chose another layout.
+    func defaultZoneLayout(for orientation: DisplayOrientation) -> String {
+        let key = Self.zoneKey(orientation)
+        let stored = settings.string(key) ?? ""
+        if !stored.isEmpty { return stored }
+        return orientation == .portrait ? StockLayouts.defaultPortrait : StockLayouts.defaultLandscape
+    }
+
+    private static func zoneKey(_ orientation: DisplayOrientation) -> String {
+        orientation == .portrait ? Key.defaultZoneLayoutPortrait : Key.defaultZoneLayoutLandscape
+    }
+
     /// The per-workspace overrides; a value that is not readable counts as none.
     var workspaceOverrides: WorkspaceOverrides { WorkspaceOverrides(json: settings.string(Key.workspaces)) }
 
@@ -92,6 +108,10 @@ struct WindowsSettings: Sendable {
     }
 
     func setDefaultKind(_ kind: LayoutKind) { settings.set(kind.rawValue, for: Key.defaultKind) }
+    func setDefaultZoneLayout(_ layoutID: String, for orientation: DisplayOrientation) {
+        settings.set(layoutID, for: Self.zoneKey(orientation))
+    }
+
     func setInnerGap(_ points: Int) { settings.set(Self.clampGap(points), for: Key.innerGap) }
     func setOuterGap(_ points: Int) { settings.set(Self.clampGap(points), for: Key.outerGap) }
 
