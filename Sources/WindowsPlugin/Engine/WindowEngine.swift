@@ -46,6 +46,8 @@ actor WindowEngine {
     private var coalescer = EventCoalescer()
     private var flushTask: Task<Void, Never>?
     private var pumpTask: Task<Void, Never>?
+    /// Set by `stop()`: events that arrive afterwards are ignored, so none waits for a tick that never comes.
+    private var stopped = false
 
     /// One queued input and what waits for it.
     private struct Pending {
@@ -108,6 +110,7 @@ actor WindowEngine {
 
     /// Loads the stored membership, takes the first snapshot and starts listening to the client's events.
     func start() async {
+        stopped = false
         await store.load()
         let canJournal = await store.canJournal
         let stored = await store.state
@@ -124,10 +127,14 @@ actor WindowEngine {
 
     /// Puts every parked window back, waits for everything in flight and stops. Safe to call more than once.
     func stop() async {
+        stopped = true
         pumpTask?.cancel()
         pumpTask = nil
         flushTask?.cancel()
         flushTask = nil
+        // Events still waiting for the tick are dropped: the restore below needs none of them, and the cancelled
+        // tick would never flush them, which would leave `settle()` waiting for ever.
+        _ = coalescer.drain()
         _ = await restoreAllWindows()
         await settle()
         await store.close()
@@ -245,6 +252,7 @@ actor WindowEngine {
 
     /// Takes one event from the client; it is folded into the coalescer and handled on the next tick.
     func ingest(_ event: WindowEvent) {
+        guard !stopped else { return }
         coalescer.insert(event)
         guard flushTask == nil else { return }
         flushTask = Task { [weak self, time, tick] in
