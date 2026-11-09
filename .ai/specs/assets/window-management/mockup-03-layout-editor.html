@@ -1,56 +1,77 @@
-<!doctype html><meta charset="utf-8"><title>Mockup: layout editor (illustrative)</title>
-<style>
-:root{--acc:#1f7a6d;--bg:#f6f4f0}*{box-sizing:border-box}
-body{margin:0;width:1100px;height:720px;font:13px -apple-system,Helvetica,sans-serif;color:#222;background:linear-gradient(135deg,#3b5560,#1f2b32);position:relative;overflow:hidden}
-.dim{position:absolute;inset:0;background:#0007}
-.win{position:absolute;left:40px;top:28px;width:1020px;height:640px;background:var(--bg);border-radius:12px;box-shadow:0 20px 60px #000a;display:flex;overflow:hidden}
-.tl{position:absolute;left:14px;top:12px}.tl i{display:inline-block;width:12px;height:12px;border-radius:6px;margin-right:7px}
-.side{width:260px;background:#fff;border-right:1px solid #e3dfd6;padding:44px 16px 16px;display:flex;flex-direction:column;gap:12px}
-label{font-size:11px;color:#777;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px}
-.inp{border:1px solid #cfc9bd;border-radius:6px;padding:6px 9px;background:#fff}
-.seg{display:flex;border:1px solid #cfc9bd;border-radius:6px;overflow:hidden}.seg div{flex:1;text-align:center;padding:5px}.seg .on{background:var(--acc);color:#fff}
-.step{display:flex;align-items:center;gap:8px}.step b{border:1px solid #cfc9bd;border-radius:5px;width:24px;text-align:center;padding:2px 0}
-.zl div{padding:6px 9px;border-radius:6px;margin-bottom:3px}.zl .sel{background:#1f7a6d1f;color:var(--acc);font-weight:600}
-.btns{display:flex;gap:6px}.btn{border:1px solid #cfc9bd;border-radius:6px;padding:6px 10px;background:#fff}
-.btn.p{background:var(--acc);color:#fff;border-color:var(--acc)}
-.main{flex:1;padding:40px 24px 16px;position:relative}
-h3{margin:0 0 10px;font-size:14px}
-.disp{position:relative;width:680px;height:390px;background:linear-gradient(135deg,#3b5560,#24323a);border-radius:8px;border:6px solid #222}
-.z{position:absolute;border:2px solid #ffffff99;background:#ffffff1c;border-radius:6px;color:#fff;font-size:26px;display:flex;align-items:center;justify-content:center}
-.z.sel{border-color:#7fe0d0;background:#1f7a6d88;box-shadow:0 0 0 2px var(--acc)}
-.h{position:absolute;background:#fff;border-radius:4px;box-shadow:0 1px 4px #0006}
-.hint{margin-top:12px;font-size:12px;color:#666}
-.inset{position:absolute;right:16px;bottom:14px;width:260px;background:#fff;border:1px solid #e3dfd6;border-radius:10px;padding:10px;box-shadow:0 4px 14px #0002}
-.mini{position:relative;height:110px;background:#2b3a42;border-radius:5px;margin:6px 0}
-.mini .z{font-size:14px}
-.cap{position:absolute;bottom:4px;width:100%;text-align:center;font-size:11px;color:#ccc}
-</style>
-<div class="dim"></div>
-<div class="win"><div class="tl"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div>
-<div class="side">
-<div><label>Layout name</label><div class="inp">Coding</div></div>
-<div><label>Style</label><div class="seg"><div class="on">Grid</div><div>Canvas</div></div></div>
-<div><label>Space around zones</label><div class="step"><b>−</b><span>8 px</span><b>+</b></div></div>
-<div class="zl"><label>Zones</label><div>Zone 1</div><div class="sel">Zone 2</div><div>Zone 3</div><div>Zone 4</div></div>
-<div class="btns"><span class="btn">Merge</span><span class="btn">Divide</span></div>
-<div class="btns" style="margin-top:auto"><span class="btn">Cancel</span><span class="btn p">Save ⌘S</span></div>
-</div>
-<div class="main"><h3>Display preview · live</h3>
-<div class="disp">
-<div class="z" style="left:8px;top:8px;width:390px;height:362px">1</div>
-<div class="z sel" style="left:408px;top:8px;width:252px;height:176px">2</div>
-<div class="z" style="left:408px;top:194px;width:122px;height:176px">3</div>
-<div class="z" style="left:540px;top:194px;width:120px;height:176px">4</div>
-<div class="h" style="left:399px;top:150px;width:8px;height:60px"></div>
-<div class="h" style="left:515px;top:185px;width:60px;height:8px"></div>
-<div class="h" style="left:531px;top:260px;width:8px;height:50px"></div>
-</div>
-<div class="hint">S divide · arrows move divider 1% · Delete merge · Tab next zone</div>
-<div class="inset"><b>Canvas style</b>
-<div class="mini">
-<div class="z" style="left:8px;top:10px;width:120px;height:70px;background:#ffffff22">1</div>
-<div class="z" style="left:70px;top:28px;width:120px;height:70px;background:#1f7a6d66;border-color:#7fe0d0">2</div>
-<div class="z" style="left:130px;top:6px;width:110px;height:60px;background:#ffffff33">3</div></div>
-<div style="font-size:12px;color:#555">Stacking: 3 (top) · 2 · 1</div></div>
-</div></div>
-<div class="cap" style="bottom:6px">Illustrative mockup, not an accepted design.</div>
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mockup: layout editor</title><style>
+*{box-sizing:border-box}
+:root{--win:#F6F4F0;--side:#E7E4DE;--card:#fff;--ink:#191610;--sec:#6B645A;--hair:rgba(25,22,16,.11);--accent:#267C6C;--atext:#036152;--tint:rgba(38,124,108,.14);--onacc:#fff;--ok:#1E8E3E;--att:#B25E00;--er:#D70015;--glass:rgba(255,255,255,.78);--fill:rgba(25,22,16,.06);--page:#d9d5cc;--wall1:#c9c3b6;--wall2:#9a948a;--onglyph:#fff}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--win:#1C1915;--side:#141210;--card:#26221E;--ink:#F1EEE9;--sec:#A39B8F;--hair:rgba(255,255,255,.11);--accent:#6BBDAB;--atext:#6BBDAB;--tint:rgba(107,189,171,.20);--onacc:#161310;--ok:#32D74B;--att:#FF9F0A;--er:#FF6961;--glass:rgba(38,34,30,.82);--fill:rgba(255,255,255,.08);--page:#0c0a08;--wall1:#3a3630;--wall2:#1f1c18;--onglyph:#161310}}
+body{margin:0;padding:24px;background:var(--page);color:var(--ink);font:13px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif}
+.cap{text-align:center;font-size:11px;color:var(--sec);margin-top:12px}
+.win{background:var(--win);color:var(--ink);border:1px solid var(--hair);border-radius:12px;overflow:hidden;display:flex;position:relative;box-shadow:0 12px 40px rgba(0,0,0,.25);margin:auto}
+.lights{display:flex;gap:7px;padding:14px 14px 6px}.lights i{width:12px;height:12px;border-radius:50%;background:rgba(128,128,128,.35)}
+.side{width:210px;flex:none;background:var(--side);border-right:1px solid var(--hair);display:flex;flex-direction:column;padding-bottom:12px}
+.sg{font-size:11px;font-weight:600;color:var(--sec);padding:10px 14px 3px}
+.si{display:flex;gap:8px;align-items:center;margin:1px 8px;padding:5px 8px;border-radius:7px}
+.si.on{background:var(--tint)}.si.on .l{color:var(--atext);font-weight:600}.si .ic{color:var(--sec)}.si.on .ic{color:var(--atext)}
+.si .off-t{margin-left:auto;font-size:11px;color:var(--sec)}
+.ic{width:15px;height:15px;flex:none;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.pane{flex:1;padding:22px 28px;min-width:0;position:relative}
+.pane h3{margin:0 0 12px;font-size:20px;line-height:1.2}
+.bn{display:flex;gap:12px;align-items:center;padding:10px 14px;border-radius:10px;background:var(--card);border:1px solid var(--hair);margin:0 0 14px}
+.bn .g{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;color:var(--onglyph);flex:none;background:var(--sec);font-weight:700;font-size:13px}
+.bn.ok .g{background:var(--ok)}.bn.att .g{background:var(--att)}.bn.er .g{background:var(--er)}
+.bn .tx{flex:1;min-width:0}.bn .tt{font-weight:600}.bn .ss{color:var(--sec);font-size:12px}
+.sh{font-size:11px;font-weight:600;color:var(--sec);margin:16px 0 5px 4px}
+.card{background:var(--card);border:1px solid var(--hair);border-radius:10px;padding:2px 14px}
+.fr{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:7px 0;border-top:1px solid var(--hair);min-height:36px}
+.fr:first-child{border-top:0}.fr .hp{color:var(--sec);font-size:12px}.fr .v{color:var(--sec);display:flex;gap:8px;align-items:center;flex:none}
+.ft{color:var(--sec);font-size:12px;margin:8px 4px 0}
+.disc{display:flex;gap:6px;align-items:center;color:var(--sec);font-weight:600;font-size:12px;margin:16px 4px 0}
+.btn{font:inherit;font-weight:600;border-radius:8px;padding:4px 12px;border:1px solid var(--hair);background:var(--card);color:var(--ink);display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
+.btn.pri{background:var(--accent);color:var(--onacc);border-color:transparent}.btn.sm{padding:2px 10px;font-size:12px}
+.btn.dng{color:var(--er)}.btn.flat{background:none;border:0;color:var(--sec)}
+kbd{font:600 11px -apple-system,sans-serif;background:var(--fill);border-radius:5px;padding:1px 6px;color:var(--sec)}
+.sw{width:36px;height:21px;border-radius:11px;background:var(--hair);position:relative;flex:none}
+.sw:after{content:"";position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.sw.on{background:var(--accent)}.sw.on:after{left:17px}
+.pick{display:inline-flex;gap:6px;align-items:center;color:var(--ink);background:var(--fill);border-radius:7px;padding:2px 9px}
+.pick .ch{color:var(--sec);font-size:9px}
+.step{display:inline-flex;gap:8px;align-items:center;color:var(--ink)}.step b{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--fill);color:var(--sec)}
+.menu{border-radius:10px;background:var(--glass);backdrop-filter:blur(30px);border:1px solid var(--hair);padding:5px;box-shadow:0 10px 30px rgba(0,0,0,.28);color:var(--ink)}
+.mi{display:flex;gap:8px;padding:3px 10px;border-radius:5px;align-items:center;white-space:nowrap}.mi .r{margin-left:auto;color:var(--sec);padding-left:18px}
+.mi.hl{background:var(--accent);color:var(--onacc)}.mi.hl .r{color:var(--onacc)}.mi.hd{color:var(--sec);font-size:11px;font-weight:600}
+.msep{height:1px;background:var(--hair);margin:4px 8px}
+.badge{font-size:10px;border-radius:9px;padding:0 7px;border:1px solid var(--hair);color:var(--sec);white-space:nowrap}
+.cap-hud{white-space:nowrap;height:44px;border-radius:22px;background:var(--glass);backdrop-filter:blur(30px);border:1px solid var(--hair);display:inline-flex;align-items:center;gap:10px;padding:0 16px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.wall{border-radius:12px;background:linear-gradient(135deg,var(--wall1),var(--wall2));display:flex;gap:16px;flex-direction:column;align-items:center;justify-content:center;padding:22px}
+.skel{background:var(--fill);height:14px;border-radius:6px;margin:10px 0}.dimmer{position:absolute;inset:0;background:rgba(0,0,0,.38)}.stage{position:relative;margin:auto;border-radius:12px;overflow:hidden}
+.ed{position:absolute;box-shadow:0 20px 60px rgba(0,0,0,.4);border-radius:12px;display:flex;background:var(--win);border:1px solid var(--hair);overflow:hidden}
+.eside{width:300px;flex:none;padding:16px;display:flex;flex-direction:column;gap:10px;background:var(--side);border-right:1px solid var(--hair)}
+.lab{font-size:11px;font-weight:600;color:var(--sec);margin-top:4px}
+.fld{background:var(--card);border:1px solid var(--hair);border-radius:7px;padding:4px 9px;display:flex;justify-content:space-between;align-items:center}
+.zl{background:var(--card);border:1px solid var(--hair);border-radius:8px;overflow:hidden}
+.zr{padding:6px 10px;display:flex;gap:8px;align-items:center;border-top:1px solid var(--hair)}.zr:first-child{border-top:0}
+.zr.on{background:var(--tint)}.zr.on .n{color:var(--atext);font-weight:600}.zr .p{margin-left:auto;color:var(--sec);font-size:11px;font-variant-numeric:tabular-nums}
+.pos{font-size:11px;color:var(--sec);font-variant-numeric:tabular-nums;padding:2px 2px 0}
+.erow{display:flex;gap:6px;flex-wrap:wrap}
+.emain{flex:1;padding:16px 18px;display:flex;flex-direction:column;min-width:0}
+.screen{flex:1;border-radius:8px;background:linear-gradient(135deg,var(--wall1),var(--wall2));position:relative;padding:0;overflow:hidden}
+.z{position:absolute;border-radius:6px;border:1.5px solid rgba(255,255,255,.7);background:rgba(255,255,255,.18);display:grid;place-items:center}
+.z.sel{background:color-mix(in srgb,var(--accent) 55%,transparent);border-color:var(--accent);border-width:2px}
+.z .pill{background:#1c1915;color:#fff;border-radius:99px;min-width:26px;height:26px;display:grid;place-items:center;font-weight:600;font-size:13px;padding:0 8px}
+.h{position:absolute;background:#fff;border-radius:3px;box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+.hint{color:var(--sec);font-size:11px;margin-top:10px}
+.eft{display:flex;gap:8px;align-items:center;margin-top:auto;padding-top:10px}
+</style><body><div class="stage" style="width:1040px;height:640px"><div class="win" style="width:1040px;height:640px;position:absolute;left:0;top:0;box-shadow:none"><aside class="side" style="width:260px"><div class="lights"><i></i><i></i><i></i></div><div style="padding:14px"><div class="skel"></div><div class="skel"></div><div class="skel"></div></div></aside><div class="pane"><div class="skel" style="width:40%"></div><div class="skel"></div><div class="skel"></div></div></div><div class="dimmer"></div><div class="ed" style="left:70px;top:50px;width:900px;height:540px"><div class="eside">
+<div style="font-weight:600;font-size:15px">Edit layout</div>
+<div><div class="lab">Name</div><div class="fld">Coding</div></div>
+<div style="color:var(--sec)">Style: Grid</div>
+<div><div class="lab">Space around zones</div><span class="step"><b>&minus;</b>8 px<b>+</b></span></div>
+<div><div class="lab">Zones</div><div class="zl">
+<div class="zr"><span class="n">Zone 1</span><span class="p">0 / 0 / 50 / 100</span></div>
+<div class="zr on"><span class="n">Zone 2</span><span class="p">50 / 0 / 50 / 50</span></div>
+<div class="zr"><span class="n">Zone 3</span><span class="p">50 / 50 / 25 / 50</span></div>
+<div class="zr"><span class="n">Zone 4</span><span class="p">75 / 50 / 25 / 50</span></div></div>
+<div class="pos">Zone 2: x 50%, y 0%, width 50%, height 50%</div></div>
+<div class="erow"><span class="btn sm">Merge</span><span class="btn sm">Divide</span><span class="btn sm">Undo</span><span class="btn sm" style="opacity:.5">Redo</span></div>
+<div class="eft"><span class="btn">Cancel <kbd>Esc</kbd></span><span class="btn pri" style="margin-left:auto">Save <kbd style="background:rgba(255,255,255,.22);color:var(--onacc)">&#8984;S</kbd></span></div>
+</div><div class="emain"><div style="display:flex;justify-content:space-between;margin-bottom:10px"><b>Preview</b><span class="pick">MacBook Display <span class="ch">&#9662;</span></span></div>
+<div class="screen"><div class="z " style="left:2%;top:3%;width:47%;height:94%;"><span class="pill">1</span></div><div class="z sel" style="left:51%;top:3%;width:47%;height:45%;"><span class="pill">2</span></div><div class="z " style="left:51%;top:52%;width:23%;height:45%;"><span class="pill">3</span></div><div class="z " style="left:75%;top:52%;width:23%;height:45%;"><span class="pill">4</span></div><div class="h" style="left:49.4%;top:44%;width:6px;height:12%"></div><div class="h" style="left:76%;top:70%;width:6px;height:12%;transform:translateX(-3px)"></div><div class="h" style="left:72%;top:48.4%;width:12%;height:6px"></div></div>
+<div class="hint">Tab moves between zones and dividers &middot; S divides &middot; arrows move a divider by 1% &middot; Delete on a divider merges its neighbours</div></div></div></div><div class="cap">Illustrative mockup, not an accepted design.</div></body></html>

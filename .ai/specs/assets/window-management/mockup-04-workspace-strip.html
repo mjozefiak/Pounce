@@ -1,23 +1,66 @@
-<!doctype html><meta charset="utf-8"><title>Mockup: workspace strip (illustrative)</title>
-<style>
-*{box-sizing:border-box}body{margin:0;width:1000px;height:420px;background:linear-gradient(135deg,#3b5560,#24323a);font:13px -apple-system,Helvetica,sans-serif;color:#fff;position:relative;overflow:hidden}
-.bar{position:absolute;left:0;top:0;width:100%;height:30px;background:#000a;display:flex;align-items:center;justify-content:flex-end;gap:12px;padding:0 16px}
-.ic{width:13px;height:13px;border:1.5px solid #ddd;border-radius:50%}.ic.sq{border-radius:3px}
-.strip{display:flex;gap:4px;margin:0 6px}
-.b{width:20px;height:20px;border:1px solid #fff9;border-radius:5px;text-align:center;line-height:18px;font-size:12px;color:#ffffffcc}
-.b.on{background:#fff;color:#111;font-weight:700;border-color:#fff}
-.b.dot{position:relative}.b.dot:after{content:"";position:absolute;right:-2px;top:-2px;width:6px;height:6px;border-radius:3px;background:#7fe0d0}
-.menu{position:absolute;left:610px;top:34px;width:270px;background:#2a2d30ee;border:1px solid #fff3;border-radius:8px;padding:5px;box-shadow:0 10px 30px #0008}
-.menu div{padding:5px 10px;border-radius:5px}.menu .sel{background:#1f7a6d}.menu hr{border:0;border-top:1px solid #fff2;margin:4px 0}
-.v{position:absolute;left:40px;top:250px}.v .bar2{display:flex;gap:4px;background:#000a;padding:6px 10px;border-radius:6px;width:fit-content}
-.lab{font-size:12px;color:#ddd;margin-bottom:6px}
-.cap{position:absolute;bottom:6px;width:100%;text-align:center;font-size:11px;color:#bbb}
-.note{position:absolute;left:40px;top:60px;width:500px;color:#ddd;line-height:1.5}
-</style>
-<div class="bar"><span class="ic"></span><span class="ic sq"></span><span class="ic"></span>
-<div class="strip"><div class="b">1</div><div class="b">2</div><div class="b on">3</div><div class="b">4</div></div><span style="font-size:12px">Mon 9:41</span></div>
-<div class="note">Lintel strip in the menu bar: the solid box is the workspace shown on this display; outlined boxes are the others. Right-click opens the menu.</div>
-<div class="menu"><div>Workspace 1 · 2 windows</div><div>Workspace 2 · 5 windows</div><div class="sel">Workspace 3 · 4 windows ✓</div><div>Workspace 4 · 1 window</div><hr><div>Layout: Tiling ▸</div><div>Restore all windows</div><div>Settings…</div></div>
-<div class="v"><div class="lab">Another display shows 2: outlined with a dot</div>
-<div class="bar2"><div class="b">1</div><div class="b dot">2</div><div class="b on">3</div><div class="b">4</div></div></div>
-<div class="cap">Illustrative mockup, not an accepted design.</div>
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mockup: workspace strip</title><style>
+*{box-sizing:border-box}
+:root{--win:#F6F4F0;--side:#E7E4DE;--card:#fff;--ink:#191610;--sec:#6B645A;--hair:rgba(25,22,16,.11);--accent:#267C6C;--atext:#036152;--tint:rgba(38,124,108,.14);--onacc:#fff;--ok:#1E8E3E;--att:#B25E00;--er:#D70015;--glass:rgba(255,255,255,.78);--fill:rgba(25,22,16,.06);--page:#d9d5cc;--wall1:#c9c3b6;--wall2:#9a948a;--onglyph:#fff}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--win:#1C1915;--side:#141210;--card:#26221E;--ink:#F1EEE9;--sec:#A39B8F;--hair:rgba(255,255,255,.11);--accent:#6BBDAB;--atext:#6BBDAB;--tint:rgba(107,189,171,.20);--onacc:#161310;--ok:#32D74B;--att:#FF9F0A;--er:#FF6961;--glass:rgba(38,34,30,.82);--fill:rgba(255,255,255,.08);--page:#0c0a08;--wall1:#3a3630;--wall2:#1f1c18;--onglyph:#161310}}
+body{margin:0;padding:24px;background:var(--page);color:var(--ink);font:13px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif}
+.cap{text-align:center;font-size:11px;color:var(--sec);margin-top:12px}
+.win{background:var(--win);color:var(--ink);border:1px solid var(--hair);border-radius:12px;overflow:hidden;display:flex;position:relative;box-shadow:0 12px 40px rgba(0,0,0,.25);margin:auto}
+.lights{display:flex;gap:7px;padding:14px 14px 6px}.lights i{width:12px;height:12px;border-radius:50%;background:rgba(128,128,128,.35)}
+.side{width:210px;flex:none;background:var(--side);border-right:1px solid var(--hair);display:flex;flex-direction:column;padding-bottom:12px}
+.sg{font-size:11px;font-weight:600;color:var(--sec);padding:10px 14px 3px}
+.si{display:flex;gap:8px;align-items:center;margin:1px 8px;padding:5px 8px;border-radius:7px}
+.si.on{background:var(--tint)}.si.on .l{color:var(--atext);font-weight:600}.si .ic{color:var(--sec)}.si.on .ic{color:var(--atext)}
+.si .off-t{margin-left:auto;font-size:11px;color:var(--sec)}
+.ic{width:15px;height:15px;flex:none;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.pane{flex:1;padding:22px 28px;min-width:0;position:relative}
+.pane h3{margin:0 0 12px;font-size:20px;line-height:1.2}
+.bn{display:flex;gap:12px;align-items:center;padding:10px 14px;border-radius:10px;background:var(--card);border:1px solid var(--hair);margin:0 0 14px}
+.bn .g{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;color:var(--onglyph);flex:none;background:var(--sec);font-weight:700;font-size:13px}
+.bn.ok .g{background:var(--ok)}.bn.att .g{background:var(--att)}.bn.er .g{background:var(--er)}
+.bn .tx{flex:1;min-width:0}.bn .tt{font-weight:600}.bn .ss{color:var(--sec);font-size:12px}
+.sh{font-size:11px;font-weight:600;color:var(--sec);margin:16px 0 5px 4px}
+.card{background:var(--card);border:1px solid var(--hair);border-radius:10px;padding:2px 14px}
+.fr{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:7px 0;border-top:1px solid var(--hair);min-height:36px}
+.fr:first-child{border-top:0}.fr .hp{color:var(--sec);font-size:12px}.fr .v{color:var(--sec);display:flex;gap:8px;align-items:center;flex:none}
+.ft{color:var(--sec);font-size:12px;margin:8px 4px 0}
+.disc{display:flex;gap:6px;align-items:center;color:var(--sec);font-weight:600;font-size:12px;margin:16px 4px 0}
+.btn{font:inherit;font-weight:600;border-radius:8px;padding:4px 12px;border:1px solid var(--hair);background:var(--card);color:var(--ink);display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
+.btn.pri{background:var(--accent);color:var(--onacc);border-color:transparent}.btn.sm{padding:2px 10px;font-size:12px}
+.btn.dng{color:var(--er)}.btn.flat{background:none;border:0;color:var(--sec)}
+kbd{font:600 11px -apple-system,sans-serif;background:var(--fill);border-radius:5px;padding:1px 6px;color:var(--sec)}
+.sw{width:36px;height:21px;border-radius:11px;background:var(--hair);position:relative;flex:none}
+.sw:after{content:"";position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.sw.on{background:var(--accent)}.sw.on:after{left:17px}
+.pick{display:inline-flex;gap:6px;align-items:center;color:var(--ink);background:var(--fill);border-radius:7px;padding:2px 9px}
+.pick .ch{color:var(--sec);font-size:9px}
+.step{display:inline-flex;gap:8px;align-items:center;color:var(--ink)}.step b{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--fill);color:var(--sec)}
+.menu{border-radius:10px;background:var(--glass);backdrop-filter:blur(30px);border:1px solid var(--hair);padding:5px;box-shadow:0 10px 30px rgba(0,0,0,.28);color:var(--ink)}
+.mi{display:flex;gap:8px;padding:3px 10px;border-radius:5px;align-items:center;white-space:nowrap}.mi .r{margin-left:auto;color:var(--sec);padding-left:18px}
+.mi.hl{background:var(--accent);color:var(--onacc)}.mi.hl .r{color:var(--onacc)}.mi.hd{color:var(--sec);font-size:11px;font-weight:600}
+.msep{height:1px;background:var(--hair);margin:4px 8px}
+.badge{font-size:10px;border-radius:9px;padding:0 7px;border:1px solid var(--hair);color:var(--sec);white-space:nowrap}
+.cap-hud{white-space:nowrap;height:44px;border-radius:22px;background:var(--glass);backdrop-filter:blur(30px);border:1px solid var(--hair);display:inline-flex;align-items:center;gap:10px;padding:0 16px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.wall{border-radius:12px;background:linear-gradient(135deg,var(--wall1),var(--wall2));display:flex;gap:16px;flex-direction:column;align-items:center;justify-content:center;padding:22px}
+.row{display:flex;gap:18px;justify-content:center;align-items:flex-start;flex-wrap:nowrap}
+.col{width:380px}.bar{height:28px;border-radius:8px 8px 0 0;display:flex;align-items:center;padding:0 12px;gap:14px;font-size:12px;font-weight:500}
+.bar .sp{flex:1}.bar.l{background:#ECE9E3;color:#191610;--bg:#ECE9E3}.bar.d{background:#1b1815;color:#F1EEE9;--bg:#1b1815}.bar.t{background:rgba(255,255,255,.22);color:#fff;--bg:#7b9a8f;backdrop-filter:blur(10px)}
+.tw{background:linear-gradient(135deg,#8fb5a6,#5d8478 60%,#3e5f56);border-radius:8px}
+.strip{display:inline-flex;gap:4px;align-items:center}
+.bx{width:17px;height:15px;border-radius:4px;border:1.4px solid currentColor;display:grid;place-items:center;font-size:10px;font-weight:700;line-height:1;position:relative}
+.bx.f{background:currentColor}.bx.f span{color:var(--bg)}
+.bx.n:after{content:"";position:absolute;left:50%;bottom:-4px;width:7px;height:3px;transform:translateX(-50%);background:currentColor;border-radius:0 0 3px 3px}
+.lbl{font-size:11px;color:var(--sec);margin:6px 2px 0}
+.mwrap{display:flex;justify-content:center;margin-top:26px}
+.leg{font-size:12px;color:var(--sec);text-align:center;margin-top:14px}
+body{width:1220px}</style><body><div class="row"><div class="col"><div class="tw" style="background:#cfcac0"><div class="bar l"><span style="font-weight:700">Lintel</span><span>File</span><span>Edit</span><span class="sp"></span><span class="strip"><span class="bx  "><span>1</span></span><span class="bx  "><span>2</span></span><span class="bx  n"><span>3</span></span><span class="bx f "><span>4</span></span></span><span>&#9211; Mon 9:41</span></div><div style="height:34px"></div></div><div class="lbl">Light menu bar</div></div>
+<div class="col"><div class="tw" style="background:#2a2622"><div class="bar d"><span style="font-weight:700">Lintel</span><span>File</span><span>Edit</span><span class="sp"></span><span class="strip"><span class="bx  "><span>1</span></span><span class="bx  "><span>2</span></span><span class="bx  n"><span>3</span></span><span class="bx f "><span>4</span></span></span><span>&#9211; Mon 9:41</span></div><div style="height:34px"></div></div><div class="lbl">Dark menu bar</div></div>
+<div class="col"><div class="tw"><div class="bar t"><span style="font-weight:700">Lintel</span><span>File</span><span>Edit</span><span class="sp"></span><span class="strip"><span class="bx  "><span>1</span></span><span class="bx  "><span>2</span></span><span class="bx  n"><span>3</span></span><span class="bx f "><span>4</span></span></span><span>&#9211; Mon 9:41</span></div><div style="height:34px"></div></div><div class="lbl">Tinted wallpaper</div></div></div>
+<div class="mwrap" style="padding-left:0"><div><div class="lbl" style="margin-bottom:6px">Right-click menu (light)</div><div class="menu" style="width:320px"><div class="mi hd">Workspaces</div>
+<div class="mi"><span>1 &nbsp;Mail and chat</span><span class="r">3 windows</span></div>
+<div class="mi"><span>2 &nbsp;Browser &middot; on Studio Display</span><span class="r">5 windows</span></div>
+<div class="mi hl"><span>&#10003; 3 &nbsp;Code</span><span class="r">4 windows</span></div>
+<div class="mi"><span>4 &nbsp;Notes</span><span class="r">Empty</span></div>
+<div class="msep"></div><div class="mi"><span>Layout: Auto-tile</span><span class="r">&#9656;</span></div>
+<div class="msep"></div><div class="mi"><span>Restore all windows</span></div><div class="mi"><span>Settings&hellip;</span><span class="r">&#8984;,</span></div></div></div></div>
+<div class="leg">Template image: one colour, drawn by the system. Box 3 is the current workspace (filled), box 2 is shown on another display (notch mark). Fill versus outline carries the state, not colour.</div>
+<div class="cap">Illustrative mockup, not an accepted design.</div></body></html>
