@@ -159,7 +159,7 @@ import Testing
         layout = base
         layout.columns = Array(repeating: 1, count: 33)
         #expect(checks(layout) == .tooManyTracks)
-        for weight in [0, -1, Double.nan, Double.infinity] {
+        for weight in [0, -1, Double.nan, Double.infinity, 1e308, 1_000_001] {
             layout = base
             layout.columns = [1, weight]
             #expect(checks(layout) == .badWeight)
@@ -180,6 +180,19 @@ import Testing
         #expect(checks(layout) == .zoneOutsideGrid)
         layout.zones = [cell(1, 0, 0), GridZone(id: 2, colStart: 1, colEnd: 1, rowStart: 0, rowEnd: 1)]
         #expect(checks(layout) == .zoneOutsideGrid)
+    }
+
+    @Test func hugeWeightsNeverGiveNaNFrames() {
+        let big = GridLayout.maximumWeight
+        let layout = GridLayout(
+            id: "x", name: "x", columns: [big, big], rows: [1], zones: [cell(1, 0, 0), cell(2, 1, 0)])
+        #expect(checks(layout) == nil)
+        let frames = layout.frames(in: area)
+        #expect(frames.count == 2)
+        for frame in frames.values { #expect(frame.origin.x.isFinite && frame.width.isFinite && frame.width > 0) }
+        let broken = GridLayout(
+            id: "x", name: "x", columns: [1e308, 1e308], rows: [1], zones: [cell(1, 0, 0), cell(2, 1, 0)])
+        #expect(broken.frames(in: area).isEmpty)
     }
 
     @Test func zonesMustCoverEveryCellExactlyOnce() {

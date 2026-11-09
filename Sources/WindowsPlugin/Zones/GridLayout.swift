@@ -36,6 +36,9 @@ struct GridLayout: Equatable, Sendable {
     static let maximumTracks = 32
     static let maximumZones = 64
     static let maximumSpacing = 64
+    /// The largest weight of one track; with at most 32 tracks the sum stays finite and the frames never turn
+    /// into NaN.
+    static let maximumWeight = 1_000_000.0
 
     var id: String
     /// What the library shows. Stock layouts carry their English name here; the UI looks stock names up in the
@@ -60,7 +63,10 @@ struct GridLayout: Equatable, Sendable {
     func validate() throws(GridLayoutError) {
         guard !columns.isEmpty, !rows.isEmpty else { throw .noTracks }
         guard columns.count <= Self.maximumTracks, rows.count <= Self.maximumTracks else { throw .tooManyTracks }
-        guard (columns + rows).allSatisfy({ $0.isFinite && $0 > 0 }) else { throw .badWeight }
+        guard (columns + rows).allSatisfy({ $0.isFinite && $0 > 0 && $0 <= Self.maximumWeight }) else {
+            throw .badWeight
+        }
+        guard columns.reduce(0, +).isFinite, rows.reduce(0, +).isFinite else { throw .badWeight }
         guard (0...Self.maximumSpacing).contains(spacing) else { throw .badSpacing }
         guard !zones.isEmpty else { throw .noZones }
         guard zones.count <= Self.maximumZones else { throw .tooManyZones }
