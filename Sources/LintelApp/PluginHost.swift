@@ -215,6 +215,9 @@ final class PluginHost {
         settings.setValue(.bool(enabled), forKey: SettingsKeys.pluginEnabled(id))
         await enqueue(id) { host in
             if enabled {
+                // A recovery that is still running owns the plugin's journal: activation waits for it, so the
+                // plugin's own store never starts from a snapshot the recovery is about to change.
+                await host.recoveries[id]?.value
                 await host.activateNow(id)
             } else {
                 await host.deactivateNow(id)
@@ -232,6 +235,7 @@ final class PluginHost {
         let usage = entries[index].usage
         var failure: (any Error)?
         await enqueue(id) { host in
+            await host.recoveries[id]?.value
             await host.deactivateNow(id)
             do {
                 try await plugin.eraseData()

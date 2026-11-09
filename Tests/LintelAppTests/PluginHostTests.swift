@@ -338,3 +338,41 @@ import Testing
         return false
     }
 }
+
+/// Review H2: enabling or erasing a plugin waits for its recovery, which owns the journal until it answers.
+@Suite(.serialized) struct RecoveryOrderingTests {
+    @Test func enablingAndErasingWaitForARunningRecovery() async throws {
+        let env = try TestEnvironment()
+        defer { env.tearDown() }
+        SlowRecoveryPlugin.log.reset()
+        let host = env.makeHost([SlowRecoveryPlugin.self])
+        host.beginRecoveries()
+        await host.setEnabled(true, for: "slowrecovery")
+        #expect(SlowRecoveryPlugin.log.events == ["recovered", "activated"])
+        SlowRecoveryPlugin.log.reset()
+        host.retryDeferredRecoveries()
+        try await host.eraseData(for: "slowrecovery")
+        #expect(SlowRecoveryPlugin.log.events.first != "erased")
+    }
+}
+
+nonisolated final class OrderLog: @unchecked Sendable {
+    private let lock = NSLock()
+    private var _events: [String] = []
+    var events: [String] { lock.withLock { _events } }
+    func add(_ event: String) { lock.withLock { _events.append(event) } }
+    func reset() { lock.withLock { _events = [] } }
+}
+
+final class SlowRecoveryPlugin: LintelPlugin {
+    nonisolated static let log = OrderLog()
+    static let manifest = PluginManifest(id: "slowrecovery", displayName: "Slow", symbolName: "clock", order: 90)
+    init(context: PluginContext) {}
+    nonisolated static func recoverAtLaunch(context: PluginContext) async -> RecoveryOutcome {
+        try? await Task.sleep(for: .milliseconds(150))
+        log.add("recovered")
+        return .deferred
+    }
+    func activate() async throws { Self.log.add("activated") }
+    func eraseData() async throws { Self.log.add("erased") }
+}
