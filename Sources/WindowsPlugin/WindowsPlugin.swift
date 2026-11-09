@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import LintelKit
 import SwiftUI
@@ -64,6 +65,7 @@ public final class WindowsPlugin: LintelPlugin {
     }
     /// The first activation of this process honours safe mode; a later one (the user switched the plugin on
     /// again, or pressed Try Again) clears it.
+    private(set) lazy var editorWindow = GridEditorWindowController()
     private var launchActivationDone = false
 
     public convenience init(context: PluginContext) {
@@ -157,6 +159,23 @@ public final class WindowsPlugin: LintelPlugin {
 
     /// Accessibility was granted: the self-check could not compare any window before, so it runs again. A mismatch
     /// stops the engine (every window is put back first) and the pane says Lintel needs an update.
+    /// Opens the grid editor on a layout (a copy of a stock one, a user's own, or a new one). Needs the running
+    /// plugin: the library lives in its runtime.
+    func openEditor(
+        layout: GridLayout, isNew: Bool, parent: NSWindow? = nil, onSaved: @escaping (GridLayout) -> Void = { _ in }
+    ) {
+        guard let repository = runtime?.layouts else { return }
+        editorWindow.show(parent: parent) { [client = context.windows] preview, close in
+            GridEditorModel(
+                layout: layout, isNew: isNew, repository: repository, displays: { await client.displays() },
+                preview: preview,
+                announce: { text in
+                    AccessibilityNotification.Announcement(text).post()
+                },
+                onSaved: onSaved, onClose: close)
+        }
+    }
+
     func recheckAvailability() async {
         let client = context.windows
         let availability = await Task.detached { client.availability }.value
@@ -170,7 +189,9 @@ public final class WindowsPlugin: LintelPlugin {
     public func deactivate() async {
         guard let runtime else { return }
         self.runtime = nil
-        layoutsWindow.close()
+        editorWindow.pluginSwitchedOff()
+        // A layouts window with an editor sheet stays until the editor is answered.
+        if !editorWindow.isOpen { layoutsWindow.close() }
         identifier.tearDown()
         await runtime.stop()
     }

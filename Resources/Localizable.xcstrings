@@ -16200,6 +16200,798 @@
           }
         }
       }
+    },
+    "Zone %lld, x %lld%%, y %lld%%, width %lld%%, height %lld%%" : {
+      "comment" : "Layout editor: a zone with its position and size as percentages of the display (spoken)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zone %lld, x %lld%%, y %lld%%, width %lld%%, height %lld%%"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strefa %lld, x %lld%%, y %lld%%, szerokość %lld%%, wysokość %lld%%"
+          }
+        }
+      }
+    },
+    "That value can’t be used." : {
+      "comment" : "Layout editor: a field got a value it refuses",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That value can’t be used."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tej wartości nie można użyć."
+          }
+        }
+      }
+    },
+    "A layout can have at most 64 zones." : {
+      "comment" : "Layout editor: the zone limit",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A layout can have at most 64 zones."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układ może mieć najwyżej 64 strefy."
+          }
+        }
+      }
+    },
+    "A layout can have at most 32 columns and 32 rows." : {
+      "comment" : "Layout editor: the track limit",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A layout can have at most 32 columns and 32 rows."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układ może mieć najwyżej 32 kolumny i 32 wiersze."
+          }
+        }
+      }
+    },
+    "A zone can’t get any narrower." : {
+      "comment" : "Layout editor: a divider reached its limit",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A zone can’t get any narrower."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strefa nie może być już węższa."
+          }
+        }
+      }
+    },
+    "Select two or more zones to merge." : {
+      "comment" : "Layout editor: Merge needs a selection",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select two or more zones to merge."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaznacz co najmniej dwie strefy, aby je scalić."
+          }
+        }
+      }
+    },
+    "Those zones don’t make one rectangle, so they can’t be merged." : {
+      "comment" : "Layout editor: the selected zones cannot be merged",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Those zones don’t make one rectangle, so they can’t be merged."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te strefy nie tworzą jednego prostokąta, więc nie można ich scalić."
+          }
+        }
+      }
+    },
+    "The zones on both sides of this divider don’t line up. Select them and choose Merge." : {
+      "comment" : "Layout editor: Delete on a divider is refused",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The zones on both sides of this divider don’t line up. Select them and choose Merge."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strefy po obu stronach tego separatora nie pokrywają się. Zaznacz je i wybierz Scal."
+          }
+        }
+      }
+    },
+    "The border of the display can’t be moved." : {
+      "comment" : "Layout editor: an outer edge was edited",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The border of the display can’t be moved."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Krawędzi wyświetlacza nie można przesunąć."
+          }
+        }
+      }
+    },
+    "Nothing to undo." : {
+      "comment" : "Layout editor: Undo without history",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing to undo."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie ma czego cofnąć."
+          }
+        }
+      }
+    },
+    "Nothing to redo." : {
+      "comment" : "Layout editor: Redo without history",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing to redo."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie ma czego ponowić."
+          }
+        }
+      }
+    },
+    "Vertical divider at %lld%%" : {
+      "comment" : "Layout editor: a divider between columns, its position as a percentage (spoken)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vertical divider at %lld%%"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pionowy separator na %lld%%"
+          }
+        }
+      }
+    },
+    "Horizontal divider at %lld%%" : {
+      "comment" : "Layout editor: a divider between rows, its position as a percentage (spoken)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Horizontal divider at %lld%%"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poziomy separator na %lld%%"
+          }
+        }
+      }
+    },
+    "Discard your changes to this layout?" : {
+      "comment" : "Layout editor: asked when closing with unsaved changes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discard your changes to this layout?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odrzucić zmiany w tym układzie?"
+          }
+        }
+      }
+    },
+    "This can’t be undone." : {
+      "comment" : "Confirmation sheet: the consequence line of a destructive action",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This can’t be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tego nie można cofnąć."
+          }
+        }
+      }
+    },
+    "Discard" : {
+      "comment" : "Layout editor: the button that drops the changes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discard"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odrzuć"
+          }
+        }
+      }
+    },
+    "New layout" : {
+      "comment" : "Layout editor: the title while a layout is being made",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New layout"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nowy układ"
+          }
+        }
+      }
+    },
+    "Edit layout" : {
+      "comment" : "Layout editor: the title while a layout is being changed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit layout"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edytuj układ"
+          }
+        }
+      }
+    },
+    "Style: Grid" : {
+      "comment" : "Layout editor: the style of the layout being edited",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Style: Grid"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Styl: siatka"
+          }
+        }
+      }
+    },
+    "Window Management is off. Save or discard your changes to close this window." : {
+      "comment" : "Layout editor: the plugin was switched off while the editor had unsaved changes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Window Management is off. Save or discard your changes to close this window."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zarządzanie oknami jest wyłączone. Zapisz lub odrzuć zmiany, aby zamknąć to okno."
+          }
+        }
+      }
+    },
+    "These layouts were saved by a newer version of Lintel and can’t be changed here." : {
+      "comment" : "Layout editor: saving is refused because the library file is newer",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These layouts were saved by a newer version of Lintel and can’t be changed here."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te układy zapisała nowsza wersja Lintela i nie można ich tu zmieniać."
+          }
+        }
+      }
+    },
+    "The layout could not be saved. Your other layouts are unchanged." : {
+      "comment" : "Layout editor: the file could not be written",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The layout could not be saved. Your other layouts are unchanged."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się zapisać układu. Pozostałe układy się nie zmieniły."
+          }
+        }
+      }
+    },
+    "This layout can’t be saved. Check the name and the zones." : {
+      "comment" : "Layout editor: the layout breaks a rule",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This layout can’t be saved. Check the name and the zones."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tego układu nie można zapisać. Sprawdź nazwę i strefy."
+          }
+        }
+      }
+    },
+    "Name" : {
+      "comment" : "Layout editor: the field that names the layout",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nazwa"
+          }
+        }
+      }
+    },
+    "Layout name" : {
+      "comment" : "Layout editor: the name field (spoken)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layout name"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nazwa układu"
+          }
+        }
+      }
+    },
+    "Use 1 to 64 characters, without control characters." : {
+      "comment" : "Layout editor: the name is empty, too long or has forbidden characters",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use 1 to 64 characters, without control characters."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Użyj od 1 do 64 znaków, bez znaków sterujących."
+          }
+        }
+      }
+    },
+    "Space around zones" : {
+      "comment" : "Layout editor: the gap between zones and around them",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Space around zones"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odstęp wokół stref"
+          }
+        }
+      }
+    },
+    "Less space" : {
+      "comment" : "Layout editor: decreases the space around zones",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Less space"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mniejszy odstęp"
+          }
+        }
+      }
+    },
+    "%lld px" : {
+      "comment" : "Layout editor: the space around zones in points",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld px"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld px"
+          }
+        }
+      }
+    },
+    "Space around zones: %lld points" : {
+      "comment" : "Layout editor: the space around zones (spoken)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Space around zones: %lld points"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odstęp wokół stref: %lld punktów"
+          }
+        }
+      }
+    },
+    "More space" : {
+      "comment" : "Layout editor: increases the space around zones",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More space"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Większy odstęp"
+          }
+        }
+      }
+    },
+    "Divide side by side" : {
+      "comment" : "Layout editor: divides a zone",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Divide side by side"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podziel obok siebie"
+          }
+        }
+      }
+    },
+    "Divide stacked" : {
+      "comment" : "Layout editor: divides a zone",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Divide stacked"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podziel jedną nad drugą"
+          }
+        }
+      }
+    },
+    "%lld%%" : {
+      "comment" : "Layout editor: a percentage (spoken)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld%%"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld%%"
+          }
+        }
+      }
+    },
+    "Merge" : {
+      "comment" : "Layout editor: merges the selected zones",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Merge"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scal"
+          }
+        }
+      }
+    },
+    "Divide" : {
+      "comment" : "Layout editor: divides the focused zone",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Divide"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podziel"
+          }
+        }
+      }
+    },
+    "Esc" : {
+      "comment" : "Layout editor: the key of Cancel",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esc"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esc"
+          }
+        }
+      }
+    },
+    "⌘S" : {
+      "comment" : "Layout editor: the key of Save",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌘S"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌘S"
+          }
+        }
+      }
+    },
+    "Preview" : {
+      "comment" : "Layout editor: the heading above the canvas",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preview"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podgląd"
+          }
+        }
+      }
+    },
+    "Click a zone to divide it, ⇧-click to divide it the other way, ⌘-click to select it for Merge. Drag a divider to move it. Tab moves between zones and dividers · S divides · arrows move a divider by 1% · Delete on a divider merges its neighbours." : {
+      "comment" : "Layout editor: how to use the canvas",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click a zone to divide it, ⇧-click to divide it the other way, ⌘-click to select it for Merge. Drag a divider to move it. Tab moves between zones and dividers · S divides · arrows move a divider by 1% · Delete on a divider merges its neighbours."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kliknij strefę, aby ją podzielić, ⇧-klik dzieli w drugą stronę, ⌘-klik zaznacza ją do scalenia. Przeciągnij separator, aby go przesunąć. Tab przechodzi między strefami i separatorami · S dzieli · strzałki przesuwają separator o 1% · Delete na separatorze scala sąsiednie strefy."
+          }
+        }
+      }
+    },
+    "Preview display" : {
+      "comment" : "Layout editor: the display the live preview is shown on",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preview display"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyświetlacz podglądu"
+          }
+        }
+      }
+    },
+    "Layout preview. Use the zone list to change zones." : {
+      "comment" : "Layout editor: the canvas (spoken); the zone list is the accessible way to edit",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layout preview. Use the zone list to change zones."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podgląd układu. Do zmiany stref użyj listy stref."
+          }
+        }
+      }
+    },
+    "Merge neighbours" : {
+      "comment" : "Layout editor: removes a divider",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Merge neighbours"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scal sąsiadów"
+          }
+        }
+      }
+    },
+    "Layout Editor" : {
+      "comment" : "Layout editor window title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layout Editor"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edytor układu"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
