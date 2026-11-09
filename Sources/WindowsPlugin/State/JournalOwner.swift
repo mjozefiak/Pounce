@@ -131,6 +131,11 @@ final class ReportSink: Sendable {
         for report in waiting { handler(report) }
     }
 
+    /// Forgets the attached HUD (the plugin's services are torn down).
+    func detach() {
+        state.withLock { $0.handler = nil }
+    }
+
     func present(_ report: WindowsHUDState) async {
         let handler = state.withLock { state -> (@MainActor (WindowsHUDState) -> Void)? in
             if let handler = state.handler { return handler }
@@ -141,11 +146,21 @@ final class ReportSink: Sendable {
     }
 }
 
+/// The journal owner as a plugin service: one per app instance and plugin, torn down when the host quits.
+enum JournalOwnerKey: PluginServiceKey {
+    static func make(context: PluginContext) -> JournalOwner {
+        JournalOwner(directory: context.storageDirectory, clock: context.clock, logger: context.logger)
+    }
+
+    static func teardown(_ owner: JournalOwner) {
+        // The HUD handler of the last plugin instance must not outlive the app's plugins.
+        owner.reports.detach()
+    }
+}
+
 extension JournalOwner {
     /// The owner of `context`'s storage folder in this app instance.
     static func owner(for context: PluginContext) -> JournalOwner {
-        context.services.shared("windows.journal:\(context.storageDirectory.standardizedFileURL.path)") {
-            JournalOwner(directory: context.storageDirectory, clock: context.clock, logger: context.logger)
-        }
+        context.services.value(JournalOwnerKey.self, for: context)
     }
 }

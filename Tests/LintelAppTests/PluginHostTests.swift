@@ -2,6 +2,7 @@ import AppKit
 import Foundation
 import LintelCore
 import LintelKit
+import Synchronization
 import Testing
 
 @testable import LintelApp
@@ -118,7 +119,20 @@ import Testing
         // A quit goes through the same queue: it returns instead of waiting behind the stuck start.
         await host.stop()
         #expect(host.state(of: "stuckactivation").map(isDisabled) != false)
-        env.environment.services.shared(StuckActivationPlugin.gateKey) { Gate() }.open()
+        env.environment.services.value(
+            StuckActivationGateKey.self, for: env.environment.makeContext(for: StuckActivationPlugin.manifest)
+        ).open()
+    }
+
+    @Test func quittingTearsTheirServicesDown() async {
+        defer { env.tearDown() }
+        let host = env.makeHost([LaunchRecoveryPlugin.self])
+        await host.start()
+        await host.waitForRecoveries()
+        let services = env.environment.services
+        #expect(services.holds(RecoveryScriptKey.self, pluginID: "launchrecovery"))
+        await host.stop()
+        #expect(!services.holds(RecoveryScriptKey.self, pluginID: "launchrecovery"))
     }
 
     @Test func defaultPluginRecoversAsDone() async {
@@ -204,7 +218,8 @@ import Testing
         let clock = GatedClock()
         let alphaDone = Gate()
         let throwingDone = Gate()
-        let stuckGate = env.environment.services.shared(StuckSource.gateKey) { Gate() }
+        let stuckGate = env.environment.services.value(
+            StuckGateKey.self, for: env.environment.makeContext(for: StuckPlugin.manifest))
         let sources = [
             RegisteredSource(
                 pluginID: "alpha", source: SignallingSource(base: InstantSource(id: "alpha.instant"), done: alphaDone)),
@@ -396,35 +411,61 @@ import Testing
     @Test func enablingAndErasingWaitForARunningRecovery() async throws {
         let env = try TestEnvironment()
         defer { env.tearDown() }
-        SlowRecoveryPlugin.log.reset()
+        let context = env.environment.makeContext(for: SlowRecoveryPlugin.manifest)
+        let order = env.environment.services.value(RecoveryOrderKey.self, for: context)
         let host = env.makeHost([SlowRecoveryPlugin.self])
+        // The recovery cannot answer until the gate opens; a start or an erase that did not wait for it would log
+        // "before recovery".
         host.beginRecoveries()
-        await host.setEnabled(true, for: "slowrecovery")
-        #expect(SlowRecoveryPlugin.log.events == ["recovered", "activated"])
-        SlowRecoveryPlugin.log.reset()
+        let enabling = Task { await host.setEnabled(true, for: "slowrecovery") }
+        order.gate.open()
+        await enabling.value
+        #expect(order.log.events == ["recovered", "activated after recovery"])
+
+        order.log.reset()
         host.retryDeferredRecoveries()
         try await host.eraseData(for: "slowrecovery")
-        #expect(SlowRecoveryPlugin.log.events.first != "erased")
+        #expect(order.log.events == ["recovered", "erased", "activated after recovery"])
     }
 }
 
-nonisolated final class OrderLog: @unchecked Sendable {
-    private let lock = NSLock()
-    private var _events: [String] = []
-    var events: [String] { lock.withLock { _events } }
-    func add(_ event: String) { lock.withLock { _events.append(event) } }
-    func reset() { lock.withLock { _events = [] } }
+nonisolated final class OrderLog: Sendable {
+    private let lock = Mutex<[String]>([])
+    var events: [String] { lock.withLock { $0 } }
+    func add(_ event: String) { lock.withLock { $0.append(event) } }
+    func reset() { lock.withLock { $0 = [] } }
+}
+
+/// What `SlowRecoveryPlugin` records, per app instance (a plugin service), and the gate that holds its recovery.
+nonisolated final class RecoveryOrder: Sendable {
+    let log = OrderLog()
+    let gate = Gate()
+    let finished = Mutex(false)
+}
+
+nonisolated enum RecoveryOrderKey: PluginServiceKey {
+    static func make(context: PluginContext) -> RecoveryOrder { RecoveryOrder() }
 }
 
 final class SlowRecoveryPlugin: LintelPlugin {
-    nonisolated static let log = OrderLog()
     static let manifest = PluginManifest(id: "slowrecovery", displayName: "Slow", symbolName: "clock", order: 90)
-    init(context: PluginContext) {}
+    private let order: RecoveryOrder
+
+    init(context: PluginContext) {
+        order = context.services.value(RecoveryOrderKey.self, for: context)
+    }
+
     nonisolated static func recoverAtLaunch(context: PluginContext) async -> RecoveryOutcome {
-        try? await Task.sleep(for: .milliseconds(150))
-        log.add("recovered")
+        let order = context.services.value(RecoveryOrderKey.self, for: context)
+        await order.gate.wait()
+        order.log.add("recovered")
+        order.finished.withLock { $0 = true }
         return .deferred
     }
-    func activate() async throws { Self.log.add("activated") }
-    func eraseData() async throws { Self.log.add("erased") }
+
+    func activate() async throws {
+        order.log.add(order.finished.withLock { $0 } ? "activated after recovery" : "activated before recovery")
+    }
+
+    func eraseData() async throws { order.log.add("erased") }
 }

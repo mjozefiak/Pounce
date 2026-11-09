@@ -46,9 +46,6 @@ struct InstantSource: SearchSource {
 struct StuckSource: SearchSource {
     let id: SourceID = "stuck"
 
-    /// The key under which the environment's services hold the gate; released by `TestEnvironment.tearDown()`.
-    static let gateKey = "stuck.gate"
-
     let gate: Gate
 
     func search(_ query: NormalizedQuery, limit: Int) async throws -> [Candidate] {
@@ -180,7 +177,7 @@ final class StuckPlugin: LintelPlugin {
     private let gate: Gate
 
     init(context: PluginContext) {
-        gate = context.services.shared(StuckSource.gateKey) { Gate() }
+        gate = context.services.value(StuckGateKey.self, for: context)
     }
 
     var searchSources: [any SearchSource] { [StuckSource(gate: gate), ThrowingSource()] }
@@ -253,15 +250,19 @@ struct TestEnvironment {
     }
 
     /// The scripted answers of `LaunchRecoveryPlugin` in this environment.
-    var recoveryScript: RecoveryScript { environment.services.shared("launchrecovery.script") { RecoveryScript() } }
+    var recoveryScript: RecoveryScript {
+        environment.services.value(
+            RecoveryScriptKey.self, for: environment.makeContext(for: LaunchRecoveryPlugin.manifest))
+    }
 
     /// What `OverrunRecoveryPlugin` shares with the test.
     var overrun: OverrunControl {
-        environment.services.shared(OverrunRecoveryPlugin.controlKey) { OverrunControl() }
+        environment.services.value(
+            OverrunControlKey.self, for: environment.makeContext(for: OverrunRecoveryPlugin.manifest))
     }
 
     func tearDown() {
-        environment.services.shared(StuckSource.gateKey) { Gate() }.open()
+        environment.services.value(StuckGateKey.self, for: environment.makeContext(for: StuckPlugin.manifest)).open()
         overrun.gate.open()
         try? FileManager.default.removeItem(at: environment.dataRoot)
     }
@@ -287,7 +288,7 @@ final class LaunchRecoveryPlugin: LintelPlugin {
     init(context: PluginContext) {}
 
     nonisolated static func recoverAtLaunch(context: PluginContext) async -> RecoveryOutcome {
-        context.services.shared("launchrecovery.script") { RecoveryScript() }.next()
+        context.services.value(RecoveryScriptKey.self, for: context).next()
     }
 }
 
@@ -335,10 +336,8 @@ final class OverrunRecoveryPlugin: LintelPlugin {
 
     init(context: PluginContext) {}
 
-    nonisolated static let controlKey = "overrunrecovery.control"
-
     nonisolated static func recoverAtLaunch(context: PluginContext) async -> RecoveryOutcome {
-        let control = context.services.shared(controlKey) { OverrunControl() }
+        let control = context.services.value(OverrunControlKey.self, for: context)
         control.entered.withLock { $0 += 1 }
         await control.gate.wait()
         return .done
@@ -448,14 +447,29 @@ nonisolated struct SignallingSource: SearchSource {
 final class StuckActivationPlugin: LintelPlugin {
     static let manifest = PluginManifest(id: "stuckactivation", displayName: "Stuck", symbolName: "tortoise", order: 8)
 
-    nonisolated static let gateKey = "stuckactivation.gate"
     private let gate: Gate
 
     init(context: PluginContext) {
-        gate = context.services.shared(Self.gateKey) { Gate() }
+        gate = context.services.value(StuckActivationGateKey.self, for: context)
     }
 
     func activate() async throws {
         await gate.wait()
     }
+}
+
+nonisolated enum StuckGateKey: PluginServiceKey {
+    static func make(context: PluginContext) -> Gate { Gate() }
+}
+
+nonisolated enum StuckActivationGateKey: PluginServiceKey {
+    static func make(context: PluginContext) -> Gate { Gate() }
+}
+
+nonisolated enum RecoveryScriptKey: PluginServiceKey {
+    static func make(context: PluginContext) -> RecoveryScript { RecoveryScript() }
+}
+
+nonisolated enum OverrunControlKey: PluginServiceKey {
+    static func make(context: PluginContext) -> OverrunControl { OverrunControl() }
 }

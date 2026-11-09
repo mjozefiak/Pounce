@@ -247,6 +247,8 @@ final class PluginHost {
     func stop() async {
         for entry in entries {
             await enqueue(entry.manifest.id) { host in await host.deactivateNow(entry.manifest.id) }
+            // The plugin's shared services go with it (the app is quitting).
+            entry.context.services.teardown(pluginID: entry.manifest.id)
         }
     }
 
