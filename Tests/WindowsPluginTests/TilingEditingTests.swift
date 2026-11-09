@@ -139,6 +139,8 @@ import Testing
         #expect(numbers(layout).count == 3)
     }
 
+    /// AeroSpace's join-with puts the window and its neighbour into a new container of the opposite orientation;
+    /// on a root that holds only the two, that container is the whole tree, so the root flips.
     @Test func joiningTheOnlyTwoWindowsFlipsTheRoot() {
         var layout = tree(.horizontal, [leaf(1), leaf(2)])
         let ok = layout.join(win(1), .right)

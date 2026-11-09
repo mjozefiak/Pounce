@@ -49,13 +49,13 @@ struct LayoutConfig: Equatable, Sendable {
 }
 
 /// The versioned JSON value of `plugins.windows.workspaces` (spec: Data Model): the overrides of every workspace
-/// in one setting instead of 36 protected keys. A value from a newer version, or one that does not decode, is read
-/// as "no overrides" and never overwritten, so a downgrade cannot destroy it.
+/// in one setting instead of 36 protected keys. A value from a newer version is read as "no overrides" and never
+/// overwritten, so a downgrade cannot destroy it; a damaged value reads as "no overrides" and may be replaced.
 struct WorkspaceOverrides: Equatable, Sendable {
     static let version = 1
 
     var byWorkspace: [WorkspaceID: WorkspaceOverride] = [:]
-    /// The stored value is from a newer version (or unreadable): nothing may be written over it.
+    /// The stored value is from a newer version: nothing may be written over it.
     private(set) var isReadOnly = false
 
     init(_ byWorkspace: [WorkspaceID: WorkspaceOverride] = [:]) {
@@ -77,16 +77,15 @@ struct WorkspaceOverrides: Equatable, Sendable {
     /// Reads a stored value; `nil` or empty text is "no overrides".
     init(json: String?) {
         guard let json, !json.isEmpty else { return }
-        guard let data = json.data(using: .utf8), let record = try? JSONDecoder().decode(Record.self, from: data),
-            record.version >= 1
-        else {
+        struct Header: Decodable { var version: Int }
+        guard let data = json.data(using: .utf8) else { return }
+        // Only a newer version is protected. A value that does not parse is damaged: it reads as no overrides and
+        // the next change replaces it.
+        if let header = try? JSONDecoder().decode(Header.self, from: data), header.version > Self.version {
             isReadOnly = true
             return
         }
-        guard record.version <= Self.version else {
-            isReadOnly = true
-            return
-        }
+        guard let record = try? JSONDecoder().decode(Record.self, from: data), record.version >= 1 else { return }
         for (key, entry) in record.workspaces {
             guard let number = Int(key), let workspace = WorkspaceID(number) else { continue }
             let override = WorkspaceOverride(

@@ -223,13 +223,13 @@ struct WindowsSettingsPane: View {
     private func gapRow(_ title: Text, value: Binding<Int>) -> some View {
         LabeledContent {
             Stepper(value: value, in: 0...WindowsSettings.maximumGap) {
-                Text("\(value.wrappedValue) px", comment: "Window Management: a gap in points").font(
+                Text("\(value.wrappedValue) pt", comment: "Window Management: a gap in points").font(
                     textSize.font(.body)
                 )
                 .monospacedDigit()
             }
             .accessibilityLabel(title)
-            .accessibilityValue(Text("\(value.wrappedValue) px", comment: "Window Management: a gap in points"))
+            .accessibilityValue(Text("\(value.wrappedValue) pt", comment: "Window Management: a gap in points"))
         } label: {
             label(title)
         }
@@ -239,7 +239,7 @@ struct WindowsSettingsPane: View {
 
     @ViewBuilder private var workspaceLayouts: some View {
         label(
-            Text("Workspaces", comment: "Window Management setting: how many workspaces"),
+            Text("Per-workspace layout", comment: "Window Management setting: the list of per-workspace settings"),
             help: Text(
                 "What each workspace uses. Edit one to change its layout, gaps or first split.",
                 comment: "Window Management setting help: per-workspace layout"))
@@ -328,7 +328,7 @@ struct WindowsSettingsPane: View {
                     value: Binding(get: { value ?? fallback }, set: { set($0) }),
                     in: 0...WindowsSettings.maximumGap
                 ) {
-                    Text("\(value ?? fallback) px", comment: "Window Management: a gap in points")
+                    Text("\(value ?? fallback) pt", comment: "Window Management: a gap in points")
                         .font(textSize.font(.body)).monospacedDigit()
                 }
                 .accessibilityLabel(title)

@@ -14977,24 +14977,6 @@
         }
       }
     },
-    "%lld px" : {
-      "comment" : "Window Management: a gap in points",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld px"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld px"
-          }
-        }
-      }
-    },
     "Focus window" : {
       "comment" : "Window Management shortcut family",
       "extractionState" : "manual",
@@ -15189,6 +15171,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Domyślne"
+          }
+        }
+      }
+    },
+    "%lld pt" : {
+      "comment" : "Window Management: a gap in points",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld pt"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld pt"
+          }
+        }
+      }
+    },
+    "Per-workspace layout" : {
+      "comment" : "Window Management setting: the list of per-workspace settings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per-workspace layout"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układ obszarów"
           }
         }
       }

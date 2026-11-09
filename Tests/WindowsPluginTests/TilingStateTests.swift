@@ -142,7 +142,7 @@ import Testing
         #expect(WorkspaceOverrides(json: "").byWorkspace.isEmpty)
     }
 
-    @Test func aNewerOrBrokenValueReadsAsNoOverridesAndIsNeverOverwritten() throws {
+    @Test func aNewerValueIsNeverOverwrittenAndADamagedOneIsReplaced() throws {
         let harness = try WindowsHarness()
         defer { harness.tearDown() }
         let settings = WindowsSettings(harness.pluginSettings)
@@ -153,8 +153,12 @@ import Testing
         #expect(!settings.setWorkspaceOverrides(WorkspaceOverrides([ws(1): WorkspaceOverride(kind: .tiling)])))
         #expect(harness.pluginSettings.string(WindowsSettings.Key.workspaces) == newer)
 
+        // A damaged value is not a newer version: it reads as none and the next change replaces it.
         harness.pluginSettings.set("not json", for: WindowsSettings.Key.workspaces)
-        #expect(settings.workspaceOverrides.isReadOnly)
+        #expect(!settings.workspaceOverrides.isReadOnly)
+        #expect(settings.workspaceOverrides.byWorkspace.isEmpty)
+        #expect(settings.setWorkspaceOverrides(WorkspaceOverrides([ws(1): WorkspaceOverride(kind: .free)])))
+        #expect(settings.workspaceOverrides.byWorkspace[ws(1)]?.kind == .free)
     }
 
     @Test func unknownValuesInsideAnOverrideAreIgnoredAndGapsAreClamped() {
