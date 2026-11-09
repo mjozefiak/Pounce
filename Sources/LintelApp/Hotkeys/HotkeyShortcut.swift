@@ -81,6 +81,8 @@ nonisolated struct HotkeyShortcut: Hashable, Sendable {
         // Window management's resize pair (⌥- and ⌥=).
         codes["-"] = kVK_ANSI_Minus
         codes["="] = kVK_ANSI_Equal
+        // Window management's toggle layout (⌥/).
+        codes["/"] = kVK_ANSI_Slash
         return codes
     }()
 

@@ -90,8 +90,13 @@ enum ShortcutFamily: String, CaseIterable {
 extension WindowsPlugin {
     /// Every default shortcut that is bound now (for the layout check and `DefaultShortcutTests`).
     static var defaultShortcuts: [KeyShortcut] {
-        ShortcutFamily.allCases.flatMap { $0.shortcuts() } + [KeyShortcut(key: "\t", modifiers: [.option])]
+        ShortcutFamily.allCases.flatMap { $0.shortcuts() } + [
+            KeyShortcut(key: "\t", modifiers: [.option]), toggleLayoutShortcut,
+        ]
     }
+
+    /// ⌥/ cycles the layout kind of the current workspace (Q10, step 3.4).
+    static let toggleLayoutShortcut = KeyShortcut(key: "/", modifiers: [.option])
 
     public var commands: [PluginCommand] {
         var commands: [PluginCommand] = []
@@ -157,8 +162,8 @@ extension WindowsPlugin {
     }
 
     /// The Auto-tile commands (spec: API Contracts). All are `showsInMenu: false`; the focus, move and resize
-    /// families have the AeroSpace defaults (Q10), the rest are unbound. `toggleLayout` has no default until
-    /// phase 3 (⌥/), when Zones exist to cycle through.
+    /// families have the AeroSpace defaults (Q10), the rest are unbound. `toggleLayout` is ⌥/ since phase 3,
+    /// when Zones exist to cycle through.
     private var tilingCommands: [PluginCommand] {
         var commands: [PluginCommand] = []
         func add(
@@ -224,7 +229,7 @@ extension WindowsPlugin {
                 id: WindowsCommandID.toggleLayout,
                 title: LocalizedStringResource(
                     "Toggle Layout", comment: "Command: cycles the layout kind of the current workspace"),
-                symbolName: "square.grid.2x2", showsInMenu: false,
+                symbolName: "square.grid.2x2", defaultShortcut: Self.toggleLayoutShortcut, showsInMenu: false,
                 run: { [weak self] in await self?.toggleLayout() }))
         return commands
     }

@@ -165,8 +165,9 @@ final class WindowsRuntime {
         await engine.send(command)
     }
 
-    /// *Toggle layout*: cycles the current workspace between Auto-tile and Free (Zones join in phase 3) by writing
-    /// its layout kind override; a kind equal to the default clears the override. Does nothing when the stored
+    /// *Toggle layout*: cycles the current workspace through Auto-tile, Zones and Free by writing its layout kind
+    /// override (every kind's state is kept, so cycling is lossless: the engine keeps the tree and the zone
+    /// placement while another kind is active); a kind equal to the default clears the override. Does nothing when the stored
     /// overrides come from a newer version (they are never overwritten).
     func toggleLayout() async {
         guard trust.refresh() else {
@@ -177,13 +178,22 @@ final class WindowsRuntime {
         var overrides = settings.workspaceOverrides
         guard !overrides.isReadOnly else { return }
         let current = overrides.byWorkspace[workspace]?.kind ?? settings.defaultKind
-        let next: LayoutKind = current == .tiling ? .free : .tiling
+        let next = Self.nextKind(after: current)
         var entry = overrides.byWorkspace[workspace] ?? WorkspaceOverride()
         entry.kind = next == settings.defaultKind ? nil : next
         overrides.byWorkspace[workspace] = entry.isEmpty ? nil : entry
         settings.setWorkspaceOverrides(overrides)
         await applySettings()
         context.resultsChanged()
+    }
+
+    /// Auto-tile, then Zones, then Free, then Auto-tile again.
+    static func nextKind(after kind: LayoutKind) -> LayoutKind {
+        switch kind {
+        case .tiling: .zones
+        case .zones: .free
+        case .free: .tiling
+        }
     }
 
     /// *Restore all windows*: always ends with the restore HUD.

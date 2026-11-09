@@ -45,9 +45,9 @@ import Testing
         }
         let back = try #require(commands.first { $0.id == "windows.workspace.back" })
         #expect(back.defaultShortcut == KeyShortcut(key: "\t", modifiers: [.option]))
-        // Only the defaults of this phase are bound: the workspace set, focus, move and resize.
+        // Only the defaults of this phase are bound: the workspace set, focus, move, resize and toggle layout.
         let bound = commands.compactMap(\.defaultShortcut)
-        #expect(bound.count == 19 + 4 + 4 + 2)
+        #expect(bound.count == 19 + 4 + 4 + 2 + 1)
         #expect(Set(bound).count == bound.count)
         #expect(Set(bound) == Set(WindowsPlugin.defaultShortcuts))
     }
@@ -59,7 +59,7 @@ import Testing
         var testDescription: String { id }
     }
 
-    /// The Q10 defaults of this phase and the commands that stay unbound (`toggleLayout` waits for phase 3).
+    /// The Q10 defaults of this phase and the commands that stay unbound; `toggleLayout` is ⌥/ since phase 3.
     nonisolated static let tilingBindings: [TilingBinding] = [
         TilingBinding(id: "windows.focus.left", key: "h", modifiers: [.option]),
         TilingBinding(id: "windows.focus.down", key: "j", modifiers: [.option]),
@@ -78,7 +78,7 @@ import Testing
         TilingBinding(id: "windows.toggleOrientation", key: nil, modifiers: []),
         TilingBinding(id: "windows.toggleFloating", key: nil, modifiers: []),
         TilingBinding(id: "windows.balance", key: nil, modifiers: []),
-        TilingBinding(id: "windows.toggleLayout", key: nil, modifiers: []),
+        TilingBinding(id: "windows.toggleLayout", key: "/", modifiers: [.option]),
     ]
 
     @Test(arguments: tilingBindings)
@@ -146,7 +146,7 @@ import Testing
                 .accessibilityNeeded(.switching), .accessibilityNeeded(.moving), .accessibilityNeeded(.switching),
             ])
         // The shortcuts stay registered.
-        #expect(plugin.commands.compactMap(\.defaultShortcut).count == 29)
+        #expect(plugin.commands.compactMap(\.defaultShortcut).count == 30)
         await plugin.deactivate()
     }
 
@@ -282,6 +282,21 @@ import Testing
         #expect(!result.offending.contains { $0.key == "-" || $0.key == "=" })
         let fixed = ShortcutSafety.controlOption(for: WindowsPlugin.defaultShortcuts)
         #expect(ShortcutSafety.check(fixed, translate: polish).isSafe)
+    }
+
+    @Test func theLayoutCheckCoversToggleLayoutOnALayoutWhereItTypesALetter() {
+        #expect(WindowsPlugin.defaultShortcuts.contains(WindowsPlugin.toggleLayoutShortcut))
+        // On the Polish table ⌥/ types nothing letter-like.
+        #expect(
+            !ShortcutSafety.check([WindowsPlugin.toggleLayoutShortcut], translate: polish).offending.contains {
+                $0.key == "/"
+            })
+        // On a layout where it types a letter the check names it and ⌃⌥ fixes it.
+        let letterOnSlash: ShortcutSafety.KeyTranslation = { code, _ in code == 44 ? "ß" : nil }
+        let result = ShortcutSafety.check([WindowsPlugin.toggleLayoutShortcut], translate: letterOnSlash)
+        #expect(result.offending == [WindowsPlugin.toggleLayoutShortcut])
+        #expect(
+            ShortcutSafety.check(ShortcutSafety.controlOption(for: result.offending), translate: letterOnSlash).isSafe)
     }
 
     @Test func everyBoundKeyHasAKeyCode() {

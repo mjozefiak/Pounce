@@ -395,3 +395,70 @@ import Testing
         #expect(ZonesRecord(["": ZoneState(zoneOf: [win(1): 1])]).zones.isEmpty)
     }
 }
+
+/// Switching a workspace between Auto-tile, Zones and Free keeps every state (step 3.4).
+@Suite struct LayoutConversionTests {
+    private func ws(_ number: Int) -> WorkspaceID { WorkspaceID(number)! }
+    private func id(_ number: UInt32) -> WindowID { WindowID(pid: 100, number: number) }
+
+    private func config(_ kind: LayoutKind) -> EngineConfig {
+        var config = EngineConfig()
+        config.layout = LayoutConfig(
+            defaultKind: kind, innerGap: 0, outerGap: 0, rootOrientation: .horizontal, overrides: [:])
+        return config
+    }
+
+    @Test func aRoundTripLeavesBothStatesUnchanged() async throws {
+        let harness = try WindowsHarness()
+        defer { harness.tearDown() }
+        let client = FakeWindowClient(windows: [makeWindow(1), makeWindow(2), makeWindow(3)])
+        client.setFocused(id(1))
+        let time = ManualNow()
+        let engine = WindowEngine(
+            client: client, store: StateStore(directory: harness.directory, saveDelay: .seconds(3600)),
+            now: { time.now }, config: config(.tiling), tick: .milliseconds(5))
+        await engine.start()
+        // Shape both states: a resized tree and a window moved to another zone.
+        await engine.send(.resize(0.1))
+        await engine.update(config: config(.zones))
+        await engine.send(.moveToZone(2))
+        await engine.update(config: config(.tiling))
+        let tiling = await engine.state.tiling
+        let zones = await engine.state.zones
+        #expect(!tiling.isEmpty && !zones.isEmpty)
+        let frames = (1...3 as ClosedRange<UInt32>).map { client.frame(of: id($0)) }
+        for kind in [LayoutKind.zones, .free, .tiling, .free, .zones, .tiling] {
+            await engine.update(config: config(kind))
+            // Both kinds' states are exactly what they were, whichever kind is active.
+            #expect(await engine.state.tiling == tiling)
+            #expect(await engine.state.zones == zones)
+        }
+        // And the windows are back where Auto-tile puts them.
+        #expect((1...3 as ClosedRange<UInt32>).map { client.frame(of: id($0)) } == frames)
+        await engine.stop()
+    }
+
+    @Test func aWindowOpenedWhileFreeJoinsBothKindsWhenTheyAreShownAgain() async throws {
+        let harness = try WindowsHarness()
+        defer { harness.tearDown() }
+        let client = FakeWindowClient(windows: [makeWindow(1), makeWindow(2)])
+        client.setFocused(id(1))
+        let time = ManualNow()
+        let engine = WindowEngine(
+            client: client, store: StateStore(directory: harness.directory, saveDelay: .seconds(3600)),
+            now: { time.now }, config: config(.tiling), tick: .milliseconds(5))
+        await engine.start()
+        await engine.update(config: config(.zones))
+        await engine.update(config: config(.free))
+        client.add(makeWindow(3))
+        await engine.ingest(.created(id(3)))
+        await engine.settle()
+        // Free arranges nothing: the newcomer is where it opened.
+        #expect(client.frame(of: id(3)) == CGRect(x: 100, y: 100, width: 800, height: 600))
+        await engine.update(config: config(.zones))
+        #expect(await engine.state.zones[ws(1)]?["MAIN"]?.zoneOf[id(3)] != nil)
+        await engine.update(config: config(.tiling))
+        #expect(await engine.state.tiling[ws(1)]?.windows.contains(id(3)) == true)
+        await engine.stop()
+    }
+}

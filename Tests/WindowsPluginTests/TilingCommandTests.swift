@@ -218,11 +218,15 @@ import Testing
         await plugin.deactivate()
     }
 
-    @MainActor @Test func toggleLayoutCyclesBetweenAutoTileAndFreeThroughTheOverride() async throws {
+    @MainActor @Test func toggleLayoutCyclesThroughAutoTileZonesAndFreeThroughTheOverride() async throws {
         let (plugin, client, _, harness) = try await plugin()
         defer { harness.tearDown() }
         let settings = WindowsSettings(harness.pluginSettings)
         #expect(client.frame(of: id(2))?.minX == 640)
+        try await run(plugin, "windows.toggleLayout")
+        // Zones: the stock Columns 2 layout (landscape default), the second window in the right zone.
+        #expect(settings.workspaceOverrides.byWorkspace[ws(1)]?.kind == .zones)
+        try await waitUntil { client.frame(of: id(2))?.minX == 964 }
         try await run(plugin, "windows.toggleLayout")
         #expect(settings.workspaceOverrides.byWorkspace[ws(1)]?.kind == .free)
         // Free: a window moved by hand is left alone.
@@ -239,6 +243,12 @@ import Testing
         #expect(harness.pluginSettings.string(WindowsSettings.Key.workspaces) == "")
         try await waitUntil { client.frame(of: id(2))?.minX == 640 }
         await plugin.deactivate()
+    }
+
+    @MainActor @Test func theCycleIsAutoTileZonesFreeAndBack() {
+        #expect(WindowsRuntime.nextKind(after: .tiling) == .zones)
+        #expect(WindowsRuntime.nextKind(after: .zones) == .free)
+        #expect(WindowsRuntime.nextKind(after: .free) == .tiling)
     }
 
     @MainActor @Test func toggleLayoutNeverOverwritesOverridesFromANewerVersion() async throws {

@@ -127,9 +127,10 @@ final class WindowsSettingsModel {
 
     /// Looks up what each bound key types with its modifiers on the active layout.
     func refreshSafety() {
-        let bound = ShortcutFamily.allCases.flatMap { family in
-            family.bindings.compactMap { context.commandShortcut($0.id) }
-        }
+        let bound =
+            ShortcutFamily.allCases.flatMap { family in
+                family.bindings.compactMap { context.commandShortcut($0.id) }
+            } + [context.commandShortcut(WindowsCommandID.toggleLayout)].compactMap { $0 }
         unsafeShortcuts = ShortcutSafety.check(bound, translate: translate).offending
     }
 
