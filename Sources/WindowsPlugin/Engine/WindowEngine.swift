@@ -224,7 +224,9 @@ actor WindowEngine {
         await withCheckedContinuation { idleWaiters.append($0) }
     }
 
-    private var isIdle: Bool { pending.isEmpty && inFlight == 0 && coalescer.isEmpty && flushTask == nil && flushesRunning == 0 }
+    private var isIdle: Bool {
+        pending.isEmpty && inFlight == 0 && coalescer.isEmpty && flushTask == nil && flushesRunning == 0
+    }
 
     private func resumeIdleWaiters() {
         guard isIdle else { return }
@@ -378,8 +380,7 @@ actor WindowEngine {
     /// Runs `work` after everything queued before it on the same lane, and counts it as in flight for `batch`.
     @discardableResult
     private func enqueue<T: Sendable>(
-        on key: LaneKey, batch: Int, result: @escaping @Sendable (T) -> FrameResult? = { _ in nil },
-        _ work: @escaping @Sendable () async -> T
+        on key: LaneKey, batch: Int, _ work: @escaping @Sendable () async -> T
     ) -> Task<T, Never> {
         inFlight += 1
         batches[batch]?.remaining += 1
@@ -391,7 +392,7 @@ actor WindowEngine {
         lanes[key] = Task { _ = await task.value }
         Task { [weak self] in
             let value = await task.value
-            await self?.finished(batch: batch, result: result(value))
+            await self?.finished(batch: batch, result: value as? FrameResult)
         }
         return task
     }
@@ -494,7 +495,7 @@ actor WindowEngine {
             }
             frameChangeCount += 1
             let client = client
-            enqueue(on: .process(request.id.pid), batch: batch, result: { $0 }) { [weak self] () -> FrameResult? in
+            enqueue(on: .process(request.id.pid), batch: batch) { [weak self] () -> FrameResult? in
                 if request.purpose == .park, let journal, await journal.value.contains(request.id) {
                     return FrameResult(request: request, outcome: .blocked)
                 }
