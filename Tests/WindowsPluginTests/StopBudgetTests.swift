@@ -68,6 +68,8 @@ import Testing
         try await rig.plugin.activate()
         #expect(rig.plugin.lastStartError == nil)
         await rig.plugin.deactivate()
+        // The clock jumps over every budget, so the stop may still be running: wait for it to hand the journal back.
+        await rig.plugin.journal.waitUntilIdle()
         try await rig.plugin.eraseData()
     }
 

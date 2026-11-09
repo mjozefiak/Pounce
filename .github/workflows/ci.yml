@@ -43,7 +43,7 @@ jobs:
         run: swift test
 
       - name: Test PluginHost under Thread Sanitizer
-        run: swift test --sanitize=thread --filter PluginHostTests
+        run: swift test --sanitize=thread --filter "PluginHostTests|RecoveryOrderingTests|PluginServicesTests"
 
       - name: Test FileIndex and FilesPlugin under Thread Sanitizer
         run: swift test --sanitize=thread --filter FilesPluginTests
@@ -52,7 +52,7 @@ jobs:
         run: swift test --sanitize=thread --filter "SpeechEngineLeaseTests|LLMLeaseTests|ModelManagerRegistryTests|ModelManagerQueueTests|DictationSessionLeaseTests"
 
       - name: Test the window engine under Thread Sanitizer
-        run: swift test --sanitize=thread --filter "WindowEngineTests|WindowEngineConcurrencyTests|EventFlowTests|EngineStopTests|RecoveryTests|LayoutStrategyTests|ToyStrategyTests|TilingEngineTests|ZoneEngineTests|ZoneDragControllerTests|ZoneDragSignalTests"
+        run: swift test --sanitize=thread --filter "WindowEngineTests|WindowEngineConcurrencyTests|EventFlowTests|EngineStopTests|StopBudgetTests|EchoAndJournalOrderTests|RecoveryTests|LayoutStrategyTests|ToyStrategyTests|TilingEngineTests|ZoneEngineTests|ZoneDragControllerTests|ZoneDragSignalTests"
 
       - name: Format lint
         run: swift format lint --strict -r Sources Tests
