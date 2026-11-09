@@ -27,7 +27,9 @@ nonisolated final class AXWindowClient: WindowClient, Sendable {
         var hub: AXObservationHub?
     }
 
-    /// Cached `AXUIElement` of each window, valid only on the owner's queue.
+    /// Cached `AXUIElement` of each window. `@unchecked Sendable` rests on one invariant: an instance is touched
+    /// only on its owner's serial queue (`PerProcessQueues`), never from two threads; the lock-protected `caches`
+    /// dictionary only hands out the reference.
     private final class ElementCache: @unchecked Sendable {
         var elements: [WindowID: AXUIElement] = [:]
     }

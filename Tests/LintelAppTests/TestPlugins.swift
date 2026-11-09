@@ -42,16 +42,70 @@ struct InstantSource: SearchSource {
     }
 }
 
-/// Never answers and ignores cancellation, like a source stuck in blocking work.
+/// Never answers and ignores cancellation until the test lets it go, like a source stuck in blocking work.
 struct StuckSource: SearchSource {
     let id: SourceID = "stuck"
 
+    /// The key under which the environment's services hold the gate; released by `TestEnvironment.tearDown()`.
+    static let gateKey = "stuck.gate"
+
+    let gate: Gate
+
     func search(_ query: NormalizedQuery, limit: Int) async throws -> [Candidate] {
-        // Blocks a background thread far beyond any budget without checking cancellation.
-        await Task.detached {
-            blockCurrentThread(microseconds: 5_000_000)
-        }.value
+        let gate = gate
+        await Task.detached { await gate.wait() }.value
         return []
+    }
+}
+
+/// Lets every waiter, now and later, go once opened.
+final class Gate: Sendable {
+    private struct State {
+        var isOpen = false
+        var waiting: [CheckedContinuation<Void, Never>] = []
+    }
+
+    private let state = Mutex(State())
+
+    func open() {
+        let waiting = state.withLock { state -> [CheckedContinuation<Void, Never>] in
+            state.isOpen = true
+            defer { state.waiting = [] }
+            return state.waiting
+        }
+        for waiter in waiting { waiter.resume() }
+    }
+
+    func reset() { state.withLock { $0.isOpen = false } }
+
+    func wait() async {
+        await withCheckedContinuation { continuation in
+            let proceed = state.withLock { state -> Bool in
+                if state.isOpen { return true }
+                state.waiting.append(continuation)
+                return false
+            }
+            if proceed { continuation.resume() }
+        }
+    }
+}
+
+/// A clock whose sleeps end at once: a deadline on it has passed as soon as it is awaited, so a test needs no real
+/// time to see a bound fire.
+final class ExpiredClock: Clock, Sendable {
+    struct Instant: InstantProtocol {
+        var offset: Duration
+        func advanced(by duration: Duration) -> Instant { Instant(offset: offset + duration) }
+        func duration(to other: Instant) -> Duration { other.offset - offset }
+        static func < (lhs: Instant, rhs: Instant) -> Bool { lhs.offset < rhs.offset }
+    }
+
+    var now: Instant { Instant(offset: .zero) }
+    var minimumResolution: Duration { .zero }
+
+    func sleep(until deadline: Instant, tolerance: Duration?) async throws {
+        try Task.checkCancellation()
+        await Task.yield()
     }
 }
 
@@ -123,9 +177,13 @@ final class FailingPlugin: LintelPlugin {
 final class StuckPlugin: LintelPlugin {
     static let manifest = PluginManifest(id: "stuck", displayName: "Stuck", symbolName: "tortoise", order: 3)
 
-    init(context: PluginContext) {}
+    private let gate: Gate
 
-    var searchSources: [any SearchSource] { [StuckSource(), ThrowingSource()] }
+    init(context: PluginContext) {
+        gate = context.services.shared(StuckSource.gateKey) { Gate() }
+    }
+
+    var searchSources: [any SearchSource] { [StuckSource(gate: gate), ThrowingSource()] }
 }
 
 /// Keeps data in the Keychain and its storage directory, to test "Erase Data".
@@ -179,18 +237,30 @@ struct TestEnvironment {
     func makeHost(
         _ types: [any LintelPlugin.Type],
         budget: Duration = .milliseconds(150),
-        recoveryBudget: Duration = .seconds(5)
+        recoveryBudget: Duration = .seconds(5),
+        clock: any Clock<Duration> = ContinuousClock()
     ) -> PluginHost {
         PluginHost(
             pluginTypes: types,
             makeContext: { environment.makeContext(for: $0) },
             settings: settings,
             sourceBudget: budget,
-            recoveryBudget: recoveryBudget
+            recoveryBudget: recoveryBudget,
+            clock: clock
         )
     }
 
+    /// The scripted answers of `LaunchRecoveryPlugin` in this environment.
+    var recoveryScript: RecoveryScript { environment.services.shared("launchrecovery.script") { RecoveryScript() } }
+
+    /// What `OverrunRecoveryPlugin` shares with the test.
+    var overrun: OverrunControl {
+        environment.services.shared(OverrunRecoveryPlugin.controlKey) { OverrunControl() }
+    }
+
     func tearDown() {
+        environment.services.shared(StuckSource.gateKey) { Gate() }.open()
+        overrun.gate.open()
         try? FileManager.default.removeItem(at: environment.dataRoot)
     }
 }
@@ -215,14 +285,13 @@ final class LaunchRecoveryPlugin: LintelPlugin {
     init(context: PluginContext) {}
 
     nonisolated static func recoverAtLaunch(context: PluginContext) async -> RecoveryOutcome {
-        RecoveryScript.shared.next()
+        context.services.shared("launchrecovery.script") { RecoveryScript() }.next()
     }
 }
 
 /// The scripted answers of `LaunchRecoveryPlugin`; the last one repeats. Thread-safe because the host calls
 /// `recoverAtLaunch` off the main actor.
 nonisolated final class RecoveryScript: @unchecked Sendable {
-    static let shared = RecoveryScript()
     private let lock = NSLock()
     private var answers: [RecoveryOutcome] = [.done]
     private var calls = 0
@@ -248,7 +317,14 @@ nonisolated final class RecoveryScript: @unchecked Sendable {
     }
 }
 
-/// A `recoverAtLaunch` that ignores its bound and cancellation until the test releases it, and counts how often it
+/// What `OverrunRecoveryPlugin` shares with its test through the context's services: how often it was entered and
+/// the gate that holds it.
+final class OverrunControl: Sendable {
+    let entered = Mutex(0)
+    let gate = Gate()
+}
+
+/// A `recoverAtLaunch` that ignores its bound and cancellation until the test opens the gate, and counts how often it
 /// was entered. Nothing here depends on how long the test takes, so a busy machine cannot finish it early.
 final class OverrunRecoveryPlugin: LintelPlugin {
     static let manifest = PluginManifest(
@@ -257,40 +333,105 @@ final class OverrunRecoveryPlugin: LintelPlugin {
 
     init(context: PluginContext) {}
 
-    nonisolated static let entered = Mutex(0)
-
-    private struct Gate {
-        var released = false
-        var waiting: CheckedContinuation<Void, Never>?
-    }
-
-    private nonisolated static let gate = Mutex(Gate())
-
-    nonisolated static func reset() {
-        entered.withLock { $0 = 0 }
-        gate.withLock { $0 = Gate() }
-    }
-
-    /// Lets every pending and later call return.
-    nonisolated static func release() {
-        let waiting = gate.withLock { gate -> CheckedContinuation<Void, Never>? in
-            gate.released = true
-            defer { gate.waiting = nil }
-            return gate.waiting
-        }
-        waiting?.resume()
-    }
+    nonisolated static let controlKey = "overrunrecovery.control"
 
     nonisolated static func recoverAtLaunch(context: PluginContext) async -> RecoveryOutcome {
-        entered.withLock { $0 += 1 }
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            let proceed = gate.withLock { gate -> Bool in
-                if gate.released { return true }
-                gate.waiting = continuation
+        let control = context.services.shared(controlKey) { OverrunControl() }
+        control.entered.withLock { $0 += 1 }
+        await control.gate.wait()
+        return .done
+    }
+}
+
+/// A clock that moves only when the test advances it. `waitForSleepers(exactly:)` lets a test wait until the tasks
+/// it expects to be waiting on a deadline are (and no others), without any real time.
+final class GatedClock: Clock, Sendable {
+    struct Instant: InstantProtocol {
+        var offset: Duration
+        func advanced(by duration: Duration) -> Instant { Instant(offset: offset + duration) }
+        func duration(to other: Instant) -> Duration { other.offset - offset }
+        static func < (lhs: Instant, rhs: Instant) -> Bool { lhs.offset < rhs.offset }
+    }
+
+    private struct State {
+        var now = Instant(offset: .zero)
+        var sleepers: [UInt64: (deadline: Instant, continuation: CheckedContinuation<Void, any Error>)] = [:]
+        var waiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
+        var next: UInt64 = 0
+        var registrationWaiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
+    }
+
+    private let state = Mutex(State())
+
+    var now: Instant { state.withLock { $0.now } }
+    var minimumResolution: Duration { .zero }
+
+    func sleep(until deadline: Instant, tolerance: Duration?) async throws {
+        try Task.checkCancellation()
+        let id = state.withLock { state -> UInt64 in
+            state.next += 1
+            return state.next
+        }
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                let ready = state.withLock { state -> [CheckedContinuation<Void, Never>] in
+                    state.sleepers[id] = (deadline, continuation)
+                    var ready = Self.readyWaiters(&state)
+                    ready += state.registrationWaiters.filter { $0.count <= Int(state.next) }.map(\.continuation)
+                    state.registrationWaiters.removeAll { $0.count <= Int(state.next) }
+                    return ready
+                }
+                for waiter in ready { waiter.resume() }
+            }
+        } onCancel: {
+            let (sleeper, ready) = state.withLock {
+                state -> (CheckedContinuation<Void, any Error>?, [CheckedContinuation<Void, Never>]) in
+                let sleeper = state.sleepers.removeValue(forKey: id)?.continuation
+                return (sleeper, Self.readyWaiters(&state))
+            }
+            sleeper?.resume(throwing: CancellationError())
+            for waiter in ready { waiter.resume() }
+        }
+    }
+
+    private static func readyWaiters(_ state: inout State) -> [CheckedContinuation<Void, Never>] {
+        let ready = state.waiters.filter { $0.count == state.sleepers.count }.map(\.continuation)
+        state.waiters.removeAll { $0.count == state.sleepers.count }
+        return ready
+    }
+
+    /// Waits until `count` sleeps have been started on this clock in all, finished or not.
+    func waitForRegistrations(_ count: Int) async {
+        await withCheckedContinuation { continuation in
+            let ready = state.withLock { state -> Bool in
+                if Int(state.next) >= count { return true }
+                state.registrationWaiters.append((count, continuation))
                 return false
             }
-            if proceed { continuation.resume() }
+            if ready { continuation.resume() }
         }
-        return .done
+    }
+
+    /// Waits until exactly `count` tasks are asleep on this clock.
+    func waitForSleepers(exactly count: Int) async {
+        await withCheckedContinuation { continuation in
+            let ready = state.withLock { state -> Bool in
+                if state.sleepers.count == count { return true }
+                state.waiters.append((count, continuation))
+                return false
+            }
+            if ready { continuation.resume() }
+        }
+    }
+
+    /// Moves time forward and wakes every sleeper whose deadline has passed.
+    func advance(_ duration: Duration) {
+        let due = state.withLock { state -> [CheckedContinuation<Void, any Error>] in
+            state.now = state.now.advanced(by: duration)
+            let ready = state.sleepers.filter { $0.value.deadline <= state.now }
+            for key in ready.keys { state.sleepers[key] = nil }
+            return ready.values.map(\.continuation)
+        }
+        for continuation in due { continuation.resume() }
     }
 }

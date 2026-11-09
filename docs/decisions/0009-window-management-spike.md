@@ -59,3 +59,23 @@ are read with the names above and treated as "unknown" (no banner) when absent. 
 
 **Go for the implementation** (the decisions are the owner's). **No-go for registering the plugin** (step 1.12)
 until rows 1, 5, 6 and 7 are measured on a real Mac and written above.
+
+## Addendum (architecture review rounds 1 and 2): where ordering and merging live
+
+Events and ordering were handled in three places (the client's buffer, the stream's own bound and the engine's
+coalescer), each merging or dropping on its own. The decision:
+
+- **One coalescer.** `EventCoalescer` in the engine is the only place events are merged (one pending event per kind
+  and window, a destroyed window drops its other events, overflow becomes one `.spaceChanged`). `AXEventBuffer` only
+  bounds the stream (`bufferingNewest`) and, when it overflows, queues a `.resync` behind the lost events, so a
+  dropped `.destroyed` or `.focused` is recovered by a full look instead of being lost silently. The 30 ms tick
+  exists once, in the engine.
+- **Ordering exists once per process.** Frame changes and focus for one app go on that app's lane in `LaneScheduler`
+  (the engine's executor); `AXWindowClient` keeps its own per-process serial queue only because Accessibility
+  elements are valid only on the queue that created them. The two are different guarantees (command order versus
+  element confinement), not two copies of one.
+- **The flush is serial and subscription comes first.** One flush loop, a flush strictly after the previous one, and
+  `WindowClient.subscribe()` before the first snapshot, so no change between the two is lost and no stale move can
+  follow a destroy.
+- **Layouts are open.** `LayoutKind` is an identifier, strategies own their state, configuration and commands, and
+  `state.json` stores each kind's state as opaque JSON under its name (shape unchanged).

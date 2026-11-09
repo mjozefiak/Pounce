@@ -29,7 +29,7 @@ import Testing
 
     @Test func recoverAtLaunchRunsOnceForADisabledPlugin() async {
         defer { env.tearDown() }
-        RecoveryScript.shared.reset([.done])
+        env.recoveryScript.reset([.done])
         let host = env.makeHost([LaunchRecoveryPlugin.self])
 
         await host.start()
@@ -38,13 +38,13 @@ import Testing
         await host.waitForRecoveries()
 
         #expect(host.state(of: "launchrecovery").map(isDisabled) == true)
-        #expect(RecoveryScript.shared.callCount == 1)
+        #expect(env.recoveryScript.callCount == 1)
         #expect(host.recoveryOutcomes["launchrecovery"] == .done)
     }
 
     @Test func deferredRecoveryIsRetriedOnRequestUntilDone() async {
         defer { env.tearDown() }
-        RecoveryScript.shared.reset([.deferred, .done])
+        env.recoveryScript.reset([.deferred, .done])
         let host = env.makeHost([LaunchRecoveryPlugin.self])
 
         await host.start()
@@ -57,13 +57,13 @@ import Testing
 
         host.retryDeferredRecoveries()
         await host.waitForRecoveries()
-        #expect(RecoveryScript.shared.callCount == 2)
+        #expect(env.recoveryScript.callCount == 2)
     }
 
     @MainActor
     @Test func appActivationRetriesADeferredRecovery() async {
         defer { env.tearDown() }
-        RecoveryScript.shared.reset([.deferred, .done])
+        env.recoveryScript.reset([.deferred, .done])
         let coordinator = AppCoordinator(
             environment: env.environment, pluginTypes: [LaunchRecoveryPlugin.self],
             registrar: InMemoryHotkeyRegistrar(), occupiedShortcuts: { [] }, launchAtLogin: NoLaunchAtLogin())
@@ -77,22 +77,24 @@ import Testing
         center.post(name: NSApplication.didBecomeActiveNotification, object: nil)
         await coordinator.host.waitForRecoveries()
         #expect(coordinator.host.recoveryOutcomes["launchrecovery"] == .done)
-        #expect(RecoveryScript.shared.callCount == 2)
+        #expect(env.recoveryScript.callCount == 2)
     }
 
     @Test func recoveryBoundGivesDeferredWithoutWaitingForHungWork() async {
-        let outcome = await withDeadline(.milliseconds(50), clock: ContinuousClock()) {
-            await Task.detached { blockCurrentThread(microseconds: 1_500_000) }.value
+        // On a clock whose bound has passed as soon as it is awaited, hung work (here: work that never ends until
+        // it is let go) is not waited for.
+        let hung = Gate()
+        let outcome = await withDeadline(.seconds(1), clock: ExpiredClock()) {
+            await hung.wait()
             return RecoveryOutcome.done
         }
         #expect(outcome == nil)
+        hung.open()
     }
 
     @Test func aRetryNeverStartsASecondRecoveryBesideOneThatIsStillRunning() async {
         defer { env.tearDown() }
-        OverrunRecoveryPlugin.reset()
-        defer { OverrunRecoveryPlugin.release() }
-        let host = env.makeHost([OverrunRecoveryPlugin.self], recoveryBudget: .milliseconds(30))
+        let host = env.makeHost([OverrunRecoveryPlugin.self], recoveryBudget: .seconds(1), clock: ExpiredClock())
         await host.start()
         await host.waitForRecoveries()
         #expect(host.recoveryOutcomes["overrunrecovery"] == .deferred)
@@ -100,7 +102,7 @@ import Testing
         host.retryDeferredRecoveries()
         host.retryDeferredRecoveries()
         await host.waitForRecoveries()
-        #expect(OverrunRecoveryPlugin.entered.withLock { $0 } == 1)
+        #expect(env.overrun.entered.withLock { $0 } == 1)
     }
 
     @Test func defaultPluginRecoversAsDone() async {
@@ -181,16 +183,19 @@ import Testing
 
     @Test func overBudgetSourceDoesNotBlockTheOthers() async {
         defer { env.tearDown() }
-        let host = env.makeHost([AlphaPlugin.self, StuckPlugin.self], budget: .milliseconds(100))
+        // Time moves only when the test says so. The sources that answer cancel their deadlines; the stuck one is
+        // held until tear-down and is the only one left waiting, so advancing the clock times out exactly it.
+        let clock = GatedClock()
+        let host = env.makeHost([AlphaPlugin.self, StuckPlugin.self], budget: .seconds(1), clock: clock)
         await host.start()
 
-        let started = ContinuousClock.now
-        let results = await host.query(NormalizedQuery(raw: "Te", normalized: "te"), limit: 10)
-        let elapsed = ContinuousClock.now - started
+        let query = Task { await host.query(NormalizedQuery(raw: "Te", normalized: "te"), limit: 10) }
+        // Three sources each start a deadline; two answer at once and cancel theirs, the stuck one stays.
+        await clock.waitForRegistrations(3)
+        await clock.waitForSleepers(exactly: 1)
+        clock.advance(.seconds(1))
+        let results = await query.value
 
-        // The stuck source blocks for 5 s; the query returns at its 100 ms budget. The bound is far from both, so
-        // a slow CI machine cannot make the test flaky.
-        #expect(elapsed < .seconds(3))
         #expect(results.map(\.sourceID) == ["alpha.instant", "stuck", "throwing"])
         guard case .results(let candidates) = results[0].outcome else {
             Issue.record("alpha source should answer")

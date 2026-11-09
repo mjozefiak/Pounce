@@ -20,6 +20,8 @@ private nonisolated struct RunLoopBox: @unchecked Sendable {
     var loop: CFRunLoop?
 }
 
+/// `@unchecked Sendable` rests on two rules: the state shared between threads (`shared`) is behind one lock, and
+/// everything else (`apps`, the observers, the `AppState` objects) is touched only on the observation thread.
 nonisolated final class AXObservationHub: @unchecked Sendable {
     static let messagingTimeout: Float = 0.25
 
