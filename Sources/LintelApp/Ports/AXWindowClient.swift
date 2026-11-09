@@ -64,16 +64,23 @@ nonisolated final class AXWindowClient: WindowClient, Sendable {
 
     // MARK: Events
 
+    /// What `events` answered before anyone subscribed: nothing, and nothing is observed.
     var events: AsyncStream<WindowEvent> {
-        streamState.withLock { state in
-            if let stream = state.stream { return stream }
-            let (stream, continuation) = AsyncStream.makeStream(
-                of: WindowEvent.self, bufferingPolicy: .bufferingNewest(512))
-            let buffer = AXEventBuffer(continuation: continuation)
+        streamState.withLock { $0.stream } ?? AsyncStream { $0.finish() }
+    }
+
+    /// Starts observing every regular app and returns the stream. One subscriber at a time: a second call while
+    /// the first stream lives returns that stream. The observation thread stops when the stream ends, so a plugin
+    /// that is off costs nothing.
+    func subscribe() async -> AsyncStream<WindowEvent> {
+        let (stream, hub, isNew) = streamState.withLock {
+            state -> (AsyncStream<WindowEvent>, AXObservationHub?, Bool) in
+            if let stream = state.stream { return (stream, nil, false) }
+            let (stream, buffer) = AXEventBuffer.make()
             let hub = AXObservationHub(
                 buffer: buffer, lookup: lookup, terminated: { [weak self] pid in self?.forget(pid: pid) })
-            continuation.onTermination = { [weak self] _ in
-                // The engine stopped listening: stop observing, and let the next `events` start afresh.
+            buffer.onTermination { [weak self] in
+                // The engine stopped listening: stop observing, and let the next subscription start afresh.
                 hub.stop()
                 self?.streamState.withLock {
                     $0.stream = nil
@@ -82,9 +89,10 @@ nonisolated final class AXWindowClient: WindowClient, Sendable {
             }
             state.stream = stream
             state.hub = hub
-            Task { await hub.start() }
-            return stream
+            return (stream, hub, true)
         }
+        if isNew { await hub?.start() }
+        return stream
     }
 
     /// An app quit: its serial queue and its element cache are dropped.

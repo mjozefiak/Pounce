@@ -48,6 +48,13 @@ final class FakeWindowClient: WindowClient, Sendable {
         var stalled = 0
         var stallsReleased = false
         var stallContinuations: [CheckedContinuation<Void, Never>] = []
+        var log: [String] = []
+        var readHoldArmed = false
+        var readHeld = false
+        var readHeldWaiters: [CheckedContinuation<Void, Never>] = []
+        var readRelease: CheckedContinuation<Void, Never>?
+        var completed = 0
+        var completionWaiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
         var callWaiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
         var stallWaiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
     }
@@ -125,6 +132,18 @@ final class FakeWindowClient: WindowClient, Sendable {
         }
     }
 
+    /// Waits until `count` `setFrame` calls have finished (deterministic: no polling).
+    func waitUntilCompleted(_ count: Int) async {
+        await withCheckedContinuation { continuation in
+            let ready = state.withLock { state -> Bool in
+                if state.completed >= count { return true }
+                state.completionWaiters.append((count, continuation))
+                return false
+            }
+            if ready { continuation.resume() }
+        }
+    }
+
     /// Lets every stalled call (now and later) go on.
     func releaseStalls() {
         let waiting = state.withLock { state -> [CheckedContinuation<Void, Never>] in
@@ -141,6 +160,8 @@ final class FakeWindowClient: WindowClient, Sendable {
     var calls: [Call] { state.withLock { $0.calls } }
     var windowsReads: Int { state.withLock { $0.windowsReads } }
     var singleReads: Int { state.withLock { $0.singleReads } }
+    /// The order in which the engine used the port: `subscribe`, `windows`, `window`.
+    var callLog: [String] { state.withLock { $0.log } }
     var focusCalls: [WindowID] { state.withLock { $0.focusCalls } }
     var maxInFlight: Int { state.withLock { $0.maxInFlight } }
     func frame(of id: WindowID) -> CGRect? { state.withLock { $0.windows[id]?.frame } }
@@ -154,16 +175,61 @@ final class FakeWindowClient: WindowClient, Sendable {
 
     func windows() async -> [WindowInfo] {
         state.withLock {
+            $0.log.append("windows")
             $0.windowsReads += 1
             return $0.windows.values.sorted { $0.id < $1.id }
         }
     }
 
     func window(id: WindowID) async -> WindowInfo? {
-        state.withLock {
-            $0.singleReads += 1
-            return $0.windows[id]
+        let (info, hold) = state.withLock { state -> (WindowInfo?, Bool) in
+            state.singleReads += 1
+            state.log.append("window")
+            let hold = state.readHoldArmed
+            state.readHoldArmed = false
+            return (state.windows[id], hold)
         }
+        if hold {
+            // The read has happened; the answer is not delivered until the test lets it go.
+            await withCheckedContinuation { continuation in
+                let waiting = state.withLock { state -> [CheckedContinuation<Void, Never>] in
+                    state.readHeld = true
+                    state.readRelease = continuation
+                    defer { state.readHeldWaiters = [] }
+                    return state.readHeldWaiters
+                }
+                for waiter in waiting { waiter.resume() }
+            }
+        }
+        return info
+    }
+
+    /// The next `window(id:)` call answers only after `releaseReadHold()`.
+    func armReadHold() { state.withLock { $0.readHoldArmed = true } }
+
+    func waitUntilReadHeld() async {
+        await withCheckedContinuation { continuation in
+            let held = state.withLock { state -> Bool in
+                if state.readHeld { return true }
+                state.readHeldWaiters.append(continuation)
+                return false
+            }
+            if held { continuation.resume() }
+        }
+    }
+
+    func releaseReadHold() {
+        let release = state.withLock { state -> CheckedContinuation<Void, Never>? in
+            state.readHeld = false
+            defer { state.readRelease = nil }
+            return state.readRelease
+        }
+        release?.resume()
+    }
+
+    func subscribe() async -> AsyncStream<WindowEvent> {
+        state.withLock { $0.log.append("subscribe") }
+        return events
     }
 
     func focusedWindow() async -> WindowID? { state.withLock { $0.focused } }
@@ -190,7 +256,16 @@ final class FakeWindowClient: WindowClient, Sendable {
         }
         for waiter in wake { waiter.resume() }
         if latency > .zero { try? await Task.sleep(for: latency) }
-        defer { state.withLock { $0.inFlight -= 1 } }
+        defer {
+            let ready = state.withLock { state -> [CheckedContinuation<Void, Never>] in
+                state.inFlight -= 1
+                state.completed += 1
+                let ready = state.completionWaiters.filter { $0.count <= state.completed }.map(\.continuation)
+                state.completionWaiters.removeAll { $0.count <= state.completed }
+                return ready
+            }
+            for waiter in ready { waiter.resume() }
+        }
         if behavior == .stall {
             await withCheckedContinuation { continuation in
                 let (release, ready) = state.withLock { state -> (Bool, [CheckedContinuation<Void, Never>]) in

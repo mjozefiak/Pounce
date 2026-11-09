@@ -10,7 +10,7 @@ enum TilingOrientation: String, Codable, Sendable, CaseIterable {
 }
 
 /// A direction of the focus, move and join commands.
-enum TilingDirection: String, Sendable, CaseIterable {
+enum TilingDirection: String, Codable, Sendable, CaseIterable {
     case left
     case right
     case up

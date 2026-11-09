@@ -2,11 +2,12 @@ import CoreGraphics
 import Foundation
 import LintelKit
 
-// The engine's abstraction over how a workspace is arranged (spec: Architecture, "Strategy pattern for
-// layouts"). The reducer knows no kind: it asks the strategy of the workspace's resolved kind to bring its state
-// up to date with the windows and to say where each goes, and hands it the commands that edit that state. Every
-// kind keeps its own state as an opaque value (`AnyLayoutState`) under the kind's name, in memory and in
-// `state.json`, so a later strategy is one new type and one line in `LayoutRegistry`.
+// The engine's abstraction over how a workspace is arranged (spec: Architecture, "Strategy pattern for layouts").
+// The reducer, the state, the store and the engine know no kind. A strategy owns its kind's state, its
+// configuration and the commands it understands, all opaque to the rest; a new strategy is one new type and one
+// line in `LayoutRegistry`.
+
+// MARK: State
 
 /// The state of one kind for one workspace.
 protocol LayoutStateValue: Sendable {
@@ -37,6 +38,56 @@ struct OpaqueLayoutState: LayoutStateValue, Equatable {
     var isEmpty: Bool { false }
 }
 
+// MARK: Configuration
+
+/// A strategy's configuration (for Zones: the layout library and the assignments).
+protocol LayoutConfigValue: Sendable {
+    func isEqual(to other: any LayoutConfigValue) -> Bool
+}
+
+extension LayoutConfigValue where Self: Equatable {
+    func isEqual(to other: any LayoutConfigValue) -> Bool { (other as? Self) == self }
+}
+
+struct AnyLayoutConfig: Equatable, Sendable {
+    let value: any LayoutConfigValue
+
+    init(_ value: some LayoutConfigValue) { self.value = value }
+
+    func `as`<Config: LayoutConfigValue>(_ type: Config.Type) -> Config? { value as? Config }
+
+    static func == (lhs: AnyLayoutConfig, rhs: AnyLayoutConfig) -> Bool { lhs.value.isEqual(to: rhs.value) }
+}
+
+/// What a strategy may read to build its configuration: the plugin's settings and the stored data a layout kind
+/// can need (the assignments and the layout library live in their own files).
+struct LayoutEnvironment: Sendable {
+    var settings: WindowsSettings
+    var assignments = AssignmentTable()
+    var library = LayoutLibrary.stock
+}
+
+// MARK: Commands
+
+/// A command a strategy understands: an id and a payload, both opaque to the engine. The ids and payloads of a kind
+/// are defined next to its strategy; a strategy that does not know an id answers `nil`.
+struct LayoutCommand: Equatable, Sendable {
+    var id: String
+    var payload: JSONValue
+
+    init(_ id: String, payload: JSONValue = .null) {
+        self.id = id
+        self.payload = payload
+    }
+
+    init<Payload: Encodable>(_ id: String, encoding payload: Payload) {
+        self.id = id
+        self.payload = JSONValue(encoding: payload) ?? .null
+    }
+
+    func payload<Payload: Decodable>(as type: Payload.Type) -> Payload? { payload.decoded(as: type) }
+}
+
 /// What a strategy needs to arrange one workspace on the display that shows it.
 struct LayoutInput: Sendable {
     var workspace: WorkspaceID
@@ -45,15 +96,17 @@ struct LayoutInput: Sendable {
     /// The bundle id of each window in `windows`, for placement memory; never stored or logged.
     var apps: [WindowID: String]
     var state: AnyLayoutState?
+    /// This kind's own configuration, if the plugin has one for it.
+    var config: AnyLayoutConfig?
+    /// The gaps and orientation the workspace resolved to (shared by every kind).
+    var resolved: ResolvedLayout
     var focused: WindowID?
     var previousFocus: WindowID?
     var display: DisplayInfo
     var displayKey: String
-    var config: EngineConfig
     /// Placement memory shared by the strategies, keyed by app (memory only).
     var hints: [String: Int]
 
-    var resolved: ResolvedLayout { config.layout.resolved(for: workspace) }
     var area: CGRect { display.visibleFrame }
 }
 
@@ -63,20 +116,6 @@ struct LayoutArrangement: Sendable {
     var hints: [String: Int]
 }
 
-/// A command that edits a strategy's state; a strategy that does not know it answers `nil`.
-enum LayoutOperation: Equatable, Sendable {
-    case focus(TilingDirection)
-    case move(TilingDirection)
-    case resize(Double)
-    case join(TilingDirection)
-    case toggleOrientation
-    case balance
-    /// Moves the window to a slot of the layout by its number (a zone, 1 to 9).
-    case slot(Int)
-    /// A drag released over a slot (by its id in the layout) of the layout shown on a display.
-    case snap(slotID: Int, displayKey: String)
-}
-
 struct LayoutEdit: Sendable {
     var state: AnyLayoutState
     /// The window the focus moves to, for a command that moves the focus.
@@ -84,13 +123,18 @@ struct LayoutEdit: Sendable {
     var hints: [String: Int]
 }
 
+// MARK: Strategy
+
 protocol LayoutStrategy: Sendable {
     var kind: LayoutKind { get }
+    /// This kind's configuration from the settings and stored data, `nil` when it has none.
+    func makeConfig(_ environment: LayoutEnvironment) -> AnyLayoutConfig?
     /// Brings the state up to date with `input.windows` (windows that left go, new ones enter by the kind's
     /// rule) and returns where every window goes. Pure.
     func arrange(_ input: LayoutInput) -> LayoutArrangement
-    /// The edit a command makes to `input.state` (already up to date) for `window`, or `nil`.
-    func perform(_ operation: LayoutOperation, on window: WindowID, _ input: LayoutInput) -> LayoutEdit?
+    /// The edit a command makes to `input.state` (already up to date) for `window`, or `nil` when the command is
+    /// not one of this kind's or changes nothing.
+    func perform(_ command: LayoutCommand, on window: WindowID, _ input: LayoutInput) -> LayoutEdit?
     /// The state without a window that is gone.
     func removing(_ window: WindowID, from state: AnyLayoutState) -> AnyLayoutState
     /// The slots the snap overlay offers for the workspace, empty when the kind has none.
@@ -102,7 +146,8 @@ protocol LayoutStrategy: Sendable {
 }
 
 extension LayoutStrategy {
-    func perform(_ operation: LayoutOperation, on window: WindowID, _ input: LayoutInput) -> LayoutEdit? { nil }
+    func makeConfig(_ environment: LayoutEnvironment) -> AnyLayoutConfig? { nil }
+    func perform(_ command: LayoutCommand, on window: WindowID, _ input: LayoutInput) -> LayoutEdit? { nil }
     func removing(_ window: WindowID, from state: AnyLayoutState) -> AnyLayoutState { state }
     func snapTargets(_ input: LayoutInput) -> [DragDisplay] { [] }
     func encode(_ state: AnyLayoutState) -> JSONValue? { nil }
@@ -118,24 +163,43 @@ struct FreeStrategy: LayoutStrategy {
     }
 }
 
+// MARK: Registry
+
 /// The strategies of this build, by kind. The reducer and the engine take it as an argument, so a test can pass a
 /// registry of its own.
 struct LayoutRegistry: Sendable {
     static let standard = LayoutRegistry([TilingStrategy(), ZonesStrategy(), FreeStrategy()])
 
     private let strategies: [LayoutKind: any LayoutStrategy]
+    /// The kinds in registration order: what the pane offers and *Toggle layout* cycles through.
+    let kinds: [LayoutKind]
 
     init(_ strategies: [any LayoutStrategy]) {
         self.strategies = Dictionary(strategies.map { ($0.kind, $0) }, uniquingKeysWith: { first, _ in first })
+        var seen = Set<LayoutKind>()
+        kinds = strategies.map(\.kind).filter { seen.insert($0).inserted }
     }
 
     subscript(kind: LayoutKind) -> (any LayoutStrategy)? { strategies[kind] }
 
+    func contains(_ kind: LayoutKind) -> Bool { strategies[kind] != nil }
+
+    /// The configuration of every strategy that has one.
+    func configs(_ environment: LayoutEnvironment) -> [LayoutKind: AnyLayoutConfig] {
+        var result: [LayoutKind: AnyLayoutConfig] = [:]
+        for (kind, strategy) in strategies {
+            if let config = strategy.makeConfig(environment) { result[kind] = config }
+        }
+        return result
+    }
+
     /// The state stored under a kind's name: decoded by its strategy, kept opaque for a kind this build does not
     /// know, dropped (`nil`) when a known kind does not decode.
     func decode(kindName: String, json: JSONValue) -> AnyLayoutState? {
-        guard let kind = LayoutKind(rawValue: kindName) else { return AnyLayoutState(OpaqueLayoutState(json: json)) }
-        return strategies[kind]?.decode(json)
+        guard let strategy = strategies[LayoutKind(kindName)] else {
+            return AnyLayoutState(OpaqueLayoutState(json: json))
+        }
+        return strategy.decode(json)
     }
 
     func decode(_ stored: [WorkspaceID: [String: JSONValue]]) -> [WorkspaceID: [String: AnyLayoutState]] {
@@ -155,8 +219,8 @@ struct LayoutRegistry: Sendable {
                 let json: JSONValue?
                 if let opaque = state.as(OpaqueLayoutState.self) {
                     json = opaque.json
-                } else if let kind = LayoutKind(rawValue: name), !state.isEmpty {
-                    json = strategies[kind]?.encode(state)
+                } else if !state.isEmpty {
+                    json = strategies[LayoutKind(name)]?.encode(state)
                 } else {
                     json = nil
                 }
@@ -165,4 +229,22 @@ struct LayoutRegistry: Sendable {
         }
         return result
     }
+}
+
+// MARK: Shared navigation verbs
+
+/// The two verbs every arranged kind may answer: move the focus to a neighbour, move the window to a neighbour.
+extension LayoutCommand {
+    static func focus(_ direction: TilingDirection) -> LayoutCommand { LayoutCommand("focus", encoding: direction) }
+    static func move(_ direction: TilingDirection) -> LayoutCommand { LayoutCommand("move", encoding: direction) }
+
+    /// The direction a `focus` or `move` command carries.
+    var direction: TilingDirection? { payload(as: TilingDirection.self) }
+}
+
+extension EngineCommand {
+    /// Moves the focus to the neighbouring tile or zone of the focused window.
+    static func focusDirection(_ direction: TilingDirection) -> EngineCommand { .layout(.focus(direction)) }
+    /// Moves the focused window to the neighbouring tile or zone.
+    static func moveDirection(_ direction: TilingDirection) -> EngineCommand { .layout(.move(direction)) }
 }

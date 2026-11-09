@@ -77,7 +77,11 @@ struct WindowsSettings: Sendable {
     var showHUD: Bool { settings.bool(Key.showHUD, default: true) }
 
     /// Auto-tile unless the user chose otherwise (spec Q5); an unknown stored value reads as Auto-tile.
-    var defaultKind: LayoutKind { settings.string(Key.defaultKind).flatMap(LayoutKind.init(rawValue:)) ?? .tiling }
+    /// The kind of a workspace without an override; a value that is not one of the standard kinds reads as Auto-tile.
+    var defaultKind: LayoutKind {
+        settings.string(Key.defaultKind).map { LayoutKind($0) }.flatMap { LayoutKind.standard.contains($0) ? $0 : nil }
+            ?? .tiling
+    }
 
     /// Points between neighbouring windows and around the whole set.
     var innerGap: Int { Self.clampGap(settings.integer(Key.innerGap, default: Self.defaultInnerGap)) }

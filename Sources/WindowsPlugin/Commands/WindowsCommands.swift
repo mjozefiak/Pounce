@@ -188,7 +188,7 @@ extension WindowsPlugin {
             add(
                 WindowsCommandID.move(direction), Self.moveTitle(direction),
                 symbol: "arrow.up.and.down.and.arrow.left.and.right",
-                command: .moveInTree(direction))
+                command: .moveDirection(direction))
         }
         add(
             WindowsCommandID.grow,

@@ -28,8 +28,9 @@ extension ReducerContext {
             strategy,
             LayoutInput(
                 workspace: workspace, windows: windows, apps: apps, state: state.layouts[workspace]?[kind.rawValue],
+                config: state.config.strategyConfigs[kind], resolved: state.config.layout.resolved(for: workspace),
                 focused: state.focused, previousFocus: state.previousFocus, display: display, displayKey: shown,
-                config: state.config, hints: state.placementHints)
+                hints: state.placementHints)
         )
     }
 
@@ -66,7 +67,7 @@ extension ReducerContext {
     mutating func forgetInLayouts(_ id: WindowID) {
         for workspace in state.layouts.keys.sorted() {
             for name in state.layouts[workspace]?.keys.sorted() ?? [] {
-                guard let kind = LayoutKind(rawValue: name), let strategy = strategies[kind],
+                guard let strategy = strategies[LayoutKind(name)],
                     let current = state.layouts[workspace]?[name]
                 else { continue }
                 let next = strategy.removing(id, from: current)
@@ -92,7 +93,7 @@ extension ReducerContext {
 
     /// Runs a layout command on a window (the focused one by default); the strategy answers `nil` when it does not
     /// apply. The window must be managed, not floating, and arranged on a shown workspace.
-    mutating func run(_ operation: LayoutOperation, on window: WindowID? = nil) {
+    mutating func run(_ command: LayoutCommand, on window: WindowID? = nil) {
         guard !state.isFrozen, let id = window ?? state.focused, state.windows[id] != nil,
             !state.floating.contains(id), !state.unmanaged.contains(id), let workspace = state.model.workspace(of: id),
             let found = arrangement(for: workspace), found.result.frames[id] != nil
@@ -101,7 +102,7 @@ extension ReducerContext {
         var input = found.input
         input.state = found.result.state
         input.hints = found.result.hints
-        guard let edit = found.strategy.perform(operation, on: id, input) else { return }
+        guard let edit = found.strategy.perform(command, on: id, input) else { return }
         state.layouts[workspace, default: [:]][found.strategy.kind.rawValue] = edit.state
         state.placementHints = edit.hints
         if let next = edit.focus {

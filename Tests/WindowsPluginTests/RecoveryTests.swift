@@ -126,17 +126,16 @@ import os
     @Test func aRunningEnginesJournalIsLeftAlone() async throws {
         let (harness, client, _, context) = try await parkedRig([1])
         defer { harness.tearDown() }
-        let owner = JournalRegistry.shared.owner(
-            for: harness.directory, clock: ContinuousClock(), logger: context.logger)
-        await owner.beginEngine()
+        let owner = JournalOwner.owner(for: context)
+        let lease = await owner.beginEngine()
         let outcome = await WindowsPlugin.recover(context: context, isLaunch: false) { _ in }
         #expect(outcome == .done)
         #expect(client.calls.isEmpty)
         #expect(await journal(harness).count == 1)
         // A stopping engine still owns it: the pass is deferred, not skipped as done.
-        await owner.engineStopping()
+        await owner.engineStopping(lease)
         #expect(await WindowsPlugin.recover(context: context, isLaunch: false) { _ in } == .deferred)
-        await owner.endEngine()
+        await owner.endEngine(lease)
         #expect(await WindowsPlugin.recover(context: context, isLaunch: false) { _ in } == .done)
         #expect(client.frame(of: id(1)) == home)
     }
@@ -169,22 +168,66 @@ import os
         #expect(await owner.phase == .recovering)
         open.yield()
         _ = await pass.value
-        await engine.value
+        let lease = await engine.value
         #expect(await owner.phase == .engine)
         guard case .engineRunning = await owner.exclusive({ _ in 0 }) else {
             Issue.record("a running engine owns the journal")
             return
         }
-        await owner.engineStopping()
+        await owner.engineStopping(lease)
         guard case .engineStopping = await owner.exclusive({ _ in 0 }) else {
             Issue.record("a stopping engine still owns the journal")
             return
         }
-        await owner.endEngine()
+        await owner.endEngine(lease)
         guard case .ran = await owner.exclusive({ _ in 0 }) else {
             Issue.record("the journal is free again")
             return
         }
+    }
+
+    @Test func aNewEngineWaitsForTheOldOneAndALateEndOfTheOldOneChangesNothing() async throws {
+        let harness = try WindowsHarness()
+        defer { harness.tearDown() }
+        let owner = JournalOwner(
+            directory: harness.directory, logger: Logger(subsystem: "com.lintelapp.tests", category: "windows"))
+        let old = await owner.beginEngine()
+        let next = Task { await owner.beginEngine() }
+        await Task.yield()
+        // The second engine cannot start while the first one still owns the journal, stopped or not.
+        #expect(await owner.phase == .engine)
+        await owner.engineStopping(old)
+        await owner.endEngine(old)
+        let lease = await next.value
+        #expect(lease != old)
+        // The old engine reports its end a second time, late: it must not free the journal under the new one.
+        await owner.endEngine(old)
+        await owner.engineStopping(old)
+        #expect(await owner.phase == .engine)
+        await owner.endEngine(lease)
+        #expect(await owner.phase == .idle)
+    }
+
+    @MainActor
+    @Test func disablingAndAtOnceEnablingAgainRunsOneEngineAtATimeAndRecoveryWaitsBesideIt() async throws {
+        let harness = try WindowsHarness()
+        defer { harness.tearDown() }
+        let client = FakeWindowClient(windows: [makeWindow(1)])
+        let (plugin, _) = try await activePlugin(
+            harness.context(windows: client, permissions: ScriptedPermissions(granted: true)))
+        let first = try #require(plugin.runtime)
+        await first.engine.send(.showWorkspace(WorkspaceID(2)!))
+        await plugin.deactivate()
+        try await plugin.activate()
+        let second = try #require(plugin.runtime)
+        #expect(second !== first)
+        // A recovery pass beside the new engine leaves its journal alone.
+        let outcome = await WindowsPlugin.recover(context: plugin.context, isLaunch: false) { _ in }
+        #expect(outcome == .done)
+        #expect(await plugin.journal.phase == .engine)
+        await plugin.deactivate()
+        #expect(await plugin.journal.phase == .idle)
+        #expect(client.frame(of: id(1)) == home)
     }
 
     @Test func twoLaunchesInARowWithParkedWindowsSwitchSafeModeOn() async throws {

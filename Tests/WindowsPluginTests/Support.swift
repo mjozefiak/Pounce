@@ -10,6 +10,8 @@ final class WindowsHarness: @unchecked Sendable {
     let store = MemorySettings()
     /// The clock of every context this harness makes: time moves only when a test advances it.
     let clock = VirtualClock(autoAdvance: false)
+    /// What every context of this harness shares, like the contexts of one app instance.
+    let services = PluginServices()
 
     init() throws {
         directory = FileManager.default.temporaryDirectory.appending(
@@ -39,7 +41,8 @@ final class WindowsHarness: @unchecked Sendable {
             workspace: NoWorkspace(),
             permissions: permissions,
             clock: clock,
-            windows: windows
+            windows: windows,
+            services: services
         )
     }
 
@@ -166,5 +169,13 @@ extension StateStore {
 
     func setZones(_ zones: [WorkspaceID: [String: ZoneState]]) {
         setLayouts(WindowsState(zones: zones).layouts)
+    }
+}
+
+extension EngineConfig {
+    /// The Zones configuration, for tests that set it directly.
+    var zones: ZonesConfig {
+        get { strategyConfigs[.zones]?.as(ZonesConfig.self) ?? ZonesConfig() }
+        set { strategyConfigs[.zones] = AnyLayoutConfig(newValue) }
     }
 }

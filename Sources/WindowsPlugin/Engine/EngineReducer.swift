@@ -39,6 +39,8 @@ enum EngineReducer {
             context.perform(command, now: now)
         case .applied(let results, let now):
             context.applied(results, now: now)
+        case .frameStarted(let request, let now):
+            context.frameStarted(request, now: now)
         case .watchdogTripped(let now):
             context.watchdogTripped(now: now)
         case .configChanged(let config):

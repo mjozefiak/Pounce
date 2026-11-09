@@ -37,8 +37,6 @@ public final class WindowsPlugin: LintelPlugin {
     let settings: WindowsSettings
     let hud: any WindowsHUDPresenting
     private let activationCenter: NotificationCenter
-    /// Where this process's journal owners live; tests pass their own.
-    let journals: JournalRegistry
     /// The owner of this plugin's storage folder: the only holder of its `StateStore`.
     let journal: JournalOwner
     /// Whether the plugin shows the menu bar strip when it is on. Tests leave it off: a status item needs a display.
@@ -54,8 +52,8 @@ public final class WindowsPlugin: LintelPlugin {
         model.startFailure = { [weak self] in self?.lastStartError }
         model.openLayouts = { [weak self] in self?.layoutsWindow.show() }
         model.hud = hud
-        model.restoreFromJournal = { [context, journals] in
-            await Self.restoreFromJournal(context: context, journals: journals)
+        model.restoreFromJournal = { [context] in
+            await Self.restoreFromJournal(context: context)
         }
         return model
     }()
@@ -76,10 +74,9 @@ public final class WindowsPlugin: LintelPlugin {
 
     init(
         context: PluginContext, hud: any WindowsHUDPresenting, activationCenter: NotificationCenter,
-        showsStrip: Bool = false, showsOverlay: Bool = false, journals: JournalRegistry = .shared
+        showsStrip: Bool = false, showsOverlay: Bool = false
     ) {
-        self.journals = journals
-        let journal = journals.owner(for: context.storageDirectory, clock: context.clock, logger: context.logger)
+        let journal = JournalOwner.owner(for: context)
         self.journal = journal
         self.showsStrip = showsStrip
         self.showsOverlay = showsOverlay

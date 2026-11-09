@@ -162,13 +162,13 @@ import Testing
         let rig = try rig([makeWindow(1), makeWindow(2)], focused: id(1))
         defer { rig.harness.tearDown() }
         await rig.engine.start()
-        await rig.engine.send(.moveInTree(.left))
+        await rig.engine.send(.moveDirection(.left))
         #expect(await placed(rig)[id(1)] == 1)
-        await rig.engine.send(.moveInTree(.right))
+        await rig.engine.send(.moveDirection(.right))
         #expect(await placed(rig)[id(1)] == 2)
-        await rig.engine.send(.moveInTree(.right))
+        await rig.engine.send(.moveDirection(.right))
         #expect(await placed(rig)[id(1)] == 2)
-        await rig.engine.send(.moveInTree(.up))
+        await rig.engine.send(.moveDirection(.up))
         #expect(await placed(rig)[id(1)] == 2)
         await rig.engine.stop()
     }

@@ -33,6 +33,8 @@ struct AppEnvironment {
     /// Accessibility client in the app (`live()`); the default (no windows, unsupported) everywhere else, so tests
     /// and QA mode never touch the tester's windows.
     var windowClient: any WindowClient = NoWindowClient()
+    /// What the plugins of this app instance share (`PluginContext.services`).
+    let services = PluginServices()
 
     /// `Plugins/<id>/` under the data root.
     func storageDirectory(for id: PluginID) -> URL {
@@ -114,7 +116,8 @@ struct AppEnvironment {
             openModels: openModels,
             windows: windowClient,
             setCommandShortcut: setCommandShortcut,
-            commandShortcut: commandShortcut
+            commandShortcut: commandShortcut,
+            services: services
         )
     }
 

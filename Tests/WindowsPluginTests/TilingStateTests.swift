@@ -195,7 +195,7 @@ import Testing
         settings.setDefaultKind(.tiling)
         settings.setInnerGap(3)
         settings.setWorkspaceOverrides(WorkspaceOverrides([ws(2): WorkspaceOverride(kind: .free)]))
-        let config = WindowsRuntime.config(settings)
+        let config = EngineConfigBuilder().build(settings)
         #expect(config.layout.defaultKind == .tiling)
         #expect(config.layout.innerGap == 3)
         #expect(config.layout.resolved(for: ws(2)).kind == .free)

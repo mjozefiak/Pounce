@@ -10,87 +10,33 @@ import Testing
 @Suite struct AXEventBufferTests {
     private func id(_ number: UInt32, pid: Int32 = 10) -> WindowID { WindowID(pid: pid, number: number) }
 
-    /// Flushes and collects what was delivered; the stream is closed through a sentinel so the loop ends.
-    private func delivered(_ body: (AXEventBuffer) -> Void, capacity: Int = 256) async -> [WindowEvent] {
-        let (stream, continuation) = AsyncStream.makeStream(
-            of: WindowEvent.self, bufferingPolicy: .bufferingNewest(1_000))
-        let buffer = AXEventBuffer(continuation: continuation, interval: nil, capacity: capacity)
+    /// Collects what was delivered; the stream is finished so the loop ends.
+    private func delivered(_ body: (AXEventBuffer) -> Void, capacity: Int = 1_024) async -> [WindowEvent] {
+        let (stream, buffer) = AXEventBuffer.make(capacity: capacity)
         body(buffer)
-        buffer.flush()
-        continuation.finish()
+        buffer.finish()
         var result: [WindowEvent] = []
         for await event in stream { result.append(event) }
         return result
     }
 
-    @Test func aStormOfMovesOfOneWindowBecomesOneEvent() async {
-        let events = await delivered { buffer in
-            for _ in 0..<500 {
-                buffer.append(.moved(id(1)))
-                buffer.append(.resized(id(1)))
-            }
-        }
-        #expect(events == [.moved(id(1)), .resized(id(1))])
+    @Test func eventsArriveInOrderAndNothingIsMergedOrDropped() async {
+        let sent: [WindowEvent] = [
+            .created(id(1)), .moved(id(1)), .moved(id(1)), .focused(id(1)), .destroyed(id(1)), .created(id(2)),
+        ]
+        let events = await delivered { buffer in for event in sent { buffer.append(event) } }
+        #expect(events == sent)
     }
 
-    @Test func eventsKeepTheOrderOfTheirFirstOccurrenceAndWindowsStayApart() async {
-        let events = await delivered { buffer in
-            buffer.append(.moved(id(2)))
-            buffer.append(.moved(id(1)))
-            buffer.append(.moved(id(2)))
-            buffer.append(.displaysChanged)
-        }
-        #expect(events == [.moved(id(2)), .moved(id(1)), .displaysChanged])
-    }
-
-    @Test func aWindowCreatedAndDestroyedInOneTickProducesNothing() async {
-        let events = await delivered { buffer in
-            buffer.append(.created(id(1)))
-            buffer.append(.moved(id(1)))
-            buffer.append(.destroyed(id(1)))
-            buffer.append(.moved(id(2)))
-        }
-        #expect(events == [.moved(id(2))])
-    }
-
-    @Test func aDestroyedWindowKnownFromEarlierStillGetsThrough() async {
-        let events = await delivered { buffer in
-            buffer.append(.moved(id(1)))
-            buffer.append(.destroyed(id(1)))
-        }
-        #expect(events == [.destroyed(id(1))])
-    }
-
-    @Test func onlyTheNewestFocusIsKeptAndItIsTheNewestEvent() async {
-        let events = await delivered { buffer in
-            buffer.append(.focused(id(1)))
-            buffer.append(.moved(id(3)))
-            buffer.append(.focused(id(2)))
-            buffer.append(.focused(nil))
-        }
-        #expect(events == [.moved(id(3)), .focused(nil)])
-    }
-
-    @Test func theBufferIsBoundedAndDropsTheOldestMovesFirst() async {
+    @Test func anOverflowIsFollowedByAResyncInsteadOfSilentLoss() async {
         let events = await delivered(
             { buffer in
-                buffer.append(.created(id(0)))
-                for number in 1...20 { buffer.append(.moved(id(UInt32(number)))) }
-                buffer.append(.spaceChanged)
-            }, capacity: 5)
-        #expect(events.count == 5)
-        #expect(events.first == .created(id(0)))
-        #expect(events.last == .spaceChanged)
-    }
-
-    @Test func aTimedBufferFlushesOnItsOwn() async {
-        let (stream, continuation) = AsyncStream.makeStream(of: WindowEvent.self, bufferingPolicy: .bufferingNewest(10))
-        let buffer = AXEventBuffer(continuation: continuation, interval: .milliseconds(10))
-        buffer.append(.moved(id(1)))
-        buffer.append(.moved(id(1)))
-        var iterator = stream.makeAsyncIterator()
-        #expect(await iterator.next() == .moved(id(1)))
-        #expect(buffer.pendingCount == 0)
+                buffer.append(.destroyed(id(1)))
+                for number in 2...20 { buffer.append(.moved(id(UInt32(number)))) }
+            }, capacity: 4)
+        // The oldest events are gone (the destroyed one among them), so a resync is queued behind them.
+        #expect(!events.contains(.destroyed(id(1))))
+        #expect(events.contains(.resync))
     }
 
     @Test func notificationsMapToEvents() {

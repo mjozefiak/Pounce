@@ -23,8 +23,8 @@ import Testing
         var huds: [Int] { lock.withLock { _huds } }
         var summaries: [WorkspaceSummary] { lock.withLock { _summaries } }
 
-        var outputs: EngineOutputs {
-            EngineOutputs(
+        var reporter: EngineReporter {
+            EngineReporter(
                 hud: { workspace, _ in self.lock.withLock { self._huds.append(workspace.rawValue) } },
                 summary: { summary in self.lock.withLock { self._summaries.append(summary) } },
                 banner: { banner in self.lock.withLock { self._banners.append(banner) } })
@@ -52,7 +52,7 @@ import Testing
         let time = ManualNow(autoAdvance: autoTick)
         let engine = WindowEngine(
             client: client, store: store, clock: time, workspaceCount: count, config: config,
-            tick: tick, watchdog: watchdog, outputs: recorder.outputs)
+            tick: tick, watchdog: watchdog, reporter: recorder.reporter)
         return Rig(harness: harness, client: client, store: store, engine: engine, recorder: recorder, time: time)
     }
 
@@ -203,7 +203,6 @@ import Testing
         #expect(rig.client.windowsReads == readsBefore)
         #expect(rig.client.singleReads == 1)
         #expect(rig.client.calls.isEmpty)
-        #expect(await rig.engine.frameChangeCount == 0)
         await rig.engine.stop()
     }
 
@@ -426,6 +425,7 @@ extension WindowEngineTests {
         // Workspace 2 is empty, so showing it parks both windows; the first app never answers.
         let hide = Task { await rig.engine.send(.showWorkspace(ws(2))) }
         await rig.client.waitUntilStalled(1)
+        await rig.client.waitUntilCompleted(1)
         // The other app is already parked and the journal holds both, while the first call is still waiting.
         #expect(rig.client.frame(of: other.id)?.origin == parkedOrigin)
         // The reducer is not blocked: a second switch is reduced and executed for the other app at once.

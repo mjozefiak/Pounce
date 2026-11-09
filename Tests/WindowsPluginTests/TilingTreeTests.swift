@@ -218,9 +218,9 @@ import Testing
             defaultKind: .tiling, innerGap: 0, outerGap: 0, rootOrientation: .vertical, overrides: [:])
         func input(_ windows: [WindowID], state: AnyLayoutState?) -> LayoutInput {
             LayoutInput(
-                workspace: WorkspaceID(1)!, windows: windows, apps: [:], state: state, focused: win(1),
-                previousFocus: nil, display: DisplayInfo(id: 1, uuid: "A", frame: screen), displayKey: "A",
-                config: config, hints: [:])
+                workspace: WorkspaceID(1)!, windows: windows, apps: [:], state: state, config: nil,
+                resolved: config.layout.resolved(for: WorkspaceID(1)!), focused: win(1), previousFocus: nil,
+                display: DisplayInfo(id: 1, uuid: "A", frame: screen), displayKey: "A", hints: [:])
         }
         let first = strategy.arrange(input([win(1), win(2)], state: nil))
         #expect(first.state?.as(TilingTree.self)?.windows.map(\.number) == [1, 2])

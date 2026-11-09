@@ -57,7 +57,7 @@ import Testing
     @Test func moveSwapsTheFocusedWindowWithItsNeighbour() async throws {
         let rig = try await rig()
         defer { rig.harness.tearDown() }
-        await rig.engine.send(.moveInTree(.right))
+        await rig.engine.send(.moveDirection(.right))
         #expect((await rig.engine.snapshot).tiling[ws(1)]?.windows == [id(2), id(1), id(3)])
         #expect(x(rig, 2) == 0 && x(rig, 1) == 640 && x(rig, 3) == 1280)
         await rig.engine.stop()
@@ -120,7 +120,7 @@ import Testing
         rig.client.clearCalls()
         let before = (await rig.engine.snapshot).tiling
         for command: EngineCommand in [
-            .focusDirection(.right), .moveInTree(.right), .resize(0.05), .join(.right), .toggleOrientation, .balance,
+            .focusDirection(.right), .moveDirection(.right), .resize(0.05), .join(.right), .toggleOrientation, .balance,
         ] {
             await rig.engine.send(command)
         }
@@ -134,7 +134,7 @@ import Testing
         let rig = try await rig(kind: .free)
         defer { rig.harness.tearDown() }
         for command: EngineCommand in [
-            .focusDirection(.right), .moveInTree(.right), .resize(0.05), .join(.right), .toggleOrientation, .balance,
+            .focusDirection(.right), .moveDirection(.right), .resize(0.05), .join(.right), .toggleOrientation, .balance,
         ] {
             await rig.engine.send(command)
         }
@@ -149,7 +149,7 @@ import Testing
         defer { rig.harness.tearDown() }
         _ = await rig.engine.restoreAllWindows()
         rig.client.clearCalls()
-        await rig.engine.send(.moveInTree(.right))
+        await rig.engine.send(.moveDirection(.right))
         await rig.engine.send(.focusDirection(.right))
         #expect(rig.client.calls.isEmpty && rig.client.focusCalls.isEmpty)
     }

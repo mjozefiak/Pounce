@@ -2,13 +2,33 @@ import CoreGraphics
 import Foundation
 import LintelKit
 
-/// What decides how a workspace is arranged (spec Q5): Auto-tile, Zones or Free. The raw values are the strings
-/// of the `plugins.windows.defaultKind` setting and of the per-workspace overrides (`tiling`, `zones`, `free`).
-/// Zones arrive with phase 3; until then a Zones workspace is arranged by nobody, like a Free one.
-enum LayoutKind: String, Codable, Sendable, CaseIterable {
-    case tiling
-    case zones
-    case free
+/// What decides how a workspace is arranged (spec Q5): an open identifier, so a new strategy is a new type and one
+/// registry line (`LayoutRegistry`). The raw values are the strings of the `plugins.windows.defaultKind` setting,
+/// of the per-workspace overrides and of the state keys in `state.json`. Auto-tile, Zones and Free are the standard
+/// ones.
+struct LayoutKind: RawRepresentable, Hashable, Codable, Sendable {
+    let rawValue: String
+
+    init(rawValue: String) { self.rawValue = rawValue }
+
+    init(_ rawValue: String) { self.rawValue = rawValue }
+
+    init(from decoder: any Decoder) throws {
+        rawValue = try decoder.singleValueContainer().decode(String.self)
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+
+    static let tiling = LayoutKind("tiling")
+    static let zones = LayoutKind("zones")
+    static let free = LayoutKind("free")
+
+    /// The kinds this build has a strategy for, in registration order: what the pane offers and *Toggle layout*
+    /// cycles through. A new strategy in `LayoutRegistry.standard` appears here by itself.
+    static var standard: [LayoutKind] { LayoutRegistry.standard.kinds }
 }
 
 /// The overrides of one workspace; every field that is `nil` falls back to the global default (Q17).
@@ -89,7 +109,7 @@ struct WorkspaceOverrides: Equatable, Sendable {
         for (key, entry) in record.workspaces {
             guard let number = Int(key), let workspace = WorkspaceID(number) else { continue }
             let override = WorkspaceOverride(
-                kind: entry.kind.flatMap(LayoutKind.init(rawValue:)),
+                kind: entry.kind.map { LayoutKind($0) }.flatMap { LayoutKind.standard.contains($0) ? $0 : nil },
                 innerGap: entry.innerGap.map(WindowsSettings.clampGap),
                 outerGap: entry.outerGap.map(WindowsSettings.clampGap),
                 rootOrientation: entry.rootOrientation.flatMap(TilingOrientation.init(rawValue:)))

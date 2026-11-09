@@ -3,121 +3,40 @@ import Foundation
 import LintelKit
 import Synchronization
 
-/// Folds the callbacks of the Accessibility observers into a short list of events and hands them to the client's
-/// stream on a short tick (spec: Architecture, "The event stream is bounded and filtered"). An Electron app that
-/// moves a window for a second, or an animation, produces one `.moved` per window per tick instead of hundreds.
+/// Hands the callbacks of the Accessibility observers to the client's stream, in order. It is the only bound on the
+/// stream (`capacity`) and it coalesces nothing: the engine owns the one coalescer (`EventCoalescer`), which merges
+/// the events of a busy app on its own tick. When the stream overflows, the oldest events are gone, so a `.resync`
+/// is queued behind them: the consumer then looks at every window again instead of trusting a stream that may
+/// have lost a `.destroyed` or a `.focused`.
 ///
-/// `append` may be called from any thread (the AX thread, the main thread). Events keep the order in which their
-/// key first appeared; a window that is created and destroyed inside one tick produces nothing; a `.focused`
-/// keeps only the newest. The buffer is bounded: past `capacity` keys the oldest moves and resizes are dropped
-/// (the engine reads the live frames anyway, so a dropped move loses nothing).
+/// `append` may be called from any thread (the AX thread, the main thread).
 nonisolated final class AXEventBuffer: Sendable {
-    static let defaultInterval: Duration = .milliseconds(30)
-    static let defaultCapacity = 256
+    static let defaultCapacity = 1_024
 
-    private struct Key: Hashable {
-        enum Kind: Hashable {
-            case created, destroyed, moved, resized, focused, appLaunched, appTerminated, displays, space
-        }
-        var kind: Kind
-        var pid: Int32 = 0
-        var number: UInt32 = 0
-    }
-
-    private struct State {
-        var order: [Key] = []
-        var events: [Key: WindowEvent] = [:]
-        var flushScheduled = false
-    }
-
-    private let state = Mutex(State())
     private let continuation: AsyncStream<WindowEvent>.Continuation
-    private let interval: Duration?
-    private let capacity: Int
-    private let queue = DispatchQueue(label: "com.lintelapp.windows.events", qos: .userInitiated)
 
-    /// - Parameter interval: the flush tick; `nil` flushes only when `flush()` is called (tests).
-    init(
-        continuation: AsyncStream<WindowEvent>.Continuation, interval: Duration? = defaultInterval,
-        capacity: Int = defaultCapacity
-    ) {
+    /// The stream and the buffer that feeds it.
+    static func make(capacity: Int = defaultCapacity) -> (stream: AsyncStream<WindowEvent>, buffer: AXEventBuffer) {
+        let (stream, continuation) = AsyncStream.makeStream(
+            of: WindowEvent.self, bufferingPolicy: .bufferingNewest(capacity))
+        return (stream, AXEventBuffer(continuation: continuation))
+    }
+
+    init(continuation: AsyncStream<WindowEvent>.Continuation) {
         self.continuation = continuation
-        self.interval = interval
-        self.capacity = capacity
+    }
+
+    /// Ends the stream.
+    func finish() { continuation.finish() }
+
+    /// Called once when the consumer goes away (the stream ends or its task is cancelled).
+    func onTermination(_ handler: @escaping @Sendable () -> Void) {
+        continuation.onTermination = { _ in handler() }
     }
 
     func append(_ event: WindowEvent) {
-        let schedule = state.withLock { state -> Bool in
-            Self.fold(event, into: &state, capacity: capacity)
-            guard interval != nil, !state.flushScheduled, !state.order.isEmpty else { return false }
-            state.flushScheduled = true
-            return true
-        }
-        if schedule, let interval {
-            let milliseconds = Int(
-                interval.components.seconds * 1000 + interval.components.attoseconds / 1_000_000_000_000_000)
-            queue.asyncAfter(deadline: .now() + .milliseconds(max(1, milliseconds))) { [self] in flush() }
-        }
-    }
-
-    /// Hands what is pending to the stream, in order.
-    func flush() {
-        let events = state.withLock { state -> [WindowEvent] in
-            let list = state.order.compactMap { state.events[$0] }
-            state.order = []
-            state.events = [:]
-            state.flushScheduled = false
-            return list
-        }
-        for event in events { continuation.yield(event) }
-    }
-
-    /// How many events are waiting (tests).
-    var pendingCount: Int { state.withLock { $0.order.count } }
-
-    private static func key(for event: WindowEvent) -> Key {
-        switch event {
-        case .created(let id): Key(kind: .created, pid: id.pid, number: id.number)
-        case .destroyed(let id): Key(kind: .destroyed, pid: id.pid, number: id.number)
-        case .moved(let id): Key(kind: .moved, pid: id.pid, number: id.number)
-        case .resized(let id): Key(kind: .resized, pid: id.pid, number: id.number)
-        case .focused: Key(kind: .focused)
-        case .appLaunched(let pid): Key(kind: .appLaunched, pid: pid)
-        case .appTerminated(let pid): Key(kind: .appTerminated, pid: pid)
-        case .displaysChanged: Key(kind: .displays)
-        case .spaceChanged: Key(kind: .space)
-        }
-    }
-
-    private static func fold(_ event: WindowEvent, into state: inout State, capacity: Int) {
-        let key = key(for: event)
-        if case .destroyed(let id) = event {
-            // Created and destroyed inside one tick: the engine never needs to hear of it.
-            let created = Key(kind: .created, pid: id.pid, number: id.number)
-            let wasCreatedHere = state.events[created] != nil
-            for kind in [Key.Kind.created, .moved, .resized] {
-                let stale = Key(kind: kind, pid: id.pid, number: id.number)
-                if state.events[stale] != nil {
-                    state.events[stale] = nil
-                    state.order.removeAll { $0 == stale }
-                }
-            }
-            if wasCreatedHere { return }
-        }
-        if state.events[key] == nil {
-            state.order.append(key)
-        } else if key.kind == .focused {
-            // The newest focus wins, and it is the newest event now.
-            state.order.removeAll { $0 == key }
-            state.order.append(key)
-        }
-        state.events[key] = event
-        while state.order.count > capacity {
-            guard
-                let index = state.order.firstIndex(where: { $0.kind == .moved || $0.kind == .resized })
-            else { break }
-            state.events[state.order[index]] = nil
-            state.order.remove(at: index)
+        if case .dropped = continuation.yield(event) {
+            _ = continuation.yield(.resync)
         }
     }
 }

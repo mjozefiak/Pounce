@@ -93,6 +93,8 @@ public enum WindowEvent: Hashable, Sendable {
     case appTerminated(pid: Int32)
     case displaysChanged
     case spaceChanged
+    /// Events were lost (the client's bounded stream overflowed): the consumer must look at everything again.
+    case resync
 }
 
 /// Whether the client can work on this Mac.
@@ -124,6 +126,10 @@ public protocol WindowClient: Sendable {
     /// so an async caller uses this and never reads the property on the main actor or the cooperative pool. The
     /// default answers `availability`.
     func checkAvailability() async -> WindowClientAvailability
+    /// Starts delivering events and returns the stream once observing has started, so a caller that subscribes
+    /// before it reads the windows loses no change in between. A real client observes nothing until this is
+    /// called, and stops when the stream ends. The default returns `events`.
+    func subscribe() async -> AsyncStream<WindowEvent>
     /// Whether the app answers Accessibility requests within its messaging timeout. A window that is missing from
     /// `windows()` is on another Space when its app answers, and not reachable when it does not. The default
     /// answers `true`.
@@ -149,6 +155,7 @@ public protocol WindowClient: Sendable {
 
 extension WindowClient {
     public func checkAvailability() async -> WindowClientAvailability { availability }
+    public func subscribe() async -> AsyncStream<WindowEvent> { events }
     public func isResponding(pid: Int32) async -> Bool { true }
     public func window(id: WindowID) async -> WindowInfo? { await windows().first { $0.id == id } }
     public func processStart(of pid: Int32) -> TimeInterval? { nil }

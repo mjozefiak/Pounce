@@ -22,8 +22,8 @@ struct EngineConfig: Equatable, Sendable {
     /// Which workspaces are arranged, and how (gaps, root orientation): the defaults and the per-workspace
     /// overrides. Tiling arranges only workspaces whose resolved kind is Auto-tile.
     var layout = LayoutConfig()
-    /// The zone layouts: assignments, library and the defaults per display shape.
-    var zones = ZonesConfig()
+    /// Each strategy's own configuration (Zones: assignments, library and defaults), built by the strategy.
+    var strategyConfigs: [LayoutKind: AnyLayoutConfig] = [:]
 }
 
 /// A window the engine knows. The title is kept in memory only (for the window switcher's search), refreshed
@@ -168,23 +168,9 @@ enum EngineCommand: Equatable, Sendable {
     case restoreAll
     /// Takes the focused window out of tiling, or puts it back in.
     case toggleFloating
-    /// Moves the focused window to a slot of its workspace's layout (a zone), by number (1 to 9).
-    case moveToZone(Int)
-    /// Snaps a window to a zone of the layout shown on a display (a drag released over a zone, step 3.5). The
-    /// zone is an id of the layout, the display a display key.
-    case snapToZone(WindowID, zone: Int, displayKey: String)
-    /// Moves the focus to the neighbouring tile of the focused window.
-    case focusDirection(TilingDirection)
-    /// Moves the focused window in the tree: swap, into a neighbouring container, or out of its own.
-    case moveInTree(TilingDirection)
-    /// Grows (positive) or shrinks (negative) the focused window by that share of its container.
-    case resize(Double)
-    /// Puts the focused window and its neighbour in that direction into a new container.
-    case join(TilingDirection)
-    /// Flips the orientation of the container that holds the focused window.
-    case toggleOrientation
-    /// Gives every tile of the workspace the same share.
-    case balance
+    /// A command of the layout kind of the window's workspace (the focused window when `on` is `nil`): the engine
+    /// and the reducer know no verb, the strategy of the kind decides what the id and payload mean.
+    case layout(LayoutCommand, on: WindowID? = nil)
     /// A setting changed (sent right after `configChanged`): apps that joined the floating list are let go and
     /// the windows are arranged again.
     case reload
@@ -203,6 +189,8 @@ enum EngineInput: Equatable, Sendable {
     case displaysChanged([DisplayInfo], now: Double)
     case command(EngineCommand, now: Double)
     case applied([FrameResult], now: Double)
+    /// A frame change is about to be sent to the app: its echo window starts now, not when it was queued.
+    case frameStarted(FrameRequest, now: Double)
     case watchdogTripped(now: Double)
     case configChanged(EngineConfig)
     /// The journal could not be written (or can be again).
@@ -219,7 +207,8 @@ extension EngineInput {
         switch self {
         case .snapshot(_, _, _, _, let now), .windowAppeared(_, _, let now), .windowGone(_, let now),
             .windowMoved(_, _, let now), .windowFocused(_, let now), .displaysChanged(_, let now),
-            .command(_, let now), .applied(_, let now), .watchdogTripped(let now), .place(_, _, let now):
+            .command(_, let now), .applied(_, let now), .frameStarted(_, let now), .watchdogTripped(let now),
+            .place(_, _, let now):
             now
         case .configChanged, .journalAvailability, .restoreLayouts:
             nil

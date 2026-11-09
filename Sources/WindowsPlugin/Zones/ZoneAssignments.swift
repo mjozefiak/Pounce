@@ -119,11 +119,29 @@ struct ResolvedZoneLayout: Equatable, Sendable {
 }
 
 /// What the engine needs to choose a zone layout: the assignments, the library and the two defaults (spec Q19).
-struct ZonesConfig: Equatable, Sendable {
+struct ZonesConfig: Equatable, LayoutConfigValue {
     var assignments = AssignmentTable()
     var library = LayoutLibrary.stock
     var defaultLandscape = StockLayouts.defaultLandscape
     var defaultPortrait = StockLayouts.defaultPortrait
+
+    init(
+        assignments: AssignmentTable = AssignmentTable(), library: LayoutLibrary = .stock,
+        defaultLandscape: String = StockLayouts.defaultLandscape, defaultPortrait: String = StockLayouts.defaultPortrait
+    ) {
+        self.assignments = assignments
+        self.library = library
+        self.defaultLandscape = defaultLandscape
+        self.defaultPortrait = defaultPortrait
+    }
+
+    /// The Zones configuration the plugin's settings and stored data describe.
+    init(_ environment: LayoutEnvironment) {
+        self.init(
+            assignments: environment.assignments, library: environment.library,
+            defaultLandscape: environment.settings.defaultZoneLayout(for: .landscape),
+            defaultPortrait: environment.settings.defaultZoneLayout(for: .portrait))
+    }
 
     func defaultID(for orientation: DisplayOrientation) -> String {
         orientation == .portrait ? defaultPortrait : defaultLandscape

@@ -1,16 +1,20 @@
 import Foundation
 import LintelKit
-import Synchronization
 import os
 
 /// The one owner of `Plugins/windows/state.json` for a storage folder: it holds the only `StateStore` (the single
 /// writer of the file) and decides who may use it. Either the running engine owns the journal (its parked windows
 /// are parked on purpose), or one recovery pass does, never both and never two passes at once.
 ///
-/// - `beginEngine()` waits for a pass in progress, then the engine owns the journal until `endEngine()`, which
-///   the runtime calls only after the engine has really stopped, not when a stop budget ran out.
-/// - `recover` and `restore` run one pass exclusively: `.engineRunning` / `.engineStopping` when the engine owns
-///   the journal, otherwise the pass runs and any other caller waits its turn.
+/// - `beginEngine()` waits until the journal is free (no pass, no earlier engine), then returns a lease; the engine
+///   owns the journal until `endEngine(_:)` with that lease, which the runtime calls only after the engine has
+///   really stopped, not when a stop budget ran out. A stale lease changes nothing, so an old engine that stops late
+///   cannot free the journal under a new one.
+/// - `exclusive(_:)` runs one pass or answers `Pass.engineRunning` / `Pass.engineStopping`; a caller that finds the
+///   engine stopping reports `.deferred` so the host tries again. Other passes wait their turn.
+///
+/// One owner exists per storage folder and app instance: `JournalOwner.owner(for:)` takes it from the context's
+/// `PluginServices`, so no process-wide global is involved.
 actor JournalOwner {
     enum Phase: Equatable, Sendable {
         case idle
@@ -27,6 +31,8 @@ actor JournalOwner {
 
     nonisolated let store: StateStore
     private(set) var phase = Phase.idle
+    private var activeLease: UInt64?
+    private var nextLease: UInt64 = 0
     private var turns: [CheckedContinuation<Void, Never>] = []
     private var launchCounted = false
     private var sink: (@Sendable (WindowsHUDState) async -> Void)?
@@ -38,18 +44,25 @@ actor JournalOwner {
 
     // MARK: Engine
 
-    func beginEngine() async {
-        while phase == .recovering || phase == .stopping { await waitForTurn() }
+    /// Waits until the journal is free, then gives the engine ownership. Returns the lease the engine must present.
+    func beginEngine() async -> UInt64 {
+        while phase != .idle { await waitForTurn() }
+        nextLease += 1
+        activeLease = nextLease
         phase = .engine
+        return nextLease
     }
 
-    /// The engine is being stopped: recovery passes wait (answering `.deferred`) until `endEngine()`.
-    func engineStopping() {
-        if phase == .engine { phase = .stopping }
+    /// The engine of `lease` is being stopped: recovery passes answer `.engineStopping` until `endEngine`.
+    func engineStopping(_ lease: UInt64) {
+        if phase == .engine, activeLease == lease { phase = .stopping }
     }
 
-    func endEngine() {
-        guard phase == .engine || phase == .stopping else { return }
+    /// The engine of `lease` has stopped for good: the journal is free. A lease that is not the current one is
+    /// ignored.
+    func endEngine(_ lease: UInt64) {
+        guard activeLease == lease, phase == .engine || phase == .stopping else { return }
+        activeLease = nil
         phase = .idle
         wake()
     }
@@ -105,21 +118,11 @@ actor JournalOwner {
     }
 }
 
-/// Hands out one `JournalOwner` per storage folder, so the launch recovery (which runs before any plugin
-/// instance exists and again on activation) and the running engine share one writer. The app uses `shared`;
-/// tests pass their own.
-final class JournalRegistry: Sendable {
-    static let shared = JournalRegistry()
-
-    private let owners = Mutex<[String: JournalOwner]>([:])
-
-    func owner(for directory: URL, clock: any Clock<Duration>, logger: Logger) -> JournalOwner {
-        let key = directory.standardizedFileURL.path
-        return owners.withLock { owners in
-            if let existing = owners[key] { return existing }
-            let created = JournalOwner(directory: directory, clock: clock, logger: logger)
-            owners[key] = created
-            return created
+extension JournalOwner {
+    /// The owner of `context`'s storage folder in this app instance.
+    static func owner(for context: PluginContext) -> JournalOwner {
+        context.services.shared("windows.journal:\(context.storageDirectory.standardizedFileURL.path)") {
+            JournalOwner(directory: context.storageDirectory, clock: context.clock, logger: context.logger)
         }
     }
 }

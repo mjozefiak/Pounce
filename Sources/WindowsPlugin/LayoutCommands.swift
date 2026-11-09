@@ -10,15 +10,14 @@ final class LayoutCommands {
     private let assignments: AssignmentStore
     private let layouts: LayoutRepository
     private let engine: WindowEngine
-    private let trust: AccessibilityTrust
-    private let hud: any WindowsHUDPresenting
+    private let gate: AccessibilityGate
     private let context: PluginContext
     private let currentWorkspace: @MainActor () -> WorkspaceID?
     private let apply: @MainActor () async -> Void
 
     init(
         context: PluginContext, settings: WindowsSettings, assignments: AssignmentStore, layouts: LayoutRepository,
-        engine: WindowEngine, trust: AccessibilityTrust, hud: any WindowsHUDPresenting,
+        engine: WindowEngine, gate: AccessibilityGate,
         currentWorkspace: @escaping @MainActor () -> WorkspaceID?, apply: @escaping @MainActor () async -> Void
     ) {
         self.context = context
@@ -26,8 +25,7 @@ final class LayoutCommands {
         self.assignments = assignments
         self.layouts = layouts
         self.engine = engine
-        self.trust = trust
-        self.hud = hud
+        self.gate = gate
         self.currentWorkspace = currentWorkspace
         self.apply = apply
     }
@@ -36,11 +34,7 @@ final class LayoutCommands {
     /// override (every kind's state is kept, so cycling is lossless); a kind equal to the default clears the
     /// override. Does nothing when the stored overrides come from a newer version (they are never overwritten).
     func toggleLayout() async {
-        guard trust.refresh() else {
-            hud.show(.accessibilityNeeded(.moving))
-            return
-        }
-        guard let workspace = currentWorkspace() else { return }
+        guard gate.allows(.moving), let workspace = currentWorkspace() else { return }
         var overrides = settings.workspaceOverrides
         guard !overrides.isReadOnly else { return }
         let current = overrides.byWorkspace[workspace]?.kind ?? settings.defaultKind
@@ -64,7 +58,8 @@ final class LayoutCommands {
     func nextLayout() async {
         guard let cell = await currentCell() else { return }
         let library = await layouts.library
-        let config = WindowsRuntime.config(settings, assignments: await assignments.table, library: library).zones
+        let config = ZonesConfig(
+            LayoutEnvironment(settings: settings, assignments: await assignments.table, library: library))
         let displays = await context.windows.displays()
         let keyed = DisplayKeys.keys(for: displays)
         let orientation = displays.first { keyed.keys[$0.id] == cell.displayKey }?.orientation ?? .landscape
@@ -74,17 +69,13 @@ final class LayoutCommands {
     }
 
     private func currentCell() async -> (workspace: WorkspaceID, displayKey: String)? {
-        let summary = await engine.switcherState().summary
+        let summary = await engine.summary()
         guard let workspace = summary.current, let display = summary.focusedDisplay else { return nil }
         return (workspace, display)
     }
 
     private func useLayout(_ layoutID: String) async {
-        guard trust.refresh() else {
-            hud.show(.accessibilityNeeded(.moving))
-            return
-        }
-        guard let cell = await currentCell() else { return }
+        guard gate.allows(.moving), let cell = await currentCell() else { return }
         do {
             try await assignments.set(layoutID, workspace: cell.workspace, displayKey: cell.displayKey)
         } catch {
@@ -97,10 +88,8 @@ final class LayoutCommands {
 
     /// Auto-tile, then Zones, then Free, then Auto-tile again.
     static func nextKind(after kind: LayoutKind) -> LayoutKind {
-        switch kind {
-        case .tiling: .zones
-        case .zones: .free
-        case .free: .tiling
-        }
+        let kinds = LayoutKind.standard
+        guard let index = kinds.firstIndex(of: kind) else { return kinds[0] }
+        return kinds[(index + 1) % kinds.count]
     }
 }

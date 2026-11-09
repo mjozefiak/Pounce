@@ -8,12 +8,18 @@ import LintelKit
 struct ZonesStrategy: LayoutStrategy {
     var kind: LayoutKind { .zones }
 
-    private func placement(_ input: LayoutInput) -> ZonePlacement {
-        ZonePlacement(
-            layout: input.config.zones.resolve(
-                workspace: input.workspace, displayKey: input.displayKey, orientation: input.display.orientation
-            ).layout)
+    func makeConfig(_ environment: LayoutEnvironment) -> AnyLayoutConfig? {
+        AnyLayoutConfig(ZonesConfig(environment))
     }
+
+    private func zones(_ input: LayoutInput) -> ZonesConfig { input.config?.as(ZonesConfig.self) ?? ZonesConfig() }
+
+    private func resolved(_ input: LayoutInput) -> ResolvedZoneLayout {
+        zones(input).resolve(
+            workspace: input.workspace, displayKey: input.displayKey, orientation: input.display.orientation)
+    }
+
+    private func placement(_ input: LayoutInput) -> ZonePlacement { ZonePlacement(layout: resolved(input).layout) }
 
     func arrange(_ input: LayoutInput) -> LayoutArrangement {
         let placement = placement(input)
@@ -41,28 +47,34 @@ struct ZonesStrategy: LayoutStrategy {
             frames: placement.frames(state: current, area: input.area), hints: hints)
     }
 
-    func perform(_ operation: LayoutOperation, on window: WindowID, _ input: LayoutInput) -> LayoutEdit? {
+    func perform(_ command: LayoutCommand, on window: WindowID, _ input: LayoutInput) -> LayoutEdit? {
         guard let stored = input.state?.as(ZonesLayoutState.self),
             let placed = stored.byDisplay[input.displayKey]
         else { return nil }
         let placement = placement(input)
-        switch operation {
-        case .focus(let direction):
-            guard let zone = placement.neighbourZone(of: window, direction, in: placed),
+        switch command.id {
+        case "focus":
+            guard let direction = command.direction,
+                let zone = placement.neighbourZone(of: window, direction, in: placed),
                 let next = placed.windows(in: zone).first
             else { return nil }
             // The focus goes to the lowest window id of the neighbouring zone, so it is stable.
             return LayoutEdit(state: AnyLayoutState(stored), focus: next, hints: input.hints)
-        case .move(let direction):
-            guard let zone = placement.neighbourZone(of: window, direction, in: placed) else { return nil }
+        case "move":
+            guard let direction = command.direction,
+                let zone = placement.neighbourZone(of: window, direction, in: placed)
+            else { return nil }
             return move(window, toZone: zone, input, placement, stored, placed)
-        case .slot(let number):
-            guard let zone = placement.layout.zone(number: number) else { return nil }
+        case LayoutCommand.slotID:
+            guard let number = command.payload(as: Int.self), let zone = placement.layout.zone(number: number)
+            else { return nil }
             return move(window, toZone: zone.id, input, placement, stored, placed)
-        case .snap(let slotID, let displayKey):
-            guard displayKey == input.displayKey else { return nil }
-            return move(window, toZone: slotID, input, placement, stored, placed)
-        case .resize, .join, .toggleOrientation, .balance:
+        case LayoutCommand.snapID:
+            guard let snap = command.payload(as: SnapPayload.self), snap.displayKey == input.displayKey else {
+                return nil
+            }
+            return move(window, toZone: snap.zoneID, input, placement, stored, placed)
+        default:
             return nil
         }
     }
@@ -90,10 +102,9 @@ struct ZonesStrategy: LayoutStrategy {
     }
 
     func snapTargets(_ input: LayoutInput) -> [DragDisplay] {
-        let resolved = input.config.zones.resolve(
-            workspace: input.workspace, displayKey: input.displayKey, orientation: input.display.orientation)
-        let frames = resolved.layout.frames(in: input.area)
-        let zones = resolved.layout.zones.enumerated().compactMap { index, zone -> DragZone? in
+        let layout = resolved(input).layout
+        let frames = layout.frames(in: input.area)
+        let zones = layout.zones.enumerated().compactMap { index, zone -> DragZone? in
             frames[zone.id].map {
                 DragZone(displayKey: input.displayKey, zoneID: zone.id, number: index + 1, frame: $0)
             }
@@ -109,5 +120,31 @@ struct ZonesStrategy: LayoutStrategy {
     func decode(_ json: JSONValue) -> AnyLayoutState? {
         guard let zones = json.decoded(as: ZonesRecord.self)?.zones, !zones.isEmpty else { return nil }
         return AnyLayoutState(ZonesLayoutState(byDisplay: zones))
+    }
+}
+
+/// A drag released over a zone: the zone's id in the layout and the display it was released on.
+struct SnapPayload: Codable, Equatable, Sendable {
+    var zoneID: Int
+    var displayKey: String
+}
+
+// The commands only Zones understands.
+extension LayoutCommand {
+    static let slotID = "zones.slot"
+    static let snapID = "zones.snap"
+
+    /// Moves the window to a zone of its layout by the zone's number (1 to 9).
+    static func slot(_ number: Int) -> LayoutCommand { LayoutCommand(slotID, encoding: number) }
+    /// Snaps the window to a zone, by id, of the layout shown on a display.
+    static func snap(zoneID: Int, displayKey: String) -> LayoutCommand {
+        LayoutCommand(snapID, encoding: SnapPayload(zoneID: zoneID, displayKey: displayKey))
+    }
+}
+
+extension EngineCommand {
+    static func moveToZone(_ number: Int) -> EngineCommand { .layout(.slot(number)) }
+    static func snapToZone(_ window: WindowID, zone: Int, displayKey: String) -> EngineCommand {
+        .layout(.snap(zoneID: zone, displayKey: displayKey), on: window)
     }
 }

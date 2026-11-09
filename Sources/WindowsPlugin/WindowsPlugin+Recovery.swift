@@ -10,14 +10,14 @@ extension WindowsPlugin {
             await runtime.restoreAllWindows()
             return
         }
-        let report = await Self.restoreFromJournal(context: context, journals: journals)
+        let report = await Self.restoreFromJournal(context: context)
         hud.show(WindowsHUDState(report: report))
     }
 
     /// "Erase Data": puts every window back first; the host then deletes `Plugins/windows/`.
     public func eraseData() async throws {
         await deactivate()
-        let report = await Self.restoreFromJournal(context: context, journals: journals)
+        let report = await Self.restoreFromJournal(context: context)
         if report.remaining > 0 {
             context.logger.notice("Erasing window data with \(report.remaining, privacy: .public) windows not restored")
         }
@@ -29,18 +29,17 @@ extension WindowsPlugin {
     /// outside the plugin lifecycle"): reads the journal and puts every parked window back. `.deferred` while
     /// Accessibility is not trusted, so the journal stays and the host tries again on app activation.
     public nonisolated static func recoverAtLaunch(context: PluginContext) async -> RecoveryOutcome {
-        let journal = JournalRegistry.shared.owner(
-            for: context.storageDirectory, clock: context.clock, logger: context.logger)
+        let journal = JournalOwner.owner(for: context)
         return await recover(context: context, hud: { await journal.present($0) })
     }
 
     /// `recoverAtLaunch` with the registry and the HUD injected (tests). `isLaunch` is `nil` in the app: the
     /// journal owner counts the first pass of this process as the launch.
     nonisolated static func recover(
-        context: PluginContext, isLaunch: Bool? = nil, journals: JournalRegistry = .shared,
+        context: PluginContext, isLaunch: Bool? = nil,
         hud: @Sendable (WindowsHUDState) async -> Void
     ) async -> RecoveryOutcome {
-        let journal = journals.owner(for: context.storageDirectory, clock: context.clock, logger: context.logger)
+        let journal = JournalOwner.owner(for: context)
         let first: Bool
         if let isLaunch { first = isLaunch } else { first = await journal.claimLaunch() }
         // A running engine owns its journal: the windows parked in it are parked on purpose.
@@ -69,9 +68,9 @@ extension WindowsPlugin {
 
     /// One exclusive pass over the journal in `context.storageDirectory`; empty while an engine owns it.
     nonisolated static func restoreFromJournal(
-        context: PluginContext, journals: JournalRegistry = .shared
+        context: PluginContext
     ) async -> RecoveryReport {
-        let journal = journals.owner(for: context.storageDirectory, clock: context.clock, logger: context.logger)
+        let journal = JournalOwner.owner(for: context)
         if case .ran(let report) = await journal.exclusive({ store in await restore(context: context, store: store) }) {
             return report
         }

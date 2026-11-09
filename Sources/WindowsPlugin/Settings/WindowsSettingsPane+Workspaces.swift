@@ -46,7 +46,7 @@ extension WindowsSettingsPane {
         MenuPicker(
             selection: Binding(
                 get: { current.kind?.rawValue ?? Self.useDefault },
-                set: { model.setOverrideKind(LayoutKind(rawValue: $0), for: workspace) })
+                set: { model.setOverrideKind(LayoutKind($0), for: workspace) })
         ) {
             Text("Use default", comment: "Window Management: the workspace follows the global setting")
                 .font(textSize.font(.body)).tag(Self.useDefault)

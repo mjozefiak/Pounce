@@ -64,8 +64,8 @@ struct EventCoalescer: Sendable {
             put(.appTerminated(pid), event)
         case .displaysChanged:
             put(.displays, event)
-        case .spaceChanged:
-            put(.space, event)
+        case .spaceChanged, .resync:
+            put(.space, .spaceChanged)
         }
         if order.count > capacity {
             order = [.space]

@@ -30,26 +30,29 @@ struct TilingStrategy: LayoutStrategy {
             hints: input.hints)
     }
 
-    func perform(_ operation: LayoutOperation, on window: WindowID, _ input: LayoutInput) -> LayoutEdit? {
+    func perform(_ command: LayoutCommand, on window: WindowID, _ input: LayoutInput) -> LayoutEdit? {
         guard let tree = input.state?.as(TilingTree.self) else { return nil }
         var next = tree
-        switch operation {
-        case .focus(let direction):
-            guard let target = TilingNavigation.neighbour(of: window, direction, in: tree) else { return nil }
+        switch command.id {
+        case "focus":
+            guard let direction = command.direction,
+                let target = TilingNavigation.neighbour(of: window, direction, in: tree)
+            else { return nil }
             return LayoutEdit(state: AnyLayoutState(tree), focus: target, hints: input.hints)
-        case .move(let direction):
-            guard let moved = TilingNavigation.move(window, direction, in: tree) else { return nil }
+        case "move":
+            guard let direction = command.direction, let moved = TilingNavigation.move(window, direction, in: tree)
+            else { return nil }
             next = moved
-        case .resize(let delta):
-            guard next.resize(window, by: delta) else { return nil }
-        case .join(let direction):
-            guard next.join(window, direction) else { return nil }
-        case .toggleOrientation:
+        case LayoutCommand.resizeID:
+            guard let delta = command.payload(as: Double.self), next.resize(window, by: delta) else { return nil }
+        case LayoutCommand.joinID:
+            guard let direction = command.direction, next.join(window, direction) else { return nil }
+        case LayoutCommand.toggleOrientationID:
             guard next.toggleOrientation(of: window) else { return nil }
-        case .balance:
+        case LayoutCommand.balanceID:
             next.balance()
             if next == tree { return nil }
-        case .slot, .snap:
+        default:
             return nil
         }
         return LayoutEdit(state: AnyLayoutState(next), focus: nil, hints: input.hints)
@@ -69,4 +72,26 @@ struct TilingStrategy: LayoutStrategy {
         guard let tree = json.decoded(as: TilingRecord.self)?.tree, !tree.isEmpty else { return nil }
         return AnyLayoutState(tree)
     }
+}
+
+// The commands only Auto-tile understands.
+extension LayoutCommand {
+    static let resizeID = "tiling.resize"
+    static let joinID = "tiling.join"
+    static let toggleOrientationID = "tiling.toggleOrientation"
+    static let balanceID = "tiling.balance"
+
+    /// Grows (positive) or shrinks (negative) the window by that share of its container.
+    static func resize(_ delta: Double) -> LayoutCommand { LayoutCommand(resizeID, encoding: delta) }
+    /// Puts the window and its neighbour in that direction into a new container.
+    static func join(_ direction: TilingDirection) -> LayoutCommand { LayoutCommand(joinID, encoding: direction) }
+    static let toggleOrientation = LayoutCommand(toggleOrientationID)
+    static let balance = LayoutCommand(balanceID)
+}
+
+extension EngineCommand {
+    static func resize(_ delta: Double) -> EngineCommand { .layout(.resize(delta)) }
+    static func join(_ direction: TilingDirection) -> EngineCommand { .layout(.join(direction)) }
+    static let toggleOrientation = EngineCommand.layout(.toggleOrientation)
+    static let balance = EngineCommand.layout(.balance)
 }

@@ -14,13 +14,13 @@ struct WorkspaceSummaryLine: Identifiable, Equatable {
 /// The layout rows of the pane: the default kind, the gaps and the per-workspace overrides (spec: Q17).
 extension WindowsSettingsModel {
     /// The kinds the user can choose: Auto-tile, Zones and Free (Zones since phase 3).
-    static let selectableKinds: [LayoutKind] = [.tiling, .zones, .free]
+    static let selectableKinds = LayoutKind.standard
 
     static func kindName(_ kind: LayoutKind) -> String {
         switch kind {
         case .tiling: String(localized: "Auto-tile", comment: "Window Management layout kind: windows tile the screen")
         case .zones: String(localized: "Zones", comment: "Window Management layout kind: windows snap into zones")
-        case .free: String(localized: "Free", comment: "Window Management layout kind: windows are left where they are")
+        default: String(localized: "Free", comment: "Window Management layout kind: windows are left where they are")
         }
     }
 

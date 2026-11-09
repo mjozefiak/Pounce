@@ -38,6 +38,12 @@ extension ReducerContext {
         if !cleared.isEmpty { effects.append(.journalRemove(cleared)) }
     }
 
+    /// The frame change is leaving for the app: events that echo it from now on are ours, for the echo window.
+    mutating func frameStarted(_ request: FrameRequest, now: Double) {
+        guard state.latest[request.id] == request.generation else { return }
+        state.expected[request.id] = ExpectedFrame(frame: request.frame, expires: now + state.config.echoWindow)
+    }
+
     /// A window that was meant to be parked but was not: back to its home frame in the books.
     private mutating func unpark(_ id: WindowID) {
         if let record = state.parked[id] { state.windows[id]?.frame = record.home }

@@ -46,14 +46,7 @@ extension ReducerContext {
         case .toggleFloating:
             guard !state.isFrozen, let id = state.focused, state.windows[id] != nil else { return }
             if state.floating.remove(id) == nil { state.floating.insert(id) }
-        case .focusDirection(let direction): run(.focus(direction))
-        case .moveInTree(let direction): run(.move(direction))
-        case .moveToZone(let number): run(.slot(number))
-        case .snapToZone(let id, let zone, let displayKey): run(.snap(slotID: zone, displayKey: displayKey), on: id)
-        case .resize(let delta): run(.resize(delta))
-        case .join(let direction): run(.join(direction))
-        case .toggleOrientation: run(.toggleOrientation)
-        case .balance: run(.balance)
+        case .layout(let layoutCommand, let id): run(layoutCommand, on: id)
         }
     }
 

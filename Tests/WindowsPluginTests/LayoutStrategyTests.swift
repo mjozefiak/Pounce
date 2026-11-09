@@ -61,3 +61,114 @@ import Testing
         #expect(LayoutRegistry.standard.decode(bad).isEmpty)
     }
 }
+
+/// A fourth strategy, defined only here: it proves that a new kind is one type and one registry line, with no change
+/// in the engine, the reducer, the state or the store.
+@Suite struct ToyStrategyTests {
+    struct ToyConfig: LayoutConfigValue, Equatable { var step: CGFloat }
+
+    struct ToyState: LayoutStateValue, Equatable, Codable {
+        var bumps = 0
+        var isEmpty: Bool { bumps == 0 }
+    }
+
+    /// Lays the windows out left to right in steps from the configuration, and counts `toy.bump` commands.
+    struct ToyStrategy: LayoutStrategy {
+        var kind: LayoutKind { LayoutKind("toy") }
+
+        func makeConfig(_ environment: LayoutEnvironment) -> AnyLayoutConfig? { AnyLayoutConfig(ToyConfig(step: 111)) }
+
+        func arrange(_ input: LayoutInput) -> LayoutArrangement {
+            let step = input.config?.as(ToyConfig.self)?.step ?? 0
+            var frames: [WindowID: CGRect] = [:]
+            for (index, window) in input.windows.enumerated() {
+                frames[window] = CGRect(x: CGFloat(index) * step, y: 0, width: 100, height: 100)
+            }
+            return LayoutArrangement(
+                state: input.state ?? AnyLayoutState(ToyState()), frames: frames, hints: input.hints)
+        }
+
+        func perform(_ command: LayoutCommand, on window: WindowID, _ input: LayoutInput) -> LayoutEdit? {
+            guard command.id == "toy.bump", var toy = input.state?.as(ToyState.self) else { return nil }
+            toy.bumps += command.payload(as: Int.self) ?? 1
+            return LayoutEdit(state: AnyLayoutState(toy), focus: nil, hints: input.hints)
+        }
+
+        func encode(_ state: AnyLayoutState) -> JSONValue? {
+            state.as(ToyState.self).flatMap { JSONValue(encoding: $0) }
+        }
+
+        func decode(_ json: JSONValue) -> AnyLayoutState? {
+            json.decoded(as: ToyState.self).map { AnyLayoutState($0) }
+        }
+    }
+
+    private let toy = LayoutKind("toy")
+    private func id(_ number: UInt32) -> WindowID { WindowID(pid: 100, number: number) }
+    private func ws(_ number: Int) -> WorkspaceID { WorkspaceID(number)! }
+
+    private func registry() -> LayoutRegistry { LayoutRegistry([ToyStrategy(), FreeStrategy()]) }
+
+    private func config(_ harness: WindowsHarness) -> EngineConfig {
+        var config = EngineConfig()
+        config.layout = LayoutConfig(defaultKind: toy)
+        config.strategyConfigs = registry().configs(
+            LayoutEnvironment(settings: WindowsSettings(harness.pluginSettings)))
+        return config
+    }
+
+    @Test func theReducerArrangesPerformsPersistsAndRestoresAKindItNeverHeardOf() throws {
+        let harness = try WindowsHarness()
+        defer { harness.tearDown() }
+        var state = EngineState(workspaceCount: 2, displays: [FakeWindowClient.mainDisplay])
+        state.config = config(harness)
+        let windows = [makeWindow(1), makeWindow(2)]
+        let registry = registry()
+        // Arrange: the frames come from the strategy and its own configuration.
+        var effects: [EngineEffect]
+        (state, effects) = EngineReducer.reduce(
+            state,
+            .snapshot(
+                windows: windows, displays: [FakeWindowClient.mainDisplay], focused: id(1),
+                processStarts: [100: 1_100], now: 1), strategies: registry)
+        let frames = effects.compactMap { effect -> [CGFloat]? in
+            if case .setFrame(let request) = effect { [request.frame.minX] } else { nil }
+        }
+        #expect(frames.flatMap { $0 }.sorted() == [0, 111])
+        // Perform: a command only the toy knows, through the generic command.
+        (state, _) = EngineReducer.reduce(
+            state, .command(.layout(LayoutCommand("toy.bump", encoding: 3)), now: 2), strategies: registry)
+        #expect(state.layouts[ws(1)]?["toy"]?.as(ToyState.self)?.bumps == 3)
+        // Persist and restore: opaque JSON under the kind's name, and back.
+        let stored = registry.encode(state.layouts)
+        #expect(stored[ws(1)]?["toy"] != nil)
+        var restored = EngineState(workspaceCount: 2, displays: [FakeWindowClient.mainDisplay])
+        (restored, _) = EngineReducer.reduce(restored, .restoreLayouts(stored), strategies: registry)
+        #expect(restored.layouts[ws(1)]?["toy"]?.as(ToyState.self)?.bumps == 3)
+        // The standard registry does not know the kind: it keeps the state opaque and writes it back unchanged.
+        let standard = LayoutRegistry.standard
+        #expect(standard.encode(standard.decode(stored)) == stored)
+    }
+
+    @Test func aWholeEngineKeepsTheToysStateAcrossARestart() async throws {
+        let harness = try WindowsHarness()
+        defer { harness.tearDown() }
+        func engine(_ client: FakeWindowClient) -> (WindowEngine, StateStore) {
+            let store = StateStore(directory: harness.directory, saveDelay: .seconds(3600))
+            let engine = WindowEngine(
+                client: client, store: store, clock: VirtualClock(), workspaceCount: 2, config: config(harness),
+                tick: .milliseconds(5), strategies: registry())
+            return (engine, store)
+        }
+        let client = FakeWindowClient(windows: [makeWindow(1)])
+        client.setFocused(id(1))
+        let (first, _) = engine(client)
+        await first.start()
+        await first.send(.layout(LayoutCommand("toy.bump", encoding: 5)))
+        await first.stop()
+        let (second, _) = engine(client)
+        await second.start()
+        #expect(await second.snapshot.layouts[ws(1)]?["toy"]?.as(ToyState.self)?.bumps == 5)
+        await second.stop()
+    }
+}

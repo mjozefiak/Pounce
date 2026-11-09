@@ -1,0 +1,64 @@
+import CoreGraphics
+import Foundation
+import LintelKit
+
+/// What the engine reports to the runtime, in the order it produced it.
+enum EngineReport: Sendable {
+    case hud(WorkspaceID, windowCount: Int)
+    case summary(WorkspaceSummary)
+    case banner(EngineBanner)
+    case windowMoved(WindowID, CGRect)
+    case restored(RecoveryReport)
+}
+
+/// Carries the engine's reports to the main actor through one ordered stream and one task, so they are handled
+/// in the order they were produced.
+@MainActor
+final class ReportPump {
+    private enum Item: Sendable {
+        case report(EngineReport)
+        /// Resumed when every item before it has been handled (`waitUntilHandled()`).
+        case marker(CheckedContinuation<Void, Never>)
+    }
+
+    private let continuation: AsyncStream<Item>.Continuation
+    private var task: Task<Void, Never>?
+    /// The closures the engine calls; each puts one report on the stream.
+    nonisolated let reporter: EngineReporter
+
+    /// Set once by the owner (the runtime builds the pump before it can name itself).
+    var handler: @MainActor (EngineReport) -> Void = { _ in }
+
+    init(handle: @escaping @MainActor (EngineReport) -> Void = { _ in }) {
+        handler = handle
+        let (stream, continuation) = AsyncStream.makeStream(of: Item.self)
+        self.continuation = continuation
+        reporter = EngineReporter(
+            hud: { workspace, count in continuation.yield(.report(.hud(workspace, windowCount: count))) },
+            summary: { continuation.yield(.report(.summary($0))) },
+            banner: { continuation.yield(.report(.banner($0))) },
+            windowMoved: { id, frame in continuation.yield(.report(.windowMoved(id, frame))) },
+            restored: { continuation.yield(.report(.restored($0))) })
+        task = Task { @MainActor [weak self] in
+            for await item in stream {
+                switch item {
+                case .report(let report): self?.handler(report)
+                case .marker(let waiting): waiting.resume()
+                }
+            }
+        }
+    }
+
+    /// Ends the stream: reports that come later are dropped.
+    func finish() {
+        continuation.finish()
+        task = nil
+    }
+
+    /// Waits until everything reported so far has been handled (tear-down and tests).
+    func waitUntilHandled() async {
+        await withCheckedContinuation { waiting in
+            if case .terminated = continuation.yield(.marker(waiting)) { waiting.resume() }
+        }
+    }
+}

@@ -9,7 +9,7 @@ import os
 /// store, the Accessibility tracker and the HUD. It exists only between `activate()` and `deactivate()`, so a
 /// plugin that is off holds no store, no observer and no task.
 @MainActor
-final class WindowsRuntime {
+final class WindowsRuntime: WindowSwitching {
     /// How long a disable or a quit waits for windows to be put back; what is left stays in the journal for the
     /// next launch (spec: Architecture, "Recovery runs outside the plugin lifecycle").
     static let stopBudget: Duration = .seconds(5)
@@ -25,11 +25,13 @@ final class WindowsRuntime {
     let layouts: LayoutRepository
     let engine: WindowEngine
     let trust: AccessibilityTrust
+    let hud: any WindowsHUDPresenting
+    private let gate: AccessibilityGate
+    private let configBuilder = EngineConfigBuilder()
     private(set) lazy var layoutCommands = LayoutCommands(
         context: context, settings: settings, assignments: assignments, layouts: layouts, engine: engine,
-        trust: trust, hud: hud, currentWorkspace: { [weak self] in self?.lastSummary?.current },
+        gate: gate, currentWorkspace: { [weak self] in self?.lastSummary?.current },
         apply: { [weak self] in await self?.applySettings() })
-    let hud: any WindowsHUDPresenting
     /// The menu bar strip; `nil` until `start()` when it is on, and in tests that pass `makeStrip: nil`.
     private(set) var strip: WorkspaceStripController?
     private let makeStrip: (@MainActor (WindowsRuntime) -> WorkspaceStripController)?
@@ -39,11 +41,12 @@ final class WindowsRuntime {
     /// Releases the overlay panels when the runtime stops.
     var tearDownOverlay: @MainActor () -> Void = {}
     private var lastSummary: WorkspaceSummary?
-    /// The engine's outputs, in the order it produced them, handled on the main actor by one task.
-    private var outputTask: Task<Void, Never>?
+    /// The engine's reports, handled on the main actor in the order it produced them.
+    private let reports: ReportPump
     /// The restore after a re-grant of Accessibility, while it runs.
     private var trustTask: Task<Void, Never>?
-    private let outputContinuation: AsyncStream<EngineOutput>.Continuation
+    /// The journal lease of the engine while it runs (`JournalOwner`).
+    private var lease: UInt64?
     /// The engine configuration as last sent (cached: it is rebuilt only when a setting or the library changes).
     private(set) var engineConfig: EngineConfig
     /// Called when Accessibility is granted, before windows are restored (the plugin re-runs the self-check).
@@ -71,28 +74,21 @@ final class WindowsRuntime {
         layouts = LayoutRepository(directory: context.storageDirectory, logger: context.logger)
         let trust = AccessibilityTrust(reader: context.permissions, clock: context.clock)
         self.trust = trust
+        gate = AccessibilityGate(trust: trust, hud: hud)
         let flag = trust.flag
-        let (outputs, continuation) = AsyncStream.makeStream(of: EngineOutput.self)
-        outputContinuation = continuation
-        engineConfig = Self.config(settings)
+        let pump = ReportPump { _ in }
+        reports = pump
+        engineConfig = configBuilder.build(settings)
         engine = WindowEngine(
             client: context.windows, store: store, clock: context.clock, workspaceCount: settings.workspaceCount,
-            config: engineConfig, tick: tick,
-            outputs: EngineOutputs(
-                hud: { workspace, count in continuation.yield(.hud(workspace, windowCount: count)) },
-                summary: { continuation.yield(.summary($0)) },
-                banner: { continuation.yield(.banner($0)) },
-                windowMoved: { id, frame in continuation.yield(.windowMoved(id, frame)) },
-                restored: { continuation.yield(.restored($0)) }),
-            canMove: { flag.isTrusted }, logger: context.logger)
+            config: engineConfig, tick: tick, reporter: pump.reporter, canMove: { flag.isTrusted },
+            logger: context.logger)
         self.activationCenter = activationCenter
-        outputTask = Task { @MainActor [weak self] in
-            for await output in outputs { self?.handle(output) }
-        }
+        reports.handler = { [weak self] report in self?.handle(report) }
     }
 
-    private func handle(_ output: EngineOutput) {
-        switch output {
+    private func handle(_ report: EngineReport) {
+        switch report {
         case .hud(let workspace, let count):
             if settings.showHUD { hud.show(.workspace(number: workspace.rawValue, windowCount: count)) }
         case .summary(let summary):
@@ -104,8 +100,6 @@ final class WindowsRuntime {
             dragController?.windowMoved(id, frame: frame)
         case .restored(let report):
             hud.show(WindowsHUDState(report: report))
-        case .barrier(let continuation):
-            continuation.resume()
         }
     }
 
@@ -155,23 +149,6 @@ final class WindowsRuntime {
 
     private let activationCenter: NotificationCenter
 
-    static func config(
-        _ settings: WindowsSettings, assignments: AssignmentTable = AssignmentTable(),
-        library: LayoutLibrary = .stock
-    ) -> EngineConfig {
-        var config = EngineConfig()
-        config.followFocus = settings.followFocus
-        config.floatingBundleIDs = Set(settings.floatingApps)
-        config.layout = LayoutConfig(
-            defaultKind: settings.defaultKind, innerGap: settings.innerGap, outerGap: settings.outerGap,
-            rootOrientation: .horizontal, overrides: settings.workspaceOverrides.byWorkspace)
-        config.zones = ZonesConfig(
-            assignments: assignments, library: library,
-            defaultLandscape: settings.defaultZoneLayout(for: .landscape),
-            defaultPortrait: settings.defaultZoneLayout(for: .portrait))
-        return config
-    }
-
     func start() async {
         trust.refresh()
         trust.onChange = { [weak self] trusted in self?.trustChanged(trusted) }
@@ -180,7 +157,7 @@ final class WindowsRuntime {
         activationObserver = AppActivationObserver(center: activationCenter) { [weak self] in
             self?.trust.refresh()
         }
-        await journal.beginEngine()
+        lease = await journal.beginEngine()
         await assignments.load()
         await layouts.load()
         await refreshConfig()
@@ -189,13 +166,12 @@ final class WindowsRuntime {
         if dragController == nil { dragController = makeDragController?(self) }
     }
 
-    /// Waits until the engine has nothing queued or running and everything it reported has been handled here.
+    /// Waits until the engine has nothing queued or running and everything it reported has been handled here (tests
+    /// and tear-down).
     func settle() async {
         await trustTask?.value
         await engine.settle()
-        await withCheckedContinuation { continuation in
-            if case .terminated = outputContinuation.yield(.barrier(continuation)) { continuation.resume() }
-        }
+        await reports.waitUntilHandled()
     }
 
     /// Puts the windows back and stops, waiting at most `stopBudget`.
@@ -210,25 +186,24 @@ final class WindowsRuntime {
         strip = nil
         let engine = engine
         let journal = journal
-        outputContinuation.finish()
-        outputTask = nil
-        await journal.engineStopping()
+        trustTask?.cancel()
+        await trustTask?.value
+        trustTask = nil
+        reports.finish()
+        let lease = lease
+        if let lease { await journal.engineStopping(lease) }
         // The journal goes back to recovery only once the engine has really stopped, even when this wait gives
         // up first: a recovery pass must never run beside an engine that still moves windows.
         _ = await withDeadline(Self.stopBudget, clock: context.clock) {
             await engine.stop()
-            await journal.endEngine()
+            if let lease { await journal.endEngine(lease) }
         }
     }
 
     /// Runs an engine command, but only while Accessibility is trusted. Without it nothing moves and the HUD says
     /// why, with a button that opens the setting.
     func run(_ command: EngineCommand, purpose: AccessibilityPurpose) async {
-        guard trust.refresh() else {
-            hud.show(.accessibilityNeeded(purpose))
-            return
-        }
-        await engine.send(command)
+        await gate.run(purpose) { await engine.send(command) }
     }
 
     /// *Restore all windows*: always ends with the restore HUD.
@@ -266,7 +241,8 @@ final class WindowsRuntime {
 
     /// Rebuilds the engine configuration from the settings, the assignments and the library, and sends it.
     private func refreshConfig() async {
-        engineConfig = Self.config(settings, assignments: await assignments.table, library: await layouts.library)
+        engineConfig = configBuilder.build(
+            settings, assignments: await assignments.table, library: await layouts.library)
         await engine.update(config: engineConfig)
     }
 
@@ -283,6 +259,7 @@ final class WindowsRuntime {
         guard trusted else { return }
         trustTask = Task { [engine, hud] in
             await self.onTrustGranted()
+            guard !Task.isCancelled else { return }
             let report = await engine.restoreAllWindows()
             self.recoveredWindows += report.restored
             if !report.isEmpty {
@@ -294,15 +271,4 @@ final class WindowsRuntime {
             }
         }
     }
-}
-
-/// What the engine reports, carried to the main actor in order.
-enum EngineOutput: Sendable {
-    case hud(WorkspaceID, windowCount: Int)
-    case summary(WorkspaceSummary)
-    case banner(EngineBanner)
-    case windowMoved(WindowID, CGRect)
-    case restored(RecoveryReport)
-    /// Resumed when every output before it has been handled (`settle()`).
-    case barrier(CheckedContinuation<Void, Never>)
 }
