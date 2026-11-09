@@ -59,6 +59,8 @@ final class WindowsSettingsModel {
     private(set) var unsafeShortcuts: [KeyShortcut] = []
     private(set) var status = WindowsStatusInputs()
     private(set) var copiedDiagnostics = false
+    /// The last modifier choice was refused because the other family holds it.
+    private(set) var modifierConflict = false
 
     init(
         context: PluginContext, settings: WindowsSettings, runtime: @escaping () -> WindowsRuntime?,
@@ -190,6 +192,7 @@ final class WindowsSettingsModel {
     /// digit), so the choice the other family holds is refused.
     func setModifiers(_ choice: ModifierChoice, for family: ShortcutFamily) {
         let other = family == .goToWorkspace ? moveChoice : goChoice
+        modifierConflict = choice == other
         guard choice != other else { return }
         for number in 1...WindowsSettings.maximumWorkspaces {
             context.setCommandShortcut(
@@ -246,6 +249,12 @@ final class WindowsSettingsModel {
         guard let url = URL(string: string) else { return }
         let workspace = context.workspace
         Task { try? await workspace.open(url) }
+    }
+
+    /// What the floating list shows for a bundle id: the app's name when it is installed, else the id itself.
+    func appName(_ bundleID: String) -> String {
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return bundleID }
+        return FileManager.default.displayName(atPath: url.path).replacingOccurrences(of: ".app", with: "")
     }
 
     /// "Add App…": the bundle id of the chosen app.

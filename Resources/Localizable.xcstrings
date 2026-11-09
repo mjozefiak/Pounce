@@ -5474,7 +5474,7 @@
       }
     },
     "Remove %@" : {
-      "comment" : "Accessibility label of the button that stops searching a protected folder",
+      "comment" : "Window Management: removes one app from the floating list (spoken)",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -13879,24 +13879,6 @@
         }
       }
     },
-    "Windows were left parked twice in a row. Try Again starts it." : {
-      "comment" : "Window Management: safe mode",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Windows were left parked twice in a row. Try Again starts it."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Okna zostały ukryte dwa razy z rzędu. „Spróbuj ponownie” uruchamia funkcję."
-          }
-        }
-      }
-    },
     "Show menu bar strip" : {
       "comment" : "Window Management setting: the numbered boxes in the menu bar",
       "extractionState" : "manual",
@@ -14451,6 +14433,42 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "Windows were left parked twice in a row. Use Try Again above." : {
+      "comment" : "Window Management: safe mode",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Windows were left parked twice in a row. Use Try Again above."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Okna zostały ukryte dwa razy z rzędu. Użyj „Spróbuj ponownie” powyżej."
+          }
+        }
+      }
+    },
+    "Use different modifiers for the two shortcut families." : {
+      "comment" : "Window Management shortcut rows: the other family already uses this choice",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use different modifiers for the two shortcut families."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Użyj różnych modyfikatorów dla obu grup skrótów."
           }
         }
       }

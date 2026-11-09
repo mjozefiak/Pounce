@@ -62,7 +62,7 @@ struct WindowsSettingsPane: View {
             label(
                 Text("Switched off after a problem", comment: "Window Management: safe mode"),
                 help: Text(
-                    "Windows were left parked twice in a row. Try Again starts it.",
+                    "Windows were left parked twice in a row. Use Try Again above.",
                     comment: "Window Management: safe mode"))
         }
     }
@@ -77,6 +77,8 @@ struct WindowsSettingsPane: View {
             ) {
                 Text("\(model.workspaceCount)").font(textSize.font(.body)).monospacedDigit()
             }
+            .accessibilityLabel(Text("Workspaces", comment: "Window Management setting: how many workspaces"))
+            .accessibilityValue(Text("\(model.workspaceCount)"))
         } label: {
             label(Text("Workspaces", comment: "Window Management setting: how many workspaces"))
         }
@@ -115,6 +117,12 @@ struct WindowsSettingsPane: View {
         modifierRow(
             Text("Move window to workspace", comment: "Window Management shortcut family"), family: .moveToWorkspace,
             choice: model.moveChoice)
+        if model.modifierConflict {
+            label(
+                Text(
+                    "Use different modifiers for the two shortcut families.",
+                    comment: "Window Management shortcut rows: the other family already uses this choice"))
+        }
         if model.needsShortcutWarning {
             HStack {
                 label(
@@ -146,6 +154,7 @@ struct WindowsSettingsPane: View {
             }
             ForEach(ModifierChoice.allCases) { option in
                 Text(verbatim: option.symbols + "1–9").font(textSize.font(.body)).tag(option.rawValue)
+                    .disabled(option == (family == .goToWorkspace ? model.moveChoice : model.goChoice))
             }
         } label: {
             label(title)
@@ -164,8 +173,12 @@ struct WindowsSettingsPane: View {
                 } label: {
                     Text("Remove", comment: "Window Management: removes an app from the floating list")
                 }
+                .accessibilityLabel(
+                    Text(
+                        "Remove \(model.appName(bundleID))",
+                        comment: "Window Management: removes one app from the floating list (spoken)"))
             } label: {
-                Text(verbatim: bundleID).font(textSize.font(.callout))
+                Text(verbatim: model.appName(bundleID)).font(textSize.font(.callout))
             }
         }
         HStack {

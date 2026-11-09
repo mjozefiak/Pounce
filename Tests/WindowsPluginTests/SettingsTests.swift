@@ -252,3 +252,19 @@ final class ShortcutLog: PasteboardClient, @unchecked Sendable {
         return 1
     }
 }
+
+extension SettingsTests {
+    /// Review L4 to L6.
+    @Test func theParkedHUDOffersTheButtonAndARefusedChoiceIsExplained() throws {
+        #expect(WindowsHUDState.parkedNeedsAccessibility.offersAllowAccessibility)
+        let (plugin, _, harness, _) = try setup()
+        defer { harness.tearDown() }
+        let model = plugin.paneModel
+        model.setModifiers(.optionShift, for: .goToWorkspace)
+        #expect(model.modifierConflict)
+        model.setModifiers(.controlOption, for: .goToWorkspace)
+        #expect(!model.modifierConflict)
+        // An app that is not installed is shown by its id.
+        #expect(model.appName("com.example.not.installed") == "com.example.not.installed")
+    }
+}

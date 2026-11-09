@@ -97,8 +97,10 @@ enum WindowsHUDState: Equatable, Sendable {
 
     /// Whether the HUD shows the *Allow Accessibility* button (and so takes mouse clicks).
     var offersAllowAccessibility: Bool {
-        if case .accessibilityNeeded = self { return true }
-        return false
+        switch self {
+        case .accessibilityNeeded, .parkedNeedsAccessibility: return true
+        default: return false
+        }
     }
 
     /// What VoiceOver hears.
@@ -232,7 +234,7 @@ struct WindowsHUDView: View {
         }
         .frame(width: 480, height: 64)
         .animation(reducesMotion ? nil : .smooth(duration: 0.2), value: state)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: state.offersAllowAccessibility ? .contain : .combine)
         .accessibilityLabel(state.announcement)
     }
 }
