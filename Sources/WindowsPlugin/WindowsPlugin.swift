@@ -180,6 +180,17 @@ public final class WindowsPlugin: LintelPlugin {
         }
     }
 
+    /// A double-clicked `.lintellayouts` file: the Layouts window opens and shows what importing it would do
+    /// (never adds anything by itself). A plugin that is off only says so.
+    public func handleOpenedFile(_ url: URL) async -> Bool {
+        guard url.pathExtension.lowercased() == LayoutFileType.fileExtension else { return false }
+        layoutsWindow.show()
+        guard let model = layoutsWindow.model else { return true }
+        await model.refresh()
+        model.loadImport(from: url)
+        return true
+    }
+
     func recheckAvailability() async {
         let client = context.windows
         let availability = await Task.detached { client.availability }.value

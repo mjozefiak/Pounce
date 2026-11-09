@@ -18,6 +18,9 @@ enum LintelMain {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var coordinator: AppCoordinator?
+    /// Files opened before the coordinator has started (a double-click that launched the app).
+    private var pendingFiles: [URL] = []
+    private var started = false
     private let logger = Logger(subsystem: "com.lintelapp", category: "app")
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -37,10 +40,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             await recordQAUses(environment)
             #endif
             await coordinator.start()
+            started = true
+            if !pendingFiles.isEmpty {
+                let files = pendingFiles
+                pendingFiles = []
+                await coordinator.open(files)
+            }
             #if DEBUG
             runQAActions()
             #endif
         }
+    }
+
+    /// A `.lintellayouts` file opened with Lintel goes to the layout importer (Window Management). Before the
+    /// plugins have started it waits for them.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        guard started, let coordinator else {
+            pendingFiles.append(contentsOf: urls)
+            return
+        }
+        Task { await coordinator.open(urls) }
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {

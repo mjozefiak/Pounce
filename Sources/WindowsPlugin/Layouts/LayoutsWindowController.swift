@@ -8,6 +8,8 @@ import SwiftUI
 final class LayoutsWindowController: NSObject, NSWindowDelegate {
     private(set) var window: NSWindow?
     private let makeModel: @MainActor () -> LayoutsModel
+    /// The model of the open window, `nil` while it is closed.
+    private(set) var model: LayoutsModel?
     /// The app's text size (`app.textSize` through `AppTextSize`), read while the view renders.
     var textSize: () -> TextSize = { AppTextSize.current() }
     /// False in QA mode: the window is ordered front without activating Lintel.
@@ -25,6 +27,7 @@ final class LayoutsWindowController: NSObject, NSWindowDelegate {
             return
         }
         let model = makeModel()
+        self.model = model
         let view = LintelTextSizeScope(size: textSize) { LayoutsWindowView(model: model) }
         let controller = NSHostingController(rootView: view)
         let window = NSWindow(contentViewController: controller)
@@ -49,6 +52,7 @@ final class LayoutsWindowController: NSObject, NSWindowDelegate {
         // The window and its model are rebuilt on the next open, so nothing stale is shown.
         window?.contentViewController = nil
         window = nil
+        model = nil
     }
 
     private func bringForward(_ window: NSWindow) {

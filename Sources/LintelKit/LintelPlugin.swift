@@ -105,6 +105,12 @@ public protocol LintelPlugin: AnyObject {
     /// but no instance, and runs off the main actor. Added with window management; the default does nothing.
     nonisolated static func recoverAtLaunch(context: PluginContext) async -> RecoveryOutcome
 
+    /// Offers a file the user opened with Lintel (double-clicked, or dropped on the Dock icon) to the plugin.
+    /// Returns `true` when the plugin took it. The host asks the registered plugins in order until one does;
+    /// an inactive plugin may be asked too, so it must only show a message then and start no work. Added with
+    /// the layout library (`.lintellayouts`); the default takes nothing.
+    func handleOpenedFile(_ url: URL) async -> Bool
+
     /// Removes data the plugin keeps outside its storage directory (for example a Keychain item).
     /// "Erase Data" calls `deactivate()`, then this method, and then the host deletes the whole
     /// `Plugins/<id>/` directory, so the default only needs to do nothing.
@@ -113,6 +119,7 @@ public protocol LintelPlugin: AnyObject {
 
 extension LintelPlugin {
     public nonisolated static func recoverAtLaunch(context: PluginContext) async -> RecoveryOutcome { .done }
+    public func handleOpenedFile(_ url: URL) async -> Bool { false }
     public func activate() async throws {}
     public func deactivate() async {}
     public var searchSources: [any SearchSource] { [] }
