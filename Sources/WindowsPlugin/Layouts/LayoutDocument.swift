@@ -101,8 +101,10 @@ enum LayoutRules {
 
     /// The grid layout a record describes, after every rule. A record of another style is not an error here (the
     /// caller keeps it untouched).
-    static func check(_ record: LayoutRecord) -> Result<GridLayout, LayoutRejection> {
-        guard isValidUserID(record.id) else { return .failure(.badID) }
+    /// `lenientIDs` (import) accepts any well-formed id, because the importer gives a new one to every id that
+    /// collides or that a user layout may not have.
+    static func check(_ record: LayoutRecord, lenientIDs: Bool = false) -> Result<GridLayout, LayoutRejection> {
+        guard lenientIDs ? isValidID(record.id) : isValidUserID(record.id) else { return .failure(.badID) }
         guard isValidName(record.name) else { return .failure(.badName) }
         do {
             guard let layout = try record.gridLayout() else { return .failure(.malformed) }
@@ -168,13 +170,19 @@ struct LayoutDocument: Equatable, Sendable {
 
     /// Parses a document. With `enforceFileLimits` (import) the size and the layout count are limited too.
     static func parse(_ data: Data, enforceFileLimits: Bool = false) throws(ParseError) -> LayoutDocument {
+        try parse(data, enforceFileLimits: enforceFileLimits, lenientIDs: false)
+    }
+
+    static func parse(
+        _ data: Data, enforceFileLimits: Bool, lenientIDs: Bool
+    ) throws(ParseError) -> LayoutDocument {
         if enforceFileLimits, data.count > LayoutRules.maximumFileSize { throw .tooLarge }
         guard let raw = try? JSONDecoder().decode(Raw.self, from: data) else { throw .malformed }
         guard raw.version >= 1 else { throw .malformed }
         if enforceFileLimits, raw.layouts.count > LayoutRules.maximumLayouts { throw .tooManyLayouts }
         var entries: [LayoutEntry] = []
         entries.reserveCapacity(raw.layouts.count)
-        for value in raw.layouts { entries.append(classify(value)) }
+        for value in raw.layouts { entries.append(classify(value, lenientIDs: lenientIDs)) }
         var slots: [Int: String] = [:]
         for (key, id) in raw.slots ?? [:] {
             if let number = Int(key), (1...LayoutRules.slotCount).contains(number) { slots[number] = id }
@@ -182,7 +190,7 @@ struct LayoutDocument: Equatable, Sendable {
         return LayoutDocument(version: raw.version, entries: entries, slots: slots)
     }
 
-    private static func classify(_ value: JSONValue) -> LayoutEntry {
+    private static func classify(_ value: JSONValue, lenientIDs: Bool) -> LayoutEntry {
         guard let object = value.objectValue, let style = object["style"]?.stringValue else {
             return .opaque(OpaqueLayout(raw: value, reason: .invalid(.malformed)))
         }
@@ -192,7 +200,7 @@ struct LayoutDocument: Equatable, Sendable {
         guard let data = try? JSONEncoder().encode(value),
             let record = try? JSONDecoder().decode(LayoutRecord.self, from: data)
         else { return .opaque(OpaqueLayout(raw: value, reason: .invalid(.malformed))) }
-        switch LayoutRules.check(record) {
+        switch LayoutRules.check(record, lenientIDs: lenientIDs) {
         case .success(let layout): return .grid(layout)
         case .failure(let rejection): return .opaque(OpaqueLayout(raw: value, reason: .invalid(rejection)))
         }
