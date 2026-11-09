@@ -208,17 +208,11 @@ actor StateStore {
         markDirty()
     }
 
-    /// Replaces the stored tiling trees (written like the membership: after `saveDelay`, or by `flush()`).
-    func setTiling(_ tiling: [WorkspaceID: TilingTree]) {
-        guard !isReadOnly, tiling != state.tiling else { return }
-        state.tiling = tiling
-        markDirty()
-    }
-
-    /// Replaces the stored zone placement (deferred like the trees).
-    func setZones(_ zones: [WorkspaceID: [String: ZoneState]]) {
-        guard !isReadOnly, zones != state.zones else { return }
-        state.zones = zones
+    /// Replaces the stored state of every layout kind (written like the membership: after `saveDelay`, or by
+    /// `flush()`). Ignored while read-only.
+    func setLayouts(_ layouts: [WorkspaceID: [String: JSONValue]]) {
+        guard !isReadOnly, layouts != state.layouts else { return }
+        state.layouts = layouts
         markDirty()
     }
 

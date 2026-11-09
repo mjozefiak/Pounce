@@ -121,3 +121,48 @@ final class RecordingHUD: WindowsHUDPresenting {
     var allowAccessibility: @MainActor () -> Void = {}
     func show(_ state: WindowsHUDState) { shown.append(state) }
 }
+
+// Typed views of the layout states, for tests that look at one kind. They go through the registry, like the
+// engine does, so they also exercise what is stored.
+
+extension EngineState {
+    var tiling: [WorkspaceID: TilingTree] { layouts.compactMapValues { $0["tiling"]?.as(TilingTree.self) } }
+
+    var zones: [WorkspaceID: [String: ZoneState]] {
+        layouts.compactMapValues { $0["zones"]?.as(ZonesLayoutState.self)?.byDisplay }
+    }
+
+    var lastZone: [String: Int] { placementHints }
+}
+
+extension WindowsState {
+    init(
+        order: [WorkspaceID: [WindowID]] = [:], hidden: [HiddenEntry] = [],
+        tiling: [WorkspaceID: TilingTree] = [:], zones: [WorkspaceID: [String: ZoneState]] = [:]
+    ) {
+        var states: [WorkspaceID: [String: AnyLayoutState]] = [:]
+        for (workspace, tree) in tiling { states[workspace, default: [:]]["tiling"] = AnyLayoutState(tree) }
+        for (workspace, placed) in zones {
+            states[workspace, default: [:]]["zones"] = AnyLayoutState(ZonesLayoutState(byDisplay: placed))
+        }
+        self.init(order: order, hidden: hidden, layouts: LayoutRegistry.standard.encode(states))
+    }
+
+    var tiling: [WorkspaceID: TilingTree] {
+        LayoutRegistry.standard.decode(layouts).compactMapValues { $0["tiling"]?.as(TilingTree.self) }
+    }
+
+    var zones: [WorkspaceID: [String: ZoneState]] {
+        LayoutRegistry.standard.decode(layouts).compactMapValues { $0["zones"]?.as(ZonesLayoutState.self)?.byDisplay }
+    }
+}
+
+extension StateStore {
+    func setTiling(_ tiling: [WorkspaceID: TilingTree]) {
+        setLayouts(WindowsState(tiling: tiling).layouts)
+    }
+
+    func setZones(_ zones: [WorkspaceID: [String: ZoneState]]) {
+        setLayouts(WindowsState(zones: zones).layouts)
+    }
+}

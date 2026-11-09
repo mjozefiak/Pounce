@@ -70,7 +70,11 @@ enum EngineBanner: Equatable, Sendable {
 struct EngineState: Equatable, Sendable {
     var model: VirtualWorkspaceModel
     var config = EngineConfig()
-    var displays: [DisplayInfo] = []
+    var displays: [DisplayInfo] = [] {
+        didSet { displayKeys = DisplayKeys.keys(for: displays).keys }
+    }
+    /// The key of each display (`DisplayKeys`), kept with `displays` so loops do not recompute it.
+    private(set) var displayKeys: [UInt32: String] = [:]
     var windows: [WindowID: TrackedWindow] = [:]
     var parked: [WindowID: ParkRecord] = [:]
     var expected: [WindowID: ExpectedFrame] = [:]
@@ -84,15 +88,11 @@ struct EngineState: Equatable, Sendable {
     var focused: WindowID?
     /// The window that had the focus before `focused`; where a new window goes when it took the focus itself.
     var previousFocus: WindowID?
-    /// The tiling tree of each workspace. A tree is kept while its workspace is Free or Zones (the state of each
-    /// kind survives a switch) and brought up to date with the live windows when the workspace is tiled again.
-    var tiling: [WorkspaceID: TilingTree] = [:]
-    /// The zone of each window of each workspace, by display key (`DisplayKeys`). Kept while the workspace is
-    /// Free or Auto-tile, like the tree.
-    var zones: [WorkspaceID: [String: ZoneState]] = [:]
-    /// The zone each app's newest window was placed in (memory only): where its next window goes if that zone is
-    /// empty. Keyed by bundle id; never stored and never logged.
-    var lastZone: [String: Int] = [:]
+    /// The state of every layout kind of each workspace, by the kind's name. A kind's state survives a switch to
+    /// another kind and is brought up to date with the live windows when its kind is used again.
+    var layouts: [WorkspaceID: [String: AnyLayoutState]] = [:]
+    /// Placement memory of the strategies, keyed by app (memory only; never stored and never logged).
+    var placementHints: [String: Int] = [:]
     /// Windows the user took out of tiling (*Toggle floating*): not arranged, not in a tree.
     var floating: Set<WindowID> = []
     /// The generation of the newest batch of frame changes; each batch gets the next number.
@@ -107,6 +107,7 @@ struct EngineState: Equatable, Sendable {
 
     init(workspaceCount: Int = WindowsSettings.defaultWorkspaceCount, displays: [DisplayInfo] = []) {
         self.displays = displays
+        self.displayKeys = DisplayKeys.keys(for: displays).keys
         self.model = VirtualWorkspaceModel(
             workspaceCount: workspaceCount, displays: DisplayKeys.orderedKeys(for: displays))
     }
@@ -165,7 +166,7 @@ enum EngineCommand: Equatable, Sendable {
     case restoreAll
     /// Takes the focused window out of tiling, or puts it back in.
     case toggleFloating
-    /// Moves the focused window to a zone of its workspace's layout, by the zone's number (1 to 9).
+    /// Moves the focused window to a slot of its workspace's layout (a zone), by number (1 to 9).
     case moveToZone(Int)
     /// Snaps a window to a zone of the layout shown on a display (a drag released over a zone, step 3.5). The
     /// zone is an id of the layout, the display a display key.
@@ -206,10 +207,8 @@ enum EngineInput: Equatable, Sendable {
     case journalAvailability(Bool)
     /// Asks the engine to place a window at a frame, as a layout does (phases 2 and 3).
     case place(WindowID, CGRect, now: Double)
-    /// The trees stored by an earlier run, before the first snapshot.
-    case restoreTiling([WorkspaceID: TilingTree])
-    /// The zone placement stored by an earlier run, before the first snapshot.
-    case restoreZones([WorkspaceID: [String: ZoneState]])
+    /// The layout states stored by an earlier run, before the first snapshot.
+    case restoreLayouts([WorkspaceID: [String: JSONValue]])
 }
 
 extension EngineInput {
@@ -220,7 +219,7 @@ extension EngineInput {
             .windowMoved(_, _, let now), .windowFocused(_, let now), .displaysChanged(_, let now),
             .command(_, let now), .applied(_, let now), .watchdogTripped(let now), .place(_, _, let now):
             now
-        case .configChanged, .journalAvailability, .restoreTiling, .restoreZones:
+        case .configChanged, .journalAvailability, .restoreLayouts:
             nil
         }
     }
@@ -233,8 +232,7 @@ enum EngineEffect: Equatable, Sendable {
     case setFrame(FrameRequest)
     case focus(WindowID)
     case saveOrder([WorkspaceID: [WindowID]])
-    case saveTiling([WorkspaceID: TilingTree])
-    case saveZones([WorkspaceID: [String: ZoneState]])
+    case saveLayouts([WorkspaceID: [String: AnyLayoutState]])
     /// The user moved a managed window of a shown Zones workspace (not our own echo): the snap overlay's drag
     /// detector looks at the pointer. Dropped, like every effect that acts, while Accessibility is off.
     case userMovedWindow(WindowID, frame: CGRect)

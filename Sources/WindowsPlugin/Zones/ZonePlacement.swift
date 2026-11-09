@@ -15,35 +15,21 @@ struct ZoneState: Equatable, Sendable {
     }
 }
 
-/// Zones: the pure strategy behind a Zones workspace (kind `zones`). It owns where a new window goes, the frames
-/// (every window of a zone gets the zone's frame) and the moves between zones; the layout it works on comes
-/// from the assignment of the workspace and display (`ZonesConfig.resolve`).
-struct ZonesStrategy: LayoutStrategy {
-    static let kind = "zones"
+/// The zone placement of one workspace, per display key (state kind `zones`). Windows of other displays keep their
+/// placement while a display shows another layout.
+struct ZonesLayoutState: LayoutStateValue, Equatable {
+    var byDisplay: [String: ZoneState] = [:]
 
+    var isEmpty: Bool { byDisplay.isEmpty }
+}
+
+/// The pure rules of one grid layout (kind `zones`): where a new window goes, the frames (every window of a zone
+/// gets the zone's frame) and the moves between zones. The layout it works on comes from the assignment of the
+/// workspace and display (`ZonesConfig.resolve`).
+struct ZonePlacement: Sendable {
     var layout: GridLayout
 
-    var emptyState: ZoneState { ZoneState() }
-
-    func windows(in state: ZoneState) -> [WindowID] {
-        state.zoneOf.keys.sorted {
-            (number(of: state.zoneOf[$0]), $0) < (number(of: state.zoneOf[$1]), $1)
-        }
-    }
-
-    private func number(of zone: Int?) -> Int { zone.flatMap(layout.number(ofZone:)) ?? Int.max }
-
-    func inserting(_ window: WindowID, after anchor: WindowID?, into state: ZoneState) -> ZoneState {
-        placing(window, preferred: nil, anchor: anchor, into: state)
-    }
-
-    func removing(_ window: WindowID, from state: ZoneState) -> ZoneState {
-        var next = state
-        next.zoneOf[window] = nil
-        return next
-    }
-
-    func frames(state: ZoneState, area: CGRect, geometry: LayoutGeometry) -> [WindowID: CGRect] {
+    func frames(state: ZoneState, area: CGRect) -> [WindowID: CGRect] {
         let zoneFrames = layout.frames(in: area)
         var result: [WindowID: CGRect] = [:]
         for (window, zone) in state.zoneOf {

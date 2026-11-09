@@ -36,6 +36,7 @@ actor WindowEngine {
     private let time: TimeSource
     private let tick: Duration
     private let outputs: EngineOutputs
+    private let strategies: LayoutRegistry
     private let logger: Logger
     /// Whether windows may be moved at all: the plugin is enabled (the engine exists only then) and Accessibility
     /// is trusted. When it answers `false` every frame change fails with `.notTrusted` before it reaches the
@@ -85,6 +86,7 @@ actor WindowEngine {
         tick: Duration = .milliseconds(30),
         watchdog: Watchdog = Watchdog(),
         outputs: EngineOutputs = EngineOutputs(),
+        strategies: LayoutRegistry = .standard,
         canMove: @escaping @Sendable () -> Bool = { true },
         logger: Logger = Logger(subsystem: "com.lintelapp", category: "windows")
     ) {
@@ -97,6 +99,7 @@ actor WindowEngine {
         self.tick = tick
         self.watchdog = watchdog
         self.outputs = outputs
+        self.strategies = strategies
         self.canMove = canMove
         self.logger = logger
     }
@@ -108,9 +111,7 @@ actor WindowEngine {
         await store.load()
         let canJournal = await store.canJournal
         let stored = await store.state
-        var inputs: [EngineInput] = [
-            .journalAvailability(canJournal), .restoreTiling(stored.tiling), .restoreZones(stored.zones),
-        ]
+        var inputs: [EngineInput] = [.journalAvailability(canJournal), .restoreLayouts(stored.layouts)]
         inputs.append(await snapshotInput())
         await submit(inputs)
         pumpTask = Task { [weak self, client] in
@@ -155,7 +156,9 @@ actor WindowEngine {
     // MARK: Queries
 
     /// The zones the snap overlay offers while a window is dragged (empty when it must not appear).
-    func dragDisplays(for id: WindowID) -> [DragDisplay] { state.dragDisplays(for: id) }
+    func dragDisplays(for id: WindowID) -> [DragDisplay] {
+        EngineReducer.snapTargets(state, for: id, strategies: strategies)
+    }
 
     /// What the window switcher needs: the workspace of every window the engine holds and the counts.
     func switcherState() -> (membership: [WindowID: WorkspaceID], summary: WorkspaceSummary) {
@@ -330,7 +333,7 @@ actor WindowEngine {
             var effects: [EngineEffect] = []
             var batch = Batch()
             for item in items {
-                let (next, produced) = EngineReducer.reduce(state, item.input)
+                let (next, produced) = EngineReducer.reduce(state, item.input, strategies: strategies)
                 state = next
                 effects.append(contentsOf: produced)
                 if let waiter = item.waiter { batch.waiters.append(waiter) }
@@ -528,10 +531,9 @@ actor WindowEngine {
             enqueue(on: .process(id.pid), batch: batch) { try? await client.focus(id) }
         case .saveOrder(let order):
             enqueue(on: .store, batch: batch) { await store.setOrder(order) }
-        case .saveTiling(let tiling):
-            enqueue(on: .store, batch: batch) { await store.setTiling(tiling) }
-        case .saveZones(let zones):
-            enqueue(on: .store, batch: batch) { await store.setZones(zones) }
+        case .saveLayouts(let layouts):
+            let encoded = strategies.encode(layouts)
+            enqueue(on: .store, batch: batch) { await store.setLayouts(encoded) }
         case .userMovedWindow(let id, let frame):
             outputs.windowMoved(id, frame)
         case .hud(let workspace, let count):

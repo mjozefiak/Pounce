@@ -210,16 +210,26 @@ import Testing
         #expect(layout.root.children.map(\.weight) == [1, 1, 1, 1])
     }
 
-    @Test func theStrategyStoresItsStateUnderTheTilingKind() {
-        let strategy = TilingStrategy(orientation: .vertical)
-        #expect(TilingStrategy.kind == "tiling")
-        var state = strategy.emptyState
-        state = strategy.inserting(win(1), after: nil, into: state)
-        state = strategy.inserting(win(2), after: win(1), into: state)
-        #expect(strategy.windows(in: state).map(\.number) == [1, 2])
-        let result = strategy.frames(state: state, area: screen, geometry: LayoutGeometry(gaps: .none))
-        #expect(result[win(2)] == CGRect(x: 0, y: 300, width: 1000, height: 300))
-        state = strategy.removing(win(1), from: state)
-        #expect(strategy.windows(in: state).map(\.number) == [2])
+    @Test func theStrategyKeepsItsStateUnderTheTilingKind() {
+        let strategy = TilingStrategy()
+        #expect(strategy.kind == .tiling)
+        var config = EngineConfig()
+        config.layout = LayoutConfig(
+            defaultKind: .tiling, innerGap: 0, outerGap: 0, rootOrientation: .vertical, overrides: [:])
+        func input(_ windows: [WindowID], state: AnyLayoutState?) -> LayoutInput {
+            LayoutInput(
+                workspace: WorkspaceID(1)!, windows: windows, apps: [:], state: state, focused: win(1),
+                previousFocus: nil, display: DisplayInfo(id: 1, uuid: "A", frame: screen), displayKey: "A",
+                config: config, hints: [:])
+        }
+        let first = strategy.arrange(input([win(1), win(2)], state: nil))
+        #expect(first.state?.as(TilingTree.self)?.windows.map(\.number) == [1, 2])
+        #expect(first.frames[win(2)] == CGRect(x: 0, y: 300, width: 1000, height: 300))
+        // A window that left goes, and what the strategy stores round-trips through its JSON.
+        let second = strategy.arrange(input([win(2)], state: first.state))
+        #expect(second.state?.as(TilingTree.self)?.windows.map(\.number) == [2])
+        let json = second.state.flatMap(strategy.encode)
+        #expect(json.flatMap(strategy.decode) == second.state)
+        #expect(strategy.removing(win(2), from: second.state ?? first.state!).isEmpty)
     }
 }

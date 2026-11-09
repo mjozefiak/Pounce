@@ -366,12 +366,12 @@ import Testing
 }
 
 /// The strategy on plain values (step 3.3).
-@Suite struct ZonesStrategyTests {
+@Suite struct ZonePlacementTests {
     private func win(_ number: UInt32) -> WindowID { WindowID(pid: 1, number: number) }
-    private let strategy = ZonesStrategy(layout: StockLayouts.layout(StockLayouts.grid2x2) ?? StockLayouts.all[0])
+    private let strategy = ZonePlacement(layout: StockLayouts.layout(StockLayouts.grid2x2) ?? StockLayouts.all[0])
 
     @Test func placingGoesToThePreferredEmptyZoneThenTheFirstEmptyThenTheAnchor() {
-        var state = strategy.emptyState
+        var state = ZoneState()
         state = strategy.placing(win(1), preferred: 3, anchor: nil, into: state)
         #expect(state.zoneOf[win(1)] == 3)
         state = strategy.placing(win(2), preferred: 3, anchor: nil, into: state)
@@ -402,17 +402,19 @@ import Testing
 
     @Test func framesGiveEveryWindowItsZoneFrame() {
         let state = ZoneState(zoneOf: [win(1): 1, win(2): 1, win(3): 4])
-        let frames = strategy.frames(
-            state: state, area: CGRect(x: 0, y: 0, width: 1000, height: 600), geometry: LayoutGeometry(gaps: .none))
+        let frames = strategy.frames(state: state, area: CGRect(x: 0, y: 0, width: 1000, height: 600))
         #expect(frames[win(1)] == frames[win(2)])
         #expect(frames[win(3)] == CGRect(x: 504, y: 304, width: 488, height: 288))
     }
 
-    @Test func theKindIsZonesAndWindowsListByZoneNumber() {
-        #expect(ZonesStrategy.kind == "zones")
-        let state = ZoneState(zoneOf: [win(1): 3, win(2): 1, win(3): 1])
-        #expect(strategy.windows(in: state) == [win(2), win(3), win(1)])
-        #expect(strategy.removing(win(2), from: state).zoneOf[win(2)] == nil)
+    @Test func theKindIsZonesAndItsStateRoundTripsThroughJSON() {
+        let strategy = ZonesStrategy()
+        #expect(strategy.kind == .zones)
+        let state = AnyLayoutState(ZonesLayoutState(byDisplay: ["A": ZoneState(zoneOf: [win(1): 3, win(2): 1])]))
+        #expect(strategy.encode(state).flatMap(strategy.decode) == state)
+        let removed = strategy.removing(win(1), from: state).as(ZonesLayoutState.self)
+        #expect(removed?.byDisplay["A"]?.zoneOf == [win(2): 1])
+        #expect(strategy.removing(win(2), from: AnyLayoutState(removed ?? ZonesLayoutState())).isEmpty)
     }
 
     @Test func theRecordRoundTrips() {
