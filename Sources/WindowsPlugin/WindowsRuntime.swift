@@ -1,4 +1,5 @@
 import Foundation
+import LintelCore
 import LintelKit
 import LintelUI
 import Synchronization
@@ -24,6 +25,10 @@ final class WindowsRuntime {
     let layouts: LayoutRepository
     let engine: WindowEngine
     let trust: AccessibilityTrust
+    private(set) lazy var layoutCommands = LayoutCommands(
+        context: context, settings: settings, assignments: assignments, layouts: layouts, engine: engine,
+        trust: trust, hud: hud, currentWorkspace: { [unowned self] in lastSummary?.current },
+        apply: { [unowned self] in await applySettings() })
     let hud: any WindowsHUDPresenting
     /// The menu bar strip; `nil` until `start()` when it is on, and in tests that pass `makeStrip: nil`.
     private(set) var strip: WorkspaceStripController?
@@ -34,7 +39,11 @@ final class WindowsRuntime {
     /// Releases the overlay panels when the runtime stops.
     var tearDownOverlay: @MainActor () -> Void = {}
     private var lastSummary: WorkspaceSummary?
-    private let summaryRelay: SummaryRelay
+    /// The engine's outputs, in the order it produced them, handled on the main actor by one task.
+    private var outputTask: Task<Void, Never>?
+    private let outputContinuation: AsyncStream<EngineOutput>.Continuation
+    /// The engine configuration as last sent (cached: it is rebuilt only when a setting or the library changes).
+    private(set) var engineConfig: EngineConfig
     /// Called when Accessibility is granted, before windows are restored (the plugin re-runs the self-check).
     var onTrustGranted: () async -> Void = {}
     /// The newest problem the engine reported, for the Settings banner.
@@ -61,29 +70,38 @@ final class WindowsRuntime {
         let trust = AccessibilityTrust(reader: context.permissions, clock: context.clock)
         self.trust = trust
         let flag = trust.flag
-        let relay = SummaryRelay()
-        summaryRelay = relay
+        let (outputs, continuation) = AsyncStream.makeStream(of: EngineOutput.self)
+        outputContinuation = continuation
+        engineConfig = Self.config(settings)
         engine = WindowEngine(
             client: context.windows, store: store, clock: context.clock, workspaceCount: settings.workspaceCount,
-            config: Self.config(settings), tick: tick,
+            config: engineConfig, tick: tick,
             outputs: EngineOutputs(
-                hud: { workspace, count in
-                    guard settings.workspaceHUD else { return }
-                    Task { @MainActor in hud.show(.workspace(number: workspace.rawValue, windowCount: count)) }
-                },
-                summary: { summary in Task { @MainActor in relay.handler(summary) } },
-                banner: { banner in Task { @MainActor in relay.bannerHandler(banner) } },
-                windowMoved: { id, frame in Task { @MainActor in relay.dragHandler(id, frame) } },
-                restored: { report in
-                    Task { @MainActor in hud.show(WindowsHUDState(report: report)) }
-                }),
+                hud: { workspace, count in continuation.yield(.hud(workspace, windowCount: count)) },
+                summary: { continuation.yield(.summary($0)) },
+                banner: { continuation.yield(.banner($0)) },
+                windowMoved: { id, frame in continuation.yield(.windowMoved(id, frame)) },
+                restored: { continuation.yield(.restored($0)) }),
             canMove: { flag.isTrusted }, logger: context.logger)
         self.activationCenter = activationCenter
-        relay.handler = { [weak self] summary in self?.summaryChanged(summary) }
-        relay.dragHandler = { [weak self] id, frame in self?.dragController?.windowMoved(id, frame: frame) }
-        relay.bannerHandler = { [weak self] banner in
-            self?.engineBanner = banner
-            self?.context.resultsChanged()
+        outputTask = Task { @MainActor [weak self] in
+            for await output in outputs { self?.handle(output) }
+        }
+    }
+
+    private func handle(_ output: EngineOutput) {
+        switch output {
+        case .hud(let workspace, let count):
+            if settings.workspaceHUD { hud.show(.workspace(number: workspace.rawValue, windowCount: count)) }
+        case .summary(let summary):
+            summaryChanged(summary)
+        case .banner(let banner):
+            engineBanner = banner
+            context.resultsChanged()
+        case .windowMoved(let id, let frame):
+            dragController?.windowMoved(id, frame: frame)
+        case .restored(let report):
+            hud.show(WindowsHUDState(report: report))
         }
     }
 
@@ -98,7 +116,7 @@ final class WindowsRuntime {
     /// because without it nothing can be snapped.
     func showSnapHintIfNeeded() {
         guard !settings.snapHintShown, trust.isTrusted, let summary = lastSummary else { return }
-        let layout = Self.config(settings).layout
+        let layout = engineConfig.layout
         guard summary.visible.values.contains(where: { layout.resolved(for: $0).kind == .zones }) else { return }
         settings.setSnapHintShown(true)
         hud.show(.snapHint)
@@ -161,8 +179,7 @@ final class WindowsRuntime {
         await journal.beginEngine()
         await assignments.load()
         await layouts.load()
-        await engine.update(
-            config: Self.config(settings, assignments: await assignments.table, library: await layouts.library))
+        await refreshConfig()
         await engine.start()
         applyStrip()
         if dragController == nil { dragController = makeDragController?(self) }
@@ -180,10 +197,12 @@ final class WindowsRuntime {
         strip = nil
         let engine = engine
         let journal = journal
+        outputContinuation.finish()
+        outputTask = nil
         await journal.engineStopping()
         // The journal goes back to recovery only once the engine has really stopped, even when this wait gives
         // up first: a recovery pass must never run beside an engine that still moves windows.
-        _ = await TimeBound.run(budget: Self.stopBudget, clock: context.clock) {
+        _ = await withDeadline(Self.stopBudget, clock: context.clock) {
             await engine.stop()
             await journal.endEngine()
         }
@@ -197,80 +216,6 @@ final class WindowsRuntime {
             return
         }
         await engine.send(command)
-    }
-
-    /// *Toggle layout*: cycles the current workspace through Auto-tile, Zones and Free by writing its layout kind
-    /// override (every kind's state is kept, so cycling is lossless: the engine keeps the tree and the zone
-    /// placement while another kind is active); a kind equal to the default clears the override. Does nothing when the stored
-    /// overrides come from a newer version (they are never overwritten).
-    func toggleLayout() async {
-        guard trust.refresh() else {
-            hud.show(.accessibilityNeeded(.moving))
-            return
-        }
-        guard let workspace = lastSummary?.current else { return }
-        var overrides = settings.workspaceOverrides
-        guard !overrides.isReadOnly else { return }
-        let current = overrides.byWorkspace[workspace]?.kind ?? settings.defaultKind
-        let next = Self.nextKind(after: current)
-        var entry = overrides.byWorkspace[workspace] ?? WorkspaceOverride()
-        entry.kind = next == settings.defaultKind ? nil : next
-        overrides.byWorkspace[workspace] = entry.isEmpty ? nil : entry
-        settings.setWorkspaceOverrides(overrides)
-        await applySettings()
-        context.resultsChanged()
-    }
-
-    /// A layout slot command: the layout bound to the slot becomes the layout of the current workspace on the
-    /// display of the focused window. An unbound slot does nothing. Behind the same Accessibility gate as every
-    /// move, because the windows are placed again.
-    func applyLayoutSlot(_ number: Int) async {
-        guard let layoutID = await layouts.slots[number] else { return }
-        await useLayout(layoutID)
-    }
-
-    /// *Next zone layout*: the layout after the one in effect, over the stock templates and then the user's.
-    func nextLayout() async {
-        guard let cell = await currentCell() else { return }
-        let library = await layouts.library
-        let config = Self.config(settings, assignments: await assignments.table, library: library).zones
-        let displays = await context.windows.displays()
-        let keyed = DisplayKeys.keys(for: displays)
-        let orientation = displays.first { keyed.keys[$0.id] == cell.displayKey }?.orientation ?? .landscape
-        let current = config.resolve(workspace: cell.workspace, displayKey: cell.displayKey, orientation: orientation)
-        guard let next = library.next(after: current.layout.id) else { return }
-        await useLayout(next)
-    }
-
-    private func currentCell() async -> (workspace: WorkspaceID, displayKey: String)? {
-        let summary = await engine.switcherState().1
-        guard let workspace = summary.current, let display = summary.focusedDisplay else { return nil }
-        return (workspace, display)
-    }
-
-    private func useLayout(_ layoutID: String) async {
-        guard trust.refresh() else {
-            hud.show(.accessibilityNeeded(.moving))
-            return
-        }
-        guard let cell = await currentCell() else { return }
-        do {
-            try await assignments.set(layoutID, workspace: cell.workspace, displayKey: cell.displayKey)
-        } catch {
-            context.logger.error("Cannot write assignments.json")
-            return
-        }
-        await applySettings()
-        context.resultsChanged()
-    }
-
-    /// Auto-tile, then Zones, then Free, then Auto-tile again.
-    static func nextKind(after kind: LayoutKind) -> LayoutKind {
-        switch kind {
-        case .tiling: .zones
-        case .zones: .free
-        case .free: .tiling
-        }
     }
 
     /// *Restore all windows*: always ends with the restore HUD.
@@ -306,9 +251,14 @@ final class WindowsRuntime {
             workspaceCount: settings.workspaceCount, accessibilityTrusted: trust.isTrusted)
     }
 
+    /// Rebuilds the engine configuration from the settings, the assignments and the library, and sends it.
+    private func refreshConfig() async {
+        engineConfig = Self.config(settings, assignments: await assignments.table, library: await layouts.library)
+        await engine.update(config: engineConfig)
+    }
+
     func applySettings() async {
-        await engine.update(
-            config: Self.config(settings, assignments: await assignments.table, library: await layouts.library))
+        await refreshConfig()
         await engine.send(.setWorkspaceCount(settings.workspaceCount))
         applyStrip()
         showSnapHintIfNeeded()
@@ -333,40 +283,11 @@ final class WindowsRuntime {
     }
 }
 
-/// The window switcher over a running plugin.
-extension WindowsRuntime: WindowSwitching {
-    func snapshot() async -> SwitcherSnapshot {
-        let (membership, summary) = await engine.switcherState()
-        let live = trust.isTrusted ? await context.windows.windows() : []
-        let windows =
-            live
-            .filter { membership[$0.id] != nil }
-            .map {
-                SwitcherWindow(id: $0.id, title: $0.title, bundleID: $0.bundleID, workspace: membership[$0.id] ?? nil)
-            }
-        let workspaces = WorkspaceID.all(count: settings.workspaceCount).map {
-            (workspace: $0, windowCount: summary.counts[$0] ?? 0)
-        }
-        return SwitcherSnapshot(workspaces: workspaces, windows: windows)
-    }
-
-    func goToWorkspace(_ workspace: WorkspaceID) async { await run(.showWorkspace(workspace), purpose: .switching) }
-    func goToWindow(_ id: WindowID) async { await run(.goToWindow(id), purpose: .switching) }
-    func bringHere(_ id: WindowID) async { await run(.bringWindowHere(id), purpose: .moving) }
-}
-
-/// What the switcher uses while the plugin is not running: nothing.
-struct InactiveSwitcher: WindowSwitching {
-    func snapshot() async -> SwitcherSnapshot { SwitcherSnapshot(workspaces: [], windows: []) }
-    func goToWorkspace(_ workspace: WorkspaceID) async {}
-    func goToWindow(_ id: WindowID) async {}
-    func bringHere(_ id: WindowID) async {}
-}
-
-/// Carries the engine's summary to the main actor once the runtime exists.
-@MainActor
-final class SummaryRelay {
-    var handler: @MainActor (WorkspaceSummary) -> Void = { _ in }
-    var bannerHandler: @MainActor (EngineBanner) -> Void = { _ in }
-    var dragHandler: @MainActor (WindowID, CGRect) -> Void = { _, _ in }
+/// What the engine reports, carried to the main actor in order.
+enum EngineOutput: Sendable {
+    case hud(WorkspaceID, windowCount: Int)
+    case summary(WorkspaceSummary)
+    case banner(EngineBanner)
+    case windowMoved(WindowID, CGRect)
+    case restored(RecoveryReport)
 }

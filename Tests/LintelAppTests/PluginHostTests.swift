@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import LintelCore
 import LintelKit
 import Testing
 
@@ -80,11 +81,25 @@ import Testing
     }
 
     @Test func recoveryBoundGivesDeferredWithoutWaitingForHungWork() async {
-        let outcome = await RecoveryRunner.run(budget: .milliseconds(50), clock: ContinuousClock()) {
+        let outcome = await withDeadline(.milliseconds(50), clock: ContinuousClock()) {
             await Task.detached { blockCurrentThread(microseconds: 1_500_000) }.value
-            return .done
+            return RecoveryOutcome.done
         }
-        #expect(outcome == .deferred)
+        #expect(outcome == nil)
+    }
+
+    @Test func aRetryNeverStartsASecondRecoveryBesideOneThatIsStillRunning() async {
+        defer { env.tearDown() }
+        OverrunRecoveryPlugin.entered.withLock { $0 = 0 }
+        let host = env.makeHost([OverrunRecoveryPlugin.self], recoveryBudget: .milliseconds(30))
+        await host.start()
+        await host.waitForRecoveries()
+        #expect(host.recoveryOutcomes["overrunrecovery"] == .deferred)
+        // The first call is past its bound but still running: the retries wait for it, they do not overlap it.
+        host.retryDeferredRecoveries()
+        host.retryDeferredRecoveries()
+        await host.waitForRecoveries()
+        #expect(OverrunRecoveryPlugin.entered.withLock { $0 } == 1)
     }
 
     @Test func defaultPluginRecoversAsDone() async {

@@ -246,9 +246,9 @@ import Testing
     }
 
     @MainActor @Test func theCycleIsAutoTileZonesFreeAndBack() {
-        #expect(WindowsRuntime.nextKind(after: .tiling) == .zones)
-        #expect(WindowsRuntime.nextKind(after: .zones) == .free)
-        #expect(WindowsRuntime.nextKind(after: .free) == .tiling)
+        #expect(LayoutCommands.nextKind(after: .tiling) == .zones)
+        #expect(LayoutCommands.nextKind(after: .zones) == .free)
+        #expect(LayoutCommands.nextKind(after: .free) == .tiling)
     }
 
     @MainActor @Test func toggleLayoutNeverOverwritesOverridesFromANewerVersion() async throws {

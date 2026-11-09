@@ -434,15 +434,6 @@ import os
         #expect(changes.values == [true])
     }
 
-    @Test func aTimeBoundGivesUpOnWorkThatDoesNotFinish() async {
-        let quick = await TimeBound.run(budget: .seconds(1), clock: ContinuousClock()) {}
-        #expect(quick)
-        let slow = await TimeBound.run(budget: .milliseconds(30), clock: ContinuousClock()) {
-            await Task.detached { usleep(400_000) }.value
-        }
-        #expect(!slow)
-    }
-
     @Test func theHUDStatesReadWell() {
         let all = WindowsHUDState.restored(restored: 12, onAnotherSpace: 0, failed: 0)
         #expect(all.title == "12 windows restored")

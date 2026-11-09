@@ -235,7 +235,7 @@ extension WindowsPlugin {
                         "Use Layout Slot \(number)",
                         comment: "Command: gives the current workspace the layout bound to a numbered slot"),
                     symbolName: "square.grid.3x1.below.line.grid.1x2", showsInMenu: false,
-                    run: { [weak self] in await self?.runtime?.applyLayoutSlot(number) }))
+                    run: { [weak self] in await self?.runtime?.layoutCommands.applyLayoutSlot(number) }))
         }
         commands.append(
             PluginCommand(
@@ -243,7 +243,7 @@ extension WindowsPlugin {
                 title: LocalizedStringResource(
                     "Next Zone Layout", comment: "Command: switches the current workspace to the next zone layout"),
                 symbolName: "square.grid.2x2.fill", showsInMenu: false,
-                run: { [weak self] in await self?.runtime?.nextLayout() }))
+                run: { [weak self] in await self?.runtime?.layoutCommands.nextLayout() }))
         commands.append(
             PluginCommand(
                 id: WindowsCommandID.toggleLayout,
@@ -299,7 +299,7 @@ extension WindowsPlugin {
     }
 
     func toggleLayout() async {
-        await runtime?.toggleLayout()
+        await runtime?.layoutCommands.toggleLayout()
     }
 
     public var searchSources: [any SearchSource] {

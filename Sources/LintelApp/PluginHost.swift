@@ -1,4 +1,5 @@
 import Foundation
+import LintelCore
 import LintelKit
 import Observation
 import os
@@ -47,6 +48,9 @@ final class PluginHost {
     @ObservationIgnored private var pending: [PluginID: Task<Void, Never>] = [:]
     @ObservationIgnored let recoveryBudget: Duration
     @ObservationIgnored private var recoveries: [PluginID: Task<Void, Never>] = [:]
+    /// The `recoverAtLaunch` call of each plugin that has not returned yet, even when its bound passed: a retry
+    /// never starts a second copy beside it.
+    @ObservationIgnored private var recoveryWork: [PluginID: Task<RecoveryOutcome, Never>] = [:]
     /// What `recoverAtLaunch` answered for each plugin; a plugin that has not answered yet is absent.
     private(set) var recoveryOutcomes: [PluginID: RecoveryOutcome] = [:]
 
@@ -200,21 +204,33 @@ final class PluginHost {
 
     private func startRecovery(of entry: Entry) {
         let id = entry.manifest.id
+        // A call that is still running (it passed its bound earlier) owns the recovery: no second copy.
+        guard recoveryWork[id] == nil else {
+            recoveryOutcomes[id] = .deferred
+            return
+        }
         // A metatype is immutable and `recoverAtLaunch` is nonisolated, so sharing it is safe.
         nonisolated(unsafe) let type = entry.type
         let context = entry.context
+        let work = Task { await type.recoverAtLaunch(context: context) }
+        recoveryWork[id] = work
         let budget = recoveryBudget
         let clock = clock
-        let previous = recoveries[id]
         recoveries[id] = Task { [weak self] in
-            await previous?.value
-            let outcome = await RecoveryRunner.run(budget: budget, clock: clock) {
-                await type.recoverAtLaunch(context: context)
-            }
+            // When the bound passes first the answer is `.deferred` (the plugin keeps what is left to do) and the
+            // work is cancelled; the host does not wait for work that ignores cancellation.
+            let answer = await withDeadline(budget, clock: clock) { await work.value }
+            if answer == nil { work.cancel() }
+            let outcome = answer ?? .deferred
             self?.recoveryOutcomes[id] = outcome
             self?.logger.info(
                 "Recovery of \(id.rawValue, privacy: .public): \(outcome == .done ? "done" : "deferred", privacy: .public)"
             )
+        }
+        // Cleared when the call really returns, which may be long after its bound.
+        Task { [weak self] in
+            _ = await work.value
+            self?.recoveryWork[id] = nil
         }
     }
 

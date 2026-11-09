@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import LintelKit
+import Synchronization
 
 @testable import LintelApp
 
@@ -177,13 +178,15 @@ struct TestEnvironment {
 
     func makeHost(
         _ types: [any LintelPlugin.Type],
-        budget: Duration = .milliseconds(150)
+        budget: Duration = .milliseconds(150),
+        recoveryBudget: Duration = .seconds(5)
     ) -> PluginHost {
         PluginHost(
             pluginTypes: types,
             makeContext: { environment.makeContext(for: $0) },
             settings: settings,
-            sourceBudget: budget
+            sourceBudget: budget,
+            recoveryBudget: recoveryBudget
         )
     }
 
@@ -242,5 +245,22 @@ nonisolated final class RecoveryScript: @unchecked Sendable {
         defer { lock.unlock() }
         calls += 1
         return answers[min(calls, answers.count) - 1]
+    }
+}
+
+/// A `recoverAtLaunch` that blocks well beyond the host's bound and counts how often it was entered.
+final class OverrunRecoveryPlugin: LintelPlugin {
+    static let manifest = PluginManifest(
+        id: "overrunrecovery", displayName: "Overrun recovery", symbolName: "tortoise", order: 7,
+        defaultEnabled: false)
+
+    init(context: PluginContext) {}
+
+    nonisolated static let entered = Mutex(0)
+
+    nonisolated static func recoverAtLaunch(context: PluginContext) async -> RecoveryOutcome {
+        entered.withLock { $0 += 1 }
+        await Task.detached { blockCurrentThread(microseconds: 600_000) }.value
+        return .done
     }
 }

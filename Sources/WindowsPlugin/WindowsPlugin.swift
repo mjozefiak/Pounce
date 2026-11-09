@@ -56,21 +56,10 @@ public final class WindowsPlugin: LintelPlugin {
         }
         return model
     }()
-    private let identifier = DisplayIdentifier()
+    let identifier = DisplayIdentifier()
     /// The Layouts window, built on first use; it reads the pane model and the running plugin.
     private(set) lazy var layoutsWindow: LayoutsWindowController = makeLayoutsWindow()
 
-    private func makeLayoutsWindow() -> LayoutsWindowController {
-        LayoutsWindowController(makeModel: { [unowned self] in
-            LayoutsModel(
-                pane: paneModel, displays: { [client = context.windows] in await client.displays() },
-                identify: { [identifier] display in identifier.show(display) },
-                openEditor: { [unowned self] layout, isNew, onSaved in
-                    openEditor(layout: layout, isNew: isNew, parent: layoutsWindow.window, onSaved: onSaved)
-                },
-                files: AppKitLayoutFiles())
-        })
-    }
     private(set) lazy var editorWindow = GridEditorWindowController()
     /// The first activation of this process honours safe mode; a later one (the user switched the plugin on
     /// again, or pressed Try Again) clears it.
@@ -131,34 +120,11 @@ public final class WindowsPlugin: LintelPlugin {
         launchActivationDone = true
         lastStartError = nil
         guard runtime == nil else { return }
-        var makeStrip: (@MainActor (WindowsRuntime) -> WorkspaceStripController)?
-        if showsStrip {
-            makeStrip = { runtime in
-                WorkspaceStripController(
-                    select: { number in
-                        guard let workspace = WorkspaceID(number) else { return }
-                        Task { await runtime.goToWorkspace(workspace) }
-                    },
-                    restoreAll: { Task { await runtime.restoreAllWindows() } })
-            }
-        }
-        var makeDrag: (@MainActor (WindowsRuntime) -> ZoneDragController)?
-        var overlay: ZoneOverlayPanels?
-        if showsOverlay {
-            let panels = ZoneOverlayPanels()
-            overlay = panels
-            makeDrag = { runtime in
-                ZoneDragController(
-                    sampler: SystemPointerSampler(), presenter: panels, ticker: TimerDragTicker(),
-                    targets: { [engine = runtime.engine] id in await engine.dragDisplays(for: id) },
-                    snap: { [weak runtime] id, zone in await runtime?.snap(id, to: zone) })
-            }
-        }
+        let parts = WindowsComposition.parts(showsStrip: showsStrip, showsOverlay: showsOverlay)
         let runtime = WindowsRuntime(
             context: context, settings: settings, hud: hud, journal: journal, activationCenter: activationCenter,
-            makeStrip: makeStrip,
-            makeDragController: makeDrag)
-        runtime.tearDownOverlay = { overlay?.tearDown() }
+            makeStrip: parts.makeStrip, makeDragController: parts.makeDragController)
+        runtime.tearDownOverlay = parts.tearDownOverlay
         self.runtime = runtime
         runtime.onTrustGranted = { [weak self] in await self?.recheckAvailability() }
         await runtime.start()
@@ -169,40 +135,6 @@ public final class WindowsPlugin: LintelPlugin {
             layoutsWindow.show()
         }
         #endif
-    }
-
-    /// Opens the grid editor on a layout (a copy of a stock one, a user's own, or a new one). Needs the running
-    /// plugin: the library lives in its runtime.
-    func openEditor(
-        layout: GridLayout, isNew: Bool, parent: NSWindow? = nil, onSaved: @escaping (GridLayout) -> Void = { _ in }
-    ) {
-        guard let repository = runtime?.layouts else { return }
-        editorWindow.show(parent: parent) { [client = context.windows] preview, close in
-            GridEditorModel(
-                layout: layout, isNew: isNew, repository: repository, displays: { await client.displays() },
-                preview: preview,
-                announce: { text in
-                    AccessibilityNotification.Announcement(text).post()
-                },
-                onSaved: onSaved,
-                onClose: { [weak self] in
-                    close()
-                    // The plugin was switched off while the editor held changes: the Layouts window was left
-                    // open for the editor's sheet and goes with it.
-                    if let self, runtime == nil { layoutsWindow.close() }
-                })
-        }
-    }
-
-    /// A double-clicked `.lintellayouts` file: the Layouts window opens and shows what importing it would do
-    /// (never adds anything by itself). A plugin that is off only says so.
-    public func handleOpenedFile(_ url: URL) async -> Bool {
-        guard url.pathExtension.lowercased() == LayoutFileType.fileExtension else { return false }
-        layoutsWindow.show()
-        guard let model = layoutsWindow.model else { return true }
-        await model.refresh()
-        model.loadImport(from: url)
-        return true
     }
 
     /// Accessibility was granted: the self-check could not compare any window before, so it runs again. A mismatch
@@ -225,89 +157,5 @@ public final class WindowsPlugin: LintelPlugin {
         if !editorWindow.isOpen { layoutsWindow.close() }
         identifier.tearDown()
         await runtime.stop()
-    }
-
-    /// *Restore all windows*: ends with the restore HUD. Without a running engine it works from the journal.
-    func restoreAllWindows() async {
-        if let runtime {
-            await runtime.restoreAllWindows()
-            return
-        }
-        let report = await Self.restoreFromJournal(context: context, journals: journals)
-        hud.show(WindowsHUDState(report: report))
-    }
-
-    /// "Erase Data": puts every window back first; the host then deletes `Plugins/windows/`.
-    public func eraseData() async throws {
-        await deactivate()
-        let report = await Self.restoreFromJournal(context: context, journals: journals)
-        if report.remaining > 0 {
-            context.logger.notice("Erasing window data with \(report.remaining, privacy: .public) windows not restored")
-        }
-    }
-
-    // MARK: Recovery
-
-    /// Runs once per launch for every registered plugin, enabled or not (spec: Architecture, "Recovery runs
-    /// outside the plugin lifecycle"): reads the journal and puts every parked window back. `.deferred` while
-    /// Accessibility is not trusted, so the journal stays and the host tries again on app activation.
-    public nonisolated static func recoverAtLaunch(context: PluginContext) async -> RecoveryOutcome {
-        let journal = JournalRegistry.shared.owner(
-            for: context.storageDirectory, clock: context.clock, logger: context.logger)
-        return await recover(context: context, hud: { await journal.present($0) })
-    }
-
-    /// `recoverAtLaunch` with the registry and the HUD injected (tests). `isLaunch` is `nil` in the app: the
-    /// journal owner counts the first pass of this process as the launch.
-    nonisolated static func recover(
-        context: PluginContext, isLaunch: Bool? = nil, journals: JournalRegistry = .shared,
-        hud: @Sendable (WindowsHUDState) async -> Void
-    ) async -> RecoveryOutcome {
-        let journal = journals.owner(for: context.storageDirectory, clock: context.clock, logger: context.logger)
-        let first: Bool
-        if let isLaunch { first = isLaunch } else { first = await journal.claimLaunch() }
-        // A running engine owns its journal: the windows parked in it are parked on purpose.
-        let pass = await journal.exclusive { store in await restore(context: context, store: store) }
-        let report: RecoveryReport
-        switch pass {
-        case .engineRunning: return .done
-        case .engineStopping: return .deferred
-        case .ran(let done): report = done
-        }
-        let settings = WindowsSettings(context.settings)
-        if first, !report.readOnly {
-            // A launch that found parked windows is counted; the second in a row starts the plugin in safe mode.
-            if report.isEmpty {
-                settings.setParkedLaunches(0)
-            } else {
-                settings.setParkedLaunches(settings.parkedLaunches + 1)
-                if settings.parkedLaunches >= 2 { settings.setSafeMode(true) }
-            }
-        }
-        if report.restored > 0 || (first && !report.isEmpty) {
-            await hud(WindowsHUDState(report: report))
-        }
-        return report.outcome
-    }
-
-    /// One exclusive pass over the journal in `context.storageDirectory`; empty while an engine owns it.
-    nonisolated static func restoreFromJournal(
-        context: PluginContext, journals: JournalRegistry = .shared
-    ) async -> RecoveryReport {
-        let journal = journals.owner(for: context.storageDirectory, clock: context.clock, logger: context.logger)
-        if case .ran(let report) = await journal.exclusive({ store in await restore(context: context, store: store) }) {
-            return report
-        }
-        return RecoveryReport()
-    }
-
-    private nonisolated static func restore(context: PluginContext, store: StateStore) async -> RecoveryReport {
-        await store.load()
-        guard await !store.hidden.isEmpty else { return RecoveryReport() }
-        let trusted = await MainActor.run { context.permissions.status(of: .accessibility) == .granted }
-        let report = await WindowRecovery.run(
-            store: store, client: context.windows, trusted: trusted, logger: context.logger)
-        await store.close()
-        return report
     }
 }
