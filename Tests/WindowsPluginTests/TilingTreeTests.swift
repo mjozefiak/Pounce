@@ -103,6 +103,18 @@ import Testing
         #expect(result.count == 3)
     }
 
+    @Test func manyWindowsWithABigGapStayInsideTheAreaWithPositiveSizes() {
+        let many = tree(.horizontal, (1...40).map { leaf(UInt32($0)) })
+        let result = Array(frames(many, gaps: TilingGaps(inner: 16, outer: 0)).values)
+        #expect(result.count == 40)
+        for frame in result {
+            #expect(frame.width >= 1 && frame.height == 600)
+            #expect(frame.minX >= 0 && frame.maxX <= screen.maxX)
+        }
+        let ordered = result.sorted { $0.minX < $1.minX }
+        for (first, second) in zip(ordered, ordered.dropFirst()) { #expect(first.maxX <= second.minX) }
+    }
+
     @Test func anEmptyTreeHasNoFrames() {
         #expect(frames(TilingTree()).isEmpty)
     }

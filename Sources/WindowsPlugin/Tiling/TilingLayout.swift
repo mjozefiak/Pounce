@@ -19,7 +19,8 @@ struct TilingGaps: Equatable, Sendable {
 /// The frames of a tiling tree: pure geometry, no I/O (spec: `TilingLayout.frames(tree, area, gaps)`).
 ///
 /// A container splits its rectangle along its axis in proportion to the weights of its children, after the
-/// inner gaps are taken out. Edges are rounded to whole points, and each child starts exactly one gap after the
+/// inner gaps are taken out (the gaps shrink when there are so many windows that they would take more than a
+/// quarter of the length). Edges are rounded to whole points, and each child starts exactly one gap after the
 /// previous one ended, so tiles never overlap and the outer tiles reach the outer gap exactly.
 enum TilingLayout {
     static func frames(_ tree: TilingTree, area: CGRect, gaps: TilingGaps) -> [WindowID: CGRect] {
@@ -39,6 +40,8 @@ enum TilingLayout {
         let horizontal = container.orientation == .horizontal
         let length = horizontal ? rect.width : rect.height
         let origin = horizontal ? rect.minX : rect.minY
+        // Many windows must not turn the gaps into the whole length: the gaps together take at most a quarter.
+        let gap = count > 1 ? min(gap, length / CGFloat(4 * (count - 1))) : gap
         let available = max(0, length - gap * CGFloat(count - 1))
         let weights = container.children.map { TilingTree.sanitized($0.weight) }
         let total = weights.reduce(0, +)

@@ -116,8 +116,8 @@ extension TilingTree {
 
     // MARK: Balance
 
-    /// Gives every tile the same share: all weights become one (orientations alternate, so equal weights mean
-    /// equal windows).
+    /// Gives every child of every container the same share of its container. A container with several windows
+    /// counts as one child, so its windows are smaller across the other axis than a lone neighbour.
     mutating func balance() {
         root = Self.balanced(root)
     }
