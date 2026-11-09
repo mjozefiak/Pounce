@@ -21,8 +21,8 @@ Source spec: `.ai/specs/2026-11-09-window-management.md` (spec PR #66; Refs #66,
 | 1 | 1.8c | Batched setFrame and wiring | dispatch:capable | done | e34037d |
 | 1 | 1.9 | Commands, HUD, window switcher, keyboard-layout check | dispatch:capable | done | d352125 |
 | 1 | 1.10 | Workspace strip | dispatch:capable | done | d7c3a00 |
-| 1 | 1.11 | Settings pane, onboarding, diagnostics | dispatch:capable | todo | |
-| 1 | 1.12 | Docs, QA, --qa fake client, registration, default shortcut tests | dispatch:capable | todo | |
+| 1 | 1.11 | Settings pane, onboarding, diagnostics | dispatch:capable | done | 541e776 |
+| 1 | 1.12 | Docs, QA, --qa fake client, registration, default shortcut tests | dispatch:capable | done | fafc396 |
 | 2 | 2.1 | TilingTree and frames (pure) | dispatch:capable | todo | |
 | 2 | 2.2 | Directional navigation (pure) | dispatch:capable | todo | |
 | 2 | 2.3 | Resize, join, orientation, balance (pure) | dispatch:capable | todo | |
