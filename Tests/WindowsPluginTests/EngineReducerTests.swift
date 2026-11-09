@@ -528,3 +528,16 @@ extension EngineReducerTests {
         #expect(effects.contains(.focus(id(1))))
     }
 }
+
+extension EngineReducerTests {
+    /// Review H1: with a neighbouring display the corner of one display is not outside everything.
+    @Test func aParkedWindowGoesBeyondTheCornerOfAllDisplaysNotOfOneDisplay() {
+        let frame = CGRect(x: 100, y: 100, width: 800, height: 600)
+        let parked = FrameMath.parkedFrame(for: frame, displays: [main, second], sliver: 1)
+        // The union is 3840 wide: nothing lies right of or below its corner, so only the sliver can show.
+        #expect(parked.origin == CGPoint(x: 3839, y: 1079))
+        #expect(parked.size == frame.size)
+        // One display: unchanged.
+        #expect(FrameMath.parkedFrame(for: frame, displays: [main], sliver: 1).origin == CGPoint(x: 1919, y: 1079))
+    }
+}

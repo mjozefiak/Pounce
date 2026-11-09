@@ -29,12 +29,13 @@ enum FrameMath {
         return displays.first { $0.frame.contains(centre) } ?? displays.first { $0.isMain } ?? displays.first
     }
 
-    /// The frame a hidden window is moved to: the same size, with only `sliver` points of it left on the
-    /// display, at its bottom right corner.
-    static func parkedFrame(for frame: CGRect, on display: DisplayInfo, sliver: CGFloat) -> CGRect {
-        CGRect(
-            x: display.frame.maxX - sliver, y: display.frame.maxY - sliver, width: frame.width,
-            height: frame.height)
+    /// The frame a hidden window is moved to: the same size, with only `sliver` points of it inside the bounding box
+    /// of all displays, at its bottom right corner. The corner of one display could touch a neighbouring display
+    /// (to the right or below), where the window would show in full, so the corner of the union is used: beyond it
+    /// there is no display at all. Unmeasured (ADR 0009 rows 1 to 3).
+    static func parkedFrame(for frame: CGRect, displays: [DisplayInfo], sliver: CGFloat) -> CGRect {
+        let union = displays.dropFirst().reduce(displays.first?.frame ?? .zero) { $0.union($1.frame) }
+        return CGRect(x: union.maxX - sliver, y: union.maxY - sliver, width: frame.width, height: frame.height)
     }
 
     /// `frame` moved (and, when it is larger than `area`, shrunk) to lie inside `area`.

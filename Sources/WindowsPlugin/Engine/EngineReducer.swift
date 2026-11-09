@@ -117,9 +117,9 @@ enum EngineReducer {
 
         private mutating func park(_ id: WindowID, now: Double) {
             guard var window = state.windows[id], let start = window.processStart, state.parked[id] == nil,
-                let display = FrameMath.display(for: window.frame, in: displays())
+                !displays().isEmpty
             else { return }
-            let parked = FrameMath.parkedFrame(for: window.frame, on: display, sliver: state.config.parkSliver)
+            let parked = FrameMath.parkedFrame(for: window.frame, displays: displays(), sliver: state.config.parkSliver)
             state.parked[id] = ParkRecord(home: window.frame, parkedFrame: parked, processStart: start)
             journal.append(
                 HiddenEntry(windowID: id, processStart: start, homeFrame: FrameRecord(window.frame)))
@@ -263,8 +263,8 @@ enum EngineReducer {
                 effects.append(.journalRemove([id]))
                 return
             }
-            guard let display = FrameMath.display(for: frame, in: displays()) else { return }
-            let parked = FrameMath.parkedFrame(for: frame, on: display, sliver: state.config.parkSliver)
+            guard !displays().isEmpty else { return }
+            let parked = FrameMath.parkedFrame(for: frame, displays: displays(), sliver: state.config.parkSliver)
             state.parked[id]?.parkedFrame = parked
             state.windows[id]?.frame = parked
             request(id, parked, .park, now: now)
@@ -299,8 +299,9 @@ enum EngineReducer {
             for (id, record) in state.parked.sorted(by: { $0.key < $1.key }) {
                 // A window whose workspace is shown again is being restored, not re-parked.
                 if let workspace = state.model.workspace(of: id), state.model.isVisible(workspace) { continue }
-                guard let display = FrameMath.display(for: record.home, in: displays) else { continue }
-                let corner = FrameMath.parkedFrame(for: record.home, on: display, sliver: state.config.parkSliver)
+                guard !displays.isEmpty else { continue }
+                let corner = FrameMath.parkedFrame(
+                    for: record.home, displays: displays, sliver: state.config.parkSliver)
                 if !FrameMath.originsApproximatelyEqual(corner, record.parkedFrame, tolerance: 0.5) {
                     state.parked[id]?.parkedFrame = corner
                     state.windows[id]?.frame = corner

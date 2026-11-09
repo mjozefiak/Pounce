@@ -50,7 +50,7 @@ that is hung on purpose, for example a process stopped with `kill -STOP`).
 ## Until the measurements exist
 
 The implementation uses the spec's working assumptions, each behind one constant so the measured value replaces it
-without a design change: the parking offset is "the bottom-right corner of the display plus a margin" in the pure
+without a design change: the parking offset is "the bottom-right corner of the bounding box of all displays minus a 1 point sliver" (the corner of one display could touch a neighbouring display; still not measured) in the pure
 workspace code, the echo tolerance is 2 points, the per-app timeout is 0.25 s, and the Stage Manager and Spaces keys
 are read with the names above and treated as "unknown" (no banner) when absent. Each of these is listed in
 `docs/qa.md` as a manual item when step 1.12 lands.
