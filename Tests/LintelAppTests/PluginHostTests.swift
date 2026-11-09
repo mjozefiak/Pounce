@@ -172,8 +172,9 @@ import Testing
         let results = await host.query(NormalizedQuery(raw: "Te", normalized: "te"), limit: 10)
         let elapsed = ContinuousClock.now - started
 
-        // The stuck source blocks for 2 s; the query returns at its 100 ms budget.
-        #expect(elapsed < .seconds(1))
+        // The stuck source blocks for 5 s; the query returns at its 100 ms budget. The bound is far from both, so
+        // a slow CI machine cannot make the test flaky.
+        #expect(elapsed < .seconds(3))
         #expect(results.map(\.sourceID) == ["alpha.instant", "stuck", "throwing"])
         guard case .results(let candidates) = results[0].outcome else {
             Issue.record("alpha source should answer")

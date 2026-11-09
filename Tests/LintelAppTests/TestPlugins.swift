@@ -48,7 +48,7 @@ struct StuckSource: SearchSource {
     func search(_ query: NormalizedQuery, limit: Int) async throws -> [Candidate] {
         // Blocks a background thread far beyond any budget without checking cancellation.
         await Task.detached {
-            blockCurrentThread(microseconds: 2_000_000)
+            blockCurrentThread(microseconds: 5_000_000)
         }.value
         return []
     }
