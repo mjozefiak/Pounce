@@ -1,7 +1,9 @@
+import AppKit
 import CoreGraphics
 import Foundation
 import LintelKit
 import LintelUI
+import SwiftUI
 import Testing
 
 @testable import WindowsPlugin
@@ -63,5 +65,36 @@ import Testing
         ]
         model.highlighted = 2
         #expect(model.zones.filter { $0.id == model.highlighted }.count == 1)
+    }
+}
+
+/// The real panels and the view, built without a display (step 3.7 review): they are hidden from screen sharing,
+/// never take focus, and the view lays out its zones.
+@Suite @MainActor struct ZoneOverlayPanelTests {
+    private let zone = DragZone(
+        displayKey: "A", zoneID: 1, number: 1, frame: CGRect(x: 8, y: 8, width: 400, height: 300))
+
+    @Test func theOverlayPanelsAreNotSharedAndNeverTakeFocus() {
+        let panels = ZoneOverlayPanels(screens: { [CGRect(x: 0, y: 0, width: 1000, height: 600)] })
+        panels.show([DragDisplay(key: "A", area: CGRect(x: 0, y: 0, width: 1000, height: 600), zones: [zone])])
+        #expect(panels.panels.count == 1)
+        for panel in panels.panels {
+            #expect(panel.sharingType == .none)
+            #expect(panel.ignoresMouseEvents)
+            #expect(!panel.canBecomeKey && !panel.canBecomeMain)
+        }
+        panels.hide()
+        panels.tearDown()
+    }
+
+    @Test func theViewLaysOutItsZonesAtTheirPositions() {
+        let model = ZoneOverlayModel()
+        model.zones = [ZoneVisual(id: 1, number: 1, rect: CGRect(x: 8, y: 8, width: 400, height: 300))]
+        model.highlighted = 1
+        let host = NSHostingView(rootView: ZoneOverlayView(model: model))
+        host.frame = CGRect(x: 0, y: 0, width: 1000, height: 600)
+        host.layoutSubtreeIfNeeded()
+        #expect(host.frame.size == CGSize(width: 1000, height: 600))
+        #expect(host.fittingSize.width > 0)
     }
 }

@@ -161,6 +161,9 @@ final class ZoneOverlayPanels: ZoneOverlayPresenting {
         applyHighlight()
     }
 
+    /// The panels that exist (tests).
+    var panels: [NSPanel] { entries.values.map(\.panel) }
+
     func highlight(_ zone: DragZone?) {
         highlighted = zone
         applyHighlight()
@@ -211,6 +214,7 @@ final class ZoneOverlayPanels: ZoneOverlayPresenting {
         panel.hidesOnDeactivate = false
         panel.isFloatingPanel = true
         panel.ignoresMouseEvents = true
+        panel.sharingType = .none
         panel.isReleasedWhenClosed = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient, .ignoresCycle]
         let model = ZoneOverlayModel()
