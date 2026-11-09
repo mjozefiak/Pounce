@@ -26,12 +26,12 @@ struct LayoutsWindowView: View {
                 get: { model.pendingDelete != nil }, set: { if !$0 { model.pendingDelete = nil } }),
             model.pendingDelete?.confirmation ?? Self.noDeletion
         ) {
-            Task { await model.confirmDelete() }
+            model.actions.enqueue { await model.confirmDelete() }
         }
         .sheet(isPresented: $model.isRenaming) {
             RenameLayoutSheet(
                 name: model.selectedLayout.name,
-                onRename: { name in Task { await model.renameSelected(to: name) } },
+                onRename: { name in model.actions.enqueue { await model.renameSelected(to: name) } },
                 onCancel: { model.isRenaming = false })
         }
         .sheet(
@@ -41,12 +41,13 @@ struct LayoutsWindowView: View {
             if let preview = model.pendingImport {
                 ImportSummarySheet(
                     lines: model.importLines(preview), canImport: !preview.isEmpty,
-                    onImport: { Task { await model.confirmImport() } }, onCancel: { model.cancelImport() })
+                    onImport: { model.actions.enqueue { await model.confirmImport() } },
+                    onCancel: { model.cancelImport() })
             }
         }
         // A display was plugged, unplugged or changed: the columns follow.
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)) {
-            _ in Task { await model.refresh() }
+            _ in model.actions.enqueue { await model.refresh() }
         }
     }
 
@@ -121,7 +122,7 @@ struct LayoutsWindowView: View {
     private func applyMenu(_ layout: GridLayout) -> some View {
         Menu {
             Button {
-                Task { await model.apply(layout.id, to: .everything) }
+                model.actions.enqueue { await model.apply(layout.id, to: .everything) }
             } label: {
                 Text("Every workspace on every display", comment: "Layouts window: Apply to… everything")
             }
@@ -129,7 +130,7 @@ struct LayoutsWindowView: View {
                 Divider()
                 ForEach(model.displays) { display in
                     Button {
-                        Task { await model.apply(layout.id, to: .display(display.key)) }
+                        model.actions.enqueue { await model.apply(layout.id, to: .display(display.key)) }
                     } label: {
                         Text("All workspaces on \(display.title)", comment: "Layouts window: Apply to… one display")
                     }
@@ -138,7 +139,7 @@ struct LayoutsWindowView: View {
             Divider()
             ForEach(model.workspaces, id: \.rawValue) { workspace in
                 Button {
-                    Task { await model.apply(layout.id, to: .workspace(workspace)) }
+                    model.actions.enqueue { await model.apply(layout.id, to: .workspace(workspace)) }
                 } label: {
                     Text(
                         "Workspace \(workspace.rawValue) on every display",
@@ -158,7 +159,7 @@ struct LayoutsWindowView: View {
             ForEach(1...LayoutRules.slotCount, id: \.self) { number in
                 let bound = model.slots[number] == layout.id
                 Button {
-                    Task { await model.setSlot(number, to: bound ? nil : layout.id) }
+                    model.actions.enqueue { await model.setSlot(number, to: bound ? nil : layout.id) }
                 } label: {
                     if bound {
                         Label(

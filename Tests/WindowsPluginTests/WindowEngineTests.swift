@@ -154,14 +154,14 @@ import Testing
         let rig = try rig([makeWindow(1)])
         defer { rig.harness.tearDown() }
         await rig.engine.start()
+        rig.client.setDeliversEvents(false)
         rig.client.setBehavior(.snapBack(CGRect(x: 400, y: 300, width: 800, height: 600)), for: id(1))
         await rig.engine.send(.showWorkspace(ws(2)))
-        // The fake emits a move after each of our changes; the pump delivers them.
-        for _ in 0..<400 {
-            await rig.engine.settle()
-            await Task.yield()
+        // The app moves the window back after each of our changes; the engine hears of it, one event at a time.
+        for _ in 0..<4 {
+            await rig.engine.ingest(.moved(id(1)))
+            await rig.engine.flushEvents()
         }
-        await rig.engine.settle()
         let state = await rig.engine.snapshot
         #expect(state.unmanaged == [id(1)])
         #expect(state.diagnostics.rehides == 4)
@@ -175,13 +175,13 @@ import Testing
     @Test func ourOwnEchoesDoNotMakeTheEngineLoop() async throws {
         let rig = try rig([makeWindow(1), makeWindow(2, pid: 200)])
         defer { rig.harness.tearDown() }
-        rig.client.setEchoes(true)
+        rig.client.setDeliversEvents(false)
         await rig.engine.start()
         await rig.engine.send(.showWorkspace(ws(2)))
-        for _ in 0..<100 {
-            await rig.engine.settle()
-            await Task.yield()
-        }
+        // Each frame we set comes back as a move of that window: exactly our own echoes.
+        await rig.engine.ingest(.moved(id(1)))
+        await rig.engine.ingest(.moved(id(2, pid: 200)))
+        await rig.engine.flushEvents()
         #expect(rig.client.calls.count == 2)
         let state = await rig.engine.snapshot
         #expect(state.diagnostics.echoesDropped >= 1)
@@ -324,10 +324,14 @@ import Testing
         windows.append(makeWindow(10, pid: 101))
         let rig = try rig(windows)
         defer { rig.harness.tearDown() }
-        rig.client.setLatency(.milliseconds(40))
+        // Two apps whose first call waits for the other: that only ends when they run at the same time.
+        rig.client.setBehavior(.stall, forProcess: 101)
+        rig.client.setBehavior(.stall, forProcess: 102)
         await rig.engine.start()
-        await rig.engine.send(.showWorkspace(ws(2)))
-        #expect(rig.client.maxInFlight >= 2)
+        let hide = Task { await rig.engine.send(.showWorkspace(ws(2))) }
+        await rig.client.waitUntilStalled(2)
+        rig.client.releaseStalls()
+        await hide.value
         let sameApp = rig.client.calls.filter { $0.id.pid == 101 }.map(\.id.number)
         #expect(sameApp == [1, 10])
         await rig.engine.stop()
@@ -451,17 +455,17 @@ extension WindowEngineTests {
         await rig.engine.start()
         let hide = Task { await rig.engine.send(.showWorkspace(ws(2))) }
         await rig.client.waitUntilStalled(1)
-        let finished = Mutex(false)
+        let order = Mutex<[String]>([])
         let restore = Task {
             let report = await rig.engine.restoreAllWindows()
-            finished.withLock { $0 = true }
+            order.withLock { $0.append("reported") }
             return report
         }
-        // Still waiting for the app that does not answer.
-        await Task.yield()
-        #expect(finished.withLock { $0 } == false)
+        // The report may only come after the app that did not answer was let go.
+        order.withLock { $0.append("released") }
         rig.client.releaseStalls()
         let report = await restore.value
+        #expect(order.withLock { $0 } == ["released", "reported"])
         await hide.value
         #expect(report.restored == 2)
         #expect(report.failed == 0)

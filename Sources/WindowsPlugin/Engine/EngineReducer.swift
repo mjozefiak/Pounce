@@ -10,8 +10,16 @@ import LintelKit
 /// the difference, so a command, a display change and a re-hide all take the same path. How a shown workspace is
 /// arranged is the business of its `LayoutStrategy`; the reducer asks the registry and knows no kind.
 ///
-/// The work is split by concern into extensions of `ReducerContext` (the working state of one reduction):
-/// `Reducer/ReducerContext+Parking`, `+Windows`, `+Layout`, `+Commands` and `+Results`.
+/// The work is split by concern into parts of `ReducerContext` (the working state of one reduction), in layers. A
+/// part may call only the parts above it, never one below it, so there is no cycle between them
+/// (`ReducerLayeringTests` checks it):
+///
+///     LayoutPlanner      pure reads of the state through the strategies (no mutation)
+///     +Layout            stores what the planner computed, runs layout commands
+///     +Parking           parks and restores windows, switches workspaces
+///     +Windows           what the engine knows about each window and events about it
+///     +Results           what a finished frame change taught the engine
+///     +Commands          what each `EngineCommand` does (calls any part above)
 enum EngineReducer {
     static func reduce(
         _ state: EngineState, _ input: EngineInput, strategies: LayoutRegistry = .standard
@@ -92,9 +100,9 @@ enum EngineReducer {
     static func snapTargets(
         _ state: EngineState, for window: WindowID, strategies: LayoutRegistry = .standard
     ) -> [DragDisplay] {
-        let context = ReducerContext(state: state, strategies: strategies)
+        let planner = LayoutPlanner(strategies: strategies)
         guard state.windows[window] != nil, let workspace = state.model.workspace(of: window),
-            let (strategy, input) = context.layoutInput(for: workspace)
+            let (strategy, input) = planner.input(state, for: workspace)
         else { return [] }
         return strategy.snapTargets(input)
     }

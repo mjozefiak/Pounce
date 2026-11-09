@@ -137,6 +137,8 @@ protocol LayoutStrategy: Sendable {
     func perform(_ command: LayoutCommand, on window: WindowID, _ input: LayoutInput) -> LayoutEdit?
     /// The state without a window that is gone.
     func removing(_ window: WindowID, from state: AnyLayoutState) -> AnyLayoutState
+    /// Whether the kind has snap targets at all (so a manual window move may start a drag): cheap, no input.
+    var offersSnapTargets: Bool { get }
     /// The slots the snap overlay offers for the workspace, empty when the kind has none.
     func snapTargets(_ input: LayoutInput) -> [DragDisplay]
     /// The JSON stored under the kind's name; `nil` for an empty state.
@@ -149,6 +151,7 @@ extension LayoutStrategy {
     func makeConfig(_ environment: LayoutEnvironment) -> AnyLayoutConfig? { nil }
     func perform(_ command: LayoutCommand, on window: WindowID, _ input: LayoutInput) -> LayoutEdit? { nil }
     func removing(_ window: WindowID, from state: AnyLayoutState) -> AnyLayoutState { state }
+    var offersSnapTargets: Bool { false }
     func snapTargets(_ input: LayoutInput) -> [DragDisplay] { [] }
     func encode(_ state: AnyLayoutState) -> JSONValue? { nil }
     func decode(_ json: JSONValue) -> AnyLayoutState? { nil }

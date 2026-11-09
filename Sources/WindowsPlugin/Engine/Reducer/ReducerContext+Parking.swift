@@ -20,9 +20,16 @@ extension ReducerContext {
 
     /// Puts a parked window back: onto its tile when its workspace is arranged, else to where it was.
     mutating func restore(_ id: WindowID, now: Double, arranged: Bool = true) {
+        var cache = PlacementCache()
+        restore(id, now: now, arranged: arranged, cache: &cache)
+    }
+
+    /// `restore` for many windows of one reduction: the planner is asked once per workspace, not once per window
+    /// (the requests it makes change nothing the planner reads).
+    mutating func restore(_ id: WindowID, now: Double, arranged: Bool, cache: inout PlacementCache) {
         guard let record = state.parked[id] else { return }
         let frame =
-            (arranged ? placement(of: id) : nil)
+            (arranged ? cache.tile(of: id, state, planner) : nil)
             ?? FrameMath.restoredFrame(home: record.home, displays: state.displays)
         request(id, frame, .restore, now: now)
     }
@@ -30,10 +37,11 @@ extension ReducerContext {
     /// Parks the windows of hidden workspaces and restores the windows of shown ones.
     mutating func reconcileParking(now: Double) {
         guard !state.isFrozen else { return }
+        var cache = PlacementCache()
         for (id, _) in state.windows.sorted(by: { $0.key < $1.key }) where !state.unmanaged.contains(id) {
             guard let workspace = state.model.workspace(of: id) else { continue }
             if state.model.isVisible(workspace) {
-                if state.parked[id] != nil { restore(id, now: now) }
+                if state.parked[id] != nil { restore(id, now: now, arranged: true, cache: &cache) }
             } else if state.parked[id] == nil {
                 guard state.canJournal else {
                     trailing.append(.banner(.cannotJournal))
@@ -105,7 +113,8 @@ extension ReducerContext {
     /// back.
     mutating func restoreAll(now: Double) {
         state.isFrozen = true
-        for id in state.parked.keys.sorted() { restore(id, now: now) }
+        var cache = PlacementCache()
+        for id in state.parked.keys.sorted() { restore(id, now: now, arranged: true, cache: &cache) }
     }
 
     mutating func watchdogTripped(now: Double) {

@@ -18,9 +18,9 @@ struct WindowsComposition {
                 WorkspaceStripController(
                     select: { number in
                         guard let workspace = WorkspaceID(number) else { return }
-                        Task { await runtime.goToWorkspace(workspace) }
+                        runtime.actions.enqueue { await runtime.goToWorkspace(workspace) }
                     },
-                    restoreAll: { Task { await runtime.restoreAllWindows() } })
+                    restoreAll: { runtime.actions.enqueue { await runtime.restoreAllWindows() } })
             }
         }
         if showsOverlay {

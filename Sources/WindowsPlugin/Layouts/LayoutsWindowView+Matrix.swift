@@ -54,7 +54,7 @@ extension LayoutsWindowView {
             .focusEffectDisabled()
             .onKeyPress(phases: .down) { press in
                 guard let key = Self.matrixKey(for: press) else { return .ignored }
-                Task { await model.handle(key) }
+                model.actions.enqueue { await model.handle(key) }
                 return .handled
             }
         }
@@ -111,7 +111,7 @@ extension LayoutsWindowView {
         let isFocused = model.focused == MatrixPosition(row: row, column: column)
         return Menu {
             Button {
-                Task { await model.setLayout(nil, workspace: cell.workspace, displayKey: display.key) }
+                model.actions.enqueue { await model.setLayout(nil, workspace: cell.workspace, displayKey: display.key) }
             } label: {
                 if cell.assignedID == nil {
                     Label(model.defaultTitle(for: display), systemImage: "checkmark")
@@ -123,7 +123,9 @@ extension LayoutsWindowView {
             Section {
                 ForEach(model.stockLayouts, id: \.id) { layout in
                     Button {
-                        Task { await model.setLayout(layout.id, workspace: cell.workspace, displayKey: display.key) }
+                        model.actions.enqueue {
+                            await model.setLayout(layout.id, workspace: cell.workspace, displayKey: display.key)
+                        }
                     } label: {
                         if cell.assignedID == layout.id {
                             Label(model.name(of: layout), systemImage: "checkmark")
@@ -140,7 +142,7 @@ extension LayoutsWindowView {
                 Section {
                     ForEach(model.userLayouts, id: \.id) { layout in
                         Button {
-                            Task {
+                            model.actions.enqueue {
                                 await model.setLayout(layout.id, workspace: cell.workspace, displayKey: display.key)
                             }
                         } label: {

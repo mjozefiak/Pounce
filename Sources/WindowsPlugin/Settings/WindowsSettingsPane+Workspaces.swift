@@ -119,7 +119,7 @@ extension WindowsSettingsPane {
     @ViewBuilder var data: some View {
         LabeledContent {
             Button {
-                Task { await model.restoreAllWindows() }
+                model.actions.enqueue { await model.restoreAllWindows() }
             } label: {
                 Text("Restore", comment: "Window Management: restore button")
             }
@@ -139,7 +139,7 @@ extension WindowsSettingsPane {
         }
         LabeledContent {
             Button {
-                Task { await model.copyDiagnostics() }
+                model.actions.enqueue { await model.copyDiagnostics() }
             } label: {
                 Text(model.copiedDiagnostics ? "Copied" : "Copy", comment: "Window Management: copy diagnostics button")
             }

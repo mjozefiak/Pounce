@@ -55,6 +55,8 @@ enum ApplyTarget: Equatable {
 /// running plugin (the assignment file and the overrides), so a plugin that is off has nothing to edit.
 @MainActor @Observable
 final class LayoutsModel {
+    /// What the views' buttons start, in the order the user pressed them.
+    let actions = OrderedActions()
     @ObservationIgnored let pane: WindowsSettingsModel
     @ObservationIgnored private let loadDisplays: () async -> [DisplayInfo]
     @ObservationIgnored private let identifier: (MatrixDisplay) -> Void

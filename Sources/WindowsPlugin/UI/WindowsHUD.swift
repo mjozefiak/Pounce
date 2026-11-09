@@ -149,7 +149,14 @@ final class WindowsHUDPanel: WindowsHUDPresenting {
     private let reducesMotion: () -> Bool
     var allowAccessibility: @MainActor () -> Void = {}
 
-    init(reducesMotion: @escaping () -> Bool = { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }) {
+    private let time: TimeSource
+
+    /// - Parameter clock: the plugin's clock, which times how long a message stays.
+    init(
+        clock: any Clock<Duration> = ContinuousClock(),
+        reducesMotion: @escaping () -> Bool = { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
+    ) {
+        time = TimeSource(clock)
         self.reducesMotion = reducesMotion
     }
 
@@ -169,8 +176,8 @@ final class WindowsHUDPanel: WindowsHUDPresenting {
                 NSAccessibility.NotificationUserInfoKey.priority: NSAccessibilityPriorityLevel.high.rawValue,
             ])
         let delay = state.hidesAfter
-        hideTask = Task { [weak self] in
-            try? await Task.sleep(for: delay)
+        hideTask = Task { [weak self, time] in
+            try? await time.sleep(delay)
             guard !Task.isCancelled else { return }
             self?.panel?.orderOut(nil)
         }

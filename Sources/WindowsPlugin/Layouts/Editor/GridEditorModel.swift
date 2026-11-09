@@ -64,6 +64,8 @@ struct EditorDisplay: Identifiable, Equatable {
 /// controller owns that and the view reads this.
 @MainActor @Observable
 final class GridEditorModel {
+    /// What the views' buttons start, in the order the user pressed them.
+    let actions = OrderedActions()
     enum SaveError: Equatable {
         case readOnly
         case failed

@@ -179,7 +179,7 @@ extension WindowsSettingsModel {
     }
 
     private func applyLayoutChange() {
-        Task { [weak self] in
+        actions.enqueue { [weak self] in
             await self?.runtime()?.applySettings()
             self?.context.resultsChanged()
         }

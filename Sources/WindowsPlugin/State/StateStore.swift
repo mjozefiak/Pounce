@@ -35,6 +35,8 @@ actor StateStore {
     /// The file was written by a newer version, or exists but could not be read.
     private(set) var isReadOnly = false
     private var isDirty = false
+    /// Set by `close()`, cleared by `load()`.
+    private var isClosed = false
     private var saveTask: Task<Void, Never>?
     private var saveGeneration = 0
 
@@ -58,6 +60,7 @@ actor StateStore {
     /// Reads the file. A missing file starts empty, a corrupt one is set aside, a newer one makes the store
     /// read-only.
     func load() {
+        isClosed = false
         isReadOnly = false
         isDirty = false
         let data: Data
@@ -229,10 +232,22 @@ actor StateStore {
         }
     }
 
-    /// Writes pending changes and stops the deferred save.
-    func close() { flush() }
+    /// Writes pending changes and stops the deferred save. Changes made after this are ignored until the next
+    /// `load()`, so nothing is written by a late caller after the plugin was switched off.
+    func close() {
+        flush()
+        saveTask?.cancel()
+        saveTask = nil
+        isClosed = true
+    }
+
+    /// Waits for the deferred save that is scheduled right now, if any (tests).
+    func waitForPendingSave() async {
+        await saveTask?.value
+    }
 
     private func markDirty() {
+        guard !isClosed else { return }
         isDirty = true
         saveTask?.cancel()
         saveGeneration += 1

@@ -38,6 +38,8 @@ enum ModifierChoice: String, CaseIterable, Identifiable {
 /// pane rule, `InactiveSettingsPaneTests`).
 @MainActor @Observable
 final class WindowsSettingsModel {
+    /// What the views' buttons start, in the order the user pressed them.
+    let actions = OrderedActions()
     @ObservationIgnored let settings: WindowsSettings
     @ObservationIgnored let context: PluginContext
     @ObservationIgnored let runtime: () -> WindowsRuntime?
@@ -157,7 +159,7 @@ final class WindowsSettingsModel {
     // MARK: Writing settings
 
     private func changed() {
-        Task { [weak self] in
+        actions.enqueue { [weak self] in
             await self?.runtime()?.applySettings()
             self?.context.resultsChanged()
         }

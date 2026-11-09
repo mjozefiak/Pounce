@@ -1,5 +1,6 @@
 import Foundation
 import LintelKit
+import Synchronization
 import os
 
 /// The one owner of `Plugins/windows/state.json` for a storage folder: it holds the only `StateStore` (the single
@@ -30,13 +31,12 @@ actor JournalOwner {
     }
 
     nonisolated let store: StateStore
+    nonisolated let reports = ReportSink()
     private(set) var phase = Phase.idle
     private var activeLease: UInt64?
     private var nextLease: UInt64 = 0
     private var turns: [CheckedContinuation<Void, Never>] = []
     private var launchCounted = false
-    private var sink: (@Sendable (WindowsHUDState) async -> Void)?
-    private var undelivered: [WindowsHUDState] = []
 
     init(directory: URL, clock: any Clock<Duration> = ContinuousClock(), logger: Logger) {
         store = StateStore(directory: directory, clock: clock, logger: logger)
@@ -101,20 +101,36 @@ actor JournalOwner {
         turns = []
         for turn in waiting { turn.resume() }
     }
+}
 
-    // MARK: Reports
-
-    /// Where the HUD states of a recovery pass go. States that came before a plugin instance set one are
-    /// delivered at once, in order.
-    func setSink(_ sink: @escaping @Sendable (WindowsHUDState) async -> Void) async {
-        self.sink = sink
-        let waiting = undelivered
-        undelivered = []
-        for state in waiting { await sink(state) }
+/// Where the HUD states of a recovery pass go. A state that comes before a plugin instance has attached its HUD (the
+/// launch recovery runs first) is kept and shown, in order, the moment one does. Attaching is a plain call on the
+/// main actor, so nothing hops through a task.
+final class ReportSink: Sendable {
+    private struct State {
+        var handler: (@MainActor (WindowsHUDState) -> Void)?
+        var undelivered: [WindowsHUDState] = []
     }
 
-    func present(_ state: WindowsHUDState) async {
-        if let sink { await sink(state) } else { undelivered.append(state) }
+    private let state = Mutex(State())
+
+    @MainActor
+    func attach(_ handler: @escaping @MainActor (WindowsHUDState) -> Void) {
+        let waiting = state.withLock { state -> [WindowsHUDState] in
+            state.handler = handler
+            defer { state.undelivered = [] }
+            return state.undelivered
+        }
+        for report in waiting { handler(report) }
+    }
+
+    func present(_ report: WindowsHUDState) async {
+        let handler = state.withLock { state -> (@MainActor (WindowsHUDState) -> Void)? in
+            if let handler = state.handler { return handler }
+            state.undelivered.append(report)
+            return nil
+        }
+        if let handler { await MainActor.run { handler(report) } }
     }
 }
 

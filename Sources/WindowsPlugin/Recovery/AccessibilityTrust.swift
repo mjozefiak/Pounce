@@ -63,9 +63,28 @@ final class AccessibilityTrust {
         poll = Task { [weak self] in
             while !Task.isCancelled {
                 do { try await clock.sleep(for: interval) } catch { return }
-                if await isNeeded() { self?.refresh() }
+                await self?.pollOnce(while: isNeeded)
             }
         }
+    }
+
+    /// One poll: reads the permission when windows are parked. Counted, so a test can wait for it.
+    func pollOnce(while isNeeded: @Sendable () async -> Bool) async {
+        if await isNeeded() { refresh() }
+        polls += 1
+        let ready = pollWaiters.filter { $0.count <= polls }
+        pollWaiters.removeAll { $0.count <= polls }
+        for waiter in ready { waiter.continuation.resume() }
+    }
+
+    /// How many polls have finished.
+    private(set) var polls = 0
+    private var pollWaiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
+
+    /// Waits until `count` polls have finished (tests).
+    func waitForPolls(_ count: Int) async {
+        if polls >= count { return }
+        await withCheckedContinuation { pollWaiters.append((count, $0)) }
     }
 
     func stop() {

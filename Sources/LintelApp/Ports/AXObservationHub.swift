@@ -14,6 +14,12 @@ import os
 /// bundle ids are never logged. Real Accessibility cannot be exercised in unit tests; the pure parts
 /// (`AXEventBuffer`, `AXNotificationMapper`, `AppObservationPlan`) are, and the rest is a manual item in
 /// `docs/qa.md`.
+/// A run loop handed from the observation thread to `start()`; it is only ever used through `CFRunLoop` calls that
+/// are thread-safe (`CFRunLoopPerformBlock`, `CFRunLoopWakeUp`, `CFRunLoopStop`).
+private nonisolated struct RunLoopBox: @unchecked Sendable {
+    var loop: CFRunLoop?
+}
+
 nonisolated final class AXObservationHub: @unchecked Sendable {
     static let messagingTimeout: Float = 0.25
 
@@ -73,20 +79,25 @@ nonisolated final class AXObservationHub: @unchecked Sendable {
             return false
         }
         guard !alreadyRunning else { return }
-        let runLoop = await withCheckedContinuation { (continuation: CheckedContinuation<CFRunLoop, Never>) in
+        let started = await withCheckedContinuation { (continuation: CheckedContinuation<RunLoopBox, Never>) in
             let thread = Thread {
                 let current = CFRunLoopGetCurrent()
                 // A source with no work keeps the run loop alive.
                 var context = CFRunLoopSourceContext()
                 let keepAlive = CFRunLoopSourceCreate(nil, 0, &context)
                 CFRunLoopAddSource(current, keepAlive, .defaultMode)
-                if let current { continuation.resume(returning: current) }
-                CFRunLoopRun()
+                continuation.resume(returning: RunLoopBox(loop: current))
+                if current != nil { CFRunLoopRun() }
             }
             thread.name = "com.lintelapp.windows.ax"
             thread.qualityOfService = .userInitiated
             shared.withLock { $0.thread = thread }
             thread.start()
+        }
+        guard let runLoop = started.loop else {
+            // The thread could not get a run loop: nothing is observed and the next `start()` may try again.
+            shared.withLock { $0.thread = nil }
+            return
         }
         let stopped = shared.withLock { shared -> Bool in
             shared.runLoop = runLoop
@@ -195,7 +206,6 @@ nonisolated final class AXObservationHub: @unchecked Sendable {
         guard AXObserverCreate(pid, callback, &observer) == .success, let observer else { return }
         state.observer = observer
         apps[pid] = state
-        let refcon = Unmanaged.passUnretained(state).toOpaque()
         CFRunLoopAddSource(runLoop, AXObserverGetRunLoopSource(observer), .defaultMode)
         addAppNotifications(state, attempt: 0)
         registerExistingWindows(of: state)

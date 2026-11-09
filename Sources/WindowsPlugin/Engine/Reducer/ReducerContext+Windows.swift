@@ -142,7 +142,7 @@ extension ReducerContext {
     private mutating func noteUserMove(_ id: WindowID, frame: CGRect) {
         guard !state.isFrozen, !state.floating.contains(id), !state.unmanaged.contains(id),
             let workspace = state.model.workspace(of: id), state.model.isVisible(workspace),
-            let (strategy, input) = layoutInput(for: workspace), !strategy.snapTargets(input).isEmpty
+            planner.offersSnapTargets(state, for: workspace)
         else { return }
         trailing.append(.userMovedWindow(id, frame: frame))
     }

@@ -72,6 +72,8 @@ final class ZoneDragController {
     private let targets: @MainActor (WindowID) async -> [DragDisplay]
     private let snap: @MainActor (WindowID, DragZone) async -> Void
     private var targetsTask: Task<Void, Never>?
+    /// Snaps run one after the other, in the order the drags ended.
+    private let snaps = OrderedActions()
 
     init(
         sampler: any PointerSampling, presenter: any ZoneOverlayPresenting, ticker: any DragTicking,
@@ -86,6 +88,12 @@ final class ZoneDragController {
     }
 
     var phase: ZoneDragMachine.Phase { machine.phase }
+
+    /// Waits for the overlay's targets to load and for every snap to finish (tear-down and tests).
+    func waitUntilIdle() async {
+        await targetsTask?.value
+        await snaps.waitUntilEmpty()
+    }
 
     /// The engine reports that a managed window of a Zones workspace moved.
     func windowMoved(_ id: WindowID, frame: CGRect = .infinite) {
@@ -127,7 +135,7 @@ final class ZoneDragController {
             case .highlight(let zone):
                 presenter.highlight(zone)
             case .snap(let id, let zone):
-                Task { [snap] in await snap(id, zone) }
+                snaps.enqueue { [snap] in await snap(id, zone) }
             }
         }
     }

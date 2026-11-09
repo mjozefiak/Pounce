@@ -7,6 +7,7 @@ import LintelKit
 struct ReducerContext {
     var state: EngineState
     let strategies: LayoutRegistry
+    let planner: LayoutPlanner
     var effects: [EngineEffect] = []
     /// Effects that follow the journal and the frame changes (a HUD, a banner, a focus change).
     var trailing: [EngineEffect] = []
@@ -20,6 +21,7 @@ struct ReducerContext {
     init(state: EngineState, strategies: LayoutRegistry) {
         self.state = state
         self.strategies = strategies
+        planner = LayoutPlanner(strategies: strategies)
     }
 
     // MARK: Batches

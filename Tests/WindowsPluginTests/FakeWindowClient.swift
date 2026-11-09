@@ -40,10 +40,8 @@ final class FakeWindowClient: WindowClient, Sendable {
         var windowsReads = 0
         var singleReads = 0
         var focusCalls: [WindowID] = []
-        var inFlight = 0
-        var maxInFlight = 0
-        var latency: Duration = .zero
         var echoes = false
+        var deliversEvents = true
         var available = true
         var stalled = 0
         var stallsReleased = false
@@ -88,7 +86,9 @@ final class FakeWindowClient: WindowClient, Sendable {
         state.withLock { $0.behaviorsByProcess[pid] = behavior }
     }
     func setMinimumSize(_ size: CGSize, for id: WindowID) { state.withLock { $0.minimumSizes[id] = size } }
-    func setLatency(_ latency: Duration) { state.withLock { $0.latency = latency } }
+    /// With `false` the fake emits no events of its own (echoes, snap-backs): a test then feeds the engine exactly
+    /// the events it means to, in the order it means to.
+    func setDeliversEvents(_ delivers: Bool) { state.withLock { $0.deliversEvents = delivers } }
     func setEchoes(_ echoes: Bool) { state.withLock { $0.echoes = echoes } }
     func setFocused(_ id: WindowID?) { state.withLock { $0.focused = id } }
     func setDisplays(_ displays: [DisplayInfo]) { state.withLock { $0.displays = displays } }
@@ -163,7 +163,6 @@ final class FakeWindowClient: WindowClient, Sendable {
     /// The order in which the engine used the port: `subscribe`, `windows`, `window`.
     var callLog: [String] { state.withLock { $0.log } }
     var focusCalls: [WindowID] { state.withLock { $0.focusCalls } }
-    var maxInFlight: Int { state.withLock { $0.maxInFlight } }
     func frame(of id: WindowID) -> CGRect? { state.withLock { $0.windows[id]?.frame } }
     func clearCalls() { state.withLock { $0.calls = [] } }
 
@@ -246,19 +245,15 @@ final class FakeWindowClient: WindowClient, Sendable {
 
     func setFrame(_ frame: CGRect, for id: WindowID) async throws(WindowClientError) -> CGRect {
         var wake: [CheckedContinuation<Void, Never>] = []
-        let (latency, behavior) = state.withLock { state -> (Duration, Behavior) in
+        let behavior = state.withLock { state -> Behavior in
             state.calls.append(Call(id: id, frame: frame))
             wake = state.callWaiters.filter { $0.count <= state.calls.count }.map(\.continuation)
             state.callWaiters.removeAll { $0.count <= state.calls.count }
-            state.inFlight += 1
-            state.maxInFlight = max(state.maxInFlight, state.inFlight)
-            return (state.latency, state.behaviors[id] ?? state.behaviorsByProcess[id.pid] ?? .normal)
+            return state.behaviors[id] ?? state.behaviorsByProcess[id.pid] ?? .normal
         }
         for waiter in wake { waiter.resume() }
-        if latency > .zero { try? await Task.sleep(for: latency) }
         defer {
             let ready = state.withLock { state -> [CheckedContinuation<Void, Never>] in
-                state.inFlight -= 1
                 state.completed += 1
                 let ready = state.completionWaiters.filter { $0.count <= state.completed }.map(\.continuation)
                 state.completionWaiters.removeAll { $0.count <= state.completed }
@@ -301,7 +296,7 @@ final class FakeWindowClient: WindowClient, Sendable {
                 state.windows[id] = replacing(info, frame: back)
                 snap = back
             }
-            return (actual, state.echoes, snap)
+            return (actual, state.echoes && state.deliversEvents, state.deliversEvents ? snap : nil)
         }
         guard let result else { throw .windowGone }
         if result.echo { continuation.yield(.moved(id)) }
@@ -345,6 +340,7 @@ final class VirtualClock: Clock, @unchecked Sendable {
     private let lock = NSLock()
     private var current: Instant
     private var sleepers: [UInt64: Sleeper] = [:]
+    private var sleeperWaiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
     private var nextID: UInt64 = 0
     private let autoAdvance: Bool
 
@@ -360,6 +356,18 @@ final class VirtualClock: Clock, @unchecked Sendable {
     var seconds: Double {
         let parts = now.offset.components
         return Double(parts.seconds) + Double(parts.attoseconds) / 1e18
+    }
+
+    /// Waits until `count` tasks are asleep on this clock (deterministic: no polling).
+    func waitForSleepers(_ count: Int) async {
+        await withCheckedContinuation { continuation in
+            let ready = lock.withLock { () -> Bool in
+                if sleepers.count >= count { return true }
+                sleeperWaiters.append((count, continuation))
+                return false
+            }
+            if ready { continuation.resume() }
+        }
     }
 
     /// Moves time forward and wakes every sleeper whose deadline has passed.
@@ -393,7 +401,13 @@ final class VirtualClock: Clock, @unchecked Sendable {
         }
         try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
-                lock.withLock { sleepers[id] = Sleeper(deadline: deadline, continuation: continuation) }
+                let ready = lock.withLock { () -> [CheckedContinuation<Void, Never>] in
+                    sleepers[id] = Sleeper(deadline: deadline, continuation: continuation)
+                    let ready = sleeperWaiters.filter { $0.count <= sleepers.count }.map(\.continuation)
+                    sleeperWaiters.removeAll { $0.count <= sleepers.count }
+                    return ready
+                }
+                for waiter in ready { waiter.resume() }
             }
         } onCancel: {
             let sleeper = lock.withLock { sleepers.removeValue(forKey: id) }

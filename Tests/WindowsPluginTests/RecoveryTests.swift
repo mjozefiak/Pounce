@@ -2,6 +2,7 @@ import AppKit
 import CoreGraphics
 import Foundation
 import LintelKit
+import Synchronization
 import Testing
 import os
 
@@ -161,14 +162,27 @@ import os
         let owner = JournalOwner(
             directory: harness.directory, logger: Logger(subsystem: "com.lintelapp.tests", category: "windows"))
         let (gate, open) = AsyncStream<Void>.makeStream()
-        let pass = Task { await owner.exclusive { _ in for await _ in gate { break } } }
-        while await owner.phase != .recovering { await Task.yield() }
-        let engine = Task { await owner.beginEngine() }
-        await Task.yield()
+        let (entered, enter) = AsyncStream<Void>.makeStream()
+        let order = Mutex<[String]>([])
+        let pass = Task {
+            await owner.exclusive { _ in
+                enter.yield()
+                for await _ in gate { break }
+                order.withLock { $0.append("pass ended") }
+            }
+        }
+        for await _ in entered { break }
         #expect(await owner.phase == .recovering)
+        let engine = Task { () -> UInt64 in
+            let lease = await owner.beginEngine()
+            order.withLock { $0.append("engine began") }
+            return lease
+        }
         open.yield()
         _ = await pass.value
         let lease = await engine.value
+        // The engine began only after the pass had ended.
+        #expect(order.withLock { $0 } == ["pass ended", "engine began"])
         #expect(await owner.phase == .engine)
         guard case .engineRunning = await owner.exclusive({ _ in 0 }) else {
             Issue.record("a running engine owns the journal")
@@ -192,13 +206,18 @@ import os
         let owner = JournalOwner(
             directory: harness.directory, logger: Logger(subsystem: "com.lintelapp.tests", category: "windows"))
         let old = await owner.beginEngine()
-        let next = Task { await owner.beginEngine() }
-        await Task.yield()
+        let order = Mutex<[String]>([])
+        let next = Task { () -> UInt64 in
+            let lease = await owner.beginEngine()
+            order.withLock { $0.append("new engine began") }
+            return lease
+        }
         // The second engine cannot start while the first one still owns the journal, stopped or not.
-        #expect(await owner.phase == .engine)
         await owner.engineStopping(old)
+        order.withLock { $0.append("old engine ended") }
         await owner.endEngine(old)
         let lease = await next.value
+        #expect(order.withLock { $0 } == ["old engine ended", "new engine began"])
         #expect(lease != old)
         // The old engine reports its end a second time, late: it must not free the journal under the new one.
         await owner.endEngine(old)
@@ -426,11 +445,13 @@ import os
         // Revoked, noticed on app activation, then granted again.
         permissions.set(false)
         center.post(name: NSApplication.didBecomeActiveNotification, object: nil)
-        try await waitUntil { !runtime.trust.isTrusted }
+        await drainMainQueue()
+        #expect(!runtime.trust.isTrusted)
         permissions.set(true)
         center.post(name: NSApplication.didBecomeActiveNotification, object: nil)
-        try await waitUntil { client.frame(of: id(1)) == home }
+        await drainMainQueue()
         await runtime.settle()
+        #expect(client.frame(of: id(1)) == home)
         #expect(hud.shown.last == .restored(restored: 1, onAnotherSpace: 0, failed: 0))
         await plugin.deactivate()
     }
@@ -469,7 +490,10 @@ import os
         client.setAvailable(false)
         permissions.set(true)
         center.post(name: NSApplication.didBecomeActiveNotification, object: nil)
-        try await waitUntil { plugin.runtime == nil }
+        await drainMainQueue()
+        // The grant starts the re-check, which stops the plugin from inside the runtime's own task.
+        await plugin.runtime?.settle()
+        #expect(plugin.runtime == nil)
         #expect(plugin.lastStartError == .unsupported(reason: "scripted"))
     }
 
@@ -478,15 +502,21 @@ import os
     @MainActor
     @Test func trustPollingReportsAGrantOnce() async throws {
         let permissions = ScriptedPermissions(granted: false)
-        // The virtual clock jumps to each deadline, so the poll runs as fast as the test yields.
-        let trust = AccessibilityTrust(reader: permissions, clock: VirtualClock(), pollInterval: .milliseconds(10))
+        let clock = VirtualClock(autoAdvance: false)
+        let trust = AccessibilityTrust(reader: permissions, clock: clock, pollInterval: .milliseconds(10))
         let changes = ChangeLog()
         trust.onChange = { changes.values.append($0) }
         #expect(!trust.refresh())
         trust.startPolling { true }
+        await clock.waitForSleepers(1)
         permissions.set(true)
-        try await waitUntil { trust.isTrusted }
-        for _ in 0..<50 { await Task.yield() }
+        clock.advance(0.01)
+        await trust.waitForPolls(1)
+        #expect(trust.isTrusted)
+        // Another interval later it is still trusted and nothing is reported twice.
+        await clock.waitForSleepers(1)
+        clock.advance(0.01)
+        await trust.waitForPolls(2)
         trust.stop()
         #expect(changes.values == [true])
     }
@@ -525,12 +555,11 @@ final class ChangeLog {
     var values: [Bool] = []
 }
 
-/// Waits for a condition by yielding to other tasks, with no wall-clock time involved.
+/// Returns after everything already queued on the main queue has run: a notification posted with `queue: .main`
+/// has been delivered by then. The queue is FIFO, so the marker cannot overtake it.
 @MainActor
-func waitUntil(_ condition: @MainActor () -> Bool) async throws {
-    for _ in 0..<200_000 {
-        if condition() { return }
-        await Task.yield()
+func drainMainQueue() async {
+    await withCheckedContinuation { continuation in
+        OperationQueue.main.addOperation { continuation.resume() }
     }
-    Issue.record("condition not met")
 }

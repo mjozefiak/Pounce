@@ -124,10 +124,6 @@ private final class FakeOverlay: ZoneOverlayPresenting {
         return rig
     }
 
-    private func settle() async {
-        for _ in 0..<20 { await Task.yield() }
-    }
-
     @Test func nothingRunsWhileNoWindowIsDragged() {
         let rig = rig()
         #expect(rig.controller?.phase == .idle)
@@ -139,7 +135,7 @@ private final class FakeOverlay: ZoneOverlayPresenting {
     @Test func aDragWithShiftShowsTheOverlayHighlightsAndSnapsOnRelease() async {
         let rig = rig()
         rig.controller?.windowMoved(window)
-        await settle()
+        await rig.controller?.waitUntilIdle()
         #expect(rig.ticker.isRunning)
         #expect(rig.overlay.visible)
         #expect(rig.overlay.highlighted == left)
@@ -150,7 +146,7 @@ private final class FakeOverlay: ZoneOverlayPresenting {
         // Release over it with Shift still held.
         rig.pointer.current = PointerSample(leftButtonDown: false, shiftDown: true, cursor: CGPoint(x: 800, y: 100))
         rig.ticker.tick()
-        await settle()
+        await rig.controller?.waitUntilIdle()
         #expect(!rig.overlay.visible)
         #expect(!rig.ticker.isRunning)
         #expect(rig.snaps.list == ["1->2"])
@@ -161,12 +157,12 @@ private final class FakeOverlay: ZoneOverlayPresenting {
         let rig = rig()
         rig.pointer.current = PointerSample(leftButtonDown: true, shiftDown: false, cursor: CGPoint(x: 100, y: 100))
         rig.controller?.windowMoved(window)
-        await settle()
+        await rig.controller?.waitUntilIdle()
         #expect(rig.ticker.isRunning)
         #expect(!rig.overlay.visible)
         rig.pointer.current = PointerSample(leftButtonDown: true, shiftDown: true, cursor: CGPoint(x: 100, y: 100))
         rig.ticker.tick()
-        await settle()
+        await rig.controller?.waitUntilIdle()
         #expect(rig.overlay.visible)
     }
 
@@ -174,7 +170,7 @@ private final class FakeOverlay: ZoneOverlayPresenting {
         let rig = rig()
         rig.pointer.current = PointerSample(leftButtonDown: false, shiftDown: true, cursor: CGPoint(x: 100, y: 100))
         rig.controller?.windowMoved(window)
-        await settle()
+        await rig.controller?.waitUntilIdle()
         #expect(!rig.overlay.visible)
         #expect(!rig.ticker.isRunning)
         #expect(rig.overlay.log.isEmpty)
@@ -183,7 +179,7 @@ private final class FakeOverlay: ZoneOverlayPresenting {
     @Test func noZonesToOfferMeansNoOverlay() async {
         let rig = rig(targets: [])
         rig.controller?.windowMoved(window)
-        await settle()
+        await rig.controller?.waitUntilIdle()
         #expect(!rig.overlay.visible)
         #expect(!rig.overlay.log.contains { $0.hasPrefix("show") })
     }
@@ -191,7 +187,7 @@ private final class FakeOverlay: ZoneOverlayPresenting {
     @Test func cancelHidesTheOverlayAndStopsTheTimer() async {
         let rig = rig()
         rig.controller?.windowMoved(window)
-        await settle()
+        await rig.controller?.waitUntilIdle()
         rig.controller?.cancel()
         #expect(!rig.overlay.visible)
         #expect(!rig.ticker.isRunning)
@@ -201,13 +197,13 @@ private final class FakeOverlay: ZoneOverlayPresenting {
     @Test func releasingShiftFirstHidesTheOverlayAndDoesNotSnap() async {
         let rig = rig()
         rig.controller?.windowMoved(window)
-        await settle()
+        await rig.controller?.waitUntilIdle()
         rig.pointer.current = PointerSample(leftButtonDown: true, shiftDown: false, cursor: CGPoint(x: 800, y: 100))
         rig.ticker.tick()
         #expect(!rig.overlay.visible)
         rig.pointer.current = PointerSample(leftButtonDown: false, shiftDown: false, cursor: CGPoint(x: 800, y: 100))
         rig.ticker.tick()
-        await settle()
+        await rig.controller?.waitUntilIdle()
         #expect(rig.snaps.list.isEmpty)
         #expect(!rig.ticker.isRunning)
     }

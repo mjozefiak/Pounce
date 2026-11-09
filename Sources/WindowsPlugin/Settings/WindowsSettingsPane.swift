@@ -36,7 +36,7 @@ struct WindowsSettingsPane: View {
             data: { data }
         )
         .destructiveConfirmation(isPresented: $confirmsReset, Self.resetConfirmation) {
-            Task { await model.resetState() }
+            model.actions.enqueue { await model.resetState() }
         }
         .task(id: isActive) {
             guard isActive else { return }

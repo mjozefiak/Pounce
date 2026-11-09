@@ -129,7 +129,9 @@ extension WindowsSettingsPane {
                     selection: Binding(
                         get: { model.layoutSlots[number] ?? Self.useDefault },
                         set: { value in
-                            Task { await model.setLayoutSlot(number, to: value == Self.useDefault ? nil : value) }
+                            model.actions.enqueue {
+                                await model.setLayoutSlot(number, to: value == Self.useDefault ? nil : value)
+                            }
                         })
                 ) {
                     Text("None", comment: "Window Management: a layout slot that is not bound")

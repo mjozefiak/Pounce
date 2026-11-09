@@ -30,7 +30,7 @@ extension WindowsPlugin {
     /// Accessibility is not trusted, so the journal stays and the host tries again on app activation.
     public nonisolated static func recoverAtLaunch(context: PluginContext) async -> RecoveryOutcome {
         let journal = JournalOwner.owner(for: context)
-        return await recover(context: context, hud: { await journal.present($0) })
+        return await recover(context: context, hud: { await journal.reports.present($0) })
     }
 
     /// `recoverAtLaunch` with the registry and the HUD injected (tests). `isLaunch` is `nil` in the app: the

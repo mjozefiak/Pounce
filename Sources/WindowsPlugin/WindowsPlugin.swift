@@ -57,7 +57,7 @@ public final class WindowsPlugin: LintelPlugin {
         }
         return model
     }()
-    let identifier = DisplayIdentifier()
+    let identifier: DisplayIdentifier
     /// The Layouts window, built on first use; it reads the pane model and the running plugin.
     private(set) lazy var layoutsWindow: LayoutsWindowController = makeLayoutsWindow()
 
@@ -68,7 +68,7 @@ public final class WindowsPlugin: LintelPlugin {
 
     public convenience init(context: PluginContext) {
         self.init(
-            context: context, hud: WindowsHUDPanel(), activationCenter: .default, showsStrip: true,
+            context: context, hud: WindowsHUDPanel(clock: context.clock), activationCenter: .default, showsStrip: true,
             showsOverlay: true)
     }
 
@@ -76,6 +76,7 @@ public final class WindowsPlugin: LintelPlugin {
         context: PluginContext, hud: any WindowsHUDPresenting, activationCenter: NotificationCenter,
         showsStrip: Bool = false, showsOverlay: Bool = false
     ) {
+        identifier = DisplayIdentifier(clock: context.clock)
         let journal = JournalOwner.owner(for: context)
         self.journal = journal
         self.showsStrip = showsStrip
@@ -89,7 +90,7 @@ public final class WindowsPlugin: LintelPlugin {
             Task { try? await workspace.open(url) }
         }
         // What the launch recovery reported before this instance existed is shown now, and what it reports later.
-        Task { [hud] in await journal.setSink { state in await MainActor.run { hud.show(state) } } }
+        journal.reports.attach { [hud] state in hud.show(state) }
     }
 
     /// System Settings, Privacy & Security, Accessibility.
@@ -142,18 +143,23 @@ public final class WindowsPlugin: LintelPlugin {
         let availability = await context.windows.checkAvailability()
         guard case .unsupported(let reason) = availability else { return }
         lastStartError = .unsupported(reason: reason)
-        await deactivate()
+        // Called from the runtime's own re-grant task: it cannot wait for itself.
+        await deactivate(waitingForTrustTask: false)
         context.resultsChanged()
     }
 
     /// Puts every parked window back (waiting at most 5 s) and stops.
     public func deactivate() async {
+        await deactivate(waitingForTrustTask: true)
+    }
+
+    private func deactivate(waitingForTrustTask: Bool) async {
         guard let runtime else { return }
         self.runtime = nil
         editorWindow.pluginSwitchedOff()
         // A layouts window with an editor sheet stays until the editor is answered.
         if !editorWindow.isOpen { layoutsWindow.close() }
         identifier.tearDown()
-        await runtime.stop()
+        await runtime.stop(waitingForTrustTask: waitingForTrustTask)
     }
 }

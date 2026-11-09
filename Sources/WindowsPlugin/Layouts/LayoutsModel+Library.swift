@@ -131,7 +131,7 @@ extension LayoutsModel {
     }
 
     private func libraryChanged(select id: String) {
-        Task {
+        actions.enqueue { [self] in
             await refreshLibrary()
             selectedLayoutID = id
             await pane.runtime()?.applySettings()

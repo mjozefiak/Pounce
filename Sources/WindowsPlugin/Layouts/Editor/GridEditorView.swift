@@ -278,7 +278,7 @@ struct GridEditorView: View {
             Spacer()
             Button {
                 commitName()
-                Task { await model.save() }
+                model.actions.enqueue { await model.save() }
             } label: {
                 HStack(spacing: 6) {
                     Text("Save", comment: "Layout editor: saves the layout and closes the editor")

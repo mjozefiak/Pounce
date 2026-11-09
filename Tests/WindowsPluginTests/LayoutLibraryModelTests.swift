@@ -112,7 +112,7 @@ private final class EditorLog {
         #expect(rig.editor.opened[0].layout.zones.count == 1)
         let created = try await make(rig, "Coding")
         rig.editor.onSaved?(created)
-        try await waitUntil { rig.model.selectedLayoutID == created.id }
+        await rig.model.actions.waitUntilEmpty()
         #expect(rig.model.selectedLayoutID == created.id)
         // Edit is for the user's layouts only.
         rig.model.selectedLayoutID = StockLayouts.focus

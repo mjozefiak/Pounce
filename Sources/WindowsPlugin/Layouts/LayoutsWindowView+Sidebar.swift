@@ -58,7 +58,7 @@ extension LayoutsWindowView {
             .buttonStyle(LintelPrimaryButtonStyle())
             .disabled(!model.canEditLibrary)
             Button {
-                Task { await model.duplicateSelected() }
+                model.actions.enqueue { await model.duplicateSelected() }
             } label: {
                 Text("Duplicate", comment: "Layouts window: makes an editable copy of the selected layout")
             }

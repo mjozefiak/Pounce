@@ -45,6 +45,8 @@ final class WindowsRuntime: WindowSwitching {
     private let reports: ReportPump
     /// The restore after a re-grant of Accessibility, while it runs.
     private var trustTask: Task<Void, Never>?
+    /// What the strip's clicks start, in the order they happened.
+    let actions = OrderedActions()
     /// The journal lease of the engine while it runs (`JournalOwner`).
     private var lease: UInt64?
     /// The engine configuration as last sent (cached: it is rebuilt only when a setting or the library changes).
@@ -169,13 +171,16 @@ final class WindowsRuntime: WindowSwitching {
     /// Waits until the engine has nothing queued or running and everything it reported has been handled here (tests
     /// and tear-down).
     func settle() async {
+        await actions.waitUntilEmpty()
         await trustTask?.value
         await engine.settle()
         await reports.waitUntilHandled()
     }
 
     /// Puts the windows back and stops, waiting at most `stopBudget`.
-    func stop() async {
+    /// - Parameter waitingForTrustTask: `false` when the caller is that task itself (a failed self-check after a
+    ///   re-grant stops the runtime from inside it).
+    func stop(waitingForTrustTask: Bool = true) async {
         activationObserver?.stop()
         activationObserver = nil
         trust.stop()
@@ -187,8 +192,9 @@ final class WindowsRuntime: WindowSwitching {
         let engine = engine
         let journal = journal
         trustTask?.cancel()
-        await trustTask?.value
+        if waitingForTrustTask { await trustTask?.value }
         trustTask = nil
+        await actions.waitUntilEmpty()
         reports.finish()
         let lease = lease
         if let lease { await journal.engineStopping(lease) }

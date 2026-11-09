@@ -101,6 +101,8 @@ struct ZonesStrategy: LayoutStrategy {
         return AnyLayoutState(zones)
     }
 
+    var offersSnapTargets: Bool { true }
+
     func snapTargets(_ input: LayoutInput) -> [DragDisplay] {
         let layout = resolved(input).layout
         let frames = layout.frames(in: input.area)

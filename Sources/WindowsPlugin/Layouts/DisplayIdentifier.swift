@@ -12,7 +12,14 @@ final class DisplayIdentifier {
     private let screens: () -> [CGRect]
     private let duration: Duration
 
-    init(screens: @escaping () -> [CGRect] = { NSScreen.screens.map(\.frame) }, duration: Duration = .seconds(2)) {
+    private let time: TimeSource
+
+    init(
+        clock: any Clock<Duration> = ContinuousClock(),
+        screens: @escaping () -> [CGRect] = { NSScreen.screens.map(\.frame) },
+        duration: Duration = .seconds(2)
+    ) {
+        time = TimeSource(clock)
         self.screens = screens
         self.duration = duration
     }
@@ -35,8 +42,8 @@ final class DisplayIdentifier {
                 NSAccessibility.NotificationUserInfoKey.priority: NSAccessibilityPriorityLevel.high.rawValue,
             ])
         let duration = duration
-        hideTask = Task { [weak self] in
-            try? await Task.sleep(for: duration)
+        hideTask = Task { [weak self, time] in
+            try? await time.sleep(duration)
             guard !Task.isCancelled else { return }
             self?.panel?.close()
             self?.panel = nil
