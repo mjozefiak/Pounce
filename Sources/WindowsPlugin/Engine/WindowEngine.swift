@@ -14,9 +14,11 @@ import os
 /// generation is no longer the newest for their window. The journal of parked windows is written first, and a
 /// window is parked only after that write succeeded.
 ///
-/// `send`, `submit` and `restoreAllWindows` return when the work their input caused has been executed and its
-/// results reduced, or after `commandBudget` at the latest: a hung app can delay the completion of a user command
-/// by at most that long, and its work then goes on in the background. After `stop()` they return at once.
+/// `send` and `submit` return when the work their input caused has been executed and its results reduced, or after
+/// `commandBudget` at the latest: a hung app can delay the completion of a user command by at most that long, and
+/// its work then goes on in the background. `restoreAllWindows` is not bounded: its report counts what was really
+/// put back, so it waits for the restore to run (the caller of `stop()` bounds that wait). After `stop()` they
+/// return at once.
 ///
 /// Events from the client are coalesced and flushed by one serial flush loop, so inputs reach the reducer in the
 /// order the events were read, and a flush never overlaps the next.
@@ -308,6 +310,8 @@ actor WindowEngine {
             if coalescer.isEmpty, !stopped {
                 flushTask?.cancel()
                 flushTask = nil
+                // A `settle()` that waited only for that tick has nothing left to wait for.
+                resumeWaiters()
             }
             await waitForWork()
         }

@@ -30,8 +30,9 @@ an `.applied` input; a request whose generation is no longer the newest for its 
 comes, and a result older than the newest request is dropped by the reducer. The echo window of a frame change starts
 when it is sent (`.frameStarted`), so a queued change cannot let its own events through as user moves.
 
-`send`, `submit` and `restoreAllWindows` return when the work their input caused has run, or after `commandBudget`
-(2 s, real time): a hung app delays only its own lane and the completion of a user command by at most that bound.
+`send` and `submit` return when the work their input caused has run, or after `commandBudget` (2 s, real time): a
+hung app delays only its own lane and the completion of a user command by at most that bound. `restoreAllWindows`
+is not bounded (its report counts what was really put back); `WindowsRuntime.stop` bounds it with its stop budget.
 After `stop()` they return at once. Events are flushed by one serial loop (a flush is strictly after the previous
 one), and the engine subscribes to the client before it takes its first snapshot.
 
