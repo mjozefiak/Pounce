@@ -26,6 +26,8 @@ enum PluginState {
 final class PluginHost {
     struct Entry {
         let manifest: PluginManifest
+        let type: any LintelPlugin.Type
+        let context: PluginContext
         let plugin: any LintelPlugin
         let storageDirectory: URL
         let cachesDirectory: URL
@@ -43,6 +45,10 @@ final class PluginHost {
     @ObservationIgnored private let clock: any Clock<Duration>
     @ObservationIgnored let sourceBudget: Duration
     @ObservationIgnored private var pending: [PluginID: Task<Void, Never>] = [:]
+    @ObservationIgnored let recoveryBudget: Duration
+    @ObservationIgnored private var recoveries: [PluginID: Task<Void, Never>] = [:]
+    /// What `recoverAtLaunch` answered for each plugin; a plugin that has not answered yet is absent.
+    private(set) var recoveryOutcomes: [PluginID: RecoveryOutcome] = [:]
 
     /// - Parameters:
     ///   - pluginTypes: usually `PluginRegistry.all`. A duplicate `PluginID` is skipped and logged.
@@ -54,12 +60,14 @@ final class PluginHost {
         settings: any SettingsStore,
         fileManager: FileManager = .default,
         sourceBudget: Duration = .milliseconds(150),
+        recoveryBudget: Duration = .seconds(5),
         clock: any Clock<Duration> = ContinuousClock(),
         logger: Logger = Logger(subsystem: "com.lintelapp", category: "host")
     ) {
         self.settings = settings
         self.fileManager = fileManager
         self.sourceBudget = sourceBudget
+        self.recoveryBudget = recoveryBudget
         self.clock = clock
         self.logger = logger
 
@@ -75,6 +83,8 @@ final class PluginHost {
             built.append(
                 Entry(
                     manifest: manifest,
+                    type: type,
+                    context: context,
                     plugin: type.init(context: context),
                     storageDirectory: context.storageDirectory,
                     cachesDirectory: context.cachesDirectory,
@@ -133,10 +143,60 @@ final class PluginHost {
 
     // MARK: Lifecycle
 
-    /// Activates every enabled plugin, in `manifest.order`.
+    /// Starts `recoverAtLaunch` for every registered plugin (enabled or not) in parallel, then activates every
+    /// enabled plugin in `manifest.order`. A plugin's activation waits only for its own recovery, which is
+    /// bounded by `recoveryBudget`, so launch is never held up for longer than that. Recoveries of disabled
+    /// plugins are not waited for (`waitForRecoveries()` does).
     func start() async {
+        beginRecoveries()
         for entry in entries where isEnabled(entry.manifest.id) {
-            await enqueue(entry.manifest.id) { host in await host.activateNow(entry.manifest.id) }
+            let id = entry.manifest.id
+            await enqueue(id) { host in
+                await host.recoveries[id]?.value
+                await host.activateNow(id)
+            }
+        }
+    }
+
+    /// Runs `recoverAtLaunch` once per registered plugin type that has not run it yet.
+    func beginRecoveries() {
+        for entry in entries where recoveries[entry.manifest.id] == nil {
+            startRecovery(of: entry)
+        }
+    }
+
+    /// Runs `recoverAtLaunch` again for every plugin whose last answer was `.deferred` and that is not running
+    /// it now: the host calls it on app activation and on a permission change.
+    func retryDeferredRecoveries() {
+        for entry in entries where recoveryOutcomes[entry.manifest.id] == .deferred {
+            startRecovery(of: entry)
+        }
+    }
+
+    /// Suspends until every recovery that is running has answered or hit its bound.
+    func waitForRecoveries() async {
+        for task in Array(recoveries.values) {
+            await task.value
+        }
+    }
+
+    private func startRecovery(of entry: Entry) {
+        let id = entry.manifest.id
+        // A metatype is immutable and `recoverAtLaunch` is nonisolated, so sharing it is safe.
+        nonisolated(unsafe) let type = entry.type
+        let context = entry.context
+        let budget = recoveryBudget
+        let clock = clock
+        let previous = recoveries[id]
+        recoveries[id] = Task { [weak self] in
+            await previous?.value
+            let outcome = await RecoveryRunner.run(budget: budget, clock: clock) {
+                await type.recoverAtLaunch(context: context)
+            }
+            self?.recoveryOutcomes[id] = outcome
+            self?.logger.info(
+                "Recovery of \(id.rawValue, privacy: .public): \(outcome == .done ? "done" : "deferred", privacy: .public)"
+            )
         }
     }
 

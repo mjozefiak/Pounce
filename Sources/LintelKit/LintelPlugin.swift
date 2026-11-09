@@ -98,6 +98,13 @@ public protocol LintelPlugin: AnyObject {
     /// uses none.
     var modelUsage: [ModelUsage] { get }
 
+    /// Puts right what an earlier run left half done (window management: restores windows it parked), before
+    /// the plugin is activated and whether or not it is enabled. The host runs it once per launch for every
+    /// registered type, bounded to 5 seconds and in parallel with the other plugins, and again on app
+    /// activation and on a permission change while it answers `.deferred`. It receives the plugin's context
+    /// but no instance, and runs off the main actor. Added with window management; the default does nothing.
+    nonisolated static func recoverAtLaunch(context: PluginContext) async -> RecoveryOutcome
+
     /// Removes data the plugin keeps outside its storage directory (for example a Keychain item).
     /// "Erase Data" calls `deactivate()`, then this method, and then the host deletes the whole
     /// `Plugins/<id>/` directory, so the default only needs to do nothing.
@@ -105,6 +112,7 @@ public protocol LintelPlugin: AnyObject {
 }
 
 extension LintelPlugin {
+    public nonisolated static func recoverAtLaunch(context: PluginContext) async -> RecoveryOutcome { .done }
     public func activate() async throws {}
     public func deactivate() async {}
     public var searchSources: [any SearchSource] { [] }

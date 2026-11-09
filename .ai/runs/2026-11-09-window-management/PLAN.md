@@ -9,7 +9,7 @@ Source spec: `.ai/specs/2026-11-09-window-management.md` (spec PR #66; Refs #66,
 
 | Phase | Step | Title | Exec | Status | Commit |
 |-------|------|-------|------|--------|--------|
-| 1 | 1.1 | Spike ADR (not yet measured; needs a real Mac) | dispatch:capable | todo | |
+| 1 | 1.1 | Spike ADR (not yet measured; needs a real Mac) | dispatch:capable | done | 9ebc9eb |
 | 1 | 1.2 | LintelKit contract: WindowClient, types, PluginContext.windows, recoverAtLaunch, PluginHost step | dispatch:capable | todo | |
 | 1 | 1.3 | WindowsPlugin skeleton, WindowsSettings, manifest (not registered) | dispatch:capable | todo | |
 | 1 | 1.4 | Workspace model (pure) | dispatch:capable | todo | |

@@ -25,6 +25,53 @@ import Testing
         #expect(LifecycleLog.shared.events == ["alpha.activate"])
     }
 
+    @Test func recoverAtLaunchRunsOnceForADisabledPlugin() async {
+        defer { env.tearDown() }
+        RecoveryScript.shared.reset([.done])
+        let host = env.makeHost([LaunchRecoveryPlugin.self])
+
+        await host.start()
+        await host.waitForRecoveries()
+        await host.start()
+        await host.waitForRecoveries()
+
+        #expect(host.state(of: "launchrecovery").map(isDisabled) == true)
+        #expect(RecoveryScript.shared.callCount == 1)
+        #expect(host.recoveryOutcomes["launchrecovery"] == .done)
+    }
+
+    @Test func deferredRecoveryIsRetriedOnRequestUntilDone() async {
+        defer { env.tearDown() }
+        RecoveryScript.shared.reset([.deferred, .done])
+        let host = env.makeHost([LaunchRecoveryPlugin.self])
+
+        await host.start()
+        await host.waitForRecoveries()
+        #expect(host.recoveryOutcomes["launchrecovery"] == .deferred)
+
+        host.retryDeferredRecoveries()
+        await host.waitForRecoveries()
+        #expect(host.recoveryOutcomes["launchrecovery"] == .done)
+
+        host.retryDeferredRecoveries()
+        await host.waitForRecoveries()
+        #expect(RecoveryScript.shared.callCount == 2)
+    }
+
+    @Test func recoveryBoundGivesDeferredWithoutWaitingForHungWork() async {
+        let outcome = await RecoveryRunner.run(budget: .milliseconds(50), clock: ContinuousClock()) {
+            await Task.detached { blockCurrentThread(microseconds: 1_500_000) }.value
+            return .done
+        }
+        #expect(outcome == .deferred)
+    }
+
+    @Test func defaultPluginRecoversAsDone() async {
+        defer { env.tearDown() }
+        let outcome = await AlphaPlugin.recoverAtLaunch(context: env.environment.makeContext(for: AlphaPlugin.manifest))
+        #expect(outcome == .done)
+    }
+
     @Test func disablingDeactivatesAndEnablingActivatesWithoutRestart() async {
         defer { env.tearDown() }
         let host = env.makeHost([AlphaPlugin.self])

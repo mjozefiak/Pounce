@@ -202,3 +202,45 @@ final class UnerasablePlugin: LintelPlugin {
         throw TestError.eraseFailed
     }
 }
+
+/// Records `recoverAtLaunch` calls and answers with a scripted outcome, enabled or not.
+final class LaunchRecoveryPlugin: LintelPlugin {
+    static let manifest = PluginManifest(
+        id: "launchrecovery", displayName: "Launch recovery", symbolName: "arrow.uturn.backward", order: 6,
+        defaultEnabled: false)
+
+    init(context: PluginContext) {}
+
+    nonisolated static func recoverAtLaunch(context: PluginContext) async -> RecoveryOutcome {
+        RecoveryScript.shared.next()
+    }
+}
+
+/// The scripted answers of `LaunchRecoveryPlugin`; the last one repeats. Thread-safe because the host calls
+/// `recoverAtLaunch` off the main actor.
+nonisolated final class RecoveryScript: @unchecked Sendable {
+    static let shared = RecoveryScript()
+    private let lock = NSLock()
+    private var answers: [RecoveryOutcome] = [.done]
+    private var calls = 0
+
+    func reset(_ answers: [RecoveryOutcome]) {
+        lock.lock()
+        defer { lock.unlock() }
+        self.answers = answers
+        calls = 0
+    }
+
+    var callCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return calls
+    }
+
+    func next() -> RecoveryOutcome {
+        lock.lock()
+        defer { lock.unlock() }
+        calls += 1
+        return answers[min(calls, answers.count) - 1]
+    }
+}
