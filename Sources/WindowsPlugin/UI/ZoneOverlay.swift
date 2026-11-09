@@ -35,6 +35,23 @@ enum ZoneOverlayText {
         comment: "Window HUD: shown once, the first time a Zones layout is active")
 }
 
+/// The numbers the overlay is drawn with, apart from the view so the accessibility audit (step 3.7) can test
+/// them: the zone under the cursor differs from the others by a thicker border and a filled accent pill, never by
+/// colour alone, and Reduce Transparency makes the scrim and the highlight more opaque.
+enum ZoneOverlayStyle {
+    static let borderWidth: CGFloat = 2
+    static let highlightedBorderWidth: CGFloat = 3
+    /// The pill behind a zone number (white text on it; 0x171717).
+    static let pillGray: Double = 0.09
+    static let pillGrayHex: UInt32 = 0x17_17_17
+    static let numberHex: UInt32 = 0xFF_FF_FF
+
+    static func fillOpacity(highlighted: Bool, reduceTransparency: Bool) -> Double {
+        if highlighted { return reduceTransparency ? 0.85 : 0.45 }
+        return reduceTransparency ? 0.7 : 0.3
+    }
+}
+
 /// The overlay of one display (mockup 02): the zones with their numbers on opaque pills (so they meet contrast on
 /// any wallpaper and in both appearances) and the zone under the cursor highlighted with the accent. It never
 /// takes a click: the dragged window is under the cursor.
@@ -53,7 +70,8 @@ struct ZoneOverlayView: View {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .strokeBorder(
                             highlighted ? LintelBrand.accent : Color.white.opacity(contrast == .increased ? 1 : 0.75),
-                            lineWidth: highlighted ? 3 : 2)
+                            lineWidth: highlighted
+                                ? ZoneOverlayStyle.highlightedBorderWidth : ZoneOverlayStyle.borderWidth)
                     VStack(spacing: 6) {
                         Text(verbatim: "\(zone.number)")
                             .font(.system(size: 22, weight: .semibold, design: .rounded))
@@ -61,7 +79,10 @@ struct ZoneOverlayView: View {
                             .foregroundStyle(highlighted ? LintelBrand.onAccent : Color.white)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 6)
-                            .background(Capsule().fill(highlighted ? LintelBrand.accent : Color(white: 0.09)))
+                            .background(
+                                Capsule().fill(
+                                    highlighted ? LintelBrand.accent : Color(white: ZoneOverlayStyle.pillGray))
+                            )
                             .overlay(Capsule().strokeBorder(Color.white.opacity(0.35), lineWidth: 1))
                         if let caption = model.caption {
                             Text(verbatim: caption)
@@ -69,7 +90,7 @@ struct ZoneOverlayView: View {
                                 .foregroundStyle(Color.white)
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 3)
-                                .background(Capsule().fill(Color(white: 0.09)))
+                                .background(Capsule().fill(Color(white: ZoneOverlayStyle.pillGray)))
                         }
                     }
                 }
@@ -86,8 +107,8 @@ struct ZoneOverlayView: View {
     }
 
     private func fill(highlighted: Bool) -> Color {
-        if highlighted { return LintelBrand.accent.opacity(reduceTransparency ? 0.85 : 0.45) }
-        return Color.black.opacity(reduceTransparency ? 0.7 : 0.3)
+        let opacity = ZoneOverlayStyle.fillOpacity(highlighted: highlighted, reduceTransparency: reduceTransparency)
+        return highlighted ? LintelBrand.accent.opacity(opacity) : Color.black.opacity(opacity)
     }
 }
 
