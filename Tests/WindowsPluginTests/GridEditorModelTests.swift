@@ -244,3 +244,59 @@ private final class RecordingPreview: ZoneOverlayPresenting {
         #expect(rig.model.message == GridEditorText.message(for: .outerEdge))
     }
 }
+
+@MainActor @Suite struct GridEditorClosingTests {
+    @MainActor private final class Preview: ZoneOverlayPresenting {
+        var shows = 0
+        func show(_ displays: [DragDisplay]) { shows += 1 }
+        func highlight(_ zone: DragZone?) {}
+        func hide() {}
+    }
+
+    private func make(_ preview: Preview, saveBlocked: Bool = false) -> GridEditorModel {
+        let directory = FileManager.default.temporaryDirectory.appending(path: "lintel-closing-\(UUID().uuidString)")
+        return GridEditorModel(
+            layout: StockLayouts.layout(StockLayouts.columns2) ?? StockLayouts.all[0], isNew: true,
+            repository: LayoutRepository(directory: directory),
+            displays: {
+                [DisplayInfo(id: 1, uuid: "A", frame: CGRect(x: 0, y: 0, width: 1600, height: 1000), isMain: true)]
+            },
+            preview: preview)
+    }
+
+    @Test func aLateOpenAfterTearDownDrawsNothing() async {
+        let preview = Preview()
+        let model = make(preview)
+        model.tearDown()
+        await model.open()
+        #expect(preview.shows == 0)
+        model.divide(zone: 1, axis: .horizontal)
+        model.dragDivider(DividerRef(axis: .vertical, index: 1), to: 0.7)
+        #expect(preview.shows == 0)
+        #expect(model.isClosed)
+    }
+
+    @Test func closingBySavingOrDiscardingStopsLaterDrawing() async {
+        let preview = Preview()
+        let model = make(preview)
+        await model.open()
+        let before = preview.shows
+        model.divide(zone: 1, axis: .horizontal)
+        #expect(preview.shows > before)
+        model.discard()
+        let after = preview.shows
+        model.undo()
+        #expect(preview.shows == after)
+    }
+
+    @Test func aDragClearsAnEarlierSaveError() async {
+        let preview = Preview()
+        let model = make(preview)
+        await model.open()
+        // The folder does not exist, so the write fails.
+        await model.save()
+        #expect(model.saveError == .failed)
+        model.dragDivider(DividerRef(axis: .vertical, index: 1), to: 0.6)
+        #expect(model.saveError == nil)
+    }
+}

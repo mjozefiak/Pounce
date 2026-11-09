@@ -85,6 +85,8 @@ final class GridEditorModel {
     /// after it.
     private(set) var pluginIsOff = false
     @ObservationIgnored private var dragStart: GridEditorState?
+    /// The editor was closed: a late `open()` or edit must not draw the preview again.
+    @ObservationIgnored private(set) var isClosed = false
 
     @ObservationIgnored private let repository: LayoutRepository
     @ObservationIgnored private let loadDisplays: () async -> [DisplayInfo]
@@ -167,7 +169,9 @@ final class GridEditorModel {
     // MARK: Lifecycle
 
     func open() async {
+        guard !isClosed else { return }
         let infos = await loadDisplays()
+        guard !isClosed else { return }
         let keyed = DisplayKeys.keys(for: infos)
         let ordered = infos.sorted {
             if $0.isMain != $1.isMain { return $0.isMain }
@@ -186,12 +190,16 @@ final class GridEditorModel {
     }
 
     /// Releases the preview panel (the window is closing).
-    func tearDown() { preview.hide() }
+    func tearDown() {
+        isClosed = true
+        preview.hide()
+    }
 
     // MARK: Preview
 
     /// Redraws the live preview over the chosen display from the layout as it is now.
     func refreshPreview() {
+        guard !isClosed else { return }
         guard let display = selectedDisplay, state.layout.isValid else {
             preview.hide()
             return
@@ -280,6 +288,8 @@ final class GridEditorModel {
 
     /// A drag is one undo step however many events it sends: every event starts from the layout before it.
     func dragDivider(_ divider: DividerRef, to share: Double) {
+        guard !isClosed else { return }
+        saveError = nil
         if dragStart == nil { dragStart = state }
         guard var next = dragStart else { return }
         _ = next.moveDivider(divider, to: share)
@@ -364,6 +374,7 @@ final class GridEditorModel {
     }
 
     private func close() {
+        isClosed = true
         preview.hide()
         onClose()
     }
