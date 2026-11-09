@@ -179,3 +179,23 @@ extension EngineConfig {
         set { strategyConfigs[.zones] = AnyLayoutConfig(newValue) }
     }
 }
+
+/// A `WindowEngine` over the standard strategies (production passes its one registry explicitly).
+func makeEngine(
+    client: any WindowClient, store: StateStore, clock: any Clock<Duration> = ContinuousClock(),
+    workspaceCount: Int = WindowsSettings.defaultWorkspaceCount, config: EngineConfig = EngineConfig(),
+    tick: Duration = .milliseconds(30), commandBudget: Duration = .seconds(2), watchdog: Watchdog = Watchdog(),
+    reporter: EngineReporter = EngineReporter(), strategies: LayoutRegistry = .standard,
+    canMove: @escaping @Sendable () -> Bool = { true }
+) -> WindowEngine {
+    WindowEngine(
+        client: client, store: store, clock: clock, workspaceCount: workspaceCount, config: config, tick: tick,
+        commandBudget: commandBudget, watchdog: watchdog, reporter: reporter, strategies: strategies, canMove: canMove)
+}
+
+/// The reducer over the standard strategies.
+extension EngineReducer {
+    static func reduce(_ state: EngineState, _ input: EngineInput) -> (EngineState, [EngineEffect]) {
+        reduce(state, input, strategies: .standard)
+    }
+}

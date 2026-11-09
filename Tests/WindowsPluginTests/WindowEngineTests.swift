@@ -50,7 +50,7 @@ import Testing
         let store = StateStore(directory: harness.directory, saveDelay: .seconds(3600))
         let recorder = Recorder()
         let time = ManualNow(autoAdvance: autoTick)
-        let engine = WindowEngine(
+        let engine = makeEngine(
             client: client, store: store, clock: time, workspaceCount: count, config: config,
             tick: tick, watchdog: watchdog, reporter: recorder.reporter)
         return Rig(harness: harness, client: client, store: store, engine: engine, recorder: recorder, time: time)
@@ -374,7 +374,7 @@ extension WindowEngineTests {
         defer { harness.tearDown() }
         let client = FakeWindowClient(windows: [makeWindow(1)])
         let store = StateStore(directory: harness.directory, saveDelay: .seconds(3600))
-        let engine = WindowEngine(client: client, store: store, tick: .milliseconds(5))
+        let engine = makeEngine(client: client, store: store, tick: .milliseconds(5))
         await engine.start()
         // A window the engine never heard of moves: it is tracked from then on.
         client.add(makeWindow(2))
@@ -414,7 +414,7 @@ extension WindowEngineTests {
         let harness = try WindowsHarness()
         let client = FakeWindowClient(windows: windows)
         let store = StateStore(directory: harness.directory, saveDelay: .seconds(3600))
-        let engine = WindowEngine(
+        let engine = makeEngine(
             client: client, store: store, clock: VirtualClock(), workspaceCount: 4, tick: .milliseconds(5))
         return Rig(harness: harness, client: client, store: store, engine: engine)
     }

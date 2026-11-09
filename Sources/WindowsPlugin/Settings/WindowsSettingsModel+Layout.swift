@@ -13,26 +13,11 @@ struct WorkspaceSummaryLine: Identifiable, Equatable {
 
 /// The layout rows of the pane: the default kind, the gaps and the per-workspace overrides (spec: Q17).
 extension WindowsSettingsModel {
-    /// The kinds the user can choose: Auto-tile, Zones and Free (Zones since phase 3).
-    static let selectableKinds = LayoutKind.standard
+    /// The kinds the user can choose: every registered strategy, in registration order.
+    var selectableKinds: [LayoutKind] { registry.kinds }
 
-    static func kindName(_ kind: LayoutKind) -> String {
-        switch kind {
-        case .tiling: String(localized: "Auto-tile", comment: "Window Management layout kind: windows tile the screen")
-        case .zones: String(localized: "Zones", comment: "Window Management layout kind: windows snap into zones")
-        default: String(localized: "Free", comment: "Window Management layout kind: windows are left where they are")
-        }
-    }
-
-    static func orientationName(_ orientation: TilingOrientation) -> String {
-        switch orientation {
-        case .horizontal:
-            String(
-                localized: "Side by side", comment: "Window Management: the first split of a workspace is horizontal")
-        case .vertical:
-            String(localized: "Stacked", comment: "Window Management: the first split of a workspace is vertical")
-        }
-    }
+    /// The name of a kind as its strategy gives it; a kind with no strategy shows its identifier.
+    func kindName(_ kind: LayoutKind) -> String { registry[kind]?.displayName ?? kind.rawValue }
 
     // MARK: Defaults
 
@@ -87,11 +72,15 @@ extension WindowsSettingsModel {
             localized: "\(StockLayouts.all.count + libraryLayouts.count) layouts",
             comment: "Settings: how many zone layouts exist")
         let config = layoutConfig
-        let zones = WorkspaceID.all(count: workspaceCount).filter { config.resolved(for: $0).kind == .zones }.count
+        // The kinds that assign layouts from the library (today Zones) are the ones the line counts.
+        let libraryKinds = registry.kinds.filter { registry[$0]?.usesLayoutLibrary == true }
+        guard let kind = libraryKinds.first else { return layouts }
+        let name = kindName(kind)
+        let count = WorkspaceID.all(count: workspaceCount).filter { config.resolved(for: $0).kind == kind }.count
         let used =
-            zones == 0
-            ? String(localized: "No workspace uses Zones", comment: "Settings: no workspace is set to Zones")
-            : String(localized: "Zones on \(zones) workspaces", comment: "Settings: how many workspaces use Zones")
+            count == 0
+            ? String(localized: "No workspace uses \(name)", comment: "Settings: no workspace uses the layout kind")
+            : String(localized: "\(name) on \(count) workspaces", comment: "Settings: how many workspaces use it")
         return "\(layouts) · \(used)"
     }
 
@@ -114,13 +103,7 @@ extension WindowsSettingsModel {
         let config = layoutConfig
         return WorkspaceID.all(count: workspaceCount).map { workspace in
             let resolved = config.resolved(for: workspace)
-            var parts = [Self.kindName(resolved.kind)]
-            if resolved.kind == .tiling {
-                let inner = Int(resolved.gaps.inner)
-                let outer = Int(resolved.gaps.outer)
-                parts.append(String(localized: "Gaps \(inner) / \(outer)", comment: "Window Management summary: gaps"))
-                parts.append(Self.orientationName(resolved.rootOrientation))
-            }
+            let parts = [kindName(resolved.kind)] + (registry[resolved.kind]?.summaryParts(resolved) ?? [])
             return WorkspaceSummaryLine(
                 workspace: workspace, detail: parts.joined(separator: " · "),
                 isCustom: !(overrides.byWorkspace[workspace]?.isEmpty ?? true))
@@ -131,7 +114,8 @@ extension WindowsSettingsModel {
     var layoutConfig: LayoutConfig {
         LayoutConfig(
             defaultKind: defaultKind, innerGap: innerGap, outerGap: outerGap, rootOrientation: .horizontal,
-            overrides: overrides.byWorkspace)
+            overrides: overrides.byWorkspace
+        ).sanitized(by: registry)
     }
 
     // MARK: Overrides

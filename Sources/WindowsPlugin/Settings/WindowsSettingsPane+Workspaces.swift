@@ -50,8 +50,8 @@ extension WindowsSettingsPane {
         ) {
             Text("Use default", comment: "Window Management: the workspace follows the global setting")
                 .font(textSize.font(.body)).tag(Self.useDefault)
-            ForEach(WindowsSettingsModel.selectableKinds, id: \.rawValue) { kind in
-                Text(verbatim: WindowsSettingsModel.kindName(kind)).font(textSize.font(.body)).tag(kind.rawValue)
+            ForEach(model.selectableKinds, id: \.rawValue) { kind in
+                Text(verbatim: model.kindName(kind)).font(textSize.font(.body)).tag(kind.rawValue)
             }
         } label: {
             label(Text("Layout", comment: "Window Management: the layout kind of one workspace"))
@@ -72,7 +72,7 @@ extension WindowsSettingsPane {
             Text("Use default", comment: "Window Management: the workspace follows the global setting")
                 .font(textSize.font(.body)).tag(Self.useDefault)
             ForEach(TilingOrientation.allCases, id: \.rawValue) { orientation in
-                Text(verbatim: WindowsSettingsModel.orientationName(orientation)).font(textSize.font(.body))
+                Text(verbatim: orientation.displayName).font(textSize.font(.body))
                     .tag(orientation.rawValue)
             }
         } label: {

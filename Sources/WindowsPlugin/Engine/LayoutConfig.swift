@@ -26,9 +26,6 @@ struct LayoutKind: RawRepresentable, Hashable, Codable, Sendable {
     static let zones = LayoutKind("zones")
     static let free = LayoutKind("free")
 
-    /// The kinds this build has a strategy for, in registration order: what the pane offers and *Toggle layout*
-    /// cycles through. A new strategy in `LayoutRegistry.standard` appears here by itself.
-    static var standard: [LayoutKind] { LayoutRegistry.standard.kinds }
 }
 
 /// The overrides of one workspace; every field that is `nil` falls back to the global default (Q17).
@@ -57,6 +54,20 @@ struct LayoutConfig: Equatable, Sendable {
     var outerGap = WindowsSettings.defaultOuterGap
     var rootOrientation: TilingOrientation = .horizontal
     var overrides: [WorkspaceID: WorkspaceOverride] = [:]
+
+    /// The same configuration with every kind this build has no strategy for replaced: the default by the
+    /// registry's default kind, an override's kind by "no override" (the global value applies).
+    func sanitized(by registry: LayoutRegistry) -> LayoutConfig {
+        var config = self
+        if !registry.contains(config.defaultKind) { config.defaultKind = registry.defaultKind }
+        for (workspace, override) in config.overrides {
+            guard let kind = override.kind, !registry.contains(kind) else { continue }
+            var cleaned = override
+            cleaned.kind = nil
+            config.overrides[workspace] = cleaned.isEmpty ? nil : cleaned
+        }
+        return config
+    }
 
     func resolved(for workspace: WorkspaceID) -> ResolvedLayout {
         let override = overrides[workspace]
@@ -109,7 +120,7 @@ struct WorkspaceOverrides: Equatable, Sendable {
         for (key, entry) in record.workspaces {
             guard let number = Int(key), let workspace = WorkspaceID(number) else { continue }
             let override = WorkspaceOverride(
-                kind: entry.kind.map { LayoutKind($0) }.flatMap { LayoutKind.standard.contains($0) ? $0 : nil },
+                kind: entry.kind.map { LayoutKind($0) },
                 innerGap: entry.innerGap.map(WindowsSettings.clampGap),
                 outerGap: entry.outerGap.map(WindowsSettings.clampGap),
                 rootOrientation: entry.rootOrientation.flatMap(TilingOrientation.init(rawValue:)))

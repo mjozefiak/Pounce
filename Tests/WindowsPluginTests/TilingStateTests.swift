@@ -161,31 +161,37 @@ import Testing
         #expect(settings.workspaceOverrides.byWorkspace[ws(1)]?.kind == .free)
     }
 
-    @Test func unknownValuesInsideAnOverrideAreIgnoredAndGapsAreClamped() {
+    @Test func unknownValuesInsideAnOverrideAreIgnoredAndGapsAreClamped() throws {
+        let harness = try WindowsHarness()
+        defer { harness.tearDown() }
         let json = """
             {"version":1,"workspaces":{"1":{"kind":"accordion","innerGap":500,"outerGap":-3,
             "rootOrientation":"diagonal"},"12":{"kind":"free"}}}
             """
-        let overrides = WorkspaceOverrides(json: json)
+        harness.pluginSettings.set(json, for: WindowsSettings.Key.workspaces)
+        let settings = WindowsSettings(harness.pluginSettings)
+        // A kind no strategy handles is ignored when the registry reads it, and kept in the stored value.
+        let overrides = settings.workspaceOverrides(in: .standard)
         #expect(overrides.byWorkspace[ws(1)] == WorkspaceOverride(innerGap: WindowsSettings.maximumGap, outerGap: 0))
         #expect(overrides.byWorkspace.count == 1)
+        #expect(settings.workspaceOverrides.byWorkspace[ws(1)]?.kind == LayoutKind("accordion"))
     }
 
     @Test func theLayoutSettingsHaveTheSpecDefaultsAndRoundTrip() throws {
         let harness = try WindowsHarness()
         defer { harness.tearDown() }
         let fresh = WindowsSettings(WindowsHarness.freshSettings())
-        #expect(fresh.defaultKind == .tiling)
+        #expect(fresh.defaultKind(in: .standard) == .tiling)
         #expect(fresh.innerGap == 8 && fresh.outerGap == 8)
         let settings = WindowsSettings(harness.pluginSettings)
         settings.setDefaultKind(.zones)
         settings.setInnerGap(500)
         settings.setOuterGap(-1)
-        #expect(settings.defaultKind == .zones)
+        #expect(settings.defaultKind(in: .standard) == .zones)
         #expect(settings.innerGap == WindowsSettings.maximumGap)
         #expect(settings.outerGap == 0)
         harness.pluginSettings.set("bogus", for: WindowsSettings.Key.defaultKind)
-        #expect(settings.defaultKind == .tiling)
+        #expect(settings.defaultKind(in: .standard) == .tiling)
     }
 
     @MainActor @Test func theRuntimeConfigCarriesTheSettings() throws {
@@ -195,7 +201,7 @@ import Testing
         settings.setDefaultKind(.tiling)
         settings.setInnerGap(3)
         settings.setWorkspaceOverrides(WorkspaceOverrides([ws(2): WorkspaceOverride(kind: .free)]))
-        let config = EngineConfigBuilder().build(settings)
+        let config = EngineConfigBuilder(registry: .standard).build(settings)
         #expect(config.layout.defaultKind == .tiling)
         #expect(config.layout.innerGap == 3)
         #expect(config.layout.resolved(for: ws(2)).kind == .free)

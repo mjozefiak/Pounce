@@ -7,6 +7,10 @@ import LintelKit
 /// zone; windows of one zone stack.
 struct ZonesStrategy: LayoutStrategy {
     var kind: LayoutKind { .zones }
+    var displayName: String {
+        String(localized: "Zones", comment: "Window Management layout kind: windows snap into zones")
+    }
+    var usesLayoutLibrary: Bool { true }
 
     func makeConfig(_ environment: LayoutEnvironment) -> AnyLayoutConfig? {
         AnyLayoutConfig(ZonesConfig(environment))
@@ -53,14 +57,14 @@ struct ZonesStrategy: LayoutStrategy {
         else { return nil }
         let placement = placement(input)
         switch command.id {
-        case "focus":
+        case LayoutCommand.focusID:
             guard let direction = command.direction,
                 let zone = placement.neighbourZone(of: window, direction, in: placed),
                 let next = placed.windows(in: zone).first
             else { return nil }
             // The focus goes to the lowest window id of the neighbouring zone, so it is stable.
             return LayoutEdit(state: AnyLayoutState(stored), focus: next, hints: input.hints)
-        case "move":
+        case LayoutCommand.moveID:
             guard let direction = command.direction,
                 let zone = placement.neighbourZone(of: window, direction, in: placed)
             else { return nil }

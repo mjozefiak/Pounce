@@ -43,7 +43,7 @@ import Testing
         client.setFocused(focused)
         let store = StateStore(directory: harness.directory, saveDelay: .seconds(3600))
         let time = ManualNow()
-        let engine = WindowEngine(
+        let engine = makeEngine(
             client: client, store: store, clock: time, workspaceCount: count,
             config: config ?? zonesConfig(), tick: .milliseconds(5), canMove: canMove)
         return Rig(harness: harness, client: client, store: store, engine: engine)
@@ -442,7 +442,7 @@ import Testing
         let client = FakeWindowClient(windows: [makeWindow(1), makeWindow(2), makeWindow(3)])
         client.setFocused(id(1))
         let time = ManualNow()
-        let engine = WindowEngine(
+        let engine = makeEngine(
             client: client, store: StateStore(directory: harness.directory, saveDelay: .seconds(3600)),
             clock: time, config: config(.tiling), tick: .milliseconds(5))
         await engine.start()
@@ -472,7 +472,7 @@ import Testing
         let client = FakeWindowClient(windows: [makeWindow(1), makeWindow(2)])
         client.setFocused(id(1))
         let time = ManualNow()
-        let engine = WindowEngine(
+        let engine = makeEngine(
             client: client, store: StateStore(directory: harness.directory, saveDelay: .seconds(3600)),
             clock: time, config: config(.tiling), tick: .milliseconds(5))
         await engine.start()

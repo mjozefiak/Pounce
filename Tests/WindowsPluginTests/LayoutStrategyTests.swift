@@ -76,6 +76,10 @@ import Testing
     struct ToyStrategy: LayoutStrategy {
         var kind: LayoutKind { LayoutKind("toy") }
 
+        var displayName: String { "Toy" }
+
+        func summaryParts(_ resolved: ResolvedLayout) -> [String] { ["toy parts"] }
+
         func makeConfig(_ environment: LayoutEnvironment) -> AnyLayoutConfig? { AnyLayoutConfig(ToyConfig(step: 111)) }
 
         func arrange(_ input: LayoutInput) -> LayoutArrangement {
@@ -155,7 +159,7 @@ import Testing
         defer { harness.tearDown() }
         func engine(_ client: FakeWindowClient) -> (WindowEngine, StateStore) {
             let store = StateStore(directory: harness.directory, saveDelay: .seconds(3600))
-            let engine = WindowEngine(
+            let engine = makeEngine(
                 client: client, store: store, clock: VirtualClock(), workspaceCount: 2, config: config(harness),
                 tick: .milliseconds(5), strategies: registry())
             return (engine, store)
@@ -170,5 +174,52 @@ import Testing
         await second.start()
         #expect(await second.snapshot.layouts[ws(1)]?["toy"]?.as(ToyState.self)?.bumps == 5)
         await second.stop()
+    }
+
+    /// A strategy under a name the stored workspace record uses for something else.
+    struct OrderStrategy: LayoutStrategy {
+        var kind: LayoutKind { LayoutKind("order") }
+        func arrange(_ input: LayoutInput) -> LayoutArrangement {
+            LayoutArrangement(state: nil, frames: [:], hints: input.hints)
+        }
+    }
+
+    @Test func aKindNamedLikeAStateKeyIsLeftOutAndTheCycleNeverTraps() {
+        let registry = LayoutRegistry([OrderStrategy(), ToyStrategy(), ToyStrategy()])
+        #expect(registry.kinds == [toy])
+        #expect(!registry.contains(LayoutKind("order")))
+        // The cycle wraps, falls back for a kind that is not registered, and an empty registry still answers.
+        #expect(registry.kind(after: toy) == toy)
+        #expect(registry.kind(after: .zones) == toy)
+        #expect(LayoutRegistry([]).kind(after: .zones) == .free)
+    }
+
+    @MainActor @Test func theToyIsReachableThroughThePaneTheSettingsAndTheToggleCommand() async throws {
+        let harness = try WindowsHarness()
+        defer { harness.tearDown() }
+        let registry = LayoutRegistry([TilingStrategy(), ZonesStrategy(), FreeStrategy(), ToyStrategy()])
+        let client = FakeWindowClient(windows: [makeWindow(1), makeWindow(2)])
+        let plugin = WindowsPlugin(
+            context: harness.context(windows: client, permissions: ScriptedPermissions(granted: true)),
+            hud: RecordingHUD(), activationCenter: NotificationCenter(), layouts: registry)
+        try await plugin.activate()
+        let runtime = try #require(plugin.runtime)
+        await runtime.settle()
+        // The pane offers the kind by its own name, summarises it with its own words and stores it.
+        let model = plugin.paneModel
+        #expect(model.selectableKinds == [.tiling, .zones, .free, toy])
+        #expect(model.kindName(toy) == "Toy")
+        model.setDefaultKind(toy)
+        await model.actions.waitUntilEmpty()
+        #expect(model.workspaceSummaries.first?.detail == "Toy · toy parts")
+        #expect(WindowsSettings(harness.pluginSettings).defaultKind(in: registry) == toy)
+        // The runtime arranges with the strategy's own configuration, and *Toggle layout* cycles through it.
+        await runtime.settle()
+        #expect(client.frame(of: id(2))?.minX == 111)
+        await runtime.layoutCommands.toggleLayout()
+        await runtime.settle()
+        let overrides = WindowsSettings(harness.pluginSettings).workspaceOverrides(in: registry)
+        #expect(overrides.byWorkspace[ws(1)]?.kind == .tiling)
+        await plugin.deactivate()
     }
 }

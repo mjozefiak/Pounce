@@ -226,7 +226,7 @@ private final class FakeOverlay: ZoneOverlayPresenting {
         config.layout = LayoutConfig(
             defaultKind: kind, innerGap: 0, outerGap: 0, rootOrientation: .horizontal, overrides: [:])
         let time = ManualNow()
-        let engine = WindowEngine(
+        let engine = makeEngine(
             client: client, store: StateStore(directory: harness.directory, saveDelay: .seconds(3600)),
             clock: time, config: config, tick: .milliseconds(5),
             reporter: EngineReporter(windowMoved: { id, frame in
@@ -277,7 +277,7 @@ private final class FakeOverlay: ZoneOverlayPresenting {
         var config = EngineConfig()
         config.layout = LayoutConfig(
             defaultKind: .zones, innerGap: 0, outerGap: 0, rootOrientation: .horizontal, overrides: [:])
-        let engine = WindowEngine(
+        let engine = makeEngine(
             client: client, store: StateStore(directory: harness.directory, saveDelay: .seconds(3600)),
             config: config, tick: .milliseconds(5))
         await engine.start()

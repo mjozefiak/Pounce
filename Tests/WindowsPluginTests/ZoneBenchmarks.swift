@@ -25,7 +25,7 @@ struct ZoneBenchmarks {
         config.layout = LayoutConfig(
             defaultKind: .zones, innerGap: 0, outerGap: 0, rootOrientation: .horizontal, overrides: [:])
         config.zones.defaultLandscape = StockLayouts.grid2x2
-        let engine = WindowEngine(
+        let engine = makeEngine(
             client: client, store: StateStore(directory: harness.directory, saveDelay: .seconds(3600)),
             config: config, tick: .milliseconds(1))
         await engine.start()
@@ -52,7 +52,7 @@ struct ZoneBenchmarks {
         var config = EngineConfig()
         config.layout = LayoutConfig(
             defaultKind: .zones, innerGap: 0, outerGap: 0, rootOrientation: .horizontal, overrides: [:])
-        let engine = WindowEngine(
+        let engine = makeEngine(
             client: client, store: StateStore(directory: harness.directory, saveDelay: .seconds(3600)),
             config: config, tick: .milliseconds(1))
         await engine.start()

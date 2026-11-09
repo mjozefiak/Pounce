@@ -27,9 +27,12 @@ final class WindowsRuntime: WindowSwitching {
     let trust: AccessibilityTrust
     let hud: any WindowsHUDPresenting
     private let gate: AccessibilityGate
-    private let configBuilder = EngineConfigBuilder()
+    /// The one registry of layout strategies: the engine, the configuration, the commands and the pane use it.
+    let registry: LayoutRegistry
+    private let configBuilder: EngineConfigBuilder
     private(set) lazy var layoutCommands = LayoutCommands(
-        context: context, settings: settings, assignments: assignments, layouts: layouts, engine: engine,
+        context: context, settings: settings, registry: registry, assignments: assignments, layouts: layouts,
+        engine: engine,
         gate: gate, currentWorkspace: { [weak self] in self?.lastSummary?.current },
         apply: { [weak self] in await self?.applySettings() })
     /// The menu bar strip; `nil` until `start()` when it is on, and in tests that pass `makeStrip: nil`.
@@ -60,7 +63,8 @@ final class WindowsRuntime: WindowSwitching {
     private var activationObserver: AppActivationObserver?
 
     init(
-        context: PluginContext, settings: WindowsSettings, hud: any WindowsHUDPresenting, journal: JournalOwner,
+        context: PluginContext, settings: WindowsSettings, registry: LayoutRegistry, hud: any WindowsHUDPresenting,
+        journal: JournalOwner,
         activationCenter: NotificationCenter = .default, tick: Duration = .milliseconds(30),
         makeStrip: (@MainActor (WindowsRuntime) -> WorkspaceStripController)? = nil,
         makeDragController: (@MainActor (WindowsRuntime) -> ZoneDragController)? = nil
@@ -69,6 +73,8 @@ final class WindowsRuntime: WindowSwitching {
         self.makeDragController = makeDragController
         self.context = context
         self.settings = settings
+        self.registry = registry
+        configBuilder = EngineConfigBuilder(registry: registry)
         self.hud = hud
         self.journal = journal
         let store = journal.store
@@ -83,7 +89,8 @@ final class WindowsRuntime: WindowSwitching {
         engineConfig = configBuilder.build(settings)
         engine = WindowEngine(
             client: context.windows, store: store, clock: context.clock, workspaceCount: settings.workspaceCount,
-            config: engineConfig, tick: tick, reporter: pump.reporter, canMove: { flag.isTrusted },
+            config: engineConfig, tick: tick, reporter: pump.reporter, strategies: registry,
+            canMove: { flag.isTrusted },
             logger: context.logger)
         self.activationCenter = activationCenter
         reports.handler = { [weak self] report in self?.handle(report) }
@@ -117,7 +124,11 @@ final class WindowsRuntime: WindowSwitching {
     func showSnapHintIfNeeded() {
         guard !settings.snapHintShown, trust.isTrusted, let summary = lastSummary else { return }
         let layout = engineConfig.layout
-        guard summary.visible.values.contains(where: { layout.resolved(for: $0).kind == .zones }) else { return }
+        guard
+            summary.visible.values.contains(where: {
+                registry[layout.resolved(for: $0).kind]?.offersSnapTargets == true
+            })
+        else { return }
         settings.setSnapHintShown(true)
         hud.show(.snapHint)
     }

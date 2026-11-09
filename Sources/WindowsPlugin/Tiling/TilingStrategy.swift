@@ -7,6 +7,18 @@ extension TilingTree: LayoutStateValue {}
 /// Auto-tile: an i3/AeroSpace-style tree of split containers per workspace (state kind `tiling`).
 struct TilingStrategy: LayoutStrategy {
     var kind: LayoutKind { .tiling }
+    var displayName: String {
+        String(localized: "Auto-tile", comment: "Window Management layout kind: windows tile the screen")
+    }
+
+    func summaryParts(_ resolved: ResolvedLayout) -> [String] {
+        let inner = Int(resolved.gaps.inner)
+        let outer = Int(resolved.gaps.outer)
+        return [
+            String(localized: "Gaps \(inner) / \(outer)", comment: "Window Management summary: gaps"),
+            resolved.rootOrientation.displayName,
+        ]
+    }
 
     func arrange(_ input: LayoutInput) -> LayoutArrangement {
         let layout = input.resolved
@@ -34,12 +46,12 @@ struct TilingStrategy: LayoutStrategy {
         guard let tree = input.state?.as(TilingTree.self) else { return nil }
         var next = tree
         switch command.id {
-        case "focus":
+        case LayoutCommand.focusID:
             guard let direction = command.direction,
                 let target = TilingNavigation.neighbour(of: window, direction, in: tree)
             else { return nil }
             return LayoutEdit(state: AnyLayoutState(tree), focus: target, hints: input.hints)
-        case "move":
+        case LayoutCommand.moveID:
             guard let direction = command.direction, let moved = TilingNavigation.move(window, direction, in: tree)
             else { return nil }
             next = moved
@@ -94,4 +106,17 @@ extension EngineCommand {
     static func join(_ direction: TilingDirection) -> EngineCommand { .layout(.join(direction)) }
     static let toggleOrientation = EngineCommand.layout(.toggleOrientation)
     static let balance = EngineCommand.layout(.balance)
+}
+
+extension TilingOrientation {
+    /// How the first split of a workspace is named in the pane and the summary.
+    var displayName: String {
+        switch self {
+        case .horizontal:
+            String(
+                localized: "Side by side", comment: "Window Management: the first split of a workspace is horizontal")
+        case .vertical:
+            String(localized: "Stacked", comment: "Window Management: the first split of a workspace is vertical")
+        }
+    }
 }

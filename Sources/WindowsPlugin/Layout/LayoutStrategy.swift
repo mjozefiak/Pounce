@@ -127,6 +127,13 @@ struct LayoutEdit: Sendable {
 
 protocol LayoutStrategy: Sendable {
     var kind: LayoutKind { get }
+    /// The kind's name in the pane and the Layouts window.
+    var displayName: String { get }
+    /// Whether the Layouts window assigns layouts from the library to this kind's workspaces (the cells of its
+    /// matrix are active for them).
+    var usesLayoutLibrary: Bool { get }
+    /// What the per-workspace summary adds for this kind after its name (Auto-tile: gaps and orientation).
+    func summaryParts(_ resolved: ResolvedLayout) -> [String]
     /// This kind's configuration from the settings and stored data, `nil` when it has none.
     func makeConfig(_ environment: LayoutEnvironment) -> AnyLayoutConfig?
     /// Brings the state up to date with `input.windows` (windows that left go, new ones enter by the kind's
@@ -148,6 +155,9 @@ protocol LayoutStrategy: Sendable {
 }
 
 extension LayoutStrategy {
+    var displayName: String { kind.rawValue }
+    var usesLayoutLibrary: Bool { false }
+    func summaryParts(_ resolved: ResolvedLayout) -> [String] { [] }
     func makeConfig(_ environment: LayoutEnvironment) -> AnyLayoutConfig? { nil }
     func perform(_ command: LayoutCommand, on window: WindowID, _ input: LayoutInput) -> LayoutEdit? { nil }
     func removing(_ window: WindowID, from state: AnyLayoutState) -> AnyLayoutState { state }
@@ -160,6 +170,9 @@ extension LayoutStrategy {
 /// Free: nothing is arranged, nothing is stored.
 struct FreeStrategy: LayoutStrategy {
     var kind: LayoutKind { .free }
+    var displayName: String {
+        String(localized: "Free", comment: "Window Management layout kind: windows are left where they are")
+    }
 
     func arrange(_ input: LayoutInput) -> LayoutArrangement {
         LayoutArrangement(state: input.state, frames: [:], hints: input.hints)
@@ -177,10 +190,27 @@ struct LayoutRegistry: Sendable {
     /// The kinds in registration order: what the pane offers and *Toggle layout* cycles through.
     let kinds: [LayoutKind]
 
+    /// Kind names that cannot be used: they are keys of a workspace record in `state.json` next to the per-kind
+    /// state.
+    static let reservedKindNames: Set<String> = ["order"]
+
+    /// A strategy whose kind is reserved (or repeats an earlier one) is left out: it could not be stored safely.
     init(_ strategies: [any LayoutStrategy]) {
-        self.strategies = Dictionary(strategies.map { ($0.kind, $0) }, uniquingKeysWith: { first, _ in first })
         var seen = Set<LayoutKind>()
-        kinds = strategies.map(\.kind).filter { seen.insert($0).inserted }
+        let usable = strategies.filter {
+            !Self.reservedKindNames.contains($0.kind.rawValue) && seen.insert($0.kind).inserted
+        }
+        self.strategies = Dictionary(uniqueKeysWithValues: usable.map { ($0.kind, $0) })
+        kinds = usable.map(\.kind)
+    }
+
+    /// The kind a workspace uses when nothing valid is chosen: the first registered one.
+    var defaultKind: LayoutKind { kinds.first ?? .free }
+
+    /// The kind after `kind` in registration order, wrapping; the first kind for one that is not registered.
+    func kind(after kind: LayoutKind) -> LayoutKind {
+        guard let index = kinds.firstIndex(of: kind) else { return defaultKind }
+        return kinds[(index + 1) % kinds.count]
     }
 
     subscript(kind: LayoutKind) -> (any LayoutStrategy)? { strategies[kind] }
@@ -238,8 +268,13 @@ struct LayoutRegistry: Sendable {
 
 /// The two verbs every arranged kind may answer: move the focus to a neighbour, move the window to a neighbour.
 extension LayoutCommand {
-    static func focus(_ direction: TilingDirection) -> LayoutCommand { LayoutCommand("focus", encoding: direction) }
-    static func move(_ direction: TilingDirection) -> LayoutCommand { LayoutCommand("move", encoding: direction) }
+    /// The ids are namespaced strings (the payload is opaque JSON): the trade-off is documented in
+    /// `docs/windows-plugin.md`. Kind-specific ids carry the kind's name (`tiling.join`, `zones.slot`).
+    static let focusID = "layout.focus"
+    static let moveID = "layout.move"
+
+    static func focus(_ direction: TilingDirection) -> LayoutCommand { LayoutCommand(focusID, encoding: direction) }
+    static func move(_ direction: TilingDirection) -> LayoutCommand { LayoutCommand(moveID, encoding: direction) }
 
     /// The direction a `focus` or `move` command carries.
     var direction: TilingDirection? { payload(as: TilingDirection.self) }

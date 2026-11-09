@@ -153,6 +153,10 @@ final class LayoutsModel {
             defaultPortrait: pane.settings.defaultZoneLayout(for: .portrait))
     }
 
+    var selectableKinds: [LayoutKind] { pane.selectableKinds }
+
+    func kindName(_ kind: LayoutKind) -> String { pane.kindName(kind) }
+
     func kind(of workspace: WorkspaceID) -> LayoutKind { pane.layoutConfig.resolved(for: workspace).kind }
 
     func cell(workspace: WorkspaceID, display: MatrixDisplay) -> MatrixCell {
@@ -172,7 +176,7 @@ final class LayoutsModel {
         return MatrixCell(
             workspace: workspace, displayKey: display.key,
             assignedID: table.layoutID(workspace: workspace, displayKey: display.key), effective: resolved,
-            label: label, isInactive: kind(of: workspace) != .zones)
+            label: label, isInactive: !(pane.registry[kind(of: workspace)]?.usesLayoutLibrary ?? false))
     }
 
     /// The cells whose layout was missing, so the default was used (the pane reports it).

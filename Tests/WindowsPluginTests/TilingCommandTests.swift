@@ -27,7 +27,7 @@ import Testing
         var config = EngineConfig()
         config.layout = LayoutConfig(
             defaultKind: kind, innerGap: 0, outerGap: 0, rootOrientation: .horizontal, overrides: [:])
-        let engine = WindowEngine(
+        let engine = makeEngine(
             client: client, store: store, clock: time, workspaceCount: 4, config: config,
             tick: .milliseconds(5))
         await engine.start()
@@ -250,9 +250,9 @@ import Testing
     }
 
     @MainActor @Test func theCycleIsAutoTileZonesFreeAndBack() {
-        #expect(LayoutCommands.nextKind(after: .tiling) == .zones)
-        #expect(LayoutCommands.nextKind(after: .zones) == .free)
-        #expect(LayoutCommands.nextKind(after: .free) == .tiling)
+        #expect(LayoutRegistry.standard.kind(after: .tiling) == .zones)
+        #expect(LayoutRegistry.standard.kind(after: .zones) == .free)
+        #expect(LayoutRegistry.standard.kind(after: .free) == .tiling)
     }
 
     @MainActor @Test func toggleLayoutNeverOverwritesOverridesFromANewerVersion() async throws {

@@ -40,7 +40,7 @@ import Testing
         client.setFocused(focused)
         let store = StateStore(directory: harness.directory, saveDelay: .seconds(3600))
         let time = ManualNow()
-        let engine = WindowEngine(
+        let engine = makeEngine(
             client: client, store: store, clock: time, workspaceCount: count,
             config: config ?? tilingConfig(), tick: .milliseconds(5), canMove: canMove)
         return Rig(harness: harness, client: client, store: store, engine: engine, time: time)

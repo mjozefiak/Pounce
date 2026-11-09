@@ -72,7 +72,7 @@ actor WindowEngine {
         commandBudget: Duration = .seconds(2),
         watchdog: Watchdog = Watchdog(),
         reporter: EngineReporter = EngineReporter(),
-        strategies: LayoutRegistry = .standard,
+        strategies: LayoutRegistry,
         canMove: @escaping @Sendable () -> Bool = { true },
         logger: Logger = Logger(subsystem: "com.lintelapp", category: "windows")
     ) {

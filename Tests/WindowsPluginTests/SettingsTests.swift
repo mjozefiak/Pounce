@@ -109,7 +109,8 @@ import Testing
         let (plugin, _, harness, _) = try setup()
         defer { harness.tearDown() }
         let model = WindowsSettingsModel(
-            context: plugin.context, settings: plugin.settings, runtime: { nil }, chooseApp: { "com.example.new" })
+            context: plugin.context, settings: plugin.settings, registry: .standard, runtime: { nil },
+            chooseApp: { "com.example.new" })
         model.addFloatingApp()
         model.addFloatingApp()
         #expect(model.floatingApps.filter { $0 == "com.example.new" }.count == 1)
@@ -142,7 +143,7 @@ import Testing
         let (plugin, _, harness, log) = try setup()
         defer { harness.tearDown() }
         let model = WindowsSettingsModel(
-            context: plugin.context, settings: plugin.settings, runtime: { nil },
+            context: plugin.context, settings: plugin.settings, registry: .standard, runtime: { nil },
             translate: { code, modifiers in modifiers.contains(.control) ? nil : (code == 18 ? "ł" : nil) })
         log.set("windows.workspace.1", KeyShortcut(key: "1", modifiers: [.option]))
         model.refreshSafety()
@@ -190,7 +191,8 @@ import Testing
         let (plugin, _, harness, _) = try setup()
         defer { harness.tearDown() }
         let model = WindowsSettingsModel(
-            context: plugin.context, settings: plugin.settings, runtime: { nil }, preferences: prefs)
+            context: plugin.context, settings: plugin.settings, registry: .standard, runtime: { nil },
+            preferences: prefs)
         await model.refresh()
         #expect(model.status.stageManagerOn == true)
         #expect(model.status.displaysShareASpace == nil)
@@ -280,7 +282,7 @@ extension SettingsTests {
         model.setInnerGap(12)
         model.setOuterGap(70)
         let settings = WindowsSettings(harness.pluginSettings)
-        #expect(settings.defaultKind == .free && settings.innerGap == 12 && settings.outerGap == 64)
+        #expect(settings.defaultKind(in: .standard) == .free && settings.innerGap == 12 && settings.outerGap == 64)
         #expect(model.outerGap == 64)
         #expect(model.layoutConfig.defaultKind == .free)
         #expect(harness.store.keys.allSatisfy { $0.hasPrefix("plugins.windows.") })
@@ -327,7 +329,8 @@ extension SettingsTests {
         defer { harness.tearDown() }
         let newer = #"{"version":9,"workspaces":{"1":{"kind":"free"}}}"#
         harness.pluginSettings.set(newer, for: WindowsSettings.Key.workspaces)
-        let model = WindowsSettingsModel(context: plugin.context, settings: plugin.settings, runtime: { nil })
+        let model = WindowsSettingsModel(
+            context: plugin.context, settings: plugin.settings, registry: .standard, runtime: { nil })
         #expect(model.overridesLocked)
         model.setOverrideKind(.tiling, for: WorkspaceID(1)!)
         model.resetOverrides(for: WorkspaceID(1)!)
@@ -367,7 +370,7 @@ extension SettingsTests {
         let (plugin, _, harness, log) = try setup()
         defer { harness.tearDown() }
         let model = WindowsSettingsModel(
-            context: plugin.context, settings: plugin.settings, runtime: { nil },
+            context: plugin.context, settings: plugin.settings, registry: .standard, runtime: { nil },
             translate: { code, modifiers in
                 // A Polish layout: ⌥L types "ł".
                 modifiers.contains(.control) ? nil : (code == 37 ? "ł" : nil)

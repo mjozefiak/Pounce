@@ -36,6 +36,8 @@ public final class WindowsPlugin: LintelPlugin {
     let context: PluginContext
     let settings: WindowsSettings
     let hud: any WindowsHUDPresenting
+    /// The strategies of the layout kinds: the one registry the runtime, the pane and the Layouts window use.
+    let registry: LayoutRegistry
     private let activationCenter: NotificationCenter
     /// The owner of this plugin's storage folder: the only holder of its `StateStore`.
     let journal: JournalOwner
@@ -48,7 +50,7 @@ public final class WindowsPlugin: LintelPlugin {
     /// Built on first use; creating it reads settings only.
     private(set) lazy var paneModel: WindowsSettingsModel = {
         let model = WindowsSettingsModel(
-            context: context, settings: settings, runtime: { [weak self] in self?.runtime })
+            context: context, settings: settings, registry: registry, runtime: { [weak self] in self?.runtime })
         model.startFailure = { [weak self] in self?.lastStartError }
         model.openLayouts = { [weak self] in self?.layoutsWindow.show() }
         model.hud = hud
@@ -74,8 +76,9 @@ public final class WindowsPlugin: LintelPlugin {
 
     init(
         context: PluginContext, hud: any WindowsHUDPresenting, activationCenter: NotificationCenter,
-        showsStrip: Bool = false, showsOverlay: Bool = false
+        showsStrip: Bool = false, showsOverlay: Bool = false, layouts registry: LayoutRegistry = .standard
     ) {
+        self.registry = registry
         identifier = DisplayIdentifier(clock: context.clock)
         let journal = JournalOwner.owner(for: context)
         self.journal = journal
@@ -122,7 +125,8 @@ public final class WindowsPlugin: LintelPlugin {
         guard runtime == nil else { return }
         let parts = WindowsComposition.parts(showsStrip: showsStrip, showsOverlay: showsOverlay)
         let runtime = WindowsRuntime(
-            context: context, settings: settings, hud: hud, journal: journal, activationCenter: activationCenter,
+            context: context, settings: settings, registry: registry, hud: hud, journal: journal,
+            activationCenter: activationCenter,
             makeStrip: parts.makeStrip, makeDragController: parts.makeDragController)
         runtime.tearDownOverlay = parts.tearDownOverlay
         self.runtime = runtime

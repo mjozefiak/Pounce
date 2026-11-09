@@ -85,7 +85,7 @@ struct WindowsSettingsPane: View {
         }
         MenuPicker(selection: Binding(get: { model.defaultKind }, set: { model.setDefaultKind($0) })) {
             ForEach(kindOptions, id: \.self) { kind in
-                Text(verbatim: WindowsSettingsModel.kindName(kind)).font(textSize.font(.body)).tag(kind)
+                Text(verbatim: model.kindName(kind)).font(textSize.font(.body)).tag(kind)
             }
         } label: {
             label(

@@ -22,7 +22,7 @@ import LintelKit
 ///     +Commands          what each `EngineCommand` does (calls any part above)
 enum EngineReducer {
     static func reduce(
-        _ state: EngineState, _ input: EngineInput, strategies: LayoutRegistry = .standard
+        _ state: EngineState, _ input: EngineInput, strategies: LayoutRegistry
     ) -> (EngineState, [EngineEffect]) {
         var context = ReducerContext(state: state, strategies: strategies)
         let oldOrder = state.model.order
@@ -98,7 +98,7 @@ enum EngineReducer {
     /// workspace with the layout that workspace uses there. Nothing unless the workspace is shown and the engine
     /// is not frozen, so the overlay never appears where a snap could not happen.
     static func snapTargets(
-        _ state: EngineState, for window: WindowID, strategies: LayoutRegistry = .standard
+        _ state: EngineState, for window: WindowID, strategies: LayoutRegistry
     ) -> [DragDisplay] {
         let planner = LayoutPlanner(strategies: strategies)
         guard state.windows[window] != nil, let workspace = state.model.workspace(of: window),

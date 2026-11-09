@@ -7,6 +7,7 @@ import LintelKit
 @MainActor
 final class LayoutCommands {
     private let settings: WindowsSettings
+    private let registry: LayoutRegistry
     private let assignments: AssignmentStore
     private let layouts: LayoutRepository
     private let engine: WindowEngine
@@ -16,12 +17,14 @@ final class LayoutCommands {
     private let apply: @MainActor () async -> Void
 
     init(
-        context: PluginContext, settings: WindowsSettings, assignments: AssignmentStore, layouts: LayoutRepository,
+        context: PluginContext, settings: WindowsSettings, registry: LayoutRegistry, assignments: AssignmentStore,
+        layouts: LayoutRepository,
         engine: WindowEngine, gate: AccessibilityGate,
         currentWorkspace: @escaping @MainActor () -> WorkspaceID?, apply: @escaping @MainActor () async -> Void
     ) {
         self.context = context
         self.settings = settings
+        self.registry = registry
         self.assignments = assignments
         self.layouts = layouts
         self.engine = engine
@@ -35,12 +38,14 @@ final class LayoutCommands {
     /// override. Does nothing when the stored overrides come from a newer version (they are never overwritten).
     func toggleLayout() async {
         guard gate.allows(.moving), let workspace = currentWorkspace() else { return }
+        // Written from the raw overrides, so a kind this build does not know stays in the stored value.
         var overrides = settings.workspaceOverrides
         guard !overrides.isReadOnly else { return }
-        let current = overrides.byWorkspace[workspace]?.kind ?? settings.defaultKind
-        let next = Self.nextKind(after: current)
+        let defaultKind = settings.defaultKind(in: registry)
+        let current = settings.workspaceOverrides(in: registry).byWorkspace[workspace]?.kind ?? defaultKind
+        let next = registry.kind(after: current)
         var entry = overrides.byWorkspace[workspace] ?? WorkspaceOverride()
-        entry.kind = next == settings.defaultKind ? nil : next
+        entry.kind = next == defaultKind ? nil : next
         overrides.byWorkspace[workspace] = entry.isEmpty ? nil : entry
         settings.setWorkspaceOverrides(overrides)
         await apply()
@@ -84,12 +89,5 @@ final class LayoutCommands {
         }
         await apply()
         context.resultsChanged()
-    }
-
-    /// Auto-tile, then Zones, then Free, then Auto-tile again.
-    static func nextKind(after kind: LayoutKind) -> LayoutKind {
-        let kinds = LayoutKind.standard
-        guard let index = kinds.firstIndex(of: kind) else { return kinds[0] }
-        return kinds[(index + 1) % kinds.count]
     }
 }

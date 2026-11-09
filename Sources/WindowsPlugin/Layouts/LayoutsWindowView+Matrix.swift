@@ -79,19 +79,19 @@ extension LayoutsWindowView {
             Text("Workspace \(workspace.rawValue)", comment: "Window switcher: a workspace")
                 .font(textSize.font(.body))
             Menu {
-                ForEach(WindowsSettingsModel.selectableKinds, id: \.rawValue) { kind in
+                ForEach(model.selectableKinds, id: \.rawValue) { kind in
                     Button {
                         model.setKind(kind, for: workspace)
                     } label: {
                         if model.kind(of: workspace) == kind {
-                            Label(WindowsSettingsModel.kindName(kind), systemImage: "checkmark")
+                            Label(model.kindName(kind), systemImage: "checkmark")
                         } else {
-                            Text(verbatim: WindowsSettingsModel.kindName(kind))
+                            Text(verbatim: model.kindName(kind))
                         }
                     }
                 }
             } label: {
-                Text(verbatim: WindowsSettingsModel.kindName(model.kind(of: workspace)))
+                Text(verbatim: model.kindName(model.kind(of: workspace)))
                     .font(textSize.font(.caption1))
             }
             .menuStyle(.borderlessButton)
@@ -102,7 +102,7 @@ extension LayoutsWindowView {
                     "Layout of workspace \(workspace.rawValue)",
                     comment: "Layouts window: the layout kind of a workspace (spoken)")
             )
-            .accessibilityValue(Text(verbatim: WindowsSettingsModel.kindName(model.kind(of: workspace))))
+            .accessibilityValue(Text(verbatim: model.kindName(model.kind(of: workspace))))
         }
         .frame(width: 120, alignment: .leading)
     }

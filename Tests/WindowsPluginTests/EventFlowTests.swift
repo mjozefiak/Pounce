@@ -22,7 +22,7 @@ import Testing
         let harness = try WindowsHarness()
         let client = FakeWindowClient(windows: windows)
         let store = StateStore(directory: harness.directory, saveDelay: .seconds(3600))
-        let engine = WindowEngine(
+        let engine = makeEngine(
             client: client, store: store, clock: VirtualClock(autoAdvance: false), workspaceCount: 4,
             tick: .seconds(3600))
         return Rig(harness: harness, client: client, store: store, engine: engine)

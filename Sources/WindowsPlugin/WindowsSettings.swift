@@ -77,10 +77,23 @@ struct WindowsSettings: Sendable {
     var showHUD: Bool { settings.bool(Key.showHUD, default: true) }
 
     /// Auto-tile unless the user chose otherwise (spec Q5); an unknown stored value reads as Auto-tile.
-    /// The kind of a workspace without an override; a value that is not one of the standard kinds reads as Auto-tile.
-    var defaultKind: LayoutKind {
-        settings.string(Key.defaultKind).map { LayoutKind($0) }.flatMap { LayoutKind.standard.contains($0) ? $0 : nil }
-            ?? .tiling
+    /// The kind of a workspace without an override; a value that is not a registered kind (or none) reads as the
+    /// registry's default kind.
+    func defaultKind(in registry: LayoutRegistry) -> LayoutKind {
+        settings.string(Key.defaultKind).map { LayoutKind($0) }.flatMap { registry.contains($0) ? $0 : nil }
+            ?? registry.defaultKind
+    }
+
+    /// The per-workspace overrides with every kind the registry has no strategy for ignored.
+    func workspaceOverrides(in registry: LayoutRegistry) -> WorkspaceOverrides {
+        var overrides = workspaceOverrides
+        for (workspace, override) in overrides.byWorkspace {
+            guard let kind = override.kind, !registry.contains(kind) else { continue }
+            var cleaned = override
+            cleaned.kind = nil
+            overrides.byWorkspace[workspace] = cleaned.isEmpty ? nil : cleaned
+        }
+        return overrides
     }
 
     /// Points between neighbouring windows and around the whole set.

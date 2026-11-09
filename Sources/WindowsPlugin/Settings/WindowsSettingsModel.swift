@@ -72,6 +72,8 @@ final class WindowsSettingsModel {
     var moveChoice: ModifierChoice? { choices[.moveToWorkspace] }
 
     // The layout settings (`WindowsSettingsModel+Layout.swift` changes them).
+    /// The strategies of this build: the kinds the pane offers, their names and summaries.
+    let registry: LayoutRegistry
     var defaultKind: LayoutKind
     var innerGap: Int
     var outerGap: Int
@@ -86,7 +88,8 @@ final class WindowsSettingsModel {
     private(set) var modifierConflict = false
 
     init(
-        context: PluginContext, settings: WindowsSettings, runtime: @escaping () -> WindowsRuntime?,
+        context: PluginContext, settings: WindowsSettings, registry: LayoutRegistry,
+        runtime: @escaping () -> WindowsRuntime?,
         preferences: SystemPreferences = .live,
         translate: @escaping ShortcutSafety.KeyTranslation = {
             SystemKeyTranslation.translate(keyCode: $0, modifiers: $1)
@@ -95,6 +98,7 @@ final class WindowsSettingsModel {
     ) {
         self.context = context
         self.settings = settings
+        self.registry = registry
         self.runtime = runtime
         self.preferences = preferences
         self.translate = translate
@@ -105,7 +109,7 @@ final class WindowsSettingsModel {
         stripEnabled = settings.stripEnabled
         stripMode = settings.stripMode
         floatingApps = settings.floatingApps
-        defaultKind = settings.defaultKind
+        defaultKind = settings.defaultKind(in: registry)
         innerGap = settings.innerGap
         outerGap = settings.outerGap
         overrides = settings.workspaceOverrides

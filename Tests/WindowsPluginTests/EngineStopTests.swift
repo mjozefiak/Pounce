@@ -12,7 +12,7 @@ import Testing
         let client = FakeWindowClient(windows: [makeWindow(1)])
         let store = StateStore(directory: harness.directory, saveDelay: .seconds(3600))
         // A clock that never advances: the tick sleep is still waiting when the engine is stopped.
-        let engine = WindowEngine(
+        let engine = makeEngine(
             client: client, store: store, clock: VirtualClock(autoAdvance: false), tick: .milliseconds(30))
         return (harness, client, engine)
     }
@@ -51,7 +51,7 @@ import Testing
         client.setBehavior(.stall, forProcess: 100)
         let store = StateStore(directory: harness.directory, saveDelay: .seconds(3600))
         // The budget is real time (a bound on waiting for apps); the engine's own clock is virtual.
-        let engine = WindowEngine(
+        let engine = makeEngine(
             client: client, store: store, clock: VirtualClock(), workspaceCount: 4, tick: .milliseconds(5),
             commandBudget: .milliseconds(50))
         await engine.start()

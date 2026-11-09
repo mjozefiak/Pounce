@@ -219,7 +219,7 @@ import Testing
         #expect(rig.model.cell(workspace: ws(1), display: display).isInactive)
         rig.model.setKind(.free, for: ws(2))
         #expect(settings.workspaceOverrides.byWorkspace[ws(2)] == nil)
-        #expect(WindowsSettingsModel.selectableKinds == [.tiling, .zones, .free])
+        #expect(rig.model.pane.selectableKinds == [.tiling, .zones, .free])
     }
 
     // MARK: Identify

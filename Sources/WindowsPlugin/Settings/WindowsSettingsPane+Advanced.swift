@@ -174,8 +174,8 @@ extension WindowsSettingsPane {
     }
 
     var kindOptions: [LayoutKind] {
-        WindowsSettingsModel.selectableKinds
-            + (WindowsSettingsModel.selectableKinds.contains(model.defaultKind) ? [] : [model.defaultKind])
+        model.selectableKinds
+            + (model.selectableKinds.contains(model.defaultKind) ? [] : [model.defaultKind])
     }
 
     func gapRow(_ title: Text, value: Binding<Int>) -> some View {
