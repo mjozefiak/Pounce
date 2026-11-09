@@ -15,7 +15,7 @@ Source spec: `.ai/specs/2026-11-09-window-management.md` (spec PR #66; Refs #66,
 | 1 | 1.4 | Workspace model (pure) | dispatch:capable | done | 87bc5cf |
 | 1 | 1.5 | StateStore with write-through hidden journal | dispatch:capable | done | 1978ffd |
 | 1 | 1.6 | WindowEngine reducer, effects, coalescer, watchdog, fake client, TSan CI | dispatch:capable | done | 2cd9cb3 |
-| 1 | 1.7 | Crash recovery, restore HUD, re-grant polling | dispatch:capable | todo | |
+| 1 | 1.7 | Crash recovery, restore HUD, re-grant polling | dispatch:capable | done | 7696035 |
 | 1 | 1.8a | Window id lookup and self-check | dispatch:capable | todo | |
 | 1 | 1.8b | AX observation | dispatch:capable | todo | |
 | 1 | 1.8c | Batched setFrame and wiring | dispatch:capable | todo | |
