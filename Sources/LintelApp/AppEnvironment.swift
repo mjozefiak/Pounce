@@ -29,9 +29,9 @@ struct AppEnvironment {
     var fullDiskAccess: PermissionStatus?
     /// False in QA mode: a paste is logged instead of posting a real Command-V to the tester's apps.
     var postsKeystrokes = true
-    /// The client window management reads and moves other apps' windows through. The real Accessibility client in
-    /// the app (`live()`); the default (no windows, unsupported) everywhere else, so tests and QA mode never touch
-    /// the tester's windows.
+    /// The client plugins read and move other apps' windows through (`PluginContext.windows`). The real
+    /// Accessibility client in the app (`live()`); the default (no windows, unsupported) everywhere else, so tests
+    /// and QA mode never touch the tester's windows.
     var windowClient: any WindowClient = NoWindowClient()
 
     /// `Plugins/<id>/` under the data root.

@@ -55,7 +55,7 @@ final class WindowsSettingsModel {
 
     private(set) var workspaceCount: Int
     private(set) var followFocus: Bool
-    private(set) var workspaceHUD: Bool
+    private(set) var showHUD: Bool
     private(set) var stripEnabled: Bool
     private(set) var stripMode: WindowsSettings.StripMode
     private(set) var floatingApps: [String]
@@ -99,7 +99,7 @@ final class WindowsSettingsModel {
         self.chooseApp = chooseApp
         workspaceCount = settings.workspaceCount
         followFocus = settings.followFocus
-        workspaceHUD = settings.workspaceHUD
+        showHUD = settings.showHUD
         stripEnabled = settings.stripEnabled
         stripMode = settings.stripMode
         floatingApps = settings.floatingApps
@@ -176,9 +176,9 @@ final class WindowsSettingsModel {
         changed()
     }
 
-    func setWorkspaceHUD(_ value: Bool) {
-        settings.setWorkspaceHUD(value)
-        workspaceHUD = value
+    func setShowHUD(_ value: Bool) {
+        settings.setShowHUD(value)
+        showHUD = value
     }
 
     func setStripEnabled(_ value: Bool) {

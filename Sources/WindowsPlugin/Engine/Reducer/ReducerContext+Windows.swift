@@ -20,6 +20,7 @@ extension ReducerContext {
                 track(info, processStart: processStarts[info.id.pid])
             } else if state.parked[info.id] == nil {
                 if let start = processStarts[info.id.pid] { state.windows[info.id]?.processStart = start }
+                state.windows[info.id]?.title = info.title
                 state.windows[info.id]?.frame = info.frame
             } else {
                 // A parked window that is somewhere else now: it came back on its own.
@@ -35,7 +36,7 @@ extension ReducerContext {
     private mutating func track(_ info: WindowInfo, processStart: Double?) {
         let previous = state.windows[info.id]
         state.windows[info.id] = TrackedWindow(
-            id: info.id, bundleID: info.bundleID, frame: info.frame,
+            id: info.id, bundleID: info.bundleID, title: info.title, frame: info.frame,
             processStart: processStart ?? previous?.processStart)
         let display = FrameMath.display(for: info.frame, in: state.displays).map { state.displayKey(of: $0) }
         state.model.add(info.id, onDisplay: display)
@@ -52,6 +53,7 @@ extension ReducerContext {
             arrangeRequested = true
         } else {
             if let processStart { state.windows[info.id]?.processStart = processStart }
+            state.windows[info.id]?.title = info.title
             if state.parked[info.id] == nil { state.windows[info.id]?.frame = info.frame }
         }
         reconcileParking(now: now)

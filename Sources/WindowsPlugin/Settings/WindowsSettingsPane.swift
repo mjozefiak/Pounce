@@ -135,7 +135,7 @@ struct WindowsSettingsPane: View {
                     comment: "Window Management setting help: follow focus"))
         }
         .toggleStyle(.switch)
-        Toggle(isOn: Binding(get: { model.workspaceHUD }, set: { model.setWorkspaceHUD($0) })) {
+        Toggle(isOn: Binding(get: { model.showHUD }, set: { model.setShowHUD($0) })) {
             label(Text("Show a number after switching", comment: "Window Management setting: the workspace HUD"))
         }
         .toggleStyle(.switch)

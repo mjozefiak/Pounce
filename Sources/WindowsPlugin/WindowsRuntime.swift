@@ -94,7 +94,7 @@ final class WindowsRuntime {
     private func handle(_ output: EngineOutput) {
         switch output {
         case .hud(let workspace, let count):
-            if settings.workspaceHUD { hud.show(.workspace(number: workspace.rawValue, windowCount: count)) }
+            if settings.showHUD { hud.show(.workspace(number: workspace.rawValue, windowCount: count)) }
         case .summary(let summary):
             summaryChanged(summary)
         case .banner(let banner):

@@ -50,7 +50,7 @@ import Testing
         #expect(settings.workspaceCount == 4)
         #expect(settings.floatingApps == WindowsSettings.defaultFloatingApps)
         #expect(settings.followFocus)
-        #expect(settings.workspaceHUD)
+        #expect(settings.showHUD)
         #expect(settings.stripEnabled)
         #expect(settings.stripMode == .all)
         #expect(!settings.safeMode)
@@ -77,14 +77,14 @@ import Testing
         let settings = WindowsSettings(harness.pluginSettings)
         settings.setFloatingApps(["a.b"])
         settings.setFollowFocus(false)
-        settings.setWorkspaceHUD(false)
+        settings.setShowHUD(false)
         settings.setStripEnabled(false)
         settings.setStripMode(.occupied)
         settings.setSafeMode(true)
         settings.setParkedLaunches(2)
         #expect(settings.floatingApps == ["a.b"])
         #expect(!settings.followFocus)
-        #expect(!settings.workspaceHUD)
+        #expect(!settings.showHUD)
         #expect(!settings.stripEnabled)
         #expect(settings.stripMode == .occupied)
         #expect(settings.safeMode)
@@ -103,7 +103,7 @@ import Testing
     @Test func keysAreUnique() {
         let keys = [
             WindowsSettings.Key.workspaceCount, WindowsSettings.Key.floatingApps, WindowsSettings.Key.followFocus,
-            WindowsSettings.Key.workspaceHUD, WindowsSettings.Key.stripEnabled, WindowsSettings.Key.stripMode,
+            WindowsSettings.Key.showHUD, WindowsSettings.Key.stripEnabled, WindowsSettings.Key.stripMode,
             WindowsSettings.Key.safeMode, WindowsSettings.Key.parkedLaunches, WindowsSettings.Key.defaultKind,
             WindowsSettings.Key.innerGap, WindowsSettings.Key.outerGap, WindowsSettings.Key.workspaces,
         ]

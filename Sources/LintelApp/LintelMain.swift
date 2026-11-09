@@ -52,8 +52,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// A `.lintellayouts` file opened with Lintel goes to the layout importer (Window Management). Before the
-    /// plugins have started it waits for them.
+    /// A file opened with Lintel goes to the plugins (`PluginHost.openFile`). Before the plugins have started it
+    /// waits for them.
     func application(_ application: NSApplication, open urls: [URL]) {
         guard started, let coordinator else {
             pendingFiles.append(contentsOf: urls)

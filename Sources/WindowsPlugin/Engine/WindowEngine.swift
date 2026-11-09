@@ -169,8 +169,10 @@ actor WindowEngine {
 
     /// The windows the engine holds, with their workspace and the app's bundle id (the search source reads this
     /// instead of scanning every app).
-    func trackedWindows() -> [(id: WindowID, bundleID: String?, workspace: WorkspaceID?)] {
-        state.windows.values.sorted { $0.id < $1.id }.map { ($0.id, $0.bundleID, state.model.workspace(of: $0.id)) }
+    func trackedWindows() -> [(id: WindowID, title: String, bundleID: String?, workspace: WorkspaceID?)] {
+        state.windows.values.sorted { $0.id < $1.id }.map {
+            ($0.id, $0.title, $0.bundleID, state.model.workspace(of: $0.id))
+        }
     }
 
     func diagnostics() -> EngineDiagnostics { state.diagnostics }
@@ -297,6 +299,10 @@ actor WindowEngine {
                 }
             case .focused(let id):
                 inputs.append(.windowFocused(id, now: moment))
+                // A window that got the focus may have a new title: one single read keeps the cache fresh.
+                if let id, state.windows[id] != nil, let info = await client.window(id: id) {
+                    inputs.append(.windowAppeared(info, processStart: nil, now: moment))
+                }
             case .appTerminated(let pid):
                 for id in state.windows.keys where id.pid == pid { inputs.append(.windowGone(id, now: moment)) }
             case .appLaunched:

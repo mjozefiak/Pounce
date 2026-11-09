@@ -127,12 +127,11 @@ public struct PluginContext: Sendable {
     /// Opens the Models pane of Settings, scrolled to the package's row when it is given. Added with the main
     /// window; the default does nothing.
     public let openModels: @MainActor @Sendable (_ packageID: String?) -> Void
-    /// Reads and moves other applications' windows (Accessibility). Added with window management; the default
+    /// Reads and moves other applications' windows (Accessibility). The default
     /// client reports no windows and no displays and is `unsupported`.
     public let windows: any WindowClient
     /// Sets (or, with `nil`, clears) the global shortcut of one of this plugin's commands, as if the user had
-    /// recorded it, so a pane can offer one row per family of numbered commands. Added with window management; the
-    /// default does nothing.
+    /// recorded it, so a pane can offer one row per family of numbered commands. The default does nothing.
     public let setCommandShortcut: @MainActor @Sendable (_ commandID: String, _ shortcut: KeyShortcut?) -> Void
     /// The shortcut a command has right now (the user's, or its default); `nil` when none. Added with window
     /// management; the default answers `nil`.

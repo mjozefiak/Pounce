@@ -26,10 +26,12 @@ struct EngineConfig: Equatable, Sendable {
     var zones = ZonesConfig()
 }
 
-/// A window the engine knows. The title is never kept.
+/// A window the engine knows. The title is kept in memory only (for the window switcher's search), refreshed
+/// whenever the window is read; it is never stored and never logged.
 struct TrackedWindow: Equatable, Sendable {
     var id: WindowID
     var bundleID: String?
+    var title: String
     /// The frame as last seen; for a parked window the parked frame, otherwise the window's own.
     var frame: CGRect
     /// When the owning process started (seconds since 1970); a window without one is never parked, because it

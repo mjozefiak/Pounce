@@ -118,7 +118,7 @@ import Testing
     @Test func theWorkspaceHUDCanBeSwitchedOff() async throws {
         let (plugin, _, hud, harness) = try await plugin()
         defer { harness.tearDown() }
-        WindowsSettings(harness.pluginSettings).setWorkspaceHUD(false)
+        WindowsSettings(harness.pluginSettings).setShowHUD(false)
         try await command(plugin, "windows.workspace.2").run()
         await plugin.runtime?.settle()
         #expect(hud.shown.isEmpty)
@@ -204,11 +204,14 @@ import Testing
         let source = try #require(plugin.searchSources.first)
         #expect(source.id == "windows.windows")
 
+        let readsAfterStart = client.windowsReads
         let empty = try await source.search(NormalizedQuery(raw: "", normalized: ""), limit: 10)
         #expect(empty.isEmpty)
         let notes = try await source.search(NormalizedQuery(raw: "notes", normalized: "notes"), limit: 10)
         let window = try #require(notes.first)
         #expect(window.title == "Notes")
+        // A query reads the engine's cached titles: it never scans every app.
+        #expect(client.windowsReads == readsAfterStart)
         #expect(window.itemKey == ItemKey(pluginID: "windows", key: "100.1"))
         #expect(window.subtitle == "Workspace 1")
         #expect(window.icon == .bundleIdentifier("com.example.notes"))

@@ -7,7 +7,8 @@ import SwiftUI
 @MainActor
 final class LayoutsWindowController: NSObject, NSWindowDelegate {
     private(set) var window: NSWindow?
-    private let makeModel: @MainActor () -> LayoutsModel
+    /// `nil` when the plugin that owns the model is gone.
+    private let makeModel: @MainActor () -> LayoutsModel?
     /// The model of the open window, `nil` while it is closed.
     private(set) var model: LayoutsModel?
     /// The app's text size (`app.textSize` through `AppTextSize`), read while the view renders.
@@ -15,7 +16,7 @@ final class LayoutsWindowController: NSObject, NSWindowDelegate {
     /// False in QA mode: the window is ordered front without activating Lintel.
     var activatesApp = true
 
-    init(makeModel: @escaping @MainActor () -> LayoutsModel) {
+    init(makeModel: @escaping @MainActor () -> LayoutsModel?) {
         self.makeModel = makeModel
     }
 
@@ -26,7 +27,7 @@ final class LayoutsWindowController: NSObject, NSWindowDelegate {
             bringForward(window)
             return
         }
-        let model = makeModel()
+        guard let model = makeModel() else { return }
         self.model = model
         let view = LintelTextSizeScope(size: textSize) { LayoutsWindowView(model: model) }
         let controller = NSHostingController(rootView: view)

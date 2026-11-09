@@ -8,7 +8,7 @@ struct WindowsSettings: Sendable {
         static let workspaceCount = "workspaceCount"
         static let floatingApps = "floatingApps"
         static let followFocus = "followFocus"
-        static let workspaceHUD = "workspaceHUD"
+        static let showHUD = "showHUD"
         /// `tiling`, `zones` or `free`: how a workspace is arranged unless its override says otherwise.
         static let defaultKind = "defaultKind"
         static let innerGap = "gap.inner"
@@ -74,7 +74,7 @@ struct WindowsSettings: Sendable {
     var followFocus: Bool { settings.bool(Key.followFocus, default: true) }
 
     /// A brief on-screen number after a switch.
-    var workspaceHUD: Bool { settings.bool(Key.workspaceHUD, default: true) }
+    var showHUD: Bool { settings.bool(Key.showHUD, default: true) }
 
     /// Auto-tile unless the user chose otherwise (spec Q5); an unknown stored value reads as Auto-tile.
     var defaultKind: LayoutKind { settings.string(Key.defaultKind).flatMap(LayoutKind.init(rawValue:)) ?? .tiling }
@@ -136,7 +136,7 @@ struct WindowsSettings: Sendable {
 
     func setFloatingApps(_ bundleIDs: [String]) { settings.set(bundleIDs, for: Key.floatingApps) }
     func setFollowFocus(_ value: Bool) { settings.set(value, for: Key.followFocus) }
-    func setWorkspaceHUD(_ value: Bool) { settings.set(value, for: Key.workspaceHUD) }
+    func setShowHUD(_ value: Bool) { settings.set(value, for: Key.showHUD) }
     func setStripEnabled(_ value: Bool) { settings.set(value, for: Key.stripEnabled) }
     func setStripMode(_ mode: StripMode) { settings.set(mode.rawValue, for: Key.stripMode) }
     func setSafeMode(_ value: Bool) { settings.set(value, for: Key.safeMode) }

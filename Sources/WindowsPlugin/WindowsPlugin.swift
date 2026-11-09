@@ -47,9 +47,10 @@ public final class WindowsPlugin: LintelPlugin {
     private(set) var lastStartError: StartError?
     /// Built on first use; creating it reads settings only.
     private(set) lazy var paneModel: WindowsSettingsModel = {
-        let model = WindowsSettingsModel(context: context, settings: settings, runtime: { [unowned self] in runtime })
-        model.startFailure = { [unowned self] in lastStartError }
-        model.openLayouts = { [unowned self] in layoutsWindow.show() }
+        let model = WindowsSettingsModel(
+            context: context, settings: settings, runtime: { [weak self] in self?.runtime })
+        model.startFailure = { [weak self] in self?.lastStartError }
+        model.openLayouts = { [weak self] in self?.layoutsWindow.show() }
         model.hud = hud
         model.restoreFromJournal = { [context, journals] in
             await Self.restoreFromJournal(context: context, journals: journals)
@@ -101,9 +102,8 @@ public final class WindowsPlugin: LintelPlugin {
     /// Throws when the window client is `unsupported`, so the host marks the plugin `failed` (spec: API
     /// Contracts), and in safe mode on the first start of a launch. Then starts the engine.
     public func activate() async throws {
-        // The self-check calls Accessibility, which can block: never on the main actor.
-        let client = context.windows
-        let availability = await Task.detached { client.availability }.value
+        // The self-check calls Accessibility, which can block: the client runs it off the main actor.
+        let availability = await context.windows.checkAvailability()
         if case .unsupported(let reason) = availability {
             lastStartError = .unsupported(reason: reason)
             throw StartError.unsupported(reason: reason)
@@ -140,8 +140,7 @@ public final class WindowsPlugin: LintelPlugin {
     /// Accessibility was granted: the self-check could not compare any window before, so it runs again. A mismatch
     /// stops the engine (every window is put back first) and the pane says Lintel needs an update.
     func recheckAvailability() async {
-        let client = context.windows
-        let availability = await Task.detached { client.availability }.value
+        let availability = await context.windows.checkAvailability()
         guard case .unsupported(let reason) = availability else { return }
         lastStartError = .unsupported(reason: reason)
         await deactivate()

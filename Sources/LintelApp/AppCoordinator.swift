@@ -35,7 +35,7 @@ final class AppCoordinator {
     private let icons: IconCache
     /// Where app activations are posted (tests use their own centre).
     var activationCenter: NotificationCenter = .default
-    /// Retries the recoveries a plugin answered with `.deferred` (window management without Accessibility) each
+    /// Retries the recoveries a plugin answered with `.deferred` (for example while a permission is missing) each
     /// time Lintel becomes the active app, which is where a grant in System Settings becomes visible.
     private var recoveryObserver: AppActivationObserver?
     private let logger = Logger(subsystem: "com.lintelapp", category: "app")

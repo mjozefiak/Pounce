@@ -117,9 +117,8 @@ final class PluginHost {
         return enabled
     }
 
-    /// Offers a file the user opened with Lintel to the registered plugins in order until one takes it (a
-    /// `.lintellayouts` file goes to Window Management, which shows what it would import). `false` when nobody
-    /// wanted it.
+    /// Offers a file the user opened with Lintel to the registered plugins in order until one takes it (the
+    /// file types a plugin handles are declared in `Info.plist`). `false` when nobody wanted it.
     func openFile(_ url: URL) async -> Bool {
         for entry in entries where await entry.plugin.handleOpenedFile(url) { return true }
         return false

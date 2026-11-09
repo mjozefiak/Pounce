@@ -78,10 +78,9 @@ nonisolated struct HotkeyShortcut: Hashable, Sendable {
         for (index, scalar) in "0123456789".unicodeScalars.enumerated() {
             codes[String(scalar)] = digitCodes[index]
         }
-        // Window management's resize pair (⌥- and ⌥=).
+        // Punctuation keys a plugin command may be bound to by default.
         codes["-"] = kVK_ANSI_Minus
         codes["="] = kVK_ANSI_Equal
-        // Window management's toggle layout (⌥/).
         codes["/"] = kVK_ANSI_Slash
         return codes
     }()

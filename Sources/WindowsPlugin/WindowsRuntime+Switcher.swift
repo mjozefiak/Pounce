@@ -4,14 +4,12 @@ import LintelKit
 /// The window switcher over a running plugin.
 extension WindowsRuntime: WindowSwitching {
     func snapshot() async -> SwitcherSnapshot {
-        let (membership, summary) = await engine.switcherState()
-        let live = trust.isTrusted ? await context.windows.windows() : []
-        let windows =
-            live
-            .filter { membership[$0.id] != nil }
-            .map {
-                SwitcherWindow(id: $0.id, title: $0.title, bundleID: $0.bundleID, workspace: membership[$0.id] ?? nil)
-            }
+        let summary = await engine.switcherState().summary
+        // The engine's tracked windows with their cached titles: no scan of every app per query.
+        let tracked = trust.isTrusted ? await engine.trackedWindows() : []
+        let windows = tracked.map {
+            SwitcherWindow(id: $0.id, title: $0.title, bundleID: $0.bundleID, workspace: $0.workspace)
+        }
         let workspaces = WorkspaceID.all(count: settings.workspaceCount).map {
             (workspace: $0, windowCount: summary.counts[$0] ?? 0)
         }

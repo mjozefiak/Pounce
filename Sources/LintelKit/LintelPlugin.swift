@@ -98,11 +98,11 @@ public protocol LintelPlugin: AnyObject {
     /// uses none.
     var modelUsage: [ModelUsage] { get }
 
-    /// Puts right what an earlier run left half done (window management: restores windows it parked), before
+    /// Puts right what an earlier run left half done (for example puts back what the plugin moved), before
     /// the plugin is activated and whether or not it is enabled. The host runs it once per launch for every
     /// registered type, bounded to 5 seconds and in parallel with the other plugins, and again on app
     /// activation and on a permission change while it answers `.deferred`. It receives the plugin's context
-    /// but no instance, and runs off the main actor. Added with window management; the default does nothing.
+    /// but no instance, and runs off the main actor. The default does nothing.
     nonisolated static func recoverAtLaunch(context: PluginContext) async -> RecoveryOutcome
 
     /// Offers a file the user opened with Lintel (double-clicked, or dropped on the Dock icon) to the plugin.
