@@ -54,9 +54,11 @@ final class NoteEditingSession {
 
     /// Builds the session for the layer the editor shows, or `nil` when the layer cannot be edited at all.
     /// An existing overlay stays editable in every state; without one the layer is seeded only when the source's
-    /// state allows it (`OverlaySeeder`).
+    /// state allows it (`OverlaySeeder`). `store` is `nil` on a profile without a library: nothing is opened for
+    /// the editor, and the writer opens the library through `storeProvider` at the first real write (lazy-store rule).
     static func make(
-        content: NoteContent, layerID: String, store: NotesStore, registry: NoteDocumentRegistry,
+        content: NoteContent, layerID: String, store: NotesStore?,
+        storeProvider: (@Sendable () async -> NotesStore?)? = nil, registry: NoteDocumentRegistry,
         model: NoteDocumentModel? = nil, readOnly: Bool, readOnlyNow: (@MainActor () -> Bool)? = nil,
         sourceStartedAtMs: (@Sendable () async -> Int64?)? = nil, clock: any Clock<Duration> = ContinuousClock(),
         now: @escaping @Sendable () -> Date = { Date() }, timing: RevisionWriter.Timing = .init(),
@@ -64,7 +66,7 @@ final class NoteEditingSession {
     ) -> NoteEditingSession? {
         let key = content.summary.id
         let id = NoteDocumentID.live(key, layer: layerID)
-        let existing = try? store.liveDocument(key: key, layer: layerID)
+        let existing = try? store?.liveDocument(key: key, layer: layerID)
         let target: RevisionWriter.Target
         var block: Block?
         if let existing {
@@ -74,10 +76,15 @@ final class NoteEditingSession {
         } else {
             return nil
         }
-        if readOnly || store.blockedReason != nil { block = .readOnly }
+        if readOnly || store?.blockedReason != nil { block = .readOnly }
         let writer = registry.writer(for: id, item: .live(key)) {
-            RevisionWriter(
-                store: store, target: target, clock: clock, now: now, timing: timing,
+            if let store {
+                return RevisionWriter(
+                    store: store, target: target, clock: clock, now: now, timing: timing,
+                    sourceStartedAtMs: sourceStartedAtMs, log: log)
+            }
+            return RevisionWriter(
+                storeProvider: storeProvider ?? { nil }, target: target, clock: clock, now: now, timing: timing,
                 sourceStartedAtMs: sourceStartedAtMs, log: log)
         }
         return NoteEditingSession(

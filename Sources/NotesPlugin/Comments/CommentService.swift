@@ -24,12 +24,14 @@ enum CommentFailure: Error, Equatable, Sendable {
 /// re-anchoring. Every write goes through `NotesStore.write`, so `plugins.notes.readOnly` refuses all of them. UI
 /// free: the editor session and the inspector call it, tests call it with a store and an injected clock.
 struct CommentService: Sendable {
-    let store: NotesStore
+    /// `nil` for a service of an editor on a layer that was never written: the store is then the writer's, opened
+    /// by the first write (lazy-store rule), and only `add` and `reanchor` (which go through the writer) work.
+    let store: NotesStore?
     let now: @Sendable () -> Date
     /// The author of the comments the user writes.
     static let userAuthor = NoteAuthor.human.rawValue
 
-    init(store: NotesStore, now: @escaping @Sendable () -> Date = { Date() }) {
+    init(store: NotesStore?, now: @escaping @Sendable () -> Date = { Date() }) {
         self.store = store
         self.now = now
     }
@@ -59,6 +61,7 @@ struct CommentService: Sendable {
         if selection.length > CommentAnchors.maxQuoteLength { throw CommentFailure.selectionTooLong }
         guard let anchor = CommentAnchors.make(in: buffer, range: selection) else { throw CommentFailure.invalid }
         let head = try await writer.ensureDocument()
+        let store = try await writer.openedStore()
         // Escape cancelled the popover while the text was being saved: write no comment.
         try Task.checkCancellation()
         // The anchor is built on the head's own text, so the offsets belong to the revision it names.
@@ -80,6 +83,7 @@ struct CommentService: Sendable {
 
     func reply(docID: Int64, threadID: Int64, body: String) throws {
         do {
+            guard let store else { throw CommentFailure.other }
             guard try store.addReply(docID: docID, threadID: threadID, author: Self.userAuthor, body: body, now: now())
             else { throw CommentFailure.missing }
         } catch {
@@ -89,6 +93,7 @@ struct CommentService: Sendable {
 
     func setStatus(docID: Int64, threadID: Int64, status: CommentStatus) throws {
         do {
+            guard let store else { throw CommentFailure.other }
             guard try store.setThreadStatus(docID: docID, threadID: threadID, status: status, now: now()) else {
                 throw CommentFailure.missing
             }
@@ -106,10 +111,13 @@ struct CommentService: Sendable {
             if selection.length > CommentAnchors.maxQuoteLength { throw CommentFailure.selectionTooLong }
             guard let anchor = CommentAnchors.make(in: buffer, range: selection) else { throw CommentFailure.invalid }
             let head: RevisionWriter.Head
+            let store: NotesStore
             if let writer {
                 head = try await writer.ensureDocument()
-            } else if let record = try store.headRevision(of: docID) {
+                store = try await writer.openedStore()
+            } else if let opened = self.store, let record = try opened.headRevision(of: docID) {
                 head = RevisionWriter.Head(docID: docID, revisionID: record.id, body: record.body)
+                store = opened
             } else {
                 throw CommentFailure.missing
             }

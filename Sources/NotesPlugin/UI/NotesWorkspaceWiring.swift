@@ -9,7 +9,8 @@ extension NotesWorkspaceModel.Environment {
     @MainActor
     mutating func installWriting(
         store: @escaping @MainActor @Sendable () -> NotesStore?, registry: NoteDocumentRegistry,
-        settings: PluginSettings, clock: any Clock<Duration>, now: @escaping @Sendable () -> Date = { Date() }
+        settings: PluginSettings, clock: any Clock<Duration>, now: @escaping @Sendable () -> Date = { Date() },
+        exists: @escaping @MainActor @Sendable () -> Bool = { true }
     ) {
         canCreateNotes = true
         canEditNotes = true
@@ -89,7 +90,15 @@ extension NotesWorkspaceModel.Environment {
         let library = self.library
         let budget = contentBudget
         makeEditingSession = { content, layerID, document in
-            guard let opened = store() else { return nil }
+            // Entering edit mode opens nothing on a profile without a library: the writer opens it at the first
+            // real write (the first typed character, comment or save), as the lazy-store rule says.
+            let opened: NotesStore?
+            if exists() {
+                guard let found = store() else { return nil }
+                opened = found
+            } else {
+                opened = nil
+            }
             let key = content.summary.id
             // The source's current start time, asked before the first seed: a recording recreated since the
             // editor rendered it must not be seeded with the old text.
@@ -102,7 +111,8 @@ extension NotesWorkspaceModel.Environment {
                 return nil
             }
             return NoteEditingSession.make(
-                content: content, layerID: layerID, store: opened, registry: registry, model: document,
+                content: content, layerID: layerID, store: opened, storeProvider: { await store() },
+                registry: registry, model: document,
                 readOnly: NotesSettings(settings).readOnly, readOnlyNow: { NotesSettings(settings).readOnly },
                 sourceStartedAtMs: startedAt, clock: clock, now: now)
         }

@@ -102,8 +102,27 @@ final class RevisionWriter: Sendable {
         self.clock = clock
         self.timing = timing
         self.observer = observer
-        core = Core(store: store, target: target, now: now, sourceStartedAtMs: sourceStartedAtMs, log: log)
+        core = Core(
+            store: store, provider: nil, target: target, now: now, sourceStartedAtMs: sourceStartedAtMs, log: log)
     }
+
+    /// A writer that opens its store at the first write (`provider`, which answers `nil` when it cannot).
+    init(
+        storeProvider: @escaping @Sendable () async -> NotesStore?, target: Target,
+        clock: any Clock<Duration> = ContinuousClock(), now: @escaping @Sendable () -> Date = { Date() },
+        timing: Timing = Timing(), observer: Observer = Observer(),
+        sourceStartedAtMs: (@Sendable () async -> Int64?)? = nil, log: any NotesLogging = OSNotesLog()
+    ) {
+        self.clock = clock
+        self.timing = timing
+        self.observer = observer
+        core = Core(
+            store: nil, provider: storeProvider, target: target, now: now, sourceStartedAtMs: sourceStartedAtMs,
+            log: log)
+    }
+
+    /// The store this writer writes to, opened if it was not yet (the first write or comment).
+    func openedStore() async throws -> NotesStore { try await core.openStore() }
 
     /// `true` after a compare-and-set loss until a head-moving write (Restore, Apply) resolves it: while it holds,
     /// every typed write goes to a `proposed` revision and the head is never overwritten.
@@ -359,7 +378,16 @@ final class RevisionWriter: Sendable {
     // MARK: Core
 
     private actor Core {
-        let store: NotesStore
+        /// The store, resolved at the first write (lazy-store rule): a writer for a layer that was never edited
+        /// holds only the provider, so opening an editor creates no Keychain item and no `notes.sqlite`.
+        private var resolved: NotesStore?
+        private let provider: (@Sendable () async -> NotesStore?)?
+        private var store: NotesStore {
+            get throws {
+                guard let resolved else { throw NotesError.keyUnavailable }
+                return resolved
+            }
+        }
         let now: @Sendable () -> Date
         let log: any NotesLogging
         var docID: Int64?
@@ -376,10 +404,12 @@ final class RevisionWriter: Sendable {
         let sourceStartedAtMs: (@Sendable () async -> Int64?)?
 
         init(
-            store: NotesStore, target: Target, now: @escaping @Sendable () -> Date,
-            sourceStartedAtMs: (@Sendable () async -> Int64?)?, log: any NotesLogging
+            store: NotesStore?, provider: (@Sendable () async -> NotesStore?)?, target: Target,
+            now: @escaping @Sendable () -> Date, sourceStartedAtMs: (@Sendable () async -> Int64?)?,
+            log: any NotesLogging
         ) {
-            self.store = store
+            self.resolved = store
+            self.provider = provider
             self.now = now
             self.sourceStartedAtMs = sourceStartedAtMs
             self.log = log
@@ -397,8 +427,17 @@ final class RevisionWriter: Sendable {
 
         func closeSession() { sessionRevisionID = nil }
 
+        /// The store, opened through the provider the first time a write needs it.
+        func openStore() async throws -> NotesStore {
+            if let resolved { return resolved }
+            guard let opened = await provider?() else { throw NotesError.keyUnavailable }
+            resolved = opened
+            return opened
+        }
+
         /// Seeds the overlay when there is none (only the seed revision, no human one), then reports the head.
         func ensureDocument() async throws -> Head {
+            let store = try await openStore()
             if let reason = store.blockedReason { throw reason }
             if docID == nil {
                 guard let plan = seed else { throw NotesError.guardRejected(rule: "seed") }
@@ -451,6 +490,7 @@ final class RevisionWriter: Sendable {
 
         func writeHuman(_ text: String, serial: Int) async throws -> Outcome {
             guard serial > lastSerial else { return .nothing }
+            let store = try await openStore()
             if let reason = store.blockedReason { throw reason }
             if docID == nil { return try await seedAndWrite(text, serial: serial) }
             try reloadIfNeeded()
@@ -575,7 +615,8 @@ final class RevisionWriter: Sendable {
 
         // MARK: Other writes
 
-        func restore(_ revisionID: Int64) throws -> Int64 {
+        func restore(_ revisionID: Int64) async throws -> Int64 {
+            let store = try await openStore()
             if let reason = store.blockedReason { throw reason }
             guard docID != nil else { throw NotesError.guardRejected(rule: "noDocument") }
             try reloadIfNeeded()
@@ -596,7 +637,8 @@ final class RevisionWriter: Sendable {
         func append(
             author: String, body: String, summary: String?, metaJSON: String?, state: NoteRevisionState,
             expectingHead: Int64? = nil
-        ) throws -> Int64 {
+        ) async throws -> Int64 {
+            let store = try await openStore()
             if let reason = store.blockedReason { throw reason }
             guard let docID else { throw NotesError.guardRejected(rule: "noDocument") }
             try reloadIfNeeded()
@@ -611,7 +653,8 @@ final class RevisionWriter: Sendable {
                     blocksJSON: blocks.json, metaJSON: metaJSON, now: now()))
         }
 
-        func applyProposal(_ proposalID: Int64, expectingHead: Int64) throws -> Int64 {
+        func applyProposal(_ proposalID: Int64, expectingHead: Int64) async throws -> Int64 {
+            let store = try await openStore()
             if let reason = store.blockedReason { throw reason }
             guard let docID else { throw NotesError.guardRejected(rule: "noDocument") }
             try reloadIfNeeded()
@@ -633,7 +676,8 @@ final class RevisionWriter: Sendable {
             return id
         }
 
-        func discardProposal(_ proposalID: Int64, confirmedRemoval: Bool) throws {
+        func discardProposal(_ proposalID: Int64, confirmedRemoval: Bool) async throws {
+            let store = try await openStore()
             if let reason = store.blockedReason { throw reason }
             guard let docID else { throw NotesError.guardRejected(rule: "noDocument") }
             guard
@@ -664,7 +708,10 @@ final class RevisionWriter: Sendable {
             return id
         }
 
-        func reconcile(_ layer: NoteLayer) throws -> Reconciliation {
+        func reconcile(_ layer: NoteLayer) async throws -> Reconciliation {
+            // No row yet (a layer that was never written): nothing to reconcile, and nothing opens the store.
+            guard docID != nil else { return .unchanged }
+            let store = try await openStore()
             if let reason = store.blockedReason { throw reason }
             guard let docID else { return .unchanged }
             try reloadIfNeeded()

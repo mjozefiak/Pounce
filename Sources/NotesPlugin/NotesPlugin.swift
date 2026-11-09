@@ -181,7 +181,8 @@ public final class NotesPlugin: LintelPlugin {
         }
         if usesStore && !NotesSettings(context.settings).readOnly {
             environment.installWriting(
-                store: storeProvider, registry: registry, settings: context.settings, clock: context.clock)
+                store: storeProvider, registry: registry, settings: context.settings, clock: context.clock,
+                exists: hasLibrary)
         }
         if usesStore {
             environment.registry = registry
