@@ -127,6 +127,15 @@ enum WindowsHUDState: Equatable, Sendable {
 @MainActor
 protocol WindowsHUDPresenting: AnyObject, Sendable {
     func show(_ state: WindowsHUDState)
+    /// What the *Allow Accessibility* button does; the plugin sets it.
+    var allowAccessibility: @MainActor () -> Void { get set }
+}
+
+/// Shows nothing: what a pane model uses until the plugin gives it its HUD.
+@MainActor
+final class NullHUD: WindowsHUDPresenting {
+    var allowAccessibility: @MainActor () -> Void = {}
+    func show(_ state: WindowsHUDState) {}
 }
 
 /// A small glass pill near the bottom of the screen with the mouse cursor, built like the dictation HUD: a
@@ -138,7 +147,6 @@ final class WindowsHUDPanel: WindowsHUDPresenting {
     private var hosting: NSHostingView<WindowsHUDView>?
     private var hideTask: Task<Void, Never>?
     private let reducesMotion: () -> Bool
-    /// What the *Allow Accessibility* button does; the running plugin sets it.
     var allowAccessibility: @MainActor () -> Void = {}
 
     init(reducesMotion: @escaping () -> Bool = { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }) {

@@ -118,5 +118,6 @@ final class ScriptedPermissions: PermissionsReader, @unchecked Sendable {
 @MainActor
 final class RecordingHUD: WindowsHUDPresenting {
     private(set) var shown: [WindowsHUDState] = []
+    var allowAccessibility: @MainActor () -> Void = {}
     func show(_ state: WindowsHUDState) { shown.append(state) }
 }

@@ -4,19 +4,6 @@ import LintelUI
 import Synchronization
 import os
 
-/// The storage folders whose engine is running right now. `recoverAtLaunch` (which runs outside the plugin's
-/// lifecycle and may run again on app activation) leaves the journal of a running engine to that engine: the
-/// parked windows in it are parked on purpose.
-enum ActiveEngines {
-    private static let paths = Mutex(Set<String>())
-
-    static func insert(_ directory: URL) { paths.withLock { _ = $0.insert(directory.standardizedFileURL.path) } }
-    static func remove(_ directory: URL) { paths.withLock { _ = $0.remove(directory.standardizedFileURL.path) } }
-    static func contains(_ directory: URL) -> Bool {
-        paths.withLock { $0.contains(directory.standardizedFileURL.path) }
-    }
-}
-
 /// Everything the plugin runs while it is active: the engine over the context's window client, the journal
 /// store, the Accessibility tracker and the HUD. It exists only between `activate()` and `deactivate()`, so a
 /// plugin that is off holds no store, no observer and no task.
@@ -28,7 +15,9 @@ final class WindowsRuntime {
 
     let context: PluginContext
     let settings: WindowsSettings
-    let store: StateStore
+    /// The journal owner of the storage folder: the engine and every recovery pass share its one store.
+    let journal: JournalOwner
+    var store: StateStore { journal.store }
     /// Which layout each workspace uses on each display (`assignments.json`).
     let assignments: AssignmentStore
     /// The user's layout library and the layout slots (`layouts.json`).
@@ -55,7 +44,7 @@ final class WindowsRuntime {
     private var activationObserver: AppActivationObserver?
 
     init(
-        context: PluginContext, settings: WindowsSettings, hud: any WindowsHUDPresenting,
+        context: PluginContext, settings: WindowsSettings, hud: any WindowsHUDPresenting, journal: JournalOwner,
         activationCenter: NotificationCenter = .default, tick: Duration = .milliseconds(30),
         makeStrip: (@MainActor (WindowsRuntime) -> WorkspaceStripController)? = nil,
         makeDragController: (@MainActor (WindowsRuntime) -> ZoneDragController)? = nil
@@ -65,8 +54,8 @@ final class WindowsRuntime {
         self.context = context
         self.settings = settings
         self.hud = hud
-        let store = StateStore(directory: context.storageDirectory, clock: context.clock)
-        self.store = store
+        self.journal = journal
+        let store = journal.store
         assignments = AssignmentStore(directory: context.storageDirectory, logger: context.logger)
         layouts = LayoutRepository(directory: context.storageDirectory, logger: context.logger)
         let trust = AccessibilityTrust(reader: context.permissions, clock: context.clock)
@@ -169,7 +158,7 @@ final class WindowsRuntime {
         activationObserver = AppActivationObserver(center: activationCenter) { [weak self] in
             self?.trust.refresh()
         }
-        ActiveEngines.insert(context.storageDirectory)
+        await journal.beginEngine()
         await assignments.load()
         await layouts.load()
         await engine.update(
@@ -190,8 +179,14 @@ final class WindowsRuntime {
         strip?.remove()
         strip = nil
         let engine = engine
-        _ = await TimeBound.run(budget: Self.stopBudget, clock: context.clock) { await engine.stop() }
-        ActiveEngines.remove(context.storageDirectory)
+        let journal = journal
+        await journal.engineStopping()
+        // The journal goes back to recovery only once the engine has really stopped, even when this wait gives
+        // up first: a recovery pass must never run beside an engine that still moves windows.
+        _ = await TimeBound.run(budget: Self.stopBudget, clock: context.clock) {
+            await engine.stop()
+            await journal.endEngine()
+        }
     }
 
     /// Runs an engine command, but only while Accessibility is trusted. Without it nothing moves and the HUD says

@@ -3,6 +3,7 @@ import CoreGraphics
 import Foundation
 import LintelKit
 import Testing
+import os
 
 @testable import WindowsPlugin
 
@@ -114,12 +115,65 @@ import Testing
     @Test func aRunningEnginesJournalIsLeftAlone() async throws {
         let (harness, client, _, context) = try await parkedRig([1])
         defer { harness.tearDown() }
-        ActiveEngines.insert(harness.directory)
-        defer { ActiveEngines.remove(harness.directory) }
+        let owner = JournalRegistry.shared.owner(
+            for: harness.directory, clock: ContinuousClock(), logger: context.logger)
+        await owner.beginEngine()
         let outcome = await WindowsPlugin.recover(context: context, isLaunch: false) { _ in }
         #expect(outcome == .done)
         #expect(client.calls.isEmpty)
         #expect(await journal(harness).count == 1)
+        // A stopping engine still owns it: the pass is deferred, not skipped as done.
+        await owner.engineStopping()
+        #expect(await WindowsPlugin.recover(context: context, isLaunch: false) { _ in } == .deferred)
+        await owner.endEngine()
+        #expect(await WindowsPlugin.recover(context: context, isLaunch: false) { _ in } == .done)
+        #expect(client.frame(of: id(1)) == home)
+    }
+
+    @Test func twoRecoveryPassesAtOnceRunOneAfterTheOther() async throws {
+        let (harness, client, _, context) = try await parkedRig([1])
+        defer { harness.tearDown() }
+        client.setBehavior(.stall, forProcess: 100)
+        let first = Task { await WindowsPlugin.recover(context: context, isLaunch: true) { _ in } }
+        await client.waitUntilStalled(1)
+        let second = Task { await WindowsPlugin.recover(context: context, isLaunch: false) { _ in } }
+        client.releaseStalls()
+        #expect(await first.value == .done)
+        #expect(await second.value == .done)
+        // The second pass found the journal already cleared: the window was moved exactly once.
+        #expect(client.calls.count == 1)
+        #expect(await journal(harness).isEmpty)
+    }
+
+    @Test func anEngineWaitsForARunningPassAndTheJournalIsHandedBackOnlyWhenItEnds() async throws {
+        let harness = try WindowsHarness()
+        defer { harness.tearDown() }
+        let owner = JournalOwner(
+            directory: harness.directory, logger: Logger(subsystem: "com.lintelapp.tests", category: "windows"))
+        let (gate, open) = AsyncStream<Void>.makeStream()
+        let pass = Task { await owner.exclusive { _ in for await _ in gate { break } } }
+        while await owner.phase != .recovering { await Task.yield() }
+        let engine = Task { await owner.beginEngine() }
+        await Task.yield()
+        #expect(await owner.phase == .recovering)
+        open.yield()
+        _ = await pass.value
+        await engine.value
+        #expect(await owner.phase == .engine)
+        guard case .engineRunning = await owner.exclusive({ _ in 0 }) else {
+            Issue.record("a running engine owns the journal")
+            return
+        }
+        await owner.engineStopping()
+        guard case .engineStopping = await owner.exclusive({ _ in 0 }) else {
+            Issue.record("a stopping engine still owns the journal")
+            return
+        }
+        await owner.endEngine()
+        guard case .ran = await owner.exclusive({ _ in 0 }) else {
+            Issue.record("the journal is free again")
+            return
+        }
     }
 
     @Test func twoLaunchesInARowWithParkedWindowsSwitchSafeModeOn() async throws {
@@ -210,7 +264,7 @@ import Testing
         #expect(client.frame(of: id(1)) == home)
         #expect(client.frame(of: id(2)) == CGRect(x: 300, y: 200, width: 500, height: 400))
         #expect(await journal(harness).isEmpty)
-        #expect(!ActiveEngines.contains(harness.directory))
+        #expect(await plugin.journal.phase == .idle)
     }
 
     @MainActor

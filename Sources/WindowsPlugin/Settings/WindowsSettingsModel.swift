@@ -49,7 +49,9 @@ final class WindowsSettingsModel {
     @ObservationIgnored var openLayouts: () -> Void = {}
     /// Where the restore report is shown when no engine runs; the plugin passes its own presenter, so the pane
     /// and the plugin never use two different ones.
-    @ObservationIgnored var hud: any WindowsHUDPresenting = WindowsHUDPanel.shared
+    @ObservationIgnored var hud: any WindowsHUDPresenting = NullHUD()
+    /// One pass over the journal when no engine runs; the plugin sets it.
+    @ObservationIgnored var restoreFromJournal: () async -> RecoveryReport = { RecoveryReport() }
 
     private(set) var workspaceCount: Int
     private(set) var followFocus: Bool
@@ -243,7 +245,7 @@ final class WindowsSettingsModel {
         if let runtime = runtime() {
             await runtime.restoreAllWindows()
         } else {
-            let report = await WindowsPlugin.restoreFromJournal(context: context)
+            let report = await restoreFromJournal()
             hud.show(WindowsHUDState(report: report))
         }
         await refresh()

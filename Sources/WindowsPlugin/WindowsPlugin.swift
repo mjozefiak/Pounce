@@ -37,6 +37,8 @@ public final class WindowsPlugin: LintelPlugin {
     let settings: WindowsSettings
     let hud: any WindowsHUDPresenting
     private let activationCenter: NotificationCenter
+    let journals: JournalRegistry
+    let journal: JournalOwner
     /// Whether the plugin shows the menu bar strip when it is on. Tests leave it off: a status item needs a display.
     private let showsStrip: Bool
     /// Whether the plugin builds the snap overlay (a panel per display). Tests leave it off, like the strip.
@@ -49,6 +51,9 @@ public final class WindowsPlugin: LintelPlugin {
         model.startFailure = { [unowned self] in lastStartError }
         model.openLayouts = { [unowned self] in layoutsWindow.show() }
         model.hud = hud
+        model.restoreFromJournal = { [unowned self] in
+            await Self.restoreFromJournal(context: context, journals: journals)
+        }
         return model
     }()
     private let identifier = DisplayIdentifier()
@@ -73,24 +78,29 @@ public final class WindowsPlugin: LintelPlugin {
 
     public convenience init(context: PluginContext) {
         self.init(
-            context: context, hud: WindowsHUDPanel.shared, activationCenter: .default, showsStrip: true,
+            context: context, hud: WindowsHUDPanel(), activationCenter: .default, showsStrip: true,
             showsOverlay: true)
     }
 
     init(
         context: PluginContext, hud: any WindowsHUDPresenting, activationCenter: NotificationCenter,
-        showsStrip: Bool = false, showsOverlay: Bool = false
+        showsStrip: Bool = false, showsOverlay: Bool = false, journals: JournalRegistry = .shared
     ) {
+        self.journals = journals
+        let journal = journals.owner(for: context.storageDirectory, clock: context.clock, logger: context.logger)
+        self.journal = journal
         self.showsStrip = showsStrip
         self.showsOverlay = showsOverlay
         self.context = context
         self.settings = WindowsSettings(context.settings)
         self.hud = hud
         self.activationCenter = activationCenter
-        (hud as? WindowsHUDPanel)?.allowAccessibility = { [workspace = context.workspace] in
+        hud.allowAccessibility = { [workspace = context.workspace] in
             guard let url = Self.accessibilitySettingsURL else { return }
             Task { try? await workspace.open(url) }
         }
+        // What the launch recovery reported before this instance existed is shown now, and what it reports later.
+        Task { [hud] in await journal.setSink { state in await MainActor.run { hud.show(state) } } }
     }
 
     /// System Settings, Privacy & Security, Accessibility.
@@ -145,7 +155,8 @@ public final class WindowsPlugin: LintelPlugin {
             }
         }
         let runtime = WindowsRuntime(
-            context: context, settings: settings, hud: hud, activationCenter: activationCenter, makeStrip: makeStrip,
+            context: context, settings: settings, hud: hud, journal: journal, activationCenter: activationCenter,
+            makeStrip: makeStrip,
             makeDragController: makeDrag)
         runtime.tearDownOverlay = { overlay?.tearDown() }
         self.runtime = runtime
@@ -222,14 +233,14 @@ public final class WindowsPlugin: LintelPlugin {
             await runtime.restoreAllWindows()
             return
         }
-        let report = await Self.restoreFromJournal(context: context)
+        let report = await Self.restoreFromJournal(context: context, journals: journals)
         hud.show(WindowsHUDState(report: report))
     }
 
     /// "Erase Data": puts every window back first; the host then deletes `Plugins/windows/`.
     public func eraseData() async throws {
         await deactivate()
-        let report = await Self.restoreFromJournal(context: context)
+        let report = await Self.restoreFromJournal(context: context, journals: journals)
         if report.remaining > 0 {
             context.logger.notice("Erasing window data with \(report.remaining, privacy: .public) windows not restored")
         }
@@ -241,17 +252,28 @@ public final class WindowsPlugin: LintelPlugin {
     /// outside the plugin lifecycle"): reads the journal and puts every parked window back. `.deferred` while
     /// Accessibility is not trusted, so the journal stays and the host tries again on app activation.
     public nonisolated static func recoverAtLaunch(context: PluginContext) async -> RecoveryOutcome {
-        await recover(context: context, hud: { state in await MainActor.run { WindowsHUDPanel.shared.show(state) } })
+        let journal = JournalRegistry.shared.owner(
+            for: context.storageDirectory, clock: context.clock, logger: context.logger)
+        return await recover(context: context, hud: { await journal.present($0) })
     }
 
-    /// `recoverAtLaunch` with the HUD injected (tests).
+    /// `recoverAtLaunch` with the registry and the HUD injected (tests). `isLaunch` is `nil` in the app: the
+    /// journal owner counts the first pass of this process as the launch.
     nonisolated static func recover(
-        context: PluginContext, isLaunch: Bool? = nil, hud: @Sendable (WindowsHUDState) async -> Void
+        context: PluginContext, isLaunch: Bool? = nil, journals: JournalRegistry = .shared,
+        hud: @Sendable (WindowsHUDState) async -> Void
     ) async -> RecoveryOutcome {
-        // A running engine owns its journal.
-        guard !ActiveEngines.contains(context.storageDirectory) else { return .done }
-        let first = isLaunch ?? LaunchCounter.isFirstRun(for: context.storageDirectory)
-        let report = await restoreFromJournal(context: context)
+        let journal = journals.owner(for: context.storageDirectory, clock: context.clock, logger: context.logger)
+        let first: Bool
+        if let isLaunch { first = isLaunch } else { first = await journal.claimLaunch() }
+        // A running engine owns its journal: the windows parked in it are parked on purpose.
+        let pass = await journal.exclusive { store in await restore(context: context, store: store) }
+        let report: RecoveryReport
+        switch pass {
+        case .engineRunning: return .done
+        case .engineStopping: return .deferred
+        case .ran(let done): report = done
+        }
         let settings = WindowsSettings(context.settings)
         if first, !report.readOnly {
             // A launch that found parked windows is counted; the second in a row starts the plugin in safe mode.
@@ -268,9 +290,18 @@ public final class WindowsPlugin: LintelPlugin {
         return report.outcome
     }
 
-    /// One pass over the journal in `context.storageDirectory` with a store of its own.
-    nonisolated static func restoreFromJournal(context: PluginContext) async -> RecoveryReport {
-        let store = StateStore(directory: context.storageDirectory, clock: context.clock)
+    /// One exclusive pass over the journal in `context.storageDirectory`; empty while an engine owns it.
+    nonisolated static func restoreFromJournal(
+        context: PluginContext, journals: JournalRegistry = .shared
+    ) async -> RecoveryReport {
+        let journal = journals.owner(for: context.storageDirectory, clock: context.clock, logger: context.logger)
+        if case .ran(let report) = await journal.exclusive({ store in await restore(context: context, store: store) }) {
+            return report
+        }
+        return RecoveryReport()
+    }
+
+    private nonisolated static func restore(context: PluginContext, store: StateStore) async -> RecoveryReport {
         await store.load()
         guard await !store.hidden.isEmpty else { return RecoveryReport() }
         let trusted = await MainActor.run { context.permissions.status(of: .accessibility) == .granted }
@@ -279,19 +310,4 @@ public final class WindowsPlugin: LintelPlugin {
         await store.close()
         return report
     }
-}
-
-/// Which storage folders already ran their recovery in this process, so a retry does not count as a launch.
-enum LaunchCounter {
-    private static let seen = Mutex(Set<String>())
-
-    static func isFirstRun(for directory: URL) -> Bool {
-        seen.withLock { $0.insert(directory.standardizedFileURL.path).inserted }
-    }
-}
-
-extension WindowsHUDPanel {
-    /// One panel for the whole app: the recovery at launch (no plugin instance yet) and the running plugin show
-    /// the same one.
-    static let shared = WindowsHUDPanel()
 }
