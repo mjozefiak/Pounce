@@ -134,6 +134,10 @@ enum EngineCommand: Equatable, Sendable {
     /// Moves the focused window to a workspace.
     case moveFocusedWindow(to: WorkspaceID)
     case setWorkspaceCount(Int)
+    /// Shows the workspace of a window and focuses it (the window switcher's Return).
+    case goToWindow(WindowID)
+    /// Moves a window to the current workspace and focuses it (the window switcher's ⌘Return).
+    case bringWindowHere(WindowID)
     /// Puts every parked window back and unfreezes the engine.
     case restoreAll
 }

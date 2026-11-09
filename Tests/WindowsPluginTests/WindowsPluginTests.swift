@@ -20,15 +20,6 @@ import Testing
         #expect(plugin.requiredPermissions == [.accessibility])
     }
 
-    @Test func theSkeletonContributesNothingYet() throws {
-        let harness = try WindowsHarness()
-        defer { harness.tearDown() }
-        let plugin = WindowsPlugin(context: harness.context())
-        #expect(plugin.commands.isEmpty)
-        #expect(plugin.searchSources.isEmpty)
-        #expect(plugin.panelModes.isEmpty)
-    }
-
     @Test func activationThrowsWhenTheClientIsUnsupported() async throws {
         let harness = try WindowsHarness()
         defer { harness.tearDown() }

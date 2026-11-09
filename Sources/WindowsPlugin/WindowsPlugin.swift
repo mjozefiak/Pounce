@@ -36,7 +36,7 @@ public final class WindowsPlugin: LintelPlugin {
 
     let context: PluginContext
     let settings: WindowsSettings
-    private let hud: any WindowsHUDPresenting
+    let hud: any WindowsHUDPresenting
     private let activationCenter: NotificationCenter
     private(set) var runtime: WindowsRuntime?
     /// The first activation of this process honours safe mode; a later one (the user switched the plugin on
@@ -52,7 +52,15 @@ public final class WindowsPlugin: LintelPlugin {
         self.settings = WindowsSettings(context.settings)
         self.hud = hud
         self.activationCenter = activationCenter
+        (hud as? WindowsHUDPanel)?.allowAccessibility = { [workspace = context.workspace] in
+            guard let url = Self.accessibilitySettingsURL else { return }
+            Task { try? await workspace.open(url) }
+        }
     }
+
+    /// System Settings, Privacy & Security, Accessibility.
+    static let accessibilitySettingsURL = URL(
+        string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
 
     public var requiredPermissions: Set<Permission> { [.accessibility] }
 

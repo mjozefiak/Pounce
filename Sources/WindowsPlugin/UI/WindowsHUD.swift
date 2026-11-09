@@ -5,7 +5,17 @@ import SwiftUI
 
 /// What the window-management HUD says. The text lives here, apart from the panel, so it is tested on plain
 /// values. No window title and no bundle id ever appears in it.
+/// What a press needed Accessibility for, so the HUD can say what is blocked.
+enum AccessibilityPurpose: Equatable, Sendable {
+    case switching
+    case moving
+}
+
 enum WindowsHUDState: Equatable, Sendable {
+    /// After a switch: the workspace number and how many windows it holds (about 600 ms).
+    case workspace(number: Int, windowCount: Int)
+    /// A shortcut was pressed without Accessibility: nothing moved, and a button opens the setting.
+    case accessibilityNeeded(AccessibilityPurpose)
     /// *Restore all windows*, a recovery at launch or a re-grant: how many windows came back.
     case restored(restored: Int, onAnotherSpace: Int, failed: Int)
     /// Windows stay parked: Accessibility is off, so nothing can put them back.
@@ -20,6 +30,16 @@ enum WindowsHUDState: Equatable, Sendable {
 
     var title: String {
         switch self {
+        case .workspace(let number, _):
+            String(localized: "Workspace \(number)", comment: "Window switcher: a workspace")
+        case .accessibilityNeeded(.switching):
+            String(
+                localized: "Allow Accessibility to switch workspaces",
+                comment: "Window HUD: a workspace shortcut was pressed without Accessibility")
+        case .accessibilityNeeded(.moving):
+            String(
+                localized: "Allow Accessibility to move windows",
+                comment: "Window HUD: a move shortcut was pressed without Accessibility")
         case .restored(let restored, _, _):
             restored > 0
                 ? String(
@@ -33,6 +53,8 @@ enum WindowsHUDState: Equatable, Sendable {
 
     var detail: String? {
         switch self {
+        case .workspace(_, let count): return WindowSearchSource.windowCount(count)
+        case .accessibilityNeeded: return nil
         case .restored(_, let otherSpace, let failed):
             var parts: [String] = []
             if otherSpace > 0 {
@@ -57,6 +79,8 @@ enum WindowsHUDState: Equatable, Sendable {
 
     var symbolName: String {
         switch self {
+        case .workspace: "rectangle.3.group"
+        case .accessibilityNeeded: "lock.fill"
         case .restored(let restored, let otherSpace, let failed):
             restored > 0 && otherSpace + failed == 0 ? "checkmark.circle.fill" : "exclamationmark.circle.fill"
         case .parkedNeedsAccessibility: "exclamationmark.triangle.fill"
@@ -64,7 +88,18 @@ enum WindowsHUDState: Equatable, Sendable {
     }
 
     /// Whether the symbol is drawn in the attention colour (something is left to do) rather than ok.
-    var needsAttention: Bool { symbolName != "checkmark.circle.fill" }
+    var needsAttention: Bool {
+        switch self {
+        case .workspace: false
+        default: symbolName != "checkmark.circle.fill"
+        }
+    }
+
+    /// Whether the HUD shows the *Allow Accessibility* button (and so takes mouse clicks).
+    var offersAllowAccessibility: Bool {
+        if case .accessibilityNeeded = self { return true }
+        return false
+    }
 
     /// What VoiceOver hears.
     var announcement: String { [title, detail].compactMap { $0 }.joined(separator: ". ") }
@@ -72,6 +107,8 @@ enum WindowsHUDState: Equatable, Sendable {
     /// How long the HUD stays; a state that asks for a click stays longer.
     var hidesAfter: Duration {
         switch self {
+        case .workspace: .milliseconds(600)
+        case .accessibilityNeeded: .seconds(5)
         case .restored(_, let otherSpace, let failed): otherSpace + failed > 0 ? .seconds(4) : .seconds(2)
         case .parkedNeedsAccessibility: .seconds(6)
         }
@@ -93,6 +130,8 @@ final class WindowsHUDPanel: WindowsHUDPresenting {
     private var hosting: NSHostingView<WindowsHUDView>?
     private var hideTask: Task<Void, Never>?
     private let reducesMotion: () -> Bool
+    /// What the *Allow Accessibility* button does; the running plugin sets it.
+    var allowAccessibility: @MainActor () -> Void = {}
 
     init(reducesMotion: @escaping () -> Bool = { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }) {
         self.reducesMotion = reducesMotion
@@ -102,7 +141,9 @@ final class WindowsHUDPanel: WindowsHUDPresenting {
         hideTask?.cancel()
         let panel = panel ?? makePanel()
         self.panel = panel
-        hosting?.rootView = WindowsHUDView(state: state, reducesMotion: reducesMotion())
+        hosting?.rootView = WindowsHUDView(
+            state: state, reducesMotion: reducesMotion(), allow: { [weak self] in self?.allowAccessibility() })
+        panel.ignoresMouseEvents = !state.offersAllowAccessibility
         position(panel)
         panel.orderFrontRegardless()
         NSAccessibility.post(
@@ -121,7 +162,7 @@ final class WindowsHUDPanel: WindowsHUDPresenting {
 
     private func makePanel() -> NSPanel {
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 320, height: 64),
+            contentRect: NSRect(x: 0, y: 0, width: 480, height: 64),
             styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
         panel.level = .statusBar
         panel.isOpaque = false
@@ -151,6 +192,7 @@ final class WindowsHUDPanel: WindowsHUDPresenting {
 struct WindowsHUDView: View {
     let state: WindowsHUDState
     var reducesMotion = false
+    var allow: @MainActor () -> Void = {}
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.lintelTextSize) private var textSize
 
@@ -172,14 +214,23 @@ struct WindowsHUDView: View {
                 }
             }
             Spacer(minLength: 0)
+            if state.offersAllowAccessibility {
+                Button(String(localized: "Allow Accessibility", comment: "Window HUD: opens the Accessibility setting"))
+                {
+                    allow()
+                }
+                .buttonStyle(.link)
+                .foregroundStyle(LintelBrand.accentText)
+                .font(textSize.font(.callout, weight: .medium))
+            }
         }
         .padding(.horizontal, 16)
-        .frame(width: 288, height: 44)
+        .frame(width: state.offersAllowAccessibility ? 440 : 288, height: 44)
         .glassEffect(.regular, in: .capsule)
         .overlay {
             if contrast == .increased { Capsule().strokeBorder(LintelBrand.ink.opacity(0.6), lineWidth: 1) }
         }
-        .frame(width: 320, height: 64)
+        .frame(width: 480, height: 64)
         .animation(reducesMotion ? nil : .smooth(duration: 0.2), value: state)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(state.announcement)

@@ -78,7 +78,9 @@ final class AppCoordinator {
                     },
                     claimEscapeKey: { onEscape in hotkeys.claimEscape(onEscape) },
                     openSettings: { settingsRelay.open(manifest.id.rawValue) },
-                    openModels: { packageID in settingsRelay.openModels(manifest.id.rawValue, packageID) }
+                    openModels: { packageID in settingsRelay.openModels(manifest.id.rawValue, packageID) },
+                    setCommandShortcut: { commandID, shortcut in hotkeys.setCommandShortcut(commandID, shortcut) },
+                    commandShortcut: { commandID in hotkeys.commandShortcut(commandID)?.portable }
                 )
             },
             settings: environment.settings

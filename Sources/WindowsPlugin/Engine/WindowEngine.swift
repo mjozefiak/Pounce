@@ -117,6 +117,13 @@ actor WindowEngine {
         return report
     }
 
+    /// What the window switcher needs: the workspace of every window the engine holds and the counts.
+    func switcherState() -> (membership: [WindowID: WorkspaceID], summary: WorkspaceSummary) {
+        var membership: [WindowID: WorkspaceID] = [:]
+        for id in state.windows.keys { membership[id] = state.model.workspace(of: id) }
+        return (membership, EngineReducer.summary(of: state))
+    }
+
     /// Whether anything is parked: the engine's own windows or an entry still in the journal.
     func hasParkedWindows() async -> Bool {
         if !state.parked.isEmpty { return true }

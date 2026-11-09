@@ -144,3 +144,45 @@ nonisolated private final class Ordered: @unchecked Sendable {
 
     func leave() { lock.withLock { inFlight -= 1 } }
 }
+
+/// Step 1.9: the programmatic shortcut setter and the portable form of a registered shortcut.
+@MainActor
+@Suite struct CommandShortcutSetterTests {
+    private func service() throws -> (HotkeyService, InMemoryHotkeyRegistrar, InMemorySettingsStore) {
+        let registrar = InMemoryHotkeyRegistrar()
+        let settings = InMemorySettingsStore()
+        let service = HotkeyService(
+            registrar: registrar, settings: settings, readOccupied: { [] }, allowsRecording: false)
+        return (service, registrar, settings)
+    }
+
+    @Test func aSetShortcutIsRegisteredAndCountsAsTheUsersChoice() throws {
+        let (service, registrar, settings) = try service()
+        service.setCommandShortcut("windows.workspace.2", KeyShortcut(key: "2", modifiers: [.control, .option]))
+        let stored = try #require(registrar.shortcut(for: .command("windows.workspace.2")))
+        #expect(stored.portable == KeyShortcut(key: "2", modifiers: [.control, .option]))
+        // The default is never applied over it.
+        let command = PluginCommand(
+            id: "windows.workspace.2", title: "Go", defaultShortcut: KeyShortcut(key: "2", modifiers: [.option]))
+        service.syncCommands([command], perform: { _ in })
+        #expect(registrar.shortcut(for: .command("windows.workspace.2"))?.portable?.modifiers == [.control, .option])
+        _ = settings
+        service.setCommandShortcut("windows.workspace.2", nil)
+        #expect(registrar.shortcut(for: .command("windows.workspace.2")) == nil)
+    }
+
+    @Test func aKeyLintelCannotMapIsIgnored() throws {
+        let (service, registrar, _) = try service()
+        service.setCommandShortcut("windows.x", KeyShortcut(key: "€", modifiers: [.option]))
+        #expect(registrar.shortcut(for: .command("windows.x")) == nil)
+    }
+
+    @Test func thePortableFormRoundTrips() {
+        for shortcut in [
+            KeyShortcut(key: "1", modifiers: [.option]), KeyShortcut(key: "\t", modifiers: [.option]),
+            KeyShortcut(key: "h", modifiers: [.control, .option, .shift, .command]),
+        ] {
+            #expect(HotkeyShortcut(shortcut)?.portable == shortcut)
+        }
+    }
+}

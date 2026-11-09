@@ -90,7 +90,9 @@ struct AppEnvironment {
             @escaping @MainActor @Sendable (_ onEscape: @escaping @MainActor @Sendable () -> Void) ->
             EscapeKeyClaim = { _ in .inactive },
         openSettings: @escaping @MainActor @Sendable () -> Void = {},
-        openModels: @escaping @MainActor @Sendable (String?) -> Void = { _ in }
+        openModels: @escaping @MainActor @Sendable (String?) -> Void = { _ in },
+        setCommandShortcut: @escaping @MainActor @Sendable (String, KeyShortcut?) -> Void = { _, _ in },
+        commandShortcut: @escaping @MainActor @Sendable (String) -> KeyShortcut? = { _ in nil }
     ) -> PluginContext {
         PluginContext(
             storageDirectory: storageDirectory(for: manifest.id),
@@ -110,7 +112,9 @@ struct AppEnvironment {
             openSettings: openSettings,
             modelsDirectory: modelsDirectory,
             openModels: openModels,
-            windows: windowClient
+            windows: windowClient,
+            setCommandShortcut: setCommandShortcut,
+            commandShortcut: commandShortcut
         )
     }
 

@@ -13194,6 +13194,312 @@
           }
         }
       }
+    },
+    "Go to Workspace %lld" : {
+      "comment" : "Command: switches to a numbered workspace",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go to Workspace %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przejdź do obszaru roboczego %lld"
+          }
+        }
+      }
+    },
+    "Move Window to Workspace %lld" : {
+      "comment" : "Command: moves the focused window to a numbered workspace",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move Window to Workspace %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przenieś okno do obszaru roboczego %lld"
+          }
+        }
+      }
+    },
+    "Next Workspace" : {
+      "comment" : "Command: switches to the next workspace",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next Workspace"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Następny obszar roboczy"
+          }
+        }
+      }
+    },
+    "Previous Workspace" : {
+      "comment" : "Command: switches to the previous workspace",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous Workspace"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poprzedni obszar roboczy"
+          }
+        }
+      }
+    },
+    "Back to the Last Workspace" : {
+      "comment" : "Command: goes back to the workspace used before",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back to the Last Workspace"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wróć do ostatniego obszaru roboczego"
+          }
+        }
+      }
+    },
+    "Restore All Windows" : {
+      "comment" : "Menu item and command: puts every parked window back",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore All Windows"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywróć wszystkie okna"
+          }
+        }
+      }
+    },
+    "Workspace %lld" : {
+      "comment" : "Window switcher: a workspace",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Workspace %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obszar roboczy %lld"
+          }
+        }
+      }
+    },
+    "No windows" : {
+      "comment" : "Window HUD and switcher: an empty workspace",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No windows"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak okien"
+          }
+        }
+      }
+    },
+    "%lld windows" : {
+      "comment" : "Window HUD and switcher: how many windows a workspace holds",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld window"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld windows"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld okno"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld okna"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld okien"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld okna"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Go to Workspace" : {
+      "comment" : "Action: switches to a workspace",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go to Workspace"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przejdź do obszaru roboczego"
+          }
+        }
+      }
+    },
+    "Go to Window" : {
+      "comment" : "Action: switches to a window's workspace and focuses it",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go to Window"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przejdź do okna"
+          }
+        }
+      }
+    },
+    "Bring to This Workspace" : {
+      "comment" : "Action: moves a window to the current workspace",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bring to This Workspace"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przenieś do tego obszaru roboczego"
+          }
+        }
+      }
+    },
+    "Allow Accessibility to switch workspaces" : {
+      "comment" : "Window HUD: a workspace shortcut was pressed without Accessibility",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Accessibility to switch workspaces"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól na Dostępność, aby przełączać obszary robocze"
+          }
+        }
+      }
+    },
+    "Allow Accessibility to move windows" : {
+      "comment" : "Window HUD: a move shortcut was pressed without Accessibility",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Accessibility to move windows"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól na Dostępność, aby przenosić okna"
+          }
+        }
+      }
+    },
+    "Allow Accessibility" : {
+      "comment" : "Window HUD: opens the Accessibility setting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Accessibility"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól na Dostępność"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

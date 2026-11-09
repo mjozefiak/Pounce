@@ -359,6 +359,16 @@ enum EngineReducer {
             case .setWorkspaceCount(let count):
                 state.model.setWorkspaceCount(count)
                 reconcileParking(now: now)
+            case .goToWindow(let id):
+                guard state.windows[id] != nil else { return }
+                state.isFrozen = false
+                if let workspace = state.model.workspace(of: id) { switchTo(workspace, now: now) }
+                trailing.append(.focus(id))
+            case .bringWindowHere(let id):
+                guard state.windows[id] != nil, let current = state.model.current else { return }
+                state.isFrozen = false
+                if state.model.move(id, to: current) { reconcileParking(now: now) }
+                trailing.append(.focus(id))
             }
         }
 

@@ -18,7 +18,7 @@ Source spec: `.ai/specs/2026-11-09-window-management.md` (spec PR #66; Refs #66,
 | 1 | 1.7 | Crash recovery, restore HUD, re-grant polling | dispatch:capable | done | 7696035 |
 | 1 | 1.8a | Window id lookup and self-check | dispatch:capable | done | 7fb5290 |
 | 1 | 1.8b | AX observation | dispatch:capable | done | e53236f |
-| 1 | 1.8c | Batched setFrame and wiring | dispatch:capable | todo | |
+| 1 | 1.8c | Batched setFrame and wiring | dispatch:capable | done | e34037d |
 | 1 | 1.9 | Commands, HUD, window switcher, keyboard-layout check | dispatch:capable | todo | |
 | 1 | 1.10 | Workspace strip | dispatch:capable | todo | |
 | 1 | 1.11 | Settings pane, onboarding, diagnostics | dispatch:capable | todo | |

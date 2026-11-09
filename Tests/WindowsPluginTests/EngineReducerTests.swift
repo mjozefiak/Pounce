@@ -501,3 +501,30 @@ import Testing
         #expect(!String(describing: effects).contains("com.example.app"))
     }
 }
+
+extension EngineReducerTests {
+    /// Step 1.9: the switcher's two commands.
+    @Test func goingToAWindowShowsItsWorkspaceAndFocusesIt() {
+        var current = state([makeWindow(1), makeWindow(2)], focused: id(1))
+        (current, _) = EngineReducer.reduce(current, .command(.moveFocusedWindow(to: ws(3)), now: t0))
+        // Window 1 lives on workspace 3 (hidden); go to it.
+        let (next, effects) = EngineReducer.reduce(current, .command(.goToWindow(id(1)), now: t0 + 1))
+        #expect(next.model.current == ws(3))
+        #expect(requests(effects).contains { $0.id == id(1) && $0.purpose == .restore })
+        #expect(effects.contains(.focus(id(1))))
+        // An unknown window changes nothing.
+        let (same, none) = EngineReducer.reduce(next, .command(.goToWindow(id(99)), now: t0 + 2))
+        #expect(same == next)
+        #expect(none.isEmpty)
+    }
+
+    @Test func bringingAWindowHereMovesItToTheCurrentWorkspace() {
+        var current = state([makeWindow(1), makeWindow(2)], focused: id(1))
+        (current, _) = EngineReducer.reduce(current, .command(.moveFocusedWindow(to: ws(2)), now: t0))
+        #expect(current.model.workspace(of: id(1)) == ws(2))
+        let (next, effects) = EngineReducer.reduce(current, .command(.bringWindowHere(id(1)), now: t0 + 1))
+        #expect(next.model.workspace(of: id(1)) == ws(1))
+        #expect(next.model.current == ws(1))
+        #expect(effects.contains(.focus(id(1))))
+    }
+}

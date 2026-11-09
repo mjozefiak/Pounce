@@ -130,6 +130,13 @@ public struct PluginContext: Sendable {
     /// Reads and moves other applications' windows (Accessibility). Added with window management; the default
     /// client reports no windows and no displays and is `unsupported`.
     public let windows: any WindowClient
+    /// Sets (or, with `nil`, clears) the global shortcut of one of this plugin's commands, as if the user had
+    /// recorded it, so a pane can offer one row per family of numbered commands. Added with window management; the
+    /// default does nothing.
+    public let setCommandShortcut: @MainActor @Sendable (_ commandID: String, _ shortcut: KeyShortcut?) -> Void
+    /// The shortcut a command has right now (the user's, or its default); `nil` when none. Added with window
+    /// management; the default answers `nil`.
+    public let commandShortcut: @MainActor @Sendable (_ commandID: String) -> KeyShortcut?
 
     public init(
         storageDirectory: URL,
@@ -154,7 +161,11 @@ public struct PluginContext: Sendable {
         modelsDirectory: URL? = nil,
         availableCommands: @escaping @MainActor @Sendable () -> [CommandInfo] = { [] },
         openModels: @escaping @MainActor @Sendable (_ packageID: String?) -> Void = { _ in },
-        windows: any WindowClient = NoWindowClient()
+        windows: any WindowClient = NoWindowClient(),
+        setCommandShortcut: @escaping @MainActor @Sendable (_ commandID: String, _ shortcut: KeyShortcut?) -> Void = {
+            _, _ in
+        },
+        commandShortcut: @escaping @MainActor @Sendable (_ commandID: String) -> KeyShortcut? = { _ in nil }
     ) {
         self.storageDirectory = storageDirectory
         self.settings = settings
@@ -177,5 +188,7 @@ public struct PluginContext: Sendable {
         self.availableCommands = availableCommands
         self.openModels = openModels
         self.windows = windows
+        self.setCommandShortcut = setCommandShortcut
+        self.commandShortcut = commandShortcut
     }
 }
