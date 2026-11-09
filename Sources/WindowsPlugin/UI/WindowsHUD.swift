@@ -20,6 +20,8 @@ enum WindowsHUDState: Equatable, Sendable {
     case restored(restored: Int, onAnotherSpace: Int, failed: Int)
     /// Windows stay parked: Accessibility is off, so nothing can put them back.
     case parkedNeedsAccessibility
+    /// Shown once, the first time a Zones layout is active: how to snap a window by dragging.
+    case snapHint
 
     init(report: RecoveryReport) {
         self =
@@ -48,13 +50,15 @@ enum WindowsHUDState: Equatable, Sendable {
                 : String(localized: "No windows restored", comment: "Window HUD: nothing could be put back")
         case .parkedNeedsAccessibility:
             String(localized: "Windows are parked", comment: "Window HUD: windows are hidden and cannot be restored")
+        case .snapHint:
+            ZoneOverlayText.hint
         }
     }
 
     var detail: String? {
         switch self {
         case .workspace(_, let count): return WindowSearchSource.windowCount(count)
-        case .accessibilityNeeded: return nil
+        case .accessibilityNeeded, .snapHint: return nil
         case .restored(_, let otherSpace, let failed):
             var parts: [String] = []
             if otherSpace > 0 {
@@ -84,13 +88,14 @@ enum WindowsHUDState: Equatable, Sendable {
         case .restored(let restored, let otherSpace, let failed):
             restored > 0 && otherSpace + failed == 0 ? "checkmark.circle.fill" : "exclamationmark.circle.fill"
         case .parkedNeedsAccessibility: "exclamationmark.triangle.fill"
+        case .snapHint: "rectangle.split.3x1"
         }
     }
 
     /// Whether the symbol is drawn in the attention colour (something is left to do) rather than ok.
     var needsAttention: Bool {
         switch self {
-        case .workspace: false
+        case .workspace, .snapHint: false
         default: symbolName != "checkmark.circle.fill"
         }
     }
@@ -113,6 +118,7 @@ enum WindowsHUDState: Equatable, Sendable {
         case .accessibilityNeeded: .seconds(5)
         case .restored(_, let otherSpace, let failed): otherSpace + failed > 0 ? .seconds(4) : .seconds(2)
         case .parkedNeedsAccessibility: .seconds(6)
+        case .snapHint: .seconds(4)
         }
     }
 }

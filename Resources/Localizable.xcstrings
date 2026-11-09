@@ -15336,6 +15336,60 @@
           }
         }
       }
+    },
+    "Zone %lld" : {
+      "comment" : "Snap overlay: the name of a zone, spoken when it is highlighted",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zone %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strefa %lld"
+          }
+        }
+      }
+    },
+    "Zones. Release to snap the window." : {
+      "comment" : "Snap overlay: what VoiceOver hears for the overlay while a window is dragged",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zones. Release to snap the window."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strefy. Puść, aby przyciągnąć okno."
+          }
+        }
+      }
+    },
+    "Hold ⇧ while dragging to snap" : {
+      "comment" : "Window HUD: shown once, the first time a Zones layout is active",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold ⇧ while dragging to snap"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przytrzymaj ⇧ podczas przeciągania, aby przyciągnąć"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

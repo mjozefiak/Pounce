@@ -25,6 +25,8 @@ struct WindowsSettings: Sendable {
         static let safeMode = "safeMode"
         /// Hidden: how many launches in a row ended with parked windows (`safeMode` follows at two).
         static let parkedLaunches = "parkedLaunches"
+        /// Hidden: the one-time "Hold ⇧ while dragging to snap" hint was shown.
+        static let snapHintShown = "snapHintShown"
     }
 
     /// What the strip shows.
@@ -99,6 +101,7 @@ struct WindowsSettings: Sendable {
     var stripMode: StripMode { settings.string(Key.stripMode).flatMap(StripMode.init(rawValue:)) ?? .all }
 
     var safeMode: Bool { settings.bool(Key.safeMode, default: false) }
+    var snapHintShown: Bool { settings.bool(Key.snapHintShown, default: false) }
     var parkedLaunches: Int { max(0, settings.integer(Key.parkedLaunches, default: 0)) }
 
     // MARK: Setters (the pane and the engine write through these)
@@ -130,5 +133,6 @@ struct WindowsSettings: Sendable {
     func setStripEnabled(_ value: Bool) { settings.set(value, for: Key.stripEnabled) }
     func setStripMode(_ mode: StripMode) { settings.set(mode.rawValue, for: Key.stripMode) }
     func setSafeMode(_ value: Bool) { settings.set(value, for: Key.safeMode) }
+    func setSnapHintShown(_ value: Bool) { settings.set(value, for: Key.snapHintShown) }
     func setParkedLaunches(_ count: Int) { settings.set(max(0, count), for: Key.parkedLaunches) }
 }

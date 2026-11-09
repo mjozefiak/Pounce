@@ -37,6 +37,11 @@ final class WindowsRuntime {
     /// The menu bar strip; `nil` until `start()` when it is on, and in tests that pass `makeStrip: nil`.
     private(set) var strip: WorkspaceStripController?
     private let makeStrip: (@MainActor (WindowsRuntime) -> WorkspaceStripController)?
+    /// Drag-to-snap: `nil` in tests that pass no factory (the overlay needs a display).
+    private(set) var dragController: ZoneDragController?
+    private let makeDragController: (@MainActor (WindowsRuntime) -> ZoneDragController)?
+    /// Releases the overlay panels when the runtime stops.
+    var tearDownOverlay: @MainActor () -> Void = {}
     private var lastSummary: WorkspaceSummary?
     private let summaryRelay: SummaryRelay
     /// Called when Accessibility is granted, before windows are restored (the plugin re-runs the self-check).
@@ -50,9 +55,11 @@ final class WindowsRuntime {
     init(
         context: PluginContext, settings: WindowsSettings, hud: any WindowsHUDPresenting,
         activationCenter: NotificationCenter = .default, tick: Duration = .milliseconds(30),
-        makeStrip: (@MainActor (WindowsRuntime) -> WorkspaceStripController)? = nil
+        makeStrip: (@MainActor (WindowsRuntime) -> WorkspaceStripController)? = nil,
+        makeDragController: (@MainActor (WindowsRuntime) -> ZoneDragController)? = nil
     ) {
         self.makeStrip = makeStrip
+        self.makeDragController = makeDragController
         self.context = context
         self.settings = settings
         self.hud = hud
@@ -74,12 +81,14 @@ final class WindowsRuntime {
                 },
                 summary: { summary in Task { @MainActor in relay.handler(summary) } },
                 banner: { banner in Task { @MainActor in relay.bannerHandler(banner) } },
+                windowMoved: { id in Task { @MainActor in relay.dragHandler(id) } },
                 restored: { report in
                     Task { @MainActor in hud.show(WindowsHUDState(report: report)) }
                 }),
             canMove: { flag.isTrusted }, logger: context.logger)
         self.activationCenter = activationCenter
         relay.handler = { [weak self] summary in self?.summaryChanged(summary) }
+        relay.dragHandler = { [weak self] id in self?.dragController?.windowMoved(id) }
         relay.bannerHandler = { [weak self] banner in
             self?.engineBanner = banner
             self?.context.resultsChanged()
@@ -90,6 +99,24 @@ final class WindowsRuntime {
     private func summaryChanged(_ summary: WorkspaceSummary) {
         lastSummary = summary
         strip?.update(stripBoxes())
+        showSnapHintIfNeeded()
+    }
+
+    /// The first time a Zones layout is on screen, once ever: how to snap by dragging. Only with Accessibility,
+    /// because without it nothing can be snapped.
+    func showSnapHintIfNeeded() {
+        guard !settings.snapHintShown, trust.isTrusted, let summary = lastSummary else { return }
+        let layout = Self.config(settings).layout
+        guard summary.visible.values.contains(where: { layout.resolved(for: $0).kind == .zones }) else { return }
+        settings.setSnapHintShown(true)
+        hud.show(.snapHint)
+    }
+
+    /// A drag released over a zone: the engine moves the window, behind the same Accessibility gate as every
+    /// move.
+    func snap(_ window: WindowID, to zone: DragZone) async {
+        guard trust.refresh() else { return }
+        await engine.send(.snapToZone(window, zone: zone.zoneID, displayKey: zone.displayKey))
     }
 
     func stripBoxes() -> [StripBox] {
@@ -141,6 +168,7 @@ final class WindowsRuntime {
         await engine.update(config: Self.config(settings, assignments: await assignments.table))
         await engine.start()
         applyStrip()
+        if dragController == nil { dragController = makeDragController?(self) }
     }
 
     /// Puts the windows back and stops, waiting at most `stopBudget`.
@@ -148,6 +176,9 @@ final class WindowsRuntime {
         activationObserver?.stop()
         activationObserver = nil
         trust.stop()
+        dragController?.cancel()
+        dragController = nil
+        tearDownOverlay()
         strip?.remove()
         strip = nil
         let engine = engine
@@ -230,6 +261,7 @@ final class WindowsRuntime {
         await engine.update(config: Self.config(settings, assignments: await assignments.table))
         await engine.send(.setWorkspaceCount(settings.workspaceCount))
         applyStrip()
+        showSnapHintIfNeeded()
     }
 
     /// Accessibility came back: windows parked before it was revoked are restored at once, which is the only safe
@@ -286,4 +318,5 @@ struct InactiveSwitcher: WindowSwitching {
 final class SummaryRelay {
     var handler: @MainActor (WorkspaceSummary) -> Void = { _ in }
     var bannerHandler: @MainActor (EngineBanner) -> Void = { _ in }
+    var dragHandler: @MainActor (WindowID) -> Void = { _ in }
 }

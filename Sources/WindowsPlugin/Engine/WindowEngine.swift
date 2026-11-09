@@ -9,6 +9,9 @@ struct EngineOutputs: Sendable {
     var hud: @Sendable (_ workspace: WorkspaceID, _ windowCount: Int) -> Void = { _, _ in }
     var summary: @Sendable (WorkspaceSummary) -> Void = { _ in }
     var banner: @Sendable (EngineBanner) -> Void = { _ in }
+    /// A managed window of a Zones workspace was moved by the user (or an app): the snap overlay's detector samples
+    /// the pointer.
+    var windowMoved: @Sendable (WindowID) -> Void = { _ in }
     /// Windows came back without a command asking for it (a Space change showed journal entries again).
     var restored: @Sendable (RecoveryReport) -> Void = { _ in }
 }
@@ -118,6 +121,9 @@ actor WindowEngine {
         report.needsAccessibility = !trusted && (!before.isEmpty || residue.needsAccessibility)
         return report
     }
+
+    /// The zones the snap overlay offers while a window is dragged (empty when it must not appear).
+    func dragDisplays(for id: WindowID) -> [DragDisplay] { state.dragDisplays(for: id) }
 
     /// What the window switcher needs: the workspace of every window the engine holds and the counts.
     func switcherState() -> (membership: [WindowID: WorkspaceID], summary: WorkspaceSummary) {
@@ -347,7 +353,7 @@ actor WindowEngine {
                 results.append(FrameResult(request: request, outcome: .failed(.notTrusted)))
             case .journalRemove(let ids):
                 removals.formUnion(ids)
-            case .journalPark, .focus:
+            case .journalPark, .focus, .userMovedWindow:
                 break
             default:
                 await perform(effect)
@@ -420,6 +426,8 @@ actor WindowEngine {
             await store.setTiling(tiling)
         case .saveZones(let zones):
             await store.setZones(zones)
+        case .userMovedWindow(let id):
+            outputs.windowMoved(id)
         case .hud(let workspace, let count):
             outputs.hud(workspace, count)
         case .summaryChanged(let summary):

@@ -40,6 +40,8 @@ public final class WindowsPlugin: LintelPlugin {
     private let activationCenter: NotificationCenter
     /// Whether the plugin shows the menu bar strip when it is on. Tests leave it off: a status item needs a display.
     private let showsStrip: Bool
+    /// Whether the plugin builds the snap overlay (a panel per display). Tests leave it off, like the strip.
+    private let showsOverlay: Bool
     private(set) var runtime: WindowsRuntime?
     private(set) var lastStartError: StartError?
     /// Built on first use; creating it reads settings only.
@@ -53,14 +55,17 @@ public final class WindowsPlugin: LintelPlugin {
     private var launchActivationDone = false
 
     public convenience init(context: PluginContext) {
-        self.init(context: context, hud: WindowsHUDPanel.shared, activationCenter: .default, showsStrip: true)
+        self.init(
+            context: context, hud: WindowsHUDPanel.shared, activationCenter: .default, showsStrip: true,
+            showsOverlay: true)
     }
 
     init(
         context: PluginContext, hud: any WindowsHUDPresenting, activationCenter: NotificationCenter,
-        showsStrip: Bool = false
+        showsStrip: Bool = false, showsOverlay: Bool = false
     ) {
         self.showsStrip = showsStrip
+        self.showsOverlay = showsOverlay
         self.context = context
         self.settings = WindowsSettings(context.settings)
         self.hud = hud
@@ -110,8 +115,22 @@ public final class WindowsPlugin: LintelPlugin {
                     restoreAll: { Task { await runtime.restoreAllWindows() } })
             }
         }
+        var makeDrag: (@MainActor (WindowsRuntime) -> ZoneDragController)?
+        var overlay: ZoneOverlayPanels?
+        if showsOverlay {
+            let panels = ZoneOverlayPanels()
+            overlay = panels
+            makeDrag = { runtime in
+                ZoneDragController(
+                    sampler: SystemPointerSampler(), presenter: panels, ticker: TimerDragTicker(),
+                    targets: { [engine = runtime.engine] id in await engine.dragDisplays(for: id) },
+                    snap: { [weak runtime] id, zone in await runtime?.snap(id, to: zone) })
+            }
+        }
         let runtime = WindowsRuntime(
-            context: context, settings: settings, hud: hud, activationCenter: activationCenter, makeStrip: makeStrip)
+            context: context, settings: settings, hud: hud, activationCenter: activationCenter, makeStrip: makeStrip,
+            makeDragController: makeDrag)
+        runtime.tearDownOverlay = { overlay?.tearDown() }
         self.runtime = runtime
         runtime.onTrustGranted = { [weak self] in await self?.recheckAvailability() }
         await runtime.start()
