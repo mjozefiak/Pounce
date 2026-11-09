@@ -3,6 +3,8 @@ import Foundation
 import LintelKit
 import Synchronization
 
+@testable import WindowsPlugin
+
 /// A scriptable, in-memory `WindowClient`: latency, refusals, hung apps, minimum sizes, apps that move their
 /// window back, echoes of our own frames and re-ordered events. It records every call, so a test can assert what
 /// the engine did and in which order.
@@ -18,6 +20,8 @@ final class FakeWindowClient: WindowClient, Sendable {
         case gone
         /// The app moves the window back to this frame right after every change (and says so with an event).
         case snapBack(CGRect)
+        /// The app does not answer until the test calls `releaseStalls()` (a hung app that eventually returns).
+        case stall
     }
 
     struct Call: Equatable, Sendable {
@@ -41,6 +45,11 @@ final class FakeWindowClient: WindowClient, Sendable {
         var latency: Duration = .zero
         var echoes = false
         var available = true
+        var stalled = 0
+        var stallsReleased = false
+        var stallContinuations: [CheckedContinuation<Void, Never>] = []
+        var callWaiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
+        var stallWaiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
     }
 
     private let state = Mutex(State())
@@ -92,6 +101,41 @@ final class FakeWindowClient: WindowClient, Sendable {
 
     func finish() { continuation.finish() }
 
+    /// Waits until `count` calls are stalled (deterministic: no polling).
+    func waitUntilStalled(_ count: Int) async {
+        await withCheckedContinuation { continuation in
+            let ready = state.withLock { state -> Bool in
+                if state.stalled >= count { return true }
+                state.stallWaiters.append((count, continuation))
+                return false
+            }
+            if ready { continuation.resume() }
+        }
+    }
+
+    /// Waits until `count` `setFrame` calls have started (deterministic: no polling).
+    func waitUntilCalls(_ count: Int) async {
+        await withCheckedContinuation { continuation in
+            let ready = state.withLock { state -> Bool in
+                if state.calls.count >= count { return true }
+                state.callWaiters.append((count, continuation))
+                return false
+            }
+            if ready { continuation.resume() }
+        }
+    }
+
+    /// Lets every stalled call (now and later) go on.
+    func releaseStalls() {
+        let waiting = state.withLock { state -> [CheckedContinuation<Void, Never>] in
+            state.stallsReleased = true
+            let all = state.stallContinuations
+            state.stallContinuations = []
+            return all
+        }
+        for continuation in waiting { continuation.resume() }
+    }
+
     // MARK: Observation
 
     var calls: [Call] { state.withLock { $0.calls } }
@@ -131,21 +175,38 @@ final class FakeWindowClient: WindowClient, Sendable {
     }
 
     func setFrame(_ frame: CGRect, for id: WindowID) async throws(WindowClientError) -> CGRect {
+        var wake: [CheckedContinuation<Void, Never>] = []
         let (latency, behavior) = state.withLock { state -> (Duration, Behavior) in
             state.calls.append(Call(id: id, frame: frame))
+            wake = state.callWaiters.filter { $0.count <= state.calls.count }.map(\.continuation)
+            state.callWaiters.removeAll { $0.count <= state.calls.count }
             state.inFlight += 1
             state.maxInFlight = max(state.maxInFlight, state.inFlight)
             return (state.latency, state.behaviors[id] ?? state.behaviorsByProcess[id.pid] ?? .normal)
         }
+        for waiter in wake { waiter.resume() }
         if latency > .zero { try? await Task.sleep(for: latency) }
         defer { state.withLock { $0.inFlight -= 1 } }
+        if behavior == .stall {
+            await withCheckedContinuation { continuation in
+                let (release, ready) = state.withLock { state -> (Bool, [CheckedContinuation<Void, Never>]) in
+                    state.stalled += 1
+                    let ready = state.stallWaiters.filter { $0.count <= state.stalled }.map(\.continuation)
+                    state.stallWaiters.removeAll { $0.count <= state.stalled }
+                    if !state.stallsReleased { state.stallContinuations.append(continuation) }
+                    return (state.stallsReleased, ready)
+                }
+                for waiter in ready { waiter.resume() }
+                if release { continuation.resume() }
+            }
+        }
         switch behavior {
         case .hung: throw .timedOut
         case .refuse: throw .refused
         case .gone:
             remove(id)
             throw .windowGone
-        case .normal, .snapBack:
+        case .normal, .snapBack, .stall:
             break
         }
         let result: (actual: CGRect, echo: Bool, snap: CGRect?)? = state.withLock { state in
@@ -186,22 +247,87 @@ func makeWindow(
         isStandard: standard, isMinimized: minimized, isFullscreen: fullscreen)
 }
 
-/// A clock the test moves by hand.
-final class ManualNow: @unchecked Sendable {
-    private let lock = NSLock()
-    private var value: Double
+/// A virtual clock: time moves only when a test advances it or, with `autoAdvance`, when something sleeps (the
+/// sleep then ends at once and the clock jumps to its deadline), so no test waits in real time.
+final class VirtualClock: Clock, @unchecked Sendable {
+    struct Instant: InstantProtocol {
+        var offset: Duration
 
-    init(_ value: Double = 10_000) { self.value = value }
-
-    var now: Double {
-        lock.lock()
-        defer { lock.unlock() }
-        return value
+        func advanced(by duration: Duration) -> Instant { Instant(offset: offset + duration) }
+        func duration(to other: Instant) -> Duration { other.offset - offset }
+        static func < (lhs: Instant, rhs: Instant) -> Bool { lhs.offset < rhs.offset }
     }
 
+    private struct Sleeper {
+        var deadline: Instant
+        var continuation: CheckedContinuation<Void, Error>
+    }
+
+    private let lock = NSLock()
+    private var current: Instant
+    private var sleepers: [UInt64: Sleeper] = [:]
+    private var nextID: UInt64 = 0
+    private let autoAdvance: Bool
+
+    init(start: Double = 10_000, autoAdvance: Bool = true) {
+        current = Instant(offset: .seconds(start))
+        self.autoAdvance = autoAdvance
+    }
+
+    var now: Instant { lock.withLock { current } }
+    var minimumResolution: Duration { .zero }
+
+    /// The time in seconds, for the inputs a test builds by hand.
+    var seconds: Double {
+        let parts = now.offset.components
+        return Double(parts.seconds) + Double(parts.attoseconds) / 1e18
+    }
+
+    /// Moves time forward and wakes every sleeper whose deadline has passed.
     func advance(_ seconds: Double) {
-        lock.lock()
-        defer { lock.unlock() }
-        value += seconds
+        let due: [Sleeper] = lock.withLock {
+            current = current.advanced(by: .seconds(seconds))
+            let ready = sleepers.filter { $0.value.deadline <= current }
+            for key in ready.keys { sleepers[key] = nil }
+            return Array(ready.values)
+        }
+        for sleeper in due { sleeper.continuation.resume() }
+    }
+
+    func sleep(until deadline: Instant, tolerance: Duration?) async throws {
+        try Task.checkCancellation()
+        let immediate = lock.withLock { () -> Bool in
+            if deadline <= current { return true }
+            if autoAdvance {
+                current = deadline
+                return true
+            }
+            return false
+        }
+        if immediate {
+            await Task.yield()
+            return
+        }
+        let id = lock.withLock { () -> UInt64 in
+            nextID += 1
+            return nextID
+        }
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                lock.withLock { sleepers[id] = Sleeper(deadline: deadline, continuation: continuation) }
+            }
+        } onCancel: {
+            let sleeper = lock.withLock { sleepers.removeValue(forKey: id) }
+            sleeper?.continuation.resume(throwing: CancellationError())
+        }
+    }
+}
+
+typealias ManualNow = VirtualClock
+
+extension WindowEngine {
+    /// The whole state, read on the engine's actor.
+    var snapshot: EngineState {
+        get async { await inspect { $0 } }
     }
 }

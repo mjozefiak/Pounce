@@ -28,7 +28,7 @@ import Testing
         config.layout = LayoutConfig(
             defaultKind: kind, innerGap: 0, outerGap: 0, rootOrientation: .horizontal, overrides: [:])
         let engine = WindowEngine(
-            client: client, store: store, now: { time.now }, workspaceCount: 4, config: config,
+            client: client, store: store, clock: time, workspaceCount: 4, config: config,
             tick: .milliseconds(5))
         await engine.start()
         return Rig(harness: harness, client: client, engine: engine)
@@ -43,7 +43,7 @@ import Testing
         defer { rig.harness.tearDown() }
         await rig.engine.send(.focusDirection(.right))
         #expect(rig.client.focusCalls == [id(2)])
-        #expect((await rig.engine.state).focused == id(2))
+        #expect((await rig.engine.snapshot).focused == id(2))
         await rig.engine.send(.focusDirection(.right))
         await rig.engine.send(.focusDirection(.right))
         #expect(rig.client.focusCalls == [id(2), id(3)])
@@ -58,7 +58,7 @@ import Testing
         let rig = try await rig()
         defer { rig.harness.tearDown() }
         await rig.engine.send(.moveInTree(.right))
-        #expect((await rig.engine.state).tiling[ws(1)]?.windows == [id(2), id(1), id(3)])
+        #expect((await rig.engine.snapshot).tiling[ws(1)]?.windows == [id(2), id(1), id(3)])
         #expect(x(rig, 2) == 0 && x(rig, 1) == 640 && x(rig, 3) == 1280)
         await rig.engine.stop()
     }
@@ -118,7 +118,7 @@ import Testing
         defer { rig.harness.tearDown() }
         await rig.engine.send(.toggleFloating)
         rig.client.clearCalls()
-        let before = (await rig.engine.state).tiling
+        let before = (await rig.engine.snapshot).tiling
         for command: EngineCommand in [
             .focusDirection(.right), .moveInTree(.right), .resize(0.05), .join(.right), .toggleOrientation, .balance,
         ] {
@@ -126,7 +126,7 @@ import Testing
         }
         #expect(rig.client.calls.isEmpty)
         #expect(rig.client.focusCalls.isEmpty)
-        #expect((await rig.engine.state).tiling == before)
+        #expect((await rig.engine.snapshot).tiling == before)
         await rig.engine.stop()
     }
 
@@ -140,7 +140,7 @@ import Testing
         }
         #expect(rig.client.calls.isEmpty)
         #expect(rig.client.focusCalls.isEmpty)
-        #expect((await rig.engine.state).tiling.isEmpty)
+        #expect((await rig.engine.snapshot).tiling.isEmpty)
         await rig.engine.stop()
     }
 

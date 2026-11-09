@@ -305,9 +305,9 @@ final class WindowsRuntime {
     }
 
     func diagnosticsText() async -> String {
-        let state = await engine.state
+        let diagnostics = await engine.diagnostics()
         return WindowsDiagnostics.report(
-            state.diagnostics, recoveredWindows: recoveredWindows, parkedWindows: state.parked.count,
+            diagnostics, recoveredWindows: recoveredWindows, parkedWindows: await engine.parkedCount(),
             workspaceCount: settings.workspaceCount, accessibilityTrusted: trust.isTrusted)
     }
 

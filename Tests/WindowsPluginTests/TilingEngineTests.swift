@@ -41,7 +41,7 @@ import Testing
         let store = StateStore(directory: harness.directory, saveDelay: .seconds(3600))
         let time = ManualNow()
         let engine = WindowEngine(
-            client: client, store: store, now: { time.now }, workspaceCount: count,
+            client: client, store: store, clock: time, workspaceCount: count,
             config: config ?? tilingConfig(), tick: .milliseconds(5), canMove: canMove)
         return Rig(harness: harness, client: client, store: store, engine: engine, time: time)
     }
@@ -78,7 +78,7 @@ import Testing
         #expect(rig.client.frame(of: id(1))?.minX == 0)
         #expect(rig.client.frame(of: id(3))?.minX == third.rounded())
         #expect(rig.client.frame(of: id(2))?.minX == (2 * third).rounded())
-        #expect((await rig.engine.state).tiling[ws(1)]?.windows == [id(1), id(3), id(2)])
+        #expect((await rig.engine.snapshot).tiling[ws(1)]?.windows == [id(1), id(3), id(2)])
         await rig.engine.stop()
     }
 
@@ -93,8 +93,8 @@ import Testing
         rig.client.setFocused(id(4))
         await rig.engine.ingest(.focused(id(4)))
         await rig.engine.settle()
-        #expect((await rig.engine.state).tiling[ws(1)]?.windows == [id(1), id(4), id(2), id(3)])
-        #expect((await rig.engine.state).previousFocus == id(1))
+        #expect((await rig.engine.snapshot).tiling[ws(1)]?.windows == [id(1), id(4), id(2), id(3)])
+        #expect((await rig.engine.snapshot).previousFocus == id(1))
         await rig.engine.stop()
     }
 
@@ -148,7 +148,7 @@ import Testing
         defer { rig.harness.tearDown() }
         await rig.engine.start()
         // Zones place the windows (`ZoneEngineTests`); no tiling tree is ever built for the workspace.
-        #expect((await rig.engine.state).tiling.isEmpty)
+        #expect((await rig.engine.snapshot).tiling.isEmpty)
         await rig.engine.stop()
     }
 
@@ -165,11 +165,11 @@ import Testing
         let rig = try rig([makeWindow(1), makeWindow(2)])
         defer { rig.harness.tearDown() }
         await rig.engine.start()
-        let tree = (await rig.engine.state).tiling[ws(1)]
+        let tree = (await rig.engine.snapshot).tiling[ws(1)]
         rig.client.clearCalls()
         await rig.engine.update(config: tilingConfig(kind: .free))
         #expect(rig.client.calls.isEmpty)
-        #expect((await rig.engine.state).tiling[ws(1)] == tree)
+        #expect((await rig.engine.snapshot).tiling[ws(1)] == tree)
         // Back to Auto-tile: tiled again, from the kept state.
         rig.time.advance(2)
         rig.client.moveBehindTheEnginesBack(id(1), to: CGRect(x: 5, y: 5, width: 300, height: 300))
@@ -196,12 +196,12 @@ import Testing
         defer { rig.harness.tearDown() }
         await rig.engine.start()
         await rig.engine.send(.toggleFloating)
-        #expect((await rig.engine.state).floating == [id(1)])
+        #expect((await rig.engine.snapshot).floating == [id(1)])
         #expect(rig.client.frame(of: id(2)) == area)
         // The floating window stays where it was.
         #expect(rig.client.frame(of: id(1)) == CGRect(x: 0, y: 25, width: 960, height: 1055))
         await rig.engine.send(.toggleFloating)
-        #expect((await rig.engine.state).floating.isEmpty)
+        #expect((await rig.engine.snapshot).floating.isEmpty)
         // It comes back at the end (nothing else was focused before it), so window 2 moves to the left.
         #expect(rig.client.frame(of: id(2)) == CGRect(x: 0, y: 25, width: 960, height: 1055))
         #expect(rig.client.frame(of: id(1)) == CGRect(x: 960, y: 25, width: 960, height: 1055))
@@ -227,7 +227,7 @@ import Testing
         var config = tilingConfig()
         config.floatingBundleIDs = ["com.example.other"]
         await rig.engine.update(config: config)
-        #expect((await rig.engine.state).tiling[ws(1)]?.windows == [id(1)])
+        #expect((await rig.engine.snapshot).tiling[ws(1)]?.windows == [id(1)])
         #expect(rig.client.frame(of: id(1)) == area)
         await rig.engine.stop()
     }
@@ -248,7 +248,7 @@ import Testing
         defer { rig.harness.tearDown() }
         rig.client.setMinimumSize(CGSize(width: 1200, height: 400), for: id(1))
         await rig.engine.start()
-        let state = await rig.engine.state
+        let state = await rig.engine.snapshot
         #expect(state.stubborn == [id(1)])
         let centred = rig.client.frame(of: id(1))
         // The fake grows the width to the minimum and keeps the tile's height.
@@ -258,7 +258,7 @@ import Testing
         rig.client.add(makeWindow(3))
         await rig.engine.ingest(.created(id(3)))
         await rig.engine.settle()
-        #expect((await rig.engine.state).stubborn == [id(1)])
+        #expect((await rig.engine.snapshot).stubborn == [id(1)])
         // The tile changed size (two to three tiles), so it was tried once more, not in a loop.
         #expect(rig.client.calls.count <= calls + 6)
         await rig.engine.stop()
@@ -269,13 +269,13 @@ import Testing
         defer { rig.harness.tearDown() }
         rig.client.setMinimumSize(CGSize(width: 1200, height: 400), for: id(1))
         await rig.engine.start()
-        #expect((await rig.engine.state).stubborn == [id(1)])
+        #expect((await rig.engine.snapshot).stubborn == [id(1)])
         // The app now accepts small sizes and the other window closes: the tile is the whole screen.
         rig.client.setMinimumSize(CGSize(width: 100, height: 100), for: id(1))
         rig.client.remove(id(2))
         await rig.engine.ingest(.destroyed(id(2)))
         await rig.engine.settle()
-        #expect((await rig.engine.state).stubborn.isEmpty)
+        #expect((await rig.engine.snapshot).stubborn.isEmpty)
         #expect(rig.client.frame(of: id(1)) == area)
         await rig.engine.stop()
     }
@@ -312,7 +312,7 @@ import Testing
         let first = try rig([makeWindow(1), makeWindow(2), makeWindow(3)])
         defer { first.harness.tearDown() }
         await first.engine.start()
-        let tree = (await first.engine.state).tiling[ws(1)]
+        let tree = (await first.engine.snapshot).tiling[ws(1)]
         #expect(tree?.windows == [id(1), id(2), id(3)])
         await first.engine.stop()
 
@@ -323,7 +323,7 @@ import Testing
         let second = try rig([makeWindow(1), makeWindow(2)], directory: first.harness)
         await second.engine.start()
         // Window 3 is gone: the restored tree was pruned to the live windows.
-        #expect((await second.engine.state).tiling[ws(1)]?.windows == [id(1), id(2)])
+        #expect((await second.engine.snapshot).tiling[ws(1)]?.windows == [id(1), id(2)])
         await second.engine.stop()
     }
 

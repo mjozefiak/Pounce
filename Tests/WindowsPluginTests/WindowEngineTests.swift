@@ -1,6 +1,7 @@
 import CoreGraphics
 import Foundation
 import LintelKit
+import Synchronization
 import Testing
 
 @testable import WindowsPlugin
@@ -42,15 +43,15 @@ import Testing
     private func rig(
         _ windows: [WindowInfo], displays: [DisplayInfo] = [FakeWindowClient.mainDisplay], count: Int = 4,
         watchdog: Watchdog = Watchdog(), config: EngineConfig = EngineConfig(),
-        tick: Duration = .milliseconds(5)
+        tick: Duration = .milliseconds(5), autoTick: Bool = true
     ) throws -> Rig {
         let harness = try WindowsHarness()
         let client = FakeWindowClient(displays: displays, windows: windows)
         let store = StateStore(directory: harness.directory, saveDelay: .seconds(3600))
         let recorder = Recorder()
-        let time = ManualNow()
+        let time = ManualNow(autoAdvance: autoTick)
         let engine = WindowEngine(
-            client: client, store: store, now: { time.now }, workspaceCount: count, config: config,
+            client: client, store: store, clock: time, workspaceCount: count, config: config,
             tick: tick, watchdog: watchdog, outputs: recorder.outputs)
         return Rig(harness: harness, client: client, store: store, engine: engine, recorder: recorder, time: time)
     }
@@ -91,8 +92,8 @@ import Testing
         #expect(rig.client.calls.isEmpty)
         #expect(rig.client.frame(of: id(1)) == home)
         #expect(rig.recorder.banners.contains(.cannotJournal))
-        #expect((await rig.engine.state).canJournal == false)
-        #expect((await rig.engine.state).diagnostics.refusedParks == 1)
+        #expect((await rig.engine.snapshot).canJournal == false)
+        #expect((await rig.engine.snapshot).diagnostics.refusedParks == 1)
     }
 
     @Test func aKillAfterTheJournalWriteLeavesTheEntryForTheNextLaunch() async throws {
@@ -145,7 +146,7 @@ import Testing
         await rig.engine.ingest(.focused(id(1)))
         await rig.engine.settle()
         #expect(rig.client.frame(of: id(1)) == home)
-        #expect((await rig.engine.state).model.current == ws(1))
+        #expect((await rig.engine.snapshot).model.current == ws(1))
         await rig.engine.stop()
     }
 
@@ -161,7 +162,7 @@ import Testing
             try await Task.sleep(for: .milliseconds(10))
         }
         await rig.engine.settle()
-        let state = await rig.engine.state
+        let state = await rig.engine.snapshot
         #expect(state.unmanaged == [id(1)])
         #expect(state.diagnostics.rehides == 4)
         // One park, three re-hides: bounded, never a loop.
@@ -182,7 +183,7 @@ import Testing
             try await Task.sleep(for: .milliseconds(10))
         }
         #expect(rig.client.calls.count == 2)
-        let state = await rig.engine.state
+        let state = await rig.engine.snapshot
         #expect(state.diagnostics.echoesDropped >= 1)
         #expect(state.diagnostics.rehides == 0)
         await rig.engine.stop()
@@ -190,7 +191,7 @@ import Testing
 
     @Test func anEventStormIsReadOnceAndCostsNoFrameChanges() async throws {
         // A tick that never fires on its own: the test flushes by hand, so the count of reads is exact.
-        let rig = try rig([makeWindow(1), makeWindow(2, pid: 200)], tick: .seconds(3600))
+        let rig = try rig([makeWindow(1), makeWindow(2, pid: 200)], tick: .seconds(3600), autoTick: false)
         defer { rig.harness.tearDown() }
         await rig.engine.start()
         let readsBefore = rig.client.windowsReads
@@ -217,7 +218,7 @@ import Testing
         await rig.engine.ingest(.destroyed(id(1)))
         await rig.engine.flushEvents()
         await rig.engine.settle()
-        #expect((await rig.engine.state).windows.isEmpty)
+        #expect((await rig.engine.snapshot).windows.isEmpty)
         #expect(await rig.store.hidden.isEmpty)
         #expect(rig.client.calls.count == 1)
     }
@@ -230,7 +231,7 @@ import Testing
         rig.client.add(makeWindow(5, pid: 300))
         await rig.engine.ingest(.created(id(5, pid: 300)))
         await rig.engine.flushEvents()
-        #expect((await rig.engine.state).model.workspace(of: id(5, pid: 300)) == ws(2))
+        #expect((await rig.engine.snapshot).model.workspace(of: id(5, pid: 300)) == ws(2))
         #expect(rig.client.frame(of: id(5, pid: 300)) == home)
     }
 
@@ -244,7 +245,7 @@ import Testing
         await rig.engine.send(.showWorkspace(ws(2)))
         #expect(rig.client.frame(of: id(2, pid: 200))?.origin == parkedOrigin)
         #expect(rig.client.frame(of: id(1)) == home)
-        let state = await rig.engine.state
+        let state = await rig.engine.snapshot
         #expect(state.diagnostics.accessibilityTimeouts == 1)
         #expect(rig.client.calls.filter { $0.id == id(1) }.count == 1)
         // The window that was not parked is not in the journal.
@@ -257,8 +258,8 @@ import Testing
         rig.client.setMinimumSize(CGSize(width: 900, height: 700), for: id(1))
         await rig.engine.start()
         let tile = CGRect(x: 0, y: 25, width: 400, height: 300)
-        await rig.engine.submit([.place(id(1), tile, now: rig.time.now)])
-        let state = await rig.engine.state
+        await rig.engine.submit([.place(id(1), tile, now: rig.time.seconds)])
+        let state = await rig.engine.snapshot
         #expect(state.stubborn == [id(1)])
         #expect(rig.client.calls.count == 2)
         #expect(rig.client.frame(of: id(1))?.size == CGSize(width: 900, height: 700))
@@ -274,7 +275,7 @@ import Testing
         defer { rig.harness.tearDown() }
         await rig.engine.start()
         await rig.engine.send(.showWorkspace(ws(2)))
-        let state = await rig.engine.state
+        let state = await rig.engine.snapshot
         #expect(state.isFrozen)
         #expect(state.diagnostics.watchdogTrips == 1)
         #expect(rig.recorder.banners.contains(.watchdogTripped))
@@ -291,7 +292,7 @@ import Testing
             [makeWindow(1), onSecond], displays: [FakeWindowClient.mainDisplay, FakeWindowClient.secondDisplay])
         defer { rig.harness.tearDown() }
         await rig.engine.start()
-        #expect((await rig.engine.state).model.workspace(of: id(2, pid: 200)) == ws(2))
+        #expect((await rig.engine.snapshot).model.workspace(of: id(2, pid: 200)) == ws(2))
 
         rig.client.setDisplays([FakeWindowClient.mainDisplay])
         await rig.engine.ingest(.displaysChanged)
@@ -314,7 +315,7 @@ import Testing
         rig.client.remove(id(1))
         await rig.engine.ingest(.spaceChanged)
         await rig.engine.flushEvents()
-        #expect((await rig.engine.state).windows.keys.sorted() == [id(2, pid: 200)])
+        #expect((await rig.engine.snapshot).windows.keys.sorted() == [id(2, pid: 200)])
     }
 
     // MARK: Parallelism and privacy
@@ -376,19 +377,112 @@ extension WindowEngineTests {
         client.add(makeWindow(2))
         await engine.ingest(.moved(WindowID(pid: 100, number: 2)))
         await engine.settle()
-        #expect(await engine.state.windows.keys.contains(WindowID(pid: 100, number: 2)))
+        #expect(await engine.snapshot.windows.keys.contains(WindowID(pid: 100, number: 2)))
         // It goes fullscreen (reported as a resize): it is let go.
         client.remove(WindowID(pid: 100, number: 2))
         client.add(makeWindow(2, fullscreen: true))
         await engine.ingest(.resized(WindowID(pid: 100, number: 2)))
         await engine.settle()
-        #expect(await engine.state.windows[WindowID(pid: 100, number: 2)] == nil)
+        #expect(await engine.snapshot.windows[WindowID(pid: 100, number: 2)] == nil)
         // And it is managed again when it leaves fullscreen.
         client.remove(WindowID(pid: 100, number: 2))
         client.add(makeWindow(2))
         await engine.ingest(.resized(WindowID(pid: 100, number: 2)))
         await engine.settle()
-        #expect(await engine.state.windows[WindowID(pid: 100, number: 2)] != nil)
+        #expect(await engine.snapshot.windows[WindowID(pid: 100, number: 2)] != nil)
         await engine.stop()
+    }
+}
+
+/// The engine keeps reducing while an app does not answer, and a call returns only when its work has run.
+@Suite struct WindowEngineConcurrencyTests {
+    private func ws(_ number: Int) -> WorkspaceID { WorkspaceID(number)! }
+    private func id(_ number: UInt32, pid: Int32) -> WindowID { WindowID(pid: pid, number: number) }
+    private var parkedOrigin: CGPoint { CGPoint(x: 1919, y: 1079) }
+
+    private struct Rig {
+        let harness: WindowsHarness
+        let client: FakeWindowClient
+        let store: StateStore
+        let engine: WindowEngine
+    }
+
+    private func rig(_ windows: [WindowInfo]) throws -> Rig {
+        let harness = try WindowsHarness()
+        let client = FakeWindowClient(windows: windows)
+        let store = StateStore(directory: harness.directory, saveDelay: .seconds(3600))
+        let engine = WindowEngine(
+            client: client, store: store, clock: VirtualClock(), workspaceCount: 4, tick: .milliseconds(5))
+        return Rig(harness: harness, client: client, store: store, engine: engine)
+    }
+
+    @Test func aHungAppDelaysOnlyItself() async throws {
+        let hung = makeWindow(1, pid: 100)
+        let other = makeWindow(2, pid: 200)
+        let rig = try rig([hung, other])
+        defer { rig.harness.tearDown() }
+        rig.client.setBehavior(.stall, forProcess: 100)
+        await rig.engine.start()
+        // Workspace 2 is empty, so showing it parks both windows; the first app never answers.
+        let hide = Task { await rig.engine.send(.showWorkspace(ws(2))) }
+        await rig.client.waitUntilStalled(1)
+        // The other app is already parked and the journal holds both, while the first call is still waiting.
+        #expect(rig.client.frame(of: other.id)?.origin == parkedOrigin)
+        // The reducer is not blocked: a second switch is reduced and executed for the other app at once.
+        let show = Task { await rig.engine.send(.showWorkspace(ws(1))) }
+        await rig.client.waitUntilCalls(3)
+        #expect(rig.client.frame(of: other.id)?.origin != parkedOrigin)
+        // The hung app's park result arrives late and is stale (its restore is newer): the window ends restored.
+        rig.client.releaseStalls()
+        await hide.value
+        await show.value
+        await rig.engine.settle()
+        let state = await rig.engine.snapshot
+        #expect(state.parked.isEmpty)
+        #expect(rig.client.frame(of: hung.id)?.origin != parkedOrigin)
+        #expect(await rig.store.hidden.isEmpty)
+        await rig.engine.stop()
+    }
+
+    @Test func restoreAllWindowsReportsAfterTheBatchRan() async throws {
+        let rig = try rig([makeWindow(1, pid: 100), makeWindow(2, pid: 200)])
+        defer { rig.harness.tearDown() }
+        rig.client.setBehavior(.stall, forProcess: 100)
+        await rig.engine.start()
+        let hide = Task { await rig.engine.send(.showWorkspace(ws(2))) }
+        await rig.client.waitUntilStalled(1)
+        let finished = Mutex(false)
+        let restore = Task {
+            let report = await rig.engine.restoreAllWindows()
+            finished.withLock { $0 = true }
+            return report
+        }
+        // Still waiting for the app that does not answer.
+        await Task.yield()
+        #expect(finished.withLock { $0 } == false)
+        rig.client.releaseStalls()
+        let report = await restore.value
+        await hide.value
+        #expect(report.restored == 2)
+        #expect(report.failed == 0)
+        #expect(await rig.store.hidden.isEmpty)
+        await rig.engine.stop()
+    }
+
+    @Test func stopDuringARunningBatchWaitsForItAndLeavesNothingParked() async throws {
+        let hung = makeWindow(1, pid: 100)
+        let rig = try rig([hung, makeWindow(2, pid: 200)])
+        defer { rig.harness.tearDown() }
+        rig.client.setBehavior(.stall, forProcess: 100)
+        await rig.engine.start()
+        let hide = Task { await rig.engine.send(.showWorkspace(ws(2))) }
+        await rig.client.waitUntilStalled(1)
+        let stopped = Task { await rig.engine.stop() }
+        rig.client.releaseStalls()
+        await stopped.value
+        await hide.value
+        #expect(rig.client.frame(of: hung.id)?.origin != parkedOrigin)
+        #expect(rig.client.frame(of: id(2, pid: 200))?.origin != parkedOrigin)
+        #expect(await rig.store.hidden.isEmpty)
     }
 }

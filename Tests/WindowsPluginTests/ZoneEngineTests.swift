@@ -44,13 +44,13 @@ import Testing
         let store = StateStore(directory: harness.directory, saveDelay: .seconds(3600))
         let time = ManualNow()
         let engine = WindowEngine(
-            client: client, store: store, now: { time.now }, workspaceCount: count,
+            client: client, store: store, clock: time, workspaceCount: count,
             config: config ?? zonesConfig(), tick: .milliseconds(5), canMove: canMove)
         return Rig(harness: harness, client: client, store: store, engine: engine)
     }
 
     private func placed(_ rig: Rig, workspace: Int = 1, display: String = "MAIN") async -> [WindowID: Int] {
-        (await rig.engine.state).zones[ws(workspace)]?[display]?.zoneOf ?? [:]
+        (await rig.engine.snapshot).zones[ws(workspace)]?[display]?.zoneOf ?? [:]
     }
 
     // MARK: Placement
@@ -179,7 +179,7 @@ import Testing
         await rig.engine.start()
         await rig.engine.send(.focusDirection(.right))
         #expect(rig.client.focusCalls == [id(2)])
-        #expect((await rig.engine.state).focused == id(2))
+        #expect((await rig.engine.snapshot).focused == id(2))
         await rig.engine.send(.focusDirection(.right))
         #expect(rig.client.focusCalls == [id(2)])
         await rig.engine.stop()
@@ -204,7 +204,7 @@ import Testing
         defer { rig.harness.tearDown() }
         await rig.engine.start()
         await rig.engine.send(.moveToZone(2))
-        #expect((await rig.engine.state).zones.isEmpty)
+        #expect((await rig.engine.snapshot).zones.isEmpty)
         // The tree arranged them, not zones.
         #expect(rig.client.frame(of: id(1))?.width == 960)
         await rig.engine.stop()
@@ -216,7 +216,7 @@ import Testing
         await rig.engine.start()
         await rig.engine.send(.moveToZone(1))
         #expect(rig.client.frame(of: id(1)) == CGRect(x: 100, y: 100, width: 800, height: 600))
-        #expect((await rig.engine.state).zones.isEmpty)
+        #expect((await rig.engine.snapshot).zones.isEmpty)
         await rig.engine.stop()
     }
 
@@ -315,7 +315,7 @@ import Testing
         // Each display shows its own workspace; the second one has the Focus layout (one zone, the whole area).
         #expect(rig.client.frame(of: id(1)) == left)
         #expect(rig.client.frame(of: id(2)) == CGRect(x: 1928, y: 33, width: 1904, height: 1039))
-        let state = await rig.engine.state
+        let state = await rig.engine.snapshot
         #expect(state.model.visible.count == 2)
         #expect(state.zones[ws(2)]?["SAME#2"]?.zoneOf == [id(2): 1])
         #expect(await rig.engine.dragDisplays(for: id(2)).first?.key == "SAME#2")
@@ -442,22 +442,22 @@ import Testing
         let time = ManualNow()
         let engine = WindowEngine(
             client: client, store: StateStore(directory: harness.directory, saveDelay: .seconds(3600)),
-            now: { time.now }, config: config(.tiling), tick: .milliseconds(5))
+            clock: time, config: config(.tiling), tick: .milliseconds(5))
         await engine.start()
         // Shape both states: a resized tree and a window moved to another zone.
         await engine.send(.resize(0.1))
         await engine.update(config: config(.zones))
         await engine.send(.moveToZone(2))
         await engine.update(config: config(.tiling))
-        let tiling = await engine.state.tiling
-        let zones = await engine.state.zones
+        let tiling = await engine.snapshot.tiling
+        let zones = await engine.snapshot.zones
         #expect(!tiling.isEmpty && !zones.isEmpty)
         let frames = (1...3 as ClosedRange<UInt32>).map { client.frame(of: id($0)) }
         for kind in [LayoutKind.zones, .free, .tiling, .free, .zones, .tiling] {
             await engine.update(config: config(kind))
             // Both kinds' states are exactly what they were, whichever kind is active.
-            #expect(await engine.state.tiling == tiling)
-            #expect(await engine.state.zones == zones)
+            #expect(await engine.snapshot.tiling == tiling)
+            #expect(await engine.snapshot.zones == zones)
         }
         // And the windows are back where Auto-tile puts them.
         #expect((1...3 as ClosedRange<UInt32>).map { client.frame(of: id($0)) } == frames)
@@ -472,7 +472,7 @@ import Testing
         let time = ManualNow()
         let engine = WindowEngine(
             client: client, store: StateStore(directory: harness.directory, saveDelay: .seconds(3600)),
-            now: { time.now }, config: config(.tiling), tick: .milliseconds(5))
+            clock: time, config: config(.tiling), tick: .milliseconds(5))
         await engine.start()
         await engine.update(config: config(.zones))
         await engine.update(config: config(.free))
@@ -482,9 +482,9 @@ import Testing
         // Free arranges nothing: the newcomer is where it opened.
         #expect(client.frame(of: id(3)) == CGRect(x: 100, y: 100, width: 800, height: 600))
         await engine.update(config: config(.zones))
-        #expect(await engine.state.zones[ws(1)]?["MAIN"]?.zoneOf[id(3)] != nil)
+        #expect(await engine.snapshot.zones[ws(1)]?["MAIN"]?.zoneOf[id(3)] != nil)
         await engine.update(config: config(.tiling))
-        #expect(await engine.state.tiling[ws(1)]?.windows.contains(id(3)) == true)
+        #expect(await engine.snapshot.tiling[ws(1)]?.windows.contains(id(3)) == true)
         await engine.stop()
     }
 }

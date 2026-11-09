@@ -232,7 +232,7 @@ private final class FakeOverlay: ZoneOverlayPresenting {
         let time = ManualNow()
         let engine = WindowEngine(
             client: client, store: StateStore(directory: harness.directory, saveDelay: .seconds(3600)),
-            now: { time.now }, config: config, tick: .milliseconds(5),
+            clock: time, config: config, tick: .milliseconds(5),
             outputs: EngineOutputs(windowMoved: { id, frame in
                 moved.withLock { $0.append(id) }
                 frames.withLock { $0.append(frame) }
