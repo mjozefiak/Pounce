@@ -266,19 +266,24 @@ extension LayoutsModel {
             return
         }
         guard let data = Self.readLimited(url) else {
-            notice = Self.text(for: .tooLarge)
+            notice = String(
+                localized: "That file could not be read.",
+                comment: "Layouts window: an import file is missing, a folder, or not readable")
             return
         }
         do {
             let preview = try LayoutImporter.inspect(
-                data, existingIDs: Set(userLayouts.map(\.id)), existingCount: userLayouts.count)
+                data, existingIDs: Set(userLayouts.map(\.id)),
+                // Layouts kept untouched count toward the 256 too, so the summary matches what adding accepts.
+                existingCount: userLayouts.count + keptUntouched)
             pendingImport = preview
         } catch {
             notice = Self.text(for: error)
         }
     }
 
-    /// At most the size limit plus one byte, so an enormous file is never read whole.
+    /// At most the size limit plus one byte, so an enormous file is never read whole; `nil` when the file cannot
+    /// be read at all (missing, a folder, no permission), which is not the same as too large.
     static func readLimited(_ url: URL) -> Data? {
         guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
         defer { try? handle.close() }

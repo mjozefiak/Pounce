@@ -18090,6 +18090,24 @@
           }
         }
       }
+    },
+    "That file could not be read." : {
+      "comment" : "Layouts window: an import file is missing, a folder, or not readable",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That file could not be read."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się odczytać tego pliku."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

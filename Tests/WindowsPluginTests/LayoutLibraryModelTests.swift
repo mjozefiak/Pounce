@@ -365,4 +365,30 @@ private final class EditorLog {
         #expect(rig.model.usageText(of: mine).contains("Default for landscape displays"))
         #expect(rig.plugin.paneModel.allLayouts.map(\.id).contains(mine.id))
     }
+
+    @Test func anUnreadableFileIsNotReportedAsTooLarge() async throws {
+        let rig = try await rig()
+        defer { Task { await finish(rig) } }
+        rig.model.loadImport(from: rig.harness.directory.appending(path: "missing.lintellayouts"))
+        #expect(rig.model.notice == "That file could not be read.")
+        #expect(rig.model.notice != LayoutsModel.text(for: .tooLarge))
+        // A folder cannot be read either.
+        rig.model.loadImport(from: rig.harness.directory)
+        #expect(rig.model.notice == "That file could not be read.")
+        #expect(rig.model.pendingImport == nil)
+    }
+
+    @Test func layoutsKeptUntouchedCountTowardTheImportLimit() async throws {
+        let grid =
+            #"{"name":"L","style":"grid","spacing":0,"grid":{"columns":[1],"rows":[1],"zones":[{"id":1,"colStart":0,"colEnd":1,"rowStart":0,"rowEnd":1}]},"id":"user.N"}"#
+        var entries = (0..<255).map { grid.replacingOccurrences(of: "user.N", with: "user.\($0)") }
+        entries.append(#"{"id":"user.canvas","name":"Free","style":"canvas","spacing":0}"#)
+        let rig = try await rig(library: #"{"version":1,"layouts":[\#(entries.joined(separator: ","))]}"#)
+        defer { Task { await finish(rig) } }
+        #expect(rig.model.userLayouts.count == 255 && rig.model.keptUntouched == 1)
+        rig.model.loadImport(from: try write(rig, "one.lintellayouts", oneLayoutFile))
+        // 255 + 1 kept + 1 new is 257: the summary must refuse what adding would refuse.
+        #expect(rig.model.pendingImport == nil)
+        #expect(rig.model.notice == LayoutsModel.text(for: .tooManyLayouts))
+    }
 }
