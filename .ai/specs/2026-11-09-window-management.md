@@ -125,7 +125,7 @@ Settings keys (protected contract once shipped): `plugins.windows.workspaceCount
 - **Menu bar:** the existing status item menu gets *Restore all windows* while the plugin is on (additive, listed in Phase 1).
 - **Accessibility:** every control has a label; the HUD and the overlay announce the workspace or zone number to VoiceOver; the grid editor is operable from the keyboard (arrow keys move a divider by 1%, Return merges the selected cells); all strings are in `Localizable.xcstrings` in English and Polish (`StringCatalogTests`).
 
-Mockups of the Settings pane, the grid editor, the snap overlay and the HUD (illustrative statics, not an accepted design): `.ai/specs/assets/window-management/`. No version is accepted, so there is no `Prototype:` line.
+Proposal mockups (illustrative statics, not an accepted design): the Settings pane `assets/window-management/mockup-01-settings-pane.png` and the snap overlay with the HUD `assets/window-management/mockup-02-grid-snap-overlay.png` (HTML sources beside them). The grid editor is not mocked up yet. No version is accepted, so there is no `Prototype:` line.
 
 ## 📝 Edge Cases & Failure Scenarios
 
