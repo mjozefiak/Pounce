@@ -60,7 +60,8 @@ nonisolated final class AXWindowClient: WindowClient, Sendable {
             let (stream, continuation) = AsyncStream.makeStream(
                 of: WindowEvent.self, bufferingPolicy: .bufferingNewest(512))
             let buffer = AXEventBuffer(continuation: continuation)
-            let hub = AXObservationHub(buffer: buffer, lookup: lookup)
+            let hub = AXObservationHub(
+                buffer: buffer, lookup: lookup, terminated: { [weak self] pid in self?.forget(pid: pid) })
             continuation.onTermination = { [weak self] _ in
                 // The engine stopped listening: stop observing, and let the next `events` start afresh.
                 hub.stop()
@@ -75,6 +76,14 @@ nonisolated final class AXWindowClient: WindowClient, Sendable {
             return stream
         }
     }
+
+    /// An app quit: its serial queue and its element cache are dropped.
+    func forget(pid: Int32) {
+        queues.forget(pid: pid)
+        caches.withLock { _ = $0.removeValue(forKey: pid) }
+    }
+
+    var cachedProcessCount: Int { caches.withLock { $0.count } }
 
     // MARK: Reading
 

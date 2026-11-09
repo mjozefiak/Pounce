@@ -2,6 +2,7 @@ import AppKit
 import ApplicationServices
 import Foundation
 import LintelKit
+import Synchronization
 import os
 
 /// Observes the windows of every regular app through `AXObserver` (spec: Architecture, "AXWindowClient"). One
@@ -36,13 +37,36 @@ nonisolated final class AXObservationHub: @unchecked Sendable {
     private let buffer: AXEventBuffer
     private let lookup: WindowIDLookup
     private let ownPID: Int32
+    private let terminated: @Sendable (Int32) -> Void
     private let logger = Logger(subsystem: "com.lintelapp", category: "windows")
-    private var thread: Thread?
-    private var runLoop: CFRunLoop?
-    private var apps: [Int32: AppState] = [:]
-    private var tokens: [any NSObjectProtocol] = []
+    /// `start`, `stop` and the notification handlers run on different threads: this state is behind one lock.
+    private struct Shared: @unchecked Sendable {
+        var thread: Thread?
+        var runLoop: CFRunLoop?
+        var tokens: [any NSObjectProtocol] = []
+    }
 
-    init(buffer: AXEventBuffer, lookup: WindowIDLookup, ownPID: Int32 = ProcessInfo.processInfo.processIdentifier) {
+    private let shared = Mutex(Shared())
+    private var thread: Thread? {
+        get { shared.withLock { $0.thread } }
+        set { shared.withLock { $0.thread = newValue } }
+    }
+    private var runLoop: CFRunLoop? {
+        get { shared.withLock { $0.runLoop } }
+        set { shared.withLock { $0.runLoop = newValue } }
+    }
+    private var tokens: [any NSObjectProtocol] {
+        get { shared.withLock { $0.tokens } }
+        set { shared.withLock { $0.tokens = newValue } }
+    }
+    /// AX thread only.
+    private var apps: [Int32: AppState] = [:]
+
+    init(
+        buffer: AXEventBuffer, lookup: WindowIDLookup, ownPID: Int32 = ProcessInfo.processInfo.processIdentifier,
+        terminated: @escaping @Sendable (Int32) -> Void = { _ in }
+    ) {
+        self.terminated = terminated
         self.buffer = buffer
         self.lookup = lookup
         self.ownPID = ownPID
@@ -119,6 +143,7 @@ nonisolated final class AXObservationHub: @unchecked Sendable {
                 let pid = app.processIdentifier
                 buffer.append(.appTerminated(pid: pid))
                 guard let self else { return }
+                self.terminated(pid)
                 self.perform { [self] in unobserve(pid) }
             })
         tokens.append(
@@ -148,13 +173,30 @@ nonisolated final class AXObservationHub: @unchecked Sendable {
         state.observer = observer
         apps[pid] = state
         let refcon = Unmanaged.passUnretained(state).toOpaque()
-        for name in AXNotificationMapper.appNotifications {
-            // An app that refuses (not yet ready, not scriptable) is skipped; windows are still seen by the engine's
-            // snapshot.
-            _ = AXObserverAddNotification(observer, application, name as CFString, refcon)
-        }
         CFRunLoopAddSource(runLoop, AXObserverGetRunLoopSource(observer), .defaultMode)
+        addAppNotifications(state, attempt: 0)
         registerExistingWindows(of: state)
+    }
+
+    /// An app that is not ready yet refuses its notifications: they are tried again after 1, 2 and 4 seconds (the
+    /// engine's snapshot still sees its windows meanwhile). Needs a real app to observe, so it is a manual item.
+    private func addAppNotifications(_ state: AppState, attempt: Int) {
+        guard let observer = state.observer else { return }
+        let refcon = Unmanaged.passUnretained(state).toOpaque()
+        var failed = false
+        for name in AXNotificationMapper.appNotifications {
+            let result = AXObserverAddNotification(observer, state.application, name as CFString, refcon)
+            if result != .success, result != .notificationAlreadyRegistered { failed = true }
+        }
+        guard failed, attempt < 3 else { return }
+        let pid = state.pid
+        let delay = Double(1 << attempt)
+        DispatchQueue.global().asyncAfter(deadline: .now() + delay) { [weak self] in
+            self?.perform { [weak self] in
+                guard let self, let current = apps[pid], current === state else { return }
+                addAppNotifications(current, attempt: attempt + 1)
+            }
+        }
     }
 
     private func unobserve(_ pid: Int32) {

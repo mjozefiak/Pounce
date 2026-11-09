@@ -516,6 +516,7 @@ run with it switched on.
 | 11 | Keyboard layout check on a Polish layout (⌥ plus a letter types a letter) and on US | The pane and the welcome step name keys that type a letter and offer ⌃⌥; none for the Phase 1 digit keys. |
 | 12 | Safe mode: leave windows parked (kill -9) on two launches in a row | The third start shows "Switched off after a problem"; Try Again starts it. |
 | 13 | Real AX observers: create, move, resize, close, minimise and fullscreen windows of 5 apps | The engine follows (look at "Copy diagnostics"); no event storm; fullscreen exit manages the window again (reported as a resize). |
+| 15 | An app that is slow to become scriptable (launch one with a long start) | Its notifications are added on retry (after 1, 2 and 4 s); its windows are still seen through the engine's snapshot meanwhile. |
 | 14 | `swift`-side screenshots: Settings pane, HUD, strip in light and dark, smallest and largest text, English and Polish | Attach as PR evidence (not captured by an agent without a display, see the PR). |
 
 ## Never during QA

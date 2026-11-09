@@ -91,6 +91,16 @@ import Testing
         #expect(ProcessStart.read(pid: -4) == nil)
     }
 
+    @Test func aQuitAppIsForgottenByTheClient() async {
+        let queues = PerProcessQueues()
+        let client = AXWindowClient(lookup: WindowIDLookup(resolver: { nil }), queues: queues)
+        await queues.run(pid: 4242) {}
+        #expect(queues.count == 1)
+        client.forget(pid: 4242)
+        #expect(queues.count == 0)
+        #expect(client.cachedProcessCount == 0)
+    }
+
     @Test func withoutTheSymbolTheClientIsUnsupportedAndNeverObserves() {
         let client = AXWindowClient(lookup: WindowIDLookup(resolver: { nil }))
         #expect(client.availability == .unsupported(reason: WindowIDSelfCheck.missingReason))
