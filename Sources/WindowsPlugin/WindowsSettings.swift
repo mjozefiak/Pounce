@@ -27,8 +27,10 @@ struct WindowsSettings: Sendable {
         static let parkedLaunches = "parkedLaunches"
         /// Hidden: the one-time "Hold ⇧ while dragging to snap" hint was shown.
         static let snapHintShown = "snapHintShown"
+        #if DEBUG
         /// Hidden, DEBUG builds only (QA): open the Layouts window when the plugin starts.
         static let qaOpenLayouts = "qaOpenLayouts"
+        #endif
     }
 
     /// What the strip shows.
@@ -103,7 +105,9 @@ struct WindowsSettings: Sendable {
     var stripMode: StripMode { settings.string(Key.stripMode).flatMap(StripMode.init(rawValue:)) ?? .all }
 
     var safeMode: Bool { settings.bool(Key.safeMode, default: false) }
+    #if DEBUG
     var qaOpenLayouts: Bool { settings.bool(Key.qaOpenLayouts, default: false) }
+    #endif
     var snapHintShown: Bool { settings.bool(Key.snapHintShown, default: false) }
     var parkedLaunches: Int { max(0, settings.integer(Key.parkedLaunches, default: 0)) }
 
