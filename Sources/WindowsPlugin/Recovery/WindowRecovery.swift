@@ -71,12 +71,17 @@ enum WindowRecovery {
         let live = Set(await client.windows().map(\.id))
         let displays = await client.displays()
         var targets: [HiddenEntry] = []
+        var responding: [Int32: Bool] = [:]
         for entry in entries {
             if live.contains(entry.windowID) {
                 targets.append(entry)
-            } else {
-                report.onAnotherSpace += 1
+                continue
             }
+            // Not in the list: on another Space when its app answers, not reachable when it does not (a hung app
+            // lists nothing either, and must not be reported as a window on another Space).
+            let pid = entry.windowID.pid
+            if responding[pid] == nil { responding[pid] = await client.isResponding(pid: pid) }
+            if responding[pid] == true { report.onAnotherSpace += 1 } else { report.failed += 1 }
         }
         // In parallel across processes, in order within one.
         let results = await withTaskGroup(of: [(WindowID, Bool)].self) { group in

@@ -167,6 +167,10 @@ final class FakeWindowClient: WindowClient, Sendable {
     }
 
     func focusedWindow() async -> WindowID? { state.withLock { $0.focused } }
+
+    func isResponding(pid: Int32) async -> Bool {
+        state.withLock { $0.behaviorsByProcess[pid] != .hung && $0.behaviorsByProcess[pid] != .stall }
+    }
     func displays() async -> [DisplayInfo] { state.withLock { $0.displays } }
     func processStart(of pid: Int32) -> TimeInterval? { 1_000 + Double(pid) }
 

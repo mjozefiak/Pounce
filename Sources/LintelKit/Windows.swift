@@ -124,6 +124,10 @@ public protocol WindowClient: Sendable {
     /// so an async caller uses this and never reads the property on the main actor or the cooperative pool. The
     /// default answers `availability`.
     func checkAvailability() async -> WindowClientAvailability
+    /// Whether the app answers Accessibility requests within its messaging timeout. A window that is missing from
+    /// `windows()` is on another Space when its app answers, and not reachable when it does not. The default
+    /// answers `true`.
+    func isResponding(pid: Int32) async -> Bool
     /// Every window of the current native Space, minimised and fullscreen ones included (flagged).
     func windows() async -> [WindowInfo]
     func focusedWindow() async -> WindowID?
@@ -145,6 +149,7 @@ public protocol WindowClient: Sendable {
 
 extension WindowClient {
     public func checkAvailability() async -> WindowClientAvailability { availability }
+    public func isResponding(pid: Int32) async -> Bool { true }
     public func window(id: WindowID) async -> WindowInfo? { await windows().first { $0.id == id } }
     public func processStart(of pid: Int32) -> TimeInterval? { nil }
 }

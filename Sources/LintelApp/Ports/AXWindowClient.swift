@@ -121,6 +121,16 @@ nonisolated final class AXWindowClient: WindowClient, Sendable {
         }
     }
 
+    func isResponding(pid: Int32) async -> Bool {
+        guard AXIsProcessTrusted() else { return true }
+        return await queues.run(pid: pid) {
+            let application = AXUIElementCreateApplication(pid)
+            AXUIElementSetMessagingTimeout(application, Self.messagingTimeout)
+            var value: CFTypeRef?
+            return AXUIElementCopyAttributeValue(application, kAXRoleAttribute as CFString, &value) != .cannotComplete
+        }
+    }
+
     func focusedWindow() async -> WindowID? {
         guard AXIsProcessTrusted(), let app = await Self.frontmostApp() else { return nil }
         return await queues.run(pid: app.pid) { [self] in

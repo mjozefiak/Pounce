@@ -79,6 +79,17 @@ import os
         #expect(await journal(harness).isEmpty)
     }
 
+    @Test func aWindowOfAnAppThatDoesNotAnswerIsNotReportedAsOnAnotherSpace() async throws {
+        let (harness, client, _, context) = try await parkedRig([1, 2])
+        defer { harness.tearDown() }
+        // Its app is hung, so the window is missing from the list like one on another Space would be.
+        client.remove(id(2))
+        client.setBehavior(.hung, forProcess: 100)
+        let report = await WindowsPlugin.restoreFromJournal(context: context)
+        #expect(report.onAnotherSpace == 0)
+        #expect(report.failed == 2)
+    }
+
     @Test func aWindowOnAnotherSpaceStaysInTheJournalUntilItIsShown() async throws {
         let (harness, client, _, context) = try await parkedRig([1, 2])
         defer { harness.tearDown() }

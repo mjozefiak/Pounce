@@ -52,7 +52,7 @@ jobs:
         run: swift test --sanitize=thread --filter "SpeechEngineLeaseTests|LLMLeaseTests|ModelManagerRegistryTests|ModelManagerQueueTests|DictationSessionLeaseTests"
 
       - name: Test the window engine under Thread Sanitizer
-        run: swift test --sanitize=thread --filter "WindowEngineTests|TilingEngineTests|ZoneEngineTests|ZoneDragControllerTests|ZoneDragSignalTests"
+        run: swift test --sanitize=thread --filter "WindowEngineTests|WindowEngineConcurrencyTests|RecoveryTests|LayoutStrategyTests|TilingEngineTests|ZoneEngineTests|ZoneDragControllerTests|ZoneDragSignalTests"
 
       - name: Format lint
         run: swift format lint --strict -r Sources Tests

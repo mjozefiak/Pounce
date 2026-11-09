@@ -152,7 +152,8 @@ final class AppCoordinator {
     private(set) lazy var router = makeRouter()
 
     /// Files opened with Lintel (double-clicked, or dropped on the Dock icon): the first one a plugin wants goes to
-    /// it and the rest are ignored (logged by count), so the outcome never depends on timing. Must run after `start()`, so the plugins are active.
+    /// it and the rest are ignored (logged by count), so the outcome never depends on timing. Must run after
+    /// `start()`, so the plugins are active.
     func open(_ urls: [URL]) async {
         let ignored = await host.openFiles(urls)
         if ignored > 0 {

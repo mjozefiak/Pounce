@@ -37,7 +37,9 @@ public final class WindowsPlugin: LintelPlugin {
     let settings: WindowsSettings
     let hud: any WindowsHUDPresenting
     private let activationCenter: NotificationCenter
+    /// Where this process's journal owners live; tests pass their own.
     let journals: JournalRegistry
+    /// The owner of this plugin's storage folder: the only holder of its `StateStore`.
     let journal: JournalOwner
     /// Whether the plugin shows the menu bar strip when it is on. Tests leave it off: a status item needs a display.
     private let showsStrip: Bool
