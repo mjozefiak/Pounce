@@ -15210,6 +15210,114 @@
           }
         }
       }
+    },
+    "Focus" : {
+      "comment" : "Zone layout template: one zone",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Focus"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skupienie"
+          }
+        }
+      }
+    },
+    "Columns 2" : {
+      "comment" : "Zone layout template: two columns",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Columns 2"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kolumny 2"
+          }
+        }
+      }
+    },
+    "Columns 3" : {
+      "comment" : "Zone layout template: three columns",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Columns 3"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kolumny 3"
+          }
+        }
+      }
+    },
+    "Rows 2" : {
+      "comment" : "Zone layout template: two rows",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rows 2"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiersze 2"
+          }
+        }
+      }
+    },
+    "Grid 2×2" : {
+      "comment" : "Zone layout template: four zones in a grid",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grid 2×2"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siatka 2×2"
+          }
+        }
+      }
+    },
+    "Priority 25/50/25" : {
+      "comment" : "Zone layout template: a wide middle zone between two",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Priority 25/50/25"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Priorytet 25/50/25"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
