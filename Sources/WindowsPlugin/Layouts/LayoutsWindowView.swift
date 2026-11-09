@@ -1,3 +1,4 @@
+import AppKit
 import LintelUI
 import SwiftUI
 
@@ -20,6 +21,10 @@ struct LayoutsWindowView: View {
         }
         .frame(minWidth: 820, minHeight: 540)
         .task { await model.refresh() }
+        // A display was plugged, unplugged or changed: the columns follow.
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)) {
+            _ in Task { await model.refresh() }
+        }
     }
 
     // MARK: Sidebar
@@ -320,6 +325,9 @@ struct LayoutsWindowView: View {
         VStack(alignment: .leading, spacing: 6) {
             if !model.isActive {
                 note("Window Management is off. Turn it on to change layouts.")
+            }
+            if model.writeFailed {
+                note("The change could not be saved. Your layouts are unchanged.")
             }
             if model.isLocked {
                 note("These assignments were saved by a newer version of Lintel and can’t be changed here.")

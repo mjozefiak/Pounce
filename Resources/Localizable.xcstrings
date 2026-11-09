@@ -16182,6 +16182,24 @@
           }
         }
       }
+    },
+    "The change could not be saved. Your layouts are unchanged." : {
+      "comment" : "Layouts window: writing the assignments failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The change could not be saved. Your layouts are unchanged."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się zapisać zmiany. Twoje układy pozostały bez zmian."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

@@ -63,6 +63,8 @@ final class LayoutsModel {
     private(set) var table = AssignmentTable()
     private(set) var hasDuplicateDisplays = false
     private(set) var isLocked = false
+    /// The last write failed: the window says so instead of only logging it.
+    private(set) var writeFailed = false
     /// The layout shown in the detail card.
     var selectedLayoutID = StockLayouts.columns2
     var focused: MatrixPosition?
@@ -226,7 +228,9 @@ final class LayoutsModel {
         guard canEdit, !changes.isEmpty, let runtime = pane.runtime() else { return }
         do {
             try await runtime.assignments.setAll(changes.map { (workspace: $0.0, displayKey: $0.1, layoutID: $0.2) })
+            writeFailed = false
         } catch {
+            writeFailed = true
             runtime.context.logger.error("Cannot write assignments.json")
         }
         table = await runtime.assignments.table

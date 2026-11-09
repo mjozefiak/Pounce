@@ -165,6 +165,19 @@ import Testing
         #expect(rig.model.detail(of: StockLayouts.all[4]) == "Grid · 4 zones")
     }
 
+    @Test func aFailedWriteIsReportedNotOnlyLogged() async throws {
+        let rig = try await rig()
+        defer { Task { await finish(rig) } }
+        let url = rig.harness.directory
+        try FileManager.default.setAttributes([.posixPermissions: 0o500], ofItemAtPath: url.path)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: url.path) }
+        await rig.model.setLayout(StockLayouts.focus, workspace: ws(1), displayKey: "MAIN")
+        #expect(rig.model.writeFailed)
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: url.path)
+        await rig.model.setLayout(StockLayouts.focus, workspace: ws(1), displayKey: "MAIN")
+        #expect(!rig.model.writeFailed)
+    }
+
     // MARK: Off, locked
 
     @Test func aPluginThatIsOffCanNotBeEdited() async throws {
