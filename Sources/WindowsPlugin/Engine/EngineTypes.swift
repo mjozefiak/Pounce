@@ -22,6 +22,8 @@ struct EngineConfig: Equatable, Sendable {
     /// Which workspaces are arranged, and how (gaps, root orientation): the defaults and the per-workspace
     /// overrides. Tiling arranges only workspaces whose resolved kind is Auto-tile.
     var layout = LayoutConfig()
+    /// The zone layouts: assignments, library and the defaults per display shape.
+    var zones = ZonesConfig()
 }
 
 /// A window the engine knows. The title is never kept.
@@ -85,6 +87,12 @@ struct EngineState: Equatable, Sendable {
     /// The tiling tree of each workspace. A tree is kept while its workspace is Free or Zones (the state of each
     /// kind survives a switch) and brought up to date with the live windows when the workspace is tiled again.
     var tiling: [WorkspaceID: TilingTree] = [:]
+    /// The zone of each window of each workspace, by display key (`DisplayKeys`). Kept while the workspace is
+    /// Free or Auto-tile, like the tree.
+    var zones: [WorkspaceID: [String: ZoneState]] = [:]
+    /// The zone each app's newest window was placed in (memory only): where its next window goes if that zone is
+    /// empty. Keyed by bundle id; never stored and never logged.
+    var lastZone: [String: Int] = [:]
     /// Windows the user took out of tiling (*Toggle floating*): not arranged, not in a tree.
     var floating: Set<WindowID> = []
     /// The generation of the newest batch of frame changes; each batch gets the next number.
@@ -154,6 +162,11 @@ enum EngineCommand: Equatable, Sendable {
     case restoreAll
     /// Takes the focused window out of tiling, or puts it back in.
     case toggleFloating
+    /// Moves the focused window to a zone of its workspace's layout, by the zone's number (1 to 9).
+    case moveToZone(Int)
+    /// Snaps a window to a zone of the layout shown on a display (a drag released over a zone, step 3.5). The
+    /// zone is an id of the layout, the display a display key.
+    case snapToZone(WindowID, zone: Int, displayKey: String)
     /// Moves the focus to the neighbouring tile of the focused window.
     case focusDirection(TilingDirection)
     /// Moves the focused window in the tree: swap, into a neighbouring container, or out of its own.
@@ -192,6 +205,8 @@ enum EngineInput: Equatable, Sendable {
     case place(WindowID, CGRect, now: Double)
     /// The trees stored by an earlier run, before the first snapshot.
     case restoreTiling([WorkspaceID: TilingTree])
+    /// The zone placement stored by an earlier run, before the first snapshot.
+    case restoreZones([WorkspaceID: [String: ZoneState]])
 }
 
 extension EngineInput {
@@ -202,7 +217,7 @@ extension EngineInput {
             .windowMoved(_, _, let now), .windowFocused(_, let now), .displaysChanged(_, let now),
             .command(_, let now), .applied(_, let now), .watchdogTripped(let now), .place(_, _, let now):
             now
-        case .configChanged, .journalAvailability, .restoreTiling:
+        case .configChanged, .journalAvailability, .restoreTiling, .restoreZones:
             nil
         }
     }
@@ -216,6 +231,7 @@ enum EngineEffect: Equatable, Sendable {
     case focus(WindowID)
     case saveOrder([WorkspaceID: [WindowID]])
     case saveTiling([WorkspaceID: TilingTree])
+    case saveZones([WorkspaceID: [String: ZoneState]])
     /// A switch happened: the HUD shows the workspace and its window count.
     case hud(workspace: WorkspaceID, windowCount: Int)
     /// The strip and anything else that shows the workspaces must redraw.

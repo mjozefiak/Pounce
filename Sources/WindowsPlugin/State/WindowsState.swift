@@ -36,7 +36,7 @@ struct HiddenEntry: Codable, Hashable, Sendable {
 
 /// What `state.json` holds in version 1 (spec: Data Model). The tiling trees (phase 2) are an additive optional
 /// field of `WorkspaceRecord`, so the file stays version 1 and an older build simply ignores them; zone
-/// placement arrives with phase 3 the same way.
+/// placement (`zones`, phase 3) is an additive optional field the same way.
 struct WindowsState: Equatable, Sendable {
     /// The windows of each workspace in join order.
     var order: [WorkspaceID: [WindowID]] = [:]
@@ -44,6 +44,8 @@ struct WindowsState: Equatable, Sendable {
     var hidden: [HiddenEntry] = []
     /// The tiling tree of each workspace that has one (`workspaces[n].tiling`).
     var tiling: [WorkspaceID: TilingTree] = [:]
+    /// The zone of each window of each workspace, by display key (`workspaces[n].zones`).
+    var zones: [WorkspaceID: [String: ZoneState]] = [:]
 
     static let empty = WindowsState()
 }
@@ -55,15 +57,18 @@ struct StateFile: Codable {
     struct WorkspaceRecord: Codable, Equatable {
         var order: [WindowID]
         var tiling: TilingRecord?
+        var zones: ZonesRecord?
 
-        init(order: [WindowID], tiling: TilingRecord? = nil) {
+        init(order: [WindowID], tiling: TilingRecord? = nil, zones: ZonesRecord? = nil) {
             self.order = order
             self.tiling = tiling
+            self.zones = zones
         }
 
         private enum CodingKeys: String, CodingKey {
             case order
             case tiling
+            case zones
         }
 
         /// A tree that does not decode is dropped, not a reason to call the whole file corrupt: it only holds
@@ -72,6 +77,7 @@ struct StateFile: Codable {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             order = try container.decode([WindowID].self, forKey: .order)
             tiling = try? container.decodeIfPresent(TilingRecord.self, forKey: .tiling)
+            zones = try? container.decodeIfPresent(ZonesRecord.self, forKey: .zones)
         }
     }
 
@@ -83,9 +89,10 @@ struct StateFile: Codable {
     init(version: Int = Self.currentVersion, state: WindowsState) {
         self.version = version
         var records: [String: WorkspaceRecord] = [:]
-        for workspace in Set(state.order.keys).union(state.tiling.keys) {
+        for workspace in Set(state.order.keys).union(state.tiling.keys).union(state.zones.keys) {
             records[String(workspace.rawValue)] = WorkspaceRecord(
-                order: state.order[workspace] ?? [], tiling: state.tiling[workspace].map(TilingRecord.init))
+                order: state.order[workspace] ?? [], tiling: state.tiling[workspace].map(TilingRecord.init),
+                zones: state.zones[workspace].map(ZonesRecord.init))
         }
         self.workspaces = records
         self.hidden = state.hidden
@@ -95,13 +102,17 @@ struct StateFile: Codable {
     var state: WindowsState {
         var order: [WorkspaceID: [WindowID]] = [:]
         var tiling: [WorkspaceID: TilingTree] = [:]
+        var zones: [WorkspaceID: [String: ZoneState]] = [:]
         for (key, record) in workspaces {
             guard let number = Int(key), let workspace = WorkspaceID(number) else { continue }
-            if !record.order.isEmpty || record.tiling == nil { order[workspace] = record.order }
+            if !record.order.isEmpty || (record.tiling == nil && record.zones == nil) {
+                order[workspace] = record.order
+            }
             if let tree = record.tiling?.tree, !tree.isEmpty { tiling[workspace] = tree }
+            if let placed = record.zones?.zones, !placed.isEmpty { zones[workspace] = placed }
         }
         var seen = Set<WindowID>()
         let hidden = hidden.filter { seen.insert($0.windowID).inserted }
-        return WindowsState(order: order, hidden: hidden, tiling: tiling)
+        return WindowsState(order: order, hidden: hidden, tiling: tiling, zones: zones)
     }
 }

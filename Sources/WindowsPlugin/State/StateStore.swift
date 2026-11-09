@@ -215,6 +215,13 @@ actor StateStore {
         markDirty()
     }
 
+    /// Replaces the stored zone placement (deferred like the trees).
+    func setZones(_ zones: [WorkspaceID: [String: ZoneState]]) {
+        guard !isReadOnly, zones != state.zones else { return }
+        state.zones = zones
+        markDirty()
+    }
+
     /// Writes pending changes now.
     func flush() {
         saveTask?.cancel()

@@ -78,6 +78,7 @@ actor WindowEngine {
         let canJournal = await store.canJournal
         pending.append(.journalAvailability(canJournal))
         pending.append(.restoreTiling(await store.state.tiling))
+        pending.append(.restoreZones(await store.state.zones))
         pending.append(await snapshotInput())
         await run()
         pumpTask = Task { [client] in
@@ -417,6 +418,8 @@ actor WindowEngine {
             await store.setOrder(order)
         case .saveTiling(let tiling):
             await store.setTiling(tiling)
+        case .saveZones(let zones):
+            await store.setZones(zones)
         case .hud(let workspace, let count):
             outputs.hud(workspace, count)
         case .summaryChanged(let summary):

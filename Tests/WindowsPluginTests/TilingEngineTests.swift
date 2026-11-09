@@ -143,11 +143,12 @@ import Testing
         await rig.engine.stop()
     }
 
-    @Test func aZonesWorkspaceIsNeverArrangedByTiling() async throws {
+    @Test func aZonesWorkspaceHasNoTilingTree() async throws {
         let rig = try rig([makeWindow(1), makeWindow(2)], config: tilingConfig(kind: .zones))
         defer { rig.harness.tearDown() }
         await rig.engine.start()
-        #expect(rig.client.calls.isEmpty)
+        // Zones place the windows (`ZoneEngineTests`); no tiling tree is ever built for the workspace.
+        #expect((await rig.engine.state).tiling.isEmpty)
         await rig.engine.stop()
     }
 

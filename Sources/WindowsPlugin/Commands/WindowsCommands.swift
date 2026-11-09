@@ -20,6 +20,7 @@ enum WindowsCommandID {
     static let toggleFloating = "windows.toggleFloating"
     static let balance = "windows.balance"
     static let toggleLayout = "windows.toggleLayout"
+    static func zone(_ number: Int) -> String { "windows.zones.zone.\(number)" }
 }
 
 /// A family of commands that share one modifier row in Settings (the keys stay fixed).
@@ -208,6 +209,16 @@ extension WindowsPlugin {
             WindowsCommandID.balance,
             LocalizedStringResource("Balance Windows", comment: "Command: gives every tile the same size"),
             symbol: "equal.square", command: .balance)
+        for number in 1...WindowsSettings.maximumWorkspaces {
+            commands.append(
+                PluginCommand(
+                    id: WindowsCommandID.zone(number),
+                    title: LocalizedStringResource(
+                        "Move Window to Zone \(number)", comment: "Command: moves the focused window to a numbered zone"
+                    ),
+                    symbolName: "rectangle.split.3x1", showsInMenu: false,
+                    run: { [weak self] in await self?.perform(.moveToZone(number), purpose: .moving) }))
+        }
         commands.append(
             PluginCommand(
                 id: WindowsCommandID.toggleLayout,

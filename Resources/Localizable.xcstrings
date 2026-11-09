@@ -15318,6 +15318,24 @@
           }
         }
       }
+    },
+    "Move Window to Zone %lld" : {
+      "comment" : "Command: moves the focused window to a numbered zone",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move Window to Zone %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przenieś okno do strefy %lld"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

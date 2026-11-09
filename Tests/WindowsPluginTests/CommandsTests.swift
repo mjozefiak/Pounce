@@ -36,7 +36,7 @@ import Testing
         defer { harness.tearDown() }
         let commands = WindowsPlugin(context: harness.context()).commands
         #expect(Set(commands.map(\.id)).count == commands.count)
-        #expect(commands.count == 9 + 9 + 3 + 1 + 18)
+        #expect(commands.count == 9 + 9 + 3 + 1 + 18 + 9)
         for number in 1...9 {
             let go = try #require(commands.first { $0.id == "windows.workspace.\(number)" })
             #expect(go.defaultShortcut == KeyShortcut(key: String(number), modifiers: [.option]))

@@ -29,6 +29,8 @@ final class WindowsRuntime {
     let context: PluginContext
     let settings: WindowsSettings
     let store: StateStore
+    /// Which layout each workspace uses on each display (`assignments.json`).
+    let assignments: AssignmentStore
     let engine: WindowEngine
     let trust: AccessibilityTrust
     let hud: any WindowsHUDPresenting
@@ -56,6 +58,7 @@ final class WindowsRuntime {
         self.hud = hud
         let store = StateStore(directory: context.storageDirectory, clock: context.clock)
         self.store = store
+        assignments = AssignmentStore(directory: context.storageDirectory, logger: context.logger)
         let trust = AccessibilityTrust(reader: context.permissions, clock: context.clock)
         self.trust = trust
         let flag = trust.flag
@@ -111,13 +114,17 @@ final class WindowsRuntime {
 
     private let activationCenter: NotificationCenter
 
-    static func config(_ settings: WindowsSettings) -> EngineConfig {
+    static func config(_ settings: WindowsSettings, assignments: AssignmentTable = AssignmentTable()) -> EngineConfig {
         var config = EngineConfig()
         config.followFocus = settings.followFocus
         config.floatingBundleIDs = Set(settings.floatingApps)
         config.layout = LayoutConfig(
             defaultKind: settings.defaultKind, innerGap: settings.innerGap, outerGap: settings.outerGap,
             rootOrientation: .horizontal, overrides: settings.workspaceOverrides.byWorkspace)
+        config.zones = ZonesConfig(
+            assignments: assignments, library: .stock,
+            defaultLandscape: settings.defaultZoneLayout(for: .landscape),
+            defaultPortrait: settings.defaultZoneLayout(for: .portrait))
         return config
     }
 
@@ -130,6 +137,8 @@ final class WindowsRuntime {
             self?.trust.refresh()
         }
         ActiveEngines.insert(context.storageDirectory)
+        await assignments.load()
+        await engine.update(config: Self.config(settings, assignments: await assignments.table))
         await engine.start()
         applyStrip()
     }
@@ -208,7 +217,7 @@ final class WindowsRuntime {
     }
 
     func applySettings() async {
-        await engine.update(config: Self.config(settings))
+        await engine.update(config: Self.config(settings, assignments: await assignments.table))
         await engine.send(.setWorkspaceCount(settings.workspaceCount))
         applyStrip()
     }

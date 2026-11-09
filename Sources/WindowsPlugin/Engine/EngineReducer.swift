@@ -13,6 +13,7 @@ enum EngineReducer {
         var context = Context(state: state)
         let oldOrder = state.model.order
         let oldTiling = state.tiling
+        let oldZones = state.zones
         let oldSummary = summary(of: state)
 
         switch input {
@@ -43,6 +44,8 @@ enum EngineReducer {
             context.place(id, rect, now: now)
         case .restoreTiling(let trees):
             context.state.tiling = trees.filter { context.state.model.workspaces.contains($0.key) }
+        case .restoreZones(let zones):
+            context.state.zones = zones.filter { context.state.model.workspaces.contains($0.key) }
         }
 
         context.arrangeIfRequested(now: input.moment ?? 0)
@@ -52,6 +55,9 @@ enum EngineReducer {
         }
         if context.state.tiling != oldTiling {
             context.effects.append(.saveTiling(context.state.tiling))
+        }
+        if context.state.zones != oldZones {
+            context.effects.append(.saveZones(context.state.zones))
         }
         let newSummary = summary(of: context.state)
         if newSummary != oldSummary {
@@ -78,6 +84,14 @@ enum EngineReducer {
     }
 
     // MARK: Working state of one reduction
+
+    /// A window's workspace, display key, layout and current placement, for the zone commands.
+    private struct ZoneTarget {
+        var workspace: WorkspaceID
+        var key: String
+        var strategy: ZonesStrategy
+        var placed: ZoneState
+    }
 
     private struct Context {
         var state: EngineState
@@ -247,6 +261,13 @@ enum EngineReducer {
             state.rehides[id] = nil
             state.unmanaged.remove(id)
             state.latest[id] = nil
+            for workspace in state.zones.keys {
+                for key in state.zones[workspace]?.keys.sorted() ?? [] {
+                    state.zones[workspace]?[key]?.zoneOf[id] = nil
+                    if state.zones[workspace]?[key]?.isEmpty == true { state.zones[workspace]?[key] = nil }
+                }
+                if state.zones[workspace]?.isEmpty == true { state.zones[workspace] = nil }
+            }
             if state.focused == id { state.focused = nil }
             if wasParked { effects.append(.journalRemove([id])) }
         }
@@ -389,6 +410,7 @@ enum EngineReducer {
             case .setWorkspaceCount(let count):
                 state.model.setWorkspaceCount(count)
                 state.tiling = state.tiling.filter { state.model.workspaces.contains($0.key) }
+                state.zones = state.zones.filter { state.model.workspaces.contains($0.key) }
                 reconcileParking(now: now)
             case .goToWindow(let id):
                 guard state.windows[id] != nil else { return }
@@ -398,9 +420,17 @@ enum EngineReducer {
             case .reload:
                 reload(now: now)
             case .focusDirection(let direction):
-                focusTile(direction)
+                if focusedKind() == .zones { focusZone(direction) } else { focusTile(direction) }
             case .moveInTree(let direction):
-                editTree { id, tree in TilingNavigation.move(id, direction, in: tree) }
+                if focusedKind() == .zones {
+                    moveFocusedToNeighbourZone(direction)
+                } else {
+                    editTree { id, tree in TilingNavigation.move(id, direction, in: tree) }
+                }
+            case .moveToZone(let number):
+                moveFocusedToZone(number: number)
+            case .snapToZone(let id, let zone, let displayKey):
+                snap(id, toZone: zone, displayKey: displayKey)
             case .resize(let delta):
                 editTree { id, tree in
                     var next = tree
@@ -480,6 +510,7 @@ enum EngineReducer {
                 }
             }
             state.tiling = state.tiling.filter { state.model.workspaces.contains($0.key) }
+            state.zones = state.zones.filter { state.model.workspaces.contains($0.key) }
             arrangeRequested = true
         }
 
@@ -523,6 +554,134 @@ enum EngineReducer {
             return TilingLayout.frames(tree, area: display.visibleFrame, gaps: layout.gaps)
         }
 
+        // MARK: Zones
+
+        /// The display of a shown workspace with its key, and the layout the workspace uses there.
+        private func zoneContext(_ workspace: WorkspaceID) -> (
+            display: DisplayInfo, key: String, layout: ResolvedZoneLayout
+        )? {
+            guard let uuid = state.model.displayShowing(workspace),
+                let display = state.displays.first(where: { $0.uuid == uuid })
+            else { return nil }
+            let key = DisplayKeys.keys(for: state.displays).keys[display.id] ?? display.uuid
+            let layout = state.config.zones.resolve(
+                workspace: workspace, displayKey: key, orientation: display.orientation)
+            return (display, key, layout)
+        }
+
+        /// Brings the zone placement of a Zones workspace up to date: windows that are gone, floating or moved
+        /// away leave it, a window whose zone vanished and every new window gets a zone by the placement rule
+        /// (in join order).
+        private mutating func syncZones(
+            _ workspace: WorkspaceID, key: String, strategy: ZonesStrategy
+        ) -> ZoneState {
+            let wanted = tileable(workspace)
+            let wantedSet = Set(wanted)
+            var byDisplay = state.zones[workspace] ?? [:]
+            // Other displays keep their placement, minus windows that are gone.
+            for other in byDisplay.keys where other != key {
+                var kept = byDisplay[other] ?? ZoneState()
+                kept.zoneOf = kept.zoneOf.filter { wantedSet.contains($0.key) }
+                byDisplay[other] = kept.isEmpty ? nil : kept
+            }
+            var current = strategy.pruned(byDisplay[key] ?? ZoneState(), keeping: wantedSet)
+            for id in wanted where current.zoneOf[id] == nil {
+                let anchor = [state.focused, state.previousFocus].lazy.compactMap { $0 }
+                    .first { $0 != id && current.zoneOf[$0] != nil }
+                let preferred = state.windows[id]?.bundleID.flatMap { state.lastZone[$0] }
+                current = strategy.placing(id, preferred: preferred, anchor: anchor, into: current)
+                if let zone = current.zoneOf[id], let bundleID = state.windows[id]?.bundleID {
+                    state.lastZone[bundleID] = zone
+                }
+            }
+            byDisplay[key] = current.isEmpty ? nil : current
+            let stored = byDisplay.isEmpty ? nil : byDisplay
+            if state.zones[workspace] != stored { state.zones[workspace] = stored }
+            return current
+        }
+
+        /// The zone of every window of a visible Zones workspace; nothing for any other workspace.
+        private mutating func zoneFrames(_ workspace: WorkspaceID) -> [WindowID: CGRect] {
+            guard !state.isFrozen, state.model.isVisible(workspace) else { return [:] }
+            let layout = state.config.layout.resolved(for: workspace)
+            guard layout.kind == .zones, let context = zoneContext(workspace) else { return [:] }
+            let strategy = ZonesStrategy(layout: context.layout.layout)
+            let placed = syncZones(workspace, key: context.key, strategy: strategy)
+            return strategy.frames(
+                state: placed, area: context.display.visibleFrame, geometry: LayoutGeometry(gaps: layout.gaps))
+        }
+
+        /// Where every window of a shown workspace goes: its tile or its zone.
+        private mutating func placementFrames(_ workspace: WorkspaceID) -> [WindowID: CGRect] {
+            switch state.config.layout.resolved(for: workspace).kind {
+            case .tiling: tileFrames(workspace)
+            case .zones: zoneFrames(workspace)
+            case .free: [:]
+            }
+        }
+
+        /// The kind of the focused window's workspace, when zone and tile commands could apply to it.
+        private func focusedKind() -> LayoutKind? {
+            guard let id = state.focused, state.windows[id] != nil, let workspace = state.model.workspace(of: id)
+            else { return nil }
+            return state.config.layout.resolved(for: workspace).kind
+        }
+
+        /// A window of a shown Zones workspace with its layout and placement, when zone commands apply to it: the
+        /// engine is not frozen, the window is managed, not floating, and in a zone.
+        private mutating func zoneTarget(
+            _ id: WindowID
+        ) -> ZoneTarget? {
+            guard !state.isFrozen, state.windows[id] != nil, !state.floating.contains(id),
+                !state.unmanaged.contains(id), let workspace = state.model.workspace(of: id),
+                state.model.isVisible(workspace), zoneFrames(workspace)[id] != nil,
+                let context = zoneContext(workspace),
+                let placed = state.zones[workspace]?[context.key]
+            else { return nil }
+            return ZoneTarget(
+                workspace: workspace, key: context.key, strategy: ZonesStrategy(layout: context.layout.layout),
+                placed: placed)
+        }
+
+        private mutating func setZone(_ id: WindowID, _ zone: Int, in target: ZoneTarget) {
+            let moved = target.strategy.moving(id, toZone: zone, in: target.placed)
+            guard moved != target.placed else { return }
+            state.zones[target.workspace]?[target.key] = moved
+            if let bundleID = state.windows[id]?.bundleID { state.lastZone[bundleID] = zone }
+        }
+
+        private mutating func moveFocusedToZone(number: Int) {
+            guard let id = state.focused, let target = zoneTarget(id),
+                let zone = target.strategy.layout.zone(number: number)
+            else { return }
+            setZone(id, zone.id, in: target)
+        }
+
+        private mutating func moveFocusedToNeighbourZone(_ direction: TilingDirection) {
+            guard let id = state.focused, let target = zoneTarget(id),
+                let zone = target.strategy.neighbourZone(of: id, direction, in: target.placed)
+            else { return }
+            setZone(id, zone, in: target)
+        }
+
+        /// Focus goes to a window of the neighbouring zone (the lowest window id there, so it is stable).
+        private mutating func focusZone(_ direction: TilingDirection) {
+            guard let id = state.focused, let target = zoneTarget(id),
+                let zone = target.strategy.neighbourZone(of: id, direction, in: target.placed),
+                let next = target.placed.windows(in: zone).first
+            else { return }
+            state.previousFocus = id
+            state.focused = next
+            trailing.append(.focus(next))
+        }
+
+        /// A drag released over a zone: the window takes that zone on that display. Only for a window of a Zones
+        /// workspace shown on that display; anything else is ignored.
+        private mutating func snap(_ id: WindowID, toZone zone: Int, displayKey: String) {
+            guard let target = zoneTarget(id), target.key == displayKey else { return }
+            setZone(id, zone, in: target)
+        }
+
         /// Where a window goes: its tile, or centred in it when the window refused the size it was given.
         private mutating func target(for id: WindowID, tile: CGRect) -> CGRect {
             guard state.stubborn.contains(id), let window = state.windows[id] else { return tile }
@@ -531,7 +690,7 @@ enum EngineReducer {
 
         private mutating func tileTarget(for id: WindowID) -> CGRect? {
             guard state.windows[id] != nil, let workspace = state.model.workspace(of: id),
-                let tile = tileFrames(workspace)[id]
+                let tile = placementFrames(workspace)[id]
             else { return nil }
             return target(for: id, tile: tile)
         }
@@ -569,7 +728,7 @@ enum EngineReducer {
             arrangeRequested = false
             guard !state.isFrozen else { return }
             for workspace in state.model.workspaces where state.model.isVisible(workspace) {
-                let tiles = tileFrames(workspace)
+                let tiles = placementFrames(workspace)
                 for id in tiles.keys.sorted() {
                     guard let tile = tiles[id], let window = state.windows[id], state.parked[id] == nil,
                         !state.unmanaged.contains(id), !requests.contains(where: { $0.id == id })
