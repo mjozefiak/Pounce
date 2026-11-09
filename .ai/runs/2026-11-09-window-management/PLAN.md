@@ -11,7 +11,7 @@ Source spec: `.ai/specs/2026-11-09-window-management.md` (spec PR #66; Refs #66,
 |-------|------|-------|------|--------|--------|
 | 1 | 1.1 | Spike ADR (not yet measured; needs a real Mac) | dispatch:capable | done | 9ebc9eb |
 | 1 | 1.2 | LintelKit contract: WindowClient, types, PluginContext.windows, recoverAtLaunch, PluginHost step | dispatch:capable | done | 036f89e |
-| 1 | 1.3 | WindowsPlugin skeleton, WindowsSettings, manifest (not registered) | dispatch:capable | todo | |
+| 1 | 1.3 | WindowsPlugin skeleton, WindowsSettings, manifest (not registered) | dispatch:capable | done | f467cf0 |
 | 1 | 1.4 | Workspace model (pure) | dispatch:capable | todo | |
 | 1 | 1.5 | StateStore with write-through hidden journal | dispatch:capable | todo | |
 | 1 | 1.6 | WindowEngine reducer, effects, coalescer, watchdog, fake client, TSan CI | dispatch:capable | todo | |
