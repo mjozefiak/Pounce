@@ -51,7 +51,7 @@ public final class WindowsPlugin: LintelPlugin {
         model.startFailure = { [unowned self] in lastStartError }
         model.openLayouts = { [unowned self] in layoutsWindow.show() }
         model.hud = hud
-        model.restoreFromJournal = { [unowned self] in
+        model.restoreFromJournal = { [context, journals] in
             await Self.restoreFromJournal(context: context, journals: journals)
         }
         return model

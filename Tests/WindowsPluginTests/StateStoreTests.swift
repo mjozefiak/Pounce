@@ -69,12 +69,11 @@ import Testing
     @Test func aDeferredSaveFiresAfterTheDelay() async throws {
         let harness = try WindowsHarness()
         defer { harness.tearDown() }
-        let store = store(harness, saveDelay: .milliseconds(20))
+        // The virtual clock ends the delay at once; the file appears when the save task has run.
+        let store = StateStore(directory: harness.directory, clock: VirtualClock(), saveDelay: .seconds(5))
         await store.load()
         await store.setOrder([ws(2): [win(5)]])
-        for _ in 0..<100 where !FileManager.default.fileExists(atPath: store.fileURL.path) {
-            try await Task.sleep(for: .milliseconds(20))
-        }
+        try await waitUntil { FileManager.default.fileExists(atPath: store.fileURL.path) }
         #expect(FileManager.default.fileExists(atPath: store.fileURL.path))
         await store.close()
     }

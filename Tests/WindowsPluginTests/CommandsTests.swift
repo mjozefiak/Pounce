@@ -108,7 +108,8 @@ import Testing
         defer { harness.tearDown() }
         try await command(plugin, "windows.workspace.2").run()
         #expect(client.frame(of: WindowID(pid: 100, number: 1))?.origin == CGPoint(x: 1919, y: 1079))
-        try await waitUntil { hud.shown.last == .workspace(number: 2, windowCount: 0) }
+        await plugin.runtime?.settle()
+        #expect(hud.shown.last == .workspace(number: 2, windowCount: 0))
         try await command(plugin, "windows.workspace.back").run()
         #expect(client.frame(of: WindowID(pid: 100, number: 1)) == home)
         await plugin.deactivate()
@@ -119,7 +120,7 @@ import Testing
         defer { harness.tearDown() }
         WindowsSettings(harness.pluginSettings).setWorkspaceHUD(false)
         try await command(plugin, "windows.workspace.2").run()
-        try await Task.sleep(for: .milliseconds(100))
+        await plugin.runtime?.settle()
         #expect(hud.shown.isEmpty)
         await plugin.deactivate()
     }

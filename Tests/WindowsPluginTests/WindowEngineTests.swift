@@ -157,9 +157,9 @@ import Testing
         rig.client.setBehavior(.snapBack(CGRect(x: 400, y: 300, width: 800, height: 600)), for: id(1))
         await rig.engine.send(.showWorkspace(ws(2)))
         // The fake emits a move after each of our changes; the pump delivers them.
-        for _ in 0..<40 {
+        for _ in 0..<400 {
             await rig.engine.settle()
-            try await Task.sleep(for: .milliseconds(10))
+            await Task.yield()
         }
         await rig.engine.settle()
         let state = await rig.engine.snapshot
@@ -178,9 +178,9 @@ import Testing
         rig.client.setEchoes(true)
         await rig.engine.start()
         await rig.engine.send(.showWorkspace(ws(2)))
-        for _ in 0..<10 {
+        for _ in 0..<100 {
             await rig.engine.settle()
-            try await Task.sleep(for: .milliseconds(10))
+            await Task.yield()
         }
         #expect(rig.client.calls.count == 2)
         let state = await rig.engine.snapshot

@@ -376,7 +376,8 @@ import os
         permissions.set(true)
         center.post(name: NSApplication.didBecomeActiveNotification, object: nil)
         try await waitUntil { client.frame(of: id(1)) == home }
-        try await waitUntil { hud.shown.last == .restored(restored: 1, onAnotherSpace: 0, failed: 0) }
+        await runtime.settle()
+        #expect(hud.shown.last == .restored(restored: 1, onAnotherSpace: 0, failed: 0))
         await plugin.deactivate()
     }
 
@@ -394,7 +395,8 @@ import os
         client.add(makeWindow(2, frame: parked))
         await runtime.engine.submit([])
         await runtime.engine.ingest(.spaceChanged)
-        try await waitUntil { client.frame(of: id(2)) == home }
+        await runtime.engine.flushEvents()
+        #expect(client.frame(of: id(2)) == home)
         await plugin.deactivate()
     }
 
@@ -422,14 +424,15 @@ import os
     @MainActor
     @Test func trustPollingReportsAGrantOnce() async throws {
         let permissions = ScriptedPermissions(granted: false)
-        let trust = AccessibilityTrust(reader: permissions, clock: ContinuousClock(), pollInterval: .milliseconds(10))
+        // The virtual clock jumps to each deadline, so the poll runs as fast as the test yields.
+        let trust = AccessibilityTrust(reader: permissions, clock: VirtualClock(), pollInterval: .milliseconds(10))
         let changes = ChangeLog()
         trust.onChange = { changes.values.append($0) }
         #expect(!trust.refresh())
         trust.startPolling { true }
         permissions.set(true)
         try await waitUntil { trust.isTrusted }
-        try await Task.sleep(for: .milliseconds(50))
+        for _ in 0..<50 { await Task.yield() }
         trust.stop()
         #expect(changes.values == [true])
     }
@@ -468,12 +471,12 @@ final class ChangeLog {
     var values: [Bool] = []
 }
 
-/// Polls a condition for up to 3 seconds.
+/// Waits for a condition by yielding to other tasks, with no wall-clock time involved.
 @MainActor
 func waitUntil(_ condition: @MainActor () -> Bool) async throws {
-    for _ in 0..<300 {
+    for _ in 0..<200_000 {
         if condition() { return }
-        try await Task.sleep(for: .milliseconds(10))
+        await Task.yield()
     }
-    Issue.record("condition not met in time")
+    Issue.record("condition not met")
 }

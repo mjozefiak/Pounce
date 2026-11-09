@@ -219,8 +219,8 @@ import Testing
     @MainActor @Test func aPluginThatIsNotActiveArrangesNothing() async throws {
         let (plugin, client, harness) = try await plugin(granted: true)
         defer { harness.tearDown() }
-        _ = plugin
-        try await Task.sleep(for: .milliseconds(50))
+        // Never activated: there is no runtime, so nothing could have been arranged.
+        #expect(plugin.runtime == nil)
         #expect(client.calls.isEmpty)
     }
 
@@ -228,7 +228,7 @@ import Testing
         let (plugin, client, harness) = try await plugin(granted: false)
         defer { harness.tearDown() }
         try await plugin.activate()
-        try await Task.sleep(for: .milliseconds(100))
+        await plugin.runtime?.settle()
         #expect(client.calls.isEmpty)
         #expect(client.frame(of: WindowID(pid: 100, number: 1)) == CGRect(x: 100, y: 100, width: 800, height: 600))
         await plugin.deactivate()

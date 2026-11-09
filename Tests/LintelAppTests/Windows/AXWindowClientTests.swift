@@ -13,15 +13,17 @@ import Testing
     @Test func workForOneProcessRunsInTheOrderOfSubmissionAndNeverOverlaps() async {
         let queues = PerProcessQueues()
         let log = Ordered()
-        // The first piece is slow: a later one must still wait for it.
+        // The first piece holds the queue until every piece is queued: later ones must still wait for it.
+        let gate = DispatchSemaphore(value: 0)
         for index in 0..<20 {
             queues.enqueue(pid: 1) {
                 log.enter()
-                if index % 5 == 0 { usleep(3_000) }
+                if index == 0 { gate.wait() }
                 log.append(index)
                 log.leave()
             }
         }
+        gate.signal()
         await queues.run(pid: 1) {}
         #expect(log.values == Array(0..<20))
         #expect(log.maxConcurrent == 1)
@@ -37,14 +39,19 @@ import Testing
     @Test func differentProcessesRunInParallel() async {
         let queues = PerProcessQueues()
         let log = Ordered()
+        // Each piece waits for the other to have started: that only happens when they run at the same time.
+        let firstIn = DispatchSemaphore(value: 0)
+        let secondIn = DispatchSemaphore(value: 0)
         async let first: Void = queues.run(pid: 10) {
             log.enter()
-            usleep(150_000)
+            firstIn.signal()
+            _ = secondIn.wait(timeout: .now() + 5)
             log.leave()
         }
         async let second: Void = queues.run(pid: 11) {
             log.enter()
-            usleep(150_000)
+            secondIn.signal()
+            _ = firstIn.wait(timeout: .now() + 5)
             log.leave()
         }
         _ = await (first, second)

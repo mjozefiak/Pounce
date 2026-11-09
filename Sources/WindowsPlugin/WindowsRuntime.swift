@@ -27,8 +27,8 @@ final class WindowsRuntime {
     let trust: AccessibilityTrust
     private(set) lazy var layoutCommands = LayoutCommands(
         context: context, settings: settings, assignments: assignments, layouts: layouts, engine: engine,
-        trust: trust, hud: hud, currentWorkspace: { [unowned self] in lastSummary?.current },
-        apply: { [unowned self] in await applySettings() })
+        trust: trust, hud: hud, currentWorkspace: { [weak self] in self?.lastSummary?.current },
+        apply: { [weak self] in await self?.applySettings() })
     let hud: any WindowsHUDPresenting
     /// The menu bar strip; `nil` until `start()` when it is on, and in tests that pass `makeStrip: nil`.
     private(set) var strip: WorkspaceStripController?
@@ -41,6 +41,8 @@ final class WindowsRuntime {
     private var lastSummary: WorkspaceSummary?
     /// The engine's outputs, in the order it produced them, handled on the main actor by one task.
     private var outputTask: Task<Void, Never>?
+    /// The restore after a re-grant of Accessibility, while it runs.
+    private var trustTask: Task<Void, Never>?
     private let outputContinuation: AsyncStream<EngineOutput>.Continuation
     /// The engine configuration as last sent (cached: it is rebuilt only when a setting or the library changes).
     private(set) var engineConfig: EngineConfig
@@ -102,6 +104,8 @@ final class WindowsRuntime {
             dragController?.windowMoved(id, frame: frame)
         case .restored(let report):
             hud.show(WindowsHUDState(report: report))
+        case .barrier(let continuation):
+            continuation.resume()
         }
     }
 
@@ -183,6 +187,15 @@ final class WindowsRuntime {
         await engine.start()
         applyStrip()
         if dragController == nil { dragController = makeDragController?(self) }
+    }
+
+    /// Waits until the engine has nothing queued or running and everything it reported has been handled here.
+    func settle() async {
+        await trustTask?.value
+        await engine.settle()
+        await withCheckedContinuation { continuation in
+            if case .terminated = outputContinuation.yield(.barrier(continuation)) { continuation.resume() }
+        }
     }
 
     /// Puts the windows back and stops, waiting at most `stopBudget`.
@@ -268,7 +281,7 @@ final class WindowsRuntime {
     /// thing to do after a gap in which the user may have moved anything.
     private func trustChanged(_ trusted: Bool) {
         guard trusted else { return }
-        Task { [engine, hud] in
+        trustTask = Task { [engine, hud] in
             await self.onTrustGranted()
             let report = await engine.restoreAllWindows()
             self.recoveredWindows += report.restored
@@ -290,4 +303,6 @@ enum EngineOutput: Sendable {
     case banner(EngineBanner)
     case windowMoved(WindowID, CGRect)
     case restored(RecoveryReport)
+    /// Resumed when every output before it has been handled (`settle()`).
+    case barrier(CheckedContinuation<Void, Never>)
 }

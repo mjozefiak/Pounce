@@ -226,14 +226,17 @@ import Testing
         try await run(plugin, "windows.toggleLayout")
         // Zones: the stock Columns 2 layout (landscape default), the second window in the right zone.
         #expect(settings.workspaceOverrides.byWorkspace[ws(1)]?.kind == .zones)
-        try await waitUntil { client.frame(of: id(2))?.minX == 964 }
+        await plugin.runtime?.settle()
+        #expect(client.frame(of: id(2))?.minX == 964)
         try await run(plugin, "windows.toggleLayout")
         #expect(settings.workspaceOverrides.byWorkspace[ws(1)]?.kind == .free)
         // Free: a window moved by hand is left alone.
         client.moveBehindTheEnginesBack(id(2), to: CGRect(x: 7, y: 7, width: 300, height: 300))
-        client.emit([.moved(id(2))])
-        // Longer than the window in which the engine still expects its own last frame.
-        try await Task.sleep(for: .milliseconds(700))
+        // Past the window in which the engine still expects its own last frame, then the move arrives.
+        harness.clock.advance(1)
+        let engine = try #require(plugin.runtime?.engine)
+        await engine.ingest(.moved(id(2)))
+        await engine.flushEvents()
         client.clearCalls()
         try await run(plugin, "windows.workspace.1")
         #expect(client.calls.isEmpty)
@@ -241,7 +244,8 @@ import Testing
         try await run(plugin, "windows.toggleLayout")
         #expect(settings.workspaceOverrides.byWorkspace[ws(1)] == nil)
         #expect(harness.pluginSettings.string(WindowsSettings.Key.workspaces) == "")
-        try await waitUntil { client.frame(of: id(2))?.minX == 640 }
+        await plugin.runtime?.settle()
+        #expect(client.frame(of: id(2))?.minX == 640)
         await plugin.deactivate()
     }
 

@@ -8,6 +8,8 @@ import os
 final class WindowsHarness: @unchecked Sendable {
     let directory: URL
     let store = MemorySettings()
+    /// The clock of every context this harness makes: time moves only when a test advances it.
+    let clock = VirtualClock(autoAdvance: false)
 
     init() throws {
         directory = FileManager.default.temporaryDirectory.appending(
@@ -36,7 +38,7 @@ final class WindowsHarness: @unchecked Sendable {
             events: NoEvents(),
             workspace: NoWorkspace(),
             permissions: permissions,
-            clock: ContinuousClock(),
+            clock: clock,
             windows: windows
         )
     }

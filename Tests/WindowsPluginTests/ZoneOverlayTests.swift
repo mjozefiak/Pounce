@@ -309,7 +309,8 @@ private final class FakeOverlay: ZoneOverlayPresenting {
             context: harness.context(windows: client, permissions: ScriptedPermissions(granted: true)), hud: hud,
             activationCenter: NotificationCenter())
         try await plugin.activate()
-        try await waitUntil { hud.shown.contains(.snapHint) }
+        await plugin.runtime?.settle()
+        #expect(hud.shown.contains(.snapHint))
         #expect(settings.snapHintShown)
         #expect(WindowsHUDState.snapHint.title == "Hold ⇧ while dragging to snap")
         await plugin.deactivate()
@@ -319,7 +320,7 @@ private final class FakeOverlay: ZoneOverlayPresenting {
             context: harness.context(windows: client, permissions: ScriptedPermissions(granted: true)), hud: again,
             activationCenter: NotificationCenter())
         try await second.activate()
-        try await Task.sleep(for: .milliseconds(100))
+        await second.runtime?.settle()
         #expect(!again.shown.contains(.snapHint))
         await second.deactivate()
     }
@@ -333,7 +334,7 @@ private final class FakeOverlay: ZoneOverlayPresenting {
             context: harness.context(windows: client, permissions: ScriptedPermissions(granted: true)), hud: hud,
             activationCenter: NotificationCenter())
         try await plugin.activate()
-        try await Task.sleep(for: .milliseconds(100))
+        await plugin.runtime?.settle()
         #expect(!hud.shown.contains(.snapHint))
         await plugin.deactivate()
         let denied = try WindowsHarness()
@@ -344,7 +345,7 @@ private final class FakeOverlay: ZoneOverlayPresenting {
             context: denied.context(windows: client, permissions: ScriptedPermissions(granted: false)), hud: deniedHUD,
             activationCenter: NotificationCenter())
         try await second.activate()
-        try await Task.sleep(for: .milliseconds(100))
+        await second.runtime?.settle()
         #expect(!deniedHUD.shown.contains(.snapHint))
         await second.deactivate()
     }
