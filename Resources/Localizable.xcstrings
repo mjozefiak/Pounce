@@ -16574,7 +16574,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Te układy zapisała nowsza wersja Lintela i nie można ich tu zmieniać."
+            "value" : "Te układy zapisała nowsza wersja aplikacji Lintel i nie można ich tu zmieniać."
           }
         }
       }
@@ -16989,6 +16989,1104 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Edytor układu"
+          }
+        }
+      }
+    },
+    "Choose a layouts file to import." : {
+      "comment" : "Layouts window: the open panel's message",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a layouts file to import."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybierz plik z układami do zaimportowania."
+          }
+        }
+      }
+    },
+    "Export layouts to a file you can share." : {
+      "comment" : "Layouts window: the save panel's message",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export layouts to a file you can share."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyeksportuj układy do pliku, który możesz udostępnić."
+          }
+        }
+      }
+    },
+    "Delete “%@”? No workspace uses it." : {
+      "comment" : "Layouts window: asked before a layout nobody uses is deleted",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete “%@”? No workspace uses it."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunąć „%@”? Żaden obszar roboczy go nie używa."
+          }
+        }
+      }
+    },
+    "Delete “%@”? Assignments that will use the default layout instead: %lld (%@)." : {
+      "comment" : "Layouts window: asked before a layout in use is deleted; the count and the cells",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete “%@”? Assignments that will use the default layout instead: %lld (%@)."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunąć „%@”? Przypisania, które użyją zamiast niego układu domyślnego: %lld (%@)."
+          }
+        }
+      }
+    },
+    "The library is full: 256 layouts is the most it can hold." : {
+      "comment" : "Layouts window: the library has the most layouts it can hold",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The library is full: 256 layouts is the most it can hold."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biblioteka jest pełna: może pomieścić najwyżej 256 układów."
+          }
+        }
+      }
+    },
+    "%@ copy" : {
+      "comment" : "Layouts window: the default name of a duplicated layout; the original's name first",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ copy"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ – kopia"
+          }
+        }
+      }
+    },
+    "and %lld more" : {
+      "comment" : "Layouts window: the delete question lists six cells and then how many more",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "and %lld more"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "i jeszcze %lld"
+          }
+        }
+      }
+    },
+    "every landscape display" : {
+      "comment" : "Layouts window: a cell chosen for a display shape",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "every landscape display"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "każdym wyświetlaczu poziomym"
+          }
+        }
+      }
+    },
+    "every portrait display" : {
+      "comment" : "Layouts window: a cell chosen for a display shape",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "every portrait display"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "każdym wyświetlaczu pionowym"
+          }
+        }
+      }
+    },
+    "a display that is not connected" : {
+      "comment" : "Layouts window: a cell of a display that is not here now",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "a display that is not connected"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "wyświetlaczu, który nie jest podłączony"
+          }
+        }
+      }
+    },
+    "Workspace %lld on %@" : {
+      "comment" : "Layouts window: a cell, by workspace and display",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Workspace %lld on %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obszar roboczy %lld na: %@"
+          }
+        }
+      }
+    },
+    "Turn Window Management on to import layouts." : {
+      "comment" : "Layouts window: an import needs the plugin to be running",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn Window Management on to import layouts."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Włącz Zarządzanie oknami, aby importować układy."
+          }
+        }
+      }
+    },
+    "That file is too large to be a layouts file (1 MB at most)." : {
+      "comment" : "Layouts window: an import file is over the size limit",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That file is too large to be a layouts file (1 MB at most)."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten plik jest za duży, by być plikiem z układami (najwyżej 1 MB)."
+          }
+        }
+      }
+    },
+    "That file is not a Lintel layouts file." : {
+      "comment" : "Layouts window: an import file cannot be read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That file is not a Lintel layouts file."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To nie jest plik z układami aplikacji Lintel."
+          }
+        }
+      }
+    },
+    "That file has too many layouts. A library holds 256 at most." : {
+      "comment" : "Layouts window: an import would exceed the layout limit",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That file has too many layouts. A library holds 256 at most."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten plik ma za dużo układów. Biblioteka mieści ich najwyżej 256."
+          }
+        }
+      }
+    },
+    "That file was made by a newer version of Lintel." : {
+      "comment" : "Layouts window: an import file has a newer format",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That file was made by a newer version of Lintel."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten plik utworzyła nowsza wersja aplikacji Lintel."
+          }
+        }
+      }
+    },
+    "Imported %lld layouts." : {
+      "comment" : "Layouts window: what an import added",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Imported %lld layout."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Imported %lld layouts."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zaimportowano %lld układ."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zaimportowano %lld układy."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zaimportowano %lld układów."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zaimportowano %lld układu."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld layouts will be added." : {
+      "comment" : "Layouts window: the import summary, how many layouts are added",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld layout will be added."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld layouts will be added."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zostanie dodany %lld układ."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zostaną dodane %lld układy."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zostanie dodanych %lld układów."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zostanie dodanego %lld układu."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld get a new identity because theirs is already used." : {
+      "comment" : "Layouts window: the import summary, layouts whose ids collided",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld gets a new identity because its own is already used."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld get a new identity because theirs are already used."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld układ dostaje nową tożsamość, bo jego jest już zajęta."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld układy dostają nową tożsamość, bo ich są już zajęte."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld układów dostaje nową tożsamość, bo ich są już zajęte."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld układu dostaje nową tożsamość, bo ich są już zajęte."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld skipped: a style this version doesn’t know." : {
+      "comment" : "Layouts window: the import summary, layouts of another style",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld skipped: a style this version doesn’t know."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld skipped: a style this version doesn’t know."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Pominięto %lld: styl, którego ta wersja nie zna."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Pominięto %lld: styl, którego ta wersja nie zna."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Pominięto %lld: styl, którego ta wersja nie zna."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Pominięto %lld: styl, którego ta wersja nie zna."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld skipped: they break a rule." : {
+      "comment" : "Layouts window: the import summary, invalid layouts",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld skipped: it breaks a rule."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld skipped: they break a rule."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Pominięto %lld: łamie zasadę."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Pominięto %lld: łamią zasadę."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Pominięto %lld: łamią zasadę."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Pominięto %lld: łamią zasadę."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Assignments and layout slots are never imported." : {
+      "comment" : "Layouts window: the import summary, what a file cannot change",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Assignments and layout slots are never imported."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przypisania i miejsca skrótów układów nigdy nie są importowane."
+          }
+        }
+      }
+    },
+    "My layouts" : {
+      "comment" : "Layouts window: the default file name of an export",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My layouts"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moje układy"
+          }
+        }
+      }
+    },
+    "Exported %lld layouts." : {
+      "comment" : "Layouts window: what an export wrote",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Exported %lld layout."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Exported %lld layouts."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Wyeksportowano %lld układ."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Wyeksportowano %lld układy."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Wyeksportowano %lld układów."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Wyeksportowano %lld układu."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "The file could not be written." : {
+      "comment" : "Layouts window: an export failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The file could not be written."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się zapisać pliku."
+          }
+        }
+      }
+    },
+    "Delete this layout?" : {
+      "comment" : "Layouts window: asked before a delete",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete this layout?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunąć ten układ?"
+          }
+        }
+      }
+    },
+    "Mine" : {
+      "comment" : "Layouts window: the section of the user's own layouts",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mine"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moje"
+          }
+        }
+      }
+    },
+    "Layouts you make or import appear here." : {
+      "comment" : "Layouts window: the user's own section is empty",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layouts you make or import appear here."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układy, które utworzysz lub zaimportujesz, pojawią się tutaj."
+          }
+        }
+      }
+    },
+    "Duplicate" : {
+      "comment" : "Layouts window: makes an editable copy of the selected layout",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duplicate"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duplikuj"
+          }
+        }
+      }
+    },
+    "Import" : {
+      "comment" : "Layouts window: adds layouts from a file",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importuj"
+          }
+        }
+      }
+    },
+    "Export Selected Layout…" : {
+      "comment" : "Layouts window: writes the selected layout to a file",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export Selected Layout…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksportuj wybrany układ…"
+          }
+        }
+      }
+    },
+    "Export All My Layouts…" : {
+      "comment" : "Layouts window: writes the user's layouts to a file",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export All My Layouts…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksportuj wszystkie moje układy…"
+          }
+        }
+      }
+    },
+    "Export" : {
+      "comment" : "Layouts window: writes layouts to a file",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksportuj"
+          }
+        }
+      }
+    },
+    "Edit…" : {
+      "comment" : "Layouts window: opens the layout in the editor",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edytuj…"
+          }
+        }
+      }
+    },
+    "Rename…" : {
+      "comment" : "Layouts window: changes the name of the selected layout",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rename…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zmień nazwę…"
+          }
+        }
+      }
+    },
+    "Layout slot %lld" : {
+      "comment" : "Layouts window: a numbered shortcut slot",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layout slot %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Miejsce układu %lld"
+          }
+        }
+      }
+    },
+    "Slot" : {
+      "comment" : "Layouts window: binds the layout to a numbered shortcut slot",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slot"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Miejsce"
+          }
+        }
+      }
+    },
+    "Shortcut slot" : {
+      "comment" : "Layouts window: the slot menu of a layout (spoken)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shortcut slot"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Miejsce skrótu"
+          }
+        }
+      }
+    },
+    "A slot is a command with its own shortcut. Set the shortcut in Settings → Window Management." : {
+      "comment" : "Layouts window: tooltip of the slot menu",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A slot is a command with its own shortcut. Set the shortcut in Settings → Window Management."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Miejsce to polecenie z własnym skrótem. Skrót ustawisz w Ustawieniach → Zarządzanie oknami."
+          }
+        }
+      }
+    },
+    "Rename layout" : {
+      "comment" : "Layouts window: the title of the rename sheet",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rename layout"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zmień nazwę układu"
+          }
+        }
+      }
+    },
+    "Rename" : {
+      "comment" : "Layouts window: confirms the new name",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rename"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zmień nazwę"
+          }
+        }
+      }
+    },
+    "Import layouts?" : {
+      "comment" : "Layouts window: the title of the import summary",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import layouts?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaimportować układy?"
+          }
+        }
+      }
+    },
+    "Layout slots" : {
+      "comment" : "Window Management setting: nine shortcuts that each apply a layout",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layout slots"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Miejsca układów"
+          }
+        }
+      }
+    },
+    "Each slot has its own shortcut and applies the layout you bind to it to the current workspace." : {
+      "comment" : "Window Management setting help: layout slots",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Each slot has its own shortcut and applies the layout you bind to it to the current workspace."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Każde miejsce ma własny skrót i stosuje przypisany do niego układ w bieżącym obszarze roboczym."
+          }
+        }
+      }
+    },
+    "None" : {
+      "comment" : "Window Management: a layout slot that is not bound",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "None"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak"
+          }
+        }
+      }
+    },
+    "Use Layout Slot %lld" : {
+      "comment" : "Command: gives the current workspace the layout bound to a numbered slot",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use Layout Slot %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Użyj miejsca układu %lld"
+          }
+        }
+      }
+    },
+    "Next Zone Layout" : {
+      "comment" : "Command: switches the current workspace to the next zone layout",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next Zone Layout"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Następny układ stref"
+          }
+        }
+      }
+    },
+    "Some layouts in your library use a style this version doesn’t know. They are kept as they are." : {
+      "comment" : "Layouts window: a note under the matrix",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some layouts in your library use a style this version doesn’t know. They are kept as they are."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niektóre układy w bibliotece mają styl, którego ta wersja nie zna. Zostają bez zmian."
+          }
+        }
+      }
+    },
+    "Slot %@" : {
+      "comment" : "Layouts window: the shortcut slots a layout is bound to",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slot %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Miejsce %@"
           }
         }
       }

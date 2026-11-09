@@ -226,6 +226,49 @@ final class WindowsRuntime {
         context.resultsChanged()
     }
 
+    /// A layout slot command: the layout bound to the slot becomes the layout of the current workspace on the
+    /// display of the focused window. An unbound slot does nothing. Behind the same Accessibility gate as every
+    /// move, because the windows are placed again.
+    func applyLayoutSlot(_ number: Int) async {
+        guard let layoutID = await layouts.slots[number] else { return }
+        await useLayout(layoutID)
+    }
+
+    /// *Next zone layout*: the layout after the one in effect, over the stock templates and then the user's.
+    func nextLayout() async {
+        guard let cell = await currentCell() else { return }
+        let library = await layouts.library
+        let config = Self.config(settings, assignments: await assignments.table, library: library).zones
+        let displays = await context.windows.displays()
+        let keyed = DisplayKeys.keys(for: displays)
+        let orientation = displays.first { keyed.keys[$0.id] == cell.displayKey }?.orientation ?? .landscape
+        let current = config.resolve(workspace: cell.workspace, displayKey: cell.displayKey, orientation: orientation)
+        guard let next = library.next(after: current.layout.id) else { return }
+        await useLayout(next)
+    }
+
+    private func currentCell() async -> (workspace: WorkspaceID, displayKey: String)? {
+        let summary = await engine.switcherState().1
+        guard let workspace = summary.current, let display = summary.focusedDisplay else { return nil }
+        return (workspace, display)
+    }
+
+    private func useLayout(_ layoutID: String) async {
+        guard trust.refresh() else {
+            hud.show(.accessibilityNeeded(.moving))
+            return
+        }
+        guard let cell = await currentCell() else { return }
+        do {
+            try await assignments.set(layoutID, workspace: cell.workspace, displayKey: cell.displayKey)
+        } catch {
+            context.logger.error("Cannot write assignments.json")
+            return
+        }
+        await applySettings()
+        context.resultsChanged()
+    }
+
     /// Auto-tile, then Zones, then Free, then Auto-tile again.
     static func nextKind(after kind: LayoutKind) -> LayoutKind {
         switch kind {

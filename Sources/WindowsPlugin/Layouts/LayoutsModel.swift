@@ -55,12 +55,14 @@ enum ApplyTarget: Equatable {
 /// running plugin (the assignment file and the overrides), so a plugin that is off has nothing to edit.
 @MainActor @Observable
 final class LayoutsModel {
-    @ObservationIgnored private let pane: WindowsSettingsModel
+    @ObservationIgnored let pane: WindowsSettingsModel
     @ObservationIgnored private let loadDisplays: () async -> [DisplayInfo]
     @ObservationIgnored private let identifier: (MatrixDisplay) -> Void
+    @ObservationIgnored let openEditor: (GridLayout, Bool, @escaping (GridLayout) -> Void) -> Void
+    @ObservationIgnored let files: any LayoutFileAccess
 
     private(set) var displays: [MatrixDisplay] = []
-    private(set) var table = AssignmentTable()
+    var table = AssignmentTable()
     private(set) var hasDuplicateDisplays = false
     private(set) var isLocked = false
     /// The last write failed: the window says so instead of only logging it.
@@ -69,18 +71,35 @@ final class LayoutsModel {
     var selectedLayoutID = StockLayouts.columns2
     var focused: MatrixPosition?
 
+    // The library (`LayoutsModel+Library.swift`).
+    var userLayouts: [GridLayout] = []
+    var slots: [Int: String] = [:]
+    /// `layouts.json` comes from a newer version: the library can be read, never changed.
+    var libraryLocked = false
+    /// Layouts kept untouched because this build cannot use them (another style, or broken).
+    var keptUntouched = 0
+    /// What the last library action did, or why it did not (shown under the list).
+    var notice: String?
+    var pendingImport: ImportPreview?
+    var pendingDelete: LayoutDeletion?
+    var isRenaming = false
+
     init(
         pane: WindowsSettingsModel, displays: @escaping () async -> [DisplayInfo],
-        identify: @escaping (MatrixDisplay) -> Void = { _ in }
+        identify: @escaping (MatrixDisplay) -> Void = { _ in },
+        openEditor: @escaping (GridLayout, Bool, @escaping (GridLayout) -> Void) -> Void = { _, _, _ in },
+        files: any LayoutFileAccess = NoLayoutFiles()
     ) {
         self.pane = pane
         loadDisplays = displays
         identifier = identify
+        self.openEditor = openEditor
+        self.files = files
     }
 
     // MARK: State
 
-    var library: LayoutLibrary { .stock }
+    var library: LayoutLibrary { LayoutLibrary(StockLayouts.all + userLayouts) }
     var stockLayouts: [GridLayout] { StockLayouts.all }
     var selectedLayout: GridLayout { library.layout(selectedLayoutID) ?? StockLayouts.all[0] }
 
@@ -115,6 +134,7 @@ final class LayoutsModel {
             table = AssignmentTable()
             isLocked = false
         }
+        await refreshLibrary()
         if focused == nil, !displays.isEmpty { focused = MatrixPosition(row: 0, column: 0) }
     }
 
@@ -175,6 +195,16 @@ final class LayoutsModel {
     /// How many cells explicitly use a layout.
     func usage(of layoutID: String) -> Int { table.count(using: layoutID) }
 
+    /// The second line of a sidebar row: "Grid · 3 zones · used on 2 cells".
+    func rowDetail(of layout: GridLayout) -> String {
+        let cells = usage(of: layout.id)
+        let used =
+            cells == 0
+            ? String(localized: "Not assigned", comment: "Layouts window: no cell uses this layout")
+            : String(localized: "Used on \(cells) cells", comment: "Layouts window: how many cells use this layout")
+        return "\(detail(of: layout)) · \(used)"
+    }
+
     func detail(of layout: GridLayout) -> String {
         let zones = String(
             localized: "\(layout.zones.count) zones", comment: "Layouts window: how many zones a layout has")
@@ -190,6 +220,13 @@ final class LayoutsModel {
                 ? String(localized: "Not assigned", comment: "Layouts window: no cell uses this layout")
                 : String(localized: "Used on \(cells) cells", comment: "Layouts window: how many cells use this layout")
         )
+        let held = slots(of: layout.id)
+        if !held.isEmpty {
+            parts.append(
+                String(
+                    localized: "Slot \(held.map(String.init).joined(separator: ", "))",
+                    comment: "Layouts window: the shortcut slots a layout is bound to"))
+        }
         if pane.settings.defaultZoneLayout(for: .landscape) == layout.id {
             parts.append(
                 String(localized: "Default for landscape displays", comment: "Layouts window: the layout is a default"))

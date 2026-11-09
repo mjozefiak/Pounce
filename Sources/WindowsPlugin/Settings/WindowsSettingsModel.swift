@@ -54,6 +54,10 @@ final class WindowsSettingsModel {
     private(set) var stripEnabled: Bool
     private(set) var stripMode: WindowsSettings.StripMode
     private(set) var floatingApps: [String]
+    /// The user's own layouts and the layout slots, as the library last reported them (`reloadLibrary()`).
+    var libraryLayouts: [GridLayout] = []
+    var layoutSlots: [Int: String] = [:]
+    var libraryLocked = false
     /// The current modifiers of each shortcut family; a family is missing when the user recorded something else
     /// for one of its commands.
     private(set) var choices: [ShortcutFamily: ModifierChoice] = [:]
@@ -117,6 +121,7 @@ final class WindowsSettingsModel {
             stripEnabled: settings.stripEnabled, stripHasRoom: running?.strip?.hasRoom,
             workspaceCount: settings.workspaceCount)
         for family in ShortcutFamily.allCases { choices[family] = choice(for: family) }
+        await reloadLibrary()
         overrides = settings.workspaceOverrides
         refreshSafety()
         context.resultsChanged()

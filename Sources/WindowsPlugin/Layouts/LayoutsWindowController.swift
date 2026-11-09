@@ -6,7 +6,7 @@ import SwiftUI
 /// settings pane; nothing opens it by itself, and it holds no state while it is closed.
 @MainActor
 final class LayoutsWindowController: NSObject, NSWindowDelegate {
-    private var window: NSWindow?
+    private(set) var window: NSWindow?
     private let makeModel: @MainActor () -> LayoutsModel
     /// The app's text size (`app.textSize` through `AppTextSize`), read while the view renders.
     var textSize: () -> TextSize = { AppTextSize.current() }

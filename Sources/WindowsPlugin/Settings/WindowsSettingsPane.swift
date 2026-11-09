@@ -154,6 +154,7 @@ struct WindowsSettingsPane: View {
         modifierRow(Text("Focus window", comment: "Window Management shortcut family"), family: .focus)
         modifierRow(Text("Move window", comment: "Window Management shortcut family"), family: .moveWindow)
         modifierRow(Text("Resize window", comment: "Window Management shortcut family"), family: .resize)
+        layoutSlots
         if model.modifierConflict {
             label(
                 Text(
@@ -234,6 +235,38 @@ struct WindowsSettingsPane: View {
         }
     }
 
+    /// The nine layout slots (spec: API Contracts): each is a command with its own shortcut and is bound to a
+    /// layout here, so deleting a layout never leaves a shortcut that points nowhere.
+    @ViewBuilder private var layoutSlots: some View {
+        label(
+            Text("Layout slots", comment: "Window Management setting: nine shortcuts that each apply a layout"),
+            help: Text(
+                "Each slot has its own shortcut and applies the layout you bind to it to the current workspace.",
+                comment: "Window Management setting help: layout slots"))
+        ForEach(1...LayoutRules.slotCount, id: \.self) { number in
+            HStack {
+                MenuPicker(
+                    selection: Binding(
+                        get: { model.layoutSlots[number] ?? Self.useDefault },
+                        set: { value in
+                            Task { await model.setLayoutSlot(number, to: value == Self.useDefault ? nil : value) }
+                        })
+                ) {
+                    Text("None", comment: "Window Management: a layout slot that is not bound")
+                        .font(textSize.font(.body)).tag(Self.useDefault)
+                    ForEach(model.allLayouts, id: \.id) { layout in
+                        Text(verbatim: StockLayouts.displayName(of: layout)).font(textSize.font(.body)).tag(layout.id)
+                    }
+                } label: {
+                    Text("Layout slot \(number)", comment: "Layouts window: a numbered shortcut slot")
+                        .font(textSize.font(.body))
+                }
+                .disabled(model.libraryLocked)
+                model.context.makeShortcutRecorder(WindowsCommandID.layoutSlot(number))
+            }
+        }
+    }
+
     /// The default zone layout of displays of one shape: a stock layout.
     private func zoneDefaultRow(_ title: Text, orientation: DisplayOrientation) -> some View {
         MenuPicker(
@@ -241,11 +274,11 @@ struct WindowsSettingsPane: View {
                 get: { model.defaultZoneLayout(for: orientation) },
                 set: { model.setDefaultZoneLayout($0, for: orientation) })
         ) {
-            ForEach(StockLayouts.all, id: \.id) { layout in
+            ForEach(model.allLayouts, id: \.id) { layout in
                 Text(verbatim: StockLayouts.displayName(of: layout)).font(textSize.font(.body)).tag(layout.id)
             }
-            // A default that is not a stock layout (from a later version) stays selectable as it is.
-            if !StockLayouts.isStock(model.defaultZoneLayout(for: orientation)) {
+            // A default that is in no library (deleted, or from a later version) stays selectable as it is.
+            if !model.allLayouts.contains(where: { $0.id == model.defaultZoneLayout(for: orientation) }) {
                 Text(verbatim: model.defaultZoneLayout(for: orientation)).font(textSize.font(.body))
                     .tag(model.defaultZoneLayout(for: orientation))
             }

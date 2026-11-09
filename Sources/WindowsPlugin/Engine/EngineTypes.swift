@@ -145,6 +145,8 @@ struct WorkspaceSummary: Equatable, Sendable {
     /// The workspace each display shows, by display UUID.
     var visible: [String: WorkspaceID]
     var counts: [WorkspaceID: Int]
+    /// The display the keyboard focus is on: the one the zone layout commands act on.
+    var focusedDisplay: String?
 }
 
 enum EngineCommand: Equatable, Sendable {

@@ -2,13 +2,23 @@ import CoreGraphics
 import Foundation
 import LintelKit
 
-/// The layouts a build knows. Phase 3 has only the stock templates; the user's library (phase 4) joins them
-/// here, so resolution and placement do not change.
+/// The layouts a build knows: the stock templates and the user's library (`LayoutRepository.library`).
 struct LayoutLibrary: Equatable, Sendable {
     private(set) var layouts: [String: GridLayout]
+    /// The ids in the order given (stock templates, then the user's layouts): what *Next layout* cycles through.
+    private(set) var order: [String]
 
     init(_ layouts: [GridLayout] = StockLayouts.all) {
         self.layouts = Dictionary(layouts.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        var seen = Set<String>()
+        order = layouts.map(\.id).filter { seen.insert($0).inserted }
+    }
+
+    /// The layout after `id` in `order`, wrapping round; the first one when `id` is not in the library.
+    func next(after id: String) -> String? {
+        guard !order.isEmpty else { return nil }
+        guard let index = order.firstIndex(of: id) else { return order.first }
+        return order[(index + 1) % order.count]
     }
 
     static let stock = LayoutLibrary()

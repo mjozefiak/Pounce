@@ -52,10 +52,40 @@ extension WindowsSettingsModel {
         applyLayoutChange()
     }
 
+    /// Every layout a default or a slot can name: the stock templates, then the user's.
+    var allLayouts: [GridLayout] { StockLayouts.all + libraryLayouts }
+
+    /// Reads the library again (the pane appeared, or the Layouts window changed it). Nothing while the plugin
+    /// is off.
+    func reloadLibrary() async {
+        guard let running = runtime() else {
+            libraryLayouts = []
+            layoutSlots = [:]
+            libraryLocked = false
+            return
+        }
+        let snapshot = await running.layouts.snapshot
+        libraryLayouts = snapshot.user
+        layoutSlots = snapshot.slots
+        libraryLocked = snapshot.isReadOnly
+    }
+
+    /// Binds a layout slot to a layout, or frees it with `nil` (the pane's slot rows).
+    func setLayoutSlot(_ number: Int, to layoutID: String?) async {
+        guard let running = runtime(), !libraryLocked else { return }
+        do {
+            try await running.layouts.setSlot(number, to: layoutID)
+        } catch {
+            running.context.logger.error("Cannot write layouts.json")
+        }
+        await reloadLibrary()
+    }
+
     /// "6 layouts · Zones on 2 workspaces": the line under *Layouts…* in Basics.
     var layoutsSummary: String {
         let layouts = String(
-            localized: "\(StockLayouts.all.count) layouts", comment: "Settings: how many zone layouts exist")
+            localized: "\(StockLayouts.all.count + libraryLayouts.count) layouts",
+            comment: "Settings: how many zone layouts exist")
         let config = layoutConfig
         let zones = WorkspaceID.all(count: workspaceCount).filter { config.resolved(for: $0).kind == .zones }.count
         let used =

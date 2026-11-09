@@ -71,7 +71,8 @@ enum EngineReducer {
             current: state.model.current,
             visible: state.model.visible,
             counts: Dictionary(
-                uniqueKeysWithValues: state.model.workspaces.map { ($0, state.model.windowCount(in: $0)) })
+                uniqueKeysWithValues: state.model.workspaces.map { ($0, state.model.windowCount(in: $0)) }),
+            focusedDisplay: state.model.focusedDisplay
         )
     }
 

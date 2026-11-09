@@ -21,6 +21,9 @@ enum WindowsCommandID {
     static let balance = "windows.balance"
     static let toggleLayout = "windows.toggleLayout"
     static func zone(_ number: Int) -> String { "windows.zones.zone.\(number)" }
+    /// The nine layout slots: stable commands, each bound to a layout in the pane (spec: API Contracts).
+    static func layoutSlot(_ number: Int) -> String { "windows.zones.layout.\(number)" }
+    static let nextLayout = "windows.zones.nextLayout"
 }
 
 /// A family of commands that share one modifier row in Settings (the keys stay fixed).
@@ -224,6 +227,23 @@ extension WindowsPlugin {
                     symbolName: "rectangle.split.3x1", showsInMenu: false,
                     run: { [weak self] in await self?.perform(.moveToZone(number), purpose: .moving) }))
         }
+        for number in 1...LayoutRules.slotCount {
+            commands.append(
+                PluginCommand(
+                    id: WindowsCommandID.layoutSlot(number),
+                    title: LocalizedStringResource(
+                        "Use Layout Slot \(number)",
+                        comment: "Command: gives the current workspace the layout bound to a numbered slot"),
+                    symbolName: "square.grid.3x1.below.line.grid.1x2", showsInMenu: false,
+                    run: { [weak self] in await self?.runtime?.applyLayoutSlot(number) }))
+        }
+        commands.append(
+            PluginCommand(
+                id: WindowsCommandID.nextLayout,
+                title: LocalizedStringResource(
+                    "Next Zone Layout", comment: "Command: switches the current workspace to the next zone layout"),
+                symbolName: "square.grid.2x2.fill", showsInMenu: false,
+                run: { [weak self] in await self?.runtime?.nextLayout() }))
         commands.append(
             PluginCommand(
                 id: WindowsCommandID.toggleLayout,

@@ -60,7 +60,11 @@ public final class WindowsPlugin: LintelPlugin {
         LayoutsWindowController(makeModel: { [unowned self] in
             LayoutsModel(
                 pane: paneModel, displays: { [client = context.windows] in await client.displays() },
-                identify: { [identifier] display in identifier.show(display) })
+                identify: { [identifier] display in identifier.show(display) },
+                openEditor: { [unowned self] layout, isNew, onSaved in
+                    openEditor(layout: layout, isNew: isNew, parent: layoutsWindow.window, onSaved: onSaved)
+                },
+                files: AppKitLayoutFiles())
         })
     }
     /// The first activation of this process honours safe mode; a later one (the user switched the plugin on
