@@ -84,7 +84,9 @@ nonisolated final class AXWindowClient: WindowClient, Sendable {
             buffer.onTermination { [weak self] in
                 // The engine stopped listening: stop observing, and let the next subscription start afresh.
                 hub.stop()
+                // Only this subscription's own state: a newer subscription may already have taken its place.
                 self?.streamState.withLock {
+                    guard $0.hub === hub else { return }
                     $0.stream = nil
                     $0.hub = nil
                 }
