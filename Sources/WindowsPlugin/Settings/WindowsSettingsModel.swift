@@ -53,7 +53,9 @@ final class WindowsSettingsModel {
     /// and the plugin never use two different ones.
     @ObservationIgnored var hud: any WindowsHUDPresenting = NullHUD()
     /// One pass over the journal when no engine runs; the plugin sets it.
-    @ObservationIgnored var restoreFromJournal: () async -> RecoveryReport = { RecoveryReport() }
+    @ObservationIgnored var restoreFromJournal: () async -> JournalOwner.Pass<RecoveryReport> = {
+        .ran(RecoveryReport())
+    }
 
     private(set) var workspaceCount: Int
     private(set) var followFocus: Bool
@@ -251,8 +253,10 @@ final class WindowsSettingsModel {
         if let runtime = runtime() {
             await runtime.restoreAllWindows()
         } else {
-            let report = await restoreFromJournal()
-            hud.show(WindowsHUDState(report: report))
+            switch await restoreFromJournal() {
+            case .ran(let report): hud.show(WindowsHUDState(report: report))
+            case .engineRunning, .engineStopping: hud.show(.stillStopping)
+            }
         }
         await refresh()
     }

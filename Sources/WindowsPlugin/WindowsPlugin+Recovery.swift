@@ -1,4 +1,5 @@
 import Foundation
+import LintelCore
 import LintelKit
 
 /// Putting parked windows back outside the running engine: *Restore all windows* without a runtime, erasing
@@ -10,16 +11,39 @@ extension WindowsPlugin {
             await runtime.restoreAllWindows()
             return
         }
-        let report = await Self.restoreFromJournal(context: context)
-        hud.show(WindowsHUDState(report: report))
+        switch await Self.restoreFromJournal(context: context) {
+        case .ran(let report): hud.show(WindowsHUDState(report: report))
+        case .engineRunning, .engineStopping: hud.show(.stillStopping)
+        }
     }
 
-    /// "Erase Data": puts every window back first; the host then deletes `Plugins/windows/`.
+    /// Why *Erase Data* refused: windows may still be parked, and the journal that can put them back lives in the
+    /// folder the host would delete.
+    public struct EraseRefused: LocalizedError, Equatable {
+        public var errorDescription: String? {
+            String(
+                localized: "Windows are still parked, so their data was kept. Try again when they are back.",
+                comment: "Window Management: Erase Data refused because windows are still hidden")
+        }
+    }
+
+    /// How long *Erase Data* waits for an engine that is still stopping to hand the journal back.
+    static let eraseBudget: Duration = .seconds(10)
+
+    /// "Erase Data": puts every window back first and refuses (the host then keeps `Plugins/windows/`) while any
+    /// window may still be parked: the engine has not handed the journal back, an app did not answer, or
+    /// Accessibility is off. Only an empty journal is erased.
     public func eraseData() async throws {
         await deactivate()
-        let report = await Self.restoreFromJournal(context: context)
-        if report.remaining > 0 {
-            context.logger.notice("Erasing window data with \(report.remaining, privacy: .public) windows not restored")
+        let journal = journal
+        _ = await withDeadline(Self.eraseBudget, clock: context.clock) { await journal.waitUntilIdle() }
+        guard case .ran(let report) = await Self.restoreFromJournal(context: context) else {
+            context.logger.notice("Erase refused: the engine has not handed the journal back")
+            throw EraseRefused()
+        }
+        if report.remaining > 0 || report.needsAccessibility {
+            context.logger.notice("Erase refused: \(report.remaining, privacy: .public) windows not restored")
+            throw EraseRefused()
         }
     }
 
@@ -66,15 +90,13 @@ extension WindowsPlugin {
         return report.outcome
     }
 
-    /// One exclusive pass over the journal in `context.storageDirectory`; empty while an engine owns it.
+    /// One exclusive pass over the journal in `context.storageDirectory`, or who owns it instead (the caller says so
+    /// instead of reporting an empty pass).
     nonisolated static func restoreFromJournal(
         context: PluginContext
-    ) async -> RecoveryReport {
+    ) async -> JournalOwner.Pass<RecoveryReport> {
         let journal = JournalOwner.owner(for: context)
-        if case .ran(let report) = await journal.exclusive({ store in await restore(context: context, store: store) }) {
-            return report
-        }
-        return RecoveryReport()
+        return await journal.exclusive { store in await restore(context: context, store: store) }
     }
 
     private nonisolated static func restore(context: PluginContext, store: StateStore) async -> RecoveryReport {

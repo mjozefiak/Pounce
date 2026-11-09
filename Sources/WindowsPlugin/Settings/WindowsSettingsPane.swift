@@ -65,6 +65,12 @@ struct WindowsSettingsPane: View {
                 help: Text(
                     "Windows were left parked twice in a row. Use Try Again above.",
                     comment: "Window Management: safe mode"))
+        case .stillStopping:
+            label(
+                Text("Still stopping", comment: "Window Management: an earlier run has not finished"),
+                help: Text(
+                    "The windows of the last run are still being put back. Use Try Again above in a moment.",
+                    comment: "Window Management: an earlier run has not finished"))
         }
     }
 

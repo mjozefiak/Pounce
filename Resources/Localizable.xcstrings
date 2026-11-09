@@ -13123,6 +13123,96 @@
         }
       }
     },
+    "Windows are still being put back" : {
+      "comment" : "Window HUD: an earlier run has not finished restoring windows",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Windows are still being put back"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Okna są jeszcze przywracane"
+          }
+        }
+      }
+    },
+    "Try again in a moment." : {
+      "comment" : "Window HUD: what to do while windows are put back",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again in a moment."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spróbuj za chwilę."
+          }
+        }
+      }
+    },
+    "Still stopping" : {
+      "comment" : "Window Management: an earlier run has not finished",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Still stopping"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jeszcze się zatrzymuje"
+          }
+        }
+      }
+    },
+    "The windows of the last run are still being put back. Use Try Again above in a moment." : {
+      "comment" : "Window Management: an earlier run has not finished",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The windows of the last run are still being put back. Use Try Again above in a moment."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Okna z poprzedniego uruchomienia są jeszcze przywracane. Za chwilę użyj Spróbuj ponownie powyżej."
+          }
+        }
+      }
+    },
+    "Windows are still parked, so their data was kept. Try again when they are back." : {
+      "comment" : "Window Management: Erase Data refused because windows are still hidden",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Windows are still parked, so their data was kept. Try again when they are back."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Okna są nadal ukryte, więc ich dane zostały zachowane. Spróbuj ponownie, gdy wrócą."
+          }
+        }
+      }
+    },
     "Windows are parked" : {
       "comment" : "Window HUD: windows are hidden and cannot be restored",
       "extractionState" : "manual",

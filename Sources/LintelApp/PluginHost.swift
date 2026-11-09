@@ -5,6 +5,11 @@ import Observation
 import os
 
 /// Lifecycle state of one plugin.
+/// Why the host itself failed a plugin.
+enum PluginHostError: Error, Equatable {
+    case activationTimedOut
+}
+
 enum PluginState {
     case disabled
     case activating
@@ -47,6 +52,9 @@ final class PluginHost {
     @ObservationIgnored let sourceBudget: Duration
     @ObservationIgnored private var pending: [PluginID: Task<Void, Never>] = [:]
     @ObservationIgnored let recoveryBudget: Duration
+    /// How long a plugin's `activate()` may take before the host gives up on it (the plugin is then `failed`), so a
+    /// stuck activation cannot hold up that plugin's later lifecycle steps, a quit among them.
+    @ObservationIgnored let activationBudget: Duration
     @ObservationIgnored private var recoveries: [PluginID: Task<Void, Never>] = [:]
     /// The `recoverAtLaunch` call of each plugin that has not returned yet, even when its bound passed: a retry
     /// never starts a second copy beside it.
@@ -65,6 +73,7 @@ final class PluginHost {
         fileManager: FileManager = .default,
         sourceBudget: Duration = .milliseconds(150),
         recoveryBudget: Duration = .seconds(5),
+        activationBudget: Duration = .seconds(20),
         clock: any Clock<Duration> = ContinuousClock(),
         logger: Logger = Logger(subsystem: "com.lintelapp", category: "host")
     ) {
@@ -72,6 +81,7 @@ final class PluginHost {
         self.fileManager = fileManager
         self.sourceBudget = sourceBudget
         self.recoveryBudget = recoveryBudget
+        self.activationBudget = activationBudget
         self.clock = clock
         self.logger = logger
 
@@ -365,7 +375,15 @@ final class PluginHost {
         setState(.activating, for: id)
         do {
             try createStorageDirectory(entry.storageDirectory)
-            try await entry.plugin.activate()
+            let plugin = entry.plugin
+            let activation = Task { try await plugin.activate() }
+            let budget = activationBudget
+            let clock = clock
+            guard let result = await withDeadline(budget, clock: clock, { await activation.result }) else {
+                activation.cancel()
+                throw PluginHostError.activationTimedOut
+            }
+            try result.get()
             setState(.active, for: id)
             logger.info("Activated plugin \(id.rawValue, privacy: .public)")
         } catch {

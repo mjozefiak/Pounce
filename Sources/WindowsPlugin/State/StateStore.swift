@@ -24,6 +24,8 @@ actor StateStore {
         /// The file comes from a newer version or could not be read: this session writes nothing.
         case readOnly
         case write
+        /// `close()` was called and `load()` has not reopened the store: nothing is written.
+        case closed
     }
 
     nonisolated let fileURL: URL
@@ -139,6 +141,7 @@ actor StateStore {
     /// journal keeps its earlier home frame: the frame it has now is the parked one. Throws, and leaves the
     /// journal unchanged, when the file cannot be written; the caller must then not park the windows.
     func addHidden(_ entries: [HiddenEntry]) throws {
+        guard !isClosed else { throw StoreError.closed }
         guard !isReadOnly else { throw StoreError.readOnly }
         var next = state
         var known = Set(next.hidden.map(\.windowID))
@@ -151,6 +154,7 @@ actor StateStore {
 
     /// Removes windows from the journal (they were restored or are gone), written through.
     func removeHidden(_ ids: Set<WindowID>) throws {
+        guard !isClosed else { throw StoreError.closed }
         guard !isReadOnly else { throw StoreError.readOnly }
         guard state.hidden.contains(where: { ids.contains($0.windowID) }) else { return }
         var next = state
@@ -181,6 +185,7 @@ actor StateStore {
     }
 
     private func writeThrough(_ next: WindowsState) throws {
+        guard !isClosed else { throw StoreError.closed }
         do {
             let data = try Self.encode(StateFile(state: next))
             try AtomicFile.write(data, to: fileURL, syncDirectory: true)
@@ -196,6 +201,7 @@ actor StateStore {
     /// could not be restored (another Space) is forgotten with the rest, which is why the pane confirms. Written
     /// through. Throws when the file cannot be written.
     func reset() throws {
+        guard !isClosed else { throw StoreError.closed }
         guard !isReadOnly else { throw StoreError.readOnly }
         saveTask?.cancel()
         saveTask = nil

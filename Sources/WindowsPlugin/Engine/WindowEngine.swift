@@ -33,7 +33,9 @@ actor WindowEngine {
     private let strategies: LayoutRegistry
     private let logger: Logger
     /// A bound on how long a command waits for slow apps (a real-time liveness bound, not engine time).
-    private let commandBudget: Duration
+    private let commandBudget: Duration?
+    private let clock: any Clock<Duration>
+    private var nextWaiter: UInt64 = 0
     /// Whether windows may be moved at all: the plugin is enabled (the engine exists only then) and Accessibility
     /// is trusted (owner rule: nothing moves without Accessibility).
     private let canMove: @Sendable () -> Bool
@@ -50,7 +52,7 @@ actor WindowEngine {
     /// One queued input and what waits for it.
     private struct Pending {
         var input: EngineInput
-        var waiter: (@Sendable () -> Void)?
+        var waiter: BatchLedger.Waiter?
         /// The batch whose result this input carries: it is not finished before what this input causes is.
         var parent: Int?
     }
@@ -69,7 +71,7 @@ actor WindowEngine {
         workspaceCount: Int = WindowsSettings.defaultWorkspaceCount,
         config: EngineConfig = EngineConfig(),
         tick: Duration = .milliseconds(30),
-        commandBudget: Duration = .seconds(2),
+        commandBudget: Duration? = .seconds(2),
         watchdog: Watchdog = Watchdog(),
         reporter: EngineReporter = EngineReporter(),
         strategies: LayoutRegistry,
@@ -84,6 +86,7 @@ actor WindowEngine {
         self.time = TimeSource(clock)
         self.tick = tick
         self.commandBudget = commandBudget
+        self.clock = clock
         self.reporter = reporter
         translator = EventTranslator(client: client)
         self.strategies = strategies
@@ -125,6 +128,9 @@ actor WindowEngine {
         guard !stopped else { return }
         stopped = true
         pumpTask?.cancel()
+        // The pump is awaited, so the client's stream has really ended when `stop()` returns and a restart's
+        // `subscribe()` cannot be handed a stream that is still dying.
+        await pumpTask?.value
         pumpTask = nil
         flushTask?.cancel()
         flushTask = nil
@@ -179,6 +185,9 @@ actor WindowEngine {
     }
 
     func diagnostics() -> EngineDiagnostics { state.diagnostics }
+
+    /// How many callers wait on batches that have not finished (a bound that fired leaves none).
+    func waitingCallers() -> Int { ledger.waiterCount }
     func parkedCount() -> Int { state.parked.count }
 
     /// Whether anything is parked: the engine's own windows or an entry still in the journal.
@@ -221,14 +230,26 @@ actor WindowEngine {
     private func submitInternal(_ inputs: [EngineInput], bounded: Bool = true) async {
         guard !inputs.isEmpty else { return }
         let finished = OneShot<Void>()
+        nextWaiter += 1
+        let token = nextWaiter
         for input in inputs.dropLast() { pending.append(Pending(input: input)) }
-        pending.append(Pending(input: inputs[inputs.count - 1], waiter: { finished.set(()) }))
+        pending.append(
+            Pending(input: inputs[inputs.count - 1], waiter: BatchLedger.Waiter(token: token) { finished.set(()) }))
         reduceAndDispatch()
-        if bounded {
-            _ = await withDeadline(commandBudget, clock: ContinuousClock()) { await finished.wait() }
-        } else {
+        guard bounded, let budget = commandBudget else {
             await finished.wait()
+            return
         }
+        // The bound runs on the engine's own clock. A timer that fires first releases the wait and the ledger drops
+        // the waiter, so a batch that never finishes keeps no task, no continuation and no closure of this call.
+        let clock = clock
+        let timer = Task {
+            do { try await clock.sleep(for: budget) } catch { return }
+            finished.set(())
+        }
+        await finished.wait()
+        timer.cancel()
+        ledger.removeWaiter(token)
     }
 
     private func enqueue(_ inputs: [EngineInput]) {
@@ -349,7 +370,7 @@ actor WindowEngine {
             let items = pending
             pending = []
             var effects: [EngineEffect] = []
-            var waiters: [@Sendable () -> Void] = []
+            var waiters: [BatchLedger.Waiter] = []
             var parents: [Int] = []
             for item in items {
                 let (next, produced) = EngineReducer.reduce(state, item.input, strategies: strategies)

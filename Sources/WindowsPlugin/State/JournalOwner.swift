@@ -7,10 +7,11 @@ import os
 /// writer of the file) and decides who may use it. Either the running engine owns the journal (its parked windows
 /// are parked on purpose), or one recovery pass does, never both and never two passes at once.
 ///
-/// - `beginEngine()` waits until the journal is free (no pass, no earlier engine), then returns a lease; the engine
-///   owns the journal until `endEngine(_:)` with that lease, which the runtime calls only after the engine has
-///   really stopped, not when a stop budget ran out. A stale lease changes nothing, so an old engine that stops late
-///   cannot free the journal under a new one.
+/// - `tryBeginEngine()` gives the engine a lease when the journal is free (no pass, no earlier engine) and `nil`
+///   otherwise; `waitUntilIdle()` waits for it to be free (the caller bounds the wait). The engine owns the journal
+///   until `endEngine(_:)` with that lease, which the runtime calls only after the engine has really stopped, not
+///   when a stop budget ran out. A stale lease changes nothing, so an old engine that stops late cannot free the
+///   journal under a new one.
 /// - `exclusive(_:)` runs one pass or answers `Pass.engineRunning` / `Pass.engineStopping`; a caller that finds the
 ///   engine stopping reports `.deferred` so the host tries again. Other passes wait their turn.
 ///
@@ -44,13 +45,19 @@ actor JournalOwner {
 
     // MARK: Engine
 
-    /// Waits until the journal is free, then gives the engine ownership. Returns the lease the engine must present.
-    func beginEngine() async -> UInt64 {
-        while phase != .idle { await waitForTurn() }
+    /// Gives the engine ownership when the journal is free. Returns the lease the engine must present, or `nil`
+    /// while a recovery pass or an earlier engine (still stopping) holds it.
+    func tryBeginEngine() -> UInt64? {
+        guard phase == .idle else { return nil }
         nextLease += 1
         activeLease = nextLease
         phase = .engine
         return nextLease
+    }
+
+    /// Waits until no pass and no engine holds the journal. Unbounded: callers put a deadline around it.
+    func waitUntilIdle() async {
+        while phase != .idle { await waitForTurn() }
     }
 
     /// The engine of `lease` is being stopped: recovery passes answer `.engineStopping` until `endEngine`.

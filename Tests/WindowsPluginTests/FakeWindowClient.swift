@@ -58,6 +58,7 @@ final class FakeWindowClient: WindowClient, Sendable {
     }
 
     private let state = Mutex(State())
+    private let terminatedFlag = TerminationFlag()
     let events: AsyncStream<WindowEvent>
     private let continuation: AsyncStream<WindowEvent>.Continuation
 
@@ -67,6 +68,8 @@ final class FakeWindowClient: WindowClient, Sendable {
             $0.displays = displays
             for window in windows { $0.windows[window.id] = window }
         }
+        let flag = terminatedFlag
+        continuation.onTermination = { _ in flag.value.withLock { $0 = true } }
     }
 
     static let mainDisplay = DisplayInfo(
@@ -160,6 +163,8 @@ final class FakeWindowClient: WindowClient, Sendable {
     var calls: [Call] { state.withLock { $0.calls } }
     var windowsReads: Int { state.withLock { $0.windowsReads } }
     var singleReads: Int { state.withLock { $0.singleReads } }
+    /// Whether the event stream has ended (its consumer is gone).
+    var eventsTerminated: Bool { terminatedFlag.value.withLock { $0 } }
     /// The order in which the engine used the port: `subscribe`, `windows`, `window`.
     var callLog: [String] { state.withLock { $0.log } }
     var focusCalls: [WindowID] { state.withLock { $0.focusCalls } }
@@ -423,4 +428,8 @@ extension WindowEngine {
     var snapshot: EngineState {
         get async { await inspect { $0 } }
     }
+}
+
+final class TerminationFlag: Sendable {
+    let value = Mutex(false)
 }

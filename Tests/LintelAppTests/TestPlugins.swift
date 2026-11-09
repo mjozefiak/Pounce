@@ -238,6 +238,7 @@ struct TestEnvironment {
         _ types: [any LintelPlugin.Type],
         budget: Duration = .milliseconds(150),
         recoveryBudget: Duration = .seconds(5),
+        activationBudget: Duration = .seconds(20),
         clock: any Clock<Duration> = ContinuousClock()
     ) -> PluginHost {
         PluginHost(
@@ -246,6 +247,7 @@ struct TestEnvironment {
             settings: settings,
             sourceBudget: budget,
             recoveryBudget: recoveryBudget,
+            activationBudget: activationBudget,
             clock: clock
         )
     }
@@ -439,5 +441,21 @@ nonisolated struct SignallingSource: SearchSource {
     func search(_ query: NormalizedQuery, limit: Int) async throws -> [Candidate] {
         defer { done.open() }
         return try await base.search(query, limit: limit)
+    }
+}
+
+/// An `activate()` that does not return until the test opens the gate (a start stuck behind something it waits for).
+final class StuckActivationPlugin: LintelPlugin {
+    static let manifest = PluginManifest(id: "stuckactivation", displayName: "Stuck", symbolName: "tortoise", order: 8)
+
+    nonisolated static let gateKey = "stuckactivation.gate"
+    private let gate: Gate
+
+    init(context: PluginContext) {
+        gate = context.services.shared(Self.gateKey) { Gate() }
+    }
+
+    func activate() async throws {
+        await gate.wait()
     }
 }

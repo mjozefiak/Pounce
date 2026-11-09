@@ -13,6 +13,11 @@ final class WindowsRuntime: WindowSwitching {
     /// How long a disable or a quit waits for windows to be put back; what is left stays in the journal for the
     /// next launch (spec: Architecture, "Recovery runs outside the plugin lifecycle").
     static let stopBudget: Duration = .seconds(5)
+    /// How long a start waits for an earlier run that is still putting windows back before it gives up
+    /// (`WindowsPlugin.StartError.stillStopping`).
+    static let startBudget: Duration = .seconds(5)
+    /// How long *Restore all windows* waits for apps that do not answer before it reports what is still parked.
+    static let restoreBudget: Duration = .seconds(5)
 
     let context: PluginContext
     let settings: WindowsSettings
@@ -162,7 +167,10 @@ final class WindowsRuntime: WindowSwitching {
 
     private let activationCenter: NotificationCenter
 
-    func start() async {
+    /// Takes the journal first: when an earlier run still holds it (a stop budget ran out with a hung app) this
+    /// gives up after `startBudget` and starts nothing, so a re-enable fails with a message instead of hanging.
+    func start() async throws {
+        try await acquireJournal()
         trust.refresh()
         trust.onChange = { [weak self] trusted in self?.trustChanged(trusted) }
         let engine = engine
@@ -170,13 +178,26 @@ final class WindowsRuntime: WindowSwitching {
         activationObserver = AppActivationObserver(center: activationCenter) { [weak self] in
             self?.trust.refresh()
         }
-        lease = await journal.beginEngine()
         await assignments.load()
         await layouts.load()
         await refreshConfig()
         await engine.start()
         applyStrip()
         if dragController == nil { dragController = makeDragController?(self) }
+    }
+
+    private func acquireJournal() async throws {
+        for attempt in 0..<2 {
+            if let lease = await journal.tryBeginEngine() {
+                self.lease = lease
+                return
+            }
+            if attempt == 0 {
+                let journal = journal
+                _ = await withDeadline(Self.startBudget, clock: context.clock) { await journal.waitUntilIdle() }
+            }
+        }
+        throw WindowsPlugin.StartError.stillStopping
     }
 
     /// Waits until the engine has nothing queued or running and everything it reported has been handled here (tests
@@ -188,7 +209,9 @@ final class WindowsRuntime: WindowSwitching {
         await reports.waitUntilHandled()
     }
 
-    /// Puts the windows back and stops, waiting at most `stopBudget`.
+    /// Puts the windows back and stops, as a whole within `stopBudget`: the wait for the re-grant task and the
+    /// queued actions, the restore and the engine's own shutdown all count. What is not done when the budget runs
+    /// out stays in the journal, which the old engine keeps until it has really stopped.
     /// - Parameter waitingForTrustTask: `false` when the caller is that task itself (a failed self-check after a
     ///   re-grant stops the runtime from inside it).
     func stop(waitingForTrustTask: Bool = true) async {
@@ -200,18 +223,20 @@ final class WindowsRuntime: WindowSwitching {
         tearDownOverlay()
         strip?.remove()
         strip = nil
+        reports.finish()
         let engine = engine
         let journal = journal
-        trustTask?.cancel()
-        if waitingForTrustTask { await trustTask?.value }
-        trustTask = nil
-        await actions.waitUntilEmpty()
-        reports.finish()
+        let actions = actions
         let lease = lease
+        let regrant = trustTask
+        trustTask = nil
+        regrant?.cancel()
         if let lease { await journal.engineStopping(lease) }
         // The journal goes back to recovery only once the engine has really stopped, even when this wait gives
         // up first: a recovery pass must never run beside an engine that still moves windows.
         _ = await withDeadline(Self.stopBudget, clock: context.clock) {
+            if waitingForTrustTask { await regrant?.value }
+            await actions.waitUntilEmpty()
             await engine.stop()
             if let lease { await journal.endEngine(lease) }
         }
@@ -226,7 +251,15 @@ final class WindowsRuntime: WindowSwitching {
     /// *Restore all windows*: always ends with the restore HUD.
     func restoreAllWindows() async {
         trust.refresh()
-        let report = await engine.restoreAllWindows()
+        let engine = engine
+        // Bounded: a hung app must not hold the button for ever; what is still parked is reported instead.
+        var report: RecoveryReport
+        if let done = await withDeadline(Self.restoreBudget, clock: context.clock, { await engine.restoreAllWindows() })
+        {
+            report = done
+        } else {
+            report = RecoveryReport(failed: await engine.parkedCount())
+        }
         recoveredWindows += report.restored
         hud.show(WindowsHUDState(report: report))
     }

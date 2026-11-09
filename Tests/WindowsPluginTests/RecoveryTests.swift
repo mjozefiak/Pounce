@@ -86,7 +86,7 @@ import os
         // Its app is hung, so the window is missing from the list like one on another Space would be.
         client.remove(id(2))
         client.setBehavior(.hung, forProcess: 100)
-        let report = await WindowsPlugin.restoreFromJournal(context: context)
+        let report = await WindowsPlugin.restoredReport(context: context)
         #expect(report.onAnotherSpace == 0)
         #expect(report.failed == 2)
     }

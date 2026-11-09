@@ -31,6 +31,9 @@ public final class WindowsPlugin: LintelPlugin {
         /// Two launches in a row ended with parked windows, so the plugin starts switched off (spec:
         /// Architecture, "Watchdog and safe mode"). Starting it again by hand clears the flag.
         case safeMode
+        /// An earlier run is still putting windows back (a hung app held up its stop), so this one cannot start
+        /// yet; Try Again works once it is done.
+        case stillStopping
     }
 
     let context: PluginContext
@@ -131,7 +134,13 @@ public final class WindowsPlugin: LintelPlugin {
         runtime.tearDownOverlay = parts.tearDownOverlay
         self.runtime = runtime
         runtime.onTrustGranted = { [weak self] in await self?.recheckAvailability() }
-        await runtime.start()
+        do {
+            try await runtime.start()
+        } catch {
+            self.runtime = nil
+            lastStartError = .stillStopping
+            throw error
+        }
         #if DEBUG
         // QA only (`--qa-setting plugins.windows.qaOpenLayouts=true`): show the Layouts window without a click.
         if settings.qaOpenLayouts {

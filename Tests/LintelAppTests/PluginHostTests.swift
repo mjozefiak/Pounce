@@ -105,6 +105,22 @@ import Testing
         #expect(env.overrun.entered.withLock { $0 } == 1)
     }
 
+    @Test func aStuckActivationFailsTheStartAndDoesNotHoldUpAQuit() async {
+        defer { env.tearDown() }
+        // The activation budget is over as soon as it is awaited; the activation itself waits for its gate.
+        let host = env.makeHost([StuckActivationPlugin.self], activationBudget: .seconds(1), clock: ExpiredClock())
+        await host.setEnabled(true, for: "stuckactivation")
+        guard case .failed(let error)? = host.state(of: "stuckactivation") else {
+            Issue.record("the stuck activation should fail the plugin")
+            return
+        }
+        #expect(error as? PluginHostError == .activationTimedOut)
+        // A quit goes through the same queue: it returns instead of waiting behind the stuck start.
+        await host.stop()
+        #expect(host.state(of: "stuckactivation").map(isDisabled) != false)
+        env.environment.services.shared(StuckActivationPlugin.gateKey) { Gate() }.open()
+    }
+
     @Test func defaultPluginRecoversAsDone() async {
         defer { env.tearDown() }
         let outcome = await AlphaPlugin.recoverAtLaunch(context: env.environment.makeContext(for: AlphaPlugin.manifest))

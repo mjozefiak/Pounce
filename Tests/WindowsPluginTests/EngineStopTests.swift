@@ -50,16 +50,22 @@ import Testing
         let client = FakeWindowClient(windows: [hung, makeWindow(2, pid: 200)])
         client.setBehavior(.stall, forProcess: 100)
         let store = StateStore(directory: harness.directory, saveDelay: .seconds(3600))
-        // The budget is real time (a bound on waiting for apps); the engine's own clock is virtual.
+        // The bound runs on the engine's own clock, which only the test moves.
+        let clock = VirtualClock(autoAdvance: false)
         let engine = makeEngine(
-            client: client, store: store, clock: VirtualClock(), workspaceCount: 4, tick: .milliseconds(5),
-            commandBudget: .milliseconds(50))
+            client: client, store: store, clock: clock, workspaceCount: 4, tick: .milliseconds(5),
+            commandBudget: .seconds(2))
         await engine.start()
         let hide = Task { await engine.send(.showWorkspace(WorkspaceID(2)!)) }
         await client.waitUntilStalled(1)
-        // The stalled call is not released, so only the budget can end the command.
-        let returned = await withDeadline(.seconds(10), clock: ContinuousClock()) { await hide.value }
-        #expect(returned != nil)
+        await clock.waitForSleepers(1)
+        // The call waits for the stalled app and nothing else can end it.
+        #expect(await engine.waitingCallers() == 1)
+        clock.advance(2)
+        await hide.value
+        // The bound fired: the call left nothing behind, and the batch itself is still running.
+        #expect(await engine.waitingCallers() == 0)
+        #expect(!(await store.hidden.isEmpty))
         // The abandoned work is still running and finishes once the app answers; nothing is left parked.
         client.releaseStalls()
         await engine.settle()

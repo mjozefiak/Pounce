@@ -28,7 +28,8 @@ final class WindowsHarness: @unchecked Sendable {
     var pluginSettings: PluginSettings { PluginSettings(pluginID: "windows", store: store) }
 
     func context(
-        windows: any WindowClient = NoWindowClient(), permissions: any PermissionsReader = NoPermissions()
+        windows: any WindowClient = NoWindowClient(), permissions: any PermissionsReader = NoPermissions(),
+        clock: (any Clock<Duration>)? = nil
     ) -> PluginContext {
         PluginContext(
             storageDirectory: directory,
@@ -40,7 +41,7 @@ final class WindowsHarness: @unchecked Sendable {
             events: NoEvents(),
             workspace: NoWorkspace(),
             permissions: permissions,
-            clock: clock,
+            clock: clock ?? self.clock,
             windows: windows,
             services: services
         )
@@ -184,7 +185,7 @@ extension EngineConfig {
 func makeEngine(
     client: any WindowClient, store: StateStore, clock: any Clock<Duration> = ContinuousClock(),
     workspaceCount: Int = WindowsSettings.defaultWorkspaceCount, config: EngineConfig = EngineConfig(),
-    tick: Duration = .milliseconds(30), commandBudget: Duration = .seconds(2), watchdog: Watchdog = Watchdog(),
+    tick: Duration = .milliseconds(30), commandBudget: Duration? = nil, watchdog: Watchdog = Watchdog(),
     reporter: EngineReporter = EngineReporter(), strategies: LayoutRegistry = .standard,
     canMove: @escaping @Sendable () -> Bool = { true }
 ) -> WindowEngine {
@@ -197,5 +198,23 @@ func makeEngine(
 extension EngineReducer {
     static func reduce(_ state: EngineState, _ input: EngineInput) -> (EngineState, [EngineEffect]) {
         reduce(state, input, strategies: .standard)
+    }
+}
+
+extension JournalOwner {
+    /// Takes the journal, waiting for whoever holds it (tests that do not bound the wait).
+    func beginEngine() async -> UInt64 {
+        while true {
+            if let lease = tryBeginEngine() { return lease }
+            await waitUntilIdle()
+        }
+    }
+}
+
+extension WindowsPlugin {
+    /// The report of one recovery pass; an empty one when the engine owns the journal (tests that expect a pass).
+    nonisolated static func restoredReport(context: PluginContext) async -> RecoveryReport {
+        if case .ran(let report) = await restoreFromJournal(context: context) { return report }
+        return RecoveryReport()
     }
 }

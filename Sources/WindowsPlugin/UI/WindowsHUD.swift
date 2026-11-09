@@ -22,6 +22,8 @@ enum WindowsHUDState: Equatable, Sendable {
     case parkedNeedsAccessibility
     /// Shown once, the first time a Zones layout is active: how to snap a window by dragging.
     case snapHint
+    /// An earlier run is still putting windows back: nothing could be done yet.
+    case stillStopping
 
     init(report: RecoveryReport) {
         self =
@@ -52,6 +54,10 @@ enum WindowsHUDState: Equatable, Sendable {
             String(localized: "Windows are parked", comment: "Window HUD: windows are hidden and cannot be restored")
         case .snapHint:
             ZoneOverlayText.hint
+        case .stillStopping:
+            String(
+                localized: "Windows are still being put back",
+                comment: "Window HUD: an earlier run has not finished restoring windows")
         }
     }
 
@@ -59,6 +65,9 @@ enum WindowsHUDState: Equatable, Sendable {
         switch self {
         case .workspace(_, let count): return WindowSearchSource.windowCount(count)
         case .accessibilityNeeded, .snapHint: return nil
+        case .stillStopping:
+            return String(
+                localized: "Try again in a moment.", comment: "Window HUD: what to do while windows are put back")
         case .restored(_, let otherSpace, let failed):
             var parts: [String] = []
             if otherSpace > 0 {
@@ -88,6 +97,7 @@ enum WindowsHUDState: Equatable, Sendable {
         case .restored(let restored, let otherSpace, let failed):
             restored > 0 && otherSpace + failed == 0 ? "checkmark.circle.fill" : "exclamationmark.circle.fill"
         case .parkedNeedsAccessibility: "exclamationmark.triangle.fill"
+        case .stillStopping: "clock.fill"
         case .snapHint: "rectangle.split.3x1"
         }
     }
@@ -118,7 +128,7 @@ enum WindowsHUDState: Equatable, Sendable {
         case .accessibilityNeeded: .seconds(5)
         case .restored(_, let otherSpace, let failed): otherSpace + failed > 0 ? .seconds(4) : .seconds(2)
         case .parkedNeedsAccessibility: .seconds(6)
-        case .snapHint: .seconds(4)
+        case .snapHint, .stillStopping: .seconds(4)
         }
     }
 }
