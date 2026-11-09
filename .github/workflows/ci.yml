@@ -51,5 +51,8 @@ jobs:
       - name: Test model leases under Thread Sanitizer
         run: swift test --sanitize=thread --filter "SpeechEngineLeaseTests|LLMLeaseTests|ModelManagerRegistryTests|ModelManagerQueueTests|DictationSessionLeaseTests"
 
+      - name: Test the window engine under Thread Sanitizer
+        run: swift test --sanitize=thread --filter WindowEngineTests
+
       - name: Format lint
         run: swift format lint --strict -r Sources Tests

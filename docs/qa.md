@@ -489,6 +489,23 @@ run only for the detection itself (use the QA data root so the library is isolat
 - A headset or mute flap (mic use stops and restarts within 30 s) gives no second pill; a pill answered "Not now" does
   not come back for the same call. Two apps joining together give one pill, the second after the first is answered.
 
+## Window management: manual items (real Mac, Accessibility granted)
+
+The engine is tested against a scriptable fake client (`Tests/WindowsPluginTests/WindowEngineTests.swift`, also under
+Thread Sanitizer in CI). What only a real Mac can show is listed here and is filled in with the spike results in
+`docs/decisions/0009-window-management-spike.md`. The plugin is not registered until the last step of Phase 1, so these
+run after registration.
+
+| # | Scenario | Expect |
+|---|---|---|
+| 1 | Switch workspaces with 20 windows of 5 apps | Windows of the old workspace disappear into the bottom right corner, the new ones return to their frames, no flicker; the budget in `docs/perf.md` holds. |
+| 2 | Frame rounding on a Retina display | A restored window reads back the same frame within the echo tolerance (2 points); no loop of moves. |
+| 3 | An app that hangs (`kill -STOP` its process), then switch | The other apps' windows still move; the hung app is skipped, retried on the next event, and "Copy diagnostics" counts one Accessibility timeout. |
+| 4 | Unplug and replug an external display, change its resolution | Workspaces of the removed display are parked on the remaining one; parked windows are re-parked in the new corner; everything returns when the display does. |
+| 5 | Kill Lintel (`kill -9`) while windows are parked, start it again (plugin on, then plugin off) | Parked windows come back at launch in both cases. |
+| 6 | An app that re-centres its hidden window (some Electron apps) | The window is hidden again at most three times, then left alone until focused; no flicker loop; the watchdog does not trip. |
+| 7 | Stage Manager on; "Displays have separate Spaces" off | The banners in Settings name the problem (keys verified in ADR 0009). |
+
 ## Never during QA
 
 - No synthetic key events, no `tccutil`, no edits to TCC databases or `com.apple.*` defaults.
