@@ -13014,6 +13014,42 @@
           }
         }
       }
+    },
+    "Window Management" : {
+      "comment" : "Plugin name of window management",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Window Management"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zarządzanie oknami"
+          }
+        }
+      }
+    },
+    "Arrange windows in workspaces." : {
+      "comment" : "Settings → Features: what Window Management does",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrange windows in workspaces."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układaj okna w obszarach roboczych."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
