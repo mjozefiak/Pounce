@@ -225,6 +225,7 @@ private final class FakeOverlay: ZoneOverlayPresenting {
         defer { harness.tearDown() }
         let client = FakeWindowClient(windows: [makeWindow(1), makeWindow(2)])
         let moved = Mutex<[WindowID]>([])
+        let frames = Mutex<[CGRect]>([])
         var config = EngineConfig()
         config.layout = LayoutConfig(
             defaultKind: kind, innerGap: 0, outerGap: 0, rootOrientation: .horizontal, overrides: [:])
@@ -232,7 +233,10 @@ private final class FakeOverlay: ZoneOverlayPresenting {
         let engine = WindowEngine(
             client: client, store: StateStore(directory: harness.directory, saveDelay: .seconds(3600)),
             now: { time.now }, config: config, tick: .milliseconds(5),
-            outputs: EngineOutputs(windowMoved: { id in moved.withLock { $0.append(id) } }), canMove: canMove)
+            outputs: EngineOutputs(windowMoved: { id, frame in
+                moved.withLock { $0.append(id) }
+                frames.withLock { $0.append(frame) }
+            }), canMove: canMove)
         await engine.start()
         await body(engine, client)
         await engine.stop()

@@ -234,7 +234,7 @@ enum EngineEffect: Equatable, Sendable {
     case saveZones([WorkspaceID: [String: ZoneState]])
     /// The user moved a managed window of a shown Zones workspace (not our own echo): the snap overlay's drag
     /// detector looks at the pointer. Dropped, like every effect that acts, while Accessibility is off.
-    case userMovedWindow(WindowID)
+    case userMovedWindow(WindowID, frame: CGRect)
     /// A switch happened: the HUD shows the workspace and its window count.
     case hud(workspace: WorkspaceID, windowCount: Int)
     /// The strip and anything else that shows the workspaces must redraw.

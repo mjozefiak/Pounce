@@ -88,13 +88,8 @@ final class ZoneDragController {
     var phase: ZoneDragMachine.Phase { machine.phase }
 
     /// The engine reports that a managed window of a Zones workspace moved.
-    func windowMoved(_ id: WindowID) {
-        apply(machine.handle(.windowMoved(id, sampler.sample())))
-        updateTicker()
-    }
-
-    func windowGone(_ id: WindowID) {
-        apply(machine.handle(.windowGone(id)))
+    func windowMoved(_ id: WindowID, frame: CGRect = .infinite) {
+        apply(machine.handle(.windowMoved(id, sampler.sample(), frame: frame)))
         updateTicker()
     }
 

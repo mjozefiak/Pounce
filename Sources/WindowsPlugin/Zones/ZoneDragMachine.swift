@@ -31,7 +31,7 @@ struct DragDisplay: Equatable, Sendable {
 enum DragInput: Equatable, Sendable {
     /// A managed window of a Zones workspace moved (an Accessibility moved event that is not our own echo), with
     /// the pointer sampled at that moment. This is the only input that can start a drag.
-    case windowMoved(WindowID, PointerSample)
+    case windowMoved(WindowID, PointerSample, frame: CGRect = .infinite)
     /// The pointer changed while a drag is going on (a timer or a mouse monitor); ignored when there is no drag.
     case pointer(PointerSample)
     /// The zones to offer, sent after the machine asked to show the overlay (and again when displays change).
@@ -82,10 +82,12 @@ struct ZoneDragMachine: Equatable, Sendable {
 
     mutating func handle(_ input: DragInput) -> [DragEffect] {
         switch input {
-        case .windowMoved(let id, let sample):
+        case .windowMoved(let id, let sample, let frame):
             switch phase {
             case .idle:
-                guard sample.leftButtonDown else { return [] }
+                // The cursor must be on the window that moved (a title bar drag carries the window along with the
+                // cursor): a window that moved by itself while the user drags something else never starts a drag.
+                guard sample.leftButtonDown, Self.isDragged(frame, by: sample.cursor) else { return [] }
                 return sample.shiftDown ? beginOverlay(id, sample) : begin(id)
             case .dragging(let current), .overlay(let current):
                 // Another window's events (an app animating its own windows) do not disturb the drag.
@@ -106,6 +108,14 @@ struct ZoneDragMachine: Equatable, Sendable {
             guard phase != .idle else { return [] }
             return finish(snapping: nil)
         }
+    }
+
+    /// How far outside the window's new frame the cursor may be and still count as holding it (the window lags a
+    /// little behind a fast cursor).
+    static let grabSlack: CGFloat = 40
+
+    static func isDragged(_ frame: CGRect, by cursor: CGPoint) -> Bool {
+        frame.isInfinite || frame.insetBy(dx: -grabSlack, dy: -grabSlack).contains(cursor)
     }
 
     // MARK: Transitions

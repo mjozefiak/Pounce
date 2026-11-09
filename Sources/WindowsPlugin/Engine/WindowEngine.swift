@@ -11,7 +11,7 @@ struct EngineOutputs: Sendable {
     var banner: @Sendable (EngineBanner) -> Void = { _ in }
     /// A managed window of a Zones workspace was moved by the user (or an app): the snap overlay's detector samples
     /// the pointer.
-    var windowMoved: @Sendable (WindowID) -> Void = { _ in }
+    var windowMoved: @Sendable (WindowID, CGRect) -> Void = { _, _ in }
     /// Windows came back without a command asking for it (a Space change showed journal entries again).
     var restored: @Sendable (RecoveryReport) -> Void = { _ in }
 }
@@ -426,8 +426,8 @@ actor WindowEngine {
             await store.setTiling(tiling)
         case .saveZones(let zones):
             await store.setZones(zones)
-        case .userMovedWindow(let id):
-            outputs.windowMoved(id)
+        case .userMovedWindow(let id, let frame):
+            outputs.windowMoved(id, frame)
         case .hud(let workspace, let count):
             outputs.hud(workspace, count)
         case .summaryChanged(let summary):

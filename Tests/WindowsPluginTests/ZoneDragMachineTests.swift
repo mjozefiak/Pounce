@@ -54,6 +54,18 @@ import Testing
         #expect(machine.phase == .idle)
     }
 
+    @Test func aDragStartsOnlyWhenTheCursorIsOnTheMovedWindow() {
+        let frame = CGRect(x: 300, y: 300, width: 400, height: 400)
+        var machine = ZoneDragMachine()
+        // The cursor is far from the window that moved: something else is being dragged.
+        #expect(machine.handle(.windowMoved(window, sample(x: 1500, y: 900), frame: frame)).isEmpty)
+        #expect(machine.phase == .idle)
+        // On the window, or just outside it (it lags a fast cursor).
+        #expect(machine.handle(.windowMoved(window, sample(x: 500, y: 500), frame: frame)) == [.showOverlay(window)])
+        var lagging = ZoneDragMachine()
+        #expect(!lagging.handle(.windowMoved(window, sample(x: 720, y: 500), frame: frame)).isEmpty)
+    }
+
     @Test func pointerSamplesAloneNeverStartADrag() {
         // Shift held with the button down and the mouse moving, but no managed window moved: a text selection or a
         // Finder drag.

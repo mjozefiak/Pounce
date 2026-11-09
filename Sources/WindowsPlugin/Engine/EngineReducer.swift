@@ -282,7 +282,7 @@ enum EngineReducer {
             }
             guard let record = state.parked[id] else {
                 state.windows[id]?.frame = frame
-                noteUserMove(id)
+                noteUserMove(id, frame: frame)
                 return
             }
             if FrameMath.originsApproximatelyEqual(frame, record.parkedFrame, tolerance: state.config.echoTolerance) {
@@ -316,12 +316,12 @@ enum EngineReducer {
         }
 
         /// A managed window of a shown Zones workspace moved by itself: tell the drag detector.
-        private mutating func noteUserMove(_ id: WindowID) {
+        private mutating func noteUserMove(_ id: WindowID, frame: CGRect) {
             guard !state.isFrozen, !state.floating.contains(id), !state.unmanaged.contains(id),
                 let workspace = state.model.workspace(of: id), state.model.isVisible(workspace),
                 state.config.layout.resolved(for: workspace).kind == .zones
             else { return }
-            trailing.append(.userMovedWindow(id))
+            trailing.append(.userMovedWindow(id, frame: frame))
         }
 
         mutating func windowFocused(_ id: WindowID?, now: Double) {

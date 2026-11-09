@@ -81,14 +81,14 @@ final class WindowsRuntime {
                 },
                 summary: { summary in Task { @MainActor in relay.handler(summary) } },
                 banner: { banner in Task { @MainActor in relay.bannerHandler(banner) } },
-                windowMoved: { id in Task { @MainActor in relay.dragHandler(id) } },
+                windowMoved: { id, frame in Task { @MainActor in relay.dragHandler(id, frame) } },
                 restored: { report in
                     Task { @MainActor in hud.show(WindowsHUDState(report: report)) }
                 }),
             canMove: { flag.isTrusted }, logger: context.logger)
         self.activationCenter = activationCenter
         relay.handler = { [weak self] summary in self?.summaryChanged(summary) }
-        relay.dragHandler = { [weak self] id in self?.dragController?.windowMoved(id) }
+        relay.dragHandler = { [weak self] id, frame in self?.dragController?.windowMoved(id, frame: frame) }
         relay.bannerHandler = { [weak self] banner in
             self?.engineBanner = banner
             self?.context.resultsChanged()
@@ -321,5 +321,5 @@ struct InactiveSwitcher: WindowSwitching {
 final class SummaryRelay {
     var handler: @MainActor (WorkspaceSummary) -> Void = { _ in }
     var bannerHandler: @MainActor (EngineBanner) -> Void = { _ in }
-    var dragHandler: @MainActor (WindowID) -> Void = { _ in }
+    var dragHandler: @MainActor (WindowID, CGRect) -> Void = { _, _ in }
 }
