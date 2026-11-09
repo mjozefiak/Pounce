@@ -80,7 +80,10 @@ public final class WindowsPlugin: LintelPlugin {
     /// Throws when the window client is `unsupported`, so the host marks the plugin `failed` (spec: API
     /// Contracts), and in safe mode on the first start of a launch. Then starts the engine.
     public func activate() async throws {
-        if case .unsupported(let reason) = context.windows.availability {
+        // The self-check calls Accessibility, which can block: never on the main actor.
+        let client = context.windows
+        let availability = await Task.detached { client.availability }.value
+        if case .unsupported(let reason) = availability {
             lastStartError = .unsupported(reason: reason)
             throw StartError.unsupported(reason: reason)
         }
@@ -110,7 +113,19 @@ public final class WindowsPlugin: LintelPlugin {
         let runtime = WindowsRuntime(
             context: context, settings: settings, hud: hud, activationCenter: activationCenter, makeStrip: makeStrip)
         self.runtime = runtime
+        runtime.onTrustGranted = { [weak self] in await self?.recheckAvailability() }
         await runtime.start()
+    }
+
+    /// Accessibility was granted: the self-check could not compare any window before, so it runs again. A mismatch
+    /// stops the engine (every window is put back first) and the pane says Lintel needs an update.
+    func recheckAvailability() async {
+        let client = context.windows
+        let availability = await Task.detached { client.availability }.value
+        guard case .unsupported(let reason) = availability else { return }
+        lastStartError = .unsupported(reason: reason)
+        await deactivate()
+        context.resultsChanged()
     }
 
     /// Puts every parked window back (waiting at most 5 s) and stops.

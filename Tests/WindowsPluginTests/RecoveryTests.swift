@@ -344,6 +344,25 @@ import Testing
         await plugin.deactivate()
     }
 
+    @MainActor
+    @Test func aSelfCheckThatFailsAfterTheGrantStopsThePlugin() async throws {
+        let harness = try WindowsHarness()
+        defer { harness.tearDown() }
+        let client = FakeWindowClient(windows: [makeWindow(1)])
+        let permissions = ScriptedPermissions(granted: false)
+        let center = NotificationCenter()
+        let plugin = WindowsPlugin(
+            context: harness.context(windows: client, permissions: permissions), hud: RecordingHUD(),
+            activationCenter: center)
+        try await plugin.activate()
+        // With Accessibility the check can compare windows for the first time, and it disagrees.
+        client.setAvailable(false)
+        permissions.set(true)
+        center.post(name: NSApplication.didBecomeActiveNotification, object: nil)
+        try await waitUntil { plugin.runtime == nil }
+        #expect(plugin.lastStartError == .unsupported(reason: "scripted"))
+    }
+
     // MARK: Pieces
 
     @MainActor

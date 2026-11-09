@@ -37,6 +37,8 @@ final class WindowsRuntime {
     private let makeStrip: (@MainActor (WindowsRuntime) -> WorkspaceStripController)?
     private var lastSummary: WorkspaceSummary?
     private let summaryRelay: SummaryRelay
+    /// Called when Accessibility is granted, before windows are restored (the plugin re-runs the self-check).
+    var onTrustGranted: () async -> Void = {}
     /// The newest problem the engine reported, for the Settings banner.
     private(set) var engineBanner: EngineBanner?
     /// Windows put back by *Restore all windows*, a re-grant and a Space change in this session (diagnostics).
@@ -192,6 +194,7 @@ final class WindowsRuntime {
     private func trustChanged(_ trusted: Bool) {
         guard trusted else { return }
         Task { [engine, hud] in
+            await self.onTrustGranted()
             let report = await engine.restoreAllWindows()
             self.recoveredWindows += report.restored
             if !report.isEmpty { hud.show(WindowsHUDState(report: report)) }
