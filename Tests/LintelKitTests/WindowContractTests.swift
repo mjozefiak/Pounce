@@ -20,6 +20,9 @@ import Testing
         }
         var iterator = windows.events.makeAsyncIterator()
         #expect(await iterator.next() == nil)
+        // The additive members default to the older ones.
+        #expect(await windows.checkAvailability() == windows.availability)
+        #expect(await windows.window(id: WindowID(pid: 1, number: 2)) == nil)
     }
 
     @Test func defaultClientRefusesToMoveAnything() async {

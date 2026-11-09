@@ -50,6 +50,16 @@ nonisolated final class AXWindowClient: WindowClient, Sendable {
 
     var availability: WindowClientAvailability { guardian.availability }
 
+    /// The self-check can call Accessibility, which can block: it runs on a global queue, never on the caller's
+    /// executor.
+    func checkAvailability() async -> WindowClientAvailability {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async { [guardian] in
+                continuation.resume(returning: guardian.availability)
+            }
+        }
+    }
+
     func processStart(of pid: Int32) -> TimeInterval? { ProcessStart.read(pid: pid) }
 
     // MARK: Events
@@ -72,7 +82,7 @@ nonisolated final class AXWindowClient: WindowClient, Sendable {
             }
             state.stream = stream
             state.hub = hub
-            hub.start()
+            Task { await hub.start() }
             return stream
         }
     }

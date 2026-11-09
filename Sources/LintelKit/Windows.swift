@@ -120,6 +120,10 @@ public enum WindowClientError: Error, Hashable, Sendable {
 public protocol WindowClient: Sendable {
     /// Read by `activate()`, which throws on `.unsupported` so the host marks the plugin `failed`.
     var availability: WindowClientAvailability { get }
+    /// `availability`, read where blocking is allowed: a real client may call Accessibility for its self-check,
+    /// so an async caller uses this and never reads the property on the main actor or the cooperative pool. The
+    /// default answers `availability`.
+    func checkAvailability() async -> WindowClientAvailability
     /// Every window of the current native Space, minimised and fullscreen ones included (flagged).
     func windows() async -> [WindowInfo]
     func focusedWindow() async -> WindowID?
@@ -140,6 +144,7 @@ public protocol WindowClient: Sendable {
 }
 
 extension WindowClient {
+    public func checkAvailability() async -> WindowClientAvailability { availability }
     public func window(id: WindowID) async -> WindowInfo? { await windows().first { $0.id == id } }
     public func processStart(of pid: Int32) -> TimeInterval? { nil }
 }

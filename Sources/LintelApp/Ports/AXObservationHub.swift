@@ -44,21 +44,11 @@ nonisolated final class AXObservationHub: @unchecked Sendable {
         var thread: Thread?
         var runLoop: CFRunLoop?
         var tokens: [any NSObjectProtocol] = []
+        var isStopped = false
     }
 
     private let shared = Mutex(Shared())
-    private var thread: Thread? {
-        get { shared.withLock { $0.thread } }
-        set { shared.withLock { $0.thread = newValue } }
-    }
-    private var runLoop: CFRunLoop? {
-        get { shared.withLock { $0.runLoop } }
-        set { shared.withLock { $0.runLoop = newValue } }
-    }
-    private var tokens: [any NSObjectProtocol] {
-        get { shared.withLock { $0.tokens } }
-        set { shared.withLock { $0.tokens = newValue } }
-    }
+    private var runLoop: CFRunLoop? { shared.withLock { $0.runLoop } }
     /// AX thread only.
     private var apps: [Int32: AppState] = [:]
 
@@ -74,42 +64,65 @@ nonisolated final class AXObservationHub: @unchecked Sendable {
 
     // MARK: Lifecycle
 
-    /// Starts the thread and observes every regular app. Safe to call more than once.
-    func start() {
-        guard thread == nil else { return }
-        let ready = DispatchSemaphore(value: 0)
-        let thread = Thread { [weak self] in
-            guard let self else { return }
-            self.runLoop = CFRunLoopGetCurrent()
-            // A source with no work keeps the run loop alive.
-            var context = CFRunLoopSourceContext()
-            let keepAlive = CFRunLoopSourceCreate(nil, 0, &context)
-            CFRunLoopAddSource(CFRunLoopGetCurrent(), keepAlive, .defaultMode)
-            ready.signal()
-            CFRunLoopRun()
+    /// Starts the thread and observes every regular app. Safe to call more than once; a `stop()` that came first
+    /// wins. The thread reports its run loop through a continuation, so nothing waits on a thread-blocking
+    /// primitive on the cooperative pool.
+    func start() async {
+        let alreadyRunning = shared.withLock { shared -> Bool in
+            if shared.isStopped || shared.thread != nil { return true }
+            return false
         }
-        thread.name = "com.lintelapp.windows.ax"
-        thread.qualityOfService = .userInitiated
-        self.thread = thread
-        thread.start()
-        ready.wait()
+        guard !alreadyRunning else { return }
+        let runLoop = await withCheckedContinuation { (continuation: CheckedContinuation<CFRunLoop, Never>) in
+            let thread = Thread {
+                let current = CFRunLoopGetCurrent()
+                // A source with no work keeps the run loop alive.
+                var context = CFRunLoopSourceContext()
+                let keepAlive = CFRunLoopSourceCreate(nil, 0, &context)
+                CFRunLoopAddSource(current, keepAlive, .defaultMode)
+                if let current { continuation.resume(returning: current) }
+                CFRunLoopRun()
+            }
+            thread.name = "com.lintelapp.windows.ax"
+            thread.qualityOfService = .userInitiated
+            shared.withLock { $0.thread = thread }
+            thread.start()
+        }
+        let stopped = shared.withLock { shared -> Bool in
+            shared.runLoop = runLoop
+            return shared.isStopped
+        }
+        if stopped {
+            CFRunLoopStop(runLoop)
+            return
+        }
         observeSystemNotifications()
-        let running = NSWorkspace.shared.runningApplications.map {
-            AppObservationPlan.App(
-                pid: $0.processIdentifier, isRegular: $0.activationPolicy == .regular, isTerminated: $0.isTerminated)
+        // `NSWorkspace.runningApplications` is read on the main actor.
+        let wanted = await MainActor.run { () -> Set<Int32> in
+            let running = NSWorkspace.shared.runningApplications.map {
+                AppObservationPlan.App(
+                    pid: $0.processIdentifier, isRegular: $0.activationPolicy == .regular,
+                    isTerminated: $0.isTerminated)
+            }
+            return AppObservationPlan.pids(for: running, ownPID: ProcessInfo.processInfo.processIdentifier)
         }
-        let wanted = AppObservationPlan.pids(for: running, ownPID: ownPID)
-        perform { [self] in for pid in wanted.sorted() { observe(pid) } }
+        let ownPID = ownPID
+        perform { [self] in for pid in wanted.sorted() where pid != ownPID { observe(pid) } }
     }
 
     func stop() {
+        let tokens = shared.withLock { shared -> [any NSObjectProtocol] in
+            shared.isStopped = true
+            let tokens = shared.tokens
+            shared.tokens = []
+            shared.thread = nil
+            return tokens
+        }
         for token in tokens { NSWorkspace.shared.notificationCenter.removeObserver(token) }
-        tokens = []
         perform { [self] in
             for pid in Array(apps.keys) { unobserve(pid) }
-            if let runLoop { CFRunLoopStop(runLoop) }
+            if let loop = runLoop { CFRunLoopStop(loop) }
         }
-        thread = nil
     }
 
     /// Runs `work` on the AX thread.
@@ -119,11 +132,21 @@ nonisolated final class AXObservationHub: @unchecked Sendable {
         CFRunLoopWakeUp(runLoop)
     }
 
+    /// Keeps a system notification token; one that arrives after `stop()` is removed at once.
+    private func add(_ token: any NSObjectProtocol) {
+        let stopped = shared.withLock { shared -> Bool in
+            if shared.isStopped { return true }
+            shared.tokens.append(token)
+            return false
+        }
+        if stopped { NSWorkspace.shared.notificationCenter.removeObserver(token) }
+    }
+
     private func observeSystemNotifications() {
         let center = NSWorkspace.shared.notificationCenter
         let buffer = buffer
         let ownPID = ownPID
-        tokens.append(
+        add(
             center.addObserver(forName: NSWorkspace.didLaunchApplicationNotification, object: nil, queue: nil) {
                 [weak self] note in
                 guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
@@ -134,7 +157,7 @@ nonisolated final class AXObservationHub: @unchecked Sendable {
                 guard let self else { return }
                 self.perform { [self] in observe(pid) }
             })
-        tokens.append(
+        add(
             center.addObserver(forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: nil) {
                 [weak self] note in
                 guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else {
@@ -146,11 +169,11 @@ nonisolated final class AXObservationHub: @unchecked Sendable {
                 self.terminated(pid)
                 self.perform { [self] in unobserve(pid) }
             })
-        tokens.append(
+        add(
             center.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: nil) { _ in
                 buffer.append(.spaceChanged)
             })
-        tokens.append(
+        add(
             NotificationCenter.default.addObserver(
                 forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: nil
             ) { _ in buffer.append(.displaysChanged) })
@@ -199,9 +222,14 @@ nonisolated final class AXObservationHub: @unchecked Sendable {
         }
     }
 
+    /// Stops observing an app. The `AppState` is passed to Accessibility as an unretained `refcon`, which is safe
+    /// by one invariant: callbacks run only on this thread's run loop, and `unobserve` runs on the same thread,
+    /// so no callback can be in flight while it runs. The local `state` keeps the object alive until the source
+    /// is removed, after which no callback can name it any more.
     private func unobserve(_ pid: Int32) {
         guard let state = apps.removeValue(forKey: pid), let observer = state.observer, let runLoop else { return }
         CFRunLoopRemoveSource(runLoop, AXObserverGetRunLoopSource(observer), .defaultMode)
+        withExtendedLifetime(state) {}
     }
 
     private func registerExistingWindows(of state: AppState) {
