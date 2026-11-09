@@ -176,7 +176,13 @@ public final class WindowsPlugin: LintelPlugin {
                 announce: { text in
                     AccessibilityNotification.Announcement(text).post()
                 },
-                onSaved: onSaved, onClose: close)
+                onSaved: onSaved,
+                onClose: { [weak self] in
+                    close()
+                    // The plugin was switched off while the editor held changes: the Layouts window was left
+                    // open for the editor's sheet and goes with it.
+                    if let self, runtime == nil { layoutsWindow.close() }
+                })
         }
     }
 

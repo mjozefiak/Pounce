@@ -62,4 +62,17 @@ final class NoFilesPlugin: LintelPlugin {
         #expect(await host.openFile(URL(fileURLWithPath: "/tmp/notes.txt")) == false)
         #expect(await host.openFile(URL(fileURLWithPath: "/tmp/notes.json")) == false)
     }
+
+    @Test func severalFilesOpenOnlyTheFirstOneTakenAndTheRestAreCounted() async throws {
+        let env = try TestEnvironment()
+        defer { env.tearDown() }
+        OpenedFiles.shared.claimed = []
+        let host = env.makeHost([ClaimingPlugin.self])
+        let urls = ["/tmp/x.txt", "/tmp/a.claimed", "/tmp/b.claimed", "/tmp/c.claimed"].map {
+            URL(fileURLWithPath: $0)
+        }
+        #expect(await host.openFiles(urls) == 2)
+        #expect(OpenedFiles.shared.claimed == ["claimer:a.claimed"])
+        #expect(await host.openFiles([URL(fileURLWithPath: "/tmp/none.txt")]) == 0)
+    }
 }

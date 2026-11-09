@@ -121,6 +121,16 @@ final class PluginHost {
         return false
     }
 
+    /// Offers several opened files in order and stops at the first one a plugin takes: the importer shows one
+    /// summary at a time, so a second file would silently replace the first. Returns how many files were left
+    /// unopened (never offered, or taken by nobody after the first taken one).
+    func openFiles(_ urls: [URL]) async -> Int {
+        for (index, url) in urls.enumerated() where url.isFileURL {
+            if await openFile(url) { return urls.count - index - 1 }
+        }
+        return 0
+    }
+
     private var activeEntries: [Entry] { entries.filter { $0.state.isActive } }
 
     /// Commands of active plugins only; disabled or failed plugins register nothing.

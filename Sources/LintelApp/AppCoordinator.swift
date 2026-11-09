@@ -153,10 +153,13 @@ final class AppCoordinator {
 
     /// A click on the Dock icon (or opening the app again from Finder): the main window, unless a window is already
     /// open.
-    /// Files opened with Lintel (double-clicked, or dropped on the Dock icon): each goes to the plugin that wants
-    /// it. Must run after `start()`, so the plugins are active.
+    /// Files opened with Lintel (double-clicked, or dropped on the Dock icon): the first one a plugin wants goes to
+    /// it and the rest are ignored (logged by count), so the outcome never depends on timing. Must run after `start()`, so the plugins are active.
     func open(_ urls: [URL]) async {
-        for url in urls where url.isFileURL { _ = await host.openFile(url) }
+        let ignored = await host.openFiles(urls)
+        if ignored > 0 {
+            logger.notice("Opened one file; \(ignored, privacy: .public) more were ignored")
+        }
     }
 
     func reopen() {
