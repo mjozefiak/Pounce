@@ -258,7 +258,24 @@ import Testing
         await rig.engine.ingest(.created(id(3)))
         await rig.engine.settle()
         #expect((await rig.engine.state).stubborn == [id(1)])
-        #expect(rig.client.calls.count <= calls + 3)
+        // The tile changed size (two to three tiles), so it was tried once more, not in a loop.
+        #expect(rig.client.calls.count <= calls + 6)
+        await rig.engine.stop()
+    }
+
+    @Test func aStubbornWindowIsTriedAgainWhenItsTileChangesSize() async throws {
+        let rig = try rig([makeWindow(1), makeWindow(2)])
+        defer { rig.harness.tearDown() }
+        rig.client.setMinimumSize(CGSize(width: 1200, height: 400), for: id(1))
+        await rig.engine.start()
+        #expect((await rig.engine.state).stubborn == [id(1)])
+        // The app now accepts small sizes and the other window closes: the tile is the whole screen.
+        rig.client.setMinimumSize(CGSize(width: 100, height: 100), for: id(1))
+        rig.client.remove(id(2))
+        await rig.engine.ingest(.destroyed(id(2)))
+        await rig.engine.settle()
+        #expect((await rig.engine.state).stubborn.isEmpty)
+        #expect(rig.client.frame(of: id(1)) == area)
         await rig.engine.stop()
     }
 

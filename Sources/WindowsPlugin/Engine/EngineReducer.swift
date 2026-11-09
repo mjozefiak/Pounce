@@ -230,6 +230,7 @@ enum EngineReducer {
             state.unmanaged.remove(id)
             state.rehides[id] = nil
             state.stubborn.remove(id)
+            state.tileSizes[id] = nil
         }
 
         mutating func removeWindow(_ id: WindowID) {
@@ -242,6 +243,7 @@ enum EngineReducer {
             state.parked[id] = nil
             state.expected[id] = nil
             state.stubborn.remove(id)
+            state.tileSizes[id] = nil
             state.rehides[id] = nil
             state.unmanaged.remove(id)
             state.latest[id] = nil
@@ -572,8 +574,16 @@ enum EngineReducer {
                     guard let tile = tiles[id], let window = state.windows[id], state.parked[id] == nil,
                         !state.unmanaged.contains(id), !requests.contains(where: { $0.id == id })
                     else { continue }
-                    let frame = target(for: id, tile: tile)
                     let tolerance = state.config.echoTolerance
+                    // A stubborn window gets one new try when its tile changed size (never a loop: the size
+                    // is remembered, and a window that refuses again becomes stubborn again).
+                    if state.stubborn.contains(id), let last = state.tileSizes[id],
+                        abs(last.width - tile.width) > tolerance || abs(last.height - tile.height) > tolerance
+                    {
+                        state.stubborn.remove(id)
+                    }
+                    state.tileSizes[id] = tile.size
+                    let frame = target(for: id, tile: tile)
                     if FrameMath.approximatelyEqual(window.frame, frame, tolerance: tolerance) { continue }
                     if let expected = state.expected[id], expected.expires >= now,
                         FrameMath.approximatelyEqual(expected.frame, frame, tolerance: tolerance)

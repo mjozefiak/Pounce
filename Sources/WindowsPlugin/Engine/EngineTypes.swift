@@ -74,6 +74,8 @@ struct EngineState: Equatable, Sendable {
     var expected: [WindowID: ExpectedFrame] = [:]
     /// Windows that refused the size they were given; never retried.
     var stubborn: Set<WindowID> = []
+    /// The tile size each window was last asked for; a stubborn window gets one new try when it changes.
+    var tileSizes: [WindowID: CGSize] = [:]
     var rehides: [WindowID: Int] = [:]
     /// Re-hidden too often: left where they are until they are focused.
     var unmanaged: Set<WindowID> = []
