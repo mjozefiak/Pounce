@@ -5,13 +5,6 @@ import Testing
 
 /// `PluginServices`: typed keys, scoped per plugin, safe to nest, torn down on request.
 @Suite struct PluginServicesTests {
-    final class Counter: Sendable {
-        let made = Mutex(0)
-        let tornDown = Mutex(0)
-    }
-
-    private static let counter = Counter()
-
     enum NumberKey: PluginServiceKey {
         static func make(context: PluginContext) -> Int { 7 }
     }
@@ -27,17 +20,15 @@ import Testing
         }
     }
 
+    /// A value that knows whether its key's teardown ran on it (no counters shared between tests).
     final class Tracked: Sendable {
-        let id = Mutex(0)
+        let tornDown = Mutex(false)
     }
 
     enum TrackedKey: PluginServiceKey {
-        static func make(context: PluginContext) -> Tracked {
-            counter.made.withLock { $0 += 1 }
-            return Tracked()
-        }
+        static func make(context: PluginContext) -> Tracked { Tracked() }
 
-        static func teardown(_ value: Tracked) { counter.tornDown.withLock { $0 += 1 } }
+        static func teardown(_ value: Tracked) { value.tornDown.withLock { $0 = true } }
     }
 
     @Test func eachKeyHasItsOwnTypeAndTheSameValueComesBack() {
@@ -71,10 +62,10 @@ import Testing
     @Test func tearDownCallsTheKeysHookAndForgetsTheValue() {
         let services = PluginServices()
         let context = TestContext.make(pluginID: "teardown", services: services)
-        let before = Self.counter.tornDown.withLock { $0 }
-        _ = services.value(TrackedKey.self, for: context)
+        let value = services.value(TrackedKey.self, for: context)
+        #expect(!value.tornDown.withLock { $0 })
         services.teardown(pluginID: "teardown")
-        #expect(Self.counter.tornDown.withLock { $0 } == before + 1)
+        #expect(value.tornDown.withLock { $0 })
         // A later ask makes a new value.
         let again = services.value(TrackedKey.self, for: context)
         #expect(services.holds(TrackedKey.self, pluginID: "teardown"))
