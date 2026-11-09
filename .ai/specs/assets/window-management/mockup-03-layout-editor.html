@@ -1,0 +1,56 @@
+<!doctype html><meta charset="utf-8"><title>Mockup: layout editor (illustrative)</title>
+<style>
+:root{--acc:#1f7a6d;--bg:#f6f4f0}*{box-sizing:border-box}
+body{margin:0;width:1100px;height:720px;font:13px -apple-system,Helvetica,sans-serif;color:#222;background:linear-gradient(135deg,#3b5560,#1f2b32);position:relative;overflow:hidden}
+.dim{position:absolute;inset:0;background:#0007}
+.win{position:absolute;left:40px;top:28px;width:1020px;height:640px;background:var(--bg);border-radius:12px;box-shadow:0 20px 60px #000a;display:flex;overflow:hidden}
+.tl{position:absolute;left:14px;top:12px}.tl i{display:inline-block;width:12px;height:12px;border-radius:6px;margin-right:7px}
+.side{width:260px;background:#fff;border-right:1px solid #e3dfd6;padding:44px 16px 16px;display:flex;flex-direction:column;gap:12px}
+label{font-size:11px;color:#777;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px}
+.inp{border:1px solid #cfc9bd;border-radius:6px;padding:6px 9px;background:#fff}
+.seg{display:flex;border:1px solid #cfc9bd;border-radius:6px;overflow:hidden}.seg div{flex:1;text-align:center;padding:5px}.seg .on{background:var(--acc);color:#fff}
+.step{display:flex;align-items:center;gap:8px}.step b{border:1px solid #cfc9bd;border-radius:5px;width:24px;text-align:center;padding:2px 0}
+.zl div{padding:6px 9px;border-radius:6px;margin-bottom:3px}.zl .sel{background:#1f7a6d1f;color:var(--acc);font-weight:600}
+.btns{display:flex;gap:6px}.btn{border:1px solid #cfc9bd;border-radius:6px;padding:6px 10px;background:#fff}
+.btn.p{background:var(--acc);color:#fff;border-color:var(--acc)}
+.main{flex:1;padding:40px 24px 16px;position:relative}
+h3{margin:0 0 10px;font-size:14px}
+.disp{position:relative;width:680px;height:390px;background:linear-gradient(135deg,#3b5560,#24323a);border-radius:8px;border:6px solid #222}
+.z{position:absolute;border:2px solid #ffffff99;background:#ffffff1c;border-radius:6px;color:#fff;font-size:26px;display:flex;align-items:center;justify-content:center}
+.z.sel{border-color:#7fe0d0;background:#1f7a6d88;box-shadow:0 0 0 2px var(--acc)}
+.h{position:absolute;background:#fff;border-radius:4px;box-shadow:0 1px 4px #0006}
+.hint{margin-top:12px;font-size:12px;color:#666}
+.inset{position:absolute;right:16px;bottom:14px;width:260px;background:#fff;border:1px solid #e3dfd6;border-radius:10px;padding:10px;box-shadow:0 4px 14px #0002}
+.mini{position:relative;height:110px;background:#2b3a42;border-radius:5px;margin:6px 0}
+.mini .z{font-size:14px}
+.cap{position:absolute;bottom:4px;width:100%;text-align:center;font-size:11px;color:#ccc}
+</style>
+<div class="dim"></div>
+<div class="win"><div class="tl"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div>
+<div class="side">
+<div><label>Layout name</label><div class="inp">Coding</div></div>
+<div><label>Style</label><div class="seg"><div class="on">Grid</div><div>Canvas</div></div></div>
+<div><label>Space around zones</label><div class="step"><b>−</b><span>8 px</span><b>+</b></div></div>
+<div class="zl"><label>Zones</label><div>Zone 1</div><div class="sel">Zone 2</div><div>Zone 3</div><div>Zone 4</div></div>
+<div class="btns"><span class="btn">Merge</span><span class="btn">Divide</span></div>
+<div class="btns" style="margin-top:auto"><span class="btn">Cancel</span><span class="btn p">Save ⌘S</span></div>
+</div>
+<div class="main"><h3>Display preview · live</h3>
+<div class="disp">
+<div class="z" style="left:8px;top:8px;width:390px;height:362px">1</div>
+<div class="z sel" style="left:408px;top:8px;width:252px;height:176px">2</div>
+<div class="z" style="left:408px;top:194px;width:122px;height:176px">3</div>
+<div class="z" style="left:540px;top:194px;width:120px;height:176px">4</div>
+<div class="h" style="left:399px;top:150px;width:8px;height:60px"></div>
+<div class="h" style="left:515px;top:185px;width:60px;height:8px"></div>
+<div class="h" style="left:531px;top:260px;width:8px;height:50px"></div>
+</div>
+<div class="hint">S divide · arrows move divider 1% · Delete merge · Tab next zone</div>
+<div class="inset"><b>Canvas style</b>
+<div class="mini">
+<div class="z" style="left:8px;top:10px;width:120px;height:70px;background:#ffffff22">1</div>
+<div class="z" style="left:70px;top:28px;width:120px;height:70px;background:#1f7a6d66;border-color:#7fe0d0">2</div>
+<div class="z" style="left:130px;top:6px;width:110px;height:60px;background:#ffffff33">3</div></div>
+<div style="font-size:12px;color:#555">Stacking: 3 (top) · 2 · 1</div></div>
+</div></div>
+<div class="cap" style="bottom:6px">Illustrative mockup, not an accepted design.</div>

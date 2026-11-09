@@ -1,10 +1,10 @@
 # Window management: workspaces with tiling and zone-grid layouts
 
-> Status: **design**, written 2026-11-09 on top of `main` (main window, ADR 0008, PR #52) and of the Notes workspace (PR #56, open; not a dependency of this spec). Prose in English, identifiers in English, UI strings English + Polish. Written autonomously: every default is listed under "Resolved assumptions" for override.
+> Status: **design**, written 2026-11-09 on top of `main` (main window, ADR 0008, PR #52) and of the Notes workspace (PR #56, open; not a dependency of this spec). Prose in English, identifiers in English, UI strings English + Polish. Written autonomously, then revised on 2026-11-09 after the owner's answers (rev 2: layout library with editor, per-workspace and per-display assignment, menu bar workspace strip). Every remaining default is listed under "Resolved assumptions" for override.
 
 ## 📝 TLDR
 
-Lintel is a launcher; today it cannot arrange the windows it opens. This spec proposes a new, opt-in plugin, **Window Management** (`windows`), that adds **workspaces** (virtual desktops in the AeroSpace sense: nine named groups of windows, one visible per display, switched with a shortcut) and gives each workspace one of two **layouts**: **tiling** (an i3/AeroSpace-style tree: windows fill the screen, no overlap) or **grid** (PowerToys FancyZones-style: fixed zones, windows snapped into them, by shortcut or by Shift-dragging). It uses the Accessibility API only (no SIP changes, no private Space APIs) and is **proposed, not built**: nothing here exists yet.
+Lintel is a launcher; today it cannot arrange the windows it opens. This spec proposes a new, opt-in plugin, **Window Management** (`windows`), that adds **workspaces** (virtual desktops in the AeroSpace sense: nine named groups of windows, one visible per display, switched with a shortcut) and gives each workspace one of two **layouts**: **tiling** (an i3/AeroSpace-style tree: windows fill the screen, no overlap) or **zones** (PowerToys FancyZones-style: windows snapped into zones, by shortcut or by Shift-dragging). Zone layouts come from a **layout library** (templates plus the user's own grid and canvas layouts, created and edited in a visual editor) and are **assigned per workspace and per display**. A **menu bar strip** of numbered boxes shows which workspace is active. It uses the Accessibility API only (no SIP changes, no private Space APIs) and is **proposed, not built**: nothing here exists yet.
 
 ## ✅ Resolved assumptions (autonomous defaults)
 
@@ -15,18 +15,22 @@ Open Questions were resolved without a human, picking the most reversible option
 | Q1 | Shell feature or plugin? | A compile-time plugin `WindowsPlugin` (`PluginID` `windows`), disabled by default, registered in `PluginRegistry` | Architecture law in `AGENTS.md`: every feature is a plugin; disabled by default means no behaviour change for current users |
 | Q2 | How are "virtual desktops" implemented? | **Emulated, as AeroSpace does:** windows of a hidden workspace are moved to a screen corner (their frames are remembered); native macOS Spaces are not touched | Public API only, no SIP change, no animation; the alternatives (private CGS Space calls, minimising, hiding apps) are rejected below |
 | Q3 | ⚠ Private symbol `_AXUIElementGetWindow` (window id from an `AXUIElement`) | Used, resolved with `dlsym` at runtime; if it is missing the plugin goes to the `failed` state with a clear banner; no fallback in v1 | Every comparable tool depends on it and Accessibility has no public equivalent; but it is an undocumented symbol Apple can change, which an owner should accept knowingly. ⚠ NEEDS HUMAN CONFIRMATION |
-| Q4 | Bundled scope? | One spec, three independently shippable phases: (1) workspaces and window engine, (2) tiling, (3) grid. Phase 1 alone is useful (workspaces with the windows left where they are) | Each part works without the next; one design avoids two specs that must agree on the shared engine |
-| Q5 | Is the layout a global or a per-workspace choice? | Per workspace (`tiling` or `grid`), default `tiling`, switchable with a command; both states of a workspace are kept when switching | Matches "two ways of arranging windows on such a desktop"; keeping both makes the switch non-destructive |
+| Q4 | Bundled scope? | One spec, three independently shippable phases: (1) workspaces and window engine, (2) tiling, (3) zones with the stock templates, assignment and snapping, (4) the layout library with its editors. Phase 1 alone is useful (workspaces with the windows left where they are) | Each part works without the next; one design avoids two specs that must agree on the shared engine |
+| Q5 | Is the layout a global or a per-workspace choice? | Per workspace (`tiling` or `zones`), default `tiling`, switchable with a command; both states of a workspace are kept when switching | Matches "two ways of arranging windows on such a desktop"; keeping both makes the switch non-destructive |
 | Q6 | Which windows are managed? | Standard windows of regular apps on the current macOS Space. Dialogs, sheets, panels, minimised and native-fullscreen windows are left alone. A user-editable "Floating apps" list (default: Lintel itself, System Settings, Calculator) is never tiled or placed | Smallest rule that avoids fighting the system; reversible through the list |
 | Q7 | Tiling features in v1 | Split containers (horizontal/vertical) with weights, focus, move, resize, join-with, toggle orientation, toggle floating, balance. **No accordion, no per-app rules** | Smallest scope that still gives an AeroSpace-like tree |
-| Q8 | Grid features in v1 | Stock templates (Columns 2 and 3, Rows 2, Grid 2×2, Priority 25/50/25) plus a custom layout editor (tracks, merge cells). **No free-form canvas zones, no multi-zone span** | Covers the common PowerToys use; the rest is deferred |
-| Q9 | Multiple displays | One visible workspace per display, workspaces are global (focusing a workspace that is visible on another display moves focus there); commands act on the display of the focused window. No per-display workspace pinning | AeroSpace's model without its configuration surface |
-| Q10 | Default shortcuts | ⌃⌥1–9 go to workspace, ⌃⌥⇧1–9 move the focused window, ⌃⌥←↑↓→ focus, ⌃⌥⇧←↑↓→ move, ⌃⌥T toggles tiling/grid. All others unbound. All are normal `PluginCommand`s with the existing per-command recorder. Nothing is registered while the plugin is off | ⌥ alone types Polish letters (⌥A = ą), so AeroSpace's plain-⌥ bindings are unusable here; ⌃⌥Space is the launcher's fallback, hence ⌃⌥T; `DefaultShortcutTests` must still pass |
+| Q8 | Zone layouts in v1 | **Owner decision 2026-11-09:** a layout library with both **grid** and **canvas** layouts, stock templates, and a visual editor for each (see Proposed Solution). Multi-zone span while dragging is still deferred | Owner asked for FancyZones-level create/edit/save; span was not requested |
+| Q9 | Multiple displays | One visible workspace per display, workspaces are global (focusing a workspace that is visible on another display moves focus there); commands act on the display of the focused window. No per-display workspace pinning (a workspace is not tied to a display), but **zone layouts are assigned per workspace × display** (owner decision) | AeroSpace's workspace model; FancyZones' per-monitor layout assignment |
+| Q10 | Default shortcuts | ⌃⌥1–9 go to workspace, ⌃⌥⇧1–9 move the focused window, ⌃⌥←↑↓→ focus, ⌃⌥⇧←↑↓→ move, ⌃⌥T toggles tiling/zones. All others unbound. All are normal `PluginCommand`s with the existing per-command recorder. A default is registered in the phase that implements its command (workspace and move-to-workspace in Phase 1, focus/move in Phase 2, ⌃⌥T in Phase 3). Nothing is registered while the plugin is off | ⌥ alone types Polish letters (⌥A = ą), so AeroSpace's plain-⌥ bindings are unusable here; ⌃⌥Space is the launcher's fallback, hence ⌃⌥T. `DefaultShortcutTests` enumerates the registered plugins (`ids == [...]`) and is updated with the plugin; ⌃1–9 and ⌃←/→ are system Spaces shortcuts, ⌃⌥ ones are not, and the table is recorded in `BACKWARD_COMPATIBILITY.md` §5 |
 | Q11 | Wording | The UI says **Workspaces**, not "Desktops" or "Spaces" (Polish: "Obszary robocze") | "Spaces" and "Desktops" already mean the macOS feature |
-| Q12 | Persistence across restarts | `Plugins/windows/state.json` keeps workspace membership, trees, grid placement and the home frames of hidden windows (no titles); reconciled with the live windows on launch | Needed anyway for crash recovery (see Edge Cases), so reuse it |
+| Q12 | Persistence across restarts | `Plugins/windows/state.json` keeps workspace membership, trees, zone placement and the home frames of hidden windows (no titles); reconciled with the live windows on launch | Needed anyway for crash recovery (see Edge Cases), so reuse it |
 | Q13 | Window switcher in the launcher | Phase 1 adds a search source that lists workspaces and windows (Return: go to it, ⌘Return: bring it to this workspace). Results are never ranked or recorded in `ranking.sqlite` | The launcher is the natural place; recording titles would put sensitive text in a database |
-| Q14 | A main-window section for this plugin? | No. Settings pane only | The main window's sections are for content; avoids touching the shell |
-| Q15 | Grid drag-to-snap | Included (Phase 3): hold Shift while dragging a window to show the zones; releasing snaps the window | It is the defining behaviour of FancyZones; it needs only Accessibility |
+| Q14 | A main-window section for this plugin? | No. Settings pane only; the layout editor opens from it in its own window | The main window's sections are for content; avoids touching the shell |
+| Q15 | Zone drag-to-snap | Included (Phase 3): hold Shift while dragging a window to show the zones; releasing snaps the window | It is the defining behaviour of FancyZones; it needs only Accessibility |
+| Q16 | Where is the "which workspace am I on" widget? | **Owner decision (image 2026-11-09):** a status item in the menu bar drawing a strip of numbered boxes with the active one highlighted; owned by the plugin, on by default while the plugin is on, can be turned off. Shows the occupied workspaces plus the active one by default (setting: all). Clicking a box switches to it. The workspace HUD stays as a second, optional cue | Matches the reference the owner attached; AeroSpace itself ships no widget (people use SketchyBar) |
+| Q17 | Per-workspace configuration beyond the layout kind | **Owner decision:** each workspace may override the inner/outer gaps, the root orientation of the tiling tree, its layout kind and, per display, its zone layout. Unset means the global default | The owner wants configuration "per desktop" |
+| Q18 | Layout library management | Create, duplicate, rename, edit, delete, import and export (one JSON file, from the UI), optional quick-switch shortcut per layout. Stock templates are read-only; "Duplicate" makes an editable copy. Deleting a layout in use falls back to the default layout on every assignment that used it, after a confirmation that names how many assignments change | FancyZones keeps layouts in an editable JSON file and offers a hotkey per custom layout; here it is a UI feature with explicit safety |
+| Q19 | Defaults for a display with no assignment | The layout assigned to the workspace on another display is not reused; the default layout is chosen per display orientation (landscape, portrait), as FancyZones does, and is `Columns 2` for landscape, `Rows 2` for portrait | Needed for hot-plugged displays; reversible in Settings |
 
 ## 📝 Problem Statement
 
@@ -34,6 +38,7 @@ Evidence is the owner's request (2026-11-09) and the market: AeroSpace, Amethyst
 
 - Lintel has **no window API**: `LintelKit` ports are `EventPoster`, `WorkspaceClient` (launch and activation), `PermissionsReader` and others; nothing reads or moves another app's windows. `Permission.accessibility` already exists and is used for pasting.
 - The plugin contract, per-command shortcuts, onboarding steps, search sources, settings banners and `eraseData()` already cover everything a window-management feature needs from the shell; no shell change is required beyond registering the plugin and one port.
+- The FancyZones documentation (read 2026-11-09, page updated 2026-10-14) shows the model the owner wants to match: layouts are created, edited and saved in an editor (a Grid style edited by dividing, merging and dragging dividers, and a Canvas style of free, overlapping zones), assigned per monitor, with defaults per monitor orientation, an optional hotkey per custom layout, and a JSON file that can be shared. It does **not** state per-virtual-desktop assignment, template names or a delete/duplicate action; the per-workspace assignment here is therefore new design, not parity.
 - macOS gives no public way to create or switch Spaces, and Mission Control's Spaces animate and cannot be bound to a window group that an app controls.
 
 ## 📝 Proposed Solution
@@ -44,14 +49,24 @@ A `WindowsPlugin` target with a pure core (layout maths, workspace model, reconc
 
 **Tiling layout.** The workspace is a tree: the root is a horizontal or vertical container whose children are windows or nested containers; every child has a weight. A new window is inserted after the focused window in its container. Frames come from a pure function `TilingLayout.frames(tree, area, gaps)`. Gaps (inner, outer) are settings.
 
-**Grid layout.** A grid layout is column and row track weights plus zones (rectangles of cells). Each window is assigned to a zone; several windows in one zone stack (the focused one on top). A new window goes to the first empty zone, otherwise into the zone of the focused window. Windows move between zones with shortcuts or by Shift-dragging, which shows the zones over the display and snaps on release.
+**Zone layouts.** A *layout* is a named set of zones in one of two styles. A **grid** layout is column and row track weights plus zones that are rectangles of cells (zones are made by dividing a zone and merging adjacent ones, so they always tile the display). A **canvas** layout is a list of free zones, each a rectangle in fractions of the display's usable area, which may overlap, with a stacking order. Both are resolution independent, and both have "space around zones" (a gap). Each window is assigned to one zone; several windows in one zone stack (the focused one on top). A new window goes to the zone where the previous window of that app was last placed if that zone is empty or its layout still has it, otherwise the first empty zone, otherwise the zone of the focused window. Windows move between zones with shortcuts or by Shift-dragging, which shows the zones over the display and snaps on release.
+
+**Layout library and editor.** Settings → Window Management → Layouts lists the stock templates (read-only: Focus, Columns 2, Columns 3, Rows 2, Grid 2×2, Priority 25/50/25) and the user's layouts. *New layout* asks for the style and opens the editor in its own window on the chosen display. The grid editor: click a zone to divide it (Shift-click divides the other way), drag a divider to move it, select several zones and *Merge*, set the space around zones; keyboard: Tab moves between zones and dividers, S divides, arrows move a divider by 1%, Delete on a divider merges its neighbours. The canvas editor: *Add zone*, drag and resize zones like windows, arrows move by 10 px, ⌃arrows by 1 px, ⇧arrows resize, reorder stacking, delete a zone. Both show a live preview over the real display and save with *Save* (⌘S), or discard with *Cancel*; unsaved changes ask first. A layout can be duplicated, renamed, deleted, exported and imported as a `.lintellayouts` JSON file, and given an optional quick-switch shortcut.
+
+**Assignment.** The zone layout used by a workspace is chosen **per workspace and per display**: Settings has a matrix (workspace rows, one column per connected display, a layout picker in each cell) and every layout has an *Apply to current workspace* action. A cell left empty uses the default for the display's orientation (Q19). Displays are keyed by their stable display UUID, so a laptop that returns to the same monitor finds its layouts again.
+
+**Per-workspace tiling configuration.** For each workspace the user can override the gaps, the root orientation of the tiling tree and the layout kind (tiling or zones); the global defaults are used where nothing is set.
+
+**Workspace strip (menu bar).** A status item owned by the plugin draws one rounded box per workspace with its number; the active workspace is filled and highlighted, workspaces that are visible on another display are outlined. By default the strip shows the occupied workspaces and the active one; a setting shows all. Clicking a box switches to that workspace, a right-click opens a menu (workspace list with window counts, layout of the current workspace, *Restore all windows*, Settings). The workspace HUD (a brief on-screen number after a switch) stays as an optional second cue.
 
 **Alternatives considered**
 
 - *Real macOS Spaces through private CGS calls (yabai):* rejected; needs SIP partly disabled for the useful parts and breaks on macOS updates.
 - *Minimise or hide the app to hide a workspace:* rejected; minimise animates and fills the Dock, `NSRunningApplication.hide()` hides an app, not a window, so two workspaces cannot share an app.
 - *A configuration file with a command language (AeroSpace's TOML):* rejected for v1; Lintel configures through Settings and per-command shortcuts.
-- *One spec each for workspaces, tiling and grid:* rejected; they share the window engine, and phasing keeps each shippable.
+- *One spec each for workspaces, tiling and zones:* rejected; they share the window engine, and phasing keeps each shippable.
+- *A widget as a floating always-on-top bar:* rejected as the default; the owner's reference is a menu bar strip, which needs no window management of its own. A floating bar can be a later addition.
+- *Hard-coding the stock templates only (no editor):* rejected by the owner; a layout library with an editor is in scope.
 
 ## 📝 Architecture
 
@@ -62,13 +77,15 @@ flowchart LR
     PR[Permission.accessibility — existing]
   end
   subgraph Plugin[WindowsPlugin — new target]
-    WS[WorkspaceModel: workspaces, membership, focus]
+    WS[VirtualWorkspaceModel: workspaces, membership, focus]
     TL[TilingLayout pure]
-    GL[GridLayout pure]
+    GL[GridLayout + CanvasLayout pure]
+    LB[LayoutLibrary: layouts, assignments, import/export]
+    SG[WorkspaceStrip: menu bar status item]
     EN[WindowEngine: reconcile events, apply frames]
     ST[StateStore: state.json]
     SR[WindowSearchSource]
-    UI[Settings pane, grid editor, HUD, snap overlay]
+    UI[Settings pane, layout editors, HUD, snap overlay]
   end
   subgraph App[LintelApp — composition root]
     AX[AXWindowClient — new, Accessibility API]
@@ -77,21 +94,28 @@ flowchart LR
   WS --> EN
   TL --> EN
   GL --> EN
+  LB --> GL
+  WS --> SG
   EN --> WC
   EN --> ST
   AX -. implements .-> WC
   REG --> Plugin
 ```
 
-Takeaway: the shell gains one port implementation and one registry line; every other new part is inside the new plugin, and the layout logic has no dependency on AppKit so it is testable with plain values.
+Takeaway: the shell gains one port implementation and one registry line; every other new part, including the strip and the editors, is inside the new plugin, and the layout logic has no dependency on AppKit so it is testable with plain values. The strip is an `NSStatusItem` created by the plugin (the plugin already owns its HUD panel in the dictation precedent); no `StatusItemController` change is needed.
 
 - **Dependencies** follow the rule in `AGENTS.md`: `WindowsPlugin` → `LintelKit` (and `LintelPersistence` for `AtomicFile`); it imports no other plugin and not `LintelApp`.
-- **`WindowClient` (new port in `LintelKit`, additive, `PluginContext.windows`, default reports no windows and no displays):** `windows() -> [WindowInfo]`, `focusedWindow()`, `setFrame(_:for:)`, `focus(_:)`, `displays() -> [DisplayInfo]` (id, `visibleFrame`), and `events: AsyncStream<WindowEvent>` (created, destroyed, moved, resized, focused, app launched/terminated, displays changed, Space changed). `WindowInfo` = `WindowID` (pid + window number), bundle id, title (memory only), frame, role/subrole flags, `isMinimized`, `isFullscreen`. Tests use an in-memory fake.
-- **`AXWindowClient` (in `LintelApp/Ports/`)** observes every regular app with `AXObserver` (created, destroyed, moved, resized, focused window), sets a per-app messaging timeout (0.25 s) so a hung app cannot block the engine, and batches `setFrame` calls per app, in parallel across apps.
+- **Naming.** `PluginContext.workspace` already is the `WorkspaceClient` (launching and activating apps) and `WorkspaceSection` is a main-window concept, so code names for the new concept are `VirtualWorkspace…` (UI text still says "Workspaces", Q11).
+- **`WindowClient` (new port in `LintelKit`, additive, `PluginContext.windows`, default reports no windows and no displays; adding a defaulted parameter to the memberwise `PluginContext` init is additive like the earlier ones):** `availability` (`.available` or `.unsupported(reason)`, read by `activate()`, which throws on `.unsupported` so the host marks the plugin `failed`), `windows() -> [WindowInfo]`, `focusedWindow()`, `setFrame(_:for:)`, `focus(_:)`, `displays() -> [DisplayInfo]` (id, display UUID from `CGDisplayCreateUUIDFromDisplayID`, `visibleFrame`, orientation), and `events: AsyncStream<WindowEvent>` (created, destroyed, moved, resized, focused, app launched/terminated, displays changed, Space changed). `WindowInfo` = `WindowID` (pid + window number), bundle id, title (memory only), frame, role/subrole flags, `isMinimized`, `isFullscreen`. Tests use an in-memory fake.
+- **`AXWindowClient` (in `LintelApp/Ports/`)** follows the same no-trap rule as plugin code (a crash here takes down the whole process): the `dlsym` result is checked for nil, and at `start()` the function is called once on a known window and its answer compared with `CGWindowList`; any mismatch makes `availability` `.unsupported`. It observes every regular app with `AXObserver` (created, destroyed, moved, resized, focused window), sets a per-app messaging timeout (0.25 s) so a hung app cannot block the engine, and batches `setFrame` calls per app, in parallel across apps.
 - **`WindowEngine`** is an actor that turns events into model changes and model changes into `setFrame` calls. It reads back the frame after a set: a window that refuses the size (its minimum is larger than its tile) is marked "stubborn" and centred in its tile instead of being retried.
+- **Recovery runs outside the plugin lifecycle.** `PluginHost` only calls enabled plugins, so a crash followed by a launch with the plugin disabled would never restore parked windows. The contract therefore gets one more additive, defaulted member, `static func recoverAtLaunch(context: PluginContext) async`, which `PluginHost` calls once per launch for every registered plugin type, enabled or not, before any activation. `WindowsPlugin` implements it as "read the journal, restore every parked window". `deactivate()` and `eraseData()` also restore first and are bounded by a timeout (5 s); on a timeout the journal is kept and the next launch finishes the job.
 - **Follow focus.** When a window of a hidden workspace becomes the focused window (⌘Tab, a Dock click, Lintel's own switcher), the engine switches to its workspace. When a hidden window moves on screen by itself (an app restoring its position), the engine hides it again unless it is focused.
-- **Stage Manager and Mission Control settings.** Stage Manager moves windows itself and must be off; the pane's banner says so when `com.apple.WindowManager` reports it on. The plugin manages only the current native Space's windows, because Accessibility does not list windows on other Spaces.
-- **Performance budgets (to be measured, `docs/perf.md`):** switching workspaces with 20 windows < 100 ms on Apple silicon; a tiling reflow after one window event < 30 ms; Shift-drag overlay appears < 50 ms. Benchmarks are off by default like the other ones.
+- **Menu bar room.** macOS drops status items that do not fit (the notch, many items); the strip then may not be visible. The strip's width is bounded (at most nine boxes, 18 pt each), and the HUD plus the window switcher remain as cues. Whether it is visible is not detectable reliably, so the pane only documents it.
+- **Stage Manager and Mission Control settings.** Stage Manager moves windows itself and must be off; the pane's banner says so when the `com.apple.WindowManager` preference (`GloballyEnabled`) reports it on. "Displays have separate Spaces" (`com.apple.spaces`, `spans-displays`) decides whether each display has its own menu bar and Space, which the per-display workspace model assumes. The key names and the value the plugin requires are inferences to be verified in the spike (step 1.1); the banner then warns accordingly.
+- **Native Spaces.** Accessibility lists only the windows on the current native Space, so the plugin manages those. Windows parked on a Space the user then leaves cannot be restored from another Space: the engine reconciles the journal on every Space change and restores entries as their windows become visible again, "Restore all windows" reports how many it could not reach, and the welcome step recommends keeping managed windows on one Space.
+- **Status item.** A plugin-owned `NSStatusItem` has no precedent in the repository (`StatusItemController` is the only one; the dictation precedent is a panel). It is created in `activate()` and removed in `deactivate()`. Per-box clicks are mapped from the click position on the single status button, and each box is an `NSAccessibilityElement` child of that button; both are verified in step 1.10, with a fallback of one status item per box (at most nine) if either does not work.
+- **Performance budgets (to be measured, `docs/perf.md`):** switching workspaces with 20 windows < 100 ms on Apple silicon; a tiling reflow after one window event < 30 ms; Shift-drag overlay appears < 50 ms; the strip redraws < 16 ms after a switch; opening the layout editor < 200 ms. Benchmarks are off by default like the other ones.
 
 ## 📝 Data Model
 
@@ -101,31 +125,43 @@ No database. Layouts and state are small, non-secret JSON files in `Plugins/wind
 
 ```text
 version: 1
-workspaces[1...9]: { layout: "tiling" | "grid", gridLayoutID, tiling: Node, grid: { windowID -> zoneID }, order: [windowID] }
+workspaces[1...9]: { tiling: Node, zones: { displayKey -> { windowID -> zoneID } }, order: [windowID] }   // the layout kind is a setting, not stored here
 Node = window(windowID, weight) | container(orientation, weight, children: [Node])
-hidden: [{ windowID, homeFrame }]      // frames to restore after a crash
+hidden: [{ windowID, processStart, homeFrame }]   // written through and fsynced BEFORE the first window is parked
 ```
 
-`WindowID` is `pid` + window number; it is valid only while that window exists, so on launch every entry whose window no longer exists is dropped. **No window titles, no bundle ids and no content are stored.**
+`WindowID` is `pid` + window number; it is valid only while that window exists, and pids and window numbers are reused after a reboot, so every entry also stores the owning process's start time (`processStart`) and is validated against it: an entry whose process start time or window no longer matches is dropped and never moved. The `hidden` journal is the one part that is written through (write, fsync, rename) before a window is parked and after every change; the rest of `state.json` may be written deferred (the `ActivityStore` pattern). **No window titles, no bundle ids and no content are stored.**
 
-`layouts.json` (v1): the user's grid layouts: `id`, `name`, `columns: [weight]`, `rows: [weight]`, `zones: [{ id, colStart, colEnd, rowStart, rowEnd }]`. The stock templates are compiled in and not written.
+`layouts.json` (v1): the user's layout library and the assignments. Stock templates are compiled in and not written.
 
-Settings keys (protected contract once shipped): `plugins.windows.workspaceCount`, `.defaultLayout`, `.gap.inner`, `.gap.outer`, `.floatingApps` (bundle ids), `.followFocus`, `.showHUD`, `.workspace.<n>.layout`, `.workspace.<n>.gridLayout`.
+```text
+version: 1
+layouts[]: { id, name, style: "grid" | "canvas", spacing, hotkeyID?,
+             grid?:   { columns: [weight], rows: [weight], zones: [{ id, colStart, colEnd, rowStart, rowEnd }] },
+             canvas?: { zones: [{ id, x, y, width, height }] }   // fractions 0...1 of the usable display area, array order = stacking }
+assignments[]: { workspace: 1...9, displayKey: <display UUID> | "landscape" | "portrait", layoutID }
+```
+
+Validation on load and before save: grid zones cover every cell exactly once; canvas zones have positive size and stay inside the area (clamped); ids are unique; a stock id in `assignments` is always valid; an assignment to a missing layout falls back to the default (Q19) and is reported in the pane. The `displayKey` is the display UUID, kept only in this local file, never logged; two identical monitors without serial numbers can share a UUID, in which case they are told apart by their position order and the pane says so. Import accepts a `.lintellayouts` file of `layouts[]` only (never assignments, never quick-switch slots), validates it as above plus: at most 256 layouts and 1 MB in the file, at most 64 zones and 32 tracks per layout, finite numbers only (no NaN or infinity), names at most 64 characters without control or bidirectional-override characters, a `version` not newer than the one the app knows; it regenerates ids that collide and shows a summary before it adds anything. The `.lintellayouts` type is declared in `Info.plist` (step 4.6).
+
+Settings keys (protected contract once shipped): `plugins.windows.workspaceCount`, `.defaultKind` (`tiling` or `zones`), `.defaultZoneLayout.landscape`, `.defaultZoneLayout.portrait` (layout ids), `.gap.inner`, `.gap.outer`, `.floatingApps` (bundle ids), `.followFocus`, `.showHUD`, `.workspace.<n>.layout` (`tiling` or `zones`), `.workspace.<n>.gap.inner`, `.workspace.<n>.gap.outer`, `.workspace.<n>.rootOrientation`, `.strip.enabled`, `.strip.showAll`. The dynamic `.workspace.<n>.*` keys are declared once in `WindowsSettings` (one function builds the key from a workspace number; a test checks that no key is written anywhere else). The layout kind lives only in settings. Zone-layout assignments are in `layouts.json`, not in settings, because they are keyed by display.
 
 ## 📝 API Contracts
 
-`PluginManifest`: id `windows`, order 60, `defaultEnabled: false`, `settingsGroup: .lintel`, `requiredPermissions: [.accessibility]`, no new `Permission` case (no Screen Recording: titles come from Accessibility). Commands (`PluginCommand`, ids `windows.<name>`): `workspace.1…9`, `workspace.next/previous/back`, `moveToWorkspace.1…9`, `focus.left/right/up/down`, `move.left/right/up/down` (tiling: swap or move into the neighbouring container; grid: move to the neighbouring zone), `resize.grow/shrink` (tiling), `join.left/right/up/down`, `toggleOrientation`, `toggleFloating`, `balance`, `toggleLayout`, `grid.nextLayout`, `grid.zone.1…9`, `restoreAllWindows`. Only the defaults in Q10 are bound. The search source is `windows.windows` with item keys `windows:<windowID>`; it never calls `PluginContext.usage`. A `PluginContext.eraseData()` implementation restores all windows first, then deletes `Plugins/windows/`.
+`PluginManifest`: id `windows`, order 60, `defaultEnabled: false`, `settingsGroup: .lintel`, `requiredPermissions: [.accessibility]`, no new `Permission` case (no Screen Recording: titles come from Accessibility). Commands (`PluginCommand`, ids `windows.<name>`): `workspace.1…9`, `workspace.next/previous/back`, `moveToWorkspace.1…9`, `focus.left/right/up/down`, `move.left/right/up/down` (tiling: swap or move into the neighbouring container; grid: move to the neighbouring zone), `resize.grow/shrink` (tiling), `join.left/right/up/down`, `toggleOrientation`, `toggleFloating`, `balance`, `toggleLayout`, `zones.nextLayout`, `zones.zone.1…9`, `zones.layout.1…9` (nine stable "layout slot" commands; the pane binds each slot to a layout, so deleting a layout never leaves an orphaned shortcut and the command list never changes at run time), `restoreAllWindows` (shown in the Lintel status menu as "in the menu" commands are, like `meetings.record`; no `StatusItemController` change). Only the defaults in Q10 are bound. The search source is `windows.windows` with item keys `windows:<windowID>`; it never calls `PluginContext.usage`. `eraseData()` restores all windows first, then deletes `Plugins/windows/`. Contract additions (all additive, defaulted, listed in `BACKWARD_COMPATIBILITY.md` §1): `WindowClient` and its types, `PluginContext.windows`, and `static func recoverAtLaunch(context:)`.
 
 ## 📝 UI/UX
 
 - **Welcome step** (`onboardingSteps`): what the feature does, the Accessibility request, and one sentence about recovery ("Windows of other workspaces are parked in a screen corner. *Restore all windows* in the menu bar gets them back").
-- **Settings → Window Management** (banner, Basics, collapsed Advanced, Data, as D4 of the main window spec): the banner covers Accessibility missing, Stage Manager on, the plugin `failed` (missing symbol), and a hidden-windows warning when permission is revoked. Basics: number of workspaces, default layout, gaps, workspace HUD on/off. Floating apps list. Shortcuts: grouped list with the existing recorders, numbered ones in one collapsible group. Layouts: stock templates with a preview and the custom grid editor (set rows and columns, drag dividers, merge cells, name). Data: *Restore all windows*, *Reset state*.
+- **Settings → Window Management** (banner, Basics, collapsed Advanced, Data, as D4 of the main window spec): the banner covers Accessibility missing, Stage Manager on, the plugin `failed` (missing symbol), and a hidden-windows warning when permission is revoked. Basics: number of workspaces, default layout, gaps, workspace HUD on/off. Floating apps list. Shortcuts: grouped list with the existing recorders, numbered ones in one collapsible group. Layouts: the library (stock and own layouts with previews, New, Duplicate, Rename, Edit, Delete, Import, Export, quick-switch shortcut) and the assignment matrix (workspaces × displays). Workspaces: per-workspace overrides (layout kind, gaps, root orientation). Strip: on/off, show all or occupied. Data: *Restore all windows*, *Reset state*.
+- **Workspace strip:** see Proposed Solution; each box is an accessibility element ("Workspace 3, 4 windows, current"), the item announces a switch to VoiceOver, and the highlight uses brand tokens and does not rely on colour alone (filled versus outlined). The strip follows Reduce Motion (no animation anyway).
+- **Layout editors:** one window per editing session, a live preview over the chosen display (a borderless panel, same mechanism as the snap overlay), a sidebar with the layout name, style, space around zones and the zone list; every action has a keyboard equivalent (listed in Proposed Solution); unsaved changes ask on close; the same `SettingsPane` and `DestructiveConfirmation` components are used for Delete.
 - **Workspace HUD:** a small non-activating panel (about 600 ms) with the workspace number and window count after a switch, like the dictation HUD (`sharingType = .none`).
 - **Snap overlay:** a borderless panel per display drawing the zones while Shift is held during a window drag; the zone under the cursor is highlighted; release snaps. It does not take focus.
-- **Menu bar:** the existing status item menu gets *Restore all windows* while the plugin is on (additive, listed in Phase 1).
-- **Accessibility:** every control has a label; the HUD and the overlay announce the workspace or zone number to VoiceOver; the grid editor is operable from the keyboard (arrow keys move a divider by 1%, Return merges the selected cells); all strings are in `Localizable.xcstrings` in English and Polish (`StringCatalogTests`).
+- **Menu bar:** *Restore all windows* is a plugin command shown in the Lintel status menu while the plugin is on, the same way `meetings.record` is.
+- **Accessibility:** every control has a label; the HUD, the strip and the overlay announce the workspace or zone number to VoiceOver; both editors are operable from the keyboard; all strings are in `Localizable.xcstrings` in English and Polish (`StringCatalogTests`).
 
-Proposal mockups (illustrative statics, not an accepted design): the Settings pane `assets/window-management/mockup-01-settings-pane.png` and the snap overlay with the HUD `assets/window-management/mockup-02-grid-snap-overlay.png` (HTML sources beside them). The grid editor is not mocked up yet. No version is accepted, so there is no `Prototype:` line.
+Proposal mockups (illustrative statics, not an accepted design): the Settings pane `assets/window-management/mockup-01-settings-pane.png` and the snap overlay with the HUD `assets/window-management/mockup-02-zone-snap-overlay.png` (HTML sources beside them). The layout editor and the strip are mocked up in `assets/window-management/mockup-03-layout-editor.png` and `mockup-04-workspace-strip.png` (added with this revision); the strip mockup follows the reference image the owner supplied. No version is accepted, so there is no `Prototype:` line.
 
 ## 📝 Edge Cases & Failure Scenarios
 
@@ -138,16 +174,25 @@ Proposal mockups (illustrative statics, not an accepted design): the Settings pa
 | A window refuses to be resized | Marked stubborn, centred in its tile or zone, never retried in a loop |
 | An app re-centres or un-hides its window | Re-hidden if its workspace is hidden and it is not focused; if focused, its workspace is shown (follow focus) |
 | Display added, removed, sleep/wake, resolution change | Reflow from `visibleFrame` (menu bar and Dock are excluded); workspaces on a removed display join the main display; parked windows are re-parked in the new corner |
-| New window while the workspace is full (grid) | Stacks in the focused zone; tiling splits the focused tile |
+| New window while the workspace is full (zones) | Stacks in the focused zone; tiling splits the focused tile |
+| A layout is deleted while assigned | Confirmation names the number of assignments; they fall back to the display's default layout; windows are re-placed by the first-empty-zone rule |
+| A display's resolution or scale changes | Zones are fractions, so they are recomputed from the new usable area; windows keep their zone, and stubborn windows are re-centred |
+| A display is unplugged and plugged back | Assignments are keyed by display UUID and apply again; until then its workspaces use the display they moved to, with that display's assignment or default |
+| Importing a layout file that is oversized, malformed or has overlapping grid zones | Rejected with a message naming the problem; nothing is added and no existing layout is changed |
+| Closing the editor with unsaved changes | Asks to save or discard; a crash loses only unsaved edits, never the saved library (atomic writes) |
+| Menu bar full or notch hides the strip | The strip may be invisible; HUD and switcher still work; documented in the pane |
 | App quits or window closes | Removed from its tree or zone; siblings take the space; an empty container is dropped |
 | Native fullscreen, minimised, sheets, dialogs, panels | Ignored; a window leaving fullscreen is managed again |
-| Windows on other native Spaces | Not visible to Accessibility, so not managed; the pane explains it |
+| Windows on other native Spaces | Not visible to Accessibility, so not managed. Windows parked on a Space the user then leaves stay parked until that Space is shown again; the engine restores journal entries as they become visible, and *Restore all windows* says how many it could not reach |
+| Lintel crashes and the next launch has the plugin disabled | `recoverAtLaunch` runs for every registered plugin before activation and restores the parked windows from the journal |
+| Journal entry for a window that no longer matches (reboot, pid reuse) | Dropped; a window is moved only when its pid, window number and process start time all match |
+| Accessibility is granted again after a revoke | The plugin polls `PermissionsReader` on app activation and every 2 s while windows are parked, then restores |
 | Stage Manager on | Banner of level attention; the feature still runs but is documented as unsupported |
 | `_AXUIElementGetWindow` missing after a macOS update | Plugin enters `failed` (no crash, no partial state); banner points to updating Lintel |
 | Corrupt or newer `state.json` | Archived once as `.corrupt` / read-only; the plugin starts from the live windows |
 | Two plugins or the shell want the same shortcut | A user-chosen shortcut always wins (`BACKWARD_COMPATIBILITY.md` §5); defaults are checked by `DefaultShortcutTests` |
 
-Privacy: window titles live in memory for the search source only, are never logged (the `windows` logger category writes counts and ids, not titles or bundle ids of the user's windows), never reach `ranking.sqlite`, and are not stored in `state.json`.
+Privacy: the journal holds window ids, process start times and frames only. Window titles live in memory for the search source only, are never logged (the `windows` logger category writes counts and ids, not titles or bundle ids of the user's windows), never reach `ranking.sqlite`, and are not stored in `state.json`.
 
 ## 📝 Risks & Impact Review
 
@@ -155,13 +200,15 @@ Privacy: window titles live in memory for the search source only, are never logg
 - **Platform risk (Q3):** a private symbol and the Accessibility behaviour of third-party apps can change with any macOS release; the failure mode is a disabled feature with a banner, not data loss. Owner decision, flagged ⚠.
 - **User-visible risk:** windows parked offscreen if Lintel dies. Mitigations above; the recovery on launch is a release-blocking test.
 - **Product direction calls, not rule violations:** tiling auto-managing every window by default once enabled (a user can exclude apps), and global ⌃⌥ digit shortcuts.
+- **Hard to reverse once shipped (added in rev 2):** the `layouts.json` schema and the `.lintellayouts` import/export format, because users will share files. Both carry a `version`, only additive changes are allowed, and newer files are read-only.
 - **Cost:** a long-lived AX observer per app and an event stream; budgeted and measured (Architecture).
 
 ## 📋 Phasing
 
 1. **Workspaces and window engine:** port, `AXWindowClient`, workspace model, hide/restore, crash recovery, follow focus, HUD, shortcuts, window switcher, Settings pane (basics), onboarding. Windows keep their frames; no layout yet. Shippable on its own.
 2. **Tiling:** tree, layout maths, focus/move/resize/join/toggle commands, gaps.
-3. **Grid:** templates, zones, placement, shortcuts, layout editor, Shift-drag snapping, `toggleLayout`.
+3. **Zones:** the stock templates, assignment per workspace and display (a layout picker per cell), placement, shortcuts, Shift-drag snapping, `toggleLayout`. Shippable on its own.
+4. **Layout library and editors:** custom grid and canvas layouts, both editors, duplicate/rename/delete, import/export, layout slots. Requires Phase 3.
 
 ## 📋 Implementation Plan
 
@@ -169,17 +216,18 @@ Each step leaves the app building and the plugin off by default. Validation gate
 
 ### Phase 1: workspaces and window engine
 
-- 1.1 **Spike (no production code):** on the owner's Mac, measure how far a window can be parked with `AXUIElementSetAttributeValue(kAXPositionAttribute)` on macOS 26 and 27, the cost of 20 `setFrame` calls, and confirm `_AXUIElementGetWindow` via `dlsym`. Record the result in `docs/decisions/0009-window-management.md` (the ADR also records the choice in Q2 and Q3). Test: none; the ADR is the deliverable.
-- 1.2 **Contract:** add `WindowID`, `WindowInfo`, `DisplayInfo`, `WindowEvent`, `WindowClient` and `PluginContext.windows` (default: no windows) to `LintelKit`; update `BACKWARD_COMPATIBILITY.md` §1. Test: `LintelKitTests` that a default context compiles and reports empty.
-- 1.3 **Plugin skeleton:** target `WindowsPlugin` and `WindowsPluginTests`, manifest, `WindowsSettings` (every key declared once), registration in `PluginRegistry` and `Package.swift`, `StringCatalogTests` entries. Test: manifest and defaults test; `DefaultShortcutTests` stays green.
+- 1.1 **Spike (no production code):** on the owner's Mac, measure how far a window can be parked with `AXUIElementSetAttributeValue(kAXPositionAttribute)` on macOS 26 and 27, the cost of 20 `setFrame` calls, and confirm `_AXUIElementGetWindow` via `dlsym`. Also record the smallest visible sliver macOS leaves, the order that moves a window across displays reliably (size, position, size), Accessibility latency against a hung app, and the real keys behind Stage Manager and "Displays have separate Spaces". Record the result in the next free ADR number (`docs/decisions/`; check open PRs first, since `0007` is already used twice and `0009` may be taken) and the choices of Q2 and Q3. Test: none; the ADR is the deliverable.
+- 1.2 **Contract:** add `WindowID`, `WindowInfo`, `DisplayInfo`, `WindowEvent`, `WindowClient` (with `availability`), `PluginContext.windows` (default: no windows) and the defaulted `recoverAtLaunch(context:)` to `LintelKit`; `PluginHost` calls `recoverAtLaunch` for every registered type before activation; update `BACKWARD_COMPATIBILITY.md` §1. Test: `LintelKitTests` that a default context compiles and reports empty; a `PluginHost` test that a disabled plugin's `recoverAtLaunch` still runs once.
+- 1.3 **Plugin skeleton:** target `WindowsPlugin` and `WindowsPluginTests`, manifest, `WindowsSettings` (every key declared once), `Package.swift`, `StringCatalogTests` entries. **Not registered in `PluginRegistry` yet** (that is step 1.11, so no empty "Window Management" toggle ever reaches users). Test: manifest and defaults test.
 - 1.4 **Workspace model (pure):** workspaces, membership, per-display visible workspace, back-and-forth. Test: model tests on plain values.
-- 1.5 **`StateStore`:** `state.json` read/write, versioning, `.corrupt` copy, hidden-window journal. Test: round trip, corrupt and newer-version files, temporary directories.
+- 1.5 **`StateStore`:** `state.json` read/write, versioning, `.corrupt` copy, the write-through hidden-window journal with `processStart`. Test: round trip, corrupt and newer-version files, a kill between journal write and park (journal first), a stale `processStart`, temporary directories.
 - 1.6 **`WindowEngine` against a fake client:** hide/restore, follow focus, re-hide, stubborn windows, display change. Test: fake-client tests for each row of Edge Cases, under TSan.
-- 1.7 **Crash recovery:** journal checked first on launch, restore on disable, quit and *Restore all windows*. Test: a journal with parked windows and a fake client ends with every window on screen.
-- 1.8 **`AXWindowClient` in `LintelApp`:** observers, timeouts, `dlsym` lookup, `failed` on a missing symbol. Test: protocol-level tests with the fake; real Accessibility is a local/manual item in the PR body (`docs/qa.md`).
+- 1.7 **Crash recovery:** `recoverAtLaunch`, restore on disable, quit (5 s bound) and *Restore all windows*, reconcile on Space change, re-grant polling. Test: a journal with parked windows and a fake client ends with every window on screen, also when the plugin is disabled; a Space change restores newly visible entries.
+- 1.8 **`AXWindowClient` in `LintelApp` and its wiring:** observers, timeouts, checked `dlsym` lookup with the start-up self-check, `availability`; construction in `AppEnvironment`/`AppCoordinator` and `PluginContext(windows:)`. Test: protocol-level tests with the fake, a context-wiring test in `LintelAppTests`; real Accessibility is a local/manual item in the PR body (`docs/qa.md`).
 - 1.9 **Commands, HUD, window switcher:** workspace and move commands with Q10 defaults, `WorkspaceHUDPanel`, `windows.windows` search source (never records usage). Test: source and command tests; HUD state tests.
-- 1.10 **Settings pane and onboarding:** banner, basics, floating apps, shortcuts, Data (*Restore all windows*, *Reset state*), status item entry, `eraseData()`. Test: pane model tests, string catalog parity.
-- 1.11 **Docs and QA:** `AGENTS.md` task-routing row, `docs/perf.md` rows, `docs/qa.md` scenario, `--qa` fake window client for screenshots. Test: QA run with screenshots in light and dark as PR evidence.
+- 1.10 **Workspace strip** (first verifies the single-button click mapping and the accessibility children, else one item per box): `WorkspaceStripController` (status item drawing the boxes, click to switch, right-click menu, accessibility elements, occupied/all setting, redraw on model change), `plugins.windows.strip.*` settings. Test: pure `StripModel` (which boxes, which is active, which is outlined) tested on plain values; click-to-index mapping test; the item itself is a manual QA item with screenshots.
+- 1.11 **Settings pane, onboarding and registration:** banner, basics, floating apps, shortcuts, Data (*Restore all windows*, *Reset state*), `eraseData()`, the `PluginRegistry` line and `Package.swift` dependency. Update `DefaultShortcutTests` (the registered-ids list) and `BACKWARD_COMPATIBILITY.md` §5. Test: pane model tests, string catalog parity, `InactiveSettingsPaneTests` (the pane must not start work while inactive), the updated default-shortcut tests.
+- 1.12 **Docs and QA:** `AGENTS.md` task-routing row, `docs/perf.md` rows, `docs/qa.md` scenario, `--qa` fake window client for screenshots. Test: QA run with screenshots in light and dark as PR evidence.
 
 ### Phase 2: tiling
 
@@ -187,17 +235,27 @@ Each step leaves the app building and the plugin off by default. Validation gate
 - 2.2 **Directional navigation (pure):** focus and move by direction in a tree. Test: table-driven cases.
 - 2.3 **Resize, join, toggle orientation, balance (pure).** Test: weight invariants (sum, minimum share).
 - 2.4 **Engine integration:** new/closed windows, tiling per workspace, floating toggle and floating apps. Test: fake-client scenario tests.
-- 2.5 **Commands and Settings (gaps, default layout).** Test: command table and settings tests.
+- 2.5 **Commands and Settings (gaps, default layout) and per-workspace overrides:** `.workspace.<n>.gap.*` and `.rootOrientation` with the global default as fallback, an Overrides section in the pane. Test: command table, settings and override-resolution tests.
 
-### Phase 3: grid
+### Phase 3: zones with the stock templates
 
-- 3.1 **`GridLayout` (pure):** tracks, zones, stock templates, frames. Test: golden frames per template.
-- 3.2 **Placement:** zone assignment, stacking, first-empty rule, move to neighbour zone. Test: scenario tests.
-- 3.3 **`toggleLayout` and conversion** between tiling and grid with both states kept. Test: round trip leaves both states unchanged.
-- 3.4 **Layout editor and `layouts.json`:** tracks, merge, validation (no overlap, no gaps in zones). Test: validation and persistence tests; keyboard operation test.
-- 3.5 **Shift-drag snapping:** global mouse/flags monitor (Accessibility only), per-display overlay, snap on release. Test: drag state machine tests; overlay is a manual QA item with screenshots.
-- 3.6 **Polish pass:** accessibility audit of the new screens, perf measurements in `docs/perf.md`. Test: budget benchmarks (off by default), results in the PR body.
+- 3.1 **`GridLayout` (pure):** tracks, cells, zones, spacing, the compiled-in stock templates (Focus, Columns 2, Columns 3, Rows 2, Grid 2×2, Priority 25/50/25), frames from a usable area. Test: golden frames per template; validation rules.
+- 3.2 **Assignment and `layouts.json` (assignments only):** workspace × display matrix over stock layouts, display-UUID keys (duplicate-UUID fallback), defaults per orientation (Q19), resolution and hot-plug handling, versioning, `.corrupt` copy. Test: assignment resolution tables, display-change scenarios with the fake client, corrupt and newer files.
+- 3.3 **Placement:** zone assignment, stacking, the new-window rule, move to neighbour zone, `zones.zone.1…9`. Test: scenario tests.
+- 3.4 **`toggleLayout` (default ⌃⌥T) and conversion** between tiling and zones with both states kept; per-workspace layout kind. Test: round trip leaves both states unchanged; `DefaultShortcutTests` updated for the new default.
+- 3.5 **Shift-drag snapping:** the overlay appears only when a managed window's AX moved events arrive while the left button is down and Shift is held (so text selection and Finder drags are ignored); per-display overlay using the assigned layout, snap on release. First checks which global monitor needs which permission. Test: drag state machine tests with scripted events; the overlay is a manual QA item with screenshots.
+- 3.6 **Zones section of the pane:** layout picker per cell of the matrix, per-workspace layout kind. Test: pane model tests, string catalog parity.
+- 3.7 **Polish pass:** accessibility audit of the overlay, perf measurements in `docs/perf.md`. Test: budget benchmarks (off by default), results in the PR body.
+
+### Phase 4: layout library and editors
+
+- 4.1 **`CanvasLayout` (pure):** free zones as fractions, stacking order, clamping, frames. Test: golden frames, clamping, ordering.
+- 4.2 **`LayoutLibrary`:** create, duplicate, rename, delete (assignments fall back to the display default, with the count shown), import/export (`.lintellayouts`) with the validation in the Data Model, stable ids. Test: round trips, import limits and hostile files (NaN, oversized, control characters, newer version), delete-in-use.
+- 4.3 **Grid editor:** divide, merge, move divider, spacing, preview panel, keyboard operation, unsaved-changes prompt. Test: editor model tests (pure state machine for divide/merge/move, undo), keyboard table; the window is a manual QA item with screenshots.
+- 4.4 **Canvas editor:** add, move, resize, delete, reorder zones, nudging, preview. Test: editor model tests (clamping, order), keyboard table; manual QA screenshots.
+- 4.5 **Layouts pane:** library list with previews, New/Duplicate/Rename/Edit/Delete/Import/Export, layout slots (`zones.layout.1…9` each bound to a layout), *Apply to current workspace*. Test: pane model tests, slot binding and unbinding, string catalog parity.
+- 4.6 **Polish pass:** declare the `.lintellayouts` type in `Info.plist`, accessibility audit of both editors, opening budget in `docs/perf.md`, `BACKWARD_COMPATIBILITY.md` entries for `layouts.json` and the import format. Test: Info.plist type declaration test, budget benchmarks (off by default).
 
 ## 📝 Not doing
 
-Accordion layout, free-form canvas zones, multi-zone span, per-app placement rules, a scripting CLI or IPC, a text config language, window borders or animations, controlling or listing native Spaces, per-display workspace pinning, window rules by title, and a main-window section. Each can be a later spec; none changes the contracts above.
+Accordion layout, multi-zone span while dragging, per-workspace names or icons in the strip, a floating always-on-top workspace bar, syncing layouts between Macs, per-app placement rules, a scripting CLI or IPC, a text config language, window borders or animations, controlling or listing native Spaces, per-display workspace pinning, window rules by title, and a main-window section. Each can be a later spec; none changes the contracts above.
