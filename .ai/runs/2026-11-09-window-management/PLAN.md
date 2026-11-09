@@ -27,7 +27,7 @@ Source spec: `.ai/specs/2026-11-09-window-management.md` (spec PR #66; Refs #66,
 | 2 | 2.2 | Directional navigation (pure) | dispatch:capable | done | c680753 |
 | 2 | 2.3 | Resize, join, orientation, balance (pure) | dispatch:capable | done | eed4763 |
 | 2 | 2.4 | Engine integration for tiling | dispatch:capable | done | 4b1e240 |
-| 2 | 2.5 | Tiling commands, settings, per-workspace overrides | dispatch:capable | todo | |
+| 2 | 2.5 | Tiling commands, settings, per-workspace overrides | dispatch:capable | done | cd2e5e8 |
 | 3 | 3.1 | GridLayout and stock templates (pure) | dispatch:capable | todo | |
 | 3 | 3.2 | Assignment store and assignments.json | dispatch:capable | todo | |
 | 3 | 3.3 | Zone placement and zone commands | dispatch:capable | todo | |
