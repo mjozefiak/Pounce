@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import LintelKit
 import Testing
@@ -55,6 +56,26 @@ import Testing
 
         host.retryDeferredRecoveries()
         await host.waitForRecoveries()
+        #expect(RecoveryScript.shared.callCount == 2)
+    }
+
+    @MainActor
+    @Test func appActivationRetriesADeferredRecovery() async {
+        defer { env.tearDown() }
+        RecoveryScript.shared.reset([.deferred, .done])
+        let coordinator = AppCoordinator(
+            environment: env.environment, pluginTypes: [LaunchRecoveryPlugin.self],
+            registrar: InMemoryHotkeyRegistrar(), occupiedShortcuts: { [] }, launchAtLogin: NoLaunchAtLogin())
+        let center = NotificationCenter()
+        coordinator.activationCenter = center
+        await coordinator.host.start()
+        await coordinator.host.waitForRecoveries()
+        coordinator.observeActivationForRecovery()
+        #expect(coordinator.host.recoveryOutcomes["launchrecovery"] == .deferred)
+
+        center.post(name: NSApplication.didBecomeActiveNotification, object: nil)
+        await coordinator.host.waitForRecoveries()
+        #expect(coordinator.host.recoveryOutcomes["launchrecovery"] == .done)
         #expect(RecoveryScript.shared.callCount == 2)
     }
 

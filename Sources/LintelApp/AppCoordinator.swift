@@ -33,6 +33,11 @@ final class AppCoordinator {
     /// `PluginContext.resultsChanged` with the plugin's id, for the Settings banner.
     private let statusRelay = PluginStatusRelay()
     private let icons: IconCache
+    /// Where app activations are posted (tests use their own centre).
+    var activationCenter: NotificationCenter = .default
+    /// Retries the recoveries a plugin answered with `.deferred` (window management without Accessibility) each
+    /// time Lintel becomes the active app, which is where a grant in System Settings becomes visible.
+    private var recoveryObserver: AppActivationObserver?
     private let logger = Logger(subsystem: "com.lintelapp", category: "app")
 
     /// - Parameters:
@@ -121,6 +126,7 @@ final class AppCoordinator {
         }
 
         await host.start()
+        observeActivationForRecovery()
         hotkeys.start { [weak self] in self?.panelModel.toggle() }
         syncCommands()
         statusItem?.rebuildMenu()
@@ -130,6 +136,13 @@ final class AppCoordinator {
             presentPendingOnboarding = { [weak self] in self?.onboarding?.showPendingSteps() }
             presentPendingOnboarding?()
         }
+    }
+
+    /// Runs `PluginHost.retryDeferredRecoveries()` on every app activation.
+    func observeActivationForRecovery() {
+        recoveryObserver?.stop()
+        let host = host
+        recoveryObserver = AppActivationObserver(center: activationCenter) { host.retryDeferredRecoveries() }
     }
 
     /// Sends the Dock, Command-comma, "Settings…", the Settings panes, `openModels` and `openNote` to the main

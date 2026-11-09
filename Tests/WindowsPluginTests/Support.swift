@@ -17,7 +17,9 @@ final class WindowsHarness: @unchecked Sendable {
 
     var pluginSettings: PluginSettings { PluginSettings(pluginID: "windows", store: store) }
 
-    func context(windows: any WindowClient = NoWindowClient()) -> PluginContext {
+    func context(
+        windows: any WindowClient = NoWindowClient(), permissions: any PermissionsReader = NoPermissions()
+    ) -> PluginContext {
         PluginContext(
             storageDirectory: directory,
             settings: pluginSettings,
@@ -27,7 +29,7 @@ final class WindowsHarness: @unchecked Sendable {
             pasteboard: NoPasteboard(),
             events: NoEvents(),
             workspace: NoWorkspace(),
-            permissions: NoPermissions(),
+            permissions: permissions,
             clock: ContinuousClock(),
             windows: windows
         )
@@ -90,4 +92,25 @@ struct NoUsage: UsageRecorder {
 
 struct NoPermissions: PermissionsReader {
     @MainActor func status(of permission: Permission) -> PermissionStatus { .notDetermined }
+}
+
+/// A permission reader the test flips by hand.
+final class ScriptedPermissions: PermissionsReader, @unchecked Sendable {
+    private let lock = NSLock()
+    private var granted: Bool
+
+    init(granted: Bool) { self.granted = granted }
+
+    func set(_ granted: Bool) { lock.withLock { self.granted = granted } }
+
+    @MainActor func status(of permission: Permission) -> PermissionStatus {
+        lock.withLock { granted } ? .granted : .denied
+    }
+}
+
+/// Records what the HUD was asked to show.
+@MainActor
+final class RecordingHUD: WindowsHUDPresenting {
+    private(set) var shown: [WindowsHUDState] = []
+    func show(_ state: WindowsHUDState) { shown.append(state) }
 }

@@ -9,6 +9,8 @@ struct EngineOutputs: Sendable {
     var hud: @Sendable (_ workspace: WorkspaceID, _ windowCount: Int) -> Void = { _, _ in }
     var summary: @Sendable (WorkspaceSummary) -> Void = { _ in }
     var banner: @Sendable (EngineBanner) -> Void = { _ in }
+    /// Windows came back without a command asking for it (a Space change showed journal entries again).
+    var restored: @Sendable (RecoveryReport) -> Void = { _ in }
 }
 
 /// Runs `EngineReducer` and carries out its effects against a `WindowClient` and the `StateStore` (spec:
@@ -27,6 +29,10 @@ actor WindowEngine {
     private let tick: Duration
     private let outputs: EngineOutputs
     private let logger: Logger
+    /// Whether windows may be moved at all: the plugin is enabled (the engine exists only then) and Accessibility
+    /// is trusted. When it answers `false` every frame change fails with `.notTrusted` before it reaches the
+    /// client, no window is focused and nothing is parked (owner rule: nothing moves without Accessibility).
+    private let canMove: @Sendable () -> Bool
     private var watchdog: Watchdog
     private var coalescer = EventCoalescer()
     private var pending: [EngineInput] = []
@@ -47,6 +53,7 @@ actor WindowEngine {
         tick: Duration = .milliseconds(30),
         watchdog: Watchdog = Watchdog(),
         outputs: EngineOutputs = EngineOutputs(),
+        canMove: @escaping @Sendable () -> Bool = { true },
         logger: Logger = Logger(subsystem: "com.lintelapp", category: "windows")
     ) {
         var state = EngineState(workspaceCount: workspaceCount)
@@ -59,6 +66,7 @@ actor WindowEngine {
         self.tick = tick
         self.watchdog = watchdog
         self.outputs = outputs
+        self.canMove = canMove
         self.logger = logger
     }
 
@@ -84,9 +92,44 @@ actor WindowEngine {
         pumpTask = nil
         flushTask?.cancel()
         flushTask = nil
+        _ = await restoreAllWindows()
+        await store.close()
+    }
+
+    /// Puts every parked window back (the engine's own and anything the journal still holds, such as windows
+    /// that were on another Space), clears the journal as it goes and returns what happened. The engine then stays
+    /// still until the next workspace command.
+    func restoreAllWindows() async -> RecoveryReport {
+        let before = Set(state.parked.keys)
         pending.append(.command(.restoreAll, now: now()))
         await run()
-        await store.close()
+        var report = RecoveryReport()
+        let stillParked = Set(state.parked.keys)
+        report.restored = before.subtracting(stillParked).count
+        report.failed = stillParked.count
+        let trusted = canMove()
+        let residue = await WindowRecovery.run(
+            store: store, client: client, trusted: trusted, excluding: stillParked, logger: logger)
+        report.restored += residue.restored
+        report.onAnotherSpace += residue.onAnotherSpace
+        report.failed += residue.failed
+        report.needsAccessibility = !trusted && (!before.isEmpty || residue.needsAccessibility)
+        return report
+    }
+
+    /// Whether anything is parked: the engine's own windows or an entry still in the journal.
+    func hasParkedWindows() async -> Bool {
+        if !state.parked.isEmpty { return true }
+        return !(await store.hidden.isEmpty)
+    }
+
+    /// Restores journal entries of windows the engine does not hold (parked by an earlier run, on another Space
+    /// then) whose window is on this Space now.
+    private func restoreVisibleResidue() async {
+        guard canMove() else { return }
+        let report = await WindowRecovery.run(
+            store: store, client: client, trusted: true, excluding: Set(state.parked.keys), logger: logger)
+        if report.restored > 0 { outputs.restored(report) }
     }
 
     func send(_ command: EngineCommand) async {
@@ -165,6 +208,7 @@ actor WindowEngine {
             case .displaysChanged:
                 inputs.append(.displaysChanged(await client.displays(), now: moment))
             case .spaceChanged:
+                await restoreVisibleResidue()
                 inputs.append(await snapshotInput())
             }
         }
@@ -247,6 +291,7 @@ actor WindowEngine {
     // MARK: Effects
 
     private func execute(_ effects: [EngineEffect]) async -> [FrameResult] {
+        guard canMove() else { return await executeWithoutAccessibility(effects) }
         var blocked = Set<WindowID>()
         var requests: [FrameRequest] = []
         var removals = Set<WindowID>()
@@ -271,6 +316,27 @@ actor WindowEngine {
             }
         }
         for effect in others { await perform(effect) }
+        return results
+    }
+
+    /// Nothing is moved, focused or journaled: every frame change fails as `.notTrusted`, which the reducer
+    /// answers by keeping a parked window parked and a window that was meant to be parked where it is.
+    private func executeWithoutAccessibility(_ effects: [EngineEffect]) async -> [FrameResult] {
+        var results: [FrameResult] = []
+        var removals = Set<WindowID>()
+        for effect in effects {
+            switch effect {
+            case .setFrame(let request):
+                results.append(FrameResult(request: request, outcome: .failed(.notTrusted)))
+            case .journalRemove(let ids):
+                removals.formUnion(ids)
+            case .journalPark, .focus:
+                break
+            default:
+                await perform(effect)
+            }
+        }
+        if !removals.isEmpty { try? await store.removeHidden(removals) }
         return results
     }
 

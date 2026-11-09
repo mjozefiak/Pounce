@@ -13050,6 +13050,150 @@
           }
         }
       }
+    },
+    "%lld windows restored" : {
+      "comment" : "Window HUD: how many windows were put back where they were",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld window restored"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld windows restored"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Przywrócono %lld okno"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Przywrócono %lld okna"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Przywrócono %lld okien"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Przywrócono %lld okna"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "No windows restored" : {
+      "comment" : "Window HUD: nothing could be put back",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No windows restored"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie przywrócono żadnych okien"
+          }
+        }
+      }
+    },
+    "Windows are parked" : {
+      "comment" : "Window HUD: windows are hidden and cannot be restored",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Windows are parked"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Okna są ukryte"
+          }
+        }
+      }
+    },
+    "On another Space: %lld" : {
+      "comment" : "Window HUD: windows that could not be restored because they are on another Space",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On another Space: %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Na innym pulpicie: %lld"
+          }
+        }
+      }
+    },
+    "Not responding: %lld" : {
+      "comment" : "Window HUD: windows of apps that did not answer",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not responding: %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie odpowiada: %lld"
+          }
+        }
+      }
+    },
+    "Allow Accessibility to put them back." : {
+      "comment" : "Window HUD: what to do about parked windows",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Accessibility to put them back."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól na Dostępność, aby je przywrócić."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
