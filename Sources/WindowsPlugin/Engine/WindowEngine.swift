@@ -27,6 +27,7 @@ actor WindowEngine {
     private let time: TimeSource
     private let tick: Duration
     private let reporter: EngineReporter
+    private let translator: EventTranslator
     private let strategies: LayoutRegistry
     private let logger: Logger
     /// A bound on how long a command waits for slow apps (a real-time liveness bound, not engine time).
@@ -52,16 +53,8 @@ actor WindowEngine {
         var parent: Int?
     }
 
-    /// The work one reduction handed to the lanes.
-    private struct Batch {
-        var remaining = 0
-        var waiters: [@Sendable () -> Void] = []
-        var parents: [Int] = []
-    }
-
     private var pending: [Pending] = []
-    private var batches: [Int: Batch] = [:]
-    private var nextBatch = 0
+    private var ledger = BatchLedger()
     private var inFlight = 0
     private var flushesRunning = 0
     private var quietWaiters: [CheckedContinuation<Void, Never>] = []
@@ -90,6 +83,7 @@ actor WindowEngine {
         self.tick = tick
         self.commandBudget = commandBudget
         self.reporter = reporter
+        translator = EventTranslator(client: client)
         self.strategies = strategies
         self.canMove = canMove
         self.logger = logger
@@ -328,73 +322,18 @@ actor WindowEngine {
             flushesRunning -= 1
             resumeWaiters()
         }
-        let inputs = await inputs(for: events)
+        let moment = time.now()
+        let time = time
+        let inputs = await translator.inputs(
+            for: events, state: state, moment: moment, now: { time.now() },
+            onSpaceChange: { [weak self] in await self?.restoreVisibleResidue() })
         // Not waited for: a flush must never sit behind a hung app, or later events would queue behind it.
         guard !stopped else { return }
         enqueue(inputs)
     }
 
-    /// Turns coalesced events into inputs, reading what they need from the client.
-    private func inputs(for events: [WindowEvent]) async -> [EngineInput] {
-        let moment = time.now()
-        var inputs: [EngineInput] = []
-        var infos: [WindowID: WindowInfo] = [:]
-        for event in events {
-            switch event {
-            case .created(let id), .moved(let id), .resized(let id):
-                if infos[id] == nil, let info = await client.window(id: id) { infos[id] = info }
-            default:
-                break
-            }
-        }
-        for event in events {
-            switch event {
-            case .created(let id):
-                if let info = infos[id] {
-                    inputs.append(.windowAppeared(info, processStart: client.processStart(of: id.pid), now: moment))
-                }
-            case .destroyed(let id):
-                inputs.append(.windowGone(id, now: moment))
-            case .moved(let id), .resized(let id):
-                if let info = infos[id] {
-                    if state.windows[id] != nil, EngineReducer.isManaged(info, config: state.config) {
-                        inputs.append(.windowMoved(id, frame: info.frame, now: moment))
-                    } else {
-                        // A window the engine does not hold (yet) or no longer manages (it went fullscreen or
-                        // came back from it): look at it as if it had just appeared.
-                        inputs.append(
-                            .windowAppeared(info, processStart: client.processStart(of: id.pid), now: moment))
-                    }
-                }
-            case .focused(let id):
-                inputs.append(.windowFocused(id, now: moment))
-                // A window that got the focus may have a new title: one single read keeps the cache fresh.
-                if let id, state.windows[id] != nil, let info = await client.window(id: id) {
-                    inputs.append(.windowAppeared(info, processStart: nil, now: moment))
-                }
-            case .appTerminated(let pid):
-                for id in state.windows.keys where id.pid == pid { inputs.append(.windowGone(id, now: moment)) }
-            case .appLaunched:
-                break
-            case .displaysChanged:
-                inputs.append(.displaysChanged(await client.displays(), now: moment))
-            case .spaceChanged, .resync:
-                await restoreVisibleResidue()
-                inputs.append(await snapshotInput())
-            }
-        }
-        return inputs
-    }
-
     private func snapshotInput() async -> EngineInput {
-        let windows = await client.windows()
-        let displays = await client.displays()
-        let focused = await client.focusedWindow()
-        var starts: [Int32: Double] = [:]
-        for window in windows where starts[window.id.pid] == nil {
-            if let start = client.processStart(of: window.id.pid) { starts[window.id.pid] = start }
-        }
-        return .snapshot(windows: windows, displays: displays, focused: focused, processStarts: starts, now: time.now())
+        await translator.snapshot(now: time.now())
     }
 
     // MARK: Reducing and dispatching
@@ -406,23 +345,23 @@ actor WindowEngine {
             let items = pending
             pending = []
             var effects: [EngineEffect] = []
-            var batch = Batch()
+            var waiters: [@Sendable () -> Void] = []
+            var parents: [Int] = []
             for item in items {
                 let (next, produced) = EngineReducer.reduce(state, item.input, strategies: strategies)
                 state = next
                 effects.append(contentsOf: produced)
-                if let waiter = item.waiter { batch.waiters.append(waiter) }
-                if let parent = item.parent { batch.parents.append(parent) }
+                if let waiter = item.waiter { waiters.append(waiter) }
+                if let parent = item.parent { parents.append(parent) }
             }
-            nextBatch += 1
-            let id = nextBatch
+            // The id is the ledger's next one: the executor tags its pieces of work with it.
             let dispatched = executor.dispatch(
-                Self.coalesce(effects), batch: id, now: time.now(), trusted: canMove(), callbacks: callbacks)
-            batch.remaining = dispatched.operations
+                EffectExecutor.coalesce(effects), batch: ledger.peekNextID, now: time.now(), trusted: canMove(),
+                callbacks: callbacks)
+            let id = ledger.open(operations: dispatched.operations, waiters: waiters, parents: parents)
             inFlight += dispatched.operations
-            batches[id] = batch
             for input in dispatched.inputs { queue(input, parent: id) }
-            closeIfFinished(id)
+            ledger.closeIfFinished(id)
         }
         resumeWaiters()
     }
@@ -450,56 +389,13 @@ actor WindowEngine {
         if let result { queue(.applied([result], now: time.now()), parent: batch) }
         reduceAndDispatch()
         inFlight -= 1
-        decrement(batch)
+        ledger.finish(batch)
         resumeWaiters()
     }
 
     /// Queues an input caused by a batch; that batch stays open until what the input causes has run.
     private func queue(_ input: EngineInput, parent: Int) {
-        batches[parent]?.remaining += 1
+        ledger.hold(parent)
         pending.append(Pending(input: input, parent: parent))
-    }
-
-    private func decrement(_ id: Int) {
-        batches[id]?.remaining -= 1
-        closeIfFinished(id)
-    }
-
-    private func closeIfFinished(_ id: Int) {
-        guard let batch = batches[id], batch.remaining <= 0 else { return }
-        batches[id] = nil
-        for waiter in batch.waiters { waiter() }
-        // The batches whose results caused this one were held open until now.
-        for parent in batch.parents { decrement(parent) }
-    }
-
-    /// Keeps one frame change per window (the newest generation) and orders the effects: journal additions, frame
-    /// changes, journal removals, everything else.
-    static func coalesce(_ effects: [EngineEffect]) -> [EngineEffect] {
-        var journalAdds: [HiddenEntry] = []
-        var requests: [WindowID: FrameRequest] = [:]
-        var requestOrder: [WindowID] = []
-        var removals = Set<WindowID>()
-        var rest: [EngineEffect] = []
-        for effect in effects {
-            switch effect {
-            case .journalPark(let entries):
-                journalAdds.append(contentsOf: entries)
-            case .setFrame(let request):
-                if let existing = requests[request.id], existing.generation > request.generation { continue }
-                if requests[request.id] == nil { requestOrder.append(request.id) }
-                requests[request.id] = request
-            case .journalRemove(let ids):
-                removals.formUnion(ids)
-            default:
-                rest.append(effect)
-            }
-        }
-        var result: [EngineEffect] = []
-        if !journalAdds.isEmpty { result.append(.journalPark(journalAdds)) }
-        result.append(contentsOf: requestOrder.compactMap { requests[$0].map(EngineEffect.setFrame) })
-        if !removals.isEmpty { result.append(.journalRemove(removals)) }
-        result.append(contentsOf: rest)
-        return result
     }
 }

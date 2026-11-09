@@ -59,7 +59,7 @@ struct StuckSource: SearchSource {
 }
 
 /// Lets every waiter, now and later, go once opened.
-final class Gate: Sendable {
+nonisolated final class Gate: Sendable {
     private struct State {
         var isOpen = false
         var waiting: [CheckedContinuation<Void, Never>] = []
@@ -92,7 +92,7 @@ final class Gate: Sendable {
 
 /// A clock whose sleeps end at once: a deadline on it has passed as soon as it is awaited, so a test needs no real
 /// time to see a bound fire.
-final class ExpiredClock: Clock, Sendable {
+nonisolated final class ExpiredClock: Clock, Sendable {
     struct Instant: InstantProtocol {
         var offset: Duration
         func advanced(by duration: Duration) -> Instant { Instant(offset: offset + duration) }
@@ -319,7 +319,7 @@ nonisolated final class RecoveryScript: @unchecked Sendable {
 
 /// What `OverrunRecoveryPlugin` shares with its test through the context's services: how often it was entered and
 /// the gate that holds it.
-final class OverrunControl: Sendable {
+nonisolated final class OverrunControl: Sendable {
     let entered = Mutex(0)
     let gate = Gate()
 }
@@ -343,9 +343,9 @@ final class OverrunRecoveryPlugin: LintelPlugin {
     }
 }
 
-/// A clock that moves only when the test advances it. `waitForSleepers(exactly:)` lets a test wait until the tasks
-/// it expects to be waiting on a deadline are (and no others), without any real time.
-final class GatedClock: Clock, Sendable {
+/// A clock that moves only when the test advances it; `waitForSleepers(atLeast:)` lets a test wait for the tasks that
+/// are to sleep on it, without any real time.
+nonisolated final class GatedClock: Clock, Sendable {
     struct Instant: InstantProtocol {
         var offset: Duration
         func advanced(by duration: Duration) -> Instant { Instant(offset: offset + duration) }
@@ -353,12 +353,17 @@ final class GatedClock: Clock, Sendable {
         static func < (lhs: Instant, rhs: Instant) -> Bool { lhs.offset < rhs.offset }
     }
 
+    private struct Sleeper {
+        var deadline: Instant
+        var continuation: CheckedContinuation<Void, any Error>
+    }
+
     private struct State {
         var now = Instant(offset: .zero)
-        var sleepers: [UInt64: (deadline: Instant, continuation: CheckedContinuation<Void, any Error>)] = [:]
-        var waiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
+        var sleepers: [UInt64: Sleeper] = [:]
+        var atLeastWaiters: [(count: Int, continuation: CheckedContinuation<Bool, Never>)] = []
         var next: UInt64 = 0
-        var registrationWaiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
+        var finished = false
     }
 
     private let state = Mutex(State())
@@ -374,54 +379,42 @@ final class GatedClock: Clock, Sendable {
         }
         try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
-                let ready = state.withLock { state -> [CheckedContinuation<Void, Never>] in
-                    state.sleepers[id] = (deadline, continuation)
-                    var ready = Self.readyWaiters(&state)
-                    ready += state.registrationWaiters.filter { $0.count <= Int(state.next) }.map(\.continuation)
-                    state.registrationWaiters.removeAll { $0.count <= Int(state.next) }
+                let ready = state.withLock { state -> [CheckedContinuation<Bool, Never>] in
+                    state.sleepers[id] = Sleeper(deadline: deadline, continuation: continuation)
+                    let ready = state.atLeastWaiters.filter { $0.count <= state.sleepers.count }.map(\.continuation)
+                    state.atLeastWaiters.removeAll { $0.count <= state.sleepers.count }
                     return ready
                 }
-                for waiter in ready { waiter.resume() }
+                for waiter in ready { waiter.resume(returning: true) }
             }
         } onCancel: {
-            let (sleeper, ready) = state.withLock {
-                state -> (CheckedContinuation<Void, any Error>?, [CheckedContinuation<Void, Never>]) in
-                let sleeper = state.sleepers.removeValue(forKey: id)?.continuation
-                return (sleeper, Self.readyWaiters(&state))
-            }
-            sleeper?.resume(throwing: CancellationError())
-            for waiter in ready { waiter.resume() }
+            let sleeper = state.withLock { $0.sleepers.removeValue(forKey: id) }
+            sleeper?.continuation.resume(throwing: CancellationError())
         }
     }
 
-    private static func readyWaiters(_ state: inout State) -> [CheckedContinuation<Void, Never>] {
-        let ready = state.waiters.filter { $0.count == state.sleepers.count }.map(\.continuation)
-        state.waiters.removeAll { $0.count == state.sleepers.count }
-        return ready
-    }
-
-    /// Waits until `count` sleeps have been started on this clock in all, finished or not.
-    func waitForRegistrations(_ count: Int) async {
+    /// Waits until at least `count` tasks are asleep on this clock. Returns `false` when the clock was finished
+    /// instead.
+    func waitForSleepers(atLeast count: Int) async -> Bool {
         await withCheckedContinuation { continuation in
-            let ready = state.withLock { state -> Bool in
-                if Int(state.next) >= count { return true }
-                state.registrationWaiters.append((count, continuation))
-                return false
+            let answer = state.withLock { state -> Bool? in
+                if state.finished { return false }
+                if state.sleepers.count >= count { return true }
+                state.atLeastWaiters.append((count, continuation))
+                return nil
             }
-            if ready { continuation.resume() }
+            if let answer { continuation.resume(returning: answer) }
         }
     }
 
-    /// Waits until exactly `count` tasks are asleep on this clock.
-    func waitForSleepers(exactly count: Int) async {
-        await withCheckedContinuation { continuation in
-            let ready = state.withLock { state -> Bool in
-                if state.sleepers.count == count { return true }
-                state.waiters.append((count, continuation))
-                return false
-            }
-            if ready { continuation.resume() }
+    /// Ends every wait: later and pending `waitForSleepers` answer `false`.
+    func finish() {
+        let waiting = state.withLock { state -> [CheckedContinuation<Bool, Never>] in
+            state.finished = true
+            defer { state.atLeastWaiters = [] }
+            return state.atLeastWaiters.map(\.continuation)
         }
+        for waiter in waiting { waiter.resume(returning: false) }
     }
 
     /// Moves time forward and wakes every sleeper whose deadline has passed.
@@ -433,5 +426,18 @@ final class GatedClock: Clock, Sendable {
             return ready.values.map(\.continuation)
         }
         for continuation in due { continuation.resume() }
+    }
+}
+
+/// Reports through `done` once its base source has answered or thrown.
+nonisolated struct SignallingSource: SearchSource {
+    let base: any SearchSource
+    let done: Gate
+
+    var id: SourceID { base.id }
+
+    func search(_ query: NormalizedQuery, limit: Int) async throws -> [Candidate] {
+        defer { done.open() }
+        return try await base.search(query, limit: limit)
     }
 }

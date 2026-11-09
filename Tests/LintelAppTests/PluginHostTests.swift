@@ -183,18 +183,32 @@ import Testing
 
     @Test func overBudgetSourceDoesNotBlockTheOthers() async {
         defer { env.tearDown() }
-        // Time moves only when the test says so. The sources that answer cancel their deadlines; the stuck one is
-        // held until tear-down and is the only one left waiting, so advancing the clock times out exactly it.
+        // Time moves only when the test says so. Each source reports when it has answered, so the clock is moved
+        // only after the two that answer have, and then times out exactly the stuck one.
         let clock = GatedClock()
-        let host = env.makeHost([AlphaPlugin.self, StuckPlugin.self], budget: .seconds(1), clock: clock)
-        await host.start()
-
-        let query = Task { await host.query(NormalizedQuery(raw: "Te", normalized: "te"), limit: 10) }
-        // Three sources each start a deadline; two answer at once and cancel theirs, the stuck one stays.
-        await clock.waitForRegistrations(3)
-        await clock.waitForSleepers(exactly: 1)
-        clock.advance(.seconds(1))
-        let results = await query.value
+        let alphaDone = Gate()
+        let throwingDone = Gate()
+        let stuckGate = env.environment.services.shared(StuckSource.gateKey) { Gate() }
+        let sources = [
+            RegisteredSource(
+                pluginID: "alpha", source: SignallingSource(base: InstantSource(id: "alpha.instant"), done: alphaDone)),
+            RegisteredSource(pluginID: "stuck", source: StuckSource(gate: stuckGate)),
+            RegisteredSource(pluginID: "stuck", source: SignallingSource(base: ThrowingSource(), done: throwingDone)),
+        ]
+        let run = Task {
+            await SourceRunner.run(
+                sources, query: NormalizedQuery(raw: "Te", normalized: "te"), limit: 10, budget: .seconds(1),
+                clock: clock)
+        }
+        await alphaDone.wait()
+        await throwingDone.wait()
+        // Only the stuck source can still be waiting on its deadline: move time until that one fires.
+        let advancer = Task {
+            while await clock.waitForSleepers(atLeast: 1) { clock.advance(.seconds(1)) }
+        }
+        let results = await run.value
+        clock.finish()
+        await advancer.value
 
         #expect(results.map(\.sourceID) == ["alpha.instant", "stuck", "throwing"])
         guard case .results(let candidates) = results[0].outcome else {

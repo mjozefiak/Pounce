@@ -117,6 +117,36 @@ struct EffectExecutor {
         return plan
     }
 
+    /// Keeps one frame change per window (the newest generation) and orders the effects: journal additions, frame
+    /// changes, journal removals, everything else.
+    static func coalesce(_ effects: [EngineEffect]) -> [EngineEffect] {
+        var journalAdds: [HiddenEntry] = []
+        var requests: [WindowID: FrameRequest] = [:]
+        var requestOrder: [WindowID] = []
+        var removals = Set<WindowID>()
+        var rest: [EngineEffect] = []
+        for effect in effects {
+            switch effect {
+            case .journalPark(let entries):
+                journalAdds.append(contentsOf: entries)
+            case .setFrame(let request):
+                if let existing = requests[request.id], existing.generation > request.generation { continue }
+                if requests[request.id] == nil { requestOrder.append(request.id) }
+                requests[request.id] = request
+            case .journalRemove(let ids):
+                removals.formUnion(ids)
+            default:
+                rest.append(effect)
+            }
+        }
+        var result: [EngineEffect] = []
+        if !journalAdds.isEmpty { result.append(.journalPark(journalAdds)) }
+        result.append(contentsOf: requestOrder.compactMap { requests[$0].map(EngineEffect.setFrame) })
+        if !removals.isEmpty { result.append(.journalRemove(removals)) }
+        result.append(contentsOf: rest)
+        return result
+    }
+
     // MARK: Pieces
 
     private func writeJournal(

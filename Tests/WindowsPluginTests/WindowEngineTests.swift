@@ -357,12 +357,12 @@ import Testing
             .journalRemove([id(1)]),
         ]
         #expect(
-            WindowEngine.coalesce(effects) == [
+            EffectExecutor.coalesce(effects) == [
                 .journalPark([entry]), .setFrame(newer), .journalRemove([id(1)]),
                 .hud(workspace: ws(2), windowCount: 0),
             ])
         // An older request that arrives after a newer one is dropped too.
-        #expect(WindowEngine.coalesce([.setFrame(newer), .setFrame(older)]) == [.setFrame(newer)])
+        #expect(EffectExecutor.coalesce([.setFrame(newer), .setFrame(older)]) == [.setFrame(newer)])
     }
 }
 
