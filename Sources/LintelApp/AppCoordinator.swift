@@ -151,8 +151,6 @@ final class AppCoordinator {
     /// window (ADR 0008, "Release gate"; enabled in every build since step 6.3a).
     private(set) lazy var router = makeRouter()
 
-    /// A click on the Dock icon (or opening the app again from Finder): the main window, unless a window is already
-    /// open.
     /// Files opened with Lintel (double-clicked, or dropped on the Dock icon): the first one a plugin wants goes to
     /// it and the rest are ignored (logged by count), so the outcome never depends on timing. Must run after `start()`, so the plugins are active.
     func open(_ urls: [URL]) async {
@@ -162,6 +160,8 @@ final class AppCoordinator {
         }
     }
 
+    /// A click on the Dock icon (or opening the app again from Finder): the main window, unless a window is already
+    /// open.
     func reopen() {
         router.reopen(visibleWindowRoles: visibleWindowRoles())
     }

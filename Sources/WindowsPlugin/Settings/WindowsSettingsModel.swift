@@ -47,6 +47,9 @@ final class WindowsSettingsModel {
     @ObservationIgnored var startFailure: () -> WindowsPlugin.StartError? = { nil }
     /// Opens the Layouts window (the plugin sets it).
     @ObservationIgnored var openLayouts: () -> Void = {}
+    /// Where the restore report is shown when no engine runs; the plugin passes its own presenter, so the pane
+    /// and the plugin never use two different ones.
+    @ObservationIgnored var hud: any WindowsHUDPresenting = WindowsHUDPanel.shared
 
     private(set) var workspaceCount: Int
     private(set) var followFocus: Bool
@@ -241,7 +244,7 @@ final class WindowsSettingsModel {
             await runtime.restoreAllWindows()
         } else {
             let report = await WindowsPlugin.restoreFromJournal(context: context)
-            WindowsHUDPanel.shared.show(WindowsHUDState(report: report))
+            hud.show(WindowsHUDState(report: report))
         }
         await refresh()
     }

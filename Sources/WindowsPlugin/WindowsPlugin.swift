@@ -4,10 +4,8 @@ import LintelKit
 import SwiftUI
 import Synchronization
 
-/// Window management: workspaces, tiling and zone layouts (spec `2026-11-09-window-management`). Built in
-/// steps; this is the skeleton of step 1.3 (manifest, settings, availability check). It is **not registered in
-/// `PluginRegistry`** until the last step of Phase 1 (1.12), so no empty "Window Management" toggle reaches
-/// users before the feature works.
+/// Window management: workspaces, tiling and zone layouts (spec `2026-11-09-window-management`), registered in
+/// `PluginRegistry` and off by default.
 ///
 /// Nothing moves unless the plugin is enabled and Accessibility is trusted. The failure mode of every problem is
 /// a disabled feature with a banner, never a crash or a window left parked: plugin code never traps, window
@@ -50,6 +48,7 @@ public final class WindowsPlugin: LintelPlugin {
         let model = WindowsSettingsModel(context: context, settings: settings, runtime: { [unowned self] in runtime })
         model.startFailure = { [unowned self] in lastStartError }
         model.openLayouts = { [unowned self] in layoutsWindow.show() }
+        model.hud = hud
         return model
     }()
     private let identifier = DisplayIdentifier()
@@ -67,9 +66,9 @@ public final class WindowsPlugin: LintelPlugin {
                 files: AppKitLayoutFiles())
         })
     }
+    private(set) lazy var editorWindow = GridEditorWindowController()
     /// The first activation of this process honours safe mode; a later one (the user switched the plugin on
     /// again, or pressed Try Again) clears it.
-    private(set) lazy var editorWindow = GridEditorWindowController()
     private var launchActivationDone = false
 
     public convenience init(context: PluginContext) {
@@ -161,8 +160,6 @@ public final class WindowsPlugin: LintelPlugin {
         #endif
     }
 
-    /// Accessibility was granted: the self-check could not compare any window before, so it runs again. A mismatch
-    /// stops the engine (every window is put back first) and the pane says Lintel needs an update.
     /// Opens the grid editor on a layout (a copy of a stock one, a user's own, or a new one). Needs the running
     /// plugin: the library lives in its runtime.
     func openEditor(
@@ -197,6 +194,8 @@ public final class WindowsPlugin: LintelPlugin {
         return true
     }
 
+    /// Accessibility was granted: the self-check could not compare any window before, so it runs again. A mismatch
+    /// stops the engine (every window is put back first) and the pane says Lintel needs an update.
     func recheckAvailability() async {
         let client = context.windows
         let availability = await Task.detached { client.availability }.value
