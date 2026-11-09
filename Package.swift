@@ -117,8 +117,8 @@ let package = Package(
         ),
         .target(
             name: "WindowsPlugin",
-            // LintelPersistence for AtomicFile (state.json, layouts); no GRDB, no speech. Not a dependency of
-            // LintelApp and not registered in PluginRegistry until the last step of Phase 1 (spec 1.12).
+            // LintelPersistence for AtomicFile (state.json, layouts); no GRDB, no speech. Registered in
+            // PluginRegistry in step 1.12 (off by default).
             dependencies: ["LintelKit", "LintelCore", "LintelPersistence", "LintelUI"]
         ),
         .executableTarget(
@@ -135,6 +135,7 @@ let package = Package(
                 "ClipboardPlugin",
                 "DictationPlugin",
                 "MeetingsPlugin",
+                "WindowsPlugin",
                 .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
             ],
             swiftSettings: [.defaultIsolation(MainActor.self)]

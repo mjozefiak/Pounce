@@ -493,8 +493,13 @@ run only for the detection itself (use the QA data root so the library is isolat
 
 The engine is tested against a scriptable fake client (`Tests/WindowsPluginTests/WindowEngineTests.swift`, also under
 Thread Sanitizer in CI). What only a real Mac can show is listed here and is filled in with the spike results in
-`docs/decisions/0009-window-management-spike.md`. The plugin is not registered until the last step of Phase 1, so these
-run after registration.
+`docs/decisions/0009-window-management-spike.md`. The plugin is registered (off by default) since step 1.12, so these
+run with it switched on.
+
+**QA mode.** `--qa-windows` (DEBUG) gives window management a fake client with five fake windows and two fake displays
+(`Sources/LintelApp/QA/QAWindowClient.swift`); without it QA mode reports no windows, never the real ones. Combine with
+`--qa-settings windows`, `--qa-accessibility granted|denied`, `--qa-setting plugins.windows.enabled=true` and
+`--qa-appearance light|dark`. Example: `Lintel --qa --qa-windows --qa-accessibility granted --qa-setting plugins.windows.enabled=true --qa-settings windows`.
 
 | # | Scenario | Expect |
 |---|---|---|
@@ -505,6 +510,13 @@ run after registration.
 | 5 | Kill Lintel (`kill -9`) while windows are parked, start it again (plugin on, then plugin off) | Parked windows come back at launch in both cases. |
 | 6 | An app that re-centres its hidden window (some Electron apps) | The window is hidden again at most three times, then left alone until focused; no flicker loop; the watchdog does not trip. |
 | 7 | Stage Manager on; "Displays have separate Spaces" off | The banners in Settings name the problem (keys verified in ADR 0009). |
+| 8 | Real `_AXUIElementGetWindow` self-check (ADR 0009 row 7) | With Accessibility granted and a few windows open the plugin starts; a missing symbol makes the pane show "Update Lintel". |
+| 9 | Menu bar strip (single status item): click each box, right-click, VoiceOver on the boxes, fill the menu bar | Each click switches to that box; boxes read "Workspace 3, 4 windows, current"; with no room the banner says so. **If the click mapping or the accessibility children do not work, the fallback (one status item per box, at most nine) is a manual decision of the owner**, not taken automatically. |
+| 10 | Accessibility off: press ⌥2 | The HUD says "Allow Accessibility to switch workspaces" with a button; nothing moves. Grant it with windows parked: they come back within about 2 s. |
+| 11 | Keyboard layout check on a Polish layout (⌥ plus a letter types a letter) and on US | The pane and the welcome step name keys that type a letter and offer ⌃⌥; none for the Phase 1 digit keys. |
+| 12 | Safe mode: leave windows parked (kill -9) on two launches in a row | The third start shows "Switched off after a problem"; Try Again starts it. |
+| 13 | Real AX observers: create, move, resize, close, minimise and fullscreen windows of 5 apps | The engine follows (look at "Copy diagnostics"); no event storm; fullscreen exit manages the window again (reported as a resize). |
+| 14 | `swift`-side screenshots: Settings pane, HUD, strip in light and dark, smallest and largest text, English and Polish | Attach as PR evidence (not captured by an agent without a display, see the PR). |
 
 ## Never during QA
 

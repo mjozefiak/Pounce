@@ -18,7 +18,7 @@ import Testing
     @Test func theRegistryContainsMeetingsOnce() {
         let ids = PluginRegistry.all.map { $0.manifest.id }
         #expect(ids.filter { $0 == "meetings" }.count == 1)
-        #expect(ids == ["apps", "files", "clipboard", "dictation", "meetings"])
+        #expect(ids == ["apps", "files", "clipboard", "dictation", "meetings", "windows"])
     }
 
     @Test func meetingsIsOffUntilTheUserTurnsItOn() throws {
@@ -58,6 +58,9 @@ import Testing
         #expect(shortcut(of: "dictation.record") == "⌃⌥D")
         #expect(shortcut(of: "clipboard.history") == "⇧⌘V")
         #expect(shortcut(of: "meetings.record") == "⌃⌥M")
+        #expect(shortcut(of: "windows.workspace.1") == "⌥1")
+        #expect(shortcut(of: "windows.moveToWorkspace.9") == "⌥⇧9")
+        #expect(shortcut(of: "windows.workspace.back") == "⌥⇥")
     }
 
     @Test func theMeetingCommandsAppearInTheMenuAndTheLibraryHasNoShortcut() throws {

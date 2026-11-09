@@ -181,8 +181,11 @@ struct AppEnvironment {
             fullDiskAccess: options.fullDiskAccess ?? .denied,
             postsKeystrokes: false
         )
-        environment.prepareModelsDirectory(fileManager: fileManager)
-        return environment
+        var qaEnvironment = environment
+        // Never the real Accessibility client in QA mode: a fake with fake windows, or the one that reports nothing.
+        qaEnvironment.windowClient = options.fakeWindows ? QAWindowClient() : NoWindowClient()
+        qaEnvironment.prepareModelsDirectory(fileManager: fileManager)
+        return qaEnvironment
     }
 
     /// The file index in QA mode never sees the tester's folders: unless the run names a fake home

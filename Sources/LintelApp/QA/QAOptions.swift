@@ -85,6 +85,9 @@ struct QAOptions: Equatable {
     /// `--qa-meeting-spool-dir <path>`: folder for the encrypted spool of QA meetings instead of
     /// `<data root>/Plugins/meetings/Spool`. The Keychain is the in-memory one in QA mode anyway.
     var meetingSpoolDirectory: URL?
+    /// `--qa-windows`: window management sees a fake window client with a few fake windows and two fake displays
+    /// instead of the tester's real windows (`QAWindowClient`, step 1.12). Without it QA mode reports no windows.
+    var fakeWindows = false
 
     /// The file plugin's DEBUG-only fake home and its roots, which QA mode always sets
     /// (`AppEnvironment.qaFileIndexSettings`).
@@ -212,6 +215,8 @@ struct QAOptions: Equatable {
             case "--qa-meeting-spool-dir":
                 options.meetingSpoolDirectory = URL(
                     filePath: try Self.pathValue(argument, iterator.next()), directoryHint: .isDirectory)
+            case "--qa-windows":
+                options.fakeWindows = true
             default:
                 throw .unknownArgument(argument)
             }
