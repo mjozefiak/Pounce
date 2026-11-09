@@ -296,6 +296,32 @@ import Testing
         await rig.engine.stop()
     }
 
+    @Test func twoDisplaysWithOneUUIDAreSeparateDisplays() async throws {
+        let first = DisplayInfo(
+            id: 1, uuid: "SAME", frame: CGRect(x: 0, y: 0, width: 1920, height: 1080),
+            visibleFrame: CGRect(x: 0, y: 25, width: 1920, height: 1055), isMain: true)
+        let second = DisplayInfo(
+            id: 2, uuid: "SAME", frame: CGRect(x: 1920, y: 0, width: 1920, height: 1080),
+            visibleFrame: CGRect(x: 1920, y: 25, width: 1920, height: 1055))
+        var zones = ZonesConfig()
+        zones.assignments.set(StockLayouts.focus, workspace: ws(2), displayKey: "SAME#2")
+        let rig = try rig(
+            [
+                makeWindow(1, frame: CGRect(x: 100, y: 100, width: 500, height: 500)),
+                makeWindow(2, frame: CGRect(x: 2100, y: 100, width: 500, height: 500)),
+            ], config: zonesConfig(zones: zones), displays: [first, second])
+        defer { rig.harness.tearDown() }
+        await rig.engine.start()
+        // Each display shows its own workspace; the second one has the Focus layout (one zone, the whole area).
+        #expect(rig.client.frame(of: id(1)) == left)
+        #expect(rig.client.frame(of: id(2)) == CGRect(x: 1928, y: 33, width: 1904, height: 1039))
+        let state = await rig.engine.state
+        #expect(state.model.visible.count == 2)
+        #expect(state.zones[ws(2)]?["SAME#2"]?.zoneOf == [id(2): 1])
+        #expect(await rig.engine.dragDisplays(for: id(2)).first?.key == "SAME#2")
+        await rig.engine.stop()
+    }
+
     // MARK: Persistence
 
     @Test func theZonePlacementIsStoredAndRestored() async throws {

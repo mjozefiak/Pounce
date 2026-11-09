@@ -107,7 +107,8 @@ struct EngineState: Equatable, Sendable {
 
     init(workspaceCount: Int = WindowsSettings.defaultWorkspaceCount, displays: [DisplayInfo] = []) {
         self.displays = displays
-        self.model = VirtualWorkspaceModel(workspaceCount: workspaceCount, displays: displays.map(\.uuid))
+        self.model = VirtualWorkspaceModel(
+            workspaceCount: workspaceCount, displays: DisplayKeys.orderedKeys(for: displays))
     }
 }
 

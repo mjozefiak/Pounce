@@ -27,6 +27,12 @@ enum DisplayKeys {
         orientation == .portrait ? portrait : landscape
     }
 
+    /// The key of each display in the order of `displays`: what the workspace model and the zone state are keyed by.
+    static func orderedKeys(for displays: [DisplayInfo]) -> [String] {
+        let keyed = keys(for: displays).keys
+        return displays.map { keyed[$0.id] ?? $0.uuid }
+    }
+
     /// The key of every display. Two identical monitors without serial numbers can share a UUID; they are then
     /// told apart by their position (left to right, then top to bottom): the first keeps the UUID, the next ones
     /// get `uuid#2`, `uuid#3`. `hasDuplicates` is what the pane says out loud.

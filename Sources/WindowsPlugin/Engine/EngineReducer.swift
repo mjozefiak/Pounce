@@ -184,7 +184,7 @@ enum EngineReducer {
             now: Double
         ) {
             state.displays = displays
-            state.model.setDisplays(displays.map(\.uuid))
+            state.model.setDisplays(DisplayKeys.orderedKeys(for: displays))
             state.focused = focused
             let live = windows.filter { EngineReducer.isManaged($0, config: state.config) }
             let liveIDs = Set(live.map(\.id))
@@ -211,7 +211,7 @@ enum EngineReducer {
             state.windows[info.id] = TrackedWindow(
                 id: info.id, bundleID: info.bundleID, frame: info.frame,
                 processStart: processStart ?? previous?.processStart)
-            let display = FrameMath.display(for: info.frame, in: displays())?.uuid
+            let display = FrameMath.display(for: info.frame, in: displays()).map { state.displayKey(of: $0) }
             state.model.add(info.id, onDisplay: display)
         }
 
@@ -349,7 +349,7 @@ enum EngineReducer {
 
         mutating func displaysChanged(_ displays: [DisplayInfo], now: Double) {
             state.displays = displays
-            state.model.setDisplays(displays.map(\.uuid))
+            state.model.setDisplays(DisplayKeys.orderedKeys(for: displays))
             arrangeRequested = true
             reconcileParking(now: now)
             guard !state.isFrozen else { return }
@@ -557,8 +557,8 @@ enum EngineReducer {
             guard !state.isFrozen, state.model.isVisible(workspace) else { return [:] }
             let layout = state.config.layout.resolved(for: workspace)
             guard layout.kind == .tiling,
-                let uuid = state.model.displayShowing(workspace),
-                let display = state.displays.first(where: { $0.uuid == uuid })
+                let shown = state.model.displayShowing(workspace),
+                let display = state.display(forKey: shown)
             else { return [:] }
             let tree = syncTree(workspace, layout)
             return TilingLayout.frames(tree, area: display.visibleFrame, gaps: layout.gaps)
@@ -570,10 +570,10 @@ enum EngineReducer {
         private func zoneContext(_ workspace: WorkspaceID) -> (
             display: DisplayInfo, key: String, layout: ResolvedZoneLayout
         )? {
-            guard let uuid = state.model.displayShowing(workspace),
-                let display = state.displays.first(where: { $0.uuid == uuid })
+            guard let shown = state.model.displayShowing(workspace),
+                let display = state.display(forKey: shown)
             else { return nil }
-            let key = DisplayKeys.keys(for: state.displays).keys[display.id] ?? display.uuid
+            let key = shown
             let layout = state.config.zones.resolve(
                 workspace: workspace, displayKey: key, orientation: display.orientation)
             return (display, key, layout)
