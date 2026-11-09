@@ -72,16 +72,22 @@ struct EffectExecutor {
         var journalEntries: [HiddenEntry] = []
         var requests: [FrameRequest] = []
         var removals = Set<WindowID>()
+        var earlyRemovals = Set<WindowID>()
         var others: [EngineEffect] = []
-        for effect in effects {
+        // A removal listed before the journal write replaces the entries that write is about to add (see
+        // `coalesce`): it runs first. Every other removal follows the frame changes.
+        let parkIndex = effects.firstIndex { if case .journalPark = $0 { true } else { false } }
+        for (index, effect) in effects.enumerated() {
             switch effect {
             case .journalPark(let entries): journalEntries.append(contentsOf: entries)
             case .setFrame(let request): requests.append(request)
-            case .journalRemove(let ids): removals.formUnion(ids)
+            case .journalRemove(let ids):
+                if let parkIndex, index < parkIndex { earlyRemovals.formUnion(ids) } else { removals.formUnion(ids) }
             default: others.append(effect)
             }
         }
         guard trusted else {
+            removals.formUnion(earlyRemovals)
             let failed = requests.map { FrameResult(request: $0, outcome: .failed(.notTrusted)) }
             if !failed.isEmpty { plan.inputs.append(.applied(failed, now: now)) }
             if !removals.isEmpty { plan.operations += removeFromJournal(removals, batch: batch, callbacks) }
@@ -94,6 +100,7 @@ struct EffectExecutor {
             return plan
         }
         var journal: OneShot<Set<WindowID>>?
+        if !earlyRemovals.isEmpty { plan.operations += removeFromJournal(earlyRemovals, batch: batch, callbacks) }
         if !journalEntries.isEmpty {
             let gate = OneShot<Set<WindowID>>()
             journal = gate
@@ -117,30 +124,53 @@ struct EffectExecutor {
         return plan
     }
 
-    /// Keeps one frame change per window (the newest generation) and orders the effects: journal additions, frame
-    /// changes, journal removals, everything else.
+    /// Keeps one frame change per window (the newest generation), one journal operation per window (the last one
+    /// in effect order) and orders what is left: journal additions, frame changes, journal removals, everything
+    /// else. A window that was removed from the journal and then parked again in the same batch has its old entry
+    /// removed first and the new one added, so the journal ends up with the window, not without it.
     static func coalesce(_ effects: [EngineEffect]) -> [EngineEffect] {
-        var journalAdds: [HiddenEntry] = []
+        enum JournalOperation {
+            case add(HiddenEntry)
+            case remove
+        }
+        var journal: [WindowID: JournalOperation] = [:]
+        var journalOrder: [WindowID] = []
+        var removedBefore = Set<WindowID>()
         var requests: [WindowID: FrameRequest] = [:]
         var requestOrder: [WindowID] = []
-        var removals = Set<WindowID>()
         var rest: [EngineEffect] = []
+        func note(_ id: WindowID, _ operation: JournalOperation) {
+            if journal[id] == nil { journalOrder.append(id) }
+            if case .remove? = journal[id], case .add = operation { removedBefore.insert(id) }
+            journal[id] = operation
+        }
         for effect in effects {
             switch effect {
             case .journalPark(let entries):
-                journalAdds.append(contentsOf: entries)
+                for entry in entries { note(entry.windowID, .add(entry)) }
             case .setFrame(let request):
                 if let existing = requests[request.id], existing.generation > request.generation { continue }
                 if requests[request.id] == nil { requestOrder.append(request.id) }
                 requests[request.id] = request
             case .journalRemove(let ids):
-                removals.formUnion(ids)
+                for id in ids.sorted() { note(id, .remove) }
             default:
                 rest.append(effect)
             }
         }
+        var adds: [HiddenEntry] = []
+        var removals = Set<WindowID>()
+        for id in journalOrder {
+            switch journal[id] {
+            case .add(let entry)?: adds.append(entry)
+            case .remove?: removals.insert(id)
+            case nil: break
+            }
+        }
+        let replaced = Set(adds.map(\.windowID)).intersection(removedBefore)
         var result: [EngineEffect] = []
-        if !journalAdds.isEmpty { result.append(.journalPark(journalAdds)) }
+        if !replaced.isEmpty { result.append(.journalRemove(replaced)) }
+        if !adds.isEmpty { result.append(.journalPark(adds)) }
         result.append(contentsOf: requestOrder.compactMap { requests[$0].map(EngineEffect.setFrame) })
         if !removals.isEmpty { result.append(.journalRemove(removals)) }
         result.append(contentsOf: rest)

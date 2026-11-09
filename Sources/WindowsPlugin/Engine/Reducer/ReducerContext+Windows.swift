@@ -96,9 +96,7 @@ extension ReducerContext {
 
     mutating func windowMoved(_ id: WindowID, frame: CGRect, now: Double) {
         guard state.windows[id] != nil else { return }
-        if let expected = state.expected[id], expected.expires >= now,
-            FrameMath.approximatelyEqual(frame, expected.frame, tolerance: state.config.echoTolerance)
-        {
+        if state.expected[id]?.matches(frame, now: now, tolerance: state.config.echoTolerance) == true {
             state.diagnostics.echoesDropped += 1
             return
         }

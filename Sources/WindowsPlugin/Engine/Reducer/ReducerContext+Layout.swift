@@ -85,11 +85,7 @@ extension ReducerContext {
                 state.tileSizes[id] = tile.size
                 let frame = planner.target(state, for: id, tile: tile)
                 if FrameMath.approximatelyEqual(window.frame, frame, tolerance: tolerance) { continue }
-                if let expected = state.expected[id], expected.expires >= now,
-                    FrameMath.approximatelyEqual(expected.frame, frame, tolerance: tolerance)
-                {
-                    continue
-                }
+                if state.expected[id]?.newestMatches(frame, now: now, tolerance: tolerance) == true { continue }
                 request(id, frame, .place, now: now)
             }
         }

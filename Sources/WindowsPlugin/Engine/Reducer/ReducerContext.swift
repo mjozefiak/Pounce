@@ -31,7 +31,8 @@ struct ReducerContext {
         self.generation = generation
         state.generation = generation
         state.latest[id] = generation
-        state.expected[id] = ExpectedFrame(frame: frame, expires: now + state.config.echoWindow)
+        state.expected[id, default: ExpectedFrames()].expect(
+            generation: generation, frame: frame, expires: now + state.config.echoWindow)
         // A newer request for the same window in this reduction replaces the older one.
         requests.removeAll { $0.id == id }
         requests.append(FrameRequest(id: id, frame: frame, generation: generation, purpose: purpose))

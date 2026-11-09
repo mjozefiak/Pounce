@@ -348,7 +348,7 @@ import Testing
         await rig.engine.stop()
     }
 
-    @Test func coalescingKeepsTheNewestFrameChangePerWindowAndOrdersTheJournalFirst() {
+    @Test func coalescingKeepsTheNewestFrameChangeAndTheLastJournalOperationPerWindow() {
         let entry = HiddenEntry(windowID: id(1), processStart: 1, homeFrame: FrameRecord(home))
         let older = FrameRequest(id: id(1), frame: .zero, generation: 1, purpose: .park)
         let newer = FrameRequest(id: id(1), frame: home, generation: 2, purpose: .restore)
@@ -358,8 +358,7 @@ import Testing
         ]
         #expect(
             EffectExecutor.coalesce(effects) == [
-                .journalPark([entry]), .setFrame(newer), .journalRemove([id(1)]),
-                .hud(workspace: ws(2), windowCount: 0),
+                .setFrame(newer), .journalRemove([id(1)]), .hud(workspace: ws(2), windowCount: 0),
             ])
         // An older request that arrives after a newer one is dropped too.
         #expect(EffectExecutor.coalesce([.setFrame(newer), .setFrame(older)]) == [.setFrame(newer)])

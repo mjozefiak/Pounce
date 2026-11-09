@@ -46,10 +46,50 @@ struct ParkRecord: Equatable, Sendable {
     var processStart: Double
 }
 
-/// A frame the engine set, kept briefly to recognise its own echo.
-struct ExpectedFrame: Equatable, Sendable {
-    var frame: CGRect
-    var expires: Double
+/// The frames the engine has set on one window and not yet heard back from, kept briefly to recognise their echoes.
+/// One entry per in-flight request (by generation), so the echo of an older frame that is still travelling is not
+/// taken for the user moving the window.
+struct ExpectedFrames: Equatable, Sendable {
+    struct Entry: Equatable, Sendable {
+        var generation: Int
+        var frame: CGRect
+        var expires: Double
+    }
+
+    /// More in flight than this means something is wrong (a fight); the oldest are forgotten.
+    static let capacity = 4
+
+    private(set) var entries: [Entry] = []
+
+    /// Expects `frame` for the request of `generation` (replacing what that request expected before).
+    mutating func expect(generation: Int, frame: CGRect, expires: Double) {
+        entries.removeAll { $0.generation == generation }
+        entries.append(Entry(generation: generation, frame: frame, expires: expires))
+        if entries.count > Self.capacity { entries.removeFirst(entries.count - Self.capacity) }
+    }
+
+    /// The request is about to be sent: its echo window starts now.
+    mutating func restamp(generation: Int, expires: Double) {
+        guard let index = entries.firstIndex(where: { $0.generation == generation }) else { return }
+        entries[index].expires = expires
+    }
+
+    /// The request never applied: its frame must not suppress the next event.
+    mutating func forget(generation: Int) {
+        entries.removeAll { $0.generation == generation }
+    }
+
+    /// Whether `frame` is the newest frame asked for and still expected at `now` (the layout need not ask again).
+    /// Older frames still in flight do not count: asking for one of them again is a new request.
+    func newestMatches(_ frame: CGRect, now: Double, tolerance: CGFloat) -> Bool {
+        guard let newest = entries.last else { return false }
+        return newest.expires >= now && FrameMath.approximatelyEqual(frame, newest.frame, tolerance: tolerance)
+    }
+
+    /// Whether `frame` is the echo of one of the frames still expected at `now`.
+    func matches(_ frame: CGRect, now: Double, tolerance: CGFloat) -> Bool {
+        entries.contains { $0.expires >= now && FrameMath.approximatelyEqual(frame, $0.frame, tolerance: tolerance) }
+    }
 }
 
 /// Counters for *Copy diagnostics*: counts only, no titles and no bundle ids.
@@ -79,7 +119,7 @@ struct EngineState: Equatable, Sendable {
     private(set) var displayKeys: [UInt32: String] = [:]
     var windows: [WindowID: TrackedWindow] = [:]
     var parked: [WindowID: ParkRecord] = [:]
-    var expected: [WindowID: ExpectedFrame] = [:]
+    var expected: [WindowID: ExpectedFrames] = [:]
     /// Windows that refused the size they were given; never retried.
     var stubborn: Set<WindowID> = []
     /// The tile size each window was last asked for; a stubborn window gets one new try when it changes.

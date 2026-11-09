@@ -14,7 +14,8 @@ extension ReducerContext {
             if let newest = state.latest[id], request.generation < newest { continue }
             switch result.outcome {
             case .applied(let actual):
-                state.expected[id] = ExpectedFrame(frame: actual, expires: now + state.config.echoWindow)
+                state.expected[id, default: ExpectedFrames()].expect(
+                    generation: request.generation, frame: actual, expires: now + state.config.echoWindow)
                 if state.windows[id] != nil { state.windows[id]?.frame = actual }
                 switch request.purpose {
                 case .park:
@@ -40,8 +41,8 @@ extension ReducerContext {
 
     /// The frame change is leaving for the app: events that echo it from now on are ours, for the echo window.
     mutating func frameStarted(_ request: FrameRequest, now: Double) {
-        guard state.latest[request.id] == request.generation else { return }
-        state.expected[request.id] = ExpectedFrame(frame: request.frame, expires: now + state.config.echoWindow)
+        // Every request in flight is stamped, not only the newest: an older frame's echo is still ours.
+        state.expected[request.id]?.restamp(generation: request.generation, expires: now + state.config.echoWindow)
     }
 
     /// A window that was meant to be parked but was not: back to its home frame in the books.
@@ -53,7 +54,7 @@ extension ReducerContext {
     private mutating func failed(_ request: FrameRequest, _ error: WindowClientError, cleared: inout Set<WindowID>) {
         let id = request.id
         // The frame was never applied, so it must not suppress the next request for it.
-        state.expected[id] = nil
+        state.expected[id]?.forget(generation: request.generation)
         if error == .timedOut { state.diagnostics.accessibilityTimeouts += 1 }
         if error == .windowGone {
             removeWindow(id)
