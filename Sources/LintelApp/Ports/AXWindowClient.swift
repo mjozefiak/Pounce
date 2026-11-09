@@ -102,6 +102,15 @@ nonisolated final class AXWindowClient: WindowClient, Sendable {
         }
     }
 
+    func window(id: WindowID) async -> WindowInfo? {
+        guard AXIsProcessTrusted() else { return nil }
+        let bundleID = await Self.bundleID(of: id.pid)
+        return await queues.run(pid: id.pid) { [self] in
+            guard let element = element(for: id) else { return nil }
+            return Self.info(of: element, id: id, bundleID: bundleID)
+        }
+    }
+
     func focusedWindow() async -> WindowID? {
         guard AXIsProcessTrusted(), let app = await Self.frontmostApp() else { return nil }
         return await queues.run(pid: app.pid) { [self] in
@@ -222,21 +231,24 @@ nonisolated final class AXWindowClient: WindowClient, Sendable {
         var infos: [WindowInfo] = []
         var seen: [WindowID: AXUIElement] = [:]
         for window in windows {
-            guard let number = lookup.windowID(of: window), let frame = SystemWindowIDSampler.frame(of: window)
-            else { continue }
+            guard let number = lookup.windowID(of: window) else { continue }
             AXUIElementSetMessagingTimeout(window, Self.messagingTimeout)
             let id = WindowID(pid: app.pid, number: number)
+            guard let info = Self.info(of: window, id: id, bundleID: app.bundleID) else { continue }
             seen[id] = window
-            infos.append(
-                WindowInfo(
-                    id: id, bundleID: app.bundleID, title: Self.string(window, kAXTitleAttribute) ?? "", frame: frame,
-                    isStandard: Self.string(window, kAXRoleAttribute) == kAXWindowRole
-                        && Self.string(window, kAXSubroleAttribute) == kAXStandardWindowSubrole,
-                    isMinimized: Self.bool(window, kAXMinimizedAttribute),
-                    isFullscreen: Self.bool(window, "AXFullScreen")))
+            infos.append(info)
         }
         cache.elements = seen
         return infos
+    }
+
+    private static func info(of window: AXUIElement, id: WindowID, bundleID: String?) -> WindowInfo? {
+        guard let frame = SystemWindowIDSampler.frame(of: window) else { return nil }
+        return WindowInfo(
+            id: id, bundleID: bundleID, title: string(window, kAXTitleAttribute) ?? "", frame: frame,
+            isStandard: string(window, kAXRoleAttribute) == kAXWindowRole
+                && string(window, kAXSubroleAttribute) == kAXStandardWindowSubrole,
+            isMinimized: bool(window, kAXMinimizedAttribute), isFullscreen: bool(window, "AXFullScreen"))
     }
 
     private static func string(_ element: AXUIElement, _ attribute: String) -> String? {
@@ -263,6 +275,10 @@ nonisolated final class AXWindowClient: WindowClient, Sendable {
         return NSWorkspace.shared.runningApplications
             .filter { $0.activationPolicy == .regular && !$0.isTerminated && $0.processIdentifier != own }
             .map { RunningApp(pid: $0.processIdentifier, bundleID: $0.bundleIdentifier) }
+    }
+
+    @MainActor private static func bundleID(of pid: Int32) -> String? {
+        NSRunningApplication(processIdentifier: pid)?.bundleIdentifier
     }
 
     @MainActor private static func frontmostApp() -> RunningApp? {

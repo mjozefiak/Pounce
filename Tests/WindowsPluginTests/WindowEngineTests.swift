@@ -198,7 +198,9 @@ import Testing
             await rig.engine.ingest(index.isMultiple(of: 2) ? .moved(id(1)) : .resized(id(1)))
         }
         await rig.engine.flushEvents()
-        #expect(rig.client.windowsReads == readsBefore + 1)
+        // One single-window read, and no full scan of every app.
+        #expect(rig.client.windowsReads == readsBefore)
+        #expect(rig.client.singleReads == 1)
         #expect(rig.client.calls.isEmpty)
         #expect(await rig.engine.frameChangeCount == 0)
         await rig.engine.stop()

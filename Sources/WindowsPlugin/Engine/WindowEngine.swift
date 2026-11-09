@@ -192,16 +192,15 @@ actor WindowEngine {
         }
         let moment = now()
         var inputs: [EngineInput] = []
-        let needsWindows = events.contains {
-            switch $0 {
-            case .created, .moved, .resized: true
-            default: false
+        var infos: [WindowID: WindowInfo] = [:]
+        for event in events {
+            switch event {
+            case .created(let id), .moved(let id), .resized(let id):
+                if infos[id] == nil, let info = await client.window(id: id) { infos[id] = info }
+            default:
+                break
             }
         }
-        let infos: [WindowID: WindowInfo] =
-            needsWindows
-            ? Dictionary(await client.windows().map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-            : [:]
         for event in events {
             switch event {
             case .created(let id):

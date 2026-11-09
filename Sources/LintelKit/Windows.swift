@@ -123,6 +123,9 @@ public protocol WindowClient: Sendable {
     /// Every window of the current native Space, minimised and fullscreen ones included (flagged).
     func windows() async -> [WindowInfo]
     func focusedWindow() async -> WindowID?
+    /// One window, read on its own: what an event about it needs, without scanning every app. `nil` when the
+    /// window is gone. The default filters `windows()`; a real client reads only that window.
+    func window(id: WindowID) async -> WindowInfo?
     /// Sets the frame and returns the frame the window ended up with (read back), so a caller can tell that a
     /// window refused a size.
     @discardableResult
@@ -137,6 +140,7 @@ public protocol WindowClient: Sendable {
 }
 
 extension WindowClient {
+    public func window(id: WindowID) async -> WindowInfo? { await windows().first { $0.id == id } }
     public func processStart(of pid: Int32) -> TimeInterval? { nil }
 }
 

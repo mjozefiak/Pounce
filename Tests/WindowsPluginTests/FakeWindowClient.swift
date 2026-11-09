@@ -34,6 +34,7 @@ final class FakeWindowClient: WindowClient, Sendable {
         var focused: WindowID?
         var calls: [Call] = []
         var windowsReads = 0
+        var singleReads = 0
         var focusCalls: [WindowID] = []
         var inFlight = 0
         var maxInFlight = 0
@@ -95,6 +96,7 @@ final class FakeWindowClient: WindowClient, Sendable {
 
     var calls: [Call] { state.withLock { $0.calls } }
     var windowsReads: Int { state.withLock { $0.windowsReads } }
+    var singleReads: Int { state.withLock { $0.singleReads } }
     var focusCalls: [WindowID] { state.withLock { $0.focusCalls } }
     var maxInFlight: Int { state.withLock { $0.maxInFlight } }
     func frame(of id: WindowID) -> CGRect? { state.withLock { $0.windows[id]?.frame } }
@@ -110,6 +112,13 @@ final class FakeWindowClient: WindowClient, Sendable {
         state.withLock {
             $0.windowsReads += 1
             return $0.windows.values.sorted { $0.id < $1.id }
+        }
+    }
+
+    func window(id: WindowID) async -> WindowInfo? {
+        state.withLock {
+            $0.singleReads += 1
+            return $0.windows[id]
         }
     }
 
