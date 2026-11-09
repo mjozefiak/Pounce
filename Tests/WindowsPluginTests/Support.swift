@@ -13,7 +13,13 @@ final class WindowsHarness: @unchecked Sendable {
         directory = FileManager.default.temporaryDirectory.appending(
             path: "lintel-windows-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        // The product default is Auto-tile; most tests are about workspaces and parking, so windows stay where
+        // they are unless a test asks for tiling.
+        WindowsSettings(pluginSettings).setDefaultKind(.free)
     }
+
+    /// Settings that nothing was ever written to: the product defaults.
+    static func freshSettings() -> PluginSettings { PluginSettings(pluginID: "windows", store: MemorySettings()) }
 
     var pluginSettings: PluginSettings { PluginSettings(pluginID: "windows", store: store) }
 

@@ -19,6 +19,9 @@ struct EngineConfig: Equatable, Sendable {
     var echoWindow: Double = 0.5
     /// How much of a parked window stays on its display. Unmeasured (ADR 0009, row 3); one place to change.
     var parkSliver: CGFloat = 1
+    /// Which workspaces are arranged, and how (gaps, root orientation): the defaults and the per-workspace
+    /// overrides. Tiling arranges only workspaces whose resolved kind is Auto-tile.
+    var layout = LayoutConfig()
 }
 
 /// A window the engine knows. The title is never kept.
@@ -75,6 +78,13 @@ struct EngineState: Equatable, Sendable {
     /// Re-hidden too often: left where they are until they are focused.
     var unmanaged: Set<WindowID> = []
     var focused: WindowID?
+    /// The window that had the focus before `focused`; where a new window goes when it took the focus itself.
+    var previousFocus: WindowID?
+    /// The tiling tree of each workspace. A tree is kept while its workspace is Free or Zones (the state of each
+    /// kind survives a switch) and brought up to date with the live windows when the workspace is tiled again.
+    var tiling: [WorkspaceID: TilingTree] = [:]
+    /// Windows the user took out of tiling (*Toggle floating*): not arranged, not in a tree.
+    var floating: Set<WindowID> = []
     /// The generation of the newest batch of frame changes; each batch gets the next number.
     var generation = 0
     /// The newest generation that asked for a frame of each window; older results are stale.
@@ -140,6 +150,11 @@ enum EngineCommand: Equatable, Sendable {
     case bringWindowHere(WindowID)
     /// Puts every parked window back and unfreezes the engine.
     case restoreAll
+    /// Takes the focused window out of tiling, or puts it back in.
+    case toggleFloating
+    /// A setting changed (sent right after `configChanged`): apps that joined the floating list are let go and
+    /// the windows are arranged again.
+    case reload
 }
 
 enum EngineInput: Equatable, Sendable {
@@ -161,6 +176,22 @@ enum EngineInput: Equatable, Sendable {
     case journalAvailability(Bool)
     /// Asks the engine to place a window at a frame, as a layout does (phases 2 and 3).
     case place(WindowID, CGRect, now: Double)
+    /// The trees stored by an earlier run, before the first snapshot.
+    case restoreTiling([WorkspaceID: TilingTree])
+}
+
+extension EngineInput {
+    /// The time the input carries, if any.
+    var moment: Double? {
+        switch self {
+        case .snapshot(_, _, _, _, let now), .windowAppeared(_, _, let now), .windowGone(_, let now),
+            .windowMoved(_, _, let now), .windowFocused(_, let now), .displaysChanged(_, let now),
+            .command(_, let now), .applied(_, let now), .watchdogTripped(let now), .place(_, _, let now):
+            now
+        case .configChanged, .journalAvailability, .restoreTiling:
+            nil
+        }
+    }
 }
 
 enum EngineEffect: Equatable, Sendable {
@@ -170,6 +201,7 @@ enum EngineEffect: Equatable, Sendable {
     case setFrame(FrameRequest)
     case focus(WindowID)
     case saveOrder([WorkspaceID: [WindowID]])
+    case saveTiling([WorkspaceID: TilingTree])
     /// A switch happened: the HUD shows the workspace and its window count.
     case hud(workspace: WorkspaceID, windowCount: Int)
     /// The strip and anything else that shows the workspaces must redraw.

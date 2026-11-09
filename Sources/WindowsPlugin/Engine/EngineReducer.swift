@@ -12,6 +12,7 @@ enum EngineReducer {
     static func reduce(_ state: EngineState, _ input: EngineInput) -> (EngineState, [EngineEffect]) {
         var context = Context(state: state)
         let oldOrder = state.model.order
+        let oldTiling = state.tiling
         let oldSummary = summary(of: state)
 
         switch input {
@@ -40,11 +41,17 @@ enum EngineReducer {
             context.state.canJournal = available
         case .place(let id, let rect, let now):
             context.place(id, rect, now: now)
+        case .restoreTiling(let trees):
+            context.state.tiling = trees.filter { context.state.model.workspaces.contains($0.key) }
         }
 
+        context.arrangeIfRequested(now: input.moment ?? 0)
         context.flush()
         if context.state.model.order != oldOrder {
             context.effects.append(.saveOrder(context.state.model.order))
+        }
+        if context.state.tiling != oldTiling {
+            context.effects.append(.saveTiling(context.state.tiling))
         }
         let newSummary = summary(of: context.state)
         if newSummary != oldSummary {
@@ -81,6 +88,8 @@ enum EngineReducer {
         private var journal: [HiddenEntry] = []
         private var requests: [FrameRequest] = []
         private var generation: Int?
+        /// Set by every input that can change what tiling should do; `arrangeIfRequested` then runs once.
+        private var arrangeRequested = false
 
         init(state: EngineState) {
             self.state = state
@@ -128,9 +137,13 @@ enum EngineReducer {
             request(id, parked, .park, now: now)
         }
 
-        private mutating func restore(_ id: WindowID, now: Double) {
+        /// Puts a parked window back: onto its tile when its workspace is tiled, else to where it was.
+        private mutating func restore(_ id: WindowID, now: Double, tiled: Bool = true) {
             guard let record = state.parked[id] else { return }
-            request(id, FrameMath.restoredFrame(home: record.home, displays: displays()), .restore, now: now)
+            let frame =
+                (tiled ? tileTarget(for: id) : nil)
+                ?? FrameMath.restoredFrame(home: record.home, displays: displays())
+            request(id, frame, .restore, now: now)
         }
 
         /// Parks the windows of hidden workspaces and restores the windows of shown ones.
@@ -174,6 +187,7 @@ enum EngineReducer {
                 }
             }
             reconcileParking(now: now)
+            arrangeRequested = true
         }
 
         /// Starts tracking a window and gives it a workspace. A window without a known process start is tracked
@@ -195,6 +209,7 @@ enum EngineReducer {
             }
             if state.windows[info.id] == nil {
                 track(info, processStart: processStart)
+                arrangeRequested = true
             } else {
                 if let processStart { state.windows[info.id]?.processStart = processStart }
                 if state.parked[info.id] == nil { state.windows[info.id]?.frame = info.frame }
@@ -206,9 +221,12 @@ enum EngineReducer {
         private mutating func releaseUnmanaged(_ id: WindowID, now: Double) {
             // A parked window keeps its parked record until the restore result arrives and clears its journal
             // entry, so the record is the only thing kept.
-            if state.parked[id] != nil { restore(id, now: now) }
+            if state.parked[id] != nil { restore(id, now: now, tiled: false) }
             state.model.remove(id)
             state.windows[id] = nil
+            state.floating.remove(id)
+            if state.previousFocus == id { state.previousFocus = nil }
+            arrangeRequested = true
             state.unmanaged.remove(id)
             state.rehides[id] = nil
             state.stubborn.remove(id)
@@ -218,6 +236,9 @@ enum EngineReducer {
             let wasParked = state.parked[id] != nil
             state.model.remove(id)
             state.windows[id] = nil
+            state.floating.remove(id)
+            if state.previousFocus == id { state.previousFocus = nil }
+            arrangeRequested = true
             state.parked[id] = nil
             state.expected[id] = nil
             state.stubborn.remove(id)
@@ -271,6 +292,9 @@ enum EngineReducer {
         }
 
         mutating func windowFocused(_ id: WindowID?, now: Double) {
+            if let previous = state.focused, previous != id, state.windows[previous] != nil {
+                state.previousFocus = previous
+            }
             state.focused = id
             guard let id, state.windows[id] != nil else { return }
             state.unmanaged.remove(id)
@@ -293,6 +317,7 @@ enum EngineReducer {
         mutating func displaysChanged(_ displays: [DisplayInfo], now: Double) {
             state.displays = displays
             state.model.setDisplays(displays.map(\.uuid))
+            arrangeRequested = true
             reconcileParking(now: now)
             guard !state.isFrozen else { return }
             // Parked windows are re-parked in the new corner of their display.
@@ -320,6 +345,7 @@ enum EngineReducer {
             }
             let before = state.model.current
             state.model.show(workspace)
+            arrangeRequested = true
             reconcileParking(now: now)
             if let current = state.model.current, current != before {
                 trailing.append(
@@ -337,6 +363,7 @@ enum EngineReducer {
         }
 
         mutating func perform(_ command: EngineCommand, now: Double) {
+            arrangeRequested = true
             switch command {
             case .restoreAll:
                 restoreAll(now: now)
@@ -359,12 +386,18 @@ enum EngineReducer {
                 moveFocusedWindow(to: workspace, now: now)
             case .setWorkspaceCount(let count):
                 state.model.setWorkspaceCount(count)
+                state.tiling = state.tiling.filter { state.model.workspaces.contains($0.key) }
                 reconcileParking(now: now)
             case .goToWindow(let id):
                 guard state.windows[id] != nil else { return }
                 state.isFrozen = false
                 if let workspace = state.model.workspace(of: id) { switchTo(workspace, now: now) }
                 trailing.append(.focus(id))
+            case .reload:
+                reload(now: now)
+            case .toggleFloating:
+                guard !state.isFrozen, let id = state.focused, state.windows[id] != nil else { return }
+                if state.floating.remove(id) == nil { state.floating.insert(id) }
             case .bringWindowHere(let id):
                 guard state.windows[id] != nil, let current = state.model.current else { return }
                 state.isFrozen = false
@@ -407,6 +440,96 @@ enum EngineReducer {
             guard let window = state.windows[id], !state.isFrozen, state.parked[id] == nil else { return }
             let target = state.stubborn.contains(id) ? FrameMath.centered(size: window.frame.size, in: rect) : rect
             request(id, target, .place, now: now)
+        }
+
+        // MARK: Tiling
+
+        /// After a setting changed. Windows of apps that just joined the floating list are let go.
+        mutating func reload(now: Double) {
+            let config = state.config
+            for (id, window) in state.windows.sorted(by: { $0.key < $1.key }) {
+                if let bundleID = window.bundleID, config.floatingBundleIDs.contains(bundleID) {
+                    releaseUnmanaged(id, now: now)
+                }
+            }
+            state.tiling = state.tiling.filter { state.model.workspaces.contains($0.key) }
+            arrangeRequested = true
+        }
+
+        /// The windows tiling arranges on a workspace, in join order: tracked, not floating, not left alone.
+        private func tileable(_ workspace: WorkspaceID) -> [WindowID] {
+            state.model.windows(in: workspace).filter {
+                state.windows[$0] != nil && !state.floating.contains($0) && !state.unmanaged.contains($0)
+            }
+        }
+
+        /// Brings the tree of a tiled workspace up to date: windows that are gone, floating or moved away leave
+        /// it; new windows enter after the focused window (or the one focused before it), several in join order.
+        private mutating func syncTree(_ workspace: WorkspaceID, _ layout: ResolvedLayout) -> TilingTree {
+            let wanted = tileable(workspace)
+            let wantedSet = Set(wanted)
+            var tree = state.tiling[workspace] ?? TilingTree(orientation: layout.rootOrientation)
+            for id in tree.windows where !wantedSet.contains(id) { tree.remove(id) }
+            if tree.windows.count <= 1 { tree.root.orientation = layout.rootOrientation }
+            var anchor: WindowID?
+            for id in wanted where !tree.contains(id) {
+                if anchor == nil {
+                    anchor = [state.focused, state.previousFocus].lazy.compactMap { $0 }
+                        .first { $0 != id && tree.contains($0) }
+                }
+                tree.insert(id, after: anchor)
+                anchor = id
+            }
+            if state.tiling[workspace] != tree { state.tiling[workspace] = tree }
+            return tree
+        }
+
+        /// The tile of every window of a visible, Auto-tile workspace; nothing for any other workspace.
+        private mutating func tileFrames(_ workspace: WorkspaceID) -> [WindowID: CGRect] {
+            guard !state.isFrozen, state.model.isVisible(workspace) else { return [:] }
+            let layout = state.config.layout.resolved(for: workspace)
+            guard layout.kind == .tiling,
+                let uuid = state.model.displayShowing(workspace),
+                let display = state.displays.first(where: { $0.uuid == uuid })
+            else { return [:] }
+            let tree = syncTree(workspace, layout)
+            return TilingLayout.frames(tree, area: display.visibleFrame, gaps: layout.gaps)
+        }
+
+        /// Where a window goes: its tile, or centred in it when the window refused the size it was given.
+        private mutating func target(for id: WindowID, tile: CGRect) -> CGRect {
+            guard state.stubborn.contains(id), let window = state.windows[id] else { return tile }
+            return FrameMath.centered(size: window.frame.size, in: tile)
+        }
+
+        private mutating func tileTarget(for id: WindowID) -> CGRect? {
+            guard state.windows[id] != nil, let workspace = state.model.workspace(of: id),
+                let tile = tileFrames(workspace)[id]
+            else { return nil }
+            return target(for: id, tile: tile)
+        }
+
+        mutating func arrangeIfRequested(now: Double) {
+            guard arrangeRequested else { return }
+            arrangeRequested = false
+            guard !state.isFrozen else { return }
+            for workspace in state.model.workspaces where state.model.isVisible(workspace) {
+                let tiles = tileFrames(workspace)
+                for id in tiles.keys.sorted() {
+                    guard let tile = tiles[id], let window = state.windows[id], state.parked[id] == nil,
+                        !state.unmanaged.contains(id), !requests.contains(where: { $0.id == id })
+                    else { continue }
+                    let frame = target(for: id, tile: tile)
+                    let tolerance = state.config.echoTolerance
+                    if FrameMath.approximatelyEqual(window.frame, frame, tolerance: tolerance) { continue }
+                    if let expected = state.expected[id], expected.expires >= now,
+                        FrameMath.approximatelyEqual(expected.frame, frame, tolerance: tolerance)
+                    {
+                        continue
+                    }
+                    request(id, frame, .place, now: now)
+                }
+            }
         }
 
         // MARK: Results
@@ -453,6 +576,8 @@ enum EngineReducer {
             _ request: FrameRequest, _ error: WindowClientError, cleared: inout Set<WindowID>
         ) {
             let id = request.id
+            // The frame was never applied, so it must not suppress the next request for it.
+            state.expected[id] = nil
             if error == .timedOut { state.diagnostics.accessibilityTimeouts += 1 }
             if error == .windowGone {
                 removeWindow(id)

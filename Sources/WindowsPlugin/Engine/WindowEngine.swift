@@ -77,6 +77,7 @@ actor WindowEngine {
         await store.load()
         let canJournal = await store.canJournal
         pending.append(.journalAvailability(canJournal))
+        pending.append(.restoreTiling(await store.state.tiling))
         pending.append(await snapshotInput())
         await run()
         pumpTask = Task { [client] in
@@ -146,6 +147,7 @@ actor WindowEngine {
 
     func update(config: EngineConfig) async {
         pending.append(.configChanged(config))
+        pending.append(.command(.reload, now: now()))
         await run()
     }
 
@@ -413,6 +415,8 @@ actor WindowEngine {
             try? await client.focus(id)
         case .saveOrder(let order):
             await store.setOrder(order)
+        case .saveTiling(let tiling):
+            await store.setTiling(tiling)
         case .hud(let workspace, let count):
             outputs.hud(workspace, count)
         case .summaryChanged(let summary):

@@ -208,6 +208,13 @@ actor StateStore {
         markDirty()
     }
 
+    /// Replaces the stored tiling trees (written like the membership: after `saveDelay`, or by `flush()`).
+    func setTiling(_ tiling: [WorkspaceID: TilingTree]) {
+        guard !isReadOnly, tiling != state.tiling else { return }
+        state.tiling = tiling
+        markDirty()
+    }
+
     /// Writes pending changes now.
     func flush() {
         saveTask?.cancel()

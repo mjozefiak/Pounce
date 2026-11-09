@@ -34,13 +34,16 @@ struct HiddenEntry: Codable, Hashable, Sendable {
     var homeFrame: FrameRecord
 }
 
-/// What `state.json` holds in version 1 (spec: Data Model). The tiling trees and zone placement arrive with
-/// phases 2 and 3 as additive optional fields of `WorkspaceRecord`.
+/// What `state.json` holds in version 1 (spec: Data Model). The tiling trees (phase 2) are an additive optional
+/// field of `WorkspaceRecord`, so the file stays version 1 and an older build simply ignores them; zone
+/// placement arrives with phase 3 the same way.
 struct WindowsState: Equatable, Sendable {
     /// The windows of each workspace in join order.
     var order: [WorkspaceID: [WindowID]] = [:]
     /// Windows that are parked right now. Non-empty exactly while something is parked.
     var hidden: [HiddenEntry] = []
+    /// The tiling tree of each workspace that has one (`workspaces[n].tiling`).
+    var tiling: [WorkspaceID: TilingTree] = [:]
 
     static let empty = WindowsState()
 }
@@ -51,6 +54,25 @@ struct StateFile: Codable {
 
     struct WorkspaceRecord: Codable, Equatable {
         var order: [WindowID]
+        var tiling: TilingRecord?
+
+        init(order: [WindowID], tiling: TilingRecord? = nil) {
+            self.order = order
+            self.tiling = tiling
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case order
+            case tiling
+        }
+
+        /// A tree that does not decode is dropped, not a reason to call the whole file corrupt: it only holds
+        /// weights and shape, and the engine rebuilds it from the live windows.
+        init(from decoder: any Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            order = try container.decode([WindowID].self, forKey: .order)
+            tiling = try? container.decodeIfPresent(TilingRecord.self, forKey: .tiling)
+        }
     }
 
     var version: Int
@@ -60,20 +82,26 @@ struct StateFile: Codable {
 
     init(version: Int = Self.currentVersion, state: WindowsState) {
         self.version = version
-        self.workspaces = Dictionary(
-            uniqueKeysWithValues: state.order.map { (String($0.key.rawValue), WorkspaceRecord(order: $0.value)) })
+        var records: [String: WorkspaceRecord] = [:]
+        for workspace in Set(state.order.keys).union(state.tiling.keys) {
+            records[String(workspace.rawValue)] = WorkspaceRecord(
+                order: state.order[workspace] ?? [], tiling: state.tiling[workspace].map(TilingRecord.init))
+        }
+        self.workspaces = records
         self.hidden = state.hidden
     }
 
     /// The state this file describes; entries for workspaces outside 1 through 9 are dropped.
     var state: WindowsState {
         var order: [WorkspaceID: [WindowID]] = [:]
+        var tiling: [WorkspaceID: TilingTree] = [:]
         for (key, record) in workspaces {
             guard let number = Int(key), let workspace = WorkspaceID(number) else { continue }
-            order[workspace] = record.order
+            if !record.order.isEmpty || record.tiling == nil { order[workspace] = record.order }
+            if let tree = record.tiling?.tree, !tree.isEmpty { tiling[workspace] = tree }
         }
         var seen = Set<WindowID>()
         let hidden = hidden.filter { seen.insert($0.windowID).inserted }
-        return WindowsState(order: order, hidden: hidden)
+        return WindowsState(order: order, hidden: hidden, tiling: tiling)
     }
 }

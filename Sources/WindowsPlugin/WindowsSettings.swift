@@ -9,6 +9,12 @@ struct WindowsSettings: Sendable {
         static let floatingApps = "floatingApps"
         static let followFocus = "followFocus"
         static let workspaceHUD = "workspaceHUD"
+        /// `tiling`, `zones` or `free`: how a workspace is arranged unless its override says otherwise.
+        static let defaultKind = "defaultKind"
+        static let innerGap = "gap.inner"
+        static let outerGap = "gap.outer"
+        /// One versioned JSON value with the per-workspace overrides (`WorkspaceOverrides`).
+        static let workspaces = "workspaces"
         static let stripEnabled = "strip.enabled"
         static let stripMode = "strip.mode"
         /// Hidden: set by the engine after two launches in a row ended with parked windows; the plugin then
@@ -33,6 +39,12 @@ struct WindowsSettings: Sendable {
     /// Never tiled or placed: Lintel itself, System Settings and Calculator (spec Q6).
     static let defaultFloatingApps = ["com.lintelapp.Lintel", "com.apple.systempreferences", "com.apple.calculator"]
 
+    static let defaultInnerGap = 8
+    static let defaultOuterGap = 8
+    static let maximumGap = 64
+
+    static func clampGap(_ value: Int) -> Int { min(maximumGap, max(0, value)) }
+
     private let settings: PluginSettings
 
     init(_ settings: PluginSettings) {
@@ -55,6 +67,16 @@ struct WindowsSettings: Sendable {
     /// A brief on-screen number after a switch.
     var workspaceHUD: Bool { settings.bool(Key.workspaceHUD, default: true) }
 
+    /// Auto-tile unless the user chose otherwise (spec Q5); an unknown stored value reads as Auto-tile.
+    var defaultKind: LayoutKind { settings.string(Key.defaultKind).flatMap(LayoutKind.init(rawValue:)) ?? .tiling }
+
+    /// Points between neighbouring windows and around the whole set.
+    var innerGap: Int { Self.clampGap(settings.integer(Key.innerGap, default: Self.defaultInnerGap)) }
+    var outerGap: Int { Self.clampGap(settings.integer(Key.outerGap, default: Self.defaultOuterGap)) }
+
+    /// The per-workspace overrides; a value that is not readable counts as none.
+    var workspaceOverrides: WorkspaceOverrides { WorkspaceOverrides(json: settings.string(Key.workspaces)) }
+
     /// The menu bar strip is on by default while the plugin is on.
     var stripEnabled: Bool { settings.bool(Key.stripEnabled, default: true) }
 
@@ -67,6 +89,19 @@ struct WindowsSettings: Sendable {
 
     func setWorkspaceCount(_ count: Int) {
         settings.set(min(Self.maximumWorkspaces, max(Self.minimumWorkspaces, count)), for: Key.workspaceCount)
+    }
+
+    func setDefaultKind(_ kind: LayoutKind) { settings.set(kind.rawValue, for: Key.defaultKind) }
+    func setInnerGap(_ points: Int) { settings.set(Self.clampGap(points), for: Key.innerGap) }
+    func setOuterGap(_ points: Int) { settings.set(Self.clampGap(points), for: Key.outerGap) }
+
+    /// Stores the overrides unless the stored value is from a newer version (then nothing is written and the
+    /// caller learns it). Returns whether it was written.
+    @discardableResult
+    func setWorkspaceOverrides(_ overrides: WorkspaceOverrides) -> Bool {
+        guard !workspaceOverrides.isReadOnly else { return false }
+        settings.set(overrides.json, for: Key.workspaces)
+        return true
     }
 
     func setFloatingApps(_ bundleIDs: [String]) { settings.set(bundleIDs, for: Key.floatingApps) }

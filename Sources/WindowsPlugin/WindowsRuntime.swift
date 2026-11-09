@@ -115,6 +115,9 @@ final class WindowsRuntime {
         var config = EngineConfig()
         config.followFocus = settings.followFocus
         config.floatingBundleIDs = Set(settings.floatingApps)
+        config.layout = LayoutConfig(
+            defaultKind: settings.defaultKind, innerGap: settings.innerGap, outerGap: settings.outerGap,
+            rootOrientation: .horizontal, overrides: settings.workspaceOverrides.byWorkspace)
         return config
     }
 
@@ -197,7 +200,13 @@ final class WindowsRuntime {
             await self.onTrustGranted()
             let report = await engine.restoreAllWindows()
             self.recoveredWindows += report.restored
-            if !report.isEmpty { hud.show(WindowsHUDState(report: report)) }
+            if !report.isEmpty {
+                hud.show(WindowsHUDState(report: report))
+            } else if let current = self.lastSummary?.current {
+                // Nothing was parked, so there is nothing to protect from a second hide: let the engine arrange
+                // the windows again (the restore left it still, and without Accessibility nothing was tiled).
+                await engine.send(.showWorkspace(current))
+            }
         }
     }
 }
