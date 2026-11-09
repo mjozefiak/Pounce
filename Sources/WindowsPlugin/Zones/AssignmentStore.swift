@@ -151,6 +151,18 @@ actor AssignmentStore {
         try write(next)
     }
 
+    /// Gives every cell that uses a layout back to the default (a layout was deleted). Returns how many changed.
+    func removeAll(using layoutID: String) throws -> Int {
+        var next = table
+        let count = next.count(using: layoutID)
+        guard count > 0 else { return 0 }
+        for entry in next.entries where entry.layoutID == layoutID {
+            next.set(nil, workspace: entry.workspace, displayKey: entry.displayKey)
+        }
+        try write(next)
+        return count
+    }
+
     /// Forgets every assignment (*Reset state* clears assignments only through here, so it is a user action).
     func reset() throws { try write(AssignmentTable()) }
 

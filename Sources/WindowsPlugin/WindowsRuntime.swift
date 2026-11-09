@@ -31,6 +31,8 @@ final class WindowsRuntime {
     let store: StateStore
     /// Which layout each workspace uses on each display (`assignments.json`).
     let assignments: AssignmentStore
+    /// The user's layout library and the layout slots (`layouts.json`).
+    let layouts: LayoutRepository
     let engine: WindowEngine
     let trust: AccessibilityTrust
     let hud: any WindowsHUDPresenting
@@ -66,6 +68,7 @@ final class WindowsRuntime {
         let store = StateStore(directory: context.storageDirectory, clock: context.clock)
         self.store = store
         assignments = AssignmentStore(directory: context.storageDirectory, logger: context.logger)
+        layouts = LayoutRepository(directory: context.storageDirectory, logger: context.logger)
         let trust = AccessibilityTrust(reader: context.permissions, clock: context.clock)
         self.trust = trust
         let flag = trust.flag
@@ -141,7 +144,10 @@ final class WindowsRuntime {
 
     private let activationCenter: NotificationCenter
 
-    static func config(_ settings: WindowsSettings, assignments: AssignmentTable = AssignmentTable()) -> EngineConfig {
+    static func config(
+        _ settings: WindowsSettings, assignments: AssignmentTable = AssignmentTable(),
+        library: LayoutLibrary = .stock
+    ) -> EngineConfig {
         var config = EngineConfig()
         config.followFocus = settings.followFocus
         config.floatingBundleIDs = Set(settings.floatingApps)
@@ -149,7 +155,7 @@ final class WindowsRuntime {
             defaultKind: settings.defaultKind, innerGap: settings.innerGap, outerGap: settings.outerGap,
             rootOrientation: .horizontal, overrides: settings.workspaceOverrides.byWorkspace)
         config.zones = ZonesConfig(
-            assignments: assignments, library: .stock,
+            assignments: assignments, library: library,
             defaultLandscape: settings.defaultZoneLayout(for: .landscape),
             defaultPortrait: settings.defaultZoneLayout(for: .portrait))
         return config
@@ -165,7 +171,9 @@ final class WindowsRuntime {
         }
         ActiveEngines.insert(context.storageDirectory)
         await assignments.load()
-        await engine.update(config: Self.config(settings, assignments: await assignments.table))
+        await layouts.load()
+        await engine.update(
+            config: Self.config(settings, assignments: await assignments.table, library: await layouts.library))
         await engine.start()
         applyStrip()
         if dragController == nil { dragController = makeDragController?(self) }
@@ -261,7 +269,8 @@ final class WindowsRuntime {
     }
 
     func applySettings() async {
-        await engine.update(config: Self.config(settings, assignments: await assignments.table))
+        await engine.update(
+            config: Self.config(settings, assignments: await assignments.table, library: await layouts.library))
         await engine.send(.setWorkspaceCount(settings.workspaceCount))
         applyStrip()
         showSnapHintIfNeeded()
