@@ -36,11 +36,11 @@ Source spec: `.ai/specs/2026-11-09-window-management.md` (spec PR #66; Refs #66,
 | 3 | 3.5b | Snap overlay and monitors | dispatch:capable | done | a69568c |
 | 3 | 3.6 | Layouts window (stock layouts) | dispatch:capable | done | 92b490d |
 | 3 | 3.7 | Polish pass and perf docs | dispatch:capable | done | c526842 |
-| 4 | 4.1a | LayoutRepository | dispatch:capable | todo | |
-| 4 | 4.1b | LayoutImporter and export | dispatch:capable | todo | |
-| 4 | 4.2 | Grid editor | dispatch:capable | todo | |
-| 4 | 4.3 | Layouts window (library) and layout slots | dispatch:capable | todo | |
-| 4 | 4.4 | Polish: lintellayouts type, open handler, docs | dispatch:capable | todo | |
+| 4 | 4.1a | LayoutRepository | dispatch:capable | done | 7248884 |
+| 4 | 4.1b | LayoutImporter and export | dispatch:capable | done | 75d0199 |
+| 4 | 4.2 | Grid editor | dispatch:capable | done | 338eb5b |
+| 4 | 4.3 | Layouts window (library) and layout slots | dispatch:capable | done | e2ba1ab |
+| 4 | 4.4 | Polish: lintellayouts type, open handler, docs | dispatch:capable | done | 39c7474 |
 
 ## Phase checkpoints (owner rule)
 After the last step of each phase: full gate (build, release build, test, format lint, TSan on engine/plugin tests), independent fresh-context review with fixes as separate commits, QA with the fake window client, one `Phase N checkpoint` PR comment with a manual QA checklist.
