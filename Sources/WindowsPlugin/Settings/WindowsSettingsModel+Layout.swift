@@ -1,4 +1,5 @@
 import Foundation
+import LintelKit
 
 /// One line of the per-workspace summary in Advanced ("Workspace 3: Free · gaps 0 / 8").
 struct WorkspaceSummaryLine: Identifiable, Equatable {
@@ -12,8 +13,8 @@ struct WorkspaceSummaryLine: Identifiable, Equatable {
 
 /// The layout rows of the pane: the default kind, the gaps and the per-workspace overrides (spec: Q17).
 extension WindowsSettingsModel {
-    /// The kinds the user can choose today; Zones arrive with phase 3.
-    static let selectableKinds: [LayoutKind] = [.tiling, .free]
+    /// The kinds the user can choose: Auto-tile, Zones and Free (Zones since phase 3).
+    static let selectableKinds: [LayoutKind] = [.tiling, .zones, .free]
 
     static func kindName(_ kind: LayoutKind) -> String {
         switch kind {
@@ -39,6 +40,29 @@ extension WindowsSettingsModel {
         settings.setDefaultKind(kind)
         defaultKind = kind
         applyLayoutChange()
+    }
+
+    /// The default zone layout of displays of one shape (spec Q19), by stock layout id.
+    func defaultZoneLayout(for orientation: DisplayOrientation) -> String {
+        settings.defaultZoneLayout(for: orientation)
+    }
+
+    func setDefaultZoneLayout(_ layoutID: String, for orientation: DisplayOrientation) {
+        settings.setDefaultZoneLayout(layoutID, for: orientation)
+        applyLayoutChange()
+    }
+
+    /// "6 layouts · Zones on 2 workspaces": the line under *Layouts…* in Basics.
+    var layoutsSummary: String {
+        let layouts = String(
+            localized: "\(StockLayouts.all.count) layouts", comment: "Settings: how many zone layouts exist")
+        let config = layoutConfig
+        let zones = WorkspaceID.all(count: workspaceCount).filter { config.resolved(for: $0).kind == .zones }.count
+        let used =
+            zones == 0
+            ? String(localized: "No workspace uses Zones", comment: "Settings: no workspace is set to Zones")
+            : String(localized: "Zones on \(zones) workspaces", comment: "Settings: how many workspaces use Zones")
+        return "\(layouts) · \(used)"
     }
 
     func setInnerGap(_ points: Int) {

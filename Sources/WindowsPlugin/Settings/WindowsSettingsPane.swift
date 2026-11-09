@@ -4,7 +4,8 @@ import SwiftUI
 
 /// Settings → Window Management on the `SettingsPane` template (prototype `set-windows`): Basics, a collapsed
 /// Advanced and Data. The banner is the host's, from `WindowsPlugin.settingsStatus`. Basics has the default layout
-/// and the gaps; the *Layouts…* row of the mockup arrives with phase 3.
+/// kind (Auto-tile, Zones or Free), the gaps, the *Layouts…* row that opens the Layouts window and the default
+/// zone layout of each display shape.
 struct WindowsSettingsPane: View {
     @Bindable var model: WindowsSettingsModel
     /// `false` while the plugin is off or failed: the pane then reads nothing and starts nothing.
@@ -90,9 +91,27 @@ struct WindowsSettingsPane: View {
             label(
                 Text("Default layout", comment: "Window Management setting: how workspaces are arranged"),
                 help: Text(
-                    "Auto-tile fills the screen with the windows of a workspace. Free leaves them where they are.",
+                    "Auto-tile fills the screen with the windows of a workspace. Zones snaps them into zones. Free leaves them where they are.",
                     comment: "Window Management setting help: the layout kinds"))
         }
+        LabeledContent {
+            Button {
+                model.openLayouts()
+            } label: {
+                Text("Layouts…", comment: "Window Management: opens the Layouts window")
+            }
+            .disabled(!isActive)
+        } label: {
+            label(
+                Text("Layouts", comment: "Window Management setting: the zone layouts and where they are used"),
+                help: Text(verbatim: model.layoutsSummary))
+        }
+        zoneDefaultRow(
+            Text("Zones on landscape displays", comment: "Window Management setting: the default zone layout"),
+            orientation: .landscape)
+        zoneDefaultRow(
+            Text("Zones on portrait displays", comment: "Window Management setting: the default zone layout"),
+            orientation: .portrait)
         gapRow(
             Text("Space between windows", comment: "Window Management setting: the inner gap"),
             value: Binding(get: { model.innerGap }, set: { model.setInnerGap($0) }))
@@ -212,6 +231,30 @@ struct WindowsSettingsPane: View {
             } label: {
                 Text("Reset List", comment: "Window Management: restores the default floating apps")
             }
+        }
+    }
+
+    /// The default zone layout of displays of one shape: a stock layout.
+    private func zoneDefaultRow(_ title: Text, orientation: DisplayOrientation) -> some View {
+        MenuPicker(
+            selection: Binding(
+                get: { model.defaultZoneLayout(for: orientation) },
+                set: { model.setDefaultZoneLayout($0, for: orientation) })
+        ) {
+            ForEach(StockLayouts.all, id: \.id) { layout in
+                Text(verbatim: StockLayouts.displayName(of: layout)).font(textSize.font(.body)).tag(layout.id)
+            }
+            // A default that is not a stock layout (from a later version) stays selectable as it is.
+            if !StockLayouts.isStock(model.defaultZoneLayout(for: orientation)) {
+                Text(verbatim: model.defaultZoneLayout(for: orientation)).font(textSize.font(.body))
+                    .tag(model.defaultZoneLayout(for: orientation))
+            }
+        } label: {
+            label(
+                title,
+                help: Text(
+                    "Used when a display has no layout of its own for a workspace.",
+                    comment: "Window Management setting help: the default zone layout"))
         }
     }
 

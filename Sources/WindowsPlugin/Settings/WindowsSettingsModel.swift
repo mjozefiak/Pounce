@@ -45,6 +45,8 @@ final class WindowsSettingsModel {
     @ObservationIgnored private let translate: ShortcutSafety.KeyTranslation
     @ObservationIgnored private let chooseApp: () -> String?
     @ObservationIgnored var startFailure: () -> WindowsPlugin.StartError? = { nil }
+    /// Opens the Layouts window (the plugin sets it).
+    @ObservationIgnored var openLayouts: () -> Void = {}
 
     private(set) var workspaceCount: Int
     private(set) var followFocus: Bool

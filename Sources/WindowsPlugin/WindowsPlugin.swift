@@ -48,8 +48,20 @@ public final class WindowsPlugin: LintelPlugin {
     private(set) lazy var paneModel: WindowsSettingsModel = {
         let model = WindowsSettingsModel(context: context, settings: settings, runtime: { [unowned self] in runtime })
         model.startFailure = { [unowned self] in lastStartError }
+        model.openLayouts = { [unowned self] in layoutsWindow.show() }
         return model
     }()
+    private let identifier = DisplayIdentifier()
+    /// The Layouts window, built on first use; it reads the pane model and the running plugin.
+    private(set) lazy var layoutsWindow: LayoutsWindowController = makeLayoutsWindow()
+
+    private func makeLayoutsWindow() -> LayoutsWindowController {
+        LayoutsWindowController(makeModel: { [unowned self] in
+            LayoutsModel(
+                pane: paneModel, displays: { [client = context.windows] in await client.displays() },
+                identify: { [identifier] display in identifier.show(display) })
+        })
+    }
     /// The first activation of this process honours safe mode; a later one (the user switched the plugin on
     /// again, or pressed Try Again) clears it.
     private var launchActivationDone = false
@@ -134,6 +146,13 @@ public final class WindowsPlugin: LintelPlugin {
         self.runtime = runtime
         runtime.onTrustGranted = { [weak self] in await self?.recheckAvailability() }
         await runtime.start()
+        #if DEBUG
+        // QA only (`--qa-setting plugins.windows.qaOpenLayouts=true`): show the Layouts window without a click.
+        if settings.qaOpenLayouts {
+            layoutsWindow.activatesApp = false
+            layoutsWindow.show()
+        }
+        #endif
     }
 
     /// Accessibility was granted: the self-check could not compare any window before, so it runs again. A mismatch
@@ -151,6 +170,8 @@ public final class WindowsPlugin: LintelPlugin {
     public func deactivate() async {
         guard let runtime else { return }
         self.runtime = nil
+        layoutsWindow.close()
+        identifier.tearDown()
         await runtime.stop()
     }
 

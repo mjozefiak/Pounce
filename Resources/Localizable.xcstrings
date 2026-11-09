@@ -14923,24 +14923,6 @@
         }
       }
     },
-    "Auto-tile fills the screen with the windows of a workspace. Free leaves them where they are." : {
-      "comment" : "Window Management setting help: the layout kinds",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Auto-tile fills the screen with the windows of a workspace. Free leaves them where they are."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Układ kafelkowy wypełnia ekran oknami obszaru. Swobodny zostawia je tam, gdzie są."
-          }
-        }
-      }
-    },
     "Space between windows" : {
       "comment" : "Window Management setting: the inner gap",
       "extractionState" : "manual",
@@ -15387,6 +15369,816 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przytrzymaj ⇧ podczas przeciągania, aby przyciągnąć"
+          }
+        }
+      }
+    },
+    "Main display" : {
+      "comment" : "Layouts window: the display with the menu bar",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Main display"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyświetlacz główny"
+          }
+        }
+      }
+    },
+    "Display %lld" : {
+      "comment" : "Layouts window: a display, by number",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Display %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyświetlacz %lld"
+          }
+        }
+      }
+    },
+    "%@ · by shape" : {
+      "comment" : "Layouts window: a layout chosen for every display of one shape",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · by shape"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · wg kształtu"
+          }
+        }
+      }
+    },
+    "%@ · default" : {
+      "comment" : "Layouts window: the layout comes from the default",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · default"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · domyślny"
+          }
+        }
+      }
+    },
+    "Use default (%@)" : {
+      "comment" : "Layouts window: the menu entry that clears a choice",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use default (%@)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Użyj domyślnego (%@)"
+          }
+        }
+      }
+    },
+    "Grid" : {
+      "comment" : "Layouts window: the style of a layout",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grid"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siatka"
+          }
+        }
+      }
+    },
+    "Not assigned" : {
+      "comment" : "Layouts window: no cell uses this layout",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not assigned"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nieprzypisany"
+          }
+        }
+      }
+    },
+    "Default for landscape displays" : {
+      "comment" : "Layouts window: the layout is a default",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default for landscape displays"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Domyślny dla poziomych wyświetlaczy"
+          }
+        }
+      }
+    },
+    "Default for portrait displays" : {
+      "comment" : "Layouts window: the layout is a default",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default for portrait displays"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Domyślny dla pionowych wyświetlaczy"
+          }
+        }
+      }
+    },
+    "No workspace uses Zones" : {
+      "comment" : "Settings: no workspace is set to Zones",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No workspace uses Zones"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Żaden obszar roboczy nie używa Stref"
+          }
+        }
+      }
+    },
+    "Layouts" : {
+      "comment" : "Layouts window title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layouts"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układy"
+          }
+        }
+      }
+    },
+    "Stock" : {
+      "comment" : "Layouts window: the section of the built-in layouts",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stock"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wbudowane"
+          }
+        }
+      }
+    },
+    "Where each layout is used" : {
+      "comment" : "Layouts window: the heading above the assignment matrix",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Where each layout is used"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gdzie używany jest każdy układ"
+          }
+        }
+      }
+    },
+    "Every workspace on every display" : {
+      "comment" : "Layouts window: Apply to… everything",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every workspace on every display"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Każdy obszar roboczy na każdym wyświetlaczu"
+          }
+        }
+      }
+    },
+    "All workspaces on %@" : {
+      "comment" : "Layouts window: Apply to… one display",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All workspaces on %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wszystkie obszary robocze na: %@"
+          }
+        }
+      }
+    },
+    "Workspace %lld on every display" : {
+      "comment" : "Layouts window: Apply to… one workspace",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Workspace %lld on every display"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obszar roboczy %lld na każdym wyświetlaczu"
+          }
+        }
+      }
+    },
+    "Apply to…" : {
+      "comment" : "Layouts window: opens the menu that writes a layout to many cells",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply to…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zastosuj do…"
+          }
+        }
+      }
+    },
+    "No displays were found." : {
+      "comment" : "Layouts window: the display list is empty",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No displays were found."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie znaleziono wyświetlaczy."
+          }
+        }
+      }
+    },
+    "Identify" : {
+      "comment" : "Layouts window: flashes a number on the display",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Identify"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż"
+          }
+        }
+      }
+    },
+    "Identify %@" : {
+      "comment" : "Layouts window: identifies one display (spoken)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Identify %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż wyświetlacz: %@"
+          }
+        }
+      }
+    },
+    "Layout of workspace %lld" : {
+      "comment" : "Layouts window: the layout kind of a workspace (spoken)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layout of workspace %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układ obszaru roboczego %lld"
+          }
+        }
+      }
+    },
+    "Workspace %lld, %@" : {
+      "comment" : "Layouts window: a matrix cell (spoken)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Workspace %lld, %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obszar roboczy %lld, %@"
+          }
+        }
+      }
+    },
+    "This workspace is not set to Zones, so its zone layout is not used." : {
+      "comment" : "Layouts window: tooltip of a cell on a workspace that is not Zones",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This workspace is not set to Zones, so its zone layout is not used."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten obszar roboczy nie używa Stref, więc jego układ stref nie jest stosowany."
+          }
+        }
+      }
+    },
+    "Window Management is off. Turn it on to change layouts." : {
+      "comment" : "Layouts window: the plugin is off",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Window Management is off. Turn it on to change layouts."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zarządzanie oknami jest wyłączone. Włącz je, aby zmieniać układy."
+          }
+        }
+      }
+    },
+    "These assignments were saved by a newer version of Lintel and can’t be changed here." : {
+      "comment" : "Layouts window: assignments from a newer version",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These assignments were saved by a newer version of Lintel and can’t be changed here."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te przypisania zapisała nowsza wersja aplikacji Lintel i nie można ich tu zmienić."
+          }
+        }
+      }
+    },
+    "Two displays look identical to macOS. Lintel tells them apart by their position." : {
+      "comment" : "Layouts window: two displays share an identifier",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Two displays look identical to macOS. Lintel tells them apart by their position."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS widzi dwa wyświetlacze jako identyczne. Lintel rozróżnia je po położeniu."
+          }
+        }
+      }
+    },
+    "Some cells use the default because their layout is missing." : {
+      "comment" : "Layouts window: an assignment names a layout that does not exist",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some cells use the default because their layout is missing."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niektóre pola używają domyślnego układu, bo ich układu brakuje."
+          }
+        }
+      }
+    },
+    "An empty cell uses the default for the display’s shape. Choose a layout to change it. With a cell selected, use the arrow keys, ⌫ for the default and 1 to 6 for a stock layout." : {
+      "comment" : "Layouts window: how the matrix works",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An empty cell uses the default for the display’s shape. Choose a layout to change it. With a cell selected, use the arrow keys, ⌫ for the default and 1 to 6 for a stock layout."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Puste pole używa układu domyślnego dla kształtu wyświetlacza. Wybierz układ, aby to zmienić. Przy zaznaczonym polu: strzałki przesuwają, ⌫ przywraca domyślny, a 1–6 wybiera wbudowany układ."
+          }
+        }
+      }
+    },
+    "Auto-tile fills the screen with the windows of a workspace. Zones snaps them into zones. Free leaves them where they are." : {
+      "comment" : "Window Management setting help: the layout kinds",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto-tile fills the screen with the windows of a workspace. Zones snaps them into zones. Free leaves them where they are."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układ kafelkowy wypełnia ekran oknami obszaru roboczego. Strefy przyciągają je do stref. Swobodny zostawia je tam, gdzie są."
+          }
+        }
+      }
+    },
+    "Layouts…" : {
+      "comment" : "Window Management: opens the Layouts window",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layouts…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układy…"
+          }
+        }
+      }
+    },
+    "Zones on landscape displays" : {
+      "comment" : "Window Management setting: the default zone layout",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zones on landscape displays"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strefy na poziomych wyświetlaczach"
+          }
+        }
+      }
+    },
+    "Zones on portrait displays" : {
+      "comment" : "Window Management setting: the default zone layout",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zones on portrait displays"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strefy na pionowych wyświetlaczach"
+          }
+        }
+      }
+    },
+    "Used when a display has no layout of its own for a workspace." : {
+      "comment" : "Window Management setting help: the default zone layout",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used when a display has no layout of its own for a workspace."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Używane, gdy wyświetlacz nie ma własnego układu dla obszaru roboczego."
+          }
+        }
+      }
+    },
+    "%lld zones" : {
+      "comment" : "Layouts window: how many zones a layout has",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld zone"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld zones"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld strefa"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld strefy"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld stref"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld strefy"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Used on %lld cells" : {
+      "comment" : "Layouts window: how many cells use this layout",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Used on %lld cell"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Used on %lld cells"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Używany w %lld polu"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Używany w %lld polach"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Używany w %lld polach"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Używany w %lld polach"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld layouts" : {
+      "comment" : "Settings: how many zone layouts exist",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld layout"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld layouts"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld układ"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld układy"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld układów"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld układu"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Zones on %lld workspaces" : {
+      "comment" : "Settings: how many workspaces use Zones",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zones on %lld workspace"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zones on %lld workspaces"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Strefy na %lld obszarze roboczym"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Strefy na %lld obszarach roboczych"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Strefy na %lld obszarach roboczych"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Strefy na %lld obszaru roboczego"
+                }
+              }
+            }
           }
         }
       }
