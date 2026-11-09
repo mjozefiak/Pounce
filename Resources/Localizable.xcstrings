@@ -13554,6 +13554,906 @@
           }
         }
       }
+    },
+    "Restore Windows" : {
+      "comment" : "Settings banner button: puts every parked window back",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore Windows"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywróć okna"
+          }
+        }
+      }
+    },
+    "Windows can't be hidden safely" : {
+      "comment" : "Settings banner: the state file cannot be written",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Windows can't be hidden safely"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie można bezpiecznie ukrywać okien"
+          }
+        }
+      }
+    },
+    "Lintel can't save its state, so no window is moved." : {
+      "comment" : "Settings banner detail: the state file cannot be written",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel can't save its state, so no window is moved."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel nie może zapisać stanu, więc żadne okno nie jest przesuwane."
+          }
+        }
+      }
+    },
+    "Window management stopped itself" : {
+      "comment" : "Settings banner: the engine froze after too many window changes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Window management stopped itself"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zarządzanie oknami zatrzymało się samo"
+          }
+        }
+      }
+    },
+    "An app kept moving its windows. They were put back." : {
+      "comment" : "Settings banner detail: the engine froze after too many window changes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An app kept moving its windows. They were put back."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikacja ciągle przesuwała swoje okna. Przywrócono je."
+          }
+        }
+      }
+    },
+    "Start Again" : {
+      "comment" : "Settings banner button: starts again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start Again"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uruchom ponownie"
+          }
+        }
+      }
+    },
+    "Stage Manager is on" : {
+      "comment" : "Settings banner: Stage Manager is on",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stage Manager is on"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stage Manager jest włączony"
+          }
+        }
+      }
+    },
+    "It moves windows itself. Turn it off for Window Management." : {
+      "comment" : "Settings banner detail: Stage Manager is on",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It moves windows itself. Turn it off for Window Management."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sam przesuwa okna. Wyłącz go na potrzeby zarządzania oknami."
+          }
+        }
+      }
+    },
+    "Displays share one Space" : {
+      "comment" : "Settings banner: displays do not have separate Spaces",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Displays share one Space"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekrany dzielą jeden pulpit"
+          }
+        }
+      }
+    },
+    "Turn on “Displays have separate Spaces” in System Settings." : {
+      "comment" : "Settings banner detail: displays do not have separate Spaces",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn on “Displays have separate Spaces” in System Settings."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Włącz „Ekrany mają oddzielne pulpity” w Ustawieniach systemowych."
+          }
+        }
+      }
+    },
+    "The menu bar has no room for the strip" : {
+      "comment" : "Settings banner: the strip is not visible",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The menu bar has no room for the strip"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Na pasku menu nie ma miejsca na pasek obszarów"
+          }
+        }
+      }
+    },
+    "Switch workspaces with the shortcuts or the launcher." : {
+      "comment" : "Settings banner detail: the strip is not visible",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch workspaces with the shortcuts or the launcher."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełączaj obszary skrótami lub z poziomu launchera."
+          }
+        }
+      }
+    },
+    "Reset window state?" : {
+      "comment" : "Window Management confirmation title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset window state?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zresetować stan okien?"
+          }
+        }
+      }
+    },
+    "Every window is put back first, then the workspaces are forgotten. This can’t be undone." : {
+      "comment" : "Window Management confirmation text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every window is put back first, then the workspaces are forgotten. This can’t be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Najpierw wszystkie okna wrócą na miejsce, potem obszary robocze zostaną zapomniane. Tej operacji nie można cofnąć."
+          }
+        }
+      }
+    },
+    "Reset State" : {
+      "comment" : "Window Management confirmation button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset State"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zresetuj stan"
+          }
+        }
+      }
+    },
+    "Update Lintel" : {
+      "comment" : "Window Management: the window id function is unavailable",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update Lintel"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaktualizuj Lintel"
+          }
+        }
+      }
+    },
+    "This version of macOS changed something Window Management relies on." : {
+      "comment" : "Window Management: the window id function is unavailable",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This version of macOS changed something Window Management relies on."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ta wersja macOS zmieniła coś, na czym opiera się zarządzanie oknami."
+          }
+        }
+      }
+    },
+    "Switched off after a problem" : {
+      "comment" : "Window Management: safe mode",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switched off after a problem"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyłączone po problemie"
+          }
+        }
+      }
+    },
+    "Windows were left parked twice in a row. Try Again starts it." : {
+      "comment" : "Window Management: safe mode",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Windows were left parked twice in a row. Try Again starts it."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Okna zostały ukryte dwa razy z rzędu. „Spróbuj ponownie” uruchamia funkcję."
+          }
+        }
+      }
+    },
+    "Show menu bar strip" : {
+      "comment" : "Window Management setting: the numbered boxes in the menu bar",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show menu bar strip"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż pasek obszarów w pasku menu"
+          }
+        }
+      }
+    },
+    "Jump to a window’s workspace" : {
+      "comment" : "Window Management setting: follow focus",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jump to a window’s workspace"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przechodź do obszaru okna"
+          }
+        }
+      }
+    },
+    "Switch when a window in another workspace gets focus." : {
+      "comment" : "Window Management setting help: follow focus",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch when a window in another workspace gets focus."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełącz, gdy okno z innego obszaru dostanie fokus."
+          }
+        }
+      }
+    },
+    "Show a number after switching" : {
+      "comment" : "Window Management setting: the workspace HUD",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show a number after switching"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż numer po przełączeniu"
+          }
+        }
+      }
+    },
+    "All workspaces" : {
+      "comment" : "Window Management strip mode",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All workspaces"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wszystkie obszary"
+          }
+        }
+      }
+    },
+    "Only workspaces with windows" : {
+      "comment" : "Window Management strip mode",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only workspaces with windows"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tylko obszary z oknami"
+          }
+        }
+      }
+    },
+    "Strip shows" : {
+      "comment" : "Window Management setting: which boxes the strip draws",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strip shows"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pasek pokazuje"
+          }
+        }
+      }
+    },
+    "Go to workspace" : {
+      "comment" : "Window Management shortcut family",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go to workspace"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przejdź do obszaru"
+          }
+        }
+      }
+    },
+    "Move window to workspace" : {
+      "comment" : "Window Management shortcut family",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move window to workspace"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przenieś okno do obszaru"
+          }
+        }
+      }
+    },
+    "Some shortcuts type letters" : {
+      "comment" : "Window Management shortcut warning",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some shortcuts type letters"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niektóre skróty wpisują litery"
+          }
+        }
+      }
+    },
+    "On this keyboard layout %@ types a character." : {
+      "comment" : "Window Management shortcut warning: names the keys",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On this keyboard layout %@ types a character."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Na tej klawiaturze %@ wpisuje znak."
+          }
+        }
+      }
+    },
+    "Use ⌃⌥" : {
+      "comment" : "Window Management shortcut warning button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use ⌃⌥"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Użyj ⌃⌥"
+          }
+        }
+      }
+    },
+    "Custom" : {
+      "comment" : "Window Management shortcut modifiers: recorded by hand",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Własny"
+          }
+        }
+      }
+    },
+    "Floating apps" : {
+      "comment" : "Window Management setting: apps that are never arranged",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Floating apps"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikacje pływające"
+          }
+        }
+      }
+    },
+    "These apps keep their windows where they are." : {
+      "comment" : "Window Management setting help",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These apps keep their windows where they are."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te aplikacje zachowują położenie okien."
+          }
+        }
+      }
+    },
+    "Reset List" : {
+      "comment" : "Window Management: restores the default floating apps",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset List"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywróć listę"
+          }
+        }
+      }
+    },
+    "Restore" : {
+      "comment" : "Window Management: restore button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywróć"
+          }
+        }
+      }
+    },
+    "Restore all windows" : {
+      "comment" : "Window Management setting: puts every parked window back",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore all windows"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywróć wszystkie okna"
+          }
+        }
+      }
+    },
+    "Puts every parked window back on screen." : {
+      "comment" : "Window Management setting help",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Puts every parked window back on screen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywraca na ekran każde ukryte okno."
+          }
+        }
+      }
+    },
+    "Reset" : {
+      "comment" : "Window Management: reset button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resetuj"
+          }
+        }
+      }
+    },
+    "Reset state…" : {
+      "comment" : "Window Management setting: forgets the workspaces",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset state…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resetuj stan…"
+          }
+        }
+      }
+    },
+    "Copy diagnostics" : {
+      "comment" : "Window Management setting: counters for a bug report",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy diagnostics"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiuj diagnostykę"
+          }
+        }
+      }
+    },
+    "Arrange windows in workspaces. Windows of other workspaces are parked in a screen corner." : {
+      "comment" : "Window Management welcome step: what the feature does",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrange windows in workspaces. Windows of other workspaces are parked in a screen corner."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układaj okna w obszarach roboczych. Okna innych obszarów są ukryte w rogu ekranu."
+          }
+        }
+      }
+    },
+    "Accessibility is allowed" : {
+      "comment" : "Window Management welcome step: the Accessibility state",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accessibility is allowed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostępność jest dozwolona"
+          }
+        }
+      }
+    },
+    "Accessibility is needed to move windows" : {
+      "comment" : "Window Management welcome step: the Accessibility state",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accessibility is needed to move windows"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Do przesuwania okien potrzebna jest Dostępność"
+          }
+        }
+      }
+    },
+    "%@ types a character on this keyboard layout." : {
+      "comment" : "Window Management shortcut warning: names the keys",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ types a character on this keyboard layout."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ wpisuje znak na tej klawiaturze."
+          }
+        }
+      }
+    },
+    "If something goes wrong, Lintel puts the windows back when it starts, or use Restore All Windows in the menu bar." : {
+      "comment" : "Window Management welcome step: recovery",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If something goes wrong, Lintel puts the windows back when it starts, or use Restore All Windows in the menu bar."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gdy coś pójdzie nie tak, aplikacja Lintel przywróci okna przy uruchomieniu, albo użyj „Przywróć wszystkie okna” w pasku menu."
+          }
+        }
+      }
+    },
+    "Keep the windows you arrange on one Space." : {
+      "comment" : "Window Management welcome step: one Space",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep the windows you arrange on one Space."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Okna, które układasz, trzymaj na jednym pulpicie."
+          }
+        }
+      }
+    },
+    "Ready · %lld workspaces" : {
+      "comment" : "Settings banner: Window Management works",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Ready · %lld workspace"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Ready · %lld workspaces"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Gotowe · %lld obszar roboczy"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Gotowe · %lld obszary robocze"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Gotowe · %lld obszarów roboczych"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Gotowe · %lld obszaru roboczego"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

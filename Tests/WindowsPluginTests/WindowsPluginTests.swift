@@ -110,7 +110,7 @@ import Testing
     }
 }
 
-private struct UnsupportedClient: WindowClient {
+struct UnsupportedClient: WindowClient {
     let reason: String
     var availability: WindowClientAvailability { .unsupported(reason: reason) }
     func windows() async -> [WindowInfo] { [] }

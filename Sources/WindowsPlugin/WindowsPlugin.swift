@@ -41,6 +41,13 @@ public final class WindowsPlugin: LintelPlugin {
     /// Whether the plugin shows the menu bar strip when it is on. Tests leave it off: a status item needs a display.
     private let showsStrip: Bool
     private(set) var runtime: WindowsRuntime?
+    private(set) var lastStartError: StartError?
+    /// Built on first use; creating it reads settings only.
+    private(set) lazy var paneModel: WindowsSettingsModel = {
+        let model = WindowsSettingsModel(context: context, settings: settings, runtime: { [unowned self] in runtime })
+        model.startFailure = { [unowned self] in lastStartError }
+        return model
+    }()
     /// The first activation of this process honours safe mode; a later one (the user switched the plugin on
     /// again, or pressed Try Again) clears it.
     private var launchActivationDone = false
@@ -74,17 +81,20 @@ public final class WindowsPlugin: LintelPlugin {
     /// Contracts), and in safe mode on the first start of a launch. Then starts the engine.
     public func activate() async throws {
         if case .unsupported(let reason) = context.windows.availability {
+            lastStartError = .unsupported(reason: reason)
             throw StartError.unsupported(reason: reason)
         }
         if settings.safeMode {
             if !launchActivationDone {
                 launchActivationDone = true
+                lastStartError = .safeMode
                 throw StartError.safeMode
             }
             settings.setSafeMode(false)
             settings.setParkedLaunches(0)
         }
         launchActivationDone = true
+        lastStartError = nil
         guard runtime == nil else { return }
         var makeStrip: (@MainActor (WindowsRuntime) -> WorkspaceStripController)?
         if showsStrip {

@@ -37,6 +37,10 @@ final class WindowsRuntime {
     private let makeStrip: (@MainActor (WindowsRuntime) -> WorkspaceStripController)?
     private var lastSummary: WorkspaceSummary?
     private let summaryRelay: SummaryRelay
+    /// The newest problem the engine reported, for the Settings banner.
+    private(set) var engineBanner: EngineBanner?
+    /// Windows put back by *Restore all windows*, a re-grant and a Space change in this session (diagnostics).
+    private(set) var recoveredWindows = 0
     private var activationObserver: AppActivationObserver?
 
     init(
@@ -64,13 +68,17 @@ final class WindowsRuntime {
                     Task { @MainActor in hud.show(.workspace(number: workspace.rawValue, windowCount: count)) }
                 },
                 summary: { summary in Task { @MainActor in relay.handler(summary) } },
-                banner: { _ in },
+                banner: { banner in Task { @MainActor in relay.bannerHandler(banner) } },
                 restored: { report in
                     Task { @MainActor in hud.show(WindowsHUDState(report: report)) }
                 }),
             canMove: { flag.isTrusted }, logger: context.logger)
         self.activationCenter = activationCenter
         relay.handler = { [weak self] summary in self?.summaryChanged(summary) }
+        relay.bannerHandler = { [weak self] banner in
+            self?.engineBanner = banner
+            self?.context.resultsChanged()
+        }
     }
 
     /// The engine reports every change of the workspaces; the strip redraws.
@@ -147,7 +155,30 @@ final class WindowsRuntime {
     func restoreAllWindows() async {
         trust.refresh()
         let report = await engine.restoreAllWindows()
+        recoveredWindows += report.restored
         hud.show(WindowsHUDState(report: report))
+    }
+
+    /// *Reset state*: puts every window back first, then forgets the stored state.
+    func resetState() async {
+        await restoreAllWindows()
+        do { try await store.reset() } catch { context.logger.error("Cannot reset state.json") }
+    }
+
+    /// Clears the engine's frozen state (after the watchdog) by showing the current workspace again.
+    func startAgain() async {
+        engineBanner = nil
+        if let target = lastSummary?.current ?? WorkspaceID.all(count: 1).first {
+            await run(.showWorkspace(target), purpose: .switching)
+        }
+        context.resultsChanged()
+    }
+
+    func diagnosticsText() async -> String {
+        let state = await engine.state
+        return WindowsDiagnostics.report(
+            state.diagnostics, recoveredWindows: recoveredWindows, parkedWindows: state.parked.count,
+            workspaceCount: settings.workspaceCount, accessibilityTrusted: trust.isTrusted)
     }
 
     func applySettings() async {
@@ -162,6 +193,7 @@ final class WindowsRuntime {
         guard trusted else { return }
         Task { [engine, hud] in
             let report = await engine.restoreAllWindows()
+            self.recoveredWindows += report.restored
             if !report.isEmpty { hud.show(WindowsHUDState(report: report)) }
         }
     }
@@ -201,4 +233,5 @@ struct InactiveSwitcher: WindowSwitching {
 @MainActor
 final class SummaryRelay {
     var handler: @MainActor (WorkspaceSummary) -> Void = { _ in }
+    var bannerHandler: @MainActor (EngineBanner) -> Void = { _ in }
 }
