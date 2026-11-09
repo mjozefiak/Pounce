@@ -197,7 +197,14 @@ actor WindowEngine {
                 inputs.append(.windowGone(id, now: moment))
             case .moved(let id), .resized(let id):
                 if let info = infos[id] {
-                    inputs.append(.windowMoved(id, frame: info.frame, now: moment))
+                    if state.windows[id] != nil, EngineReducer.isManaged(info, config: state.config) {
+                        inputs.append(.windowMoved(id, frame: info.frame, now: moment))
+                    } else {
+                        // A window the engine does not hold (yet) or no longer manages (it went fullscreen or
+                        // came back from it): look at it as if it had just appeared.
+                        inputs.append(
+                            .windowAppeared(info, processStart: client.processStart(of: id.pid), now: moment))
+                    }
                 }
             case .focused(let id):
                 inputs.append(.windowFocused(id, now: moment))

@@ -359,3 +359,34 @@ import Testing
         #expect(WindowEngine.coalesce([.setFrame(newer), .setFrame(older)]) == [.setFrame(newer)])
     }
 }
+
+extension WindowEngineTests {
+    /// Step 1.8b: a move of a window the engine does not hold yet, or that came back from fullscreen, is looked
+    /// at as an appearance.
+    @Test func aMoveOfAnUnknownOrUnmanagedWindowIsLookedAtAsAnAppearance() async throws {
+        let harness = try WindowsHarness()
+        defer { harness.tearDown() }
+        let client = FakeWindowClient(windows: [makeWindow(1)])
+        let store = StateStore(directory: harness.directory, saveDelay: .seconds(3600))
+        let engine = WindowEngine(client: client, store: store, tick: .milliseconds(5))
+        await engine.start()
+        // A window the engine never heard of moves: it is tracked from then on.
+        client.add(makeWindow(2))
+        await engine.ingest(.moved(WindowID(pid: 100, number: 2)))
+        await engine.settle()
+        #expect(await engine.state.windows.keys.contains(WindowID(pid: 100, number: 2)))
+        // It goes fullscreen (reported as a resize): it is let go.
+        client.remove(WindowID(pid: 100, number: 2))
+        client.add(makeWindow(2, fullscreen: true))
+        await engine.ingest(.resized(WindowID(pid: 100, number: 2)))
+        await engine.settle()
+        #expect(await engine.state.windows[WindowID(pid: 100, number: 2)] == nil)
+        // And it is managed again when it leaves fullscreen.
+        client.remove(WindowID(pid: 100, number: 2))
+        client.add(makeWindow(2))
+        await engine.ingest(.resized(WindowID(pid: 100, number: 2)))
+        await engine.settle()
+        #expect(await engine.state.windows[WindowID(pid: 100, number: 2)] != nil)
+        await engine.stop()
+    }
+}
