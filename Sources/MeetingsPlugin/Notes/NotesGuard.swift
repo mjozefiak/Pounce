@@ -454,8 +454,53 @@ struct NotesGuard: Sendable {
     /// the model left out is added back to its section unless a near-duplicate is listed there: nothing that
     /// was verified disappears because the model forgot it.
     func verifyReduce(_ output: NotesReduceOutput, points: [NotesPoint]) -> ReduceVerdict {
+        var audit: ReduceAudit?
+        return verifyReduce(output, points: points, audit: &audit)
+    }
+
+    /// What `verifyReduce` did with every id and point, for `NotesTrace` (ids, kinds and counts only).
+    struct ReduceAudit: Equatable, Sendable {
+        enum SummaryOrigin: String, Sendable {
+            /// The model's paragraph passed `summaryIsFaithful`.
+            case model
+            /// The model's paragraph was refused; the paragraph is composed from the points.
+            case composedAfterRefusal
+            /// The model gave no paragraph (or REDUCE failed); the paragraph is composed from the points.
+            case composedWithoutModelParagraph
+        }
+
+        /// Points the model listed in their own section.
+        var listed: Set<String> = []
+        /// Points added back to their section.
+        var backfilled: Set<String> = []
+        /// Points not added back, with the point in their section that near-duplicates them.
+        var nearDuplicateOf: [String: String] = [:]
+        /// Verified points the model listed in another kind's section: the kinds of those sections.
+        var misfiled: [String: [NotesPointKind]] = [:]
+        /// Listed ids that are no verified point.
+        var unknownIDs = 0
+        /// Ids listed again in their own section (kept once).
+        var repeatedIDs = 0
+        var summaryOrigin = SummaryOrigin.composedWithoutModelParagraph
+        /// The points whose first sentence makes the composed paragraph.
+        var summarySources: [String] = []
+    }
+
+    /// `verifyReduce` with its audit; the verdict is the one `verifyReduce` returns.
+    func auditedVerifyReduce(
+        _ output: NotesReduceOutput, points: [NotesPoint]
+    ) -> (verdict: ReduceVerdict, audit: ReduceAudit) {
+        var audit: ReduceAudit? = ReduceAudit()
+        let verdict = verifyReduce(output, points: points, audit: &audit)
+        return (verdict, audit ?? ReduceAudit())
+    }
+
+    private func verifyReduce(
+        _ output: NotesReduceOutput, points: [NotesPoint], audit: inout ReduceAudit?
+    ) -> ReduceVerdict {
         let byID = Dictionary(points.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         var rejected = 0
+        var trail = audit
 
         func section(_ ids: [String], kind: NotesPointKind) -> [NotesPoint] {
             var seen = Set<String>()
@@ -463,9 +508,19 @@ struct NotesGuard: Sendable {
             for id in ids {
                 guard let point = byID[id], point.kind == kind else {
                     rejected += 1
+                    if byID[id] == nil {
+                        trail?.unknownIDs += 1
+                    } else {
+                        trail?.misfiled[id, default: []].append(kind)
+                    }
                     continue
                 }
-                if seen.insert(id).inserted { result.append(point) }
+                if seen.insert(id).inserted {
+                    result.append(point)
+                    trail?.listed.insert(id)
+                } else {
+                    trail?.repeatedIDs += 1
+                }
             }
             return result
         }
@@ -478,9 +533,13 @@ struct NotesGuard: Sendable {
         var backfilled = 0
         func fill(_ list: inout [NotesPoint], kind: NotesPointKind) {
             for point in points where point.kind == kind && !listed.contains(point.id) {
-                if list.contains(where: { Self.nearDuplicate($0, point) }) { continue }
+                if let twin = list.first(where: { Self.nearDuplicate($0, point) }) {
+                    trail?.nearDuplicateOf[point.id] = twin.id
+                    continue
+                }
                 list.append(point)
                 backfilled += 1
+                trail?.backfilled.insert(point.id)
             }
         }
         fill(&decisions, kind: .decision)
@@ -492,13 +551,19 @@ struct NotesGuard: Sendable {
         if let proposed = output.summary.map(Self.plain), !proposed.isEmpty, !points.isEmpty {
             if summaryIsFaithful(proposed, points: points) {
                 summary = proposed
+                trail?.summaryOrigin = .model
             } else {
                 replaced = true
+                trail?.summaryOrigin = .composedAfterRefusal
             }
         }
         if summary == nil {
-            summary = Self.composedSummary(from: points, decisions: decisions, tasks: tasks, questions: questions)
+            let composed = Self.composedSummaryWithSources(
+                from: points, decisions: decisions, tasks: tasks, questions: questions)
+            summary = composed.text
+            trail?.summarySources = composed.sources
         }
+        audit = trail
         return ReduceVerdict(
             decisions: decisions, tasks: tasks, questions: questions, summary: summary, summaryReplaced: replaced,
             rejectedIDs: rejected, backfilled: backfilled)
@@ -574,19 +639,29 @@ struct NotesGuard: Sendable {
     static func composedSummary(
         from points: [NotesPoint], decisions: [NotesPoint], tasks: [NotesPoint], questions: [NotesPoint]
     ) -> String? {
+        composedSummaryWithSources(from: points, decisions: decisions, tasks: tasks, questions: questions).text
+    }
+
+    /// `composedSummary` and the ids of the points whose first sentence it is made of (the last one may be
+    /// cut by the length limit).
+    static func composedSummaryWithSources(
+        from points: [NotesPoint], decisions: [NotesPoint], tasks: [NotesPoint], questions: [NotesPoint]
+    ) -> (text: String?, sources: [String]) {
         var sources = points.filter { $0.kind == .summary }.sorted { $0.timeMs < $1.timeMs }
         if sources.isEmpty { sources = decisions + tasks + questions }
         var sentences: [String] = []
+        var used: [String] = []
         for point in sources.prefix(4) {
             let sentence = NotesText.firstSentence(point.text)
             if !sentence.isEmpty {
                 sentences.append(
                     sentence.hasSuffix(".") || sentence.hasSuffix("!") || sentence.hasSuffix("?")
                         ? sentence : sentence + ".")
+                used.append(point.id)
             }
         }
         let joined = sentences.joined(separator: " ")
-        return joined.isEmpty ? nil : NotesText.truncated(joined, limit: maxSummaryLength)
+        return joined.isEmpty ? (nil, []) : (NotesText.truncated(joined, limit: maxSummaryLength), used)
     }
 
     /// Words grouped by their first two letters, so a lookup stays cheap for a long list.
