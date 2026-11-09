@@ -239,6 +239,9 @@ final class WindowsRuntime {
     func resetState() async {
         await restoreAllWindows()
         do { try await store.reset() } catch { context.logger.error("Cannot reset state.json") }
+        // The layouts the user chose per workspace and display are part of the state that is forgotten.
+        do { try await assignments.reset() } catch { context.logger.error("Cannot reset assignments.json") }
+        await applySettings()
     }
 
     /// Clears the engine's frozen state (after the watchdog) by showing the current workspace again.

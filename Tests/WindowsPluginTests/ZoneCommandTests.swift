@@ -82,3 +82,25 @@ import Testing
         await second.deactivate()
     }
 }
+
+@Suite struct ResetStateAssignmentsTests {
+    @MainActor @Test func resetStateAlsoClearsTheAssignments() async throws {
+        let harness = try WindowsHarness()
+        defer { harness.tearDown() }
+        let client = FakeWindowClient(windows: [makeWindow(1)])
+        let plugin = WindowsPlugin(
+            context: harness.context(windows: client, permissions: ScriptedPermissions(granted: true)),
+            hud: RecordingHUD(), activationCenter: NotificationCenter())
+        try await plugin.activate()
+        let runtime = try #require(plugin.runtime)
+        let workspace = try #require(WorkspaceID(1))
+        try await runtime.assignments.set(StockLayouts.focus, workspace: workspace, displayKey: "MAIN")
+        #expect(await !runtime.assignments.table.isEmpty)
+        await runtime.resetState()
+        #expect(await runtime.assignments.table.isEmpty)
+        let reread = AssignmentStore(directory: harness.directory)
+        await reread.load()
+        #expect(await reread.table.isEmpty)
+        await plugin.deactivate()
+    }
+}
