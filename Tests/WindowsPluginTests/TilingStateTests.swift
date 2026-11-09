@@ -201,7 +201,7 @@ import Testing
         settings.setDefaultKind(.tiling)
         settings.setInnerGap(3)
         settings.setWorkspaceOverrides(WorkspaceOverrides([ws(2): WorkspaceOverride(kind: .free)]))
-        let config = EngineConfigBuilder(registry: .standard).build(settings)
+        let config = EngineConfig(settings: settings, registry: .standard)
         #expect(config.layout.defaultKind == .tiling)
         #expect(config.layout.innerGap == 3)
         #expect(config.layout.resolved(for: ws(2)).kind == .free)

@@ -79,3 +79,14 @@ coalescer), each merging or dropping on its own. The decision:
   follow a destroy.
 - **Layouts are open.** `LayoutKind` is an identifier, strategies own their state, configuration and commands, and
   `state.json` stores each kind's state as opaque JSON under its name (shape unchanged).
+
+## Addendum (round 3): what bounds what
+
+- Nothing waits for an app without a bound, and nothing is bounded in a way that frees the journal early. The journal
+  lease is held until the engine has really stopped; a start that finds it held fails after 5 s
+  (`stillStopping`), *Erase Data* waits 10 s and then refuses, a stop gives up after 5 s as a whole, a command after
+  2 s on the engine's clock, a host activation after 20 s. Each bound reports what is left (a banner, a HUD, a thrown
+  error) instead of reporting success.
+- *Erase Data* refuses whenever the journal may still hold parked windows (including with Accessibility off): the
+  journal in the folder the host would delete is the only way to put them back.
+- Services are typed and per plugin (`PluginServiceKey`), made outside any lock, and torn down when the host quits.

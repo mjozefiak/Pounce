@@ -36,6 +36,9 @@ struct BatchLedger {
         for id in batches.keys { batches[id]?.waiters.removeAll { $0.token == token } }
     }
 
+    /// Whether no batch is open: nothing is running on the lanes and nothing waits for a result.
+    var isIdle: Bool { batches.isEmpty }
+
     /// How many callers are waiting on open batches (diagnostics and tests).
     var waiterCount: Int { batches.values.reduce(0) { $0 + $1.waiters.count } }
 

@@ -34,7 +34,6 @@ final class WindowsRuntime: WindowSwitching {
     private let gate: AccessibilityGate
     /// The one registry of layout strategies: the engine, the configuration, the commands and the pane use it.
     let registry: LayoutRegistry
-    private let configBuilder: EngineConfigBuilder
     private(set) lazy var layoutCommands = LayoutCommands(
         context: context, settings: settings, registry: registry, assignments: assignments, layouts: layouts,
         engine: engine,
@@ -79,7 +78,6 @@ final class WindowsRuntime: WindowSwitching {
         self.context = context
         self.settings = settings
         self.registry = registry
-        configBuilder = EngineConfigBuilder(registry: registry)
         self.hud = hud
         self.journal = journal
         let store = journal.store
@@ -91,7 +89,7 @@ final class WindowsRuntime: WindowSwitching {
         let flag = trust.flag
         let pump = ReportPump { _ in }
         reports = pump
-        engineConfig = configBuilder.build(settings)
+        engineConfig = EngineConfig(settings: settings, registry: registry)
         engine = WindowEngine(
             client: context.windows, store: store, clock: context.clock, workspaceCount: settings.workspaceCount,
             config: engineConfig, tick: tick, reporter: pump.reporter, strategies: registry,
@@ -200,14 +198,16 @@ final class WindowsRuntime: WindowSwitching {
         throw WindowsPlugin.StartError.stillStopping
     }
 
-    /// Waits until the engine has nothing queued or running and everything it reported has been handled here (tests
-    /// and tear-down).
+    #if DEBUG
+    /// Waits until the engine has nothing queued or running and everything it reported has been handled here
+    /// (tests only).
     func settle() async {
         await actions.waitUntilEmpty()
         await trustTask?.value
         await engine.settle()
         await reports.waitUntilHandled()
     }
+    #endif
 
     /// Puts the windows back and stops, as a whole within `stopBudget`: the wait for the re-grant task and the
     /// queued actions, the restore and the engine's own shutdown all count. What is not done when the budget runs
@@ -291,8 +291,9 @@ final class WindowsRuntime: WindowSwitching {
 
     /// Rebuilds the engine configuration from the settings, the assignments and the library, and sends it.
     private func refreshConfig() async {
-        engineConfig = configBuilder.build(
-            settings, assignments: await assignments.table, library: await layouts.library)
+        engineConfig = EngineConfig(
+            settings: settings, registry: registry, assignments: await assignments.table,
+            library: await layouts.library)
         await engine.update(config: engineConfig)
     }
 

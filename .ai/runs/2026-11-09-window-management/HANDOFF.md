@@ -21,9 +21,18 @@
 - M-2/M-6: `LaneScheduler`, `EffectExecutor`, `ReportPump`, `AccessibilityGate`, `EngineConfigBuilder`; the echo window starts when a frame change is sent; commands wait at most `commandBudget`.
 - M-5: `LayoutPlanner` is a pure read-only type and the reducer parts are layers (`ReducerLayeringTests`). `EngineState` was not regrouped: ~150 sites read its fields, and grouping would only move names.
 - B: one coalescer (the engine's); `AXEventBuffer` bounds the stream and queues a `.resync` on overflow (ADR 0009 addendum).
-- M-9: no real sleeps or yield counting in the windows tests; the PluginHost tests use gated and virtual clocks and no singletons.
-- M-10: `docs/windows-plugin.md` holds the detail; the AGENTS row is short; `StateStore.close()` really closes.
+- M-9: no real sleeps or yield counting in the windows plugin and its tests (the `FakeWindowClient` has no latency option); the PluginHost tests use gated and virtual clocks and per-environment services instead of statics.
+- M-10: `docs/windows-plugin.md` holds the detail; the AGENTS row is short; `StateStore.close()` closes (writes after it throw `.closed` until `load()`).
 - The spec (PR #66) is rev 6 and identical to `.ai/specs/2026-11-09-window-management.md` here.
+
+## Round 3 (independent audit of round 2)
+- H-1: `restoreFromJournal` returns the `Pass`; *Erase Data* waits (10 s) for the journal and throws `EraseRefused` (the host keeps the folder) while windows may be parked, the engine has not handed the journal back, or Accessibility is off; *Restore all windows* without a runtime shows "still being put back". Decision: refusing erase also when only Accessibility is missing, because the journal is the only way back for hidden windows.
+- M-1: `LayoutStrategy` also has `displayName`, `usesLayoutLibrary` and `summaryParts`; no kind switch is left outside the strategies; one registry (built by `WindowsPlugin`) is injected everywhere, the engine/builder/reducer have no default; `LayoutKind.standard` is gone; reserved kind names; `ToyStrategyTests` reach the pane, the settings and *Toggle layout*. The builder is `EngineConfig(settings:registry:...)`.
+- M-2/M-3: the lease is taken before anything starts with a 5 s bound (`StartError.stillStopping`, pane row, Try Again); `WindowsRuntime.stop` is bounded as a whole; `restoreAllWindows` reports what is still parked after 5 s; `PluginHost` bounds `activate()` (20 s). Decision: the host's bound fails the plugin; the underlying activation is cancelled.
+- M-4: the command bound uses the engine's injected clock; the ledger drops the waiter when it fires.
+- M-5: `PluginServiceKey` (typed, per plugin, recursion-safe, torn down on host quit) replaces the string-keyed locator.
+- M-6/M-7: the recovery-order test has no sleeps or statics; `stop()` awaits the pump; `StateStore` guards every write after `close()`.
+- Lows: structural `ReducerLayeringTests` (declared function names, comments and strings stripped); `EngineState` clusters documented (regrouping stays the next refactor); command ids namespaced constants; `inFlight` removed (the ledger is the one count of work; the flush stages are documented); `flushEvents`, `waitForWork`, `settle` and `WindowsRuntime.settle` are DEBUG-only; the echo window is per frame in flight; `coalesce` keeps the last journal operation per window and replaces the entry of a window removed and parked again in one batch; `EngineConfigBuilder` folded into `EngineConfig`; `AccessibilityGate` and `TimeSource` kept (shared by several callers / the only place a generic clock is erased); stale comments and the AGENTS lines fixed.
 
 ## Next concrete action
 QA gate and merge by the owner.

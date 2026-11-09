@@ -146,7 +146,9 @@ public protocol WindowClient: Sendable {
     func setFrame(_ frame: CGRect, for id: WindowID) async throws(WindowClientError) -> CGRect
     func focus(_ id: WindowID) async throws(WindowClientError)
     func displays() async -> [DisplayInfo]
-    /// A bounded, coalesced stream: the newest events win when the consumer is slow.
+    /// A bounded stream, in the order the events happened: when the consumer is slow the oldest events are dropped
+    /// and a `.resync` follows them (nothing is merged here; a consumer that wants merging does it itself). A real
+    /// client delivers nothing here until `subscribe()` has been called.
     var events: AsyncStream<WindowEvent> { get }
     /// When the process started, as seconds since 1970; `nil` when the process is gone or unknown. A stored
     /// window id is trusted only while its process start time still matches.

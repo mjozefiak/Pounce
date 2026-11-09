@@ -109,6 +109,12 @@ enum EngineBanner: Equatable, Sendable {
     case cannotJournal
 }
 
+/// Everything the reducer knows. Its fields fall into clusters, which are the next refactor (not done now: about 150
+/// sites read them, so grouping would only move names): *workspaces and displays* (`model`, `displays`,
+/// `displayKeys`, `config`); *tracking* (`windows`, `focused`, `previousFocus`, `floating`, `unmanaged`); *parking
+/// and the frame ledger* (`parked`, `expected`, `latest`, `generation`, `stubborn`, `tileSizes`, `rehides`,
+/// `isFrozen`, `canJournal`); *layout* (`layouts`, `placementHints`); and *diagnostics*. Each reducer part reads the
+/// clusters it needs and writes only its own (`ReducerLayeringTests` keeps the parts in layers).
 struct EngineState: Equatable, Sendable {
     var model: VirtualWorkspaceModel
     var config = EngineConfig()

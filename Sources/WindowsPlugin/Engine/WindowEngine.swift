@@ -59,7 +59,9 @@ actor WindowEngine {
 
     private var pending: [Pending] = []
     private var ledger = BatchLedger()
-    private var inFlight = 0
+    /// An event passes three stages, each with one marker: waiting in the coalescer, scheduled (`flushTask`), being
+    /// translated (`flushesRunning`). `isIdle` is true when no event is in any of them and no work is running;
+    /// `isQuiet` only looks at the work. Two predicates because a test of the lanes must not wait for a tick.
     private var flushesRunning = 0
     private var quietWaiters: [CheckedContinuation<Void, Never>] = []
     private var idleWaiters: [CheckedContinuation<Void, Never>] = []
@@ -138,7 +140,7 @@ actor WindowEngine {
         _ = coalescer.drain()
         _ = await restoreWindows()
         await flushChain?.value
-        await settle()
+        await waitUntilIdle()
         await store.close()
     }
 
@@ -186,8 +188,10 @@ actor WindowEngine {
 
     func diagnostics() -> EngineDiagnostics { state.diagnostics }
 
+    #if DEBUG
     /// How many callers wait on batches that have not finished (a bound that fired leaves none).
     func waitingCallers() -> Int { ledger.waiterCount }
+    #endif
     func parkedCount() -> Int { state.parked.count }
 
     /// Whether anything is parked: the engine's own windows or an entry still in the journal.
@@ -258,19 +262,26 @@ actor WindowEngine {
         reduceAndDispatch()
     }
 
-    /// Waits until nothing is queued and nothing is running on the lanes (tests, tear-down).
-    func waitForWork() async {
+    /// Waits until nothing is queued and nothing is running on the lanes.
+    private func waitUntilQuiet() async {
         if isQuiet { return }
         await withCheckedContinuation { quietWaiters.append($0) }
     }
 
     /// Waits until the engine has nothing queued, nothing running and no event waiting for a flush.
-    func settle() async {
+    private func waitUntilIdle() async {
         if isIdle { return }
         await withCheckedContinuation { idleWaiters.append($0) }
     }
 
-    private var isQuiet: Bool { pending.isEmpty && inFlight == 0 }
+    #if DEBUG
+    // Test hooks: production code waits inside `stop()`; nothing else needs to know when the engine is quiet.
+    func waitForWork() async { await waitUntilQuiet() }
+    func settle() async { await waitUntilIdle() }
+    #endif
+
+    /// Nothing queued and no batch open (the ledger is the one count of work on the lanes).
+    private var isQuiet: Bool { pending.isEmpty && ledger.isIdle }
 
     private var isIdle: Bool {
         isQuiet && coalescer.isEmpty && flushTask == nil && flushesRunning == 0
@@ -311,10 +322,12 @@ actor WindowEngine {
         resumeWaiters()
     }
 
+    #if DEBUG
     /// Flushes the coalesced events now and waits for the work they cause (tests drive the engine with this).
     func flushEvents() async {
         await flush(waiting: true)
     }
+    #endif
 
     /// One flush, strictly after the previous one: the events are drained and read inside the chain, so inputs reach
     /// the reducer in the order the events were taken.
@@ -334,7 +347,7 @@ actor WindowEngine {
                 // A `settle()` that waited only for that tick has nothing left to wait for.
                 resumeWaiters()
             }
-            await waitForWork()
+            await waitUntilQuiet()
         }
     }
 
@@ -384,7 +397,6 @@ actor WindowEngine {
                 EffectExecutor.coalesce(effects), batch: ledger.peekNextID, now: time.now(), trusted: canMove(),
                 callbacks: callbacks)
             let id = ledger.open(operations: dispatched.operations, waiters: waiters, parents: parents)
-            inFlight += dispatched.operations
             for input in dispatched.inputs { queue(input, parent: id) }
             ledger.closeIfFinished(id)
         }
@@ -413,7 +425,6 @@ actor WindowEngine {
     private func finished(batch: Int, result: FrameResult?) {
         if let result { queue(.applied([result], now: time.now()), parent: batch) }
         reduceAndDispatch()
-        inFlight -= 1
         ledger.finish(batch)
         resumeWaiters()
     }

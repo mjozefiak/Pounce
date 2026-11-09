@@ -17,8 +17,10 @@ enum EngineReport: Sendable {
 final class ReportPump {
     private enum Item: Sendable {
         case report(EngineReport)
+        #if DEBUG
         /// Resumed when every item before it has been handled (`waitUntilHandled()`).
         case marker(CheckedContinuation<Void, Never>)
+        #endif
     }
 
     private let continuation: AsyncStream<Item>.Continuation
@@ -43,7 +45,9 @@ final class ReportPump {
             for await item in stream {
                 switch item {
                 case .report(let report): self?.handler(report)
+                #if DEBUG
                 case .marker(let waiting): waiting.resume()
+                #endif
                 }
             }
         }
@@ -55,10 +59,12 @@ final class ReportPump {
         task = nil
     }
 
-    /// Waits until everything reported so far has been handled (tear-down and tests).
+    #if DEBUG
+    /// Waits until everything reported so far has been handled (tests only).
     func waitUntilHandled() async {
         await withCheckedContinuation { waiting in
             if case .terminated = continuation.yield(.marker(waiting)) { waiting.resume() }
         }
     }
+    #endif
 }
