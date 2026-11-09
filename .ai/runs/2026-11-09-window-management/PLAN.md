@@ -31,7 +31,7 @@ Source spec: `.ai/specs/2026-11-09-window-management.md` (spec PR #66; Refs #66,
 | 3 | 3.1 | GridLayout and stock templates (pure) | dispatch:capable | done | cac0ec7 |
 | 3 | 3.2 | Assignment store and assignments.json | dispatch:capable | done | 2f11a92 |
 | 3 | 3.3 | Zone placement and zone commands | dispatch:capable | done | 7ea273b |
-| 3 | 3.4 | toggleLayout and conversion | dispatch:capable | todo | |
+| 3 | 3.4 | toggleLayout and conversion | dispatch:capable | done | 12f66c2 |
 | 3 | 3.5a | Drag state machine (pure) | dispatch:capable | todo | |
 | 3 | 3.5b | Snap overlay and monitors | dispatch:capable | todo | |
 | 3 | 3.6 | Layouts window (stock layouts) | dispatch:capable | todo | |
