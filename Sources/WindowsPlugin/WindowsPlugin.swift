@@ -38,16 +38,22 @@ public final class WindowsPlugin: LintelPlugin {
     let settings: WindowsSettings
     let hud: any WindowsHUDPresenting
     private let activationCenter: NotificationCenter
+    /// Whether the plugin shows the menu bar strip when it is on. Tests leave it off: a status item needs a display.
+    private let showsStrip: Bool
     private(set) var runtime: WindowsRuntime?
     /// The first activation of this process honours safe mode; a later one (the user switched the plugin on
     /// again, or pressed Try Again) clears it.
     private var launchActivationDone = false
 
     public convenience init(context: PluginContext) {
-        self.init(context: context, hud: WindowsHUDPanel.shared, activationCenter: .default)
+        self.init(context: context, hud: WindowsHUDPanel.shared, activationCenter: .default, showsStrip: true)
     }
 
-    init(context: PluginContext, hud: any WindowsHUDPresenting, activationCenter: NotificationCenter) {
+    init(
+        context: PluginContext, hud: any WindowsHUDPresenting, activationCenter: NotificationCenter,
+        showsStrip: Bool = false
+    ) {
+        self.showsStrip = showsStrip
         self.context = context
         self.settings = WindowsSettings(context.settings)
         self.hud = hud
@@ -80,8 +86,19 @@ public final class WindowsPlugin: LintelPlugin {
         }
         launchActivationDone = true
         guard runtime == nil else { return }
+        var makeStrip: (@MainActor (WindowsRuntime) -> WorkspaceStripController)?
+        if showsStrip {
+            makeStrip = { runtime in
+                WorkspaceStripController(
+                    select: { number in
+                        guard let workspace = WorkspaceID(number) else { return }
+                        Task { await runtime.goToWorkspace(workspace) }
+                    },
+                    restoreAll: { Task { await runtime.restoreAllWindows() } })
+            }
+        }
         let runtime = WindowsRuntime(
-            context: context, settings: settings, hud: hud, activationCenter: activationCenter)
+            context: context, settings: settings, hud: hud, activationCenter: activationCenter, makeStrip: makeStrip)
         self.runtime = runtime
         await runtime.start()
     }

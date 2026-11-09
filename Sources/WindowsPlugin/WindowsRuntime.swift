@@ -32,12 +32,19 @@ final class WindowsRuntime {
     let engine: WindowEngine
     let trust: AccessibilityTrust
     let hud: any WindowsHUDPresenting
+    /// The menu bar strip; `nil` until `start()` when it is on, and in tests that pass `makeStrip: nil`.
+    private(set) var strip: WorkspaceStripController?
+    private let makeStrip: (@MainActor (WindowsRuntime) -> WorkspaceStripController)?
+    private var lastSummary: WorkspaceSummary?
+    private let summaryRelay: SummaryRelay
     private var activationObserver: AppActivationObserver?
 
     init(
         context: PluginContext, settings: WindowsSettings, hud: any WindowsHUDPresenting,
-        activationCenter: NotificationCenter = .default, tick: Duration = .milliseconds(30)
+        activationCenter: NotificationCenter = .default, tick: Duration = .milliseconds(30),
+        makeStrip: (@MainActor (WindowsRuntime) -> WorkspaceStripController)? = nil
     ) {
+        self.makeStrip = makeStrip
         self.context = context
         self.settings = settings
         self.hud = hud
@@ -46,6 +53,8 @@ final class WindowsRuntime {
         let trust = AccessibilityTrust(reader: context.permissions, clock: context.clock)
         self.trust = trust
         let flag = trust.flag
+        let relay = SummaryRelay()
+        summaryRelay = relay
         engine = WindowEngine(
             client: context.windows, store: store, clock: context.clock, workspaceCount: settings.workspaceCount,
             config: Self.config(settings), tick: tick,
@@ -54,13 +63,40 @@ final class WindowsRuntime {
                     guard settings.workspaceHUD else { return }
                     Task { @MainActor in hud.show(.workspace(number: workspace.rawValue, windowCount: count)) }
                 },
-                summary: { _ in },
+                summary: { summary in Task { @MainActor in relay.handler(summary) } },
                 banner: { _ in },
                 restored: { report in
                     Task { @MainActor in hud.show(WindowsHUDState(report: report)) }
                 }),
             canMove: { flag.isTrusted }, logger: context.logger)
         self.activationCenter = activationCenter
+        relay.handler = { [weak self] summary in self?.summaryChanged(summary) }
+    }
+
+    /// The engine reports every change of the workspaces; the strip redraws.
+    private func summaryChanged(_ summary: WorkspaceSummary) {
+        lastSummary = summary
+        strip?.update(stripBoxes())
+    }
+
+    func stripBoxes() -> [StripBox] {
+        StripModel.boxes(
+            summary: lastSummary ?? WorkspaceSummary(current: nil, visible: [:], counts: [:]),
+            workspaceCount: settings.workspaceCount, occupiedOnly: settings.stripMode == .occupied)
+    }
+
+    /// Shows or hides the strip as the setting says.
+    func applyStrip() {
+        guard let makeStrip else { return }
+        if settings.stripEnabled {
+            let strip = strip ?? makeStrip(self)
+            self.strip = strip
+            strip.install()
+            strip.update(stripBoxes())
+        } else {
+            strip?.remove()
+            strip = nil
+        }
     }
 
     private let activationCenter: NotificationCenter
@@ -82,6 +118,7 @@ final class WindowsRuntime {
         }
         ActiveEngines.insert(context.storageDirectory)
         await engine.start()
+        applyStrip()
     }
 
     /// Puts the windows back and stops, waiting at most `stopBudget`.
@@ -89,6 +126,8 @@ final class WindowsRuntime {
         activationObserver?.stop()
         activationObserver = nil
         trust.stop()
+        strip?.remove()
+        strip = nil
         let engine = engine
         _ = await TimeBound.run(budget: Self.stopBudget, clock: context.clock) { await engine.stop() }
         ActiveEngines.remove(context.storageDirectory)
@@ -114,6 +153,7 @@ final class WindowsRuntime {
     func applySettings() async {
         await engine.update(config: Self.config(settings))
         await engine.send(.setWorkspaceCount(settings.workspaceCount))
+        applyStrip()
     }
 
     /// Accessibility came back: windows parked before it was revoked are restored at once, which is the only safe
@@ -155,4 +195,10 @@ struct InactiveSwitcher: WindowSwitching {
     func goToWorkspace(_ workspace: WorkspaceID) async {}
     func goToWindow(_ id: WindowID) async {}
     func bringHere(_ id: WindowID) async {}
+}
+
+/// Carries the engine's summary to the main actor once the runtime exists.
+@MainActor
+final class SummaryRelay {
+    var handler: @MainActor (WorkspaceSummary) -> Void = { _ in }
 }

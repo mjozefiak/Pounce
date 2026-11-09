@@ -13500,6 +13500,60 @@
           }
         }
       }
+    },
+    "current" : {
+      "comment" : "Strip: spoken after the workspace the user is on",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "current"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "bieżący"
+          }
+        }
+      }
+    },
+    "shown on another display" : {
+      "comment" : "Strip: spoken for a workspace on another display",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "shown on another display"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "widoczny na innym ekranie"
+          }
+        }
+      }
+    },
+    "Workspaces" : {
+      "comment" : "Strip: accessibility label of the menu bar item",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Workspaces"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obszary robocze"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
