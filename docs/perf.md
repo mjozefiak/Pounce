@@ -291,7 +291,7 @@ Measurement checklist (copy into the PR that records the numbers):
 |---|---|---|---|
 | Switch workspaces with 20 windows | < 100 ms on Apple silicon | not yet measured | 20 windows of 5 apps, `windows.workspace.2` and back; time from the key to the last `setFrame` returning. |
 | Strip redraw after a switch | < 16 ms | not yet measured | Time from the engine summary to the new status item image. |
-| Tiling reflow after one window event | < 30 ms | not yet measured | Phase 2. |
+| Tiling reflow after one window event | < 30 ms | not yet measured | Phase 2 (step 2.4). 10 tiled windows of 5 apps, open or close one; time from the event reaching the engine to the last `setFrame` returning. Pure frame computation (`TilingLayout.frames`) is cheap by construction; the cost is the Accessibility calls, which need a real Mac. No benchmark exists yet. |
 | Shift-drag overlay appears | < 50 ms | not yet measured | Phase 3. |
 | Layout editor opens | < 200 ms | not yet measured | Phase 4. |
 | Parking constants (sliver, echo tolerance 2 pt, watchdog rate, per-app timeout 0.25 s) | ADR 0009 rows 1 to 6, 10 | not yet measured | The spike on a real Mac. |

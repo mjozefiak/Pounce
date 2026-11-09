@@ -61,6 +61,13 @@ import Testing
         #expect(shortcut(of: "windows.workspace.1") == "⌥1")
         #expect(shortcut(of: "windows.moveToWorkspace.9") == "⌥⇧9")
         #expect(shortcut(of: "windows.workspace.back") == "⌥⇥")
+        #expect(shortcut(of: "windows.focus.left") == "⌥H")
+        #expect(shortcut(of: "windows.focus.right") == "⌥L")
+        #expect(shortcut(of: "windows.move.down") == "⌥⇧J")
+        #expect(shortcut(of: "windows.resize.grow") == "⌥=")
+        #expect(shortcut(of: "windows.resize.shrink") == "⌥-")
+        // ⌥/ (toggle layout) is registered with the zones phase, not before.
+        #expect(shortcut(of: "windows.toggleLayout") == nil)
     }
 
     @Test func theMeetingCommandsAppearInTheMenuAndTheLibraryHasNoShortcut() throws {

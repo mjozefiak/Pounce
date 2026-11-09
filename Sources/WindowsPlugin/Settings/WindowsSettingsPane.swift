@@ -3,8 +3,8 @@ import LintelUI
 import SwiftUI
 
 /// Settings → Window Management on the `SettingsPane` template (prototype `set-windows`): Basics, a collapsed
-/// Advanced and Data. The banner is the host's, from `WindowsPlugin.settingsStatus`. The layout rows of the
-/// mockup (default layout, gaps, Layouts…) arrive with the phases that build them.
+/// Advanced and Data. The banner is the host's, from `WindowsPlugin.settingsStatus`. Basics has the default layout
+/// and the gaps; the *Layouts…* row of the mockup arrives with phase 3.
 struct WindowsSettingsPane: View {
     @Bindable var model: WindowsSettingsModel
     /// `false` while the plugin is off or failed: the pane then reads nothing and starts nothing.
@@ -82,6 +82,23 @@ struct WindowsSettingsPane: View {
         } label: {
             label(Text("Workspaces", comment: "Window Management setting: how many workspaces"))
         }
+        MenuPicker(selection: Binding(get: { model.defaultKind }, set: { model.setDefaultKind($0) })) {
+            ForEach(kindOptions, id: \.self) { kind in
+                Text(verbatim: WindowsSettingsModel.kindName(kind)).font(textSize.font(.body)).tag(kind)
+            }
+        } label: {
+            label(
+                Text("Default layout", comment: "Window Management setting: how workspaces are arranged"),
+                help: Text(
+                    "Auto-tile fills the screen with the windows of a workspace. Free leaves them where they are.",
+                    comment: "Window Management setting help: the layout kinds"))
+        }
+        gapRow(
+            Text("Space between windows", comment: "Window Management setting: the inner gap"),
+            value: Binding(get: { model.innerGap }, set: { model.setInnerGap($0) }))
+        gapRow(
+            Text("Space around windows", comment: "Window Management setting: the outer gap"),
+            value: Binding(get: { model.outerGap }, set: { model.setOuterGap($0) }))
         Toggle(isOn: Binding(get: { model.stripEnabled }, set: { model.setStripEnabled($0) })) {
             label(Text("Show menu bar strip", comment: "Window Management setting: the numbered boxes in the menu bar"))
         }
@@ -112,11 +129,12 @@ struct WindowsSettingsPane: View {
             label(Text("Strip shows", comment: "Window Management setting: which boxes the strip draws"))
         }
         modifierRow(
-            Text("Go to workspace", comment: "Window Management shortcut family"), family: .goToWorkspace,
-            choice: model.goChoice)
+            Text("Go to workspace", comment: "Window Management shortcut family"), family: .goToWorkspace)
         modifierRow(
-            Text("Move window to workspace", comment: "Window Management shortcut family"), family: .moveToWorkspace,
-            choice: model.moveChoice)
+            Text("Move window to workspace", comment: "Window Management shortcut family"), family: .moveToWorkspace)
+        modifierRow(Text("Focus window", comment: "Window Management shortcut family"), family: .focus)
+        modifierRow(Text("Move window", comment: "Window Management shortcut family"), family: .moveWindow)
+        modifierRow(Text("Resize window", comment: "Window Management shortcut family"), family: .resize)
         if model.modifierConflict {
             label(
                 Text(
@@ -138,11 +156,13 @@ struct WindowsSettingsPane: View {
                 }
             }
         }
+        workspaceLayouts
         floatingApps
     }
 
-    private func modifierRow(_ title: Text, family: ShortcutFamily, choice: ModifierChoice?) -> some View {
-        MenuPicker(
+    private func modifierRow(_ title: Text, family: ShortcutFamily) -> some View {
+        let choice = model.choices[family]
+        return MenuPicker(
             selection: Binding(
                 get: { choice?.rawValue ?? "custom" },
                 set: { if let value = ModifierChoice(rawValue: $0) { model.setModifiers(value, for: family) } })
@@ -153,8 +173,8 @@ struct WindowsSettingsPane: View {
                 ).tag("custom")
             }
             ForEach(ModifierChoice.allCases) { option in
-                Text(verbatim: option.symbols + "1–9").font(textSize.font(.body)).tag(option.rawValue)
-                    .disabled(option == (family == .goToWorkspace ? model.moveChoice : model.goChoice))
+                Text(verbatim: option.symbols + family.keysLabel).font(textSize.font(.body)).tag(option.rawValue)
+                    .disabled(option == model.partnerChoice(of: family))
             }
         } label: {
             label(title)
@@ -192,6 +212,136 @@ struct WindowsSettingsPane: View {
             } label: {
                 Text("Reset List", comment: "Window Management: restores the default floating apps")
             }
+        }
+    }
+
+    private var kindOptions: [LayoutKind] {
+        WindowsSettingsModel.selectableKinds
+            + (WindowsSettingsModel.selectableKinds.contains(model.defaultKind) ? [] : [model.defaultKind])
+    }
+
+    private func gapRow(_ title: Text, value: Binding<Int>) -> some View {
+        LabeledContent {
+            Stepper(value: value, in: 0...WindowsSettings.maximumGap) {
+                Text("\(value.wrappedValue) px", comment: "Window Management: a gap in points").font(
+                    textSize.font(.body)
+                )
+                .monospacedDigit()
+            }
+            .accessibilityLabel(title)
+            .accessibilityValue(Text("\(value.wrappedValue) px", comment: "Window Management: a gap in points"))
+        } label: {
+            label(title)
+        }
+    }
+
+    // MARK: Per-workspace configuration
+
+    @ViewBuilder private var workspaceLayouts: some View {
+        label(
+            Text("Workspaces", comment: "Window Management setting: how many workspaces"),
+            help: Text(
+                "What each workspace uses. Edit one to change its layout, gaps or first split.",
+                comment: "Window Management setting help: per-workspace layout"))
+        if model.overridesLocked {
+            label(
+                Text(
+                    "These settings were saved by a newer version of Lintel and can’t be changed here.",
+                    comment: "Window Management: per-workspace settings from a newer version"))
+        }
+        ForEach(model.workspaceSummaries) { line in
+            LabeledContent {
+                Button {
+                    model.edit(line.workspace)
+                } label: {
+                    Text(
+                        model.editingWorkspace == line.workspace ? "Done" : "Edit",
+                        comment: "Window Management: edits the layout of one workspace")
+                }
+                .disabled(model.overridesLocked)
+                .accessibilityLabel(
+                    Text(
+                        "Edit workspace \(line.workspace.rawValue)",
+                        comment: "Window Management: edits one workspace (spoken)"))
+            } label: {
+                label(
+                    Text("Workspace \(line.workspace.rawValue)", comment: "Window switcher: a workspace"),
+                    help: Text(verbatim: line.detail))
+            }
+            if model.editingWorkspace == line.workspace { workspaceEditor(line.workspace) }
+        }
+    }
+
+    @ViewBuilder private func workspaceEditor(_ workspace: WorkspaceID) -> some View {
+        let current = model.override(for: workspace)
+        MenuPicker(
+            selection: Binding(
+                get: { current.kind?.rawValue ?? Self.useDefault },
+                set: { model.setOverrideKind(LayoutKind(rawValue: $0), for: workspace) })
+        ) {
+            Text("Use default", comment: "Window Management: the workspace follows the global setting")
+                .font(textSize.font(.body)).tag(Self.useDefault)
+            ForEach(WindowsSettingsModel.selectableKinds, id: \.rawValue) { kind in
+                Text(verbatim: WindowsSettingsModel.kindName(kind)).font(textSize.font(.body)).tag(kind.rawValue)
+            }
+        } label: {
+            label(Text("Layout", comment: "Window Management: the layout kind of one workspace"))
+        }
+        overrideGap(
+            Text("Space between windows", comment: "Window Management setting: the inner gap"), value: current.innerGap,
+            fallback: model.innerGap
+        ) { model.setOverrideInnerGap($0, for: workspace) }
+        overrideGap(
+            Text("Space around windows", comment: "Window Management setting: the outer gap"), value: current.outerGap,
+            fallback: model.outerGap
+        ) { model.setOverrideOuterGap($0, for: workspace) }
+        MenuPicker(
+            selection: Binding(
+                get: { current.rootOrientation?.rawValue ?? Self.useDefault },
+                set: { model.setOverrideOrientation(TilingOrientation(rawValue: $0), for: workspace) })
+        ) {
+            Text("Use default", comment: "Window Management: the workspace follows the global setting")
+                .font(textSize.font(.body)).tag(Self.useDefault)
+            ForEach(TilingOrientation.allCases, id: \.rawValue) { orientation in
+                Text(verbatim: WindowsSettingsModel.orientationName(orientation)).font(textSize.font(.body))
+                    .tag(orientation.rawValue)
+            }
+        } label: {
+            label(Text("First split", comment: "Window Management: the root orientation of one workspace"))
+        }
+        Button {
+            model.resetOverrides(for: workspace)
+        } label: {
+            Text("Use the defaults for this workspace", comment: "Window Management: clears the overrides")
+        }
+        .disabled(current.isEmpty)
+    }
+
+    private static let useDefault = "default"
+
+    private func overrideGap(_ title: Text, value: Int?, fallback: Int, set: @escaping (Int?) -> Void)
+        -> some View
+    {
+        LabeledContent {
+            HStack {
+                Stepper(
+                    value: Binding(get: { value ?? fallback }, set: { set($0) }),
+                    in: 0...WindowsSettings.maximumGap
+                ) {
+                    Text("\(value ?? fallback) px", comment: "Window Management: a gap in points")
+                        .font(textSize.font(.body)).monospacedDigit()
+                }
+                .accessibilityLabel(title)
+                if value != nil {
+                    Button {
+                        set(nil)
+                    } label: {
+                        Text("Default", comment: "Window Management: returns a gap to the global value")
+                    }
+                }
+            }
+        } label: {
+            label(title)
         }
     }
 

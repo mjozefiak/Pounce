@@ -395,6 +395,31 @@ enum EngineReducer {
                 trailing.append(.focus(id))
             case .reload:
                 reload(now: now)
+            case .focusDirection(let direction):
+                focusTile(direction)
+            case .moveInTree(let direction):
+                editTree { id, tree in TilingNavigation.move(id, direction, in: tree) }
+            case .resize(let delta):
+                editTree { id, tree in
+                    var next = tree
+                    return next.resize(id, by: delta) ? next : nil
+                }
+            case .join(let direction):
+                editTree { id, tree in
+                    var next = tree
+                    return next.join(id, direction) ? next : nil
+                }
+            case .toggleOrientation:
+                editTree { id, tree in
+                    var next = tree
+                    return next.toggleOrientation(of: id) ? next : nil
+                }
+            case .balance:
+                editTree { _, tree in
+                    var next = tree
+                    next.balance()
+                    return next == tree ? nil : next
+                }
             case .toggleFloating:
                 guard !state.isFrozen, let id = state.focused, state.windows[id] != nil else { return }
                 if state.floating.remove(id) == nil { state.floating.insert(id) }
@@ -507,6 +532,34 @@ enum EngineReducer {
                 let tile = tileFrames(workspace)[id]
             else { return nil }
             return target(for: id, tile: tile)
+        }
+
+        /// The focused window and its workspace when tiling commands apply to it: the engine is not frozen, the
+        /// window is managed and tiled, and its workspace is shown and Auto-tile.
+        private mutating func focusedTile() -> (workspace: WorkspaceID, window: WindowID)? {
+            guard !state.isFrozen, let id = state.focused, state.windows[id] != nil,
+                !state.floating.contains(id), !state.unmanaged.contains(id),
+                let workspace = state.model.workspace(of: id), state.model.isVisible(workspace),
+                tileFrames(workspace)[id] != nil
+            else { return nil }
+            return (workspace, id)
+        }
+
+        private mutating func focusTile(_ direction: TilingDirection) {
+            guard let (workspace, id) = focusedTile(), let tree = state.tiling[workspace],
+                let next = TilingNavigation.neighbour(of: id, direction, in: tree)
+            else { return }
+            state.previousFocus = id
+            state.focused = next
+            trailing.append(.focus(next))
+        }
+
+        /// Replaces the tree of the focused window's workspace with what `change` makes of it (`nil`: no change).
+        private mutating func editTree(_ change: (WindowID, TilingTree) -> TilingTree?) {
+            guard let (workspace, id) = focusedTile(), let tree = state.tiling[workspace],
+                let next = change(id, tree)
+            else { return }
+            state.tiling[workspace] = next
         }
 
         mutating func arrangeIfRequested(now: Double) {

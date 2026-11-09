@@ -104,7 +104,8 @@ import Testing
         let keys = [
             WindowsSettings.Key.workspaceCount, WindowsSettings.Key.floatingApps, WindowsSettings.Key.followFocus,
             WindowsSettings.Key.workspaceHUD, WindowsSettings.Key.stripEnabled, WindowsSettings.Key.stripMode,
-            WindowsSettings.Key.safeMode, WindowsSettings.Key.parkedLaunches,
+            WindowsSettings.Key.safeMode, WindowsSettings.Key.parkedLaunches, WindowsSettings.Key.defaultKind,
+            WindowsSettings.Key.innerGap, WindowsSettings.Key.outerGap, WindowsSettings.Key.workspaces,
         ]
         #expect(Set(keys).count == keys.count)
     }

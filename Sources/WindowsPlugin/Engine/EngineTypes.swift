@@ -152,6 +152,18 @@ enum EngineCommand: Equatable, Sendable {
     case restoreAll
     /// Takes the focused window out of tiling, or puts it back in.
     case toggleFloating
+    /// Moves the focus to the neighbouring tile of the focused window.
+    case focusDirection(TilingDirection)
+    /// Moves the focused window in the tree: swap, into a neighbouring container, or out of its own.
+    case moveInTree(TilingDirection)
+    /// Grows (positive) or shrinks (negative) the focused window by that share of its container.
+    case resize(Double)
+    /// Puts the focused window and its neighbour in that direction into a new container.
+    case join(TilingDirection)
+    /// Flips the orientation of the container that holds the focused window.
+    case toggleOrientation
+    /// Gives every tile of the workspace the same share.
+    case balance
     /// A setting changed (sent right after `configChanged`): apps that joined the floating list are let go and
     /// the windows are arranged again.
     case reload

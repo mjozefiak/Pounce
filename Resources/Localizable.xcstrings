@@ -14472,6 +14472,726 @@
           }
         }
       }
+    },
+    "Focus Left" : {
+      "comment" : "Command: moves the focus to the tile on the left",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Focus Left"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fokus w lewo"
+          }
+        }
+      }
+    },
+    "Focus Right" : {
+      "comment" : "Command: moves the focus to the tile on the right",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Focus Right"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fokus w prawo"
+          }
+        }
+      }
+    },
+    "Focus Up" : {
+      "comment" : "Command: moves the focus to the tile above",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Focus Up"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fokus w górę"
+          }
+        }
+      }
+    },
+    "Focus Down" : {
+      "comment" : "Command: moves the focus to the tile below",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Focus Down"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fokus w dół"
+          }
+        }
+      }
+    },
+    "Move Window Left" : {
+      "comment" : "Command: moves the focused window in the tree",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move Window Left"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przesuń okno w lewo"
+          }
+        }
+      }
+    },
+    "Move Window Right" : {
+      "comment" : "Command: moves the focused window in the tree",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move Window Right"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przesuń okno w prawo"
+          }
+        }
+      }
+    },
+    "Move Window Up" : {
+      "comment" : "Command: moves the focused window in the tree",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move Window Up"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przesuń okno w górę"
+          }
+        }
+      }
+    },
+    "Move Window Down" : {
+      "comment" : "Command: moves the focused window in the tree",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move Window Down"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przesuń okno w dół"
+          }
+        }
+      }
+    },
+    "Grow Window" : {
+      "comment" : "Command: makes the focused tile larger",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grow Window"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Powiększ okno"
+          }
+        }
+      }
+    },
+    "Shrink Window" : {
+      "comment" : "Command: makes the focused tile smaller",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shrink Window"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pomniejsz okno"
+          }
+        }
+      }
+    },
+    "Join with Left Window" : {
+      "comment" : "Command: groups the focused window with its neighbour",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join with Left Window"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Połącz z oknem po lewej"
+          }
+        }
+      }
+    },
+    "Join with Right Window" : {
+      "comment" : "Command: groups the focused window with its neighbour",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join with Right Window"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Połącz z oknem po prawej"
+          }
+        }
+      }
+    },
+    "Join with Window Above" : {
+      "comment" : "Command: groups the focused window with its neighbour",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join with Window Above"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Połącz z oknem powyżej"
+          }
+        }
+      }
+    },
+    "Join with Window Below" : {
+      "comment" : "Command: groups the focused window with its neighbour",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join with Window Below"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Połącz z oknem poniżej"
+          }
+        }
+      }
+    },
+    "Toggle Split Direction" : {
+      "comment" : "Command: flips the container of the focused window",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toggle Split Direction"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełącz kierunek podziału"
+          }
+        }
+      }
+    },
+    "Toggle Floating" : {
+      "comment" : "Command: takes the focused window out of tiling or back in",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toggle Floating"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełącz okno pływające"
+          }
+        }
+      }
+    },
+    "Balance Windows" : {
+      "comment" : "Command: gives every tile the same size",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Balance Windows"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyrównaj okna"
+          }
+        }
+      }
+    },
+    "Toggle Layout" : {
+      "comment" : "Command: cycles the layout kind of the current workspace",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toggle Layout"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełącz układ"
+          }
+        }
+      }
+    },
+    "Auto-tile" : {
+      "comment" : "Window Management layout kind: windows tile the screen",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto-tile"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układ kafelkowy"
+          }
+        }
+      }
+    },
+    "Zones" : {
+      "comment" : "Window Management layout kind: windows snap into zones",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zones"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strefy"
+          }
+        }
+      }
+    },
+    "Free" : {
+      "comment" : "Window Management layout kind: windows are left where they are",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Free"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swobodny"
+          }
+        }
+      }
+    },
+    "Side by side" : {
+      "comment" : "Window Management: the first split of a workspace is horizontal",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Side by side"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obok siebie"
+          }
+        }
+      }
+    },
+    "Stacked" : {
+      "comment" : "Window Management: the first split of a workspace is vertical",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stacked"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jedno pod drugim"
+          }
+        }
+      }
+    },
+    "Gaps %lld / %lld" : {
+      "comment" : "Window Management summary: gaps",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gaps %lld / %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odstępy %lld / %lld"
+          }
+        }
+      }
+    },
+    "Default layout" : {
+      "comment" : "Window Management setting: how workspaces are arranged",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default layout"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Domyślny układ"
+          }
+        }
+      }
+    },
+    "Auto-tile fills the screen with the windows of a workspace. Free leaves them where they are." : {
+      "comment" : "Window Management setting help: the layout kinds",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto-tile fills the screen with the windows of a workspace. Free leaves them where they are."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układ kafelkowy wypełnia ekran oknami obszaru. Swobodny zostawia je tam, gdzie są."
+          }
+        }
+      }
+    },
+    "Space between windows" : {
+      "comment" : "Window Management setting: the inner gap",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Space between windows"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odstęp między oknami"
+          }
+        }
+      }
+    },
+    "Space around windows" : {
+      "comment" : "Window Management setting: the outer gap",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Space around windows"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odstęp wokół okien"
+          }
+        }
+      }
+    },
+    "%lld px" : {
+      "comment" : "Window Management: a gap in points",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld px"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld px"
+          }
+        }
+      }
+    },
+    "Focus window" : {
+      "comment" : "Window Management shortcut family",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Focus window"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fokus okna"
+          }
+        }
+      }
+    },
+    "Move window" : {
+      "comment" : "Window Management shortcut family",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move window"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przesuwanie okna"
+          }
+        }
+      }
+    },
+    "Resize window" : {
+      "comment" : "Window Management shortcut family",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resize window"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zmiana rozmiaru okna"
+          }
+        }
+      }
+    },
+    "What each workspace uses. Edit one to change its layout, gaps or first split." : {
+      "comment" : "Window Management setting help: per-workspace layout",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What each workspace uses. Edit one to change its layout, gaps or first split."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ustawienia każdego obszaru. Edytuj obszar, aby zmienić jego układ, odstępy lub pierwszy podział."
+          }
+        }
+      }
+    },
+    "These settings were saved by a newer version of Lintel and can’t be changed here." : {
+      "comment" : "Window Management: per-workspace settings from a newer version",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These settings were saved by a newer version of Lintel and can’t be changed here."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te ustawienia zapisała nowsza wersja aplikacji Lintel i nie można ich tu zmienić."
+          }
+        }
+      }
+    },
+    "Edit workspace %lld" : {
+      "comment" : "Window Management: edits one workspace (spoken)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit workspace %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edytuj obszar %lld"
+          }
+        }
+      }
+    },
+    "Use default" : {
+      "comment" : "Window Management: the workspace follows the global setting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use default"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Użyj domyślnych"
+          }
+        }
+      }
+    },
+    "Layout" : {
+      "comment" : "Window Management: the layout kind of one workspace",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layout"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układ"
+          }
+        }
+      }
+    },
+    "First split" : {
+      "comment" : "Window Management: the root orientation of one workspace",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First split"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pierwszy podział"
+          }
+        }
+      }
+    },
+    "Use the defaults for this workspace" : {
+      "comment" : "Window Management: clears the overrides",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use the defaults for this workspace"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Użyj ustawień domyślnych dla tego obszaru"
+          }
+        }
+      }
+    },
+    "Default" : {
+      "comment" : "Window Management: returns a gap to the global value",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Domyślne"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

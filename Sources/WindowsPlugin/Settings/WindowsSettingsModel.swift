@@ -38,9 +38,9 @@ enum ModifierChoice: String, CaseIterable, Identifiable {
 /// pane rule, `InactiveSettingsPaneTests`).
 @MainActor @Observable
 final class WindowsSettingsModel {
-    @ObservationIgnored private let settings: WindowsSettings
-    @ObservationIgnored private let context: PluginContext
-    @ObservationIgnored private let runtime: () -> WindowsRuntime?
+    @ObservationIgnored let settings: WindowsSettings
+    @ObservationIgnored let context: PluginContext
+    @ObservationIgnored let runtime: () -> WindowsRuntime?
     @ObservationIgnored private let preferences: SystemPreferences
     @ObservationIgnored private let translate: ShortcutSafety.KeyTranslation
     @ObservationIgnored private let chooseApp: () -> String?
@@ -52,9 +52,19 @@ final class WindowsSettingsModel {
     private(set) var stripEnabled: Bool
     private(set) var stripMode: WindowsSettings.StripMode
     private(set) var floatingApps: [String]
-    /// The current modifiers of the two families; `nil` when the user recorded something else for a command.
-    private(set) var goChoice: ModifierChoice?
-    private(set) var moveChoice: ModifierChoice?
+    /// The current modifiers of each shortcut family; a family is missing when the user recorded something else
+    /// for one of its commands.
+    private(set) var choices: [ShortcutFamily: ModifierChoice] = [:]
+    var goChoice: ModifierChoice? { choices[.goToWorkspace] }
+    var moveChoice: ModifierChoice? { choices[.moveToWorkspace] }
+
+    // The layout settings (`WindowsSettingsModel+Layout.swift` changes them).
+    var defaultKind: LayoutKind
+    var innerGap: Int
+    var outerGap: Int
+    var overrides: WorkspaceOverrides
+    /// The workspace whose overrides the pane is editing, if any.
+    var editingWorkspace: WorkspaceID?
     /// Shortcuts that type a letter on the active layout.
     private(set) var unsafeShortcuts: [KeyShortcut] = []
     private(set) var status = WindowsStatusInputs()
@@ -82,8 +92,13 @@ final class WindowsSettingsModel {
         stripEnabled = settings.stripEnabled
         stripMode = settings.stripMode
         floatingApps = settings.floatingApps
-        goChoice = ModifierChoice(ShortcutFamily.goToWorkspace.defaultModifiers)
-        moveChoice = ModifierChoice(ShortcutFamily.moveToWorkspace.defaultModifiers)
+        defaultKind = settings.defaultKind
+        innerGap = settings.innerGap
+        outerGap = settings.outerGap
+        overrides = settings.workspaceOverrides
+        for family in ShortcutFamily.allCases {
+            choices[family] = ModifierChoice(family.defaultModifiers)
+        }
     }
 
     // MARK: Reading the world (only while the plugin is active)
@@ -99,24 +114,21 @@ final class WindowsSettingsModel {
             stageManagerOn: preferences.stageManagerOn, displaysShareASpace: preferences.displaysShareASpace,
             stripEnabled: settings.stripEnabled, stripHasRoom: running?.strip?.hasRoom,
             workspaceCount: settings.workspaceCount)
-        goChoice = choice(for: ShortcutFamily.goToWorkspace)
-        moveChoice = choice(for: ShortcutFamily.moveToWorkspace)
+        for family in ShortcutFamily.allCases { choices[family] = choice(for: family) }
+        overrides = settings.workspaceOverrides
         refreshSafety()
         context.resultsChanged()
     }
 
     private func choice(for family: ShortcutFamily) -> ModifierChoice? {
-        let shortcut = context.commandShortcut(family.commandID(1))
-        guard let shortcut else { return nil }
+        guard let first = family.bindings.first, let shortcut = context.commandShortcut(first.id) else { return nil }
         return ModifierChoice(shortcut.modifiers)
     }
 
     /// Looks up what each bound key types with its modifiers on the active layout.
     func refreshSafety() {
         let bound = ShortcutFamily.allCases.flatMap { family in
-            (1...WindowsSettings.maximumWorkspaces).compactMap { number in
-                context.commandShortcut(family.commandID(number))
-            }
+            family.bindings.compactMap { context.commandShortcut($0.id) }
         }
         unsafeShortcuts = ShortcutSafety.check(bound, translate: translate).offending
     }
@@ -188,24 +200,30 @@ final class WindowsSettingsModel {
         changed()
     }
 
-    /// Sets the modifiers of one family. The two families never share modifiers (they would collide on the same
-    /// digit), so the choice the other family holds is refused.
+    /// The choice the partner family (the one bound to the same keys) holds.
+    func partnerChoice(of family: ShortcutFamily) -> ModifierChoice? {
+        family.partner.flatMap { choices[$0] }
+    }
+
+    /// Sets the modifiers of one family. Two families on the same keys never share modifiers (they would
+    /// collide), so the choice the partner holds is refused.
     func setModifiers(_ choice: ModifierChoice, for family: ShortcutFamily) {
-        let other = family == .goToWorkspace ? moveChoice : goChoice
+        let other = partnerChoice(of: family)
         modifierConflict = choice == other
         guard choice != other else { return }
-        for number in 1...WindowsSettings.maximumWorkspaces {
-            context.setCommandShortcut(
-                family.commandID(number), KeyShortcut(key: String(number), modifiers: choice.modifiers))
+        for binding in family.bindings {
+            context.setCommandShortcut(binding.id, KeyShortcut(key: binding.key, modifiers: choice.modifiers))
         }
-        if family == .goToWorkspace { goChoice = choice } else { moveChoice = choice }
+        choices[family] = choice
         refreshSafety()
     }
 
-    /// The one-click fix of the warning: ⌃⌥ for the go family and ⌃⌥⇧ for the move family.
+    /// The one-click fix of the warning: ⌃⌥ in place of ⌥ for every family, with ⇧ kept where the family has it
+    /// (⌃⌥⇧ for the move families).
     func useControlOption() {
-        setModifiers(.controlOption, for: .goToWorkspace)
-        setModifiers(.controlOptionShift, for: .moveToWorkspace)
+        for family in ShortcutFamily.allCases {
+            setModifiers(family.defaultModifiers.contains(.shift) ? .controlOptionShift : .controlOption, for: family)
+        }
     }
 
     // MARK: Data

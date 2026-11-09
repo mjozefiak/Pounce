@@ -36,7 +36,7 @@ import Testing
         defer { harness.tearDown() }
         let commands = WindowsPlugin(context: harness.context()).commands
         #expect(Set(commands.map(\.id)).count == commands.count)
-        #expect(commands.count == 9 + 9 + 3 + 1)
+        #expect(commands.count == 9 + 9 + 3 + 1 + 18)
         for number in 1...9 {
             let go = try #require(commands.first { $0.id == "windows.workspace.\(number)" })
             #expect(go.defaultShortcut == KeyShortcut(key: String(number), modifiers: [.option]))
@@ -45,11 +45,51 @@ import Testing
         }
         let back = try #require(commands.first { $0.id == "windows.workspace.back" })
         #expect(back.defaultShortcut == KeyShortcut(key: "\t", modifiers: [.option]))
-        // Only the defaults of this phase are bound.
+        // Only the defaults of this phase are bound: the workspace set, focus, move and resize.
         let bound = commands.compactMap(\.defaultShortcut)
-        #expect(bound.count == 19)
-        #expect(Set(bound).count == 19)
+        #expect(bound.count == 19 + 4 + 4 + 2)
+        #expect(Set(bound).count == bound.count)
         #expect(Set(bound) == Set(WindowsPlugin.defaultShortcuts))
+    }
+
+    nonisolated struct TilingBinding: Sendable, CustomTestStringConvertible {
+        var id: String
+        var key: String?
+        var modifiers: KeyShortcut.Modifiers
+        var testDescription: String { id }
+    }
+
+    /// The Q10 defaults of this phase and the commands that stay unbound (`toggleLayout` waits for phase 3).
+    nonisolated static let tilingBindings: [TilingBinding] = [
+        TilingBinding(id: "windows.focus.left", key: "h", modifiers: [.option]),
+        TilingBinding(id: "windows.focus.down", key: "j", modifiers: [.option]),
+        TilingBinding(id: "windows.focus.up", key: "k", modifiers: [.option]),
+        TilingBinding(id: "windows.focus.right", key: "l", modifiers: [.option]),
+        TilingBinding(id: "windows.move.left", key: "h", modifiers: [.option, .shift]),
+        TilingBinding(id: "windows.move.down", key: "j", modifiers: [.option, .shift]),
+        TilingBinding(id: "windows.move.up", key: "k", modifiers: [.option, .shift]),
+        TilingBinding(id: "windows.move.right", key: "l", modifiers: [.option, .shift]),
+        TilingBinding(id: "windows.resize.grow", key: "=", modifiers: [.option]),
+        TilingBinding(id: "windows.resize.shrink", key: "-", modifiers: [.option]),
+        TilingBinding(id: "windows.join.left", key: nil, modifiers: []),
+        TilingBinding(id: "windows.join.right", key: nil, modifiers: []),
+        TilingBinding(id: "windows.join.up", key: nil, modifiers: []),
+        TilingBinding(id: "windows.join.down", key: nil, modifiers: []),
+        TilingBinding(id: "windows.toggleOrientation", key: nil, modifiers: []),
+        TilingBinding(id: "windows.toggleFloating", key: nil, modifiers: []),
+        TilingBinding(id: "windows.balance", key: nil, modifiers: []),
+        TilingBinding(id: "windows.toggleLayout", key: nil, modifiers: []),
+    ]
+
+    @Test(arguments: tilingBindings)
+    func theTilingCommandsAreHiddenFromTheMenuAndBoundPerQ10(_ binding: TilingBinding) throws {
+        let harness = try WindowsHarness()
+        defer { harness.tearDown() }
+        let command = try #require(WindowsPlugin(context: harness.context()).commands.first { $0.id == binding.id })
+        #expect(!command.showsInMenu)
+        #expect(command.onKeyEvent == nil && command.panelMode == nil)
+        let expected = binding.key.map { KeyShortcut(key: $0, modifiers: binding.modifiers) }
+        #expect(command.defaultShortcut == expected)
     }
 
     @Test func onlyRestoreAllWindowsShowsInTheMenu() throws {
@@ -106,7 +146,7 @@ import Testing
                 .accessibilityNeeded(.switching), .accessibilityNeeded(.moving), .accessibilityNeeded(.switching),
             ])
         // The shortcuts stay registered.
-        #expect(plugin.commands.compactMap(\.defaultShortcut).count == 19)
+        #expect(plugin.commands.compactMap(\.defaultShortcut).count == 29)
         await plugin.deactivate()
     }
 
@@ -233,8 +273,15 @@ import Testing
         #expect(ShortcutSafety.check(fixed, translate: polish).isSafe)
     }
 
-    @Test func theDefaultsOfThisPhaseAreSafeOnAnOptionLettersLayout() {
-        #expect(ShortcutSafety.check(WindowsPlugin.defaultShortcuts, translate: polish).isSafe)
+    @Test func theLayoutCheckCoversTheNewKeysAndNamesOptionL() {
+        // ⌥L (focus right) types "ł" on a Polish layout: the check names it, and ⌃⌥ makes the set safe.
+        let result = ShortcutSafety.check(WindowsPlugin.defaultShortcuts, translate: polish)
+        #expect(result.offending.contains(KeyShortcut(key: "l", modifiers: [.option])))
+        #expect(!result.isSafe)
+        // ⌥- and ⌥= type symbols, never letters.
+        #expect(!result.offending.contains { $0.key == "-" || $0.key == "=" })
+        let fixed = ShortcutSafety.controlOption(for: WindowsPlugin.defaultShortcuts)
+        #expect(ShortcutSafety.check(fixed, translate: polish).isSafe)
     }
 
     @Test func everyBoundKeyHasAKeyCode() {

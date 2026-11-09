@@ -78,6 +78,9 @@ nonisolated struct HotkeyShortcut: Hashable, Sendable {
         for (index, scalar) in "0123456789".unicodeScalars.enumerated() {
             codes[String(scalar)] = digitCodes[index]
         }
+        // Window management's resize pair (⌥- and ⌥=).
+        codes["-"] = kVK_ANSI_Minus
+        codes["="] = kVK_ANSI_Equal
         return codes
     }()
 

@@ -268,3 +268,122 @@ extension SettingsTests {
         #expect(model.appName("com.example.not.installed") == "com.example.not.installed")
     }
 }
+
+extension SettingsTests {
+    // MARK: Step 2.5: layout rows, overrides and the new shortcut families
+
+    @Test func theLayoutRowsWriteThroughAndReachTheEngineConfig() throws {
+        let (plugin, _, harness, _) = try setup()
+        defer { harness.tearDown() }
+        let model = plugin.paneModel
+        model.setDefaultKind(.free)
+        model.setInnerGap(12)
+        model.setOuterGap(70)
+        let settings = WindowsSettings(harness.pluginSettings)
+        #expect(settings.defaultKind == .free && settings.innerGap == 12 && settings.outerGap == 64)
+        #expect(model.outerGap == 64)
+        #expect(model.layoutConfig.defaultKind == .free)
+        #expect(harness.store.keys.allSatisfy { $0.hasPrefix("plugins.windows.") })
+    }
+
+    @Test func overridesAreWrittenAsOneVersionedValueAndClearedWhenEmpty() throws {
+        let (plugin, _, harness, _) = try setup()
+        defer { harness.tearDown() }
+        let model = plugin.paneModel
+        let workspace = WorkspaceID(3)!
+        model.setOverrideKind(.free, for: workspace)
+        model.setOverrideInnerGap(0, for: workspace)
+        model.setOverrideOrientation(.vertical, for: workspace)
+        let stored = harness.pluginSettings.string(WindowsSettings.Key.workspaces)
+        #expect(stored?.contains("\"version\":1") == true)
+        #expect(
+            WindowsSettings(harness.pluginSettings).workspaceOverrides.byWorkspace[workspace]
+                == WorkspaceOverride(kind: .free, innerGap: 0, rootOrientation: .vertical))
+        model.setOverrideKind(nil, for: workspace)
+        model.resetOverrides(for: workspace)
+        #expect(model.overrides.byWorkspace.isEmpty)
+        #expect(harness.pluginSettings.string(WindowsSettings.Key.workspaces) == "")
+    }
+
+    @Test func theSummaryShowsTheEffectiveConfigurationOfEveryWorkspace() throws {
+        let (plugin, _, harness, _) = try setup()
+        defer { harness.tearDown() }
+        let model = plugin.paneModel
+        model.setWorkspaceCount(3)
+        model.setDefaultKind(.tiling)
+        model.setOverrideKind(.free, for: WorkspaceID(2)!)
+        model.setOverrideOuterGap(0, for: WorkspaceID(3)!)
+        let lines = model.workspaceSummaries
+        #expect(lines.map(\.workspace.rawValue) == [1, 2, 3])
+        #expect(lines.map(\.isCustom) == [false, true, true])
+        #expect(lines[1].detail == "Free")
+        // Auto-tile lines name the gaps and the first split.
+        #expect(lines[0].detail.hasPrefix("Auto-tile · "))
+        #expect(lines[0].detail.contains("8") && lines[2].detail.contains("8 / 0"))
+    }
+
+    @Test func overridesFromANewerVersionAreLockedAndKeptAsTheyAre() throws {
+        let (plugin, _, harness, _) = try setup()
+        defer { harness.tearDown() }
+        let newer = #"{"version":9,"workspaces":{"1":{"kind":"free"}}}"#
+        harness.pluginSettings.set(newer, for: WindowsSettings.Key.workspaces)
+        let model = WindowsSettingsModel(context: plugin.context, settings: plugin.settings, runtime: { nil })
+        #expect(model.overridesLocked)
+        model.setOverrideKind(.tiling, for: WorkspaceID(1)!)
+        model.resetOverrides(for: WorkspaceID(1)!)
+        #expect(harness.pluginSettings.string(WindowsSettings.Key.workspaces) == newer)
+        #expect(model.workspaceSummaries.allSatisfy { !$0.isCustom })
+    }
+
+    @Test func editingOneWorkspaceAtATime() throws {
+        let (plugin, _, harness, _) = try setup()
+        defer { harness.tearDown() }
+        let model = plugin.paneModel
+        model.edit(WorkspaceID(2))
+        #expect(model.editingWorkspace == WorkspaceID(2))
+        model.edit(WorkspaceID(4))
+        #expect(model.editingWorkspace == WorkspaceID(4))
+        model.edit(WorkspaceID(4))
+        #expect(model.editingWorkspace == nil)
+    }
+
+    @Test func everyFamilyHasItsOwnModifierAndPartnersNeverCollide() throws {
+        let (plugin, _, harness, log) = try setup()
+        defer { harness.tearDown() }
+        let model = plugin.paneModel
+        model.setModifiers(.controlOption, for: .focus)
+        #expect(log.get("windows.focus.right") == KeyShortcut(key: "l", modifiers: [.control, .option]))
+        #expect(log.get("windows.focus.left") == KeyShortcut(key: "h", modifiers: [.control, .option]))
+        // The move family holds ⌥⇧; the focus family may not take it.
+        model.setModifiers(.optionShift, for: .focus)
+        #expect(model.modifierConflict)
+        #expect(model.choices[.focus] == .controlOption)
+        model.setModifiers(.controlOption, for: .resize)
+        #expect(log.get("windows.resize.grow") == KeyShortcut(key: "=", modifiers: [.control, .option]))
+        #expect(log.get("windows.resize.shrink") == KeyShortcut(key: "-", modifiers: [.control, .option]))
+    }
+
+    @Test func theOneClickFixCoversTheTilingKeysToo() throws {
+        let (plugin, _, harness, log) = try setup()
+        defer { harness.tearDown() }
+        let model = WindowsSettingsModel(
+            context: plugin.context, settings: plugin.settings, runtime: { nil },
+            translate: { code, modifiers in
+                // A Polish layout: ⌥L types "ł".
+                modifiers.contains(.control) ? nil : (code == 37 ? "ł" : nil)
+            })
+        for family in ShortcutFamily.allCases {
+            for binding in family.bindings {
+                log.set(binding.id, KeyShortcut(key: binding.key, modifiers: family.defaultModifiers))
+            }
+        }
+        model.refreshSafety()
+        #expect(model.needsShortcutWarning)
+        #expect(model.unsafeKeyNames.contains("L"))
+        model.useControlOption()
+        #expect(!model.needsShortcutWarning)
+        #expect(log.get("windows.focus.right")?.modifiers == [.control, .option])
+        #expect(log.get("windows.move.right")?.modifiers == [.control, .option, .shift])
+        #expect(log.get("windows.resize.grow")?.modifiers == [.control, .option])
+    }
+}
