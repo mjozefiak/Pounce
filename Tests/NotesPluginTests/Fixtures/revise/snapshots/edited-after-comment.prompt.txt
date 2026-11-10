@@ -1,0 +1,13 @@
+<unit id="1">
+<before>
+## Plan
+
+The launch moved to the autumn.
+</before>
+<blocks count="1">
+Hire a designer.
+</blocks>
+<comments>
+- Senior or junior?
+</comments>
+</unit>

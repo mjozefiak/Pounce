@@ -1,4 +1,5 @@
 import Foundation
+import LintelCore
 
 /// Re-renders the model-composed notes through an allow-list. The notes are never trusted as Markdown: they
 /// are parsed line by line into headings, paragraphs and bullet or numbered lists with `*emphasis*` and
@@ -20,7 +21,7 @@ enum NotesMarkdown {
     }
 
     static func render(_ text: String) -> String {
-        let blocks = parse(MarkdownExporter.cleaned(text, keepNewlines: true))
+        let blocks = parse(MarkdownText.cleaned(text, keepNewlines: true))
         let smallest =
             blocks.compactMap { block -> Int? in
                 if case .heading(let level, _) = block { level } else { nil }

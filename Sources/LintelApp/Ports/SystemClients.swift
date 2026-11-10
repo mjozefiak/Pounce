@@ -69,8 +69,16 @@ nonisolated struct SystemPasteboardClient: PasteboardClient {
     }
 
     @MainActor @discardableResult func write(_ items: [PasteboardItem]) -> Int {
+        write(items, options: [])
+    }
+
+    @MainActor @discardableResult func write(_ items: [PasteboardItem], options: PasteboardWriteOptions) -> Int {
         let pasteboard = pasteboard
-        pasteboard.clearContents()
+        if options.contains(.currentHostOnly) {
+            pasteboard.prepareForNewContents(with: .currentHostOnly)
+        } else {
+            pasteboard.clearContents()
+        }
         let objects = items.map { item in
             let object = NSPasteboardItem()
             for representation in item.representations {

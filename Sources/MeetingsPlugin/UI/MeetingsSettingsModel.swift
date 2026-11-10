@@ -41,10 +41,10 @@ final class MeetingsSettingsModel {
         }
     }
     /// Whether the detector listens, cannot (the Core Audio process API is missing here) or is off.
-    internal(set) var suggestionStatus = MeetingDetector.Status.off
-    internal(set) var mutedApps: [SuggestionApp] = []
-    internal(set) var extraApps: [SuggestionApp] = []
-    internal(set) var extraAppError: ExtraAppError?
+    var suggestionStatus = MeetingDetector.Status.off
+    var mutedApps: [SuggestionApp] = []
+    var extraApps: [SuggestionApp] = []
+    var extraAppError: ExtraAppError?
     @ObservationIgnored var suggestionsChanged: () -> Void = {}
     @ObservationIgnored var appName: @MainActor (String) -> String = {
         KnownMeetingApp.name(of: $0) ?? MeetingLibraryPresentation.installedAppName($0) ?? $0
@@ -213,12 +213,34 @@ final class MeetingsSettingsModel {
     /// audio are in use).
     var canChangeLibrary: Bool { library.status == .ready && !library.isProcessing }
 
+    /// How many copies of meetings Notes keeps because the user edited or commented on them ("N copies in Notes are
+    /// kept"). Read before a confirmation sheet opens (`refreshKeptCopies()`); 0 without Notes.
+    private(set) var keptCopyCount = 0
+    /// `PluginContext.keptNoteCopies` / `deleteKeptNoteCopies` for this plugin; the defaults mean "no Notes".
+    @ObservationIgnored var keptCopies: @MainActor () async -> Int = { 0 }
+    @ObservationIgnored var deleteKeptCopies: @MainActor () async -> Bool = { true }
+
+    func refreshKeptCopies() async { keptCopyCount = await keptCopies() }
+
     /// Called after the pane's confirmation. `alsoDeleteKeptCopies` is the sheet's "Also delete kept copies"
-    /// checkbox; ignored until Notes exists (spec `2026-11-04-notes-workspace`, step 4.6 deletes the copies).
-    func clearLibrary(alsoDeleteKeptCopies: Bool = false) {
-        run {
+    /// checkbox (off by default): the copies are removed through Notes ONLY when the box is ticked AND the library
+    /// was cleared completely; the library is cleared first, never the other way round. The returned task is the
+    /// copies' removal.
+    @discardableResult
+    func clearLibrary(alsoDeleteKeptCopies: Bool = false) -> Task<Void, Never>? {
+        let cleared = run {
             let report = try privacy.clearLibrary()
             return (Self.removedMessage(report.removed), report.failed)
+        }
+        guard cleared, alsoDeleteKeptCopies else { return nil }
+        return Task {
+            if await !deleteKeptCopies() {
+                privacyMessage = String(
+                    localized: "The meetings were deleted, but some copies in Notes could not be removed.",
+                    comment: "Meetings settings: Also delete kept copies failed after the library was cleared")
+                privacyFailed = true
+            }
+            await refreshKeptCopies()
         }
     }
 
@@ -241,7 +263,8 @@ final class MeetingsSettingsModel {
     }
 
     /// `failed` counts audio folders that are still on the disk; the result then says so instead of success.
-    private func run(_ action: () throws -> (message: String, failed: Int)) {
+    @discardableResult
+    private func run(_ action: () throws -> (message: String, failed: Int)) -> Bool {
         do {
             let result = try action()
             if result.failed > 0 {
@@ -254,11 +277,13 @@ final class MeetingsSettingsModel {
                 privacyMessage = result.message
                 privacyFailed = false
             }
+            return result.failed == 0
         } catch {
             privacyMessage = String(
                 localized: "The library could not be changed. Nothing was lost; try again.",
                 comment: "Meetings settings: a privacy action failed")
             privacyFailed = true
+            return false
         }
     }
 

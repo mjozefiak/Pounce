@@ -258,6 +258,12 @@ private func entry(
         try history.erase()
     }
 
+    @Test func clearingAHistoryThatIsNotOpenThrows() throws {
+        let (history, _, directory) = try make(MemoryKeychain())
+        defer { withExtendedLifetime(directory) {} }
+        #expect(throws: DictationStoreError.self) { try history.clear() }
+    }
+
     // MARK: Helpers
 
     private func waitForFile(_ directory: TemporaryDirectory) async throws {
@@ -345,6 +351,26 @@ private func entry(
         #expect(log.all == ["Czysty tekst.", "surowy tekst"])
         try await actions[2].perform(context)
         #expect(try store.count() == 0)
+    }
+
+    /// Notes workspace step 3.2: "Open in Lintel" exists only when the plugin wires it (in every build since step 7.1).
+    @Test func openInLintelIsAnExtraActionOnlyWhenWired() async throws {
+        let (source, store, _, directory) = try rig()
+        defer { withExtendedLifetime(directory) {} }
+        try store.insert(entry("tekst", at: 1_000_000))
+        let candidate = try #require(try await source.search(query(""), filter: nil, limit: 5).first)
+        #expect(!source.actions(for: candidate).contains { $0.id == "dictation.history.openInLintel" })
+        let opened = PastedLog()
+        var wired = source
+        wired.openInNotes = { opened.add("\($0)") }
+        let actions = wired.actions(for: candidate)
+        let open = try #require(actions.first { $0.id == "dictation.history.openInLintel" })
+        #expect(actions.count == 4)
+        #expect(open.shortcut == KeyShortcut(key: "o", modifiers: .command))
+        #expect(open.confirmation == nil)
+        try await open.perform(ActionContext(previousApp: nil, panel: NoPanel()))
+        let row = try #require(DictationPresentation.entryID(candidate.itemKey))
+        #expect(opened.all == ["\(row)"])
     }
 
     @Test func titlesUseTheFirstSentence() {

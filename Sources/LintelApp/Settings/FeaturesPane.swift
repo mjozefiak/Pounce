@@ -19,17 +19,24 @@ struct FeatureControls {
         onChange()
     }
 
+    /// How many copies of a feature's recordings Notes keeps (the "N copies in Notes are kept" of the Erase sheet).
+    func keptNoteCopies(of id: PluginID) async -> Int { await host.keptNoteCopies(ofOwner: id) }
+
     /// "Erase Data". Returns the error message to show, or `nil` when it worked. `alsoDeleteKeptCopies` is the
-    /// sheet's "Also delete kept copies" checkbox; ignored until Notes exists (spec `2026-11-04-notes-workspace`,
-    /// step 4.6 deletes the copies).
+    /// sheet's "Also delete kept copies" checkbox (off by default): the copies in Notes are deleted ONLY when it is
+    /// ticked and only AFTER the feature's own data was erased; a failed erase leaves them alone.
     func erase(_ id: PluginID, alsoDeleteKeptCopies: Bool = false) async -> String? {
         defer { onChange() }
         do {
             try await host.eraseData(for: id)
-            return nil
         } catch {
             return error.localizedDescription
         }
+        guard alsoDeleteKeptCopies else { return nil }
+        if await host.deleteKeptNoteCopies(ofOwner: id, ownerErased: true) { return nil }
+        return String(
+            localized: "The data was erased, but some copies in Notes could not be removed.",
+            comment: "Alert text: Erase Data worked but Also delete kept copies did not")
     }
 }
 
@@ -124,7 +131,10 @@ struct FeaturesPaneContent: View {
             }
         } advanced: {
             ForEach(controls.host.entries, id: \.manifest.id.eraseRowID) { entry in
-                FeatureEraseRow(manifest: entry.manifest) { alsoDeleteKeptCopies in
+                FeatureEraseRow(
+                    manifest: entry.manifest,
+                    keptCopies: { await controls.keptNoteCopies(of: entry.manifest.id) }
+                ) { alsoDeleteKeptCopies in
                     Task {
                         eraseError = await controls.erase(
                             entry.manifest.id, alsoDeleteKeptCopies: alsoDeleteKeptCopies)
@@ -244,11 +254,14 @@ struct AlwaysOnChip: View {
 /// "Erase Data…" of one feature, under Advanced, with the shared confirmation.
 struct FeatureEraseRow: View {
     let manifest: PluginManifest
+    /// How many copies Notes keeps of this feature's recordings; read before the sheet opens.
+    var keptCopies: () async -> Int = { 0 }
     /// Receives the "Also delete kept copies" checkbox (always `false` without one).
     let erase: (Bool) -> Void
 
     @Environment(\.lintelTextSize) private var textSize
     @State private var confirmsErase = false
+    @State private var keptCount = 0
 
     /// The features whose data Notes can keep copies of (owner decision L1-39).
     static let featuresWithNotesCopies: Set<PluginID> = ["meetings", "dictation"]
@@ -266,22 +279,21 @@ struct FeatureEraseRow: View {
     }
 
     /// Erase Data: for Meetings and Dictation it also says that copies edited or commented on in Notes stay,
-    /// with the "Also delete kept copies" checkbox. DEBUG only until Notes ships (spec
-    /// `2026-11-04-notes-workspace`, step 7.1 removes the guard); release builds show `eraseConfirmation`.
-    static func confirmation(for manifest: PluginManifest) -> DestructiveConfirmation {
+    /// with the "Also delete kept copies" checkbox.
+    static func confirmation(for manifest: PluginManifest, keptCopies: Int = 0) -> DestructiveConfirmation {
         let confirmation = eraseConfirmation(for: manifest)
-        #if DEBUG
-        guard featuresWithNotesCopies.contains(manifest.id) else { return confirmation }
-        return confirmation.with(option: .keptNotesCopies)
-        #else
-        return confirmation
-        #endif
+        guard featuresWithNotesCopies.contains(manifest.id), keptCopies > 0 else { return confirmation }
+        return confirmation.with(option: .keptNotesCopies(count: keptCopies))
     }
 
     var body: some View {
         LabeledContent {
             Button {
-                confirmsErase = true
+                // The number of copies Notes keeps is read first, so the sheet can say it.
+                Task {
+                    keptCount = await keptCopies()
+                    confirmsErase = true
+                }
             } label: {
                 Text("Erase Data…", comment: "Settings button that deletes a feature's data")
                     .font(textSize.font(.body))
@@ -296,7 +308,8 @@ struct FeatureEraseRow: View {
                 .font(textSize.font(.body))
         }
         .destructiveConfirmation(
-            isPresented: $confirmsErase, Self.confirmation(for: manifest), onConfirmWithOption: erase)
+            isPresented: $confirmsErase, Self.confirmation(for: manifest, keptCopies: keptCount),
+            onConfirmWithOption: erase)
     }
 }
 

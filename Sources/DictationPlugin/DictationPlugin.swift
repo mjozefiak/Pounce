@@ -52,6 +52,9 @@ public final class DictationPlugin: LintelPlugin {
     private let formattingModel: FormattingSettingsModel
     private let transport: any HTTPTransport
     let history: DictationHistory
+    /// The history as a Notes source (`noteSources`); its change streams end on `deactivate()`.
+    let noteSource: DictationNoteSource
+    private let noteChanges = NoteChangeHub()
     private let historyModel: HistorySettingsModel
     private(set) var controller: DictationController?
     /// Where app activations are posted (tests use their own centre).
@@ -109,10 +112,20 @@ public final class DictationPlugin: LintelPlugin {
         // The banner reads the model's place and the microphone; a change makes the shell read it again.
         let resultsChanged = context.resultsChanged
         settingsModel.onStatusChange = { resultsChanged() }
+        let noteChanges = noteChanges
         history = DictationHistory(
             directory: context.storageDirectory, keychain: context.keychain, settings: settings,
-            clock: context.clock, logger: context.logger, changed: context.resultsChanged)
+            clock: context.clock, logger: context.logger,
+            changed: {
+                resultsChanged()
+                noteChanges.notify()
+            })
+        noteSource = DictationNoteSource(history: history, hub: noteChanges)
         historyModel = HistorySettingsModel(settings: settings, history: history)
+        let keptNoteCopies = context.keptNoteCopies
+        let deleteKeptNoteCopies = context.deleteKeptNoteCopies
+        historyModel.keptCopies = { await keptNoteCopies(Self.manifest.id) }
+        historyModel.deleteKeptCopies = { await deleteKeptNoteCopies(Self.manifest.id, false) }
         let transport = LoopbackTransport()
         self.transport = transport
         formattingModel = FormattingSettingsModel(
@@ -206,6 +219,9 @@ public final class DictationPlugin: LintelPlugin {
     }
 
     public func deactivate() async {
+        // The streams end when this method returns, after the history is closed: a read that started earlier may
+        // still answer, a read after the history closed throws.
+        defer { noteChanges.finishAll() }
         activationObserver?.stop()
         activationObserver = nil
         await controller?.shutDown()
@@ -253,10 +269,15 @@ public final class DictationPlugin: LintelPlugin {
     public var panelModes: [PanelMode] {
         let history = history
         let relay = relay
-        let source = DictationHistorySource(
+        var source = DictationHistorySource(
             store: { history.storeBox.value },
             paste: { text in await relay.pasteFromHistory(text) },
             delete: { id in try await history.delete([id]) })
+        let openNote = context.openNote
+        source.openInNotes = { row in
+            guard let storeID = history.storeID else { return }
+            _ = await openNote(DictationNoteSource.key(storeID: storeID, row: row))
+        }
         return [
             PanelMode(
                 id: Self.historyModeID,
@@ -287,6 +308,15 @@ public final class DictationPlugin: LintelPlugin {
                 },
                 makeEmptyView: { AnyView(DictationHistoryEmptyView(history: history)) })
         ]
+    }
+
+    public var noteSources: [any NoteSource] { [noteSource] }
+
+    /// Offers a history entry to the shell's Notes workspace (`PluginContext.openNote`). `true` only when a
+    /// section took it; the default handler returns `false`. The history's "Open in Lintel" action (⌘O) goes through the same context call.
+    func openNote(entryID: Int64) -> Bool {
+        guard let storeID = history.storeID else { return false }
+        return context.openNote(DictationNoteSource.key(storeID: storeID, row: entryID))
     }
 
     public var requiredPermissions: Set<Permission> { [.microphone, .accessibility] }

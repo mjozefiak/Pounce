@@ -1,0 +1,66 @@
+{
+  "name": "mixed-structure",
+  "language": "pl",
+  "description": "Polish with English terms. Six units, six ways for a model to go wrong (two blocks for one, a heading turned into text, an empty answer, a block far too long, a missing unit) and one good answer.",
+  "note": "## Sprint review\n\nDemo dla klienta jest w czwartek.\n\n## Backlog\n\nPrzejrzeć tickety z Jiry.\n\nUstalić priorytety.\n\nZamknąć stare PR-y.\n\nNapisać release notes.",
+  "comments": [
+    {
+      "quote": "Sprint review",
+      "bodies": [
+        "Zmień tytuł na polski."
+      ]
+    },
+    {
+      "quote": "czwartek",
+      "bodies": [
+        "Podaj godzinę."
+      ]
+    },
+    {
+      "quote": "Jiry",
+      "bodies": [
+        "Dopisz, które tickety."
+      ]
+    },
+    {
+      "quote": "priorytety",
+      "bodies": [
+        "Rozwiń."
+      ]
+    },
+    {
+      "quote": "PR-y",
+      "bodies": [
+        "Dopisz repozytorium."
+      ]
+    },
+    {
+      "quote": "release notes",
+      "bodies": [
+        "Dopisz wersję."
+      ]
+    }
+  ],
+  "modelAnswer": "[[unit 1]]\nPrzegląd sprintu\n[[unit 2]]\nDemo dla klienta jest w czwartek o 10:00.\n\nPotem retro.\n[[unit 3]]\n\n[[unit 4]]\nUstalić priorytety bardzo szczegółowo i na piśmie dla całego zespołu, z uzasadnieniem każdej decyzji. bardzo szczegółowo i na piśmie dla całego zespołu, z uzasadnieniem każdej decyzji. bardzo szczegółowo i na piśmie dla całego zespołu, z uzasadnieniem każdej decyzji. bardzo szczegółowo i na piśmie dla całego zespołu, z uzasadnieniem każdej decyzji. bardzo szczegółowo i na piśmie dla całego zespołu, z uzasadnieniem każdej decyzji. bardzo szczegółowo i na piśmie dla całego zespołu, z uzasadnieniem każdej decyzji. \n[[unit 5]]\nZamknąć stare PR-y w repozytorium lintel.",
+  "expect": {
+    "applied": [
+      5
+    ],
+    "rejected": {
+      "1": "structureChanged",
+      "2": "structureChanged",
+      "3": "empty",
+      "4": "tooLong",
+      "6": "missing"
+    },
+    "unchanged": [],
+    "skipped": [],
+    "keep": [
+      "Zamknąć stare PR-y w repozytorium lintel."
+    ],
+    "drop": [
+      "Potem retro",
+      "Przegląd sprintu"
+    ]
+  }
+}

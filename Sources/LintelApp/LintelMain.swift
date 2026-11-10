@@ -160,7 +160,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         if let quitAfter = options.quitAfter {
+            let snapshotPath = options.snapshotPath
             schedule(after: quitAfter) { [weak self] in
+                if let snapshotPath { self?.coordinator?.writeMainWindowSnapshotForQA(to: snapshotPath) }
                 self?.coordinator?.statusItem?.closeMenu()
                 NSApp.terminate(nil)
             }

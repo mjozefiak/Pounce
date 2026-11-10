@@ -5,8 +5,8 @@ import Testing
 @testable import DictationPlugin
 
 /// Spec `2026-11-04-lintel-main-window`, step 5.3 (owner decision L1-39): Clear History says that copies edited
-/// or commented on in Notes stay and offers "Also delete kept copies", off by default; in DEBUG only until Notes
-/// ships.
+/// or commented on in Notes stay and offers "Also delete kept copies", off by default; in every build since Notes was
+/// enabled (step 7.1).
 @MainActor
 @Suite struct DictationKeptCopiesConfirmationTests {
     private static let root: URL = {
@@ -22,7 +22,7 @@ import Testing
     }
 
     @Test func clearHistoryHasTheNotesSentenceAndAnUncheckedBox() throws {
-        let confirmation = HistorySection.confirmationInMainWindow
+        let confirmation = HistorySection.confirmationInMainWindow(keptCopies: 2)
         let option = try #require(confirmation.option)
         #expect(option.title.key == "Also delete kept copies")
         #expect(option.explanation?.key.contains("Notes") == true)
@@ -36,12 +36,35 @@ import Testing
         #expect(!views.contains("keptNotesCopies") && !views.contains("confirmationInMainWindow"))
     }
 
-    @Test func theCheckboxIsGuardedAndThePaneHandsItsStateToTheAction() throws {
+    @Test func theCheckboxIsInEveryBuildAndThePaneHandsItsStateToTheAction() throws {
         let pane = try Self.source("DictationSettingsPane.swift")
         #expect(pane.contains("history.clear(alsoDeleteKeptCopies: alsoDeleteKeptCopies)"))
-        let guarded = try #require(pane.range(of: "#if DEBUG\n        confirmation.with(option: .keptNotesCopies)"))
-        let release = try #require(pane.range(of: "#else\n        confirmation\n        #endif"))
-        #expect(guarded.upperBound <= release.lowerBound)
+        // Notes is enabled (spec B step 7.1): the sentence is not behind `#if DEBUG` any more.
+        #expect(pane.contains(".keptNotesCopies(count: keptCopies)"))
+        #expect(!pane.contains("#if DEBUG"))
+    }
+
+    @Test func withoutKeptCopiesTheSheetHasNoCheckbox() {
+        #expect(HistorySection.confirmationInMainWindow(keptCopies: 0).option == nil)
+    }
+
+    @Test func theCopiesAreDeletedOnlyWhenTheBoxIsTickedAndAfterTheHistoryWasCleared() async throws {
+        let harness = try DictationHarness(keychain: MemoryKeychain())
+        defer { harness.tearDown() }
+        let plugin = DictationPlugin(context: harness.context)
+        try await plugin.activate()
+        let history = plugin.history
+        let model = HistorySettingsModel(settings: DictationSettings(harness.context.settings), history: history)
+        var calls = 0
+        model.deleteKeptCopies = {
+            calls += 1
+            return true
+        }
+        model.clear(alsoDeleteKeptCopies: false)
+        #expect(calls == 0, "unticked: nothing in Notes is deleted")
+        await model.clear(alsoDeleteKeptCopies: true)?.value
+        #expect(calls == 1)
+        await plugin.deactivate()
     }
 
     @Test func clearingWithTheFlagStillWorksOnAnEmptyHistory() async throws {
@@ -50,7 +73,7 @@ import Testing
         let plugin = DictationPlugin(context: harness.context)
         try await plugin.activate()
         let model = HistorySettingsModel(settings: DictationSettings(harness.context.settings), history: plugin.history)
-        model.clear(alsoDeleteKeptCopies: true)
+        await model.clear(alsoDeleteKeptCopies: true)?.value
         #expect(plugin.history.entryCount == 0)
         #expect(model.errorMessage == nil)
         await plugin.deactivate()

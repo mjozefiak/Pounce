@@ -272,6 +272,34 @@ struct WindowHarness {
         #expect(other.model.document?.speakers.allSatisfy { !$0.isSelf } == true)
     }
 
+    @Test func theWindowKeepsItsEarlierEditSemanticsWhereNotesEditingIsStricter() async throws {
+        // A meeting that started recording after the button was drawn: the window still marks the speaker
+        // (it guards in the model), and nothing fails.
+        let rig = try WindowRig()
+        let harness = WindowHarness(rig)
+        await harness.model.load()
+        try rig.store.write { db in
+            try db.execute(
+                sql: "UPDATE meeting SET status = ? WHERE id = ?",
+                arguments: [MeetingStatus.recording.rawValue, rig.meetingID])
+        }
+        await harness.model.markSelf(rig.anna)
+        #expect(harness.model.feedback == nil)
+        let marked = try rig.store.speakers(meetingID: rig.meetingID).first { $0.id == rig.anna }
+        #expect(marked?.isSelf == true)
+
+        // A speaker that disappeared after the screen loaded: renaming it changes nothing and fails nothing.
+        let other = try WindowRig()
+        let second = WindowHarness(other)
+        await second.model.load()
+        try other.store.write { db in
+            try db.execute(sql: "DELETE FROM meeting_segment WHERE speaker_id = ?", arguments: [other.anna])
+            try db.execute(sql: "DELETE FROM meeting_speaker WHERE id = ?", arguments: [other.anna])
+        }
+        await second.model.renameSpeaker(other.anna, to: "Anna")
+        #expect(second.model.feedback == nil)
+    }
+
     @Test func renamingTheTitleUpdatesTheWindowTitle() async throws {
         let harness = WindowHarness(try WindowRig())
         await harness.model.load()

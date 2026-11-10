@@ -18,6 +18,24 @@ import Testing
         #expect(try QAOptions.parse(["--qa"])?.meetingMicWAV == nil)
     }
 
+    @Test func qaNotesTurnsOnTheFixturesKeyOnly() throws {
+        #expect(try QAOptions.parse(["--qa-notes"])?.notesFixtures == true)
+        #expect(try QAOptions.parse(["--qa"])?.notesFixtures == false)
+        let on = AppEnvironment.qaNotesSettings(["plugins.x": .bool(true)], fixtures: true)
+        #expect(on == ["plugins.x": .bool(true), QAOptions.notesFixturesKey: .bool(true)])
+        #expect(AppEnvironment.qaNotesSettings([:], fixtures: false).isEmpty)
+    }
+
+    @Test func qaSnapshotTakesAPathAndNotesOpenTabsComeFromASetting() throws {
+        #expect(try QAOptions.parse(["--qa-snapshot", "/tmp/window.png"])?.snapshotPath == "/tmp/window.png")
+        #expect(try QAOptions.parse(["--qa"])?.snapshotPath == nil)
+        #expect(throws: QAOptions.ParseError.missingValue("--qa-snapshot")) {
+            try QAOptions.parse(["--qa-snapshot"])
+        }
+        let options = try QAOptions.parse(["--qa-setting", "plugins.notes.qaOpen=meetings:a@transcript"])
+        #expect(options?.settings["plugins.notes.qaOpen"] == .string("meetings:a@transcript"))
+    }
+
     @Test func rejectsAMissingOrOptionLikeValue() {
         #expect(throws: QAOptions.ParseError.missingValue("--qa-meeting-mic-wav")) {
             _ = try QAOptions.parse(["--qa-meeting-mic-wav"])

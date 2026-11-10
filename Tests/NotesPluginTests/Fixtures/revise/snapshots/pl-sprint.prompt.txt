@@ -1,0 +1,31 @@
+<unit id="1">
+<before>
+## Ustalenia
+
+- Wdrożenie onboardingu 12 listopada.
+</before>
+<blocks count="1">
+- Strona cennika przechodzi do następnego sprintu.
+</blocks>
+<after>
+## Zadania
+
+Wysłać wersję demo do QA.
+</after>
+<comments>
+- Podaj numer sprintu i osobę odpowiedzialną.
+</comments>
+</unit>
+<unit id="2">
+<before>
+## Zadania
+
+Wysłać wersję demo do QA.
+</before>
+<blocks count="1">
+Zadzwonić do dostawcy w sprawie faktury.
+</blocks>
+<comments>
+- Dopisz termin.
+</comments>
+</unit>

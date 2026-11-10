@@ -60,6 +60,10 @@ final class MeetingsUI {
             systemAudioTest: SystemAudioTestModel(makeTest: makeSelfTest, blocked: { activity.isActive }),
             notes: NotesSettingsModel(settings: settings, service: service, manager: llmManager),
             authorizer: authorizer, openURL: { url in Task { try? await workspace.open(url) } })
+        let keptNoteCopies = context.keptNoteCopies
+        let deleteKeptNoteCopies = context.deleteKeptNoteCopies
+        model.keptCopies = { await keptNoteCopies(MeetingsPlugin.manifest.id) }
+        model.deleteKeptCopies = { await deleteKeptNoteCopies(MeetingsPlugin.manifest.id, false) }
     }
 
     private static func chooseModelFolder() -> URL? {

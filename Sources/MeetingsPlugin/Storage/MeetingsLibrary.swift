@@ -2,6 +2,7 @@ import Foundation
 import LintelKit
 import LintelPersistence
 import Observation
+import Synchronization
 import os
 
 /// Owns the meetings library for the plugin: opens `meetings.sqlite` with the key from the Keychain, runs
@@ -26,6 +27,9 @@ final class MeetingsLibrary {
     /// Set when this open reset an unreadable library; the archive is kept for 30 days.
     private(set) var resetArchive: URL?
     private(set) var store: MeetingsStore?
+    /// The open store for readers that are not on the main actor (the Notes workspace's `MeetingNoteSource`):
+    /// `nil` exactly while `store` is.
+    @ObservationIgnored nonisolated let storeBox = Mutex<MeetingsStore?>(nil)
     /// The working keys of the open library, for the session that records into it.
     private(set) var keys: MeetingKeys?
 
@@ -127,6 +131,7 @@ final class MeetingsLibrary {
             switch outcome {
             case .opened(let opened, let archive):
                 store = opened
+                storeBox.withLock { $0 = opened }
                 keys = openedKeys
                 resetArchive = archive
                 status = .ready
@@ -170,6 +175,7 @@ final class MeetingsLibrary {
         resumer = nil
         try? store?.close()
         store = nil
+        storeBox.withLock { $0 = nil }
         keys = nil
         status = .closed
     }
