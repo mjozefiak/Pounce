@@ -91,29 +91,32 @@ struct LayoutsWindowView: View {
                     .foregroundStyle(LintelBrand.secondaryText)
                 Text(verbatim: model.usageText(of: layout)).font(textSize.font(.callout))
                     .foregroundStyle(LintelBrand.secondaryText)
-                HStack(spacing: 8) {
+                WrapLayout(spacing: 8, lineSpacing: 8) {
                     if !model.isStock(layout) {
                         Button {
                             model.editSelected()
                         } label: {
                             Text("Edit…", comment: "Layouts window: opens the layout in the editor")
                         }
+                        .fixedSize()
                         .disabled(!model.canEditSelected)
                         Button {
                             model.isRenaming = true
                         } label: {
                             Text("Rename…", comment: "Layouts window: changes the name of the selected layout")
                         }
+                        .fixedSize()
                         .disabled(!model.canEditSelected)
                     }
                     applyMenu(layout)
-                    slotMenu(layout)
+                    slotMenu(layout).fixedSize()
                     if !model.isStock(layout) {
                         Button(role: .destructive) {
                             model.requestDelete()
                         } label: {
                             Text("Delete…", comment: "Layouts window: deletes the selected layout")
                         }
+                        .fixedSize()
                         .disabled(!model.canEditSelected)
                     }
                 }
