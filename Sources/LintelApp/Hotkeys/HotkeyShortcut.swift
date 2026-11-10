@@ -54,6 +54,17 @@ nonisolated struct HotkeyShortcut: Hashable, Sendable {
         self.init(carbonKeyCode: code, carbonModifiers: modifiers)
     }
 
+    /// The portable form of a registered shortcut, or `nil` when its key has no portable name here.
+    var portable: KeyShortcut? {
+        guard let key = Self.keyCodes.first(where: { $0.value == carbonKeyCode })?.key else { return nil }
+        var modifiers: KeyShortcut.Modifiers = []
+        if carbonModifiers & cmdKey != 0 { modifiers.insert(.command) }
+        if carbonModifiers & shiftKey != 0 { modifiers.insert(.shift) }
+        if carbonModifiers & optionKey != 0 { modifiers.insert(.option) }
+        if carbonModifiers & controlKey != 0 { modifiers.insert(.control) }
+        return KeyShortcut(key: key, modifiers: modifiers)
+    }
+
     init(carbonKeyCode: Int, carbonModifiers: Int) {
         self.carbonKeyCode = carbonKeyCode
         self.carbonModifiers = carbonModifiers
@@ -78,6 +89,10 @@ nonisolated struct HotkeyShortcut: Hashable, Sendable {
         for (index, scalar) in "0123456789".unicodeScalars.enumerated() {
             codes[String(scalar)] = digitCodes[index]
         }
+        // Punctuation keys a plugin command may be bound to by default.
+        codes["-"] = kVK_ANSI_Minus
+        codes["="] = kVK_ANSI_Equal
+        codes["/"] = kVK_ANSI_Slash
         return codes
     }()
 

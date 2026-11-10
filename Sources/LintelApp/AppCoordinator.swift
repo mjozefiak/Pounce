@@ -35,6 +35,11 @@ final class AppCoordinator {
     /// `PluginContext.noteSources`, `noteSourcesChanged` and `openNote` (the Notes workspace).
     private let noteSourcesRelay = NoteSourcesRelay()
     private let icons: IconCache
+    /// Where app activations are posted (tests use their own centre).
+    var activationCenter: NotificationCenter = .default
+    /// Retries the recoveries a plugin answered with `.deferred` (for example while a permission is missing) each
+    /// time Lintel becomes the active app, which is where a grant in System Settings becomes visible.
+    private var recoveryObserver: AppActivationObserver?
     private let logger = Logger(subsystem: "com.lintelapp", category: "app")
 
     /// - Parameters:
@@ -77,6 +82,8 @@ final class AppCoordinator {
                     claimEscapeKey: { onEscape in hotkeys.claimEscape(onEscape) },
                     openSettings: { settingsRelay.open(manifest.id.rawValue) },
                     openModels: { packageID in settingsRelay.openModels(manifest.id.rawValue, packageID) },
+                    setCommandShortcut: { commandID, shortcut in hotkeys.setCommandShortcut(commandID, shortcut) },
+                    commandShortcut: { commandID in hotkeys.commandShortcut(commandID)?.portable },
                     availableCommands: { noteRelay.commands() },
                     noteSources: { noteRelay.sources() },
                     noteSourcesChanged: { noteRelay.changes() },
@@ -195,6 +202,10 @@ final class AppCoordinator {
         }
 
         await host.start()
+        #if DEBUG
+        startQACommandRoute()
+        #endif
+        observeActivationForRecovery()
         hotkeys.start { [weak self] in self?.panelModel.toggle() }
         syncCommands()
         statusItem?.rebuildMenu()
@@ -206,9 +217,44 @@ final class AppCoordinator {
         }
     }
 
+    #if DEBUG
+    private var qaRoute: QACommandRoute?
+
+    /// QA only: the command route (`--qa-command-file`), which `AppEnvironment.qa` alone can set.
+    private func startQACommandRoute() {
+        guard let file = environment.qaCommandFile else { return }
+        let host = host
+        let route = QACommandRoute(
+            file: file, replay: environment.qaReplaysCommands, commands: { host.activeCommands },
+            qaPlugin: { id in
+                host.entries.first { $0.manifest.id.rawValue == id && $0.state.isActive }?.plugin
+                    as? any PluginQACommands
+            })
+        route.start()
+        qaRoute = route
+    }
+    #endif
+
+    /// Runs `PluginHost.retryDeferredRecoveries()` on every app activation.
+    func observeActivationForRecovery() {
+        recoveryObserver?.stop()
+        let host = host
+        recoveryObserver = AppActivationObserver(center: activationCenter) { host.retryDeferredRecoveries() }
+    }
+
     /// Sends the Dock, Command-comma, "Settings…", the Settings panes, `openModels` and `openNote` to the main
     /// window (ADR 0008, "Release gate"; enabled in every build since step 6.3a).
     private(set) lazy var router = makeRouter()
+
+    /// Files opened with Lintel (double-clicked, or dropped on the Dock icon): the first one a plugin wants goes to
+    /// it and the rest are ignored (logged by count), so the outcome never depends on timing. Must run after
+    /// `start()`, so the plugins are active.
+    func open(_ urls: [URL]) async {
+        let ignored = await host.openFiles(urls)
+        if ignored > 0 {
+            logger.notice("Opened one file; \(ignored, privacy: .public) more were ignored")
+        }
+    }
 
     /// A click on the Dock icon (or opening the app again from Finder): the main window, unless a window is already
     /// open.

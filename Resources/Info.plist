@@ -12,6 +12,21 @@
 	<string>AppIcon</string>
 	<key>CFBundleIconName</key>
 	<string>AppIcon</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Lintel Layouts</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.lintelapp.layouts</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleIdentifier</key>
 	<string>com.lintelapp.Lintel</string>
 	<key>CFBundleInfoDictionaryVersion</key>
@@ -38,6 +53,26 @@
 	<string>public.app-category.productivity</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>26.0</string>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.json</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Lintel Layouts</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.lintelapp.layouts</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>lintellayouts</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
 	<key>NSAccentColorName</key>
 	<string>AccentColor</string>
 	<key>NSMicrophoneUsageDescription</key>

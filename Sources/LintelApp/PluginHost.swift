@@ -1,9 +1,15 @@
 import Foundation
+import LintelCore
 import LintelKit
 import Observation
 import os
 
 /// Lifecycle state of one plugin.
+/// Why the host itself failed a plugin.
+enum PluginHostError: Error, Equatable {
+    case activationTimedOut
+}
+
 enum PluginState {
     case disabled
     case activating
@@ -26,6 +32,8 @@ enum PluginState {
 final class PluginHost {
     struct Entry {
         let manifest: PluginManifest
+        let type: any LintelPlugin.Type
+        let context: PluginContext
         let plugin: any LintelPlugin
         let storageDirectory: URL
         let cachesDirectory: URL
@@ -43,6 +51,16 @@ final class PluginHost {
     @ObservationIgnored private let clock: any Clock<Duration>
     @ObservationIgnored let sourceBudget: Duration
     @ObservationIgnored private var pending: [PluginID: Task<Void, Never>] = [:]
+    @ObservationIgnored let recoveryBudget: Duration
+    /// How long a plugin's `activate()` may take before the host gives up on it (the plugin is then `failed`), so a
+    /// stuck activation cannot hold up that plugin's later lifecycle steps, a quit among them.
+    @ObservationIgnored let activationBudget: Duration
+    @ObservationIgnored private var recoveries: [PluginID: Task<Void, Never>] = [:]
+    /// The `recoverAtLaunch` call of each plugin that has not returned yet, even when its bound passed: a retry
+    /// never starts a second copy beside it.
+    @ObservationIgnored private var recoveryWork: [PluginID: Task<RecoveryOutcome, Never>] = [:]
+    /// What `recoverAtLaunch` answered for each plugin; a plugin that has not answered yet is absent.
+    private(set) var recoveryOutcomes: [PluginID: RecoveryOutcome] = [:]
 
     /// - Parameters:
     ///   - pluginTypes: usually `PluginRegistry.all`. A duplicate `PluginID` is skipped and logged.
@@ -54,12 +72,16 @@ final class PluginHost {
         settings: any SettingsStore,
         fileManager: FileManager = .default,
         sourceBudget: Duration = .milliseconds(150),
+        recoveryBudget: Duration = .seconds(5),
+        activationBudget: Duration = .seconds(20),
         clock: any Clock<Duration> = ContinuousClock(),
         logger: Logger = Logger(subsystem: "com.lintelapp", category: "host")
     ) {
         self.settings = settings
         self.fileManager = fileManager
         self.sourceBudget = sourceBudget
+        self.recoveryBudget = recoveryBudget
+        self.activationBudget = activationBudget
         self.clock = clock
         self.logger = logger
 
@@ -75,6 +97,8 @@ final class PluginHost {
             built.append(
                 Entry(
                     manifest: manifest,
+                    type: type,
+                    context: context,
                     plugin: type.init(context: context),
                     storageDirectory: context.storageDirectory,
                     cachesDirectory: context.cachesDirectory,
@@ -101,6 +125,23 @@ final class PluginHost {
             return entry.manifest.defaultEnabled
         }
         return enabled
+    }
+
+    /// Offers a file the user opened with Lintel to the registered plugins in order until one takes it (the
+    /// file types a plugin handles are declared in `Info.plist`). `false` when nobody wanted it.
+    func openFile(_ url: URL) async -> Bool {
+        for entry in entries where await entry.plugin.handleOpenedFile(url) { return true }
+        return false
+    }
+
+    /// Offers several opened files in order and stops at the first one a plugin takes: the importer shows one
+    /// summary at a time, so a second file would silently replace the first. Returns how many files were left
+    /// unopened (never offered, or taken by nobody after the first taken one).
+    func openFiles(_ urls: [URL]) async -> Int {
+        for (index, url) in urls.enumerated() where url.isFileURL {
+            if await openFile(url) { return urls.count - index - 1 }
+        }
+        return 0
     }
 
     private var activeEntries: [Entry] { entries.filter { $0.state.isActive } }
@@ -133,10 +174,72 @@ final class PluginHost {
 
     // MARK: Lifecycle
 
-    /// Activates every enabled plugin, in `manifest.order`.
+    /// Starts `recoverAtLaunch` for every registered plugin (enabled or not) in parallel, then activates every
+    /// enabled plugin in `manifest.order`. A plugin's activation waits only for its own recovery, which is
+    /// bounded by `recoveryBudget`, so launch is never held up for longer than that. Recoveries of disabled
+    /// plugins are not waited for (`waitForRecoveries()` does).
     func start() async {
+        beginRecoveries()
         for entry in entries where isEnabled(entry.manifest.id) {
-            await enqueue(entry.manifest.id) { host in await host.activateNow(entry.manifest.id) }
+            let id = entry.manifest.id
+            await enqueue(id) { host in
+                await host.recoveries[id]?.value
+                await host.activateNow(id)
+            }
+        }
+    }
+
+    /// Runs `recoverAtLaunch` once per registered plugin type that has not run it yet.
+    func beginRecoveries() {
+        for entry in entries where recoveries[entry.manifest.id] == nil {
+            startRecovery(of: entry)
+        }
+    }
+
+    /// Runs `recoverAtLaunch` again for every plugin whose last answer was `.deferred` and that is not running
+    /// it now: the host calls it on app activation and on a permission change.
+    func retryDeferredRecoveries() {
+        for entry in entries where recoveryOutcomes[entry.manifest.id] == .deferred {
+            startRecovery(of: entry)
+        }
+    }
+
+    /// Suspends until every recovery that is running has answered or hit its bound.
+    func waitForRecoveries() async {
+        for task in Array(recoveries.values) {
+            await task.value
+        }
+    }
+
+    private func startRecovery(of entry: Entry) {
+        let id = entry.manifest.id
+        // A call that is still running (it passed its bound earlier) owns the recovery: no second copy.
+        guard recoveryWork[id] == nil else {
+            recoveryOutcomes[id] = .deferred
+            return
+        }
+        // A metatype is immutable and `recoverAtLaunch` is nonisolated, so sharing it is safe.
+        nonisolated(unsafe) let type = entry.type
+        let context = entry.context
+        let work = Task { await type.recoverAtLaunch(context: context) }
+        recoveryWork[id] = work
+        let budget = recoveryBudget
+        let clock = clock
+        recoveries[id] = Task { [weak self] in
+            // When the bound passes first the answer is `.deferred` (the plugin keeps what is left to do) and the
+            // work is cancelled; the host does not wait for work that ignores cancellation.
+            let answer = await withDeadline(budget, clock: clock) { await work.value }
+            if answer == nil { work.cancel() }
+            let outcome = answer ?? .deferred
+            self?.recoveryOutcomes[id] = outcome
+            self?.logger.info(
+                "Recovery of \(id.rawValue, privacy: .public): \(outcome == .done ? "done" : "deferred", privacy: .public)"
+            )
+        }
+        // Cleared when the call really returns, which may be long after its bound.
+        Task { [weak self] in
+            _ = await work.value
+            self?.recoveryWork[id] = nil
         }
     }
 
@@ -144,6 +247,8 @@ final class PluginHost {
     func stop() async {
         for entry in entries {
             await enqueue(entry.manifest.id) { host in await host.deactivateNow(entry.manifest.id) }
+            // The plugin's shared services go with it (the app is quitting).
+            entry.context.services.teardown(pluginID: entry.manifest.id)
         }
     }
 
@@ -155,6 +260,9 @@ final class PluginHost {
         settings.setValue(.bool(enabled), forKey: SettingsKeys.pluginEnabled(id))
         await enqueue(id) { host in
             if enabled {
+                // A recovery that is still running owns the plugin's journal: activation waits for it, so the
+                // plugin's own store never starts from a snapshot the recovery is about to change.
+                await host.recoveries[id]?.value
                 await host.activateNow(id)
             } else {
                 await host.deactivateNow(id)
@@ -164,7 +272,7 @@ final class PluginHost {
 
     /// "Erase Data": deactivates the plugin, lets it erase what it keeps elsewhere, deletes
     /// `Plugins/<id>/`, its caches and its rows in `ranking.sqlite`, and activates it again when it is
-    /// enabled.
+    /// enabled, also when the erase was refused or failed (the data is then kept).
     func eraseData(for id: PluginID) async throws {
         guard let index = entries.firstIndex(where: { $0.manifest.id == id }) else { return }
         let plugin = entries[index].plugin
@@ -172,6 +280,7 @@ final class PluginHost {
         let usage = entries[index].usage
         var failure: (any Error)?
         await enqueue(id) { host in
+            await host.recoveries[id]?.value
             await host.deactivateNow(id)
             do {
                 try await plugin.eraseData()
@@ -181,8 +290,9 @@ final class PluginHost {
                 try await usage.removeAll(pluginID: id)
             } catch {
                 failure = error
-                return
             }
+            // A refused or failed erase keeps the data and must not leave an enabled plugin switched off: it
+            // starts again (a plugin that cannot, such as one still stopping, shows `failed` with Try Again).
             if host.isEnabled(id) {
                 await host.activateNow(id)
             }
@@ -268,7 +378,15 @@ final class PluginHost {
         setState(.activating, for: id)
         do {
             try createStorageDirectory(entry.storageDirectory)
-            try await entry.plugin.activate()
+            let plugin = entry.plugin
+            let activation = Task { try await plugin.activate() }
+            let budget = activationBudget
+            let clock = clock
+            guard let result = await withDeadline(budget, clock: clock, { await activation.result }) else {
+                activation.cancel()
+                throw PluginHostError.activationTimedOut
+            }
+            try result.get()
             setState(.active, for: id)
             logger.info("Activated plugin \(id.rawValue, privacy: .public)")
         } catch {

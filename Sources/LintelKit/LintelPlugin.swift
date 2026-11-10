@@ -113,6 +113,19 @@ public protocol LintelPlugin: AnyObject {
     /// must scope by owner the same way.
     func deleteKeptNoteCopies(ofOwner owner: PluginID, ownerErased: Bool) async -> Bool
 
+    /// Puts right what an earlier run left half done (for example puts back what the plugin moved), before
+    /// the plugin is activated and whether or not it is enabled. The host runs it once per launch for every
+    /// registered type, bounded to 5 seconds and in parallel with the other plugins, and again on app
+    /// activation and on a permission change while it answers `.deferred`. It receives the plugin's context
+    /// but no instance, and runs off the main actor. The default does nothing.
+    nonisolated static func recoverAtLaunch(context: PluginContext) async -> RecoveryOutcome
+
+    /// Offers a file the user opened with Lintel (double-clicked, or dropped on the Dock icon) to the plugin.
+    /// Returns `true` when the plugin took it. The host asks the registered plugins in order until one does;
+    /// an inactive plugin may be asked too, so it must only show a message then and start no work. Added with
+    /// the layout library (`.lintellayouts`); the default takes nothing.
+    func handleOpenedFile(_ url: URL) async -> Bool
+
     /// Removes data the plugin keeps outside its storage directory (for example a Keychain item).
     /// "Erase Data" calls `deactivate()`, then this method, and then the host deletes the whole
     /// `Plugins/<id>/` directory, so the default only needs to do nothing.
@@ -120,6 +133,8 @@ public protocol LintelPlugin: AnyObject {
 }
 
 extension LintelPlugin {
+    public nonisolated static func recoverAtLaunch(context: PluginContext) async -> RecoveryOutcome { .done }
+    public func handleOpenedFile(_ url: URL) async -> Bool { false }
     public func activate() async throws {}
     public func deactivate() async {}
     public var searchSources: [any SearchSource] { [] }

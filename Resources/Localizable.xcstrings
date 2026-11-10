@@ -5852,7 +5852,7 @@
       }
     },
     "Remove %@" : {
-      "comment" : "Accessibility label of the button that stops searching a protected folder",
+      "comment" : "Window Management: removes one app from the floating list (spoken)",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -15320,7 +15320,7 @@
       }
     },
     "Restore" : {
-      "comment" : "Inspector, History: makes an earlier version the text again",
+      "comment" : "Inspector, History: makes an earlier version the text again / Window Management: restore button",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -16274,7 +16274,7 @@
       }
     },
     "This can’t be undone." : {
-      "comment" : "Notes: delete sheet text",
+      "comment" : "Notes: delete sheet text / Confirmation sheet: the consequence line of a destructive action",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -16328,7 +16328,7 @@
       }
     },
     "Export" : {
-      "comment" : "Notes settings: button of the Export All Notes panel",
+      "comment" : "Notes settings: button of the Export All Notes panel / Layouts window: writes layouts to a file",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -18002,7 +18002,7 @@
       }
     },
     "Discard" : {
-      "comment" : "Inspector, History and Compare: sets a proposed version aside",
+      "comment" : "Inspector, History and Compare: sets a proposed version aside / Layout editor: the button that drops the changes",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -18609,6 +18609,5280 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nie udało się utworzyć notatki. Dyktowanie pozostało bez zmian."
+          }
+        }
+      }
+    },
+    "Window Management" : {
+      "comment" : "Plugin name of window management",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Window Management"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zarządzanie oknami"
+          }
+        }
+      }
+    },
+    "Arrange windows in workspaces." : {
+      "comment" : "Settings → Features: what Window Management does",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrange windows in workspaces."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układaj okna w obszarach roboczych."
+          }
+        }
+      }
+    },
+    "%lld windows restored" : {
+      "comment" : "Window HUD: how many windows were put back where they were",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld window restored"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld windows restored"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Przywrócono %lld okno"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Przywrócono %lld okna"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Przywrócono %lld okien"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Przywrócono %lld okna"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "No windows restored" : {
+      "comment" : "Window HUD: nothing could be put back",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No windows restored"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie przywrócono żadnych okien"
+          }
+        }
+      }
+    },
+    "Windows are still being put back" : {
+      "comment" : "Window HUD: an earlier run has not finished restoring windows",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Windows are still being put back"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Okna są jeszcze przywracane"
+          }
+        }
+      }
+    },
+    "Try again in a moment." : {
+      "comment" : "Window HUD: what to do while windows are put back",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again in a moment."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spróbuj za chwilę."
+          }
+        }
+      }
+    },
+    "Still stopping" : {
+      "comment" : "Window Management: an earlier run has not finished",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Still stopping"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jeszcze się zatrzymuje"
+          }
+        }
+      }
+    },
+    "The windows of the last run are still being put back. Use Try Again above in a moment." : {
+      "comment" : "Window Management: an earlier run has not finished",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The windows of the last run are still being put back. Use Try Again above in a moment."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Okna z poprzedniego uruchomienia są jeszcze przywracane. Za chwilę użyj Spróbuj ponownie powyżej."
+          }
+        }
+      }
+    },
+    "Windows are still parked, so their data was kept. Try again when they are back." : {
+      "comment" : "Window Management: Erase Data refused because windows are still hidden",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Windows are still parked, so their data was kept. Try again when they are back."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Okna są nadal ukryte, więc ich dane zostały zachowane. Spróbuj ponownie, gdy wrócą."
+          }
+        }
+      }
+    },
+    "Could not start" : {
+      "comment" : "Window Management: the start failed for another reason",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not start"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się uruchomić"
+          }
+        }
+      }
+    },
+    "Window Management did not start. Use Try Again above." : {
+      "comment" : "Window Management: the start failed for another reason",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Window Management did not start. Use Try Again above."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zarządzanie oknami nie uruchomiło się. Użyj powyżej opcji Spróbuj ponownie."
+          }
+        }
+      }
+    },
+    "%@: %@" : {
+      "comment" : "Settings: a layout kind's name and how many workspaces use it",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: %@"
+          }
+        }
+      }
+    },
+    "no workspaces" : {
+      "comment" : "Settings: no workspace uses the layout kind",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "no workspaces"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "brak obszarów roboczych"
+          }
+        }
+      }
+    },
+    "%lld workspaces" : {
+      "comment" : "Settings: how many workspaces use a layout kind (after the kind's name)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld workspace"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld workspaces"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld obszar roboczy"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld obszary robocze"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld obszarów roboczych"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld obszaru roboczego"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Windows were left parked twice in a row, so Window Management started switched off. Nothing was deleted. Use Try Again to turn it on." : {
+      "comment" : "Window Management: safe mode banner detail",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Windows were left parked twice in a row, so Window Management started switched off. Nothing was deleted. Use Try Again to turn it on."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Okna zostały dwa razy z rzędu ukryte, więc Zarządzanie oknami uruchomiło się wyłączone. Nic nie zostało usunięte. Użyj Spróbuj ponownie, aby je włączyć."
+          }
+        }
+      }
+    },
+    "Imported: %lld, skipped (not valid): %lld." : {
+      "comment" : "Layouts window: what an import added when some layouts in the file were skipped",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imported: %lld, skipped (not valid): %lld."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaimportowano: %lld, pominięto (nieprawidłowe): %lld."
+          }
+        }
+      }
+    },
+    "Workspaces, current: %lld of %lld" : {
+      "comment" : "Strip: spoken description of the menu bar item (the current workspace and how many there are)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Workspaces, current: %1$lld of %2$lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obszary robocze, bieżący: %1$lld z %2$lld"
+          }
+        }
+      }
+    },
+    "x" : {
+      "comment" : "Layout editor: the left edge of a zone, in percent",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "x"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "x"
+          }
+        }
+      }
+    },
+    "y" : {
+      "comment" : "Layout editor: the top edge of a zone, in percent",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "y"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "y"
+          }
+        }
+      }
+    },
+    "width" : {
+      "comment" : "Layout editor: the width of a zone, in percent",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "width"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "szerokość"
+          }
+        }
+      }
+    },
+    "height" : {
+      "comment" : "Layout editor: the height of a zone, in percent",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "height"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "wysokość"
+          }
+        }
+      }
+    },
+    "The strip reads which workspace is current. Open its menu with a right-click or Control-click to go to a workspace by name." : {
+      "comment" : "Window Management setting: how to use the menu bar strip with VoiceOver",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The strip reads which workspace is current. Open its menu with a right-click or Control-click to go to a workspace by name."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pasek odczytuje bieżący obszar roboczy. Menu otwiera się prawym kliknięciem lub Control-kliknięciem i pozwala przejść do obszaru po nazwie."
+          }
+        }
+      }
+    },
+    "Windows are parked" : {
+      "comment" : "Window HUD: windows are hidden and cannot be restored",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Windows are parked"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Okna są ukryte"
+          }
+        }
+      }
+    },
+    "On another Space: %lld" : {
+      "comment" : "Window HUD: windows that could not be restored because they are on another Space",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On another Space: %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Na innym pulpicie: %lld"
+          }
+        }
+      }
+    },
+    "Not responding: %lld" : {
+      "comment" : "Window HUD: windows of apps that did not answer",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not responding: %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie odpowiada: %lld"
+          }
+        }
+      }
+    },
+    "Allow Accessibility to put them back." : {
+      "comment" : "Window HUD: what to do about parked windows",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Accessibility to put them back."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól na Dostępność, aby je przywrócić."
+          }
+        }
+      }
+    },
+    "Go to Workspace %lld" : {
+      "comment" : "Command: switches to a numbered workspace",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go to Workspace %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przejdź do obszaru roboczego %lld"
+          }
+        }
+      }
+    },
+    "Move Window to Workspace %lld" : {
+      "comment" : "Command: moves the focused window to a numbered workspace",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move Window to Workspace %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przenieś okno do obszaru roboczego %lld"
+          }
+        }
+      }
+    },
+    "Next Workspace" : {
+      "comment" : "Command: switches to the next workspace",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next Workspace"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Następny obszar roboczy"
+          }
+        }
+      }
+    },
+    "Previous Workspace" : {
+      "comment" : "Command: switches to the previous workspace",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous Workspace"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poprzedni obszar roboczy"
+          }
+        }
+      }
+    },
+    "Back to the Last Workspace" : {
+      "comment" : "Command: goes back to the workspace used before",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back to the Last Workspace"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wróć do ostatniego obszaru roboczego"
+          }
+        }
+      }
+    },
+    "Restore All Windows" : {
+      "comment" : "Menu item and command: puts every parked window back",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore All Windows"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywróć wszystkie okna"
+          }
+        }
+      }
+    },
+    "Workspace %lld" : {
+      "comment" : "Window switcher: a workspace",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Workspace %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obszar roboczy %lld"
+          }
+        }
+      }
+    },
+    "No windows" : {
+      "comment" : "Window HUD and switcher: an empty workspace",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No windows"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak okien"
+          }
+        }
+      }
+    },
+    "%lld windows" : {
+      "comment" : "Window HUD and switcher: how many windows a workspace holds",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld window"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld windows"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld okno"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld okna"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld okien"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld okna"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Go to Workspace" : {
+      "comment" : "Action: switches to a workspace",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go to Workspace"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przejdź do obszaru roboczego"
+          }
+        }
+      }
+    },
+    "Go to Window" : {
+      "comment" : "Action: switches to a window's workspace and focuses it",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go to Window"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przejdź do okna"
+          }
+        }
+      }
+    },
+    "Bring to This Workspace" : {
+      "comment" : "Action: moves a window to the current workspace",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bring to This Workspace"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przenieś do tego obszaru roboczego"
+          }
+        }
+      }
+    },
+    "Allow Accessibility to switch workspaces" : {
+      "comment" : "Window HUD: a workspace shortcut was pressed without Accessibility",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Accessibility to switch workspaces"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól na Dostępność, aby przełączać obszary robocze"
+          }
+        }
+      }
+    },
+    "Allow Accessibility to move windows" : {
+      "comment" : "Window HUD: a move shortcut was pressed without Accessibility",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Accessibility to move windows"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól na Dostępność, aby przenosić okna"
+          }
+        }
+      }
+    },
+    "Allow Accessibility" : {
+      "comment" : "Window HUD: opens the Accessibility setting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Accessibility"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól na Dostępność"
+          }
+        }
+      }
+    },
+    "shown on another display" : {
+      "comment" : "Strip: spoken for a workspace on another display",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "shown on another display"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "widoczny na innym ekranie"
+          }
+        }
+      }
+    },
+    "Workspaces" : {
+      "comment" : "Strip: accessibility label of the menu bar item",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Workspaces"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obszary robocze"
+          }
+        }
+      }
+    },
+    "Restore Windows" : {
+      "comment" : "Settings banner button: puts every parked window back",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore Windows"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywróć okna"
+          }
+        }
+      }
+    },
+    "Windows can't be hidden safely" : {
+      "comment" : "Settings banner: the state file cannot be written",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Windows can't be hidden safely"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie można bezpiecznie ukrywać okien"
+          }
+        }
+      }
+    },
+    "Lintel can't save its state, so no window is moved." : {
+      "comment" : "Settings banner detail: the state file cannot be written",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel can't save its state, so no window is moved."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel nie może zapisać stanu, więc żadne okno nie jest przesuwane."
+          }
+        }
+      }
+    },
+    "Window management stopped itself" : {
+      "comment" : "Settings banner: the engine froze after too many window changes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Window management stopped itself"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zarządzanie oknami zatrzymało się samo"
+          }
+        }
+      }
+    },
+    "An app kept moving its windows. They were put back." : {
+      "comment" : "Settings banner detail: the engine froze after too many window changes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An app kept moving its windows. They were put back."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikacja ciągle przesuwała swoje okna. Przywrócono je."
+          }
+        }
+      }
+    },
+    "Start Again" : {
+      "comment" : "Settings banner button: starts again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start Again"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uruchom ponownie"
+          }
+        }
+      }
+    },
+    "Stage Manager is on" : {
+      "comment" : "Settings banner: Stage Manager is on",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stage Manager is on"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stage Manager jest włączony"
+          }
+        }
+      }
+    },
+    "It moves windows itself. Turn it off for Window Management." : {
+      "comment" : "Settings banner detail: Stage Manager is on",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It moves windows itself. Turn it off for Window Management."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sam przesuwa okna. Wyłącz go na potrzeby zarządzania oknami."
+          }
+        }
+      }
+    },
+    "Displays share one Space" : {
+      "comment" : "Settings banner: displays do not have separate Spaces",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Displays share one Space"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekrany dzielą jeden pulpit"
+          }
+        }
+      }
+    },
+    "Turn on “Displays have separate Spaces” in System Settings." : {
+      "comment" : "Settings banner detail: displays do not have separate Spaces",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn on “Displays have separate Spaces” in System Settings."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Włącz „Ekrany mają oddzielne pulpity” w Ustawieniach systemowych."
+          }
+        }
+      }
+    },
+    "The menu bar has no room for the strip" : {
+      "comment" : "Settings banner: the strip is not visible",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The menu bar has no room for the strip"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Na pasku menu nie ma miejsca na pasek obszarów"
+          }
+        }
+      }
+    },
+    "Switch workspaces with the shortcuts or the launcher." : {
+      "comment" : "Settings banner detail: the strip is not visible",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch workspaces with the shortcuts or the launcher."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełączaj obszary skrótami lub z poziomu launchera."
+          }
+        }
+      }
+    },
+    "Reset window state?" : {
+      "comment" : "Window Management confirmation title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset window state?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zresetować stan okien?"
+          }
+        }
+      }
+    },
+    "Every window is put back first, then the workspaces and layouts start over: each window joins the workspace shown on its display. This can’t be undone." : {
+      "comment" : "Window Management confirmation text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every window is put back first, then the workspaces and layouts start over: each window joins the workspace shown on its display. This can’t be undone."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Najpierw wszystkie okna wrócą na miejsce, potem obszary robocze i układy zaczną od nowa: każde okno trafi do obszaru widocznego na jego ekranie. Tej operacji nie można cofnąć."
+          }
+        }
+      }
+    },
+    "Reset State" : {
+      "comment" : "Window Management confirmation button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset State"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zresetuj stan"
+          }
+        }
+      }
+    },
+    "Update Lintel" : {
+      "comment" : "Window Management: the window id function is unavailable",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update Lintel"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaktualizuj Lintel"
+          }
+        }
+      }
+    },
+    "This version of macOS changed something Window Management relies on." : {
+      "comment" : "Window Management: the window id function is unavailable",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This version of macOS changed something Window Management relies on."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ta wersja macOS zmieniła coś, na czym opiera się zarządzanie oknami."
+          }
+        }
+      }
+    },
+    "Switched off after a problem" : {
+      "comment" : "Window Management: safe mode",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switched off after a problem"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyłączone po problemie"
+          }
+        }
+      }
+    },
+    "Show menu bar strip" : {
+      "comment" : "Window Management setting: the numbered boxes in the menu bar",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show menu bar strip"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż pasek obszarów w pasku menu"
+          }
+        }
+      }
+    },
+    "Jump to a window’s workspace" : {
+      "comment" : "Window Management setting: follow focus",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jump to a window’s workspace"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przechodź do obszaru okna"
+          }
+        }
+      }
+    },
+    "Switch when a window in another workspace gets focus." : {
+      "comment" : "Window Management setting help: follow focus",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch when a window in another workspace gets focus."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełącz, gdy okno z innego obszaru dostanie fokus."
+          }
+        }
+      }
+    },
+    "Show a number after switching" : {
+      "comment" : "Window Management setting: the workspace HUD",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show a number after switching"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż numer po przełączeniu"
+          }
+        }
+      }
+    },
+    "All workspaces" : {
+      "comment" : "Window Management strip mode",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All workspaces"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wszystkie obszary"
+          }
+        }
+      }
+    },
+    "Only workspaces with windows" : {
+      "comment" : "Window Management strip mode",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only workspaces with windows"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tylko obszary z oknami"
+          }
+        }
+      }
+    },
+    "Strip shows" : {
+      "comment" : "Window Management setting: which boxes the strip draws",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strip shows"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pasek pokazuje"
+          }
+        }
+      }
+    },
+    "Go to workspace" : {
+      "comment" : "Window Management shortcut family",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go to workspace"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przejdź do obszaru"
+          }
+        }
+      }
+    },
+    "Move window to workspace" : {
+      "comment" : "Window Management shortcut family",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move window to workspace"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przenieś okno do obszaru"
+          }
+        }
+      }
+    },
+    "Some shortcuts type letters" : {
+      "comment" : "Window Management shortcut warning",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some shortcuts type letters"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niektóre skróty wpisują litery"
+          }
+        }
+      }
+    },
+    "On this keyboard layout %@ types a character." : {
+      "comment" : "Window Management shortcut warning: names the keys",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On this keyboard layout %@ types a character."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Na tej klawiaturze %@ wpisuje znak."
+          }
+        }
+      }
+    },
+    "Use ⌃⌥" : {
+      "comment" : "Window Management shortcut warning button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use ⌃⌥"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Użyj ⌃⌥"
+          }
+        }
+      }
+    },
+    "Custom" : {
+      "comment" : "Window Management shortcut modifiers: recorded by hand",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Własny"
+          }
+        }
+      }
+    },
+    "Floating apps" : {
+      "comment" : "Window Management setting: apps that are never arranged",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Floating apps"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikacje pływające"
+          }
+        }
+      }
+    },
+    "These apps keep their windows where they are." : {
+      "comment" : "Window Management setting help",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These apps keep their windows where they are."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te aplikacje zachowują położenie okien."
+          }
+        }
+      }
+    },
+    "Reset List" : {
+      "comment" : "Window Management: restores the default floating apps",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset List"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywróć listę"
+          }
+        }
+      }
+    },
+    "Restore all windows" : {
+      "comment" : "Window Management setting: puts every parked window back",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore all windows"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywróć wszystkie okna"
+          }
+        }
+      }
+    },
+    "Puts every parked window back on screen." : {
+      "comment" : "Window Management setting help",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Puts every parked window back on screen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywraca na ekran każde ukryte okno."
+          }
+        }
+      }
+    },
+    "Reset" : {
+      "comment" : "Window Management: reset button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resetuj"
+          }
+        }
+      }
+    },
+    "Reset state…" : {
+      "comment" : "Window Management setting: forgets the workspaces",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset state…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resetuj stan…"
+          }
+        }
+      }
+    },
+    "Copy diagnostics" : {
+      "comment" : "Window Management setting: counters for a bug report",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy diagnostics"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiuj diagnostykę"
+          }
+        }
+      }
+    },
+    "Arrange windows in workspaces. Windows of other workspaces are parked in a screen corner." : {
+      "comment" : "Window Management welcome step: what the feature does",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrange windows in workspaces. Windows of other workspaces are parked in a screen corner."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układaj okna w obszarach roboczych. Okna innych obszarów są ukryte w rogu ekranu."
+          }
+        }
+      }
+    },
+    "Accessibility is allowed" : {
+      "comment" : "Window Management welcome step: the Accessibility state",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accessibility is allowed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostępność jest dozwolona"
+          }
+        }
+      }
+    },
+    "Accessibility is needed to move windows" : {
+      "comment" : "Window Management welcome step: the Accessibility state",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accessibility is needed to move windows"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Do przesuwania okien potrzebna jest Dostępność"
+          }
+        }
+      }
+    },
+    "%@ types a character on this keyboard layout." : {
+      "comment" : "Window Management shortcut warning: names the keys",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ types a character on this keyboard layout."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ wpisuje znak na tej klawiaturze."
+          }
+        }
+      }
+    },
+    "If something goes wrong, Lintel puts the windows back when it starts, or use Restore All Windows in the menu bar." : {
+      "comment" : "Window Management welcome step: recovery",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If something goes wrong, Lintel puts the windows back when it starts, or use Restore All Windows in the menu bar."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gdy coś pójdzie nie tak, aplikacja Lintel przywróci okna przy uruchomieniu, albo użyj „Przywróć wszystkie okna” w pasku menu."
+          }
+        }
+      }
+    },
+    "Keep the windows you arrange on one Space." : {
+      "comment" : "Window Management welcome step: one Space",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep the windows you arrange on one Space."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Okna, które układasz, trzymaj na jednym pulpicie."
+          }
+        }
+      }
+    },
+    "Ready · %lld workspaces" : {
+      "comment" : "Settings banner: Window Management works",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Ready · %lld workspace"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Ready · %lld workspaces"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Gotowe · %lld obszar roboczy"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Gotowe · %lld obszary robocze"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Gotowe · %lld obszarów roboczych"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Gotowe · %lld obszaru roboczego"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Windows were left parked twice in a row. Use Try Again above." : {
+      "comment" : "Window Management: safe mode",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Windows were left parked twice in a row. Use Try Again above."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Okna zostały ukryte dwa razy z rzędu. Użyj „Spróbuj ponownie” powyżej."
+          }
+        }
+      }
+    },
+    "Use different modifiers for the two shortcut families." : {
+      "comment" : "Window Management shortcut rows: the other family already uses this choice",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use different modifiers for the two shortcut families."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Użyj różnych modyfikatorów dla obu grup skrótów."
+          }
+        }
+      }
+    },
+    "Focus Left" : {
+      "comment" : "Command: moves the focus to the tile on the left",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Focus Left"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fokus w lewo"
+          }
+        }
+      }
+    },
+    "Focus Right" : {
+      "comment" : "Command: moves the focus to the tile on the right",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Focus Right"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fokus w prawo"
+          }
+        }
+      }
+    },
+    "Focus Up" : {
+      "comment" : "Command: moves the focus to the tile above",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Focus Up"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fokus w górę"
+          }
+        }
+      }
+    },
+    "Focus Down" : {
+      "comment" : "Command: moves the focus to the tile below",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Focus Down"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fokus w dół"
+          }
+        }
+      }
+    },
+    "Move Window Left" : {
+      "comment" : "Command: moves the focused window in the tree",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move Window Left"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przesuń okno w lewo"
+          }
+        }
+      }
+    },
+    "Move Window Right" : {
+      "comment" : "Command: moves the focused window in the tree",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move Window Right"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przesuń okno w prawo"
+          }
+        }
+      }
+    },
+    "Move Window Up" : {
+      "comment" : "Command: moves the focused window in the tree",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move Window Up"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przesuń okno w górę"
+          }
+        }
+      }
+    },
+    "Move Window Down" : {
+      "comment" : "Command: moves the focused window in the tree",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move Window Down"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przesuń okno w dół"
+          }
+        }
+      }
+    },
+    "Grow Window" : {
+      "comment" : "Command: makes the focused tile larger",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grow Window"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Powiększ okno"
+          }
+        }
+      }
+    },
+    "Shrink Window" : {
+      "comment" : "Command: makes the focused tile smaller",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shrink Window"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pomniejsz okno"
+          }
+        }
+      }
+    },
+    "Join with Left Window" : {
+      "comment" : "Command: groups the focused window with its neighbour",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join with Left Window"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Połącz z oknem po lewej"
+          }
+        }
+      }
+    },
+    "Join with Right Window" : {
+      "comment" : "Command: groups the focused window with its neighbour",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join with Right Window"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Połącz z oknem po prawej"
+          }
+        }
+      }
+    },
+    "Join with Window Above" : {
+      "comment" : "Command: groups the focused window with its neighbour",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join with Window Above"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Połącz z oknem powyżej"
+          }
+        }
+      }
+    },
+    "Join with Window Below" : {
+      "comment" : "Command: groups the focused window with its neighbour",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join with Window Below"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Połącz z oknem poniżej"
+          }
+        }
+      }
+    },
+    "Toggle Split Direction" : {
+      "comment" : "Command: flips the container of the focused window",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toggle Split Direction"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełącz kierunek podziału"
+          }
+        }
+      }
+    },
+    "Toggle Floating" : {
+      "comment" : "Command: takes the focused window out of tiling or back in",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toggle Floating"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełącz okno pływające"
+          }
+        }
+      }
+    },
+    "Balance Windows" : {
+      "comment" : "Command: gives every tile the same size",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Balance Windows"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyrównaj okna"
+          }
+        }
+      }
+    },
+    "Toggle Layout" : {
+      "comment" : "Command: cycles the layout kind of the current workspace",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toggle Layout"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełącz układ"
+          }
+        }
+      }
+    },
+    "Auto-tile" : {
+      "comment" : "Window Management layout kind: windows tile the screen",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto-tile"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układ kafelkowy"
+          }
+        }
+      }
+    },
+    "Zones" : {
+      "comment" : "Window Management layout kind: windows snap into zones",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zones"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strefy"
+          }
+        }
+      }
+    },
+    "Free" : {
+      "comment" : "Window Management layout kind: windows are left where they are",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Free"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swobodny"
+          }
+        }
+      }
+    },
+    "Side by side" : {
+      "comment" : "Window Management: the first split of a workspace is horizontal",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Side by side"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obok siebie"
+          }
+        }
+      }
+    },
+    "Stacked" : {
+      "comment" : "Window Management: the first split of a workspace is vertical",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stacked"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jedno pod drugim"
+          }
+        }
+      }
+    },
+    "Gaps %lld / %lld" : {
+      "comment" : "Window Management summary: gaps",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gaps %lld / %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odstępy %lld / %lld"
+          }
+        }
+      }
+    },
+    "Default layout" : {
+      "comment" : "Window Management setting: how workspaces are arranged",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default layout"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Domyślny układ"
+          }
+        }
+      }
+    },
+    "Space between windows" : {
+      "comment" : "Window Management setting: the inner gap",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Space between windows"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odstęp między oknami"
+          }
+        }
+      }
+    },
+    "Space around windows" : {
+      "comment" : "Window Management setting: the outer gap",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Space around windows"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odstęp wokół okien"
+          }
+        }
+      }
+    },
+    "Focus window" : {
+      "comment" : "Window Management shortcut family",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Focus window"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fokus okna"
+          }
+        }
+      }
+    },
+    "Move window" : {
+      "comment" : "Window Management shortcut family",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move window"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przesuwanie okna"
+          }
+        }
+      }
+    },
+    "Resize window" : {
+      "comment" : "Window Management shortcut family",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resize window"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zmiana rozmiaru okna"
+          }
+        }
+      }
+    },
+    "What each workspace uses. Edit one to change its layout and the settings of that layout." : {
+      "comment" : "Window Management setting help: per-workspace layout",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What each workspace uses. Edit one to change its layout and the settings of that layout."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ustawienia każdego obszaru. Edytuj obszar, aby zmienić jego układ i jego ustawienia."
+          }
+        }
+      }
+    },
+    "These settings were saved by a newer version of Lintel and can’t be changed here." : {
+      "comment" : "Window Management: per-workspace settings from a newer version",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These settings were saved by a newer version of Lintel and can’t be changed here."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te ustawienia zapisała nowsza wersja aplikacji Lintel i nie można ich tu zmienić."
+          }
+        }
+      }
+    },
+    "Edit workspace %lld" : {
+      "comment" : "Window Management: edits one workspace (spoken)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit workspace %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edytuj obszar %lld"
+          }
+        }
+      }
+    },
+    "Use default" : {
+      "comment" : "Window Management: the workspace follows the global setting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use default"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Użyj domyślnych"
+          }
+        }
+      }
+    },
+    "Layout" : {
+      "comment" : "Window Management: the layout kind of one workspace",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layout"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układ"
+          }
+        }
+      }
+    },
+    "First split" : {
+      "comment" : "Window Management: the root orientation of one workspace",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First split"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pierwszy podział"
+          }
+        }
+      }
+    },
+    "Use the defaults for this workspace" : {
+      "comment" : "Window Management: clears the overrides",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use the defaults for this workspace"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Użyj ustawień domyślnych dla tego obszaru"
+          }
+        }
+      }
+    },
+    "Default" : {
+      "comment" : "Window Management: returns a gap to the global value",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Domyślne"
+          }
+        }
+      }
+    },
+    "%lld pt" : {
+      "comment" : "Window Management: a gap in points",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld pt"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld pt"
+          }
+        }
+      }
+    },
+    "Per-workspace layout" : {
+      "comment" : "Window Management setting: the list of per-workspace settings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per-workspace layout"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układ obszarów"
+          }
+        }
+      }
+    },
+    "Focus" : {
+      "comment" : "Zone layout template: one zone",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Focus"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skupienie"
+          }
+        }
+      }
+    },
+    "Columns 2" : {
+      "comment" : "Zone layout template: two columns",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Columns 2"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kolumny 2"
+          }
+        }
+      }
+    },
+    "Columns 3" : {
+      "comment" : "Zone layout template: three columns",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Columns 3"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kolumny 3"
+          }
+        }
+      }
+    },
+    "Rows 2" : {
+      "comment" : "Zone layout template: two rows",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rows 2"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiersze 2"
+          }
+        }
+      }
+    },
+    "Grid 2×2" : {
+      "comment" : "Zone layout template: four zones in a grid",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grid 2×2"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siatka 2×2"
+          }
+        }
+      }
+    },
+    "Priority 25/50/25" : {
+      "comment" : "Zone layout template: a wide middle zone between two",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Priority 25/50/25"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Priorytet 25/50/25"
+          }
+        }
+      }
+    },
+    "Move Window to Zone %lld" : {
+      "comment" : "Command: moves the focused window to a numbered zone",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move Window to Zone %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przenieś okno do strefy %lld"
+          }
+        }
+      }
+    },
+    "Zone %lld" : {
+      "comment" : "Snap overlay: the name of a zone, spoken when it is highlighted",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zone %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strefa %lld"
+          }
+        }
+      }
+    },
+    "Zones. Release to snap the window." : {
+      "comment" : "Snap overlay: what VoiceOver hears for the overlay while a window is dragged",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zones. Release to snap the window."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strefy. Puść, aby przyciągnąć okno."
+          }
+        }
+      }
+    },
+    "Hold ⇧ while dragging to snap" : {
+      "comment" : "Window HUD: shown once, the first time a Zones layout is active",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold ⇧ while dragging to snap"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przytrzymaj ⇧ podczas przeciągania, aby przyciągnąć"
+          }
+        }
+      }
+    },
+    "Main display" : {
+      "comment" : "Layouts window: the display with the menu bar",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Main display"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyświetlacz główny"
+          }
+        }
+      }
+    },
+    "Display %lld" : {
+      "comment" : "Layouts window: a display, by number",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Display %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyświetlacz %lld"
+          }
+        }
+      }
+    },
+    "%@ · by shape" : {
+      "comment" : "Layouts window: a layout chosen for every display of one shape",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · by shape"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · wg kształtu"
+          }
+        }
+      }
+    },
+    "%@ · default" : {
+      "comment" : "Layouts window: the layout comes from the default",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · default"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · domyślny"
+          }
+        }
+      }
+    },
+    "Use default (%@)" : {
+      "comment" : "Layouts window: the menu entry that clears a choice",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use default (%@)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Użyj domyślnego (%@)"
+          }
+        }
+      }
+    },
+    "Grid" : {
+      "comment" : "Layouts window: the style of a layout",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grid"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siatka"
+          }
+        }
+      }
+    },
+    "Not assigned" : {
+      "comment" : "Layouts window: no cell uses this layout",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not assigned"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nieprzypisany"
+          }
+        }
+      }
+    },
+    "Default for landscape displays" : {
+      "comment" : "Layouts window: the layout is a default",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default for landscape displays"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Domyślny dla poziomych wyświetlaczy"
+          }
+        }
+      }
+    },
+    "Default for portrait displays" : {
+      "comment" : "Layouts window: the layout is a default",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default for portrait displays"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Domyślny dla pionowych wyświetlaczy"
+          }
+        }
+      }
+    },
+    "Layouts" : {
+      "comment" : "Layouts window title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layouts"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układy"
+          }
+        }
+      }
+    },
+    "Stock" : {
+      "comment" : "Layouts window: the section of the built-in layouts",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stock"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wbudowane"
+          }
+        }
+      }
+    },
+    "Where each layout is used" : {
+      "comment" : "Layouts window: the heading above the assignment matrix",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Where each layout is used"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gdzie używany jest każdy układ"
+          }
+        }
+      }
+    },
+    "Every workspace on every display" : {
+      "comment" : "Layouts window: Apply to… everything",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every workspace on every display"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Każdy obszar roboczy na każdym wyświetlaczu"
+          }
+        }
+      }
+    },
+    "All workspaces on %@" : {
+      "comment" : "Layouts window: Apply to… one display",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All workspaces on %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wszystkie obszary robocze na: %@"
+          }
+        }
+      }
+    },
+    "Workspace %lld on every display" : {
+      "comment" : "Layouts window: Apply to… one workspace",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Workspace %lld on every display"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obszar roboczy %lld na każdym wyświetlaczu"
+          }
+        }
+      }
+    },
+    "Apply to…" : {
+      "comment" : "Layouts window: opens the menu that writes a layout to many cells",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply to…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zastosuj do…"
+          }
+        }
+      }
+    },
+    "No displays were found." : {
+      "comment" : "Layouts window: the display list is empty",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No displays were found."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie znaleziono wyświetlaczy."
+          }
+        }
+      }
+    },
+    "Identify" : {
+      "comment" : "Layouts window: flashes a number on the display",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Identify"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż"
+          }
+        }
+      }
+    },
+    "Identify %@" : {
+      "comment" : "Layouts window: identifies one display (spoken)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Identify %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż wyświetlacz: %@"
+          }
+        }
+      }
+    },
+    "Layout of workspace %lld" : {
+      "comment" : "Layouts window: the layout kind of a workspace (spoken)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layout of workspace %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układ obszaru roboczego %lld"
+          }
+        }
+      }
+    },
+    "Workspace %lld, %@" : {
+      "comment" : "Layouts window: a matrix cell (spoken)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Workspace %lld, %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obszar roboczy %lld, %@"
+          }
+        }
+      }
+    },
+    "This workspace uses a layout kind that does not use these layouts." : {
+      "comment" : "Layouts window: tooltip of a cell on a workspace whose layout kind does not use the layout library",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This workspace uses a layout kind that does not use these layouts."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten obszar roboczy używa rodzaju układu, który nie korzysta z tych układów."
+          }
+        }
+      }
+    },
+    "Window Management is off. Turn it on to change layouts." : {
+      "comment" : "Layouts window: the plugin is off",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Window Management is off. Turn it on to change layouts."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zarządzanie oknami jest wyłączone. Włącz je, aby zmieniać układy."
+          }
+        }
+      }
+    },
+    "These assignments were saved by a newer version of Lintel and can’t be changed here." : {
+      "comment" : "Layouts window: assignments from a newer version",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These assignments were saved by a newer version of Lintel and can’t be changed here."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te przypisania zapisała nowsza wersja aplikacji Lintel i nie można ich tu zmienić."
+          }
+        }
+      }
+    },
+    "Two displays look identical to macOS. Lintel tells them apart by their position." : {
+      "comment" : "Layouts window: two displays share an identifier",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Two displays look identical to macOS. Lintel tells them apart by their position."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS widzi dwa wyświetlacze jako identyczne. Lintel rozróżnia je po położeniu."
+          }
+        }
+      }
+    },
+    "Some cells use the default because their layout is missing." : {
+      "comment" : "Layouts window: an assignment names a layout that does not exist",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some cells use the default because their layout is missing."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niektóre pola używają domyślnego układu, bo ich układu brakuje."
+          }
+        }
+      }
+    },
+    "An empty cell uses the default for the display’s shape. Choose a layout to change it. With a cell selected, use the arrow keys, ⌫ for the default and 1 to 6 for a stock layout." : {
+      "comment" : "Layouts window: how the matrix works",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An empty cell uses the default for the display’s shape. Choose a layout to change it. With a cell selected, use the arrow keys, ⌫ for the default and 1 to 6 for a stock layout."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Puste pole używa układu domyślnego dla kształtu wyświetlacza. Wybierz układ, aby to zmienić. Przy zaznaczonym polu: strzałki przesuwają, ⌫ przywraca domyślny, a 1–6 wybiera wbudowany układ."
+          }
+        }
+      }
+    },
+    "How a workspace arranges its windows unless it has a layout of its own." : {
+      "comment" : "Window Management setting help: the layout kinds",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How a workspace arranges its windows unless it has a layout of its own."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jak obszar roboczy układa okna, jeśli nie ma własnego układu."
+          }
+        }
+      }
+    },
+    "Layouts…" : {
+      "comment" : "Window Management: opens the Layouts window",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layouts…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układy…"
+          }
+        }
+      }
+    },
+    "Zones on landscape displays" : {
+      "comment" : "Window Management setting: the default zone layout",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zones on landscape displays"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strefy na poziomych wyświetlaczach"
+          }
+        }
+      }
+    },
+    "Zones on portrait displays" : {
+      "comment" : "Window Management setting: the default zone layout",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zones on portrait displays"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strefy na pionowych wyświetlaczach"
+          }
+        }
+      }
+    },
+    "Used when a display has no layout of its own for a workspace." : {
+      "comment" : "Window Management setting help: the default zone layout",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used when a display has no layout of its own for a workspace."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Używane, gdy wyświetlacz nie ma własnego układu dla obszaru roboczego."
+          }
+        }
+      }
+    },
+    "%lld zones" : {
+      "comment" : "Layouts window: how many zones a layout has",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld zone"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld zones"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld strefa"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld strefy"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld stref"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld strefy"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Used on %lld cells" : {
+      "comment" : "Layouts window: how many cells use this layout",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Used on %lld cell"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Used on %lld cells"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Używany w %lld polu"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Używany w %lld polach"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Używany w %lld polach"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Używany w %lld polach"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld layouts" : {
+      "comment" : "Settings: how many zone layouts exist",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld layout"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld layouts"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld układ"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld układy"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld układów"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld układu"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "The change could not be saved. Your layouts are unchanged." : {
+      "comment" : "Layouts window: writing the assignments failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The change could not be saved. Your layouts are unchanged."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się zapisać zmiany. Twoje układy pozostały bez zmian."
+          }
+        }
+      }
+    },
+    "Zone %lld, x %lld%%, y %lld%%, width %lld%%, height %lld%%" : {
+      "comment" : "Layout editor: a zone with its position and size as percentages of the display (spoken)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zone %lld, x %lld%%, y %lld%%, width %lld%%, height %lld%%"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strefa %lld, x %lld%%, y %lld%%, szerokość %lld%%, wysokość %lld%%"
+          }
+        }
+      }
+    },
+    "That value can’t be used." : {
+      "comment" : "Layout editor: a field got a value it refuses",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That value can’t be used."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tej wartości nie można użyć."
+          }
+        }
+      }
+    },
+    "A layout can have at most 64 zones." : {
+      "comment" : "Layout editor: the zone limit",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A layout can have at most 64 zones."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układ może mieć najwyżej 64 strefy."
+          }
+        }
+      }
+    },
+    "A layout can have at most 32 columns and 32 rows." : {
+      "comment" : "Layout editor: the track limit",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A layout can have at most 32 columns and 32 rows."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układ może mieć najwyżej 32 kolumny i 32 wiersze."
+          }
+        }
+      }
+    },
+    "A zone can’t get any narrower." : {
+      "comment" : "Layout editor: a divider reached its limit",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A zone can’t get any narrower."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strefa nie może być już węższa."
+          }
+        }
+      }
+    },
+    "Select two or more zones to merge." : {
+      "comment" : "Layout editor: Merge needs a selection",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select two or more zones to merge."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaznacz co najmniej dwie strefy, aby je scalić."
+          }
+        }
+      }
+    },
+    "Those zones don’t make one rectangle, so they can’t be merged." : {
+      "comment" : "Layout editor: the selected zones cannot be merged",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Those zones don’t make one rectangle, so they can’t be merged."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te strefy nie tworzą jednego prostokąta, więc nie można ich scalić."
+          }
+        }
+      }
+    },
+    "The zones on both sides of this divider don’t line up. Select them and choose Merge." : {
+      "comment" : "Layout editor: Delete on a divider is refused",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The zones on both sides of this divider don’t line up. Select them and choose Merge."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strefy po obu stronach tego separatora nie pokrywają się. Zaznacz je i wybierz Scal."
+          }
+        }
+      }
+    },
+    "The border of the display can’t be moved." : {
+      "comment" : "Layout editor: an outer edge was edited",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The border of the display can’t be moved."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Krawędzi wyświetlacza nie można przesunąć."
+          }
+        }
+      }
+    },
+    "Nothing to undo." : {
+      "comment" : "Layout editor: Undo without history",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing to undo."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie ma czego cofnąć."
+          }
+        }
+      }
+    },
+    "Nothing to redo." : {
+      "comment" : "Layout editor: Redo without history",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing to redo."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie ma czego ponowić."
+          }
+        }
+      }
+    },
+    "Vertical divider at %lld%%" : {
+      "comment" : "Layout editor: a divider between columns, its position as a percentage (spoken)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vertical divider at %lld%%"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pionowy separator na %lld%%"
+          }
+        }
+      }
+    },
+    "Horizontal divider at %lld%%" : {
+      "comment" : "Layout editor: a divider between rows, its position as a percentage (spoken)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Horizontal divider at %lld%%"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poziomy separator na %lld%%"
+          }
+        }
+      }
+    },
+    "Discard your changes to this layout?" : {
+      "comment" : "Layout editor: asked when closing with unsaved changes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discard your changes to this layout?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odrzucić zmiany w tym układzie?"
+          }
+        }
+      }
+    },
+    "New layout" : {
+      "comment" : "Layout editor: the title while a layout is being made",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New layout"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nowy układ"
+          }
+        }
+      }
+    },
+    "Edit layout" : {
+      "comment" : "Layout editor: the title while a layout is being changed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit layout"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edytuj układ"
+          }
+        }
+      }
+    },
+    "Style: Grid" : {
+      "comment" : "Layout editor: the style of the layout being edited",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Style: Grid"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Styl: siatka"
+          }
+        }
+      }
+    },
+    "Window Management is off. Save or discard your changes to close this window." : {
+      "comment" : "Layout editor: the plugin was switched off while the editor had unsaved changes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Window Management is off. Save or discard your changes to close this window."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zarządzanie oknami jest wyłączone. Zapisz lub odrzuć zmiany, aby zamknąć to okno."
+          }
+        }
+      }
+    },
+    "These layouts were saved by a newer version of Lintel and can’t be changed here." : {
+      "comment" : "Layout editor: saving is refused because the library file is newer",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These layouts were saved by a newer version of Lintel and can’t be changed here."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te układy zapisała nowsza wersja aplikacji Lintel i nie można ich tu zmieniać."
+          }
+        }
+      }
+    },
+    "The layout could not be saved. Your other layouts are unchanged." : {
+      "comment" : "Layout editor: the file could not be written",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The layout could not be saved. Your other layouts are unchanged."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się zapisać układu. Pozostałe układy się nie zmieniły."
+          }
+        }
+      }
+    },
+    "This layout can’t be saved. Check the name and the zones." : {
+      "comment" : "Layout editor: the layout breaks a rule",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This layout can’t be saved. Check the name and the zones."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tego układu nie można zapisać. Sprawdź nazwę i strefy."
+          }
+        }
+      }
+    },
+    "Name" : {
+      "comment" : "Layout editor: the field that names the layout",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nazwa"
+          }
+        }
+      }
+    },
+    "Layout name" : {
+      "comment" : "Layout editor: the name field (spoken)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layout name"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nazwa układu"
+          }
+        }
+      }
+    },
+    "Use 1 to 64 characters, without control characters." : {
+      "comment" : "Layout editor: the name is empty, too long or has forbidden characters",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use 1 to 64 characters, without control characters."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Użyj od 1 do 64 znaków, bez znaków sterujących."
+          }
+        }
+      }
+    },
+    "Space around zones" : {
+      "comment" : "Layout editor: the gap between zones and around them",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Space around zones"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odstęp wokół stref"
+          }
+        }
+      }
+    },
+    "Less space" : {
+      "comment" : "Layout editor: decreases the space around zones",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Less space"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mniejszy odstęp"
+          }
+        }
+      }
+    },
+    "Space around zones: %lld points" : {
+      "comment" : "Layout editor: the space around zones (spoken)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Space around zones: %lld points"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odstęp wokół stref: %lld punktów"
+          }
+        }
+      }
+    },
+    "More space" : {
+      "comment" : "Layout editor: increases the space around zones",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More space"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Większy odstęp"
+          }
+        }
+      }
+    },
+    "Divide side by side" : {
+      "comment" : "Layout editor: divides a zone",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Divide side by side"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podziel obok siebie"
+          }
+        }
+      }
+    },
+    "Divide stacked" : {
+      "comment" : "Layout editor: divides a zone",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Divide stacked"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podziel jedną nad drugą"
+          }
+        }
+      }
+    },
+    "%lld%%" : {
+      "comment" : "Layout editor: a percentage (spoken)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld%%"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld%%"
+          }
+        }
+      }
+    },
+    "Merge" : {
+      "comment" : "Layout editor: merges the selected zones",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Merge"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scal"
+          }
+        }
+      }
+    },
+    "Divide" : {
+      "comment" : "Layout editor: divides the focused zone",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Divide"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podziel"
+          }
+        }
+      }
+    },
+    "Esc" : {
+      "comment" : "Layout editor: the key of Cancel",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esc"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esc"
+          }
+        }
+      }
+    },
+    "⌘S" : {
+      "comment" : "Layout editor: the key of Save",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌘S"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌘S"
+          }
+        }
+      }
+    },
+    "Preview" : {
+      "comment" : "Layout editor: the heading above the canvas",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preview"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podgląd"
+          }
+        }
+      }
+    },
+    "Click a zone to divide it, ⇧-click to divide it the other way, ⌘-click to select it for Merge. Drag a divider to move it. Tab moves between zones and dividers · S divides · arrows move a divider by 1% · Delete on a divider merges its neighbours." : {
+      "comment" : "Layout editor: how to use the canvas",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click a zone to divide it, ⇧-click to divide it the other way, ⌘-click to select it for Merge. Drag a divider to move it. Tab moves between zones and dividers · S divides · arrows move a divider by 1% · Delete on a divider merges its neighbours."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kliknij strefę, aby ją podzielić, ⇧-klik dzieli w drugą stronę, ⌘-klik zaznacza ją do scalenia. Przeciągnij separator, aby go przesunąć. Tab przechodzi między strefami i separatorami · S dzieli · strzałki przesuwają separator o 1% · Delete na separatorze scala sąsiednie strefy."
+          }
+        }
+      }
+    },
+    "Preview display" : {
+      "comment" : "Layout editor: the display the live preview is shown on",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preview display"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyświetlacz podglądu"
+          }
+        }
+      }
+    },
+    "Layout preview. Use the zone list to change zones." : {
+      "comment" : "Layout editor: the canvas (spoken); the zone list is the accessible way to edit",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layout preview. Use the zone list to change zones."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podgląd układu. Do zmiany stref użyj listy stref."
+          }
+        }
+      }
+    },
+    "Merge neighbours" : {
+      "comment" : "Layout editor: removes a divider",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Merge neighbours"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scal sąsiadów"
+          }
+        }
+      }
+    },
+    "Layout Editor" : {
+      "comment" : "Layout editor window title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layout Editor"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edytor układu"
+          }
+        }
+      }
+    },
+    "Choose a layouts file to import." : {
+      "comment" : "Layouts window: the open panel's message",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a layouts file to import."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybierz plik z układami do zaimportowania."
+          }
+        }
+      }
+    },
+    "Export layouts to a file you can share." : {
+      "comment" : "Layouts window: the save panel's message",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export layouts to a file you can share."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyeksportuj układy do pliku, który możesz udostępnić."
+          }
+        }
+      }
+    },
+    "Delete “%@”? No workspace uses it." : {
+      "comment" : "Layouts window: asked before a layout nobody uses is deleted",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete “%@”? No workspace uses it."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunąć „%@”? Żaden obszar roboczy go nie używa."
+          }
+        }
+      }
+    },
+    "Delete “%@”? Assignments that will use the default layout instead: %lld (%@)." : {
+      "comment" : "Layouts window: asked before a layout in use is deleted; the count and the cells",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete “%@”? Assignments that will use the default layout instead: %lld (%@)."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunąć „%@”? Przypisania, które użyją zamiast niego układu domyślnego: %lld (%@)."
+          }
+        }
+      }
+    },
+    "The library is full: 256 layouts is the most it can hold." : {
+      "comment" : "Layouts window: the library has the most layouts it can hold",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The library is full: 256 layouts is the most it can hold."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biblioteka jest pełna: może pomieścić najwyżej 256 układów."
+          }
+        }
+      }
+    },
+    "%@ copy" : {
+      "comment" : "Layouts window: the default name of a duplicated layout; the original's name first",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ copy"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ – kopia"
+          }
+        }
+      }
+    },
+    "and %lld more" : {
+      "comment" : "Layouts window: the delete question lists six cells and then how many more",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "and %lld more"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "i jeszcze %lld"
+          }
+        }
+      }
+    },
+    "every landscape display" : {
+      "comment" : "Layouts window: a cell chosen for a display shape",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "every landscape display"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "każdym wyświetlaczu poziomym"
+          }
+        }
+      }
+    },
+    "every portrait display" : {
+      "comment" : "Layouts window: a cell chosen for a display shape",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "every portrait display"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "każdym wyświetlaczu pionowym"
+          }
+        }
+      }
+    },
+    "a display that is not connected" : {
+      "comment" : "Layouts window: a cell of a display that is not here now",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "a display that is not connected"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "wyświetlaczu, który nie jest podłączony"
+          }
+        }
+      }
+    },
+    "Workspace %lld on %@" : {
+      "comment" : "Layouts window: a cell, by workspace and display",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Workspace %lld on %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obszar roboczy %lld na: %@"
+          }
+        }
+      }
+    },
+    "Turn Window Management on to import layouts." : {
+      "comment" : "Layouts window: an import needs the plugin to be running",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn Window Management on to import layouts."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Włącz Zarządzanie oknami, aby importować układy."
+          }
+        }
+      }
+    },
+    "That file is too large to be a layouts file (1 MB at most)." : {
+      "comment" : "Layouts window: an import file is over the size limit",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That file is too large to be a layouts file (1 MB at most)."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten plik jest za duży, by być plikiem z układami (najwyżej 1 MB)."
+          }
+        }
+      }
+    },
+    "That file is not a Lintel layouts file." : {
+      "comment" : "Layouts window: an import file cannot be read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That file is not a Lintel layouts file."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To nie jest plik z układami aplikacji Lintel."
+          }
+        }
+      }
+    },
+    "That file has too many layouts. A library holds 256 at most." : {
+      "comment" : "Layouts window: an import would exceed the layout limit",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That file has too many layouts. A library holds 256 at most."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten plik ma za dużo układów. Biblioteka mieści ich najwyżej 256."
+          }
+        }
+      }
+    },
+    "That file was made by a newer version of Lintel." : {
+      "comment" : "Layouts window: an import file has a newer format",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That file was made by a newer version of Lintel."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten plik utworzyła nowsza wersja aplikacji Lintel."
+          }
+        }
+      }
+    },
+    "Imported %lld layouts." : {
+      "comment" : "Layouts window: what an import added",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Imported %lld layout."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Imported %lld layouts."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zaimportowano %lld układ."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zaimportowano %lld układy."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zaimportowano %lld układów."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zaimportowano %lld układu."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld layouts will be added." : {
+      "comment" : "Layouts window: the import summary, how many layouts are added",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld layout will be added."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld layouts will be added."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zostanie dodany %lld układ."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zostaną dodane %lld układy."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zostanie dodanych %lld układów."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zostanie dodanego %lld układu."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld get a new identity because theirs is already used." : {
+      "comment" : "Layouts window: the import summary, layouts whose ids collided",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld gets a new identity because its own is already used."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld get a new identity because theirs are already used."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld układ dostaje nową tożsamość, bo jego jest już zajęta."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld układy dostają nową tożsamość, bo ich są już zajęte."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld układów dostaje nową tożsamość, bo ich są już zajęte."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld układu dostaje nową tożsamość, bo ich są już zajęte."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld skipped: a style this version doesn’t know." : {
+      "comment" : "Layouts window: the import summary, layouts of another style",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld skipped: a style this version doesn’t know."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld skipped: a style this version doesn’t know."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Pominięto %lld: styl, którego ta wersja nie zna."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Pominięto %lld: styl, którego ta wersja nie zna."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Pominięto %lld: styl, którego ta wersja nie zna."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Pominięto %lld: styl, którego ta wersja nie zna."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld skipped: they break a rule." : {
+      "comment" : "Layouts window: the import summary, invalid layouts",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld skipped: it breaks a rule."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld skipped: they break a rule."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Pominięto %lld: łamie zasadę."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Pominięto %lld: łamią zasadę."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Pominięto %lld: łamią zasadę."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Pominięto %lld: łamią zasadę."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Assignments and layout slots are never imported." : {
+      "comment" : "Layouts window: the import summary, what a file cannot change",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Assignments and layout slots are never imported."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przypisania i miejsca skrótów układów nigdy nie są importowane."
+          }
+        }
+      }
+    },
+    "My layouts" : {
+      "comment" : "Layouts window: the default file name of an export",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My layouts"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moje układy"
+          }
+        }
+      }
+    },
+    "Exported %lld layouts." : {
+      "comment" : "Layouts window: what an export wrote",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Exported %lld layout."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Exported %lld layouts."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Wyeksportowano %lld układ."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Wyeksportowano %lld układy."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Wyeksportowano %lld układów."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Wyeksportowano %lld układu."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "The file could not be written." : {
+      "comment" : "Layouts window: an export failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The file could not be written."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się zapisać pliku."
+          }
+        }
+      }
+    },
+    "Delete this layout?" : {
+      "comment" : "Layouts window: asked before a delete",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete this layout?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunąć ten układ?"
+          }
+        }
+      }
+    },
+    "Mine" : {
+      "comment" : "Layouts window: the section of the user's own layouts",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mine"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moje"
+          }
+        }
+      }
+    },
+    "Layouts you make or import appear here." : {
+      "comment" : "Layouts window: the user's own section is empty",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layouts you make or import appear here."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układy, które utworzysz lub zaimportujesz, pojawią się tutaj."
+          }
+        }
+      }
+    },
+    "Duplicate" : {
+      "comment" : "Layouts window: makes an editable copy of the selected layout",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duplicate"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duplikuj"
+          }
+        }
+      }
+    },
+    "Import" : {
+      "comment" : "Layouts window: adds layouts from a file",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importuj"
+          }
+        }
+      }
+    },
+    "Export Selected Layout…" : {
+      "comment" : "Layouts window: writes the selected layout to a file",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export Selected Layout…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksportuj wybrany układ…"
+          }
+        }
+      }
+    },
+    "Export All My Layouts…" : {
+      "comment" : "Layouts window: writes the user's layouts to a file",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export All My Layouts…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksportuj wszystkie moje układy…"
+          }
+        }
+      }
+    },
+    "Edit…" : {
+      "comment" : "Layouts window: opens the layout in the editor",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edytuj…"
+          }
+        }
+      }
+    },
+    "Rename…" : {
+      "comment" : "Layouts window: changes the name of the selected layout",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rename…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zmień nazwę…"
+          }
+        }
+      }
+    },
+    "Layout slot %lld" : {
+      "comment" : "Layouts window: a numbered shortcut slot",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layout slot %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Miejsce układu %lld"
+          }
+        }
+      }
+    },
+    "Slot" : {
+      "comment" : "Layouts window: binds the layout to a numbered shortcut slot",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slot"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Miejsce"
+          }
+        }
+      }
+    },
+    "Shortcut slot" : {
+      "comment" : "Layouts window: the slot menu of a layout (spoken)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shortcut slot"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Miejsce skrótu"
+          }
+        }
+      }
+    },
+    "A slot is a command with its own shortcut. Set the shortcut in Settings → Window Management." : {
+      "comment" : "Layouts window: tooltip of the slot menu",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A slot is a command with its own shortcut. Set the shortcut in Settings → Window Management."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Miejsce to polecenie z własnym skrótem. Skrót ustawisz w Ustawieniach → Zarządzanie oknami."
+          }
+        }
+      }
+    },
+    "Rename layout" : {
+      "comment" : "Layouts window: the title of the rename sheet",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rename layout"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zmień nazwę układu"
+          }
+        }
+      }
+    },
+    "Rename" : {
+      "comment" : "Layouts window: confirms the new name",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rename"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zmień nazwę"
+          }
+        }
+      }
+    },
+    "Import layouts?" : {
+      "comment" : "Layouts window: the title of the import summary",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import layouts?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaimportować układy?"
+          }
+        }
+      }
+    },
+    "Layout slots" : {
+      "comment" : "Window Management setting: nine shortcuts that each apply a layout",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layout slots"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Miejsca układów"
+          }
+        }
+      }
+    },
+    "Each slot has its own shortcut and applies the layout you bind to it to the current workspace." : {
+      "comment" : "Window Management setting help: layout slots",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Each slot has its own shortcut and applies the layout you bind to it to the current workspace."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Każde miejsce ma własny skrót i stosuje przypisany do niego układ w bieżącym obszarze roboczym."
+          }
+        }
+      }
+    },
+    "None" : {
+      "comment" : "Window Management: a layout slot that is not bound",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "None"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak"
+          }
+        }
+      }
+    },
+    "Use Layout Slot %lld" : {
+      "comment" : "Command: gives the current workspace the layout bound to a numbered slot",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use Layout Slot %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Użyj miejsca układu %lld"
+          }
+        }
+      }
+    },
+    "Next Zone Layout" : {
+      "comment" : "Command: switches the current workspace to the next zone layout",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next Zone Layout"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Następny układ stref"
+          }
+        }
+      }
+    },
+    "Some layouts in your library use a style this version doesn’t know. They are kept as they are." : {
+      "comment" : "Layouts window: a note under the matrix",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some layouts in your library use a style this version doesn’t know. They are kept as they are."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niektóre układy w bibliotece mają styl, którego ta wersja nie zna. Zostają bez zmian."
+          }
+        }
+      }
+    },
+    "Slot %@" : {
+      "comment" : "Layouts window: the shortcut slots a layout is bound to",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slot %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Miejsce %@"
+          }
+        }
+      }
+    },
+    "That file could not be read." : {
+      "comment" : "Layouts window: an import file is missing, a folder, or not readable",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That file could not be read."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się odczytać tego pliku."
           }
         }
       }

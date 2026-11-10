@@ -5,6 +5,14 @@ import os
 @main
 enum LintelMain {
     static func main() {
+        #if DEBUG
+        // Before anything is created or read: the QA bundle without --qa must not touch the real app's data.
+        if case .refuse(let reason) = QAIdentityGuard.decisionForThisProcess() {
+            Logger(subsystem: "com.lintelapp", category: "app").fault("\(reason, privacy: .public)")
+            FileHandle.standardError.write(Data((reason + "\n").utf8))
+            exit(EX_USAGE)
+        }
+        #endif
         let app = NSApplication.shared
         let delegate = AppDelegate()
         app.delegate = delegate
@@ -18,6 +26,9 @@ enum LintelMain {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var coordinator: AppCoordinator?
+    /// Files opened before the coordinator has started (a double-click that launched the app).
+    private var pendingFiles: [URL] = []
+    private var started = false
     private let logger = Logger(subsystem: "com.lintelapp", category: "app")
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -37,10 +48,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             await recordQAUses(environment)
             #endif
             await coordinator.start()
+            started = true
+            if !pendingFiles.isEmpty {
+                let files = pendingFiles
+                pendingFiles = []
+                await coordinator.open(files)
+            }
             #if DEBUG
             runQAActions()
             #endif
         }
+    }
+
+    /// A file opened with Lintel goes to the plugins (`PluginHost.openFile`). Before the plugins have started it
+    /// waits for them.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        guard started, let coordinator else {
+            pendingFiles.append(contentsOf: urls)
+            return
+        }
+        Task { await coordinator.open(urls) }
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {

@@ -1,0 +1,49 @@
+# Window management (workspaces, tiling, zones, layout library) - execution plan
+
+Run: `2026-11-09-window-management` · Branch: `feat/window-management` · Mode: Spec-implementation run (om-auto-create-pr-loop, owner rule: one branch and one PR for all four phases)
+Source spec: `.ai/specs/2026-11-09-window-management.md` (spec PR #66; Refs #66, never Closes)
+
+## Tasks
+
+> `Status` is `todo` or `done`. First non-done row is the resume point.
+
+| Phase | Step | Title | Exec | Status | Commit |
+|-------|------|-------|------|--------|--------|
+| 1 | 1.1 | Spike ADR (not yet measured; needs a real Mac) | dispatch:capable | done | 9ebc9eb |
+| 1 | 1.2 | LintelKit contract: WindowClient, types, PluginContext.windows, recoverAtLaunch, PluginHost step | dispatch:capable | done | 036f89e |
+| 1 | 1.3 | WindowsPlugin skeleton, WindowsSettings, manifest (not registered) | dispatch:capable | done | f467cf0 |
+| 1 | 1.4 | Workspace model (pure) | dispatch:capable | done | 87bc5cf |
+| 1 | 1.5 | StateStore with write-through hidden journal | dispatch:capable | done | 1978ffd |
+| 1 | 1.6 | WindowEngine reducer, effects, coalescer, watchdog, fake client, TSan CI | dispatch:capable | done | 2cd9cb3 |
+| 1 | 1.7 | Crash recovery, restore HUD, re-grant polling | dispatch:capable | done | 7696035 |
+| 1 | 1.8a | Window id lookup and self-check | dispatch:capable | done | 7fb5290 |
+| 1 | 1.8b | AX observation | dispatch:capable | done | e53236f |
+| 1 | 1.8c | Batched setFrame and wiring | dispatch:capable | done | e34037d |
+| 1 | 1.9 | Commands, HUD, window switcher, keyboard-layout check | dispatch:capable | done | d352125 |
+| 1 | 1.10 | Workspace strip | dispatch:capable | done | d7c3a00 |
+| 1 | 1.11 | Settings pane, onboarding, diagnostics | dispatch:capable | done | 541e776 |
+| 1 | 1.12 | Docs, QA, --qa fake client, registration, default shortcut tests | dispatch:capable | done | fafc396 |
+| 2 | 2.1 | TilingTree and frames (pure) | dispatch:capable | done | 36d7dac |
+| 2 | 2.2 | Directional navigation (pure) | dispatch:capable | done | c680753 |
+| 2 | 2.3 | Resize, join, orientation, balance (pure) | dispatch:capable | done | eed4763 |
+| 2 | 2.4 | Engine integration for tiling | dispatch:capable | done | 4b1e240 |
+| 2 | 2.5 | Tiling commands, settings, per-workspace overrides | dispatch:capable | done | cd2e5e8 |
+| 3 | 3.1 | GridLayout and stock templates (pure) | dispatch:capable | done | cac0ec7 |
+| 3 | 3.2 | Assignment store and assignments.json | dispatch:capable | done | 2f11a92 |
+| 3 | 3.3 | Zone placement and zone commands | dispatch:capable | done | 7ea273b |
+| 3 | 3.4 | toggleLayout and conversion | dispatch:capable | done | 12f66c2 |
+| 3 | 3.5a | Drag state machine (pure) | dispatch:capable | done | ff42f18 |
+| 3 | 3.5b | Snap overlay and monitors | dispatch:capable | done | a69568c |
+| 3 | 3.6 | Layouts window (stock layouts) | dispatch:capable | done | 92b490d |
+| 3 | 3.7 | Polish pass and perf docs | dispatch:capable | done | c526842 |
+| 4 | 4.1a | LayoutRepository | dispatch:capable | done | 7248884 |
+| 4 | 4.1b | LayoutImporter and export | dispatch:capable | done | 75d0199 |
+| 4 | 4.2 | Grid editor | dispatch:capable | done | 338eb5b |
+| 4 | 4.3 | Layouts window (library) and layout slots | dispatch:capable | done | e2ba1ab |
+| 4 | 4.4 | Polish: lintellayouts type, open handler, docs | dispatch:capable | done | 39c7474 |
+
+## Phase checkpoints (owner rule)
+After the last step of each phase: full gate (build, release build, test, format lint, TSan on engine/plugin tests), independent fresh-context review with fixes as separate commits, QA with the fake window client, one `Phase N checkpoint` PR comment with a manual QA checklist.
+
+## Standing constraints
+Plugin registered but `defaultEnabled: false`; no window moves unless enabled and Accessibility trusted; no traps in plugin code; never log titles or bundle ids; LintelKit additive with defaults, listed in BACKWARD_COMPATIBILITY.md; no measurements without a real run.

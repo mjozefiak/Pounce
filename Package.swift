@@ -2,7 +2,7 @@
 import PackageDescription
 
 // Dependency graph (one way only, see AGENTS.md):
-//   LintelApp -> plugins (AppsPlugin, FilesPlugin, ClipboardPlugin, DictationPlugin, MeetingsPlugin, NotesPlugin) -> LintelUI / LintelPersistence / LintelCore -> LintelKit
+//   LintelApp -> plugins (AppsPlugin, FilesPlugin, ClipboardPlugin, DictationPlugin, MeetingsPlugin, WindowsPlugin, NotesPlugin) -> LintelUI / LintelPersistence / LintelCore -> LintelKit
 //   LintelUI holds the shared views and brand tokens (SwiftUI and AppKit, no I/O) and imports only LintelKit and
 //   LintelCore (docs/decisions/0008-main-window-and-notes-library.md, decision 8)
 //   plugins that use speech (DictationPlugin, MeetingsPlugin) -> LintelSpeech, which depends on no repository target
@@ -116,6 +116,12 @@ let package = Package(
             ]
         ),
         .target(
+            name: "WindowsPlugin",
+            // LintelPersistence for AtomicFile (state.json, layouts); no GRDB, no speech. Registered in
+            // PluginRegistry in step 1.12 (off by default).
+            dependencies: ["LintelKit", "LintelCore", "LintelPersistence", "LintelUI"]
+        ),
+        .target(
             name: "NotesPlugin",
             dependencies: [
                 "LintelKit",
@@ -142,6 +148,7 @@ let package = Package(
                 "ClipboardPlugin",
                 "DictationPlugin",
                 "MeetingsPlugin",
+                "WindowsPlugin",
                 "NotesPlugin",
                 .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
             ],
@@ -194,6 +201,10 @@ let package = Package(
                 .product(name: "GRDB", package: "GRDBCipher"),
             ],
             resources: [.copy("Fixtures")]
+        ),
+        .testTarget(
+            name: "WindowsPluginTests",
+            dependencies: ["WindowsPlugin", "LintelKit", "LintelPersistence"]
         ),
         .testTarget(
             name: "NotesPluginTests",

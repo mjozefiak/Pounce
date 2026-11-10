@@ -77,6 +77,26 @@ enum ActionKind: Equatable {
         #expect(reads == 0)
     }
 
+    @Test func aFailureThatBringsItsOwnStatusReplacesTheGenericBanner() {
+        let own = SettingsStatus(
+            level: .attention, title: LocalizedStringResource(stringLiteral: "Specific title"),
+            detail: LocalizedStringResource(stringLiteral: "Specific detail"),
+            fix: [
+                SettingsStatusAction(title: LocalizedStringResource(stringLiteral: "Fix"), destination: .enablePlugin)
+            ])
+        let banner = StatusDerivation.banner(
+            host: .failed, pluginStatus: { nil }, required: [], permission: { _ in .granted }, failureStatus: own)
+        #expect(banner?.title == "Specific title")
+        #expect(banner?.detail == "Specific detail")
+        #expect(banner?.level == .attention)
+        #expect(kinds(banner) == [.enablePlugin])
+        // Without one the generic banner stays.
+        let generic = StatusDerivation.banner(
+            host: .failed, pluginStatus: { nil }, required: [], permission: { _ in .granted })
+        #expect(generic?.level == .error)
+        #expect(generic?.title != "Specific title")
+    }
+
     @Test func aPluginTurningOnOrOffShowsNothing() {
         var reads = 0
         let banner = StatusDerivation.banner(

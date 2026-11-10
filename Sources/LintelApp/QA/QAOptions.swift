@@ -91,9 +91,27 @@ struct QAOptions: Equatable {
     /// `--qa-meeting-spool-dir <path>`: folder for the encrypted spool of QA meetings instead of
     /// `<data root>/Plugins/meetings/Spool`. The Keychain is the in-memory one in QA mode anyway.
     var meetingSpoolDirectory: URL?
+    /// `--qa-windows`: window management sees a fake window client with a few fake windows and two fake displays
+    /// instead of the tester's real windows (`QAWindowClient`, step 1.12). Without it QA mode reports no windows.
+    var fakeWindows = false
+    /// `--qa-real-windows`: window management sees the real windows through `AXWindowClient` (Accessibility), with
+    /// every other QA isolation kept (temporary data, in-memory Keychain, no hotkeys). Wins over `--qa-windows`.
+    /// Pair it with `--qa-setting plugins.windows.floatingApps=<bundle ids>` so the tester's own apps are left alone.
+    var realWindows = false
+    /// `--qa-persistent-settings`: the QA settings are kept in `<data root>/qa-settings.json` (inside the isolated QA
+    /// data root, never the defaults domain), so a second launch sees what the first one stored (the two-launch
+    /// safe-mode counter). `--qa-setting` values are applied on top at every launch.
+    var persistentSettings = false
+    /// `--qa-command-file <path>`: the QA command route reads one command per line from this file and writes the
+    /// results to `<path>.log` (`QACommandRoute`). Only in a `--qa` run.
+    var commandFile: URL?
+    /// `--qa-command-replay`: run the commands already in the command file at launch (default: start at its end).
+    var replaysCommands = false
 
     /// The file plugin's DEBUG-only fake home and its roots, which QA mode always sets
     /// (`AppEnvironment.qaFileIndexSettings`).
+    /// The Windows plugin's DEBUG-only scripted files (`WindowsSettings.Key.qaScriptedFiles`), always on in QA mode.
+    static let windowsScriptedFilesKey = "plugins.windows.qaScriptedFiles"
     static let filesHomeKey = "plugins.files.qaHome"
     static let filesRootsKey = "plugins.files.roots"
     /// The app plugin's DEBUG-only activity keys (`AppEnvironment.qaAppActivitySettings`).
@@ -102,7 +120,9 @@ struct QAOptions: Equatable {
     /// The Notes plugin's DEBUG-only fixtures key (`AppEnvironment.qaNotesSettings`).
     static let notesFixturesKey = "plugins.notes.qaFixtures"
     /// Settings that `--qa-setting` reads as comma-separated lists.
-    static let listSettingKeys: Set<String> = [SettingsKeys.sectionOrder, "plugins.apps.suggestions.hidden"]
+    static let listSettingKeys: Set<String> = [
+        SettingsKeys.sectionOrder, "plugins.apps.suggestions.hidden", "plugins.windows.floatingApps",
+    ]
 
     enum ParseError: Error, Equatable {
         case missingValue(String)
@@ -225,6 +245,16 @@ struct QAOptions: Equatable {
             case "--qa-meeting-spool-dir":
                 options.meetingSpoolDirectory = URL(
                     filePath: try Self.pathValue(argument, iterator.next()), directoryHint: .isDirectory)
+            case "--qa-windows":
+                options.fakeWindows = true
+            case "--qa-real-windows":
+                options.realWindows = true
+            case "--qa-command-replay":
+                options.replaysCommands = true
+            case "--qa-command-file":
+                options.commandFile = URL(filePath: try Self.pathValue(argument, iterator.next()))
+            case "--qa-persistent-settings":
+                options.persistentSettings = true
             default:
                 throw .unknownArgument(argument)
             }
