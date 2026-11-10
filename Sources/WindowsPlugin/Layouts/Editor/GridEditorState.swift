@@ -61,8 +61,9 @@ enum EditorKey: Equatable, Sendable {
 /// "Layout library and editor"). Every operation either changes the layout and records one undo step, or fails
 /// and changes nothing. No I/O, no UI.
 struct GridEditorState: Equatable, Sendable {
-    /// The smallest share of the display a track keeps when a divider moves or a zone is divided by key or number: 1 %
-    /// (precision for the arrow keys and the numeric fields, and the room 64 zones and 32 tracks need).
+    /// The smallest share of the display a track keeps when a divider moves (arrow keys, numeric fields) or a zone is
+    /// divided by key (S and Shift+S, `GridEditorModel.divideFocused`): 1 % (precision for the keyboard, and the room
+    /// 64 zones and 32 tracks need). `divide` enforces it only when its caller passes `minimumHalf`.
     static let minimumShare = 0.01
     /// The smallest piece a *click* may cut: 5 % of the display. Repeated clicks used to halve a sliver down to a zone
     /// nobody can use (QA round 3); a click that would go below this is refused (`.tooNarrow`).

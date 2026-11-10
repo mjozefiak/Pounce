@@ -255,7 +255,9 @@ final class GridEditorModel {
     }
     func divideFocused(axis: EditorAxis) {
         guard case .zone(let id)? = state.focus ?? state.layout.zones.first.map({ .zone($0.id) }) else { return }
-        divide(zone: id, axis: axis)
+        // A keyed divide stops at the same floor as a divider moved by key: 1 % of the display (the refusal is shown
+        // and announced like any other, and changes nothing, undo included).
+        divide(zone: id, axis: axis, minimumHalf: GridEditorState.minimumShare)
     }
     func merge() { edit { $0.mergeSelection() } }
     func undo() { edit { $0.undo() } }

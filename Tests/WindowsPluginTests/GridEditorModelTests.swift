@@ -55,6 +55,37 @@ private final class RecordingPreview: ZoneOverlayPresenting {
             model: model, preview: preview, repository: repository, directory: directory, closed: closed, saved: saved)
     }
 
+    /// Round-13 audit M1: S (divide the focused zone) used to halve a track down to the 32-track limit, a sliver of
+    /// about 2^-31. A keyed divide stops at the 1 % floor, says so, and a refused divide changes nothing.
+    @Test func repeatedKeyDividesStopAtTheOnePercentFloorAndARefusalChangesNothing() async throws {
+        let rig = try await rig(StockLayouts.layout(StockLayouts.columns2)!)
+        defer { try? FileManager.default.removeItem(at: rig.directory) }
+        let model = rig.model
+        // Focus the right zone and divide it again and again by key.
+        model.setSelection([2])
+        var refusedAt: Int?
+        for round in 1...40 {
+            let before = model.layout
+            let canUndoBefore = model.canUndo
+            model.setSelection([model.layout.zones.last!.id])
+            model.divideFocused(axis: .vertical)
+            if model.layout == before {
+                refusedAt = round
+                #expect(model.canUndo == canUndoBefore)
+                break
+            }
+        }
+        let round = try #require(refusedAt, "the divide was never refused")
+        #expect(round < 40)
+        let total = model.layout.columns.reduce(0, +)
+        #expect(model.layout.columns.allSatisfy { $0 / total >= GridEditorState.minimumShare - 1e-9 })
+        #expect(model.message == GridEditorText.message(for: .tooNarrow))
+        // The refusal is not an undo step: one undo removes only the last successful divide.
+        let columns = model.layout.columns.count
+        model.undo()
+        #expect(model.layout.columns.count == columns - 1)
+    }
+
     /// QA D7: the list highlighted Zone 2 while the detail line showed Zone 1. The detail shows the focused zone and
     /// the list marks the selection, so whenever the focus is a zone and something is selected, the focused zone is
     /// selected.

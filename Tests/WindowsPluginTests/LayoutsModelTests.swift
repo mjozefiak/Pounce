@@ -340,5 +340,17 @@ import Testing
         // A plain letter or a modified delete is not one.
         #expect(LayoutsWindowView.matrixKey(key: KeyEquivalent("x"), characters: "x", modifiers: []) == nil)
         #expect(GridEditorView.editorKey(key: .delete, characters: "\u{7F}", modifiers: .command) == nil)
+        // Round-13 audit L1: Ctrl+H (U+0008), Cmd+Backspace and Option+Backspace are not "clear a cell" or "delete".
+        for modifiers: EventModifiers in [.control, .command, .option, [.shift, .option], [.command, .shift]] {
+            #expect(
+                LayoutsWindowView.matrixKey(key: .delete, characters: "\u{7F}", modifiers: modifiers) == nil,
+                "matrix \(modifiers)")
+            #expect(
+                LayoutsWindowView.matrixKey(key: KeyEquivalent("h"), characters: "\u{8}", modifiers: .control) == nil)
+            #expect(
+                GridEditorView.editorKey(key: .delete, characters: "\u{7F}", modifiers: modifiers) == nil)
+        }
+        #expect(GridEditorView.editorKey(key: .delete, characters: "\u{7F}", modifiers: .option) == nil)
+        #expect(GridEditorView.editorKey(key: .deleteForward, characters: "\u{F728}", modifiers: .shift) == .delete)
     }
 }
