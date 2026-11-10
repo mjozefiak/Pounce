@@ -161,8 +161,11 @@ private final class StripBoxElement: NSAccessibilityElement {
         super.init()
     }
 
-    override func accessibilityPerformPress() -> Bool {
-        select(number)
+    /// AppKit's override point is not main-actor isolated, so the switch is handed to the main actor instead of
+    /// being called here (`MainActor.assumeIsolated` would trap if a caller were ever off the main thread).
+    nonisolated override func accessibilityPerformPress() -> Bool {
+        let (select, number) = (self.select, self.number)
+        Task { @MainActor in select(number) }
         return true
     }
 }
