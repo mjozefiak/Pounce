@@ -67,7 +67,7 @@ final class DisplayIdentifier {
         panel.hidesOnDeactivate = false
         panel.isFloatingPanel = true
         panel.ignoresMouseEvents = true
-        panel.sharingType = .none
+        panel.sharingType = ScreenCapture.sharingType
         panel.isReleasedWhenClosed = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient, .ignoresCycle]
         panel.contentView = NSHostingView(rootView: IdentifyView(number: display.number, title: display.title))

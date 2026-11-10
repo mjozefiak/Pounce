@@ -88,6 +88,14 @@ struct QAOptions: Equatable {
     /// `--qa-windows`: window management sees a fake window client with a few fake windows and two fake displays
     /// instead of the tester's real windows (`QAWindowClient`, step 1.12). Without it QA mode reports no windows.
     var fakeWindows = false
+    /// `--qa-real-windows`: window management sees the real windows through `AXWindowClient` (Accessibility), with
+    /// every other QA isolation kept (temporary data, in-memory Keychain, no hotkeys). Wins over `--qa-windows`.
+    /// Pair it with `--qa-setting plugins.windows.floatingApps=<bundle ids>` so the tester's own apps are left alone.
+    var realWindows = false
+    /// `--qa-persistent-settings`: the QA settings are kept in `<data root>/qa-settings.json` (inside the isolated QA
+    /// data root, never the defaults domain), so a second launch sees what the first one stored (the two-launch
+    /// safe-mode counter). `--qa-setting` values are applied on top at every launch.
+    var persistentSettings = false
 
     /// The file plugin's DEBUG-only fake home and its roots, which QA mode always sets
     /// (`AppEnvironment.qaFileIndexSettings`).
@@ -97,7 +105,9 @@ struct QAOptions: Equatable {
     static let appsActivityKey = "plugins.apps.qaActivity"
     static let appsLiveActivityKey = "plugins.apps.qaLiveActivity"
     /// Settings that `--qa-setting` reads as comma-separated lists.
-    static let listSettingKeys: Set<String> = [SettingsKeys.sectionOrder, "plugins.apps.suggestions.hidden"]
+    static let listSettingKeys: Set<String> = [
+        SettingsKeys.sectionOrder, "plugins.apps.suggestions.hidden", "plugins.windows.floatingApps",
+    ]
 
     enum ParseError: Error, Equatable {
         case missingValue(String)
@@ -217,6 +227,10 @@ struct QAOptions: Equatable {
                     filePath: try Self.pathValue(argument, iterator.next()), directoryHint: .isDirectory)
             case "--qa-windows":
                 options.fakeWindows = true
+            case "--qa-real-windows":
+                options.realWindows = true
+            case "--qa-persistent-settings":
+                options.persistentSettings = true
             default:
                 throw .unknownArgument(argument)
             }

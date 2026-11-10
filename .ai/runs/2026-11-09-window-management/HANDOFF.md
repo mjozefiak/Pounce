@@ -70,5 +70,13 @@
 - Every windows suite has `.timeLimit(.minutes(1))`. Measured: the limit does not interrupt an await that ignores cancellation (the removed-`cancel()` mutant hung until my 240 s kill). The bound-guarding tests therefore use `bounded`/`boundedMain` (poll a box with the capped `eventually`), and the same mutant now fails in 0.12 s. Plain awaits elsewhere can still hang on a broken build; documented.
 - `ZoneDragController`'s timer hops with `Task { @MainActor in }` instead of `assumeIsolated`; the comment in `activate()` describes what the catch's `stop()` really does; `exclusive(within:)` documents its one remaining unbounded wait. Left as documented: `eraseData`'s second guard has no direct test, no unit test for the `AXObservationHub.start()` stop check, the host's 150 ms real budget.
 
+## Round 9 (QA findings on a real desktop)
+- D1: cause read from the code: a hung app made `AXWindowClient.element(for:)` return nil, which `setFrame` reported as `.windowGone` (the engine removes the window), and a snapshot taken while it did not answer listed none of its windows, which the reducer took for "closed". Now `.timedOut` for an unreachable app and `EngineInput.snapshot(unreachable:)` keep the windows; tests: reducer, engine with the hung-app fake (snapshot during the hang, resume, retry parks; a closed window is still removed). Not reproduced on the real app here (no SIGSTOP run); the QA scenario in `docs/qa.md` item 3 is the check.
+- D2: the first move of a snap workspace flushes at once, the overlay panels are prewarmed, test with the virtual clock; **not measured on a display, the 50 ms budget is not claimed** (`docs/perf.md`).
+- D3/D5: the Layouts window has its own default and minimum size (hosting view no longer sizes it), two wrapping rows of buttons, a wider sidebar, and keeps its frame in the plugin settings; a lint test forbids the window system's autosave in the plugin.
+- D4: the summary used interpolated keys the catalog did not have; now `%@: %@`, `no workspaces`, `%lld workspaces` (plural), and `LocalizationCoverageTests` checks every localized literal of the plugin against the catalog.
+- D6: `PluginFailureStatus` lets a start error bring its own banner (safe mode). D7: the editor's focus and selection stay together (Tab, divide, toggle); test over a sequence of moves.
+- QA switches (DEBUG only): `--qa-real-windows`, floating-app list through `--qa-setting`, `--qa-persistent-settings`, `plugins.windows.qaCapturable`; hotkeys stay off (the shortcut library stores in the real defaults). Item 10 (grant while parked) was already covered by `regrantingAccessibilityRestoresWhatWasParked`.
+
 ## Next concrete action
 QA gate and merge by the owner.

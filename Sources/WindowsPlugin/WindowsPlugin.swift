@@ -120,6 +120,9 @@ public final class WindowsPlugin: LintelPlugin {
         self.showsOverlay = showsOverlay
         self.context = context
         self.settings = WindowsSettings(context.settings)
+        #if DEBUG
+        ScreenCapture.qaCapturable = settings.qaCapturable
+        #endif
         self.hud = hud
         self.activationCenter = activationCenter
         hud.allowAccessibility = { [workspace = context.workspace] in

@@ -87,6 +87,19 @@ import Testing
         panels.tearDown()
     }
 
+    /// DEBUG only, for QA: the overlay, HUD and strip can be made capturable so they can be photographed. The shipped
+    /// behaviour (never in screen sharing) is the default and the test above keeps it. Synchronous on the main actor,
+    /// so no other test sees the switch on.
+    @Test func theQASwitchMakesThePanelsCapturableAndTheDefaultStaysNotShared() {
+        #expect(ScreenCapture.sharingType == .none)
+        ScreenCapture.qaCapturable = true
+        defer { ScreenCapture.qaCapturable = false }
+        let panels = ZoneOverlayPanels(screens: { [CGRect(x: 0, y: 0, width: 1000, height: 600)] })
+        panels.show([DragDisplay(key: "A", area: CGRect(x: 0, y: 0, width: 1000, height: 600), zones: [zone])])
+        #expect(panels.panels.allSatisfy { $0.sharingType == .readOnly })
+        panels.tearDown()
+    }
+
     @Test func prewarmBuildsOnePanelPerScreenAndTheFirstShowTakesOneInsteadOfBuilding() {
         let screens = [CGRect(x: 0, y: 0, width: 1000, height: 600), CGRect(x: 1000, y: 0, width: 1000, height: 600)]
         let panels = ZoneOverlayPanels(screens: { screens })

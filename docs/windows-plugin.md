@@ -77,6 +77,11 @@ the Layouts window; the cycle of *Toggle layout* and the kinds the pane offers a
 row and snap target needs no production change, through the engine, the pane model, the settings, *Toggle layout*,
 snapping and the command catalogue.
 
+Window-owned UI details that QA found: the Layouts window keeps its frame in the plugin settings (never the window
+system's autosave), the grid editor's list marks the zone its detail shows, safe mode has its own banner
+(`StartError.failureStatus`, `PluginFailureStatus` in `LintelKit`), and every localized literal of the plugin has a Polish
+catalog key (`LocalizationCoverageTests`).
+
 What is not open, and is documented rather than hidden: the closed `ShortcutFamily` list (a kind's commands are bound
 one by one, or join an existing family) and the shared directional verbs. The **layout library** is the Zones feature
 and is not generic over layout formats: the Layouts window and its matrix, the grid editor and the layout slots work on
@@ -88,6 +93,21 @@ kind.
 `LayoutCommand` ids are namespaced strings with an opaque JSON payload (`layout.focus`, `tiling.join`, `zones.slot`):
 the trade-off is that a typo is caught by a test and not by the compiler, in return for shared enums that name no
 verb. Each kind keeps its ids and payload types next to its strategy.
+
+## An app that does not answer
+
+A window is only "gone" when its app says so. The AX client answers `.timedOut`, not `.windowGone`, when it cannot reach an
+app (`AXWindowClient.element(for:)` distinguishes found, gone and unreachable), and a snapshot taken while an app does not
+answer carries `unreachable: [pid]` (`EventTranslator.snapshot` asks `isResponding(pid:)` for the processes it holds windows
+of and did not read): the reducer keeps those windows, parked or not, and the next switch or event retries them. A process
+that answers and no longer lists a window loses it as before. (QA found the windows of a stopped TextEdit dropped for good.)
+
+## Snap overlay latency
+
+The first move of a window on a workspace whose kind offers snap targets is flushed at once (`WindowEngine.ingest`:
+leading edge, only when no flush ran in the last tick); later moves are coalesced by the 30 ms tick as before. The overlay's
+panels are built when the plugin starts (`ZoneOverlayPanels.prewarm()`). The 50 ms budget has not been re-measured; see
+`docs/perf.md`.
 
 ## The runtime's one life
 

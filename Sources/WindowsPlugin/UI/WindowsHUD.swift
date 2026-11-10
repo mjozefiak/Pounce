@@ -204,7 +204,7 @@ final class WindowsHUDPanel: WindowsHUDPresenting {
         panel.hidesOnDeactivate = false
         panel.becomesKeyOnlyIfNeeded = true
         panel.isFloatingPanel = true
-        panel.sharingType = .none
+        panel.sharingType = ScreenCapture.sharingType
         panel.ignoresMouseEvents = true
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
         let hosting = NSHostingView(rootView: WindowsHUDView(state: .parkedNeedsAccessibility, reducesMotion: false))

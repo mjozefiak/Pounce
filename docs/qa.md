@@ -501,11 +501,22 @@ run with it switched on.
 `--qa-settings windows`, `--qa-accessibility granted|denied`, `--qa-setting plugins.windows.enabled=true` and
 `--qa-appearance light|dark`. Example: `Lintel --qa --qa-windows --qa-accessibility granted --qa-setting plugins.windows.enabled=true --qa-settings windows`.
 
+**Real windows under QA.** `--qa-real-windows` (DEBUG) selects the real `AXWindowClient` instead of the fake one while
+keeping every other isolation (temporary data root, in-memory Keychain, no global hotkeys); give the tester's own apps a
+pass with `--qa-setting plugins.windows.floatingApps=<comma-separated bundle ids>` (a list setting). Commands are run
+through the QA command route, not hotkeys: hotkeys stay off because the shortcut library keeps its recorded shortcuts in
+the real defaults domain. `--qa-persistent-settings` keeps the QA settings in `<data root>/qa-settings.json` (inside the
+isolated root; command-line `--qa-setting` values win at every launch), so a second launch sees what the first stored.
+`--qa-setting plugins.windows.qaCapturable=true` (DEBUG only) makes the zone overlay, the HUD and the display identifier
+capturable for screenshots; release builds always keep them out of screen sharing (`ScreenCapture`, test
+`theOverlayPanelsAreNotSharedAndNeverTakeFocus`). The Layouts window keeps its frame in the plugin settings
+(`plugins.windows.layoutsWindowFrame`), not in the window system's autosave, so a QA run never writes the real defaults.
+
 | # | Scenario | Expect |
 |---|---|---|
 | 1 | Switch workspaces with 20 windows of 5 apps | Windows of the old workspace disappear into the bottom right corner, the new ones return to their frames, no flicker; the budget in `docs/perf.md` holds. |
 | 2 | Frame rounding on a Retina display | A restored window reads back the same frame within the echo tolerance (2 points); no loop of moves. |
-| 3 | An app that hangs (`kill -STOP` its process), then switch | The other apps' windows still move; the hung app is skipped, retried on the next event, and "Copy diagnostics" counts one Accessibility timeout. |
+| 3 | An app that hangs (`kill -STOP` its process), then switch; `kill -CONT` it and switch again | The other apps' windows still move; the hung app's windows stay where they are (their park timed out), are **kept** by the engine even if a resync/Space-change snapshot is taken while the app does not answer (a read that fails is "unknown", never "closed": `EngineInput.snapshot(unreachable:)`), and are parked and tiled again on the next switch or event after the app answers; "Copy diagnostics" counts the Accessibility timeouts. A window that really closed (the app answers and no longer lists it) is still removed. (QA 2026-11 found the windows dropped for good; fixed in round 9, regression tests `WindowEngineTests`, `EngineReducerTests`.) |
 | 4 | Unplug and replug an external display, change its resolution | Workspaces of the removed display are parked on the remaining one; parked windows are re-parked in the new corner; everything returns when the display does. |
 | 5 | Kill Lintel (`kill -9`) while windows are parked, start it again (plugin on, then plugin off) | Parked windows come back at launch in both cases. |
 | 6 | An app that re-centres its hidden window (some Electron apps) | The window is hidden again at most three times, then left alone until focused; no flicker loop; the watchdog does not trip. |
@@ -514,7 +525,7 @@ run with it switched on.
 | 9 | Menu bar strip (single status item): click each box, right-click, VoiceOver on the boxes, fill the menu bar | Each click switches to that box; boxes read "Workspace 3, 4 windows, current"; with no room the banner says so. **If the click mapping or the accessibility children do not work, the fallback (one status item per box, at most nine) is a manual decision of the owner**, not taken automatically. |
 | 10 | Accessibility off: press ⌥2 | The HUD says "Allow Accessibility to switch workspaces" with a button; nothing moves. Grant it with windows parked: they come back within about 2 s. |
 | 11 | Keyboard layout check on a Polish layout (⌥ plus a letter types a letter) and on US | The pane and the welcome step name keys that type a letter and offer ⌃⌥; none for the digit keys. With Auto-tile (step 2.5) ⌥L (focus right) and ⌥⇧L (move right) are named on a Polish layout; "Use ⌃⌥" moves every family (go, move to workspace, focus, move, resize) and the warning goes. ⌥- and ⌥= type symbols, never letters, so they are never named. |
-| 12 | Safe mode: leave windows parked (kill -9) on two launches in a row | The third start shows "Switched off after a problem"; Try Again starts it. |
+| 12 | Safe mode: leave windows parked (kill -9) on two launches in a row | The third start shows "Switched off after a problem" with its own explanation (not the generic "This feature couldn't start"); Try Again starts it. With `--qa-persistent-settings` the two-launch counter can be tried under QA isolation. |
 | 13 | Real AX observers: create, move, resize, close, minimise and fullscreen windows of 5 apps | The engine follows (look at "Copy diagnostics"); no event storm; fullscreen exit manages the window again (reported as a resize). |
 | 15 | An app that is slow to become scriptable (launch one with a long start) | Its notifications are added on retry (after 1, 2 and 4 s); its windows are still seen through the engine's snapshot meanwhile. |
 | 16 | Auto-tile (default layout) with 4 windows of 3 apps on one display: open a window, close one, switch workspaces and back | A new window lands after the focused one; a closed window's space goes to its neighbours; the tiles fill the display's visible frame with the gaps from Settings (default 8 pt) and never overlap; a workspace that was not shown tiles when it is shown. Nothing is arranged before Accessibility is granted. |

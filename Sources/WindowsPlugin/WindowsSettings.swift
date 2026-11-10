@@ -33,6 +33,8 @@ struct WindowsSettings: Sendable {
         #if DEBUG
         /// Hidden, DEBUG builds only (QA): open the Layouts window when the plugin starts.
         static let qaOpenLayouts = "qaOpenLayouts"
+        /// Hidden, DEBUG builds only (QA): the overlay panels can be captured (`ScreenCapture`).
+        static let qaCapturable = "qaCapturable"
         #endif
     }
 
@@ -142,6 +144,7 @@ struct WindowsSettings: Sendable {
     var safeMode: Bool { settings.bool(Key.safeMode, default: false) }
     #if DEBUG
     var qaOpenLayouts: Bool { settings.bool(Key.qaOpenLayouts, default: false) }
+    var qaCapturable: Bool { settings.bool(Key.qaCapturable, default: false) }
     #endif
     var snapHintShown: Bool { settings.bool(Key.snapHintShown, default: false) }
     var parkedLaunches: Int { max(0, settings.integer(Key.parkedLaunches, default: 0)) }

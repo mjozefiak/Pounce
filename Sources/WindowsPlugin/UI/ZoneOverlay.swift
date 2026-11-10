@@ -238,7 +238,7 @@ final class ZoneOverlayPanels: ZoneOverlayPresenting {
         panel.hidesOnDeactivate = false
         panel.isFloatingPanel = true
         panel.ignoresMouseEvents = true
-        panel.sharingType = .none
+        panel.sharingType = ScreenCapture.sharingType
         panel.isReleasedWhenClosed = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient, .ignoresCycle]
         let model = ZoneOverlayModel()

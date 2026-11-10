@@ -165,13 +165,15 @@ struct AppEnvironment {
         try createPrivateDirectory(root, fileManager: fileManager)
         let fileHome = root.appending(path: "files-home", directoryHint: .isDirectory)
         try createPrivateDirectory(fileHome, fileManager: fileManager)
-        let settings = InMemorySettingsStore(
-            qaAppActivitySettings(
-                qaFileIndexSettings(options.settings, emptyHome: fileHome.path),
-                activity: options.appActivity,
-                live: options.liveAppActivity
-            )
+        let seeded = qaAppActivitySettings(
+            qaFileIndexSettings(options.settings, emptyHome: fileHome.path),
+            activity: options.appActivity,
+            live: options.liveAppActivity
         )
+        let settings: any SettingsStore =
+            options.persistentSettings
+            ? QAFileSettingsStore(url: root.appending(path: QAFileSettingsStore.fileName), seeded: seeded)
+            : InMemorySettingsStore(seeded)
         let environment = AppEnvironment(
             dataRoot: root,
             cachesRoot: root.appending(path: "Caches", directoryHint: .isDirectory),
@@ -186,8 +188,13 @@ struct AppEnvironment {
             postsKeystrokes: false
         )
         var qaEnvironment = environment
-        // Never the real Accessibility client in QA mode: a fake with fake windows, or the one that reports nothing.
-        qaEnvironment.windowClient = options.fakeWindows ? QAWindowClient() : NoWindowClient()
+        // Never the real Accessibility client in QA mode unless the run asks for it (`--qa-real-windows`): else a fake
+        // with fake windows, or the one that reports nothing.
+        if options.realWindows {
+            qaEnvironment.windowClient = AXWindowClient()
+        } else {
+            qaEnvironment.windowClient = options.fakeWindows ? QAWindowClient() : NoWindowClient()
+        }
         qaEnvironment.prepareModelsDirectory(fileManager: fileManager)
         return qaEnvironment
     }
