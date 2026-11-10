@@ -106,8 +106,17 @@ enum StripLayout {
     }
 }
 
+/// What the controller can see of its status item (a value, so the decision is testable).
+struct StripItemState: Equatable, Sendable {
+    /// The item window's frame, `nil` while it has no window.
+    var frame: CGRect?
+    /// Whether the window reports a screen, and whether it is on screen (ordered in).
+    var hasScreen: Bool
+    var isVisible: Bool
+}
+
 /// Whether the status item can be seen: macOS drops items that do not fit (the notch, many items), and the item's
-/// window then lies outside every screen or has no size. Pure; the controller feeds it the window's frame.
+/// window then lies outside every screen or has no size. Pure; the controller feeds it the window's state.
 enum StripVisibility {
     /// The item has room when it has a size and sits over a screen's horizontal range in the menu bar band (the top
     /// of the screen, in AppKit's y-up coordinates) or above it. An auto-hidden menu bar slides the item's window
@@ -119,5 +128,15 @@ enum StripVisibility {
         return screens.contains {
             itemFrame.midX >= $0.minX && itemFrame.midX <= $0.maxX && itemFrame.minY >= $0.maxY - band
         }
+    }
+
+    /// The same with what the window itself says: an item whose window is on screen and reports a screen is placed
+    /// and therefore has room, whatever its frame looks like at that moment (a window that was not placed yet, or
+    /// one that slides with an auto-hidden bar, has an odd frame). Only an item with no size, or one placed off every
+    /// screen sideways and reporting none, has no room.
+    static func hasRoom(_ item: StripItemState?, screens: [CGRect]) -> Bool {
+        guard let item, let frame = item.frame, frame.width > 1, frame.height > 1 else { return false }
+        if item.isVisible && item.hasScreen { return true }
+        return hasRoom(itemFrame: frame, screens: screens)
     }
 }

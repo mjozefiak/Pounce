@@ -305,4 +305,97 @@ import Testing
         capture.reset()
         #expect(capture.take() == nil)
     }
+
+    // MARK: Room (QA round 4, D2)
+
+    /// The numbers of the failing QA situation: the item's window (4291, 1410, 98 x 30) on a display whose top is at
+    /// 1440, and the same window not placed yet or sliding with an auto-hidden bar.
+    @Test func anItemTheWindowSaysIsPlacedHasRoomWhateverItsFrameLooksLike() {
+        let screens = [CGRect(x: 0, y: 0, width: 2560, height: 1440), CGRect(x: 2560, y: 0, width: 2560, height: 1440)]
+        func state(_ frame: CGRect?, screen: Bool = true, visible: Bool = true) -> StripItemState {
+            StripItemState(frame: frame, hasScreen: screen, isVisible: visible)
+        }
+        // As observed with the bar showing.
+        #expect(StripVisibility.hasRoom(state(CGRect(x: 4291, y: 1410, width: 98, height: 30)), screens: screens))
+        // An auto-hidden bar: the window above the screen.
+        #expect(StripVisibility.hasRoom(state(CGRect(x: 4291, y: 1440, width: 98, height: 30)), screens: screens))
+        // Placed (on screen, with a screen) but with an odd frame: still room.
+        #expect(StripVisibility.hasRoom(state(CGRect(x: 0, y: 0, width: 98, height: 30)), screens: screens))
+        // Not placed: no screen, not visible, frame at the origin: the frame alone says no.
+        #expect(
+            !StripVisibility.hasRoom(
+                state(CGRect(x: 0, y: 0, width: 98, height: 30), screen: false, visible: false), screens: screens))
+        // No window, no size, or dropped sideways with no screen.
+        #expect(!StripVisibility.hasRoom(nil, screens: screens))
+        #expect(!StripVisibility.hasRoom(state(CGRect(x: 4291, y: 1410, width: 0, height: 30)), screens: screens))
+        #expect(
+            !StripVisibility.hasRoom(
+                state(CGRect(x: 9000, y: 1410, width: 98, height: 30), screen: false, visible: false), screens: screens)
+        )
+    }
+
+    @MainActor private final class RoomRig {
+        var item: StripItemState?
+        var pending: [@MainActor () -> Void] = []
+        var changes: [Bool?] = []
+        let controller = WorkspaceStripController(select: { _ in }, restoreAll: {}, announce: false)
+        init() {
+            let screens = [CGRect(x: 2560, y: 0, width: 2560, height: 1440)]
+            controller.screenFrames = { screens }
+            controller.itemState = { [unowned self] in item }
+            controller.schedule = { [unowned self] _, work in pending.append(work) }
+            controller.onRoomChange = { [unowned self] in changes.append($0) }
+        }
+        func runScheduled() {
+            let work = pending
+            pending = []
+            for item in work { item() }
+        }
+    }
+
+    /// An item that is not placed yet must not raise the banner, and one that is placed a moment later never does.
+    @MainActor @Test func aNotYetPlacedItemDoesNotRaiseTheBannerWhenItIsPlacedBeforeTheSecondLook() {
+        let rig = RoomRig()
+        rig.item = StripItemState(frame: CGRect(x: 0, y: 0, width: 98, height: 30), hasScreen: false, isVisible: false)
+        rig.controller.checkRoom()
+        #expect(rig.controller.hasRoom == nil && rig.changes.isEmpty)
+        #expect(rig.pending.count == 1)
+        // A second look is already scheduled: another check does not queue a third.
+        rig.controller.checkRoom()
+        #expect(rig.pending.count == 1)
+        // The item is placed, then the scheduled look runs.
+        rig.item = StripItemState(
+            frame: CGRect(x: 4291, y: 1440, width: 98, height: 30), hasScreen: true, isVisible: true)
+        rig.runScheduled()
+        #expect(rig.controller.hasRoom == true)
+        #expect(rig.changes == [true])
+    }
+
+    @MainActor @Test func anItemThatIsStillNotPlacedAtTheSecondLookReportsNoRoomAndRecoversLater() {
+        let rig = RoomRig()
+        rig.item = StripItemState(frame: CGRect(x: 0, y: 0, width: 98, height: 30), hasScreen: false, isVisible: false)
+        rig.controller.checkRoom()
+        rig.runScheduled()
+        #expect(rig.controller.hasRoom == false)
+        #expect(rig.changes == [false])
+        // A move of the window (a notification) later finds it placed: the banner clears at once.
+        rig.item = StripItemState(
+            frame: CGRect(x: 4291, y: 1410, width: 98, height: 30), hasScreen: true, isVisible: true)
+        rig.controller.checkRoom()
+        #expect(rig.controller.hasRoom == true)
+        #expect(rig.changes == [false, true])
+    }
+
+    /// Settings asks for the answer as it is now: a stale `false` is replaced without waiting.
+    @MainActor @Test func settingsAsksForTheCurrentAnswerNotTheLastStoredOne() {
+        let rig = RoomRig()
+        rig.item = StripItemState(frame: CGRect(x: 0, y: 0, width: 98, height: 30), hasScreen: false, isVisible: false)
+        rig.controller.checkRoom()
+        rig.runScheduled()
+        #expect(rig.controller.hasRoom == false)
+        rig.item = StripItemState(
+            frame: CGRect(x: 4291, y: 1410, width: 98, height: 30), hasScreen: true, isVisible: true)
+        #expect(rig.controller.refreshRoom() == true)
+        #expect(rig.controller.hasRoom == true)
+    }
 }

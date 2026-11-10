@@ -130,7 +130,7 @@ final class WindowsSettingsModel {
         status = WindowsStatusInputs(
             trusted: trusted, hasParkedWindows: parked, engineBanner: running?.engineBanner,
             stageManagerOn: preferences.stageManagerOn, displaysShareASpace: preferences.displaysShareASpace,
-            stripEnabled: settings.stripEnabled, stripHasRoom: running?.strip?.hasRoom,
+            stripEnabled: settings.stripEnabled, stripHasRoom: running?.strip?.refreshRoom(),
             workspaceCount: settings.workspaceCount)
         for family in ShortcutFamily.active(in: registry) { choices[family] = choice(for: family) }
         await reloadLibrary()

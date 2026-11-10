@@ -27,6 +27,21 @@ final class WorkspaceStripController: NSObject {
     /// Whether the item is on screen, `nil` while unknown (see `StripVisibility`).
     private(set) var hasRoom: Bool?
     var onRoomChange: @MainActor (Bool?) -> Void = { _ in }
+    /// What the item looks like and where the screens are; replaced by a test.
+    var itemState: @MainActor () -> StripItemState? = { nil }
+    var screenFrames: @MainActor () -> [CGRect] = { NSScreen.screens.map(\.frame) }
+    /// Runs `work` after `delay` seconds; replaced by a test.
+    var schedule: @MainActor (TimeInterval, @escaping @MainActor () -> Void) -> Void = { delay, work in
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(delay))
+            work()
+        }
+    }
+    /// How long a "no room" answer waits for a second look: an item that was just created or is sliding with the
+    /// menu bar has an odd frame for a moment.
+    static let roomRecheckDelay: TimeInterval = 1
+    private var recheckPending = false
+    private var observers: [any NSObjectProtocol] = []
 
     init(
         select: @escaping @MainActor (Int) -> Void, restoreAll: @escaping @MainActor () -> Void, announce: Bool = true
@@ -50,6 +65,11 @@ final class WorkspaceStripController: NSObject {
                 String(localized: "Workspaces", comment: "Strip: accessibility label of the menu bar item"))
         }
         statusItem = item
+        itemState = { [weak item] in
+            guard let window = item?.button?.window else { return nil }
+            return StripItemState(frame: window.frame, hasScreen: window.screen != nil, isVisible: window.isVisible)
+        }
+        observeRoomChanges()
         let capture = capture
         downMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak item] event in
             // Local monitors run on the main thread; nothing here touches main-actor state.
@@ -60,6 +80,8 @@ final class WorkspaceStripController: NSObject {
     }
 
     func remove() {
+        for observer in observers { NotificationCenter.default.removeObserver(observer) }
+        observers = []
         if let downMonitor { NSEvent.removeMonitor(downMonitor) }
         downMonitor = nil
         capture.reset()
@@ -111,9 +133,55 @@ final class WorkspaceStripController: NSObject {
             drawnImageWidth: drawn?.width)
     }
 
-    private func checkRoom() {
-        guard let window = statusItem?.button?.window else { return }
-        let room = StripVisibility.hasRoom(itemFrame: window.frame, screens: NSScreen.screens.map(\.frame))
+    /// Looks again whenever the answer can change: the screens change, the item's window moves or changes screen
+    /// (the menu bar sliding in or out, another item pushing it), and on every redraw.
+    private func observeRoomChanges() {
+        let center = NotificationCenter.default
+        let names = [
+            NSApplication.didChangeScreenParametersNotification, NSWindow.didMoveNotification,
+            NSWindow.didChangeScreenNotification, NSWindow.didResizeNotification,
+        ]
+        // Any window of the app moving is a reason to look (cheap: nothing changes unless the answer does).
+        for name in names {
+            observers.append(
+                center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                    Task { @MainActor in self?.checkRoom() }
+                })
+        }
+    }
+
+    /// Settings asks for the answer as it is now (the pane appeared, Lintel became active): no waiting.
+    func refreshRoom() -> Bool? {
+        evaluateRoom(confirmed: true)
+        return hasRoom
+    }
+
+    func checkRoom() { evaluateRoom(confirmed: false) }
+
+    /// `true` is taken at once. `false` is taken only when it is still the answer after `roomRecheckDelay` (or
+    /// `confirmed`), so an item that is not placed yet does not raise the banner.
+    private func evaluateRoom(confirmed: Bool) {
+        guard let state = itemState() else { return }
+        let screens = screenFrames()
+        let room = StripVisibility.hasRoom(state, screens: screens)
+        #if DEBUG
+        StripTrace.record(
+            "room frame=\(String(describing: state.frame)) hasScreen=\(state.hasScreen) visible=\(state.isVisible) "
+                + "screens=\(screens) -> \(room) confirmed=\(confirmed) was=\(String(describing: hasRoom))")
+        #endif
+        if room || confirmed {
+            apply(room)
+        } else if hasRoom != false, !recheckPending {
+            recheckPending = true
+            schedule(Self.roomRecheckDelay) { [weak self] in
+                guard let self else { return }
+                self.recheckPending = false
+                self.evaluateRoom(confirmed: true)
+            }
+        }
+    }
+
+    private func apply(_ room: Bool) {
         guard room != hasRoom else { return }
         hasRoom = room
         onRoomChange(room)
