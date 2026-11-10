@@ -5,6 +5,14 @@ import os
 @main
 enum LintelMain {
     static func main() {
+        #if DEBUG
+        // Before anything is created or read: the QA bundle without --qa must not touch the real app's data.
+        if case .refuse(let reason) = QAIdentityGuard.decisionForThisProcess() {
+            Logger(subsystem: "com.lintelapp", category: "app").fault("\(reason, privacy: .public)")
+            FileHandle.standardError.write(Data((reason + "\n").utf8))
+            exit(EX_USAGE)
+        }
+        #endif
         let app = NSApplication.shared
         let delegate = AppDelegate()
         app.delegate = delegate

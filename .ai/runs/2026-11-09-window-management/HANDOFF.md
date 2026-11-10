@@ -118,5 +118,9 @@
 - D11: found a real gap: an app the engine holds no window of that does not answer (stopped, starting) was never looked at again (`readWindows` reported `unreachable` for tracked pids only). Now `unreachable` names every app whose list timed out, the engine keeps `unknownApps` and looks again at most 6 times (5 s doubling to 60 s); test with the fake. The QA numbers (1 of 10 parked) fit a different cause too (windows adopted later belong to the current workspace) and could not be reproduced.
 - QA bundle: `CONFIGURATION=debug` builds `com.lintelapp.Lintel.QA`, executable `Lintel-QA`, no document types; QA tools address it by PID.
 
+## Round 17 (audit of rounds 14-16)
+- M-1: the D11 look bound is per app (`untrackedAttempts: [Int32: Int]`, pruned to the current `unknownApps`): an app that never answers uses its own 6 looks, a later app gets its own, one that leaves and returns starts at 0; two-app and re-entry tests with the fake. L-1: the QA bundle id is in the default floating list in DEBUG builds only (one builder function, `#if DEBUG` inside; release default is exactly the documented three). L-2: the new Polish strings say "obszar roboczy"; a test rejects "przestrzeń" in plugin keys. L-3: one delete policy (`DeleteKeys.isPlainDelete`: Shift allowed; Cmd, Ctrl, Option not; Caps Lock, Function, numeric pad ignored, also for the digit keys). L-4: AX list statuses other than a timeout are "no windows" (tested), the engine arms nothing for an app that answers, the sleep gate is drained. L-5: DEBUG-only `QAIdentityGuard` refuses to start the QA bundle without a `--qa…` argument, before anything is created; the QA bundle is written to `dist/Lintel-QA.app` (nothing but docs/qa.md depended on the old debug path).
+- Owner rule for this round: no automatic QA on the desktop; nothing was launched.
+
 ## Next concrete action
 QA gate and merge by the owner.

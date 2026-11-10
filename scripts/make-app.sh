@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Builds dist/Lintel.app from the Swift package.
+# Builds dist/Lintel.app (dist/Lintel-QA.app for a debug build) from the Swift package.
 #
 # Environment:
 #   CONFIGURATION  release (default) or debug. Debug builds accept the QA launch arguments (docs/qa.md) and are a
@@ -31,6 +31,8 @@ swift build -c "$CONFIGURATION" --arch arm64 --product "$APP_NAME"
 BIN_DIR="$(swift build -c "$CONFIGURATION" --arch arm64 --show-bin-path)"
 
 OUT="$ROOT/dist/$APP_NAME.app"
+# A debug build is another app and goes to another path, so it never replaces the release bundle the DMG is made from.
+[[ "$CONFIGURATION" == debug ]] && OUT="$ROOT/dist/$APP_NAME-QA.app"
 rm -rf "$OUT"
 mkdir -p "$OUT/Contents/MacOS" "$OUT/Contents/Resources" "$OUT/Contents/Frameworks"
 EXEC_NAME="$APP_NAME"
