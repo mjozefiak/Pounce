@@ -13345,6 +13345,24 @@
         }
       }
     },
+    "Workspaces, current: %lld of %lld" : {
+      "comment" : "Strip: spoken description of the menu bar item (the current workspace and how many there are)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Workspaces, current: %1$lld of %2$lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przestrzenie robocze, bieżąca: %1$lld z %2$lld"
+          }
+        }
+      }
+    },
     "Windows are parked" : {
       "comment" : "Window HUD: windows are hidden and cannot be restored",
       "extractionState" : "manual",

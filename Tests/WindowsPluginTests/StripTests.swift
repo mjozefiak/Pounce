@@ -398,4 +398,28 @@ import Testing
         #expect(rig.controller.refreshRoom() == true)
         #expect(rig.controller.hasRoom == true)
     }
+
+    /// Round 16 D3: the system shows a status item no children, so the item itself says where the user is.
+    @Test func theItemItselfSaysWhichWorkspaceIsCurrentOutOfHowMany() {
+        let boxes = (1...4).map { StripBox(number: $0, windowCount: 0, isCurrent: $0 == 2, isShownElsewhere: false) }
+        #expect(StripModel.itemDescription(boxes) == "Workspaces, current: 2 of 4")
+        let none = (1...3).map { StripBox(number: $0, windowCount: 0, isCurrent: false, isShownElsewhere: false) }
+        #expect(StripModel.itemDescription(none) == "Workspaces")
+        let moved = (1...4).map { StripBox(number: $0, windowCount: 0, isCurrent: $0 == 4, isShownElsewhere: false) }
+        #expect(StripModel.itemDescription(moved) == "Workspaces, current: 4 of 4")
+    }
+
+    /// Round 16 D5: a click 2 pt outside the item does nothing (it used to select the middle box); a press that is not
+    /// a mouse release on the item opens the menu.
+    @Test func aClickOutsideTheItemDoesNothingAndANonMousePressOpensTheMenu() {
+        let item = CGRect(x: 4290, y: 3, width: 100, height: 24)
+        let outside = StripLayout.resolvedClickX(pressScreenX: nil, cursorScreenX: 4289, itemFrame: item)
+        #expect(outside == nil)
+        #expect(StripLayout.clickAction(isFreshMouseUp: true, buttonX: outside) == .ignore)
+        let inside = StripLayout.resolvedClickX(pressScreenX: nil, cursorScreenX: 4350, itemFrame: item)
+        #expect(StripLayout.clickAction(isFreshMouseUp: true, buttonX: inside) == .map(60))
+        // VoiceOver, Voice Control, the keyboard, a stale event: the menu, with or without a position.
+        #expect(StripLayout.clickAction(isFreshMouseUp: false, buttonX: inside) == .menu)
+        #expect(StripLayout.clickAction(isFreshMouseUp: false, buttonX: nil) == .menu)
+    }
 }

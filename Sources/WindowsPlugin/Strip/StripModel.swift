@@ -29,6 +29,17 @@ enum StripModel {
         }
     }
 
+    /// What VoiceOver says for the whole menu bar item (the system shows a status item no children): "Workspaces,
+    /// current: 2 of 4"; just "Workspaces" while no box is current. Updated on every change.
+    static func itemDescription(_ boxes: [StripBox]) -> String {
+        guard let current = boxes.first(where: \.isCurrent)?.number else {
+            return String(localized: "Workspaces", comment: "Strip: accessibility label of the menu bar item")
+        }
+        return String(
+            localized: "Workspaces, current: \(current) of \(boxes.count)",
+            comment: "Strip: spoken description of the menu bar item (the current workspace and how many there are)")
+    }
+
     /// "Workspace 3, 4 windows" (spec: UI/UX). That the box is the current one is not in the label: the element's
     /// *selected* state says it (Apple's guidance), so VoiceOver does not speak it twice.
     static func accessibilityLabel(_ box: StripBox) -> String {
@@ -82,6 +93,23 @@ enum StripLayout {
             if let x = candidate, x >= itemFrame.minX, x <= itemFrame.maxX { return x - itemFrame.minX - buttonMinX }
         }
         return nil
+    }
+
+    /// What the button's action does. A fresh mouse release inside the item is mapped to a box; one whose position is
+    /// not inside the item (the cursor 2 pt outside it, or the item still sliding into a revealing menu bar) does
+    /// nothing, rather than reading the event's centre as the middle box; anything that is not a mouse release on the
+    /// item (VoiceOver, Voice Control, the keyboard) opens the menu, which names every workspace. A box is pressed
+    /// through its own accessibility element, by identity.
+    enum ClickAction: Equatable {
+        case map(CGFloat)
+        case ignore
+        case menu
+    }
+
+    static func clickAction(isFreshMouseUp: Bool, buttonX: CGFloat?) -> ClickAction {
+        guard isFreshMouseUp else { return .menu }
+        guard let buttonX else { return .ignore }
+        return .map(buttonX)
     }
 
     /// The screen rect of every box when the item's window is at `itemFrame` and the image starts `imageOriginX` into

@@ -61,8 +61,7 @@ final class WorkspaceStripController: NSObject {
             button.target = self
             button.action = #selector(clicked(_:))
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
-            button.setAccessibilityLabel(
-                String(localized: "Workspaces", comment: "Strip: accessibility label of the menu bar item"))
+            button.setAccessibilityLabel(StripModel.itemDescription(boxes))
         }
         statusItem = item
         itemState = { [weak item] in
@@ -111,6 +110,9 @@ final class WorkspaceStripController: NSObject {
         guard let button = statusItem?.button else { return }
         let image = StripImage.render(boxes)
         button.image = image
+        let description = StripModel.itemDescription(boxes)
+        image.accessibilityDescription = description
+        button.setAccessibilityLabel(description)
         button.imagePosition = .imageOnly
         let originX = imageOriginX(in: button, image: image)
         let reconciled = StripBoxElement.reconcile(
@@ -188,32 +190,37 @@ final class WorkspaceStripController: NSObject {
     }
 
     @objc private func clicked(_ sender: NSStatusBarButton) {
-        guard let event = NSApp.currentEvent else { return }
-        if event.type == .rightMouseUp || event.modifierFlags.contains(.control) {
-            showMenu(from: sender)
-            return
-        }
-        guard let image = sender.image else { return }
-        let eventX = sender.convert(event.locationInWindow, from: nil).x
+        let event = NSApp.currentEvent
         let press = capture.take()
-        // Only a real mouse release is mapped. Anything else (a press from VoiceOver or Voice Control, a stale event)
-        // or a click whose position cannot be found inside the item opens the menu instead of guessing a box.
-        guard event.type == .leftMouseUp,
-            let buttonX = StripLayout.resolvedClickX(
-                pressScreenX: press, cursorScreenX: NSEvent.mouseLocation.x, itemFrame: sender.window?.frame,
-                buttonMinX: sender.frame.minX)
-        else {
-            showMenu(from: sender)
-            return
-        }
-        let x = buttonX - imageOriginX(in: sender, image: image)
+        let fresh = event.map { ProcessInfo.processInfo.systemUptime - $0.timestamp < 1 } ?? false
+        let isMouseUp = event?.type == .leftMouseUp && event?.window === sender.window && fresh
         #if DEBUG
         StripTrace.record(
-            "click eventX=\(eventX) locationInWindow=\(event.locationInWindow) mouse=\(NSEvent.mouseLocation) "
-                + "window=\(String(describing: sender.window?.frame)) bounds=\(sender.bounds) mappedX=\(x)")
+            "action type=\(String(describing: event?.type)) fresh=\(fresh) inItem=\(event?.window === sender.window) "
+                + "press=\(String(describing: press)) mouse=\(NSEvent.mouseLocation) "
+                + "window=\(String(describing: sender.window?.frame))")
         #endif
-        if let index = StripLayout.index(atX: x, boxCount: boxes.count), boxes.indices.contains(index) {
-            select(boxes[index].number)
+        if event?.type == .rightMouseUp || event?.modifierFlags.contains(.control) == true {
+            showMenu(from: sender)
+            return
+        }
+        let buttonX = StripLayout.resolvedClickX(
+            pressScreenX: press, cursorScreenX: NSEvent.mouseLocation.x, itemFrame: sender.window?.frame,
+            buttonMinX: sender.frame.minX)
+        switch StripLayout.clickAction(isFreshMouseUp: isMouseUp, buttonX: buttonX) {
+        case .menu:
+            showMenu(from: sender)
+        case .ignore:
+            return
+        case .map(let x):
+            guard let image = sender.image else { return }
+            let mapped = x - imageOriginX(in: sender, image: image)
+            #if DEBUG
+            StripTrace.record("click mappedX=\(mapped)")
+            #endif
+            if let index = StripLayout.index(atX: mapped, boxCount: boxes.count), boxes.indices.contains(index) {
+                select(boxes[index].number)
+            }
         }
     }
 
