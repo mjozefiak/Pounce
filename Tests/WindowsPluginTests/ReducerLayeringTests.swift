@@ -8,7 +8,7 @@ import Testing
 /// sources themselves (declared function names, `//` comments and one-line strings stripped), so it does not see
 /// overloads that share a name, `/* */` comments, multi-line strings or a `//` inside a string. Code review keeps
 /// the rule where the lint cannot.
-@Suite struct ReducerLayeringTests {
+@Suite(.timeLimit(.minutes(1))) struct ReducerLayeringTests {
     /// Top to bottom: each part may call itself and the ones above it, and the shared base (`ReducerContext`).
     private let layers = [
         "LayoutPlanner", "ReducerContext+Layout", "ReducerContext+Parking", "ReducerContext+Windows",

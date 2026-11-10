@@ -11,7 +11,7 @@ import Testing
 /// The accessibility audit of the snap overlay and the Identify panel (step 3.7), as far as it can be tested
 /// without a screen: contrast of the numbers on their pills, a highlight that is not colour alone, Reduce
 /// Transparency, and what VoiceOver is told. Looking at it on a real display stays in `docs/qa.md` (rows 25, 27).
-@Suite struct ZoneOverlayAccessibilityTests {
+@Suite(.timeLimit(.minutes(1))) struct ZoneOverlayAccessibilityTests {
     @Test func theNumbersMeetContrastOnTheirPillsInBothAppearances() {
         // White on the dark pill, whatever the wallpaper is: the pill is opaque.
         #expect(BrandPalette.contrast(ZoneOverlayStyle.numberHex, ZoneOverlayStyle.pillGrayHex) >= 7)
@@ -70,7 +70,7 @@ import Testing
 
 /// The real panels and the view, built without a display (step 3.7 review): they are hidden from screen sharing,
 /// never take focus, and the view lays out its zones.
-@Suite @MainActor struct ZoneOverlayPanelTests {
+@Suite(.timeLimit(.minutes(1))) @MainActor struct ZoneOverlayPanelTests {
     private let zone = DragZone(
         displayKey: "A", zoneID: 1, number: 1, frame: CGRect(x: 8, y: 8, width: 400, height: 300))
 

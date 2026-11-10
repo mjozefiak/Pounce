@@ -5,7 +5,7 @@ import Testing
 @testable import WindowsPlugin
 
 /// The grid layout maths and the stock templates (step 3.1): golden frames, validation, neighbours, the record.
-@Suite struct GridLayoutTests {
+@Suite(.timeLimit(.minutes(1))) struct GridLayoutTests {
     private let area = CGRect(x: 0, y: 0, width: 1000, height: 600)
 
     private func frames(_ id: String, spacing: Int? = nil) throws -> [Int: CGRect] {

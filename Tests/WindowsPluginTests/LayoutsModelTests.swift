@@ -7,7 +7,7 @@ import Testing
 
 /// The Layouts window's model (step 3.6): the matrix, effective-layout labels, *Apply to…*, *Identify*, the kind
 /// of each workspace, the keyboard table and the Settings rows.
-@Suite @MainActor struct LayoutsModelTests {
+@Suite(.timeLimit(.minutes(1))) @MainActor struct LayoutsModelTests {
     private func ws(_ number: Int) -> WorkspaceID { WorkspaceID(number)! }
 
     private struct Rig {

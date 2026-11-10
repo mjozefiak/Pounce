@@ -25,7 +25,7 @@ private final class EditorLog {
 
 /// The Layouts window as a library (step 4.3): the user's layouts, New, Duplicate, Rename, Edit, Delete with its
 /// confirmation, Import with its summary, Export, the layout slots, and the pane's slot rows.
-@Suite @MainActor struct LayoutLibraryModelTests {
+@Suite(.timeLimit(.minutes(1))) @MainActor struct LayoutLibraryModelTests {
     private func ws(_ number: Int) -> WorkspaceID { WorkspaceID(number)! }
 
     private struct Rig {

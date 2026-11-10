@@ -6,7 +6,7 @@ import Testing
 @testable import WindowsPlugin
 
 /// The reducer knows no layout kind: it works through the registry.
-@Suite struct LayoutStrategyTests {
+@Suite(.timeLimit(.minutes(1))) struct LayoutStrategyTests {
     private func id(_ number: UInt32) -> WindowID { WindowID(pid: 100, number: number) }
     private let area = CGRect(x: 0, y: 25, width: 1920, height: 1055)
 
@@ -64,7 +64,7 @@ import Testing
 
 /// A fourth strategy, defined only here: it proves that a new kind is one type and one registry line, with no change
 /// in the engine, the reducer, the state or the store.
-@Suite struct ToyStrategyTests {
+@Suite(.timeLimit(.minutes(1))) struct ToyStrategyTests {
     struct ToyConfig: LayoutConfigValue, Equatable { var step: CGFloat }
 
     struct ToyState: LayoutStateValue, Equatable, Codable {

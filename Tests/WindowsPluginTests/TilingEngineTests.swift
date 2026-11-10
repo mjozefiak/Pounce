@@ -7,7 +7,7 @@ import Testing
 
 /// Auto-tile in the engine (step 2.4) against the fake client: new and closed windows, the kind per workspace,
 /// floating, stubborn windows, the Accessibility gate and persistence. Runs under TSan in CI (`Tiling`).
-@Suite struct TilingEngineTests {
+@Suite(.timeLimit(.minutes(1))) struct TilingEngineTests {
     private func ws(_ number: Int) -> WorkspaceID { WorkspaceID(number)! }
     private func id(_ number: UInt32, pid: Int32 = 100) -> WindowID { WindowID(pid: pid, number: number) }
 

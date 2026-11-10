@@ -6,7 +6,7 @@ import Testing
 @testable import WindowsPlugin
 
 /// The drag state machine (step 3.5a) on scripted events: when the overlay is wanted, highlight, snap, cancel.
-@Suite struct ZoneDragMachineTests {
+@Suite(.timeLimit(.minutes(1))) struct ZoneDragMachineTests {
     private let window = WindowID(pid: 1, number: 1)
     private let other = WindowID(pid: 1, number: 2)
 

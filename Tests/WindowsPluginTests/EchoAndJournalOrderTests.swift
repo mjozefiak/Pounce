@@ -6,7 +6,7 @@ import Testing
 @testable import WindowsPlugin
 
 /// The echo window per in-flight frame, and the journal operations of one batch.
-@Suite struct EchoAndJournalOrderTests {
+@Suite(.timeLimit(.minutes(1))) struct EchoAndJournalOrderTests {
     private func id(_ number: UInt32) -> WindowID { WindowID(pid: 100, number: number) }
     private func entry(_ number: UInt32) -> HiddenEntry {
         HiddenEntry(

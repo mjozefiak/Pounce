@@ -146,7 +146,8 @@ public final class WindowsPlugin: LintelPlugin {
             case is CancellationError: break  // a stop or the host's budget ended it; nothing to report
             default: lastStartError = .failed(reason: String(describing: type(of: error)))
             }
-            // A start that was cancelled or overtaken by a stop has already ended itself; stopping again is a no-op.
+            // `stop()` stops an engine only for a runtime that holds the journal lease: a start that gave up before
+            // taking it has nothing to stop; one that was cancelled after taking it ends its engine and the lease here.
             await runtime.stop()
             throw error
         }

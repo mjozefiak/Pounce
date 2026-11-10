@@ -148,14 +148,25 @@ import Testing
         #expect(await journal.phase == .recovering)
 
         // Erase Data refuses and returns instead of waiting for the pass behind the host's queue.
-        await #expect(throws: WindowsPlugin.EraseRefused.self) { try await rig.plugin.eraseData() }
-        // The recovery wait itself answers `.cancelled`, which is what Erase Data turns into a refusal.
-        guard case .cancelled = await WindowsPlugin.restoreFromJournal(context: rig.plugin.context) else {
-            Issue.record("a wait for a stuck pass must answer .cancelled")
-            return
+        let plugin = rig.plugin
+        let refused = await boundedMain("Erase Data returned with a stuck pass") {
+            do {
+                try await plugin.eraseData()
+                return false
+            } catch {
+                return error is WindowsPlugin.EraseRefused
+            }
         }
+        #expect(refused == true)
+        // The recovery wait itself answers `.cancelled`, which is what Erase Data turns into a refusal.
+        let context = plugin.context
+        let outcome = await bounded("the recovery wait returned") {
+            if case .cancelled = await WindowsPlugin.restoreFromJournal(context: context) { return true }
+            return false
+        }
+        #expect(outcome == true)
         // So does the button without a runtime: it says the journal is busy.
-        await rig.plugin.restoreAllWindows()
+        _ = await boundedMain("the restore button returned with a stuck pass") { await plugin.restoreAllWindows() }
         #expect(rig.hud.shown.last == .stillStopping)
         // Nothing of the two stays parked in the journal's queue.
         #expect(await journal.waiterCount == 0)

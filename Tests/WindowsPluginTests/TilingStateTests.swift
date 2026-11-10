@@ -7,7 +7,7 @@ import Testing
 
 /// What step 2.4 stores and reads: `workspaces[n].tiling` in `state.json`, the per-workspace overrides value and
 /// the settings behind them, and the Accessibility gate through the plugin.
-@Suite struct TilingStateTests {
+@Suite(.timeLimit(.minutes(1))) struct TilingStateTests {
     private func ws(_ number: Int) -> WorkspaceID { WorkspaceID(number)! }
 
     // MARK: state.json

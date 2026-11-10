@@ -40,7 +40,8 @@ final class TimerDragTicker: DragTicking {
     func start(_ fire: @escaping @MainActor () -> Void) {
         guard timer == nil else { return }
         timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { _ in
-            MainActor.assumeIsolated { fire() }
+            // The timer calls on the main thread, but nothing here may trap if it ever does not: hop explicitly.
+            Task { @MainActor in fire() }
         }
     }
 

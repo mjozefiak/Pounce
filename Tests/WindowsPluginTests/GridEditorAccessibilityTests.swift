@@ -10,7 +10,7 @@ import Testing
 /// VoiceOver reads for zones and dividers, that every operation has a path without the pointer, and the contrast
 /// of what the canvas draws. Text sizes, light and dark, English and Polish, and a VoiceOver walk-through are
 /// manual (`docs/qa.md`).
-@Suite @MainActor struct GridEditorAccessibilityTests {
+@Suite(.timeLimit(.minutes(1))) @MainActor struct GridEditorAccessibilityTests {
     private final class Preview: ZoneOverlayPresenting {
         func show(_ displays: [DragDisplay]) {}
         func highlight(_ zone: DragZone?) {}

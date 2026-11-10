@@ -5,7 +5,7 @@ import Testing
 @testable import WindowsPlugin
 
 /// Resize, join, toggle orientation and balance (step 2.3): weight invariants (sum, minimum share).
-@Suite struct TilingEditingTests {
+@Suite(.timeLimit(.minutes(1))) struct TilingEditingTests {
     private func shares(_ container: TilingContainer) -> [Double] {
         let total = container.totalWeight
         return container.children.map { $0.weight / total }

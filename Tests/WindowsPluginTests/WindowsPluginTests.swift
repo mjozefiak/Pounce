@@ -5,7 +5,7 @@ import Testing
 @testable import WindowsPlugin
 
 @MainActor
-@Suite struct WindowsPluginTests {
+@Suite(.timeLimit(.minutes(1))) struct WindowsPluginTests {
     @Test func theManifestIsDisabledByDefaultAndNeedsAccessibility() throws {
         let manifest = WindowsPlugin.manifest
         #expect(manifest.id == "windows")
@@ -42,7 +42,7 @@ import Testing
     }
 }
 
-@Suite struct WindowsSettingsTests {
+@Suite(.timeLimit(.minutes(1))) struct WindowsSettingsTests {
     @Test func defaults() throws {
         let harness = try WindowsHarness()
         defer { harness.tearDown() }

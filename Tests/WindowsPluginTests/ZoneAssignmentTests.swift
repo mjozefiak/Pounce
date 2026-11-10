@@ -7,7 +7,7 @@ import Testing
 
 /// Assignment resolution and `assignments.json` (step 3.2): tables, defaults per orientation, duplicate display
 /// UUIDs, hot-plug, versioning, the `.corrupt` copy, newer files.
-@Suite struct ZoneAssignmentTests {
+@Suite(.timeLimit(.minutes(1))) struct ZoneAssignmentTests {
     private func ws(_ number: Int) -> WorkspaceID { WorkspaceID(number)! }
 
     private func display(

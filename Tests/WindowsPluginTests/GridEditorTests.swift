@@ -5,7 +5,7 @@ import Testing
 
 /// The pure grid editor (step 4.2): divide, merge, move a divider, delete a divider, spacing, undo and redo, Tab
 /// navigation and the keyboard table.
-@Suite struct GridEditorTests {
+@Suite(.timeLimit(.minutes(1))) struct GridEditorTests {
     private func stock(_ id: String) -> GridLayout { StockLayouts.layout(id) ?? StockLayouts.all[0] }
 
     private func state(_ id: String = StockLayouts.focus) -> GridEditorState { GridEditorState(stock(id)) }

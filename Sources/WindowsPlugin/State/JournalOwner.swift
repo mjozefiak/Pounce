@@ -115,7 +115,10 @@ actor JournalOwner {
     /// `exclusive`, but a caller that has to wait for another pass gives up after `budget` on `clock` and gets
     /// `.cancelled` without running anything: a recovery stuck on a hung app cannot hold the caller up (Erase Data,
     /// *Restore all windows*). The bound covers the wait for the journal only: once it is free the body runs to the
-    /// end and its answer is returned, however long it takes (a hung app is bounded by the pass itself).
+    /// end and its answer is returned, however long it takes (a hung app is bounded by the pass itself). One wait
+    /// stays unbounded: if another pass takes the journal between the bounded wait and this caller's turn, the call
+    /// waits for that pass too (cancellable, and each pass is bounded by its own hung-app timeouts), so the worst case
+    /// is the budget, then one more pass, then this caller's own.
     func exclusive<Value: Sendable>(
         within budget: Duration, clock: any Clock<Duration>, _ body: @escaping @Sendable (StateStore) async -> Value
     ) async -> Pass<Value> {

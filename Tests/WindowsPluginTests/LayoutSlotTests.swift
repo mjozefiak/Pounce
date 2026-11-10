@@ -7,7 +7,7 @@ import Testing
 
 /// The nine layout slots and *Next zone layout* (step 4.3): stable commands, bound through the repository, applied
 /// to the current workspace on the focused display behind the Accessibility gate.
-@Suite struct LayoutSlotTests {
+@Suite(.timeLimit(.minutes(1))) struct LayoutSlotTests {
     private func id(_ number: UInt32) -> WindowID { WindowID(pid: 100, number: number) }
 
     @MainActor

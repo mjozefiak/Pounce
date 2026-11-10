@@ -5,7 +5,7 @@ import Testing
 
 /// `layouts.json` and the layout library (step 4.1a): round trips, stable ids, stock templates read-only, delete in
 /// use, corrupt and newer files, a layout of an unknown style surviving a save.
-@Suite struct LayoutRepositoryTests {
+@Suite(.timeLimit(.minutes(1))) struct LayoutRepositoryTests {
     private func makeDirectory() throws -> URL {
         let directory = FileManager.default.temporaryDirectory.appending(
             path: "lintel-layouts-\(UUID().uuidString)", directoryHint: .isDirectory)

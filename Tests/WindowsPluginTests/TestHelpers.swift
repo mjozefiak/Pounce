@@ -29,3 +29,30 @@ func eventually(_ message: String, _ condition: @Sendable () async -> Bool) asyn
     }
     Issue.record("never reached: \(message)")
 }
+
+/// A value that a task delivers later; the test polls it with a cap instead of awaiting the task.
+actor Box<Value: Sendable> {
+    private(set) var value: Value?
+    func set(_ value: Value) { self.value = value }
+}
+
+/// Runs `work` in a task and waits for its answer with the capped `eventually`: an answer that never comes fails the
+/// test (`.timeLimit` cannot: it does not interrupt an await that ignores cancellation, measured with a mutant that
+/// removed a `cancel()`), and the stuck task is left behind.
+func bounded<Value: Sendable>(_ message: String, _ work: @escaping @Sendable () async -> Value) async -> Value? {
+    let box = Box<Value>()
+    Task { await box.set(await work()) }
+    await eventually(message) { await box.value != nil }
+    return await box.value
+}
+
+/// `bounded` for work that must run on the main actor.
+@MainActor
+func boundedMain<Value: Sendable>(
+    _ message: String, _ work: @escaping @MainActor @Sendable () async -> Value
+) async -> Value? {
+    let box = Box<Value>()
+    Task { @MainActor in await box.set(await work()) }
+    await eventually(message) { await box.value != nil }
+    return await box.value
+}

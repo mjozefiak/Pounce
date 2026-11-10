@@ -3,7 +3,7 @@ import Testing
 
 @testable import WindowsPlugin
 
-@Suite struct EventCoalescerTests {
+@Suite(.timeLimit(.minutes(1))) struct EventCoalescerTests {
     private func id(_ number: UInt32, pid: Int32 = 1) -> WindowID { WindowID(pid: pid, number: number) }
 
     @Test func movesAndResizesOfOneWindowBecomeOne() {
@@ -79,7 +79,7 @@ import Testing
     }
 }
 
-@Suite struct WatchdogTests {
+@Suite(.timeLimit(.minutes(1))) struct WatchdogTests {
     @Test func staysQuietBelowTheLimit() {
         var watchdog = Watchdog(limit: 10, sustain: 2)
         for step in 0..<100 {

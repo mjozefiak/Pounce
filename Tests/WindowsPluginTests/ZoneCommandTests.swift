@@ -7,7 +7,7 @@ import Testing
 
 /// The zone commands through the plugin (step 3.3): the command table, the Accessibility gate, and the
 /// assignments file the runtime loads.
-@Suite struct ZoneCommandTests {
+@Suite(.timeLimit(.minutes(1))) struct ZoneCommandTests {
     private func id(_ number: UInt32) -> WindowID { WindowID(pid: 100, number: number) }
 
     @MainActor
@@ -83,7 +83,7 @@ import Testing
     }
 }
 
-@Suite struct ResetStateAssignmentsTests {
+@Suite(.timeLimit(.minutes(1))) struct ResetStateAssignmentsTests {
     @MainActor @Test func resetStateAlsoClearsTheAssignments() async throws {
         let harness = try WindowsHarness()
         defer { harness.tearDown() }

@@ -34,10 +34,12 @@ import os
         let lease = try #require(await owner.tryBeginEngine())
         // The clock stands still until the test moves it, so the waiter is parked before the budget is over.
         let clock = VirtualClock(autoAdvance: false)
-        let waiting = Task { await owner.waitUntilIdle(within: .seconds(5), clock: clock) }
+        let waiting = Box<Bool>()
+        Task { await waiting.set(await owner.waitUntilIdle(within: .seconds(5), clock: clock)) }
         await waitersOf(owner, atLeast: 1)
         await clock.waitForSleepers(1)
         clock.advance(5)
+        await eventually("the timed-out wait returned") { await waiting.value != nil }
         #expect(await waiting.value == false)
         // The wait that gave up is gone from the queue, not parked until the journal is next idle.
         #expect(await owner.waiterCount == 0)
@@ -84,13 +86,16 @@ import os
         await eventually("the first pass is running") { await owner.phase == .recovering }
         let clock = VirtualClock(autoAdvance: false)
         let ran = Latch()
-        let waiting = Task {
-            await owner.exclusive(within: .seconds(5), clock: clock) { _ in await ran.release() }
+        let waiting = Box<JournalOwner.Pass<Void>>()
+        Task {
+            await waiting.set(
+                await owner.exclusive(within: .seconds(5), clock: clock) { _ in await ran.release() })
         }
         await waitersOf(owner, atLeast: 1)
         await clock.waitForSleepers(1)
         clock.advance(5)
-        guard case .cancelled = await waiting.value else {
+        await eventually("the pass that waited too long returned") { await waiting.value != nil }
+        guard case .cancelled? = await waiting.value else {
             Issue.record("a pass that waited past its budget must answer .cancelled")
             return
         }

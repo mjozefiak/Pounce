@@ -5,7 +5,7 @@ import Testing
 @testable import WindowsPlugin
 
 /// Directional focus and move in a tree (step 2.2), table driven.
-@Suite struct TilingNavigationTests {
+@Suite(.timeLimit(.minutes(1))) struct TilingNavigationTests {
     /// 1 | (2 over 3) | 4
     private var sample: TilingTree { tree(.horizontal, [leaf(1), box(.vertical, [leaf(2), leaf(3)]), leaf(4)]) }
 

@@ -7,7 +7,7 @@ import Testing
 
 /// Step 1.11: the banner table, the pane model, diagnostics and the rule that an inactive pane does nothing.
 @MainActor
-@Suite struct SettingsTests {
+@Suite(.timeLimit(.minutes(1))) struct SettingsTests {
     private func banner(_ build: (inout WindowsStatusInputs) -> Void) -> SettingsStatus? {
         var inputs = WindowsStatusInputs()
         build(&inputs)

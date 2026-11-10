@@ -7,7 +7,7 @@ import Testing
 
 /// The tiling commands (step 2.5) through the engine and through the plugin's command table. Engine scenarios run
 /// under TSan in CI (`Tiling`).
-@Suite struct TilingCommandTests {
+@Suite(.timeLimit(.minutes(1))) struct TilingCommandTests {
     private func ws(_ number: Int) -> WorkspaceID { WorkspaceID(number)! }
     private func id(_ number: UInt32) -> WindowID { WindowID(pid: 100, number: number) }
 

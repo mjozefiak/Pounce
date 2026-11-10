@@ -5,7 +5,7 @@ import Testing
 @testable import WindowsPlugin
 
 /// The `.lintellayouts` type (step 4.4): declared in `Info.plist`, and the plugin takes only that file type.
-@Suite struct LayoutFileTypeTests {
+@Suite(.timeLimit(.minutes(1))) struct LayoutFileTypeTests {
     private let root = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
 

@@ -65,5 +65,10 @@
 - `AXObservationHub.start()`: the observe block checks the stop flag on the AX thread, so a stop that came while the running apps were read cannot leave observers behind.
 - Reserved kind names `order` and `default` are in BACKWARD_COMPATIBILITY.md.
 
+## Round 8 (final)
+- The two-display reset test now puts the window's home on the main display and its parking corner on the second one; with the fix reverted locally it fails (and passes with the fix); exact membership and layouts are asserted.
+- Every windows suite has `.timeLimit(.minutes(1))`. Measured: the limit does not interrupt an await that ignores cancellation (the removed-`cancel()` mutant hung until my 240 s kill). The bound-guarding tests therefore use `bounded`/`boundedMain` (poll a box with the capped `eventually`), and the same mutant now fails in 0.12 s. Plain awaits elsewhere can still hang on a broken build; documented.
+- `ZoneDragController`'s timer hops with `Task { @MainActor in }` instead of `assumeIsolated`; the comment in `activate()` describes what the catch's `stop()` really does; `exclusive(within:)` documents its one remaining unbounded wait. Left as documented: `eraseData`'s second guard has no direct test, no unit test for the `AXObservationHub.start()` stop check, the host's 150 ms real budget.
+
 ## Next concrete action
 QA gate and merge by the owner.

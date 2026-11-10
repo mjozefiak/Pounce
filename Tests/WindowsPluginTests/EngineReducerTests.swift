@@ -5,7 +5,7 @@ import Testing
 @testable import WindowsPlugin
 
 /// The reducer on plain values: no client, no disk, no clock.
-@Suite struct EngineReducerTests {
+@Suite(.timeLimit(.minutes(1))) struct EngineReducerTests {
     private let main = FakeWindowClient.mainDisplay
     private let second = FakeWindowClient.secondDisplay
     private func ws(_ number: Int) -> WorkspaceID { WorkspaceID(number)! }

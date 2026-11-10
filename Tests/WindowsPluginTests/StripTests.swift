@@ -8,7 +8,7 @@ import Testing
 
 /// Step 1.10: the strip on plain values. The status item itself (click positions, accessibility children, room in
 /// the menu bar) needs a real menu bar and is a manual item in `docs/qa.md`.
-@Suite struct StripTests {
+@Suite(.timeLimit(.minutes(1))) struct StripTests {
     private func summary(
         current: Int, counts: [Int: Int], visible: [String: Int]? = nil
     ) -> WorkspaceSummary {

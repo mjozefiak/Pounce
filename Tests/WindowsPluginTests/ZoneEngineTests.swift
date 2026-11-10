@@ -7,7 +7,7 @@ import Testing
 
 /// Zones in the engine (step 3.3) against the fake client: placement, stacking, the new-window rule, moves
 /// between zones, the kind per workspace, the Accessibility gate and persistence. Runs under TSan in CI (`Zone`).
-@Suite struct ZoneEngineTests {
+@Suite(.timeLimit(.minutes(1))) struct ZoneEngineTests {
     private func ws(_ number: Int) -> WorkspaceID { WorkspaceID(number)! }
     private func id(_ number: UInt32, pid: Int32 = 100) -> WindowID { WindowID(pid: pid, number: number) }
 
@@ -366,7 +366,7 @@ import Testing
 }
 
 /// The strategy on plain values (step 3.3).
-@Suite struct ZonePlacementTests {
+@Suite(.timeLimit(.minutes(1))) struct ZonePlacementTests {
     private func win(_ number: UInt32) -> WindowID { WindowID(pid: 1, number: number) }
     private let strategy = ZonePlacement(layout: StockLayouts.layout(StockLayouts.grid2x2) ?? StockLayouts.all[0])
 
@@ -425,7 +425,7 @@ import Testing
 }
 
 /// Switching a workspace between Auto-tile, Zones and Free keeps every state (step 3.4).
-@Suite struct LayoutConversionTests {
+@Suite(.timeLimit(.minutes(1))) struct LayoutConversionTests {
     private func ws(_ number: Int) -> WorkspaceID { WorkspaceID(number)! }
     private func id(_ number: UInt32) -> WindowID { WindowID(pid: 100, number: number) }
 

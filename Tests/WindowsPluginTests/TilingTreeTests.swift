@@ -5,7 +5,7 @@ import Testing
 @testable import WindowsPlugin
 
 /// The pure tiling tree and its frames (step 2.1): golden frames for nested trees and gaps.
-@Suite struct TilingTreeTests {
+@Suite(.timeLimit(.minutes(1))) struct TilingTreeTests {
     private func frames(_ tree: TilingTree, gaps: TilingGaps = .none, area: CGRect = screen) -> [UInt32: CGRect] {
         Dictionary(
             uniqueKeysWithValues: TilingLayout.frames(tree, area: area, gaps: gaps).map { ($0.key.number, $0.value) })

@@ -5,7 +5,7 @@ import Testing
 
 /// `.lintellayouts` import and export (step 4.1b): the shared validator, hostile files, colliding ids, the summary
 /// before anything is added.
-@Suite struct LayoutImporterTests {
+@Suite(.timeLimit(.minutes(1))) struct LayoutImporterTests {
     private func layoutJSON(
         id: String = "user.x", name: String = "X", style: String = "grid", columns: String = "[1,1]",
         rows: String = "[1]", zones: String? = nil, extra: String = ""

@@ -128,5 +128,9 @@ records every call. Time is a `VirtualClock`; tests wait with barriers (`settle(
 `OrderedActions.waitUntilEmpty()`), never with real sleeps. Where a test must wait for a count (a waiter parked in a
 queue) it polls with `Task.yield()` under an iteration cap that fails the test instead of hanging it
 (`WaiterLeakTests`); no wait relies on a number of yields. TSan runs the engine, recovery, strategy and journal
-suites in CI. Every suite that waits has a one-minute time limit (`.timeLimit`), so a wait that can never end fails
-instead of hanging; where a test polls for a condition it uses the capped `eventually(_:_:)` helper.
+suites in CI. Every windows suite carries a one-minute `.timeLimit`, but measured with a mutant (a removed `cancel()`) the limit does
+**not** interrupt an await that ignores cancellation: the run hung until it was killed. So the tests that guard a
+bound do not await the code under test directly: they run it with `bounded(_:_:)` / `boundedMain(_:_:)` (a task whose
+answer the test polls with the capped `eventually(_:_:)`), which fails cleanly in a fraction of a second (the same
+mutant fails in 0.12 s). Other waits (`waitForSleepers`, `waitUntilStalled`, a plain `await task.value`) can still hang
+instead of failing if the code under test breaks; the time limit and CI's own timeout are the backstop there.

@@ -8,7 +8,7 @@ import Testing
 
 /// Step 1.9: commands, the HUD, the window switcher and the keyboard-layout check.
 @MainActor
-@Suite struct CommandsTests {
+@Suite(.timeLimit(.minutes(1))) struct CommandsTests {
     private let home = CGRect(x: 100, y: 100, width: 800, height: 600)
 
     private func plugin(

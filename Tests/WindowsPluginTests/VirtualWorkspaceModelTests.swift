@@ -3,7 +3,7 @@ import Testing
 
 @testable import WindowsPlugin
 
-@Suite struct VirtualWorkspaceModelTests {
+@Suite(.timeLimit(.minutes(1))) struct VirtualWorkspaceModelTests {
     private func ws(_ number: Int) -> WorkspaceID { WorkspaceID(number)! }
     private func win(_ number: UInt32, pid: Int32 = 100) -> WindowID { WindowID(pid: pid, number: number) }
 

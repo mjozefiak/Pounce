@@ -7,7 +7,7 @@ import Testing
 
 /// `EngineCommand.resetState` in the reducer: what is only remembered starts over, every window joins the workspace
 /// shown on its display, and the journal side (`state.parked`) is left alone.
-@Suite struct ResetStateTests {
+@Suite(.timeLimit(.minutes(1))) struct ResetStateTests {
     private let main = FakeWindowClient.mainDisplay
     private let second = FakeWindowClient.secondDisplay
     private func id(_ number: UInt32) -> WindowID { WindowID(pid: 100, number: number) }
@@ -37,7 +37,10 @@ import Testing
         let state = prepared()
         let (after, effects) = EngineReducer.reduce(state, .command(.resetState, now: 5))
         // The old tree (windows 1 and 2 side by side in workspace 1) is gone; what is arranged now is the new membership.
-        #expect(after.layouts[ws(1)]?["tiling"]?.as(TilingTree.self)?.windows != [id(1), id(2)])
+        // The old tree is gone and nothing is arranged yet (the engine is frozen after the restore): exactly empty.
+        #expect(after.layouts.isEmpty)
+        // The membership is rebuilt by display: workspace 1 (main) holds window 1, workspace 2 (second) holds 2 and 3.
+        #expect(after.model.order == [ws(1): [id(1)], ws(2): [id(2), id(3)]])
         #expect(after.placementHints.isEmpty)
         #expect(after.previousFocus == nil)
         // Written whether or not they changed: the caller has just cleared the file.
@@ -64,14 +67,16 @@ import Testing
 
     @Test func aWindowThatIsStillParkedGoesToItsHomeDisplayNotTheParkingCorner() {
         var state = prepared()
-        // Window 3 is parked in the corner of the union of all displays; its home is on the second display.
-        let home = CGRect(x: 2100, y: 200, width: 800, height: 600)
+        // Window 3's home is on the MAIN display; it is parked in the corner of the union of all displays, which
+        // lies on the second display, so reading its parked frame would give the wrong workspace.
+        let home = CGRect(x: 100, y: 300, width: 800, height: 600)
         let corner = CGRect(x: 3839, y: 1079, width: 800, height: 600)
         state.windows[id(3)]?.frame = corner
         state.parked[id(3)] = ParkRecord(home: home, parkedFrame: corner, processStart: 1_100)
         let (after, _) = EngineReducer.reduce(state, .command(.resetState, now: 5))
-        // A still-parked window keeps its parked record (the journal side), and its workspace is its home display's.
+        // A still-parked window keeps its parked record (the journal side); its workspace is its home display's.
         #expect(after.parked[id(3)] != nil)
-        #expect(after.model.workspace(of: id(3)) == after.model.visible[after.displayKey(of: second)])
+        #expect(after.model.workspace(of: id(3)) == after.model.visible[after.displayKey(of: main)])
+        #expect(after.model.workspace(of: id(3)) != after.model.visible[after.displayKey(of: second)])
     }
 }
