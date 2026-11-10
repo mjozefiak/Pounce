@@ -99,5 +99,12 @@
 - B2/M3: `readWindows(tracked:)` reports only tracked processes (AX client and fake); the retry is armed from `state.unresponsive` of held processes (a park that timed out arms it too), doubles from 5 s up to 60 s and resets; tests: untracked unresponsive app arms nothing, tracked one backs off and recovery ends it, a timed-out park is retried without any event.
 - Lows: `unresponsive` is pruned to held processes (reducer test); doc comment in `EngineReducer` moved back; DragTrace is reset on drag end and capped; QA route resets on truncation, reads from the offset, takes the rest of the line as a path, rotates its log, and its lint is a line scan of the assignment inside `AppEnvironment.qa`; `confirmThenClose` is internal again (tests use `@testable import LintelUI`); the QA-capture test is under `#if DEBUG`; `make-app.sh` fails the build when the Polish recorder file is not in the built bundle. A release-configuration test build is not possible in this package (`@testable` needs the debug build); DEBUG-only symbols in tests are guarded.
 
+## Round 13 (QA pass 3 and audit lows)
+- N3: strip clicks all selected the middle box; the system delivers the click at the item centre. The click is now mapped from the cursor's screen x (`StripLayout.clickX`), box rects are a QA verb (`stripRects`), boxes carry their selected state, a DEBUG `StripTrace` logs click fields. Tests use the QA-observed numbers; not verified on a real menu bar.
+- B1 Backspace/forward delete (`DeleteKeys`) in the matrix and the editor; B2 editor click-to-divide measured from the zone's origin with a 5% click minimum (keyboard and numeric keep 1%); B3 no false no-room banner with an auto-hidden menu bar (`StripVisibility.hasRoom`).
+- B4: import notice counts skipped layouts; Layouts and editor windows are not restorable; the editor says "pt"; QA `export <selected|all> <path>`; `--qa-command-replay`; `DragTraceRecorder` is injectable and a trace begins only for a window that can snap.
+- Audit lows: stale retry guard (generation), capped `waitForSleepers`, the Polish recorder check runs on the built, signed bundle, the QA route decodes whole lines and notices rewrites, wording fixes, `readWindows(tracked:)` tracked-only contract in BACKWARD_COMPATIBILITY.md.
+- N2: overlay latency is Accessibility notification delivery (about 110 ms before Lintel sees it); recorded in `docs/perf.md` with an unimplemented alternative; the budget decision is the owner's.
+
 ## Next concrete action
 QA gate and merge by the owner.

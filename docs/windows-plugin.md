@@ -167,3 +167,11 @@ bound do not await the code under test directly: they run it with `bounded(_:_:)
 answer the test polls with the capped `eventually(_:_:)`), which fails cleanly in a fraction of a second (the same
 mutant fails in 0.12 s). Other waits (`waitForSleepers`, `waitUntilStalled`, a plain `await task.value`) can still hang
 instead of failing if the code under test breaks; the time limit and CI's own timeout are the backstop there.
+
+## Menu bar strip: how a click is mapped (round 13)
+
+The system delivers a click on a status item at the item's centre, so the event's own x always named the middle box.
+`StripLayout.clickX` takes the cursor's screen x (`NSEvent.mouseLocation`) when it lies inside the item's window and
+the event's x otherwise; the image's origin inside the button comes from the button cell's drawn image rect. Each box is
+an accessibility element with its selected state. The mapping is tested with numbers observed in QA; it has not been
+checked on a real menu bar by an agent (`docs/qa.md`).

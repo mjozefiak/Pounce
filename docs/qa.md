@@ -516,14 +516,16 @@ Accessibility notification reaching Lintel and is read from the outside (the win
 The Layouts window keeps its frame in the plugin settings (`plugins.windows.layoutsWindowFrame`), never in the window
 system's autosave.
 
+**Menu bar strip QA.** `--qa` DEBUG runs add `qa windows stripRects` (the screen rect of every box, so a tester can click the real boxes) and the setting `plugins.windows.qaStripTrace` (logs what a click delivers: event x, location in the window, the cursor position, the item frame and the mapped x). QA pass 3 showed that the system delivers a status item's click at the item's centre, so every click read as the middle box; the controller therefore maps the click from the cursor's screen position (`StripLayout.clickX`) and falls back to the event's x outside the item. This is verified by tests with the observed numbers, **not yet on a real menu bar**; each box is also an accessibility element with its selected state, and the system's menu bar item may still show no children to a tester's Accessibility inspector. The one-item-per-box fallback remains the owner's manual decision.
+
 **QA command route.** `--qa-command-file <path>` (DEBUG, only in a `--qa` run) starts a poller (every 50 ms) that reads
 one line at a time from that file, runs it through the commands the shortcuts use, and appends `ok | <line>` or
 `error: <why> | <line>` to `<path>.log`. A line is a command id of an active plugin (`windows.workspace.2`,
 `windows.moveToWorkspace.3`, `windows.focus.left`, `windows.move.right`, `windows.resize.grow`, `windows.toggleLayout`,
 `windows.zones.nextLayout`, `windows.zones.layout.3`, `windows.zones.zone.2`, `windows.restoreAllWindows`, ...) or
 `qa windows <verb>`: `resetState`, `restoreAll`, `snap <zone number>` (snaps the focused window as a drag released over
-that zone would), `import <path>`, `export <path> [selected|all]`, `addFloating <bundle id>`, `openLayouts`. Lines that
-start with `#` and empty lines are ignored; a line is run when its newline arrives. A QA run never opens an open or save
+that zone would), `import <path>`, `export <selected|all> <path>` (the mode comes first, so the rest of the line is the path; an unknown mode is an error), `addFloating <bundle id>`, `openLayouts`. Lines that
+start with `#` and empty lines are ignored; a line is run when its newline arrives, and only whole lines are decoded. The route starts at the end of an existing file, so a relaunch does not replay an earlier run: `--qa-command-replay` runs what is already in it. A file that was replaced or rewritten (a different file, or different bytes where the last read ended) is read again from its start. A QA run never opens an open or save
 panel (they write their sizes and the Go To sheet's frame into the real defaults domain): files and the "Add App…"
 picker are scripted by the verbs above (`plugins.windows.qaScriptedFiles`, on in every `--qa` run).
 
