@@ -55,6 +55,102 @@ private final class RecordingPreview: ZoneOverlayPresenting {
             model: model, preview: preview, repository: repository, directory: directory, closed: closed, saved: saved)
     }
 
+    /// QA round 4, D1: a click divided only the last zone, at 55 %, because every zone's tap area was the whole
+    /// canvas. A click on the canvas now goes through `canvasTap`, which finds the zone under the point from the
+    /// frames: every zone divides where it was clicked (or refuses when a piece would be under 5 % of the display).
+    @Test func aClickDividesTheZoneUnderItAtTheClickInEveryLayout() async throws {
+        let canvas = CGRect(x: 0, y: 0, width: 1000, height: 600)
+        func layouts() async throws -> [(String, [GridLayout])] {
+            var result: [(String, [GridLayout])] = []
+            // 50|50
+            result.append(("50|50", [StockLayouts.layout(StockLayouts.columns2)!]))
+            // 25/25/50: the left zone divided down the middle.
+            var state = GridEditorState(StockLayouts.layout(StockLayouts.columns2)!)
+            _ = state.divide(zone: 1, axis: .vertical, share: 0.5)
+            result.append(("25/25/50", [state.layout]))
+            // 3x3 zones: three columns, each divided into three rows.
+            var grid = GridEditorState(StockLayouts.layout(StockLayouts.columns3)!)
+            for id in grid.layout.zones.map(\.id) {
+                _ = grid.divide(zone: id, axis: .horizontal, share: 1.0 / 3)
+                let lower = grid.layout.zones.map(\.id).max() ?? id
+                _ = grid.divide(zone: lower, axis: .horizontal, share: 0.5)
+            }
+            result.append(("3x3", [grid.layout]))
+            return result
+        }
+        var checked = 0
+        for (name, list) in try await layouts() {
+            var layout = try #require(list.first)
+            layout.spacing = 0  // frames then are the plain tracks, so the click maps to a share exactly
+            let frames = layout.frames(in: canvas)
+            #expect(layout.zones.count >= 2, "\(name)")
+            for zone in layout.zones {
+                let frame = try #require(frames[zone.id])
+                for fraction in [0.1, 0.25, 0.5, 0.75, 0.9] {
+                    let rig = try await rig(layout)
+                    defer { try? FileManager.default.removeItem(at: rig.directory) }
+                    let point = CGPoint(x: frame.minX + fraction * frame.width, y: frame.midY)
+                    let before = rig.model.layout
+                    rig.model.canvasTap(at: point, frames: frames, command: false, shift: false)
+                    let spanOfDisplay = frame.width / canvas.width
+                    let refused = min(fraction, 1 - fraction) * spanOfDisplay < GridEditorState.minimumClickShare - 1e-9
+                    // The share is snapped to the middle near 50 %.
+                    let share = abs(fraction - 0.5) < 0.04 ? 0.5 : fraction
+                    let tooNarrow = min(share, 1 - share) * spanOfDisplay < GridEditorState.minimumClickShare - 1e-9
+                    if refused || tooNarrow {
+                        #expect(rig.model.layout == before, "\(name) zone \(zone.id) at \(fraction): refused")
+                        continue
+                    }
+                    #expect(
+                        rig.model.layout.zones.count == before.zones.count + 1, "\(name) zone \(zone.id) at \(fraction)"
+                    )
+                    let after = rig.model.layout.frames(in: canvas)
+                    let divided = try #require(after[zone.id], "\(name) zone \(zone.id)")
+                    // This very zone was divided, at the click (within the nearest track edge).
+                    #expect(
+                        abs(divided.maxX - (frame.minX + share * frame.width)) < 1.0,
+                        "\(name) zone \(zone.id) at \(fraction): ends at \(divided.maxX)")
+                    #expect(abs(divided.minX - frame.minX) < 1.0)
+                    // No other zone changed its own frame's left edge or its row.
+                    for other in before.zones where other.id != zone.id {
+                        let was = try #require(frames[other.id])
+                        let now = try #require(after[other.id])
+                        #expect(abs(was.minY - now.minY) < 1.0 && abs(was.height - now.height) < 1.0)
+                    }
+                    checked += 1
+                }
+            }
+        }
+        #expect(checked > 30)
+    }
+
+    /// The zone lookup behind a click: inside a frame, in a gap between frames (the nearest one), and nothing.
+    @Test func theZoneUnderAPointIsFoundFromTheFrames() {
+        let frames: [Int: CGRect] = [
+            1: CGRect(x: 0, y: 0, width: 100, height: 100), 2: CGRect(x: 110, y: 0, width: 100, height: 100),
+        ]
+        #expect(GridEditorModel.zone(at: CGPoint(x: 20, y: 50), frames: frames, order: [1, 2]) == 1)
+        #expect(GridEditorModel.zone(at: CGPoint(x: 150, y: 50), frames: frames, order: [1, 2]) == 2)
+        #expect(GridEditorModel.zone(at: CGPoint(x: 103, y: 50), frames: frames, order: [1, 2]) == 1)
+        #expect(GridEditorModel.zone(at: CGPoint(x: 107, y: 50), frames: frames, order: [1, 2]) == 2)
+        #expect(GridEditorModel.zone(at: .zero, frames: [:], order: []) == nil)
+    }
+
+    /// The view puts no tap gesture on a zone (a positioned view fills the canvas, so such a gesture takes every tap):
+    /// the canvas background has the one gesture and the zones do not take hits.
+    @Test func theCanvasHasOneTapGestureAndTheZonesTakeNoHits() throws {
+        let file = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().appending(path: "Sources/WindowsPlugin/Layouts/Editor/GridEditorView.swift")
+        let text = try String(contentsOf: file, encoding: .utf8)
+        let zone = try #require(text.range(of: "private func zoneView"))
+        let end = try #require(text.range(of: "static func localShare", range: zone.upperBound..<text.endIndex))
+        let body = String(text[zone.lowerBound..<end.lowerBound])
+        #expect(!body.contains("SpatialTapGesture") && !body.contains(".gesture("))
+        #expect(body.contains(".allowsHitTesting(false)"))
+        #expect(text.components(separatedBy: "SpatialTapGesture()").count - 1 == 1)
+        #expect(text.contains("model.canvasTap("))
+    }
+
     /// Round-13 audit M1: S (divide the focused zone) used to halve a track down to the 32-track limit, a sliver of
     /// about 2^-31. A keyed divide stops at the 1 % floor, says so, and a refused divide changes nothing.
     @Test func repeatedKeyDividesStopAtTheOnePercentFloorAndARefusalChangesNothing() async throws {

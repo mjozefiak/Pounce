@@ -364,7 +364,21 @@ struct GridEditorView: View {
         scaled.spacing = Int((Double(scaled.spacing) * Double(scale)).rounded())
         let frames = scaled.frames(in: CGRect(origin: .zero, size: size))
         return ZStack(alignment: .topLeading) {
+            // One tap gesture for the whole canvas, on the background: the zone under the point is found from the
+            // frames (`GridEditorModel.canvasTap`), not by letting each zone's view claim the tap. (`.position`
+            // makes a view fill its parent, so a gesture on a positioned zone took every tap of the canvas and the
+            // topmost zone divided: QA round 4, D1.) Zones and their numbers do not take hits.
             RoundedRectangle(cornerRadius: 8, style: .continuous).fill(LintelBrand.fill)
+                .contentShape(Rectangle())
+                .gesture(
+                    SpatialTapGesture().onEnded { tap in
+                        canvasFocused = true
+                        let flags = NSEvent.modifierFlags
+                        model.canvasTap(
+                            at: tap.location, frames: frames, command: flags.contains(.command),
+                            shift: flags.contains(.shift))
+                    }
+                )
             ForEach(Array(model.layout.zones.enumerated()), id: \.element.id) { index, zone in
                 if let frame = frames[zone.id] { zoneView(zone.id, number: index + 1, frame: frame) }
             }
@@ -432,26 +446,7 @@ struct GridEditorView: View {
         }
         .frame(width: frame.width, height: frame.height)
         .position(x: frame.midX, y: frame.midY)
-        .contentShape(Rectangle())
-        .gesture(
-            SpatialTapGesture().onEnded { tap in
-                canvasFocused = true
-                let flags = NSEvent.modifierFlags
-                if flags.contains(.command) {
-                    model.toggleSelection(zone: id)
-                } else if flags.contains(.shift) {
-                    model.divide(
-                        zone: id, axis: .horizontal,
-                        share: Self.snapped(Self.localShare(tap.location, in: frame, axis: .horizontal)),
-                        minimumHalf: GridEditorState.minimumClickShare)
-                } else {
-                    model.divide(
-                        zone: id, axis: .vertical,
-                        share: Self.snapped(Self.localShare(tap.location, in: frame, axis: .vertical)),
-                        minimumHalf: GridEditorState.minimumClickShare)
-                }
-            }
-        )
+        .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
 

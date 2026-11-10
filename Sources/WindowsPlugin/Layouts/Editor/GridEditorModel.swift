@@ -253,6 +253,39 @@ final class GridEditorModel {
     func divide(zone id: Int, axis: EditorAxis, share: Double = 0.5, minimumHalf: Double? = nil) {
         edit { $0.divide(zone: id, axis: axis, share: share, minimumHalf: minimumHalf) }
     }
+    /// A click on the canvas: the zone under the point (the nearest one inside a gap between zones) is selected with
+    /// Command, divided across with Shift, divided down the middle of the click otherwise. `frames` are the zones'
+    /// frames in the canvas's space. This is what the view calls, so what a click does is tested without a window.
+    func canvasTap(at point: CGPoint, frames: [Int: CGRect], command: Bool, shift: Bool) {
+        let order = state.layout.zones.map(\.id)
+        guard let id = Self.zone(at: point, frames: frames, order: order), let frame = frames[id] else { return }
+        if command {
+            toggleSelection(zone: id)
+        } else if shift {
+            divide(
+                zone: id, axis: .horizontal,
+                share: GridEditorView.snapped(GridEditorView.localShare(point, in: frame, axis: .horizontal)),
+                minimumHalf: GridEditorState.minimumClickShare)
+        } else {
+            divide(
+                zone: id, axis: .vertical,
+                share: GridEditorView.snapped(GridEditorView.localShare(point, in: frame, axis: .vertical)),
+                minimumHalf: GridEditorState.minimumClickShare)
+        }
+    }
+
+    /// The zone a point belongs to: the one whose frame contains it, else the nearest frame (a click in the space
+    /// between zones). `order` decides ties and the search order; `nil` when there are no frames.
+    static func zone(at point: CGPoint, frames: [Int: CGRect], order: [Int]) -> Int? {
+        if let hit = order.first(where: { frames[$0]?.contains(point) == true }) { return hit }
+        func distance(_ frame: CGRect) -> CGFloat {
+            let dx = max(frame.minX - point.x, 0, point.x - frame.maxX)
+            let dy = max(frame.minY - point.y, 0, point.y - frame.maxY)
+            return (dx * dx + dy * dy).squareRoot()
+        }
+        return order.filter { frames[$0] != nil }.min { distance(frames[$0] ?? .zero) < distance(frames[$1] ?? .zero) }
+    }
+
     func divideFocused(axis: EditorAxis) {
         guard case .zone(let id)? = state.focus ?? state.layout.zones.first.map({ .zone($0.id) }) else { return }
         // A keyed divide stops at the same floor as a divider moved by key: 1 % of the display (the refusal is shown
