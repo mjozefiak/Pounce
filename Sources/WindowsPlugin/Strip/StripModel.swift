@@ -109,8 +109,15 @@ enum StripLayout {
 /// Whether the status item can be seen: macOS drops items that do not fit (the notch, many items), and the item's
 /// window then lies outside every screen or has no size. Pure; the controller feeds it the window's frame.
 enum StripVisibility {
+    /// The item has room when it has a size and sits over a screen's horizontal range in the menu bar band (the top
+    /// of the screen, in AppKit's y-up coordinates) or above it. An auto-hidden menu bar slides the item's window
+    /// above the screen: it still has room, only the bar is hidden (QA: a false "no room" banner). An item macOS
+    /// dropped is placed off the screen sideways or has no size.
     static func hasRoom(itemFrame: CGRect?, screens: [CGRect]) -> Bool {
         guard let itemFrame, itemFrame.width > 1, itemFrame.height > 1 else { return false }
-        return screens.contains { $0.contains(CGPoint(x: itemFrame.midX, y: itemFrame.midY)) }
+        let band: CGFloat = 60
+        return screens.contains {
+            itemFrame.midX >= $0.minX && itemFrame.midX <= $0.maxX && itemFrame.minY >= $0.maxY - band
+        }
     }
 }

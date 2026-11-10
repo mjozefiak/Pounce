@@ -98,6 +98,24 @@ import Testing
         #expect(!StripVisibility.hasRoom(itemFrame: CGRect(x: 10, y: 10, width: 50, height: 22), screens: []))
     }
 
+    /// QA round 3, B3: with the menu bar set to hide automatically the item's window sits above the screen, and the
+    /// pane said there was no room although the strip existed.
+    @Test func anItemInTheHiddenMenuBarAboveTheScreenStillHasRoomButOneOffToTheSideDoesNot() {
+        let screens = [CGRect(x: 0, y: 0, width: 5120, height: 1440)]
+        // Shown in the menu bar, hidden just above the screen, hidden far above.
+        #expect(StripVisibility.hasRoom(itemFrame: CGRect(x: 4290, y: 1416, width: 100, height: 24), screens: screens))
+        #expect(StripVisibility.hasRoom(itemFrame: CGRect(x: 4290, y: 1440, width: 100, height: 24), screens: screens))
+        #expect(StripVisibility.hasRoom(itemFrame: CGRect(x: 4290, y: 1500, width: 100, height: 24), screens: screens))
+        // Dropped: beside the screen or without width.
+        #expect(!StripVisibility.hasRoom(itemFrame: CGRect(x: 6000, y: 1416, width: 100, height: 24), screens: screens))
+        #expect(!StripVisibility.hasRoom(itemFrame: CGRect(x: 4290, y: 1416, width: 0, height: 24), screens: screens))
+        // A second display to the right with its own menu bar.
+        let two = screens + [CGRect(x: 5120, y: 0, width: 2560, height: 1440)]
+        #expect(StripVisibility.hasRoom(itemFrame: CGRect(x: 6000, y: 1416, width: 100, height: 24), screens: two))
+        // Low on a screen is not the menu bar.
+        #expect(!StripVisibility.hasRoom(itemFrame: CGRect(x: 4290, y: 200, width: 100, height: 24), screens: screens))
+    }
+
     // MARK: The image
 
     @MainActor
