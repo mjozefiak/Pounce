@@ -13,24 +13,41 @@ import Synchronization
 final class DragTraceRecorder: Sendable {
     private struct State {
         var start: ContinuousClock.Instant?
+        /// The last time this trace was touched (begin or mark): a trace that has been quiet for `quietGap` belongs
+        /// to a drag that ended without the overlay, and the next first move starts a new session.
+        var touched: ContinuousClock.Instant?
         var stages: [(String, Duration)] = []
     }
 
     /// The most stages one trace keeps (a drag that never shows the overlay must not grow it without bound).
     static let stageLimit = 32
 
+    /// How long a trace may be quiet before the next first move starts a new session. The moves of one drag arrive
+    /// within tens of milliseconds of each other.
+    static let quietGap: Duration = .seconds(1)
+
     let path: String
     private let state = Mutex(State())
+    private let now: @Sendable () -> ContinuousClock.Instant
 
-    init(path: String) { self.path = path }
+    init(path: String, now: @escaping @Sendable () -> ContinuousClock.Instant = { .now }) {
+        self.path = path
+        self.now = now
+    }
 
     var isActive: Bool { state.withLock { $0.start != nil } }
 
     func begin() {
         state.withLock {
-            // A trace that never reached the overlay (no drag followed) is stale after a few seconds: start again.
-            if let start = $0.start, start.duration(to: .now) < .seconds(5) { return }
-            $0.start = .now
+            // A trace of the same drag (touched a moment ago) keeps its start; one that has been quiet belongs to a drag
+            // that ended without the overlay, and its lines must not merge with the next session's.
+            let moment = now()
+            if $0.start != nil, let touched = $0.touched, touched.duration(to: moment) < Self.quietGap {
+                $0.touched = moment
+                return
+            }
+            $0.start = moment
+            $0.touched = moment
             $0.stages = []
         }
     }
@@ -38,7 +55,9 @@ final class DragTraceRecorder: Sendable {
     func mark(_ stage: String) {
         state.withLock {
             guard let start = $0.start, $0.stages.count < Self.stageLimit else { return }
-            $0.stages.append((stage, start.duration(to: .now)))
+            let moment = now()
+            $0.touched = moment
+            $0.stages.append((stage, start.duration(to: moment)))
         }
     }
 
@@ -46,6 +65,7 @@ final class DragTraceRecorder: Sendable {
     func reset() {
         state.withLock {
             $0.start = nil
+            $0.touched = nil
             $0.stages = []
         }
     }
@@ -60,6 +80,7 @@ final class DragTraceRecorder: Sendable {
                 parts.append("\(stage)=\(String(format: "%.1f", seconds * 1000))ms")
             }
             state.start = nil
+            state.touched = nil
             state.stages = []
             return parts.joined(separator: " ") + "\n"
         }
