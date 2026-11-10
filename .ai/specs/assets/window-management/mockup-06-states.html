@@ -1,0 +1,54 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mockup: states</title><style>
+*{box-sizing:border-box}
+:root{--win:#F6F4F0;--side:#E7E4DE;--card:#fff;--ink:#191610;--sec:#6B645A;--hair:rgba(25,22,16,.11);--accent:#267C6C;--atext:#036152;--tint:rgba(38,124,108,.14);--onacc:#fff;--ok:#1E8E3E;--att:#B25E00;--er:#D70015;--glass:rgba(255,255,255,.78);--fill:rgba(25,22,16,.06);--page:#d9d5cc;--wall1:#c9c3b6;--wall2:#9a948a;--onglyph:#fff}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--win:#1C1915;--side:#141210;--card:#26221E;--ink:#F1EEE9;--sec:#A39B8F;--hair:rgba(255,255,255,.11);--accent:#6BBDAB;--atext:#6BBDAB;--tint:rgba(107,189,171,.20);--onacc:#161310;--ok:#32D74B;--att:#FF9F0A;--er:#FF6961;--glass:rgba(38,34,30,.82);--fill:rgba(255,255,255,.08);--page:#0c0a08;--wall1:#3a3630;--wall2:#1f1c18;--onglyph:#161310}}
+body{margin:0;padding:24px;background:var(--page);color:var(--ink);font:13px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif}
+.cap{text-align:center;font-size:11px;color:var(--sec);margin-top:12px}
+.win{background:var(--win);color:var(--ink);border:1px solid var(--hair);border-radius:12px;overflow:hidden;display:flex;position:relative;box-shadow:0 12px 40px rgba(0,0,0,.25);margin:auto}
+.lights{display:flex;gap:7px;padding:14px 14px 6px}.lights i{width:12px;height:12px;border-radius:50%;background:rgba(128,128,128,.35)}
+.side{width:210px;flex:none;background:var(--side);border-right:1px solid var(--hair);display:flex;flex-direction:column;padding-bottom:12px}
+.sg{font-size:11px;font-weight:600;color:var(--sec);padding:10px 14px 3px}
+.si{display:flex;gap:8px;align-items:center;margin:1px 8px;padding:5px 8px;border-radius:7px}
+.si.on{background:var(--tint)}.si.on .l{color:var(--atext);font-weight:600}.si .ic{color:var(--sec)}.si.on .ic{color:var(--atext)}
+.si .off-t{margin-left:auto;font-size:11px;color:var(--sec)}
+.ic{width:15px;height:15px;flex:none;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.pane{flex:1;padding:22px 28px;min-width:0;position:relative}
+.pane h3{margin:0 0 12px;font-size:20px;line-height:1.2}
+.bn{display:flex;gap:12px;align-items:center;padding:10px 14px;border-radius:10px;background:var(--card);border:1px solid var(--hair);margin:0 0 14px}
+.bn .g{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;color:var(--onglyph);flex:none;background:var(--sec);font-weight:700;font-size:13px}
+.bn.ok .g{background:var(--ok)}.bn.att .g{background:var(--att)}.bn.er .g{background:var(--er)}
+.bn .tx{flex:1;min-width:0}.bn .tt{font-weight:600}.bn .ss{color:var(--sec);font-size:12px}
+.sh{font-size:11px;font-weight:600;color:var(--sec);margin:16px 0 5px 4px}
+.card{background:var(--card);border:1px solid var(--hair);border-radius:10px;padding:2px 14px}
+.fr{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:7px 0;border-top:1px solid var(--hair);min-height:36px}
+.fr:first-child{border-top:0}.fr .hp{color:var(--sec);font-size:12px}.fr .v{color:var(--sec);display:flex;gap:8px;align-items:center;flex:none}
+.ft{color:var(--sec);font-size:12px;margin:8px 4px 0}
+.disc{display:flex;gap:6px;align-items:center;color:var(--sec);font-weight:600;font-size:12px;margin:16px 4px 0}
+.btn{font:inherit;font-weight:600;border-radius:8px;padding:4px 12px;border:1px solid var(--hair);background:var(--card);color:var(--ink);display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
+.btn.pri{background:var(--accent);color:var(--onacc);border-color:transparent}.btn.sm{padding:2px 10px;font-size:12px}
+.btn.dng{color:var(--er)}.btn.flat{background:none;border:0;color:var(--sec)}
+kbd{font:600 11px -apple-system,sans-serif;background:var(--fill);border-radius:5px;padding:1px 6px;color:var(--sec)}
+.sw{width:36px;height:21px;border-radius:11px;background:var(--hair);position:relative;flex:none}
+.sw:after{content:"";position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.sw.on{background:var(--accent)}.sw.on:after{left:17px}
+.pick{display:inline-flex;gap:6px;align-items:center;color:var(--ink);background:var(--fill);border-radius:7px;padding:2px 9px}
+.pick .ch{color:var(--sec);font-size:9px}
+.step{display:inline-flex;gap:8px;align-items:center;color:var(--ink)}.step b{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--fill);color:var(--sec)}
+.menu{border-radius:10px;background:var(--glass);backdrop-filter:blur(30px);border:1px solid var(--hair);padding:5px;box-shadow:0 10px 30px rgba(0,0,0,.28);color:var(--ink)}
+.mi{display:flex;gap:8px;padding:3px 10px;border-radius:5px;align-items:center;white-space:nowrap}.mi .r{margin-left:auto;color:var(--sec);padding-left:18px}
+.mi.hl{background:var(--accent);color:var(--onacc)}.mi.hl .r{color:var(--onacc)}.mi.hd{color:var(--sec);font-size:11px;font-weight:600}
+.msep{height:1px;background:var(--hair);margin:4px 8px}
+.badge{font-size:10px;border-radius:9px;padding:0 7px;border:1px solid var(--hair);color:var(--sec);white-space:nowrap}
+.cap-hud{white-space:nowrap;height:44px;border-radius:22px;background:var(--glass);backdrop-filter:blur(30px);border:1px solid var(--hair);display:inline-flex;align-items:center;gap:10px;padding:0 16px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.wall{border-radius:12px;background:linear-gradient(135deg,var(--wall1),var(--wall2));display:flex;gap:16px;flex-direction:column;align-items:center;justify-content:center;padding:22px}
+.grid{display:grid;grid-template-columns:600px 600px;gap:20px;justify-content:center}
+.pn{background:var(--win);border:1px solid var(--hair);border-radius:12px;padding:16px;min-height:420px;display:flex;flex-direction:column}
+.pn>.t{font-size:11px;font-weight:600;color:var(--sec);margin-bottom:12px}
+.perm{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--card);border:1px solid var(--hair);border-radius:10px;padding:10px 14px;margin-top:14px}
+.perm .hp{color:var(--sec);font-size:12px}.att-t{color:var(--att);font-weight:500}
+</style><body><div class="grid"><div class="pn"><div class="t">A. Banner states, in priority order</div><div class="bn er"><div class="g">!</div><div class="tx"><div class="tt">Windows are parked</div><div class="ss">Accessibility was turned off while windows of other workspaces were hidden.</div></div><span class="btn sm pri">Restore Windows</span></div><div class="bn att"><div class="g">!</div><div class="tx"><div class="tt">Accessibility not granted</div><div class="ss">Lintel cannot move windows yet.</div></div><span class="btn sm pri">Allow Accessibility</span></div><div class="bn att"><div class="g">!</div><div class="tx"><div class="tt">Stage Manager is on</div><div class="ss">Window Management is not supported with Stage Manager.</div></div><span class="btn sm pri">Open System Settings</span></div><div class="bn ok"><div class="g">&#10003;</div><div class="tx"><div class="tt">Ready &middot; 4 workspaces</div></div></div></div><div class="pn"><div class="t">B. Welcome step</div><div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 24px"><div style="color:var(--ink)"><svg viewBox="0 0 256 256" width="40" height="40" aria-hidden="true"><path fill="currentColor" d="M99.01 19.82A112 112 0 1 1 19.82 99.01L64.25 110.92A66 66 0 1 0 110.92 64.25Z"/><circle cx="128" cy="128" r="34" fill="var(--accent)"/></svg></div><div style="font-size:22px;font-weight:600;margin:8px 0 4px">Window Management</div>
+<div style="color:var(--sec)">Give each task its own workspace. Auto-tile fills the screen with your windows; Zones snaps them into a layout you choose.</div>
+<div class="perm"><div><b>Accessibility</b><div class="hp">Needed for moving and resizing windows</div></div><div style="display:flex;gap:10px;align-items:center"><span class="att-t">Not allowed</span><span class="btn sm pri">Allow Accessibility</span></div></div>
+<div style="color:var(--sec);font-size:12px;margin-top:14px">Windows of other workspaces are parked in a screen corner. If something goes wrong, Lintel puts them back when it starts, or use Restore all windows in the menu bar.</div></div>
+<div style="display:flex;justify-content:space-between;border-top:1px solid var(--hair);padding-top:12px;margin:0 -16px;padding-left:24px;padding-right:24px"><span class="btn flat" style="padding-left:0">Skip</span><span class="btn pri">Continue</span></div></div>
+<div class="pn"><div class="t">C. Restore result HUD</div><div class="wall" style="flex:1"><div class="cap-hud"><span style="color:var(--ok);font-weight:700">&#10003;</span>12 windows restored</div><div class="cap-hud"><span style="color:var(--att);font-weight:700">!</span>9 restored, 3 on another Space</div></div></div><div class="pn"><div class="t">D. HUD when Accessibility is missing</div><div class="wall" style="flex:1"><div class="cap-hud" style="height:48px;padding-right:8px"><span style="color:var(--att);font-weight:700">!</span>Allow Accessibility to switch workspaces<span class="btn sm pri" style="margin-left:6px">Allow Accessibility</span></div></div></div></div><div class="cap">Illustrative mockup, not an accepted design.</div></body></html>
