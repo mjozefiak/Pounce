@@ -328,8 +328,8 @@ actor WindowEngine {
     // MARK: Events
 
     /// Takes one event from the client; it is folded into the coalescer and flushed on the next tick, except the
-    /// first move of a window that may be starting a snap drag, which is flushed at once (the overlay has a 50 ms
-    /// budget and the tick alone is 30 ms of it); the moves that follow are coalesced as usual.
+    /// first move of a window that may be starting a snap drag, which is flushed at once (the overlay has a 150 ms
+    /// end-to-end budget, `docs/perf.md`, and the tick alone is 30 ms of it); the moves that follow are coalesced as usual.
     func ingest(_ event: WindowEvent) {
         guard !stopped else { return }
         #if DEBUG

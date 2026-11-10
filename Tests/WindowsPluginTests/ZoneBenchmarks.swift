@@ -7,8 +7,9 @@ import Testing
 
 /// Budgets for the zone phase (step 3.7, `docs/perf.md`). Off by default: `LINTEL_BENCHMARKS=1 swift test -c release
 /// --filter ZoneBenchmarks`. They measure the engine and the pure parts against the fake client, so the cost of the
-/// Accessibility calls and of the real panels is **not** in them; the budgets in the spec (overlay under 50 ms,
-/// reflow under 30 ms) need a real Mac.
+/// Accessibility calls and of the real panels is **not** in them; the budgets in the spec (overlay under 150 ms,
+/// reflow under 30 ms; the overlay budget is an end-to-end one, set by the owner on 2026-11-10 after QA measured
+/// median 127 ms, about 110 ms of it the app delivering the Accessibility notification) need a real Mac.
 @Suite(
     "Zone benchmarks", .serialized,
     .enabled(if: ProcessInfo.processInfo.environment["LINTEL_BENCHMARKS"] != nil))

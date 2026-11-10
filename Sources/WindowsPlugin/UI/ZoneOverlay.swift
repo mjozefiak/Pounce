@@ -119,7 +119,7 @@ private final class OverlayPanel: NSPanel {
 }
 
 /// The real overlay: one borderless, non-activating panel per display, created on first use and reused (so it
-/// appears within the 50 ms budget), over the whole screen. A panel that is not needed is ordered out, never
+/// appears within the 150 ms budget, `docs/perf.md`), over the whole screen. A panel that is not needed is ordered out, never
 /// destroyed while the plugin runs; `tearDown()` releases them all.
 @MainActor
 final class ZoneOverlayPanels: ZoneOverlayPresenting {

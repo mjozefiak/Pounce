@@ -119,7 +119,8 @@ parking at once.
 
 The first move of a window on a workspace whose kind offers snap targets is flushed at once (`WindowEngine.ingest`:
 leading edge, only when no flush ran in the last tick); later moves are coalesced by the 30 ms tick as before. The overlay's
-panels are built when the plugin starts (`ZoneOverlayPanels.prewarm()`). The 50 ms budget has not been re-measured; see
+panels are built when the plugin starts (`ZoneOverlayPanels.prewarm()`). The budget is 150 ms for the overlay to appear after the first drag event (owner decision 2026-11-10; median 127 ms,
+p95 132 ms measured in QA, about 110 ms of it the app and system delivering the Accessibility notification); see
 `docs/perf.md`.
 
 ## The runtime's one life
