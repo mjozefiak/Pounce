@@ -56,10 +56,23 @@ struct WindowsSettings: Sendable {
     /// A fixed upper bound of the design: numbered commands, the strip and the assignment matrix assume it.
     static let maximumWorkspaces = 9
     static let defaultWorkspaceCount = 4
-    /// Never tiled or placed: Lintel itself, System Settings and Calculator (spec Q6).
-    static let defaultFloatingApps = [
-        "com.lintelapp.Lintel", "com.lintelapp.Lintel.QA", "com.apple.systempreferences", "com.apple.calculator",
-    ]
+    /// Never tiled or placed: Lintel itself, System Settings and Calculator (spec Q6). This is the list the release
+    /// default has, exactly what `BACKWARD_COMPATIBILITY.md` documents.
+    static let documentedFloatingApps = ["com.lintelapp.Lintel", "com.apple.systempreferences", "com.apple.calculator"]
+    #if DEBUG
+    /// The bundle id of the debug (QA) app (`scripts/make-app.sh`); a release build has no such constant.
+    static let qaBundleID = "com.lintelapp.Lintel.QA"
+    #endif
+    /// The default list: the documented one, and in a DEBUG build also the QA app, so its own windows are never
+    /// tiled. The QA id appears in this function only, inside the `#if DEBUG`; a release build has none of it.
+    static func makeDefaultFloatingApps() -> [String] {
+        var apps = documentedFloatingApps
+        #if DEBUG
+        apps.insert(Self.qaBundleID, at: 1)
+        #endif
+        return apps
+    }
+    static let defaultFloatingApps = makeDefaultFloatingApps()
 
     private let settings: PluginSettings
 

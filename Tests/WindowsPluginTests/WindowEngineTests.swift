@@ -625,11 +625,91 @@ extension WindowEngineTests {
         await rig.engine.stop()
     }
 
-    @Test func anAppThatAnswersWithoutWindowsArmsNothing() async throws {
+    /// Round-16 audit M-1: the bound is per app. An app that never answers uses up its own looks; an app that appears
+    /// later gets its own, is adopted when it answers, and nothing is polled once both are settled or exhausted.
+    @Test func theLookBoundIsPerAppSoALaterAppStillGetsItsRetries() async throws {
         let rig = try rig([makeWindow(1)], autoTick: false)
         defer { rig.harness.tearDown() }
+        rig.client.add(makeWindow(11, pid: 300))
+        rig.client.setBehavior(.hung, forProcess: 300)
+        await rig.engine.start()
+        #expect(await rig.time.waitForSleepers(1, limit: .seconds(30)))
+        for _ in 0..<WindowEngine.untrackedRetryLimit { await advance(rig, seconds: 61) }
+        #expect(await rig.engine.untrackedAttempts(of: 300) == WindowEngine.untrackedRetryLimit)
+        #expect(rig.time.sleeperCount == 0)
+        // B appears later with windows that cannot be read yet.
+        rig.client.add(makeWindow(21, pid: 400))
+        rig.client.add(makeWindow(22, pid: 400))
+        rig.client.setBehavior(.hung, forProcess: 400)
+        await rig.engine.ingest(.resync)
+        await rig.engine.flushEvents()
+        #expect(await rig.time.waitForSleepers(1, limit: .seconds(30)))
+        #expect(await rig.engine.untrackedAttempts(of: 400) == 0)
+        #expect(await rig.engine.untrackedAttempts(of: 300) == WindowEngine.untrackedRetryLimit)
+        // B answers: the next look adopts both windows; A stays bounded and is not looked at again.
+        rig.client.setBehavior(.normal, forProcess: 400)
+        await advance(rig, seconds: 61)
+        let adopted = await rig.engine.snapshot.windows.keys.filter { $0.pid == 400 }
+        #expect(adopted.count == 2)
+        #expect(await rig.engine.untrackedAttempts(of: 300) == WindowEngine.untrackedRetryLimit)
+        #expect(rig.time.sleeperCount == 0)
+        let before = rig.client.windowsReads
+        rig.time.advance(3600)
+        await rig.engine.flushEvents()
+        #expect(rig.client.windowsReads == before)
+        await rig.engine.stop()
+    }
+
+    /// An app that leaves `unknownApps` (it answered) and comes back starts at 0, not where it stopped.
+    @Test func anAppThatLeavesTheUnknownSetAndComesBackStartsItsLooksOver() async throws {
+        let rig = try rig([makeWindow(1)], autoTick: false)
+        defer { rig.harness.tearDown() }
+        rig.client.add(makeWindow(11, pid: 300))
+        rig.client.setBehavior(.hung, forProcess: 300)
+        await rig.engine.start()
+        #expect(await rig.time.waitForSleepers(1, limit: .seconds(30)))
+        await advance(rig, seconds: 61)
+        await advance(rig, seconds: 61)
+        #expect(await rig.engine.untrackedAttempts(of: 300) == 2)
+        // It answers with no windows: it is no longer unknown, its count is dropped.
+        rig.client.remove(id(11, pid: 300))
+        rig.client.setBehavior(.normal, forProcess: 300)
+        await advance(rig, seconds: 61)
+        #expect(await rig.engine.untrackedAttempts(of: 300) == 0)
+        // It comes back with a window it does not answer for: one look, one attempt (not three).
+        rig.client.add(makeWindow(12, pid: 300))
+        rig.client.setBehavior(.hung, forProcess: 300)
+        await rig.engine.ingest(.resync)
+        await rig.engine.flushEvents()
+        #expect(await rig.time.waitForSleepers(1, limit: .seconds(30)))
+        #expect(await rig.engine.untrackedAttempts(of: 300) == 0)
+        await advance(rig, seconds: 61)
+        #expect(await rig.engine.untrackedAttempts(of: 300) == 1)
+        await rig.engine.stop()
+    }
+
+    /// Round-16 audit L-4: an app that answers (with no windows, or with windows) arms nothing; only one whose window
+    /// list times out does.
+    @Test func anAppThatAnswersWithNoWindowsArmsNothingWhileOneThatTimesOutDoes() async throws {
+        let rig = try rig([makeWindow(1)], autoTick: false)
+        defer { rig.harness.tearDown() }
+        // An app that is running and answers with an empty window list is not in the fake's window set at all.
         await rig.engine.start()
         #expect(rig.time.sleeperCount == 0)
+        #expect(await rig.engine.untrackedAttempts(of: 500) == 0)
+        // A window of an app that answers normally: nothing armed after a resync either.
+        rig.client.add(makeWindow(31, pid: 500))
+        await rig.engine.ingest(.resync)
+        await rig.engine.flushEvents()
+        #expect(rig.time.sleeperCount == 0)
+        // The same app timing out arms the look.
+        rig.client.setBehavior(.hung, forProcess: 500)
+        rig.client.remove(id(31, pid: 500))
+        rig.client.add(makeWindow(32, pid: 600))
+        rig.client.setBehavior(.hung, forProcess: 600)
+        await rig.engine.ingest(.resync)
+        await rig.engine.flushEvents()
+        #expect(await rig.time.waitForSleepers(1, limit: .seconds(30)))
         await rig.engine.stop()
     }
 

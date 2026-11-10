@@ -217,6 +217,11 @@ nonisolated private final class Ordered: @unchecked Sendable {
         #expect(WindowGeometry.listOutcome(for: .invalidUIElement) == .noWindows)
         #expect(WindowGeometry.listOutcome(for: .apiDisabled) == .noWindows)
         #expect(WindowGeometry.listOutcome(for: .noValue) == .noWindows)
+        // An app without Accessibility support answers with these: it is not "unreachable", so it arms no look.
+        #expect(WindowGeometry.listOutcome(for: .notImplemented) == .noWindows)
+        #expect(WindowGeometry.listOutcome(for: .attributeUnsupported) == .noWindows)
+        #expect(WindowGeometry.listOutcome(for: .actionUnsupported) == .noWindows)
+        #expect(WindowGeometry.listOutcome(for: .illegalArgument) == .noWindows)
     }
 
     @Test func theErrorMappingStillSaysTimedOutForATimeout() {

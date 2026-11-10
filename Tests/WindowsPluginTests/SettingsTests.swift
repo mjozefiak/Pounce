@@ -398,4 +398,44 @@ extension SettingsTests {
         #expect(log.get("windows.move.right")?.modifiers == [.control, .option, .shift])
         #expect(log.get("windows.resize.grow")?.modifiers == [.control, .option])
     }
+
+    /// Round-16 audit L-1: the release default is exactly the documented list; the QA app's id is added only in a
+    /// DEBUG build, by one function, and nowhere else in the plugin's sources.
+    @Test func theDefaultFloatingListIsTheDocumentedOneAndTheQAIdIsDebugOnly() throws {
+        #expect(
+            WindowsSettings.documentedFloatingApps == [
+                "com.lintelapp.Lintel", "com.apple.systempreferences", "com.apple.calculator",
+            ])
+        #if DEBUG
+        #expect(
+            WindowsSettings.defaultFloatingApps
+                == [
+                    "com.lintelapp.Lintel", WindowsSettings.qaBundleID, "com.apple.systempreferences",
+                    "com.apple.calculator",
+                ])
+        #else
+        #expect(WindowsSettings.defaultFloatingApps == WindowsSettings.documentedFloatingApps)
+        #endif
+        // The documentation says the same three apps.
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let compatibility = try String(
+            contentsOf: root.appending(path: "BACKWARD_COMPATIBILITY.md"), encoding: .utf8)
+        #expect(compatibility.contains("missing means Lintel, System Settings and Calculator"))
+        // The QA id is written in `WindowsSettings.swift` only inside the `#if DEBUG` of the one builder.
+        let source = try String(
+            contentsOf: root.appending(path: "Sources/WindowsPlugin/WindowsSettings.swift"), encoding: .utf8)
+        var depth = 0
+        var outside: [String] = []
+        for line in source.split(separator: "\n", omittingEmptySubsequences: false) {
+            let text = line.trimmingCharacters(in: .whitespaces)
+            if text.hasPrefix("#if DEBUG") { depth += 1 }
+            if text.hasPrefix("#endif"), depth > 0 { depth -= 1 }
+            if depth == 0, !text.hasPrefix("//"), !text.hasPrefix("///"), text.contains("Lintel.QA\"") {
+                outside.append(text)
+            }
+        }
+        #expect(outside.isEmpty, "the QA id outside #if DEBUG: \(outside)")
+        #expect(source.components(separatedBy: "static func makeDefaultFloatingApps").count == 2)
+    }
 }

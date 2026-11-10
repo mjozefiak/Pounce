@@ -8,7 +8,7 @@ shipped app.
 
 ## Launching
 
-**The QA build is a different app from the real Lintel.** `CONFIGURATION=debug scripts/make-app.sh` gives the bundle the id `com.lintelapp.Lintel.QA`, the display name "Lintel QA" and the executable and process name `Lintel-QA`, and leaves out the `.lintellayouts` document type, so Launch Services, the Accessibility grant (grant it to "Lintel QA" the first time) and `UserDefaults` (`com.lintelapp.Lintel.QA`) are separate from the owner's installed Lintel. The path stays `dist/Lintel.app`. **QA tools must address the QA process by PID** (keep the PID of the process you started), never by a name match: a helper that matched "Lintel" once closed the owner's real window. The plugin's default floating apps list names both ids, so the QA app's own windows are never tiled.
+**The QA build is a different app from the real Lintel.** `CONFIGURATION=debug scripts/make-app.sh` gives the bundle the id `com.lintelapp.Lintel.QA`, the display name "Lintel QA" and the executable and process name `Lintel-QA`, and leaves out the `.lintellayouts` document type, so Launch Services, the Accessibility grant (grant it to "Lintel QA" the first time) and `UserDefaults` (`com.lintelapp.Lintel.QA`) are separate from the owner's installed Lintel. The path stays `dist/Lintel.app`. **QA tools must address the QA process by PID** (keep the PID of the process you started), never by a name match: a helper that matched "Lintel" once closed the owner's real window. In a DEBUG build the plugin's default floating apps list also names the QA id (so the QA app's own windows are never tiled); a release build's default is exactly Lintel, System Settings and Calculator.
 
 ```bash
 swift build

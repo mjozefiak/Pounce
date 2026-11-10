@@ -56,10 +56,13 @@ actor WindowEngine {
     static let unknownRetryLimit: Duration = .seconds(60)
     private var retryDelay = WindowEngine.unknownRetry
     private var retryGeneration = 0
-    /// How many times the engine looked again only because of an app it holds no window of (see `unknownApps`).
-    private var untrackedAttempts = 0
-    /// After this many looks the engine stops waiting for such an app (about three minutes with the backoff): an
-    /// app that never answers must not be polled for ever. Any event from it, or a snapshot that sees it, starts over.
+    /// How many times the engine looked again because of each app it holds no window of (see `unknownApps`). Kept
+    /// per process and pruned to the apps that are in `unknownApps` now: an app that answers (or is gone) and is
+    /// unknown again later starts at 0, and one first seen later starts at 0 whatever the others used up.
+    private var untrackedAttempts: [Int32: Int] = [:]
+    /// After this many looks the engine stops waiting for one such app (about three minutes with the backoff): an
+    /// app that never answers must not be polled for ever. The looks share one backoff schedule; an app that is no
+    /// longer unknown (an event from it, or a snapshot that sees it) and unknown again starts over.
     static let untrackedRetryLimit = 6
     /// When the last flush started (engine time); a move is flushed at once only when none ran in the last tick.
     private var lastFlushAt = -Double.infinity
@@ -441,9 +444,9 @@ actor WindowEngine {
     /// windows) arms nothing.
     private func updateRetry() {
         let tracked = Set(state.windows.keys.map(\.pid))
-        if state.unknownApps.isEmpty { untrackedAttempts = 0 }
+        untrackedAttempts = untrackedAttempts.filter { state.unknownApps.contains($0.key) }
         let waitingOnTracked = !state.unresponsive.isDisjoint(with: tracked)
-        let waitingOnUntracked = !state.unknownApps.isEmpty && untrackedAttempts < Self.untrackedRetryLimit
+        let waitingOnUntracked = state.unknownApps.contains { (untrackedAttempts[$0] ?? 0) < Self.untrackedRetryLimit }
         if !waitingOnTracked && !waitingOnUntracked {
             retryTask?.cancel()
             retryTask = nil
@@ -463,6 +466,8 @@ actor WindowEngine {
 
     /// The delay of the next look-again retry (tests).
     var currentRetryDelay: Duration { retryDelay }
+    /// How many looks an unknown app has used (tests).
+    func untrackedAttempts(of pid: Int32) -> Int { untrackedAttempts[pid] ?? 0 }
     /// The generation of the armed (or last armed) retry (tests).
     var currentRetryGeneration: Int { retryGeneration }
 
@@ -470,8 +475,10 @@ actor WindowEngine {
     /// it must not clear the newer task or double the delay.
     func retryUnknown(generation: Int) {
         guard !Task.isCancelled, generation == retryGeneration, !stopped else { return }
-        let tracked = Set(state.windows.keys.map(\.pid))
-        if state.unresponsive.isDisjoint(with: tracked) { untrackedAttempts += 1 }
+        // This look is spent on every unknown app that still had attempts left.
+        for pid in state.unknownApps where (untrackedAttempts[pid] ?? 0) < Self.untrackedRetryLimit {
+            untrackedAttempts[pid, default: 0] += 1
+        }
         retryTask = nil
         retryDelay = min(retryDelay * 2, Self.unknownRetryLimit)
         ingest(.resync)
