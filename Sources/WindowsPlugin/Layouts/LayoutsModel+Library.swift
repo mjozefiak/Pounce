@@ -325,8 +325,14 @@ extension LayoutsModel {
             try await repository.add(added).last?.id
         }
         if notice == nil {
-            notice = String(
-                localized: "Imported \(added.count) layouts.", comment: "Layouts window: what an import added")
+            let skipped = preview.rejected + preview.skippedUnknownStyle
+            notice =
+                skipped == 0
+                ? String(
+                    localized: "Imported \(added.count) layouts.", comment: "Layouts window: what an import added")
+                : String(
+                    localized: "Imported: \(added.count), skipped (not valid): \(skipped).",
+                    comment: "Layouts window: what an import added when some layouts in the file were skipped")
         }
     }
 

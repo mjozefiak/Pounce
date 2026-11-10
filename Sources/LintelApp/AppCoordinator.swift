@@ -151,7 +151,7 @@ final class AppCoordinator {
         guard let file = environment.qaCommandFile else { return }
         let host = host
         let route = QACommandRoute(
-            file: file, commands: { host.activeCommands },
+            file: file, replay: environment.qaReplaysCommands, commands: { host.activeCommands },
             qaPlugin: { id in
                 host.entries.first { $0.manifest.id.rawValue == id && $0.state.isActive }?.plugin
                     as? any PluginQACommands

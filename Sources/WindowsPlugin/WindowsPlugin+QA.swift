@@ -7,7 +7,7 @@ import LintelKit
 /// route"). DEBUG only; the route itself only exists in a `--qa` run. Every verb goes through the same runtime and
 /// model entry points the UI uses.
 extension WindowsPlugin: PluginQACommands {
-    /// `resetState`, `restoreAll`, `snap <zone number>`, `import <path>`, `export <path> [selected|all]` (the rest of the line is the path),
+    /// `resetState`, `restoreAll`, `snap <zone number>`, `import <path>`, `export <selected|all> <path>` (the rest of the line is the path),
     /// `addFloating <bundle id>`, `openLayouts`.
     public func runQACommand(_ line: String) async -> String {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -48,19 +48,21 @@ extension WindowsPlugin: PluginQACommands {
             await model.confirmImport()
             return "ok"
         case "export":
-            guard let argument else { return "error: export needs a path" }
+            // `export <selected|all> <path>`: the mode comes first, so a path may contain anything.
+            guard let argument else { return "error: export needs a mode (selected or all) and a path" }
+            let mode = String(argument.prefix { $0 != " " })
+            let path = String(argument.dropFirst(mode.count)).trimmingCharacters(in: .whitespaces)
+            let scope: LayoutsModel.ExportScope
+            switch mode {
+            case "selected": scope = .selected
+            case "all": scope = .allMine
+            default: return "error: unknown export mode \(mode) (use selected or all)"
+            }
+            guard !path.isEmpty else { return "error: export needs a path" }
             layoutsWindow.activatesApp = false
             layoutsWindow.show()
             guard let model = layoutsWindow.model else { return "error: the Layouts window did not open" }
             await model.refresh()
-            // A trailing `selected` or `all` picks the scope; the rest is the path.
-            var path = argument
-            var scope = LayoutsModel.ExportScope.allMine
-            for (word, picked) in [(" selected", LayoutsModel.ExportScope.selected), (" all", .allMine)]
-            where path.hasSuffix(word) {
-                path = String(path.dropLast(word.count))
-                scope = picked
-            }
             qaFiles.exportURL = URL(filePath: path)
             model.export(scope)
             return model.notice.map { "ok: \($0)" } ?? "ok"

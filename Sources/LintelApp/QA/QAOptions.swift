@@ -99,6 +99,8 @@ struct QAOptions: Equatable {
     /// `--qa-command-file <path>`: the QA command route reads one command per line from this file and writes the
     /// results to `<path>.log` (`QACommandRoute`). Only in a `--qa` run.
     var commandFile: URL?
+    /// `--qa-command-replay`: run the commands already in the command file at launch (default: start at its end).
+    var replaysCommands = false
 
     /// The file plugin's DEBUG-only fake home and its roots, which QA mode always sets
     /// (`AppEnvironment.qaFileIndexSettings`).
@@ -234,6 +236,8 @@ struct QAOptions: Equatable {
                 options.fakeWindows = true
             case "--qa-real-windows":
                 options.realWindows = true
+            case "--qa-command-replay":
+                options.replaysCommands = true
             case "--qa-command-file":
                 options.commandFile = URL(filePath: try Self.pathValue(argument, iterator.next()))
             case "--qa-persistent-settings":

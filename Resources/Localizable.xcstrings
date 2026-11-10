@@ -13327,6 +13327,24 @@
         }
       }
     },
+    "Imported: %lld, skipped (not valid): %lld." : {
+      "comment" : "Layouts window: what an import added when some layouts in the file were skipped",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imported: %lld, skipped (not valid): %lld."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaimportowano: %lld, pominięto (nieprawidłowe): %lld."
+          }
+        }
+      }
+    },
     "Windows are parked" : {
       "comment" : "Window HUD: windows are hidden and cannot be restored",
       "extractionState" : "manual",

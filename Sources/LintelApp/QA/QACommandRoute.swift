@@ -25,22 +25,34 @@ final class QACommandRoute {
     private var pending = ""
     private var task: Task<Void, Never>?
 
+    /// Whether the commands already in the file at launch are run (`--qa-command-replay`). By default the route starts
+    /// at the end of the file, so a relaunch does not replay the whole earlier run.
+    private let replay: Bool
+
     init(
-        file: URL, commands: @escaping @MainActor () -> [PluginCommand],
+        file: URL, replay: Bool = false, commands: @escaping @MainActor () -> [PluginCommand],
         qaPlugin: @escaping @MainActor (String) -> (any PluginQACommands)?
     ) {
+        self.replay = replay
         self.file = file
         log = file.appendingPathExtension("log")
         self.commands = commands
         self.qaPlugin = qaPlugin
     }
 
-    /// Starts polling. The file is created empty when it does not exist.
-    func start(clock: any Clock<Duration> = ContinuousClock()) {
-        guard task == nil else { return }
+    /// Creates the file when it does not exist and, unless the run replays, starts at its end.
+    func prepare() {
         if !FileManager.default.fileExists(atPath: file.path) {
             FileManager.default.createFile(atPath: file.path, contents: nil)
+        } else if !replay {
+            offset = ((try? FileManager.default.attributesOfItem(atPath: file.path))?[.size] as? Int) ?? 0
         }
+    }
+
+    /// Starts polling.
+    func start(clock: any Clock<Duration> = ContinuousClock()) {
+        guard task == nil else { return }
+        prepare()
         task = Task { [weak self] in
             while !Task.isCancelled {
                 await self?.pollOnce()

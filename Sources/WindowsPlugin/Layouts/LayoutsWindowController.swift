@@ -57,6 +57,8 @@ final class LayoutsWindowController: NSObject, NSWindowDelegate {
         window.minSize = Self.minimumSize
         window.setContentSize(Self.defaultSize)
         window.isReleasedWhenClosed = false
+        // QA isolation and plain expectation: a window the user closed does not come back at the next launch.
+        window.isRestorable = false
         window.delegate = self
         window.tabbingMode = .disallowed
         window.center()

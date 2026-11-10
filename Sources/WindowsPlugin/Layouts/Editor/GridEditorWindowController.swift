@@ -39,6 +39,7 @@ final class GridEditorWindowController: NSObject, NSWindowDelegate {
         window.setContentSize(NSSize(width: 960, height: 640))
         window.minSize = NSSize(width: 880, height: 580)
         window.isReleasedWhenClosed = false
+        window.isRestorable = false
         window.delegate = self
         window.tabbingMode = .disallowed
         self.window = window

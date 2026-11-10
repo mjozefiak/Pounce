@@ -24,13 +24,13 @@ import Testing
         }
     }
 
-    private func rig() throws -> (QACommandRoute, URL, Recorder) {
+    private func rig(replay: Bool = false, existing: String = "") throws -> (QACommandRoute, URL, Recorder) {
         let file = FileManager.default.temporaryDirectory.appending(path: "qa-commands-\(UUID().uuidString).txt")
-        FileManager.default.createFile(atPath: file.path, contents: nil)
+        FileManager.default.createFile(atPath: file.path, contents: Data(existing.utf8))
         let recorder = Recorder()
         let plugin = FakeQAPlugin(recorder: recorder)
         let route = QACommandRoute(
-            file: file,
+            file: file, replay: replay,
             commands: {
                 [
                     PluginCommand(id: "windows.workspace.2", title: "Go", run: { recorder.ran.append("workspace.2") }),
@@ -71,6 +71,34 @@ import Testing
                 "ok | qa windows resetState", "error: boom | qa windows boom",
                 "error: no such plugin or verb | qa other x",
             ])
+    }
+
+    /// QA round 3: a relaunch replayed the whole earlier run. The route starts at the end of the file unless the run
+    /// asks to replay it (`--qa-command-replay`).
+    @Test func aRelaunchStartsAtTheEndOfTheFileUnlessReplayIsAsked() async throws {
+        let old = "windows.workspace.2\nwindows.toggleLayout\n"
+        let (fresh, file, recorder) = try rig(existing: old)
+        defer {
+            try? FileManager.default.removeItem(at: file)
+            try? FileManager.default.removeItem(at: file.appendingPathExtension("log"))
+        }
+        fresh.prepare()
+        await fresh.pollOnce()
+        #expect(recorder.ran.isEmpty)
+        try append("windows.toggleLayout\n", to: file)
+        await fresh.pollOnce()
+        #expect(recorder.ran == ["toggle"])
+
+        let (replaying, other, again) = try rig(replay: true, existing: old)
+        defer {
+            try? FileManager.default.removeItem(at: other)
+            try? FileManager.default.removeItem(at: other.appendingPathExtension("log"))
+        }
+        replaying.prepare()
+        await replaying.pollOnce()
+        #expect(again.ran == ["workspace.2", "toggle"])
+        let options = try #require(try QAOptions.parse(["--qa-command-file", "/tmp/c", "--qa-command-replay"]))
+        #expect(options.replaysCommands)
     }
 
     @Test func aPartialLineWaitsForItsNewlineAndNothingRunsTwice() async throws {

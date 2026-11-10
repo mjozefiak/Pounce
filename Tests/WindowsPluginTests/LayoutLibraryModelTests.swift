@@ -218,6 +218,25 @@ private final class EditorLog {
         #expect(model.table.layoutID(workspace: ws(1), displayKey: "MAIN") == nil)
     }
 
+    /// QA round 3: an invalid layout inside an import was skipped without a word after the import. The notice says
+    /// how many were skipped.
+    @Test func anImportThatSkippedLayoutsSaysSoAfterwards() async throws {
+        let rig = try await rig()
+        defer { Task { await finish(rig) } }
+        let layout = StockLayouts.layout(StockLayouts.columns3)!
+        rig.model.pendingImport = ImportPreview(
+            layouts: [layout], regeneratedIDs: 0, skippedUnknownStyle: 1, rejected: 1)
+        await rig.model.confirmImport()
+        let notice = try #require(rig.model.notice)
+        #expect(notice.contains("1") && notice.contains("skipped"))
+        // Nothing skipped: the plain notice.
+        rig.model.notice = nil
+        rig.model.pendingImport = ImportPreview(
+            layouts: [layout], regeneratedIDs: 0, skippedUnknownStyle: 0, rejected: 0)
+        await rig.model.confirmImport()
+        #expect(rig.model.notice?.contains("skipped") == false)
+    }
+
     @Test func deletingAnUnusedLayoutSaysNothingUsesIt() async throws {
         let rig = try await rig()
         defer { Task { await finish(rig) } }

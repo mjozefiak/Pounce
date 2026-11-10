@@ -36,6 +36,7 @@ struct AppEnvironment {
     #if DEBUG
     /// QA mode only (`--qa-command-file`): where the QA command route reads its commands.
     var qaCommandFile: URL?
+    var qaReplaysCommands = false
     #endif
     /// What the plugins of this app instance share (`PluginContext.services`).
     let services = AppPluginServices()
@@ -202,6 +203,7 @@ struct AppEnvironment {
             qaEnvironment.windowClient = options.fakeWindows ? QAWindowClient() : NoWindowClient()
         }
         qaEnvironment.qaCommandFile = options.commandFile
+        qaEnvironment.qaReplaysCommands = options.replaysCommands
         qaEnvironment.prepareModelsDirectory(fileManager: fileManager)
         return qaEnvironment
     }

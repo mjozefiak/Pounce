@@ -332,7 +332,11 @@ actor WindowEngine {
     func ingest(_ event: WindowEvent) {
         guard !stopped else { return }
         #if DEBUG
-        if case .moved = event { DragTrace.begin() }
+        // A trace starts only for what could be a user's snap drag (the predicate the snap flow uses), never for a
+        // window the engine or a script moved.
+        if case .moved(let id) = event, LayoutPlanner(strategies: strategies).canStartSnapDrag(state, id) {
+            DragTrace.begin()
+        }
         DragTrace.mark("ingest")
         #endif
         coalescer.insert(event)

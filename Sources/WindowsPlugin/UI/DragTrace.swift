@@ -6,24 +6,28 @@ import Synchronization
 /// drag reaching the engine and the overlay being ordered in. Each stage appends its elapsed time since the first
 /// event to one line of the file; release builds contain none of this. The time before `ingest` (the Accessibility
 /// notification reaching Lintel) is not Lintel's and is read from the outside (the window's first move).
-enum DragTrace {
+///
+/// One recorder per file. The process-wide `DragTrace` forwards to the recorder the plugin configured from its
+/// setting (none unless a QA run names a file), so nothing records in a test that does not ask; the recorder's own
+/// tests make instances of their own.
+final class DragTraceRecorder: Sendable {
     private struct State {
-        var path: String?
         var start: ContinuousClock.Instant?
         var stages: [(String, Duration)] = []
     }
 
-    private static let state = Mutex(State())
+    /// The most stages one trace keeps (a drag that never shows the overlay must not grow it without bound).
+    static let stageLimit = 32
 
-    /// Set by the plugin from its setting; `nil` turns tracing off.
-    static func configure(path: String?) {
-        state.withLock { $0.path = path?.isEmpty == true ? nil : path }
-    }
+    let path: String
+    private let state = Mutex(State())
 
-    /// The first moved event of a drag reaches the engine: a new trace starts.
-    static func begin() {
+    init(path: String) { self.path = path }
+
+    var isActive: Bool { state.withLock { $0.start != nil } }
+
+    func begin() {
         state.withLock {
-            guard $0.path != nil else { return }
             // A trace that never reached the overlay (no drag followed) is stale after a few seconds: start again.
             if let start = $0.start, start.duration(to: .now) < .seconds(5) { return }
             $0.start = .now
@@ -31,18 +35,15 @@ enum DragTrace {
         }
     }
 
-    /// The most stages one trace keeps (a drag that never shows the overlay must not grow it without bound).
-    static let stageLimit = 32
-
-    static func mark(_ stage: String) {
+    func mark(_ stage: String) {
         state.withLock {
-            guard let start = $0.start, $0.stages.count < stageLimit else { return }
+            guard let start = $0.start, $0.stages.count < Self.stageLimit else { return }
             $0.stages.append((stage, start.duration(to: .now)))
         }
     }
 
     /// The drag ended or was cancelled without the overlay: the trace is dropped.
-    static func reset() {
+    func reset() {
         state.withLock {
             $0.start = nil
             $0.stages = []
@@ -50,9 +51,9 @@ enum DragTrace {
     }
 
     /// The overlay was shown: the line is written and the trace ends.
-    static func finish() {
-        let line: (path: String, text: String)? = state.withLock { state -> (path: String, text: String)? in
-            guard let path = state.path, state.start != nil else { return nil }
+    func finish() {
+        let line: String? = state.withLock { state -> String? in
+            guard state.start != nil else { return nil }
             var parts: [String] = []
             for (stage, elapsed) in state.stages {
                 let seconds = Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18
@@ -60,10 +61,9 @@ enum DragTrace {
             }
             state.start = nil
             state.stages = []
-            return (path, parts.joined(separator: " ") + "\n")
+            return parts.joined(separator: " ") + "\n"
         }
-        guard let line, let data = line.text.data(using: .utf8) else { return }
-        let path = line.path
+        guard let line, let data = line.data(using: .utf8) else { return }
         if let handle = FileHandle(forWritingAtPath: path) {
             handle.seekToEndOfFile()
             handle.write(data)
@@ -72,5 +72,21 @@ enum DragTrace {
             FileManager.default.createFile(atPath: path, contents: data)
         }
     }
+}
+
+enum DragTrace {
+    private static let current = Mutex<DragTraceRecorder?>(nil)
+
+    /// Set by the plugin from its setting; `nil` turns tracing off.
+    static func configure(path: String?) {
+        current.withLock { $0 = path.flatMap { $0.isEmpty ? nil : DragTraceRecorder(path: $0) } }
+    }
+
+    private static var recorder: DragTraceRecorder? { current.withLock { $0 } }
+
+    static func begin() { recorder?.begin() }
+    static func mark(_ stage: String) { recorder?.mark(stage) }
+    static func reset() { recorder?.reset() }
+    static func finish() { recorder?.finish() }
 }
 #endif

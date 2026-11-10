@@ -136,7 +136,7 @@ struct GridEditorView: View {
                 }
                 .disabled(model.layout.spacing <= 0)
                 .accessibilityLabel(Text("Less space", comment: "Layout editor: decreases the space around zones"))
-                Text("\(model.layout.spacing) px", comment: "Layout editor: the space around zones in points")
+                Text("\(model.layout.spacing) pt", comment: "Layout editor: the space around zones in points")
                     .font(textSize.font(.body))
                     .monospacedDigit()
                     .frame(minWidth: 52)

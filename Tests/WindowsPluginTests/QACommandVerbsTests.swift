@@ -54,11 +54,14 @@ import Testing
         // Make a layout of my own to export, directly through the repository.
         let repository = try #require(plugin.runtime?.layouts)
         _ = try await repository.create(StockLayouts.layout(StockLayouts.columns3)!)
-        #expect(await plugin.runQACommand("export \(file.path)").hasPrefix("ok"))
+        #expect(await plugin.runQACommand("export all \(file.path)").hasPrefix("ok"))
         #expect(FileManager.default.fileExists(atPath: file.path))
         let before = await repository.userLayouts.count
         #expect(await plugin.runQACommand("import \(file.path)").hasPrefix("ok"))
         #expect(await repository.userLayouts.count == before + 1)
+        // An unknown export mode is refused, not read as `all`.
+        #expect(await plugin.runQACommand("export bogus \(file.path)").hasPrefix("error: unknown export mode"))
+        #expect(await plugin.runQACommand("export all").hasPrefix("error"))
         // A missing file is reported, not a panel.
         #expect(await plugin.runQACommand("import /nonexistent/file.lintellayouts").hasPrefix("error"))
         plugin.layoutsWindow.close()

@@ -68,6 +68,8 @@ import Testing
         let (controller, settings) = try openedController(harness) { _ in saves += 1 }
         controller.show()
         let window = try #require(controller.window)
+        // A closed window does not come back at the next launch (QA isolation).
+        #expect(!window.isRestorable)
         // Showing sets the window up (centred, sized): that is not the user's doing and is not saved.
         #expect(saves == 0)
         #expect(settings.layoutsWindowFrame == nil)
@@ -90,6 +92,16 @@ import Testing
         controller.close()
         #expect(saves == 0)
         #expect(settings.layoutsWindowFrame == nil)
+    }
+
+    /// The editor shows the unit the library uses (points), never pixels, and says the same thing to VoiceOver.
+    @Test func theEditorsSpacingLabelsUsePointsNotPixels() throws {
+        let file = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().appending(path: "Sources/WindowsPlugin/Layouts/Editor/GridEditorView.swift")
+        let text = try String(contentsOf: file, encoding: .utf8)
+        #expect(!text.contains(") px\""))
+        #expect(text.contains(") pt\""))
+        #expect(text.contains("points"))
     }
 
     /// A lint over the plugin's sources: no window of the plugin may use the window system's own frame autosave.
