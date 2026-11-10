@@ -52,9 +52,13 @@ final class FakeNotesVerifier: NotesVerifying, @unchecked Sendable {
         DEC | 0:47 | "Ja przygotuję umowę" | \(negatedText)
         """
 
+    /// REDUCE's paragraph: not the text of p1, so p1 (in either wording) stays a key point the tests can read.
+    static let reduceSummary = "Spotkanie dotyczyło budżetu marketingowego i oferty do klienta."
+
     static func handler(verifierAnswer: String? = nil) -> ScriptedLLM.Handler {
         { _, messages, _ in
             if NotesFake.isMap(messages) { return .done(mapAnswer) }
+            if NotesFake.isReduce(messages) { return .done(NotesFake.reduceAnswer(messages, summary: reduceSummary)) }
             if messages.first?.content == NotesVerifierPrompt.system {
                 return .done(verifierAnswer ?? NotesFake.answer(messages))
             }

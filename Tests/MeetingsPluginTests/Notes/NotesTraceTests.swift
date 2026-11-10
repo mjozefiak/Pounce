@@ -296,6 +296,23 @@ final class NotesTraceLog: Sendable {
         #expect(log.balance.isBalanced)
     }
 
+    @Test func aSummaryPointTheModelsParagraphRepeatsIsShownInTheSummary() async throws {
+        let log = NotesTraceLog()
+        // The fake REDUCE writes the first summary point's sentence as its paragraph, word for word.
+        let (result, _) = try await run(scenarios()[0], trace: log)
+        let summary = try #require(log.summary)
+        #expect(summary.origin == .model)
+        #expect(summary.shown)
+        let points = log.points
+        #expect(points["p1"]?.kind == .summary)
+        #expect(points["p1"]?.fate == .rendered(.summary, via: .modelSummary))
+        #expect(log.reduce?.keyPoints == 0)
+        #expect(result.keyPoints.isEmpty)
+        #expect(log.balance.isBalanced)
+        let markdown = try #require(result.markdown)
+        #expect(!markdown.contains("### Kluczowe punkty"))
+    }
+
     @Test func overlappingChunksShowTheDeduplication() async throws {
         let log = NotesTraceLog()
         let (result, _) = try await run(scenarios()[3], trace: log)

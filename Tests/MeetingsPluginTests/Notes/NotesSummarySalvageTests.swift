@@ -27,7 +27,16 @@ import Testing
         #expect(result.audit.summaryOrigin == .salvagedSentences)
         #expect(result.audit.summaryRefusal == .unsupportedSentenceStart)
         #expect(result.audit.summarySources.isEmpty)
-        // Nothing counts as absorbed by the salvaged paragraph: the summary point is still a key point.
+        // The salvaged paragraph keeps the summary point's sentence word for word, so it is not listed again.
+        #expect(result.verdict.keyPoints.isEmpty)
+        #expect(result.audit.inModelParagraph == ["p5"])
+    }
+
+    @Test func aSalvagedParagraphWithoutThePointsSentenceKeepsItAsAKeyPoint() {
+        let invented = "Decyzję podpisał dyrektor Nowak."
+        let result = reduce([Self.plan, invented, "Marek wyśle ofertę do klienta w piątek."].joined(separator: " "))
+        #expect(result.audit.summaryOrigin == .salvagedSentences)
+        #expect(result.audit.inModelParagraph.isEmpty)
         #expect(result.verdict.keyPoints.map(\.id) == ["p5"])
     }
 

@@ -334,16 +334,17 @@ enum GuardFixtures {
             verdict: verdict, participants: ["Anna", "Marek", "Ewa", "Piotr"], labels: labels)
     }
 
+    /// The model's paragraph says more than the `topic` point, so that point still stands among the key points.
     private let full = NotesReduceOutput(
         decisions: ["p1"], tasks: ["p2", "p3"], questions: ["p4"],
-        summary: "Spotkanie dotyczyło budżetu na przyszły kwartał.")
+        summary: "Spotkanie dotyczyło budżetu na przyszły kwartał i oferty dla klienta.")
 
     @Test func theNotesAreComposedByCodeInTheSectionsOfTheTemplate() {
         let markdown = compose(full)
         let expected = """
             ### Podsumowanie
 
-            Spotkanie dotyczyło budżetu na przyszły kwartał.
+            Spotkanie dotyczyło budżetu na przyszły kwartał i oferty dla klienta.
 
             ### Kluczowe punkty
 
@@ -440,7 +441,8 @@ enum GuardFixtures {
 @Suite struct NotesKeyPointsTests {
     let guardrail = NotesGuard(utterances: GuardFixtures.transcript())
     private let participants = ["Anna", "Marek", "Ewa", "Piotr"]
-    private let modelSummary = "Spotkanie dotyczyło budżetu na przyszły kwartał."
+    /// The model's paragraph says more than any one summary point, so none of them repeats it word for word.
+    private let modelSummary = "Spotkanie dotyczyło budżetu na przyszły kwartał i oferty dla klienta."
 
     private func summaryPoint(_ id: String, quote: String, text: String, time: Int) -> NotesPoint {
         GuardFixtures.point(id, .summary, quote: quote, text: text, time: time)
@@ -561,6 +563,42 @@ enum GuardFixtures {
         let markdown = NotesComposer.markdown(verdict: audited.verdict, participants: [], labels: .polish)
         #expect(markdown.components(separatedBy: "Spotkanie dotyczyło budżetu").count == 2)
         #expect(markdown.contains("- Rozmawiano o ofercie. Klient czeka na nią. \\[00\\:34\\]"))
+    }
+
+    /// QA of PR 63 (P0 4): in Polish notes the model wrote the only summary point word for word as its paragraph,
+    /// and the same sentence stood again as the only key point.
+    @Test func aPointTheModelsParagraphRepeatsWordForWordIsNotListedAgain() {
+        let outage = summaryPoint(
+            "p5", quote: "Zaczynamy spotkanie o budżecie na przyszły kwartał",
+            text: "Głównym tematem jest budżet na przyszły kwartał.", time: 5_000)
+        let audited = guardrail.auditedVerifyReduce(
+            NotesReduceOutput(decisions: ["p1"], summary: "Głównym tematem jest budżet na przyszły kwartał."),
+            points: [outage, GuardFixtures.budget])
+        #expect(audited.audit.summaryOrigin == .model)
+        #expect(audited.verdict.summary == "Głównym tematem jest budżet na przyszły kwartał.")
+        #expect(audited.verdict.keyPoints.isEmpty)
+        #expect(audited.audit.inModelParagraph == ["p5"])
+        #expect(audited.audit.summarySources.isEmpty)
+        let markdown = NotesComposer.markdown(verdict: audited.verdict, participants: [], labels: .polish)
+        #expect(!markdown.contains("### Kluczowe punkty"))
+        #expect(markdown.components(separatedBy: "Głównym tematem jest budżet").count == 2)
+        #expect(markdown.contains("### Decyzje"))
+    }
+
+    @Test func onlyThePointsTheModelsParagraphRepeatsAreLeftOut() {
+        let said = GuardFixtures.topic
+        let more = summaryPoint(
+            "p6", quote: "Marek wyśle ofertę do klienta w piątek", text: "Rozmawiano o ofercie. Klient czeka na nią.",
+            time: 34_000)
+        let other = summaryPoint(
+            "p7", quote: "Kto zajmie się fakturami od dostawcy", text: "Omówiono faktury od dostawcy.", time: 62_000)
+        // The paragraph has p5's sentence and p6's first sentence; p6 says more, p7 is not in it.
+        let paragraph = "Spotkanie dotyczyło budżetu na przyszły kwartał. Rozmawiano o ofercie."
+        let audited = guardrail.auditedVerifyReduce(
+            NotesReduceOutput(summary: paragraph), points: [said, more, other])
+        #expect(audited.audit.summaryOrigin == .model)
+        #expect(audited.verdict.keyPoints.map(\.id) == ["p6", "p7"])
+        #expect(audited.audit.inModelParagraph == ["p5"])
     }
 }
 

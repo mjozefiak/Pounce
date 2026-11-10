@@ -801,6 +801,9 @@ struct NotesGuard: Sendable {
         var summaryRefusal: SummaryRefusal?
         /// The points whose first sentence makes the composed paragraph.
         var summarySources: [String] = []
+        /// Summary points whose whole text is already a sentence of the model's (or salvaged) paragraph, so
+        /// they are not listed again among the key points.
+        var inModelParagraph: Set<String> = []
     }
 
     /// `verifyReduce` with its audit; the verdict is the one `verifyReduce` returns.
@@ -892,6 +895,13 @@ struct NotesGuard: Sendable {
                     if let point = byID[id], Self.isWhollyIn(text, point) { inParagraph.insert(id) }
                 }
             }
+        } else if let text = summary {
+            // The model's (or salvaged) paragraph: a key point that repeats one of its sentences word for word
+            // adds nothing below it.
+            for point in points where point.kind == .summary && Self.isWhollyIn(text, point) {
+                inParagraph.insert(point.id)
+                trail?.inModelParagraph.insert(point.id)
+            }
         }
 
         var keyPoints: [NotesPoint] = []
@@ -908,8 +918,8 @@ struct NotesGuard: Sendable {
             rejectedIDs: rejected, backfilled: backfilled, keyPoints: keyPoints)
     }
 
-    /// The point's whole text is one sentence of the composed paragraph (`composedSummaryWithSources` takes the
-    /// first sentence of a point): listing it again would repeat it word for word.
+    /// The point's whole text is one sentence and the paragraph (composed by the code, written by the model or
+    /// salvaged from it) contains it: listing it again would repeat it word for word.
     private static func isWhollyIn(_ paragraph: String, _ point: NotesPoint) -> Bool {
         let text = point.text.trimmingCharacters(in: .whitespacesAndNewlines)
         let sentence = NotesText.firstSentence(point.text)

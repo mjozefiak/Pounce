@@ -382,6 +382,9 @@ struct NotesTracePoint: Equatable, Sendable, Codable {
         case backfilled
         /// A summary point whose first sentence is in the paragraph composed by the code.
         case composedSummary
+        /// A summary point whose whole text is a sentence of the model's (or salvaged) paragraph, so it is not
+        /// listed again among the key points.
+        case modelSummary
         /// A summary point the code lists among the key points (REDUCE does not choose them).
         case listedByCode
     }
@@ -537,6 +540,9 @@ final class NotesTraceRecorder: Sendable {
             }
             if audit.summarySources.contains(point.id) {
                 return summaryShown ? .rendered(.summary, via: .composedSummary) : .notRendered(.summaryNotShown)
+            }
+            if audit.inModelParagraph.contains(point.id) {
+                return summaryShown ? .rendered(.summary, via: .modelSummary) : .notRendered(.summaryNotShown)
             }
             if let other = audit.nearDuplicateOf[point.id] { return .notRendered(.nearDuplicateInSection(of: other)) }
             return .notRendered(.unexplained)
