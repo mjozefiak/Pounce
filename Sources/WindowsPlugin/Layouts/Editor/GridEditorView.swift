@@ -390,18 +390,23 @@ struct GridEditorView: View {
 
     /// The keyboard table of the canvas.
     static func editorKey(for press: KeyPress) -> EditorKey? {
-        guard !press.modifiers.contains(.command), !press.modifiers.contains(.control) else { return nil }
-        switch press.key {
-        case .tab: return press.modifiers.contains(.shift) ? .backTab : .tab
+        editorKey(key: press.key, characters: press.characters, modifiers: press.modifiers)
+    }
+
+    /// The table on plain values (a `KeyPress` cannot be built in a test).
+    static func editorKey(key: KeyEquivalent, characters: String, modifiers: EventModifiers) -> EditorKey? {
+        guard !modifiers.contains(.command), !modifiers.contains(.control) else { return nil }
+        if DeleteKeys.isDelete(key: key, characters: characters) { return .delete }
+        switch key {
+        case .tab: return modifiers.contains(.shift) ? .backTab : .tab
         case .leftArrow: return .left
         case .rightArrow: return .right
         case .upArrow: return .up
         case .downArrow: return .down
-        case .delete, .deleteForward: return .delete
         case .space: return .toggleSelection
         default:
-            switch press.characters.lowercased() {
-            case "s": return press.modifiers.contains(.shift) ? .divideOther : .divide
+            switch characters.lowercased() {
+            case "s": return modifiers.contains(.shift) ? .divideOther : .divide
             case "m": return .merge
             default: return nil
             }

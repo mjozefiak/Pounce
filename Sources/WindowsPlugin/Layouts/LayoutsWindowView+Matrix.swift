@@ -67,12 +67,12 @@ extension LayoutsWindowView {
 
     /// The table on plain values (a `KeyPress` cannot be built in a test).
     static func matrixKey(key: KeyEquivalent, characters: String, modifiers: EventModifiers) -> MatrixKey? {
+        if DeleteKeys.isDelete(key: key, characters: characters) { return .clear }
         switch key {
         case .leftArrow: return .left
         case .rightArrow: return .right
         case .upArrow: return .up
         case .downArrow: return .down
-        case .delete, .deleteForward: return .clear
         default:
             guard modifiers.isEmpty, let digit = Int(characters) else { return nil }
             return .layout(digit)

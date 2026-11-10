@@ -320,4 +320,25 @@ import Testing
         #expect(key(KeyEquivalent("3"), "3", .command) == nil)
         #expect(key(KeyEquivalent("x"), "x") == nil)
     }
+
+    /// Round 13 B1: Backspace did nothing in the matrix and the editor while forward delete worked. The physical keys
+    /// are matched by their characters too (U+007F Backspace, U+0008, U+F728 forward delete), in both key tables.
+    @Test func everyDeleteKeyAndItsCharacterMeansDeleteInTheMatrixAndTheEditor() {
+        let backspace = KeyEquivalent("\u{7F}")
+        let cases: [(KeyEquivalent, String)] = [
+            (.delete, ""), (.deleteForward, ""), (backspace, "\u{7F}"), (KeyEquivalent("x"), "\u{8}"),
+            (KeyEquivalent("x"), "\u{F728}"),
+        ]
+        for (key, characters) in cases {
+            #expect(
+                LayoutsWindowView.matrixKey(key: key, characters: characters, modifiers: []) == .clear,
+                "matrix \(characters.unicodeScalars.map(\.value))")
+            #expect(
+                GridEditorView.editorKey(key: key, characters: characters, modifiers: []) == .delete,
+                "editor \(characters.unicodeScalars.map(\.value))")
+        }
+        // A plain letter or a modified delete is not one.
+        #expect(LayoutsWindowView.matrixKey(key: KeyEquivalent("x"), characters: "x", modifiers: []) == nil)
+        #expect(GridEditorView.editorKey(key: .delete, characters: "\u{7F}", modifiers: .command) == nil)
+    }
 }
