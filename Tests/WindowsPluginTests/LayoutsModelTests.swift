@@ -353,4 +353,39 @@ import Testing
         #expect(GridEditorView.editorKey(key: .delete, characters: "\u{7F}", modifiers: .option) == nil)
         #expect(GridEditorView.editorKey(key: .deleteForward, characters: "\u{F728}", modifiers: .shift) == .delete)
     }
+
+    /// Round-16 audit L-3: one policy for both tables (`DeleteKeys.isPlainDelete`): Shift is allowed, Cmd, Ctrl and
+    /// Option are not, and Caps Lock, Function and the numeric-pad flag (which a key press carries by itself) are
+    /// ignored. The same flags do not stop a digit from choosing a stock layout.
+    @Test func theMatrixAndTheEditorShareOneDeletePolicyThatIgnoresStateFlags() {
+        let allowed: [EventModifiers] = [
+            [], .shift, .capsLock, .function, .numericPad, [.capsLock, .function], [.shift, .capsLock, .function],
+        ]
+        for modifiers in allowed {
+            for (key, characters) in [(KeyEquivalent.delete, "\u{7F}"), (.deleteForward, "\u{F728}")] {
+                #expect(
+                    DeleteKeys.isPlainDelete(key: key, characters: characters, modifiers: modifiers), "\(modifiers)")
+                #expect(
+                    LayoutsWindowView.matrixKey(key: key, characters: characters, modifiers: modifiers) == .clear,
+                    "matrix \(modifiers)")
+                #expect(
+                    GridEditorView.editorKey(key: key, characters: characters, modifiers: modifiers) == .delete,
+                    "editor \(modifiers)")
+            }
+        }
+        let refused: [EventModifiers] = [
+            .command, .control, .option, [.command, .capsLock], [.control, .function], [.option, .shift],
+        ]
+        for modifiers in refused {
+            #expect(!DeleteKeys.isPlainDelete(key: .delete, characters: "\u{7F}", modifiers: modifiers))
+            #expect(LayoutsWindowView.matrixKey(key: .delete, characters: "\u{7F}", modifiers: modifiers) == nil)
+            #expect(GridEditorView.editorKey(key: .delete, characters: "\u{7F}", modifiers: modifiers) == nil)
+        }
+        // A digit with Caps Lock or from the keypad still picks a layout; with Command it does not.
+        #expect(
+            LayoutsWindowView.matrixKey(key: KeyEquivalent("2"), characters: "2", modifiers: .capsLock) == .layout(2))
+        #expect(
+            LayoutsWindowView.matrixKey(key: KeyEquivalent("2"), characters: "2", modifiers: .numericPad) == .layout(2))
+        #expect(LayoutsWindowView.matrixKey(key: KeyEquivalent("2"), characters: "2", modifiers: .command) == nil)
+    }
 }

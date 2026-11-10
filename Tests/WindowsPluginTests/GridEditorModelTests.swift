@@ -81,7 +81,7 @@ private final class RecordingPreview: ZoneOverlayPresenting {
     /// A sleep a test opens by hand: each call waits until `open(_:)` lets that very call return.
     final class SleepGate: @unchecked Sendable {
         private let lock = NSLock()
-        private var waiters: [CheckedContinuation<Void, Never>] = []
+        private var waiters: [CheckedContinuation<Void, Never>?] = []
         /// Counts the calls that started sleeping.
         let armed = CountGate()
         var count: Int { lock.withLock { waiters.count } }
@@ -93,9 +93,19 @@ private final class RecordingPreview: ZoneOverlayPresenting {
         }
         func open(_ index: Int) {
             let waiter = lock.withLock { () -> CheckedContinuation<Void, Never>? in
-                waiters.indices.contains(index) ? waiters[index] : nil
+                guard waiters.indices.contains(index), let waiter = waiters[index] else { return nil }
+                waiters[index] = nil
+                return waiter
             }
             waiter?.resume()
+        }
+        /// Lets every call that is still sleeping return, so no continuation is left unresumed when the gate goes.
+        func drain() {
+            let rest = lock.withLock { () -> [CheckedContinuation<Void, Never>] in
+                defer { waiters = waiters.map { _ in nil } }
+                return waiters.compactMap { $0 }
+            }
+            for waiter in rest { waiter.resume() }
         }
     }
 
@@ -224,7 +234,10 @@ private final class RecordingPreview: ZoneOverlayPresenting {
     @Test func aRefusalGoesAwayWithASuccessfulEditASelectionChangeOrTime() async throws {
         let gate = SleepGate()
         let rig = try await rig(sleep: { await gate.sleep($0) })
-        defer { try? FileManager.default.removeItem(at: rig.directory) }
+        defer {
+            gate.drain()
+            try? FileManager.default.removeItem(at: rig.directory)
+        }
         let model = rig.model
         func refuse() {
             // Divide the zone again and again by key until the floor refuses.
@@ -258,7 +271,10 @@ private final class RecordingPreview: ZoneOverlayPresenting {
     @Test func aRefusalDisappearsAfterItsLifetimeButAnOlderTimerDoesNotTakeDownANewerMessage() async throws {
         let gate = SleepGate()
         let rig = try await rig(sleep: { await gate.sleep($0) })
-        defer { try? FileManager.default.removeItem(at: rig.directory) }
+        defer {
+            gate.drain()
+            try? FileManager.default.removeItem(at: rig.directory)
+        }
         let model = rig.model
         let finished = CountGate()
         await MainActor.run { model.messageTimerDidFinish = { finished.increment() } }

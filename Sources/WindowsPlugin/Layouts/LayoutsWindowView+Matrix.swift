@@ -67,15 +67,15 @@ extension LayoutsWindowView {
 
     /// The table on plain values (a `KeyPress` cannot be built in a test).
     static func matrixKey(key: KeyEquivalent, characters: String, modifiers: EventModifiers) -> MatrixKey? {
-        // Only the plain key (Ctrl+H sends the same U+0008 as Backspace; Cmd or Option with Backspace mean other things).
-        if modifiers.isEmpty, DeleteKeys.isDelete(key: key, characters: characters) { return .clear }
+        // The one policy of `DeleteKeys` (Shift allowed; Cmd, Ctrl, Option not; Caps Lock and Function ignored).
+        if DeleteKeys.isPlainDelete(key: key, characters: characters, modifiers: modifiers) { return .clear }
         switch key {
         case .leftArrow: return .left
         case .rightArrow: return .right
         case .upArrow: return .up
         case .downArrow: return .down
         default:
-            guard modifiers.isEmpty, let digit = Int(characters) else { return nil }
+            guard DeleteKeys.meaningful(modifiers).isEmpty, let digit = Int(characters) else { return nil }
             return .layout(digit)
         }
     }

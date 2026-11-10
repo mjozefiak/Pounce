@@ -421,9 +421,10 @@ struct GridEditorView: View {
 
     /// The table on plain values (a `KeyPress` cannot be built in a test).
     static func editorKey(key: KeyEquivalent, characters: String, modifiers: EventModifiers) -> EditorKey? {
+        let modifiers = DeleteKeys.meaningful(modifiers)
         guard !modifiers.contains(.command), !modifiers.contains(.control) else { return nil }
         if DeleteKeys.isDelete(key: key, characters: characters) {
-            return modifiers.contains(.option) ? nil : .delete
+            return DeleteKeys.isPlainDelete(key: key, characters: characters, modifiers: modifiers) ? .delete : nil
         }
         switch key {
         case .tab: return modifiers.contains(.shift) ? .backTab : .tab
