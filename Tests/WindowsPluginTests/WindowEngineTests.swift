@@ -554,7 +554,7 @@ extension WindowEngineTests {
     /// auto-advance in these tests, so a timed loop can never spin.
     private func advance(_ rig: Rig, seconds: Double) async {
         rig.time.advance(seconds)
-        await rig.time.waitForSleepers(1)
+        await rig.time.waitForSleepers(1, limit: .seconds(30))
         rig.time.advance(0.01)
         await rig.engine.settle()
     }
@@ -582,7 +582,8 @@ extension WindowEngineTests {
         rig.client.setBehavior(.hung, forProcess: 100)
         await rig.engine.ingest(.resync)
         await rig.engine.flushEvents()
-        #expect(rig.time.sleeperCount == 1)
+        // The retry task registers its sleep on its own turn (slower under TSan): wait for it, bounded.
+        #expect(await rig.time.waitForSleepers(1, limit: .seconds(30)))
         var reads = rig.client.windowsReads
         // Not due yet at 4 s; at 5 s it looks (and arms the next wait, 10 s).
         rig.time.advance(4)
@@ -612,7 +613,7 @@ extension WindowEngineTests {
         rig.client.setBehavior(.hung, forProcess: 100)
         await rig.engine.send(.showWorkspace(ws(2)))
         #expect(rig.client.frame(of: id(1)) == home)
-        #expect(rig.time.sleeperCount == 1)
+        #expect(await rig.time.waitForSleepers(1, limit: .seconds(30)))
         rig.client.setBehavior(.normal, forProcess: 100)
         await advance(rig, seconds: 5)
         #expect(rig.client.frame(of: id(1))?.origin == parkedOrigin)
