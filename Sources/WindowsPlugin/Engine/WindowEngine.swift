@@ -451,11 +451,13 @@ actor WindowEngine {
         }
     }
 
-    /// A retry that was cancelled or replaced after its sleep ended but before it reached the engine does nothing:
-    /// it must not clear the newer task or double the delay.
     /// The delay of the next look-again retry (tests).
     var currentRetryDelay: Duration { retryDelay }
+    /// The generation of the armed (or last armed) retry (tests).
+    var currentRetryGeneration: Int { retryGeneration }
 
+    /// A retry that was cancelled or replaced after its sleep ended but before it reached the engine does nothing:
+    /// it must not clear the newer task or double the delay.
     func retryUnknown(generation: Int) {
         guard !Task.isCancelled, generation == retryGeneration, !stopped else { return }
         retryTask = nil

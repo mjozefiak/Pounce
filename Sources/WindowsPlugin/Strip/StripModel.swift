@@ -29,15 +29,14 @@ enum StripModel {
         }
     }
 
-    /// "Workspace 3, 4 windows, current" (spec: UI/UX).
+    /// "Workspace 3, 4 windows" (spec: UI/UX). That the box is the current one is not in the label: the element's
+    /// *selected* state says it (Apple's guidance), so VoiceOver does not speak it twice.
     static func accessibilityLabel(_ box: StripBox) -> String {
         var parts = [
             String(localized: "Workspace \(box.number)", comment: "Window switcher: a workspace"),
             WindowSearchSource.windowCount(box.windowCount),
         ]
-        if box.isCurrent {
-            parts.append(String(localized: "current", comment: "Strip: spoken after the workspace the user is on"))
-        } else if box.isShownElsewhere {
+        if !box.isCurrent, box.isShownElsewhere {
             parts.append(
                 String(
                     localized: "shown on another display", comment: "Strip: spoken for a workspace on another display"))

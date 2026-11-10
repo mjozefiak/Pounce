@@ -14,6 +14,8 @@ import LintelKit
 final class WorkspaceStripController: NSObject {
     private var statusItem: NSStatusItem?
     private(set) var boxes: [StripBox] = []
+    /// The accessibility children, kept between redraws (VoiceOver focus survives a redraw that changes nothing about the set).
+    private(set) var elements: [StripBoxElement] = []
     private let select: @MainActor (Int) -> Void
     private let restoreAll: @MainActor () -> Void
     private let announce: Bool
@@ -75,7 +77,13 @@ final class WorkspaceStripController: NSObject {
         let image = StripImage.render(boxes)
         button.image = image
         button.imagePosition = .imageOnly
-        button.setAccessibilityChildren(accessibilityElements(in: button, image: image))
+        let originX = imageOriginX(in: button, image: image)
+        let reconciled = StripBoxElement.reconcile(
+            elements, boxes: boxes, originX: originX, y: (button.bounds.height - StripLayout.boxHeight) / 2,
+            parent: button, select: select)
+        elements = reconciled.elements
+        // The children are set only when the set changed: setting them again drops VoiceOver's focus.
+        if reconciled.rebuilt { button.setAccessibilityChildren(elements) }
         // The item's window exists only after layout; check on the next turn of the run loop.
         DispatchQueue.main.async { [weak self] in self?.checkRoom() }
     }
@@ -88,23 +96,6 @@ final class WorkspaceStripController: NSObject {
         return StripLayout.imageOriginX(
             buttonWidth: button.bounds.width, imageWidth: image.size.width, drawnImageMinX: drawn?.minX,
             drawnImageWidth: drawn?.width)
-    }
-
-    private func accessibilityElements(in button: NSStatusBarButton, image: NSImage) -> [NSAccessibilityElement] {
-        let originX = imageOriginX(in: button, image: image)
-        let y = (button.bounds.height - StripLayout.boxHeight) / 2
-        return boxes.enumerated().map { index, box in
-            let element = StripBoxElement(number: box.number, select: select)
-            element.setAccessibilityParent(button)
-            element.setAccessibilityRole(.button)
-            element.setAccessibilityLabel(StripModel.accessibilityLabel(box))
-            element.setAccessibilitySelected(box.isCurrent)
-            element.setAccessibilityFrameInParentSpace(
-                NSRect(
-                    x: originX + StripLayout.originX(ofBox: index), y: y, width: StripLayout.boxWidth,
-                    height: StripLayout.boxHeight))
-            return element
-        }
     }
 
     private func checkRoom() {
@@ -175,14 +166,37 @@ final class WorkspaceStripController: NSObject {
 
 /// One box as an accessibility element: pressing it switches to its workspace.
 @MainActor
-private final class StripBoxElement: NSAccessibilityElement {
-    private let number: Int
+final class StripBoxElement: NSAccessibilityElement {
+    let number: Int
     private let select: @MainActor (Int) -> Void
 
     init(number: Int, select: @escaping @MainActor (Int) -> Void) {
         self.number = number
         self.select = select
         super.init()
+    }
+
+    /// Brings `existing` up to date with `boxes`. When the numbers are the same, the very same elements are updated in
+    /// place (label, selected state, frame) and `rebuilt` is false; otherwise new ones are made.
+    static func reconcile(
+        _ existing: [StripBoxElement], boxes: [StripBox], originX: CGFloat, y: CGFloat, parent: Any?,
+        select: @escaping @MainActor (Int) -> Void
+    ) -> (elements: [StripBoxElement], rebuilt: Bool) {
+        let rebuilt = existing.map(\.number) != boxes.map(\.number)
+        let elements = rebuilt ? boxes.map { StripBoxElement(number: $0.number, select: select) } : existing
+        for (index, (element, box)) in zip(elements, boxes).enumerated() {
+            if rebuilt {
+                element.setAccessibilityParent(parent)
+                element.setAccessibilityRole(.button)
+            }
+            element.setAccessibilityLabel(StripModel.accessibilityLabel(box))
+            element.setAccessibilitySelected(box.isCurrent)
+            element.setAccessibilityFrameInParentSpace(
+                NSRect(
+                    x: originX + StripLayout.originX(ofBox: index), y: y, width: StripLayout.boxWidth,
+                    height: StripLayout.boxHeight))
+        }
+        return (elements, rebuilt)
     }
 
     /// AppKit's override point is not main-actor isolated, so the switch is handed to the main actor instead of

@@ -49,7 +49,8 @@ import Testing
     @Test func aBoxIsAnnouncedWithItsNumberItsWindowsAndWhetherItIsCurrent() {
         let current = StripBox(number: 3, windowCount: 4, isCurrent: true, isShownElsewhere: false)
         #expect(StripModel.accessibilityLabel(current).hasPrefix("Workspace 3, "))
-        #expect(StripModel.accessibilityLabel(current).hasSuffix(", current"))
+        // "Current" is the element's selected state, not a second word in the label (VoiceOver would say both).
+        #expect(StripModel.accessibilityLabel(current) == "Workspace 3, 4 windows")
         let elsewhere = StripBox(number: 2, windowCount: 0, isCurrent: false, isShownElsewhere: true)
         #expect(StripModel.accessibilityLabel(elsewhere) == "Workspace 2, No windows, shown on another display")
         let other = StripBox(number: 1, windowCount: 0, isCurrent: false, isShownElsewhere: false)
@@ -259,5 +260,28 @@ import Testing
             let x = StripLayout.clickX(eventX: 50, cursorScreenX: rect.midX, itemFrame: frame) - 9
             #expect(StripLayout.index(atX: x, boxCount: 4) == index)
         }
+    }
+
+    /// Round-13 audit L2: the children are updated in place while the set of boxes is unchanged (VoiceOver keeps its
+    /// focus), and rebuilt when it changes; "current" is one cue, the selected state.
+    @MainActor @Test func theAccessibilityChildrenSurviveARedrawThatKeepsTheSameBoxes() {
+        func boxes(current: Int, count: Int = 3) -> [StripBox] {
+            (1...count).map {
+                StripBox(number: $0, windowCount: $0, isCurrent: $0 == current, isShownElsewhere: false)
+            }
+        }
+        let first = StripBoxElement.reconcile(
+            [], boxes: boxes(current: 1), originX: 9, y: 5, parent: nil, select: { _ in })
+        #expect(first.rebuilt && first.elements.count == 3)
+        #expect(first.elements.map { $0.isAccessibilitySelected() } == [true, false, false])
+        let second = StripBoxElement.reconcile(
+            first.elements, boxes: boxes(current: 2), originX: 9, y: 5, parent: nil, select: { _ in })
+        #expect(!second.rebuilt)
+        #expect(zip(first.elements, second.elements).allSatisfy { $0 === $1 })
+        #expect(second.elements.map { $0.isAccessibilitySelected() } == [false, true, false])
+        #expect(second.elements[1].accessibilityLabel() == "Workspace 2, 2 windows")
+        let grown = StripBoxElement.reconcile(
+            second.elements, boxes: boxes(current: 2, count: 4), originX: 9, y: 5, parent: nil, select: { _ in })
+        #expect(grown.rebuilt && grown.elements.count == 4)
     }
 }

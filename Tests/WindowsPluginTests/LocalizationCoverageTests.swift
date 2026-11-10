@@ -12,7 +12,7 @@ import Testing
 
     /// Strings that read the same in English and Polish (symbols and format-only text).
     private static let sameInBothLanguages: Set<String> = [
-        "%@: %@", "%@", "%lld%%", "%lld pt", "%lld px", "Esc", "⌘S",
+        "%@: %@", "%@", "%lld%%", "%lld pt", "Esc", "⌘S",
     ]
 
     struct Entry {

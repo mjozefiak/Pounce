@@ -520,13 +520,13 @@ import os
         trust.onChange = { changes.values.append($0) }
         #expect(!trust.refresh())
         trust.startPolling { true }
-        await clock.waitForSleepers(1)
+        await clock.waitForSleepers(1, limit: .seconds(30))
         permissions.set(true)
         clock.advance(0.01)
         await trust.waitForPolls(1)
         #expect(trust.isTrusted)
         // Another interval later it is still trusted and nothing is reported twice.
-        await clock.waitForSleepers(1)
+        await clock.waitForSleepers(1, limit: .seconds(30))
         clock.advance(0.01)
         await trust.waitForPolls(2)
         trust.stop()

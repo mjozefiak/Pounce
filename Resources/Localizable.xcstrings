@@ -13723,24 +13723,6 @@
         }
       }
     },
-    "current" : {
-      "comment" : "Strip: spoken after the workspace the user is on",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "current"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "bieżący"
-          }
-        }
-      }
-    },
     "shown on another display" : {
       "comment" : "Strip: spoken for a workspace on another display",
       "extractionState" : "manual",
@@ -16851,24 +16833,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mniejszy odstęp"
-          }
-        }
-      }
-    },
-    "%lld px" : {
-      "comment" : "Layout editor: the space around zones in points",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld px"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld px"
           }
         }
       }

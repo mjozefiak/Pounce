@@ -37,7 +37,7 @@ import os
         let waiting = Box<Bool>()
         Task { await waiting.set(await owner.waitUntilIdle(within: .seconds(5), clock: clock)) }
         await waitersOf(owner, atLeast: 1)
-        await clock.waitForSleepers(1)
+        await clock.waitForSleepers(1, limit: .seconds(30))
         clock.advance(5)
         await eventually("the timed-out wait returned") { await waiting.value != nil }
         #expect(await waiting.value == false)
@@ -92,7 +92,7 @@ import os
                 await owner.exclusive(within: .seconds(5), clock: clock) { _ in await ran.release() })
         }
         await waitersOf(owner, atLeast: 1)
-        await clock.waitForSleepers(1)
+        await clock.waitForSleepers(1, limit: .seconds(30))
         clock.advance(5)
         await eventually("the pass that waited too long returned") { await waiting.value != nil }
         guard case .cancelled? = await waiting.value else {

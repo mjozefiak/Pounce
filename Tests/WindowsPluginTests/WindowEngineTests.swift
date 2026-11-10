@@ -514,9 +514,9 @@ extension WindowEngineTests {
         await rig.engine.stop()
     }
 
-    /// Round-12 audit: a retry that was replaced after its sleep ended must not clear the newer task or double the
-    /// delay.
-    @Test func aStaleRetryDoesNothing() async throws {
+    /// Round-13 audit L4: the race itself. A retry whose sleep ended reaches the engine after the engine cleared or
+    /// re-armed the retry. It does nothing: no doubled delay, no extra look, no second chain.
+    @Test func aRetryThatReachesTheEngineAfterItWasClearedOrReplacedDoesNothing() async throws {
         let rig = try rig([makeWindow(1), makeWindow(2, pid: 200)], autoTick: false)
         defer { rig.harness.tearDown() }
         await rig.engine.start()
@@ -524,10 +524,30 @@ extension WindowEngineTests {
         await rig.engine.ingest(.resync)
         await rig.engine.flushEvents()
         #expect(await rig.time.waitForSleepers(1, limit: .seconds(30)))
-        let delayBefore = await rig.engine.currentRetryDelay
-        // The armed retry has generation 1 or later; generation -1 never matches.
-        await rig.engine.retryUnknown(generation: -1)
-        #expect(await rig.engine.currentRetryDelay == delayBefore)
+        let armed = await rig.engine.currentRetryGeneration
+        // 1. The app answers and the engine clears the retry before the old one got to run.
+        rig.client.setBehavior(.normal, forProcess: 100)
+        await rig.engine.ingest(.resync)
+        await rig.engine.flushEvents()
+        #expect(await rig.engine.currentRetryGeneration != armed)
+        let reads = rig.client.windowsReads
+        await rig.engine.retryUnknown(generation: armed)
+        await rig.engine.flushEvents()
+        #expect(await rig.engine.currentRetryDelay == WindowEngine.unknownRetry)
+        #expect(rig.client.windowsReads == reads)
+        // 2. The app hangs again: a new retry is armed; the old one still does nothing and starts no second chain.
+        rig.client.setBehavior(.hung, forProcess: 100)
+        await rig.engine.ingest(.resync)
+        await rig.engine.flushEvents()
+        #expect(await rig.time.waitForSleepers(1, limit: .seconds(30)))
+        let sleepers = rig.time.sleeperCount
+        let delay = await rig.engine.currentRetryDelay
+        let readsBefore = rig.client.windowsReads
+        await rig.engine.retryUnknown(generation: armed)
+        await rig.engine.flushEvents()
+        #expect(await rig.engine.currentRetryDelay == delay)
+        #expect(rig.time.sleeperCount == sleepers)
+        #expect(rig.client.windowsReads == readsBefore)
         await rig.engine.stop()
     }
 

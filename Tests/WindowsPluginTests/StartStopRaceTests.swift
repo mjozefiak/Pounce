@@ -83,7 +83,7 @@ import Testing
             hud: RecordingHUD(), activationCenter: NotificationCenter())
         let earlier = try #require(await plugin.journal.tryBeginEngine())
         let start = Task { try await plugin.activate() }
-        await harness.clock.waitForSleepers(1)
+        await harness.clock.waitForSleepers(1, limit: .seconds(30))
 
         await plugin.deactivate()
         await plugin.journal.endEngine(earlier)

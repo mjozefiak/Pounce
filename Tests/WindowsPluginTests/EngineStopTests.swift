@@ -56,7 +56,7 @@ import Testing
         await engine.start()
         let hide = Task { await engine.send(.showWorkspace(WorkspaceID(2)!)) }
         await client.waitUntilStalled(1)
-        await clock.waitForSleepers(1)
+        await clock.waitForSleepers(1, limit: .seconds(30))
         // The call waits for the stalled app and nothing else can end it.
         #expect(await engine.waitingCallers() == 1)
         clock.advance(2)

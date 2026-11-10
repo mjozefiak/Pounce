@@ -154,6 +154,25 @@ import Testing
         #expect(recorder.ran == ["toggle", "workspace.2", "toggle"])
     }
 
+    /// Round-13 audit L8: a file rewritten (truncated, then longer) between `prepare()` and the first poll is read from
+    /// its start, even when its last bytes look like the old ones.
+    @Test func aFileRewrittenBeforeTheFirstPollIsReadFromItsStart() async throws {
+        let (route, file, recorder) = try rig(existing: "windows.toggleLayout\n")
+        defer {
+            try? FileManager.default.removeItem(at: file)
+            try? FileManager.default.removeItem(at: file.appendingPathExtension("log"))
+        }
+        route.prepare()
+        try Data().write(to: file)
+        try append("windows.workspace.2\nwindows.toggleLayout\nwindows.toggleLayout\n", to: file)
+        await route.pollOnce()
+        #expect(recorder.ran == ["workspace.2", "toggle", "toggle"])
+        // The same file, appended to: only the new line runs.
+        try append("windows.workspace.2\n", to: file)
+        await route.pollOnce()
+        #expect(recorder.ran == ["workspace.2", "toggle", "toggle", "workspace.2"])
+    }
+
     /// Round-12 audit: a character split across two polls arrives whole.
     @Test func aMultiByteCharacterSplitAcrossPollsIsNotMangled() async throws {
         let (route, file, recorder) = try rig()

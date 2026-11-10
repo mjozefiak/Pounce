@@ -25,8 +25,10 @@ final class QACommandRoute {
     /// Bytes read but not yet a whole line: a multi-byte character may be split across two polls, so only complete
     /// lines are decoded.
     private var pending = Data()
-    /// The last bytes already read, and the file they came from: a file replaced by one of the same or a larger
-    /// size (a truncate and rewrite) is noticed by them.
+    /// What identifies the part of the file already read: the first and the last bytes of it and the file's number
+    /// (inode). A file replaced, or truncated and rewritten, shows a different one even when it ends up as long as
+    /// before (only an in-place rewrite to the same bytes cannot be told apart, and it would run the same commands).
+    private var head = Data()
     private var tail = Data()
     private var fileNumber: Int?
     private static let tailLength = 16
@@ -47,13 +49,28 @@ final class QACommandRoute {
         self.qaPlugin = qaPlugin
     }
 
-    /// Creates the file when it does not exist and, unless the run replays, starts at its end.
+    /// Creates the file when it does not exist and, unless the run replays, starts at its end, remembering what the
+    /// part before it looked like (so a rewrite before the first poll is noticed too).
     func prepare() {
         if !FileManager.default.fileExists(atPath: file.path) {
             FileManager.default.createFile(atPath: file.path, contents: nil)
         } else if !replay {
             offset = ((try? FileManager.default.attributesOfItem(atPath: file.path))?[.size] as? Int) ?? 0
+            if let handle = try? FileHandle(forReadingFrom: file) {
+                defer { try? handle.close() }
+                remember(handle)
+            }
         }
+    }
+
+    /// Records the first and the last bytes before `offset` and the file's number.
+    private func remember(_ handle: FileHandle) {
+        let count = min(Self.tailLength, offset)
+        try? handle.seek(toOffset: 0)
+        head = (try? handle.read(upToCount: count)) ?? Data()
+        try? handle.seek(toOffset: UInt64(offset - count))
+        tail = (try? handle.read(upToCount: count)) ?? Data()
+        fileNumber = (try? FileManager.default.attributesOfItem(atPath: file.path))?[.systemFileNumber] as? Int
     }
 
     /// Starts polling.
@@ -81,13 +98,17 @@ final class QACommandRoute {
         let number = (try? FileManager.default.attributesOfItem(atPath: file.path))?[.systemFileNumber] as? Int
         var replaced = size < offset || (fileNumber != nil && number != fileNumber)
         if !replaced, offset > 0, !tail.isEmpty {
+            try? handle.seek(toOffset: 0)
+            let first = try? handle.read(upToCount: head.count)
             try? handle.seek(toOffset: UInt64(offset - tail.count))
-            replaced = (try? handle.read(upToCount: tail.count)) != tail
+            let last = try? handle.read(upToCount: tail.count)
+            replaced = first != head || last != tail
         }
         // A file that was emptied or replaced starts again from its beginning.
         if replaced {
             offset = 0
             pending = Data()
+            head = Data()
             tail = Data()
         }
         fileNumber = number
@@ -97,7 +118,7 @@ final class QACommandRoute {
         guard let data = try? handle.readToEnd() else { return }
         pending.append(data)
         offset += data.count
-        tail = Data((tail + data).suffix(Self.tailLength))
+        remember(handle)
         while let end = pending.firstIndex(of: 0x0A) {
             let line = String(decoding: pending[pending.startIndex..<end], as: UTF8.self)
                 .trimmingCharacters(in: .whitespaces)

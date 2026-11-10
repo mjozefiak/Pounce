@@ -73,7 +73,7 @@ import Testing
         let store = StateStore(directory: harness.directory, clock: clock, saveDelay: .seconds(5))
         await store.load()
         await store.setOrder([ws(2): [win(5)]])
-        await clock.waitForSleepers(1)
+        await clock.waitForSleepers(1, limit: .seconds(30))
         #expect(!FileManager.default.fileExists(atPath: store.fileURL.path))
         clock.advance(5)
         await store.waitForPendingSave()
