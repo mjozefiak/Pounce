@@ -153,7 +153,8 @@ final class AppCoordinator {
         let route = QACommandRoute(
             file: file, commands: { host.activeCommands },
             qaPlugin: { id in
-                host.entries.first { $0.manifest.id.rawValue == id && $0.state.isActive }?.plugin as? any PluginQACommands
+                host.entries.first { $0.manifest.id.rawValue == id && $0.state.isActive }?.plugin
+                    as? any PluginQACommands
             })
         route.start()
         qaRoute = route

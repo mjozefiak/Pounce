@@ -15,7 +15,12 @@ final class ScriptedFiles: LayoutFileAccess {
     final class AppPicker: Sendable {
         private let value = Mutex<String?>(nil)
         func set(_ bundleID: String?) { value.withLock { $0 = bundleID } }
-        func take() -> String? { value.withLock { current in defer { current = nil }; return current } }
+        func take() -> String? {
+            value.withLock { current in
+                defer { current = nil }
+                return current
+            }
+        }
     }
 
     func chooseImport() -> URL? {
