@@ -138,6 +138,9 @@ public protocol PasteboardClient: Sendable {
     /// Replaces the contents with these items and returns the new `changeCount`. Added in Phase 2; the
     /// default writes the first plain-text representation through `setString`.
     @MainActor @discardableResult func write(_ items: [PasteboardItem]) -> Int
+    /// Like `write(_:)` with options. Added with the Notes workspace; the default ignores the options and calls
+    /// `write(_:)`, so every conformer compiles unchanged.
+    @MainActor @discardableResult func write(_ items: [PasteboardItem], options: PasteboardWriteOptions) -> Int
     /// The pasteboard privacy setting for Lintel. Added in Phase 2; the default is `.alwaysAllow`.
     @MainActor var accessBehavior: PasteboardAccess { get }
 }
@@ -175,6 +178,19 @@ extension PasteboardClient {
     }
 
     @MainActor public var accessBehavior: PasteboardAccess { .alwaysAllow }
+
+    @MainActor @discardableResult public func write(_ items: [PasteboardItem], options: PasteboardWriteOptions) -> Int {
+        write(items)
+    }
+}
+
+/// How `PasteboardClient.write(_:options:)` writes. Added with the Notes workspace.
+public struct PasteboardWriteOptions: OptionSet, Sendable {
+    public let rawValue: Int
+    public init(rawValue: Int) { self.rawValue = rawValue }
+
+    /// Keep the contents on this Mac: no Handoff or Universal Clipboard.
+    public static let currentHostOnly = PasteboardWriteOptions(rawValue: 1 << 0)
 }
 
 /// Why a synthetic paste could not be posted.

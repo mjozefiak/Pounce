@@ -1,4 +1,5 @@
 import Foundation
+import LintelCore
 
 /// One utterance of the transcript as the notes see it: who said it, when, and the plain text.
 struct NotesUtterance: Equatable, Sendable {
@@ -23,7 +24,7 @@ struct NotesUtterance: Equatable, Sendable {
     }
 
     static func sanitized(_ text: String) -> String {
-        var result = MarkdownExporter.cleaned(text, keepNewlines: false)
+        var result = MarkdownText.cleaned(text, keepNewlines: false)
         // A bar would make a sentence of the transcript look like a point line (`TASK | …`) to the model.
         result = result.replacingOccurrences(of: "|", with: "/")
         result = NotesText.strippingPromptTags(result)

@@ -1,0 +1,63 @@
+<unit id="1">
+<before>
+## Links
+</before>
+<blocks count="1">
+Open the roadmap.
+</blocks>
+<after>
+Publish the changelog.
+
+Ping the vendor.
+</after>
+<comments>
+- Add a picture of it.
+</comments>
+</unit>
+<unit id="2">
+<before>
+## Links
+
+Open the roadmap.
+</before>
+<blocks count="1">
+Publish the changelog.
+</blocks>
+<after>
+Ping the vendor.
+
+Book the room.
+</after>
+<comments>
+- Make it interactive.
+</comments>
+</unit>
+<unit id="3">
+<before>
+Open the roadmap.
+
+Publish the changelog.
+</before>
+<blocks count="1">
+Ping the vendor.
+</blocks>
+<after>
+Book the room.
+</after>
+<comments>
+- Add their site.
+</comments>
+</unit>
+<unit id="4">
+<before>
+Publish the changelog.
+
+Ping the vendor.
+</before>
+<blocks count="1">
+Book the room.
+</blocks>
+<comments>
+- Which room?
+</comments>
+</unit>

@@ -49,13 +49,19 @@ import Testing
 
     @Test func meetingsAndDictationOfferTheUncheckedBox() throws {
         for id: PluginID in ["meetings", "dictation"] {
-            let confirmation = FeatureEraseRow.confirmation(for: Self.manifest(id))
+            let confirmation = FeatureEraseRow.confirmation(for: Self.manifest(id), keptCopies: 3)
             let option = try #require(confirmation.option)
             #expect(option.isOnByDefault == false)
             #expect(option.title.key == "Also delete kept copies")
             try DestructiveConfirmationTests.expectTranslated(option.title)
             try DestructiveConfirmationTests.expectTranslated(try #require(option.explanation))
             #expect(confirmation.confirmTitle.key == "Erase Data")
+        }
+    }
+
+    @Test func withoutKeptCopiesThereIsNoCheckbox() {
+        for id: PluginID in ["meetings", "dictation"] {
+            #expect(FeatureEraseRow.confirmation(for: Self.manifest(id), keptCopies: 0).option == nil)
         }
     }
 
@@ -66,14 +72,16 @@ import Testing
         #expect(FeatureEraseRow.eraseConfirmation(for: Self.manifest("meetings")).option == nil)
     }
 
-    @Test func theCheckboxIsGuardedAndReachesTheEraseAction() throws {
+    @Test func theCheckboxIsInEveryBuildAndReachesTheEraseAction() throws {
         let url = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
             .deletingLastPathComponent().deletingLastPathComponent()
         let pane = try String(
             contentsOf: url.appending(path: "Sources/LintelApp/Settings/FeaturesPane.swift"), encoding: .utf8)
         #expect(pane.contains("entry.manifest.id, alsoDeleteKeptCopies: alsoDeleteKeptCopies"))
-        let guarded = try #require(pane.range(of: "#if DEBUG\n        guard featuresWithNotesCopies"))
-        let release = try #require(pane.range(of: "#else\n        return confirmation\n        #endif"))
-        #expect(guarded.upperBound <= release.lowerBound)
+        #expect(pane.contains("guard featuresWithNotesCopies"))
+        // Step 7.1 removed the guard: no line of the sentence is left out of a release build.
+        let debugOnly = ReleaseGateTests.debugOnlyLines(pane).joined(separator: "\n")
+        #expect(!debugOnly.contains("featuresWithNotesCopies"))
+        #expect(!debugOnly.contains("keptNotesCopies"))
     }
 }

@@ -89,6 +89,12 @@ struct AppEnvironment {
     ///   - claimEscapeKey: the shell's temporary Escape claim.
     ///   - openSettings: opens the plugin's own Settings pane.
     ///   - openModels: opens the Models pane, or the pane that shows the model (`MainWindowRouter`).
+    ///   - availableCommands: the commands of the active plugins and the shell for the Notes palette.
+    ///   - noteSources: the active plugins' note sources (`NoteSourcesRelay`).
+    ///   - noteSourcesChanged: yields when a plugin was switched on or off.
+    ///   - openNote: asks the main window's sections to show a note.
+    ///   - keptNoteCopies, deleteKeptNoteCopies: what Notes keeps of a plugin's recordings and its removal
+    ///     (`NoteSourcesRelay`, answered by the plugin that implements `keptNoteCopyCount`).
     func makeContext(
         for manifest: PluginManifest,
         resultsChanged: @escaping @Sendable () -> Void = {},
@@ -99,7 +105,13 @@ struct AppEnvironment {
         openSettings: @escaping @MainActor @Sendable () -> Void = {},
         openModels: @escaping @MainActor @Sendable (String?) -> Void = { _ in },
         setCommandShortcut: @escaping @MainActor @Sendable (String, KeyShortcut?) -> Void = { _, _ in },
-        commandShortcut: @escaping @MainActor @Sendable (String) -> KeyShortcut? = { _ in nil }
+        commandShortcut: @escaping @MainActor @Sendable (String) -> KeyShortcut? = { _ in nil },
+        availableCommands: @escaping @MainActor @Sendable () -> [CommandInfo] = { [] },
+        noteSources: @escaping @MainActor @Sendable () -> [any NoteSource] = { [] },
+        noteSourcesChanged: @escaping @Sendable () -> AsyncStream<Void> = { AsyncStream { $0.finish() } },
+        openNote: @escaping @MainActor @Sendable (NoteKey) -> Bool = { _ in false },
+        keptNoteCopies: @escaping @MainActor @Sendable (PluginID) async -> Int = { _ in 0 },
+        deleteKeptNoteCopies: @escaping @MainActor @Sendable (PluginID, Bool) async -> Bool = { _, _ in true }
     ) -> PluginContext {
         PluginContext(
             storageDirectory: storageDirectory(for: manifest.id),
@@ -118,12 +130,18 @@ struct AppEnvironment {
             claimEscapeKey: claimEscapeKey,
             openSettings: openSettings,
             modelsDirectory: modelsDirectory,
+            availableCommands: availableCommands,
             openModels: openModels,
             windows: windowClient,
             setCommandShortcut: setCommandShortcut,
             commandShortcut: commandShortcut,
             services: services,
-            pluginID: manifest.id
+            pluginID: manifest.id,
+            noteSources: noteSources,
+            noteSourcesChanged: noteSourcesChanged,
+            openNote: openNote,
+            keptNoteCopies: keptNoteCopies,
+            deleteKeptNoteCopies: deleteKeptNoteCopies
         )
     }
 
@@ -170,10 +188,13 @@ struct AppEnvironment {
         try createPrivateDirectory(root, fileManager: fileManager)
         let fileHome = root.appending(path: "files-home", directoryHint: .isDirectory)
         try createPrivateDirectory(fileHome, fileManager: fileManager)
-        var seeded = qaAppActivitySettings(
-            qaFileIndexSettings(options.settings, emptyHome: fileHome.path),
-            activity: options.appActivity,
-            live: options.liveAppActivity
+        var seeded = qaNotesSettings(
+            qaAppActivitySettings(
+                qaFileIndexSettings(options.settings, emptyHome: fileHome.path),
+                activity: options.appActivity,
+                live: options.liveAppActivity
+            ),
+            fixtures: options.notesFixtures
         )
         // A QA run never opens an open or save panel: they write their sizes into the real defaults domain.
         if seeded[QAOptions.windowsScriptedFilesKey] == nil { seeded[QAOptions.windowsScriptedFilesKey] = .bool(true) }
@@ -218,6 +239,13 @@ struct AppEnvironment {
         if settings[QAOptions.filesRootsKey] == nil {
             result[QAOptions.filesRootsKey] = home
         }
+        return result
+    }
+
+    /// `--qa-notes` turns on `plugins.notes.qaFixtures`, so the Notes section lists its fixture notes.
+    static func qaNotesSettings(_ settings: [String: SettingValue], fixtures: Bool) -> [String: SettingValue] {
+        var result = settings
+        if fixtures { result[QAOptions.notesFixturesKey] = .bool(true) }
         return result
     }
 

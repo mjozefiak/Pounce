@@ -1,0 +1,15 @@
+<unit id="1">
+<before>
+## Plan
+</before>
+<blocks count="1">
+The release goes out on Friday after QA signs it off.
+</blocks>
+<after>
+Marketing prepares the announcement.
+</after>
+<comments>
+- Which Friday? Give the date.
+- Say who in QA.
+</comments>
+</unit>

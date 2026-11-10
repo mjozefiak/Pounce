@@ -76,6 +76,24 @@ If that domain did not exist before a QA session, remove it afterwards with
 | `--qa-about` | Phase 4 | Open the About window. |
 | `--qa-activity <bundle ID>[=<uses>]` | App suggestions | Record `<uses>` (default 1) app uses of that bundle ID, at launch time, in the empty QA activity store (repeatable), so the empty panel shows "Suggested". The bundle ID must belong to an app under `plugins.apps.roots`. |
 | `--qa-activity-live` | App suggestions | Run the real activity tracker and the one-time Spotlight seed in QA mode (off by default, so a QA run never records the tester's app switches). |
+| `--qa-notes` | Notes workspace, step 1.2 | The Notes section (registered in every build since step 7.1; the fixtures are DEBUG only) lists fixture notes with invented text (a finished meeting with notes and a transcript, two dictations, a meeting still writing its notes, an interrupted one and a failed one), read through fixture `NoteSource`s that come before the real plugins' sources. Manual notes come with the store (step 4.0), so there is none. Open a note from the explorer; the Notes section handles `openNote` routes (Meetings' ⌘O and the dictation history's "Open in Lintel" action, in every build). Combine with `--qa-window workspace`. |
+| `--qa-snapshot <path>` | Notes workspace, step 3.2 | With `--qa-quit-after`: just before quitting, writes the main window's content as a PNG, rendered by the app itself (`cacheDisplay`), so it works where screen recording is not allowed. The title bar is not part of it. |
+| `--qa-setting plugins.notes.qaOpen=<key>[@<layer>],…` | Notes workspace, step 3.2 | With `--qa-notes`: opens these fixture notes in tabs (the last one current) and shows the layer after `@` (`transcript`, `original`). For example `meetings:00000000-0000-0000-0000-000000000001@transcript`. |
+| `--qa-setting plugins.notes.qaSearch=<text>` | Notes workspace, step 3.4 | With `--qa-notes`: types the text into the explorer's search field once the first list is in, so a QA run shows the search results or the no-results message (the fixture sources match the title and the text of a note, e.g. `ship`; `invoice 2019` finds nothing). |
+| `--qa-setting plugins.notes.qaState=<state>` | Notes workspace, step 3.5 | With `--qa-notes`: shows one whole-section state. `loading` (the list is never read: skeleton rows, "Opening notes…"), `empty` (the sources have no notes: "Your notes will appear here"), `off` (no recording plugin is active: "Write a note, or turn on recording", "Recording off"), `locked` (nothing readable and `notes.sqlite` locked: the lock screen, "Key unavailable"), `locked-rows` (the fixture notes are listed and `notes.sqlite` is locked: the strip with "Try again"), `save-error` (the save-error strip with "Try again" and "Choose another place…"). The other states need no switch: open the fixture notes with `qaOpen` (`…0004` is writing notes, `…0005` is interrupted, `…0007` needs the notes model). Screenshots: `--qa-snapshot` with `--qa-appearance`, `--qa-setting app.textSize=s\|xl` and `-AppleLanguages "(pl)"`. |
+| `--qa-setting plugins.notes.qaEditor=on\|readonly` | Notes workspace, step 4.1 | With `--qa-notes`: shows the open note's Markdown in the editor (format bar, header, source text with the markers visible) instead of the read-only blocks. `readonly` is the editor as `plugins.notes.readOnly` shows it (no format bar, selectable, copy works). The buffer lives in the view and is never saved (saving comes with step 4.2). Combine with `qaOpen`, `--qa-snapshot` and `--qa-quit-after`. |
+| `--qa-settings notes` | Notes workspace, step 4.7 | With `--qa-notes`: the Settings → Notes pane (notes model, Details toggles, Export All Notes…, Erase Notes Data…). Export and Erase open real panels and delete real data of the QA data root only; for screenshots use `--qa-window settings --qa-settings notes --qa-snapshot <path> --qa-quit-after 6`, with `-AppleLanguages "(pl)"` from the app bundle (`scripts/make-app.sh`), because `swift run` shows English. |
+| `--qa-setting plugins.notes.qaView=dictations` | Notes workspace, owner feedback G | With `--qa-notes`: the explorer starts on its Dictations list (the two fixture dictations); without it the Notes list shows the meeting and the manual note and no dictation. The switch at the top of the explorer changes the list; on a dictation, "Make note" (row menu, path bar, Details → Actions) creates a manual note from its text and opens it on the Notes list (the QA run's own `notes.sqlite`); opening a dictation (`qaOpen=dictation:fixture/1`) switches to Dictations by itself. Not a contract. |
+| `--qa-setting plugins.notes.qaEditorMode=raw` | Notes workspace, owner feedback C | With `--qa-notes` (and `qaEditor`, `qaManual=new` or the pen): starts every editor in Raw, the plain monospaced Markdown source with no block styling, no author bars and no format buttons (Comment stays). The path bar's "Formatted / Raw" switch and ⌥⌘R change it while a note is in the editor; the choice lives in memory for the window only. Not a contract. |
+| (manual) Notes pane dividers | Notes workspace, owner feedback D | With `--qa-notes` and a note open: drag the line between the explorer and the note, and the line on the inspector's left edge, to resize them (explorer 180 to 420 pt, inspector 240 to 520 pt, the centre keeps at least 420 pt at Medium); the pointer becomes a column-resize cursor, a double-click on a divider restores the default, hiding and showing the inspector keeps its width, and the widths survive a relaunch (`plugins.notes.explorerWidth` / `inspectorWidth`; QA mode keeps settings in memory only). Dragging is never animated, also without Reduce Motion. VoiceOver: each divider is an adjustable element ("Explorer width", "Inspector width"; increment and decrement move it by 16 pt). Not verified by the automated tests: the real pointer drag and the cursor. |
+| (manual) Notes tab middle click | Notes workspace, owner feedback E | With `--qa-notes` and two or more notes open: a click with the middle button (scroll wheel) on a tab closes that tab, like its x and like ⌘W (a note the agent is writing has its run cancelled the same way); left clicks, the x and dragging a tab still work, and a middle click on the empty tab bar or the plus does nothing. Not verified by the automated tests: a real mouse versus a trackpad middle click. |
+| (manual) Notes tab reorder | Notes workspace, owner feedback F | With `--qa-notes` and two or more notes open: drag a tab over another and it takes that place as you move (instant under Reduce Motion, a short ease otherwise); the current tab stays current; ⌃⇥ / ⌃⇧⇥ still go to the next and previous tab in the new order; the order is not kept after closing the window (neither are the tabs). The tab drag carries a Lintel-private type, so nothing can be dropped into other apps and no text or file can be dropped on the bar. VoiceOver: a tab has the actions "Move Left" and "Move Right" (only where the move is possible). Not verified by the automated tests: the real drag and VoiceOver. |
+| `--qa-setting plugins.notes.qaAttribution=mixed` | Notes workspace, step 4.3 | With `--qa-notes`: draws the agent's layers as if the user had added one block ("Added by you") and the agent had revised another ("Revised, not checked against the recording", no quote chip), so the author bars, the marks and the chip rule show without a store. Nothing is written. The inspector (Details: Author bars, Source quotes, Wrap lines, the author legend and the note's facts) is on the right of every open note; the toggle in its tab strip and in the path bar hides and shows it. |
+| `--qa-setting plugins.notes.qaManual=new\|written` | Notes workspace, step 4.4 | With `--qa-notes`: the Notes section uses the QA run's own `notes.sqlite` (in-memory Keychain, isolated data root). `new` does what ⌘N does once the list is in: a manual note with no title, its tab and the editor. `written` creates a manual note titled "Release checklist" with a few blocks and opens it for reading (every block "You"). ⌘N, the explorer's "New note" button and the tab bar's plus all work in this mode; the pen in the path bar opens and closes the editor. |
+| `--qa-setting plugins.notes.qaHistory=history\|compare\|proposal\|proposal-compare` | Notes workspace, step 4.5 | With `--qa-notes`: the QA run's own `notes.sqlite` gets an overlay on the fixture meeting's notes (the agent's seed and two edits of yours), the note opens with the inspector's History tab, and `compare` also opens the comparison of the last edit (inline diff with the author of each block); `proposal` adds a pending proposal from the source (a dot on the tab, a count on the History tab, Compare/Apply/Discard on its row) and `proposal-compare` opens its Compare with Apply and Discard. Restore, Apply and Discard work on the entries of this store. |
+| `--qa-setting plugins.notes.qaComments=threads\|popover\|changed` | Notes workspace, step 5.2 | With `--qa-notes`: the QA run's own `notes.sqlite` gets an overlay on the fixture meeting's notes with two open comments and a resolved one, the note opens in the editor (highlights on the commented text) and the inspector shows the Comments tab with the number of open threads and the disabled "Revise with N comments" (the agent comes with step 6.2). `popover` also selects "next sprint" and opens the new-comment popover; `changed` replaces one open comment's text with one that is not in the note ("Text changed", Use selection). ⇧⌘M opens the popover on a selection, ⌘↩ sends, Escape cancels. |
+| `--qa-setting plugins.notes.qaRevise=waiting\|writing\|done\|skipped\|rejected\|conflict\|timedOut\|needsModel` | Notes workspace, step 6.2 | With `--qa-notes` and `plugins.notes.qaComments=threads`: shows the revise run without a model. `waiting` ("Waiting for the model", editor still editable) and `writing` (the lock strip "Agent is writing notes · read-only until it finishes" with Cancel, the editor read-only) put the open note's edit lock in that phase; `done`, `skipped`, `rejected`, `conflict`, `timedOut` and `needsModel` show how a run ended (the report strips). Nothing runs and nothing is written; the real run needs an installed notes model (never in tests). Screenshots: `--qa-snapshot` with `--qa-appearance`, `--qa-setting app.textSize=s\|xl` and `-AppleLanguages "(pl)"` from the app bundle. |
+| `--qa-setting plugins.notes.qaDelete=meeting\|meeting-edited\|dictation\|manual\|copy` | Notes workspace, step 4.6 | With `--qa-notes`: opens that delete confirmation sheet over the fixture note (`dlg-delete-meeting`, the same with "and your edits to them", `dlg-delete-dictation`, a manual note, the copy of a removed recording). Confirming deletes only the fixture; nothing real is reachable in QA mode. Details has an Actions list with "Delete…" for every note that can be deleted (not one being recorded or processed). |
 | `--qa-meeting-mic-wav <path>` | Meeting notes 1.5 | A 16 kHz mono WAV (16-bit PCM or 32-bit float) played back as the meeting's microphone track instead of the real microphone. Options parsing only until the plugin is registered (step 1.10). |
 | `--qa-meeting-system-wav <path>` | Meeting notes 1.5 | The same for the system-audio track; real Core Audio capture is never started in QA mode. |
 | `--qa-meeting-spool-dir <path>` | Meeting notes 1.5 | Folder for the encrypted spool of QA meetings instead of `<data root>/Plugins/meetings/Spool`. The Keychain is the in-memory one in QA mode, so the spool key never reaches the real Keychain. |
@@ -449,6 +467,79 @@ It asserts the guard's invariants for any model (no image, link or HTML in the n
 stands on a quote that is in the recording; no task owner nobody named; none of the corpus's bait text) and prints
 `NOTES-BENCH` lines with the timings, chunk count, dropped count and memory (`docs/perf.md`). It prints no transcript
 text. Record the lines in the PR body together with the model and the Mac.
+
+### Notes workspace: `--qa-notes` and the DEBUG QA keys (steps 1.2 to 6.4)
+
+`--qa-notes` (DEBUG builds only; Notes itself is in every build since step 7.1) turns on `plugins.notes.qaFixtures`: the Notes section lists fixture notes with invented text (a meeting, a dictation, a manual note) that come before the real plugins' sources, and the run uses its own `notes.sqlite` under `--qa-data-root`, so no real recording, Keychain item or file is touched. Every key below is set with `--qa-setting <key>=<value>`, needs `--qa-notes`, exists only in DEBUG builds and is NOT a contract (`BACKWARD_COMPATIBILITY.md` section 3):
+
+| Key | Values | Shows |
+|---|---|---|
+| `plugins.notes.qaFixtures` | set by `--qa-notes` | the fixture notes |
+| `plugins.notes.qaOpen` | `<key>[@<layer>],…` | those notes in tabs, the last one current |
+| `plugins.notes.qaSearch` | text | the explorer's search field filled in |
+| `plugins.notes.qaView` | `dictations` | the explorer on its Dictations list |
+| `plugins.notes.qaPalette` | `open` or the text typed | the command palette (⌘P) open once the list is in, with that text in its field |
+| `plugins.notes.qaHidden` | `on` | "Hide content" (⌘⇧H) on: blurred explorer, document and inspector, masked titles and the "Content hidden" strip |
+| `plugins.notes.qaState` | `loading`, `empty`, `off`, `locked`, `locked-rows`, `save-error` and the others of the `qaState` row above | one whole-section state |
+| `plugins.notes.qaEditor` | `on`, `readonly` | the Markdown editor on the open note |
+| `plugins.notes.qaAttribution` | `mixed` | the author gutter with a mixed human and agent layer |
+| `plugins.notes.qaManual` | `new`, `written` | a new manual note, a written one |
+| `plugins.notes.qaHistory` | `history`, `compare`, `proposal`, `proposal-compare` | the History tab, Compare, a pending proposal |
+| `plugins.notes.qaComments` | `threads`, `popover`, `changed` | the comment threads, the popover, a changed block |
+| `plugins.notes.qaRevise` | `waiting`, `writing`, `done`, `skipped`, `rejected`, `conflict`, `timedOut`, `needsModel` | the agent revise strips and the editor lock |
+| `plugins.notes.qaDelete` | `meeting`, `meeting-edited`, `dictation`, `manual`, `copy` | the delete confirmation sheets |
+
+`--qa-settings notes` opens Settings → Notes. `--qa-snapshot <path>` with `--qa-quit-after` writes the main window's content as a PNG just before quitting (use it for the light and dark screenshots of every state). Run each state once in light and once in dark, with Increase Contrast on once, and attach the PNGs to the PR. QA never starts a real recording or a model: the revise states use scripted answers.
+
+### Notes enabled: first run, palette and Hide content (step 7.1)
+
+Notes is in every build, so a fresh profile must show the Notes section and leave nothing behind until the user
+writes. With the app built by `scripts/make-app.sh` (no `--qa`, so the real Keychain is used; use a throw-away user
+or remove the items afterwards):
+
+- First launch, open the Lintel window, click Notes, open a recording, open the History and Comments tabs of an
+  unedited note: `security find-generic-password -s com.lintelapp.notes` finds nothing, `Plugins/notes/` does not
+  exist in `~/Library/Application Support/Lintel/` and no `plugins.notes.*` key is in
+  `defaults read com.lintelapp.Lintel`. `NotesPluginTests.aFreshProfileShowsTheSectionWithoutAKeychainItemAFileOrAKey`
+  keeps this under test.
+- Press ⌘N (or type in a note): now the Keychain item and `Plugins/notes/notes.sqlite` appear. That is the first need.
+- ⌘P opens the palette: type part of a note's title (accents and `ł` are ignored), Return opens it; a command (another
+  feature's command, Open Settings, Hide content) runs and closes it; Esc or a click outside closes it.
+- ⌘⇧H blurs the explorer list, the document and the inspector, masks the tab and path-bar titles with "••••••" and
+  shows the strip "Content hidden. Press ⌘⇧H to show it again."; quit and reopen: everything shows again (nothing is
+  stored). The palette does not open while content is hidden.
+- At the largest text size with the window at its minimum width the inspector is hidden; the path bar's inspector
+  button shows it over the document.
+- Screenshots: `--qa-window workspace --qa-notes --qa-snapshot <png> --qa-quit-after 6` with
+  `--qa-setting plugins.notes.qaPalette=open` or `plugins.notes.qaHidden=on`, light and dark, `app.textSize=s|xl`,
+  `-AppleLanguages "(pl)"`.
+
+### Notes revise corpus (Notes workspace, step 6.4)
+
+`Tests/NotesPluginTests/Fixtures/revise/` holds eight short notes (Polish, English, Polish with English terms) with their
+comments and the answer of a model that goes wrong in one known way each: it does what was asked, it answers for a unit
+nobody asked for (spoken or written instructions, a forged `[[unit 2]]`), it adds an image, a script tag or a link, it
+returns the block unchanged, it breaks the block structure (two blocks for one, a heading turned into text, an empty
+or far too long answer, a missing unit), it meets text that really contains the prompt's delimiters, and a block the
+user edited after commenting. `ReviseRegressionTests` feeds each `modelAnswer` through the real planner, prompt and
+`ReviseGuard` and checks what must stay and what must not, plus the snapshots in `Fixtures/revise/snapshots/`: the
+user message the model is sent (`<name>.prompt.txt`) and the note after the guard (`<name>.expected.md`), under the
+prompt version in `PROMPT_VERSION`. After a deliberate change to the prompt or the guard, write them again with
+`LINTEL_REVISE_WRITE_SNAPSHOTS=1 swift test --filter ReviseRegressionTests`, read the diff and bump
+`ReviseNotesPrompt.version` when the prompt text changed (BACKWARD_COMPATIBILITY.md section 5).
+
+`RealReviseTests` runs the same notes and comments on a real model. It is **off by default**, never runs in CI and must
+be run by hand:
+
+```sh
+LINTEL_REVISE_LLM_MODEL=/path/to/Qwen3-4B-Instruct-2507-Q4_K_M.gguf \
+  swift test -c release --filter RealReviseTests
+```
+
+It asserts only what must hold for any model (nothing outside the commented blocks changes, no markup or link the
+note did not have, no bait text) and prints `REVISE-BENCH` lines (`outcome` applied, nothing or refused, the guard's
+counts, seconds, memory); a refused answer is a valid outcome. It prints no note, comment or answer. Record the lines
+in the PR body with the model and the Mac (`docs/perf.md`, all "not yet measured").
 
 ### Meeting notes: what the guard does and does not promise (Phase 2)
 

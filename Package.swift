@@ -2,7 +2,7 @@
 import PackageDescription
 
 // Dependency graph (one way only, see AGENTS.md):
-//   LintelApp -> plugins (AppsPlugin, FilesPlugin, ClipboardPlugin, DictationPlugin, MeetingsPlugin, WindowsPlugin) -> LintelUI / LintelPersistence / LintelCore -> LintelKit
+//   LintelApp -> plugins (AppsPlugin, FilesPlugin, ClipboardPlugin, DictationPlugin, MeetingsPlugin, WindowsPlugin, NotesPlugin) -> LintelUI / LintelPersistence / LintelCore -> LintelKit
 //   LintelUI holds the shared views and brand tokens (SwiftUI and AppKit, no I/O) and imports only LintelKit and
 //   LintelCore (docs/decisions/0008-main-window-and-notes-library.md, decision 8)
 //   plugins that use speech (DictationPlugin, MeetingsPlugin) -> LintelSpeech, which depends on no repository target
@@ -121,6 +121,19 @@ let package = Package(
             // PluginRegistry in step 1.12 (off by default).
             dependencies: ["LintelKit", "LintelCore", "LintelPersistence", "LintelUI"]
         ),
+        .target(
+            name: "NotesPlugin",
+            dependencies: [
+                "LintelKit",
+                "LintelCore",
+                "LintelPersistence",
+                "LintelSpeech",
+                "LintelUI",
+                // The plugin owns notes.sqlite and its migrator, like MeetingsPlugin owns meetings.sqlite
+                // (spec 2026-11-04-notes-workspace, 4.0).
+                .product(name: "GRDB", package: "GRDBCipher"),
+            ]
+        ),
         .executableTarget(
             name: "LintelApp",
             dependencies: [
@@ -136,6 +149,7 @@ let package = Package(
                 "DictationPlugin",
                 "MeetingsPlugin",
                 "WindowsPlugin",
+                "NotesPlugin",
                 .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
             ],
             swiftSettings: [.defaultIsolation(MainActor.self)]
@@ -191,6 +205,14 @@ let package = Package(
         .testTarget(
             name: "WindowsPluginTests",
             dependencies: ["WindowsPlugin", "LintelKit", "LintelPersistence"]
+        ),
+        .testTarget(
+            name: "NotesPluginTests",
+            dependencies: [
+                "NotesPlugin", "LintelKit", "LintelCore", "LintelPersistence", "LintelSpeech", "LintelUI",
+                .product(name: "GRDB", package: "GRDBCipher"),
+            ],
+            resources: [.copy("Fixtures")]
         ),
         .testTarget(
             name: "LintelSpeechTests",

@@ -431,7 +431,7 @@ actor PlainRecorder: UsageRecorder {
         ]
         let footers = makeFooters(pages)
         #expect(footers.map(\.primary) == [.continueToNext, .useShortcut, .continueToNext, .openNotes])
-        #expect(footers.map(\.primaryTitle) == ["Continue", "Use This Shortcut", "Continue", "Open Lintel"])
+        #expect(footers.map(\.primaryTitle) == ["Continue", "Use This Shortcut", "Continue", "Open Notes"])
         // Skip on every page as drawn; Back only after the first page.
         #expect(footers.map(\.showsSkip) == [true, true, true, true])
         #expect(footers.map(\.showsBack) == [false, true, true, true])
@@ -457,11 +457,11 @@ actor PlainRecorder: UsageRecorder {
         #expect(WelcomeColumnView.text(for: WelcomePage(kind: .plugin(described)), shortcut: nil) == "What B does.")
         #expect(
             WelcomeColumnView.text(for: WelcomePage(kind: .done), shortcut: "⌘Space")
-                == "Open Lintel with ⌘Space. Settings and meetings are in the Lintel window: click the Dock icon or press ⌘,."
+                == "Open Lintel with ⌘Space. Your notes live in the Lintel window: click the Dock icon or press ⌘,."
         )
         #expect(
             WelcomeColumnView.text(for: WelcomePage(kind: .done), shortcut: nil)
-                == "Settings and meetings are in the Lintel window: click the Dock icon or press ⌘,.")
+                == "Your notes live in the Lintel window: click the Dock icon or press ⌘,.")
     }
 
     @Test func singleColumnKeyboardActionsKeepTheCompletionKeys() throws {

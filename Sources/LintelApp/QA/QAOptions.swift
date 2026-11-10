@@ -31,6 +31,9 @@ struct QAOptions: Equatable {
     var showsMenu = false
     /// `--qa-quit-after <seconds>`: closes any open menu and quits after the delay.
     var quitAfter: Duration?
+    /// `--qa-snapshot <path>`: before `--qa-quit-after` quits, writes the main window's content as a PNG. It renders
+    /// the app's own views (`cacheDisplay`), so it needs no screen-recording permission.
+    var snapshotPath: String?
     /// `--qa-setting <key>=<value>` (repeatable): seeds the in-memory settings. `true`/`false` become
     /// booleans, integers become integers, anything else a string.
     var settings: [String: SettingValue] = [:]
@@ -77,6 +80,9 @@ struct QAOptions: Equatable {
     var appActivity: [String] = []
     /// `--qa-activity-live`: lets the real activity tracker and Spotlight seed run in QA mode.
     var liveAppActivity = false
+    /// `--qa-notes`: the Notes section lists fixture notes (spec `2026-11-04-notes-workspace`, step 1.2). No store
+    /// exists before step 4.0, so fixtures are all it can show.
+    var notesFixtures = false
     /// `--qa-meeting-mic-wav <path>` / `--qa-meeting-system-wav <path>`: 16 kHz mono WAV files played back as
     /// the meeting's microphone and system tracks instead of real audio (meeting notes, step 1.5). Real
     /// capture is never started in QA mode.
@@ -111,6 +117,8 @@ struct QAOptions: Equatable {
     /// The app plugin's DEBUG-only activity keys (`AppEnvironment.qaAppActivitySettings`).
     static let appsActivityKey = "plugins.apps.qaActivity"
     static let appsLiveActivityKey = "plugins.apps.qaLiveActivity"
+    /// The Notes plugin's DEBUG-only fixtures key (`AppEnvironment.qaNotesSettings`).
+    static let notesFixturesKey = "plugins.notes.qaFixtures"
     /// Settings that `--qa-setting` reads as comma-separated lists.
     static let listSettingKeys: Set<String> = [
         SettingsKeys.sectionOrder, "plugins.apps.suggestions.hidden", "plugins.windows.floatingApps",
@@ -149,6 +157,9 @@ struct QAOptions: Equatable {
                     throw .invalidValue(argument, value)
                 }
                 options.quitAfter = .milliseconds(Int(seconds * 1000))
+            case "--qa-snapshot":
+                guard let value = iterator.next() else { throw .missingValue(argument) }
+                options.snapshotPath = value
             case "--qa-setting":
                 guard let value = iterator.next() else { throw .missingValue(argument) }
                 guard let separator = value.firstIndex(of: "="), separator != value.startIndex else {
@@ -225,6 +236,8 @@ struct QAOptions: Equatable {
                 options.appActivity.append(value)
             case "--qa-activity-live":
                 options.liveAppActivity = true
+            case "--qa-notes":
+                options.notesFixtures = true
             case "--qa-meeting-mic-wav":
                 options.meetingMicWAV = URL(filePath: try Self.pathValue(argument, iterator.next()))
             case "--qa-meeting-system-wav":

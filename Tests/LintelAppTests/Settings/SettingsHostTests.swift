@@ -29,6 +29,18 @@ final class BannerStatusPlugin: LintelPlugin {
     }
 }
 
+/// Fails to activate once and does not touch the shared `LifecycleLog` or `RecoveringPlugin.failuresLeft`: the settings
+/// suite runs in parallel with the serialized `PluginHostTests`, which assert on both (a shared log or counter made
+/// `PluginHostTests` fail whenever the two suites overlapped).
+final class FailingOncePlugin: LintelPlugin {
+    static let manifest = PluginManifest(
+        id: "recovering", displayName: "Recovering", symbolName: "r.circle", order: 7)
+
+    init(context: PluginContext) {}
+
+    func activate() async throws { throw TestError.activationFailed }
+}
+
 /// Fails to activate `StatusBox.failuresLeft` times, then starts.
 final class RecoveringPlugin: LintelPlugin {
     static let manifest = PluginManifest(
@@ -265,9 +277,7 @@ func settle() async {
 
     @Test func aFailedPluginGivesAnErrorDot() async {
         defer { env.tearDown() }
-        RecoveringPlugin.failuresLeft = 1
-        defer { RecoveringPlugin.failuresLeft = 0 }
-        let host = env.makeHost([RecoveringPlugin.self])
+        let host = env.makeHost([FailingOncePlugin.self])
         await host.start()
         let model = model(host)
         #expect(model.attention["recovering"] == .error)

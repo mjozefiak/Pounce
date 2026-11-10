@@ -32,6 +32,8 @@ final class AppCoordinator {
     private let settingsRelay: PluginSettingsRelay
     /// `PluginContext.resultsChanged` with the plugin's id, for the Settings banner.
     private let statusRelay = PluginStatusRelay()
+    /// `PluginContext.noteSources`, `noteSourcesChanged` and `openNote` (the Notes workspace).
+    private let noteSourcesRelay = NoteSourcesRelay()
     private let icons: IconCache
     /// Where app activations are posted (tests use their own centre).
     var activationCenter: NotificationCenter = .default
@@ -55,6 +57,7 @@ final class AppCoordinator {
         let settingsRelay = PluginSettingsRelay()
         self.settingsRelay = settingsRelay
         let statusRelay = statusRelay
+        let noteRelay = noteSourcesRelay
         let hotkeys = HotkeyService(
             registrar: registrar,
             settings: environment.settings,
@@ -80,7 +83,13 @@ final class AppCoordinator {
                     openSettings: { settingsRelay.open(manifest.id.rawValue) },
                     openModels: { packageID in settingsRelay.openModels(manifest.id.rawValue, packageID) },
                     setCommandShortcut: { commandID, shortcut in hotkeys.setCommandShortcut(commandID, shortcut) },
-                    commandShortcut: { commandID in hotkeys.commandShortcut(commandID)?.portable }
+                    commandShortcut: { commandID in hotkeys.commandShortcut(commandID)?.portable },
+                    availableCommands: { noteRelay.commands() },
+                    noteSources: { noteRelay.sources() },
+                    noteSourcesChanged: { noteRelay.changes() },
+                    openNote: { key in noteRelay.openNote(WorkspaceRoute(kind: "openNote", id: key.rawValue)) },
+                    keptNoteCopies: { owner in await noteRelay.keptCopies(owner) },
+                    deleteKeptNoteCopies: { owner, erased in await noteRelay.deleteKeptCopies(owner, erased) }
                 )
             },
             settings: environment.settings
@@ -99,6 +108,71 @@ final class AppCoordinator {
         settingsRelay.handler = { [weak self] id in self?.openSettings(pane: id) }
         settingsRelay.modelsHandler = { [weak self] id, packageID in self?.openModels(from: id, packageID: packageID) }
         statusRelay.handler = { [weak self] id in self?.settingsHost?.pluginResultsChanged(id) }
+        let host = host
+        let logger = logger
+        var reported = Set<String>()
+        noteRelay.sources = {
+            Self.activeNoteSources(
+                host, report: { if reported.insert($0).inserted { logger.error("\($0, privacy: .public)") } })
+        }
+        noteRelay.openNote = { [weak self] route in self?.openNote(route) ?? false }
+        noteRelay.commands = { [weak self] in self?.paletteCommands() ?? [] }
+        noteRelay.keptCopies = { [weak self] owner in await self?.host.keptNoteCopies(ofOwner: owner) ?? 0 }
+        noteRelay.deleteKeptCopies = { [weak self] owner, erased in
+            await self?.host.deleteKeptNoteCopies(ofOwner: owner, ownerErased: erased) ?? true
+        }
+        observeNoteSources()
+    }
+
+    /// The commands of the Notes palette: every active plugin command that is not a key-event command, with its
+    /// current shortcut, then Open Settings (⌘,). A `panelMode` command opens the launcher panel in that mode.
+    func paletteCommands() -> [CommandInfo] {
+        var commands = host.activeCommands.filter { $0.onKeyEvent == nil }.map { command in
+            CommandInfo(
+                title: command.title,
+                shortcut: hotkeys.commandShortcut(command.id)?.keyShortcut,
+                run: { [weak self] in self?.perform(command) })
+        }
+        commands.append(
+            CommandInfo(
+                title: LocalizedStringResource("Open Settings", comment: "Command palette: opens Settings"),
+                shortcut: KeyShortcut(key: ",", modifiers: [.command]),
+                run: { [weak self] in self?.openSettings() }))
+        return commands
+    }
+
+    /// The active plugins' note sources. A source whose `pluginID` is not its plugin's id, and any later source
+    /// of an id already taken, is dropped and reported once.
+    static func activeNoteSources(_ host: PluginHost, report: (String) -> Void = { _ in }) -> [any NoteSource] {
+        var taken = Set<PluginID>()
+        var result: [any NoteSource] = []
+        for entry in host.entries where entry.state.isActive {
+            for source in entry.plugin.noteSources {
+                guard source.pluginID == entry.manifest.id else {
+                    report("note source dropped: id does not match its plugin \(entry.manifest.id.rawValue)")
+                    continue
+                }
+                guard taken.insert(source.pluginID).inserted else {
+                    report("note source dropped: duplicate id \(source.pluginID.rawValue)")
+                    continue
+                }
+                result.append(source)
+            }
+        }
+        return result
+    }
+
+    /// Tells Notes when a plugin was switched on or off, failed or recovered: its set of sources changed.
+    private func observeNoteSources() {
+        withObservationTracking {
+            _ = host.entries.map(\.state)
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                guard let self else { return }
+                self.noteSourcesRelay.signalChanged()
+                self.observeNoteSources()
+            }
+        }
     }
 
     /// Builds the panel and windows, activates the enabled plugins, registers shortcuts and, while steps
@@ -513,6 +587,23 @@ final class AppCoordinator {
             case .workspace: window.showWorkspace()
             case .settings: window.showSettings(settingsPane)
             }
+        }
+    }
+
+    /// QA (`--qa-snapshot`): the main window's content as a PNG, rendered by the app itself.
+    func writeMainWindowSnapshotForQA(to path: String) {
+        guard let view = mainWindow?.window?.contentView,
+            let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds)
+        else {
+            logger.error("No main window to snapshot")
+            return
+        }
+        view.cacheDisplay(in: view.bounds, to: bitmap)
+        guard let data = bitmap.representation(using: .png, properties: [:]) else { return }
+        do {
+            try data.write(to: URL(filePath: path))
+        } catch {
+            logger.error("Cannot write the snapshot: \(String(describing: error), privacy: .public)")
         }
     }
 

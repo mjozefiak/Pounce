@@ -1,0 +1,11 @@
+<unit id="1">
+<before>
+## Notes
+</before>
+<blocks count="1">
+Profile: the mobile app ships, Intel: builds are slow. Data: 12 May (notes.md, v1.2.3, e.g. the pilot). Spec at https://example.com/spec for now.
+</blocks>
+<comments>
+- How slow? Give a number.
+</comments>
+</unit>

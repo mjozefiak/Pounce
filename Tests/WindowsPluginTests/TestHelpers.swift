@@ -61,3 +61,48 @@ func boundedMain<Value: Sendable>(
     await eventually(message, limit: limit) { await box.value != nil }
     return await box.value
 }
+
+/// A count a test waits on without polling: `wait(atLeast:)` returns when the count got there, or, after `limit` of
+/// real time, records an Issue instead of hanging (a busy main actor on a loaded runner may be slow, not stuck).
+final class CountGate: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = 0
+    private var waiters: [(id: UUID, atLeast: Int, continuation: CheckedContinuation<Bool, Never>)] = []
+    var count: Int { lock.withLock { value } }
+    func increment() {
+        let ready = lock.withLock { () -> [CheckedContinuation<Bool, Never>] in
+            value += 1
+            let due = waiters.filter { $0.atLeast <= value }
+            waiters.removeAll { $0.atLeast <= value }
+            return due.map(\.continuation)
+        }
+        for continuation in ready { continuation.resume(returning: true) }
+    }
+    @discardableResult
+    func wait(
+        atLeast target: Int, limit: Duration = .seconds(60), _ what: String,
+        sourceLocation: SourceLocation = #_sourceLocation
+    ) async -> Bool {
+        let id = UUID()
+        let watchdog = Task { [weak self] in
+            try? await ContinuousClock().sleep(for: limit)
+            guard !Task.isCancelled, let self else { return }
+            let waiter = self.lock.withLock { () -> CheckedContinuation<Bool, Never>? in
+                guard let index = self.waiters.firstIndex(where: { $0.id == id }) else { return nil }
+                return self.waiters.remove(at: index).continuation
+            }
+            waiter?.resume(returning: false)
+        }
+        let reached = await withCheckedContinuation { continuation in
+            let done = lock.withLock { () -> Bool in
+                if value >= target { return true }
+                waiters.append((id, target, continuation))
+                return false
+            }
+            if done { continuation.resume(returning: true) }
+        }
+        watchdog.cancel()
+        if !reached { Issue.record("never reached: \(what)", sourceLocation: sourceLocation) }
+        return reached
+    }
+}

@@ -1,5 +1,6 @@
 import Foundation
 import GRDB
+import LintelCore
 
 /// A read-only snapshot of one meeting: what the meeting window shows and `MarkdownExporter` writes.
 struct MeetingDocument: Sendable, Equatable {
@@ -32,6 +33,8 @@ struct MeetingDocument: Sendable, Equatable {
     var notesDroppedCount: Int
     var speakers: [Speaker]
     var segments: [Segment]
+    /// The speech model the recording was made with (Details in the Notes workspace).
+    var speechModelID: String? = nil
 
     func speaker(id: Int64?) -> Speaker? {
         guard let id else { return nil }
@@ -49,10 +52,25 @@ enum MeetingActionError: Error, Equatable {
 extension MeetingsStore {
     /// The whole meeting for the window and the export; `nil` when it does not exist.
     func loadDocument(id: Int64) throws -> MeetingDocument? {
+        try loadDocument(where: "id = ?", argument: id)
+    }
+
+    /// The same by the meeting's public `uuid` (the Notes workspace's key `meetings:<uuid>`).
+    func loadDocument(uuid: String) throws -> MeetingDocument? {
+        try loadDocument(where: "uuid = ?", argument: uuid)
+    }
+
+    private func loadDocument(where condition: String, argument: any DatabaseValueConvertible) throws
+        -> MeetingDocument?
+    {
         try read { db in
-            guard let row = try Row.fetchOne(db, sql: "SELECT * FROM meeting WHERE id = ?", arguments: [id]) else {
+            guard
+                let row = try Row.fetchOne(
+                    db, sql: "SELECT * FROM meeting WHERE \(condition)", arguments: [argument])
+            else {
                 return nil
             }
+            let id: Int64 = row["id"]
             let speakers = try Row.fetchAll(
                 db, sql: "SELECT * FROM meeting_speaker WHERE meeting_id = ? ORDER BY id", arguments: [id]
             ).map { row in
@@ -76,14 +94,15 @@ extension MeetingsStore {
                 audioState: AudioState(rawValue: row["audio_state"]) ?? .deleted,
                 notesMarkdown: row["notes_markdown"],
                 notesStatus: NotesStatus(rawValue: row["notes_status"]) ?? .none,
-                notesDroppedCount: row["notes_dropped_count"], speakers: speakers, segments: segments)
+                notesDroppedCount: row["notes_dropped_count"], speakers: speakers, segments: segments,
+                speechModelID: row["speech_model_id"])
         }
     }
 
     /// Sets the title of a meeting; a blank title (also one of invisible characters only) clears it (the
     /// library shows the date instead). The title is not part of the notes text, so the notes stay current.
     func renameMeeting(_ id: Int64, title: String) throws {
-        let cleaned = MarkdownExporter.cleaned(title, keepNewlines: false)
+        let cleaned = MarkdownText.cleaned(title, keepNewlines: false)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         try setTitle(id, title: cleaned.isEmpty ? nil : cleaned)
     }

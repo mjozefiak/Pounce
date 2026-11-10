@@ -25,7 +25,7 @@ import Testing
     static func scannedFiles() throws -> [URL] {
         let folders = [
             "Sources/LintelApp/Settings", "Sources/LintelApp/Window", "Sources/LintelApp/Onboarding",
-            "Sources/LintelUI",
+            "Sources/LintelUI", "Sources/NotesPlugin/UI",
         ]
         var files: [URL] = []
         for folder in folders {

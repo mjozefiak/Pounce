@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import LintelCore
 import LintelKit
 import Observation
 import UniformTypeIdentifiers
@@ -238,9 +239,7 @@ final class MeetingWindowModel {
     }
 
     /// The text without invisible characters, trimmed: empty when nothing visible is left.
-    static func visible(_ text: String) -> String {
-        MarkdownExporter.cleaned(text, keepNewlines: false).trimmingCharacters(in: .whitespacesAndNewlines)
-    }
+    static func visible(_ text: String) -> String { MeetingEdits.visible(text) }
 
     /// "To ja" needs a speaker who is not "Ja" yet, and a meeting that is not in `channels` mode.
     func canMarkSelf(_ speaker: MeetingDocument.Speaker) -> Bool {

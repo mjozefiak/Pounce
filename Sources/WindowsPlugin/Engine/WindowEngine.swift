@@ -464,6 +464,11 @@ actor WindowEngine {
         }
     }
 
+    #if DEBUG
+    /// Called every time a look-again retry fires (tests wait on it instead of guessing when the retry ran).
+    private var retryLookObserver: (@Sendable () -> Void)?
+    func setRetryLookObserver(_ observer: (@Sendable () -> Void)?) { retryLookObserver = observer }
+    #endif
     /// The delay of the next look-again retry (tests).
     var currentRetryDelay: Duration { retryDelay }
     /// How many looks an unknown app has used (tests).
@@ -481,6 +486,9 @@ actor WindowEngine {
         }
         retryTask = nil
         retryDelay = min(retryDelay * 2, Self.unknownRetryLimit)
+        #if DEBUG
+        retryLookObserver?()
+        #endif
         ingest(.resync)
     }
 

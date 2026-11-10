@@ -22,6 +22,17 @@ nonisolated struct HotkeyShortcut: Hashable, Sendable {
         return text + (Self.keyNames[carbonKeyCode] ?? "?")
     }
 
+    /// The same shortcut as the contract's `KeyShortcut`, for a menu or a palette that only shows it.
+    var keyShortcut: KeyShortcut? {
+        guard let key = Self.keyCodes.first(where: { $0.value == carbonKeyCode })?.key else { return nil }
+        var modifiers: KeyShortcut.Modifiers = []
+        if carbonModifiers & cmdKey != 0 { modifiers.insert(.command) }
+        if carbonModifiers & shiftKey != 0 { modifiers.insert(.shift) }
+        if carbonModifiers & optionKey != 0 { modifiers.insert(.option) }
+        if carbonModifiers & controlKey != 0 { modifiers.insert(.control) }
+        return KeyShortcut(key: key, modifiers: modifiers)
+    }
+
     /// Converts `NSEvent.ModifierFlags` raw values (as stored in `com.apple.symbolichotkeys`) to Carbon.
     static func carbonModifiers(fromEventFlags flags: Int) -> Int {
         var modifiers = 0

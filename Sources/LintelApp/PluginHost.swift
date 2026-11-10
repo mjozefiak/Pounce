@@ -409,3 +409,24 @@ final class PluginHost {
         try AppEnvironment.createPrivateDirectory(url, fileManager: fileManager)
     }
 }
+
+extension PluginHost {
+    /// What Notes keeps of `owner`'s recordings (the "N copies in Notes are kept" of Clear, Erase and Delete): the
+    /// sum of the active plugins' answers, so only Notes counts anything. Never opens a store that does not exist.
+    func keptNoteCopies(ofOwner owner: PluginID) async -> Int {
+        var total = 0
+        for entry in entries where entry.state.isActive {
+            total += await entry.plugin.keptNoteCopyCount(ofOwner: owner)
+        }
+        return total
+    }
+
+    /// Deletes those copies, after the owner's own deletion succeeded. `false` when any plugin could not.
+    func deleteKeptNoteCopies(ofOwner owner: PluginID, ownerErased: Bool) async -> Bool {
+        var done = true
+        for entry in entries where entry.state.isActive {
+            if await !entry.plugin.deleteKeptNoteCopies(ofOwner: owner, ownerErased: ownerErased) { done = false }
+        }
+        return done
+    }
+}

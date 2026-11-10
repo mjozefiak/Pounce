@@ -18,7 +18,7 @@ import Testing
     @Test func theRegistryContainsMeetingsOnce() {
         let ids = PluginRegistry.all.map { $0.manifest.id }
         #expect(ids.filter { $0 == "meetings" }.count == 1)
-        #expect(ids == ["apps", "files", "clipboard", "dictation", "meetings", "windows"])
+        #expect(ids == ["apps", "files", "clipboard", "dictation", "meetings", "notes", "windows"])
     }
 
     @Test func meetingsIsOffUntilTheUserTurnsItOn() throws {

@@ -140,6 +140,23 @@ public struct PluginContext: Sendable {
     public let pluginID: PluginID
     /// Values the plugins of this app instance share (see `PluginServices`); `UnsharedPluginServices` by default.
     public let services: any PluginServices
+    /// The note sources of the ACTIVE plugins, for the Notes section. The shell drops (and logs once) a source
+    /// whose `pluginID` differs from its plugin's `manifest.id`, and any later source of the same `PluginID`.
+    /// Added with the Notes workspace; the default has none.
+    public let noteSources: @MainActor @Sendable () -> [any NoteSource]
+    /// One stream per call that yields when the set of note sources changes (a plugin switched on or off).
+    /// Added with the Notes workspace; the default finishes at once.
+    public let noteSourcesChanged: @Sendable () -> AsyncStream<Void>
+    /// Asks the shell to show a note in the Notes section. Returns `true` only when a section handled it.
+    /// Added with the Notes workspace; the default returns `false`.
+    public let openNote: @MainActor @Sendable (NoteKey) -> Bool
+    /// How many copies of the plugin's own recordings Notes keeps because the user edited or commented on them
+    /// (the "N copies in Notes are kept" of Clear and Erase). Added with the Notes workspace; the default is 0.
+    public let keptNoteCopies: @MainActor @Sendable (_ owner: PluginID) async -> Int
+    /// Deletes those copies. Call it only AFTER the plugin's own deletion succeeded and only when the user ticked
+    /// "Also delete kept copies"; `ownerErased` is true after Erase Data. Returns `false` when something could not
+    /// be deleted. Added with the Notes workspace; the default deletes nothing and returns `true`.
+    public let deleteKeptNoteCopies: @MainActor @Sendable (_ owner: PluginID, _ ownerErased: Bool) async -> Bool
 
     public init(
         storageDirectory: URL,
@@ -170,7 +187,14 @@ public struct PluginContext: Sendable {
         },
         commandShortcut: @escaping @MainActor @Sendable (_ commandID: String) -> KeyShortcut? = { _ in nil },
         services: any PluginServices = UnsharedPluginServices(),
-        pluginID: PluginID? = nil
+        pluginID: PluginID? = nil,
+        noteSources: @escaping @MainActor @Sendable () -> [any NoteSource] = { [] },
+        noteSourcesChanged: @escaping @Sendable () -> AsyncStream<Void> = { AsyncStream { $0.finish() } },
+        openNote: @escaping @MainActor @Sendable (NoteKey) -> Bool = { _ in false },
+        keptNoteCopies: @escaping @MainActor @Sendable (_ owner: PluginID) async -> Int = { _ in 0 },
+        deleteKeptNoteCopies: @escaping @MainActor @Sendable (_ owner: PluginID, _ ownerErased: Bool) async -> Bool = {
+            _, _ in true
+        }
     ) {
         self.storageDirectory = storageDirectory
         self.settings = settings
@@ -197,5 +221,10 @@ public struct PluginContext: Sendable {
         self.commandShortcut = commandShortcut
         self.services = services
         self.pluginID = pluginID ?? settings.pluginID
+        self.noteSources = noteSources
+        self.noteSourcesChanged = noteSourcesChanged
+        self.openNote = openNote
+        self.keptNoteCopies = keptNoteCopies
+        self.deleteKeptNoteCopies = deleteKeptNoteCopies
     }
 }

@@ -1,4 +1,5 @@
 import Foundation
+import LintelCore
 import SwiftUI
 
 /// What the preview beside the library list shows for one meeting: the notes when there are any, else the
@@ -37,7 +38,7 @@ enum MeetingPreviewBuilder {
                 hasNotes: document.notesMarkdown?.isEmpty == false),
             locale: locale, timeZone: timeZone)
         if let notes = document.notesMarkdown {
-            let text = MarkdownExporter.cleaned(notes, keepNewlines: true)
+            let text = MarkdownText.cleaned(notes, keepNewlines: true)
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             if !text.isEmpty {
                 let (shown, truncated) = truncate(text)

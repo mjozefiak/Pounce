@@ -35,6 +35,13 @@ struct PolishCopyTests {
             "Paste from history.": "Wklejaj z historii.",
             "Speak instead of typing.": "Mów zamiast pisać.",
             "Record meetings, keep notes.": "Nagrywaj spotkania, miej notatki.",
+            // Step 7.2: the welcome screen's final page says where the notes are. The prototype's "w oknie Lintel"
+            // keeps the noun before the name (owner decision 6.6e).
+            "Your notes live in the Lintel window: click the Dock icon or press ⌘,.":
+                "Notatki są w oknie aplikacji Lintel: kliknij ikonę w Docku albo naciśnij ⌘,.",
+            "Open Lintel with %@. Your notes live in the Lintel window: click the Dock icon or press ⌘,.":
+                "Otwórz Lintel skrótem %@. Notatki są w oknie aplikacji Lintel: kliknij ikonę w Docku albo naciśnij ⌘,.",
+            "Open Notes": "Otwórz Notatki",
         ]
         for (key, polish) in expected {
             #expect(value(key, "pl", in: catalog) == polish, "\(key)")

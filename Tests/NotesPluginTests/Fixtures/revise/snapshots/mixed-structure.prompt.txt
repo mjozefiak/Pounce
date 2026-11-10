@@ -1,0 +1,94 @@
+<unit id="1">
+<blocks count="1">
+## Sprint review
+</blocks>
+<after>
+Demo dla klienta jest w czwartek.
+
+## Backlog
+</after>
+<comments>
+- Zmień tytuł na polski.
+</comments>
+</unit>
+<unit id="2">
+<before>
+## Sprint review
+</before>
+<blocks count="1">
+Demo dla klienta jest w czwartek.
+</blocks>
+<after>
+## Backlog
+
+Przejrzeć tickety z Jiry.
+</after>
+<comments>
+- Podaj godzinę.
+</comments>
+</unit>
+<unit id="3">
+<before>
+Demo dla klienta jest w czwartek.
+
+## Backlog
+</before>
+<blocks count="1">
+Przejrzeć tickety z Jiry.
+</blocks>
+<after>
+Ustalić priorytety.
+
+Zamknąć stare PR-y.
+</after>
+<comments>
+- Dopisz, które tickety.
+</comments>
+</unit>
+<unit id="4">
+<before>
+## Backlog
+
+Przejrzeć tickety z Jiry.
+</before>
+<blocks count="1">
+Ustalić priorytety.
+</blocks>
+<after>
+Zamknąć stare PR-y.
+
+Napisać release notes.
+</after>
+<comments>
+- Rozwiń.
+</comments>
+</unit>
+<unit id="5">
+<before>
+Przejrzeć tickety z Jiry.
+
+Ustalić priorytety.
+</before>
+<blocks count="1">
+Zamknąć stare PR-y.
+</blocks>
+<after>
+Napisać release notes.
+</after>
+<comments>
+- Dopisz repozytorium.
+</comments>
+</unit>
+<unit id="6">
+<before>
+Ustalić priorytety.
+
+Zamknąć stare PR-y.
+</before>
+<blocks count="1">
+Napisać release notes.
+</blocks>
+<comments>
+- Dopisz wersję.
+</comments>
+</unit>

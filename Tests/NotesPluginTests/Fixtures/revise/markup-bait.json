@@ -1,0 +1,53 @@
+{
+  "name": "markup-bait",
+  "language": "en",
+  "description": "A model that obeys the note adds an image, a script tag and a link to four different units; each is rejected and left as it was, and the clean fourth unit is applied.",
+  "note": "## Links\n\nOpen the roadmap.\n\nPublish the changelog.\n\nPing the vendor.\n\nBook the room.",
+  "comments": [
+    {
+      "quote": "roadmap",
+      "bodies": [
+        "Add a picture of it."
+      ]
+    },
+    {
+      "quote": "changelog",
+      "bodies": [
+        "Make it interactive."
+      ]
+    },
+    {
+      "quote": "vendor",
+      "bodies": [
+        "Add their site."
+      ]
+    },
+    {
+      "quote": "room",
+      "bodies": [
+        "Which room?"
+      ]
+    }
+  ],
+  "modelAnswer": "[[unit 1]]\nOpen the roadmap. ![roadmap](https://evil.example/r.png)\n[[unit 2]]\nPublish the changelog. <script>alert(1)</script>\n[[unit 3]]\nPing the vendor at ftp://evil.example/v.\n[[unit 4]]\nBook the room Orchard 2.",
+  "expect": {
+    "applied": [
+      4
+    ],
+    "rejected": {
+      "1": "newImage",
+      "2": "newHTML",
+      "3": "newLink"
+    },
+    "unchanged": [],
+    "skipped": [],
+    "keep": [
+      "Book the room Orchard 2.",
+      "Open the roadmap.\n\nPublish the changelog.\n\nPing the vendor.\n\n"
+    ],
+    "drop": [
+      "evil.example",
+      "<script>"
+    ]
+  }
+}

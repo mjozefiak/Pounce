@@ -572,6 +572,26 @@ extension WindowEngineTests {
 
     /// Fires what is due after `seconds`: the look-again wakes, and the flush tick it asks for. The clock does not
     /// auto-advance in these tests, so a timed loop can never spin.
+    /// One look-again retry, deterministically: the clock moves past the wait, the test waits (bounded) until the
+    /// retry has fired, then lets the resync it queued be flushed. `looks` counts the retries the engine fired.
+    private func look(_ rig: Rig, _ looks: CountGate, _ what: String = "a retry look") async {
+        let before = looks.count
+        // The retry must be armed before the clock moves: a retry that registers its wait after the advance would
+        // wait a full backoff for a time that already passed.
+        await rig.time.waitForSleepers(1, limit: .seconds(30))
+        rig.time.advance(61)
+        await looks.wait(atLeast: before + 1, what)
+        await rig.time.waitForSleepers(1, limit: .seconds(30))
+        rig.time.advance(0.01)
+        await rig.engine.settle()
+    }
+
+    private func observeLooks(_ rig: Rig) async -> CountGate {
+        let looks = CountGate()
+        await rig.engine.setRetryLookObserver { looks.increment() }
+        return looks
+    }
+
     private func advance(_ rig: Rig, seconds: Double) async {
         rig.time.advance(seconds)
         await rig.time.waitForSleepers(1, limit: .seconds(30))
@@ -585,6 +605,7 @@ extension WindowEngineTests {
     @Test func anAppWithWindowsTheEngineCouldNotReadYetIsAdoptedWhenItAnswers() async throws {
         let rig = try rig([makeWindow(1)], autoTick: false)
         defer { rig.harness.tearDown() }
+        let looks = await observeLooks(rig)
         for number in 1...3 { rig.client.add(makeWindow(UInt32(10 + number), pid: 300)) }
         rig.client.setBehavior(.hung, forProcess: 300)
         await rig.engine.start()
@@ -594,7 +615,7 @@ extension WindowEngineTests {
         #expect(await rig.time.waitForSleepers(1, limit: .seconds(30)))
         // The app answers; the next look adopts all three windows.
         rig.client.setBehavior(.normal, forProcess: 300)
-        await advance(rig, seconds: 5)
+        await look(rig, looks)
         let adopted = await rig.engine.snapshot.windows.keys.filter { $0.pid == 300 }
         #expect(adopted.count == 3)
         // Nothing stays armed once it has answered.
@@ -607,13 +628,14 @@ extension WindowEngineTests {
     @Test func anAppThatNeverAnswersIsLookedAtABoundedNumberOfTimes() async throws {
         let rig = try rig([makeWindow(1)], autoTick: false)
         defer { rig.harness.tearDown() }
+        let looks = await observeLooks(rig)
         rig.client.add(makeWindow(11, pid: 300))
         rig.client.setBehavior(.hung, forProcess: 300)
         await rig.engine.start()
         #expect(await rig.time.waitForSleepers(1, limit: .seconds(30)))
         let reads = rig.client.windowsReads
         for _ in 0..<WindowEngine.untrackedRetryLimit {
-            await advance(rig, seconds: 61)
+            await look(rig, looks)
         }
         // The look that follows the last allowed one re-arms nothing.
         #expect(rig.time.sleeperCount == 0)
@@ -630,11 +652,12 @@ extension WindowEngineTests {
     @Test func theLookBoundIsPerAppSoALaterAppStillGetsItsRetries() async throws {
         let rig = try rig([makeWindow(1)], autoTick: false)
         defer { rig.harness.tearDown() }
+        let looks = await observeLooks(rig)
         rig.client.add(makeWindow(11, pid: 300))
         rig.client.setBehavior(.hung, forProcess: 300)
         await rig.engine.start()
         #expect(await rig.time.waitForSleepers(1, limit: .seconds(30)))
-        for _ in 0..<WindowEngine.untrackedRetryLimit { await advance(rig, seconds: 61) }
+        for _ in 0..<WindowEngine.untrackedRetryLimit { await look(rig, looks) }
         #expect(await rig.engine.untrackedAttempts(of: 300) == WindowEngine.untrackedRetryLimit)
         #expect(rig.time.sleeperCount == 0)
         // B appears later with windows that cannot be read yet.
@@ -648,7 +671,7 @@ extension WindowEngineTests {
         #expect(await rig.engine.untrackedAttempts(of: 300) == WindowEngine.untrackedRetryLimit)
         // B answers: the next look adopts both windows; A stays bounded and is not looked at again.
         rig.client.setBehavior(.normal, forProcess: 400)
-        await advance(rig, seconds: 61)
+        await look(rig, looks)
         let adopted = await rig.engine.snapshot.windows.keys.filter { $0.pid == 400 }
         #expect(adopted.count == 2)
         #expect(await rig.engine.untrackedAttempts(of: 300) == WindowEngine.untrackedRetryLimit)
@@ -664,17 +687,18 @@ extension WindowEngineTests {
     @Test func anAppThatLeavesTheUnknownSetAndComesBackStartsItsLooksOver() async throws {
         let rig = try rig([makeWindow(1)], autoTick: false)
         defer { rig.harness.tearDown() }
+        let looks = await observeLooks(rig)
         rig.client.add(makeWindow(11, pid: 300))
         rig.client.setBehavior(.hung, forProcess: 300)
         await rig.engine.start()
         #expect(await rig.time.waitForSleepers(1, limit: .seconds(30)))
-        await advance(rig, seconds: 61)
-        await advance(rig, seconds: 61)
+        await look(rig, looks)
+        await look(rig, looks)
         #expect(await rig.engine.untrackedAttempts(of: 300) == 2)
         // It answers with no windows: it is no longer unknown, its count is dropped.
         rig.client.remove(id(11, pid: 300))
         rig.client.setBehavior(.normal, forProcess: 300)
-        await advance(rig, seconds: 61)
+        await look(rig, looks)
         #expect(await rig.engine.untrackedAttempts(of: 300) == 0)
         // It comes back with a window it does not answer for: one look, one attempt (not three).
         rig.client.add(makeWindow(12, pid: 300))
@@ -683,7 +707,7 @@ extension WindowEngineTests {
         await rig.engine.flushEvents()
         #expect(await rig.time.waitForSleepers(1, limit: .seconds(30)))
         #expect(await rig.engine.untrackedAttempts(of: 300) == 0)
-        await advance(rig, seconds: 61)
+        await look(rig, looks)
         #expect(await rig.engine.untrackedAttempts(of: 300) == 1)
         await rig.engine.stop()
     }

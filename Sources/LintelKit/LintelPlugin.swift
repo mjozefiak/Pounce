@@ -97,6 +97,21 @@ public protocol LintelPlugin: AnyObject {
     /// The downloadable models the plugin uses, for the Models pane. Added with the main window; the default
     /// uses none.
     var modelUsage: [ModelUsage] { get }
+    /// The recorded notes this plugin owns, read by the Notes section (`NoteSource`). Added with the Notes
+    /// workspace; the default has none.
+    var noteSources: [any NoteSource] { get }
+    /// Notes only (step 4.6): how many copies of `owner`'s recordings the plugin keeps because the user edited or
+    /// commented on them, so that Clear Library, Clear History, Erase Data and Delete in the owner can say so.
+    /// Added with the Notes workspace; the default is 0.
+    func keptNoteCopyCount(ofOwner owner: PluginID) async -> Int
+    /// Notes only (step 4.6): deletes those copies, after the owner's own deletion succeeded and the user ticked
+    /// "Also delete kept copies". `ownerErased` is true after Erase Data, when the owner can no longer be asked
+    /// which recordings are gone. Returns `false` when something could not be deleted. The default deletes
+    /// nothing and returns `true`.
+    ///
+    /// Both are owner-scoped: an implementation counts and deletes only copies of `owner`, and a second implementer
+    /// must scope by owner the same way.
+    func deleteKeptNoteCopies(ofOwner owner: PluginID, ownerErased: Bool) async -> Bool
 
     /// Puts right what an earlier run left half done (for example puts back what the plugin moved), before
     /// the plugin is activated and whether or not it is enabled. The host runs it once per launch for every
@@ -134,5 +149,8 @@ extension LintelPlugin {
     public var workspaceSections: [WorkspaceSection] { [] }
     public var settingsStatus: SettingsStatus? { nil }
     public var modelUsage: [ModelUsage] { [] }
+    public var noteSources: [any NoteSource] { [] }
+    public func keptNoteCopyCount(ofOwner owner: PluginID) async -> Int { 0 }
+    public func deleteKeptNoteCopies(ofOwner owner: PluginID, ownerErased: Bool) async -> Bool { true }
     public func eraseData() async throws {}
 }

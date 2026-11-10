@@ -107,6 +107,59 @@ extension DictationStore {
         }
     }
 
+    /// Where a page of `noteEntries` starts: after the entry with this time and id (newest first).
+    struct NotePosition: Sendable, Equatable {
+        var createdAt: Double
+        var id: Int64
+    }
+
+    /// Newest first, optionally only entries whose raw or cleaned text matches `text` (every word a prefix),
+    /// optionally only those after `after`. A text without a searchable word finds nothing.
+    func noteEntries(matching text: String?, after: NotePosition?, limit: Int) throws -> [DictationEntry] {
+        guard let (clause, arguments) = noteConditions(matching: text, after: after) else { return [] }
+        return try read { db in
+            var all = arguments
+            all += [max(0, limit)]
+            return try Row.fetchAll(
+                db, sql: "SELECT * FROM dictation_entry \(clause) ORDER BY created_at DESC, id DESC LIMIT ?",
+                arguments: all
+            ).compactMap(Self.entry)
+        }
+    }
+
+    func noteCount(matching text: String?) throws -> Int {
+        guard let (clause, arguments) = noteConditions(matching: text, after: nil) else { return 0 }
+        return try read { db in
+            try Int.fetchOne(db, sql: "SELECT count(*) FROM dictation_entry \(clause)", arguments: arguments) ?? 0
+        }
+    }
+
+    private func noteConditions(matching text: String?, after: NotePosition?) -> (String, StatementArguments)? {
+        var conditions: [String] = []
+        var arguments = StatementArguments()
+        if let after {
+            conditions.append("(created_at < ? OR (created_at = ? AND id < ?))")
+            arguments += [after.createdAt, after.createdAt, after.id]
+        }
+        if let text {
+            guard let pattern = FTS5Pattern(matchingAllPrefixesIn: text) else { return nil }
+            conditions.append("id IN (SELECT rowid FROM dictation_fts WHERE dictation_fts MATCH ?)")
+            arguments += [pattern]
+        }
+        return (conditions.isEmpty ? "" : "WHERE " + conditions.joined(separator: " AND "), arguments)
+    }
+
+    /// The entries with these ids (what `exists` asks for).
+    func entries(ids: [Int64]) throws -> [DictationEntry] {
+        guard !ids.isEmpty else { return [] }
+        let marks = ids.map { _ in "?" }.joined(separator: ", ")
+        return try read { db in
+            try Row.fetchAll(
+                db, sql: "SELECT * FROM dictation_entry WHERE id IN (\(marks))", arguments: StatementArguments(ids)
+            ).compactMap(Self.entry)
+        }
+    }
+
     func entry(_ id: Int64) throws -> DictationEntry? {
         try read { db in
             try Row.fetchOne(db, sql: "SELECT * FROM dictation_entry WHERE id = ?", arguments: [id])
