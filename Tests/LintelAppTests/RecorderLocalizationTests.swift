@@ -27,5 +27,8 @@ import Testing
         let script = try String(contentsOf: Self.root.appending(path: "scripts/make-app.sh"), encoding: .utf8)
         #expect(script.contains("Resources/KeyboardShortcuts/pl.lproj/Localizable.strings"))
         #expect(script.contains("KeyboardShortcuts_KeyboardShortcuts.bundle/Contents/Resources/pl.lproj"))
+        // The build itself fails when the file is not in the built bundle (the DMG job runs this script), so a
+        // release without the Polish recorder strings cannot be produced.
+        #expect(script.contains("did not reach the KeyboardShortcuts bundle"))
     }
 }

@@ -104,12 +104,16 @@ default's fallback and a diagnostic); recovery classifies a missing journal wind
 mapping of an AX error to "unreachable / no windows" is a pure function (`WindowGeometry.listOutcome`, tested, including
 a dead process, which has no windows and keeps none). The snapshot carries `unreachable` and `unreadable`; the reducer
 keeps those windows, parked or not, and the next switch or event retries them. While a snapshot could not read something
-the engine looks again by itself every `WindowEngine.unknownRetry` (5 s) until a read lists the windows or says they are
-gone, so a window that closed while its app hung is dropped soon after the app answers. Residual: a window that closes
+the engine looks again by itself (`WindowEngine.unknownRetry`, 5 s, doubling up to `unknownRetryLimit`, 60 s) until a read
+lists the windows or says they are gone, so a window that closed while its app hung is dropped soon after the app answers. Residual: a window that closes
 while its app does not answer stays tracked until the app answers (or the process ends: `appTerminated` drops them).
-A process whose park timed out, or that a snapshot could not read, is marked `unresponsive`; the next event from one of
-its windows (a close, a move, a focus) means it answers again and parking is reconciled then, so what its failed parks
-left on screen is parked without waiting for a workspace switch.
+A process whose park timed out, or that a snapshot could not read, is marked `unresponsive` (only a process the engine
+holds a window of: the marks are pruned to the held processes after every input, and `readWindows(tracked:)` only reports
+tracked processes, so an app that is permanently unresponsive or has no Accessibility arms nothing). While a held
+process is marked the engine looks again by itself after 5 s, then 10, 20, 40 and every 60 s at most (the wait is reset
+when no held process is marked), so an app that recovers and stays idle has its windows parked and a window that closed
+meanwhile dropped without waiting for a switch or an event. The next event from one of its windows also reconciles
+parking at once.
 
 ## Snap overlay latency
 

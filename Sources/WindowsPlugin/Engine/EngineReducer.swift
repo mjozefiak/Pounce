@@ -70,6 +70,11 @@ enum EngineReducer {
             context.reconcileParking(now: input.moment ?? 0)
             context.arrangeRequested = true
         }
+        // A process the engine holds no window of is not waiting for anything.
+        if !context.state.unresponsive.isEmpty {
+            let held = Set(context.state.windows.keys.map(\.pid))
+            context.state.unresponsive.formIntersection(held)
+        }
         context.arrangeIfRequested(now: input.moment ?? 0)
         context.flush()
         if context.state.model.order != oldOrder {
@@ -103,9 +108,6 @@ enum EngineReducer {
         return true
     }
 
-    /// The slots the snap overlay offers while a window is dragged: the display that shows the window's
-    /// workspace with the layout that workspace uses there. Nothing unless the workspace is shown and the engine
-    /// is not frozen, so the overlay never appears where a snap could not happen.
     /// The process an input from a window event comes from; `nil` for inputs that are not about one window (a snapshot
     /// has its own `unreachable` bookkeeping).
     private static func eventPID(of input: EngineInput) -> Int32? {
@@ -117,6 +119,9 @@ enum EngineReducer {
         }
     }
 
+    /// The slots the snap overlay offers while a window is dragged: the display that shows the window's
+    /// workspace with the layout that workspace uses there. Nothing unless the workspace is shown and the engine
+    /// is not frozen, so the overlay never appears where a snap could not happen.
     static func snapTargets(
         _ state: EngineState, for window: WindowID, strategies: LayoutRegistry
     ) -> [DragDisplay] {

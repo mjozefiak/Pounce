@@ -237,7 +237,7 @@ import Testing
     // MARK: Failures
 
     @Test func aHungAppDoesNotBlockTheOthersAndIsNotRetriedInALoop() async throws {
-        let rig = try rig([makeWindow(1), makeWindow(2, pid: 200)])
+        let rig = try rig([makeWindow(1), makeWindow(2, pid: 200)], autoTick: false)
         defer { rig.harness.tearDown() }
         await rig.engine.start()
         // The app stops answering after the engine has looked at it.
@@ -533,6 +533,76 @@ extension WindowEngineTests {
         await rig.engine.stop()
     }
 
+    /// Fires what is due after `seconds`: the look-again wakes, and the flush tick it asks for. The clock does not
+    /// auto-advance in these tests, so a timed loop can never spin.
+    private func advance(_ rig: Rig, seconds: Double) async {
+        rig.time.advance(seconds)
+        await rig.time.waitForSleepers(1)
+        rig.time.advance(0.01)
+        await rig.engine.settle()
+    }
+
+    /// Round 12 B2: an app the engine holds no window of that does not answer arms nothing, however long it runs.
+    @Test func anUnresponsiveAppTheEngineHoldsNoWindowOfArmsNoRetry() async throws {
+        let rig = try rig([makeWindow(1)], autoTick: false)
+        defer { rig.harness.tearDown() }
+        await rig.engine.start()
+        rig.client.add(makeWindow(9, pid: 300))
+        rig.client.setBehavior(.hung, forProcess: 300)
+        await rig.engine.ingest(.resync)
+        await rig.engine.flushEvents()
+        #expect(await rig.engine.snapshot.windows[id(9, pid: 300)] == nil)
+        #expect(rig.time.sleeperCount == 0)
+        await rig.engine.stop()
+    }
+
+    /// Round 12 B2: a tracked app that does not answer is looked at again after 5 s, then 10 s, 20 s... and recovery
+    /// ends it.
+    @Test func aTrackedUnresponsiveAppIsLookedAtAgainWithBackoffAndRecoveryEndsIt() async throws {
+        let rig = try rig([makeWindow(1), makeWindow(2, pid: 200)], autoTick: false)
+        defer { rig.harness.tearDown() }
+        await rig.engine.start()
+        rig.client.setBehavior(.hung, forProcess: 100)
+        await rig.engine.ingest(.resync)
+        await rig.engine.flushEvents()
+        #expect(rig.time.sleeperCount == 1)
+        var reads = rig.client.windowsReads
+        // Not due yet at 4 s; at 5 s it looks (and arms the next wait, 10 s).
+        rig.time.advance(4)
+        #expect(rig.client.windowsReads == reads)
+        await advance(rig, seconds: 1)
+        #expect(rig.client.windowsReads == reads + 1)
+        reads = rig.client.windowsReads
+        // The next wait is twice as long: nothing at 9 s, a look at 10 s.
+        rig.time.advance(9)
+        #expect(rig.client.windowsReads == reads)
+        await advance(rig, seconds: 1)
+        #expect(rig.client.windowsReads == reads + 1)
+        // The app answers: the next look clears it and nothing stays armed.
+        rig.client.setBehavior(.normal, forProcess: 100)
+        await advance(rig, seconds: 20)
+        #expect(rig.time.sleeperCount == 0)
+        #expect(await rig.engine.snapshot.windows[id(1)] != nil)
+        await rig.engine.stop()
+    }
+
+    /// Round 12 M3: a park that timed out arms the look-again itself; an app that recovers and stays idle has its
+    /// window parked without any event from it.
+    @Test func aParkThatTimedOutIsRetriedWithoutAnyEventFromTheApp() async throws {
+        let rig = try rig([makeWindow(1), makeWindow(2, pid: 200)], autoTick: false)
+        defer { rig.harness.tearDown() }
+        await rig.engine.start()
+        rig.client.setBehavior(.hung, forProcess: 100)
+        await rig.engine.send(.showWorkspace(ws(2)))
+        #expect(rig.client.frame(of: id(1)) == home)
+        #expect(rig.time.sleeperCount == 1)
+        rig.client.setBehavior(.normal, forProcess: 100)
+        await advance(rig, seconds: 5)
+        #expect(rig.client.frame(of: id(1))?.origin == parkedOrigin)
+        #expect(rig.time.sleeperCount == 0)
+        await rig.engine.stop()
+    }
+
     @Test func aWindowThatReallyClosedIsStillRemovedByASnapshot() async throws {
         let rig = try rig([makeWindow(1), makeWindow(2, pid: 200)])
         defer { rig.harness.tearDown() }
@@ -548,7 +618,7 @@ extension WindowEngineTests {
     }
 
     @Test func aHungAppsWindowIsRemovedOnceItAnswersAndNoLongerListsTheWindow() async throws {
-        let rig = try rig([makeWindow(1), makeWindow(2, pid: 200)])
+        let rig = try rig([makeWindow(1), makeWindow(2, pid: 200)], autoTick: false)
         defer { rig.harness.tearDown() }
         await rig.engine.start()
         rig.client.setBehavior(.hung, forProcess: 100)

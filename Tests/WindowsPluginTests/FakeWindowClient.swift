@@ -2,6 +2,7 @@ import CoreGraphics
 import Foundation
 import LintelKit
 import Synchronization
+import Testing
 
 @testable import WindowsPlugin
 
@@ -219,7 +220,10 @@ final class FakeWindowClient: WindowClient, Sendable {
             let present = Set(state.windows.keys.map(\.pid))
             return (pids.intersection(present), state.unreadableIDs.filter { state.windows[$0] != nil })
         }
-        return WindowRead(windows: list, unreachable: unreachable, unreadable: unreadable)
+        // Like the real client: only what the caller tracks is reported unknown.
+        return WindowRead(
+            windows: list, unreachable: unreachable.intersection(tracked),
+            unreadable: unreadable.filter { tracked.contains($0.pid) })
     }
 
     /// The next `windows()` call (the engine's first snapshot) answers only after `releaseReadHold()`.
@@ -400,6 +404,11 @@ final class VirtualClock: Clock, @unchecked Sendable {
     private var sleeperWaiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
     private var nextID: UInt64 = 0
     private let autoAdvance: Bool
+    /// How many sleeps an auto-advancing clock has answered at once. A timed loop that re-arms itself on such a clock
+    /// never lets time pass, so it spins until the test ends (and starves the other tests of a small CI runner). Past
+    /// this many the clock records a failure and cancels the sleep instead of letting it spin.
+    private var autoAdvancedSleeps = 0
+    static let autoAdvanceLimit = 20_000
 
     init(start: Double = 10_000, autoAdvance: Bool = true) {
         current = Instant(offset: .seconds(start))
@@ -407,6 +416,9 @@ final class VirtualClock: Clock, @unchecked Sendable {
     }
 
     var now: Instant { lock.withLock { current } }
+
+    /// How many tasks are asleep on this clock right now (a timer that is armed).
+    var sleeperCount: Int { lock.withLock { sleepers.count } }
     var minimumResolution: Duration { .zero }
 
     /// The time in seconds, for the inputs a test builds by hand.
@@ -440,13 +452,22 @@ final class VirtualClock: Clock, @unchecked Sendable {
 
     func sleep(until deadline: Instant, tolerance: Duration?) async throws {
         try Task.checkCancellation()
-        let immediate = lock.withLock { () -> Bool in
-            if deadline <= current { return true }
+        let (immediate, runaway) = lock.withLock { () -> (Bool, Bool) in
+            if deadline <= current { return (true, false) }
             if autoAdvance {
                 current = deadline
-                return true
+                autoAdvancedSleeps += 1
+                return (true, autoAdvancedSleeps == Self.autoAdvanceLimit + 1)
             }
-            return false
+            return (false, false)
+        }
+        if lock.withLock({ autoAdvancedSleeps > Self.autoAdvanceLimit }) {
+            if runaway {
+                Issue.record(
+                    "an auto-advancing virtual clock answered \(Self.autoAdvanceLimit) sleeps: a timed loop re-arms itself without time passing; give the test a clock that does not auto-advance (autoTick: false) and drive the timer by hand"
+                )
+            }
+            throw CancellationError()
         }
         if immediate {
             await Task.yield()

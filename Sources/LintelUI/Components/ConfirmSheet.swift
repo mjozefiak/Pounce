@@ -221,7 +221,7 @@ extension View {
 /// Runs the confirmed action first and closes the sheet afterwards: closing goes through the binding's setter,
 /// which may clear the very state the action reads (Meetings' "Delete Older Meetings" cancels the pending
 /// retention when its sheet closes).
-public func confirmThenClose(isPresented: Binding<Bool>, _ onConfirm: @escaping () -> Void) -> () -> Void {
+func confirmThenClose(isPresented: Binding<Bool>, _ onConfirm: @escaping () -> Void) -> () -> Void {
     {
         onConfirm()
         isPresented.wrappedValue = false

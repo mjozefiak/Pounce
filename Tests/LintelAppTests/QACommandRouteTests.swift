@@ -91,23 +91,64 @@ import Testing
         #expect(recorder.ran == ["workspace.2", "toggle"])
     }
 
+    @Test func aFileThatWasEmptiedIsReadFromItsStartAgainAndOnlyTheNewPartIsRead() async throws {
+        let (route, file, recorder) = try rig()
+        defer {
+            try? FileManager.default.removeItem(at: file)
+            try? FileManager.default.removeItem(at: file.appendingPathExtension("log"))
+        }
+        try append("windows.workspace.2\nwindows.toggleLayout\n", to: file)
+        await route.pollOnce()
+        #expect(recorder.ran == ["workspace.2", "toggle"])
+        // Truncated, then a shorter line written: it is read from the start, once.
+        try Data().write(to: file)
+        try append("windows.toggleLayout\n", to: file)
+        await route.pollOnce()
+        await route.pollOnce()
+        #expect(recorder.ran == ["workspace.2", "toggle", "toggle"])
+    }
+
+    @Test func theLogIsRotatedPastItsLimit() async throws {
+        let (route, file, _) = try rig()
+        let log = file.appendingPathExtension("log")
+        defer {
+            for url in [file, log, log.appendingPathExtension("1")] { try? FileManager.default.removeItem(at: url) }
+        }
+        try Data(repeating: UInt8(ascii: "x"), count: QACommandRoute.logLimit + 10).write(to: log)
+        try append("windows.toggleLayout\n", to: file)
+        await route.pollOnce()
+        #expect(FileManager.default.fileExists(atPath: log.appendingPathExtension("1").path))
+        #expect(logLines(file) == ["ok | windows.toggleLayout"])
+    }
+
     @Test func theArgumentParsesAndTheRouteIsSetOnlyByTheQAEnvironment() throws {
         let options = try #require(try QAOptions.parse(["--qa-command-file", "/tmp/cmds.txt"]))
         #expect(options.commandFile?.path == "/tmp/cmds.txt")
-        // Only `AppEnvironment.qa` assigns it (a lint: nothing in a normal launch path can turn the route on).
+        // Only `AppEnvironment.qa` assigns it: the assignment is inside that function's body and nowhere else in the
+        // app target (a line-based scan, not a string count).
         let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
             .deletingLastPathComponent()
         let sources = root.appending(path: "Sources/LintelApp")
-        var assignments = 0
+        var assignmentSites: [String] = []
         for file in FileManager.default.enumerator(at: sources, includingPropertiesForKeys: nil)?.compactMap({
             $0 as? URL
         })
             ?? []
         where file.pathExtension == "swift" {
-            let text = try String(contentsOf: file, encoding: .utf8)
-            assignments += text.components(separatedBy: "qaCommandFile = ").count - 1
+            let lines = try String(contentsOf: file, encoding: .utf8).components(separatedBy: "\n")
+            for (index, line) in lines.enumerated()
+            where line.range(of: #"\bqaCommandFile\s*="#, options: .regularExpression) != nil {
+                assignmentSites.append("\(file.lastPathComponent):\(index)")
+            }
         }
-        #expect(assignments == 1)
+        #expect(assignmentSites.count == 1)
+        let environment = try String(contentsOf: sources.appending(path: "AppEnvironment.swift"), encoding: .utf8)
+        let qaBody = try #require(
+            environment.range(of: "static func qa(").flatMap { start in
+                environment.range(of: "static func qaFileIndexSettings", range: start.upperBound..<environment.endIndex)
+                    .map { String(environment[start.lowerBound..<$0.lowerBound]) }
+            })
+        #expect(qaBody.contains("qaEnvironment.qaCommandFile = options.commandFile"))
     }
 }
 #endif

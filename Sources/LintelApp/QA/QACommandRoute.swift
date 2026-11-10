@@ -56,9 +56,20 @@ final class QACommandRoute {
 
     /// Reads what was appended since the last look and runs every complete line, in order.
     func pollOnce() async {
-        guard let data = try? Data(contentsOf: file), data.count > offset else { return }
-        pending += String(decoding: data[offset...], as: UTF8.self)
-        offset = data.count
+        guard let handle = try? FileHandle(forReadingFrom: file) else { return }
+        defer { try? handle.close() }
+        let size = Int((try? handle.seekToEnd()) ?? 0)
+        // A file that was emptied or replaced by a shorter one starts again from its beginning.
+        if size < offset {
+            offset = 0
+            pending = ""
+        }
+        guard size > offset else { return }
+        // Only what was appended since the last look is read.
+        try? handle.seek(toOffset: UInt64(offset))
+        guard let data = try? handle.readToEnd() else { return }
+        pending += String(decoding: data, as: UTF8.self)
+        offset += data.count
         while let end = pending.firstIndex(of: "\n") {
             let line = String(pending[..<end]).trimmingCharacters(in: .whitespaces)
             pending = String(pending[pending.index(after: end)...])
@@ -79,8 +90,17 @@ final class QACommandRoute {
         return "ok"
     }
 
+    /// The log keeps at most this much; past it the old half is dropped (`<path>.log.1` holds the previous one).
+    static let logLimit = 256 * 1024
+
     private func append(_ text: String) {
         guard let data = (text + "\n").data(using: .utf8) else { return }
+        let size = ((try? FileManager.default.attributesOfItem(atPath: log.path))?[.size] as? Int) ?? 0
+        if size > Self.logLimit {
+            let rotated = log.appendingPathExtension("1")
+            try? FileManager.default.removeItem(at: rotated)
+            try? FileManager.default.moveItem(at: log, to: rotated)
+        }
         if let handle = try? FileHandle(forWritingTo: log) {
             handle.seekToEndOfFile()
             handle.write(data)

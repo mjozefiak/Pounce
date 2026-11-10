@@ -559,4 +559,28 @@ extension EngineReducerTests {
         #expect(state.model.workspace(of: WindowID(pid: 100, number: 1)) != nil)
         #expect(state.windows[WindowID(pid: 200, number: 2)] == nil)
     }
+
+    /// Round 12: a process the engine holds no window of is not waiting for anything: its mark is dropped when its
+    /// last window goes, and a snapshot never marks a process the engine does not hold.
+    @Test func theUnresponsiveMarkGoesWithTheProcessesLastWindow() {
+        let main = FakeWindowClient.mainDisplay
+        var state = EngineState(workspaceCount: 4, displays: [main])
+        (state, _) = EngineReducer.reduce(
+            state,
+            .snapshot(
+                windows: [makeWindow(1)], displays: [main], focused: nil, processStarts: starts([100]), now: 1),
+            strategies: .standard)
+        state.unresponsive = [100]
+        // A snapshot that names a process the engine holds nothing of marks nothing.
+        (state, _) = EngineReducer.reduce(
+            state,
+            .snapshot(
+                windows: [makeWindow(1)], displays: [main], focused: nil, processStarts: starts([100]),
+                unreachable: [300], now: 2), strategies: .standard)
+        #expect(!state.unresponsive.contains(300))
+        // The last window of the process goes: the mark goes with it.
+        (state, _) = EngineReducer.reduce(
+            state, .windowGone(WindowID(pid: 100, number: 1), now: 3), strategies: .standard)
+        #expect(state.unresponsive.isEmpty)
+    }
 }

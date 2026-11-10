@@ -113,6 +113,9 @@ final class ZoneDragController {
 
     /// Stops any drag and hides the overlay (the plugin is switched off).
     func cancel() {
+        #if DEBUG
+        DragTrace.reset()
+        #endif
         apply(machine.handle(.cancel))
         updateTicker()
         presenter.hide()
@@ -139,6 +142,9 @@ final class ZoneDragController {
                 targetsTask?.cancel()
                 targetsTask = Task { [weak self] in await self?.showOverlay(for: id) }
             case .hideOverlay:
+                #if DEBUG
+                DragTrace.reset()
+                #endif
                 targetsTask?.cancel()
                 targetsTask = nil
                 presenter.hide()

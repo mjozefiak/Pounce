@@ -52,6 +52,9 @@ actor WindowEngine {
     private var retryTask: Task<Void, Never>?
     /// How long after a snapshot that could not read an app the engine looks again (and again, until it can).
     static let unknownRetry: Duration = .seconds(5)
+    /// The longest wait between two looks (the wait doubles from `unknownRetry` up to this).
+    static let unknownRetryLimit: Duration = .seconds(60)
+    private var retryDelay = WindowEngine.unknownRetry
     /// When the last flush started (engine time); a move is flushed at once only when none ran in the last tick.
     private var lastFlushAt = -Double.infinity
 
@@ -130,7 +133,6 @@ actor WindowEngine {
         var inputs: [EngineInput] = [.journalAvailability(canJournal), .restoreLayouts(stored.layouts)]
         inputs.append(await snapshotInput())
         guard !stopped else { return await abandonStart() }
-        trackUnknown(in: inputs)
         await submitInternal(inputs)
         flushEnabled = true
         if !coalescer.isEmpty { scheduleFlush() }
@@ -417,30 +419,33 @@ actor WindowEngine {
         #endif
         // Not waited for: a flush must never sit behind a hung app, or later events would queue behind it.
         guard !stopped else { return }
-        trackUnknown(in: inputs)
         enqueue(inputs)
     }
 
-    /// While a snapshot could not read an app (or a window), the windows it kept are only *unknown*: the engine
-    /// looks again every `unknownRetry` until a read lists them or says they are gone, so a window that closed while
-    /// its app hung is dropped soon after the app answers, not at the next unrelated resync.
-    private func trackUnknown(in inputs: [EngineInput]) {
-        for input in inputs {
-            guard case .snapshot(_, _, _, _, let unreachable, let unreadable, _) = input else { continue }
-            if unreachable.isEmpty, unreadable.isEmpty {
-                retryTask?.cancel()
-                retryTask = nil
-            } else if retryTask == nil {
-                retryTask = Task { [weak self, time] in
-                    do { try await time.sleep(Self.unknownRetry) } catch { return }
-                    await self?.retryUnknown()
-                }
-            }
+    /// While a process the engine holds windows of did not answer (`EngineState.unresponsive`: a park timed out, or a
+    /// snapshot could not read it), what it left on screen is only *unknown*: the engine looks again after
+    /// `unknownRetry`, then after twice as long each time up to `unknownRetryLimit`, until a read lists the windows or
+    /// says they are gone. A process the engine holds no window of never arms it, so an app that is permanently
+    /// unresponsive or has no Accessibility costs nothing.
+    private func updateRetry() {
+        let tracked = Set(state.windows.keys.map(\.pid))
+        if state.unresponsive.isDisjoint(with: tracked) {
+            retryTask?.cancel()
+            retryTask = nil
+            retryDelay = Self.unknownRetry
+            return
+        }
+        guard retryTask == nil, !stopped else { return }
+        let delay = retryDelay
+        retryTask = Task { [weak self, time] in
+            do { try await time.sleep(delay) } catch { return }
+            await self?.retryUnknown()
         }
     }
 
     private func retryUnknown() {
         retryTask = nil
+        retryDelay = min(retryDelay * 2, Self.unknownRetryLimit)
         ingest(.resync)
     }
 
@@ -474,6 +479,7 @@ actor WindowEngine {
             for input in dispatched.inputs { queue(input, parent: id) }
             ledger.closeIfFinished(id)
         }
+        updateRetry()
         resumeWaiters()
     }
 

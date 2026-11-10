@@ -89,6 +89,7 @@ import Testing
         panels.tearDown()
     }
 
+    #if DEBUG
     /// DEBUG only, for QA: the overlay, HUD and strip can be made capturable so they can be photographed. The shipped
     /// behaviour (never in screen sharing) is the default and the test above keeps it. Synchronous on the main actor,
     /// so no other test sees the switch on.
@@ -101,6 +102,8 @@ import Testing
         #expect(panels.panels.allSatisfy { $0.sharingType == .readOnly })
         panels.tearDown()
     }
+
+    #endif
 
     @Test func prewarmBuildsOnePanelPerScreenAndTheFirstShowTakesOneInsteadOfBuilding() {
         let screens = [CGRect(x: 0, y: 0, width: 1000, height: 600), CGRect(x: 1000, y: 0, width: 1000, height: 600)]

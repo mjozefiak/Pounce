@@ -128,7 +128,11 @@ nonisolated final class AXWindowClient: WindowClient, Sendable {
                 if part.unreachable { unreachable.insert(part.pid) }
                 unreadable.formUnion(part.unreadable)
             }
-            return WindowRead(windows: all.sorted { $0.id < $1.id }, unreachable: unreachable, unreadable: unreadable)
+            // `tracked` is a contract: only what the caller holds is reported unknown. An app the caller holds no window
+            // of (or that has no Accessibility at all) that does not answer is nobody's concern and arms no retry.
+            return WindowRead(
+                windows: all.sorted { $0.id < $1.id }, unreachable: unreachable.intersection(tracked),
+                unreadable: unreadable.filter { tracked.contains($0.pid) })
         }
     }
 

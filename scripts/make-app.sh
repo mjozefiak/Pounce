@@ -65,6 +65,9 @@ mkdir -p "$OUT/Contents/Resources/KeyboardShortcuts_KeyboardShortcuts.bundle/Con
 cp Resources/KeyboardShortcuts/pl.lproj/Localizable.strings \
   "$OUT/Contents/Resources/KeyboardShortcuts_KeyboardShortcuts.bundle/Contents/Resources/pl.lproj/Localizable.strings"
 
+[[ -f "$OUT/Contents/Resources/KeyboardShortcuts_KeyboardShortcuts.bundle/Contents/Resources/pl.lproj/Localizable.strings" ]] \
+  || { echo "The Polish recorder strings did not reach the KeyboardShortcuts bundle" >&2; exit 1; }
+
 # Localizations: compile the String Catalog into <lang>.lproj/Localizable.strings.
 xcrun xcstringstool compile Resources/Localizable.xcstrings --output-directory "$OUT/Contents/Resources"
 # The microphone usage description is looked up in InfoPlist.strings of the user's language.

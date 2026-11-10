@@ -23,16 +23,29 @@ enum DragTrace {
     /// The first moved event of a drag reaches the engine: a new trace starts.
     static func begin() {
         state.withLock {
-            guard $0.path != nil, $0.start == nil else { return }
+            guard $0.path != nil else { return }
+            // A trace that never reached the overlay (no drag followed) is stale after a few seconds: start again.
+            if let start = $0.start, start.duration(to: .now) < .seconds(5) { return }
             $0.start = .now
             $0.stages = []
         }
     }
 
+    /// The most stages one trace keeps (a drag that never shows the overlay must not grow it without bound).
+    static let stageLimit = 32
+
     static func mark(_ stage: String) {
         state.withLock {
-            guard let start = $0.start else { return }
+            guard let start = $0.start, $0.stages.count < stageLimit else { return }
             $0.stages.append((stage, start.duration(to: .now)))
+        }
+    }
+
+    /// The drag ended or was cancelled without the overlay: the trace is dropped.
+    static func reset() {
+        state.withLock {
+            $0.start = nil
+            $0.stages = []
         }
     }
 

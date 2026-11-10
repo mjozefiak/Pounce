@@ -1,11 +1,11 @@
 import CoreGraphics
 import Foundation
 import LintelKit
-import LintelUI
 import Testing
 
 import struct SwiftUI.Binding
 
+@testable import LintelUI
 @testable import WindowsPlugin
 
 @MainActor
