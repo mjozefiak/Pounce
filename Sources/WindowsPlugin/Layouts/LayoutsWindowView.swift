@@ -12,14 +12,14 @@ struct LayoutsWindowView: View {
     var body: some View {
         HStack(spacing: 0) {
             sidebar
-                .frame(width: 270)
+                .frame(minWidth: 280, idealWidth: 300, maxWidth: 320)
                 .background(LintelBrand.sidebarBackground)
             LintelDivider(axis: .vertical)
             detail
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(LintelBrand.windowBackground)
         }
-        .frame(minWidth: 820, minHeight: 540)
+        .frame(minWidth: 900, minHeight: 560)
         .task { await model.refresh() }
         .destructiveConfirmation(
             isPresented: Binding(

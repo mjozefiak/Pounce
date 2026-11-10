@@ -293,7 +293,7 @@ final class LayoutsModel {
 
     // MARK: Summary
 
-    /// "6 layouts · Zones on 2 workspaces", the line under *Layouts…* in Settings.
+    /// "6 layouts · Zones: 2 workspaces", the line under *Layouts…* in Settings.
     var summary: String { pane.layoutsSummary }
 
     // MARK: Keyboard

@@ -287,10 +287,10 @@ import Testing
     @Test func theSummaryCountsLayoutsAndZonesWorkspaces() async throws {
         let rig = try await rig()
         defer { Task { await finish(rig) } }
-        #expect(rig.model.summary == "6 layouts · No workspace uses Zones")
+        #expect(rig.model.summary == "6 layouts · Zones: no workspaces")
         rig.model.setKind(.zones, for: ws(1))
         rig.model.setKind(.zones, for: ws(3))
-        #expect(rig.model.summary == "6 layouts · Zones on 2 workspaces")
+        #expect(rig.model.summary == "6 layouts · Zones: 2 workspaces")
     }
 
     @Test func theDefaultZoneLayoutRowsWriteTheSettingsAndTheEngineFollows() async throws {

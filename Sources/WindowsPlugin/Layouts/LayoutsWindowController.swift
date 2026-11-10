@@ -16,8 +16,21 @@ final class LayoutsWindowController: NSObject, NSWindowDelegate {
     /// False in QA mode: the window is ordered front without activating Lintel.
     var activatesApp = true
 
-    init(makeModel: @escaping @MainActor () -> LayoutsModel?) {
+    /// Where the window's frame is remembered: the plugin's settings (`WindowsSettings.layoutsWindowFrame`), never
+    /// the window system's own autosave, which writes to the real defaults domain even in a QA run.
+    private let loadFrame: () -> String?
+    private let saveFrame: (String) -> Void
+
+    static let defaultSize = NSSize(width: 980, height: 680)
+    static let minimumSize = NSSize(width: 900, height: 560)
+
+    init(
+        makeModel: @escaping @MainActor () -> LayoutsModel?, loadFrame: @escaping () -> String? = { nil },
+        saveFrame: @escaping (String) -> Void = { _ in }
+    ) {
         self.makeModel = makeModel
+        self.loadFrame = loadFrame
+        self.saveFrame = saveFrame
     }
 
     var isOpen: Bool { window?.isVisible ?? false }
@@ -31,22 +44,50 @@ final class LayoutsWindowController: NSObject, NSWindowDelegate {
         self.model = model
         let view = LintelTextSizeScope(size: textSize) { LayoutsWindowView(model: model) }
         let controller = NSHostingController(rootView: view)
+        // The window has its own size: the view's ideal size must not stretch it (it opened 1265 by 1362).
+        controller.sizingOptions = []
         let window = NSWindow(contentViewController: controller)
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
         window.title = String(localized: "Layouts", comment: "Layouts window title")
-        window.setContentSize(NSSize(width: 940, height: 660))
-        window.minSize = NSSize(width: 820, height: 540)
+        window.minSize = Self.minimumSize
+        window.setContentSize(Self.defaultSize)
         window.isReleasedWhenClosed = false
         window.delegate = self
         window.tabbingMode = .disallowed
         window.center()
-        window.setFrameAutosaveName("WindowsLayouts")
+        if let stored = loadFrame(), let frame = Self.usableFrame(stored, screens: NSScreen.screens.map(\.visibleFrame))
+        {
+            window.setFrame(frame, display: false)
+        }
         self.window = window
         bringForward(window)
     }
 
     func close() {
         window?.close()
+    }
+
+    /// A remembered frame made usable: parsed, at least the minimum size, at most the size of a screen, and on a screen
+    /// (`nil` when it cannot be read or lies on no connected screen).
+    static func usableFrame(_ stored: String, screens: [CGRect]) -> NSRect? {
+        let frame = NSRectFromString(stored)
+        guard frame.width > 0, frame.height > 0, let screen = screens.first(where: { $0.intersects(frame) }) else {
+            return nil
+        }
+        var usable = frame
+        usable.size.width = min(max(frame.width, minimumSize.width), screen.width)
+        usable.size.height = min(max(frame.height, minimumSize.height), screen.height)
+        usable.origin.x = min(max(usable.origin.x, screen.minX), screen.maxX - usable.width)
+        usable.origin.y = min(max(usable.origin.y, screen.minY), screen.maxY - usable.height)
+        return usable
+    }
+
+    func windowDidResize(_ notification: Notification) { remember() }
+    func windowDidMove(_ notification: Notification) { remember() }
+
+    private func remember() {
+        guard let window, window.isVisible else { return }
+        saveFrame(NSStringFromRect(window.frame))
     }
 
     func windowWillClose(_ notification: Notification) {

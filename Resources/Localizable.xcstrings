@@ -13249,6 +13249,66 @@
         }
       }
     },
+    "%@: %@" : {
+      "comment" : "Settings: a layout kind's name and how many workspaces use it",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: %@"
+          }
+        }
+      }
+    },
+    "no workspaces" : {
+      "comment" : "Settings: no workspace uses the layout kind",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "no workspaces"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "brak obszarów roboczych"
+          }
+        }
+      }
+    },
+    "%lld workspaces" : {
+      "comment" : "Settings: how many workspaces use a layout kind (after the kind's name)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : { "stringUnit" : { "state" : "translated", "value" : "%lld workspace" } },
+              "other" : { "stringUnit" : { "state" : "translated", "value" : "%lld workspaces" } }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : { "stringUnit" : { "state" : "translated", "value" : "%lld obszar roboczy" } },
+              "few" : { "stringUnit" : { "state" : "translated", "value" : "%lld obszary robocze" } },
+              "many" : { "stringUnit" : { "state" : "translated", "value" : "%lld obszarów roboczych" } },
+              "other" : { "stringUnit" : { "state" : "translated", "value" : "%lld obszaru roboczego" } }
+            }
+          }
+        }
+      }
+    },
     "Windows are parked" : {
       "comment" : "Window HUD: windows are hidden and cannot be restored",
       "extractionState" : "manual",
@@ -15661,24 +15721,6 @@
         }
       }
     },
-    "No workspace uses Zones" : {
-      "comment" : "Settings: no workspace is set to Zones",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No workspace uses Zones"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Żaden obszar roboczy nie używa Stref"
-          }
-        }
-      }
-    },
     "Layouts" : {
       "comment" : "Layouts window title",
       "extractionState" : "manual",
@@ -16248,60 +16290,6 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld układu"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "Zones on %lld workspaces" : {
-      "comment" : "Settings: how many workspaces use Zones",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Zones on %lld workspace"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Zones on %lld workspaces"
-                }
-              }
-            }
-          }
-        },
-        "pl" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Strefy na %lld obszarze roboczym"
-                }
-              },
-              "few" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Strefy na %lld obszarach roboczych"
-                }
-              },
-              "many" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Strefy na %lld obszarach roboczych"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Strefy na %lld obszaru roboczego"
                 }
               }
             }

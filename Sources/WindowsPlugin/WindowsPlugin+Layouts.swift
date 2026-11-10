@@ -6,7 +6,9 @@ import SwiftUI
 /// The Layouts window, the grid editor and the `.lintellayouts` file the user opens.
 extension WindowsPlugin {
     func makeLayoutsWindow() -> LayoutsWindowController {
-        LayoutsWindowController(makeModel: { [weak self] in
+        let settings = settings
+        return LayoutsWindowController(
+            makeModel: { [weak self] in
             guard let self else { return nil }
             return LayoutsModel(
                 pane: paneModel, displays: { [client = context.windows] in await client.displays() },
@@ -16,7 +18,8 @@ extension WindowsPlugin {
                     openEditor(layout: layout, isNew: isNew, parent: layoutsWindow.window, onSaved: onSaved)
                 },
                 files: AppKitLayoutFiles())
-        })
+            },
+            loadFrame: { settings.layoutsWindowFrame }, saveFrame: { settings.setLayoutsWindowFrame($0) })
     }
 
     /// Opens the grid editor on a layout (a copy of a stock one, a user's own, or a new one). Needs the running

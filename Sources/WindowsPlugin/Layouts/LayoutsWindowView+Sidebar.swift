@@ -48,48 +48,59 @@ extension LayoutsWindowView {
             .accessibilityAddTraits(.isHeader)
     }
 
+    /// Two rows that wrap by design: the longest Polish labels ("Nowy układ", "Duplikuj", "Importuj") must never be
+    /// cut, so each button keeps its full text (`fixedSize`) and the rows take the sidebar's width.
     var libraryButtons: some View {
-        HStack(spacing: 8) {
-            Button {
-                model.newLayout()
-            } label: {
-                Text("New layout", comment: "Layouts window: makes a new layout in the editor")
-            }
-            .buttonStyle(LintelPrimaryButtonStyle())
-            .disabled(!model.canEditLibrary)
-            Button {
-                model.actions.enqueue { await model.duplicateSelected() }
-            } label: {
-                Text("Duplicate", comment: "Layouts window: makes an editable copy of the selected layout")
-            }
-            .disabled(!model.canEditLibrary)
-            Button {
-                model.beginImport()
-            } label: {
-                Text("Import", comment: "Layouts window: adds layouts from a file")
-            }
-            .disabled(!model.canEditLibrary)
-            Menu {
-                Button {
-                    model.export(.selected)
-                } label: {
-                    Text("Export Selected Layout…", comment: "Layouts window: writes the selected layout to a file")
-                }
-                Button {
-                    model.export(.allMine)
-                } label: {
-                    Text("Export All My Layouts…", comment: "Layouts window: writes the user's layouts to a file")
-                }
-                .disabled(model.userLayouts.isEmpty)
-            } label: {
-                Text("Export", comment: "Layouts window: writes layouts to a file")
-            }
-            .menuStyle(.button)
-            .fixedSize()
-            .disabled(!model.isActive)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) { primaryLibraryButtons }
+            HStack(spacing: 8) { secondaryLibraryButtons }
         }
         .controlSize(.small)
         .lineLimit(1)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    @ViewBuilder private var primaryLibraryButtons: some View {
+        Button {
+            model.newLayout()
+        } label: {
+            Text("New layout", comment: "Layouts window: makes a new layout in the editor")
+        }
+        .buttonStyle(LintelPrimaryButtonStyle())
+        .disabled(!model.canEditLibrary)
+        Button {
+            model.actions.enqueue { await model.duplicateSelected() }
+        } label: {
+            Text("Duplicate", comment: "Layouts window: makes an editable copy of the selected layout")
+        }
+        .disabled(!model.canEditLibrary)
+    }
+
+    @ViewBuilder private var secondaryLibraryButtons: some View {
+        Button {
+            model.beginImport()
+        } label: {
+            Text("Import", comment: "Layouts window: adds layouts from a file")
+        }
+        .disabled(!model.canEditLibrary)
+        Menu {
+            Button {
+                model.export(.selected)
+            } label: {
+                Text("Export Selected Layout…", comment: "Layouts window: writes the selected layout to a file")
+            }
+            Button {
+                model.export(.allMine)
+            } label: {
+                Text("Export All My Layouts…", comment: "Layouts window: writes the user's layouts to a file")
+            }
+            .disabled(model.userLayouts.isEmpty)
+        } label: {
+            Text("Export", comment: "Layouts window: writes layouts to a file")
+        }
+        .menuStyle(.button)
+        .fixedSize()
+        .disabled(!model.isActive)
     }
 
     func row(_ layout: GridLayout) -> some View {
@@ -105,6 +116,7 @@ extension LayoutsWindowView {
                         .font(textSize.font(.body, weight: selected ? .semibold : .regular))
                         .foregroundStyle(selected ? LintelBrand.accentText : LintelBrand.ink)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                     if !stock {
                         Text(verbatim: model.rowDetail(of: layout))
                             .font(textSize.font(.caption1))

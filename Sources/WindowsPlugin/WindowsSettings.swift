@@ -18,6 +18,9 @@ struct WindowsSettings: Sendable {
         static let defaultZoneLayoutPortrait = "defaultZoneLayout.portrait"
         /// One versioned JSON value with the per-workspace overrides (`WorkspaceOverrides`).
         static let workspaces = "workspaces"
+        /// The Layouts window's remembered frame (`NSStringFromRect`), kept here and not in the window system's
+        /// own autosave so a QA run never writes to the real defaults domain.
+        static let layoutsWindowFrame = "layoutsWindowFrame"
         static let stripEnabled = "strip.enabled"
         static let stripMode = "strip.mode"
         /// Hidden: set by the engine after two launches in a row ended with parked windows; the plugin then
@@ -127,6 +130,9 @@ struct WindowsSettings: Sendable {
 
     /// The per-workspace overrides; a value that is not readable counts as none.
     var workspaceOverrides: WorkspaceOverrides { WorkspaceOverrides(json: settings.string(Key.workspaces)) }
+
+    var layoutsWindowFrame: String? { settings.string(Key.layoutsWindowFrame) }
+    func setLayoutsWindowFrame(_ frame: String) { settings.set(frame, for: Key.layoutsWindowFrame) }
 
     /// The menu bar strip is on by default while the plugin is on.
     var stripEnabled: Bool { settings.bool(Key.stripEnabled, default: true) }

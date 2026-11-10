@@ -66,7 +66,7 @@ extension WindowsSettingsModel {
         await reloadLibrary()
     }
 
-    /// "6 layouts · Zones on 2 workspaces": the line under *Layouts…* in Basics.
+    /// "6 layouts · Zones: 2 workspaces": the line under *Layouts…* in Basics.
     var layoutsSummary: String {
         let layouts = String(
             localized: "\(StockLayouts.all.count + libraryLayouts.count) layouts",
@@ -76,9 +76,14 @@ extension WindowsSettingsModel {
         let usage = registry.libraryKinds.map { kind -> String in
             let name = kindName(kind)
             let count = WorkspaceID.all(count: workspaceCount).filter { config.resolved(for: $0).kind == kind }.count
-            return count == 0
-                ? String(localized: "No workspace uses \(name)", comment: "Settings: no workspace uses the layout kind")
-                : String(localized: "\(name) on \(count) workspaces", comment: "Settings: how many workspaces use it")
+            let used =
+                count == 0
+                ? String(localized: "no workspaces", comment: "Settings: no workspace uses the layout kind")
+                : String(
+                    localized: "\(count) workspaces",
+                    comment: "Settings: how many workspaces use a layout kind (after the kind's name)")
+            return String(
+                localized: "\(name): \(used)", comment: "Settings: a layout kind's name and how many workspaces use it")
         }
         return ([layouts] + usage).joined(separator: " · ")
     }
