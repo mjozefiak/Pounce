@@ -36,8 +36,7 @@ extension WindowsPlugin {
     /// Accessibility is off. Only an empty journal is erased.
     public func eraseData() async throws {
         await deactivate()
-        let journal = journal
-        _ = await withDeadline(Self.eraseBudget, clock: context.clock) { await journal.waitUntilIdle() }
+        _ = await journal.waitUntilIdle(within: Self.eraseBudget, clock: context.clock)
         guard case .ran(let report) = await Self.restoreFromJournal(context: context) else {
             context.logger.notice("Erase refused: the engine has not handed the journal back")
             throw EraseRefused()
@@ -65,8 +64,6 @@ extension WindowsPlugin {
         hud: @Sendable (WindowsHUDState) async -> Void
     ) async -> RecoveryOutcome {
         let journal = JournalOwner.owner(for: context)
-        let first: Bool
-        if let isLaunch { first = isLaunch } else { first = await journal.claimLaunch() }
         // A running engine owns its journal: the windows parked in it are parked on purpose.
         let pass = await journal.exclusive { store in await restore(context: context, store: store) }
         let report: RecoveryReport
@@ -75,6 +72,10 @@ extension WindowsPlugin {
         case .engineStopping, .cancelled: return .deferred
         case .ran(let done): report = done
         }
+        // The launch is counted by the first pass that really ran (a pass the engine or another pass refused is
+        // not the launch's recovery).
+        let first: Bool
+        if let isLaunch { first = isLaunch } else { first = await journal.claimLaunch() }
         let settings = WindowsSettings(context.settings)
         if first, !report.readOnly {
             // A launch that found parked windows is counted; the second in a row starts the plugin in safe mode.

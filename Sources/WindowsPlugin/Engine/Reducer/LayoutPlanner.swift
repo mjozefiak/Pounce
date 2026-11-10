@@ -56,7 +56,7 @@ struct LayoutPlanner: Sendable {
 
     /// Whether moving a window of this workspace by hand may start a snap drag. Cheap: no layout input is built.
     func offersSnapTargets(_ state: EngineState, for workspace: WorkspaceID) -> Bool {
-        strategies[state.config.layout.resolved(for: workspace).kind]?.offersSnapTargets ?? false
+        strategies[state.config.layout.resolved(for: workspace).kind]?.snapping != nil
     }
 }
 

@@ -12,12 +12,19 @@ struct PointerSample: Equatable, Sendable {
 }
 
 /// One zone the overlay offers: the display it is on (`DisplayKeys`), the zone id and number of the layout shown
-/// there, and its frame in the Accessibility space.
+/// there, its frame in the Accessibility space and the command that snaps a window to it (the strategy that offers
+/// the target decides what snapping means; the plugin only sends it).
 struct DragZone: Equatable, Hashable, Sendable {
     var displayKey: String
     var zoneID: Int
     var number: Int
     var frame: CGRect
+    var command = LayoutCommand("none")
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(displayKey)
+        hasher.combine(zoneID)
+    }
 }
 
 /// The zones of one display with the display's usable area; a cursor inside the area picks a zone of that

@@ -46,7 +46,7 @@ extension WindowsSettingsPane {
         MenuPicker(
             selection: Binding(
                 get: { current.kind?.rawValue ?? Self.useDefault },
-                set: { model.setOverrideKind(LayoutKind($0), for: workspace) })
+                set: { model.setOverrideChoice($0, for: workspace) })
         ) {
             Text("Use default", comment: "Window Management: the workspace follows the global setting")
                 .font(textSize.font(.body)).tag(Self.useDefault)
@@ -70,7 +70,7 @@ extension WindowsSettingsPane {
         .disabled(current.isEmpty)
     }
 
-    static let useDefault = "default"
+    static let useDefault = WindowsSettingsModel.useDefaultChoice
 
     /// One option of a layout kind. With a `fallback` it is a per-workspace override (`value` is the override, if any,
     /// and the row offers the way back to the global value); without one it is the global default itself.
@@ -98,7 +98,7 @@ extension WindowsSettingsPane {
                     }
                 }
             } label: {
-                label(Text(verbatim: option.title))
+                label(Text(verbatim: option.title), help: option.help.map { Text(verbatim: $0) })
             }
         case .choices(let choices):
             MenuPicker(
@@ -116,7 +116,7 @@ extension WindowsSettingsPane {
                     Text(verbatim: choice.title).font(textSize.font(.body)).tag(choice.id)
                 }
             } label: {
-                label(Text(verbatim: option.title))
+                label(Text(verbatim: option.title), help: option.help.map { Text(verbatim: $0) })
             }
         }
     }

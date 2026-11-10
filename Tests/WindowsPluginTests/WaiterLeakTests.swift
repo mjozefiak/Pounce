@@ -23,8 +23,18 @@ import os
         }
     }
 
+    /// Lets other tasks run until `condition` holds; a condition that never holds fails the test instead of hanging
+    /// it.
+    private func eventually(_ message: String, _ condition: @Sendable () async -> Bool) async {
+        for _ in 0..<200_000 {
+            if await condition() { return }
+            await Task.yield()
+        }
+        Issue.record("never reached: \(message)")
+    }
+
     private func waitersOf(_ owner: JournalOwner, atLeast count: Int) async {
-        while await owner.waiterCount < count { await Task.yield() }
+        await eventually("\(count) waiters on the journal") { await owner.waiterCount >= count }
     }
 
     @Test func aCancelledWaitForTheJournalLeavesTheQueue() async throws {
@@ -42,13 +52,26 @@ import os
         await owner.endEngine(lease)
     }
 
+    @Test func aWaitThatTimesOutLeavesNoWaiterBehind() async throws {
+        let harness = try WindowsHarness()
+        defer { harness.tearDown() }
+        let owner = JournalOwner(directory: harness.directory, logger: .init())
+        let lease = try #require(await owner.tryBeginEngine())
+        // The clock jumps over the budget: the wait gives up at once and must not stay parked.
+        let idle = await owner.waitUntilIdle(within: .seconds(5), clock: VirtualClock(autoAdvance: true))
+        #expect(!idle)
+        #expect(await owner.waiterCount == 0)
+        await owner.endEngine(lease)
+        #expect(await owner.waitUntilIdle(within: .seconds(5), clock: VirtualClock(autoAdvance: true)))
+    }
+
     @Test func aCancelledPassWaitingForAnotherPassRunsNothing() async throws {
         let harness = try WindowsHarness()
         defer { harness.tearDown() }
         let owner = JournalOwner(directory: harness.directory, logger: .init())
         let latch = Latch()
         let first = Task { await owner.exclusive { _ in await latch.wait() } }
-        while await owner.phase != .recovering { await Task.yield() }
+        await eventually("the first pass is running") { await owner.phase == .recovering }
         let second = Task { await owner.exclusive { _ in 1 } }
         await waitersOf(owner, atLeast: 1)
         second.cancel()
@@ -68,7 +91,12 @@ import os
         actions.enqueue { await latch.wait() }
         let cancelled = Task { await actions.waitUntilEmpty() }
         let released = Task { await actions.waitUntilEmpty() }
-        while actions.waiterCount < 2 { await Task.yield() }
+        var attempts = 0
+        while actions.waiterCount < 2, attempts < 200_000 {
+            attempts += 1
+            await Task.yield()
+        }
+        #expect(actions.waiterCount >= 2, "never reached: two waiters on the queue")
         cancelled.cancel()
         await cancelled.value
         #expect(actions.waiterCount == 1)

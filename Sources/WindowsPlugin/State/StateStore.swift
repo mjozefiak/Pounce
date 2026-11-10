@@ -197,15 +197,17 @@ actor StateStore {
         isDirty = false
     }
 
-    /// Forgets everything (*Reset state*): membership and the journal. The caller restores the windows first; what
-    /// could not be restored (another Space) is forgotten with the rest, which is why the pane confirms. Written
-    /// through. Throws when the file cannot be written.
+    /// Forgets the membership and the layouts (*Reset state*) but never the journal: it is the only way back for a
+    /// window that is parked, including one that was parked after the caller's restore, so no race can lose it.
+    /// Written through. Throws when the file cannot be written.
     func reset() throws {
         guard !isClosed else { throw StoreError.closed }
         guard !isReadOnly else { throw StoreError.readOnly }
         saveTask?.cancel()
         saveTask = nil
-        try writeThrough(.empty)
+        var kept = WindowsState.empty
+        kept.hidden = state.hidden
+        try writeThrough(kept)
     }
 
     // MARK: Membership (deferred)

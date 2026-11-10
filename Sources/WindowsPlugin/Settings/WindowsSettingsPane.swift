@@ -103,7 +103,7 @@ struct WindowsSettingsPane: View {
             label(
                 Text("Default layout", comment: "Window Management setting: how workspaces are arranged"),
                 help: Text(
-                    "Auto-tile fills the screen with the windows of a workspace. Zones snaps them into zones. Free leaves them where they are.",
+                    "How a workspace arranges its windows unless it has a layout of its own.",
                     comment: "Window Management setting help: the layout kinds"))
         }
         if !model.registry.libraryKinds.isEmpty {

@@ -36,27 +36,3 @@ struct LayoutCommandSpec: Sendable {
         self.purpose = purpose
     }
 }
-
-/// A row a strategy adds to Settings → Window Management → Basics for its own settings that are not options (for
-/// Zones: the default layout of each display shape). The pane draws it, the strategy decides what it means.
-struct LayoutSettingRow: Identifiable {
-    struct Choice: Hashable {
-        var id: String
-        var title: String
-    }
-
-    var id: String
-    var title: String
-    var help: String?
-    /// Read when the pane is drawn, so a library that changed shows its layouts.
-    var choices: @MainActor () -> [Choice]
-    var selection: @MainActor () -> String
-    var select: @MainActor (String) -> Void
-}
-
-/// A strategy that has settings rows of its own (`LayoutSettingRow`). The registry's strategies are asked; a kind
-/// that does not conform adds none.
-@MainActor
-protocol LayoutSettingsProviding {
-    func settingRows(model: WindowsSettingsModel) -> [LayoutSettingRow]
-}

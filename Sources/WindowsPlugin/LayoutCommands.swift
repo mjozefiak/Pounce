@@ -60,24 +60,21 @@ final class LayoutCommands {
     }
 
     /// *Next zone layout*: the layout after the one in effect, over the stock templates and then the user's. The
-    /// kind that uses the library says which layout is in effect (`LayoutStrategy.libraryLayoutID`): the kind of
+    /// kind that uses the library says which layout is in effect (`LayoutLibraryProviding.libraryLayoutID`): the kind of
     /// the current workspace when it uses the library, else the first registered kind that does.
     func nextLayout() async {
         guard let cell = await currentCell() else { return }
-        let library = await layouts.library
-        let environment = LayoutEnvironment(settings: settings, assignments: await assignments.table, library: library)
+        let layoutLibrary = await layouts.library
+        let environment = LayoutEnvironment(
+            settings: settings, assignments: await assignments.table, library: layoutLibrary)
         let kind = await currentKind(of: cell.workspace)
-        guard let strategy = registry[kind].flatMap({ $0.usesLayoutLibrary ? $0 : nil }) ?? libraryStrategy else {
-            return
-        }
+        guard let provider = registry[kind]?.library ?? libraryStrategy?.library else { return }
         let displays = await context.windows.displays()
         let keyed = DisplayKeys.keys(for: displays)
         let orientation = displays.first { keyed.keys[$0.id] == cell.displayKey }?.orientation ?? .landscape
-        guard
-            let current = strategy.libraryLayoutID(
-                environment, workspace: cell.workspace, displayKey: cell.displayKey, orientation: orientation),
-            let next = library.next(after: current)
-        else { return }
+        let current = provider.libraryLayoutID(
+            environment, workspace: cell.workspace, displayKey: cell.displayKey, orientation: orientation)
+        guard let next = layoutLibrary.next(after: current) else { return }
         await useLayout(next)
     }
 

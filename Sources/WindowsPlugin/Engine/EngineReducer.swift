@@ -104,6 +104,6 @@ enum EngineReducer {
         guard state.windows[window] != nil, let workspace = state.model.workspace(of: window),
             let (strategy, input) = planner.input(state, for: workspace)
         else { return [] }
-        return strategy.snapTargets(input)
+        return strategy.snapping?.snapTargets(input) ?? []
     }
 }

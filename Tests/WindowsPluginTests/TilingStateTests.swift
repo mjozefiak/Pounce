@@ -143,6 +143,22 @@ import Testing
         #expect(overrides.json.contains("\"version\":1"))
     }
 
+    @MainActor @Test func choosingUseDefaultStoresNoKindAndAStoredDefaultReadsAsNone() throws {
+        let harness = try WindowsHarness()
+        defer { harness.tearDown() }
+        let settings = WindowsSettings(harness.pluginSettings)
+        let model = WindowsSettingsModel(
+            context: harness.context(), settings: settings, registry: .standard, runtime: { nil })
+        model.setOverrideChoice("zones", for: ws(2))
+        #expect(model.override(for: ws(2)).kind == .zones)
+        model.setOverrideChoice(WindowsSettingsModel.useDefaultChoice, for: ws(2))
+        #expect(model.override(for: ws(2)).kind == nil)
+        #expect(model.overrides.byWorkspace.isEmpty)
+        // What an earlier build stored for "use default" is no override.
+        let stored = #"{"version":1,"workspaces":{"3":{"kind":"default"}}}"#
+        #expect(WorkspaceOverrides(json: stored).byWorkspace.isEmpty)
+    }
+
     @Test func emptyOverridesStoreNothing() {
         #expect(WorkspaceOverrides([ws(1): WorkspaceOverride()]).json.isEmpty)
         #expect(WorkspaceOverrides(json: nil).byWorkspace.isEmpty)

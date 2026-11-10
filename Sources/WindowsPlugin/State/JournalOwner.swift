@@ -1,4 +1,5 @@
 import Foundation
+import LintelCore
 import LintelKit
 import Synchronization
 import os
@@ -62,6 +63,16 @@ actor JournalOwner {
     /// the queue at once (callers put a deadline around it).
     func waitUntilIdle() async {
         while phase != .idle, !Task.isCancelled { await waitForTurn() }
+    }
+
+    /// Waits until the journal is free, at most `budget` on `clock`, and says whether it is. The wait that gave up is
+    /// cancelled and gone from the queue when this returns (nothing stays parked after a timeout).
+    func waitUntilIdle(within budget: Duration, clock: any Clock<Duration>) async -> Bool {
+        let waiting = Task { await self.waitUntilIdle() }
+        let idle = await withDeadline(budget, clock: clock) { await waiting.value } != nil
+        waiting.cancel()
+        await waiting.value
+        return idle
     }
 
     /// The engine of `lease` is being stopped: recovery passes answer `.engineStopping` until `endEngine`.

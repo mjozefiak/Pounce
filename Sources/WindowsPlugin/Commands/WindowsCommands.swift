@@ -25,6 +25,22 @@ enum WindowsCommandID {
     /// The nine layout slots: stable commands, each bound to a layout in the pane (spec: API Contracts).
     static func layoutSlot(_ number: Int) -> String { "windows.zones.layout.\(number)" }
     static let nextLayout = "windows.zones.nextLayout"
+
+    /// The ids the plugin itself owns: a strategy's command may not take one of them (`LayoutRegistry.commandSpecs`
+    /// leaves such a command out).
+    static let reserved: Set<String> = {
+        var ids: Set<String> = [next, previous, back, restoreAll, toggleFloating, toggleLayout, nextLayout]
+        for number in 1...WindowsSettings.maximumWorkspaces {
+            ids.insert(workspace(number))
+            ids.insert(moveToWorkspace(number))
+        }
+        for number in 1...LayoutRules.slotCount { ids.insert(layoutSlot(number)) }
+        for direction in LayoutDirection.allCases {
+            ids.insert(focus(direction))
+            ids.insert(move(direction))
+        }
+        return ids
+    }()
 }
 
 /// A family of commands that share one modifier row in Settings (the keys stay fixed).

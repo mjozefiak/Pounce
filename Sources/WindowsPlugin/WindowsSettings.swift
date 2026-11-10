@@ -70,7 +70,6 @@ struct WindowsSettings: Sendable {
     /// A brief on-screen number after a switch.
     var showHUD: Bool { settings.bool(Key.showHUD, default: true) }
 
-    /// Auto-tile unless the user chose otherwise (spec Q5); an unknown stored value reads as Auto-tile.
     /// The kind of a workspace without an override; a value that is not a registered kind (or none) reads as the
     /// registry's default kind.
     func defaultKind(in registry: LayoutRegistry) -> LayoutKind {

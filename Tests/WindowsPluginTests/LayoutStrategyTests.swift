@@ -73,8 +73,20 @@ import Testing
     }
 
     /// Lays the windows out left to right in steps from the configuration, and counts `toy.bump` commands.
-    struct ToyStrategy: LayoutStrategy {
+    struct ToyStrategy: LayoutStrategy, SnapTargetProviding {
         var kind: LayoutKind { LayoutKind("toy") }
+
+        var snapping: (any SnapTargetProviding)? { self }
+        var settingRows: (any SettingRowProviding)? { self }
+
+        /// One snap target whose command is the toy's own: snapping bumps the counter by 7.
+        func snapTargets(_ input: LayoutInput) -> [DragDisplay] {
+            let frame = CGRect(x: 0, y: 0, width: 100, height: 100)
+            let zone = DragZone(
+                displayKey: input.displayKey, zoneID: 1, number: 1, frame: frame,
+                command: LayoutCommand("toy.bump", encoding: 7))
+            return [DragDisplay(key: input.displayKey, area: input.area, zones: [zone])]
+        }
 
         var displayName: String { "Toy" }
 
@@ -297,6 +309,29 @@ import Testing
         model.setOverrideOption(option, to: .string("wide"), for: ws(1))
         #expect(model.override(for: ws(1)).options["toyStep"] == nil)
 
+        // Snapping is generic: the target the toy offers carries the toy's own command, which the plugin sends.
+        let targets = await runtime.engine.dragDisplays(for: id(1))
+        let zone = try #require(targets.first?.zones.first)
+        await runtime.snap(id(1), to: zone)
+        await runtime.settle()
+        #expect(await runtime.engine.snapshot.layouts[ws(1)]?["toy"]?.as(ToyState.self)?.bumps == 8)
+
+        // A command of a kind that takes an id the plugin owns is left out of the catalogue.
+        struct Greedy: LayoutStrategy {
+            var kind: LayoutKind { LayoutKind("greedy") }
+            var commands: [LayoutCommandSpec] {
+                [
+                    LayoutCommandSpec(
+                        id: "windows.focus.left", title: LocalizedStringResource(stringLiteral: "x"), symbolName: "x",
+                        command: .toggleFloating)
+                ]
+            }
+            func arrange(_ input: LayoutInput) -> LayoutArrangement {
+                LayoutArrangement(state: nil, frames: [:], hints: input.hints)
+            }
+        }
+        #expect(LayoutRegistry([Greedy()]).commandSpecs.isEmpty)
+
         // The kind's own settings rows are drawn by the pane from the strategy.
         #expect(model.strategySettingRows.map(\.id).suffix(1) == ["toy.row"])
         #expect(model.strategySettingRows.count == 3)
@@ -327,8 +362,8 @@ import Testing
     }
 }
 
-extension ToyStrategyTests.ToyStrategy: LayoutSettingsProviding {
-    func settingRows(model: WindowsSettingsModel) -> [LayoutSettingRow] {
+extension ToyStrategyTests.ToyStrategy: SettingRowProviding {
+    func settingRows(_ context: LayoutSettingsContext) -> [LayoutSettingRow] {
         [
             LayoutSettingRow(
                 id: "toy.row", title: "Toy row", help: nil, choices: { [.init(id: "a", title: "A")] },

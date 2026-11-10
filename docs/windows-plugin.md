@@ -59,25 +59,44 @@ strategy declares reaches the pane, the settings and the command catalogue as da
   `string(_:)`). Only the options of the kind in use apply; another kind's values stay stored. Option ids are unique
   across the registry (a strategy that repeats one, or `kind`, is left out like a reserved kind name).
 - `commands` (`LayoutCommandSpec`): the plugin's catalogue is the shared verbs (focus and move to a neighbour with
-  `LayoutDirection`, toggle floating), the registry's commands, the layout-library commands when any kind
-  `usesLayoutLibrary`, and *Toggle layout*.
-- `LayoutSettingsProviding` for rows that are not options (Zones: the default layout of each display shape),
-  `summaryParts(_:)`, `libraryLayoutID(...)` (*Next zone layout* asks the kind), `offersSnapTargets`/`snapTargets`.
+  `LayoutDirection`, toggle floating), the registry's commands (an id the plugin owns, `WindowsCommandID.reserved`,
+  is refused), the layout-library commands when any kind has the `library` capability, and *Toggle layout*.
+- `summaryParts(_:)` for the line in the per-workspace summary.
+- Optional capabilities, each its own small protocol that a strategy returns itself for from a typed accessor with a
+  `nil` default (no dynamic cast anywhere): `library` (`LayoutLibraryProviding`: the kind assigns layouts from the
+  library; *Next zone layout* asks it which one is in effect), `snapping` (`SnapTargetProviding`: the kind offers snap
+  targets; every `DragZone` carries the `LayoutCommand` that snaps, and the plugin sends that command for the dragged
+  window, so snapping is generic) and `settingRows` (`SettingRowProviding`: rows for settings that are not options,
+  built from a narrow `LayoutSettingsContext`: the settings, the library's layouts and an "applied" callback, not the
+  pane model).
 
 There is one registry, built once by `WindowsPlugin` and injected into the engine, `LayoutConfig(settings:registry:)`
 (the one construction of the defaults, used by `EngineConfig` and the pane), `LayoutCommands`, the settings model and
 the Layouts window; the cycle of *Toggle layout* and the kinds the pane offers are the registry's. A kind named like a
-`state.json` key (`order`) is left out. `ToyStrategyTests` proves a fourth kind with its own option, command and settings
-row needs no production change, through the engine, the pane model, the settings, *Toggle layout* and the command
-catalogue.
+`state.json` key (`order`) is left out. `ToyStrategyTests` proves a fourth kind with its own option, command, settings
+row and snap target needs no production change, through the engine, the pane model, the settings, *Toggle layout*,
+snapping and the command catalogue.
 
 What is not open, and is documented rather than hidden: the closed `ShortcutFamily` list (a kind's commands are bound
-one by one, or join an existing family), the shared directional verbs, and the layout library with its Layouts window
-and grid editor, which are the Zones feature (`GridLayout`) offered to any kind that sets `usesLayoutLibrary`.
+one by one, or join an existing family) and the shared directional verbs. The **layout library** is the Zones feature
+and is not generic over layout formats: the Layouts window and its matrix, the grid editor and the layout slots work on
+`GridLayout`, `LayoutsModel` builds `ZonesConfig` directly, the settings keys `defaultZoneLayout.*` and
+`WindowsSettings.defaultZoneLayout` are Zones' own, and a kind can only join the library by returning a `GridLayout`
+id from `libraryLayoutID`. Nothing else in the pane, the settings model, the command catalogue or the engine names a
+kind.
 
 `LayoutCommand` ids are namespaced strings with an opaque JSON payload (`layout.focus`, `tiling.join`, `zones.slot`):
 the trade-off is that a typo is caught by a test and not by the compiler, in return for shared enums that name no
 verb. Each kind keeps its ids and payload types next to its strategy.
+
+## The runtime's one life
+
+`WindowsRuntime` has a phase: `idle`, `starting`, `running`, `stopped`, and lives once. `start()` checks it after every
+await; a `stop()` that comes first (a disable, the host giving up on a start that hangs, a failed self-check) or a
+cancelled caller ends the start with `CancellationError`, tears down what it had created, and hands back a journal lease
+it took after the stop. `WindowEngine.start()` is a no-op once `stop()` has run, and a start that a stop overtook awaits
+the pump it created. A waiting `waitUntilIdle` (`JournalOwner.waitUntilIdle(within:clock:)`) is a task the caller cancels
+when its budget runs out, so nothing stays parked in the journal's queue after a timeout.
 
 ## Journal ownership
 
@@ -98,5 +117,7 @@ the journal, instead of reporting zero.
 
 `FakeWindowClient` scripts latency-free behaviours (hung apps, refusals, snap-backs, a stall until released) and
 records every call. Time is a `VirtualClock`; tests wait with barriers (`settle()`, `waitForWork()`, `waitUntilStalled`,
-`OrderedActions.waitUntilEmpty()`), never with real sleeps. TSan runs the engine, recovery, strategy and journal
+`OrderedActions.waitUntilEmpty()`), never with real sleeps. Where a test must wait for a count (a waiter parked in a
+queue) it polls with `Task.yield()` under an iteration cap that fails the test instead of hanging it
+(`WaiterLeakTests`); no wait relies on a number of yields. TSan runs the engine, recovery, strategy and journal
 suites in CI.

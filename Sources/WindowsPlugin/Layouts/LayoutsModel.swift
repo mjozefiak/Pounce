@@ -176,7 +176,7 @@ final class LayoutsModel {
         return MatrixCell(
             workspace: workspace, displayKey: display.key,
             assignedID: table.layoutID(workspace: workspace, displayKey: display.key), effective: resolved,
-            label: label, isInactive: !(pane.registry[kind(of: workspace)]?.usesLayoutLibrary ?? false))
+            label: label, isInactive: pane.registry[kind(of: workspace)]?.library == nil)
     }
 
     /// The cells whose layout was missing, so the default was used (the pane reports it).

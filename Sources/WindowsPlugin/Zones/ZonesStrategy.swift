@@ -5,16 +5,22 @@ import LintelKit
 /// Zones: a grid layout per workspace and display (state kind `zones`, stored as `workspaces[n].zones`). A new
 /// window goes to the app's last zone if that is empty, else the first empty zone, else the focused window's
 /// zone; windows of one zone stack.
-struct ZonesStrategy: LayoutStrategy {
+struct ZonesStrategy: LayoutStrategy, LayoutLibraryProviding, SnapTargetProviding {
     var kind: LayoutKind { .zones }
     var displayName: String {
         String(localized: "Zones", comment: "Window Management layout kind: windows snap into zones")
     }
-    var usesLayoutLibrary: Bool { true }
+    var library: (any LayoutLibraryProviding)? { self }
+    var snapping: (any SnapTargetProviding)? { self }
+    var settingRows: (any SettingRowProviding)? { self }
+
+    /// How many *Move Window to Zone N* commands exist: one per digit key, 1 to 9 (a layout may have up to
+    /// `GridLayout.maximumZones` zones; the ones past the ninth have no command).
+    static let numberedZoneCommands = 9
 
     /// *Move Window to Zone N*, one command per zone number.
     var commands: [LayoutCommandSpec] {
-        (1...WindowsSettings.maximumWorkspaces).map { number in
+        (1...Self.numberedZoneCommands).map { number in
             LayoutCommandSpec(
                 id: WindowsCommandID.zone(number),
                 title: LocalizedStringResource(
@@ -25,7 +31,7 @@ struct ZonesStrategy: LayoutStrategy {
 
     func libraryLayoutID(
         _ environment: LayoutEnvironment, workspace: WorkspaceID, displayKey: String, orientation: DisplayOrientation
-    ) -> String? {
+    ) -> String {
         ZonesConfig(environment).resolve(workspace: workspace, displayKey: displayKey, orientation: orientation).layout
             .id
     }
@@ -123,14 +129,14 @@ struct ZonesStrategy: LayoutStrategy {
         return AnyLayoutState(zones)
     }
 
-    var offersSnapTargets: Bool { true }
-
     func snapTargets(_ input: LayoutInput) -> [DragDisplay] {
         let layout = resolved(input).layout
         let frames = layout.frames(in: input.area)
         let zones = layout.zones.enumerated().compactMap { index, zone -> DragZone? in
             frames[zone.id].map {
-                DragZone(displayKey: input.displayKey, zoneID: zone.id, number: index + 1, frame: $0)
+                DragZone(
+                    displayKey: input.displayKey, zoneID: zone.id, number: index + 1, frame: $0,
+                    command: .snap(zoneID: zone.id, displayKey: input.displayKey))
             }
         }
         return zones.isEmpty ? [] : [DragDisplay(key: input.displayKey, area: input.area, zones: zones)]
@@ -173,38 +179,38 @@ extension EngineCommand {
     }
 }
 
-extension ZonesStrategy: LayoutSettingsProviding {
+extension ZonesStrategy: SettingRowProviding {
     /// The default zone layout of landscape and portrait displays (spec Q19).
-    func settingRows(model: WindowsSettingsModel) -> [LayoutSettingRow] {
-        func row(
-            _ id: String, _ title: String, _ orientation: DisplayOrientation
-        ) -> LayoutSettingRow {
+    func settingRows(_ context: LayoutSettingsContext) -> [LayoutSettingRow] {
+        func row(_ id: String, _ title: String, _ orientation: DisplayOrientation) -> LayoutSettingRow {
             LayoutSettingRow(
                 id: id, title: title,
                 help: String(
                     localized: "Used when a display has no layout of its own for a workspace.",
                     comment: "Window Management setting help: the default zone layout"),
                 choices: {
-                    var choices = model.allLayouts.map {
+                    var choices = context.layouts().map {
                         LayoutSettingRow.Choice(id: $0.id, title: StockLayouts.displayName(of: $0))
                     }
                     // A default that is in no library (deleted, or from a later version) stays selectable as it is.
-                    let current = model.defaultZoneLayout(for: orientation)
+                    let current = context.settings.defaultZoneLayout(for: orientation)
                     if !choices.contains(where: { $0.id == current }) {
                         choices.append(LayoutSettingRow.Choice(id: current, title: current))
                     }
                     return choices
                 },
-                selection: { model.defaultZoneLayout(for: orientation) },
-                select: { model.setDefaultZoneLayout($0, for: orientation) })
+                selection: { context.settings.defaultZoneLayout(for: orientation) },
+                select: {
+                    context.settings.setDefaultZoneLayout($0, for: orientation)
+                    context.apply()
+                })
         }
         return [
             row(
                 "zones.defaultLayout.landscape",
                 String(
                     localized: "Zones on landscape displays",
-                    comment: "Window Management setting: the default zone layout"),
-                .landscape),
+                    comment: "Window Management setting: the default zone layout"), .landscape),
             row(
                 "zones.defaultLayout.portrait",
                 String(

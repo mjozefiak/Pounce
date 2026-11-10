@@ -58,6 +58,10 @@ final class ReportPump {
         if !closed { handler(report) }
     }
 
+    deinit {
+        continuation.finish()
+    }
+
     /// Ends the pump: from this call on no report reaches the handler, also one that was already queued on the
     /// stream (no HUD or strip update after the plugin is off). The task drains what is buffered without handling
     /// it and then ends with the stream.
@@ -68,7 +72,8 @@ final class ReportPump {
     }
 
     #if DEBUG
-    /// Waits until everything reported so far has been handled (tests only).
+    /// Waits until everything reported so far has been handled (tests only). A pump that is freed first
+    /// finishes its stream (`deinit`), and the task, which does not hold the pump, still drains the queued markers.
     func waitUntilHandled() async {
         await withCheckedContinuation { waiting in
             if case .terminated = continuation.yield(.marker(waiting)) { waiting.resume() }

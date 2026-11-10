@@ -45,6 +45,9 @@ public struct UnsharedPluginServices: PluginServices {
     public init() {}
 
     public func value<Key: PluginServiceKey>(_ key: Key.Type, pluginID: PluginID, context: PluginContext) -> Key.Value {
-        Key.make(context: context)
+        // Loud on purpose: a plugin that keeps one owner of a file in a service would get two of them.
+        context.logger.error(
+            "PluginServices: no host services, the value is not shared (a context built without a host)")
+        return Key.make(context: context)
     }
 }

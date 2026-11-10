@@ -92,8 +92,10 @@ import Testing
             Issue.record("the overtaken start should end with a CancellationError, got \(result)")
             return
         }
-        // The lease the late start took was handed back by the start itself.
+        // The start took the journal after the stop (the earlier engine had ended) and handed that lease back
+        // itself: the earlier lease was 1, the late one 2, so the next one is 3.
         #expect(await plugin.journal.phase == .idle)
+        #expect(await plugin.journal.tryBeginEngine() == 3)
         #expect(plugin.runtime == nil)
         #expect(client.callLog.contains("subscribe") == false)
     }

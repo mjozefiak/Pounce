@@ -42,5 +42,13 @@
 - M-D: `PluginServices` is a protocol (a port) in `LintelKit`, `AppPluginServices` in `LintelApp`, `PluginContext.pluginID` explicit, tests use their own services object; recorded in `BACKWARD_COMPATIBILITY.md` (never released, so a move breaks nothing).
 - Lows: a park for a window cleared in the same batch is dropped; test hangs guards without real time; test-only API under `#if DEBUG`; one event entry point (`subscribe()`); `isResponding` default `false`; Reset state keeps the journal while windows are parked; `unsafeBitCast` type-checked; `ReducerLayeringTests` is described as a text lint, not a guarantee; command ids stay namespaced strings (documented trade-off).
 
+## Round 5 (final polish)
+- Snapping is generic: `DragZone.command` is supplied by the strategy that offers the target and `WindowsRuntime.snap` sends it; the toy kind snaps. The strategy protocol is split into small capabilities (`LayoutLibraryProviding`, `SnapTargetProviding`, `SettingRowProviding`), reached through typed accessors with `nil` defaults (no dynamic casts); settings rows get a narrow `LayoutSettingsContext`, not the pane model. `LayoutRegistry` and `LayoutCapabilities` are their own files; `WindowsRuntime` is split into `+Lifecycle` and `+Recovery`.
+- Claims made exactly as strong as the code: the layout library, the Layouts window, the grid editor, the layout slots and the `defaultZoneLayout.*` keys are Zones-owned and listed as such (docs and spec); the pane's default-layout help and the Layouts tooltip no longer name kinds.
+- "Use default" in the kind picker stores no kind (`setOverrideChoice`); a stored `"default"` reads as none.
+- `BACKWARD_COMPATIBILITY.md` states the real `WindowClient` defaults (`isResponding` is `false`, `subscribe()` has none, `processStart` is `nil`).
+- `JournalOwner.waitUntilIdle(within:clock:)` cancels its wait on timeout (start and erase use it); the late-lease branch of `acquireJournal` is reached and tested; `StateStore.reset` never forgets the journal, which closes the reset race; `recover()` counts the launch only after a pass that ran.
+- Lows: bounded polling in `WaiterLeakTests`, `LayoutOption.help` rendered, strategy command ids cannot take plugin-owned ids, `AppPluginServices.holds` is DEBUG-only and its invariant documented, `UnsharedPluginServices` logs an error when asked, `abandonStart` awaits the pump, `ReportPump` finishes its stream when freed, the runtime phase is in the docs, Zones command count has its own constant.
+
 ## Next concrete action
 QA gate and merge by the owner.

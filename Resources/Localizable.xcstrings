@@ -15895,20 +15895,20 @@
         }
       }
     },
-    "This workspace is not set to Zones, so its zone layout is not used." : {
-      "comment" : "Layouts window: tooltip of a cell on a workspace that is not Zones",
+    "This workspace uses a layout kind that does not use these layouts." : {
+      "comment" : "Layouts window: tooltip of a cell on a workspace whose layout kind does not use the layout library",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This workspace is not set to Zones, so its zone layout is not used."
+            "value" : "This workspace uses a layout kind that does not use these layouts."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ten obszar roboczy nie używa Stref, więc jego układ stref nie jest stosowany."
+            "value" : "Ten obszar roboczy używa rodzaju układu, który nie korzysta z tych układów."
           }
         }
       }
@@ -16003,20 +16003,20 @@
         }
       }
     },
-    "Auto-tile fills the screen with the windows of a workspace. Zones snaps them into zones. Free leaves them where they are." : {
+    "How a workspace arranges its windows unless it has a layout of its own." : {
       "comment" : "Window Management setting help: the layout kinds",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Auto-tile fills the screen with the windows of a workspace. Zones snaps them into zones. Free leaves them where they are."
+            "value" : "How a workspace arranges its windows unless it has a layout of its own."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Układ kafelkowy wypełnia ekran oknami obszaru roboczego. Strefy przyciągają je do stref. Swobodny zostawia je tam, gdzie są."
+            "value" : "Jak obszar roboczy układa okna, jeśli nie ma własnego układu."
           }
         }
       }

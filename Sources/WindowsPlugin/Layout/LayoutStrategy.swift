@@ -129,9 +129,6 @@ protocol LayoutStrategy: Sendable {
     var kind: LayoutKind { get }
     /// The kind's name in the pane and the Layouts window.
     var displayName: String { get }
-    /// Whether the Layouts window assigns layouts from the library to this kind's workspaces (the cells of its
-    /// matrix are active for them).
-    var usesLayoutLibrary: Bool { get }
     /// The settings of this kind: a global default (when an option names a setting) and a per-workspace override,
     /// drawn by the pane and delivered to `arrange` in `LayoutInput.resolved`. Option ids are unique across the
     /// registry (a strategy that repeats an id of an earlier one, or of the plugin's own keys, is left out).
@@ -141,11 +138,6 @@ protocol LayoutStrategy: Sendable {
     var commands: [LayoutCommandSpec] { get }
     /// What the per-workspace summary adds for this kind after its name (Auto-tile: gaps and orientation).
     func summaryParts(_ resolved: ResolvedLayout) -> [String]
-    /// The id of the library layout the workspace shows on a display, `nil` for a kind that does not use the
-    /// layout library (`usesLayoutLibrary`). *Next zone layout* steps from it.
-    func libraryLayoutID(
-        _ environment: LayoutEnvironment, workspace: WorkspaceID, displayKey: String, orientation: DisplayOrientation
-    ) -> String?
     /// This kind's configuration from the settings and stored data, `nil` when it has none.
     func makeConfig(_ environment: LayoutEnvironment) -> AnyLayoutConfig?
     /// Brings the state up to date with `input.windows` (windows that left go, new ones enter by the kind's
@@ -156,10 +148,14 @@ protocol LayoutStrategy: Sendable {
     func perform(_ command: LayoutCommand, on window: WindowID, _ input: LayoutInput) -> LayoutEdit?
     /// The state without a window that is gone.
     func removing(_ window: WindowID, from state: AnyLayoutState) -> AnyLayoutState
-    /// Whether the kind has snap targets at all (so a manual window move may start a drag): cheap, no input.
-    var offersSnapTargets: Bool { get }
-    /// The slots the snap overlay offers for the workspace, empty when the kind has none.
-    func snapTargets(_ input: LayoutInput) -> [DragDisplay]
+    // Optional capabilities (`LayoutCapabilities.swift`): a kind that has one returns itself. They are typed
+    // requirements with a `nil` default, so the registry and the callers need no dynamic cast.
+    /// The kind assigns layouts from the layout library (the Layouts window, layout slots, *Next zone layout*).
+    var library: (any LayoutLibraryProviding)? { get }
+    /// The kind offers snap targets, so a manual window move may start a drag.
+    var snapping: (any SnapTargetProviding)? { get }
+    /// The kind adds rows to the pane for settings that are not options.
+    var settingRows: (any SettingRowProviding)? { get }
     /// The JSON stored under the kind's name; `nil` for an empty state.
     func encode(_ state: AnyLayoutState) -> JSONValue?
     /// The state a stored JSON describes; `nil` when it does not decode (it is dropped, not a corrupt file).
@@ -168,18 +164,15 @@ protocol LayoutStrategy: Sendable {
 
 extension LayoutStrategy {
     var displayName: String { kind.rawValue }
-    var usesLayoutLibrary: Bool { false }
+    var library: (any LayoutLibraryProviding)? { nil }
+    var snapping: (any SnapTargetProviding)? { nil }
+    var settingRows: (any SettingRowProviding)? { nil }
     var options: [LayoutOption] { [] }
     var commands: [LayoutCommandSpec] { [] }
     func summaryParts(_ resolved: ResolvedLayout) -> [String] { [] }
-    func libraryLayoutID(
-        _ environment: LayoutEnvironment, workspace: WorkspaceID, displayKey: String, orientation: DisplayOrientation
-    ) -> String? { nil }
     func makeConfig(_ environment: LayoutEnvironment) -> AnyLayoutConfig? { nil }
     func perform(_ command: LayoutCommand, on window: WindowID, _ input: LayoutInput) -> LayoutEdit? { nil }
     func removing(_ window: WindowID, from state: AnyLayoutState) -> AnyLayoutState { state }
-    var offersSnapTargets: Bool { false }
-    func snapTargets(_ input: LayoutInput) -> [DragDisplay] { [] }
     func encode(_ state: AnyLayoutState) -> JSONValue? { nil }
     func decode(_ json: JSONValue) -> AnyLayoutState? { nil }
 }
@@ -193,117 +186,6 @@ struct FreeStrategy: LayoutStrategy {
 
     func arrange(_ input: LayoutInput) -> LayoutArrangement {
         LayoutArrangement(state: input.state, frames: [:], hints: input.hints)
-    }
-}
-
-// MARK: Registry
-
-/// The strategies of this build, by kind. The reducer and the engine take it as an argument, so a test can pass a
-/// registry of its own.
-struct LayoutRegistry: Sendable {
-    static let standard = LayoutRegistry([TilingStrategy(), ZonesStrategy(), FreeStrategy()])
-
-    private let strategies: [LayoutKind: any LayoutStrategy]
-    /// The kinds in registration order: what the pane offers and *Toggle layout* cycles through.
-    let kinds: [LayoutKind]
-
-    /// Kind names that cannot be used: they are keys of a workspace record in `state.json` next to the per-kind
-    /// state.
-    static let reservedKindNames: Set<String> = ["order"]
-
-    /// A strategy whose kind is reserved (or repeats an earlier one), or one of whose option ids repeats an earlier
-    /// id (or is `kind`, the key of an override record), is left out: it could not be stored safely.
-    init(_ strategies: [any LayoutStrategy]) {
-        var seen = Set<LayoutKind>()
-        var optionIDs: Set<String> = [WorkspaceOverrides.kindKey]
-        let usable = strategies.filter { strategy in
-            guard !Self.reservedKindNames.contains(strategy.kind.rawValue), !seen.contains(strategy.kind) else {
-                return false
-            }
-            let ids = strategy.options.map(\.id)
-            guard Set(ids).count == ids.count, optionIDs.isDisjoint(with: ids) else { return false }
-            seen.insert(strategy.kind)
-            optionIDs.formUnion(ids)
-            return true
-        }
-        self.strategies = Dictionary(uniqueKeysWithValues: usable.map { ($0.kind, $0) })
-        kinds = usable.map(\.kind)
-    }
-
-    /// The kind a workspace uses when nothing valid is chosen: the first registered one.
-    var defaultKind: LayoutKind { kinds.first ?? .free }
-
-    /// The kind after `kind` in registration order, wrapping; the first kind for one that is not registered.
-    func kind(after kind: LayoutKind) -> LayoutKind {
-        guard let index = kinds.firstIndex(of: kind) else { return defaultKind }
-        return kinds[(index + 1) % kinds.count]
-    }
-
-    subscript(kind: LayoutKind) -> (any LayoutStrategy)? { strategies[kind] }
-
-    /// The option with this id, whichever kind declares it.
-    func option(id: String) -> LayoutOption? {
-        for kind in kinds {
-            if let option = strategies[kind]?.options.first(where: { $0.id == id }) { return option }
-        }
-        return nil
-    }
-
-    /// The kinds that assign layouts from the layout library, in registration order.
-    var libraryKinds: [LayoutKind] { kinds.filter { strategies[$0]?.usesLayoutLibrary == true } }
-
-    /// The commands every registered strategy adds, in registration order, a repeated id counted once.
-    var commandSpecs: [LayoutCommandSpec] {
-        var seen = Set<String>()
-        return kinds.flatMap { strategies[$0]?.commands ?? [] }.filter { seen.insert($0.id).inserted }
-    }
-
-    func contains(_ kind: LayoutKind) -> Bool { strategies[kind] != nil }
-
-    /// The configuration of every strategy that has one.
-    func configs(_ environment: LayoutEnvironment) -> [LayoutKind: AnyLayoutConfig] {
-        var result: [LayoutKind: AnyLayoutConfig] = [:]
-        for (kind, strategy) in strategies {
-            if let config = strategy.makeConfig(environment) { result[kind] = config }
-        }
-        return result
-    }
-
-    /// The state stored under a kind's name: decoded by its strategy, kept opaque for a kind this build does not
-    /// know, dropped (`nil`) when a known kind does not decode.
-    func decode(kindName: String, json: JSONValue) -> AnyLayoutState? {
-        guard let strategy = strategies[LayoutKind(kindName)] else {
-            return AnyLayoutState(OpaqueLayoutState(json: json))
-        }
-        return strategy.decode(json)
-    }
-
-    func decode(_ stored: [WorkspaceID: [String: JSONValue]]) -> [WorkspaceID: [String: AnyLayoutState]] {
-        var result: [WorkspaceID: [String: AnyLayoutState]] = [:]
-        for (workspace, kinds) in stored {
-            for (name, json) in kinds {
-                if let state = decode(kindName: name, json: json) { result[workspace, default: [:]][name] = state }
-            }
-        }
-        return result
-    }
-
-    func encode(_ states: [WorkspaceID: [String: AnyLayoutState]]) -> [WorkspaceID: [String: JSONValue]] {
-        var result: [WorkspaceID: [String: JSONValue]] = [:]
-        for (workspace, kinds) in states {
-            for (name, state) in kinds {
-                let json: JSONValue?
-                if let opaque = state.as(OpaqueLayoutState.self) {
-                    json = opaque.json
-                } else if !state.isEmpty {
-                    json = strategies[LayoutKind(name)]?.encode(state)
-                } else {
-                    json = nil
-                }
-                if let json { result[workspace, default: [:]][name] = json }
-            }
-        }
-        return result
     }
 }
 

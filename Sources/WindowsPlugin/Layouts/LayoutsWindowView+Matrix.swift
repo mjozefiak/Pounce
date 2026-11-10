@@ -179,8 +179,10 @@ extension LayoutsWindowView {
         .help(
             cell.isInactive
                 ? Text(
-                    "This workspace is not set to Zones, so its zone layout is not used.",
-                    comment: "Layouts window: tooltip of a cell on a workspace that is not Zones") : Text(verbatim: "")
+                    "This workspace uses a layout kind that does not use these layouts.",
+                    comment:
+                        "Layouts window: tooltip of a cell on a workspace whose layout kind does not use the layout library"
+                ) : Text(verbatim: "")
         )
         .accessibilityLabel(
             Text(

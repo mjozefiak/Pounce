@@ -151,7 +151,8 @@ struct WorkspaceOverrides: Equatable, Sendable {
             var override = WorkspaceOverride()
             for (name, value) in entry {
                 if name == Self.kindKey {
-                    if case .string(let kind) = value { override.kind = LayoutKind(kind) }
+                    // "default" is what an earlier build stored for "use the default": no override.
+                    if case .string(let kind) = value, kind != "default" { override.kind = LayoutKind(kind) }
                 } else if value != .null {
                     override.options[name] = value
                 }

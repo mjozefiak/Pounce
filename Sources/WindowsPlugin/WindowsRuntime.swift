@@ -40,31 +40,33 @@ final class WindowsRuntime: WindowSwitching {
         gate: gate, currentWorkspace: { [weak self] in self?.lastSummary?.current },
         apply: { [weak self] in await self?.applySettings() })
     /// The menu bar strip; `nil` until `start()` when it is on, and in tests that pass `makeStrip: nil`.
-    private(set) var strip: WorkspaceStripController?
-    private let makeStrip: (@MainActor (WindowsRuntime) -> WorkspaceStripController)?
+    var strip: WorkspaceStripController?
+    let makeStrip: (@MainActor (WindowsRuntime) -> WorkspaceStripController)?
     /// Drag-to-snap: `nil` in tests that pass no factory (the overlay needs a display).
-    private(set) var dragController: ZoneDragController?
-    private let makeDragController: (@MainActor (WindowsRuntime) -> ZoneDragController)?
+    var dragController: ZoneDragController?
+    let makeDragController: (@MainActor (WindowsRuntime) -> ZoneDragController)?
     /// Releases the overlay panels when the runtime stops.
     var tearDownOverlay: @MainActor () -> Void = {}
-    private var lastSummary: WorkspaceSummary?
+    var lastSummary: WorkspaceSummary?
     /// The engine's reports, handled on the main actor in the order it produced them.
-    private let reports: ReportPump
+    let reports: ReportPump
     /// The restore after a re-grant of Accessibility, while it runs.
-    private var trustTask: Task<Void, Never>?
+    var trustTask: Task<Void, Never>?
     /// What the strip's clicks start, in the order they happened.
     let actions = OrderedActions()
     /// The journal lease of the engine while it runs (`JournalOwner`).
-    private var lease: UInt64?
+    var lease: UInt64?
     /// The engine configuration as last sent (cached: it is rebuilt only when a setting or the library changes).
     private(set) var engineConfig: EngineConfig
     /// Called when Accessibility is granted, before windows are restored (the plugin re-runs the self-check).
     var onTrustGranted: () async -> Void = {}
     /// The newest problem the engine reported, for the Settings banner.
-    private(set) var engineBanner: EngineBanner?
+    /// Where the runtime is in its one life (`WindowsRuntime+Lifecycle.swift`).
+    var phase = Phase.idle
+    var engineBanner: EngineBanner?
     /// Windows put back by *Restore all windows*, a re-grant and a Space change in this session (diagnostics).
-    private(set) var recoveredWindows = 0
-    private var activationObserver: AppActivationObserver?
+    var recoveredWindows = 0
+    var activationObserver: AppActivationObserver?
 
     init(
         context: PluginContext, settings: WindowsSettings, registry: LayoutRegistry, hud: any WindowsHUDPresenting,
@@ -129,18 +131,18 @@ final class WindowsRuntime: WindowSwitching {
         let layout = engineConfig.layout
         guard
             summary.visible.values.contains(where: {
-                registry[layout.resolved(for: $0).kind]?.offersSnapTargets == true
+                registry[layout.resolved(for: $0).kind]?.snapping != nil
             })
         else { return }
         settings.setSnapHintShown(true)
         hud.show(.snapHint)
     }
 
-    /// A drag released over a zone: the engine moves the window, behind the same Accessibility gate as every
-    /// move.
+    /// A drag released over a target: the engine sends the target's own command for the window (the strategy that
+    /// offered it decides what it does), behind the same Accessibility gate as every move.
     func snap(_ window: WindowID, to zone: DragZone) async {
         guard trust.refresh() else { return }
-        await engine.send(.snapToZone(window, zone: zone.zoneID, displayKey: zone.displayKey))
+        await engine.send(.layout(zone.command, on: window))
     }
 
     func stripBoxes() -> [StripBox] {
@@ -163,90 +165,7 @@ final class WindowsRuntime: WindowSwitching {
         }
     }
 
-    private let activationCenter: NotificationCenter
-
-    /// Where the runtime is in its one life: `start()` runs once, `stop()` ends it for good (also while a start is
-    /// still suspended, which is what the host's activation budget does to a start that hangs).
-    private enum Phase { case idle, starting, running, stopped }
-    private var phase = Phase.idle
-
-    /// Takes the journal first: when an earlier run still holds it (a stop budget ran out with a hung app) this
-    /// gives up after `startBudget` and starts nothing, so a re-enable fails with a message instead of hanging.
-    ///
-    /// A `stop()` that comes while this is suspended, or a cancelled caller (the host gave up waiting), ends the
-    /// start at its next step with `CancellationError`: nothing is created after that point, and a journal lease
-    /// taken late is handed back here because `stop()` could not know about it.
-    func start() async throws {
-        guard phase == .idle else { throw CancellationError() }
-        phase = .starting
-        try await acquireJournal()
-        try continueStart()
-        trust.refresh()
-        trust.onChange = { [weak self] trusted in self?.trustChanged(trusted) }
-        let engine = engine
-        trust.startPolling { await engine.hasParkedWindows() }
-        activationObserver = AppActivationObserver(center: activationCenter) { [weak self] in
-            self?.trust.refresh()
-        }
-        await assignments.load()
-        try continueStart()
-        await layouts.load()
-        try continueStart()
-        await refreshConfig()
-        try continueStart()
-        await engine.start()
-        try continueStart()
-        applyStrip()
-        if dragController == nil { dragController = makeDragController?(self) }
-        phase = .running
-    }
-
-    /// Throws when the start must not go on, after undoing what it did so far.
-    private func continueStart() throws {
-        if phase == .starting, !Task.isCancelled { return }
-        if phase == .starting {
-            // Cancelled by the caller: this start ends the runtime itself.
-            phase = .stopped
-            tearDownParts()
-            actions.finish()
-        }
-        throw CancellationError()
-    }
-
-    private func acquireJournal() async throws {
-        for attempt in 0..<2 {
-            if let lease = await journal.tryBeginEngine() {
-                if phase == .starting, !Task.isCancelled {
-                    self.lease = lease
-                    return
-                }
-                // Too late: a stop ran meanwhile, or the caller gave up. The engine never started, so the
-                // journal goes back to recovery at once.
-                await journal.endEngine(lease)
-                if phase == .starting { phase = .stopped }
-                throw CancellationError()
-            }
-            if attempt == 0 {
-                let journal = journal
-                _ = await withDeadline(Self.startBudget, clock: context.clock) { await journal.waitUntilIdle() }
-            }
-            try continueStart()
-        }
-        throw WindowsPlugin.StartError.stillStopping
-    }
-
-    /// Ends every piece a start or a run created that needs no waiting (also called by `stop()`).
-    private func tearDownParts() {
-        activationObserver?.stop()
-        activationObserver = nil
-        trust.stop()
-        dragController?.cancel()
-        dragController = nil
-        tearDownOverlay()
-        strip?.remove()
-        strip = nil
-        reports.finish()
-    }
+    let activationCenter: NotificationCenter
 
     #if DEBUG
     /// Waits until the engine has nothing queued or running and everything it reported has been handled here
@@ -259,94 +178,14 @@ final class WindowsRuntime: WindowSwitching {
     }
     #endif
 
-    /// Puts the windows back and stops, as a whole within `stopBudget`: the wait for the re-grant task and the
-    /// queued actions, the restore and the engine's own shutdown all count. What is not done when the budget runs
-    /// out stays in the journal, which the old engine keeps until it has really stopped.
-    /// - Parameter waitingForTrustTask: `false` when the caller is that task itself (a failed self-check after a
-    ///   re-grant stops the runtime from inside it).
-    func stop(waitingForTrustTask: Bool = true) async {
-        phase = .stopped
-        tearDownParts()
-        let engine = engine
-        let journal = journal
-        let lease = lease
-        self.lease = nil
-        let regrant = trustTask
-        trustTask = nil
-        regrant?.cancel()
-        if let lease { await journal.engineStopping(lease) }
-        // A start that is still suspended finishes itself off at its next step (`continueStart`). The engine's own
-        // `stop()` is safe either way: a start that comes after it does nothing.
-        let actions = actions
-        // The journal goes back to recovery only once the engine has really stopped, even when this wait gives
-        // up first: a recovery pass must never run beside an engine that still moves windows.
-        _ = await withDeadline(Self.stopBudget, clock: context.clock) {
-            if waitingForTrustTask { await regrant?.value }
-            await actions.waitUntilEmpty()
-            await engine.stop()
-            if let lease { await journal.endEngine(lease) }
-        }
-        // Whatever the budget left queued (or parked in a waiter) is dropped: the queue's task ends with the runtime.
-        actions.finish()
-    }
-
     /// Runs an engine command, but only while Accessibility is trusted. Without it nothing moves and the HUD says
     /// why, with a button that opens the setting.
     func run(_ command: EngineCommand, purpose: AccessibilityPurpose) async {
         await gate.run(purpose) { await engine.send(command) }
     }
 
-    /// *Restore all windows*: always ends with the restore HUD. Returns what was done.
-    @discardableResult
-    func restoreAllWindows() async -> RecoveryReport {
-        trust.refresh()
-        let engine = engine
-        // Bounded: a hung app must not hold the button for ever; what is still parked is reported instead.
-        var report: RecoveryReport
-        if let done = await withDeadline(Self.restoreBudget, clock: context.clock, { await engine.restoreAllWindows() })
-        {
-            report = done
-        } else {
-            report = RecoveryReport(failed: await engine.parkedCount())
-        }
-        recoveredWindows += report.restored
-        hud.show(WindowsHUDState(report: report))
-        return report
-    }
-
-    /// *Reset state*: puts every window back first, then forgets the stored state. While a window is still parked
-    /// (an app did not answer, Accessibility is off) the journal is the only way back, so nothing is forgotten: the
-    /// restore HUD has said what is still parked and the user resets again once it is back.
-    func resetState() async {
-        let report = await restoreAllWindows()
-        guard report.remaining == 0, !report.needsAccessibility else {
-            context.logger.notice("Reset state kept: \(report.remaining, privacy: .public) windows still parked")
-            return
-        }
-        do { try await store.reset() } catch { context.logger.error("Cannot reset state.json") }
-        // The layouts the user chose per workspace and display are part of the state that is forgotten.
-        do { try await assignments.reset() } catch { context.logger.error("Cannot reset assignments.json") }
-        await applySettings()
-    }
-
-    /// Clears the engine's frozen state (after the watchdog) by showing the current workspace again.
-    func startAgain() async {
-        engineBanner = nil
-        if let target = lastSummary?.current ?? WorkspaceID.all(count: 1).first {
-            await run(.showWorkspace(target), purpose: .switching)
-        }
-        context.resultsChanged()
-    }
-
-    func diagnosticsText() async -> String {
-        let diagnostics = await engine.diagnostics()
-        return WindowsDiagnostics.report(
-            diagnostics, recoveredWindows: recoveredWindows, parkedWindows: await engine.parkedCount(),
-            workspaceCount: settings.workspaceCount, accessibilityTrusted: trust.isTrusted)
-    }
-
     /// Rebuilds the engine configuration from the settings, the assignments and the library, and sends it.
-    private func refreshConfig() async {
+    func refreshConfig() async {
         engineConfig = EngineConfig(
             settings: settings, registry: registry, assignments: await assignments.table,
             library: await layouts.library)
@@ -362,7 +201,7 @@ final class WindowsRuntime: WindowSwitching {
 
     /// Accessibility came back: windows parked before it was revoked are restored at once, which is the only safe
     /// thing to do after a gap in which the user may have moved anything.
-    private func trustChanged(_ trusted: Bool) {
+    func trustChanged(_ trusted: Bool) {
         guard trusted else { return }
         trustTask = Task { [engine, hud] in
             await self.onTrustGranted()

@@ -116,22 +116,24 @@ actor WindowEngine {
                 await self.ingest(event)
             }
         }
-        guard !stopped else { return abandonStart() }
+        guard !stopped else { return await abandonStart() }
         await store.load()
-        guard !stopped else { return abandonStart() }
+        guard !stopped else { return await abandonStart() }
         let canJournal = await store.canJournal
         let stored = await store.state
         var inputs: [EngineInput] = [.journalAvailability(canJournal), .restoreLayouts(stored.layouts)]
         inputs.append(await snapshotInput())
-        guard !stopped else { return abandonStart() }
+        guard !stopped else { return await abandonStart() }
         await submitInternal(inputs)
         flushEnabled = true
         if !coalescer.isEmpty { scheduleFlush() }
     }
 
     /// A `stop()` ran while `start()` was suspended: what `start()` created after that point is ended here.
-    private func abandonStart() {
+    private func abandonStart() async {
         pumpTask?.cancel()
+        // Awaited, like in `stop()`: the client's stream has really ended when `start()` returns.
+        await pumpTask?.value
         pumpTask = nil
         flushTask?.cancel()
         flushTask = nil
