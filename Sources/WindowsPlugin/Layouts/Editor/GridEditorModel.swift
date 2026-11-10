@@ -77,8 +77,15 @@ final class GridEditorModel {
     let isNew: Bool
     private(set) var displays: [EditorDisplay] = []
     var selectedDisplayKey: String?
-    /// The last refusal or failure, in words; cleared by the next edit.
+    /// The last refusal or failure, in words; cleared by the next successful edit, a change of selection or focus,
+    /// or after `messageLifetime`.
     private(set) var message: String?
+    @ObservationIgnored private var messageGeneration = 0
+    /// How long a refusal stays on screen when nothing else happens.
+    @ObservationIgnored let messageLifetime: Duration
+    /// Called when a message timer has finished (tests wait for it instead of sleeping).
+    @ObservationIgnored var messageTimerDidFinish: @MainActor () -> Void = {}
+    @ObservationIgnored private let sleep: @Sendable (Duration) async -> Void
     private(set) var saveError: SaveError?
     private(set) var isSaving = false
     /// Cancel or close with unsaved changes asks first.
@@ -101,8 +108,11 @@ final class GridEditorModel {
         layout: GridLayout, isNew: Bool, repository: LayoutRepository,
         displays: @escaping () async -> [DisplayInfo], preview: any ZoneOverlayPresenting,
         announce: @escaping (String) -> Void = { _ in }, onSaved: @escaping (GridLayout) -> Void = { _ in },
-        onClose: @escaping () -> Void = {}
+        onClose: @escaping () -> Void = {}, messageLifetime: Duration = .seconds(8),
+        sleep: @escaping @Sendable (Duration) async -> Void = { try? await Task.sleep(for: $0) }
     ) {
+        self.messageLifetime = messageLifetime
+        self.sleep = sleep
         state = GridEditorState(layout)
         self.isNew = isNew
         self.repository = repository
@@ -232,15 +242,35 @@ final class GridEditorModel {
         guard let result = body(&state) else { return false }
         switch result {
         case .success:
-            message = nil
+            clearMessage()
         case .failure(let failure):
             let text = GridEditorText.message(for: failure)
-            message = text
+            show(text)
             announce(text)
         }
         refreshPreview()
         if case .success = result { return true }
         return false
+    }
+
+    /// Shows a refusal and takes it down again after `messageLifetime` unless something replaced it by then.
+    private func show(_ text: String) {
+        message = text
+        messageGeneration += 1
+        let generation = messageGeneration
+        let wait = messageLifetime
+        let sleep = sleep
+        Task { @MainActor [weak self] in
+            await sleep(wait)
+            guard let self else { return }
+            if self.messageGeneration == generation { self.message = nil }
+            self.messageTimerDidFinish()
+        }
+    }
+
+    private func clearMessage() {
+        message = nil
+        messageGeneration += 1
     }
 
     func setName(_ name: String) {
@@ -303,6 +333,7 @@ final class GridEditorModel {
     func nudge(_ divider: DividerRef, by delta: Double) { edit { $0.moveDivider(divider, by: delta) } }
 
     func setSelection(_ ids: Set<Int>) {
+        clearMessage()
         state.selection = ids.intersection(state.layout.zones.map(\.id))
         if let first = state.layout.zones.first(where: { state.selection.contains($0.id) }) {
             state.focus = .zone(first.id)
@@ -311,6 +342,7 @@ final class GridEditorModel {
     }
 
     func toggleSelection(zone id: Int) {
+        clearMessage()
         state.toggleSelection(zone: id)
         // The detail follows the selection: the zone just added, or else one that is still selected.
         if state.selection.contains(id) {
@@ -322,6 +354,7 @@ final class GridEditorModel {
     }
 
     func focus(_ focus: EditorFocus) {
+        clearMessage()
         state.focus = focus
         refreshPreview()
     }
@@ -337,7 +370,7 @@ final class GridEditorModel {
         _ = next.moveDivider(divider, to: share)
         next.focus = .divider(divider)
         state = next
-        message = nil
+        clearMessage()
         refreshPreview()
     }
 

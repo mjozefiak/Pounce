@@ -33,8 +33,25 @@ private final class RecordingPreview: ZoneOverlayPresenting {
     @MainActor final class Closed { var count = 0 }
     @MainActor final class Saved { var layouts: [GridLayout] = [] }
 
+    /// A sleep a test opens by hand: each call waits until `open(_:)` lets that very call return.
+    final class SleepGate: @unchecked Sendable {
+        private let lock = NSLock()
+        private var waiters: [CheckedContinuation<Void, Never>] = []
+        var count: Int { lock.withLock { waiters.count } }
+        func sleep(_ duration: Duration) async {
+            await withCheckedContinuation { continuation in lock.withLock { waiters.append(continuation) } }
+        }
+        func open(_ index: Int) {
+            let waiter = lock.withLock { () -> CheckedContinuation<Void, Never>? in
+                waiters.indices.contains(index) ? waiters[index] : nil
+            }
+            waiter?.resume()
+        }
+    }
+
     private func rig(
         _ layout: GridLayout = StockLayouts.layout(StockLayouts.columns2)!, isNew: Bool = true,
+        sleep: @escaping @Sendable (Duration) async -> Void = { try? await Task.sleep(for: $0) },
         displays: [DisplayInfo] = [
             DisplayInfo(id: 1, uuid: "A", frame: CGRect(x: 0, y: 0, width: 1600, height: 1000), isMain: true)
         ]
@@ -49,7 +66,7 @@ private final class RecordingPreview: ZoneOverlayPresenting {
         let saved = Saved()
         let model = GridEditorModel(
             layout: draft, isNew: isNew, repository: repository, displays: { displays }, preview: preview,
-            onSaved: { saved.layouts.append($0) }, onClose: { closed.count += 1 })
+            onSaved: { saved.layouts.append($0) }, onClose: { closed.count += 1 }, sleep: sleep)
         await model.open()
         return Rig(
             model: model, preview: preview, repository: repository, directory: directory, closed: closed, saved: saved)
@@ -149,6 +166,69 @@ private final class RecordingPreview: ZoneOverlayPresenting {
         #expect(body.contains(".allowsHitTesting(false)"))
         #expect(text.components(separatedBy: "SpatialTapGesture()").count - 1 == 1)
         #expect(text.contains("model.canvasTap("))
+    }
+
+    /// QA round 4, D9: "A zone can't get any narrower." stayed after a successful edit. A refusal goes away with the next
+    /// successful edit, a change of selection or focus, or after its lifetime; an older lifetime never takes down a
+    /// newer message.
+    @Test func aRefusalGoesAwayWithASuccessfulEditASelectionChangeOrTime() async throws {
+        let gate = SleepGate()
+        let rig = try await rig(sleep: { await gate.sleep($0) })
+        defer { try? FileManager.default.removeItem(at: rig.directory) }
+        let model = rig.model
+        func refuse() {
+            // Divide the zone again and again by key until the floor refuses.
+            for _ in 0..<12 where model.message == nil {
+                model.setSelection([model.layout.zones.last!.id])
+                model.divideFocused(axis: .vertical)
+            }
+        }
+        refuse()
+        #expect(model.message != nil)
+        // 1. A successful edit clears it.
+        model.setSpacing(4)
+        #expect(model.message == nil)
+        // 2. A change of selection clears it.
+        model.setSelection([model.layout.zones.last!.id])
+        refuse()
+        #expect(model.message != nil)
+        model.setSelection([model.layout.zones.first!.id])
+        #expect(model.message == nil)
+        // 3. Focus and toggling clear it too.
+        model.setSelection([model.layout.zones.last!.id])
+        refuse()
+        model.focus(.zone(model.layout.zones.first!.id))
+        #expect(model.message == nil)
+        model.setSelection([model.layout.zones.last!.id])
+        refuse()
+        model.toggleSelection(zone: model.layout.zones.first!.id)
+        #expect(model.message == nil)
+    }
+
+    @Test func aRefusalDisappearsAfterItsLifetimeButAnOlderTimerDoesNotTakeDownANewerMessage() async throws {
+        let gate = SleepGate()
+        let rig = try await rig(sleep: { await gate.sleep($0) })
+        defer { try? FileManager.default.removeItem(at: rig.directory) }
+        let model = rig.model
+        let finished = Box<Int>()
+        await finished.set(0)
+        model.messageTimerDidFinish = { Task { await finished.set(((await finished.value) ?? 0) + 1) } }
+        for _ in 0..<12 where model.message == nil {
+            model.setSelection([model.layout.zones.last!.id])
+            model.divideFocused(axis: .vertical)
+        }
+        let first = try #require(model.message)
+        await eventually("first timer armed") { gate.count == 1 }
+        // Another refusal replaces the message (a new lifetime starts), then the FIRST timer ends.
+        model.divideFocused(axis: .vertical)
+        await eventually("second timer armed") { gate.count == 2 }
+        gate.open(0)
+        await eventually("first timer finished") { await finished.value == 1 }
+        #expect(model.message == first, "the older timer took down the newer message")
+        // The newer timer ends: now it is gone.
+        gate.open(1)
+        await eventually("second timer finished") { await finished.value == 2 }
+        #expect(model.message == nil)
     }
 
     /// Round-13 audit M1: S (divide the focused zone) used to halve a track down to the 32-track limit, a sliver of
