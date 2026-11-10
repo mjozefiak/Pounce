@@ -503,14 +503,29 @@ run with it switched on.
 
 **Real windows under QA.** `--qa-real-windows` (DEBUG) selects the real `AXWindowClient` instead of the fake one while
 keeping every other isolation (temporary data root, in-memory Keychain, no global hotkeys); give the tester's own apps a
-pass with `--qa-setting plugins.windows.floatingApps=<comma-separated bundle ids>` (a list setting). Commands are run
-through the QA command route, not hotkeys: hotkeys stay off because the shortcut library keeps its recorded shortcuts in
-the real defaults domain. `--qa-persistent-settings` keeps the QA settings in `<data root>/qa-settings.json` (inside the
-isolated root; command-line `--qa-setting` values win at every launch), so a second launch sees what the first stored.
-`--qa-setting plugins.windows.qaCapturable=true` (DEBUG only) makes the zone overlay, the HUD and the display identifier
-capturable (the menu bar strip is a status item and was never excluded) for screenshots; release builds always keep them out of screen sharing (`ScreenCapture`, test
-`theOverlayPanelsAreNotSharedAndNeverTakeFocus`). The Layouts window keeps its frame in the plugin settings
-(`plugins.windows.layoutsWindowFrame`), not in the window system's autosave, so a QA run never writes the real defaults.
+pass with `--qa-setting plugins.windows.floatingApps=<comma-separated bundle ids>` (a list setting). Hotkeys stay off
+because the shortcut library keeps its recorded shortcuts in the real defaults domain. `--qa-persistent-settings` keeps
+the QA settings in `<data root>/qa-settings.json` (inside the isolated root; command-line `--qa-setting` values win at
+every launch), so a second launch sees what the first stored. `--qa-setting plugins.windows.qaCapturable=true` (DEBUG
+only) makes the zone overlay, the HUD and the display identifier capturable for screenshots (the menu bar strip is a
+status item and was never excluded); release builds always keep them out of screen sharing (`ScreenCapture`).
+`--qa-setting plugins.windows.qaDragTrace=<file>` (DEBUG only) appends one line per snap drag with the time of each
+stage from the engine receiving the first moved event to the overlay being ordered in
+(`ingest`, `flushStart`, `read`, `reportedOnMain`, `targets`, `overlayShown`, in ms): the part before `ingest` is the
+Accessibility notification reaching Lintel and is read from the outside (the window's first move).
+The Layouts window keeps its frame in the plugin settings (`plugins.windows.layoutsWindowFrame`), never in the window
+system's autosave.
+
+**QA command route.** `--qa-command-file <path>` (DEBUG, only in a `--qa` run) starts a poller (every 50 ms) that reads
+one line at a time from that file, runs it through the commands the shortcuts use, and appends `ok | <line>` or
+`error: <why> | <line>` to `<path>.log`. A line is a command id of an active plugin (`windows.workspace.2`,
+`windows.moveToWorkspace.3`, `windows.focus.left`, `windows.move.right`, `windows.resize.grow`, `windows.toggleLayout`,
+`windows.zones.nextLayout`, `windows.zones.layout.3`, `windows.zones.zone.2`, `windows.restoreAllWindows`, ...) or
+`qa windows <verb>`: `resetState`, `restoreAll`, `snap <zone number>` (snaps the focused window as a drag released over
+that zone would), `import <path>`, `export <path> [selected|all]`, `addFloating <bundle id>`, `openLayouts`. Lines that
+start with `#` and empty lines are ignored; a line is run when its newline arrives. A QA run never opens an open or save
+panel (they write their sizes and the Go To sheet's frame into the real defaults domain): files and the "Add App…"
+picker are scripted by the verbs above (`plugins.windows.qaScriptedFiles`, on in every `--qa` run).
 
 | # | Scenario | Expect |
 |---|---|---|

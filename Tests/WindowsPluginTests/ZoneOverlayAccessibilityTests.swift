@@ -129,3 +129,29 @@ import Testing
         #expect(host.fittingSize.width > 0)
     }
 }
+
+/// QA: the HUD's second line was weak in light mode over a dark background. It sat on a fixed brand grey, which is
+/// only legible on the brand's own backgrounds: measured with the brand's WCAG helper, the grey that suits a light
+/// background fails AA (4.5:1) on a dark one and the other way round, and the HUD floats over anything. The line now
+/// follows the glass's primary label colour, which flips with the backdrop like the title does.
+@Suite(.timeLimit(.minutes(1))) struct HUDSubtitleContrastTests {
+    @Test func aFixedBrandGreyCannotBeLegibleOnBothALightAndADarkBackdrop() {
+        let lightGrey = BrandPalette.secondaryTextLight
+        let darkGrey = BrandPalette.secondaryTextDark
+        let darkBackdrop: UInt32 = 0x1E1E1E
+        let lightBackdrop: UInt32 = 0xF2F2F2
+        // Each grey is fine on its own backdrop and not on the other: no single fixed colour passes both.
+        #expect(BrandPalette.contrast(lightGrey, lightBackdrop) >= 4.5)
+        #expect(BrandPalette.contrast(lightGrey, darkBackdrop) < 4.5)
+        #expect(BrandPalette.contrast(darkGrey, darkBackdrop) >= 4.5)
+        #expect(BrandPalette.contrast(darkGrey, lightBackdrop) < 4.5)
+    }
+
+    @Test func theHUDsSecondLineDoesNotUseAFixedBrandGrey() throws {
+        let file = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().appending(path: "Sources/WindowsPlugin/UI/WindowsHUD.swift")
+        let text = try String(contentsOf: file, encoding: .utf8)
+        #expect(!text.contains("LintelBrand.secondaryText"))
+        #expect(text.contains(".foregroundStyle(.primary.opacity(0.8))"))
+    }
+}

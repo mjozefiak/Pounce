@@ -55,6 +55,14 @@ extension WindowsSettingsModel {
         libraryLocked = snapshot.isReadOnly
     }
 
+    /// The picker's value for a slot: the bound layout's id, or `useDefaultChoice` ("None") when it is free.
+    func slotChoice(_ number: Int) -> String { layoutSlots[number] ?? Self.useDefaultChoice }
+
+    /// A choice of a slot's picker: a layout id, or `useDefaultChoice` to free the slot.
+    func setSlotChoice(_ number: Int, to choice: String) async {
+        await setLayoutSlot(number, to: choice == Self.useDefaultChoice ? nil : choice)
+    }
+
     /// Binds a layout slot to a layout, or frees it with `nil` (the pane's slot rows).
     func setLayoutSlot(_ number: Int, to layoutID: String?) async {
         guard let running = runtime(), !libraryLocked else { return }

@@ -123,12 +123,8 @@ extension WindowsSettingsPane {
             HStack {
                 MenuPicker(
                     selection: Binding(
-                        get: { model.layoutSlots[number] ?? Self.useDefault },
-                        set: { value in
-                            model.actions.enqueue {
-                                await model.setLayoutSlot(number, to: value == Self.useDefault ? nil : value)
-                            }
-                        })
+                        get: { model.slotChoice(number) },
+                        set: { value in model.actions.enqueue { await model.setSlotChoice(number, to: value) } })
                 ) {
                     Text("None", comment: "Window Management: a layout slot that is not bound")
                         .font(textSize.font(.body)).tag(Self.useDefault)

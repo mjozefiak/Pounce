@@ -242,7 +242,10 @@ struct WindowsHUDView: View {
                 if let detail = state.detail {
                     Text(detail)
                         .font(textSize.font(.caption1))
-                        .foregroundStyle(LintelBrand.secondaryText)
+                        // The HUD floats over any window in either appearance (liquid glass tints to what is behind it),
+                        // so its second line follows the glass's own primary label colour instead of a fixed brand
+                        // grey that is only legible on the brand's backgrounds (QA: weak over a dark background).
+                        .foregroundStyle(.primary.opacity(0.8))
                         .lineLimit(1)
                 }
             }

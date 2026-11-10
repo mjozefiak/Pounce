@@ -116,4 +116,26 @@ import Testing
         #expect(library.next(after: "user.gone") == StockLayouts.focus)
         #expect(LayoutLibrary([]).next(after: "x") == nil)
     }
+
+    /// QA: the slot popup did not commit a choice. The pane's picker reads `slotChoice` and writes `setSlotChoice`
+    /// (a layout id binds, the "None" tag frees); this runs the model side of that binding end to end, queued like
+    /// the pane queues it.
+    @MainActor @Test func theSlotPickerBindsAChoiceAndNoneFreesIt() async throws {
+        let (plugin, _, _, harness) = try await makePlugin()
+        defer { harness.tearDown() }
+        let model = plugin.paneModel
+        await model.reloadLibrary()
+        #expect(model.slotChoice(3) == WindowsSettingsModel.useDefaultChoice)
+        model.actions.enqueue { await model.setSlotChoice(3, to: StockLayouts.columns3) }
+        await model.actions.waitUntilEmpty()
+        #expect(model.slotChoice(3) == StockLayouts.columns3)
+        // It persists in the library, which the slot command reads.
+        let stored = await plugin.runtime?.layouts.slots[3]
+        #expect(stored == StockLayouts.columns3)
+        model.actions.enqueue { await model.setSlotChoice(3, to: WindowsSettingsModel.useDefaultChoice) }
+        await model.actions.waitUntilEmpty()
+        #expect(model.slotChoice(3) == WindowsSettingsModel.useDefaultChoice)
+        #expect(await plugin.runtime?.layouts.slots[3] == nil)
+        await plugin.deactivate()
+    }
 }

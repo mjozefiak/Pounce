@@ -107,6 +107,9 @@ keeps those windows, parked or not, and the next switch or event retries them. W
 the engine looks again by itself every `WindowEngine.unknownRetry` (5 s) until a read lists the windows or says they are
 gone, so a window that closed while its app hung is dropped soon after the app answers. Residual: a window that closes
 while its app does not answer stays tracked until the app answers (or the process ends: `appTerminated` drops them).
+A process whose park timed out, or that a snapshot could not read, is marked `unresponsive`; the next event from one of
+its windows (a close, a move, a focus) means it answers again and parking is reconciled then, so what its failed parks
+left on screen is parked without waiting for a workspace switch.
 
 ## Snap overlay latency
 

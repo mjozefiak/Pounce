@@ -86,5 +86,13 @@
 - F5: the localization check scans across line breaks and every localized call (`Text`, `Button`, `Label`, `Toggle`, `String(localized:)`, `LocalizedStringResource`, `LocalizedStringKey`), requires a translated, non-empty Polish value that is not the key (small allowlist), and has a self-test; it needed an allowlist for `%lld pt`, `%lld px`, `Esc`, `⌘S`.
 - F6: `eventually` is back to 200,000 turns; the drag-latency tests read a synchronous log; three stuck-recovery waits, which hop between threads, pass a larger explicit bound. F7: the frame test opens a real window. F10: the screen-capture invariant is documented, the strip is not mentioned as excluded. F11: one predicate (`LayoutPlanner.canStartSnapDrag`) for the reducer and the engine, floating/unmanaged excluded (test).
 
+## Round 11 (second QA on a real desktop)
+- N1: the cause was as QA read it: the sheet runs the confirm (which only queues the work) and then closes, and the binding's setter clears `pendingDelete` first. The view reads the deletion at the click and `confirmDelete(_:)` takes it; model-level and sheet-order tests (LintelUI's real `confirmThenClose`, now public); the other ConfirmSheet users were checked (they read their state synchronously) and the discard sheet is covered.
+- N2: **no intentional delay exists in the code path**; the remaining ~110 ms is not identified. Done: no fade-in on the overlay panels, a DEBUG stage trace (`qaDragTrace`) so a run can name the slow stage. Tried and dropped: a frame-only read for moved events broke fullscreen detection (resizes are folded into moved by the coalescer), so it was reverted. Numbers and the owner's decision are in `docs/perf.md`.
+- N3: the strip's click mapping uses the button cell's own drawn image rect (fallback: centred); geometry tests for 1 to 9 boxes, edges, gaps and offsets. The old code was correct for a centred image; a different drawn position is the one way it could be off. Not verified by hand.
+- N4: processes that did not answer are tracked (`unresponsive`); any event from one of their windows reconciles parking (engine test).
+- N5: Polish strings for the shortcut recorder go into the library's bundle in `make-app.sh` (`Resources/KeyboardShortcuts/pl.lproj`), tested. N6/N8: the QA command route, scripted files (no open/save panel in a QA run), QA verbs; tests; docs.
+- Notes: HUD second line follows the glass's primary colour (measured why a fixed grey cannot work); matrix key table and editor Shift+Tab loop pinned by tests (the arrows' real focus behaviour is not verified); slot picker binding has a model-level test.
+
 ## Next concrete action
 QA gate and merge by the owner.
