@@ -55,6 +55,7 @@ actor WindowEngine {
     /// The longest wait between two looks (the wait doubles from `unknownRetry` up to this).
     static let unknownRetryLimit: Duration = .seconds(60)
     private var retryDelay = WindowEngine.unknownRetry
+    private var retryGeneration = 0
     /// When the last flush started (engine time); a move is flushed at once only when none ran in the last tick.
     private var lastFlushAt = -Double.infinity
 
@@ -436,18 +437,27 @@ actor WindowEngine {
         if state.unresponsive.isDisjoint(with: tracked) {
             retryTask?.cancel()
             retryTask = nil
+            retryGeneration &+= 1
             retryDelay = Self.unknownRetry
             return
         }
         guard retryTask == nil, !stopped else { return }
         let delay = retryDelay
+        retryGeneration &+= 1
+        let generation = retryGeneration
         retryTask = Task { [weak self, time] in
             do { try await time.sleep(delay) } catch { return }
-            await self?.retryUnknown()
+            await self?.retryUnknown(generation: generation)
         }
     }
 
-    private func retryUnknown() {
+    /// A retry that was cancelled or replaced after its sleep ended but before it reached the engine does nothing:
+    /// it must not clear the newer task or double the delay.
+    /// The delay of the next look-again retry (tests).
+    var currentRetryDelay: Duration { retryDelay }
+
+    func retryUnknown(generation: Int) {
+        guard !Task.isCancelled, generation == retryGeneration, !stopped else { return }
         retryTask = nil
         retryDelay = min(retryDelay * 2, Self.unknownRetryLimit)
         ingest(.resync)

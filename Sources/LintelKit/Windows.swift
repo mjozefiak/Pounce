@@ -141,8 +141,8 @@ public protocol WindowClient: Sendable {
     func windows() async -> [WindowInfo]
     /// `windows()` with what the read could not see: a window or an app that did not answer is *unknown*, never
     /// *gone*. `tracked` are the processes the caller holds windows of: only those can be reported `unreachable` or
-    /// `unreadable` (an app the caller holds nothing of is not its concern, and must not arm a retry). The default reads `windows()` and, for a
-    /// tracked process that listed nothing, asks `isResponding(pid:)` (a second probe); a client that reads the
+    /// `unreadable` (an app the caller holds nothing of is not its concern, and must not arm a retry). The default
+    /// reads `windows()` and, for a tracked process that listed nothing, asks `isResponding(pid:)` (a second probe); a client that reads the
     /// windows itself (`AXWindowClient`) answers from the very read that failed.
     func readWindows(tracked: Set<Int32>) async -> WindowRead
     func focusedWindow() async -> WindowID?

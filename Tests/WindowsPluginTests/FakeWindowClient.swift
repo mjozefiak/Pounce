@@ -401,7 +401,7 @@ final class VirtualClock: Clock, @unchecked Sendable {
     private let lock = NSLock()
     private var current: Instant
     private var sleepers: [UInt64: Sleeper] = [:]
-    private var sleeperWaiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
+    private var sleeperWaiters: [(id: UUID, count: Int, continuation: CheckedContinuation<Void, Never>)] = []
     private var nextID: UInt64 = 0
     private let autoAdvance: Bool
     /// How many sleeps an auto-advancing clock has answered at once. A timed loop that re-arms itself on such a clock
@@ -432,11 +432,49 @@ final class VirtualClock: Clock, @unchecked Sendable {
         await withCheckedContinuation { continuation in
             let ready = lock.withLock { () -> Bool in
                 if sleepers.count >= count { return true }
-                sleeperWaiters.append((count, continuation))
+                sleeperWaiters.append((UUID(), count, continuation))
                 return false
             }
             if ready { continuation.resume() }
         }
+    }
+
+    /// `waitForSleepers` that gives up after `limit` of real time and records an `Issue` instead of hanging the run.
+    /// Returns whether the sleepers arrived.
+    @discardableResult
+    func waitForSleepers(
+        _ count: Int, limit: Duration, sourceLocation: SourceLocation = #_sourceLocation
+    ) async -> Bool {
+        let id = UUID()
+        let timedOut = Mutex(false)
+        let watchdog = Task { [weak self] in
+            try? await ContinuousClock().sleep(for: limit)
+            guard !Task.isCancelled, let self else { return }
+            let waiter = self.lock.withLock { () -> CheckedContinuation<Void, Never>? in
+                guard let index = self.sleeperWaiters.firstIndex(where: { $0.id == id }) else { return nil }
+                return self.sleeperWaiters.remove(at: index).continuation
+            }
+            if let waiter {
+                timedOut.withLock { $0 = true }
+                waiter.resume()
+            }
+        }
+        await withCheckedContinuation { continuation in
+            let ready = lock.withLock { () -> Bool in
+                if sleepers.count >= count { return true }
+                sleeperWaiters.append((id, count, continuation))
+                return false
+            }
+            if ready { continuation.resume() }
+        }
+        watchdog.cancel()
+        let failed = timedOut.withLock { $0 }
+        if failed {
+            Issue.record(
+                "no \(count) sleeper(s) arrived within \(limit): the code under test never armed its timer",
+                sourceLocation: sourceLocation)
+        }
+        return !failed
     }
 
     /// Moves time forward and wakes every sleeper whose deadline has passed.

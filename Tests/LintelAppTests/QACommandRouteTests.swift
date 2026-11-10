@@ -136,6 +136,42 @@ import Testing
         #expect(recorder.ran == ["workspace.2", "toggle", "toggle"])
     }
 
+    /// Round-12 audit: a file rewritten with a larger size (truncate and rewrite) is noticed, not read from the
+    /// middle of its new content.
+    @Test func aFileRewrittenToALargerSizeIsReadFromItsStart() async throws {
+        let (route, file, recorder) = try rig()
+        defer {
+            try? FileManager.default.removeItem(at: file)
+            try? FileManager.default.removeItem(at: file.appendingPathExtension("log"))
+        }
+        try append("windows.toggleLayout\n", to: file)
+        await route.pollOnce()
+        #expect(recorder.ran == ["toggle"])
+        try Data().write(to: file)
+        try append(
+            "windows.workspace.2\n# a comment that makes the file longer than before\nwindows.toggleLayout\n", to: file)
+        await route.pollOnce()
+        #expect(recorder.ran == ["toggle", "workspace.2", "toggle"])
+    }
+
+    /// Round-12 audit: a character split across two polls arrives whole.
+    @Test func aMultiByteCharacterSplitAcrossPollsIsNotMangled() async throws {
+        let (route, file, recorder) = try rig()
+        defer {
+            try? FileManager.default.removeItem(at: file)
+            try? FileManager.default.removeItem(at: file.appendingPathExtension("log"))
+        }
+        let bytes = Array("qa windows ż\n".utf8)
+        let split = bytes.count - 2  // between the two bytes of "ż"
+        let handle = try FileHandle(forWritingTo: file)
+        handle.write(Data(bytes[..<split]))
+        await route.pollOnce()
+        handle.write(Data(bytes[split...]))
+        try handle.close()
+        await route.pollOnce()
+        #expect(recorder.qaLines == ["ż"])
+    }
+
     @Test func theLogIsRotatedPastItsLimit() async throws {
         let (route, file, _) = try rig()
         let log = file.appendingPathExtension("log")

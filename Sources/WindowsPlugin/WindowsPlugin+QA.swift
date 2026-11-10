@@ -7,8 +7,8 @@ import LintelKit
 /// route"). DEBUG only; the route itself only exists in a `--qa` run. Every verb goes through the same runtime and
 /// model entry points the UI uses.
 extension WindowsPlugin: PluginQACommands {
-    /// `resetState`, `restoreAll`, `snap <zone number>`, `import <path>`, `export <selected|all> <path>` (the rest of the line is the path),
-    /// `addFloating <bundle id>`, `openLayouts`.
+    /// `resetState`, `restoreAll`, `snap <zone number>`, `import <path>`, `export <selected|all> <path>` (the rest of
+    /// the line is the path), `addFloating <bundle id>`, `openLayouts`.
     public func runQACommand(_ line: String) async -> String {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
         let verb = String(trimmed.prefix { $0 != " " })

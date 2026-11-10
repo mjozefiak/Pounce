@@ -505,12 +505,29 @@ extension WindowEngineTests {
         // Meanwhile the window closes and the app answers again; nobody tells the engine.
         rig.client.remove(id(1))
         rig.client.setBehavior(.normal, forProcess: 100)
-        await rig.time.waitForSleepers(1)
+        await rig.time.waitForSleepers(1, limit: .seconds(30))
         rig.time.advance(WindowEngine.unknownRetry.seconds + 1)
-        await rig.time.waitForSleepers(1)
+        await rig.time.waitForSleepers(1, limit: .seconds(30))
         rig.time.advance(1)
         await rig.engine.settle()
         #expect(await rig.engine.snapshot.windows[id(1)] == nil)
+        await rig.engine.stop()
+    }
+
+    /// Round-12 audit: a retry that was replaced after its sleep ended must not clear the newer task or double the
+    /// delay.
+    @Test func aStaleRetryDoesNothing() async throws {
+        let rig = try rig([makeWindow(1), makeWindow(2, pid: 200)], autoTick: false)
+        defer { rig.harness.tearDown() }
+        await rig.engine.start()
+        rig.client.setBehavior(.hung, forProcess: 100)
+        await rig.engine.ingest(.resync)
+        await rig.engine.flushEvents()
+        #expect(await rig.time.waitForSleepers(1, limit: .seconds(30)))
+        let delayBefore = await rig.engine.currentRetryDelay
+        // The armed retry has generation 1 or later; generation -1 never matches.
+        await rig.engine.retryUnknown(generation: -1)
+        #expect(await rig.engine.currentRetryDelay == delayBefore)
         await rig.engine.stop()
     }
 

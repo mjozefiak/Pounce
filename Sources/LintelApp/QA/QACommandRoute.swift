@@ -10,7 +10,7 @@ import LintelKit
 /// A line is `<command id>` (any active plugin command, for example `windows.workspace.2`, `windows.focus.left`,
 /// `windows.toggleLayout`, `windows.zones.nextLayout`, `windows.zones.layout.3`, `windows.restoreAllWindows`) or
 /// `qa <plugin id> <verb ...>` for a verb of a plugin that implements `PluginQACommands` (Window Management:
-/// `resetState`, `restoreAll`, `snap <zone>`, `import <path>`, `export <path>`, `addFloating <bundle id>`).
+/// `resetState`, `restoreAll`, `snap <zone>`, `import <path>`, `export <selected|all> <path>`, `addFloating <bundle id>`).
 /// Lines starting with `#` and empty lines are ignored.
 @MainActor
 final class QACommandRoute {
@@ -22,7 +22,14 @@ final class QACommandRoute {
     private let commands: @MainActor () -> [PluginCommand]
     private let qaPlugin: @MainActor (String) -> (any PluginQACommands)?
     private var offset = 0
-    private var pending = ""
+    /// Bytes read but not yet a whole line: a multi-byte character may be split across two polls, so only complete
+    /// lines are decoded.
+    private var pending = Data()
+    /// The last bytes already read, and the file they came from: a file replaced by one of the same or a larger
+    /// size (a truncate and rewrite) is noticed by them.
+    private var tail = Data()
+    private var fileNumber: Int?
+    private static let tailLength = 16
     private var task: Task<Void, Never>?
 
     /// Whether the commands already in the file at launch are run (`--qa-command-replay`). By default the route starts
@@ -71,20 +78,30 @@ final class QACommandRoute {
         guard let handle = try? FileHandle(forReadingFrom: file) else { return }
         defer { try? handle.close() }
         let size = Int((try? handle.seekToEnd()) ?? 0)
-        // A file that was emptied or replaced by a shorter one starts again from its beginning.
-        if size < offset {
-            offset = 0
-            pending = ""
+        let number = (try? FileManager.default.attributesOfItem(atPath: file.path))?[.systemFileNumber] as? Int
+        var replaced = size < offset || (fileNumber != nil && number != fileNumber)
+        if !replaced, offset > 0, !tail.isEmpty {
+            try? handle.seek(toOffset: UInt64(offset - tail.count))
+            replaced = (try? handle.read(upToCount: tail.count)) != tail
         }
+        // A file that was emptied or replaced starts again from its beginning.
+        if replaced {
+            offset = 0
+            pending = Data()
+            tail = Data()
+        }
+        fileNumber = number
         guard size > offset else { return }
         // Only what was appended since the last look is read.
         try? handle.seek(toOffset: UInt64(offset))
         guard let data = try? handle.readToEnd() else { return }
-        pending += String(decoding: data, as: UTF8.self)
+        pending.append(data)
         offset += data.count
-        while let end = pending.firstIndex(of: "\n") {
-            let line = String(pending[..<end]).trimmingCharacters(in: .whitespaces)
-            pending = String(pending[pending.index(after: end)...])
+        tail = Data((tail + data).suffix(Self.tailLength))
+        while let end = pending.firstIndex(of: 0x0A) {
+            let line = String(decoding: pending[pending.startIndex..<end], as: UTF8.self)
+                .trimmingCharacters(in: .whitespaces)
+            pending = Data(pending[pending.index(after: end)...])
             guard !line.isEmpty, !line.hasPrefix("#") else { continue }
             append("\(await run(line)) | \(line)")
         }
@@ -102,7 +119,7 @@ final class QACommandRoute {
         return "ok"
     }
 
-    /// The log keeps at most this much; past it the old half is dropped (`<path>.log.1` holds the previous one).
+    /// The log keeps at most this much; past it the whole log moves to `<path>.log.1` (one previous log is kept, an older one is dropped).
     static let logLimit = 256 * 1024
 
     private func append(_ text: String) {
