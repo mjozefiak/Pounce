@@ -33,13 +33,63 @@ private final class RecordingPreview: ZoneOverlayPresenting {
     @MainActor final class Closed { var count = 0 }
     @MainActor final class Saved { var layouts: [GridLayout] = [] }
 
+    /// A count a test waits on without polling: `wait(atLeast:)` returns when the count got there, or, after `limit` of
+    /// real time, records an Issue instead of hanging (a busy main actor on a loaded runner may be slow, not stuck).
+    final class CountGate: @unchecked Sendable {
+        private let lock = NSLock()
+        private var value = 0
+        private var waiters: [(id: UUID, atLeast: Int, continuation: CheckedContinuation<Bool, Never>)] = []
+        var count: Int { lock.withLock { value } }
+        func increment() {
+            let ready = lock.withLock { () -> [CheckedContinuation<Bool, Never>] in
+                value += 1
+                let due = waiters.filter { $0.atLeast <= value }
+                waiters.removeAll { $0.atLeast <= value }
+                return due.map(\.continuation)
+            }
+            for continuation in ready { continuation.resume(returning: true) }
+        }
+        @discardableResult
+        func wait(
+            atLeast target: Int, limit: Duration = .seconds(60), _ what: String,
+            sourceLocation: SourceLocation = #_sourceLocation
+        ) async -> Bool {
+            let id = UUID()
+            let watchdog = Task { [weak self] in
+                try? await ContinuousClock().sleep(for: limit)
+                guard !Task.isCancelled, let self else { return }
+                let waiter = self.lock.withLock { () -> CheckedContinuation<Bool, Never>? in
+                    guard let index = self.waiters.firstIndex(where: { $0.id == id }) else { return nil }
+                    return self.waiters.remove(at: index).continuation
+                }
+                waiter?.resume(returning: false)
+            }
+            let reached = await withCheckedContinuation { continuation in
+                let done = lock.withLock { () -> Bool in
+                    if value >= target { return true }
+                    waiters.append((id, target, continuation))
+                    return false
+                }
+                if done { continuation.resume(returning: true) }
+            }
+            watchdog.cancel()
+            if !reached { Issue.record("never reached: \(what)", sourceLocation: sourceLocation) }
+            return reached
+        }
+    }
+
     /// A sleep a test opens by hand: each call waits until `open(_:)` lets that very call return.
     final class SleepGate: @unchecked Sendable {
         private let lock = NSLock()
         private var waiters: [CheckedContinuation<Void, Never>] = []
+        /// Counts the calls that started sleeping.
+        let armed = CountGate()
         var count: Int { lock.withLock { waiters.count } }
         func sleep(_ duration: Duration) async {
-            await withCheckedContinuation { continuation in lock.withLock { waiters.append(continuation) } }
+            await withCheckedContinuation { continuation in
+                lock.withLock { waiters.append(continuation) }
+                armed.increment()
+            }
         }
         func open(_ index: Int) {
             let waiter = lock.withLock { () -> CheckedContinuation<Void, Never>? in
@@ -205,34 +255,30 @@ private final class RecordingPreview: ZoneOverlayPresenting {
         #expect(model.message == nil)
     }
 
-    @MainActor final class Finished {
-        var count = 0
-    }
-
     @Test func aRefusalDisappearsAfterItsLifetimeButAnOlderTimerDoesNotTakeDownANewerMessage() async throws {
         let gate = SleepGate()
         let rig = try await rig(sleep: { await gate.sleep($0) })
         defer { try? FileManager.default.removeItem(at: rig.directory) }
         let model = rig.model
-        let finished = await Finished()
-        await MainActor.run { model.messageTimerDidFinish = { finished.count += 1 } }
+        let finished = CountGate()
+        await MainActor.run { model.messageTimerDidFinish = { finished.increment() } }
         for _ in 0..<12 where model.message == nil {
             model.setSelection([model.layout.zones.last!.id])
             model.divideFocused(axis: .vertical)
         }
         let first = try #require(model.message)
         // However many timers refusals so far armed, a later refusal arms one more.
-        await eventually("a timer armed") { gate.count >= 1 }
+        #expect(await gate.armed.wait(atLeast: 1, "a timer armed"))
         let older = gate.count
         model.divideFocused(axis: .vertical)
-        await eventually("the newer timer armed") { gate.count == older + 1 }
+        #expect(await gate.armed.wait(atLeast: older + 1, "the newer timer armed"))
         // Every older timer ends: none of them takes the newer message down.
         for index in 0..<older { gate.open(index) }
-        await eventually("older timers finished") { await MainActor.run { finished.count } == older }
+        #expect(await finished.wait(atLeast: older, "older timers finished"))
         #expect(model.message == first, "an older timer took down the newer message")
         // The newest timer ends: now it is gone.
         gate.open(older)
-        await eventually("newest timer finished") { await MainActor.run { finished.count } == older + 1 }
+        #expect(await finished.wait(atLeast: older + 1, "newest timer finished"))
         #expect(model.message == nil)
     }
 
