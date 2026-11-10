@@ -184,3 +184,13 @@ Dividers moved by the arrow keys or the numeric fields, and a zone divided by ke
 display or more; a divide that would go below is refused with the usual message and announcement and changes nothing
 (undo included). A divide by **click** is stricter: each piece must be at least 5%, so a track narrower than 10% can no
 longer be divided by click; use the keyboard or the numeric fields for finer work (round 13 B2, round 15 M1).
+
+## Menu bar strip and VoiceOver (round 16, D3: owner decision pending)
+
+QA round 4 found that macOS shows a status item no accessibility children (only `AXPress`), so the per-box elements
+added in round 13 are never seen. What VoiceOver gets: the item reads **"Workspaces, current: 2 of 4"** (updated on
+every change), and its right-click or Control-click menu lists "Go to Workspace N" (the current one checked) and
+"Restore All Windows"; Settings has the same instruction on the strip switch. Options for the owner: **(a)** keep one
+status item and this menu as the accessible path (what is implemented; no menu bar room beyond one item); **(b)** one
+status item per box (up to nine; each box is then a real item with its own label and press, at the cost of menu bar
+room and the notch, and a spec decision). The one-item design is not changed here.

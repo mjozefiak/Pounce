@@ -44,7 +44,7 @@ Any `--qa…` argument turns QA mode on:
 | Full Disk Access | read by listing `~/Library/Safari` and similar folders | `--qa-full-disk-access`, default `denied`; the real state is never read |
 | App activity (suggestions) | `Plugins/apps/activity.json`, filled by app switches and a one-time Spotlight seed | `activity.json` under the QA data root, filled only from `--qa-activity`; the tracker and the seed run only with `--qa-activity-live` |
 
-AppKit itself may still write window and status-item state to the `com.lintelapp.Lintel` defaults domain.
+AppKit itself may still write window and status-item state to the app's own defaults domain; since round 16 that is `com.lintelapp.Lintel.QA` for a bundle built with `CONFIGURATION=debug`, never the real `com.lintelapp.Lintel`.
 If that domain did not exist before a QA session, remove it afterwards with
 `defaults delete com.lintelapp.Lintel`.
 

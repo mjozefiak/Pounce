@@ -132,6 +132,15 @@ struct WindowsSettingsPane: View {
             label(Text("Show menu bar strip", comment: "Window Management setting: the numbered boxes in the menu bar"))
         }
         .toggleStyle(.switch)
+        .accessibilityHint(
+            Text(
+                "The strip reads which workspace is current. Open its menu with a right-click or Control-click to go to a workspace by name.",
+                comment: "Window Management setting: how to use the menu bar strip with VoiceOver")
+        )
+        .help(
+            Text(
+                "The strip reads which workspace is current. Open its menu with a right-click or Control-click to go to a workspace by name.",
+                comment: "Window Management setting: how to use the menu bar strip with VoiceOver"))
     }
 
 }

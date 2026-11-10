@@ -13435,6 +13435,24 @@
         }
       }
     },
+    "The strip reads which workspace is current. Open its menu with a right-click or Control-click to go to a workspace by name." : {
+      "comment" : "Window Management setting: how to use the menu bar strip with VoiceOver",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The strip reads which workspace is current. Open its menu with a right-click or Control-click to go to a workspace by name."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pasek odczytuje bieżącą przestrzeń roboczą. Menu otwiera się prawym kliknięciem lub Control-kliknięciem i pozwala przejść do przestrzeni po nazwie."
+          }
+        }
+      }
+    },
     "Windows are parked" : {
       "comment" : "Window HUD: windows are hidden and cannot be restored",
       "extractionState" : "manual",
