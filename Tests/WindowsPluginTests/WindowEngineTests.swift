@@ -403,7 +403,7 @@ extension WindowEngineTests {
     /// QA defect D1: windows of an app that hung during a switch were dropped from management for good, because a
     /// snapshot taken while it did not answer returned none of them and the engine took that for "closed".
     @Test func theWindowsOfAnAppThatStoppedAnsweringSurviveASnapshotAndAreParkedOnceItAnswersAgain() async throws {
-        let rig = try rig([makeWindow(1), makeWindow(2, pid: 200)])
+        let rig = try rig([makeWindow(1), makeWindow(2, pid: 200)], autoTick: false)
         defer { rig.harness.tearDown() }
         await rig.engine.start()
         rig.client.setBehavior(.hung, forProcess: 100)
@@ -433,7 +433,7 @@ extension WindowEngineTests {
 
     /// Round 10 F2: the app's list works but one window's attributes time out. That window exists: never "closed".
     @Test func aListedWindowWhoseAttributesCannotBeReadIsKeptAndRemovedOnlyWhenItReallyClosed() async throws {
-        let rig = try rig([makeWindow(1), makeWindow(2)])
+        let rig = try rig([makeWindow(1), makeWindow(2)], autoTick: false)
         defer { rig.harness.tearDown() }
         await rig.engine.start()
         rig.client.setUnreadable(true, id(1))
@@ -459,7 +459,7 @@ extension WindowEngineTests {
     /// Round 10 F3: the window list read fails but the app would answer a role probe (`isResponding` is true): the
     /// windows are still kept, because the verdict comes from the failed read itself.
     @Test func aFailedListReadKeepsTheWindowsEvenWhenAProbeWouldAnswer() async throws {
-        let rig = try rig([makeWindow(1), makeWindow(2, pid: 200)])
+        let rig = try rig([makeWindow(1), makeWindow(2, pid: 200)], autoTick: false)
         defer { rig.harness.tearDown() }
         await rig.engine.start()
         rig.client.setListFails(true, forProcess: 100)
@@ -479,7 +479,7 @@ extension WindowEngineTests {
     /// Round 10 F12: a process that is gone does not keep its windows: the termination event and a resync with the
     /// process no longer listed drop them (it answers no probe, but also no read failed on a live process).
     @Test func aTerminatedProcessLosesItsWindowsEvenIfTheLastReadFailed() async throws {
-        let rig = try rig([makeWindow(1), makeWindow(2, pid: 200)])
+        let rig = try rig([makeWindow(1), makeWindow(2, pid: 200)], autoTick: false)
         defer { rig.harness.tearDown() }
         await rig.engine.start()
         rig.client.setBehavior(.hung, forProcess: 100)
