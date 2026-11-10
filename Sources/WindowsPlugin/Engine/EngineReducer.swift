@@ -65,16 +65,16 @@ enum EngineReducer {
 
         // An event from a window of a process that did not answer means it answers again: what its failed parks left
         // on screen is parked now, not at the next unrelated switch (QA N4).
+        if let pid = eventPID(of: input) { context.state.unknownApps.remove(pid) }
         if let pid = eventPID(of: input), context.state.unresponsive.contains(pid) {
             context.state.unresponsive.remove(pid)
             context.reconcileParking(now: input.moment ?? 0)
             context.arrangeRequested = true
         }
         // A process the engine holds no window of is not waiting for anything.
-        if !context.state.unresponsive.isEmpty {
-            let held = Set(context.state.windows.keys.map(\.pid))
-            context.state.unresponsive.formIntersection(held)
-        }
+        let held = Set(context.state.windows.keys.map(\.pid))
+        if !context.state.unresponsive.isEmpty { context.state.unresponsive.formIntersection(held) }
+        if !context.state.unknownApps.isEmpty { context.state.unknownApps.subtract(held) }
         context.arrangeIfRequested(now: input.moment ?? 0)
         context.flush()
         if context.state.model.order != oldOrder {

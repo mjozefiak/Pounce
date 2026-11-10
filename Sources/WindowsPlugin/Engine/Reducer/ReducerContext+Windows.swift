@@ -38,6 +38,9 @@ extension ReducerContext {
             }
         }
         reconcileParking(now: now)
+        // An app that did not answer and of which the engine tracks nothing: its windows are not known yet.
+        let held = Set(state.windows.keys.map(\.pid))
+        state.unknownApps = unreachable.subtracting(held)
         arrangeRequested = true
     }
 

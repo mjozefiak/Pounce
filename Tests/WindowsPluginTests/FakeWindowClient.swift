@@ -220,9 +220,10 @@ final class FakeWindowClient: WindowClient, Sendable {
             let present = Set(state.windows.keys.map(\.pid))
             return (pids.intersection(present), state.unreadableIDs.filter { state.windows[$0] != nil })
         }
-        // Like the real client: only what the caller tracks is reported unknown.
+        // Like the real client: every app that did not answer is `unreachable`, but only the unreadable windows of
+        // tracked processes are reported.
         return WindowRead(
-            windows: list, unreachable: unreachable.intersection(tracked),
+            windows: list, unreachable: unreachable,
             unreadable: unreadable.filter { tracked.contains($0.pid) })
     }
 

@@ -579,16 +579,56 @@ extension WindowEngineTests {
         await rig.engine.settle()
     }
 
-    /// Round 12 B2: an app the engine holds no window of that does not answer arms nothing, however long it runs.
-    @Test func anUnresponsiveAppTheEngineHoldsNoWindowOfArmsNoRetry() async throws {
+    /// QA round 4, D11: an app that appears with windows the engine cannot read (stopped, or still starting) while it
+    /// holds none of them used to be forgotten until some event came from it. The engine looks again, backs off, and
+    /// adopts every window once the app answers.
+    @Test func anAppWithWindowsTheEngineCouldNotReadYetIsAdoptedWhenItAnswers() async throws {
+        let rig = try rig([makeWindow(1)], autoTick: false)
+        defer { rig.harness.tearDown() }
+        for number in 1...3 { rig.client.add(makeWindow(UInt32(10 + number), pid: 300)) }
+        rig.client.setBehavior(.hung, forProcess: 300)
+        await rig.engine.start()
+        let none = await rig.engine.snapshot.windows.keys.filter { $0.pid == 300 }
+        #expect(none.isEmpty)
+        // The retry is armed although the engine holds nothing of the app.
+        #expect(await rig.time.waitForSleepers(1, limit: .seconds(30)))
+        // The app answers; the next look adopts all three windows.
+        rig.client.setBehavior(.normal, forProcess: 300)
+        await advance(rig, seconds: 5)
+        let adopted = await rig.engine.snapshot.windows.keys.filter { $0.pid == 300 }
+        #expect(adopted.count == 3)
+        // Nothing stays armed once it has answered.
+        #expect(rig.time.sleeperCount == 0)
+        await rig.engine.stop()
+    }
+
+    /// The same app, never answering: the engine stops looking after `untrackedRetryLimit` looks and costs nothing
+    /// afterwards; an app with no windows at all (nothing to adopt) arms nothing.
+    @Test func anAppThatNeverAnswersIsLookedAtABoundedNumberOfTimes() async throws {
+        let rig = try rig([makeWindow(1)], autoTick: false)
+        defer { rig.harness.tearDown() }
+        rig.client.add(makeWindow(11, pid: 300))
+        rig.client.setBehavior(.hung, forProcess: 300)
+        await rig.engine.start()
+        #expect(await rig.time.waitForSleepers(1, limit: .seconds(30)))
+        let reads = rig.client.windowsReads
+        for _ in 0..<WindowEngine.untrackedRetryLimit {
+            await advance(rig, seconds: 61)
+        }
+        // The look that follows the last allowed one re-arms nothing.
+        #expect(rig.time.sleeperCount == 0)
+        #expect(rig.client.windowsReads >= reads + WindowEngine.untrackedRetryLimit)
+        let before = rig.client.windowsReads
+        rig.time.advance(3600)
+        await rig.engine.flushEvents()
+        #expect(rig.client.windowsReads == before)
+        await rig.engine.stop()
+    }
+
+    @Test func anAppThatAnswersWithoutWindowsArmsNothing() async throws {
         let rig = try rig([makeWindow(1)], autoTick: false)
         defer { rig.harness.tearDown() }
         await rig.engine.start()
-        rig.client.add(makeWindow(9, pid: 300))
-        rig.client.setBehavior(.hung, forProcess: 300)
-        await rig.engine.ingest(.resync)
-        await rig.engine.flushEvents()
-        #expect(await rig.engine.snapshot.windows[id(9, pid: 300)] == nil)
         #expect(rig.time.sleeperCount == 0)
         await rig.engine.stop()
     }

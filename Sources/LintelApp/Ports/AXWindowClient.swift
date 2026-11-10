@@ -128,10 +128,13 @@ nonisolated final class AXWindowClient: WindowClient, Sendable {
                 if part.unreachable { unreachable.insert(part.pid) }
                 unreadable.formUnion(part.unreadable)
             }
-            // `tracked` is a contract: only what the caller holds is reported unknown. An app the caller holds no window
-            // of (or that has no Accessibility at all) that does not answer is nobody's concern and arms no retry.
+            // Every app whose window list timed out is `unreachable` (an app that has no Accessibility at all is not:
+            // it answers with another status). The caller decides what that means: for an app it holds windows of
+            // it is "unknown, not gone"; for one it holds none of, its windows are simply not known yet (QA round 4,
+            // D11: a fresh app stopped before its first window was adopted stayed invisible). `unreadable` is
+            // reported only for what the caller tracks.
             return WindowRead(
-                windows: all.sorted { $0.id < $1.id }, unreachable: unreachable.intersection(tracked),
+                windows: all.sorted { $0.id < $1.id }, unreachable: unreachable,
                 unreadable: unreadable.filter { tracked.contains($0.pid) })
         }
     }

@@ -152,6 +152,9 @@ struct EngineState: Equatable, Sendable {
     /// Processes that did not answer (a park timed out, or a snapshot could not read them): the next event from one
     /// of their windows means it answers again, so parking is reconciled then (`EngineReducer`).
     var unresponsive: Set<Int32> = []
+    /// Processes the engine holds no window of that did not answer the latest snapshot: whatever windows they have
+    /// are not known yet. The engine looks again a bounded number of times (`WindowEngine.untrackedRetryLimit`).
+    var unknownApps: Set<Int32> = []
     /// Whether the journal can be written; without it no window is parked.
     var canJournal = true
     var diagnostics = EngineDiagnostics()
