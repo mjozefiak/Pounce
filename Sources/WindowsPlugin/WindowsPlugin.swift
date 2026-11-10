@@ -129,6 +129,7 @@ public final class WindowsPlugin: LintelPlugin {
         #if DEBUG
         ScreenCapture.qaCapturable = settings.qaCapturable
         DragTrace.configure(path: settings.qaDragTrace)
+        StripTrace.configure(path: settings.qaStripTrace)
         #endif
         self.hud = hud
         self.activationCenter = activationCenter

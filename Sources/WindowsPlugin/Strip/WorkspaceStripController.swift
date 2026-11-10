@@ -98,6 +98,7 @@ final class WorkspaceStripController: NSObject {
             element.setAccessibilityParent(button)
             element.setAccessibilityRole(.button)
             element.setAccessibilityLabel(StripModel.accessibilityLabel(box))
+            element.setAccessibilitySelected(box.isCurrent)
             element.setAccessibilityFrameInParentSpace(
                 NSRect(
                     x: originX + StripLayout.originX(ofBox: index), y: y, width: StripLayout.boxWidth,
@@ -121,10 +122,27 @@ final class WorkspaceStripController: NSObject {
             return
         }
         guard let image = sender.image else { return }
-        let x = sender.convert(event.locationInWindow, from: nil).x - imageOriginX(in: sender, image: image)
+        let eventX = sender.convert(event.locationInWindow, from: nil).x
+        let x =
+            StripLayout.clickX(
+                eventX: eventX, cursorScreenX: NSEvent.mouseLocation.x, itemFrame: sender.window?.frame,
+                buttonMinX: sender.frame.minX) - imageOriginX(in: sender, image: image)
+        #if DEBUG
+        StripTrace.record(
+            "click eventX=\(eventX) locationInWindow=\(event.locationInWindow) mouse=\(NSEvent.mouseLocation) "
+                + "window=\(String(describing: sender.window?.frame)) bounds=\(sender.bounds) mappedX=\(x)")
+        #endif
         if let index = StripLayout.index(atX: x, boxCount: boxes.count), boxes.indices.contains(index) {
             select(boxes[index].number)
         }
+    }
+
+    /// The screen rect of every box (QA: where to click), `nil` while the item has no window.
+    func boxScreenRects() -> [CGRect]? {
+        guard let button = statusItem?.button, let window = button.window, let image = button.image else { return nil }
+        return StripLayout.boxScreenRects(
+            boxCount: boxes.count, itemFrame: window.frame,
+            imageOriginX: imageOriginX(in: button, image: image) + button.frame.minX)
     }
 
     private func showMenu(from button: NSStatusBarButton) {

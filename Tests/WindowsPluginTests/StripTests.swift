@@ -194,4 +194,52 @@ import Testing
         #expect(box(clickX: gapMiddle - 0.4, count: count, buttonWidth: buttonWidth) == 0)
         #expect(box(clickX: gapMiddle + 0.4, count: count, buttonWidth: buttonWidth) == 1)
     }
+
+    // MARK: The real click path (QA round 3, N3)
+
+    /// What QA observed on macOS 26: the item's window is 100 x 24 at x 4290, the 4-box image (82 pt) is centred in it
+    /// (origin 9), and the event reports the click at the item's centre (x 50) whatever was clicked, so the event's x
+    /// always chose box 3 of 4 (index 2). The cursor's own screen x is what says where the click was.
+    @Test func theCursorPositionNotTheItemCentreChoosesTheBoxWhenTheEventAlwaysReportsTheCentre() {
+        let frame = CGRect(x: 4290, y: 3, width: 100, height: 24)
+        let origin = StripLayout.imageOriginX(buttonWidth: 100, imageWidth: StripLayout.width(boxCount: 4))
+        #expect(origin == 9)
+        func box(cursor: CGFloat) -> Int? {
+            let x = StripLayout.clickX(eventX: 50, cursorScreenX: cursor, itemFrame: frame) - origin
+            return StripLayout.index(atX: x, boxCount: 4)
+        }
+        // The observed clicks: left of the image, then the four boxes, the right edge and outside.
+        #expect(box(cursor: 4296) == nil)
+        #expect(box(cursor: 4310) == 0)
+        #expect(box(cursor: 4330) == 1)
+        #expect(box(cursor: 4350) == 2)
+        #expect(box(cursor: 4370) == 3)
+        #expect(box(cursor: 4380) == 3)
+        #expect(box(cursor: 4388) == nil)
+        // The old behaviour, for the record: the event's centre x alone always meant index 2.
+        #expect(StripLayout.index(atX: 50 - origin, boxCount: 4) == 2)
+    }
+
+    @Test func withoutAUsableCursorTheEventsOwnPositionIsUsed() {
+        let frame = CGRect(x: 4290, y: 3, width: 100, height: 24)
+        #expect(StripLayout.clickX(eventX: 33, cursorScreenX: nil, itemFrame: frame) == 33)
+        #expect(StripLayout.clickX(eventX: 33, cursorScreenX: 4000, itemFrame: frame) == 33)
+        #expect(StripLayout.clickX(eventX: 33, cursorScreenX: 4500, itemFrame: frame) == 33)
+        #expect(StripLayout.clickX(eventX: 33, cursorScreenX: 4300, itemFrame: nil) == 33)
+        #expect(StripLayout.clickX(eventX: 33, cursorScreenX: 4300, itemFrame: frame, buttonMinX: 2) == 8)
+    }
+
+    @Test func theBoxScreenRectsAreWhereToClick() {
+        let frame = CGRect(x: 4290, y: 3, width: 100, height: 24)
+        let rects = StripLayout.boxScreenRects(boxCount: 4, itemFrame: frame, imageOriginX: 9)
+        #expect(rects.count == 4)
+        // The first box starts after the image's 2 pt padding; neighbours are one box plus a gap apart.
+        #expect(rects[0].minX == CGFloat(4290 + 9 + 2))
+        #expect(rects[1].minX - rects[0].minX == StripLayout.boxWidth + StripLayout.gap)
+        // A click at the middle of each rect maps back to its own box.
+        for (index, rect) in rects.enumerated() {
+            let x = StripLayout.clickX(eventX: 50, cursorScreenX: rect.midX, itemFrame: frame) - 9
+            #expect(StripLayout.index(atX: x, boxCount: 4) == index)
+        }
+    }
 }

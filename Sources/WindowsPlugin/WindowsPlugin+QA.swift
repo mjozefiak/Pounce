@@ -26,6 +26,12 @@ extension WindowsPlugin: PluginQACommands {
             return "ok"
         case "snap":
             return await qaSnap(zone: argument.flatMap(Int.init))
+        case "stripRects":
+            guard let rects = runtime?.strip?.boxScreenRects() else { return "error: the strip is not shown" }
+            return "ok: "
+                + rects.enumerated().map { index, rect in
+                    "\(index + 1)=\(Int(rect.minX)),\(Int(rect.minY)),\(Int(rect.width)),\(Int(rect.height))"
+                }.joined(separator: " ")
         case "openLayouts":
             layoutsWindow.activatesApp = false
             layoutsWindow.show()
