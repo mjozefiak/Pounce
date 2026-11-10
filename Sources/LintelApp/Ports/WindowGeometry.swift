@@ -25,6 +25,24 @@ nonisolated enum WindowGeometry {
         }
     }
 
+    /// What a read of an app's window list means, from the very call that was made (`AXWindowClient`): an app that
+    /// does not answer within the messaging timeout is `unreachable` (its windows are unknown, not gone), an app that
+    /// answers with an error (a process that is gone, no window attribute) simply has no windows, and `.success`
+    /// carries the list. Pure, so the mapping is tested without Accessibility.
+    enum ListOutcome: Equatable {
+        case read
+        case unreachable
+        case noWindows
+    }
+
+    static func listOutcome(for error: AXError) -> ListOutcome {
+        switch error {
+        case .success: .read
+        case .cannotComplete: .unreachable
+        default: .noWindows
+        }
+    }
+
     /// The `CGDirectDisplayID` of a screen.
     @MainActor static func displayID(of screen: NSScreen) -> UInt32? {
         (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value

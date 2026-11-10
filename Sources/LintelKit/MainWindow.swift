@@ -140,7 +140,8 @@ public struct SettingsStatus: Sendable {
 /// An error from `LintelPlugin.activate()` that brings its own Settings banner. The host marks the plugin `failed`
 /// as for any error, but shows this status (level, title, detail, buttons) instead of the generic "This feature
 /// couldn't start" one, for a failure that has an accurate, specific explanation (Window Management's safe mode).
-/// Additive: an error that does not conform keeps the generic banner.
+/// The status carries its own buttons: it must offer Try Again itself (`.enablePlugin`) when starting again is the
+/// way out. Additive: an error that does not conform keeps the generic banner, with its Try Again button.
 public protocol PluginFailureStatus: Error {
     var failureStatus: SettingsStatus { get }
 }

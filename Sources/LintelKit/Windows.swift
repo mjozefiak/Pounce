@@ -139,6 +139,11 @@ public protocol WindowClient: Sendable {
     func isResponding(pid: Int32) async -> Bool
     /// Every window of the current native Space, minimised and fullscreen ones included (flagged).
     func windows() async -> [WindowInfo]
+    /// `windows()` with what the read could not see: a window or an app that did not answer is *unknown*, never
+    /// *gone*. `tracked` are the processes the caller holds windows of. The default reads `windows()` and, for a
+    /// tracked process that listed nothing, asks `isResponding(pid:)` (a second probe); a client that reads the
+    /// windows itself (`AXWindowClient`) answers from the very read that failed.
+    func readWindows(tracked: Set<Int32>) async -> WindowRead
     func focusedWindow() async -> WindowID?
     /// One window, read on its own: what an event about it needs, without scanning every app. `nil` when the
     /// window is gone. The default filters `windows()`; a real client reads only that window.
@@ -154,7 +159,32 @@ public protocol WindowClient: Sendable {
     func processStart(of pid: Int32) -> TimeInterval?
 }
 
+/// What one read of the windows saw (`WindowClient.readWindows(tracked:)`).
+public struct WindowRead: Sendable {
+    public var windows: [WindowInfo]
+    /// Processes whose windows could not be read (the app did not answer): their windows are unknown, not gone.
+    public var unreachable: Set<Int32>
+    /// Windows that exist (the app listed them) but whose attributes could not be read this time.
+    public var unreadable: Set<WindowID>
+
+    public init(windows: [WindowInfo], unreachable: Set<Int32> = [], unreadable: Set<WindowID> = []) {
+        self.windows = windows
+        self.unreachable = unreachable
+        self.unreadable = unreadable
+    }
+}
+
 extension WindowClient {
+    public func readWindows(tracked: Set<Int32>) async -> WindowRead {
+        let windows = await windows()
+        let read = Set(windows.map(\.id.pid))
+        var unreachable = Set<Int32>()
+        for pid in tracked.subtracting(read).sorted() where !(await isResponding(pid: pid)) {
+            unreachable.insert(pid)
+        }
+        return WindowRead(windows: windows, unreachable: unreachable)
+    }
+
     public func checkAvailability() async -> WindowClientAvailability { availability }
     public func isResponding(pid: Int32) async -> Bool { false }
     public func window(id: WindowID) async -> WindowInfo? { await windows().first { $0.id == id } }

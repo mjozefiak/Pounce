@@ -66,20 +66,16 @@ struct EventTranslator: Sendable {
     /// `tracked` are the processes the engine holds windows of: one of them that returned no window and does not
     /// answer is reported `unreachable` instead of having its windows treated as closed.
     func snapshot(now: Double, tracked: Set<Int32> = []) async -> EngineInput {
-        let windows = await client.windows()
+        let read = await client.readWindows(tracked: tracked)
+        let windows = read.windows
         let displays = await client.displays()
         let focused = await client.focusedWindow()
         var starts: [Int32: Double] = [:]
         for window in windows where starts[window.id.pid] == nil {
             if let start = client.processStart(of: window.id.pid) { starts[window.id.pid] = start }
         }
-        let read = Set(windows.map(\.id.pid))
-        var unreachable = Set<Int32>()
-        for pid in tracked.subtracting(read).sorted() where !(await client.isResponding(pid: pid)) {
-            unreachable.insert(pid)
-        }
         return .snapshot(
-            windows: windows, displays: displays, focused: focused, processStarts: starts, unreachable: unreachable,
-            now: now)
+            windows: windows, displays: displays, focused: focused, processStarts: starts,
+            unreachable: read.unreachable, unreadable: read.unreadable, now: now)
     }
 }

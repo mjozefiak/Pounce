@@ -50,6 +50,14 @@ enum StatusDerivation {
         permission: (Permission) -> PermissionStatus,
         failureStatus: SettingsStatus? = nil
     ) -> Banner? {
+        // A failure that brought its own banner (`PluginFailureStatus`) is shown as the plugin gave it, buttons included;
+        // any other failure gets the generic banner below.
+        if case .failed = host, let status = failureStatus {
+            return Banner(
+                level: status.level, title: String(localized: status.title),
+                detail: status.detail.map { String(localized: $0) },
+                actions: Array(status.fix.prefix(maximumActions)))
+        }
         switch host {
         case .changing:
             return nil
@@ -63,13 +71,6 @@ enum StatusDerivation {
                         title: LocalizedStringResource("Turn On", comment: "Settings banner button: turns a plugin on"),
                         destination: .enablePlugin)
                 ])
-        case .failed where failureStatus != nil:
-            // The failure brought its own banner (`PluginFailureStatus`): shown as the plugin gave it.
-            let status = failureStatus
-            return Banner(
-                level: status?.level ?? .error, title: status.map { String(localized: $0.title) } ?? "",
-                detail: status?.detail.map { String(localized: $0) },
-                actions: Array((status?.fix ?? []).prefix(maximumActions)))
         case .failed:
             return Banner(
                 level: .error,

@@ -68,20 +68,19 @@ enum WindowRecovery {
             report.needsAccessibility = true
             return report
         }
-        let live = Set(await client.windows().map(\.id))
+        let read = await client.readWindows(tracked: Set(entries.map(\.windowID.pid)))
+        let live = Set(read.windows.map(\.id)).union(read.unreadable)
         let displays = await client.displays()
         var targets: [HiddenEntry] = []
-        var responding: [Int32: Bool] = [:]
         for entry in entries {
             if live.contains(entry.windowID) {
                 targets.append(entry)
                 continue
             }
-            // Not in the list: on another Space when its app answers, not reachable when it does not (a hung app
-            // lists nothing either, and must not be reported as a window on another Space).
-            let pid = entry.windowID.pid
-            if responding[pid] == nil { responding[pid] = await client.isResponding(pid: pid) }
-            if responding[pid] == true { report.onAnotherSpace += 1 } else { report.failed += 1 }
+            // Not in the list: on another Space when its app answered, not reachable when the read of its windows
+            // failed (a hung app lists nothing either, and must not be reported as a window on another Space). The
+            // verdict comes from the read itself, not from a second probe.
+            if read.unreachable.contains(entry.windowID.pid) { report.failed += 1 } else { report.onAnotherSpace += 1 }
         }
         // In parallel across processes, in order within one.
         let results = await withTaskGroup(of: [(WindowID, Bool)].self) { group in

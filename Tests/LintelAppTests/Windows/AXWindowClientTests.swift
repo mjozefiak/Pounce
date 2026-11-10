@@ -203,3 +203,24 @@ nonisolated private final class Ordered: @unchecked Sendable {
         }
     }
 }
+
+/// Round 10 F12: what a failed read of an app's window list means is decided by a pure function, so the mapping
+/// that made D1 possible (a timeout taken for "no windows") is tested without Accessibility.
+@Suite struct WindowListOutcomeTests {
+    @Test func aTimeoutIsUnreachableNotNoWindows() {
+        #expect(WindowGeometry.listOutcome(for: .cannotComplete) == .unreachable)
+    }
+
+    @Test func aSuccessIsAReadAndAnyOtherErrorMeansNoWindows() {
+        #expect(WindowGeometry.listOutcome(for: .success) == .read)
+        // A process that is gone answers with an invalid element: it has no windows and must not keep any.
+        #expect(WindowGeometry.listOutcome(for: .invalidUIElement) == .noWindows)
+        #expect(WindowGeometry.listOutcome(for: .apiDisabled) == .noWindows)
+        #expect(WindowGeometry.listOutcome(for: .noValue) == .noWindows)
+    }
+
+    @Test func theErrorMappingStillSaysTimedOutForATimeout() {
+        #expect(WindowGeometry.clientError(for: .cannotComplete) == .timedOut)
+        #expect(WindowGeometry.clientError(for: .invalidUIElement) == .windowGone)
+    }
+}

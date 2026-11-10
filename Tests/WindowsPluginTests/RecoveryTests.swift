@@ -91,6 +91,18 @@ import os
         #expect(report.failed == 2)
     }
 
+    /// Round 10 F3: the verdict comes from the read that failed, not from a second probe. The app's window list times
+    /// out while a role probe would still answer, so it must not be reported as a window on another Space.
+    @Test func aListThatTimesOutIsNotAnotherSpaceEvenWhenTheAppStillAnswersAProbe() async throws {
+        let (harness, client, _, context) = try await parkedRig([1, 2])
+        defer { harness.tearDown() }
+        client.setListFails(true, forProcess: 100)
+        #expect(await client.isResponding(pid: 100))
+        let report = await WindowsPlugin.restoredReport(context: context)
+        #expect(report.onAnotherSpace == 0)
+        #expect(report.failed == 2)
+    }
+
     @Test func aWindowOnAnotherSpaceStaysInTheJournalUntilItIsShown() async throws {
         let (harness, client, _, context) = try await parkedRig([1, 2])
         defer { harness.tearDown() }
@@ -387,7 +399,7 @@ import os
             windows: FakeWindowClient(), permissions: ScriptedPermissions(granted: true))
         WindowsSettings(context.settings).setSafeMode(true)
         let plugin = WindowsPlugin(context: context, hud: RecordingHUD(), activationCenter: NotificationCenter())
-        await #expect(throws: WindowsPlugin.StartError.safeMode) { try await plugin.activate() }
+        await #expect(throws: WindowsPlugin.SafeModeFailure.self) { try await plugin.activate() }
         try await plugin.activate()
         #expect(!WindowsSettings(context.settings).safeMode)
         await plugin.deactivate()

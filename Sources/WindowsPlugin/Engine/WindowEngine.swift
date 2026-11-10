@@ -48,6 +48,10 @@ actor WindowEngine {
     /// reduced, so none overtakes it.
     private var flushEnabled = false
     private var stopped = false
+    /// The retry that looks at the windows again while an app has not answered (`trackUnknown`).
+    private var retryTask: Task<Void, Never>?
+    /// How long after a snapshot that could not read an app the engine looks again (and again, until it can).
+    static let unknownRetry: Duration = .seconds(5)
     /// When the last flush started (engine time); a move is flushed at once only when none ran in the last tick.
     private var lastFlushAt = -Double.infinity
 
@@ -126,6 +130,7 @@ actor WindowEngine {
         var inputs: [EngineInput] = [.journalAvailability(canJournal), .restoreLayouts(stored.layouts)]
         inputs.append(await snapshotInput())
         guard !stopped else { return await abandonStart() }
+        trackUnknown(in: inputs)
         await submitInternal(inputs)
         flushEnabled = true
         if !coalescer.isEmpty { scheduleFlush() }
@@ -146,6 +151,8 @@ actor WindowEngine {
     func stop() async {
         guard !stopped else { return }
         stopped = true
+        retryTask?.cancel()
+        retryTask = nil
         pumpTask?.cancel()
         // The pump is awaited, so the client's stream has really ended when `stop()` returns and a restart's
         // `subscribe()` cannot be handed a stream that is still dying.
@@ -403,7 +410,31 @@ actor WindowEngine {
             onSpaceChange: { [weak self] in await self?.restoreVisibleResidue() })
         // Not waited for: a flush must never sit behind a hung app, or later events would queue behind it.
         guard !stopped else { return }
+        trackUnknown(in: inputs)
         enqueue(inputs)
+    }
+
+    /// While a snapshot could not read an app (or a window), the windows it kept are only *unknown*: the engine
+    /// looks again every `unknownRetry` until a read lists them or says they are gone, so a window that closed while
+    /// its app hung is dropped soon after the app answers, not at the next unrelated resync.
+    private func trackUnknown(in inputs: [EngineInput]) {
+        for input in inputs {
+            guard case .snapshot(_, _, _, _, let unreachable, let unreadable, _) = input else { continue }
+            if unreachable.isEmpty, unreadable.isEmpty {
+                retryTask?.cancel()
+                retryTask = nil
+            } else if retryTask == nil {
+                retryTask = Task { [weak self, time] in
+                    do { try await time.sleep(Self.unknownRetry) } catch { return }
+                    await self?.retryUnknown()
+                }
+            }
+        }
+    }
+
+    private func retryUnknown() {
+        retryTask = nil
+        ingest(.resync)
     }
 
     private func snapshotInput() async -> EngineInput {

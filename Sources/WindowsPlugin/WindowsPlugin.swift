@@ -25,7 +25,7 @@ public final class WindowsPlugin: LintelPlugin {
     )
 
     /// Why `activate()` refused to start.
-    public enum StartError: Error, Equatable, PluginFailureStatus {
+    public enum StartError: Error, Equatable {
         /// The window client cannot work on this Mac (for example the window-id symbol is missing).
         case unsupported(reason: String)
         /// Two launches in a row ended with parked windows, so the plugin starts switched off (spec:
@@ -36,34 +36,28 @@ public final class WindowsPlugin: LintelPlugin {
         case stillStopping
         /// The start ended with another error (only its type is kept: a message could carry a path or a title).
         case failed(reason: String)
+    }
 
-        /// Safe mode has its own explanation (the generic "couldn't start" banner would say less and nothing about
-        /// why); every other start error keeps the host's generic banner.
+    /// What `activate()` throws in safe mode: the one start failure with a banner of its own (`PluginFailureStatus`;
+    /// the generic "couldn't start" banner would say nothing about why). Every other start error is a `StartError`
+    /// and keeps the host's generic banner, with its Try Again button.
+    public struct SafeModeFailure: Error, Equatable, PluginFailureStatus {
+        public init() {}
+
         public var failureStatus: SettingsStatus {
-            switch self {
-            case .safeMode:
-                SettingsStatus(
-                    level: .attention,
-                    title: LocalizedStringResource(
-                        "Switched off after a problem", comment: "Window Management: safe mode"),
-                    detail: LocalizedStringResource(
-                        "Windows were left parked twice in a row, so Window Management started switched off. Nothing was deleted. Use Try Again to turn it on.",
-                        comment: "Window Management: safe mode banner detail"),
-                    fix: [
-                        SettingsStatusAction(
-                            title: LocalizedStringResource(
-                                "Try Again (plugin)", defaultValue: "Try Again",
-                                comment: "Settings banner button: starts a plugin that failed to start again"),
-                            destination: .enablePlugin)
-                    ])
-            default:
-                SettingsStatus(
-                    level: .error,
-                    title: LocalizedStringResource(
-                        "This feature couldn't start", comment: "Settings banner: the plugin failed to start"),
-                    detail: LocalizedStringResource(
-                        "Nothing was deleted.", comment: "Settings banner detail: the plugin failed to start"))
-            }
+            SettingsStatus(
+                level: .attention,
+                title: LocalizedStringResource("Switched off after a problem", comment: "Window Management: safe mode"),
+                detail: LocalizedStringResource(
+                    "Windows were left parked twice in a row, so Window Management started switched off. Nothing was deleted. Use Try Again to turn it on.",
+                    comment: "Window Management: safe mode banner detail"),
+                fix: [
+                    SettingsStatusAction(
+                        title: LocalizedStringResource(
+                            "Try Again (plugin)", defaultValue: "Try Again",
+                            comment: "Settings banner button: starts a plugin that failed to start again"),
+                        destination: .enablePlugin)
+                ])
         }
     }
 
@@ -152,7 +146,7 @@ public final class WindowsPlugin: LintelPlugin {
             if !launchActivationDone {
                 launchActivationDone = true
                 lastStartError = .safeMode
-                throw StartError.safeMode
+                throw SafeModeFailure()
             }
             settings.setSafeMode(false)
             settings.setParkedLaunches(0)

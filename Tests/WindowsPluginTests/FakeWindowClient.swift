@@ -45,6 +45,10 @@ final class FakeWindowClient: WindowClient, Sendable {
         var available = true
         var stalled = 0
         var snapshotHoldArmed = false
+        /// Processes whose window LIST read fails while a role probe would still answer (F3).
+        var listFailsPids: Set<Int32> = []
+        /// Windows the app lists but whose attributes cannot be read (F2).
+        var unreadableIDs: Set<WindowID> = []
         var stallsReleased = false
         var stallContinuations: [CheckedContinuation<Void, Never>] = []
         var log: [String] = []
@@ -185,11 +189,37 @@ final class FakeWindowClient: WindowClient, Sendable {
             let hold = state.snapshotHoldArmed
             state.snapshotHoldArmed = false
             // An app that does not answer shows no windows (like the real client's failed read).
-            let readable = state.windows.values.filter { state.behaviorsByProcess[$0.id.pid] != .hung }
+            let readable = state.windows.values.filter {
+                state.behaviorsByProcess[$0.id.pid] != .hung && !state.listFailsPids.contains($0.id.pid)
+                    && !state.unreadableIDs.contains($0.id)
+            }
             return (readable.sorted { $0.id < $1.id }, hold)
         }
         if hold { await holdUntilReleased() }
         return list
+    }
+
+    /// The window list of this process times out while it still answers a role probe (`isResponding` stays true).
+    func setListFails(_ failing: Bool, forProcess pid: Int32) {
+        state.withLock { if failing { $0.listFailsPids.insert(pid) } else { $0.listFailsPids.remove(pid) } }
+    }
+
+    /// The app lists this window but its attributes cannot be read.
+    func setUnreadable(_ unreadable: Bool, _ id: WindowID) {
+        state.withLock { if unreadable { $0.unreadableIDs.insert(id) } else { $0.unreadableIDs.remove(id) } }
+    }
+
+    /// The same verdicts the real client gives from the read itself: a hung app or a failing list is `unreachable`,
+    /// an unreadable window is `unreadable`; neither depends on `isResponding`.
+    func readWindows(tracked: Set<Int32>) async -> WindowRead {
+        let list = await windows()
+        let (unreachable, unreadable) = state.withLock { state -> (Set<Int32>, Set<WindowID>) in
+            var pids = state.listFailsPids
+            for (pid, behavior) in state.behaviorsByProcess where behavior == .hung { pids.insert(pid) }
+            let present = Set(state.windows.keys.map(\.pid))
+            return (pids.intersection(present), state.unreadableIDs.filter { state.windows[$0] != nil })
+        }
+        return WindowRead(windows: list, unreachable: unreachable, unreadable: unreadable)
     }
 
     /// The next `windows()` call (the engine's first snapshot) answers only after `releaseReadHold()`.

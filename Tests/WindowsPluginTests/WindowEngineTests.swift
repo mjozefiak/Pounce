@@ -431,6 +431,89 @@ extension WindowEngineTests {
         await rig.engine.stop()
     }
 
+    /// Round 10 F2: the app's list works but one window's attributes time out. That window exists: never "closed".
+    @Test func aListedWindowWhoseAttributesCannotBeReadIsKeptAndRemovedOnlyWhenItReallyClosed() async throws {
+        let rig = try rig([makeWindow(1), makeWindow(2)])
+        defer { rig.harness.tearDown() }
+        await rig.engine.start()
+        rig.client.setUnreadable(true, id(1))
+        await rig.engine.ingest(.resync)
+        await rig.engine.flushEvents()
+        var state = await rig.engine.snapshot
+        #expect(state.windows[id(1)] != nil)
+        #expect(state.windows[id(2)] != nil)
+        // It can be read again: still there. Then it closes: gone.
+        rig.client.setUnreadable(false, id(1))
+        await rig.engine.ingest(.resync)
+        await rig.engine.flushEvents()
+        #expect(await rig.engine.snapshot.windows[id(1)] != nil)
+        rig.client.remove(id(1))
+        await rig.engine.ingest(.resync)
+        await rig.engine.flushEvents()
+        state = await rig.engine.snapshot
+        #expect(state.windows[id(1)] == nil)
+        #expect(state.windows[id(2)] != nil)
+        await rig.engine.stop()
+    }
+
+    /// Round 10 F3: the window list read fails but the app would answer a role probe (`isResponding` is true): the
+    /// windows are still kept, because the verdict comes from the failed read itself.
+    @Test func aFailedListReadKeepsTheWindowsEvenWhenAProbeWouldAnswer() async throws {
+        let rig = try rig([makeWindow(1), makeWindow(2, pid: 200)])
+        defer { rig.harness.tearDown() }
+        await rig.engine.start()
+        rig.client.setListFails(true, forProcess: 100)
+        #expect(await rig.client.isResponding(pid: 100))
+        await rig.engine.ingest(.resync)
+        await rig.engine.flushEvents()
+        #expect(await rig.engine.snapshot.windows[id(1)] != nil)
+        // It recovers, and the window is gone (closed meanwhile): the next successful read removes it.
+        rig.client.setListFails(false, forProcess: 100)
+        rig.client.remove(id(1))
+        await rig.engine.ingest(.resync)
+        await rig.engine.flushEvents()
+        #expect(await rig.engine.snapshot.windows[id(1)] == nil)
+        await rig.engine.stop()
+    }
+
+    /// Round 10 F12: a process that is gone does not keep its windows: the termination event and a resync with the
+    /// process no longer listed drop them (it answers no probe, but also no read failed on a live process).
+    @Test func aTerminatedProcessLosesItsWindowsEvenIfTheLastReadFailed() async throws {
+        let rig = try rig([makeWindow(1), makeWindow(2, pid: 200)])
+        defer { rig.harness.tearDown() }
+        await rig.engine.start()
+        rig.client.setBehavior(.hung, forProcess: 100)
+        await rig.engine.ingest(.resync)
+        await rig.engine.flushEvents()
+        #expect(await rig.engine.snapshot.windows[id(1)] != nil)
+        await rig.engine.ingest(.appTerminated(pid: 100))
+        await rig.engine.flushEvents()
+        #expect(await rig.engine.snapshot.windows[id(1)] == nil)
+        await rig.engine.stop()
+    }
+
+    /// Round 10 F13: a window that closed while its app hung is dropped soon after the app answers: the engine looks
+    /// again by itself every `unknownRetry` while an app could not be read, with no other event needed.
+    @Test func theEngineLooksAgainByItselfWhileAnAppCouldNotBeRead() async throws {
+        let rig = try rig([makeWindow(1), makeWindow(2, pid: 200)], autoTick: false)
+        defer { rig.harness.tearDown() }
+        await rig.engine.start()
+        rig.client.setBehavior(.hung, forProcess: 100)
+        await rig.engine.ingest(.resync)
+        await rig.engine.flushEvents()
+        #expect(await rig.engine.snapshot.windows[id(1)] != nil)
+        // Meanwhile the window closes and the app answers again; nobody tells the engine.
+        rig.client.remove(id(1))
+        rig.client.setBehavior(.normal, forProcess: 100)
+        await rig.time.waitForSleepers(1)
+        rig.time.advance(WindowEngine.unknownRetry.seconds + 1)
+        await rig.time.waitForSleepers(1)
+        rig.time.advance(1)
+        await rig.engine.settle()
+        #expect(await rig.engine.snapshot.windows[id(1)] == nil)
+        await rig.engine.stop()
+    }
+
     @Test func aWindowThatReallyClosedIsStillRemovedByASnapshot() async throws {
         let rig = try rig([makeWindow(1), makeWindow(2, pid: 200)])
         defer { rig.harness.tearDown() }
@@ -555,4 +638,8 @@ extension WindowEngineTests {
         #expect(rig.client.frame(of: id(2, pid: 200))?.origin != parkedOrigin)
         #expect(await rig.store.hidden.isEmpty)
     }
+}
+
+private extension Duration {
+    var seconds: Double { Double(components.seconds) + Double(components.attoseconds) / 1e18 }
 }

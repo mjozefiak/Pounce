@@ -105,17 +105,30 @@ nonisolated final class AXWindowClient: WindowClient, Sendable {
     // MARK: Reading
 
     func windows() async -> [WindowInfo] {
-        guard AXIsProcessTrusted() else { return [] }
+        await readWindows(tracked: []).windows
+    }
+
+    /// Every window of every regular app, and what could not be seen: an app whose window list timed out is
+    /// `unreachable`; a window the app listed but whose attributes timed out is `unreadable` (it exists). Neither is
+    /// ever reported as closed. The verdict comes from the read that failed, not from a second probe.
+    func readWindows(tracked: Set<Int32>) async -> WindowRead {
+        guard AXIsProcessTrusted() else { return WindowRead(windows: []) }
         let apps = await Self.regularApps()
-        return await withTaskGroup(of: [WindowInfo].self) { group in
+        return await withTaskGroup(of: AppRead.self) { group in
             for app in apps {
                 group.addTask { [self] in
                     await queues.run(pid: app.pid) { [self] in readWindows(of: app) }
                 }
             }
             var all: [WindowInfo] = []
-            for await part in group { all.append(contentsOf: part) }
-            return all.sorted { $0.id < $1.id }
+            var unreachable = Set<Int32>()
+            var unreadable = Set<WindowID>()
+            for await part in group {
+                all.append(contentsOf: part.windows)
+                if part.unreachable { unreachable.insert(part.pid) }
+                unreadable.formUnion(part.unreadable)
+            }
+            return WindowRead(windows: all.sorted { $0.id < $1.id }, unreachable: unreachable, unreadable: unreadable)
         }
     }
 
@@ -267,26 +280,47 @@ nonisolated final class AXWindowClient: WindowClient, Sendable {
         return cache.elements[id].map { .found($0) } ?? .gone
     }
 
-    private func readWindows(of app: RunningApp) -> [WindowInfo] {
+    /// One app's windows and what could not be read of them.
+    private struct AppRead: Sendable {
+        var pid: Int32
+        var windows: [WindowInfo] = []
+        var unreachable = false
+        var unreadable: Set<WindowID> = []
+    }
+
+    private func readWindows(of app: RunningApp) -> AppRead {
+        var result = AppRead(pid: app.pid)
         let application = AXUIElementCreateApplication(app.pid)
         AXUIElementSetMessagingTimeout(application, Self.messagingTimeout)
         var value: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(application, kAXWindowsAttribute as CFString, &value) == .success,
-            let windows = value as? [AXUIElement]
-        else { return [] }
+        let status = AXUIElementCopyAttributeValue(application, kAXWindowsAttribute as CFString, &value)
+        switch WindowGeometry.listOutcome(for: status) {
+        case .unreachable:
+            result.unreachable = true
+            return result
+        case .noWindows:
+            return result
+        case .read:
+            break
+        }
+        guard let windows = value as? [AXUIElement] else { return result }
         let cache = cache(for: app.pid)
-        var infos: [WindowInfo] = []
         var seen: [WindowID: AXUIElement] = [:]
         for window in windows {
             guard let number = lookup.windowID(of: window) else { continue }
             AXUIElementSetMessagingTimeout(window, Self.messagingTimeout)
             let id = WindowID(pid: app.pid, number: number)
-            guard let info = Self.info(of: window, id: id, bundleID: app.bundleID) else { continue }
+            // The element is kept even when its attributes cannot be read now: the window exists, and a later write
+            // or read may work.
             seen[id] = window
-            infos.append(info)
+            if let info = Self.info(of: window, id: id, bundleID: app.bundleID) {
+                result.windows.append(info)
+            } else {
+                result.unreadable.insert(id)
+            }
         }
         cache.elements = seen
-        return infos
+        return result
     }
 
     private static func info(of window: AXUIElement, id: WindowID, bundleID: String?) -> WindowInfo? {

@@ -169,16 +169,6 @@ import Testing
         #expect(!text.contains("com."))
     }
 
-    @Test func safeModeHasItsOwnBannerAndOtherStartErrorsKeepTheGenericOne() {
-        let safe = WindowsPlugin.StartError.safeMode.failureStatus
-        #expect(safe.level == .attention)
-        #expect(String(localized: safe.title) == "Switched off after a problem")
-        #expect(safe.fix.count == 1)
-        let other = WindowsPlugin.StartError.stillStopping.failureStatus
-        #expect(other.level == .error)
-        #expect(String(localized: other.title) != String(localized: safe.title))
-    }
-
     @Test func resetStateRestoresFirstThenForgets() async throws {
         let (plugin, client, harness, _) = try setup(windows: [makeWindow(1), makeWindow(2)])
         defer { harness.tearDown() }
