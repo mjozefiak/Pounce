@@ -342,11 +342,8 @@ actor WindowEngine {
     /// event whose latency matters to the user (the overlay follows it).
     private func startsSnapDrag(_ event: WindowEvent) -> Bool {
         let ticks = Double(tick.components.seconds) + Double(tick.components.attoseconds) / 1e18
-        guard case .moved(let id) = event, time.now() - lastFlushAt >= ticks, !state.isFrozen,
-            state.windows[id] != nil,
-            let workspace = state.model.workspace(of: id), state.model.isVisible(workspace)
-        else { return false }
-        return LayoutPlanner(strategies: strategies).offersSnapTargets(state, for: workspace)
+        guard case .moved(let id) = event, time.now() - lastFlushAt >= ticks else { return false }
+        return LayoutPlanner(strategies: strategies).canStartSnapDrag(state, id)
     }
 
     private func scheduleFlush() {

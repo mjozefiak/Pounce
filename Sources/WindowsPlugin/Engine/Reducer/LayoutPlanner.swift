@@ -54,6 +54,17 @@ struct LayoutPlanner: Sendable {
         return FrameMath.centered(size: window.frame.size, in: tile)
     }
 
+    /// Whether a move of `id` by hand may start a snap drag: the engine is not frozen, the window is managed (not
+    /// floating, not let go), and it is on a shown workspace whose kind offers snap targets. The one predicate the
+    /// reducer (`noteUserMove`) and the engine's leading-edge flush share. Cheap: no layout input is built.
+    func canStartSnapDrag(_ state: EngineState, _ id: WindowID) -> Bool {
+        guard !state.isFrozen, state.windows[id] != nil, !state.floating.contains(id),
+            !state.unmanaged.contains(id), let workspace = state.model.workspace(of: id),
+            state.model.isVisible(workspace)
+        else { return false }
+        return offersSnapTargets(state, for: workspace)
+    }
+
     /// Whether moving a window of this workspace by hand may start a snap drag. Cheap: no layout input is built.
     func offersSnapTargets(_ state: EngineState, for workspace: WorkspaceID) -> Bool {
         strategies[state.config.layout.resolved(for: workspace).kind]?.snapping != nil

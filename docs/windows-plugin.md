@@ -96,11 +96,17 @@ verb. Each kind keeps its ids and payload types next to its strategy.
 
 ## An app that does not answer
 
-A window is only "gone" when its app says so. The AX client answers `.timedOut`, not `.windowGone`, when it cannot reach an
-app (`AXWindowClient.element(for:)` distinguishes found, gone and unreachable), and a snapshot taken while an app does not
-answer carries `unreachable: [pid]` (`EventTranslator.snapshot` asks `isResponding(pid:)` for the processes it holds windows
-of and did not read): the reducer keeps those windows, parked or not, and the next switch or event retries them. A process
-that answers and no longer lists a window loses it as before. (QA found the windows of a stopped TextEdit dropped for good.)
+A window is only "gone" when its app says so. `WindowClient.readWindows(tracked:)` returns the windows with what the read
+could not see: `unreachable` processes (the app's window list timed out) and `unreadable` windows (listed, but their
+attributes timed out). The verdict comes from the read that failed, not from a second probe (`isResponding` is only the
+default's fallback and a diagnostic); recovery classifies a missing journal window the same way (unreachable: failed, not
+"on another Space"). `AXWindowClient` answers `.timedOut`, not `.windowGone`, when it cannot reach an app, and the
+mapping of an AX error to "unreachable / no windows" is a pure function (`WindowGeometry.listOutcome`, tested, including
+a dead process, which has no windows and keeps none). The snapshot carries `unreachable` and `unreadable`; the reducer
+keeps those windows, parked or not, and the next switch or event retries them. While a snapshot could not read something
+the engine looks again by itself every `WindowEngine.unknownRetry` (5 s) until a read lists the windows or says they are
+gone, so a window that closed while its app hung is dropped soon after the app answers. Residual: a window that closes
+while its app does not answer stays tracked until the app answers (or the process ends: `appTerminated` drops them).
 
 ## Snap overlay latency
 

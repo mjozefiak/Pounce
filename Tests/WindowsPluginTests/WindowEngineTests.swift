@@ -640,6 +640,6 @@ extension WindowEngineTests {
     }
 }
 
-private extension Duration {
-    var seconds: Double { Double(components.seconds) + Double(components.attoseconds) / 1e18 }
+extension Duration {
+    fileprivate var seconds: Double { Double(components.seconds) + Double(components.attoseconds) / 1e18 }
 }

@@ -1,32 +1,32 @@
 import Foundation
 import Testing
 
-/// QA D4: "7 układów · No workspace uses Strefy". A string that the code builds with interpolation (`String(localized:
-/// "No workspace uses \(name)")`) has a key the catalog must carry as `%@`/`%lld`; renaming a literal key to an
-/// interpolated one left it without a Polish value. This reads every localized literal of the plugin's sources and
-/// checks that the catalog has a key that matches it with a Polish translation.
+/// QA D4 and round 10 F5: "7 układów · No workspace uses Strefy". Every user-visible literal of the plugin's sources
+/// must have a catalog key with a real Polish translation. The scanner reads across line breaks (swift-format wraps
+/// `Text(` onto its own line) and covers `Text`, `Button`, `Label`, `Toggle`, `String(localized:)`,
+/// `LocalizedStringResource` and `LocalizedStringKey`; a key counts only when its `pl` value is non-empty, marked
+/// translated and different from the English key (unless the string is the same in both languages on purpose).
 @Suite(.timeLimit(.minutes(1))) struct LocalizationCoverageTests {
     private static let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
         .deletingLastPathComponent()
 
-    private struct Entry {
+    /// Strings that read the same in English and Polish (symbols and format-only text).
+    private static let sameInBothLanguages: Set<String> = [
+        "%@: %@", "%@", "%lld%%", "%lld pt", "%lld px", "Esc", "⌘S",
+    ]
+
+    struct Entry {
         var key: String
-        var hasPolish: Bool
+        /// Every Polish string unit of the key (a plural has several).
+        var polish: [(state: String, value: String)]
     }
 
-    private func catalog() throws -> [Entry] {
-        let data = try Data(contentsOf: Self.root.appending(path: "Resources/Localizable.xcstrings"))
-        let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
-        let strings = try #require(object["strings"] as? [String: Any])
-        return strings.map { key, value in
-            let localizations = (value as? [String: Any])?["localizations"] as? [String: Any]
-            return Entry(key: key, hasPolish: localizations?["pl"] != nil)
-        }
-    }
+    // MARK: Scanner (pure, tested below)
 
-    /// The literals of `String(localized: "…")` and `Text("…")` (not `verbatim:`) in a source file.
-    private func literals(in text: String) -> [String] {
-        let pattern = #"(?:String\(localized: |\bText\()"((?:[^"\\]|\\.)*)""#
+    /// The first string literal of each localized call in `text`, `verbatim:` calls excluded.
+    static func literals(in text: String) -> [String] {
+        let pattern =
+            #"(?:String\(\s*localized:\s*|\b(?:Text|Button|Label|Toggle|LocalizedStringResource|LocalizedStringKey)\(\s*)"((?:[^"\\]|\\.)*)""#
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
         let range = NSRange(text.startIndex..., in: text)
         return regex.matches(in: text, range: range).compactMap { match in
@@ -35,12 +35,15 @@ import Testing
     }
 
     /// A pattern that the catalog key of a literal matches: each interpolation becomes a format specifier.
-    private func matcher(for literal: String) -> NSRegularExpression? {
+    static func matcher(for literal: String) -> NSRegularExpression? {
         var pattern = ""
         var rest = Substring(literal)
+        // A literal percent sign is `%%` in the key of an interpolated string and `%` in a plain one.
+        let percent = literal.contains("\\(") ? "%%" : "%"
         while let start = rest.range(of: "\\(") {
-            pattern += NSRegularExpression.escapedPattern(for: String(rest[..<start.lowerBound]))
-            // Skip the balanced interpolation.
+            // A literal percent sign is `%%` in a catalog key.
+            pattern += NSRegularExpression.escapedPattern(
+                for: String(rest[..<start.lowerBound]).replacingOccurrences(of: "%", with: percent))
             var depth = 1
             var index = start.upperBound
             while index < rest.endIndex, depth > 0 {
@@ -51,33 +54,108 @@ import Testing
             pattern += "%(?:@|lld|d|f|ld|llu)"
             rest = rest[index...]
         }
-        pattern += NSRegularExpression.escapedPattern(for: String(rest))
+        pattern += NSRegularExpression.escapedPattern(for: String(rest).replacingOccurrences(of: "%", with: percent))
         return try? NSRegularExpression(pattern: "^" + pattern + "$")
     }
 
-    @Test func everyLocalizedLiteralOfThePluginHasAPolishCatalogKey() throws {
+    /// The literals of `text` that have no catalog key with a real Polish translation.
+    static func missing(in text: String, entries: [Entry]) -> [String] {
+        literals(in: text).filter { literal in
+            // Numbers and symbols only (`\(count)`, `\(value)%`) have nothing to translate.
+            let words = literal.replacingOccurrences(
+                of: #"\\\((?:[^()]|\((?:[^()])*\))*\)"#, with: "", options: .regularExpression)
+            guard words.contains(where: \.isLetter), let matcher = matcher(for: literal) else { return false }
+            return !entries.contains { entry in
+                matcher.firstMatch(in: entry.key, range: NSRange(entry.key.startIndex..., in: entry.key)) != nil
+                    && isTranslated(entry)
+            }
+        }
+    }
+
+    static func isTranslated(_ entry: Entry) -> Bool {
+        guard !entry.polish.isEmpty else { return false }
+        return entry.polish.allSatisfy {
+            $0.state == "translated" && !$0.value.trimmingCharacters(in: .whitespaces).isEmpty
+                && ($0.value != entry.key || sameInBothLanguages.contains(entry.key))
+        }
+    }
+
+    private func catalog() throws -> [Entry] {
+        let data = try Data(contentsOf: Self.root.appending(path: "Resources/Localizable.xcstrings"))
+        let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let strings = try #require(object["strings"] as? [String: Any])
+        return strings.map { key, value in
+            let localizations = (value as? [String: Any])?["localizations"] as? [String: Any]
+            var units: [(String, String)] = []
+            func collect(_ node: Any?) {
+                guard let dictionary = node as? [String: Any] else { return }
+                if let unit = dictionary["stringUnit"] as? [String: Any] {
+                    units.append((unit["state"] as? String ?? "", unit["value"] as? String ?? ""))
+                }
+                for child in dictionary.values { collect(child) }
+            }
+            collect(localizations?["pl"])
+            return Entry(key: key, polish: units)
+        }
+    }
+
+    // MARK: The check
+
+    @Test func everyLocalizedLiteralOfThePluginHasARealPolishTranslation() throws {
         let entries = try catalog()
         let sources = Self.root.appending(path: "Sources/WindowsPlugin")
         let files =
             FileManager.default.enumerator(at: sources, includingPropertiesForKeys: nil)?
             .compactMap { $0 as? URL }.filter { $0.pathExtension == "swift" } ?? []
+        #expect(files.count > 20)
         var missing: [String] = []
         for file in files {
             let text = try String(contentsOf: file, encoding: .utf8)
-            for literal in literals(in: text) where !literal.isEmpty {
-                // Numbers and symbols only (`\(count)`, `\(value)%`) have nothing to translate.
-                let words = literal.replacingOccurrences(
-                    of: #"\\\((?:[^()]|\((?:[^()])*\))*\)"#, with: "", options: .regularExpression)
-                guard words.contains(where: \.isLetter) else { continue }
-                guard let matcher = matcher(for: literal) else { continue }
-                let found = entries.contains { entry in
-                    entry.hasPolish
-                        && matcher.firstMatch(in: entry.key, range: NSRange(entry.key.startIndex..., in: entry.key))
-                            != nil
-                }
-                if !found { missing.append("\(file.lastPathComponent): \(literal)") }
-            }
+            missing += Self.missing(in: text, entries: entries).map { "\(file.lastPathComponent): \($0)" }
         }
-        #expect(missing.isEmpty, "literals without a Polish catalog key: \(missing)")
+        #expect(missing.isEmpty, "literals without a Polish translation: \(missing)")
+    }
+
+    // MARK: Self-test: the scanner and the check catch what they claim to
+
+    private let sample = [
+        Entry(key: "Known", polish: [("translated", "Znane")]),
+        Entry(key: "Untranslated", polish: [("new", "Untranslated")]),
+        Entry(key: "Empty", polish: [("translated", "")]),
+        Entry(key: "Echo", polish: [("translated", "Echo")]),
+        Entry(key: "%@: %@", polish: [("translated", "%@: %@")]),
+        Entry(key: "%lld things", polish: [("translated", "%lld rzeczy")]),
+    ]
+
+    @Test func theScannerSeesWrappedCallsAndEveryKindOfLiteral() {
+        let text = """
+            Text(
+                "Wrapped",
+                comment: "c")
+            Button("Plain") {}
+            Label("Labelled", systemImage: "x")
+            let a = String(
+                localized: "Resource key", comment: "c")
+            let b = LocalizedStringResource("Another", comment: "c")
+            let c = LocalizedStringKey("Key")
+            Text(verbatim: "Not localized")
+            Text(model.value)
+            """
+        #expect(
+            Self.literals(in: text) == ["Wrapped", "Plain", "Labelled", "Resource key", "Another", "Key"])
+    }
+
+    @Test func aMissingUntranslatedEmptyOrEchoedKeyIsCaughtAndKnownOnesPass() {
+        let text = """
+            Text("Known")
+            Text("Missing")
+            Text("Untranslated")
+            Text("Empty")
+            Text("Echo")
+            Text("\\(name): \\(used)")
+            Text("\\(count) things")
+            Text("\\(count)")
+            """
+        #expect(Self.missing(in: text, entries: sample) == ["Missing", "Untranslated", "Empty", "Echo"])
     }
 }

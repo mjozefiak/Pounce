@@ -143,10 +143,7 @@ extension ReducerContext {
     /// A managed window of a shown workspace moved by itself: a strategy with snap targets (a drag detector) may
     /// want to look at the pointer.
     private mutating func noteUserMove(_ id: WindowID, frame: CGRect) {
-        guard !state.isFrozen, !state.floating.contains(id), !state.unmanaged.contains(id),
-            let workspace = state.model.workspace(of: id), state.model.isVisible(workspace),
-            planner.offersSnapTargets(state, for: workspace)
-        else { return }
+        guard planner.canStartSnapDrag(state, id) else { return }
         trailing.append(.userMovedWindow(id, frame: frame))
     }
 

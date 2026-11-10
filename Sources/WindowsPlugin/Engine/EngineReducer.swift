@@ -30,7 +30,8 @@ enum EngineReducer {
         let oldSummary = summary(of: state)
 
         switch input {
-        case .snapshot(let windows, let displays, let focused, let processStarts, let unreachable, let unreadable, let now):
+        case .snapshot(
+            let windows, let displays, let focused, let processStarts, let unreachable, let unreadable, let now):
             context.snapshot(
                 windows: windows, displays: displays, focused: focused, processStarts: processStarts,
                 unreachable: unreachable, unreadable: unreadable, now: now)

@@ -41,15 +41,55 @@ import Testing
         #expect(size.width <= 1200 && size.height <= 800)
     }
 
-    @Test func theFrameGoesToThePluginSettingsAndNotTheDefaultsDomain() throws {
-        let key = "NSWindow Frame WindowsLayouts"
-        let before = UserDefaults.standard.object(forKey: key)
-        var saved: [String] = []
+    private func openedController(
+        _ harness: WindowsHarness, saved: @escaping (String) -> Void
+    ) throws -> (LayoutsWindowController, WindowsSettings) {
+        let client = FakeWindowClient()
+        let plugin = WindowsPlugin(
+            context: harness.context(windows: client), hud: RecordingHUD(), activationCenter: NotificationCenter())
+        let settings = WindowsSettings(harness.pluginSettings)
+        let model = LayoutsModel(pane: plugin.paneModel, displays: { [] }, identify: { _ in })
         let controller = LayoutsWindowController(
-            makeModel: { nil }, loadFrame: { nil }, saveFrame: { saved.append($0) })
+            makeModel: { model }, loadFrame: { settings.layoutsWindowFrame },
+            saveFrame: {
+                settings.setLayoutsWindowFrame($0)
+                saved($0)
+            })
+        controller.activatesApp = false
+        return (controller, settings)
+    }
+
+    @Test func aTouchedFrameIsSavedOnCloseToThePluginSettingsAndNeverTheDefaultsDomain() throws {
+        let key = "NSWindow Frame WindowsLayouts"
+        let before = UserDefaults.standard.string(forKey: key)
+        let harness = try WindowsHarness()
+        defer { harness.tearDown() }
+        var saves = 0
+        let (controller, settings) = try openedController(harness) { _ in saves += 1 }
+        controller.show()
+        let window = try #require(controller.window)
+        // Showing sets the window up (centred, sized): that is not the user's doing and is not saved.
+        #expect(saves == 0)
+        #expect(settings.layoutsWindowFrame == nil)
+        let moved = NSRect(x: 120, y: 140, width: 1000, height: 700)
+        window.setFrame(moved, display: false)
+        // Still not saved while the interaction may go on: only when it ends or the window closes.
+        #expect(saves == 0)
         controller.close()
-        #expect(UserDefaults.standard.object(forKey: key) as? String == before as? String)
-        #expect(saved.isEmpty)
+        #expect(saves == 1)
+        #expect(settings.layoutsWindowFrame == NSStringFromRect(window.frame))
+        #expect(UserDefaults.standard.string(forKey: key) == before)
+    }
+
+    @Test func aWindowThatWasOnlyOpenedAndClosedSavesNothing() throws {
+        let harness = try WindowsHarness()
+        defer { harness.tearDown() }
+        var saves = 0
+        let (controller, settings) = try openedController(harness) { _ in saves += 1 }
+        controller.show()
+        controller.close()
+        #expect(saves == 0)
+        #expect(settings.layoutsWindowFrame == nil)
     }
 
     /// A lint over the plugin's sources: no window of the plugin may use the window system's own frame autosave.

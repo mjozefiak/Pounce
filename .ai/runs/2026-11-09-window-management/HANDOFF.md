@@ -78,5 +78,13 @@
 - D6: `PluginFailureStatus` lets a start error bring its own banner (safe mode). D7: the editor's focus and selection stay together (Tab, divide, toggle); test over a sequence of moves.
 - QA switches (DEBUG only): `--qa-real-windows`, floating-app list through `--qa-setting`, `--qa-persistent-settings`, `plugins.windows.qaCapturable`; hotkeys stay off (the shortcut library stores in the real defaults). Item 10 (grant while parked) was already covered by `regrantingAccessibilityRestoresWhatWasParked`.
 
+## Round 10 (audit of round 9)
+- F1: only safe mode brings its own banner (`SafeModeFailure`, not `StartError`), so unsupported, still stopping and failed keep the generic banner with Try Again; the test checks every `StartError` case against the generic banner and the safe-mode one; F8/F9 tidied.
+- F2/F3: `WindowClient.readWindows(tracked:)` (typed `WindowRead`: unreachable processes, unreadable windows) from the same read that failed; used by the translator and by recovery; the AX client keeps an unreadable window's element; fake client simulates a failing list while a probe answers and an unreadable window; tests (engine, recovery).
+- F13: the engine looks again every 5 s while a snapshot could not read something (virtual-clock test); residual documented. F12: `WindowGeometry.listOutcome` is pure and tested; a terminated process drops its windows (test).
+- F4: the Layouts window saves its frame when a live resize ends or it closes, never on every event and never when untouched (tests with a real window); the QA settings file is only rewritten on a set (DEBUG, rare now).
+- F5: the localization check scans across line breaks and every localized call (`Text`, `Button`, `Label`, `Toggle`, `String(localized:)`, `LocalizedStringResource`, `LocalizedStringKey`), requires a translated, non-empty Polish value that is not the key (small allowlist), and has a self-test; it needed an allowlist for `%lld pt`, `%lld px`, `Esc`, `⌘S`.
+- F6: `eventually` is back to 200,000 turns; the drag-latency tests read a synchronous log; three stuck-recovery waits, which hop between threads, pass a larger explicit bound. F7: the frame test opens a real window. F10: the screen-capture invariant is documented, the strip is not mentioned as excluded. F11: one predicate (`LayoutPlanner.canStartSnapDrag`) for the reducer and the engine, floating/unmanaged excluded (test).
+
 ## Next concrete action
 QA gate and merge by the owner.

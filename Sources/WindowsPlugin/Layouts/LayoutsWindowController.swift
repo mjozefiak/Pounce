@@ -43,6 +43,11 @@ final class LayoutsWindowController: NSObject, NSWindowDelegate {
         guard let model = makeModel() else { return }
         self.model = model
         let view = LintelTextSizeScope(size: textSize) { LayoutsWindowView(model: model) }
+        isConfiguring = true
+        defer {
+            isConfiguring = false
+            needsSave = false
+        }
         let controller = NSHostingController(rootView: view)
         // The window has its own size: the view's ideal size must not stretch it (it opened 1265 by 1362).
         controller.sizingOptions = []
@@ -82,15 +87,27 @@ final class LayoutsWindowController: NSObject, NSWindowDelegate {
         return usable
     }
 
-    func windowDidResize(_ notification: Notification) { remember() }
-    func windowDidMove(_ notification: Notification) { remember() }
+    /// The window was moved or resized by the user (not while it is being set up): its frame is saved when the
+    /// interaction ends or the window closes, never on every event, and never when nothing changed.
+    private var needsSave = false
+    private var isConfiguring = false
 
-    private func remember() {
-        guard let window, window.isVisible else { return }
+    func windowDidResize(_ notification: Notification) { frameChanged() }
+    func windowDidMove(_ notification: Notification) { frameChanged() }
+    func windowDidEndLiveResize(_ notification: Notification) { saveIfChanged() }
+
+    private func frameChanged() {
+        if !isConfiguring { needsSave = true }
+    }
+
+    private func saveIfChanged() {
+        guard needsSave, let window else { return }
+        needsSave = false
         saveFrame(NSStringFromRect(window.frame))
     }
 
     func windowWillClose(_ notification: Notification) {
+        saveIfChanged()
         // The window and its model are rebuilt on the next open, so nothing stale is shown.
         window?.contentViewController = nil
         window = nil
