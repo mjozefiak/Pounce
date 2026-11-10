@@ -13358,7 +13358,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Przestrzenie robocze, bieżąca: %1$lld z %2$lld"
+            "value" : "Obszary robocze, bieżący: %1$lld z %2$lld"
           }
         }
       }
@@ -13448,7 +13448,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pasek odczytuje bieżącą przestrzeń roboczą. Menu otwiera się prawym kliknięciem lub Control-kliknięciem i pozwala przejść do przestrzeni po nazwie."
+            "value" : "Pasek odczytuje bieżący obszar roboczy. Menu otwiera się prawym kliknięciem lub Control-kliknięciem i pozwala przejść do obszaru po nazwie."
           }
         }
       }

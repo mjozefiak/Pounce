@@ -116,6 +116,42 @@ import Testing
         #expect(missing.isEmpty, "literals without a Polish translation: \(missing)")
     }
 
+    /// Round-16 audit L-2: the Polish word for a workspace is "obszar roboczy" everywhere in the plugin ("przestrzeń
+    /// robocza" crept into two new strings). No Polish value of a plugin key may use the rejected word.
+    static let rejectedPolishStems = ["przestrze"]
+
+    static func rejectedTermUses(in text: String, entries: [Entry]) -> [String] {
+        var found: [String] = []
+        for literal in literals(in: text) {
+            guard let matcher = matcher(for: literal) else { continue }
+            for entry in entries
+            where matcher.firstMatch(in: entry.key, range: NSRange(entry.key.startIndex..., in: entry.key)) != nil {
+                for unit in entry.polish
+                where rejectedPolishStems.contains(where: { unit.value.lowercased().contains($0) }) {
+                    found.append("\(entry.key) → \(unit.value)")
+                }
+            }
+        }
+        return found
+    }
+
+    @Test func noPolishValueOfAPluginKeyUsesTheRejectedWordForAWorkspace() throws {
+        let entries = try catalog()
+        let sources = Self.root.appending(path: "Sources/WindowsPlugin")
+        let files =
+            FileManager.default.enumerator(at: sources, includingPropertiesForKeys: nil)?
+            .compactMap { $0 as? URL }.filter { $0.pathExtension == "swift" } ?? []
+        var found: [String] = []
+        for file in files {
+            let text = try String(contentsOf: file, encoding: .utf8)
+            found += Self.rejectedTermUses(in: text, entries: entries)
+        }
+        #expect(found.isEmpty, "use \"obszar roboczy\": \(found)")
+        // The check itself catches the rejected word.
+        let sample = [Entry(key: "Workspaces", polish: [("translated", "Przestrzenie robocze")])]
+        #expect(!Self.rejectedTermUses(in: "Text(\"Workspaces\")", entries: sample).isEmpty)
+    }
+
     // MARK: Self-test: the scanner and the check catch what they claim to
 
     private let sample = [
