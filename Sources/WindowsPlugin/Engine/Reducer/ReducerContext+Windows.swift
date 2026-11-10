@@ -14,6 +14,11 @@ extension ReducerContext {
         state.focused = focused
         let live = windows.filter { EngineReducer.isManaged($0, config: state.config) }
         let liveIDs = Set(live.map(\.id))
+        // What could not be read marks its processes unresponsive; what could be read clears them.
+        let readPIDs = Set(windows.map(\.id.pid))
+        state.unresponsive.formUnion(unreachable)
+        state.unresponsive.formUnion(unreadable.map(\.pid))
+        state.unresponsive.subtract(readPIDs.subtracting(unreachable).subtracting(unreadable.map(\.pid)))
         // A window that is missing is gone, unless its process did not answer: then it is only unknown and stays
         // (parked or not) until a later look, so a hung app never loses its windows.
         for id in Array(state.windows.keys)

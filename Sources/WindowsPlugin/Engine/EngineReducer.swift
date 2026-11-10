@@ -63,6 +63,13 @@ enum EngineReducer {
             context.restoreLayouts(stored)
         }
 
+        // An event from a window of a process that did not answer means it answers again: what its failed parks left
+        // on screen is parked now, not at the next unrelated switch (QA N4).
+        if let pid = eventPID(of: input), context.state.unresponsive.contains(pid) {
+            context.state.unresponsive.remove(pid)
+            context.reconcileParking(now: input.moment ?? 0)
+            context.arrangeRequested = true
+        }
         context.arrangeIfRequested(now: input.moment ?? 0)
         context.flush()
         if context.state.model.order != oldOrder {
@@ -99,6 +106,17 @@ enum EngineReducer {
     /// The slots the snap overlay offers while a window is dragged: the display that shows the window's
     /// workspace with the layout that workspace uses there. Nothing unless the workspace is shown and the engine
     /// is not frozen, so the overlay never appears where a snap could not happen.
+    /// The process an input from a window event comes from; `nil` for inputs that are not about one window (a snapshot
+    /// has its own `unreachable` bookkeeping).
+    private static func eventPID(of input: EngineInput) -> Int32? {
+        switch input {
+        case .windowAppeared(let info, _, _): info.id.pid
+        case .windowGone(let id, _), .windowMoved(let id, _, _): id.pid
+        case .windowFocused(let id, _): id?.pid
+        default: nil
+        }
+    }
+
     static func snapTargets(
         _ state: EngineState, for window: WindowID, strategies: LayoutRegistry
     ) -> [DragDisplay] {

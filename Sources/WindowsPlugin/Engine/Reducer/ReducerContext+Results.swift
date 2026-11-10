@@ -55,7 +55,10 @@ extension ReducerContext {
         let id = request.id
         // The frame was never applied, so it must not suppress the next request for it.
         state.expected[id]?.forget(generation: request.generation)
-        if error == .timedOut { state.diagnostics.accessibilityTimeouts += 1 }
+        if error == .timedOut {
+            state.diagnostics.accessibilityTimeouts += 1
+            state.unresponsive.insert(id.pid)
+        }
         if error == .windowGone {
             removeWindow(id)
             return

@@ -60,6 +60,11 @@ if [[ ! -d "$OUT/Contents/Resources/KeyboardShortcuts_KeyboardShortcuts.bundle" 
   exit 1
 fi
 
+# The recorder's own strings ("Record Shortcut", "Press Shortcut") have no Polish in the library; ours go into its bundle.
+mkdir -p "$OUT/Contents/Resources/KeyboardShortcuts_KeyboardShortcuts.bundle/Contents/Resources/pl.lproj"
+cp Resources/KeyboardShortcuts/pl.lproj/Localizable.strings \
+  "$OUT/Contents/Resources/KeyboardShortcuts_KeyboardShortcuts.bundle/Contents/Resources/pl.lproj/Localizable.strings"
+
 # Localizations: compile the String Catalog into <lang>.lproj/Localizable.strings.
 xcrun xcstringstool compile Resources/Localizable.xcstrings --output-directory "$OUT/Contents/Resources"
 # The microphone usage description is looked up in InfoPlist.strings of the user's language.

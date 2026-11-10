@@ -149,6 +149,9 @@ struct EngineState: Equatable, Sendable {
     var latest: [WindowID: Int] = [:]
     /// The watchdog tripped: nothing moves until `restoreAll` / `unfreeze`.
     var isFrozen = false
+    /// Processes that did not answer (a park timed out, or a snapshot could not read them): the next event from one
+    /// of their windows means it answers again, so parking is reconciled then (`EngineReducer`).
+    var unresponsive: Set<Int32> = []
     /// Whether the journal can be written; without it no window is parked.
     var canJournal = true
     var diagnostics = EngineDiagnostics()

@@ -514,6 +514,25 @@ extension WindowEngineTests {
         await rig.engine.stop()
     }
 
+    /// QA N4: after the app answers again, any event from one of its windows (here a window closing) parks what its
+    /// timed-out parks left on screen, without waiting for the next workspace switch.
+    @Test func anyEventFromARecoveredAppParksTheWindowsItsTimedOutParksLeftOnScreen() async throws {
+        let rig = try rig([makeWindow(1), makeWindow(2), makeWindow(3, pid: 200)], autoTick: false)
+        defer { rig.harness.tearDown() }
+        await rig.engine.start()
+        rig.client.setBehavior(.hung, forProcess: 100)
+        await rig.engine.send(.showWorkspace(ws(2)))
+        #expect(rig.client.frame(of: id(1)) == home)
+        #expect(rig.client.frame(of: id(3, pid: 200))?.origin == parkedOrigin)
+        // SIGCONT; the app closes one of its windows. That event alone re-parks the other one.
+        rig.client.setBehavior(.normal, forProcess: 100)
+        rig.client.remove(id(2))
+        await rig.engine.ingest(.destroyed(id(2)))
+        await rig.engine.flushEvents()
+        #expect(rig.client.frame(of: id(1))?.origin == parkedOrigin)
+        await rig.engine.stop()
+    }
+
     @Test func aWindowThatReallyClosedIsStillRemovedByASnapshot() async throws {
         let rig = try rig([makeWindow(1), makeWindow(2, pid: 200)])
         defer { rig.harness.tearDown() }
