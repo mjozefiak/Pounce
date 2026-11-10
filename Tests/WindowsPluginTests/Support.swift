@@ -4,6 +4,26 @@ import os
 
 @testable import WindowsPlugin
 
+/// The test's own `PluginServices`: one value per plugin and key, like the host's (the contracts target has no
+/// shared implementation; the host's lives in `LintelApp`, which plugin tests do not import).
+final class TestPluginServices: PluginServices, @unchecked Sendable {
+    private let lock = NSLock()
+    private var values: [String: any Sendable] = [:]
+
+    func value<Key: PluginServiceKey>(_ key: Key.Type, pluginID: PluginID, context: PluginContext) -> Key.Value {
+        let address = "\(pluginID.rawValue)/\(ObjectIdentifier(key).hashValue)"
+        if let existing = lock.withLock({ values[address] }) as? Key.Value { return existing }
+        let made = Key.make(context: context)
+        return lock.withLock {
+            if let existing = values[address] as? Key.Value { return existing }
+            values[address] = made
+            return made
+        }
+    }
+
+    func teardown(pluginID: PluginID) {}
+}
+
 /// In-memory ports and a temporary directory for one test; `tearDown()` removes what it made.
 final class WindowsHarness: @unchecked Sendable {
     let directory: URL
@@ -11,7 +31,7 @@ final class WindowsHarness: @unchecked Sendable {
     /// The clock of every context this harness makes: time moves only when a test advances it.
     let clock = VirtualClock(autoAdvance: false)
     /// What every context of this harness shares, like the contexts of one app instance.
-    let services = PluginServices()
+    let services = TestPluginServices()
 
     init() throws {
         directory = FileManager.default.temporaryDirectory.appending(

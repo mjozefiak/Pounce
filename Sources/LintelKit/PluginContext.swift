@@ -136,8 +136,10 @@ public struct PluginContext: Sendable {
     /// The shortcut a command has right now (the user's, or its default); `nil` when none. Added with window
     /// management; the default answers `nil`.
     public let commandShortcut: @MainActor @Sendable (_ commandID: String) -> KeyShortcut?
-    /// Values the plugins of this app instance share (see `PluginServices`); a fresh, private set by default.
-    public let services: PluginServices
+    /// The plugin this context belongs to (the host builds one context per plugin). Defaults to the settings' id.
+    public let pluginID: PluginID
+    /// Values the plugins of this app instance share (see `PluginServices`); `UnsharedPluginServices` by default.
+    public let services: any PluginServices
 
     public init(
         storageDirectory: URL,
@@ -167,7 +169,8 @@ public struct PluginContext: Sendable {
             _, _ in
         },
         commandShortcut: @escaping @MainActor @Sendable (_ commandID: String) -> KeyShortcut? = { _ in nil },
-        services: PluginServices = PluginServices()
+        services: any PluginServices = UnsharedPluginServices(),
+        pluginID: PluginID? = nil
     ) {
         self.storageDirectory = storageDirectory
         self.settings = settings
@@ -193,5 +196,6 @@ public struct PluginContext: Sendable {
         self.setCommandShortcut = setCommandShortcut
         self.commandShortcut = commandShortcut
         self.services = services
+        self.pluginID = pluginID ?? settings.pluginID
     }
 }

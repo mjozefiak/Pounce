@@ -34,7 +34,7 @@ struct AppEnvironment {
     /// and QA mode never touch the tester's windows.
     var windowClient: any WindowClient = NoWindowClient()
     /// What the plugins of this app instance share (`PluginContext.services`).
-    let services = PluginServices()
+    let services = AppPluginServices()
 
     /// `Plugins/<id>/` under the data root.
     func storageDirectory(for id: PluginID) -> URL {
@@ -117,7 +117,8 @@ struct AppEnvironment {
             windows: windowClient,
             setCommandShortcut: setCommandShortcut,
             commandShortcut: commandShortcut,
-            services: services
+            services: services,
+            pluginID: manifest.id
         )
     }
 

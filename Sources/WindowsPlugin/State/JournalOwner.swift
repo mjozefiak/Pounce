@@ -172,7 +172,10 @@ final class ReportSink: Sendable {
     }
 }
 
-/// The journal owner as a plugin service: one per app instance and plugin, torn down when the host quits.
+/// The journal owner as a plugin service: one per app instance and plugin, torn down when the host quits. The
+/// host's services (`AppPluginServices`) key it by plugin id and the plugin's storage folder is derived from that
+/// id, so one app instance has one owner, and one `StateStore` writer, per folder. A context built without a host
+/// (`UnsharedPluginServices`) shares nothing: tests that need one owner pass one services object to every context.
 enum JournalOwnerKey: PluginServiceKey {
     static func make(context: PluginContext) -> JournalOwner {
         JournalOwner(directory: context.storageDirectory, clock: context.clock, logger: context.logger)

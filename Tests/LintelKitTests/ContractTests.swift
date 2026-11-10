@@ -177,7 +177,8 @@ enum TestContext {
     }
 
     static func make(
-        modelsDirectory: URL? = nil, pluginID: PluginID = "minimal", services: PluginServices = PluginServices()
+        modelsDirectory: URL? = nil, pluginID: PluginID = "minimal",
+        services: any PluginServices = UnsharedPluginServices()
     ) -> PluginContext {
         PluginContext(
             storageDirectory: FileManager.default.temporaryDirectory.appending(path: "lintel-kit-tests"),
