@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import Testing
 
@@ -314,5 +315,47 @@ import Testing
             #expect(editor.layout.isValid)
             #expect(editor.layout.zones.count <= GridLayout.maximumZones)
         }
+    }
+
+    // MARK: Click to divide (QA round 3, B2)
+
+    @Test func aClickOnAZoneNotAtTheCanvasOriginIsMeasuredFromThatZonesOwnOrigin() {
+        // The right zone of Columns 2 on a 400 point wide canvas: x from 200, width 200. A click 79 % across the canvas
+        // is 58 % across that zone, not 158 %.
+        let zone = CGRect(x: 200, y: 0, width: 200, height: 100)
+        let share = GridEditorView.localShare(CGPoint(x: 316, y: 50), in: zone, axis: .vertical)
+        #expect(abs(share - 0.58) < 0.001)
+        // Zone 1 (origin 0) is unchanged, and the vertical axis uses y.
+        #expect(
+            GridEditorView.localShare(
+                CGPoint(x: 60, y: 50), in: CGRect(x: 0, y: 0, width: 200, height: 100), axis: .vertical) == 0.3)
+        let lower = CGRect(x: 0, y: 100, width: 200, height: 100)
+        #expect(GridEditorView.localShare(CGPoint(x: 10, y: 175), in: lower, axis: .horizontal) == 0.75)
+        // A location outside the zone is clamped, never beyond 0...1.
+        #expect(GridEditorView.localShare(CGPoint(x: 900, y: 0), in: zone, axis: .vertical) == 1)
+    }
+
+    @Test func divisionsNeverMakeAZoneSmallerThanTheMinimumShareOfTheDisplay() throws {
+        #expect(GridEditorState.minimumClickShare >= 0.05)
+        var state = state(StockLayouts.columns2)
+        // Divide the right zone at its 90 % clamp again and again: every piece stays at least the minimum, and the
+        // division that would go below it is refused.
+        var refused = false
+        for _ in 0..<12 {
+            let zone = state.layout.zones.last!.id
+            if case .failure(let failure) = state.divide(
+                zone: zone, axis: .vertical, share: 0.99, minimumHalf: GridEditorState.minimumClickShare)
+            {
+                #expect(failure == .tooNarrow || failure == .zoneLimit || failure == .trackLimit)
+                refused = true
+                break
+            }
+        }
+        #expect(refused)
+        let widths = state.layout.columns.map { $0 / state.layout.columns.reduce(0, +) }
+        #expect(widths.allSatisfy { $0 >= GridEditorState.minimumClickShare - 1e-9 })
+        // Without the click policy (keys, numbers) the 1 % floor of the editor stands.
+        var keyed = GridEditorState(stock(StockLayouts.columns2))
+        #expect(succeeded(keyed.divide(zone: keyed.layout.zones.last!.id, axis: .vertical, share: 0.1)))
     }
 }

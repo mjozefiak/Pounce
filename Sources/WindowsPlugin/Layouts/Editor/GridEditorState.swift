@@ -61,8 +61,12 @@ enum EditorKey: Equatable, Sendable {
 /// "Layout library and editor"). Every operation either changes the layout and records one undo step, or fails
 /// and changes nothing. No I/O, no UI.
 struct GridEditorState: Equatable, Sendable {
-    /// The smallest share of the display a track keeps when a divider moves.
+    /// The smallest share of the display a track keeps when a divider moves or a zone is divided by key or number: 1 %
+    /// (precision for the arrow keys and the numeric fields, and the room 64 zones and 32 tracks need).
     static let minimumShare = 0.01
+    /// The smallest piece a *click* may cut: 5 % of the display. Repeated clicks used to halve a sliver down to a zone
+    /// nobody can use (QA round 3); a click that would go below this is refused (`.tooNarrow`).
+    static let minimumClickShare = 0.05
     /// One arrow-key step.
     static let step = 0.01
     static let historyLimit = 200
@@ -210,7 +214,9 @@ struct GridEditorState: Equatable, Sendable {
     /// Divides a zone with a new divider at `share` (0 to 1 across the zone, 0.5 is the middle). A zone that
     /// covers several tracks is divided at the existing boundary nearest to that point; a zone of one track
     /// splits the track.
-    mutating func divide(zone id: Int, axis: EditorAxis, share: Double = 0.5) -> Result<Void, EditorFailure> {
+    mutating func divide(
+        zone id: Int, axis: EditorAxis, share: Double = 0.5, minimumHalf: Double? = nil
+    ) -> Result<Void, EditorFailure> {
         guard let zone = layout.zones.first(where: { $0.id == id }) else { return .failure(.unknownZone) }
         guard layout.zones.count < GridLayout.maximumZones else { return .failure(.zoneLimit) }
         let p = Self.paths(axis)
@@ -229,6 +235,10 @@ struct GridEditorState: Equatable, Sendable {
             }
         } else {
             guard next[keyPath: p.tracks].count < GridLayout.maximumTracks else { return .failure(.trackLimit) }
+            // Neither half may be smaller than the minimum share of the display.
+            let edges = Self.edges(next[keyPath: p.tracks])
+            let span = edges[first + 1] - edges[first]
+            guard span * min(clamped, 1 - clamped) >= (minimumHalf ?? 0) - 1e-9 else { return .failure(.tooNarrow) }
             let weight = next[keyPath: p.tracks][first]
             next[keyPath: p.tracks].replaceSubrange(first...first, with: [weight * clamped, weight * (1 - clamped)])
             boundary = first + 1

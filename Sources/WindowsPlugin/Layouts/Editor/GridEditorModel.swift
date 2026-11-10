@@ -250,8 +250,8 @@ final class GridEditorModel {
         }
     }
     func setSpacing(_ points: Int) { edit { $0.setSpacing(points) } }
-    func divide(zone id: Int, axis: EditorAxis, share: Double = 0.5) {
-        edit { $0.divide(zone: id, axis: axis, share: share) }
+    func divide(zone id: Int, axis: EditorAxis, share: Double = 0.5, minimumHalf: Double? = nil) {
+        edit { $0.divide(zone: id, axis: axis, share: share, minimumHalf: minimumHalf) }
     }
     func divideFocused(axis: EditorAxis) {
         guard case .zone(let id)? = state.focus ?? state.layout.zones.first.map({ .zone($0.id) }) else { return }

@@ -439,13 +439,28 @@ struct GridEditorView: View {
                     model.toggleSelection(zone: id)
                 } else if flags.contains(.shift) {
                     model.divide(
-                        zone: id, axis: .horizontal, share: Self.snapped(tap.location.y / max(frame.height, 1)))
+                        zone: id, axis: .horizontal,
+                        share: Self.snapped(Self.localShare(tap.location, in: frame, axis: .horizontal)),
+                        minimumHalf: GridEditorState.minimumClickShare)
                 } else {
-                    model.divide(zone: id, axis: .vertical, share: Self.snapped(tap.location.x / max(frame.width, 1)))
+                    model.divide(
+                        zone: id, axis: .vertical,
+                        share: Self.snapped(Self.localShare(tap.location, in: frame, axis: .vertical)),
+                        minimumHalf: GridEditorState.minimumClickShare)
                 }
             }
         )
         .accessibilityHidden(true)
+    }
+
+    /// Where a click is across its zone, 0 to 1. The gesture sits on the view after `.position`, so the location is in
+    /// the canvas's space, not the zone's: the zone's own origin comes off first (QA: a click at 79 % across zone 2
+    /// divided it at 95 %, because the canvas x was divided by the zone's width).
+    static func localShare(_ location: CGPoint, in frame: CGRect, axis: EditorAxis) -> Double {
+        let share =
+            axis == .vertical
+            ? (location.x - frame.minX) / max(frame.width, 1) : (location.y - frame.minY) / max(frame.height, 1)
+        return min(max(share, 0), 1)
     }
 
     /// A click near the middle divides exactly in half.
