@@ -112,8 +112,13 @@ extension WindowsRuntime {
         _ = await withDeadline(Self.stopBudget, clock: context.clock) {
             if waitingForTrustTask { await regrant?.value }
             await actions.waitUntilEmpty()
-            await engine.stop()
-            if let lease { await journal.endEngine(lease) }
+            // Only the holder of the journal lease stops the engine: its stop restores from the journal and closes
+            // the shared store, which would take both from an earlier engine that is still stopping (a start that
+            // gave up with `stillStopping` never held the lease and never started its engine).
+            if let lease {
+                await engine.stop()
+                await journal.endEngine(lease)
+            }
         }
         // Whatever the budget left queued (or parked in a waiter) is dropped: the queue's task ends with the runtime.
         actions.finish()

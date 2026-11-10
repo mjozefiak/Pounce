@@ -73,6 +73,31 @@ import Testing
         try await rig.plugin.eraseData()
     }
 
+    /// A re-enable that gives up because the old engine still holds the journal must leave that engine alone: its
+    /// own tear-down may not close the shared store or restore from the journal beside the old engine.
+    @MainActor @Test func aRefusedReEnableDoesNotTouchTheJournalOfTheEngineThatIsStillStopping() async throws {
+        let rig = try await rig()
+        defer { rig.harness.tearDown() }
+        let runtime = try #require(rig.plugin.runtime)
+        rig.client.setBehavior(.stall, forProcess: 100)
+        let hide = Task { await runtime.engine.send(.showWorkspace(ws(2))) }
+        await rig.client.waitUntilStalled(1)
+        await rig.plugin.deactivate()
+        #expect(await rig.plugin.journal.phase == .stopping)
+        let framesBefore = rig.client.calls.count
+
+        await #expect(throws: WindowsPlugin.StartError.stillStopping) { try await rig.plugin.activate() }
+        // Nothing of the refused start reached the client: it never held the journal.
+        #expect(rig.client.calls.count == framesBefore)
+
+        rig.client.releaseStalls()
+        await hide.value
+        await rig.plugin.journal.waitUntilIdle()
+        // The old engine put the window back and could clear its journal entry: the store was still open for it.
+        #expect(rig.client.frame(of: id(1)) == home)
+        #expect(await rig.plugin.journal.store.hidden.isEmpty)
+    }
+
     @MainActor @Test func restoreAllWindowsReportsWhatIsStillParkedWhenTheBudgetRunsOut() async throws {
         let rig = try await rig()
         defer { rig.harness.tearDown() }
