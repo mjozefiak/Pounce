@@ -33,6 +33,10 @@ struct AppEnvironment {
     /// Accessibility client in the app (`live()`); the default (no windows, unsupported) everywhere else, so tests
     /// and QA mode never touch the tester's windows.
     var windowClient: any WindowClient = NoWindowClient()
+    #if DEBUG
+    /// QA mode only (`--qa-command-file`): where the QA command route reads its commands.
+    var qaCommandFile: URL?
+    #endif
     /// What the plugins of this app instance share (`PluginContext.services`).
     let services = AppPluginServices()
 
@@ -165,11 +169,13 @@ struct AppEnvironment {
         try createPrivateDirectory(root, fileManager: fileManager)
         let fileHome = root.appending(path: "files-home", directoryHint: .isDirectory)
         try createPrivateDirectory(fileHome, fileManager: fileManager)
-        let seeded = qaAppActivitySettings(
+        var seeded = qaAppActivitySettings(
             qaFileIndexSettings(options.settings, emptyHome: fileHome.path),
             activity: options.appActivity,
             live: options.liveAppActivity
         )
+        // A QA run never opens an open or save panel: they write their sizes into the real defaults domain.
+        if seeded[QAOptions.windowsScriptedFilesKey] == nil { seeded[QAOptions.windowsScriptedFilesKey] = .bool(true) }
         let settings: any SettingsStore =
             options.persistentSettings
             ? QAFileSettingsStore(url: root.appending(path: QAFileSettingsStore.fileName), seeded: seeded)
@@ -195,6 +201,7 @@ struct AppEnvironment {
         } else {
             qaEnvironment.windowClient = options.fakeWindows ? QAWindowClient() : NoWindowClient()
         }
+        qaEnvironment.qaCommandFile = options.commandFile
         qaEnvironment.prepareModelsDirectory(fileManager: fileManager)
         return qaEnvironment
     }

@@ -17,9 +17,17 @@ extension WindowsPlugin {
                         guard let self else { return }
                         openEditor(layout: layout, isNew: isNew, parent: layoutsWindow.window, onSaved: onSaved)
                     },
-                    files: AppKitLayoutFiles())
+                    files: filesPort())
             },
             loadFrame: { settings.layoutsWindowFrame }, saveFrame: { settings.setLayoutsWindowFrame($0) })
+    }
+
+    /// The open and save panels, or (QA, DEBUG) the scripted files that never open one.
+    private func filesPort() -> any LayoutFileAccess {
+        #if DEBUG
+        if settings.qaScriptedFiles { return qaFiles }
+        #endif
+        return AppKitLayoutFiles()
     }
 
     /// Opens the grid editor on a layout (a copy of a stock one, a user's own, or a new one). Needs the running

@@ -37,6 +37,8 @@ struct WindowsSettings: Sendable {
         static let qaCapturable = "qaCapturable"
         /// Hidden, DEBUG builds only (QA): a file the snap-drag timing trace is appended to (`DragTrace`).
         static let qaDragTrace = "qaDragTrace"
+        /// Hidden, DEBUG builds only (QA): files and the app picker are scripted, no open or save panel opens.
+        static let qaScriptedFiles = "qaScriptedFiles"
         #endif
     }
 
@@ -148,6 +150,7 @@ struct WindowsSettings: Sendable {
     var qaOpenLayouts: Bool { settings.bool(Key.qaOpenLayouts, default: false) }
     var qaCapturable: Bool { settings.bool(Key.qaCapturable, default: false) }
     var qaDragTrace: String? { settings.string(Key.qaDragTrace) }
+    var qaScriptedFiles: Bool { settings.bool(Key.qaScriptedFiles, default: false) }
     #endif
     var snapHintShown: Bool { settings.bool(Key.snapHintShown, default: false) }
     var parkedLaunches: Int { max(0, settings.integer(Key.parkedLaunches, default: 0)) }

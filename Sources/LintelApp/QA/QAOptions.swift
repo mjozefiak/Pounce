@@ -96,9 +96,14 @@ struct QAOptions: Equatable {
     /// data root, never the defaults domain), so a second launch sees what the first one stored (the two-launch
     /// safe-mode counter). `--qa-setting` values are applied on top at every launch.
     var persistentSettings = false
+    /// `--qa-command-file <path>`: the QA command route reads one command per line from this file and writes the
+    /// results to `<path>.log` (`QACommandRoute`). Only in a `--qa` run.
+    var commandFile: URL?
 
     /// The file plugin's DEBUG-only fake home and its roots, which QA mode always sets
     /// (`AppEnvironment.qaFileIndexSettings`).
+    /// The Windows plugin's DEBUG-only scripted files (`WindowsSettings.Key.qaScriptedFiles`), always on in QA mode.
+    static let windowsScriptedFilesKey = "plugins.windows.qaScriptedFiles"
     static let filesHomeKey = "plugins.files.qaHome"
     static let filesRootsKey = "plugins.files.roots"
     /// The app plugin's DEBUG-only activity keys (`AppEnvironment.qaAppActivitySettings`).
@@ -229,6 +234,8 @@ struct QAOptions: Equatable {
                 options.fakeWindows = true
             case "--qa-real-windows":
                 options.realWindows = true
+            case "--qa-command-file":
+                options.commandFile = URL(filePath: try Self.pathValue(argument, iterator.next()))
             case "--qa-persistent-settings":
                 options.persistentSettings = true
             default:

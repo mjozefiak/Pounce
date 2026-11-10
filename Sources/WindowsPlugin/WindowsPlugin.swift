@@ -77,8 +77,16 @@ public final class WindowsPlugin: LintelPlugin {
     private(set) var lastStartError: StartError?
     /// Built on first use; creating it reads settings only.
     private(set) lazy var paneModel: WindowsSettingsModel = {
+        #if DEBUG
+        let chooseApp: () -> String? =
+            settings.qaScriptedFiles
+            ? { [picker = qaFiles.appPicker] in picker.take() } : { WindowsSettingsModel.chooseAppBundleID() }
+        #else
+        let chooseApp: () -> String? = { WindowsSettingsModel.chooseAppBundleID() }
+        #endif
         let model = WindowsSettingsModel(
-            context: context, settings: settings, registry: registry, runtime: { [weak self] in self?.runtime })
+            context: context, settings: settings, registry: registry, runtime: { [weak self] in self?.runtime },
+            chooseApp: chooseApp)
         model.startFailure = { [weak self] in self?.lastStartError }
         model.openLayouts = { [weak self] in self?.layoutsWindow.show() }
         model.hud = hud
@@ -88,6 +96,10 @@ public final class WindowsPlugin: LintelPlugin {
         return model
     }()
     let identifier: DisplayIdentifier
+    #if DEBUG
+    /// QA only: the scripted files and app picker (`plugins.windows.qaScriptedFiles`).
+    let qaFiles = ScriptedFiles()
+    #endif
     /// The Layouts window, built on first use; it reads the pane model and the running plugin.
     private(set) lazy var layoutsWindow: LayoutsWindowController = makeLayoutsWindow()
 

@@ -128,6 +128,9 @@ final class AppCoordinator {
         }
 
         await host.start()
+        #if DEBUG
+        startQACommandRoute()
+        #endif
         observeActivationForRecovery()
         hotkeys.start { [weak self] in self?.panelModel.toggle() }
         syncCommands()
@@ -139,6 +142,23 @@ final class AppCoordinator {
             presentPendingOnboarding?()
         }
     }
+
+    #if DEBUG
+    private var qaRoute: QACommandRoute?
+
+    /// QA only: the command route (`--qa-command-file`), which `AppEnvironment.qa` alone can set.
+    private func startQACommandRoute() {
+        guard let file = environment.qaCommandFile else { return }
+        let host = host
+        let route = QACommandRoute(
+            file: file, commands: { host.activeCommands },
+            qaPlugin: { id in
+                host.entries.first { $0.manifest.id.rawValue == id && $0.state.isActive }?.plugin as? any PluginQACommands
+            })
+        route.start()
+        qaRoute = route
+    }
+    #endif
 
     /// Runs `PluginHost.retryDeferredRecoveries()` on every app activation.
     func observeActivationForRecovery() {
