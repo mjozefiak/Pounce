@@ -81,11 +81,13 @@ final class AccessibilityTrust {
     private(set) var polls = 0
     private var pollWaiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
 
-    /// Waits until `count` polls have finished (tests).
+    #if DEBUG
+    /// Waits until `count` polls have finished (tests only).
     func waitForPolls(_ count: Int) async {
         if polls >= count { return }
         await withCheckedContinuation { pollWaiters.append((count, $0)) }
     }
+    #endif
 
     func stop() {
         poll?.cancel()

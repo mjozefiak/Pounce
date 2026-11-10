@@ -81,7 +81,7 @@ public struct DisplayInfo: Hashable, Sendable {
     public var orientation: DisplayOrientation { frame.height > frame.width ? .portrait : .landscape }
 }
 
-/// A change in the windows or displays, delivered by `WindowClient.events`.
+/// A change in the windows or displays, delivered by `WindowClient.subscribe()`.
 public enum WindowEvent: Hashable, Sendable {
     case created(WindowID)
     case destroyed(WindowID)
@@ -126,13 +126,16 @@ public protocol WindowClient: Sendable {
     /// so an async caller uses this and never reads the property on the main actor or the cooperative pool. The
     /// default answers `availability`.
     func checkAvailability() async -> WindowClientAvailability
-    /// Starts delivering events and returns the stream once observing has started, so a caller that subscribes
-    /// before it reads the windows loses no change in between. A real client observes nothing until this is
-    /// called, and stops when the stream ends. The default returns `events`.
+    /// The one entry point for events: starts delivering them and returns the stream once observing has started,
+    /// so a caller that subscribes before it reads the windows loses no change in between. The stream is bounded
+    /// and in the order the events happened: when the consumer is slow the oldest events are dropped and a
+    /// `.resync` follows them (nothing is merged here; a consumer that wants merging does it itself). A real
+    /// client observes nothing until this is called, and stops when the stream ends.
     func subscribe() async -> AsyncStream<WindowEvent>
     /// Whether the app answers Accessibility requests within its messaging timeout. A window that is missing from
     /// `windows()` is on another Space when its app answers, and not reachable when it does not. The default
-    /// answers `true`.
+    /// answers `false`, the conservative reading: a window that cannot be found is reported as not reachable (its
+    /// journal entry stays) rather than as safely on another Space.
     func isResponding(pid: Int32) async -> Bool
     /// Every window of the current native Space, minimised and fullscreen ones included (flagged).
     func windows() async -> [WindowInfo]
@@ -146,10 +149,6 @@ public protocol WindowClient: Sendable {
     func setFrame(_ frame: CGRect, for id: WindowID) async throws(WindowClientError) -> CGRect
     func focus(_ id: WindowID) async throws(WindowClientError)
     func displays() async -> [DisplayInfo]
-    /// A bounded stream, in the order the events happened: when the consumer is slow the oldest events are dropped
-    /// and a `.resync` follows them (nothing is merged here; a consumer that wants merging does it itself). A real
-    /// client delivers nothing here until `subscribe()` has been called.
-    var events: AsyncStream<WindowEvent> { get }
     /// When the process started, as seconds since 1970; `nil` when the process is gone or unknown. A stored
     /// window id is trusted only while its process start time still matches.
     func processStart(of pid: Int32) -> TimeInterval?
@@ -157,8 +156,7 @@ public protocol WindowClient: Sendable {
 
 extension WindowClient {
     public func checkAvailability() async -> WindowClientAvailability { availability }
-    public func subscribe() async -> AsyncStream<WindowEvent> { events }
-    public func isResponding(pid: Int32) async -> Bool { true }
+    public func isResponding(pid: Int32) async -> Bool { false }
     public func window(id: WindowID) async -> WindowInfo? { await windows().first { $0.id == id } }
     public func processStart(of pid: Int32) -> TimeInterval? { nil }
 }
@@ -180,7 +178,7 @@ public struct NoWindowClient: WindowClient {
     }
 
     public func displays() async -> [DisplayInfo] { [] }
-    public var events: AsyncStream<WindowEvent> { AsyncStream { $0.finish() } }
+    public func subscribe() async -> AsyncStream<WindowEvent> { AsyncStream { $0.finish() } }
 }
 
 /// What `LintelPlugin.recoverAtLaunch` achieved.

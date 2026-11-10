@@ -13,7 +13,6 @@ nonisolated final class QAWindowClient: WindowClient, Sendable {
     }
 
     private let state: Mutex<State>
-    let events: AsyncStream<WindowEvent>
 
     static let displays = [
         DisplayInfo(
@@ -34,10 +33,11 @@ nonisolated final class QAWindowClient: WindowClient, Sendable {
                 frame: CGRect(x: 80 + 60 * index, y: 80 + 40 * index, width: 800, height: 560))
         }
         state = Mutex(State(windows: windows, focused: windows.keys.sorted().first))
-        events = AsyncStream { $0.finish() }
     }
 
     var availability: WindowClientAvailability { .available }
+    func subscribe() async -> AsyncStream<WindowEvent> { AsyncStream { $0.finish() } }
+    func isResponding(pid: Int32) async -> Bool { true }
     func windows() async -> [WindowInfo] { state.withLock { $0.windows.values.sorted { $0.id < $1.id } } }
     func focusedWindow() async -> WindowID? { state.withLock { $0.focused } }
     func displays() async -> [DisplayInfo] { Self.displays }

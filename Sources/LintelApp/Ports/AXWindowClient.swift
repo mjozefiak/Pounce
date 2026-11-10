@@ -66,11 +66,6 @@ nonisolated final class AXWindowClient: WindowClient, Sendable {
 
     // MARK: Events
 
-    /// What `events` answered before anyone subscribed: nothing, and nothing is observed.
-    var events: AsyncStream<WindowEvent> {
-        streamState.withLock { $0.stream } ?? AsyncStream { $0.finish() }
-    }
-
     /// Starts observing every regular app and returns the stream. One subscriber at a time: a second call while
     /// the first stream lives returns that stream. The observation thread stops when the stream ends, so a plugin
     /// that is off costs nothing.

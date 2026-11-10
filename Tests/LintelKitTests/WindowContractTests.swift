@@ -18,8 +18,10 @@ import Testing
             Issue.record("the default client must be unsupported")
             return
         }
-        var iterator = windows.events.makeAsyncIterator()
+        var iterator = await windows.subscribe().makeAsyncIterator()
         #expect(await iterator.next() == nil)
+        // Not answering is the conservative reading of a window that cannot be found.
+        #expect(await windows.isResponding(pid: 1) == false)
         // The additive members default to the older ones.
         #expect(await windows.checkAvailability() == windows.availability)
         #expect(await windows.window(id: WindowID(pid: 1, number: 2)) == nil)

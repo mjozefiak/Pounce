@@ -23,23 +23,21 @@ import Testing
         let engine = rig.engine
         await engine.start()
         await engine.ingest(.moved(WindowID(pid: 100, number: 1)))
-        // Real time bounds the wait: the engine's own clock is virtual and stands still.
-        let finished = await withDeadline(.seconds(3), clock: ContinuousClock()) { await engine.stop() }
-        #expect(finished != nil)
+        // The engine's clock is virtual and stands still: a stop that waited for the tick would never return.
+        await engine.stop()
+        #expect(rig.client.eventsTerminated)
     }
 
-    @Test func aSettleThatWaitsForTheTickIsReleasedWhenTheEventsAreFlushedByHand() async throws {
+    @Test func aSettleIsReleasedWhenTheEventsAreFlushedByHand() async throws {
         let rig = try rig()
         defer { rig.harness.tearDown() }
         let engine = rig.engine
         await engine.start()
         await engine.ingest(.moved(WindowID(pid: 100, number: 1)))
+        // Whichever of the two comes first, the tick never comes (virtual clock): the flush by hand ends the wait.
         let waiting = Task { await engine.settle() }
-        // The settle must be waiting for the tick before the events are flushed by hand.
-        await Task.yield()
         await engine.flushEvents()
-        let finished = await withDeadline(.seconds(10), clock: ContinuousClock()) { await waiting.value }
-        #expect(finished != nil)
+        await waiting.value
         await engine.stop()
     }
 

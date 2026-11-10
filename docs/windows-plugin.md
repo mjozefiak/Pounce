@@ -20,7 +20,7 @@ registered in `PluginRegistry` and off by default.
 | Engine | `WindowEngine` (actor), `EngineReducer` (pure) with `Engine/Reducer/ReducerContext+*` and `LayoutPlanner`, `EffectExecutor` + `LaneScheduler` (one lane per process for frame changes and focus, one for the journal and stored state), `EventCoalescer` (the one coalescer), `Watchdog`, `TimeSource` (the one injected clock). |
 | Layout strategies | `Layout/` (`LayoutStrategy`, `LayoutRegistry`, `AnyLayoutState`, `AnyLayoutConfig`, `LayoutCommand`), `Tiling/TilingStrategy`, `Zones/ZonesStrategy`, `FreeStrategy`. |
 | State and recovery | `StateStore` (`Plugins/windows/state.json`), `JournalOwner` (one per app instance and plugin, a typed `PluginServiceKey` of `PluginContext.services`, torn down when the host quits), `WindowRecovery`, `AccessibilityTrust`. |
-| Runtime and UI | `WindowsRuntime` (exists only while active), `LayoutCommands`, `AccessibilityGate`, `ReportPump`, `EngineConfigBuilder`, `WindowsComposition`, `WorkspaceStripController`, `WindowsHUDPanel`, `ZoneDragController`, `ZoneOverlayPanels`, the Layouts window and grid editor (`Layouts/`), the settings pane (`Settings/`). |
+| Runtime and UI | `WindowsRuntime` (exists only while active), `LayoutCommands`, `AccessibilityGate`, `ReportPump`, `WindowsComposition`, `WorkspaceStripController`, `WindowsHUDPanel`, `ZoneDragController`, `ZoneOverlayPanels`, the Layouts window and grid editor (`Layouts/`), the settings pane (`Settings/`). |
 
 ## Engine, in short
 
@@ -63,8 +63,9 @@ verb. Each kind keeps its ids and payload types next to its strategy.
 ## Journal ownership
 
 `JournalOwner` holds the only `StateStore` of a storage folder. Either the running engine owns the journal (it holds
-a lease) or one recovery pass does. `beginEngine()` waits until the journal is free; a recovery pass answers
-`.engineRunning` or `.engineStopping`; a stale lease changes nothing. The runtime gives the journal back only once
+a lease) or one recovery pass does. `tryBeginEngine()` takes the lease when the journal is free and answers `nil` otherwise; `waitUntilIdle()` waits (the
+runtime bounds it with `startBudget` and cancels it with its caller); a recovery pass answers `.engineRunning`,
+`.engineStopping` or `.cancelled`; a stale lease changes nothing. The runtime gives the journal back only once
 the engine has really stopped.
 
 ## Erase Data and Restore all windows

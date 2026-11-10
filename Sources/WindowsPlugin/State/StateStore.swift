@@ -247,10 +247,12 @@ actor StateStore {
         isClosed = true
     }
 
-    /// Waits for the deferred save that is scheduled right now, if any (tests).
+    #if DEBUG
+    /// Waits for the deferred save that is scheduled right now, if any (tests only).
     func waitForPendingSave() async {
         await saveTask?.value
     }
+    #endif
 
     private func markDirty() {
         guard !isClosed else { return }

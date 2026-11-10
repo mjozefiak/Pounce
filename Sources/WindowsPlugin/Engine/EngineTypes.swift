@@ -241,7 +241,7 @@ enum EngineInput: Equatable, Sendable {
     case configChanged(EngineConfig)
     /// The journal could not be written (or can be again).
     case journalAvailability(Bool)
-    /// Asks the engine to place a window at a frame, as a layout does (phases 2 and 3).
+    /// Asks the engine to place a window at a frame, as a layout does.
     case place(WindowID, CGRect, now: Double)
     /// The layout states stored by an earlier run, before the first snapshot.
     case restoreLayouts([WorkspaceID: [String: JSONValue]])

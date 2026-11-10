@@ -96,7 +96,6 @@ import os
         pump.finish()
         pump.reporter.hud(WorkspaceID(1)!, 3)
         await pump.waitUntilHandled()
-        for _ in 0..<5 { await Task.yield() }
         #expect(handled == 1)
     }
 }

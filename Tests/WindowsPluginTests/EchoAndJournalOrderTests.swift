@@ -76,6 +76,26 @@ import Testing
         #expect(result == [.journalRemove([a])])
     }
 
+    @Test func aParkForAWindowThatIsClearedInTheSameBatchMovesNothing() {
+        let a = id(1)
+        let park = FrameRequest(
+            id: a, frame: CGRect(x: 5000, y: 5000, width: 10, height: 10), generation: 1, purpose: .park)
+        let place = FrameRequest(
+            id: id(2), frame: CGRect(x: 0, y: 0, width: 10, height: 10), generation: 1, purpose: .place)
+        let result = EffectExecutor.coalesce([
+            .journalPark([entry(1)]), .setFrame(park), .setFrame(place), .journalRemove([a]),
+        ])
+        #expect(result == [.setFrame(place), .journalRemove([a])])
+        // A restore for the same window is not a park: it stays.
+        let restore = FrameRequest(
+            id: a, frame: CGRect(x: 1, y: 1, width: 10, height: 10), generation: 2, purpose: .restore)
+        #expect(
+            EffectExecutor.coalesce([
+                .journalPark([entry(1)]), .setFrame(park), .setFrame(restore), .journalRemove([a]),
+            ])
+                == [.setFrame(restore), .journalRemove([a])])
+    }
+
     @Test func otherWindowsKeepTheirOwnOperations() {
         let result = EffectExecutor.coalesce([
             .journalPark([entry(1)]), .journalRemove([id(2)]), .journalPark([entry(3)]),

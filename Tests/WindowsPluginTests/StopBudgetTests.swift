@@ -88,6 +88,22 @@ import Testing
         await rig.plugin.deactivate()
     }
 
+    @MainActor @Test func resetStateKeepsTheJournalWhileAWindowIsStillParked() async throws {
+        let rig = try await rig()
+        defer { rig.harness.tearDown() }
+        let runtime = try #require(rig.plugin.runtime)
+        await runtime.engine.send(.showWorkspace(ws(2)))
+        #expect(!(await rig.plugin.journal.store.hidden.isEmpty))
+        rig.client.setBehavior(.stall, forProcess: 100)
+        let reset = Task { await runtime.resetState() }
+        await rig.client.waitUntilStalled(1)
+        await reset.value
+        // The window is still parked and its journal entry is the only way back: nothing was forgotten.
+        #expect(!(await rig.plugin.journal.store.hidden.isEmpty))
+        rig.client.releaseStalls()
+        await rig.plugin.deactivate()
+    }
+
     @MainActor @Test func eraseRefusesWhileWindowsStayParkedWithoutAccessibilityAndErasesAnEmptyJournal() async throws {
         let harness = try WindowsHarness()
         defer { harness.tearDown() }

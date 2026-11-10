@@ -102,7 +102,6 @@ nonisolated final class ExpiredClock: Clock, Sendable {
 
     func sleep(until deadline: Instant, tolerance: Duration?) async throws {
         try Task.checkCancellation()
-        await Task.yield()
     }
 }
 

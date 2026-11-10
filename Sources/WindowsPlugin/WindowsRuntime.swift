@@ -296,8 +296,9 @@ final class WindowsRuntime: WindowSwitching {
         await gate.run(purpose) { await engine.send(command) }
     }
 
-    /// *Restore all windows*: always ends with the restore HUD.
-    func restoreAllWindows() async {
+    /// *Restore all windows*: always ends with the restore HUD. Returns what was done.
+    @discardableResult
+    func restoreAllWindows() async -> RecoveryReport {
         trust.refresh()
         let engine = engine
         // Bounded: a hung app must not hold the button for ever; what is still parked is reported instead.
@@ -310,11 +311,18 @@ final class WindowsRuntime: WindowSwitching {
         }
         recoveredWindows += report.restored
         hud.show(WindowsHUDState(report: report))
+        return report
     }
 
-    /// *Reset state*: puts every window back first, then forgets the stored state.
+    /// *Reset state*: puts every window back first, then forgets the stored state. While a window is still parked
+    /// (an app did not answer, Accessibility is off) the journal is the only way back, so nothing is forgotten: the
+    /// restore HUD has said what is still parked and the user resets again once it is back.
     func resetState() async {
-        await restoreAllWindows()
+        let report = await restoreAllWindows()
+        guard report.remaining == 0, !report.needsAccessibility else {
+            context.logger.notice("Reset state kept: \(report.remaining, privacy: .public) windows still parked")
+            return
+        }
         do { try await store.reset() } catch { context.logger.error("Cannot reset state.json") }
         // The layouts the user chose per workspace and display are part of the state that is forgotten.
         do { try await assignments.reset() } catch { context.logger.error("Cannot reset assignments.json") }

@@ -202,7 +202,7 @@ struct GridLayout: Equatable, Sendable {
     }
 }
 
-/// The templates compiled into the app (spec: Q18: read-only; "Duplicate" makes an editable copy in phase 4).
+/// The templates compiled into the app (spec: Q18: read-only; "Duplicate" makes an editable copy).
 /// Their ids never change: `assignments.json` refers to them.
 enum StockLayouts {
     static let focus = "stock.focus"

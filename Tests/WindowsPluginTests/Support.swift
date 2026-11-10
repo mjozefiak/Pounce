@@ -223,7 +223,7 @@ extension EngineReducer {
 
 extension JournalOwner {
     /// Takes the journal, waiting for whoever holds it (tests that do not bound the wait).
-    func beginEngine() async -> UInt64 {
+    func acquireLease() async -> UInt64 {
         while true {
             if let lease = tryBeginEngine() { return lease }
             await waitUntilIdle()

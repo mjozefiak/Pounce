@@ -127,7 +127,8 @@ struct EffectExecutor {
     /// Keeps one frame change per window (the newest generation), one journal operation per window (the last one
     /// in effect order) and orders what is left: journal additions, frame changes, journal removals, everything
     /// else. A window that was removed from the journal and then parked again in the same batch has its old entry
-    /// removed first and the new one added, so the journal ends up with the window, not without it.
+    /// removed first and the new one added, so the journal ends up with the window, not without it. A park request
+    /// for a window whose last journal operation is a removal is dropped.
     static func coalesce(_ effects: [EngineEffect]) -> [EngineEffect] {
         enum JournalOperation {
             case add(HiddenEntry)
@@ -171,7 +172,14 @@ struct EffectExecutor {
         var result: [EngineEffect] = []
         if !replaced.isEmpty { result.append(.journalRemove(replaced)) }
         if !adds.isEmpty { result.append(.journalPark(adds)) }
-        result.append(contentsOf: requestOrder.compactMap { requests[$0].map(EngineEffect.setFrame) })
+        // A park whose journal entry ends removed in the same batch (the window was cleared right after) must not
+        // move the window: nothing would be left to put it back.
+        result.append(
+            contentsOf: requestOrder.compactMap { id -> EngineEffect? in
+                guard let request = requests[id] else { return nil }
+                if request.purpose == .park, removals.contains(id) { return nil }
+                return .setFrame(request)
+            })
         if !removals.isEmpty { result.append(.journalRemove(removals)) }
         result.append(contentsOf: rest)
         return result

@@ -128,7 +128,7 @@ import os
         let (harness, client, _, context) = try await parkedRig([1])
         defer { harness.tearDown() }
         let owner = JournalOwner.owner(for: context)
-        let lease = await owner.beginEngine()
+        let lease = await owner.acquireLease()
         let outcome = await WindowsPlugin.recover(context: context, isLaunch: false) { _ in }
         #expect(outcome == .done)
         #expect(client.calls.isEmpty)
@@ -174,7 +174,7 @@ import os
         for await _ in entered { break }
         #expect(await owner.phase == .recovering)
         let engine = Task { () -> UInt64 in
-            let lease = await owner.beginEngine()
+            let lease = await owner.acquireLease()
             order.withLock { $0.append("engine began") }
             return lease
         }
@@ -205,10 +205,10 @@ import os
         defer { harness.tearDown() }
         let owner = JournalOwner(
             directory: harness.directory, logger: Logger(subsystem: "com.lintelapp.tests", category: "windows"))
-        let old = await owner.beginEngine()
+        let old = await owner.acquireLease()
         let order = Mutex<[String]>([])
         let next = Task { () -> UInt64 in
-            let lease = await owner.beginEngine()
+            let lease = await owner.acquireLease()
             order.withLock { $0.append("new engine began") }
             return lease
         }

@@ -161,8 +161,10 @@ final class ZoneOverlayPanels: ZoneOverlayPresenting {
         applyHighlight()
     }
 
-    /// The panels that exist (tests).
+    #if DEBUG
+    /// The panels that exist (tests only).
     var panels: [NSPanel] { entries.values.map(\.panel) }
+    #endif
 
     func highlight(_ zone: DragZone?) {
         highlighted = zone

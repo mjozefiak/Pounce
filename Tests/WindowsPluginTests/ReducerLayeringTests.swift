@@ -4,8 +4,10 @@ import Testing
 @testable import WindowsPlugin
 
 /// The reducer's parts form layers: a part never calls a function that is declared only in a part below it, so
-/// there is no call web between them. The layers are read from the sources themselves (declared function names,
-/// comments and strings stripped), so a rename or a comment cannot evade or trip the check.
+/// there is no call web between them. This is a text lint, not a compiler guarantee: the layers are read from the
+/// sources themselves (declared function names, `//` comments and one-line strings stripped), so it does not see
+/// overloads that share a name, `/* */` comments, multi-line strings or a `//` inside a string. Code review keeps
+/// the rule where the lint cannot.
 @Suite struct ReducerLayeringTests {
     /// Top to bottom: each part may call itself and the ones above it, and the shared base (`ReducerContext`).
     private let layers = [

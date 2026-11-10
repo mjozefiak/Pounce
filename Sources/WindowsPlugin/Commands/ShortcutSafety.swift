@@ -61,7 +61,10 @@ enum SystemKeyTranslation {
         guard let source = TISCopyCurrentKeyboardLayoutInputSource()?.takeRetainedValue(),
             let raw = TISGetInputSourceProperty(source, kTISPropertyUnicodeKeyLayoutData)
         else { return nil }
-        let data = unsafeBitCast(raw, to: CFData.self)
+        // The property is a CFData on every macOS that has it; anything else is no layout to translate with.
+        let object = Unmanaged<CFTypeRef>.fromOpaque(raw).takeUnretainedValue()
+        guard CFGetTypeID(object) == CFDataGetTypeID() else { return nil }
+        let data = unsafeDowncast(object, to: CFData.self)
         guard let bytes = CFDataGetBytePtr(data) else { return nil }
         var carbon: UInt32 = 0
         if modifiers.contains(.shift) { carbon |= UInt32(shiftKey >> 8) }

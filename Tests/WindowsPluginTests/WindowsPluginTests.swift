@@ -119,7 +119,7 @@ struct UnsupportedClient: WindowClient {
     func setFrame(_ frame: CGRect, for id: WindowID) async throws(WindowClientError) -> CGRect { throw .windowGone }
     func focus(_ id: WindowID) async throws(WindowClientError) { throw .windowGone }
     func displays() async -> [DisplayInfo] { [] }
-    var events: AsyncStream<WindowEvent> { AsyncStream { $0.finish() } }
+    func subscribe() async -> AsyncStream<WindowEvent> { AsyncStream { $0.finish() } }
 }
 
 private struct AvailableClient: WindowClient {
@@ -129,5 +129,5 @@ private struct AvailableClient: WindowClient {
     func setFrame(_ frame: CGRect, for id: WindowID) async throws(WindowClientError) -> CGRect { frame }
     func focus(_ id: WindowID) async throws(WindowClientError) {}
     func displays() async -> [DisplayInfo] { [] }
-    var events: AsyncStream<WindowEvent> { AsyncStream { $0.finish() } }
+    func subscribe() async -> AsyncStream<WindowEvent> { AsyncStream { $0.finish() } }
 }
