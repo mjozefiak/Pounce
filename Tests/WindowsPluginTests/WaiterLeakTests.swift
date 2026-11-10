@@ -57,9 +57,14 @@ import os
         defer { harness.tearDown() }
         let owner = JournalOwner(directory: harness.directory, logger: .init())
         let lease = try #require(await owner.tryBeginEngine())
-        // The clock jumps over the budget: the wait gives up at once and must not stay parked.
-        let idle = await owner.waitUntilIdle(within: .seconds(5), clock: VirtualClock(autoAdvance: true))
-        #expect(!idle)
+        // The clock stands still until the test moves it, so the waiter is parked before the budget is over.
+        let clock = VirtualClock(autoAdvance: false)
+        let waiting = Task { await owner.waitUntilIdle(within: .seconds(5), clock: clock) }
+        await waitersOf(owner, atLeast: 1)
+        await clock.waitForSleepers(1)
+        clock.advance(5)
+        #expect(await waiting.value == false)
+        // The wait that gave up is gone from the queue, not parked until the journal is next idle.
         #expect(await owner.waiterCount == 0)
         await owner.endEngine(lease)
         #expect(await owner.waitUntilIdle(within: .seconds(5), clock: VirtualClock(autoAdvance: true)))

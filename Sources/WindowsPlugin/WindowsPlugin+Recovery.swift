@@ -13,8 +13,7 @@ extension WindowsPlugin {
         }
         switch await Self.restoreFromJournal(context: context) {
         case .ran(let report): hud.show(WindowsHUDState(report: report))
-        case .engineRunning, .engineStopping: hud.show(.stillStopping)
-        case .cancelled: break
+        case .engineRunning, .engineStopping, .cancelled: hud.show(.stillStopping)
         }
     }
 
@@ -28,6 +27,9 @@ extension WindowsPlugin {
         }
     }
 
+    /// How long *Restore all windows* and *Erase Data* wait for a recovery pass that is already running.
+    static let restoreWaitBudget: Duration = .seconds(10)
+
     /// How long *Erase Data* waits for an engine that is still stopping to hand the journal back.
     static let eraseBudget: Duration = .seconds(10)
 
@@ -36,9 +38,13 @@ extension WindowsPlugin {
     /// Accessibility is off. Only an empty journal is erased.
     public func eraseData() async throws {
         await deactivate()
-        _ = await journal.waitUntilIdle(within: Self.eraseBudget, clock: context.clock)
+        let idle = await journal.waitUntilIdle(within: Self.eraseBudget, clock: context.clock)
+        guard idle else {
+            context.logger.notice("Erase refused: the journal is still held")
+            throw EraseRefused()
+        }
         guard case .ran(let report) = await Self.restoreFromJournal(context: context) else {
-            context.logger.notice("Erase refused: the engine has not handed the journal back")
+            context.logger.notice("Erase refused: the journal is busy")
             throw EraseRefused()
         }
         if report.remaining > 0 || report.needsAccessibility {
@@ -98,7 +104,9 @@ extension WindowsPlugin {
         context: PluginContext
     ) async -> JournalOwner.Pass<RecoveryReport> {
         let journal = JournalOwner.owner(for: context)
-        return await journal.exclusive { store in await restore(context: context, store: store) }
+        return await journal.exclusive(within: restoreWaitBudget, clock: context.clock) { store in
+            await restore(context: context, store: store)
+        }
     }
 
     private nonisolated static func restore(context: PluginContext, store: StateStore) async -> RecoveryReport {

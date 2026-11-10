@@ -70,6 +70,8 @@ extension WindowsRuntime {
             // made too late is handed back by the branch above.
             if attempt == 0 { _ = await journal.waitUntilIdle(within: Self.startBudget, clock: context.clock) }
         }
+        // A start the caller gave up on (the host's budget) is cancelled, not "still stopping".
+        try continueStart()
         throw WindowsPlugin.StartError.stillStopping
     }
 

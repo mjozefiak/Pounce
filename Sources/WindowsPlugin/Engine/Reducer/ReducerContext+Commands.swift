@@ -11,6 +11,8 @@ extension ReducerContext {
         switch command {
         case .restoreAll:
             restoreAll(now: now)
+        case .resetState:
+            resetState(now: now)
         case .showWorkspace(let workspace):
             state.isFrozen = false
             switchTo(workspace, now: now)

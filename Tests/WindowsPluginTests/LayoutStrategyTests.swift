@@ -220,6 +220,14 @@ import Testing
         let registry = LayoutRegistry([OrderStrategy(), ToyStrategy(), ToyStrategy()])
         #expect(registry.kinds == [toy])
         #expect(!registry.contains(LayoutKind("order")))
+        // "default" is the picker's "use the default", never a kind.
+        struct DefaultStrategy: LayoutStrategy {
+            var kind: LayoutKind { LayoutKind("default") }
+            func arrange(_ input: LayoutInput) -> LayoutArrangement {
+                LayoutArrangement(state: nil, frames: [:], hints: input.hints)
+            }
+        }
+        #expect(LayoutRegistry([DefaultStrategy()]).kinds.isEmpty)
         // The cycle wraps, falls back for a kind that is not registered, and an empty registry still answers.
         #expect(registry.kind(after: toy) == toy)
         #expect(registry.kind(after: .zones) == toy)

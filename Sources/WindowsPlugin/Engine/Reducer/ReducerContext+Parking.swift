@@ -117,6 +117,26 @@ extension ReducerContext {
         for id in state.parked.keys.sorted() { restore(id, now: now, arranged: true, cache: &cache) }
     }
 
+    /// *Reset state*: everything that is only remembered (membership, layout states, placement hints) starts over;
+    /// every tracked window joins the workspace shown on its display. The journal and `state.parked` stay, so a
+    /// window that could not be put back can still be. Both stored values are written, changed or not, because the
+    /// caller has just cleared them on disk.
+    mutating func resetState(now: Double) {
+        restoreAll(now: now)
+        let model = state.model
+        state.model = VirtualWorkspaceModel(workspaceCount: model.workspaceCount, displays: model.displays)
+        state.layouts = [:]
+        state.previousFocus = nil
+        for id in state.windows.keys.sorted() {
+            guard let window = state.windows[id] else { continue }
+            let display = FrameMath.display(for: window.frame, in: state.displays).map { state.displayKey(of: $0) }
+            state.model.add(id, onDisplay: display)
+        }
+        effects.append(.saveOrder(state.model.order))
+        effects.append(.saveLayouts(state.layouts))
+        arrangeRequested = true
+    }
+
     mutating func watchdogTripped(now: Double) {
         state.diagnostics.watchdogTrips += 1
         trailing.append(.banner(.watchdogTripped))

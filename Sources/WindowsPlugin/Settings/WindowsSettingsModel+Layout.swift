@@ -111,11 +111,11 @@ extension WindowsSettingsModel {
         applyLayoutChange()
     }
 
-    /// The rows the strategies add for their own settings (`LayoutSettingsProviding`).
+    /// The rows the strategies add for their own settings (`SettingRowProviding`).
     var strategySettingRows: [LayoutSettingRow] {
         let context = LayoutSettingsContext(
-            settings: settings, layouts: { [unowned self] in self.allLayouts },
-            apply: { [unowned self] in self.applyLayoutChange() })
+            settings: settings, layouts: { [weak self] in self?.allLayouts ?? [] },
+            apply: { [weak self] in self?.applyLayoutChange() })
         return registry.kinds.flatMap { registry[$0]?.settingRows?.settingRows(context) ?? [] }
     }
 
@@ -153,7 +153,7 @@ extension WindowsSettingsModel {
     var overridesLocked: Bool { overrides.isReadOnly }
 
     /// The picker's tag for "use the default" (it is not a kind: choosing it clears the override).
-    static let useDefaultChoice = "default"
+    static let useDefaultChoice = WorkspaceOverrides.useDefaultKindName
 
     /// A choice of the kind picker: a kind id, or `useDefaultChoice`, which stores no kind at all.
     func setOverrideChoice(_ choice: String, for workspace: WorkspaceID) {

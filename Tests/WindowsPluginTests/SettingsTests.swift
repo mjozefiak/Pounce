@@ -179,10 +179,17 @@ import Testing
         #expect(client.frame(of: WindowID(pid: 100, number: 1))?.origin == CGPoint(x: 1919, y: 1079))
         await plugin.paneModel.resetState()
         #expect(client.frame(of: WindowID(pid: 100, number: 1)) == CGRect(x: 100, y: 100, width: 800, height: 600))
+        // The running engine started over too: window 1 is back in the workspace shown on its display, and the
+        // stored membership is what the engine holds now (not the cleared file, and not the old membership).
+        let model = await runtime.engine.snapshot.model
+        #expect(model.workspace(of: WindowID(pid: 100, number: 1)) == WorkspaceID(1))
+        #expect(model.order[WorkspaceID(2)!, default: []].isEmpty)
+        await runtime.settle()
+        await plugin.journal.store.flush()
         let store = StateStore(directory: harness.directory)
         await store.load()
         #expect(await store.hidden.isEmpty)
-        #expect(await store.state.order.isEmpty)
+        #expect(await store.state.order == model.order)
         await plugin.deactivate()
     }
 

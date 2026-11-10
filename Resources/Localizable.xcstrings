@@ -13915,20 +13915,20 @@
         }
       }
     },
-    "Every window is put back first, then the workspaces are forgotten. This can’t be undone." : {
+    "Every window is put back first, then the workspaces and layouts start over: each window joins the workspace shown on its display. This can’t be undone." : {
       "comment" : "Window Management confirmation text",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Every window is put back first, then the workspaces are forgotten. This can’t be undone."
+            "value" : "Every window is put back first, then the workspaces and layouts start over: each window joins the workspace shown on its display. This can’t be undone."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Najpierw wszystkie okna wrócą na miejsce, potem obszary robocze zostaną zapomniane. Tej operacji nie można cofnąć."
+            "value" : "Najpierw wszystkie okna wrócą na miejsce, potem obszary robocze i układy zaczną od nowa: każde okno trafi do obszaru widocznego na jego ekranie. Tej operacji nie można cofnąć."
           }
         }
       }

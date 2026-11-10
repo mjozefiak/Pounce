@@ -24,14 +24,16 @@ extension WindowsRuntime {
         return report
     }
 
-    /// *Reset state*: puts every window back first, then forgets the membership, the layouts and the assignments.
-    /// The journal is never forgotten (`StateStore.reset`): a window that is still parked, or parked after the
-    /// restore, can always be put back; the restore HUD has said what is still parked.
+    /// *Reset state*: puts every window back first, then starts over: the stored membership and layouts (the disk
+    /// first, then the running engine, whose reset writes its new membership and layouts over the cleared file) and
+    /// the layout assignments. Every window joins the workspace shown on its display again. The journal is never
+    /// forgotten (`StateStore.reset`): a window that is still parked, or parked after the restore, can always be
+    /// put back; the restore HUD has said what is still parked.
     func resetState() async {
         await restoreAllWindows()
         do { try await store.reset() } catch { context.logger.error("Cannot reset state.json") }
-        // The layouts the user chose per workspace and display are part of the state that is forgotten.
         do { try await assignments.reset() } catch { context.logger.error("Cannot reset assignments.json") }
+        await engine.send(.resetState)
         await applySettings()
     }
 

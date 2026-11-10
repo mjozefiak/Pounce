@@ -4,6 +4,14 @@ import LintelKit
 
 // MARK: Registry
 
+/// The kinds of the standard strategies (`LayoutRegistry.standard`); they are the raw values of the stored settings and
+/// state keys, so they never change.
+extension LayoutKind {
+    static let tiling = LayoutKind("tiling")
+    static let zones = LayoutKind("zones")
+    static let free = LayoutKind("free")
+}
+
 /// The strategies of this build, by kind. The reducer and the engine take it as an argument, so a test can pass a
 /// registry of its own.
 struct LayoutRegistry: Sendable {
@@ -15,7 +23,7 @@ struct LayoutRegistry: Sendable {
 
     /// Kind names that cannot be used: they are keys of a workspace record in `state.json` next to the per-kind
     /// state.
-    static let reservedKindNames: Set<String> = ["order"]
+    static let reservedKindNames: Set<String> = ["order", WorkspaceOverrides.useDefaultKindName]
 
     /// A strategy whose kind is reserved (or repeats an earlier one), or one of whose option ids repeats an earlier
     /// id (or is `kind`, the key of an override record), is left out: it could not be stored safely.

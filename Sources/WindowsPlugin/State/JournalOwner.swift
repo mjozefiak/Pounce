@@ -68,6 +68,7 @@ actor JournalOwner {
     /// Waits until the journal is free, at most `budget` on `clock`, and says whether it is. The wait that gave up is
     /// cancelled and gone from the queue when this returns (nothing stays parked after a timeout).
     func waitUntilIdle(within budget: Duration, clock: any Clock<Duration>) async -> Bool {
+        if phase == .idle { return true }
         let waiting = Task { await self.waitUntilIdle() }
         let idle = await withDeadline(budget, clock: clock) { await waiting.value } != nil
         waiting.cancel()
@@ -109,6 +110,23 @@ actor JournalOwner {
             wake()
             return .ran(value)
         }
+    }
+
+    /// `exclusive`, but a caller that has to wait for another pass gives up after `budget` on `clock` and gets
+    /// `.cancelled`: a recovery stuck on a hung app cannot hold the caller up (Erase Data, *Restore all windows*).
+    /// The bound applies to the wait only: a pass that gets its turn runs its body to the end.
+    func exclusive<Value: Sendable>(
+        within budget: Duration, clock: any Clock<Duration>, _ body: @escaping @Sendable (StateStore) async -> Value
+    ) async -> Pass<Value> {
+        // Nothing to wait for unless another pass is running: then the call is the pass itself (or an answer that the
+        // engine owns the journal) and the bound is not needed.
+        guard phase == .recovering else { return await exclusive(body) }
+        let attempt = Task { await self.exclusive(body) }
+        guard let pass = await withDeadline(budget, clock: clock, { await attempt.value }) else {
+            attempt.cancel()
+            return .cancelled
+        }
+        return pass
     }
 
     /// True once per launch of the app: a retry of the same launch is not a launch.

@@ -22,10 +22,6 @@ struct LayoutKind: RawRepresentable, Hashable, Codable, Sendable {
         try container.encode(rawValue)
     }
 
-    static let tiling = LayoutKind("tiling")
-    static let zones = LayoutKind("zones")
-    static let free = LayoutKind("free")
-
 }
 
 /// The overrides of one workspace; every field that is `nil` or absent falls back to the global default (Q17).
@@ -152,7 +148,9 @@ struct WorkspaceOverrides: Equatable, Sendable {
             for (name, value) in entry {
                 if name == Self.kindKey {
                     // "default" is what an earlier build stored for "use the default": no override.
-                    if case .string(let kind) = value, kind != "default" { override.kind = LayoutKind(kind) }
+                    if case .string(let kind) = value, kind != Self.useDefaultKindName {
+                        override.kind = LayoutKind(kind)
+                    }
                 } else if value != .null {
                     override.options[name] = value
                 }
@@ -162,6 +160,8 @@ struct WorkspaceOverrides: Equatable, Sendable {
     }
 
     static let kindKey = "kind"
+    /// What the kind picker's "use the default" is called; it is never a kind (`LayoutRegistry.reservedKindNames`).
+    static let useDefaultKindName = "default"
 
     /// The JSON to store; empty overrides give an empty string (the setting is then cleared).
     var json: String {

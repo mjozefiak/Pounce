@@ -257,8 +257,7 @@ final class WindowsSettingsModel {
         } else {
             switch await restoreFromJournal() {
             case .ran(let report): hud.show(WindowsHUDState(report: report))
-            case .engineRunning, .engineStopping: hud.show(.stillStopping)
-            case .cancelled: break
+            case .engineRunning, .engineStopping, .cancelled: hud.show(.stillStopping)
             }
         }
         await refresh()

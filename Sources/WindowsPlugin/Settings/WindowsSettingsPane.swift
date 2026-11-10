@@ -5,7 +5,7 @@ import SwiftUI
 /// Settings → Window Management on the `SettingsPane` template (prototype `set-windows`): Basics, a collapsed
 /// Advanced and Data. The banner is the host's, from `WindowsPlugin.settingsStatus`. Basics has the default layout
 /// kind, the *Layouts…* row that opens the Layouts window when a kind uses the layout library, and what each kind
-/// declares (`LayoutStrategy.options`, `LayoutSettingsProviding`).
+/// declares (`LayoutStrategy.options`, `SettingRowProviding`).
 struct WindowsSettingsPane: View {
     @Bindable var model: WindowsSettingsModel
     /// `false` while the plugin is off or failed: the pane then reads nothing and starts nothing.
@@ -17,7 +17,7 @@ struct WindowsSettingsPane: View {
     static let resetConfirmation = DestructiveConfirmation(
         prompt: LocalizedStringResource("Reset window state?", comment: "Window Management confirmation title"),
         detail: LocalizedStringResource(
-            "Every window is put back first, then the workspaces are forgotten. This can’t be undone.",
+            "Every window is put back first, then the workspaces and layouts start over: each window joins the workspace shown on its display. This can’t be undone.",
             comment: "Window Management confirmation text"),
         confirmTitle: LocalizedStringResource("Reset State", comment: "Window Management confirmation button"))
 

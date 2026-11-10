@@ -212,6 +212,9 @@ enum EngineCommand: Equatable, Sendable {
     case bringWindowHere(WindowID)
     /// Puts every parked window back and unfreezes the engine.
     case restoreAll
+    /// *Reset state*: puts every parked window back, forgets the workspace membership and the layout states, and
+    /// gives every window to the workspace shown on its display again. The journal is never touched.
+    case resetState
     /// Takes the focused window out of tiling, or puts it back in.
     case toggleFloating
     /// A command of the layout kind of the window's workspace (the focused window when `on` is `nil`): the engine

@@ -60,9 +60,9 @@ final class WindowsRuntime: WindowSwitching {
     private(set) var engineConfig: EngineConfig
     /// Called when Accessibility is granted, before windows are restored (the plugin re-runs the self-check).
     var onTrustGranted: () async -> Void = {}
-    /// The newest problem the engine reported, for the Settings banner.
     /// Where the runtime is in its one life (`WindowsRuntime+Lifecycle.swift`).
     var phase = Phase.idle
+    /// The newest problem the engine reported, for the Settings banner.
     var engineBanner: EngineBanner?
     /// Windows put back by *Restore all windows*, a re-grant and a Space change in this session (diagnostics).
     var recoveredWindows = 0
