@@ -9,15 +9,15 @@ extension WindowsPlugin {
         let settings = settings
         return LayoutsWindowController(
             makeModel: { [weak self] in
-            guard let self else { return nil }
-            return LayoutsModel(
-                pane: paneModel, displays: { [client = context.windows] in await client.displays() },
-                identify: { [identifier] display in identifier.show(display) },
-                openEditor: { [weak self] layout, isNew, onSaved in
-                    guard let self else { return }
-                    openEditor(layout: layout, isNew: isNew, parent: layoutsWindow.window, onSaved: onSaved)
-                },
-                files: AppKitLayoutFiles())
+                guard let self else { return nil }
+                return LayoutsModel(
+                    pane: paneModel, displays: { [client = context.windows] in await client.displays() },
+                    identify: { [identifier] display in identifier.show(display) },
+                    openEditor: { [weak self] layout, isNew, onSaved in
+                        guard let self else { return }
+                        openEditor(layout: layout, isNew: isNew, parent: layoutsWindow.window, onSaved: onSaved)
+                    },
+                    files: AppKitLayoutFiles())
             },
             loadFrame: { settings.layoutsWindowFrame }, saveFrame: { settings.setLayoutsWindowFrame($0) })
     }
