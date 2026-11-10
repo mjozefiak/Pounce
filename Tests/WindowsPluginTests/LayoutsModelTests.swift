@@ -1,6 +1,7 @@
 import CoreGraphics
 import Foundation
 import LintelKit
+import SwiftUI
 import Testing
 
 @testable import WindowsPlugin
@@ -304,5 +305,19 @@ import Testing
         let settings = WindowsSettings(rig.harness.pluginSettings)
         #expect(settings.defaultZoneLayout(for: .portrait) == StockLayouts.focus)
         #expect(rig.model.zonesConfig.defaultLandscape == StockLayouts.columns3)
+    }
+
+    /// QA: arrows and ⌫ did not respond on a real desktop (only a digit did). The model's reaction to each key is
+    /// tested above; this pins the view's table from a pressed key to that key, arrows and delete included.
+    @Test func theViewsKeyTableMapsArrowsDeleteAndDigitsAndIgnoresModifiedKeys() {
+        func key(_ key: KeyEquivalent, _ characters: String = "", _ modifiers: EventModifiers = []) -> MatrixKey? {
+            LayoutsWindowView.matrixKey(key: key, characters: characters, modifiers: modifiers)
+        }
+        #expect(key(.leftArrow) == .left && key(.rightArrow) == .right)
+        #expect(key(.upArrow) == .up && key(.downArrow) == .down)
+        #expect(key(.delete) == .clear && key(.deleteForward) == .clear)
+        #expect(key(KeyEquivalent("3"), "3") == .layout(3))
+        #expect(key(KeyEquivalent("3"), "3", .command) == nil)
+        #expect(key(KeyEquivalent("x"), "x") == nil)
     }
 }

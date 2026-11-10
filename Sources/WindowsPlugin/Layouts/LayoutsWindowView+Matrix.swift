@@ -62,14 +62,19 @@ extension LayoutsWindowView {
 
     /// The keyboard table: arrows move, ⌫ gives the cell back to the default, 1 to 6 pick a stock layout.
     static func matrixKey(for press: KeyPress) -> MatrixKey? {
-        switch press.key {
+        matrixKey(key: press.key, characters: press.characters, modifiers: press.modifiers)
+    }
+
+    /// The table on plain values (a `KeyPress` cannot be built in a test).
+    static func matrixKey(key: KeyEquivalent, characters: String, modifiers: EventModifiers) -> MatrixKey? {
+        switch key {
         case .leftArrow: return .left
         case .rightArrow: return .right
         case .upArrow: return .up
         case .downArrow: return .down
         case .delete, .deleteForward: return .clear
         default:
-            guard press.modifiers.isEmpty, let digit = Int(press.characters) else { return nil }
+            guard modifiers.isEmpty, let digit = Int(characters) else { return nil }
             return .layout(digit)
         }
     }

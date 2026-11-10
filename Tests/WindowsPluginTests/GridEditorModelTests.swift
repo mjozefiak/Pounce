@@ -90,6 +90,29 @@ private final class RecordingPreview: ZoneOverlayPresenting {
         check("select one")
     }
 
+    /// QA: Shift+Tab from a divider once landed on the zone list. The canvas keeps the key until the first element of
+    /// its own loop: from the first divider it goes back to the last zone; only Shift+Tab on the first zone leaves.
+    @Test func shiftTabFromADividerWalksBackThroughTheCanvasAndOnlyTheFirstZoneLeavesIt() async throws {
+        let rig = try await rig()
+        defer { try? FileManager.default.removeItem(at: rig.directory) }
+        let model = rig.model
+        let order = model.state.focusOrder
+        let firstDivider = try #require(order.first { if case .divider = $0 { true } else { false } })
+        let lastZone = try #require(order.last { if case .zone = $0 { true } else { false } })
+        // Walk forward with Tab from the first zone until the first divider has the focus.
+        for _ in 0..<order.count where model.focus != firstDivider { #expect(model.handle(.tab)) }
+        #expect(model.focus == firstDivider)
+        #expect(model.handle(.backTab))
+        #expect(model.focus == lastZone)
+        // Back to the start of the loop: Shift+Tab on the first element passes on.
+        for _ in 0..<order.count where model.focus != order.first { #expect(model.handle(.backTab)) }
+        #expect(model.focus == order.first)
+        #expect(!model.handle(.backTab))
+        // Tab on the last element passes on the same way.
+        for _ in 0..<order.count where model.focus != order.last { #expect(model.handle(.tab)) }
+        #expect(!model.handle(.tab))
+    }
+
     @Test func theZoneListReadsLikeTheSpec() async throws {
         let rig = try await rig()
         defer { try? FileManager.default.removeItem(at: rig.directory) }
