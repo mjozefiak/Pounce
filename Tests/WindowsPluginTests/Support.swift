@@ -1,5 +1,6 @@
 import Foundation
 import LintelKit
+import Testing
 import os
 
 @testable import WindowsPlugin
@@ -222,11 +223,19 @@ extension EngineReducer {
 }
 
 extension JournalOwner {
-    /// Takes the journal, waiting for whoever holds it (tests that do not bound the wait).
-    func acquireLease() async -> UInt64 {
+    /// Takes the journal, waiting for whoever holds it, at most `limit` of real time: after that an Issue is recorded
+    /// (the test fails) and 0 is returned, instead of waiting for ever.
+    func acquireLease(limit: Duration = .seconds(30), sourceLocation: SourceLocation = #_sourceLocation) async
+        -> UInt64
+    {
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: limit)
         while true {
             if let lease = tryBeginEngine() { return lease }
-            await waitUntilIdle()
+            let remaining = clock.now.duration(to: deadline)
+            if remaining > .zero, await waitUntilIdle(within: remaining, clock: clock) { continue }
+            Issue.record("the journal was not free within \(limit)", sourceLocation: sourceLocation)
+            return 0
         }
     }
 }

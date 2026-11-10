@@ -60,7 +60,7 @@ actor WindowEngine {
     /// per process and pruned to the apps that are in `unknownApps` now: an app that answers (or is gone) and is
     /// unknown again later starts at 0, and one first seen later starts at 0 whatever the others used up.
     private var untrackedAttempts: [Int32: Int] = [:]
-    /// After this many looks the engine stops waiting for one such app (about three minutes with the backoff): an
+    /// After this many looks the engine stops waiting for one such app (the backoff is shared by every app being waited on, so about three minutes only for the first app: 5, 10, 20, 40, 60 and 60 s; an app that joins later is looked at on the schedule already running, and each app still gets its own 6 looks): an
     /// app that never answers must not be polled for ever. The looks share one backoff schedule; an app that is no
     /// longer unknown (an event from it, or a snapshot that sees it) and unknown again starts over.
     static let untrackedRetryLimit = 6

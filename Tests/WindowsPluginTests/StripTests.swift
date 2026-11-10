@@ -325,6 +325,17 @@ import Testing
         #expect(
             !StripVisibility.hasRoom(
                 state(CGRect(x: 0, y: 0, width: 98, height: 30), screen: false, visible: false), screens: screens))
+        // QA pass 5: at rest with an auto-hidden bar the frame has height 0, but the window is visible on a screen.
+        #expect(
+            StripVisibility.hasRoom(
+                StripItemState(frame: CGRect(x: 4291, y: 1410, width: 98, height: 0), hasScreen: true, isVisible: true),
+                screens: screens))
+        // Zero height without the window saying it is placed: not enough.
+        #expect(
+            !StripVisibility.hasRoom(
+                StripItemState(
+                    frame: CGRect(x: 4291, y: 1410, width: 98, height: 0), hasScreen: false, isVisible: false),
+                screens: screens))
         // No window, no size, or dropped sideways with no screen.
         #expect(!StripVisibility.hasRoom(nil, screens: screens))
         #expect(!StripVisibility.hasRoom(state(CGRect(x: 4291, y: 1410, width: 0, height: 30)), screens: screens))

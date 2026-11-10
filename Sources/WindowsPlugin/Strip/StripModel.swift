@@ -163,8 +163,11 @@ enum StripVisibility {
     /// one that slides with an auto-hidden bar, has an odd frame). Only an item with no size, or one placed off every
     /// screen sideways and reporting none, has no room.
     static func hasRoom(_ item: StripItemState?, screens: [CGRect]) -> Bool {
-        guard let item, let frame = item.frame, frame.width > 1, frame.height > 1 else { return false }
-        if item.isVisible && item.hasScreen { return true }
+        guard let item, let frame = item.frame else { return false }
+        // The window's own state first: an item at rest with an auto-hidden menu bar has a frame of height 0 (QA
+        // pass 5: (4291, 1410, 98, 0), visible, on a screen), and it is placed and clickable.
+        if item.isVisible && item.hasScreen && frame.width > 1 { return true }
+        guard frame.width > 1, frame.height > 1 else { return false }
         return hasRoom(itemFrame: frame, screens: screens)
     }
 }

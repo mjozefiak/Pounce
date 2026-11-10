@@ -4,7 +4,9 @@ Lintel is a native app that reads the clipboard, indexes files and stores a key 
 QA runs (manual or agent-driven) must never touch the tester's real data. DEBUG builds therefore
 accept launch arguments that isolate a run; release builds compile the parsing out
 (`Sources/LintelApp/QA/QAOptions.swift` is wrapped in `#if DEBUG`), so the arguments do nothing in a
-shipped app.
+shipped app. The QA bundle itself is guarded the same way: `Sources/LintelApp/QA/QAIdentityGuard.swift` (DEBUG only) makes
+`Lintel-QA` refuse to start without a `--qa…` argument, before anything is created or read, because its Keychain
+services and data folder are not derived from the bundle id.
 
 ## Launching
 
