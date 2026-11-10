@@ -12,7 +12,7 @@ import Testing
 
     /// Strings that read the same in English and Polish (symbols and format-only text).
     private static let sameInBothLanguages: Set<String> = [
-        "%@: %@", "%@", "%lld%%", "%lld pt", "Esc", "⌘S",
+        "%@: %@", "%@", "%lld%%", "%lld pt", "Esc", "⌘S", "x", "y",
     ]
 
     struct Entry {
@@ -26,7 +26,7 @@ import Testing
     /// The first string literal of each localized call in `text`, `verbatim:` calls excluded.
     static func literals(in text: String) -> [String] {
         let pattern =
-            #"(?:String\(\s*localized:\s*|\b(?:Text|Button|Label|Toggle|LocalizedStringResource|LocalizedStringKey)\(\s*)"((?:[^"\\]|\\.)*)""#
+            #"(?:String\(\s*localized:\s*|\b(?:Text|Button|Label|Toggle|LocalizedStringResource|LocalizedStringKey|Picker|Stepper|LabeledContent|TextField|SecureField|Section|Menu|GroupBox|DisclosureGroup|Link|Slider|ProgressView|Gauge|field)\(\s*|\.(?:accessibilityLabel|accessibilityHint|accessibilityValue|help|navigationTitle)\(\s*)"((?:[^"\\]|\\.)*)""#
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
         let range = NSRange(text.startIndex..., in: text)
         return regex.matches(in: text, range: range).compactMap { match in
@@ -143,6 +143,33 @@ import Testing
             """
         #expect(
             Self.literals(in: text) == ["Wrapped", "Plain", "Labelled", "Resource key", "Another", "Key"])
+    }
+
+    /// Round 16 D6: "width" and "height" stayed English in the Polish editor because they went through a helper's
+    /// `LocalizedStringResource` parameter, which the scanner did not look at. Every other call form that takes a
+    /// localizable literal is scanned too.
+    @Test func theScannerSeesHelpersPickersFieldsAndAccessibilityModifiers() {
+        let text = """
+            field("width", value: 1) {}
+            Picker("Kind", selection: $x) {}
+            Stepper("Count", value: $n)
+            LabeledContent("Row") {}
+            TextField("Prompt", text: $t)
+            Section("Heading") {}
+            Menu("Choices") {}
+            DisclosureGroup("More") {}
+            .accessibilityLabel("Spoken label")
+            .accessibilityHint("Spoken hint")
+            .help("Tooltip")
+            .navigationTitle("Title")
+            Text(verbatim: "Skipped")
+            .accessibilityIdentifier("skipped.id")
+            """
+        #expect(
+            Self.literals(in: text) == [
+                "width", "Kind", "Count", "Row", "Prompt", "Heading", "Choices", "More", "Spoken label", "Spoken hint",
+                "Tooltip", "Title",
+            ])
     }
 
     @Test func aMissingUntranslatedEmptyOrEchoedKeyIsCaughtAndKnownOnesPass() {

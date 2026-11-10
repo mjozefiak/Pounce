@@ -13363,6 +13363,78 @@
         }
       }
     },
+    "x" : {
+      "comment" : "Layout editor: the left edge of a zone, in percent",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "x"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "x"
+          }
+        }
+      }
+    },
+    "y" : {
+      "comment" : "Layout editor: the top edge of a zone, in percent",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "y"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "y"
+          }
+        }
+      }
+    },
+    "width" : {
+      "comment" : "Layout editor: the width of a zone, in percent",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "width"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "szerokość"
+          }
+        }
+      }
+    },
+    "height" : {
+      "comment" : "Layout editor: the height of a zone, in percent",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "height"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "wysokość"
+          }
+        }
+      }
+    },
     "Windows are parked" : {
       "comment" : "Window HUD: windows are hidden and cannot be restored",
       "extractionState" : "manual",

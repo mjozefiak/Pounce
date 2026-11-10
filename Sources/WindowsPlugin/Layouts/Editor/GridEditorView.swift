@@ -207,10 +207,22 @@ struct GridEditorView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(verbatim: row.spoken).font(textSize.font(.caption1)).foregroundStyle(LintelBrand.secondaryText)
             HStack(spacing: 6) {
-                field("x", value: row.x) { model.setEdge(.left, ofZone: row.id, percent: $0) }
-                field("y", value: row.y) { model.setEdge(.top, ofZone: row.id, percent: $0) }
-                field("width", value: row.width) { model.setEdge(.right, ofZone: row.id, percent: row.x + $0) }
-                field("height", value: row.height) { model.setEdge(.bottom, ofZone: row.id, percent: row.y + $0) }
+                field(
+                    LocalizedStringResource("x", comment: "Layout editor: the left edge of a zone, in percent"),
+                    value: row.x
+                ) { model.setEdge(.left, ofZone: row.id, percent: $0) }
+                field(
+                    LocalizedStringResource("y", comment: "Layout editor: the top edge of a zone, in percent"),
+                    value: row.y
+                ) { model.setEdge(.top, ofZone: row.id, percent: $0) }
+                field(
+                    LocalizedStringResource("width", comment: "Layout editor: the width of a zone, in percent"),
+                    value: row.width
+                ) { model.setEdge(.right, ofZone: row.id, percent: row.x + $0) }
+                field(
+                    LocalizedStringResource("height", comment: "Layout editor: the height of a zone, in percent"),
+                    value: row.height
+                ) { model.setEdge(.bottom, ofZone: row.id, percent: row.y + $0) }
             }
         }
     }
