@@ -1,6 +1,8 @@
 import CoreGraphics
 import Foundation
 import LintelKit
+import LintelUI
+import struct SwiftUI.Binding
 import Testing
 
 @testable import WindowsPlugin
@@ -193,6 +195,26 @@ private final class EditorLog {
         // The cell now shows the display default.
         let display = try #require(rig.model.displays.first)
         #expect(rig.model.cell(workspace: ws(1), display: display).label == "Columns 2 · default")
+    }
+
+    /// QA N1: confirming Delete did nothing. The sheet runs the confirm (which only queues the work) and then closes,
+    /// and the binding's setter clears `pendingDelete` before the queued work runs. This runs the same two steps in
+    /// the same order, with the view's own binding and handler and LintelUI's real `confirmThenClose`.
+    @Test func confirmingTheDeleteSheetDeletesEvenThoughClosingItClearsThePendingDeletion() async throws {
+        let rig = try await rig()
+        defer { Task { await finish(rig) } }
+        let mine = try await make(rig, "Coding")
+        await rig.model.setLayout(mine.id, workspace: ws(1), displayKey: "MAIN")
+        rig.model.selectedLayoutID = mine.id
+        rig.model.requestDelete()
+        let model = rig.model
+        let isPresented = Binding(
+            get: { model.pendingDelete != nil }, set: { if !$0 { model.pendingDelete = nil } })
+        confirmThenClose(isPresented: isPresented) { LayoutsWindowView.confirmDeletion(of: model) }()
+        #expect(model.pendingDelete == nil)
+        await model.actions.waitUntilEmpty()
+        #expect(model.userLayouts.isEmpty)
+        #expect(model.table.layoutID(workspace: ws(1), displayKey: "MAIN") == nil)
     }
 
     @Test func deletingAnUnusedLayoutSaysNothingUsesIt() async throws {

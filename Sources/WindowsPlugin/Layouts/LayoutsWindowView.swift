@@ -26,7 +26,7 @@ struct LayoutsWindowView: View {
                 get: { model.pendingDelete != nil }, set: { if !$0 { model.pendingDelete = nil } }),
             model.pendingDelete?.confirmation ?? Self.noDeletion
         ) {
-            model.actions.enqueue { await model.confirmDelete() }
+            Self.confirmDeletion(of: model)
         }
         .sheet(isPresented: $model.isRenaming) {
             RenameLayoutSheet(
@@ -49,6 +49,13 @@ struct LayoutsWindowView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)) {
             _ in model.actions.enqueue { await model.refresh() }
         }
+    }
+
+    /// The click on the sheet's confirm button: the deletion is read now, because the sheet closing (which comes next)
+    /// clears the pending one before the queued work runs (QA N1: Delete did nothing).
+    static func confirmDeletion(of model: LayoutsModel) {
+        let deletion = model.pendingDelete
+        model.actions.enqueue { await model.confirmDelete(deletion) }
     }
 
     private static let noDeletion = DestructiveConfirmation(

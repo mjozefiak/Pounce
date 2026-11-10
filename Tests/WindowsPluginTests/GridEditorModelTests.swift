@@ -1,6 +1,8 @@
 import CoreGraphics
 import Foundation
 import LintelKit
+import LintelUI
+import struct SwiftUI.Binding
 import Testing
 
 @testable import WindowsPlugin
@@ -110,6 +112,25 @@ private final class RecordingPreview: ZoneOverlayPresenting {
         #expect(stored[0].name == "Coding")
         #expect(stored[0].zones.count == 3)
         #expect(rig.saved.layouts == stored)
+        #expect(rig.closed.count == 1)
+    }
+
+    /// The editor's discard sheet runs through the same `confirmThenClose`: the confirm is synchronous, so closing the
+    /// sheet afterwards (which clears `confirmingDiscard`) cannot undo it.
+    @Test func confirmingTheDiscardSheetClosesTheEditorAndCancelKeepsItOpen() async throws {
+        let rig = try await rig()
+        defer { try? FileManager.default.removeItem(at: rig.directory) }
+        let model = rig.model
+        model.setSpacing(20)
+        model.cancel()
+        #expect(model.confirmingDiscard)
+        let isPresented = Binding(get: { model.confirmingDiscard }, set: { model.confirmingDiscard = $0 })
+        // Cancel only closes the sheet.
+        isPresented.wrappedValue = false
+        #expect(rig.closed.count == 0)
+        model.cancel()
+        confirmThenClose(isPresented: isPresented) { model.discard() }()
+        #expect(!model.confirmingDiscard)
         #expect(rig.closed.count == 1)
     }
 

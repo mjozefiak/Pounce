@@ -217,8 +217,11 @@ extension LayoutsModel {
         )
     }
 
-    func confirmDelete() async {
-        guard let deletion = pendingDelete, let runtime = pane.runtime() else { return }
+    /// Deletes the layout the question was about. The sheet clears `pendingDelete` as it closes, which happens before
+    /// this runs (the click only queues it), so the confirm takes the deletion with it: `deletion` is what the view
+    /// read at the click; without one the pending deletion is used.
+    func confirmDelete(_ deletion: LayoutDeletion? = nil) async {
+        guard let deletion = deletion ?? pendingDelete, let runtime = pane.runtime() else { return }
         pendingDelete = nil
         await run {
             _ = try await $0.delete(deletion.layoutID, assignments: runtime.assignments)
