@@ -329,6 +329,10 @@ actor WindowEngine {
     /// budget and the tick alone is 30 ms of it); the moves that follow are coalesced as usual.
     func ingest(_ event: WindowEvent) {
         guard !stopped else { return }
+        #if DEBUG
+        if case .moved = event { DragTrace.begin() }
+        DragTrace.mark("ingest")
+        #endif
         coalescer.insert(event)
         guard flushEnabled else { return }
         if flushTask == nil, startsSnapDrag(event) {
@@ -399,12 +403,18 @@ actor WindowEngine {
             flushesRunning -= 1
             resumeWaiters()
         }
+        #if DEBUG
+        DragTrace.mark("flushStart")
+        #endif
         let moment = time.now()
         lastFlushAt = moment
         let time = time
         let inputs = await translator.inputs(
             for: events, state: state, moment: moment, now: { time.now() },
             onSpaceChange: { [weak self] in await self?.restoreVisibleResidue() })
+        #if DEBUG
+        DragTrace.mark("read")
+        #endif
         // Not waited for: a flush must never sit behind a hung app, or later events would queue behind it.
         guard !stopped else { return }
         trackUnknown(in: inputs)

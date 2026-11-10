@@ -35,6 +35,8 @@ struct WindowsSettings: Sendable {
         static let qaOpenLayouts = "qaOpenLayouts"
         /// Hidden, DEBUG builds only (QA): the overlay panels can be captured (`ScreenCapture`).
         static let qaCapturable = "qaCapturable"
+        /// Hidden, DEBUG builds only (QA): a file the snap-drag timing trace is appended to (`DragTrace`).
+        static let qaDragTrace = "qaDragTrace"
         #endif
     }
 
@@ -145,6 +147,7 @@ struct WindowsSettings: Sendable {
     #if DEBUG
     var qaOpenLayouts: Bool { settings.bool(Key.qaOpenLayouts, default: false) }
     var qaCapturable: Bool { settings.bool(Key.qaCapturable, default: false) }
+    var qaDragTrace: String? { settings.string(Key.qaDragTrace) }
     #endif
     var snapHintShown: Bool { settings.bool(Key.snapHintShown, default: false) }
     var parkedLaunches: Int { max(0, settings.integer(Key.parkedLaunches, default: 0)) }

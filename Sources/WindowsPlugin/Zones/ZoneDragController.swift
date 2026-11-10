@@ -159,7 +159,14 @@ final class ZoneDragController {
             return
         }
         apply(effects)
+        #if DEBUG
+        DragTrace.mark("targets")
+        #endif
         presenter.show(displays)
+        #if DEBUG
+        DragTrace.mark("overlayShown")
+        DragTrace.finish()
+        #endif
         presenter.highlight(machine.highlighted)
     }
 }

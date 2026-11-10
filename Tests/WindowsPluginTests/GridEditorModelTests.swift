@@ -2,8 +2,9 @@ import CoreGraphics
 import Foundation
 import LintelKit
 import LintelUI
-import struct SwiftUI.Binding
 import Testing
+
+import struct SwiftUI.Binding
 
 @testable import WindowsPlugin
 

@@ -111,6 +111,9 @@ final class WindowsRuntime: WindowSwitching {
             engineBanner = banner
             context.resultsChanged()
         case .windowMoved(let id, let frame):
+            #if DEBUG
+            DragTrace.mark("reportedOnMain")
+            #endif
             dragController?.windowMoved(id, frame: frame)
         case .restored(let report):
             hud.show(WindowsHUDState(report: report))

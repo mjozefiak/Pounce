@@ -79,6 +79,8 @@ import Testing
         panels.show([DragDisplay(key: "A", area: CGRect(x: 0, y: 0, width: 1000, height: 600), zones: [zone])])
         #expect(panels.panels.count == 1)
         for panel in panels.panels {
+            // No fade-in: the overlay is there at once.
+            #expect(panel.animationBehavior == .none)
             #expect(panel.sharingType == .none)
             #expect(panel.ignoresMouseEvents)
             #expect(!panel.canBecomeKey && !panel.canBecomeMain)

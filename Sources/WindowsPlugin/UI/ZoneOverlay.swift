@@ -239,6 +239,8 @@ final class ZoneOverlayPanels: ZoneOverlayPresenting {
         panel.isFloatingPanel = true
         panel.ignoresMouseEvents = true
         panel.sharingType = ScreenCapture.sharingType
+        // No fade-in: the overlay is there at once (a utility panel fades in over about 150 ms by default).
+        panel.animationBehavior = .none
         panel.isReleasedWhenClosed = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient, .ignoresCycle]
         let model = ZoneOverlayModel()
