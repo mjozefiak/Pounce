@@ -137,6 +137,14 @@ public struct SettingsStatus: Sendable {
     }
 }
 
+/// An error from `LintelPlugin.activate()` that brings its own Settings banner. The host marks the plugin `failed`
+/// as for any error, but shows this status (level, title, detail, buttons) instead of the generic "This feature
+/// couldn't start" one, for a failure that has an accurate, specific explanation (Window Management's safe mode).
+/// Additive: an error that does not conform keeps the generic banner.
+public protocol PluginFailureStatus: Error {
+    var failureStatus: SettingsStatus { get }
+}
+
 /// The kind of a downloadable model. An open set: a new kind is a new static value.
 public struct ModelKind: RawRepresentable, Hashable, Sendable {
     public let rawValue: String

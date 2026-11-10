@@ -247,6 +247,7 @@ struct GridEditorState: Equatable, Sendable {
         next.zones[at] = left
         next.zones.insert(right, at: at + 1)
         selection = [id]
+        focus = .zone(id)
         commit(next)
         return .success(())
     }
@@ -410,6 +411,9 @@ struct GridEditorState: Equatable, Sendable {
         }
         let next = forward ? (index + 1) % order.count : (index + order.count - 1) % order.count
         focus = order[next]
+        // The list marks the zone the detail shows: walking onto a zone selects it alone (QA D7: the list marked
+        // Zone 2 while the detail line showed Zone 1).
+        if case .zone(let id) = order[next] { selection = [id] }
     }
 
     // MARK: Keys

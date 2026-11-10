@@ -277,7 +277,12 @@ final class GridEditorModel {
 
     func toggleSelection(zone id: Int) {
         state.toggleSelection(zone: id)
-        state.focus = .zone(id)
+        // The detail follows the selection: the zone just added, or else one that is still selected.
+        if state.selection.contains(id) {
+            state.focus = .zone(id)
+        } else if let first = state.layout.zones.first(where: { state.selection.contains($0.id) }) {
+            state.focus = .zone(first.id)
+        }
         refreshPreview()
     }
 

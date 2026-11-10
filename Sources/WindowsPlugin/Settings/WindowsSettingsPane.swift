@@ -25,7 +25,8 @@ struct WindowsSettingsPane: View {
         SettingsPane(
             basics: {
                 Section {
-                    if let failure = model.startFailure() { failureRow(failure) }
+                    // Safe mode is explained by the host's banner (`StartError.failureStatus`), once.
+                    if let failure = model.startFailure(), failure != .safeMode { failureRow(failure) }
                     basics
                 } header: {
                     Text("Basics", comment: "Settings pane section title: the main settings of a pane")

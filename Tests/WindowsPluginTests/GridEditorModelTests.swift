@@ -52,6 +52,41 @@ private final class RecordingPreview: ZoneOverlayPresenting {
             model: model, preview: preview, repository: repository, directory: directory, closed: closed, saved: saved)
     }
 
+    /// QA D7: the list highlighted Zone 2 while the detail line showed Zone 1. The detail shows the focused zone and
+    /// the list marks the selection, so whenever the focus is a zone and something is selected, the focused zone is
+    /// selected.
+    @Test func theListMarksTheZoneTheDetailShowsAfterEveryKindOfMove() async throws {
+        let rig = try await rig()
+        defer { try? FileManager.default.removeItem(at: rig.directory) }
+        let model = rig.model
+        func check(_ step: String) {
+            guard case .zone(let id)? = model.focus, !model.selection.isEmpty else { return }
+            #expect(model.selection.contains(id), "after \(step): focus \(id), selection \(model.selection)")
+        }
+        model.divide(zone: 2, axis: .horizontal)
+        check("divide by zone")
+        _ = model.handle(.tab)
+        check("tab")
+        _ = model.handle(.tab)
+        check("tab again")
+        _ = model.handle(.backTab)
+        check("back tab")
+        model.toggleSelection(zone: 1)
+        check("toggle on")
+        model.toggleSelection(zone: 1)
+        check("toggle off")
+        model.setSelection([2, 3])
+        check("select two")
+        _ = model.handle(.divide)
+        check("divide by key")
+        _ = model.handle(.tab)
+        _ = model.handle(.tab)
+        _ = model.handle(.tab)
+        check("tab through")
+        model.setSelection([1])
+        check("select one")
+    }
+
     @Test func theZoneListReadsLikeTheSpec() async throws {
         let rig = try await rig()
         defer { try? FileManager.default.removeItem(at: rig.directory) }

@@ -47,7 +47,8 @@ enum StatusDerivation {
         host: HostState,
         pluginStatus: () -> SettingsStatus?,
         required: [Permission],
-        permission: (Permission) -> PermissionStatus
+        permission: (Permission) -> PermissionStatus,
+        failureStatus: SettingsStatus? = nil
     ) -> Banner? {
         switch host {
         case .changing:
@@ -62,6 +63,13 @@ enum StatusDerivation {
                         title: LocalizedStringResource("Turn On", comment: "Settings banner button: turns a plugin on"),
                         destination: .enablePlugin)
                 ])
+        case .failed where failureStatus != nil:
+            // The failure brought its own banner (`PluginFailureStatus`): shown as the plugin gave it.
+            let status = failureStatus
+            return Banner(
+                level: status?.level ?? .error, title: status.map { String(localized: $0.title) } ?? "",
+                detail: status?.detail.map { String(localized: $0) },
+                actions: Array((status?.fix ?? []).prefix(maximumActions)))
         case .failed:
             return Banner(
                 level: .error,
