@@ -205,29 +205,34 @@ private final class RecordingPreview: ZoneOverlayPresenting {
         #expect(model.message == nil)
     }
 
+    @MainActor final class Finished {
+        var count = 0
+    }
+
     @Test func aRefusalDisappearsAfterItsLifetimeButAnOlderTimerDoesNotTakeDownANewerMessage() async throws {
         let gate = SleepGate()
         let rig = try await rig(sleep: { await gate.sleep($0) })
         defer { try? FileManager.default.removeItem(at: rig.directory) }
         let model = rig.model
-        let finished = Box<Int>()
-        await finished.set(0)
-        model.messageTimerDidFinish = { Task { await finished.set(((await finished.value) ?? 0) + 1) } }
+        let finished = await Finished()
+        await MainActor.run { model.messageTimerDidFinish = { finished.count += 1 } }
         for _ in 0..<12 where model.message == nil {
             model.setSelection([model.layout.zones.last!.id])
             model.divideFocused(axis: .vertical)
         }
         let first = try #require(model.message)
-        await eventually("first timer armed") { gate.count == 1 }
-        // Another refusal replaces the message (a new lifetime starts), then the FIRST timer ends.
+        // However many timers refusals so far armed, a later refusal arms one more.
+        await eventually("a timer armed") { gate.count >= 1 }
+        let older = gate.count
         model.divideFocused(axis: .vertical)
-        await eventually("second timer armed") { gate.count == 2 }
-        gate.open(0)
-        await eventually("first timer finished") { await finished.value == 1 }
-        #expect(model.message == first, "the older timer took down the newer message")
-        // The newer timer ends: now it is gone.
-        gate.open(1)
-        await eventually("second timer finished") { await finished.value == 2 }
+        await eventually("the newer timer armed") { gate.count == older + 1 }
+        // Every older timer ends: none of them takes the newer message down.
+        for index in 0..<older { gate.open(index) }
+        await eventually("older timers finished") { await MainActor.run { finished.count } == older }
+        #expect(model.message == first, "an older timer took down the newer message")
+        // The newest timer ends: now it is gone.
+        gate.open(older)
+        await eventually("newest timer finished") { await MainActor.run { finished.count } == older + 1 }
         #expect(model.message == nil)
     }
 
