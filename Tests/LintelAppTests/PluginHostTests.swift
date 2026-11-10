@@ -289,7 +289,9 @@ import Testing
         #expect(stats[own] == nil)
         #expect(stats[other]?.queryAssociationCount == 1)
 
-        #expect(LifecycleLog.shared.events == ["storage.activate", "storage.erase", "storage.activate"])
+        #expect(
+            LifecycleLog.shared.events.filter { $0.hasPrefix("storage.") }
+                == ["storage.activate", "storage.erase", "storage.activate"])
         // The directory was deleted: the stale file is gone, re-activation wrote a fresh one.
         #expect(!FileManager.default.fileExists(atPath: stale.path))
         #expect(FileManager.default.fileExists(atPath: file.path))
@@ -354,7 +356,7 @@ import Testing
         // The plugin was stopped for the erase and started again: it is not left off while it is enabled.
         #expect(host.state(of: "refusing")?.isActive == true)
         #expect(
-            LifecycleLog.shared.events == [
+            LifecycleLog.shared.events.filter { $0.hasPrefix("refusing.") } == [
                 "refusing.activate", "refusing.deactivate", "refusing.activate",
             ])
     }

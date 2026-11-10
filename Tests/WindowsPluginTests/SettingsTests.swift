@@ -279,11 +279,12 @@ extension SettingsTests {
         defer { harness.tearDown() }
         let model = plugin.paneModel
         model.setDefaultKind(.free)
-        model.setInnerGap(12)
-        model.setOuterGap(70)
+        let gaps = TilingStrategy().options
+        model.setGlobalValue(.int(12), of: gaps[0])
+        model.setGlobalValue(.int(70), of: gaps[1])
         let settings = WindowsSettings(harness.pluginSettings)
         #expect(settings.defaultKind(in: .standard) == .free && settings.innerGap == 12 && settings.outerGap == 64)
-        #expect(model.outerGap == 64)
+        #expect(model.globalValue(of: gaps[1]) == .int(64))
         #expect(model.layoutConfig.defaultKind == .free)
         #expect(harness.store.keys.allSatisfy { $0.hasPrefix("plugins.windows.") })
     }
@@ -294,8 +295,9 @@ extension SettingsTests {
         let model = plugin.paneModel
         let workspace = WorkspaceID(3)!
         model.setOverrideKind(.free, for: workspace)
-        model.setOverrideInnerGap(0, for: workspace)
-        model.setOverrideOrientation(.vertical, for: workspace)
+        let options = TilingStrategy().options
+        model.setOverrideOption(options[0], to: .int(0), for: workspace)
+        model.setOverrideOption(options[2], to: .string("vertical"), for: workspace)
         let stored = harness.pluginSettings.string(WindowsSettings.Key.workspaces)
         #expect(stored?.contains("\"version\":1") == true)
         #expect(
@@ -314,7 +316,7 @@ extension SettingsTests {
         model.setWorkspaceCount(3)
         model.setDefaultKind(.tiling)
         model.setOverrideKind(.free, for: WorkspaceID(2)!)
-        model.setOverrideOuterGap(0, for: WorkspaceID(3)!)
+        model.setOverrideOption(TilingStrategy().options[1], to: .int(0), for: WorkspaceID(3)!)
         let lines = model.workspaceSummaries
         #expect(lines.map(\.workspace.rawValue) == [1, 2, 3])
         #expect(lines.map(\.isCustom) == [false, true, true])
@@ -376,7 +378,7 @@ extension SettingsTests {
                 modifiers.contains(.control) ? nil : (code == 37 ? "ł" : nil)
             })
         for family in ShortcutFamily.allCases {
-            for binding in family.bindings {
+            for binding in family.bindings(in: .standard) {
                 log.set(binding.id, KeyShortcut(key: binding.key, modifiers: family.defaultModifiers))
             }
         }

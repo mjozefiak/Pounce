@@ -12,6 +12,24 @@ struct ZonesStrategy: LayoutStrategy {
     }
     var usesLayoutLibrary: Bool { true }
 
+    /// *Move Window to Zone N*, one command per zone number.
+    var commands: [LayoutCommandSpec] {
+        (1...WindowsSettings.maximumWorkspaces).map { number in
+            LayoutCommandSpec(
+                id: WindowsCommandID.zone(number),
+                title: LocalizedStringResource(
+                    "Move Window to Zone \(number)", comment: "Command: moves the focused window to a numbered zone"),
+                symbolName: "rectangle.split.3x1", command: .moveToZone(number))
+        }
+    }
+
+    func libraryLayoutID(
+        _ environment: LayoutEnvironment, workspace: WorkspaceID, displayKey: String, orientation: DisplayOrientation
+    ) -> String? {
+        ZonesConfig(environment).resolve(workspace: workspace, displayKey: displayKey, orientation: orientation).layout
+            .id
+    }
+
     func makeConfig(_ environment: LayoutEnvironment) -> AnyLayoutConfig? {
         AnyLayoutConfig(ZonesConfig(environment))
     }
@@ -152,5 +170,47 @@ extension EngineCommand {
     static func moveToZone(_ number: Int) -> EngineCommand { .layout(.slot(number)) }
     static func snapToZone(_ window: WindowID, zone: Int, displayKey: String) -> EngineCommand {
         .layout(.snap(zoneID: zone, displayKey: displayKey), on: window)
+    }
+}
+
+extension ZonesStrategy: LayoutSettingsProviding {
+    /// The default zone layout of landscape and portrait displays (spec Q19).
+    func settingRows(model: WindowsSettingsModel) -> [LayoutSettingRow] {
+        func row(
+            _ id: String, _ title: String, _ orientation: DisplayOrientation
+        ) -> LayoutSettingRow {
+            LayoutSettingRow(
+                id: id, title: title,
+                help: String(
+                    localized: "Used when a display has no layout of its own for a workspace.",
+                    comment: "Window Management setting help: the default zone layout"),
+                choices: {
+                    var choices = model.allLayouts.map {
+                        LayoutSettingRow.Choice(id: $0.id, title: StockLayouts.displayName(of: $0))
+                    }
+                    // A default that is in no library (deleted, or from a later version) stays selectable as it is.
+                    let current = model.defaultZoneLayout(for: orientation)
+                    if !choices.contains(where: { $0.id == current }) {
+                        choices.append(LayoutSettingRow.Choice(id: current, title: current))
+                    }
+                    return choices
+                },
+                selection: { model.defaultZoneLayout(for: orientation) },
+                select: { model.setDefaultZoneLayout($0, for: orientation) })
+        }
+        return [
+            row(
+                "zones.defaultLayout.landscape",
+                String(
+                    localized: "Zones on landscape displays",
+                    comment: "Window Management setting: the default zone layout"),
+                .landscape),
+            row(
+                "zones.defaultLayout.portrait",
+                String(
+                    localized: "Zones on portrait displays",
+                    comment: "Window Management setting: the default zone layout"),
+                .portrait),
+        ]
     }
 }

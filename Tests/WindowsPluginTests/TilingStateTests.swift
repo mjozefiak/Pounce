@@ -117,13 +117,20 @@ import Testing
             defaultKind: .tiling, innerGap: 6, outerGap: 12, rootOrientation: .vertical,
             overrides: [ws(3): WorkspaceOverride(kind: .free, innerGap: 0)])
         let plain = config.resolved(for: ws(1))
-        #expect(
-            plain
-                == ResolvedLayout(kind: .tiling, gaps: TilingGaps(inner: 6, outer: 12), rootOrientation: .vertical))
+        #expect(plain.kind == .tiling)
+        #expect(plain.gaps == TilingGaps(inner: 6, outer: 12))
+        #expect(plain.rootOrientation == .vertical)
+        // A kind uses only its own options: Free has none, so the override of the gap does not apply to it.
         let overridden = config.resolved(for: ws(3))
         #expect(overridden.kind == .free)
-        #expect(overridden.gaps == TilingGaps(inner: 0, outer: 12))
-        #expect(overridden.rootOrientation == .vertical)
+        #expect(overridden.options.isEmpty)
+        // The same override on an Auto-tile workspace does.
+        let tiled = LayoutConfig(
+            defaultKind: .tiling, innerGap: 6, outerGap: 12, rootOrientation: .vertical,
+            overrides: [ws(4): WorkspaceOverride(innerGap: 0)]
+        ).resolved(for: ws(4))
+        #expect(tiled.gaps == TilingGaps(inner: 0, outer: 12))
+        #expect(tiled.rootOrientation == .vertical)
     }
 
     @Test func overridesRoundTripThroughTheirJSONValue() {
@@ -170,11 +177,13 @@ import Testing
             """
         harness.pluginSettings.set(json, for: WindowsSettings.Key.workspaces)
         let settings = WindowsSettings(harness.pluginSettings)
-        // A kind no strategy handles is ignored when the registry reads it, and kept in the stored value.
-        let overrides = settings.workspaceOverrides(in: .standard)
-        #expect(overrides.byWorkspace[ws(1)] == WorkspaceOverride(innerGap: WindowsSettings.maximumGap, outerGap: 0))
-        #expect(overrides.byWorkspace.count == 1)
+        // What this build cannot use is dropped when the configuration is built (a kind no strategy handles, a value
+        // that is not valid for its option, one that is out of range is clamped), and kept in the stored value.
+        let config = LayoutConfig(settings: settings, registry: .standard)
+        #expect(config.overrides[ws(1)] == WorkspaceOverride(innerGap: TilingStrategy.maximumGap, outerGap: 0))
+        #expect(config.overrides.count == 1)
         #expect(settings.workspaceOverrides.byWorkspace[ws(1)]?.kind == LayoutKind("accordion"))
+        #expect(settings.workspaceOverrides.byWorkspace.count == 1)
     }
 
     @Test func theLayoutSettingsHaveTheSpecDefaultsAndRoundTrip() throws {
@@ -188,7 +197,7 @@ import Testing
         settings.setInnerGap(500)
         settings.setOuterGap(-1)
         #expect(settings.defaultKind(in: .standard) == .zones)
-        #expect(settings.innerGap == WindowsSettings.maximumGap)
+        #expect(settings.innerGap == TilingStrategy.maximumGap)
         #expect(settings.outerGap == 0)
         harness.pluginSettings.set("bogus", for: WindowsSettings.Key.defaultKind)
         #expect(settings.defaultKind(in: .standard) == .tiling)
@@ -203,7 +212,7 @@ import Testing
         settings.setWorkspaceOverrides(WorkspaceOverrides([ws(2): WorkspaceOverride(kind: .free)]))
         let config = EngineConfig(settings: settings, registry: .standard)
         #expect(config.layout.defaultKind == .tiling)
-        #expect(config.layout.innerGap == 3)
+        #expect(config.layout.resolved(for: ws(1)).gaps.inner == 3)
         #expect(config.layout.resolved(for: ws(2)).kind == .free)
     }
 

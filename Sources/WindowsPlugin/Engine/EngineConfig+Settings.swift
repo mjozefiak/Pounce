@@ -10,9 +10,7 @@ extension EngineConfig {
         self.init()
         followFocus = settings.followFocus
         floatingBundleIDs = Set(settings.floatingApps)
-        layout = LayoutConfig(
-            defaultKind: settings.defaultKind(in: registry), innerGap: settings.innerGap, outerGap: settings.outerGap,
-            rootOrientation: .horizontal, overrides: settings.workspaceOverrides(in: registry).byWorkspace)
+        layout = LayoutConfig(settings: settings, registry: registry)
         strategyConfigs = registry.configs(
             LayoutEnvironment(settings: settings, assignments: assignments, library: library))
     }

@@ -4,8 +4,8 @@ import SwiftUI
 
 /// Settings → Window Management on the `SettingsPane` template (prototype `set-windows`): Basics, a collapsed
 /// Advanced and Data. The banner is the host's, from `WindowsPlugin.settingsStatus`. Basics has the default layout
-/// kind (Auto-tile, Zones or Free), the gaps, the *Layouts…* row that opens the Layouts window and the default
-/// zone layout of each display shape.
+/// kind, the *Layouts…* row that opens the Layouts window when a kind uses the layout library, and what each kind
+/// declares (`LayoutStrategy.options`, `LayoutSettingsProviding`).
 struct WindowsSettingsPane: View {
     @Bindable var model: WindowsSettingsModel
     /// `false` while the plugin is off or failed: the pane then reads nothing and starts nothing.
@@ -106,30 +106,27 @@ struct WindowsSettingsPane: View {
                     "Auto-tile fills the screen with the windows of a workspace. Zones snaps them into zones. Free leaves them where they are.",
                     comment: "Window Management setting help: the layout kinds"))
         }
-        LabeledContent {
-            Button {
-                model.openLayouts()
+        if !model.registry.libraryKinds.isEmpty {
+            LabeledContent {
+                Button {
+                    model.openLayouts()
+                } label: {
+                    Text("Layouts…", comment: "Window Management: opens the Layouts window")
+                }
+                .disabled(!isActive)
             } label: {
-                Text("Layouts…", comment: "Window Management: opens the Layouts window")
+                label(
+                    Text("Layouts", comment: "Window Management setting: the zone layouts and where they are used"),
+                    help: Text(verbatim: model.layoutsSummary))
             }
-            .disabled(!isActive)
-        } label: {
-            label(
-                Text("Layouts", comment: "Window Management setting: the zone layouts and where they are used"),
-                help: Text(verbatim: model.layoutsSummary))
         }
-        zoneDefaultRow(
-            Text("Zones on landscape displays", comment: "Window Management setting: the default zone layout"),
-            orientation: .landscape)
-        zoneDefaultRow(
-            Text("Zones on portrait displays", comment: "Window Management setting: the default zone layout"),
-            orientation: .portrait)
-        gapRow(
-            Text("Space between windows", comment: "Window Management setting: the inner gap"),
-            value: Binding(get: { model.innerGap }, set: { model.setInnerGap($0) }))
-        gapRow(
-            Text("Space around windows", comment: "Window Management setting: the outer gap"),
-            value: Binding(get: { model.outerGap }, set: { model.setOuterGap($0) }))
+        // What the kinds declare: their own rows, then the global default of each option that has a setting.
+        ForEach(model.strategySettingRows) { row in strategyRow(row) }
+        ForEach(model.globalOptionRows) { option in
+            optionRow(option, value: model.globalValue(of: option), fallback: nil) {
+                model.setGlobalValue($0 ?? option.defaultValue, of: option)
+            }
+        }
         Toggle(isOn: Binding(get: { model.stripEnabled }, set: { model.setStripEnabled($0) })) {
             label(Text("Show menu bar strip", comment: "Window Management setting: the numbered boxes in the menu bar"))
         }

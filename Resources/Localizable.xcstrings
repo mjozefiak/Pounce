@@ -15139,20 +15139,20 @@
         }
       }
     },
-    "What each workspace uses. Edit one to change its layout, gaps or first split." : {
+    "What each workspace uses. Edit one to change its layout and the settings of that layout." : {
       "comment" : "Window Management setting help: per-workspace layout",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "What each workspace uses. Edit one to change its layout, gaps or first split."
+            "value" : "What each workspace uses. Edit one to change its layout and the settings of that layout."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ustawienia każdego obszaru. Edytuj obszar, aby zmienić jego układ, odstępy lub pierwszy podział."
+            "value" : "Ustawienia każdego obszaru. Edytuj obszar, aby zmienić jego układ i jego ustawienia."
           }
         }
       }

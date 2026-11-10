@@ -72,28 +72,48 @@ extension WindowsSettingsModel {
             localized: "\(StockLayouts.all.count + libraryLayouts.count) layouts",
             comment: "Settings: how many zone layouts exist")
         let config = layoutConfig
-        // The kinds that assign layouts from the library (today Zones) are the ones the line counts.
-        let libraryKinds = registry.kinds.filter { registry[$0]?.usesLayoutLibrary == true }
-        guard let kind = libraryKinds.first else { return layouts }
-        let name = kindName(kind)
-        let count = WorkspaceID.all(count: workspaceCount).filter { config.resolved(for: $0).kind == kind }.count
-        let used =
-            count == 0
-            ? String(localized: "No workspace uses \(name)", comment: "Settings: no workspace uses the layout kind")
-            : String(localized: "\(name) on \(count) workspaces", comment: "Settings: how many workspaces use it")
-        return "\(layouts) · \(used)"
+        // Every kind that assigns layouts from the library is counted.
+        let usage = registry.libraryKinds.map { kind -> String in
+            let name = kindName(kind)
+            let count = WorkspaceID.all(count: workspaceCount).filter { config.resolved(for: $0).kind == kind }.count
+            return count == 0
+                ? String(localized: "No workspace uses \(name)", comment: "Settings: no workspace uses the layout kind")
+                : String(localized: "\(name) on \(count) workspaces", comment: "Settings: how many workspaces use it")
+        }
+        return ([layouts] + usage).joined(separator: " · ")
     }
 
-    func setInnerGap(_ points: Int) {
-        settings.setInnerGap(points)
-        innerGap = settings.innerGap
+    // MARK: Options
+
+    /// The options the pane draws for global defaults: those of every registered kind that name a setting.
+    var globalOptionRows: [LayoutOption] {
+        registry.kinds.flatMap { registry[$0]?.options ?? [] }.filter { $0.settingKey != nil }
+    }
+
+    /// The options of the kind a workspace uses (its override, else the default).
+    func options(of workspace: WorkspaceID) -> [LayoutOption] {
+        registry[layoutConfig.resolved(for: workspace).kind]?.options ?? []
+    }
+
+    static func globalOptions(_ settings: WindowsSettings, _ registry: LayoutRegistry) -> [String: JSONValue] {
+        var values: [String: JSONValue] = [:]
+        for kind in registry.kinds {
+            for option in registry[kind]?.options ?? [] { values[option.id] = settings.globalValue(of: option) }
+        }
+        return values
+    }
+
+    func globalValue(of option: LayoutOption) -> JSONValue { globalOptions[option.id] ?? option.defaultValue }
+
+    func setGlobalValue(_ value: JSONValue, of option: LayoutOption) {
+        settings.setGlobalValue(value, of: option)
+        globalOptions[option.id] = settings.globalValue(of: option)
         applyLayoutChange()
     }
 
-    func setOuterGap(_ points: Int) {
-        settings.setOuterGap(points)
-        outerGap = settings.outerGap
-        applyLayoutChange()
+    /// The rows the strategies add for their own settings (`LayoutSettingsProviding`).
+    var strategySettingRows: [LayoutSettingRow] {
+        registry.kinds.flatMap { (registry[$0] as? any LayoutSettingsProviding)?.settingRows(model: self) ?? [] }
     }
 
     // MARK: Summary
@@ -110,12 +130,10 @@ extension WindowsSettingsModel {
         }
     }
 
-    /// The defaults and the overrides as the engine receives them.
+    /// The defaults and the overrides as the engine receives them: the same construction the engine's
+    /// configuration uses, over the overrides this model holds.
     var layoutConfig: LayoutConfig {
-        LayoutConfig(
-            defaultKind: defaultKind, innerGap: innerGap, outerGap: outerGap, rootOrientation: .horizontal,
-            overrides: overrides.byWorkspace
-        ).sanitized(by: registry)
+        LayoutConfig(settings: settings, registry: registry, overrides: overrides.byWorkspace)
     }
 
     // MARK: Overrides
@@ -135,16 +153,9 @@ extension WindowsSettingsModel {
         update(workspace) { $0.kind = kind }
     }
 
-    func setOverrideInnerGap(_ points: Int?, for workspace: WorkspaceID) {
-        update(workspace) { $0.innerGap = points.map(WindowsSettings.clampGap) }
-    }
-
-    func setOverrideOuterGap(_ points: Int?, for workspace: WorkspaceID) {
-        update(workspace) { $0.outerGap = points.map(WindowsSettings.clampGap) }
-    }
-
-    func setOverrideOrientation(_ orientation: TilingOrientation?, for workspace: WorkspaceID) {
-        update(workspace) { $0.rootOrientation = orientation }
+    /// Sets (or, with `nil`, clears) the override of one option of a workspace's kind.
+    func setOverrideOption(_ option: LayoutOption, to value: JSONValue?, for workspace: WorkspaceID) {
+        update(workspace) { $0.options[option.id] = value.flatMap { option.valid($0) } }
     }
 
     func resetOverrides(for workspace: WorkspaceID) {

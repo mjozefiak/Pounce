@@ -238,3 +238,65 @@ extension WindowsPlugin {
         return RecoveryReport()
     }
 }
+
+/// Auto-tile's options spelled out the way most tests think of them (gaps and the first split); the production
+/// types only know opaque option values.
+extension LayoutConfig {
+    init(
+        defaultKind: LayoutKind, innerGap: Int, outerGap: Int, rootOrientation: TilingOrientation,
+        overrides: [WorkspaceID: WorkspaceOverride] = [:]
+    ) {
+        self.init(
+            defaultKind: defaultKind,
+            optionDefaults: [
+                .tiling: [
+                    TilingStrategy.innerGapID: .int(innerGap), TilingStrategy.outerGapID: .int(outerGap),
+                    TilingStrategy.rootOrientationID: .string(rootOrientation.rawValue),
+                ]
+            ], overrides: overrides)
+    }
+}
+
+extension WorkspaceOverride {
+    init(kind: LayoutKind? = nil, innerGap: Int? = nil, outerGap: Int? = nil, rootOrientation: TilingOrientation? = nil)
+    {
+        self.init(kind: kind)
+        if let innerGap { options[TilingStrategy.innerGapID] = .int(innerGap) }
+        if let outerGap { options[TilingStrategy.outerGapID] = .int(outerGap) }
+        if let rootOrientation { options[TilingStrategy.rootOrientationID] = .string(rootOrientation.rawValue) }
+    }
+
+    var innerGap: Int? { if case .int(let value)? = options[TilingStrategy.innerGapID] { value } else { nil } }
+    var outerGap: Int? { if case .int(let value)? = options[TilingStrategy.outerGapID] { value } else { nil } }
+    var rootOrientation: TilingOrientation? {
+        if case .string(let value)? = options[TilingStrategy.rootOrientationID] {
+            TilingOrientation(rawValue: value)
+        } else {
+            nil
+        }
+    }
+}
+
+extension ResolvedLayout {
+    var gaps: TilingGaps { tilingGaps }
+    var rootOrientation: TilingOrientation { tilingOrientation }
+}
+
+/// Auto-tile's two global gaps through the generic option API.
+extension WindowsSettings {
+    private var gapOptions: (inner: LayoutOption, outer: LayoutOption) {
+        let options = TilingStrategy().options
+        return (options[0], options[1])
+    }
+
+    var innerGap: Int {
+        if case .int(let value) = globalValue(of: gapOptions.inner) { value } else { 0 }
+    }
+
+    var outerGap: Int {
+        if case .int(let value) = globalValue(of: gapOptions.outer) { value } else { 0 }
+    }
+
+    func setInnerGap(_ points: Int) { setGlobalValue(.int(points), of: gapOptions.inner) }
+    func setOuterGap(_ points: Int) { setGlobalValue(.int(points), of: gapOptions.outer) }
+}

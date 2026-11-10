@@ -1,8 +1,9 @@
 import Foundation
 import LintelKit
 
-/// The commands of window management (spec: API Contracts) that exist in this phase, and their default
-/// shortcuts (Q10: the AeroSpace set, a default registered in the phase that implements its command).
+/// The command ids of window management (spec: API Contracts) and their default shortcuts (Q10: the AeroSpace
+/// set). Ids never change once shipped; the commands of a layout kind are declared by its strategy
+/// (`LayoutStrategy.commands`) and named here so one file lists every id.
 enum WindowsCommandID {
     static let prefix = "windows."
     static func workspace(_ number: Int) -> String { "windows.workspace.\(number)" }
@@ -11,9 +12,9 @@ enum WindowsCommandID {
     static let previous = "windows.workspace.previous"
     static let back = "windows.workspace.back"
     static let restoreAll = "windows.restoreAllWindows"
-    static func focus(_ direction: TilingDirection) -> String { "windows.focus.\(direction.rawValue)" }
-    static func move(_ direction: TilingDirection) -> String { "windows.move.\(direction.rawValue)" }
-    static func join(_ direction: TilingDirection) -> String { "windows.join.\(direction.rawValue)" }
+    static func focus(_ direction: LayoutDirection) -> String { "windows.focus.\(direction.rawValue)" }
+    static func move(_ direction: LayoutDirection) -> String { "windows.move.\(direction.rawValue)" }
+    static func join(_ direction: LayoutDirection) -> String { "windows.join.\(direction.rawValue)" }
     static let grow = "windows.resize.grow"
     static let shrink = "windows.resize.shrink"
     static let toggleOrientation = "windows.toggleOrientation"
@@ -53,21 +54,33 @@ enum ShortcutFamily: String, CaseIterable {
         }
     }
 
-    /// The commands of the family with the key each is bound to.
-    var bindings: [(id: String, key: String)] {
+    /// The commands of the family with the key each is bound to: the shared families are fixed, the strategies'
+    /// commands that name a family join it (Auto-tile's resize is the one today).
+    func bindings(in registry: LayoutRegistry) -> [(id: String, key: String)] {
+        let fixed: [(id: String, key: String)]
         switch self {
         case .goToWorkspace:
-            (1...WindowsSettings.maximumWorkspaces).map { (WindowsCommandID.workspace($0), String($0)) }
+            fixed = (1...WindowsSettings.maximumWorkspaces).map { (WindowsCommandID.workspace($0), String($0)) }
         case .moveToWorkspace:
-            (1...WindowsSettings.maximumWorkspaces).map { (WindowsCommandID.moveToWorkspace($0), String($0)) }
-        case .focus: Self.arrows.map { (WindowsCommandID.focus($0.direction), $0.key) }
-        case .moveWindow: Self.arrows.map { (WindowsCommandID.move($0.direction), $0.key) }
-        case .resize: [(WindowsCommandID.grow, "="), (WindowsCommandID.shrink, "-")]
+            fixed = (1...WindowsSettings.maximumWorkspaces).map { (WindowsCommandID.moveToWorkspace($0), String($0)) }
+        case .focus: fixed = Self.arrows.map { (WindowsCommandID.focus($0.direction), $0.key) }
+        case .moveWindow: fixed = Self.arrows.map { (WindowsCommandID.move($0.direction), $0.key) }
+        case .resize: fixed = []
         }
+        let contributed = registry.commandSpecs.compactMap { spec -> (id: String, key: String)? in
+            guard spec.family == self, let key = spec.key else { return nil }
+            return (spec.id, key)
+        }
+        return fixed + contributed
+    }
+
+    /// The families that have a command in `registry` (the pane shows a modifier row for each).
+    static func active(in registry: LayoutRegistry) -> [ShortcutFamily] {
+        allCases.filter { !$0.bindings(in: registry).isEmpty }
     }
 
     /// The vi keys of the AeroSpace set.
-    static let arrows: [(direction: TilingDirection, key: String)] = [
+    static let arrows: [(direction: LayoutDirection, key: String)] = [
         (.left, "h"), (.down, "j"), (.up, "k"), (.right, "l"),
     ]
 
@@ -81,24 +94,26 @@ enum ShortcutFamily: String, CaseIterable {
     }
 
     /// The default shortcuts of the family.
-    func shortcuts(modifiers: KeyShortcut.Modifiers? = nil) -> [KeyShortcut] {
-        bindings.map { KeyShortcut(key: $0.key, modifiers: modifiers ?? defaultModifiers) }
+    func shortcuts(in registry: LayoutRegistry, modifiers: KeyShortcut.Modifiers? = nil) -> [KeyShortcut] {
+        bindings(in: registry).map { KeyShortcut(key: $0.key, modifiers: modifiers ?? defaultModifiers) }
     }
 
-    func defaultShortcut(for id: String) -> KeyShortcut? {
-        bindings.first { $0.id == id }.map { KeyShortcut(key: $0.key, modifiers: defaultModifiers) }
+    func defaultShortcut(for id: String, in registry: LayoutRegistry) -> KeyShortcut? {
+        bindings(in: registry).first { $0.id == id }.map { KeyShortcut(key: $0.key, modifiers: defaultModifiers) }
     }
 }
 
 extension WindowsPlugin {
     /// Every default shortcut that is bound now (for the layout check and `DefaultShortcutTests`).
-    static var defaultShortcuts: [KeyShortcut] {
-        ShortcutFamily.allCases.flatMap { $0.shortcuts() } + [
+    static var defaultShortcuts: [KeyShortcut] { defaultShortcuts(in: .standard) }
+
+    static func defaultShortcuts(in registry: LayoutRegistry) -> [KeyShortcut] {
+        ShortcutFamily.allCases.flatMap { $0.shortcuts(in: registry) } + [
             KeyShortcut(key: "\t", modifiers: [.option]), toggleLayoutShortcut,
         ]
     }
 
-    /// ⌥/ cycles the layout kind of the current workspace (Q10, step 3.4).
+    /// ⌥/ cycles the layout kind of the current workspace (Q10).
     static let toggleLayoutShortcut = KeyShortcut(key: "/", modifiers: [.option])
 
     public var commands: [PluginCommand] {
@@ -153,7 +168,7 @@ extension WindowsPlugin {
                 symbolName: "arrow.uturn.backward",
                 defaultShortcut: KeyShortcut(key: "\t", modifiers: [.option]), showsInMenu: false,
                 run: { [weak self] in await self?.perform(.backAndForth, purpose: .switching) }))
-        commands.append(contentsOf: tilingCommands)
+        commands.append(contentsOf: layoutCommands)
         commands.append(
             PluginCommand(
                 id: WindowsCommandID.restoreAll,
@@ -164,86 +179,66 @@ extension WindowsPlugin {
         return commands
     }
 
-    /// The Auto-tile commands (spec: API Contracts). All are `showsInMenu: false`; the focus, move and resize
-    /// families have the AeroSpace defaults (Q10), the rest are unbound. `toggleLayout` is ⌥/ since phase 3,
-    /// when Zones exist to cycle through.
-    private var tilingCommands: [PluginCommand] {
+    /// The layout commands: the shared verbs every arranged kind may answer (focus and move to the neighbour,
+    /// toggle floating), then whatever the registered strategies contribute (`LayoutStrategy.commands`: Auto-tile's
+    /// join and resize, Zones' *Move Window to Zone N*), then the layout-library commands when any strategy uses
+    /// the library (*Use Layout Slot N*, *Next Zone Layout*), then *Toggle Layout*. All are `showsInMenu: false`;
+    /// the focus, move and resize families have the AeroSpace defaults (Q10), the rest are unbound.
+    private var layoutCommands: [PluginCommand] {
         var commands: [PluginCommand] = []
         func add(
-            _ id: String, _ title: LocalizedStringResource, symbol: String, command: EngineCommand
+            _ id: String, _ title: LocalizedStringResource, symbol: String, shortcut: KeyShortcut?,
+            command: EngineCommand, purpose: AccessibilityPurpose = .moving
         ) {
-            let family = ShortcutFamily.allCases.first { $0.bindings.contains { $0.id == id } }
             commands.append(
                 PluginCommand(
-                    id: id, title: title, symbolName: symbol, defaultShortcut: family?.defaultShortcut(for: id),
-                    showsInMenu: false,
-                    run: { [weak self] in await self?.perform(command, purpose: .moving) }))
+                    id: id, title: title, symbolName: symbol, defaultShortcut: shortcut, showsInMenu: false,
+                    run: { [weak self] in await self?.perform(command, purpose: purpose) }))
         }
-        for direction in TilingDirection.allCases {
+        for direction in LayoutDirection.allCases {
             add(
                 WindowsCommandID.focus(direction), Self.focusTitle(direction), symbol: "scope",
+                shortcut: ShortcutFamily.focus.defaultShortcut(for: WindowsCommandID.focus(direction), in: registry),
                 command: .focusDirection(direction))
         }
-        for direction in TilingDirection.allCases {
+        for direction in LayoutDirection.allCases {
             add(
                 WindowsCommandID.move(direction), Self.moveTitle(direction),
                 symbol: "arrow.up.and.down.and.arrow.left.and.right",
+                shortcut: ShortcutFamily.moveWindow.defaultShortcut(
+                    for: WindowsCommandID.move(direction), in: registry),
                 command: .moveDirection(direction))
         }
-        add(
-            WindowsCommandID.grow,
-            LocalizedStringResource("Grow Window", comment: "Command: makes the focused tile larger"),
-            symbol: "arrow.up.left.and.arrow.down.right", command: .resize(TilingTree.resizeStep))
-        add(
-            WindowsCommandID.shrink,
-            LocalizedStringResource("Shrink Window", comment: "Command: makes the focused tile smaller"),
-            symbol: "arrow.down.right.and.arrow.up.left", command: .resize(-TilingTree.resizeStep))
-        for direction in TilingDirection.allCases {
-            add(
-                WindowsCommandID.join(direction), Self.joinTitle(direction), symbol: "rectangle.split.2x1",
-                command: .join(direction))
-        }
-        add(
-            WindowsCommandID.toggleOrientation,
-            LocalizedStringResource(
-                "Toggle Split Direction", comment: "Command: flips the container of the focused window"),
-            symbol: "rectangle.split.2x1", command: .toggleOrientation)
         add(
             WindowsCommandID.toggleFloating,
             LocalizedStringResource(
                 "Toggle Floating", comment: "Command: takes the focused window out of tiling or back in"),
-            symbol: "rectangle.on.rectangle", command: .toggleFloating)
-        add(
-            WindowsCommandID.balance,
-            LocalizedStringResource("Balance Windows", comment: "Command: gives every tile the same size"),
-            symbol: "equal.square", command: .balance)
-        for number in 1...WindowsSettings.maximumWorkspaces {
+            symbol: "rectangle.on.rectangle", shortcut: nil, command: .toggleFloating)
+        for spec in registry.commandSpecs {
+            add(
+                spec.id, spec.title, symbol: spec.symbolName, shortcut: spec.defaultShortcut, command: spec.command,
+                purpose: spec.purpose)
+        }
+        if !registry.libraryKinds.isEmpty {
+            for number in 1...LayoutRules.slotCount {
+                commands.append(
+                    PluginCommand(
+                        id: WindowsCommandID.layoutSlot(number),
+                        title: LocalizedStringResource(
+                            "Use Layout Slot \(number)",
+                            comment: "Command: gives the current workspace the layout bound to a numbered slot"),
+                        symbolName: "square.grid.3x1.below.line.grid.1x2", showsInMenu: false,
+                        run: { [weak self] in await self?.runtime?.layoutCommands.applyLayoutSlot(number) }))
+            }
             commands.append(
                 PluginCommand(
-                    id: WindowsCommandID.zone(number),
+                    id: WindowsCommandID.nextLayout,
                     title: LocalizedStringResource(
-                        "Move Window to Zone \(number)", comment: "Command: moves the focused window to a numbered zone"
-                    ),
-                    symbolName: "rectangle.split.3x1", showsInMenu: false,
-                    run: { [weak self] in await self?.perform(.moveToZone(number), purpose: .moving) }))
+                        "Next Zone Layout",
+                        comment: "Command: switches the current workspace to the next zone layout"),
+                    symbolName: "square.grid.2x2.fill", showsInMenu: false,
+                    run: { [weak self] in await self?.runtime?.layoutCommands.nextLayout() }))
         }
-        for number in 1...LayoutRules.slotCount {
-            commands.append(
-                PluginCommand(
-                    id: WindowsCommandID.layoutSlot(number),
-                    title: LocalizedStringResource(
-                        "Use Layout Slot \(number)",
-                        comment: "Command: gives the current workspace the layout bound to a numbered slot"),
-                    symbolName: "square.grid.3x1.below.line.grid.1x2", showsInMenu: false,
-                    run: { [weak self] in await self?.runtime?.layoutCommands.applyLayoutSlot(number) }))
-        }
-        commands.append(
-            PluginCommand(
-                id: WindowsCommandID.nextLayout,
-                title: LocalizedStringResource(
-                    "Next Zone Layout", comment: "Command: switches the current workspace to the next zone layout"),
-                symbolName: "square.grid.2x2.fill", showsInMenu: false,
-                run: { [weak self] in await self?.runtime?.layoutCommands.nextLayout() }))
         commands.append(
             PluginCommand(
                 id: WindowsCommandID.toggleLayout,
@@ -254,7 +249,7 @@ extension WindowsPlugin {
         return commands
     }
 
-    private static func focusTitle(_ direction: TilingDirection) -> LocalizedStringResource {
+    private static func focusTitle(_ direction: LayoutDirection) -> LocalizedStringResource {
         switch direction {
         case .left: LocalizedStringResource("Focus Left", comment: "Command: moves the focus to the tile on the left")
         case .right:
@@ -264,7 +259,7 @@ extension WindowsPlugin {
         }
     }
 
-    private static func moveTitle(_ direction: TilingDirection) -> LocalizedStringResource {
+    private static func moveTitle(_ direction: LayoutDirection) -> LocalizedStringResource {
         switch direction {
         case .left:
             LocalizedStringResource("Move Window Left", comment: "Command: moves the focused window in the tree")
@@ -273,23 +268,6 @@ extension WindowsPlugin {
         case .up: LocalizedStringResource("Move Window Up", comment: "Command: moves the focused window in the tree")
         case .down:
             LocalizedStringResource("Move Window Down", comment: "Command: moves the focused window in the tree")
-        }
-    }
-
-    private static func joinTitle(_ direction: TilingDirection) -> LocalizedStringResource {
-        switch direction {
-        case .left:
-            LocalizedStringResource(
-                "Join with Left Window", comment: "Command: groups the focused window with its neighbour")
-        case .right:
-            LocalizedStringResource(
-                "Join with Right Window", comment: "Command: groups the focused window with its neighbour")
-        case .up:
-            LocalizedStringResource(
-                "Join with Window Above", comment: "Command: groups the focused window with its neighbour")
-        case .down:
-            LocalizedStringResource(
-                "Join with Window Below", comment: "Command: groups the focused window with its neighbour")
         }
     }
 

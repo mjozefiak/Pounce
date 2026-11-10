@@ -48,12 +48,6 @@ struct WindowsSettings: Sendable {
     /// Never tiled or placed: Lintel itself, System Settings and Calculator (spec Q6).
     static let defaultFloatingApps = ["com.lintelapp.Lintel", "com.apple.systempreferences", "com.apple.calculator"]
 
-    static let defaultInnerGap = 8
-    static let defaultOuterGap = 8
-    static let maximumGap = 64
-
-    static func clampGap(_ value: Int) -> Int { min(maximumGap, max(0, value)) }
-
     private let settings: PluginSettings
 
     init(_ settings: PluginSettings) {
@@ -96,9 +90,28 @@ struct WindowsSettings: Sendable {
         return overrides
     }
 
-    /// Points between neighbouring windows and around the whole set.
-    var innerGap: Int { Self.clampGap(settings.integer(Key.innerGap, default: Self.defaultInnerGap)) }
-    var outerGap: Int { Self.clampGap(settings.integer(Key.outerGap, default: Self.defaultOuterGap)) }
+    /// The global value of a layout option: its `plugins.windows.<key>` setting made valid, the option's default
+    /// when it has no setting or the stored value is not valid.
+    func globalValue(of option: LayoutOption) -> JSONValue {
+        guard let key = option.settingKey else { return option.defaultValue }
+        switch option.domain {
+        case .points:
+            let stored = settings.integer(key, default: Int.min)
+            return stored == Int.min ? option.defaultValue : option.resolved(.int(stored))
+        case .choices:
+            return option.resolved(settings.string(key).map { JSONValue.string($0) })
+        }
+    }
+
+    /// Stores the global value of an option that has a setting (made valid first); nothing for one that has none.
+    func setGlobalValue(_ value: JSONValue, of option: LayoutOption) {
+        guard let key = option.settingKey, let valid = option.valid(value) else { return }
+        switch valid {
+        case .int(let number): settings.set(number, for: key)
+        case .string(let text): settings.set(text, for: key)
+        default: break
+        }
+    }
 
     /// The zone layout of a display that has no assignment, by the display's shape: `Columns 2` for landscape and
     /// `Rows 2` for portrait unless the user chose another layout.
@@ -138,9 +151,6 @@ struct WindowsSettings: Sendable {
     func setDefaultZoneLayout(_ layoutID: String, for orientation: DisplayOrientation) {
         settings.set(layoutID, for: Self.zoneKey(orientation))
     }
-
-    func setInnerGap(_ points: Int) { settings.set(Self.clampGap(points), for: Key.innerGap) }
-    func setOuterGap(_ points: Int) { settings.set(Self.clampGap(points), for: Key.outerGap) }
 
     /// Stores the overrides unless the stored value is from a newer version (then nothing is written and the
     /// caller learns it). Returns whether it was written.

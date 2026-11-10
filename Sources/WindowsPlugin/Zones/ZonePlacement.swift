@@ -79,7 +79,7 @@ struct ZonePlacement: Sendable {
     }
 
     /// The zone next to a window's zone in a direction.
-    func neighbourZone(of window: WindowID, _ direction: TilingDirection, in state: ZoneState) -> Int? {
+    func neighbourZone(of window: WindowID, _ direction: LayoutDirection, in state: ZoneState) -> Int? {
         state.zoneOf[window].flatMap { layout.neighbour(of: $0, direction) }
     }
 }

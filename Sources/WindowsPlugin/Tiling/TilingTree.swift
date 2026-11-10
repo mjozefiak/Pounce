@@ -9,13 +9,7 @@ enum TilingOrientation: String, Codable, Sendable, CaseIterable {
     var flipped: TilingOrientation { self == .horizontal ? .vertical : .horizontal }
 }
 
-/// A direction of the focus, move and join commands.
-enum TilingDirection: String, Codable, Sendable, CaseIterable {
-    case left
-    case right
-    case up
-    case down
-
+extension LayoutDirection {
     /// The orientation of the container whose children this direction walks along.
     var axis: TilingOrientation {
         switch self {

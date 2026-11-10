@@ -16,12 +16,12 @@
 
 ## Round 2 (second architecture review)
 - H-1/M-3/M-7: one serial flush, a stopped engine, `WindowClient.subscribe()` before the snapshot.
-- H-3: open `LayoutKind`, strategies own state, configuration and commands (`LayoutCommand` id plus payload), `JSONValue` in `Support/`; `ToyStrategyTests` proves a fourth kind needs no production change.
+- H-3: open `LayoutKind`, strategies own state, configuration and commands (`LayoutCommand` id plus payload), `JSONValue` in `Support/`; `ToyStrategyTests` proves a fourth kind needs no production change (since round 4 that includes its own options, commands and settings rows).
 - M-4: `JournalOwner` comes from `PluginContext.services` (no registry global), with leases; `ReportSink` replaces a task hop.
 - M-2/M-6: `LaneScheduler`, `EffectExecutor`, `ReportPump`, `AccessibilityGate`, `EngineConfigBuilder`; the echo window starts when a frame change is sent; commands wait at most `commandBudget`.
 - M-5: `LayoutPlanner` is a pure read-only type and the reducer parts are layers (`ReducerLayeringTests`). `EngineState` was not regrouped: ~150 sites read its fields, and grouping would only move names.
 - B: one coalescer (the engine's); `AXEventBuffer` bounds the stream and queues a `.resync` on overflow (ADR 0009 addendum).
-- M-9: no real sleeps or yield counting in the windows plugin and its tests (the `FakeWindowClient` has no latency option); the PluginHost tests use gated and virtual clocks and per-environment services instead of statics.
+- M-9: no real sleeps or yield counting in the windows plugin and its tests (the `FakeWindowClient` has no latency option; `WaiterLeakTests` poll a waiter count with `Task.yield()` until it is reached, and every wait there ends on a condition, not on a count); the PluginHost tests use gated and virtual clocks and per-environment services instead of statics.
 - M-10: `docs/windows-plugin.md` holds the detail; the AGENTS row is short; `StateStore.close()` closes (writes after it throw `.closed` until `load()`).
 - The spec (PR #66) is rev 6 and identical to `.ai/specs/2026-11-09-window-management.md` here.
 
@@ -33,6 +33,14 @@
 - M-5: `PluginServiceKey` (typed, per plugin, recursion-safe, torn down on host quit) replaces the string-keyed locator.
 - M-6/M-7: the recovery-order test has no sleeps or statics; `stop()` awaits the pump; `StateStore` guards every write after `close()`.
 - Lows: structural `ReducerLayeringTests` (declared function names, comments and strings stripped); `EngineState` clusters documented (regrouping stays the next refactor); command ids namespaced constants; `inFlight` removed (the ledger is the one count of work; the flush stages are documented); `flushEvents`, `waitForWork`, `settle` and `WindowsRuntime.settle` are DEBUG-only; the echo window is per frame in flight; `coalesce` keeps the last journal operation per window and replaces the entry of a window removed and parked again in one batch; `EngineConfigBuilder` folded into `EngineConfig`; `AccessibilityGate` and `TimeSource` kept (shared by several callers / the only place a generic clock is erased); stale comments and the AGENTS lines fixed.
+
+## Round 4 (independent audit of round 3)
+- H-A (layout abstraction made real): `LayoutOption` (points or choices; global setting key and per-workspace override) replaces `gaps`/`rootOrientation` in `ResolvedLayout`/`WorkspaceOverride`/`LayoutConfig`; the override record stays the flat v1 JSON (`kind`, `innerGap`, `outerGap`, `rootOrientation`) so nothing stored changes. `LayoutStrategy` also declares `options`, `commands` (`LayoutCommandSpec`) and `libraryLayoutID`; strategies may add settings rows (`LayoutSettingsProviding`). The pane draws options and rows from the registry (Free shows none, Zones its two layout pickers), the command catalogue and the modifier-family rows come from the registry, `LayoutConfig(settings:registry:)` is the one construction, `LayoutCommands` has no `ZonesConfig`, `TilingDirection` is `LayoutDirection`. `ToyStrategyTests` adds a toy with its own option, command and row and drives them through the pane model, settings, engine and catalogue. Still not open (documented in the spec and `docs/windows-plugin.md`): the closed `ShortcutFamily` list, the shared directional verbs, and the layout library/Layouts window, which are the Zones feature.
+- M-A: `WindowsRuntime.start` has a one-life phase checked after every await, a late journal lease is handed back, `WindowEngine.start()` does nothing after `stop()`, `StartError.failed` for other errors (cancellation reports nothing); `StartStopRaceTests`.
+- M-B: `PluginHost.eraseData` activates an enabled plugin again after a refused or failed erase (host test).
+- M-C: `OrderedActions.finish()`, cancellable `JournalOwner` waits (`Pass.cancelled`), `ReportPump.finish()` drops reports already queued; `WaiterLeakTests`.
+- M-D: `PluginServices` is a protocol (a port) in `LintelKit`, `AppPluginServices` in `LintelApp`, `PluginContext.pluginID` explicit, tests use their own services object; recorded in `BACKWARD_COMPATIBILITY.md` (never released, so a move breaks nothing).
+- Lows: a park for a window cleared in the same batch is dropped; test hangs guards without real time; test-only API under `#if DEBUG`; one event entry point (`subscribe()`); `isResponding` default `false`; Reset state keeps the journal while windows are parked; `unsafeBitCast` type-checked; `ReducerLayeringTests` is described as a text lint, not a guarantee; command ids stay namespaced strings (documented trade-off).
 
 ## Next concrete action
 QA gate and merge by the owner.

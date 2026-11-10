@@ -28,42 +28,76 @@ struct LayoutKind: RawRepresentable, Hashable, Codable, Sendable {
 
 }
 
-/// The overrides of one workspace; every field that is `nil` falls back to the global default (Q17).
+/// The overrides of one workspace; every field that is `nil` or absent falls back to the global default (Q17).
+/// The options are the values of the kind's own settings (`LayoutOption`), kept without interpreting them, so a
+/// value for a kind that is not the one in use (or from a later version) survives a change of kind.
 struct WorkspaceOverride: Equatable, Sendable {
     var kind: LayoutKind?
-    var innerGap: Int?
-    var outerGap: Int?
-    var rootOrientation: TilingOrientation?
+    var options: [String: JSONValue] = [:]
 
-    var isEmpty: Bool { kind == nil && innerGap == nil && outerGap == nil && rootOrientation == nil }
+    var isEmpty: Bool { kind == nil && options.isEmpty }
 }
 
-/// What one workspace uses after the overrides are applied to the defaults.
+/// What one workspace uses after the overrides are applied to the defaults: its kind and the value of every
+/// option of that kind (read back by the strategy: `ResolvedLayout.int(_:)`, `string(_:)`).
 struct ResolvedLayout: Equatable, Sendable {
     var kind: LayoutKind
-    var gaps: TilingGaps
-    var rootOrientation: TilingOrientation
+    var options: [String: JSONValue] = [:]
 }
 
 /// The global defaults and the per-workspace overrides, as the engine needs them. The struct's own defaults are
-/// the engine's (Free: nothing is arranged until a caller opts in); the plugin builds the real values from the
-/// settings, where the default kind is Auto-tile.
+/// the engine's (Free: nothing is arranged until a caller opts in); `init(settings:registry:)` is the one place that
+/// builds the real values (the engine configuration and the pane both use it), where the default kind is the
+/// registry's first.
 struct LayoutConfig: Equatable, Sendable {
     var defaultKind: LayoutKind = .free
-    var innerGap = WindowsSettings.defaultInnerGap
-    var outerGap = WindowsSettings.defaultOuterGap
-    var rootOrientation: TilingOrientation = .horizontal
+    /// The global value of every option of every registered kind, by kind.
+    var optionDefaults: [LayoutKind: [String: JSONValue]] = [:]
     var overrides: [WorkspaceID: WorkspaceOverride] = [:]
 
-    /// The same configuration with every kind this build has no strategy for replaced: the default by the
-    /// registry's default kind, an override's kind by "no override" (the global value applies).
+    init(
+        defaultKind: LayoutKind = .free, optionDefaults: [LayoutKind: [String: JSONValue]] = [:],
+        overrides: [WorkspaceID: WorkspaceOverride] = [:]
+    ) {
+        self.defaultKind = defaultKind
+        self.optionDefaults = optionDefaults
+        self.overrides = overrides
+    }
+
+    /// The configuration the settings describe, for the kinds of `registry`: the default kind, every option's
+    /// global value and the stored overrides (`overrides` replaces them when the caller already holds them),
+    /// sanitized by the registry.
+    init(settings: WindowsSettings, registry: LayoutRegistry, overrides: [WorkspaceID: WorkspaceOverride]? = nil) {
+        var defaults: [LayoutKind: [String: JSONValue]] = [:]
+        for kind in registry.kinds {
+            for option in registry[kind]?.options ?? [] {
+                defaults[kind, default: [:]][option.id] = settings.globalValue(of: option)
+            }
+        }
+        self.init(
+            defaultKind: settings.defaultKind(in: registry), optionDefaults: defaults,
+            overrides: overrides ?? settings.workspaceOverrides.byWorkspace)
+        self = sanitized(by: registry)
+    }
+
+    /// The same configuration with what this build cannot use dropped: the default kind it has no strategy for is
+    /// replaced by the registry's default kind, an override's kind it has no strategy for by "no override" (the
+    /// global value applies), and an option value that is not valid for its option by "no override".
     func sanitized(by registry: LayoutRegistry) -> LayoutConfig {
         var config = self
         if !registry.contains(config.defaultKind) { config.defaultKind = registry.defaultKind }
         for (workspace, override) in config.overrides {
-            guard let kind = override.kind, !registry.contains(kind) else { continue }
             var cleaned = override
-            cleaned.kind = nil
+            if let kind = override.kind, !registry.contains(kind) { cleaned.kind = nil }
+            for (id, value) in override.options {
+                if let option = registry.option(id: id) {
+                    if let valid = option.valid(value) {
+                        cleaned.options[id] = valid
+                    } else {
+                        cleaned.options[id] = nil
+                    }
+                }
+            }
             config.overrides[workspace] = cleaned.isEmpty ? nil : cleaned
         }
         return config
@@ -71,11 +105,11 @@ struct LayoutConfig: Equatable, Sendable {
 
     func resolved(for workspace: WorkspaceID) -> ResolvedLayout {
         let override = overrides[workspace]
-        return ResolvedLayout(
-            kind: override?.kind ?? defaultKind,
-            gaps: TilingGaps(
-                inner: CGFloat(override?.innerGap ?? innerGap), outer: CGFloat(override?.outerGap ?? outerGap)),
-            rootOrientation: override?.rootOrientation ?? rootOrientation)
+        let kind = override?.kind ?? defaultKind
+        var options = optionDefaults[kind] ?? [:]
+        // Only the options of the kind in use: another kind's values stay stored but do not apply.
+        for (id, value) in override?.options ?? [:] where options[id] != nil { options[id] = value }
+        return ResolvedLayout(kind: kind, options: options)
     }
 }
 
@@ -93,16 +127,11 @@ struct WorkspaceOverrides: Equatable, Sendable {
         self.byWorkspace = byWorkspace
     }
 
+    /// One stored record: `kind` and the options of the kinds, flat (the shape of the first version, whose options
+    /// were `innerGap`, `outerGap` and `rootOrientation`).
     private struct Record: Codable {
         var version: Int
-        var workspaces: [String: Entry]
-
-        struct Entry: Codable {
-            var kind: String?
-            var innerGap: Int?
-            var outerGap: Int?
-            var rootOrientation: String?
-        }
+        var workspaces: [String: [String: JSONValue]]
     }
 
     /// Reads a stored value; `nil` or empty text is "no overrides".
@@ -119,35 +148,35 @@ struct WorkspaceOverrides: Equatable, Sendable {
         guard let record = try? JSONDecoder().decode(Record.self, from: data), record.version >= 1 else { return }
         for (key, entry) in record.workspaces {
             guard let number = Int(key), let workspace = WorkspaceID(number) else { continue }
-            let override = WorkspaceOverride(
-                kind: entry.kind.map { LayoutKind($0) },
-                innerGap: entry.innerGap.map(WindowsSettings.clampGap),
-                outerGap: entry.outerGap.map(WindowsSettings.clampGap),
-                rootOrientation: entry.rootOrientation.flatMap(TilingOrientation.init(rawValue:)))
+            var override = WorkspaceOverride()
+            for (name, value) in entry {
+                if name == Self.kindKey {
+                    if case .string(let kind) = value { override.kind = LayoutKind(kind) }
+                } else if value != .null {
+                    override.options[name] = value
+                }
+            }
             if !override.isEmpty { byWorkspace[workspace] = override }
         }
     }
+
+    static let kindKey = "kind"
 
     /// The JSON to store; empty overrides give an empty string (the setting is then cleared).
     var json: String {
         let entries = byWorkspace.filter { !$0.value.isEmpty }
         guard !entries.isEmpty else { return "" }
-        let record = Record(
-            version: Self.version,
-            workspaces: Dictionary(
-                uniqueKeysWithValues: entries.map {
-                    (
-                        String($0.key.rawValue),
-                        Record.Entry(
-                            kind: $0.value.kind?.rawValue, innerGap: $0.value.innerGap, outerGap: $0.value.outerGap,
-                            rootOrientation: $0.value.rootOrientation?.rawValue)
-                    )
-                }))
+        var workspaces: [String: [String: JSONValue]] = [:]
+        for (workspace, override) in entries {
+            var entry = override.options
+            if let kind = override.kind { entry[Self.kindKey] = .string(kind.rawValue) }
+            workspaces[String(workspace.rawValue)] = entry
+        }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
-        guard let data = try? encoder.encode(record), let text = String(data: data, encoding: .utf8) else {
-            return ""
-        }
+        guard let data = try? encoder.encode(Record(version: Self.version, workspaces: workspaces)),
+            let text = String(data: data, encoding: .utf8)
+        else { return "" }
         return text
     }
 }

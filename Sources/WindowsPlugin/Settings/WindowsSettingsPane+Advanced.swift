@@ -27,14 +27,10 @@ extension WindowsSettingsPane {
         } label: {
             label(Text("Strip shows", comment: "Window Management setting: which boxes the strip draws"))
         }
-        modifierRow(
-            Text("Go to workspace", comment: "Window Management shortcut family"), family: .goToWorkspace)
-        modifierRow(
-            Text("Move window to workspace", comment: "Window Management shortcut family"), family: .moveToWorkspace)
-        modifierRow(Text("Focus window", comment: "Window Management shortcut family"), family: .focus)
-        modifierRow(Text("Move window", comment: "Window Management shortcut family"), family: .moveWindow)
-        modifierRow(Text("Resize window", comment: "Window Management shortcut family"), family: .resize)
-        layoutSlots
+        ForEach(ShortcutFamily.active(in: model.registry), id: \.self) { family in
+            modifierRow(family.title, family: family)
+        }
+        if !model.registry.libraryKinds.isEmpty { layoutSlots }
         if model.modifierConflict {
             label(
                 Text(
@@ -149,47 +145,21 @@ extension WindowsSettingsPane {
         }
     }
 
-    /// The default zone layout of displays of one shape: a stock layout.
-    func zoneDefaultRow(_ title: Text, orientation: DisplayOrientation) -> some View {
-        MenuPicker(
-            selection: Binding(
-                get: { model.defaultZoneLayout(for: orientation) },
-                set: { model.setDefaultZoneLayout($0, for: orientation) })
-        ) {
-            ForEach(model.allLayouts, id: \.id) { layout in
-                Text(verbatim: StockLayouts.displayName(of: layout)).font(textSize.font(.body)).tag(layout.id)
-            }
-            // A default that is in no library (deleted, or from a later version) stays selectable as it is.
-            if !model.allLayouts.contains(where: { $0.id == model.defaultZoneLayout(for: orientation) }) {
-                Text(verbatim: model.defaultZoneLayout(for: orientation)).font(textSize.font(.body))
-                    .tag(model.defaultZoneLayout(for: orientation))
-            }
-        } label: {
-            label(
-                title,
-                help: Text(
-                    "Used when a display has no layout of its own for a workspace.",
-                    comment: "Window Management setting help: the default zone layout"))
-        }
-    }
-
     var kindOptions: [LayoutKind] {
         model.selectableKinds
             + (model.selectableKinds.contains(model.defaultKind) ? [] : [model.defaultKind])
     }
+}
 
-    func gapRow(_ title: Text, value: Binding<Int>) -> some View {
-        LabeledContent {
-            Stepper(value: value, in: 0...WindowsSettings.maximumGap) {
-                Text("\(value.wrappedValue) pt", comment: "Window Management: a gap in points").font(
-                    textSize.font(.body)
-                )
-                .monospacedDigit()
-            }
-            .accessibilityLabel(title)
-            .accessibilityValue(Text("\(value.wrappedValue) pt", comment: "Window Management: a gap in points"))
-        } label: {
-            label(title)
+extension ShortcutFamily {
+    /// The row title of the family in Advanced.
+    var title: Text {
+        switch self {
+        case .goToWorkspace: Text("Go to workspace", comment: "Window Management shortcut family")
+        case .moveToWorkspace: Text("Move window to workspace", comment: "Window Management shortcut family")
+        case .focus: Text("Focus window", comment: "Window Management shortcut family")
+        case .moveWindow: Text("Move window", comment: "Window Management shortcut family")
+        case .resize: Text("Resize window", comment: "Window Management shortcut family")
         }
     }
 }

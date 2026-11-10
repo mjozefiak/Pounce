@@ -55,7 +55,7 @@ extension TilingTree {
     /// of their parent's (so the two end up stacked across the old line). When the window has no neighbour
     /// there, the container around it joins the neighbour of that container instead.
     @discardableResult
-    mutating func join(_ window: WindowID, _ direction: TilingDirection) -> Bool {
+    mutating func join(_ window: WindowID, _ direction: LayoutDirection) -> Bool {
         guard let path = path(to: window) else { return false }
         for depth in stride(from: path.count - 1, through: 0, by: -1) {
             let prefix = path[0..<depth]

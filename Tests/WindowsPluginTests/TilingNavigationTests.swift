@@ -11,7 +11,7 @@ import Testing
 
     struct FocusCase: CustomTestStringConvertible, Sendable {
         var from: UInt32
-        var direction: TilingDirection
+        var direction: LayoutDirection
         var expected: UInt32?
         var testDescription: String { "\(from) \(direction) -> \(expected.map(String.init) ?? "none")" }
     }
@@ -52,7 +52,7 @@ import Testing
 
     struct MoveCase: CustomTestStringConvertible, Sendable {
         var window: UInt32
-        var direction: TilingDirection
+        var direction: LayoutDirection
         /// The expected tree as a description, `nil` when nothing changes.
         var expected: String?
         var testDescription: String { "\(window) \(direction)" }
@@ -122,7 +122,7 @@ import Testing
 
     @Test func aMoveNeverLosesOrDuplicatesAWindow() {
         for window in [1, 2, 3, 4] as [UInt32] {
-            for direction in TilingDirection.allCases {
+            for direction in LayoutDirection.allCases {
                 guard let result = TilingNavigation.move(win(window), direction, in: sample) else { continue }
                 #expect(Set(numbers(result)) == [1, 2, 3, 4])
                 #expect(numbers(result).count == 4)

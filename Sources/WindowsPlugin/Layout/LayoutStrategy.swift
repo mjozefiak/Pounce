@@ -98,7 +98,7 @@ struct LayoutInput: Sendable {
     var state: AnyLayoutState?
     /// This kind's own configuration, if the plugin has one for it.
     var config: AnyLayoutConfig?
-    /// The gaps and orientation the workspace resolved to (shared by every kind).
+    /// The kind and the option values the workspace resolved to (`LayoutStrategy.options`).
     var resolved: ResolvedLayout
     var focused: WindowID?
     var previousFocus: WindowID?
@@ -132,8 +132,20 @@ protocol LayoutStrategy: Sendable {
     /// Whether the Layouts window assigns layouts from the library to this kind's workspaces (the cells of its
     /// matrix are active for them).
     var usesLayoutLibrary: Bool { get }
+    /// The settings of this kind: a global default (when an option names a setting) and a per-workspace override,
+    /// drawn by the pane and delivered to `arrange` in `LayoutInput.resolved`. Option ids are unique across the
+    /// registry (a strategy that repeats an id of an earlier one, or of the plugin's own keys, is left out).
+    var options: [LayoutOption] { get }
+    /// The commands of this kind (Auto-tile: join, resize, balance; Zones: move to zone N), added to the plugin's
+    /// command catalogue next to the shared ones. Ids are `windows.<...>` and never change once shipped.
+    var commands: [LayoutCommandSpec] { get }
     /// What the per-workspace summary adds for this kind after its name (Auto-tile: gaps and orientation).
     func summaryParts(_ resolved: ResolvedLayout) -> [String]
+    /// The id of the library layout the workspace shows on a display, `nil` for a kind that does not use the
+    /// layout library (`usesLayoutLibrary`). *Next zone layout* steps from it.
+    func libraryLayoutID(
+        _ environment: LayoutEnvironment, workspace: WorkspaceID, displayKey: String, orientation: DisplayOrientation
+    ) -> String?
     /// This kind's configuration from the settings and stored data, `nil` when it has none.
     func makeConfig(_ environment: LayoutEnvironment) -> AnyLayoutConfig?
     /// Brings the state up to date with `input.windows` (windows that left go, new ones enter by the kind's
@@ -157,7 +169,12 @@ protocol LayoutStrategy: Sendable {
 extension LayoutStrategy {
     var displayName: String { kind.rawValue }
     var usesLayoutLibrary: Bool { false }
+    var options: [LayoutOption] { [] }
+    var commands: [LayoutCommandSpec] { [] }
     func summaryParts(_ resolved: ResolvedLayout) -> [String] { [] }
+    func libraryLayoutID(
+        _ environment: LayoutEnvironment, workspace: WorkspaceID, displayKey: String, orientation: DisplayOrientation
+    ) -> String? { nil }
     func makeConfig(_ environment: LayoutEnvironment) -> AnyLayoutConfig? { nil }
     func perform(_ command: LayoutCommand, on window: WindowID, _ input: LayoutInput) -> LayoutEdit? { nil }
     func removing(_ window: WindowID, from state: AnyLayoutState) -> AnyLayoutState { state }
@@ -194,11 +211,20 @@ struct LayoutRegistry: Sendable {
     /// state.
     static let reservedKindNames: Set<String> = ["order"]
 
-    /// A strategy whose kind is reserved (or repeats an earlier one) is left out: it could not be stored safely.
+    /// A strategy whose kind is reserved (or repeats an earlier one), or one of whose option ids repeats an earlier
+    /// id (or is `kind`, the key of an override record), is left out: it could not be stored safely.
     init(_ strategies: [any LayoutStrategy]) {
         var seen = Set<LayoutKind>()
-        let usable = strategies.filter {
-            !Self.reservedKindNames.contains($0.kind.rawValue) && seen.insert($0.kind).inserted
+        var optionIDs: Set<String> = [WorkspaceOverrides.kindKey]
+        let usable = strategies.filter { strategy in
+            guard !Self.reservedKindNames.contains(strategy.kind.rawValue), !seen.contains(strategy.kind) else {
+                return false
+            }
+            let ids = strategy.options.map(\.id)
+            guard Set(ids).count == ids.count, optionIDs.isDisjoint(with: ids) else { return false }
+            seen.insert(strategy.kind)
+            optionIDs.formUnion(ids)
+            return true
         }
         self.strategies = Dictionary(uniqueKeysWithValues: usable.map { ($0.kind, $0) })
         kinds = usable.map(\.kind)
@@ -214,6 +240,23 @@ struct LayoutRegistry: Sendable {
     }
 
     subscript(kind: LayoutKind) -> (any LayoutStrategy)? { strategies[kind] }
+
+    /// The option with this id, whichever kind declares it.
+    func option(id: String) -> LayoutOption? {
+        for kind in kinds {
+            if let option = strategies[kind]?.options.first(where: { $0.id == id }) { return option }
+        }
+        return nil
+    }
+
+    /// The kinds that assign layouts from the layout library, in registration order.
+    var libraryKinds: [LayoutKind] { kinds.filter { strategies[$0]?.usesLayoutLibrary == true } }
+
+    /// The commands every registered strategy adds, in registration order, a repeated id counted once.
+    var commandSpecs: [LayoutCommandSpec] {
+        var seen = Set<String>()
+        return kinds.flatMap { strategies[$0]?.commands ?? [] }.filter { seen.insert($0.id).inserted }
+    }
 
     func contains(_ kind: LayoutKind) -> Bool { strategies[kind] != nil }
 
@@ -273,16 +316,16 @@ extension LayoutCommand {
     static let focusID = "layout.focus"
     static let moveID = "layout.move"
 
-    static func focus(_ direction: TilingDirection) -> LayoutCommand { LayoutCommand(focusID, encoding: direction) }
-    static func move(_ direction: TilingDirection) -> LayoutCommand { LayoutCommand(moveID, encoding: direction) }
+    static func focus(_ direction: LayoutDirection) -> LayoutCommand { LayoutCommand(focusID, encoding: direction) }
+    static func move(_ direction: LayoutDirection) -> LayoutCommand { LayoutCommand(moveID, encoding: direction) }
 
     /// The direction a `focus` or `move` command carries.
-    var direction: TilingDirection? { payload(as: TilingDirection.self) }
+    var direction: LayoutDirection? { payload(as: LayoutDirection.self) }
 }
 
 extension EngineCommand {
     /// Moves the focus to the neighbouring tile or zone of the focused window.
-    static func focusDirection(_ direction: TilingDirection) -> EngineCommand { .layout(.focus(direction)) }
+    static func focusDirection(_ direction: LayoutDirection) -> EngineCommand { .layout(.focus(direction)) }
     /// Moves the focused window to the neighbouring tile or zone.
-    static func moveDirection(_ direction: TilingDirection) -> EngineCommand { .layout(.move(direction)) }
+    static func moveDirection(_ direction: LayoutDirection) -> EngineCommand { .layout(.move(direction)) }
 }

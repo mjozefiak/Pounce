@@ -77,8 +77,8 @@ final class WindowsSettingsModel {
     /// The strategies of this build: the kinds the pane offers, their names and summaries.
     let registry: LayoutRegistry
     var defaultKind: LayoutKind
-    var innerGap: Int
-    var outerGap: Int
+    /// The global value of every option, by option id (the pane's rows of each kind read and write it).
+    var globalOptions: [String: JSONValue] = [:]
     var overrides: WorkspaceOverrides
     /// The workspace whose overrides the pane is editing, if any.
     var editingWorkspace: WorkspaceID?
@@ -112,10 +112,9 @@ final class WindowsSettingsModel {
         stripMode = settings.stripMode
         floatingApps = settings.floatingApps
         defaultKind = settings.defaultKind(in: registry)
-        innerGap = settings.innerGap
-        outerGap = settings.outerGap
         overrides = settings.workspaceOverrides
-        for family in ShortcutFamily.allCases {
+        globalOptions = Self.globalOptions(settings, registry)
+        for family in ShortcutFamily.active(in: registry) {
             choices[family] = ModifierChoice(family.defaultModifiers)
         }
     }
@@ -133,23 +132,26 @@ final class WindowsSettingsModel {
             stageManagerOn: preferences.stageManagerOn, displaysShareASpace: preferences.displaysShareASpace,
             stripEnabled: settings.stripEnabled, stripHasRoom: running?.strip?.hasRoom,
             workspaceCount: settings.workspaceCount)
-        for family in ShortcutFamily.allCases { choices[family] = choice(for: family) }
+        for family in ShortcutFamily.active(in: registry) { choices[family] = choice(for: family) }
         await reloadLibrary()
         overrides = settings.workspaceOverrides
+        globalOptions = Self.globalOptions(settings, registry)
         refreshSafety()
         context.resultsChanged()
     }
 
     private func choice(for family: ShortcutFamily) -> ModifierChoice? {
-        guard let first = family.bindings.first, let shortcut = context.commandShortcut(first.id) else { return nil }
+        guard let first = family.bindings(in: registry).first, let shortcut = context.commandShortcut(first.id) else {
+            return nil
+        }
         return ModifierChoice(shortcut.modifiers)
     }
 
     /// Looks up what each bound key types with its modifiers on the active layout.
     func refreshSafety() {
         let bound =
-            ShortcutFamily.allCases.flatMap { family in
-                family.bindings.compactMap { context.commandShortcut($0.id) }
+            ShortcutFamily.active(in: registry).flatMap { family in
+                family.bindings(in: registry).compactMap { context.commandShortcut($0.id) }
             } + [context.commandShortcut(WindowsCommandID.toggleLayout)].compactMap { $0 }
         unsafeShortcuts = ShortcutSafety.check(bound, translate: translate).offending
     }
@@ -232,7 +234,7 @@ final class WindowsSettingsModel {
         let other = partnerChoice(of: family)
         modifierConflict = choice == other
         guard choice != other else { return }
-        for binding in family.bindings {
+        for binding in family.bindings(in: registry) {
             context.setCommandShortcut(binding.id, KeyShortcut(key: binding.key, modifiers: choice.modifiers))
         }
         choices[family] = choice
@@ -242,7 +244,7 @@ final class WindowsSettingsModel {
     /// The one-click fix of the warning: ⌃⌥ in place of ⌥ for every family, with ⇧ kept where the family has it
     /// (⌃⌥⇧ for the move families).
     func useControlOption() {
-        for family in ShortcutFamily.allCases {
+        for family in ShortcutFamily.active(in: registry) {
             setModifiers(family.defaultModifiers.contains(.shift) ? .controlOptionShift : .controlOption, for: family)
         }
     }

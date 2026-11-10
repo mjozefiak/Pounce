@@ -49,12 +49,31 @@ A strategy owns its kind's state (an opaque `LayoutStateValue`), its configurati
 and stored data) and the commands it understands (`LayoutCommand` id plus payload; the shared enums name no verb).
 The reducer, the state and the store know no kind: per-kind state is stored as opaque JSON under the kind's name
 (`workspaces[n].<kind>` in `state.json`), and a kind this build does not know is kept and written back unchanged.
-`LayoutKind` is an open identifier; a new strategy is one new type and one line in `LayoutRegistry.standard`. The
-surface a strategy exposes reaches the pane and the runtime too (`displayName`, `usesLayoutLibrary`, `summaryParts`,
-`offersSnapTargets`, `makeConfig`): there is one registry, built once by `WindowsPlugin` and injected into the
-engine, `EngineConfig`, `LayoutCommands`, the settings model and the Layouts window; the cycle of *Toggle layout*
-and the kinds the pane offers are the registry's. A kind named like a `state.json` key (`order`) is left out.
-`ToyStrategyTests` proves it with no production change, through the engine, the pane, the settings and the command.
+`LayoutKind` is an open identifier; a new strategy is one new type and one line in `LayoutRegistry.standard`. What a
+strategy declares reaches the pane, the settings and the command catalogue as data:
+
+- `options` (`LayoutOption`: points or choices, a default, an optional global setting key under `plugins.windows.`).
+  The plugin stores the values without interpreting them: the global value in its setting, a workspace's override
+  flat next to `kind` in `plugins.windows.workspaces` (the shape of the first version, whose options were `innerGap`,
+  `outerGap` and `rootOrientation`), and delivers them in `LayoutInput.resolved` (`ResolvedLayout.int(_:)`,
+  `string(_:)`). Only the options of the kind in use apply; another kind's values stay stored. Option ids are unique
+  across the registry (a strategy that repeats one, or `kind`, is left out like a reserved kind name).
+- `commands` (`LayoutCommandSpec`): the plugin's catalogue is the shared verbs (focus and move to a neighbour with
+  `LayoutDirection`, toggle floating), the registry's commands, the layout-library commands when any kind
+  `usesLayoutLibrary`, and *Toggle layout*.
+- `LayoutSettingsProviding` for rows that are not options (Zones: the default layout of each display shape),
+  `summaryParts(_:)`, `libraryLayoutID(...)` (*Next zone layout* asks the kind), `offersSnapTargets`/`snapTargets`.
+
+There is one registry, built once by `WindowsPlugin` and injected into the engine, `LayoutConfig(settings:registry:)`
+(the one construction of the defaults, used by `EngineConfig` and the pane), `LayoutCommands`, the settings model and
+the Layouts window; the cycle of *Toggle layout* and the kinds the pane offers are the registry's. A kind named like a
+`state.json` key (`order`) is left out. `ToyStrategyTests` proves a fourth kind with its own option, command and settings
+row needs no production change, through the engine, the pane model, the settings, *Toggle layout* and the command
+catalogue.
+
+What is not open, and is documented rather than hidden: the closed `ShortcutFamily` list (a kind's commands are bound
+one by one, or join an existing family), the shared directional verbs, and the layout library with its Layouts window
+and grid editor, which are the Zones feature (`GridLayout`) offered to any kind that sets `usesLayoutLibrary`.
 
 `LayoutCommand` ids are namespaced strings with an opaque JSON payload (`layout.focus`, `tiling.join`, `zones.slot`):
 the trade-off is that a typo is caught by a test and not by the compiler, in return for shared enums that name no

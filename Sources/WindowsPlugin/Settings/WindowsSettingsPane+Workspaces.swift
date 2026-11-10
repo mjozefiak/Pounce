@@ -10,7 +10,7 @@ extension WindowsSettingsPane {
         label(
             Text("Per-workspace layout", comment: "Window Management setting: the list of per-workspace settings"),
             help: Text(
-                "What each workspace uses. Edit one to change its layout, gaps or first split.",
+                "What each workspace uses. Edit one to change its layout and the settings of that layout.",
                 comment: "Window Management setting help: per-workspace layout"))
         if model.overridesLocked {
             label(
@@ -56,27 +56,11 @@ extension WindowsSettingsPane {
         } label: {
             label(Text("Layout", comment: "Window Management: the layout kind of one workspace"))
         }
-        overrideGap(
-            Text("Space between windows", comment: "Window Management setting: the inner gap"), value: current.innerGap,
-            fallback: model.innerGap
-        ) { model.setOverrideInnerGap($0, for: workspace) }
-        overrideGap(
-            Text("Space around windows", comment: "Window Management setting: the outer gap"), value: current.outerGap,
-            fallback: model.outerGap
-        ) { model.setOverrideOuterGap($0, for: workspace) }
-        MenuPicker(
-            selection: Binding(
-                get: { current.rootOrientation?.rawValue ?? Self.useDefault },
-                set: { model.setOverrideOrientation(TilingOrientation(rawValue: $0), for: workspace) })
-        ) {
-            Text("Use default", comment: "Window Management: the workspace follows the global setting")
-                .font(textSize.font(.body)).tag(Self.useDefault)
-            ForEach(TilingOrientation.allCases, id: \.rawValue) { orientation in
-                Text(verbatim: orientation.displayName).font(textSize.font(.body))
-                    .tag(orientation.rawValue)
-            }
-        } label: {
-            label(Text("First split", comment: "Window Management: the root orientation of one workspace"))
+        // The options of the kind the workspace uses, whichever kind that is.
+        ForEach(model.options(of: workspace)) { option in
+            optionRow(
+                option, value: current.options[option.id], fallback: model.globalValue(of: option)
+            ) { model.setOverrideOption(option, to: $0, for: workspace) }
         }
         Button {
             model.resetOverrides(for: workspace)
@@ -88,29 +72,73 @@ extension WindowsSettingsPane {
 
     static let useDefault = "default"
 
-    func overrideGap(_ title: Text, value: Int?, fallback: Int, set: @escaping (Int?) -> Void)
-        -> some View
-    {
-        LabeledContent {
-            HStack {
-                Stepper(
-                    value: Binding(get: { value ?? fallback }, set: { set($0) }),
-                    in: 0...WindowsSettings.maximumGap
-                ) {
-                    Text("\(value ?? fallback) pt", comment: "Window Management: a gap in points")
-                        .font(textSize.font(.body)).monospacedDigit()
-                }
-                .accessibilityLabel(title)
-                if value != nil {
-                    Button {
-                        set(nil)
-                    } label: {
-                        Text("Default", comment: "Window Management: returns a gap to the global value")
+    /// One option of a layout kind. With a `fallback` it is a per-workspace override (`value` is the override, if any,
+    /// and the row offers the way back to the global value); without one it is the global default itself.
+    @ViewBuilder
+    func optionRow(
+        _ option: LayoutOption, value: JSONValue?, fallback: JSONValue?, set: @escaping (JSONValue?) -> Void
+    ) -> some View {
+        switch option.domain {
+        case .points(let range):
+            let shown = Self.number(value ?? fallback ?? option.defaultValue)
+            LabeledContent {
+                HStack {
+                    Stepper(value: Binding(get: { shown }, set: { set(.int($0)) }), in: range) {
+                        Text("\(shown) pt", comment: "Window Management: a gap in points")
+                            .font(textSize.font(.body)).monospacedDigit()
+                    }
+                    .accessibilityLabel(Text(verbatim: option.title))
+                    .accessibilityValue(Text("\(shown) pt", comment: "Window Management: a gap in points"))
+                    if fallback != nil, value != nil {
+                        Button {
+                            set(nil)
+                        } label: {
+                            Text("Default", comment: "Window Management: returns a gap to the global value")
+                        }
                     }
                 }
+            } label: {
+                label(Text(verbatim: option.title))
+            }
+        case .choices(let choices):
+            MenuPicker(
+                selection: Binding(
+                    get: {
+                        value.map(Self.text) ?? (fallback == nil ? Self.text(option.defaultValue) : Self.useDefault)
+                    },
+                    set: { set($0 == Self.useDefault ? nil : .string($0)) })
+            ) {
+                if fallback != nil {
+                    Text("Use default", comment: "Window Management: the workspace follows the global setting")
+                        .font(textSize.font(.body)).tag(Self.useDefault)
+                }
+                ForEach(choices, id: \.id) { choice in
+                    Text(verbatim: choice.title).font(textSize.font(.body)).tag(choice.id)
+                }
+            } label: {
+                label(Text(verbatim: option.title))
+            }
+        }
+    }
+
+    private static func number(_ value: JSONValue) -> Int {
+        if case .int(let number) = value { return number }
+        return 0
+    }
+
+    private static func text(_ value: JSONValue) -> String {
+        if case .string(let text) = value { return text }
+        return ""
+    }
+
+    /// A row a strategy adds for a setting of its own (`LayoutSettingRow`): a picker over its choices.
+    func strategyRow(_ row: LayoutSettingRow) -> some View {
+        MenuPicker(selection: Binding(get: { row.selection() }, set: { row.select($0) })) {
+            ForEach(row.choices(), id: \.id) { choice in
+                Text(verbatim: choice.title).font(textSize.font(.body)).tag(choice.id)
             }
         } label: {
-            label(title)
+            label(Text(verbatim: row.title), help: row.help.map { Text(verbatim: $0) })
         }
     }
 

@@ -172,7 +172,7 @@ struct GridLayout: Equatable, Sendable {
 
     /// The zone next to `id` in a direction, by grid position: the nearest zone beyond its edge that shares at
     /// least one row (or column) with it, the one with the largest overlap first, then the first in zone order.
-    func neighbour(of id: Int, _ direction: TilingDirection) -> Int? {
+    func neighbour(of id: Int, _ direction: LayoutDirection) -> Int? {
         guard let from = zones.first(where: { $0.id == id }) else { return nil }
         var best: (zone: GridZone, gap: Int, overlap: Int)?
         for zone in zones where zone.id != id {

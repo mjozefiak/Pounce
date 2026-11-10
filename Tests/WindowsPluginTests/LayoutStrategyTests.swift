@@ -78,12 +78,32 @@ import Testing
 
         var displayName: String { "Toy" }
 
-        func summaryParts(_ resolved: ResolvedLayout) -> [String] { ["toy parts"] }
+        /// The toy's own setting: how far apart the windows go. It has a global setting key of its own.
+        var options: [LayoutOption] {
+            [
+                LayoutOption(
+                    id: "toyStep", title: "Toy step", domain: .points(10...400), defaultValue: .int(111),
+                    settingKey: "toy.step")
+            ]
+        }
+
+        /// A command of the toy: bumps its counter. Defined here, listed by the plugin from the registry.
+        var commands: [LayoutCommandSpec] {
+            [
+                LayoutCommandSpec(
+                    id: "windows.toy.bump", title: LocalizedStringResource(stringLiteral: "Bump the Toy"),
+                    symbolName: "star", command: .layout(LayoutCommand("toy.bump", encoding: 1)))
+            ]
+        }
+
+        func summaryParts(_ resolved: ResolvedLayout) -> [String] {
+            ["toy parts", "step \(resolved.int("toyStep") ?? -1)"]
+        }
 
         func makeConfig(_ environment: LayoutEnvironment) -> AnyLayoutConfig? { AnyLayoutConfig(ToyConfig(step: 111)) }
 
         func arrange(_ input: LayoutInput) -> LayoutArrangement {
-            let step = input.config?.as(ToyConfig.self)?.step ?? 0
+            let step = input.resolved.int("toyStep").map { CGFloat($0) } ?? input.config?.as(ToyConfig.self)?.step ?? 0
             var frames: [WindowID: CGRect] = [:]
             for (index, window) in input.windows.enumerated() {
                 frames[window] = CGRect(x: CGFloat(index) * step, y: 0, width: 100, height: 100)
@@ -211,7 +231,7 @@ import Testing
         #expect(model.kindName(toy) == "Toy")
         model.setDefaultKind(toy)
         await model.actions.waitUntilEmpty()
-        #expect(model.workspaceSummaries.first?.detail == "Toy · toy parts")
+        #expect(model.workspaceSummaries.first?.detail == "Toy · toy parts · step 111")
         #expect(WindowsSettings(harness.pluginSettings).defaultKind(in: registry) == toy)
         // The runtime arranges with the strategy's own configuration, and *Toggle layout* cycles through it.
         await runtime.settle()
@@ -221,5 +241,98 @@ import Testing
         let overrides = WindowsSettings(harness.pluginSettings).workspaceOverrides(in: registry)
         #expect(overrides.byWorkspace[ws(1)]?.kind == .tiling)
         await plugin.deactivate()
+    }
+
+    @MainActor @Test func aFourthKindsOptionCommandAndRowReachThePaneTheSettingsTheEngineAndTheCatalogue() async throws
+    {
+        let harness = try WindowsHarness()
+        defer { harness.tearDown() }
+        let registry = LayoutRegistry([TilingStrategy(), ZonesStrategy(), FreeStrategy(), ToyStrategy()])
+        let client = FakeWindowClient(windows: [makeWindow(1), makeWindow(2)])
+        client.setFocused(id(1))
+        let plugin = WindowsPlugin(
+            context: harness.context(windows: client, permissions: ScriptedPermissions(granted: true)),
+            hud: RecordingHUD(), activationCenter: NotificationCenter(), layouts: registry)
+        try await plugin.activate()
+        let runtime = try #require(plugin.runtime)
+        let model = plugin.paneModel
+        model.setDefaultKind(toy)
+        await model.actions.waitUntilEmpty()
+        await runtime.settle()
+
+        // The command catalogue lists the toy's command, with the title and symbol it declared.
+        let commands = plugin.commands
+        let bump = try #require(commands.first { $0.id == "windows.toy.bump" })
+        #expect(bump.symbolName == "star")
+        // ... and running it reaches the toy's `perform` through the generic engine command.
+        await bump.run()
+        await runtime.settle()
+        #expect(await runtime.engine.snapshot.layouts[ws(1)]?["toy"]?.as(ToyState.self)?.bumps == 1)
+        // The commands of the kinds that are not registered are not offered.
+        let standard = WindowsPlugin(
+            context: harness.context(windows: client, permissions: ScriptedPermissions(granted: true)),
+            hud: RecordingHUD(), activationCenter: NotificationCenter())
+        #expect(!standard.commands.contains { $0.id == "windows.toy.bump" })
+
+        // The pane model offers the option as a global row, stores it under the setting key it declared, and the
+        // engine arranges with it.
+        let option = try #require(model.globalOptionRows.first { $0.id == "toyStep" })
+        model.setGlobalValue(.int(250), of: option)
+        await model.actions.waitUntilEmpty()
+        await runtime.settle()
+        #expect(harness.pluginSettings.integer("toy.step", default: 0) == 250)
+        #expect(client.frame(of: id(2))?.minX == 250)
+        #expect(model.workspaceSummaries.first?.detail == "Toy · toy parts · step 250")
+
+        // A workspace override of the option is stored flat next to the kind and wins for that workspace.
+        model.setOverrideOption(option, to: .int(300), for: ws(1))
+        await model.actions.waitUntilEmpty()
+        await runtime.settle()
+        #expect(client.frame(of: id(2))?.minX == 300)
+        #expect(model.options(of: ws(1)).map(\.id) == ["toyStep"])
+        #expect(harness.pluginSettings.string(WindowsSettings.Key.workspaces)?.contains("\"toyStep\":300") == true)
+        // A value out of range is made valid, one of the wrong type is refused.
+        model.setOverrideOption(option, to: .int(9_000), for: ws(1))
+        #expect(model.override(for: ws(1)).options["toyStep"] == .int(400))
+        model.setOverrideOption(option, to: .string("wide"), for: ws(1))
+        #expect(model.override(for: ws(1)).options["toyStep"] == nil)
+
+        // The kind's own settings rows are drawn by the pane from the strategy.
+        #expect(model.strategySettingRows.map(\.id).suffix(1) == ["toy.row"])
+        #expect(model.strategySettingRows.count == 3)
+        await plugin.deactivate()
+    }
+
+    @Test func aStrategyWhoseOptionIdRepeatsAnEarlierOneIsLeftOut() {
+        struct Clash: LayoutStrategy {
+            var kind: LayoutKind { LayoutKind("clash") }
+            var options: [LayoutOption] {
+                [LayoutOption(id: "toyStep", title: "x", domain: .points(0...1), defaultValue: .int(0))]
+            }
+            func arrange(_ input: LayoutInput) -> LayoutArrangement {
+                LayoutArrangement(state: nil, frames: [:], hints: input.hints)
+            }
+        }
+        struct Kindly: LayoutStrategy {
+            var kind: LayoutKind { LayoutKind("kindly") }
+            var options: [LayoutOption] {
+                [LayoutOption(id: "kind", title: "x", domain: .points(0...1), defaultValue: .int(0))]
+            }
+            func arrange(_ input: LayoutInput) -> LayoutArrangement {
+                LayoutArrangement(state: nil, frames: [:], hints: input.hints)
+            }
+        }
+        let registry = LayoutRegistry([ToyStrategy(), Clash(), Kindly()])
+        #expect(registry.kinds == [toy])
+    }
+}
+
+extension ToyStrategyTests.ToyStrategy: LayoutSettingsProviding {
+    func settingRows(model: WindowsSettingsModel) -> [LayoutSettingRow] {
+        [
+            LayoutSettingRow(
+                id: "toy.row", title: "Toy row", help: nil, choices: { [.init(id: "a", title: "A")] },
+                selection: { "a" }, select: { _ in })
+        ]
     }
 }

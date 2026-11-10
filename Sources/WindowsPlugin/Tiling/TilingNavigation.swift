@@ -13,7 +13,7 @@ enum TilingNavigation {
     /// The window to focus when moving in `direction` from `window`: the nearest tile that lies beyond the
     /// window's edge and overlaps it across the direction. Among several, the one that contains the middle of
     /// the window, then the one that overlaps most, then the first in layout order. `nil` at the edge.
-    static func neighbour(of window: WindowID, _ direction: TilingDirection, in tree: TilingTree) -> WindowID? {
+    static func neighbour(of window: WindowID, _ direction: LayoutDirection, in tree: TilingTree) -> WindowID? {
         let frames = TilingLayout.frames(tree, area: nominal, gaps: .none)
         guard let source = frames[window] else { return nil }
         let order = tree.windows
@@ -51,7 +51,7 @@ enum TilingNavigation {
     /// - the next sibling is a container: the window moves into it, at its near edge;
     /// - the window sits in a nested container: it leaves it and lands beside it, on the side of the direction.
     /// At the edge of the outermost container nothing happens.
-    static func move(_ window: WindowID, _ direction: TilingDirection, in tree: TilingTree) -> TilingTree? {
+    static func move(_ window: WindowID, _ direction: LayoutDirection, in tree: TilingTree) -> TilingTree? {
         guard let path = tree.path(to: window), !path.isEmpty else { return nil }
         let step = direction.step
         for depth in stride(from: path.count - 1, through: 0, by: -1) {

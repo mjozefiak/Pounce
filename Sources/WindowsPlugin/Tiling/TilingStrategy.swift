@@ -11,22 +11,110 @@ struct TilingStrategy: LayoutStrategy {
         String(localized: "Auto-tile", comment: "Window Management layout kind: windows tile the screen")
     }
 
+    // MARK: Options
+
+    static let innerGapID = "innerGap"
+    static let outerGapID = "outerGap"
+    static let rootOrientationID = "rootOrientation"
+    static let defaultGap = 8
+    static let maximumGap = 64
+
+    /// The gaps and the first split: the global gaps are `plugins.windows.gap.inner` and `gap.outer`, the first
+    /// split has no global setting (side by side).
+    var options: [LayoutOption] {
+        [
+            LayoutOption(
+                id: Self.innerGapID,
+                title: String(localized: "Space between windows", comment: "Window Management setting: the inner gap"),
+                domain: .points(0...Self.maximumGap), defaultValue: .int(Self.defaultGap),
+                settingKey: WindowsSettings.Key.innerGap),
+            LayoutOption(
+                id: Self.outerGapID,
+                title: String(localized: "Space around windows", comment: "Window Management setting: the outer gap"),
+                domain: .points(0...Self.maximumGap), defaultValue: .int(Self.defaultGap),
+                settingKey: WindowsSettings.Key.outerGap),
+            LayoutOption(
+                id: Self.rootOrientationID,
+                title: String(
+                    localized: "First split", comment: "Window Management: the root orientation of one workspace"),
+                domain: .choices(
+                    TilingOrientation.allCases.map { LayoutOption.Choice(id: $0.rawValue, title: $0.displayName) }),
+                defaultValue: .string(TilingOrientation.horizontal.rawValue), settingKey: nil),
+        ]
+    }
+
     func summaryParts(_ resolved: ResolvedLayout) -> [String] {
-        let inner = Int(resolved.gaps.inner)
-        let outer = Int(resolved.gaps.outer)
+        let gaps = resolved.tilingGaps
+        let inner = Int(gaps.inner)
+        let outer = Int(gaps.outer)
         return [
             String(localized: "Gaps \(inner) / \(outer)", comment: "Window Management summary: gaps"),
-            resolved.rootOrientation.displayName,
+            resolved.tilingOrientation.displayName,
         ]
+    }
+
+    // MARK: Commands
+
+    /// Join, resize, split direction and balance (the focus and move verbs are shared by every kind, see
+    /// `LayoutCommand.focus`). Resize is a family with ⌥- and ⌥= by default.
+    var commands: [LayoutCommandSpec] {
+        var specs: [LayoutCommandSpec] = [
+            LayoutCommandSpec(
+                id: WindowsCommandID.grow,
+                title: LocalizedStringResource("Grow Window", comment: "Command: makes the focused tile larger"),
+                symbolName: "arrow.up.left.and.arrow.down.right", family: .resize, key: "=",
+                command: .resize(TilingTree.resizeStep)),
+            LayoutCommandSpec(
+                id: WindowsCommandID.shrink,
+                title: LocalizedStringResource("Shrink Window", comment: "Command: makes the focused tile smaller"),
+                symbolName: "arrow.down.right.and.arrow.up.left", family: .resize, key: "-",
+                command: .resize(-TilingTree.resizeStep)),
+        ]
+        for direction in LayoutDirection.allCases {
+            specs.append(
+                LayoutCommandSpec(
+                    id: WindowsCommandID.join(direction), title: Self.joinTitle(direction),
+                    symbolName: "rectangle.split.2x1", command: .join(direction)))
+        }
+        specs.append(
+            LayoutCommandSpec(
+                id: WindowsCommandID.toggleOrientation,
+                title: LocalizedStringResource(
+                    "Toggle Split Direction", comment: "Command: flips the container of the focused window"),
+                symbolName: "rectangle.split.2x1", command: .toggleOrientation))
+        specs.append(
+            LayoutCommandSpec(
+                id: WindowsCommandID.balance,
+                title: LocalizedStringResource("Balance Windows", comment: "Command: gives every tile the same size"),
+                symbolName: "equal.square", command: .balance))
+        return specs
+    }
+
+    private static func joinTitle(_ direction: LayoutDirection) -> LocalizedStringResource {
+        switch direction {
+        case .left:
+            LocalizedStringResource(
+                "Join with Left Window", comment: "Command: groups the focused window with its neighbour")
+        case .right:
+            LocalizedStringResource(
+                "Join with Right Window", comment: "Command: groups the focused window with its neighbour")
+        case .up:
+            LocalizedStringResource(
+                "Join with Window Above", comment: "Command: groups the focused window with its neighbour")
+        case .down:
+            LocalizedStringResource(
+                "Join with Window Below", comment: "Command: groups the focused window with its neighbour")
+        }
     }
 
     func arrange(_ input: LayoutInput) -> LayoutArrangement {
         let layout = input.resolved
+        let orientation = layout.tilingOrientation
         let wanted = Set(input.windows)
-        var tree = input.state?.as(TilingTree.self) ?? TilingTree(orientation: layout.rootOrientation)
+        var tree = input.state?.as(TilingTree.self) ?? TilingTree(orientation: orientation)
         // Windows that are gone, floating or moved away leave the tree.
         for id in tree.windows where !wanted.contains(id) { tree.remove(id) }
-        if tree.windows.count <= 1 { tree.root.orientation = layout.rootOrientation }
+        if tree.windows.count <= 1 { tree.root.orientation = orientation }
         // New windows enter after the focused window (or the one focused before it), several in join order.
         var anchor: WindowID?
         for id in input.windows where !tree.contains(id) {
@@ -38,7 +126,7 @@ struct TilingStrategy: LayoutStrategy {
             anchor = id
         }
         return LayoutArrangement(
-            state: AnyLayoutState(tree), frames: TilingLayout.frames(tree, area: input.area, gaps: layout.gaps),
+            state: AnyLayoutState(tree), frames: TilingLayout.frames(tree, area: input.area, gaps: layout.tilingGaps),
             hints: input.hints)
     }
 
@@ -96,14 +184,14 @@ extension LayoutCommand {
     /// Grows (positive) or shrinks (negative) the window by that share of its container.
     static func resize(_ delta: Double) -> LayoutCommand { LayoutCommand(resizeID, encoding: delta) }
     /// Puts the window and its neighbour in that direction into a new container.
-    static func join(_ direction: TilingDirection) -> LayoutCommand { LayoutCommand(joinID, encoding: direction) }
+    static func join(_ direction: LayoutDirection) -> LayoutCommand { LayoutCommand(joinID, encoding: direction) }
     static let toggleOrientation = LayoutCommand(toggleOrientationID)
     static let balance = LayoutCommand(balanceID)
 }
 
 extension EngineCommand {
     static func resize(_ delta: Double) -> EngineCommand { .layout(.resize(delta)) }
-    static func join(_ direction: TilingDirection) -> EngineCommand { .layout(.join(direction)) }
+    static func join(_ direction: LayoutDirection) -> EngineCommand { .layout(.join(direction)) }
     static let toggleOrientation = EngineCommand.layout(.toggleOrientation)
     static let balance = EngineCommand.layout(.balance)
 }
@@ -118,5 +206,19 @@ extension TilingOrientation {
         case .vertical:
             String(localized: "Stacked", comment: "Window Management: the first split of a workspace is vertical")
         }
+    }
+}
+
+extension ResolvedLayout {
+    /// The gaps of an Auto-tile workspace (the option values, in points).
+    var tilingGaps: TilingGaps {
+        TilingGaps(
+            inner: CGFloat(int(TilingStrategy.innerGapID) ?? TilingStrategy.defaultGap),
+            outer: CGFloat(int(TilingStrategy.outerGapID) ?? TilingStrategy.defaultGap))
+    }
+
+    /// The first split of an Auto-tile workspace.
+    var tilingOrientation: TilingOrientation {
+        string(TilingStrategy.rootOrientationID).flatMap(TilingOrientation.init(rawValue:)) ?? .horizontal
     }
 }
