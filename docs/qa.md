@@ -8,6 +8,8 @@ shipped app.
 
 ## Launching
 
+**The QA build is a different app from the real Lintel.** `CONFIGURATION=debug scripts/make-app.sh` gives the bundle the id `com.lintelapp.Lintel.QA`, the display name "Lintel QA" and the executable and process name `Lintel-QA`, and leaves out the `.lintellayouts` document type, so Launch Services, the Accessibility grant (grant it to "Lintel QA" the first time) and `UserDefaults` (`com.lintelapp.Lintel.QA`) are separate from the owner's installed Lintel. The path stays `dist/Lintel.app`. **QA tools must address the QA process by PID** (keep the PID of the process you started), never by a name match: a helper that matched "Lintel" once closed the owner's real window. The plugin's default floating apps list names both ids, so the QA app's own windows are never tiled.
+
 ```bash
 swift build
 .build/debug/Lintel --qa --qa-appearance dark --qa-show-menu --qa-quit-after 8
@@ -17,7 +19,7 @@ Or build a bundle (ad-hoc signed, never with the "Lintel Release" identity local
 
 ```bash
 CONFIGURATION=debug scripts/make-app.sh
-dist/Lintel.app/Contents/MacOS/Lintel --qa --qa-show-menu --qa-quit-after 8
+dist/Lintel.app/Contents/MacOS/Lintel-QA --qa --qa-show-menu --qa-quit-after 8
 ```
 
 The menu appears with the process's localization; run with `-AppleLanguages '(pl)'` to check the
@@ -91,16 +93,16 @@ never shows which apps (for example which password manager) the tester has insta
 when capturing the Clipboard History settings pane.
 
 ```bash
-dist/Lintel.app/Contents/MacOS/Lintel --qa --qa-setting plugins.clipboard.qaSeed=demo \
+dist/Lintel.app/Contents/MacOS/Lintel-QA --qa --qa-setting plugins.clipboard.qaSeed=demo \
   --qa-accessibility granted --qa-panel clipboard --qa-appearance light
 # Recording paused, Accessibility missing, access set to ask:
-dist/Lintel.app/Contents/MacOS/Lintel --qa --qa-setting plugins.clipboard.qaSeed=demo \
+dist/Lintel.app/Contents/MacOS/Lintel-QA --qa --qa-setting plugins.clipboard.qaSeed=demo \
   --qa-setting plugins.clipboard.paused=true --qa-accessibility denied --qa-pasteboard-access ask \
   --qa-panel clipboard
 # Empty history, settings pane, onboarding step:
-dist/Lintel.app/Contents/MacOS/Lintel --qa --qa-accessibility granted --qa-panel clipboard
-dist/Lintel.app/Contents/MacOS/Lintel --qa --qa-setting plugins.clipboard.qaSeed=demo --qa-settings clipboard
-dist/Lintel.app/Contents/MacOS/Lintel --qa --qa-onboarding-step clipboard.intro
+dist/Lintel.app/Contents/MacOS/Lintel-QA --qa --qa-accessibility granted --qa-panel clipboard
+dist/Lintel.app/Contents/MacOS/Lintel-QA --qa --qa-setting plugins.clipboard.qaSeed=demo --qa-settings clipboard
+dist/Lintel.app/Contents/MacOS/Lintel-QA --qa --qa-onboarding-step clipboard.intro
 ```
 
 Pasting (Return posts ⌘V into the previous app) needs Accessibility and a real target app, so it is a
@@ -117,7 +119,7 @@ mkdir -p "$FIXTURES/Notes Demo.app/Contents"
 plutil -create xml1 "$FIXTURES/Notes Demo.app/Contents/Info.plist"
 plutil -insert CFBundleIdentifier -string com.example.notes "$FIXTURES/Notes Demo.app/Contents/Info.plist"
 # … more bundles …
-dist/Lintel.app/Contents/MacOS/Lintel --qa \
+dist/Lintel.app/Contents/MacOS/Lintel-QA --qa \
   --qa-setting "plugins.apps.roots=$FIXTURES" --qa-setting plugins.apps.spotlight=false \
   --qa-record-use apps:com.example.notes --qa-panel search --qa-query no --qa-appearance dark
 ```
@@ -146,15 +148,15 @@ done
 COMMON=(--qa --qa-setting "plugins.apps.roots=$FIX" --qa-setting plugins.apps.spotlight=false
   --qa-activity com.example.mail=5 --qa-activity com.example.notes=3 --qa-activity com.example.maps)
 # The empty panel with "Suggested" (⌘1–⌘3 open the rows, ⌃X hides the selected one):
-dist/Lintel.app/Contents/MacOS/Lintel "${COMMON[@]}" --qa-panel search --qa-appearance dark
+dist/Lintel.app/Contents/MacOS/Lintel-QA "${COMMON[@]}" --qa-panel search --qa-appearance dark
 # Suggested and "Recently Used" without duplicates:
-dist/Lintel.app/Contents/MacOS/Lintel "${COMMON[@]}" --qa-record-use apps:com.example.mail \
+dist/Lintel.app/Contents/MacOS/Lintel-QA "${COMMON[@]}" --qa-record-use apps:com.example.mail \
   --qa-record-use apps:com.example.music --qa-panel search
 # Settings → Apps (Suggest Apps, hidden apps, Clear App Activity…), with one hidden app:
-dist/Lintel.app/Contents/MacOS/Lintel "${COMMON[@]}" \
+dist/Lintel.app/Contents/MacOS/Lintel-QA "${COMMON[@]}" \
   --qa-setting plugins.apps.suggestions.hidden=com.example.maps --qa-settings apps
 # Suggestions turned off: no section, the history stays:
-dist/Lintel.app/Contents/MacOS/Lintel "${COMMON[@]}" --qa-setting plugins.apps.suggestions.enabled=false \
+dist/Lintel.app/Contents/MacOS/Lintel-QA "${COMMON[@]}" --qa-setting plugins.apps.suggestions.enabled=false \
   --qa-panel search
 ```
 
@@ -178,15 +180,15 @@ FIX=/tmp/lintel-p3-qa
 mkdir -p "$FIX/home/Projects/Website" "$FIX/home/Desktop" "$FIX/home/Documents" "$FIX/apps"
 touch "$FIX/home/Projects/Quarterly Report.txt" "$FIX/home/Projects/Website/notes.txt" \
   "$FIX/home/Desktop/desk-plan.txt" "$FIX/home/Documents/tax-form.txt"
-dist/Lintel.app/Contents/MacOS/Lintel --qa \
+dist/Lintel.app/Contents/MacOS/Lintel-QA --qa \
   --qa-setting "plugins.files.qaHome=$FIX/home" --qa-setting "plugins.files.roots=$FIX/home" \
   --qa-setting plugins.files.setupCompleted=true --qa-full-disk-access denied \
   --qa-setting "plugins.apps.roots=$FIX/apps" --qa-setting plugins.apps.spotlight=false \
   --qa-panel search --qa-query report
 # The Full Disk Access onboarding step and the Files settings pane:
-dist/Lintel.app/Contents/MacOS/Lintel --qa --qa-setting "plugins.files.qaHome=$FIX/home" \
+dist/Lintel.app/Contents/MacOS/Lintel-QA --qa --qa-setting "plugins.files.qaHome=$FIX/home" \
   --qa-onboarding-step files.fullDiskAccess
-dist/Lintel.app/Contents/MacOS/Lintel --qa --qa-setting "plugins.files.qaHome=$FIX/home" \
+dist/Lintel.app/Contents/MacOS/Lintel-QA --qa --qa-setting "plugins.files.qaHome=$FIX/home" \
   --qa-setting plugins.files.setupCompleted=true --qa-settings files
 ```
 
@@ -205,7 +207,7 @@ folders (file path search spec). In QA mode `~` is the fake home, so build the f
 mkdir -p "$FIX/home/Projects/ng/.ai/runs/2026-10-27-qa-fixes/screenshots" "$FIX/home/Documents/Invoices"
 touch "$FIX/home/Projects/ng/.ai/runs/2026-10-27-qa-fixes/plan.txt" \
   "$FIX/home/Projects/ng/.ai/runs/2026-10-27-qa-fixes/.hidden.txt" "$FIX/home/Documents/Invoices/march.txt"
-dist/Lintel.app/Contents/MacOS/Lintel --qa \
+dist/Lintel.app/Contents/MacOS/Lintel-QA --qa \
   --qa-setting "plugins.files.qaHome=$FIX/home" --qa-setting "plugins.files.roots=$FIX/home" \
   --qa-setting plugins.files.setupCompleted=true --qa-full-disk-access denied \
   --qa-panel search --qa-query "~/Projects/ng/.ai/runs/2026-10-27-qa-fixes/"
@@ -233,14 +235,14 @@ COMMON=(--qa --qa-setting "plugins.files.qaHome=$FIX/home" --qa-setting "plugins
   --qa-setting "plugins.apps.roots=$FIX/apps" --qa-setting plugins.apps.spotlight=false
   --qa-setting plugins.clipboard.qaSeed=demo --qa-spotlight off)
 # The welcome screen, from the first page or on one page:
-dist/Lintel.app/Contents/MacOS/Lintel "${COMMON[@]}" --qa-onboarding
-dist/Lintel.app/Contents/MacOS/Lintel "${COMMON[@]}" --qa-onboarding-step shortcut
+dist/Lintel.app/Contents/MacOS/Lintel-QA "${COMMON[@]}" --qa-onboarding
+dist/Lintel.app/Contents/MacOS/Lintel-QA "${COMMON[@]}" --qa-onboarding-step shortcut
 # Settings → Permissions and Advanced:
-dist/Lintel.app/Contents/MacOS/Lintel "${COMMON[@]}" --qa-accessibility denied --qa-full-disk-access granted \
+dist/Lintel.app/Contents/MacOS/Lintel-QA "${COMMON[@]}" --qa-accessibility denied --qa-full-disk-access granted \
   --qa-pasteboard-access ask --qa-settings permissions
-dist/Lintel.app/Contents/MacOS/Lintel "${COMMON[@]}" --qa-settings advanced
+dist/Lintel.app/Contents/MacOS/Lintel-QA "${COMMON[@]}" --qa-settings advanced
 # About (the notices come from the bundle, so use the app built by make-app.sh):
-dist/Lintel.app/Contents/MacOS/Lintel --qa --qa-about
+dist/Lintel.app/Contents/MacOS/Lintel-QA --qa --qa-about
 ```
 
 Add `-AppleLanguages '(pl)'` for the Polish strings and `--qa-appearance light|dark` for each appearance.
@@ -365,7 +367,7 @@ Options that matter (see the table above for all of them):
 
 ```sh
 CONFIGURATION=debug scripts/make-app.sh
-APP=dist/Lintel.app/Contents/MacOS/Lintel
+APP=dist/Lintel.app/Contents/MacOS/Lintel-QA
 # The library with meetings in it needs recorded or seeded meetings: record one from the WAV files first
 # (run the record command from the menu, stop it, wait for "ready"), keeping --qa-data-root so the next run sees it:
 $APP --qa --qa-data-root /tmp/lintel-qa-meetings --qa-setting plugins.meetings.enabled=true \

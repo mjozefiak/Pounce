@@ -57,7 +57,9 @@ struct WindowsSettings: Sendable {
     static let maximumWorkspaces = 9
     static let defaultWorkspaceCount = 4
     /// Never tiled or placed: Lintel itself, System Settings and Calculator (spec Q6).
-    static let defaultFloatingApps = ["com.lintelapp.Lintel", "com.apple.systempreferences", "com.apple.calculator"]
+    static let defaultFloatingApps = [
+        "com.lintelapp.Lintel", "com.lintelapp.Lintel.QA", "com.apple.systempreferences", "com.apple.calculator",
+    ]
 
     private let settings: PluginSettings
 

@@ -2,7 +2,10 @@
 # Builds dist/Lintel.app from the Swift package.
 #
 # Environment:
-#   CONFIGURATION  release (default) or debug. Debug builds accept the QA launch arguments (docs/qa.md).
+#   CONFIGURATION  release (default) or debug. Debug builds accept the QA launch arguments (docs/qa.md) and are a
+#                  different app from the owner's real Lintel: bundle id com.lintelapp.Lintel.QA, executable and
+#                  process name Lintel-QA, no .lintellayouts document type (so Launch Services, Accessibility grants
+#                  and name-matching tools can never confuse it with the real one).
 #   SIGN_IDENTITY  code-signing identity; "-" (default) signs ad-hoc. The release workflow passes
 #                  "Lintel Release". Never use that identity on a developer Mac (docs/signing.md).
 #   SIGN_KEYCHAIN  optional keychain to look the identity up in (the release workflow's temporary one).
@@ -30,8 +33,24 @@ BIN_DIR="$(swift build -c "$CONFIGURATION" --arch arm64 --show-bin-path)"
 OUT="$ROOT/dist/$APP_NAME.app"
 rm -rf "$OUT"
 mkdir -p "$OUT/Contents/MacOS" "$OUT/Contents/Resources" "$OUT/Contents/Frameworks"
-cp "$BIN_DIR/$APP_NAME" "$OUT/Contents/MacOS/$APP_NAME"
+EXEC_NAME="$APP_NAME"
+BUNDLE_ID="com.lintelapp.Lintel"
+if [[ "$CONFIGURATION" == debug ]]; then
+  EXEC_NAME="Lintel-QA"
+  BUNDLE_ID="com.lintelapp.Lintel.QA"
+fi
+cp "$BIN_DIR/$APP_NAME" "$OUT/Contents/MacOS/$EXEC_NAME"
 cp Resources/Info.plist "$OUT/Contents/Info.plist"
+if [[ "$CONFIGURATION" == debug ]]; then
+  PLIST_BUDDY=/usr/libexec/PlistBuddy
+  "$PLIST_BUDDY" -c "Set :CFBundleIdentifier $BUNDLE_ID" "$OUT/Contents/Info.plist"
+  "$PLIST_BUDDY" -c "Set :CFBundleExecutable $EXEC_NAME" "$OUT/Contents/Info.plist"
+  "$PLIST_BUDDY" -c "Set :CFBundleName Lintel QA" "$OUT/Contents/Info.plist"
+  "$PLIST_BUDDY" -c "Set :CFBundleDisplayName Lintel QA" "$OUT/Contents/Info.plist"
+  # The real app owns the .lintellayouts association; the QA build must not compete for it.
+  "$PLIST_BUDDY" -c "Delete :CFBundleDocumentTypes" "$OUT/Contents/Info.plist" 2>/dev/null || true
+  "$PLIST_BUDDY" -c "Delete :UTExportedTypeDeclarations" "$OUT/Contents/Info.plist" 2>/dev/null || true
+fi
 printf 'APPL????' > "$OUT/Contents/PkgInfo"
 
 # SQLCipher is a dynamic framework (docs/decisions/0001-sqlite.md): embed it next to the binary.
@@ -44,7 +63,7 @@ lipo -thin arm64 "$OUT/Contents/Frameworks/llama.framework/Versions/A/llama" \
   -output "$OUT/Contents/Frameworks/llama.framework/Versions/A/llama.arm64"
 mv "$OUT/Contents/Frameworks/llama.framework/Versions/A/llama.arm64" \
   "$OUT/Contents/Frameworks/llama.framework/Versions/A/llama"
-install_name_tool -add_rpath "@executable_path/../Frameworks" "$OUT/Contents/MacOS/$APP_NAME"
+install_name_tool -add_rpath "@executable_path/../Frameworks" "$OUT/Contents/MacOS/$EXEC_NAME"
 
 # License notices of the bundled third-party code (SQLCipher's BSD license requires them in binary
 # distributions).
@@ -88,7 +107,7 @@ SIGN_ARGS=(--force --sign "$SIGN_IDENTITY" --timestamp=none --options runtime)
 [[ -n "$SIGN_KEYCHAIN" ]] && SIGN_ARGS+=(--keychain "$SIGN_KEYCHAIN")
 codesign "${SIGN_ARGS[@]}" "$OUT/Contents/Frameworks/SQLCipher.framework"
 codesign "${SIGN_ARGS[@]}" "$OUT/Contents/Frameworks/llama.framework"
-codesign "${SIGN_ARGS[@]}" --identifier com.lintelapp.Lintel --entitlements Resources/Lintel.entitlements "$OUT"
+codesign "${SIGN_ARGS[@]}" --identifier "$BUNDLE_ID" --entitlements Resources/Lintel.entitlements "$OUT"
 codesign --verify --strict --deep "$OUT"
 
 # The check that matters runs on the finished, signed bundle (not on the file the copy above just wrote): the

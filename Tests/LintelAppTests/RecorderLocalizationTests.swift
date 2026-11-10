@@ -35,4 +35,24 @@ import Testing
         #expect(signing.upperBound < check.lowerBound)
         #expect(script.contains("cmp -s Resources/KeyboardShortcuts/pl.lproj/Localizable.strings"))
     }
+
+    /// QA round 4: a QA helper that matched "Lintel" by name closed the owner's real window. A debug bundle is a
+    /// different app: its own bundle id, executable and no document type; the release path is unchanged.
+    @Test func theDebugBundleIsADifferentAppFromTheRealOne() throws {
+        let script = try String(contentsOf: Self.root.appending(path: "scripts/make-app.sh"), encoding: .utf8)
+        #expect(script.contains("BUNDLE_ID=\"com.lintelapp.Lintel.QA\""))
+        #expect(script.contains("EXEC_NAME=\"Lintel-QA\""))
+        #expect(script.contains("Delete :CFBundleDocumentTypes"))
+        #expect(script.contains("Delete :UTExportedTypeDeclarations"))
+        #expect(script.contains("--identifier \"$BUNDLE_ID\""))
+        // Release keeps the real identity: the defaults are set before the debug branch changes them.
+        let release = try #require(script.range(of: "BUNDLE_ID=\"com.lintelapp.Lintel\""))
+        let debug = try #require(script.range(of: "BUNDLE_ID=\"com.lintelapp.Lintel.QA\""))
+        #expect(release.upperBound < debug.lowerBound)
+        let plist = try String(contentsOf: Self.root.appending(path: "Resources/Info.plist"), encoding: .utf8)
+        #expect(plist.contains("<string>com.lintelapp.Lintel</string>"))
+        let settings = try String(
+            contentsOf: Self.root.appending(path: "Sources/WindowsPlugin/WindowsSettings.swift"), encoding: .utf8)
+        #expect(settings.contains("\"com.lintelapp.Lintel\", \"com.lintelapp.Lintel.QA\""))
+    }
 }

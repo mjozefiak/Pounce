@@ -108,8 +108,8 @@ the engine looks again by itself (`WindowEngine.unknownRetry`, 5 s, doubling up 
 lists the windows or says they are gone, so a window that closed while its app hung is dropped soon after the app answers. Residual: a window that closes
 while its app does not answer stays tracked until the app answers (or the process ends: `appTerminated` drops them).
 A process whose park timed out, or that a snapshot could not read, is marked `unresponsive` (only a process the engine
-holds a window of: the marks are pruned to the held processes after every input, and `readWindows(tracked:)` only reports
-tracked processes, so an app that is permanently unresponsive or has no Accessibility arms nothing and is never marked; the AX client still reads every regular app on each snapshot, it only ignores the failed read of an untracked one). While a held
+holds a window of: the marks are pruned to the held processes after every input). An app the engine holds nothing of that did
+not answer the latest snapshot is kept in `unknownApps` and looked at again at most `untrackedRetryLimit` (6) times, so an app that never answers is not polled for ever and one with no Accessibility arms nothing. While a held
 process is marked the engine looks again by itself after 5 s, then 10, 20, 40 and every 60 s at most (the wait is reset
 when no held process is marked), so an app that recovers and stays idle has its windows parked and a window that closed
 meanwhile dropped without waiting for a switch or an event. The next event from one of its windows also reconciles
