@@ -8,7 +8,7 @@ import Testing
 
 /// The overlay's geometry and the drag controller with scripted pointer, ticker and presenter (step 3.5b).
 /// The panels themselves and the real pointer are manual QA items (`docs/qa.md`).
-@Suite struct ScreenSpaceTests {
+@Suite(.timeLimit(.minutes(1))) struct ScreenSpaceTests {
     @Test func pointsAndRectanglesConvertBothWays() {
         #expect(ScreenSpace.axPoint(fromCocoa: CGPoint(x: 100, y: 1000), mainHeight: 1080) == CGPoint(x: 100, y: 80))
         let ax = CGRect(x: 10, y: 20, width: 300, height: 200)
@@ -95,7 +95,7 @@ private final class FakeOverlay: ZoneOverlayPresenting {
     }
 }
 
-@Suite @MainActor struct ZoneDragControllerTests {
+@Suite(.timeLimit(.minutes(1))) @MainActor struct ZoneDragControllerTests {
     private let window = WindowID(pid: 1, number: 1)
     private let left = DragZone(
         displayKey: "A", zoneID: 1, number: 1, frame: CGRect(x: 0, y: 0, width: 500, height: 600))
@@ -210,7 +210,7 @@ private final class FakeOverlay: ZoneOverlayPresenting {
 }
 
 /// The engine tells the drag detector about moves of managed windows of Zones workspaces only (step 3.5b).
-@Suite struct ZoneDragSignalTests {
+@Suite(.timeLimit(.minutes(1))) struct ZoneDragSignalTests {
     private func id(_ number: UInt32) -> WindowID { WindowID(pid: 100, number: number) }
 
     private func run(
@@ -293,7 +293,7 @@ private final class FakeOverlay: ZoneOverlayPresenting {
     }
 }
 
-@Suite struct SnapHintTests {
+@Suite(.timeLimit(.minutes(1))) struct SnapHintTests {
     @MainActor @Test func theHintIsShownOnceWhenAZonesLayoutIsFirstActive() async throws {
         let harness = try WindowsHarness()
         defer { harness.tearDown() }

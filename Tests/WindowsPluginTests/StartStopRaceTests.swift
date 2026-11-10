@@ -7,7 +7,7 @@ import Testing
 
 /// A start that is still running when a stop (the host's activation budget, a disable, a re-grant check) comes:
 /// the start ends at its next step, takes nothing that nobody ends, and cannot revive what was stopped.
-@Suite struct StartStopRaceTests {
+@Suite(.timeLimit(.minutes(1))) struct StartStopRaceTests {
     private struct Rig {
         let harness: WindowsHarness
         let client: FakeWindowClient

@@ -8,7 +8,7 @@ import Testing
 
 /// The engine against a scriptable fake client and a real `StateStore` in a temporary directory. These run under
 /// Thread Sanitizer in CI (`--filter WindowEngineTests`).
-@Suite struct WindowEngineTests {
+@Suite(.timeLimit(.minutes(1))) struct WindowEngineTests {
     private func ws(_ number: Int) -> WorkspaceID { WorkspaceID(number)! }
     private func id(_ number: UInt32, pid: Int32 = 100) -> WindowID { WindowID(pid: pid, number: number) }
     private let home = CGRect(x: 100, y: 100, width: 800, height: 600)
@@ -397,7 +397,7 @@ extension WindowEngineTests {
 }
 
 /// The engine keeps reducing while an app does not answer, and a call returns only when its work has run.
-@Suite struct WindowEngineConcurrencyTests {
+@Suite(.timeLimit(.minutes(1))) struct WindowEngineConcurrencyTests {
     private func ws(_ number: Int) -> WorkspaceID { WorkspaceID(number)! }
     private func id(_ number: UInt32, pid: Int32) -> WindowID { WindowID(pid: pid, number: number) }
     private var parkedOrigin: CGPoint { CGPoint(x: 1919, y: 1079) }

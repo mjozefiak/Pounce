@@ -111,7 +111,15 @@ the engine has really stopped.
 *Erase Data* refuses (`WindowsPlugin.EraseRefused`, so the host keeps `Plugins/windows/`) while any window may still be
 parked: the old engine has not handed the journal back within 10 s, an app did not answer, or Accessibility is off.
 *Restore all windows* without a running plugin says "Windows are still being put back" when the engine still holds
-the journal, instead of reporting zero.
+the journal, instead of reporting zero. Both also wait for a recovery pass that is already running, but only up to
+`WindowsPlugin.restoreWaitBudget` (10 s, `JournalOwner.exclusive(within:clock:)`): a pass stuck on a hung app makes
+Erase Data refuse and the button say "still being put back" instead of holding the host's queue. The bound covers the
+wait for the journal only; a pass that got its turn runs to the end and answers.
+
+*Reset state* restores every window, then starts over: the stored membership and layouts and the layout assignments are
+cleared on disk, and the running engine (`EngineCommand.resetState`) clears its own membership, layout states and
+placement hints and gives every window to the workspace shown on its display (a window that is still parked by its
+home display), writing the new values over the cleared file. The journal is never forgotten.
 
 ## Tests
 
@@ -120,4 +128,5 @@ records every call. Time is a `VirtualClock`; tests wait with barriers (`settle(
 `OrderedActions.waitUntilEmpty()`), never with real sleeps. Where a test must wait for a count (a waiter parked in a
 queue) it polls with `Task.yield()` under an iteration cap that fails the test instead of hanging it
 (`WaiterLeakTests`); no wait relies on a number of yields. TSan runs the engine, recovery, strategy and journal
-suites in CI.
+suites in CI. Every suite that waits has a one-minute time limit (`.timeLimit`), so a wait that can never end fails
+instead of hanging; where a test polls for a condition it uses the capped `eventually(_:_:)` helper.

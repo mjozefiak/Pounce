@@ -58,5 +58,12 @@
 - M3: the timeout test uses a stopped clock, waits for the parked waiter, then advances; without `waiting.cancel()` it hangs (the helper waits for the cancelled task) instead of passing.
 - Lows: a cancelled start is not "still stopping"; stale protocol names fixed; `default` is a reserved kind name; weak captures in the settings-row closures; production launch-count test; the standard kind constants live next to `LayoutRegistry.standard`; spec ids match the code. Left as is: `LayoutRegistry.defaultKind` falls back to `.free` for an empty registry (an empty registry is a test-only case).
 
+## Round 7 (final)
+- `exclusive(within:)` bounds the wait for the journal only (doc fixed); tests: a pass that waited runs its whole body after the budget passed; a pass that waited too long runs nothing and leaves the queue; Erase Data and the button with a stuck pass.
+- `resetState` also clears placement hints and uses a parked window's home for its display; `ResetStateTests` (reducer level: layouts, hints, previous focus, frozen, two displays, a still-parked window) and the stuck-window case checks the engine keeps its parked record.
+- Suites that wait carry `.timeLimit(.minutes(1))`; one `Latch` and one capped `eventually` helper in `TestHelpers.swift`. `PluginHostTests` have no real sleep (`SlowRecoveryPlugin` waits on a gate); the host's per-source budget tests do wait the real 150 ms budget (an outcome assertion, not a sleep).
+- `AXObservationHub.start()`: the observe block checks the stop flag on the AX thread, so a stop that came while the running apps were read cannot leave observers behind.
+- Reserved kind names `order` and `default` are in BACKWARD_COMPATIBILITY.md.
+
 ## Next concrete action
 QA gate and merge by the owner.

@@ -7,32 +7,7 @@ import os
 
 /// Anything that waits in the plugin leaves when its caller is cancelled and when its queue ends, so nothing stays
 /// parked after a timeout or after the plugin is switched off.
-@Suite struct WaiterLeakTests {
-    /// Lets the test hold a task until it opens the latch.
-    private actor Latch {
-        private var open = false
-        private var waiters: [CheckedContinuation<Void, Never>] = []
-        func wait() async {
-            if open { return }
-            await withCheckedContinuation { waiters.append($0) }
-        }
-        func release() {
-            open = true
-            for waiter in waiters { waiter.resume() }
-            waiters = []
-        }
-    }
-
-    /// Lets other tasks run until `condition` holds; a condition that never holds fails the test instead of hanging
-    /// it.
-    private func eventually(_ message: String, _ condition: @Sendable () async -> Bool) async {
-        for _ in 0..<200_000 {
-            if await condition() { return }
-            await Task.yield()
-        }
-        Issue.record("never reached: \(message)")
-    }
-
+@Suite(.timeLimit(.minutes(1))) struct WaiterLeakTests {
     private func waitersOf(_ owner: JournalOwner, atLeast count: Int) async {
         await eventually("\(count) waiters on the journal") { await owner.waiterCount >= count }
     }
@@ -68,6 +43,62 @@ import os
         #expect(await owner.waiterCount == 0)
         await owner.endEngine(lease)
         #expect(await owner.waitUntilIdle(within: .seconds(5), clock: VirtualClock(autoAdvance: true)))
+    }
+
+    @Test func aPassThatWaitedRunsItsWholeBodyEvenWhenTheBudgetPassesMeanwhile() async throws {
+        let harness = try WindowsHarness()
+        defer { harness.tearDown() }
+        let owner = JournalOwner(directory: harness.directory, logger: .init())
+        let first = Latch()
+        let second = Latch()
+        let running = Task { await owner.exclusive { _ in await first.wait() } }
+        await eventually("the first pass is running") { await owner.phase == .recovering }
+        let clock = VirtualClock(autoAdvance: false)
+        let waiting = Task {
+            await owner.exclusive(within: .seconds(5), clock: clock) { _ -> Int in
+                await second.wait()
+                return 42
+            }
+        }
+        await waitersOf(owner, atLeast: 1)
+        await first.release()
+        _ = await running.value
+        // The wait is over and the body is running; the budget passes now, and the answer is still the body's.
+        await eventually("the second pass is running") { await owner.phase == .recovering }
+        clock.advance(100)
+        await second.release()
+        guard case .ran(let value) = await waiting.value else {
+            Issue.record("a pass that got its turn must run to the end")
+            return
+        }
+        #expect(value == 42)
+        #expect(await owner.waiterCount == 0)
+    }
+
+    @Test func aPassThatWaitsLongerThanTheBudgetRunsNothingAndLeavesTheQueue() async throws {
+        let harness = try WindowsHarness()
+        defer { harness.tearDown() }
+        let owner = JournalOwner(directory: harness.directory, logger: .init())
+        let first = Latch()
+        let running = Task { await owner.exclusive { _ in await first.wait() } }
+        await eventually("the first pass is running") { await owner.phase == .recovering }
+        let clock = VirtualClock(autoAdvance: false)
+        let ran = Latch()
+        let waiting = Task {
+            await owner.exclusive(within: .seconds(5), clock: clock) { _ in await ran.release() }
+        }
+        await waitersOf(owner, atLeast: 1)
+        await clock.waitForSleepers(1)
+        clock.advance(5)
+        guard case .cancelled = await waiting.value else {
+            Issue.record("a pass that waited past its budget must answer .cancelled")
+            return
+        }
+        #expect(await owner.waiterCount == 0)
+        await first.release()
+        _ = await running.value
+        // Its body never ran: the latch it would have opened is still closed.
+        #expect(await !ran.isOpen)
     }
 
     @Test func aCancelledPassWaitingForAnotherPassRunsNothing() async throws {

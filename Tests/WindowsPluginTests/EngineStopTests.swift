@@ -6,7 +6,7 @@ import Testing
 @testable import WindowsPlugin
 
 /// Stopping the engine while events wait for the next tick (a busy app moves windows all the time).
-@Suite struct EngineStopTests {
+@Suite(.timeLimit(.minutes(1))) struct EngineStopTests {
     private func rig() throws -> (harness: WindowsHarness, client: FakeWindowClient, engine: WindowEngine) {
         let harness = try WindowsHarness()
         let client = FakeWindowClient(windows: [makeWindow(1)])

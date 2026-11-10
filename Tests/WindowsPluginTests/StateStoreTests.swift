@@ -4,7 +4,7 @@ import Testing
 
 @testable import WindowsPlugin
 
-@Suite struct StateStoreTests {
+@Suite(.timeLimit(.minutes(1))) struct StateStoreTests {
     private func ws(_ number: Int) -> WorkspaceID { WorkspaceID(number)! }
     private func win(_ number: UInt32, pid: Int32 = 100) -> WindowID { WindowID(pid: pid, number: number) }
     private func entry(_ number: UInt32, pid: Int32 = 100, start: Double = 1_000) -> HiddenEntry {

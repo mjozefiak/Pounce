@@ -120,7 +120,12 @@ nonisolated final class AXObservationHub: @unchecked Sendable {
             return AppObservationPlan.pids(for: running, ownPID: ProcessInfo.processInfo.processIdentifier)
         }
         let ownPID = ownPID
-        perform { [self] in for pid in wanted.sorted() where pid != ownPID { observe(pid) } }
+        // A `stop()` that came while the running apps were read is honoured on the AX thread itself: its block was
+        // queued before this one, so checking the flag here is what keeps a late `observe` from outliving it.
+        perform { [self] in
+            guard !shared.withLock({ $0.isStopped }) else { return }
+            for pid in wanted.sorted() where pid != ownPID { observe(pid) }
+        }
     }
 
     func stop() {

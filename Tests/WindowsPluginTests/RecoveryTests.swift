@@ -9,7 +9,7 @@ import os
 @testable import WindowsPlugin
 
 /// Step 1.7: the journal of parked windows, `recoverAtLaunch`, restore on disable, the Accessibility gate.
-@Suite struct RecoveryTests {
+@Suite(.timeLimit(.minutes(1))) struct RecoveryTests {
     private let home = CGRect(x: 100, y: 100, width: 800, height: 600)
     private let parked = CGRect(x: 1919, y: 1079, width: 800, height: 600)
 

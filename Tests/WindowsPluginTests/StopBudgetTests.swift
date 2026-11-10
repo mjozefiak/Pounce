@@ -7,7 +7,7 @@ import Testing
 
 /// What happens when an app does not answer while the plugin is switched off: the stop budget runs out, the old
 /// engine still holds the journal, and nothing may erase, restart or pretend to restore beside it.
-@Suite struct StopBudgetTests {
+@Suite(.timeLimit(.minutes(1))) struct StopBudgetTests {
     private let home = CGRect(x: 100, y: 100, width: 800, height: 600)
     private func id(_ number: UInt32) -> WindowID { WindowID(pid: 100, number: number) }
     private func ws(_ number: Int) -> WorkspaceID { WorkspaceID(number)! }
@@ -123,25 +123,12 @@ import Testing
         let reset = Task { await runtime.resetState() }
         await rig.client.waitUntilStalled(1)
         await reset.value
-        // The window is still parked and its journal entry is the only way back: nothing was forgotten.
+        // The window is still parked and its journal entry is the only way back: nothing was forgotten, and the
+        // engine still knows it is parked.
         #expect(!(await rig.plugin.journal.store.hidden.isEmpty))
+        #expect(await runtime.engine.parkedCount() == 1)
         rig.client.releaseStalls()
         await rig.plugin.deactivate()
-    }
-
-    /// Lets the test hold a recovery pass until it opens the latch.
-    private actor Latch {
-        private var open = false
-        private var waiters: [CheckedContinuation<Void, Never>] = []
-        func wait() async {
-            if open { return }
-            await withCheckedContinuation { waiters.append($0) }
-        }
-        func release() {
-            open = true
-            for waiter in waiters { waiter.resume() }
-            waiters = []
-        }
     }
 
     @MainActor @Test func aRecoveryStuckOnAHungAppDoesNotHoldUpEraseOrTheRestoreButton() async throws {
@@ -162,6 +149,11 @@ import Testing
 
         // Erase Data refuses and returns instead of waiting for the pass behind the host's queue.
         await #expect(throws: WindowsPlugin.EraseRefused.self) { try await rig.plugin.eraseData() }
+        // The recovery wait itself answers `.cancelled`, which is what Erase Data turns into a refusal.
+        guard case .cancelled = await WindowsPlugin.restoreFromJournal(context: rig.plugin.context) else {
+            Issue.record("a wait for a stuck pass must answer .cancelled")
+            return
+        }
         // So does the button without a runtime: it says the journal is busy.
         await rig.plugin.restoreAllWindows()
         #expect(rig.hud.shown.last == .stillStopping)

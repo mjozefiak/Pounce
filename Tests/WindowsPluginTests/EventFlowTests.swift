@@ -6,7 +6,7 @@ import Testing
 @testable import WindowsPlugin
 
 /// How events reach the engine: strictly in order, subscribed before the snapshot, and nothing after `stop()`.
-@Suite struct EventFlowTests {
+@Suite(.timeLimit(.minutes(1))) struct EventFlowTests {
     private func id(_ number: UInt32) -> WindowID { WindowID(pid: 100, number: number) }
     private func ws(_ number: Int) -> WorkspaceID { WorkspaceID(number)! }
 

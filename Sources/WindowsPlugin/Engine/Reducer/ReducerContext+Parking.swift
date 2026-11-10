@@ -126,10 +126,13 @@ extension ReducerContext {
         let model = state.model
         state.model = VirtualWorkspaceModel(workspaceCount: model.workspaceCount, displays: model.displays)
         state.layouts = [:]
+        state.placementHints = [:]
         state.previousFocus = nil
         for id in state.windows.keys.sorted() {
             guard let window = state.windows[id] else { continue }
-            let display = FrameMath.display(for: window.frame, in: state.displays).map { state.displayKey(of: $0) }
+            // A window that is still parked sits in the corner of all displays: its home says where it belongs.
+            let frame = state.parked[id]?.home ?? window.frame
+            let display = FrameMath.display(for: frame, in: state.displays).map { state.displayKey(of: $0) }
             state.model.add(id, onDisplay: display)
         }
         effects.append(.saveOrder(state.model.order))
