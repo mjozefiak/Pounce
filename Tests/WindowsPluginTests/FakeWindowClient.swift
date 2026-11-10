@@ -44,6 +44,7 @@ final class FakeWindowClient: WindowClient, Sendable {
         var deliversEvents = true
         var available = true
         var stalled = 0
+        var snapshotHoldArmed = false
         var stallsReleased = false
         var stallContinuations: [CheckedContinuation<Void, Never>] = []
         var log: [String] = []
@@ -178,10 +179,29 @@ final class FakeWindowClient: WindowClient, Sendable {
     }
 
     func windows() async -> [WindowInfo] {
-        state.withLock {
-            $0.log.append("windows")
-            $0.windowsReads += 1
-            return $0.windows.values.sorted { $0.id < $1.id }
+        let (list, hold) = state.withLock { state -> ([WindowInfo], Bool) in
+            state.log.append("windows")
+            state.windowsReads += 1
+            let hold = state.snapshotHoldArmed
+            state.snapshotHoldArmed = false
+            return (state.windows.values.sorted { $0.id < $1.id }, hold)
+        }
+        if hold { await holdUntilReleased() }
+        return list
+    }
+
+    /// The next `windows()` call (the engine's first snapshot) answers only after `releaseReadHold()`.
+    func armSnapshotHold() { state.withLock { $0.snapshotHoldArmed = true } }
+
+    private func holdUntilReleased() async {
+        await withCheckedContinuation { continuation in
+            let waiting = state.withLock { state -> [CheckedContinuation<Void, Never>] in
+                state.readHeld = true
+                state.readRelease = continuation
+                defer { state.readHeldWaiters = [] }
+                return state.readHeldWaiters
+            }
+            for waiter in waiting { waiter.resume() }
         }
     }
 

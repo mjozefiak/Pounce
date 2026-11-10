@@ -272,7 +272,7 @@ final class PluginHost {
 
     /// "Erase Data": deactivates the plugin, lets it erase what it keeps elsewhere, deletes
     /// `Plugins/<id>/`, its caches and its rows in `ranking.sqlite`, and activates it again when it is
-    /// enabled.
+    /// enabled, also when the erase was refused or failed (the data is then kept).
     func eraseData(for id: PluginID) async throws {
         guard let index = entries.firstIndex(where: { $0.manifest.id == id }) else { return }
         let plugin = entries[index].plugin
@@ -290,8 +290,9 @@ final class PluginHost {
                 try await usage.removeAll(pluginID: id)
             } catch {
                 failure = error
-                return
             }
+            // A refused or failed erase keeps the data and must not leave an enabled plugin switched off: it
+            // starts again (a plugin that cannot, such as one still stopping, shows `failed` with Try Again).
             if host.isEnabled(id) {
                 await host.activateNow(id)
             }

@@ -71,6 +71,12 @@ struct WindowsSettingsPane: View {
                 help: Text(
                     "The windows of the last run are still being put back. Use Try Again above in a moment.",
                     comment: "Window Management: an earlier run has not finished"))
+        case .failed:
+            label(
+                Text("Could not start", comment: "Window Management: the start failed for another reason"),
+                help: Text(
+                    "Window Management did not start. Use Try Again above.",
+                    comment: "Window Management: the start failed for another reason"))
         }
     }
 

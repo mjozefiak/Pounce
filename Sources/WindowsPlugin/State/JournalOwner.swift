@@ -29,6 +29,8 @@ actor JournalOwner {
         case ran(Value)
         case engineRunning
         case engineStopping
+        /// The waiting caller was cancelled before its turn: nothing ran.
+        case cancelled
     }
 
     nonisolated let store: StateStore
@@ -36,7 +38,8 @@ actor JournalOwner {
     private(set) var phase = Phase.idle
     private var activeLease: UInt64?
     private var nextLease: UInt64 = 0
-    private var turns: [CheckedContinuation<Void, Never>] = []
+    private var turns: [UInt64: CheckedContinuation<Void, Never>] = [:]
+    private var nextTurn: UInt64 = 0
     private var launchCounted = false
 
     init(directory: URL, clock: any Clock<Duration> = ContinuousClock(), logger: Logger) {
@@ -55,9 +58,10 @@ actor JournalOwner {
         return nextLease
     }
 
-    /// Waits until no pass and no engine holds the journal. Unbounded: callers put a deadline around it.
+    /// Waits until no pass and no engine holds the journal. Unbounded, but cancellable: a cancelled caller leaves
+    /// the queue at once (callers put a deadline around it).
     func waitUntilIdle() async {
-        while phase != .idle { await waitForTurn() }
+        while phase != .idle, !Task.isCancelled { await waitForTurn() }
     }
 
     /// The engine of `lease` is being stopped: recovery passes answer `.engineStopping` until `endEngine`.
@@ -80,7 +84,10 @@ actor JournalOwner {
     func exclusive<Value: Sendable>(
         _ body: @Sendable (StateStore) async -> Value
     ) async -> Pass<Value> {
-        while phase == .recovering { await waitForTurn() }
+        while phase == .recovering {
+            if Task.isCancelled { return .cancelled }
+            await waitForTurn()
+        }
         switch phase {
         case .engine: return .engineRunning
         case .stopping: return .engineStopping
@@ -99,15 +106,34 @@ actor JournalOwner {
         return !launchCounted
     }
 
+    /// Parks until the next `wake()` or until the calling task is cancelled; either way the caller's entry is gone
+    /// from `turns` when this returns.
     private func waitForTurn() async {
-        await withCheckedContinuation { turns.append($0) }
+        nextTurn += 1
+        let id = nextTurn
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { (turn: CheckedContinuation<Void, Never>) in
+                if Task.isCancelled { turn.resume() } else { turns[id] = turn }
+            }
+        } onCancel: {
+            Task { await self.leave(id) }
+        }
+    }
+
+    private func leave(_ id: UInt64) {
+        turns.removeValue(forKey: id)?.resume()
     }
 
     private func wake() {
         let waiting = turns
-        turns = []
-        for turn in waiting { turn.resume() }
+        turns = [:]
+        for turn in waiting.values { turn.resume() }
     }
+
+    #if DEBUG
+    /// How many callers are parked (tests only).
+    var waiterCount: Int { turns.count }
+    #endif
 }
 
 /// Where the HUD states of a recovery pass go. A state that comes before a plugin instance has attached its HUD (the

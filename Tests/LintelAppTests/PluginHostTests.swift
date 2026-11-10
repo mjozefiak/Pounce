@@ -118,7 +118,7 @@ import Testing
         #expect(error as? PluginHostError == .activationTimedOut)
         // A quit goes through the same queue: it returns instead of waiting behind the stuck start.
         await host.stop()
-        #expect(host.state(of: "stuckactivation").map(isDisabled) != false)
+        #expect(host.state(of: "stuckactivation").map(isDisabled) == true)
         env.environment.services.value(
             StuckActivationGateKey.self, for: env.environment.makeContext(for: StuckActivationPlugin.manifest)
         ).open()
@@ -339,6 +339,24 @@ import Testing
 
         #expect(message?.isEmpty == false)
         #expect(changes == 1)
+    }
+
+    @Test func aRefusedEraseKeepsTheEnabledPluginRunning() async throws {
+        defer { env.tearDown() }
+        LifecycleLog.shared.reset()
+        let host = env.makeHost([RefusingErasePlugin.self])
+        await host.start()
+        await host.setEnabled(true, for: "refusing")
+        #expect(host.state(of: "refusing")?.isActive == true)
+
+        await #expect(throws: TestError.eraseFailed) { try await host.eraseData(for: "refusing") }
+
+        // The plugin was stopped for the erase and started again: it is not left off while it is enabled.
+        #expect(host.state(of: "refusing")?.isActive == true)
+        #expect(
+            LifecycleLog.shared.events == [
+                "refusing.activate", "refusing.deactivate", "refusing.activate",
+            ])
     }
 
     @Test func stopDeactivatesEveryPlugin() async {

@@ -279,6 +279,17 @@ final class UnerasablePlugin: LintelPlugin {
     }
 }
 
+/// Refuses to erase, like a plugin whose data may still be needed: the host must keep the data and the plugin on.
+final class RefusingErasePlugin: LintelPlugin {
+    static let manifest = PluginManifest(id: "refusing", displayName: "Refusing", symbolName: "lock", order: 5)
+
+    init(context: PluginContext) {}
+
+    func activate() async throws { LifecycleLog.shared.record("refusing.activate") }
+    func deactivate() async { LifecycleLog.shared.record("refusing.deactivate") }
+    func eraseData() async throws { throw TestError.eraseFailed }
+}
+
 /// Records `recoverAtLaunch` calls and answers with a scripted outcome, enabled or not.
 final class LaunchRecoveryPlugin: LintelPlugin {
     static let manifest = PluginManifest(

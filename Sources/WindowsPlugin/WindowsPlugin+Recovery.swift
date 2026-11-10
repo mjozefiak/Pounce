@@ -14,6 +14,7 @@ extension WindowsPlugin {
         switch await Self.restoreFromJournal(context: context) {
         case .ran(let report): hud.show(WindowsHUDState(report: report))
         case .engineRunning, .engineStopping: hud.show(.stillStopping)
+        case .cancelled: break
         }
     }
 
@@ -71,7 +72,7 @@ extension WindowsPlugin {
         let report: RecoveryReport
         switch pass {
         case .engineRunning: return .done
-        case .engineStopping: return .deferred
+        case .engineStopping, .cancelled: return .deferred
         case .ran(let done): report = done
         }
         let settings = WindowsSettings(context.settings)

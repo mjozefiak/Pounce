@@ -13213,6 +13213,42 @@
         }
       }
     },
+    "Could not start" : {
+      "comment" : "Window Management: the start failed for another reason",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not start"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się uruchomić"
+          }
+        }
+      }
+    },
+    "Window Management did not start. Use Try Again above." : {
+      "comment" : "Window Management: the start failed for another reason",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Window Management did not start. Use Try Again above."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zarządzanie oknami nie uruchomiło się. Użyj powyżej opcji Spróbuj ponownie."
+          }
+        }
+      }
+    },
     "Windows are parked" : {
       "comment" : "Window HUD: windows are hidden and cannot be restored",
       "extractionState" : "manual",

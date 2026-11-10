@@ -25,6 +25,7 @@ final class ReportPump {
 
     private let continuation: AsyncStream<Item>.Continuation
     private var task: Task<Void, Never>?
+    private var closed = false
     /// The closures the engine calls; each puts one report on the stream.
     nonisolated let reporter: EngineReporter
 
@@ -44,7 +45,7 @@ final class ReportPump {
         task = Task { @MainActor [weak self] in
             for await item in stream {
                 switch item {
-                case .report(let report): self?.handler(report)
+                case .report(let report): self?.deliver(report)
                 #if DEBUG
                 case .marker(let waiting): waiting.resume()
                 #endif
@@ -53,8 +54,15 @@ final class ReportPump {
         }
     }
 
-    /// Ends the stream: reports that come later are dropped.
+    private func deliver(_ report: EngineReport) {
+        if !closed { handler(report) }
+    }
+
+    /// Ends the pump: from this call on no report reaches the handler, also one that was already queued on the
+    /// stream (no HUD or strip update after the plugin is off). The task drains what is buffered without handling
+    /// it and then ends with the stream.
     func finish() {
+        closed = true
         continuation.finish()
         task = nil
     }

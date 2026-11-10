@@ -34,6 +34,8 @@ public final class WindowsPlugin: LintelPlugin {
         /// An earlier run is still putting windows back (a hung app held up its stop), so this one cannot start
         /// yet; Try Again works once it is done.
         case stillStopping
+        /// The start ended with another error (only its type is kept: a message could carry a path or a title).
+        case failed(reason: String)
     }
 
     let context: PluginContext
@@ -137,8 +139,15 @@ public final class WindowsPlugin: LintelPlugin {
         do {
             try await runtime.start()
         } catch {
-            self.runtime = nil
-            lastStartError = .stillStopping
+            // Only this attempt's own runtime is dropped: a deactivation that came first already took it.
+            if self.runtime === runtime { self.runtime = nil }
+            switch error {
+            case let start as StartError: lastStartError = start
+            case is CancellationError: break  // a stop or the host's budget ended it; nothing to report
+            default: lastStartError = .failed(reason: String(describing: type(of: error)))
+            }
+            // A start that was cancelled or overtaken by a stop has already ended itself; stopping again is a no-op.
+            await runtime.stop()
             throw error
         }
         #if DEBUG

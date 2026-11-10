@@ -105,7 +105,9 @@ actor WindowEngine {
     /// subscription comes first, so a window that appears or goes while the snapshot is read is not lost: its
     /// event waits in the coalescer and is flushed after the snapshot.
     func start() async {
-        stopped = false
+        // An engine runs once: a `stop()` that came first (the runtime gave up on a start that hung) wins, so a
+        // late start cannot revive it, subscribe to a stream nobody ends or move a window.
+        guard !stopped else { return }
         flushEnabled = false
         let events = await client.subscribe()
         pumpTask = Task { [weak self] in
@@ -114,14 +116,25 @@ actor WindowEngine {
                 await self.ingest(event)
             }
         }
+        guard !stopped else { return abandonStart() }
         await store.load()
+        guard !stopped else { return abandonStart() }
         let canJournal = await store.canJournal
         let stored = await store.state
         var inputs: [EngineInput] = [.journalAvailability(canJournal), .restoreLayouts(stored.layouts)]
         inputs.append(await snapshotInput())
+        guard !stopped else { return abandonStart() }
         await submitInternal(inputs)
         flushEnabled = true
         if !coalescer.isEmpty { scheduleFlush() }
+    }
+
+    /// A `stop()` ran while `start()` was suspended: what `start()` created after that point is ended here.
+    private func abandonStart() {
+        pumpTask?.cancel()
+        pumpTask = nil
+        flushTask?.cancel()
+        flushTask = nil
     }
 
     /// Puts every parked window back, waits for everything in flight and stops. Safe to call more than once. From
