@@ -55,6 +55,8 @@ import Testing
         #expect(plist.contains("<string>com.lintelapp.Lintel</string>"))
         let settings = try String(
             contentsOf: Self.root.appending(path: "Sources/WindowsPlugin/WindowsSettings.swift"), encoding: .utf8)
-        #expect(settings.contains("\"com.lintelapp.Lintel\", \"com.lintelapp.Lintel.QA\""))
+        // The QA id is in the default floating list in DEBUG builds only (`WindowsSettings.makeDefaultFloatingApps`).
+        #expect(!settings.contains("\"com.lintelapp.Lintel\", \"com.lintelapp.Lintel.QA\""))
+        #expect(settings.contains("#if DEBUG"))
     }
 }
