@@ -138,4 +138,60 @@ import Testing
         #expect(runtime.stripBoxes().map(\.number) == [1, 3])
         await plugin.deactivate()
     }
+
+    // MARK: Click mapping end to end (QA N3)
+
+    /// A click in the button's coordinates: where the image starts, then the box under it.
+    private func box(
+        clickX: CGFloat, count: Int, buttonWidth: CGFloat, drawnMinX: CGFloat? = nil, drawnWidth: CGFloat? = nil
+    ) -> Int? {
+        let image = StripLayout.width(boxCount: count)
+        let origin = StripLayout.imageOriginX(
+            buttonWidth: buttonWidth, imageWidth: image, drawnImageMinX: drawnMinX, drawnImageWidth: drawnWidth)
+        return StripLayout.index(atX: clickX - origin, boxCount: count)
+    }
+
+    @Test func everyBoxIsHitAtItsCentreForOneToNineBoxesWithTheImageCentredInTheButton() {
+        for count in 1...9 {
+            let image = StripLayout.width(boxCount: count)
+            let buttonWidth = image + 12
+            for index in 0..<count {
+                let centre = (buttonWidth - image) / 2 + StripLayout.originX(ofBox: index) + StripLayout.boxWidth / 2
+                #expect(
+                    box(clickX: centre, count: count, buttonWidth: buttonWidth) == index, "\(count) boxes, box \(index)"
+                )
+            }
+        }
+    }
+
+    @Test func theCellsDrawnRectWinsOverTheCentringAssumptionWhenItMatchesTheImage() {
+        let count = 4
+        let image = StripLayout.width(boxCount: count)
+        // The image is drawn flush left with 5 points of inset, not centred: the box centres follow the cell.
+        for index in 0..<count {
+            let centre = 5 + StripLayout.originX(ofBox: index) + StripLayout.boxWidth / 2
+            #expect(
+                box(clickX: centre, count: count, buttonWidth: image + 40, drawnMinX: 5, drawnWidth: image) == index)
+        }
+        // A drawn rect of another size is not trusted: the centred origin is used.
+        #expect(
+            StripLayout.imageOriginX(
+                buttonWidth: image + 40, imageWidth: image, drawnImageMinX: 5, drawnImageWidth: image * 2)
+                == 20)
+    }
+
+    @Test func clicksOutsideTheImageHitNothingAndEdgesBelongToTheEdgeBoxes() {
+        let count = 3
+        let image = StripLayout.width(boxCount: count)
+        let buttonWidth = image + 12
+        let origin = (buttonWidth - image) / 2
+        #expect(box(clickX: origin - 0.5, count: count, buttonWidth: buttonWidth) == nil)
+        #expect(box(clickX: origin + image + 0.5, count: count, buttonWidth: buttonWidth) == nil)
+        #expect(box(clickX: origin + 0.1, count: count, buttonWidth: buttonWidth) == 0)
+        #expect(box(clickX: origin + image - 0.1, count: count, buttonWidth: buttonWidth) == count - 1)
+        // The gap between two boxes goes to the nearer one.
+        let gapMiddle = origin + StripLayout.originX(ofBox: 1) - StripLayout.gap / 2
+        #expect(box(clickX: gapMiddle - 0.4, count: count, buttonWidth: buttonWidth) == 0)
+        #expect(box(clickX: gapMiddle + 0.4, count: count, buttonWidth: buttonWidth) == 1)
+    }
 }

@@ -58,6 +58,18 @@ enum StripLayout {
         return padding * 2 + CGFloat(boxCount) * boxWidth + CGFloat(boxCount - 1) * gap
     }
 
+    /// Where the image starts inside the button, in the button's coordinates. `drawnImageMinX` is what the button's
+    /// cell reports for the image rect (`nil` when it cannot say, or when its width differs from the image's by more
+    /// than a point: it then drew something else); without it the image is centred.
+    static func imageOriginX(
+        buttonWidth: CGFloat, imageWidth: CGFloat, drawnImageMinX: CGFloat? = nil, drawnImageWidth: CGFloat? = nil
+    ) -> CGFloat {
+        if let minX = drawnImageMinX, let width = drawnImageWidth, abs(width - imageWidth) <= 1, minX >= 0 {
+            return minX
+        }
+        return max(0, (buttonWidth - imageWidth) / 2)
+    }
+
     /// The left edge of box `index` in image coordinates.
     static func originX(ofBox index: Int) -> CGFloat { padding + CGFloat(index) * (boxWidth + gap) }
 

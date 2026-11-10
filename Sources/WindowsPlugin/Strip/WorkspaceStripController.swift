@@ -80,8 +80,14 @@ final class WorkspaceStripController: NSObject {
         DispatchQueue.main.async { [weak self] in self?.checkRoom() }
     }
 
+    /// Where the image starts inside the button: the rect the button's own cell draws it in when it can say, else the
+    /// image centred (`StripLayout.imageOriginX`). The click and the accessibility children must agree with what is
+    /// on screen, so the cell's answer wins.
     private func imageOriginX(in button: NSStatusBarButton, image: NSImage) -> CGFloat {
-        max(0, (button.bounds.width - image.size.width) / 2)
+        let drawn = (button.cell as? NSButtonCell)?.imageRect(forBounds: button.bounds)
+        return StripLayout.imageOriginX(
+            buttonWidth: button.bounds.width, imageWidth: image.size.width, drawnImageMinX: drawn?.minX,
+            drawnImageWidth: drawn?.width)
     }
 
     private func accessibilityElements(in button: NSStatusBarButton, image: NSImage) -> [NSAccessibilityElement] {
