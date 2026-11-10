@@ -20,8 +20,10 @@ enum NotesTrace {
     /// `NotesTraceReduce.nearDuplicatesSkipped` mean something else than in 1, and `NotesTraceReduce.keyPoints`
     /// is new. 3: a summary point whose text drifts from its quote is repaired (`NotesGuard.RepairReason
     /// .driftedFromQuote`), so `NotesTraceVerification.repaired` counts more than in 2, and
-    /// `NotesTraceVerification.repairReasons` is new.
-    static let schemaVersion = 3
+    /// `NotesTraceVerification.repairReasons` is new. 4: a summary point that is a sentence of the model's (or
+    /// salvaged) paragraph is no longer a key point (`Route.modelSummary`), so `NotesTraceReduce.keyPoints` counts
+    /// fewer than in 3.
+    static let schemaVersion = 4
 
     /// The points of `verified` that the deduplication took out, in their order.
     static func removedIDs(from verified: [NotesPoint], kept: [NotesPoint]) -> [String] {

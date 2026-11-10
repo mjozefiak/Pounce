@@ -600,6 +600,29 @@ enum GuardFixtures {
         #expect(audited.verdict.keyPoints.map(\.id) == ["p6", "p7"])
         #expect(audited.audit.inModelParagraph == ["p5"])
     }
+
+    @Test func aPointThatIsOnlyAPartOfTheModelsSentenceStaysAKeyPoint() {
+        // No full stop: the point is "one sentence", but only a part of the paragraph's longer one.
+        let contract = summaryPoint("p6", quote: "Ja przygotuję umowę", text: "Ewa przygotuje umowę", time: 47_000)
+        let audited = guardrail.auditedVerifyReduce(
+            NotesReduceOutput(summary: "Spotkanie dotyczyło budżetu, a Ewa przygotuje umowę dla klienta."),
+            points: [contract, GuardFixtures.budget])
+        #expect(audited.audit.summaryOrigin == .model)
+        #expect(audited.audit.inModelParagraph.isEmpty)
+        #expect(audited.verdict.keyPoints.map(\.id) == ["p6"])
+    }
+
+    @Test func aNearTwinOfAPointTheModelsParagraphSaysIsLeftOutToo() {
+        let twin = summaryPoint(
+            "p6", quote: "Zaczynamy spotkanie o budżecie na kolejny kwartał", text: "Mowa o budżecie na kwartał.",
+            time: 6_000)
+        let audited = guardrail.auditedVerifyReduce(
+            NotesReduceOutput(summary: "Spotkanie dotyczyło budżetu na przyszły kwartał."),
+            points: [GuardFixtures.topic, twin])
+        #expect(audited.audit.inModelParagraph == ["p5"])
+        #expect(audited.verdict.keyPoints.isEmpty)
+        #expect(audited.audit.nearDuplicateOf["p6"] == "p5")
+    }
 }
 
 @Suite struct NotesInjectionTests {

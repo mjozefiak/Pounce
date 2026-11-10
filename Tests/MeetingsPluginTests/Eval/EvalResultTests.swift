@@ -112,7 +112,7 @@ struct EvalResultTests {
         let data = try Data(contentsOf: url)
         let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
         #expect(Set(object.keys) == ["schema", "recording", "events"])
-        #expect(object["schema"] as? Int == 3)
+        #expect(object["schema"] as? Int == NotesTrace.schemaVersion)
         #expect(object["recording"] as? String == "demo")
         #expect((object["events"] as? [Any])?.count == 3)
         let decoded = try JSONDecoder().decode(NotesTraceFile.self, from: data)

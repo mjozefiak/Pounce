@@ -200,7 +200,7 @@ final class NotesTraceLog: Sendable {
         #expect(throws: DecodingError.self) {
             try JSONDecoder().decode(NotesTraceVerification.self, from: unknown)
         }
-        #expect(NotesTrace.schemaVersion == 3)
+        #expect(NotesTrace.schemaVersion == 4)
     }
 
     @Test func theVerifiedEventCountsTheSummaryPointsRepairedForDrift() async throws {

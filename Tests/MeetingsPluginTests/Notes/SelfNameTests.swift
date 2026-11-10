@@ -33,7 +33,7 @@ import Testing
     @Test func aGenericWordIsRejectedAndChangesNothing() throws {
         let settings = try settings()
         settings.setSelfName("Marek")
-        for word in ["Ja", "on", "Ona", "My", "Speaker 1", "Mówca 2", "unknown", "You"] {
+        for word in ["Ja", "I", "i", "on", "Ona", "My", "Speaker 1", "Mówca 2", "unknown", "You"] {
             #expect(settings.setSelfName(word) == .failure(.generic), "\(word)")
         }
         #expect(settings.selfName == "Marek")

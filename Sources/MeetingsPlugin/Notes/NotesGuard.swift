@@ -577,7 +577,7 @@ struct NotesGuard: Sendable {
         let flat = NotesText.words(label).joined(separator: " ")
         if flat.isEmpty { return true }
         return flat.wholeMatch(
-            of: /(speaker|mowca|rozmowca|uczestnik|participant|unknown|nieznany|inni|ja|ty|my|on|ona|me|you)( \d+)?/)
+            of: /(speaker|mowca|rozmowca|uczestnik|participant|unknown|nieznany|inni|ja|ty|my|on|ona|i|me|you)( \d+)?/)
             != nil
     }
 
@@ -896,17 +896,24 @@ struct NotesGuard: Sendable {
                 }
             }
         } else if let text = summary {
-            // The model's (or salvaged) paragraph: a key point that repeats one of its sentences word for word
-            // adds nothing below it.
-            for point in points where point.kind == .summary && Self.isWhollyIn(text, point) {
+            // The model's (or salvaged) paragraph is free text: a key point is left out only when its whole text
+            // is one of the paragraph's sentences, not a part of a longer one ("Ewa przygotuje umowę" inside
+            // "Czy Ewa przygotuje umowę, nie ustalono.").
+            let sentences = Set(Self.sentences(of: text))
+            for point in points where point.kind == .summary && Self.isOneOf(sentences, point) {
                 inParagraph.insert(point.id)
                 trail?.inModelParagraph.insert(point.id)
             }
         }
 
         var keyPoints: [NotesPoint] = []
+        let saidInParagraph = points.filter { inParagraph.contains($0.id) }
         for point in Self.timeOrdered(points.filter { $0.kind == .summary }) where !inParagraph.contains(point.id) {
-            if let twin = keyPoints.first(where: { Self.nearDuplicate($0, point) }) {
+            // A near twin of a point the paragraph already says is left out too, as it would be next to that
+            // point among the key points.
+            if let twin = keyPoints.first(where: { Self.nearDuplicate($0, point) })
+                ?? saidInParagraph.first(where: { Self.nearDuplicate($0, point) })
+            {
                 trail?.nearDuplicateOf[point.id] = twin.id
                 continue
             }
@@ -918,12 +925,19 @@ struct NotesGuard: Sendable {
             rejectedIDs: rejected, backfilled: backfilled, keyPoints: keyPoints)
     }
 
-    /// The point's whole text is one sentence and the paragraph (composed by the code, written by the model or
-    /// salvaged from it) contains it: listing it again would repeat it word for word.
+    /// The point's whole text is one sentence of the paragraph composed by the code (`composedSummaryWithSources`
+    /// takes the first sentence of a point): listing it again would repeat it word for word.
     private static func isWhollyIn(_ paragraph: String, _ point: NotesPoint) -> Bool {
         let text = point.text.trimmingCharacters(in: .whitespacesAndNewlines)
         let sentence = NotesText.firstSentence(point.text)
         return !sentence.isEmpty && sentence == text && paragraph.contains(sentence)
+    }
+
+    /// The point's whole text is one sentence and equals one of `sentences` (a free-text paragraph's sentences).
+    private static func isOneOf(_ sentences: Set<String>, _ point: NotesPoint) -> Bool {
+        let text = point.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let sentence = NotesText.firstSentence(point.text)
+        return !sentence.isEmpty && sentence == text && sentences.contains(sentence)
     }
 
     /// Time order; points of the same time keep their order (an explicit, stable sort).
