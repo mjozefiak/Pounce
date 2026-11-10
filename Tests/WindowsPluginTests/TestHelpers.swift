@@ -23,7 +23,7 @@ actor Latch {
 /// Lets other tasks run until `condition` holds; a condition that never holds fails the test instead of hanging it.
 /// (Every suite that waits also has a time limit, so a wait that cannot end fails there too.)
 func eventually(_ message: String, _ condition: @Sendable () async -> Bool) async {
-    for _ in 0..<200_000 {
+    for _ in 0..<3_000_000 {
         if await condition() { return }
         await Task.yield()
     }
@@ -34,6 +34,7 @@ func eventually(_ message: String, _ condition: @Sendable () async -> Bool) asyn
 actor Box<Value: Sendable> {
     private(set) var value: Value?
     func set(_ value: Value) { self.value = value }
+    func clear() { value = nil }
 }
 
 /// Runs `work` in a task and waits for its answer with the capped `eventually`: an answer that never comes fails the

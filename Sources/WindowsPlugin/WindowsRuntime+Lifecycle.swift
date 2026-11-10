@@ -37,7 +37,10 @@ extension WindowsRuntime {
         await engine.start()
         try continueStart()
         applyStrip()
-        if dragController == nil { dragController = makeDragController?(self) }
+        if dragController == nil {
+            dragController = makeDragController?(self)
+            dragController?.prewarm()
+        }
         phase = .running
     }
 

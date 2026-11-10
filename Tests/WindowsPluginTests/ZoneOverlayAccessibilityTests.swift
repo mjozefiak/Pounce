@@ -87,6 +87,22 @@ import Testing
         panels.tearDown()
     }
 
+    @Test func prewarmBuildsOnePanelPerScreenAndTheFirstShowTakesOneInsteadOfBuilding() {
+        let screens = [CGRect(x: 0, y: 0, width: 1000, height: 600), CGRect(x: 1000, y: 0, width: 1000, height: 600)]
+        let panels = ZoneOverlayPanels(screens: { screens })
+        panels.prewarm()
+        #expect(panels.spareCount == 2)
+        #expect(panels.panels.isEmpty)
+        panels.show([DragDisplay(key: "A", area: screens[0], zones: [zone])])
+        #expect(panels.spareCount == 1)
+        #expect(panels.panels.count == 1)
+        // Warming again builds nothing more than the screens need.
+        panels.prewarm()
+        #expect(panels.spareCount == 1)
+        panels.tearDown()
+        #expect(panels.spareCount == 0)
+    }
+
     @Test func theViewLaysOutItsZonesAtTheirPositions() {
         let model = ZoneOverlayModel()
         model.zones = [ZoneVisual(id: 1, number: 1, rect: CGRect(x: 8, y: 8, width: 400, height: 300))]

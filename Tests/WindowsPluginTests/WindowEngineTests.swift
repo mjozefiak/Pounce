@@ -239,8 +239,9 @@ import Testing
     @Test func aHungAppDoesNotBlockTheOthersAndIsNotRetriedInALoop() async throws {
         let rig = try rig([makeWindow(1), makeWindow(2, pid: 200)])
         defer { rig.harness.tearDown() }
-        rig.client.setBehavior(.hung, forProcess: 100)
         await rig.engine.start()
+        // The app stops answering after the engine has looked at it.
+        rig.client.setBehavior(.hung, forProcess: 100)
         await rig.engine.send(.showWorkspace(ws(2)))
         #expect(rig.client.frame(of: id(2, pid: 200))?.origin == parkedOrigin)
         #expect(rig.client.frame(of: id(1)) == home)
@@ -393,6 +394,72 @@ extension WindowEngineTests {
         await engine.settle()
         #expect(await engine.snapshot.windows[WindowID(pid: 100, number: 2)] != nil)
         await engine.stop()
+    }
+}
+
+// MARK: An app that stops answering keeps its windows
+
+extension WindowEngineTests {
+    /// QA defect D1: windows of an app that hung during a switch were dropped from management for good, because a
+    /// snapshot taken while it did not answer returned none of them and the engine took that for "closed".
+    @Test func theWindowsOfAnAppThatStoppedAnsweringSurviveASnapshotAndAreParkedOnceItAnswersAgain() async throws {
+        let rig = try rig([makeWindow(1), makeWindow(2, pid: 200)])
+        defer { rig.harness.tearDown() }
+        await rig.engine.start()
+        rig.client.setBehavior(.hung, forProcess: 100)
+
+        // Switching: the responding app's window parks, the hung app's stays (its park timed out).
+        await rig.engine.send(.showWorkspace(ws(2)))
+        #expect(rig.client.frame(of: id(2, pid: 200))?.origin == parkedOrigin)
+        #expect(rig.client.frame(of: id(1)) == home)
+
+        // A snapshot while it still does not answer (a resync): its window is not listed, but it is not gone.
+        await rig.engine.ingest(.resync)
+        await rig.engine.flushEvents()
+        var state = await rig.engine.snapshot
+        #expect(state.windows[id(1)] != nil)
+        #expect(state.model.workspace(of: id(1)) != nil)
+
+        // The app answers again: the next switches retry, and the window parks.
+        rig.client.setBehavior(.normal, forProcess: 100)
+        await rig.engine.send(.showWorkspace(ws(1)))
+        await rig.engine.send(.showWorkspace(ws(2)))
+        #expect(rig.client.frame(of: id(1))?.origin == parkedOrigin)
+        state = await rig.engine.snapshot
+        #expect(state.parked[id(1)] != nil)
+        #expect(!(await rig.store.hidden.isEmpty))
+        await rig.engine.stop()
+    }
+
+    @Test func aWindowThatReallyClosedIsStillRemovedByASnapshot() async throws {
+        let rig = try rig([makeWindow(1), makeWindow(2, pid: 200)])
+        defer { rig.harness.tearDown() }
+        await rig.engine.start()
+        // The app answers (it is not hung) and no longer lists the window: it is gone.
+        rig.client.remove(id(2, pid: 200))
+        await rig.engine.ingest(.resync)
+        await rig.engine.flushEvents()
+        let state = await rig.engine.snapshot
+        #expect(state.windows[id(2, pid: 200)] == nil)
+        #expect(state.windows[id(1)] != nil)
+        await rig.engine.stop()
+    }
+
+    @Test func aHungAppsWindowIsRemovedOnceItAnswersAndNoLongerListsTheWindow() async throws {
+        let rig = try rig([makeWindow(1), makeWindow(2, pid: 200)])
+        defer { rig.harness.tearDown() }
+        await rig.engine.start()
+        rig.client.setBehavior(.hung, forProcess: 100)
+        await rig.engine.ingest(.resync)
+        await rig.engine.flushEvents()
+        #expect(await rig.engine.snapshot.windows[id(1)] != nil)
+        // It comes back and the window was closed meanwhile: the next look removes it.
+        rig.client.setBehavior(.normal, forProcess: 100)
+        rig.client.remove(id(1))
+        await rig.engine.ingest(.resync)
+        await rig.engine.flushEvents()
+        #expect(await rig.engine.snapshot.windows[id(1)] == nil)
+        await rig.engine.stop()
     }
 }
 

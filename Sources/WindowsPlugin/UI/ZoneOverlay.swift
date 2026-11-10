@@ -129,6 +129,8 @@ final class ZoneOverlayPanels: ZoneOverlayPresenting {
     }
 
     private var entries: [String: Entry] = [:]
+    /// Panels built ahead of the first drag (`prewarm()`), handed to the first displays that need one.
+    private var spares: [Entry] = []
     private var highlighted: DragZone?
     private var announced: Int?
     private let screens: () -> [CGRect]
@@ -145,7 +147,7 @@ final class ZoneOverlayPanels: ZoneOverlayPresenting {
             guard let index = ScreenSpace.screenIndex(forAX: display.area, screenFrames: frames, mainHeight: mainHeight)
             else { continue }
             let frame = frames[index]
-            let entry = entries[display.key] ?? makeEntry(for: display.key)
+            let entry = entries[display.key] ?? spares.popLast() ?? makeEntry()
             entries[display.key] = entry
             entry.model.zones = display.zones.map {
                 ZoneVisual(
@@ -161,9 +163,27 @@ final class ZoneOverlayPanels: ZoneOverlayPresenting {
         applyHighlight()
     }
 
+    /// Builds one panel per screen now, hidden, so the first drag only fills and orders one in (QA measured about
+    /// 145 ms to the first overlay, the panels' creation among it). A panel is warmed by ordering it in at zero
+    /// opacity and out again, which creates its window server window without showing anything.
+    func prewarm() {
+        let needed = screens().count - entries.count - spares.count
+        guard needed > 0 else { return }
+        for _ in 0..<needed {
+            let entry = makeEntry()
+            entry.panel.alphaValue = 0
+            entry.panel.orderFrontRegardless()
+            entry.panel.orderOut(nil)
+            entry.panel.alphaValue = 1
+            spares.append(entry)
+        }
+    }
+
     #if DEBUG
     /// The panels that exist (tests only).
     var panels: [NSPanel] { entries.values.map(\.panel) }
+    /// The panels built ahead and not used yet (tests only).
+    var spareCount: Int { spares.count }
     #endif
 
     func highlight(_ zone: DragZone?) {
@@ -197,6 +217,8 @@ final class ZoneOverlayPanels: ZoneOverlayPresenting {
             entry.panel.close()
         }
         entries = [:]
+        for entry in spares { entry.panel.close() }
+        spares = []
     }
 
     private func applyHighlight() {
@@ -205,7 +227,7 @@ final class ZoneOverlayPanels: ZoneOverlayPresenting {
         }
     }
 
-    private func makeEntry(for key: String) -> Entry {
+    private func makeEntry() -> Entry {
         let panel = OverlayPanel(
             contentRect: NSRect(x: 0, y: 0, width: 100, height: 100),
             styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)

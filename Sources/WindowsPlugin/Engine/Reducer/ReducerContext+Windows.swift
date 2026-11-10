@@ -7,14 +7,18 @@ import LintelKit
 extension ReducerContext {
     mutating func snapshot(
         windows: [WindowInfo], displays: [DisplayInfo], focused: WindowID?, processStarts: [Int32: Double],
-        now: Double
+        unreachable: Set<Int32> = [], now: Double
     ) {
         state.displays = displays
         state.model.setDisplays(DisplayKeys.orderedKeys(for: displays))
         state.focused = focused
         let live = windows.filter { EngineReducer.isManaged($0, config: state.config) }
         let liveIDs = Set(live.map(\.id))
-        for id in Array(state.windows.keys) where !liveIDs.contains(id) { removeWindow(id) }
+        // A window that is missing is gone, unless its process did not answer: then it is only unknown and stays
+        // (parked or not) until a later look, so a hung app never loses its windows.
+        for id in Array(state.windows.keys) where !liveIDs.contains(id) && !unreachable.contains(id.pid) {
+            removeWindow(id)
+        }
         for info in live {
             if state.windows[info.id] == nil {
                 track(info, processStart: processStarts[info.id.pid])

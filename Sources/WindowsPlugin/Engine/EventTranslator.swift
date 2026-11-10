@@ -56,14 +56,16 @@ struct EventTranslator: Sendable {
                 inputs.append(.displaysChanged(await client.displays(), now: moment))
             case .spaceChanged, .resync:
                 await onSpaceChange()
-                inputs.append(await snapshot(now: now()))
+                inputs.append(await snapshot(now: now(), tracked: Set(state.windows.keys.map(\.pid))))
             }
         }
         return inputs
     }
 
     /// Everything at once: the first look, a Space change, a resync.
-    func snapshot(now: Double) async -> EngineInput {
+    /// `tracked` are the processes the engine holds windows of: one of them that returned no window and does not
+    /// answer is reported `unreachable` instead of having its windows treated as closed.
+    func snapshot(now: Double, tracked: Set<Int32> = []) async -> EngineInput {
         let windows = await client.windows()
         let displays = await client.displays()
         let focused = await client.focusedWindow()
@@ -71,6 +73,13 @@ struct EventTranslator: Sendable {
         for window in windows where starts[window.id.pid] == nil {
             if let start = client.processStart(of: window.id.pid) { starts[window.id.pid] = start }
         }
-        return .snapshot(windows: windows, displays: displays, focused: focused, processStarts: starts, now: now)
+        let read = Set(windows.map(\.id.pid))
+        var unreachable = Set<Int32>()
+        for pid in tracked.subtracting(read).sorted() where !(await client.isResponding(pid: pid)) {
+            unreachable.insert(pid)
+        }
+        return .snapshot(
+            windows: windows, displays: displays, focused: focused, processStarts: starts, unreachable: unreachable,
+            now: now)
     }
 }

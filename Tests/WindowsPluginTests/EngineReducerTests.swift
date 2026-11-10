@@ -540,4 +540,23 @@ extension EngineReducerTests {
         // One display: unchanged.
         #expect(FrameMath.parkedFrame(for: frame, displays: [main], sliver: 1).origin == CGPoint(x: 1919, y: 1079))
     }
+
+    @Test func aSnapshotKeepsTheWindowsOfAnUnreachableProcessAndDropsTheOthersThatAreMissing() {
+        let main = FakeWindowClient.mainDisplay
+        var state = EngineState(workspaceCount: 4, displays: [main])
+        (state, _) = EngineReducer.reduce(
+            state,
+            .snapshot(
+                windows: [makeWindow(1), makeWindow(2, pid: 200)], displays: [main], focused: nil,
+                processStarts: starts([100, 200]), now: 1), strategies: .standard)
+        // Neither window is listed any more; only process 100 did not answer.
+        (state, _) = EngineReducer.reduce(
+            state,
+            .snapshot(
+                windows: [], displays: [main], focused: nil, processStarts: [:], unreachable: [100], now: 2),
+            strategies: .standard)
+        #expect(state.windows[WindowID(pid: 100, number: 1)] != nil)
+        #expect(state.model.workspace(of: WindowID(pid: 100, number: 1)) != nil)
+        #expect(state.windows[WindowID(pid: 200, number: 2)] == nil)
+    }
 }

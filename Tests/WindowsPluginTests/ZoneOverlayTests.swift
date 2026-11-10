@@ -93,6 +93,7 @@ private final class FakeOverlay: ZoneOverlayPresenting {
         visible = false
         log.append("hide")
     }
+    func prewarm() { log.append("prewarm") }
 }
 
 @Suite(.timeLimit(.minutes(1))) @MainActor struct ZoneDragControllerTests {
@@ -122,6 +123,13 @@ private final class FakeOverlay: ZoneOverlayPresenting {
             targets: { _ in zones },
             snap: { id, zone in snaps.list.append("\(id.number)->\(zone.number)") })
         return rig
+    }
+
+    @Test func prewarmReachesThePresenterBeforeAnyDrag() {
+        let rig = rig()
+        rig.controller?.prewarm()
+        #expect(rig.overlay.log == ["prewarm"])
+        #expect(rig.controller?.phase == .idle)
     }
 
     @Test func nothingRunsWhileNoWindowIsDragged() {

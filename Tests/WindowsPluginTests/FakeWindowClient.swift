@@ -184,7 +184,9 @@ final class FakeWindowClient: WindowClient, Sendable {
             state.windowsReads += 1
             let hold = state.snapshotHoldArmed
             state.snapshotHoldArmed = false
-            return (state.windows.values.sorted { $0.id < $1.id }, hold)
+            // An app that does not answer shows no windows (like the real client's failed read).
+            let readable = state.windows.values.filter { state.behaviorsByProcess[$0.id.pid] != .hung }
+            return (readable.sorted { $0.id < $1.id }, hold)
         }
         if hold { await holdUntilReleased() }
         return list
@@ -211,7 +213,7 @@ final class FakeWindowClient: WindowClient, Sendable {
             state.log.append("window")
             let hold = state.readHoldArmed
             state.readHoldArmed = false
-            return (state.windows[id], hold)
+            return (state.behaviorsByProcess[id.pid] == .hung ? nil : state.windows[id], hold)
         }
         if hold {
             // The read has happened; the answer is not delivered until the test lets it go.

@@ -123,7 +123,7 @@ nonisolated final class AXWindowClient: WindowClient, Sendable {
         guard AXIsProcessTrusted() else { return nil }
         let bundleID = await Self.bundleID(of: id.pid)
         return await queues.run(pid: id.pid) { [self] in
-            guard let element = element(for: id) else { return nil }
+            guard case .found(let element) = self.element(for: id) else { return nil }
             return Self.info(of: element, id: id, bundleID: bundleID)
         }
     }
@@ -161,7 +161,13 @@ nonisolated final class AXWindowClient: WindowClient, Sendable {
     func setFrame(_ frame: CGRect, for id: WindowID) async throws(WindowClientError) -> CGRect {
         guard AXIsProcessTrusted() else { throw .notTrusted }
         let result = await queues.run(pid: id.pid) { [self] () -> Result<CGRect, WindowClientError> in
-            guard let element = element(for: id) else { return .failure(.windowGone) }
+            let element: AXUIElement
+            switch self.element(for: id) {
+            case .found(let found): element = found
+            case .gone: return .failure(.windowGone)
+            // An app that does not answer is not a window that is gone: the engine keeps the window and retries.
+            case .unreachable: return .failure(.timedOut)
+            }
             // Size, position, size: a window that crosses to a display with another scale takes the last size
             // (ADR 0009 row 5, unmeasured; one place to change).
             var failure: WindowClientError?
@@ -186,7 +192,12 @@ nonisolated final class AXWindowClient: WindowClient, Sendable {
     func focus(_ id: WindowID) async throws(WindowClientError) {
         guard AXIsProcessTrusted() else { throw .notTrusted }
         let result = await queues.run(pid: id.pid) { [self] () -> WindowClientError? in
-            guard let element = element(for: id) else { return .windowGone }
+            let element: AXUIElement
+            switch self.element(for: id) {
+            case .found(let found): element = found
+            case .gone: return .windowGone
+            case .unreachable: return .timedOut
+            }
             let raised = AXUIElementPerformAction(element, kAXRaiseAction as CFString)
             _ = AXUIElementSetAttributeValue(element, kAXMainAttribute as CFString, kCFBooleanTrue)
             return WindowGeometry.clientError(for: raised)
@@ -229,22 +240,31 @@ nonisolated final class AXWindowClient: WindowClient, Sendable {
 
     /// The element of a window: the remembered one while it still answers with the same number, else found again
     /// in the app's window list.
-    private func element(for id: WindowID) -> AXUIElement? {
+    /// What looking for a window's element found. `unreachable` is an app that did not answer within the messaging
+    /// timeout (hung, stopped): the window is not known to be gone, so callers must not report it as gone.
+    private enum ElementLookup {
+        case found(AXUIElement)
+        case gone
+        case unreachable
+    }
+
+    private func element(for id: WindowID) -> ElementLookup {
         let cache = cache(for: id.pid)
-        if let known = cache.elements[id], lookup.windowID(of: known) == id.number { return known }
-        cache.elements[id] = nil
+        if let known = cache.elements[id], lookup.windowID(of: known) == id.number { return .found(known) }
         let application = AXUIElementCreateApplication(id.pid)
         AXUIElementSetMessagingTimeout(application, Self.messagingTimeout)
         var value: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(application, kAXWindowsAttribute as CFString, &value) == .success,
-            let windows = value as? [AXUIElement]
-        else { return nil }
+        let status = AXUIElementCopyAttributeValue(application, kAXWindowsAttribute as CFString, &value)
+        // The cached element stays while the app does not answer: it may be good again when it does.
+        if status == .cannotComplete { return .unreachable }
+        cache.elements[id] = nil
+        guard status == .success, let windows = value as? [AXUIElement] else { return .gone }
         for window in windows {
             guard let number = lookup.windowID(of: window) else { continue }
             AXUIElementSetMessagingTimeout(window, Self.messagingTimeout)
             cache.elements[WindowID(pid: id.pid, number: number)] = window
         }
-        return cache.elements[id]
+        return cache.elements[id].map { .found($0) } ?? .gone
     }
 
     private func readWindows(of app: RunningApp) -> [WindowInfo] {

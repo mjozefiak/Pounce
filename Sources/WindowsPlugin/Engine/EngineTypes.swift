@@ -227,10 +227,12 @@ enum EngineCommand: Equatable, Sendable {
 
 enum EngineInput: Equatable, Sendable {
     /// Everything at once: the first look, a Space change, a refresh.
-    /// `processStarts` gives the start time of every process that owns a window, by pid.
+    /// `processStarts` gives the start time of every process that owns a window, by pid. `unreachable` names the
+    /// processes whose windows could not be read (an app that does not answer): a window of such a process that is
+    /// missing from `windows` is not gone, only unknown, so the engine keeps it and tries again on the next event.
     case snapshot(
         windows: [WindowInfo], displays: [DisplayInfo], focused: WindowID?, processStarts: [Int32: Double],
-        now: Double)
+        unreachable: Set<Int32> = [], now: Double)
     case windowAppeared(WindowInfo, processStart: Double?, now: Double)
     case windowGone(WindowID, now: Double)
     case windowMoved(WindowID, frame: CGRect, now: Double)
@@ -254,7 +256,7 @@ extension EngineInput {
     /// The time the input carries, if any.
     var moment: Double? {
         switch self {
-        case .snapshot(_, _, _, _, let now), .windowAppeared(_, _, let now), .windowGone(_, let now),
+        case .snapshot(_, _, _, _, _, let now), .windowAppeared(_, _, let now), .windowGone(_, let now),
             .windowMoved(_, _, let now), .windowFocused(_, let now), .displaysChanged(_, let now),
             .command(_, let now), .applied(_, let now), .frameStarted(_, let now), .watchdogTripped(let now),
             .place(_, _, let now):

@@ -58,6 +58,12 @@ protocol ZoneOverlayPresenting: AnyObject {
     /// Highlights a zone (`nil`: none); remembered while the overlay is hidden.
     func highlight(_ zone: DragZone?)
     func hide()
+    /// Builds what the first overlay needs ahead of time (a no-op for a presenter that has nothing to build).
+    func prewarm()
+}
+
+extension ZoneOverlayPresenting {
+    func prewarm() {}
 }
 
 /// Joins the pure `ZoneDragMachine` to the world (spec: step 3.5b): the engine says a managed window of a Zones
@@ -101,6 +107,9 @@ final class ZoneDragController {
         apply(machine.handle(.windowMoved(id, sampler.sample(), frame: frame)))
         updateTicker()
     }
+
+    /// Builds the overlay's panels ahead of the first drag.
+    func prewarm() { presenter.prewarm() }
 
     /// Stops any drag and hides the overlay (the plugin is switched off).
     func cancel() {

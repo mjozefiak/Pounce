@@ -48,6 +48,8 @@ actor WindowEngine {
     /// reduced, so none overtakes it.
     private var flushEnabled = false
     private var stopped = false
+    /// When the last flush started (engine time); a move is flushed at once only when none ran in the last tick.
+    private var lastFlushAt = -Double.infinity
 
     /// One queued input and what waits for it.
     private struct Pending {
@@ -315,11 +317,29 @@ actor WindowEngine {
 
     // MARK: Events
 
-    /// Takes one event from the client; it is folded into the coalescer and flushed on the next tick.
+    /// Takes one event from the client; it is folded into the coalescer and flushed on the next tick, except the
+    /// first move of a window that may be starting a snap drag, which is flushed at once (the overlay has a 50 ms
+    /// budget and the tick alone is 30 ms of it); the moves that follow are coalesced as usual.
     func ingest(_ event: WindowEvent) {
         guard !stopped else { return }
         coalescer.insert(event)
-        if flushEnabled { scheduleFlush() }
+        guard flushEnabled else { return }
+        if flushTask == nil, startsSnapDrag(event) {
+            flushTask = Task { [weak self] in await self?.flushLoop() }
+        } else {
+            scheduleFlush()
+        }
+    }
+
+    /// Whether `event` is a move of a window the engine manages on a workspace that offers snap targets: the one
+    /// event whose latency matters to the user (the overlay follows it).
+    private func startsSnapDrag(_ event: WindowEvent) -> Bool {
+        let ticks = Double(tick.components.seconds) + Double(tick.components.attoseconds) / 1e18
+        guard case .moved(let id) = event, time.now() - lastFlushAt >= ticks, !state.isFrozen,
+            state.windows[id] != nil,
+            let workspace = state.model.workspace(of: id), state.model.isVisible(workspace)
+        else { return false }
+        return LayoutPlanner(strategies: strategies).offersSnapTargets(state, for: workspace)
     }
 
     private func scheduleFlush() {
@@ -376,6 +396,7 @@ actor WindowEngine {
             resumeWaiters()
         }
         let moment = time.now()
+        lastFlushAt = moment
         let time = time
         let inputs = await translator.inputs(
             for: events, state: state, moment: moment, now: { time.now() },
@@ -386,7 +407,7 @@ actor WindowEngine {
     }
 
     private func snapshotInput() async -> EngineInput {
-        await translator.snapshot(now: time.now())
+        await translator.snapshot(now: time.now(), tracked: Set(state.windows.keys.map(\.pid)))
     }
 
     // MARK: Reducing and dispatching
