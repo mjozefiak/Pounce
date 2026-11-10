@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import LintelKit
+import Synchronization
 
 /// The menu bar strip of numbered boxes (spec Q16): one `NSStatusItem` whose template image shows every box, the
 /// active one filled. Clicks are mapped from their position on the single button (`StripLayout.index`); each box
@@ -20,6 +21,9 @@ final class WorkspaceStripController: NSObject {
     private let restoreAll: @MainActor () -> Void
     private let announce: Bool
     private var lastCurrent: Int?
+    /// Where the mouse went down on the item (a local monitor; see `StripLayout.resolvedClickX`).
+    private let capture = PressCapture()
+    private var downMonitor: Any?
     /// Whether the item is on screen, `nil` while unknown (see `StripVisibility`).
     private(set) var hasRoom: Bool?
     var onRoomChange: @MainActor (Bool?) -> Void = { _ in }
@@ -46,10 +50,19 @@ final class WorkspaceStripController: NSObject {
                 String(localized: "Workspaces", comment: "Strip: accessibility label of the menu bar item"))
         }
         statusItem = item
+        let capture = capture
+        downMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak item] event in
+            // Local monitors run on the main thread; nothing here touches main-actor state.
+            if let window = item?.button?.window, event.window === window { capture.set(NSEvent.mouseLocation.x) }
+            return event
+        }
         redraw()
     }
 
     func remove() {
+        if let downMonitor { NSEvent.removeMonitor(downMonitor) }
+        downMonitor = nil
+        capture.reset()
         if let statusItem { NSStatusBar.system.removeStatusItem(statusItem) }
         statusItem = nil
         hasRoom = nil
@@ -114,10 +127,18 @@ final class WorkspaceStripController: NSObject {
         }
         guard let image = sender.image else { return }
         let eventX = sender.convert(event.locationInWindow, from: nil).x
-        let x =
-            StripLayout.clickX(
-                eventX: eventX, cursorScreenX: NSEvent.mouseLocation.x, itemFrame: sender.window?.frame,
-                buttonMinX: sender.frame.minX) - imageOriginX(in: sender, image: image)
+        let press = capture.take()
+        // Only a real mouse release is mapped. Anything else (a press from VoiceOver or Voice Control, a stale event)
+        // or a click whose position cannot be found inside the item opens the menu instead of guessing a box.
+        guard event.type == .leftMouseUp,
+            let buttonX = StripLayout.resolvedClickX(
+                pressScreenX: press, cursorScreenX: NSEvent.mouseLocation.x, itemFrame: sender.window?.frame,
+                buttonMinX: sender.frame.minX)
+        else {
+            showMenu(from: sender)
+            return
+        }
+        let x = buttonX - imageOriginX(in: sender, image: image)
         #if DEBUG
         StripTrace.record(
             "click eventX=\(eventX) locationInWindow=\(event.locationInWindow) mouse=\(NSEvent.mouseLocation) "
@@ -162,6 +183,22 @@ final class WorkspaceStripController: NSObject {
 
     @objc private func menuSelected(_ sender: NSMenuItem) { select(sender.tag) }
     @objc private func menuRestore() { restoreAll() }
+}
+
+/// The screen x where the mouse last went down on the strip's item, for one click. Thread-safe: the event monitor
+/// that fills it is not main-actor isolated.
+final class PressCapture: Sendable {
+    private let value = Mutex<CGFloat?>(nil)
+    func set(_ x: CGFloat) { value.withLock { $0 = x } }
+    func reset() { value.withLock { $0 = nil } }
+    /// The captured x, once (a second click without a new press has none).
+    func take() -> CGFloat? {
+        value.withLock {
+            let x = $0
+            $0 = nil
+            return x
+        }
+    }
 }
 
 /// One box as an accessibility element: pressing it switches to its workspace.

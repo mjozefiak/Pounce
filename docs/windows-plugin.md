@@ -172,7 +172,15 @@ instead of failing if the code under test breaks; the time limit and CI's own ti
 ## Menu bar strip: how a click is mapped (round 13)
 
 The system delivers a click on a status item at the item's centre, so the event's own x always named the middle box.
-`StripLayout.clickX` takes the cursor's screen x (`NSEvent.mouseLocation`) when it lies inside the item's window and
-the event's x otherwise; the image's origin inside the button comes from the button cell's drawn image rect. Each box is
+`StripLayout.resolvedClickX` takes the screen x where the mouse went down on the item (a local monitor, `PressCapture`),
+else the cursor's x (`NSEvent.mouseLocation`) when it lies inside the item's window; with neither (a press from
+VoiceOver or Voice Control) the strip opens its menu rather than reading the event's centre as the middle box; the image's origin inside the button comes from the button cell's drawn image rect. Each box is
 an accessibility element with its selected state. The mapping is tested with numbers observed in QA; it has not been
 checked on a real menu bar by an agent (`docs/qa.md`).
+
+## Layout editor: how small a track can get
+
+Dividers moved by the arrow keys or the numeric fields, and a zone divided by key (S, ⇧S), keep every track at 1% of the
+display or more; a divide that would go below is refused with the usual message and announcement and changes nothing
+(undo included). A divide by **click** is stricter: each piece must be at least 5%, so a track narrower than 10% can no
+longer be divided by click; use the keyboard or the numeric fields for finer work (round 13 B2, round 15 M1).

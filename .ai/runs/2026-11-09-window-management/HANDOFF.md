@@ -101,10 +101,15 @@
 
 ## Round 13 (QA pass 3 and audit lows)
 - N3: strip clicks all selected the middle box; the system delivers the click at the item centre. The click is now mapped from the cursor's screen x (`StripLayout.clickX`), box rects are a QA verb (`stripRects`), boxes carry their selected state, a DEBUG `StripTrace` logs click fields. Tests use the QA-observed numbers; not verified on a real menu bar.
-- B1 Backspace/forward delete (`DeleteKeys`) in the matrix and the editor; B2 editor click-to-divide measured from the zone's origin with a 5% click minimum (keyboard and numeric keep 1%); B3 no false no-room banner with an auto-hidden menu bar (`StripVisibility.hasRoom`).
+- B1 Backspace/forward delete (`DeleteKeys`) in the matrix and the editor; B2 editor click-to-divide measured from the zone's origin with a 5% click minimum (a keyed divide, S and ⇧S, is held to the 1% floor too since round 15 M1: before that it had no minimum; arrow keys and numeric fields keep 1%); B3 no false no-room banner with an auto-hidden menu bar (`StripVisibility.hasRoom`).
 - B4: import notice counts skipped layouts; Layouts and editor windows are not restorable; the editor says "pt"; QA `export <selected|all> <path>`; `--qa-command-replay`; `DragTraceRecorder` is injectable and a trace begins only for a window that can snap.
 - Audit lows: stale retry guard (generation), capped `waitForSleepers`, the Polish recorder check runs on the built, signed bundle, the QA route decodes whole lines and notices rewrites, wording fixes, `readWindows(tracked:)` tracked-only contract in BACKWARD_COMPATIBILITY.md.
 - N2: overlay latency is Accessibility notification delivery (about 110 ms before Lintel sees it); recorded in `docs/perf.md` with an unimplemented alternative; the budget decision is the owner's.
+
+## Round 15 (audit of round 13)
+- M1: a keyed divide (S, ⇧S: `GridEditorModel.divideFocused`) had no minimum and halved down to the 32-track limit; it now passes the 1% floor, the refusal is the usual message plus announcement and changes nothing (undo included). L1: delete needs no modifier in the matrix and no Option or Cmd or Ctrl in the editor.
+- L2: "current" is spoken once (the selected state, not the label); the strip's accessibility children are kept between redraws and updated in place while the box numbers are the same (`StripBoxElement.reconcile`). L9: the click maps from where the mouse went down (a local monitor, `PressCapture`), else the cursor inside the item; a press with neither (VoiceOver, Voice Control) opens the strip's menu instead of reading the event's centre as the middle box. Not verified on a real menu bar.
+- L3/L4: retry doc comment moved; a test of the real race (cleared or replaced retry reaches the engine late). L5: every remaining unbounded `waitForSleepers(1)` is bounded. L6: the 5% click rule is documented. L7: the unused "%lld px" key is gone. L8: the QA route records the first and last bytes of what it read and the file number at `prepare()`.
 
 ## Next concrete action
 QA gate and merge by the owner.

@@ -224,8 +224,10 @@ import Testing
         let origin = StripLayout.imageOriginX(buttonWidth: 100, imageWidth: StripLayout.width(boxCount: 4))
         #expect(origin == 9)
         func box(cursor: CGFloat) -> Int? {
-            let x = StripLayout.clickX(eventX: 50, cursorScreenX: cursor, itemFrame: frame) - origin
-            return StripLayout.index(atX: x, boxCount: 4)
+            guard
+                let x = StripLayout.resolvedClickX(pressScreenX: nil, cursorScreenX: cursor, itemFrame: frame)
+            else { return nil }
+            return StripLayout.index(atX: x - origin, boxCount: 4)
         }
         // The observed clicks: left of the image, then the four boxes, the right edge and outside.
         #expect(box(cursor: 4296) == nil)
@@ -239,15 +241,6 @@ import Testing
         #expect(StripLayout.index(atX: 50 - origin, boxCount: 4) == 2)
     }
 
-    @Test func withoutAUsableCursorTheEventsOwnPositionIsUsed() {
-        let frame = CGRect(x: 4290, y: 3, width: 100, height: 24)
-        #expect(StripLayout.clickX(eventX: 33, cursorScreenX: nil, itemFrame: frame) == 33)
-        #expect(StripLayout.clickX(eventX: 33, cursorScreenX: 4000, itemFrame: frame) == 33)
-        #expect(StripLayout.clickX(eventX: 33, cursorScreenX: 4500, itemFrame: frame) == 33)
-        #expect(StripLayout.clickX(eventX: 33, cursorScreenX: 4300, itemFrame: nil) == 33)
-        #expect(StripLayout.clickX(eventX: 33, cursorScreenX: 4300, itemFrame: frame, buttonMinX: 2) == 8)
-    }
-
     @Test func theBoxScreenRectsAreWhereToClick() {
         let frame = CGRect(x: 4290, y: 3, width: 100, height: 24)
         let rects = StripLayout.boxScreenRects(boxCount: 4, itemFrame: frame, imageOriginX: 9)
@@ -257,8 +250,8 @@ import Testing
         #expect(rects[1].minX - rects[0].minX == StripLayout.boxWidth + StripLayout.gap)
         // A click at the middle of each rect maps back to its own box.
         for (index, rect) in rects.enumerated() {
-            let x = StripLayout.clickX(eventX: 50, cursorScreenX: rect.midX, itemFrame: frame) - 9
-            #expect(StripLayout.index(atX: x, boxCount: 4) == index)
+            let x = StripLayout.resolvedClickX(pressScreenX: rect.midX, cursorScreenX: nil, itemFrame: frame)
+            #expect(StripLayout.index(atX: (x ?? -1) - 9, boxCount: 4) == index)
         }
     }
 
@@ -283,5 +276,33 @@ import Testing
         let grown = StripBoxElement.reconcile(
             second.elements, boxes: boxes(current: 2, count: 4), originX: 9, y: 5, parent: nil, select: { _ in })
         #expect(grown.rebuilt && grown.elements.count == 4)
+    }
+
+    /// Round-13 audit L9: the press position wins over a cursor that moved before the release; a press that did not
+    /// come from the mouse over the item has no position (the strip then opens its menu, never the middle box).
+    @Test func theClickIsMappedFromWhereTheMouseWentDownAndNeverGuessesTheMiddleBox() {
+        let item = CGRect(x: 4290, y: 3, width: 100, height: 24)
+        // Pressed at 4330 (box 1's area), released at 4350 after a fast move: the press wins.
+        #expect(StripLayout.resolvedClickX(pressScreenX: 4330, cursorScreenX: 4350, itemFrame: item) == 40)
+        // No press captured: the cursor inside the item.
+        #expect(
+            StripLayout.resolvedClickX(pressScreenX: nil, cursorScreenX: 4350, itemFrame: item, buttonMinX: 2) == 58)
+        // A press outside the item is not used; the cursor inside is.
+        #expect(StripLayout.resolvedClickX(pressScreenX: 100, cursorScreenX: 4310, itemFrame: item) == 20)
+        // Neither inside (VoiceOver, Voice Control): nothing to map.
+        #expect(StripLayout.resolvedClickX(pressScreenX: nil, cursorScreenX: 900, itemFrame: item) == nil)
+        #expect(StripLayout.resolvedClickX(pressScreenX: nil, cursorScreenX: nil, itemFrame: item) == nil)
+        #expect(StripLayout.resolvedClickX(pressScreenX: 4300, cursorScreenX: 4300, itemFrame: nil) == nil)
+    }
+
+    @Test func aPressIsTakenOnceAndResetClearsIt() {
+        let capture = PressCapture()
+        #expect(capture.take() == nil)
+        capture.set(12)
+        #expect(capture.take() == 12)
+        #expect(capture.take() == nil)
+        capture.set(5)
+        capture.reset()
+        #expect(capture.take() == nil)
     }
 }

@@ -69,18 +69,19 @@ enum StripLayout {
         return max(0, (buttonWidth - imageWidth) / 2)
     }
 
-    /// The x of a click in the button's coordinates. A status item can deliver the click with its position at the
-    /// item's centre whatever was clicked (QA, real clicks on macOS 26: every left click on the strip selected the
-    /// middle box), so the position the event carries is not trusted when the cursor itself says otherwise: the
-    /// cursor's screen x, when it lies inside the item's window, gives the x directly. Without a usable cursor
-    /// position the event's x is used. `buttonMinX` is where the button starts inside its window.
-    static func clickX(
-        eventX: CGFloat, cursorScreenX: CGFloat?, itemFrame: CGRect?, buttonMinX: CGFloat = 0
-    ) -> CGFloat {
-        guard let cursorScreenX, let itemFrame, itemFrame.width > 0, cursorScreenX >= itemFrame.minX,
-            cursorScreenX <= itemFrame.maxX
-        else { return eventX }
-        return cursorScreenX - itemFrame.minX - buttonMinX
+    /// Where on the button a click landed, or `nil` when the strip cannot tell (then the strip opens its menu, which
+    /// names every workspace). The position where the mouse went *down* inside the item's window wins (a fast move
+    /// before the release must not change the box); else the cursor's position when inside the window. A press that
+    /// comes from Accessibility or Voice Control has neither (the cursor is somewhere else), so it never reads the
+    /// event's centre as "the middle box": a box is pressed through its own element, the button through the menu.
+    static func resolvedClickX(
+        pressScreenX: CGFloat?, cursorScreenX: CGFloat?, itemFrame: CGRect?, buttonMinX: CGFloat = 0
+    ) -> CGFloat? {
+        guard let itemFrame, itemFrame.width > 0 else { return nil }
+        for candidate in [pressScreenX, cursorScreenX] {
+            if let x = candidate, x >= itemFrame.minX, x <= itemFrame.maxX { return x - itemFrame.minX - buttonMinX }
+        }
+        return nil
     }
 
     /// The screen rect of every box when the item's window is at `itemFrame` and the image starts `imageOriginX` into
