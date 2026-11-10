@@ -446,10 +446,10 @@ struct GridEditorView: View {
         let focused = model.focus == .zone(id)
         return ZStack {
             RoundedRectangle(cornerRadius: 4, style: .continuous)
-                .fill(selected ? LintelBrand.accent.opacity(0.55) : Color.white.opacity(0.35))
+                .fill(selected ? LintelBrand.accent.opacity(0.55) : EditorZoneStyle.fill)
             RoundedRectangle(cornerRadius: 4, style: .continuous)
                 .strokeBorder(
-                    focused || selected ? LintelBrand.accent : Color.white.opacity(0.8), lineWidth: focused ? 3 : 1.5)
+                    focused || selected ? LintelBrand.accent : EditorZoneStyle.stroke, lineWidth: focused ? 3 : 1.5)
             Text(verbatim: "\(number)")
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
                 .foregroundStyle(Color.white)
@@ -517,4 +517,12 @@ struct GridEditorView: View {
             model.removeDivider(divider)
         }
     }
+}
+
+/// The colours of an unselected zone in the editor's canvas. White on the near-white preview (light mode) hid the
+/// boundary (QA round 4, D8): the stroke is the secondary text colour (about 5:1 against the canvas in both looks,
+/// 3:1 is the WCAG non-text minimum) and the fill is the card colour. `EditorZoneStyleTests` measures both pairs.
+@MainActor enum EditorZoneStyle {
+    static let stroke = LintelBrand.secondaryText
+    static let fill = LintelBrand.card
 }

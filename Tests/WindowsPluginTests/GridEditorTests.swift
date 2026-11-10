@@ -1,5 +1,6 @@
 import CoreGraphics
 import Foundation
+import LintelUI
 import Testing
 
 @testable import WindowsPlugin
@@ -357,5 +358,28 @@ import Testing
         // Without the click policy (keys, numbers) the 1 % floor of the editor stands.
         var keyed = GridEditorState(stock(StockLayouts.columns2))
         #expect(succeeded(keyed.divide(zone: keyed.layout.zones.last!.id, axis: .vertical, share: 0.1)))
+    }
+}
+
+/// QA round 4, D8: the unselected zone was nearly white on a near-white preview. The boundary of a zone needs 3:1
+/// (WCAG non-text contrast) against the canvas and against the zone's own fill, in the light and the dark look.
+@Suite struct EditorZoneStyleTests {
+    @Test func theZoneBoundaryHasThreeToOneAgainstTheCanvasAndTheZoneFillInBothLooks() {
+        let looks: [(name: String, stroke: UInt32, window: UInt32, card: UInt32, fill: UInt32, alpha: Double)] = [
+            (
+                "light", BrandPalette.secondaryTextLight, BrandPalette.windowLight, BrandPalette.cardLight,
+                BrandPalette.fillLight, BrandPalette.fillAlpha.light
+            ),
+            (
+                "dark", BrandPalette.secondaryTextDark, BrandPalette.windowDark, BrandPalette.cardDark,
+                BrandPalette.fillDark, BrandPalette.fillAlpha.dark
+            ),
+        ]
+        for look in looks {
+            // The canvas is the brand fill over the window; the zone is the card colour.
+            let canvas = BrandPalette.blend(look.fill, alpha: look.alpha, over: look.window)
+            #expect(BrandPalette.contrast(look.stroke, canvas) >= 3, "\(look.name): stroke on canvas")
+            #expect(BrandPalette.contrast(look.stroke, look.card) >= 3, "\(look.name): stroke on zone fill")
+        }
     }
 }
