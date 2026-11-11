@@ -47,7 +47,8 @@ extension ReducerContext {
             reload(now: now)
         case .toggleFloating:
             guard !state.isFrozen else { return }
-            guard let id = state.focused, state.windows[id] != nil else {
+            // Only a window the user can see is changed: the focus may still name one that a switch just parked.
+            guard let id = state.focused, isShown(id) else {
                 trailing.append(.notice(.noFocusedWindow))
                 return
             }

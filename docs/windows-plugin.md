@@ -212,7 +212,7 @@ cannot interleave their reads and commands.
 - `focusOrder` is a list of windows by recency (memory only). The most recently used window of a workspace is its
   newest entry; `switchTo` gives it the focus when the focused window was hidden by the switch (an empty workspace:
   nothing is focused), and a move hands the focus to it instead of the last window in order.
-- `moveFocusedWindow` acts only on a window whose workspace is shown. When none is focused, or the read did not answer,
+- `moveFocusedWindow` and `toggleFloating` act only on a window whose workspace is shown. When none is focused, or the read did not answer,
   nothing moves and the HUD says "No focused window". `focus.*` stays tolerant: with an unmanaged window focused (Finder,
   Lintel) it counts from the last managed one (`previousFocus`).
 - A window that is parked while its workspace is shown is mid-restore (a second shortcut can arrive before the first

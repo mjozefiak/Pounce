@@ -98,6 +98,19 @@ import Testing
         await plugin.deactivate()
     }
 
+    @Test func aFocusReadThatAnswersNoWindowRefusesTheMoveWithoutCountingATimeout() async throws {
+        let (plugin, client, hud, harness) = try await plugin()
+        defer { harness.tearDown() }
+        // The frontmost app has no window the engine manages (Finder, Lintel itself): an answer, not a timeout.
+        client.setFocused(nil)
+        try await run(plugin, "windows.moveToWorkspace.3")
+        #expect(try await workspace(of: WindowID(pid: 100, number: 1), in: plugin) == WorkspaceID(1))
+        #expect(hud.shown.last == .noFocusedWindow)
+        let diagnostics = try await #require(plugin.runtime).engine.diagnostics()
+        #expect(diagnostics.focusReadTimeouts == 0)
+        await plugin.deactivate()
+    }
+
     @Test func aWorkspaceSwitchNeverReadsTheFocus() async throws {
         let (plugin, client, _, harness) = try await plugin()
         defer { harness.tearDown() }

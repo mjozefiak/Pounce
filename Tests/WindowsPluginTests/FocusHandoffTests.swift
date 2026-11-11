@@ -67,6 +67,21 @@ import Testing
         #expect(effects.contains(.notice(.noFocusedWindow)))
     }
 
+    @Test func floatingIsNotToggledOnAWindowThatAParkedFocusStillNames() {
+        // Workspace 2 is empty, so nothing takes the focus; the system still names the window the switch parked.
+        var current = focus(state([1, 2]), id(1))
+        (current, _) = command(current, .showWorkspace(ws(2)))
+        (current, _) = reduce(current, .focusObserved(id(1), now: t0 + 2))
+        #expect(current.focused == id(1))
+        let (next, effects) = command(current, .toggleFloating)
+        #expect(next.floating.isEmpty)
+        #expect(effects.contains(.notice(.noFocusedWindow)))
+        // A window the user can see is still toggled.
+        var shown = focus(state([1, 2]), id(1))
+        (shown, _) = command(shown, .toggleFloating)
+        #expect(shown.floating == [id(1)])
+    }
+
     // MARK: Step 0.2: most recently used window per workspace
 
     nonisolated struct Handoff: Sendable, CustomTestStringConvertible {

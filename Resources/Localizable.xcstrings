@@ -19981,60 +19981,6 @@
         }
       }
     },
-    "Some shortcuts type letters" : {
-      "comment" : "Window Management shortcut warning",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Some shortcuts type letters"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Niektóre skróty wpisują litery"
-          }
-        }
-      }
-    },
-    "On this keyboard layout %@ types a character." : {
-      "comment" : "Window Management shortcut warning: names the keys",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "On this keyboard layout %@ types a character."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Na tej klawiaturze %@ wpisuje znak."
-          }
-        }
-      }
-    },
-    "Use ⌃⌥" : {
-      "comment" : "Window Management shortcut warning button",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Use ⌃⌥"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Użyj ⌃⌥"
-          }
-        }
-      }
-    },
     "Custom" : {
       "comment" : "Window Management shortcut modifiers: recorded by hand",
       "extractionState" : "manual",
