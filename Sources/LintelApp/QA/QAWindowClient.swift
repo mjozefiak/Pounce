@@ -13,6 +13,7 @@ nonisolated final class QAWindowClient: WindowClient, Sendable {
     }
 
     private let state: Mutex<State>
+    private let shownDisplays: [DisplayInfo]
 
     static let displays = [
         DisplayInfo(
@@ -23,7 +24,9 @@ nonisolated final class QAWindowClient: WindowClient, Sendable {
             visibleFrame: CGRect(x: 1728, y: 25, width: 1920, height: 1055)),
     ]
 
-    init() {
+    /// `displays` is the QA main display plus a second one unless a test wants a single display (the owner's setup).
+    init(displays: [DisplayInfo] = QAWindowClient.displays) {
+        shownDisplays = displays
         let titles = ["Fake Notes", "Fake Browser", "Fake Terminal", "Fake Mail", "Fake Calendar"]
         var windows: [WindowID: WindowInfo] = [:]
         for (index, title) in titles.enumerated() {
@@ -40,7 +43,7 @@ nonisolated final class QAWindowClient: WindowClient, Sendable {
     func isResponding(pid: Int32) async -> Bool { true }
     func windows() async -> [WindowInfo] { state.withLock { $0.windows.values.sorted { $0.id < $1.id } } }
     func focusedWindow() async -> WindowID? { state.withLock { $0.focused } }
-    func displays() async -> [DisplayInfo] { Self.displays }
+    func displays() async -> [DisplayInfo] { shownDisplays }
     func processStart(of pid: Int32) -> TimeInterval? { pid >= 90_000 ? 1_000 + Double(pid) : nil }
 
     func setFrame(_ frame: CGRect, for id: WindowID) async throws(WindowClientError) -> CGRect {

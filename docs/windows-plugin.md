@@ -194,3 +194,26 @@ every change), and its right-click or Control-click menu lists "Go to Workspace 
 status item and this menu as the accessible path (what is implemented; no menu bar room beyond one item); **(b)** one
 status item per box (up to nine; each box is then a real item with its own label and press, at the cost of menu bar
 room and the notch, and a spec decision). The one-item design is not changed here.
+
+## Focus at the time of a command (window management v2, Phase 0)
+
+The engine's idea of the focused window comes from events, which can be late, coalesced or taken for echoes. So a
+command that acts on the focused window (`windows.moveToWorkspace.N`, `windows.move.*`, `windows.toggleFloating`, and
+the other layout commands) is run by `WindowsRuntime.run`, which reads `client.focusedWindow()` first (bounded by
+`focusReadBudget`, 250 ms, through `withDeadline` on the plugin clock) and calls
+`WindowEngine.send(_:observingFocus:)`: one batch of `.focusObserved(id)` and the command, so two quick shortcuts
+cannot interleave their reads and commands.
+
+- `.focusObserved` only sets `state.focused` (never switches workspace, unlike `.windowFocused`). The reducer also
+  keeps `pendingFocus`: the target of its latest `.focus` effect for one second (engine time) or until a focus event
+  for that window arrives. An observation of a window that is hidden, parked or unknown while a request is pending is
+  the system lagging behind, so the requested window stays; any other observation wins. A differing observation is
+  counted in `focusMismatches` (no ids).
+- `focusOrder` is a list of windows by recency (memory only). The most recently used window of a workspace is its
+  newest entry; `switchTo` gives it the focus when the focused window was hidden by the switch (an empty workspace:
+  nothing is focused), and a move hands the focus to it instead of the last window in order.
+- `moveFocusedWindow` acts only on a window whose workspace is shown. When none is focused, or the read did not answer,
+  nothing moves and the HUD says "No focused window". `focus.*` stays tolerant: with an unmanaged window focused (Finder,
+  Lintel) it counts from the last managed one (`previousFocus`).
+- A window that is parked while its workspace is shown is mid-restore (a second shortcut can arrive before the first
+  one's results are reduced), so the guard looks at the workspace, not at `state.parked`.
