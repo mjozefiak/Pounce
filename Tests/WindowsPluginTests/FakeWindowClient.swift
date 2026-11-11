@@ -41,6 +41,8 @@ final class FakeWindowClient: WindowClient, Sendable {
         var windowsReads = 0
         var singleReads = 0
         var focusCalls: [WindowID] = []
+        var focusReads = 0
+        var focusReadHeld = false
         var echoes = false
         var deliversEvents = true
         var available = true
@@ -293,7 +295,17 @@ final class FakeWindowClient: WindowClient, Sendable {
         return events
     }
 
-    func focusedWindow() async -> WindowID? { state.withLock { $0.focused } }
+    func focusedWindow() async -> WindowID? {
+        state.withLock { $0.focusReads += 1 }
+        // A held read answers only after `releaseFocusReads()` (an app that does not answer in time).
+        while state.withLock({ $0.focusReadHeld }) { try? await Task.sleep(for: .milliseconds(2)) }
+        return state.withLock { $0.focused }
+    }
+
+    /// The next focus reads wait until `releaseFocusReads()`.
+    func holdFocusReads() { state.withLock { $0.focusReadHeld = true } }
+    func releaseFocusReads() { state.withLock { $0.focusReadHeld = false } }
+    var focusReads: Int { state.withLock { $0.focusReads } }
 
     func isResponding(pid: Int32) async -> Bool {
         state.withLock { $0.behaviorsByProcess[pid] != .hung && $0.behaviorsByProcess[pid] != .stall }

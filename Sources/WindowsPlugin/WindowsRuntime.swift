@@ -117,6 +117,8 @@ final class WindowsRuntime: WindowSwitching {
             dragController?.windowMoved(id, frame: frame)
         case .restored(let report):
             hud.show(WindowsHUDState(report: report))
+        case .notice(.noFocusedWindow):
+            hud.show(.noFocusedWindow)
         }
     }
 
@@ -184,7 +186,32 @@ final class WindowsRuntime: WindowSwitching {
     /// Runs an engine command, but only while Accessibility is trusted. Without it nothing moves and the HUD says
     /// why, with a button that opens the setting.
     func run(_ command: EngineCommand, purpose: AccessibilityPurpose) async {
-        await gate.run(purpose) { await engine.send(command) }
+        await gate.run(purpose) {
+            guard command.readsFocus else { return await engine.send(command) }
+            await sendReadingFocus(command)
+        }
+    }
+
+    /// How long a command that acts on the focused window waits for the system to say which window that is.
+    static let focusReadBudget: Duration = .milliseconds(250)
+
+    /// Reads the focused window from the system at the moment of the command, then runs both in one engine batch
+    /// (the engine's own idea of the focus comes from events, which can be late, coalesced or taken for echoes). An
+    /// app that does not answer in time is counted; a command that needs a focused window is then refused with the
+    /// HUD instead of acting on a possibly stale one.
+    private func sendReadingFocus(_ command: EngineCommand) async {
+        let client = context.windows
+        let answer = await withDeadline(Self.focusReadBudget, clock: context.clock) { await client.focusedWindow() }
+        guard let observed = answer else {
+            await engine.noteFocusReadTimeout()
+            if command.needsFocusedWindow {
+                hud.show(.noFocusedWindow)
+            } else {
+                await engine.send(command)
+            }
+            return
+        }
+        await engine.send(command, observingFocus: observed)
     }
 
     /// Rebuilds the engine configuration from the settings, the assignments and the library, and sends it.

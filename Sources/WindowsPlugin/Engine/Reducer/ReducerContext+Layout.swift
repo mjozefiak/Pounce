@@ -43,8 +43,12 @@ extension ReducerContext {
 
     /// Runs a layout command on a window (the focused one by default); the strategy answers `nil` when it does not
     /// apply. The window must be managed, not floating, and arranged on a shown workspace.
-    mutating func run(_ command: LayoutCommand, on window: WindowID? = nil) {
-        guard !state.isFrozen, let id = window ?? state.focused, state.windows[id] != nil,
+    mutating func run(_ command: LayoutCommand, on window: WindowID? = nil, now: Double) {
+        // Focus stays tolerant: with no managed window focused (Finder, Lintel) it counts from the last one.
+        let fallback = command.id == LayoutCommand.focusID ? state.previousFocus : nil
+        guard !state.isFrozen,
+            let id = window ?? state.focused.flatMap({ state.windows[$0] != nil ? $0 : nil }) ?? fallback,
+            state.windows[id] != nil,
             !state.floating.contains(id), !state.unmanaged.contains(id), let workspace = state.model.workspace(of: id),
             let found = planner.arrangement(state, for: workspace), found.result.frames[id] != nil
         else { return }
@@ -57,8 +61,7 @@ extension ReducerContext {
         state.placementHints = edit.hints
         if let next = edit.focus {
             state.previousFocus = id
-            state.focused = next
-            trailing.append(.focus(next))
+            setFocus(next, now: now)
         }
     }
 

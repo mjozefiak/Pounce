@@ -255,6 +255,20 @@ actor WindowEngine {
         await submit([.command(command, now: time.now())])
     }
 
+    /// Runs a command that acts on the focused window together with what the system reported as focused a moment
+    /// ago, as one batch: no other input can come between the two, so a quick second shortcut sees the first one's
+    /// result. `observed` is `.some(nil)` when the system reported no focused window.
+    func send(_ command: EngineCommand, observingFocus observed: WindowID?) async {
+        let now = time.now()
+        await submit([.focusObserved(observed, now: now), .command(command, now: now)])
+    }
+
+    /// The focus read before `command` did not answer in time: counted, and `command` is not run when it needs a
+    /// focused window (the caller decides; this only records it).
+    func noteFocusReadTimeout() async {
+        await submit([.focusReadTimedOut(now: time.now())])
+    }
+
     func update(config: EngineConfig) async {
         await submit([.configChanged(config), .command(.reload, now: time.now())])
     }

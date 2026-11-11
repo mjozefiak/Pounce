@@ -12,6 +12,7 @@ extension ReducerContext {
         state.displays = displays
         state.model.setDisplays(DisplayKeys.orderedKeys(for: displays))
         state.focused = focused
+        if let focused { touchRecency(focused) }
         let live = windows.filter { EngineReducer.isManaged($0, config: state.config) }
         let liveIDs = Set(live.map(\.id))
         // What could not be read marks its processes unresponsive; what could be read clears them.
@@ -81,6 +82,7 @@ extension ReducerContext {
         state.windows[id] = nil
         state.floating.remove(id)
         if state.previousFocus == id { state.previousFocus = nil }
+        forgetRecency(id)
         arrangeRequested = true
         state.unmanaged.remove(id)
         state.rehides[id] = nil
@@ -94,6 +96,7 @@ extension ReducerContext {
         state.windows[id] = nil
         state.floating.remove(id)
         if state.previousFocus == id { state.previousFocus = nil }
+        forgetRecency(id)
         arrangeRequested = true
         state.parked[id] = nil
         state.expected[id] = nil
@@ -160,9 +163,44 @@ extension ReducerContext {
             state.previousFocus = previous
         }
         state.focused = id
+        // The system caught up with the focus the engine asked for (or the user chose another window: the
+        // request is over either way once its target is confirmed; a different window waits for the timeout).
+        if let pending = state.pendingFocus, pending.id == id { state.pendingFocus = nil }
         guard let id, state.windows[id] != nil else { return }
+        touchRecency(id)
         state.unmanaged.remove(id)
         state.rehides[id] = nil
         if state.config.followFocus, !state.isFrozen { followFocus(of: id, now: now) }
+    }
+
+    /// The system's focus, read just before a command that acts on the focused window. It sets `focused` and
+    /// nothing else (no workspace switch). While the engine waits for the system to follow a focus change it asked
+    /// for, an observation that shows a window the user cannot see (hidden, parked, unknown) is the system lagging
+    /// behind, so the requested window stays (`PendingFocus`); any other observation wins over `focused`.
+    mutating func focusObserved(_ observed: WindowID?, now: Double) {
+        var effective = observed
+        // A request older than `PendingFocus.lifetime` (engine time, read from the inputs) is over: the system had
+        // time to follow it, or never will.
+        if let pending = state.pendingFocus, pending.expires <= now { state.pendingFocus = nil }
+        if let pending = state.pendingFocus {
+            if pending.id == observed {
+                state.pendingFocus = nil
+            } else if !isShown(observed) {
+                effective = pending.id
+            }
+        }
+        let known = effective.flatMap { state.windows[$0] != nil ? $0 : nil }
+        let believed = state.focused.flatMap { state.windows[$0] != nil ? $0 : nil }
+        if known != believed {
+            state.diagnostics.focusMismatches += 1
+            if let believed { state.previousFocus = believed }
+        }
+        state.focused = known
+        if let known { touchRecency(known) }
+    }
+
+    private func isShown(_ id: WindowID?) -> Bool {
+        guard let id, state.windows[id] != nil, let workspace = state.model.workspace(of: id) else { return false }
+        return state.model.isVisible(workspace)
     }
 }

@@ -59,6 +59,10 @@ enum EngineReducer {
             context.state.canJournal = available
         case .place(let id, let rect, let now):
             context.place(id, rect, now: now)
+        case .focusObserved(let observed, let now):
+            context.focusObserved(observed, now: now)
+        case .focusReadTimedOut:
+            context.state.diagnostics.focusReadTimeouts += 1
         case .restoreLayouts(let stored):
             context.restoreLayouts(stored)
         }
