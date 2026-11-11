@@ -23904,6 +23904,132 @@
           }
         }
       }
+    },
+    "%lld shortcuts type letters" : {
+      "comment" : "Window Management shortcut warning: how many shortcuts type",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld shortcut types letters"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld shortcuts type letters"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld skrót wpisuje litery"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld skróty wpisują litery"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld skrótów wpisuje litery"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld skrótu wpisuje litery"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%@ type characters on this keyboard layout." : {
+      "comment" : "Window Management shortcut warning: names the keys",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ type characters on this keyboard layout."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ wpisują znaki na tym układzie klawiatury."
+          }
+        }
+      }
+    },
+    "%@ and %lld more type characters on this keyboard layout." : {
+      "comment" : "Window Management shortcut warning: names the first keys and counts the rest",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ and %lld more type characters on this keyboard layout."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ i jeszcze %lld wpisują znaki na tym układzie klawiatury."
+          }
+        }
+      }
+    },
+    "Use ⌃⌥ for these" : {
+      "comment" : "Window Management shortcut warning button: changes only the flagged shortcuts",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use ⌃⌥ for these"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Użyj ⌃⌥ dla tych"
+          }
+        }
+      }
+    },
+    "Mixed" : {
+      "comment" : "Window Management shortcut modifiers: the family's shortcuts differ",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mixed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mieszane"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

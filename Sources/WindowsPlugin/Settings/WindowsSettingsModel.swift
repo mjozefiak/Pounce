@@ -82,8 +82,12 @@ final class WindowsSettingsModel {
     var overrides: WorkspaceOverrides
     /// The workspace whose overrides the pane is editing, if any.
     var editingWorkspace: WorkspaceID?
+    /// The commands whose shortcut types a letter on the active layout, with that shortcut.
+    private(set) var flagged: [(id: String, shortcut: KeyShortcut)] = []
     /// Shortcuts that type a letter on the active layout.
-    private(set) var unsafeShortcuts: [KeyShortcut] = []
+    var unsafeShortcuts: [KeyShortcut] { flagged.map(\.shortcut) }
+    /// Families whose commands do not all use the same modifiers (after "Use ⌃⌥ for these" changed some).
+    private(set) var mixedFamilies: Set<ShortcutFamily> = []
     private(set) var status = WindowsStatusInputs()
     private(set) var copiedDiagnostics = false
     /// The last modifier choice was refused because the other family holds it.
@@ -132,7 +136,7 @@ final class WindowsSettingsModel {
             stageManagerOn: preferences.stageManagerOn, displaysShareASpace: preferences.displaysShareASpace,
             stripEnabled: settings.stripEnabled, stripHasRoom: running?.strip?.refreshRoom(),
             workspaceCount: settings.workspaceCount)
-        for family in ShortcutFamily.active(in: registry) { choices[family] = choice(for: family) }
+        refreshChoices()
         await reloadLibrary()
         overrides = settings.workspaceOverrides
         globalOptions = Self.globalOptions(settings, registry)
@@ -140,29 +144,43 @@ final class WindowsSettingsModel {
         context.resultsChanged()
     }
 
-    private func choice(for family: ShortcutFamily) -> ModifierChoice? {
-        guard let first = family.bindings(in: registry).first, let shortcut = context.commandShortcut(first.id) else {
-            return nil
+    private func refreshChoices() {
+        mixedFamilies = []
+        for family in ShortcutFamily.active(in: registry) {
+            choices[family] = choice(for: family)
+            if choices[family] == nil, isMixed(family) { mixedFamilies.insert(family) }
         }
-        return ModifierChoice(shortcut.modifiers)
     }
 
-    /// Looks up what each bound key types with its modifiers on the active layout.
+    /// The modifiers every command of the family uses, as a choice; `nil` when they differ or are not a choice.
+    private func choice(for family: ShortcutFamily) -> ModifierChoice? {
+        let all = Set(family.bindings(in: registry).compactMap { context.commandShortcut($0.id)?.modifiers })
+        guard all.count == 1, let only = all.first else { return nil }
+        return ModifierChoice(only)
+    }
+
+    private func isMixed(_ family: ShortcutFamily) -> Bool {
+        Set(family.bindings(in: registry).compactMap { context.commandShortcut($0.id)?.modifiers }).count > 1
+    }
+
+    /// The commands with a shortcut of their own that the check covers: the families, Toggle Layout and Back.
+    private var boundCommandIDs: [String] {
+        ShortcutFamily.active(in: registry).flatMap { $0.bindings(in: registry).map(\.id) }
+            + [WindowsCommandID.toggleLayout, WindowsCommandID.back]
+    }
+
+    /// Looks up what each bound key types with its modifiers on the active layout, and tells the banner.
     func refreshSafety() {
-        let bound =
-            ShortcutFamily.active(in: registry).flatMap { family in
-                family.bindings(in: registry).compactMap { context.commandShortcut($0.id) }
-            } + [context.commandShortcut(WindowsCommandID.toggleLayout)].compactMap { $0 }
-        unsafeShortcuts = ShortcutSafety.check(bound, translate: translate).offending
+        let bound = boundCommandIDs.compactMap { id in context.commandShortcut(id).map { (id: id, shortcut: $0) } }
+        let offending = ShortcutSafety.check(bound.map(\.shortcut), translate: translate).offending
+        flagged = bound.filter { offending.contains($0.shortcut) }
+        status.unsafeShortcuts = unsafeShortcuts
     }
 
-    var needsShortcutWarning: Bool { !unsafeShortcuts.isEmpty }
+    var needsShortcutWarning: Bool { !flagged.isEmpty }
 
     /// The keys named in the warning, for example "⌥L, ⌥A".
-    var unsafeKeyNames: String {
-        unsafeShortcuts.map { ((ModifierChoice($0.modifiers)?.symbols) ?? "⌥") + $0.key.uppercased() }.joined(
-            separator: ", ")
-    }
+    var unsafeKeyNames: String { ShortcutWarning.names(unsafeShortcuts) }
 
     // MARK: Writing settings
 
@@ -238,15 +256,18 @@ final class WindowsSettingsModel {
             context.setCommandShortcut(binding.id, KeyShortcut(key: binding.key, modifiers: choice.modifiers))
         }
         choices[family] = choice
+        mixedFamilies.remove(family)
         refreshSafety()
     }
 
-    /// The one-click fix of the warning: ⌃⌥ in place of ⌥ for every family, with ⇧ kept where the family has it
-    /// (⌃⌥⇧ for the move families).
+    /// The one-click fix of the warning: ⌃ is added to the shortcuts that type a character, and only to those, so
+    /// the rest of a family keeps its modifiers (its row then says "Mixed"). Undone with the family's modifier row.
     func useControlOption() {
-        for family in ShortcutFamily.active(in: registry) {
-            setModifiers(family.defaultModifiers.contains(.shift) ? .controlOptionShift : .controlOption, for: family)
+        for item in flagged {
+            context.setCommandShortcut(item.id, ShortcutSafety.controlOption(for: [item.shortcut])[0])
         }
+        refreshChoices()
+        refreshSafety()
     }
 
     // MARK: Data
@@ -280,6 +301,7 @@ final class WindowsSettingsModel {
         switch actionID {
         case WindowsStatusAction.restoreWindows: await restoreAllWindows()
         case WindowsStatusAction.startAgain: await runtime()?.startAgain()
+        case WindowsStatusAction.useControlOption: useControlOption()
         case WindowsStatusAction.openStageManager:
             open("x-apple.systempreferences:com.apple.Desktop-Settings.extension")
         case WindowsStatusAction.openSpaces: open("x-apple.systempreferences:com.apple.Desktop-Settings.extension")
