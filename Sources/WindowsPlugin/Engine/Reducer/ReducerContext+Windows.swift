@@ -198,10 +198,4 @@ extension ReducerContext {
         state.focused = known
         if let known { touchRecency(known) }
     }
-
-    /// Whether `id` is a tracked window whose workspace is shown, so the user can see it.
-    func isShown(_ id: WindowID?) -> Bool {
-        guard let id, state.windows[id] != nil, let workspace = state.model.workspace(of: id) else { return false }
-        return state.model.isVisible(workspace)
-    }
 }

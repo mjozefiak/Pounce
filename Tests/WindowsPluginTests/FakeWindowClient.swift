@@ -314,7 +314,11 @@ final class FakeWindowClient: WindowClient, Sendable {
     func processStart(of pid: Int32) -> TimeInterval? { 1_000 + Double(pid) }
 
     func focus(_ id: WindowID) async throws(WindowClientError) {
-        state.withLock { $0.focusCalls.append(id) }
+        // The real client raises the window and activates its app, so the system focus follows the request.
+        state.withLock {
+            $0.focusCalls.append(id)
+            $0.focused = id
+        }
     }
 
     func setFrame(_ frame: CGRect, for id: WindowID) async throws(WindowClientError) -> CGRect {

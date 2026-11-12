@@ -303,4 +303,29 @@ import Testing
         #expect(next.focused == id(2))
         #expect(focusTargets(effects) == [id(2)])
     }
+
+    // MARK: Re-QA D1-3: a focus that was hidden and is revealed by the switch is not where the system focus is
+
+    @Test func revealingTheWorkspaceOfAHiddenFocusStillAsksTheSystemToFocusAVisibleWindow() {
+        // The system keeps the focus on window 1 while its workspace is hidden (a parked window keeps the app's
+        // focus), so the engine believes window 1 is focused. Showing its workspace again must not take that belief
+        // for the system's: the window gets an explicit focus request.
+        var current = state([1, 2])
+        for number: UInt32 in [1, 2] { current = focus(current, id(number)) }
+        (current, _) = command(current, .showWorkspace(ws(2)))
+        (current, _) = reduce(current, .focusObserved(id(1), now: t0))
+        #expect(current.focused == id(1))
+        let (next, effects) = command(current, .showWorkspace(ws(1)))
+        #expect(focusTargets(effects) == [id(1)])
+        #expect(next.focused == id(1))
+    }
+
+    @Test func aFocusThatWasAlreadyVisibleBeforeTheSwitchIsKept() {
+        var current = twoDisplays()
+        // Window 2 stays visible on the other display and keeps its focus through a switch on the first display.
+        current = focus(current, id(2))
+        let (next, effects) = command(current, .showWorkspace(ws(3)))
+        #expect(focusTargets(effects).isEmpty)
+        #expect(next.focused == id(2))
+    }
 }

@@ -218,6 +218,15 @@ nonisolated final class AXWindowClient: WindowClient, Sendable {
             case .gone: return .windowGone
             case .unreachable: return .timedOut
             }
+            // Raising and AXMain alone leave the app's *focused window* where it was: a parked window of the same app
+            // kept the focus after a move or a switch (QA D1-3, unverified cause). So the app is also told which
+            // window is focused (the way other window managers do it) and made frontmost by Accessibility, which unlike
+            // `NSRunningApplication.activate()` below does not depend on Lintel being the active app.
+            let application = AXUIElementCreateApplication(id.pid)
+            AXUIElementSetMessagingTimeout(application, Self.messagingTimeout)
+            _ = AXUIElementSetAttributeValue(application, kAXFrontmostAttribute as CFString, kCFBooleanTrue)
+            _ = AXUIElementSetAttributeValue(application, kAXFocusedWindowAttribute as CFString, element)
+            _ = AXUIElementSetAttributeValue(element, kAXFocusedAttribute as CFString, kCFBooleanTrue)
             let raised = AXUIElementPerformAction(element, kAXRaiseAction as CFString)
             _ = AXUIElementSetAttributeValue(element, kAXMainAttribute as CFString, kCFBooleanTrue)
             return WindowGeometry.clientError(for: raised)

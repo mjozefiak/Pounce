@@ -219,3 +219,12 @@ cannot interleave their reads and commands.
   Lintel) it counts from the last managed one (`previousFocus`).
 - A window that is parked while its workspace is shown is mid-restore (a second shortcut can arrive before the first
   one's results are reduced), so the guard looks at the workspace, not at `state.parked`.
+- A switch keeps the focus only when the focused window was already on a shown workspace *before* the switch. A window
+  the switch just revealed was parked a moment ago and the system's focus is not really there (re-QA D1-3), so it is
+  asked for explicitly like any other hand-off target. When a move or switch leaves no visible window at all (single
+  display, everything else hidden) nothing is focused and the system focus stays where it is: the engine refuses to act
+  on it, and stealing the activation for Lintel's own window was judged worse than typing into a parked window.
+- `AXWindowClient.focus` raises the window, sets AXMain and AXFocused on it, sets the app's focused window and makes the
+  app frontmost by Accessibility (not only `NSRunningApplication.activate()`, which needs Lintel to be active). The
+  extra attributes are the proposed fix for a parked window of the same app keeping the focus; real-desktop verified: no.
+

@@ -57,6 +57,12 @@ struct ReducerContext {
         return state.model.windows(in: workspace).last { $0 != excluding && state.windows[$0] != nil }
     }
 
+    /// Whether `id` is a tracked window on a shown workspace.
+    func isShown(_ id: WindowID?) -> Bool {
+        guard let id, state.windows[id] != nil, let workspace = state.model.workspace(of: id) else { return false }
+        return state.model.isVisible(workspace)
+    }
+
     /// A window the user can see on any shown workspace (the most recently used, else the last in order), for when the
     /// workspace that was left or entered has none: the system focus must not stay on a parked window.
     func visibleWindow(excluding: WindowID? = nil) -> WindowID? {
