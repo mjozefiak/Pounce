@@ -138,6 +138,22 @@ struct VirtualWorkspaceModel: Equatable, Sendable {
         return show(target)
     }
 
+    /// *Move workspace to next display*: the workspace on the focused display goes to the next display (wrapping
+    /// around), the workspace shown there (if any) goes to the display it came from, and the next display has the
+    /// focus, so the current workspace stays the same one. Nothing happens with fewer than two displays or when
+    /// the focused display shows no workspace; returns whether it changed.
+    @discardableResult
+    mutating func moveCurrentToNextDisplay() -> Bool {
+        guard displays.count > 1, let source = focusedDisplay, let moving = visible[source],
+            let index = displays.firstIndex(of: source)
+        else { return false }
+        let target = displays[(index + 1) % displays.count]
+        visible[source] = visible[target]
+        visible[target] = moving
+        focusedDisplay = target
+        return true
+    }
+
     /// Gives the focus to another display without changing what any display shows.
     mutating func focusDisplay(_ display: String) {
         guard displays.contains(display), display != focusedDisplay else { return }

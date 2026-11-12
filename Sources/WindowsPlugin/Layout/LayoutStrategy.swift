@@ -154,6 +154,9 @@ protocol LayoutStrategy: Sendable {
     var library: (any LayoutLibraryProviding)? { get }
     /// The kind offers snap targets, so a manual window move may start a drag.
     var snapping: (any SnapTargetProviding)? { get }
+    /// The frames depend on which window has the focus (Accordion), so a change of focus arranges the workspace
+    /// again. Only a kind that says so costs a layout pass on every focus event.
+    var arrangesOnFocusChange: Bool { get }
     /// The kind adds rows to the pane for settings that are not options.
     var settingRows: (any SettingRowProviding)? { get }
     /// The JSON stored under the kind's name; `nil` for an empty state.
@@ -164,6 +167,7 @@ protocol LayoutStrategy: Sendable {
 
 extension LayoutStrategy {
     var displayName: String { kind.rawValue }
+    var arrangesOnFocusChange: Bool { false }
     var library: (any LayoutLibraryProviding)? { nil }
     var snapping: (any SnapTargetProviding)? { nil }
     var settingRows: (any SettingRowProviding)? { nil }

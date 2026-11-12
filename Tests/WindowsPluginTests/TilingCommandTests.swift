@@ -218,7 +218,7 @@ import Testing
         await plugin.deactivate()
     }
 
-    @MainActor @Test func toggleLayoutCyclesThroughAutoTileZonesAndFreeThroughTheOverride() async throws {
+    @MainActor @Test func toggleLayoutCyclesThroughEveryKindThroughTheOverride() async throws {
         let (plugin, client, _, harness) = try await plugin()
         defer { harness.tearDown() }
         let settings = WindowsSettings(harness.pluginSettings)
@@ -240,6 +240,9 @@ import Testing
         client.clearCalls()
         try await run(plugin, "windows.workspace.1")
         #expect(client.calls.isEmpty)
+        // Accordion: the fourth kind; the windows overlap with the padding showing.
+        try await run(plugin, "windows.toggleLayout")
+        #expect(settings.workspaceOverrides.byWorkspace[ws(1)]?.kind == .accordion)
         // Back to the default kind: the override disappears and the windows tile again.
         try await run(plugin, "windows.toggleLayout")
         #expect(settings.workspaceOverrides.byWorkspace[ws(1)] == nil)
@@ -249,10 +252,11 @@ import Testing
         await plugin.deactivate()
     }
 
-    @MainActor @Test func theCycleIsAutoTileZonesFreeAndBack() {
+    @MainActor @Test func theCycleIsAutoTileZonesFreeAccordionAndBack() {
         #expect(LayoutRegistry.standard.kind(after: .tiling) == .zones)
         #expect(LayoutRegistry.standard.kind(after: .zones) == .free)
-        #expect(LayoutRegistry.standard.kind(after: .free) == .tiling)
+        #expect(LayoutRegistry.standard.kind(after: .free) == .accordion)
+        #expect(LayoutRegistry.standard.kind(after: .accordion) == .tiling)
     }
 
     @MainActor @Test func toggleLayoutNeverOverwritesOverridesFromANewerVersion() async throws {

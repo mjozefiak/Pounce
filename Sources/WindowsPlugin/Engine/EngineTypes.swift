@@ -110,6 +110,8 @@ struct EngineDiagnostics: Equatable, Sendable {
 enum EngineNotice: Equatable, Sendable {
     /// A command that acts on the focused window found none the user can see.
     case noFocusedWindow
+    /// *Move workspace to next display* with one display connected: nothing changed.
+    case singleDisplay
 }
 
 /// The window the engine asked the system to focus and has not heard back from yet. An observation of the system
@@ -235,6 +237,9 @@ enum EngineCommand: Equatable, Sendable {
     case nextWorkspace
     case previousWorkspace
     case backAndForth
+    /// Gives the current workspace to the next display (wrapping around) and the workspace shown there to the
+    /// display it came from.
+    case moveWorkspaceToNextDisplay
     /// Moves the focused window to a workspace.
     case moveFocusedWindow(to: WorkspaceID)
     case setWorkspaceCount(Int)

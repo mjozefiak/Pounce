@@ -163,11 +163,9 @@ final class WindowsSettingsModel {
         Set(family.bindings(in: registry).compactMap { context.commandShortcut($0.id)?.modifiers }).count > 1
     }
 
-    /// The commands with a shortcut of their own that the check covers: the families, Toggle Layout and Back.
-    private var boundCommandIDs: [String] {
-        ShortcutFamily.active(in: registry).flatMap { $0.bindings(in: registry).map(\.id) }
-            + [WindowsCommandID.toggleLayout, WindowsCommandID.back]
-    }
+    /// The commands the check covers: the whole catalogue with whatever shortcut each has now, so the layout
+    /// shortcuts and the display shortcut are checked too.
+    private var boundCommandIDs: [String] { WindowsCommandID.shortcutCommandIDs(in: registry) }
 
     /// Looks up what each bound key types with its modifiers on the active layout, and tells the banner.
     func refreshSafety() {

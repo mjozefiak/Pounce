@@ -21,6 +21,11 @@ enum WindowsCommandID {
     static let toggleFloating = "windows.toggleFloating"
     static let balance = "windows.balance"
     static let toggleLayout = "windows.toggleLayout"
+    /// *Auto-tile layout* and *Accordion layout*: set the kind of the current workspace; pressed again they flip the
+    /// direction (they belong to the plugin, a layout kind cannot declare them: `reserved`).
+    static let layoutTiles = "windows.layout.tiles"
+    static let layoutAccordion = "windows.layout.accordion"
+    static let moveToNextDisplay = "windows.workspace.moveToNextDisplay"
     static func zone(_ number: Int) -> String { "windows.zones.zone.\(number)" }
     /// The nine layout slots: stable commands, each bound to a layout in the pane (spec: API Contracts).
     static func layoutSlot(_ number: Int) -> String { "windows.zones.layout.\(number)" }
@@ -29,7 +34,10 @@ enum WindowsCommandID {
     /// The ids the plugin itself owns: a strategy's command may not take one of them (`LayoutRegistry.commandSpecs`
     /// leaves such a command out).
     static let reserved: Set<String> = {
-        var ids: Set<String> = [next, previous, back, restoreAll, toggleFloating, toggleLayout, nextLayout]
+        var ids: Set<String> = [
+            next, previous, back, restoreAll, toggleFloating, toggleLayout, nextLayout, layoutTiles, layoutAccordion,
+            moveToNextDisplay,
+        ]
         for number in 1...WindowsSettings.maximumWorkspaces {
             ids.insert(workspace(number))
             ids.insert(moveToWorkspace(number))
@@ -41,6 +49,27 @@ enum WindowsCommandID {
         }
         return ids
     }()
+}
+
+extension WindowsCommandID {
+    /// Every command a shortcut can be bound to in Settings: the numbered ones, focus and move in every direction,
+    /// the standalone ones and the commands of the registered layout kinds. The check for shortcuts that type a
+    /// character and the shortcut migration cover all of them.
+    static func shortcutCommandIDs(in registry: LayoutRegistry) -> [String] {
+        var ids: [String] = []
+        for number in 1...WindowsSettings.maximumWorkspaces {
+            ids.append(workspace(number))
+            ids.append(moveToWorkspace(number))
+        }
+        for direction in LayoutDirection.allCases {
+            ids.append(focus(direction))
+            ids.append(move(direction))
+        }
+        ids += [back, moveToNextDisplay, layoutTiles, layoutAccordion, toggleLayout, toggleFloating]
+        ids += registry.commandSpecs.map(\.id)
+        var seen = Set<String>()
+        return ids.filter { seen.insert($0).inserted }
+    }
 }
 
 /// A family of commands that share one modifier row in Settings (the keys stay fixed).
@@ -95,16 +124,15 @@ enum ShortcutFamily: String, CaseIterable {
         allCases.filter { !$0.bindings(in: registry).isEmpty }
     }
 
-    /// The vi keys of the AeroSpace set.
-    static let arrows: [(direction: LayoutDirection, key: String)] = [
-        (.left, "h"), (.down, "j"), (.up, "k"), (.right, "l"),
-    ]
+    /// The keys of the AeroSpace set of the owner: J is left and K is right; up and down have no default shortcut
+    /// (the commands stay, to be bound in Settings).
+    static let arrows: [(direction: LayoutDirection, key: String)] = [(.left, "j"), (.right, "k")]
 
     /// The keys as the pane shows them next to the modifiers.
     var keysLabel: String {
         switch self {
         case .goToWorkspace, .moveToWorkspace: "1–9"
-        case .focus, .moveWindow: "H J K L"
+        case .focus, .moveWindow: "J K"
         case .resize: "- ="
         }
     }
@@ -125,12 +153,16 @@ extension WindowsPlugin {
 
     static func defaultShortcuts(in registry: LayoutRegistry) -> [KeyShortcut] {
         ShortcutFamily.allCases.flatMap { $0.shortcuts(in: registry) } + [
-            KeyShortcut(key: "\t", modifiers: [.option]), toggleLayoutShortcut,
+            backShortcut, layoutTilesShortcut, layoutAccordionShortcut, moveToNextDisplayShortcut,
         ]
     }
 
-    /// ⌥/ cycles the layout kind of the current workspace (Q10).
-    static let toggleLayoutShortcut = KeyShortcut(key: "/", modifiers: [.option])
+    static let backShortcut = KeyShortcut(key: "\t", modifiers: [.option])
+    /// ⌥/ sets Auto-tile (again: flips horizontal/vertical), ⌥, sets Accordion (v2, the owner's AeroSpace set).
+    /// *Toggle Layout* has no default shortcut since v2.
+    static let layoutTilesShortcut = KeyShortcut(key: "/", modifiers: [.option])
+    static let layoutAccordionShortcut = KeyShortcut(key: ",", modifiers: [.option])
+    static let moveToNextDisplayShortcut = KeyShortcut(key: "\t", modifiers: [.option, .shift])
 
     public var commands: [PluginCommand] {
         var commands: [PluginCommand] = []
@@ -182,8 +214,16 @@ extension WindowsPlugin {
                 title: LocalizedStringResource(
                     "Back to the Last Workspace", comment: "Command: goes back to the workspace used before"),
                 symbolName: "arrow.uturn.backward",
-                defaultShortcut: KeyShortcut(key: "\t", modifiers: [.option]), showsInMenu: false,
+                defaultShortcut: Self.backShortcut, showsInMenu: false,
                 run: { [weak self] in await self?.perform(.backAndForth, purpose: .switching) }))
+        commands.append(
+            PluginCommand(
+                id: WindowsCommandID.moveToNextDisplay,
+                title: LocalizedStringResource(
+                    "Move Workspace to Next Display",
+                    comment: "Command: swaps the workspace on this display with the one on the next display"),
+                symbolName: "display.2", defaultShortcut: Self.moveToNextDisplayShortcut, showsInMenu: false,
+                run: { [weak self] in await self?.perform(.moveWorkspaceToNextDisplay, purpose: .switching) }))
         commands.append(contentsOf: layoutCommands)
         commands.append(
             PluginCommand(
@@ -257,10 +297,26 @@ extension WindowsPlugin {
         }
         commands.append(
             PluginCommand(
+                id: WindowsCommandID.layoutTiles,
+                title: LocalizedStringResource(
+                    "Auto-tile Layout",
+                    comment: "Command: gives the current workspace Auto-tile; again flips its direction"),
+                symbolName: "rectangle.split.2x1", defaultShortcut: Self.layoutTilesShortcut, showsInMenu: false,
+                run: { [weak self] in await self?.runtime?.layoutCommands.setLayout(.tiling) }))
+        commands.append(
+            PluginCommand(
+                id: WindowsCommandID.layoutAccordion,
+                title: LocalizedStringResource(
+                    "Accordion Layout",
+                    comment: "Command: gives the current workspace Accordion; again flips its direction"),
+                symbolName: "rectangle.stack", defaultShortcut: Self.layoutAccordionShortcut, showsInMenu: false,
+                run: { [weak self] in await self?.runtime?.layoutCommands.setLayout(.accordion) }))
+        commands.append(
+            PluginCommand(
                 id: WindowsCommandID.toggleLayout,
                 title: LocalizedStringResource(
                     "Toggle Layout", comment: "Command: cycles the layout kind of the current workspace"),
-                symbolName: "square.grid.2x2", defaultShortcut: Self.toggleLayoutShortcut, showsInMenu: false,
+                symbolName: "square.grid.2x2", showsInMenu: false,
                 run: { [weak self] in await self?.toggleLayout() }))
         return commands
     }

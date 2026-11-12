@@ -151,7 +151,7 @@ import Testing
         await runtime.settle()
         #expect(runtime.stripBoxes().first { $0.number == 3 }?.windowCount == 1)
         let boxes = runtime.stripBoxes()
-        #expect(boxes.map(\.number) == [1, 2, 3, 4])
+        #expect(boxes.map(\.number) == Array(1...WindowsSettings.defaultWorkspaceCount))
         #expect(boxes.first { $0.isCurrent }?.number == 1)
         WindowsSettings(harness.pluginSettings).setStripMode(.occupied)
         #expect(runtime.stripBoxes().map(\.number) == [1, 3])

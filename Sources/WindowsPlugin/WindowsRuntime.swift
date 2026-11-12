@@ -38,7 +38,8 @@ final class WindowsRuntime: WindowSwitching {
         context: context, settings: settings, registry: registry, assignments: assignments, layouts: layouts,
         engine: engine,
         gate: gate, currentWorkspace: { [weak self] in self?.lastSummary?.current },
-        apply: { [weak self] in await self?.applySettings() })
+        apply: { [weak self] in await self?.applySettings() },
+        runEngine: { [weak self] command, purpose in await self?.run(command, purpose: purpose) })
     /// The menu bar strip; `nil` until `start()` when it is on, and in tests that pass `makeStrip: nil`.
     var strip: WorkspaceStripController?
     let makeStrip: (@MainActor (WindowsRuntime) -> WorkspaceStripController)?
@@ -119,6 +120,8 @@ final class WindowsRuntime: WindowSwitching {
             hud.show(WindowsHUDState(report: report))
         case .notice(.noFocusedWindow):
             hud.show(.noFocusedWindow)
+        case .notice(.singleDisplay):
+            hud.show(.singleDisplay)
         }
     }
 

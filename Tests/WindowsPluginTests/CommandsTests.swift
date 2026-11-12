@@ -36,7 +36,7 @@ import Testing
         defer { harness.tearDown() }
         let commands = WindowsPlugin(context: harness.context()).commands
         #expect(Set(commands.map(\.id)).count == commands.count)
-        #expect(commands.count == 9 + 9 + 3 + 1 + 18 + 9 + 9 + 1)
+        #expect(commands.count == 9 + 9 + 3 + 1 + 18 + 9 + 9 + 1 + 3)
         for number in 1...9 {
             let go = try #require(commands.first { $0.id == "windows.workspace.\(number)" })
             #expect(go.defaultShortcut == KeyShortcut(key: String(number), modifiers: [.option]))
@@ -47,7 +47,8 @@ import Testing
         #expect(back.defaultShortcut == KeyShortcut(key: "\t", modifiers: [.option]))
         // Only the defaults of this phase are bound: the workspace set, focus, move, resize and toggle layout.
         let bound = commands.compactMap(\.defaultShortcut)
-        #expect(bound.count == 19 + 4 + 4 + 2 + 1)
+        // 18 numbered, back, focus and move on J and K, resize, auto-tile, accordion and move to next display.
+        #expect(bound.count == 18 + 1 + 2 + 2 + 2 + 3)
         #expect(Set(bound).count == bound.count)
         #expect(Set(bound) == Set(WindowsPlugin.defaultShortcuts))
     }
@@ -59,16 +60,16 @@ import Testing
         var testDescription: String { id }
     }
 
-    /// The Q10 defaults of this phase and the commands that stay unbound; `toggleLayout` is ⌥/ since phase 3.
+    /// The Q10 defaults of this phase and the commands that stay unbound; v2: the AeroSpace set of the owner (J and K), ⌥/ is Auto-tile, ⌥, is Accordion.
     nonisolated static let tilingBindings: [TilingBinding] = [
-        TilingBinding(id: "windows.focus.left", key: "h", modifiers: [.option]),
-        TilingBinding(id: "windows.focus.down", key: "j", modifiers: [.option]),
-        TilingBinding(id: "windows.focus.up", key: "k", modifiers: [.option]),
-        TilingBinding(id: "windows.focus.right", key: "l", modifiers: [.option]),
-        TilingBinding(id: "windows.move.left", key: "h", modifiers: [.option, .shift]),
-        TilingBinding(id: "windows.move.down", key: "j", modifiers: [.option, .shift]),
-        TilingBinding(id: "windows.move.up", key: "k", modifiers: [.option, .shift]),
-        TilingBinding(id: "windows.move.right", key: "l", modifiers: [.option, .shift]),
+        TilingBinding(id: "windows.focus.left", key: "j", modifiers: [.option]),
+        TilingBinding(id: "windows.focus.down", key: nil, modifiers: []),
+        TilingBinding(id: "windows.focus.up", key: nil, modifiers: []),
+        TilingBinding(id: "windows.focus.right", key: "k", modifiers: [.option]),
+        TilingBinding(id: "windows.move.left", key: "j", modifiers: [.option, .shift]),
+        TilingBinding(id: "windows.move.down", key: nil, modifiers: []),
+        TilingBinding(id: "windows.move.up", key: nil, modifiers: []),
+        TilingBinding(id: "windows.move.right", key: "k", modifiers: [.option, .shift]),
         TilingBinding(id: "windows.resize.grow", key: "=", modifiers: [.option]),
         TilingBinding(id: "windows.resize.shrink", key: "-", modifiers: [.option]),
         TilingBinding(id: "windows.join.left", key: nil, modifiers: []),
@@ -78,7 +79,10 @@ import Testing
         TilingBinding(id: "windows.toggleOrientation", key: nil, modifiers: []),
         TilingBinding(id: "windows.toggleFloating", key: nil, modifiers: []),
         TilingBinding(id: "windows.balance", key: nil, modifiers: []),
-        TilingBinding(id: "windows.toggleLayout", key: "/", modifiers: [.option]),
+        TilingBinding(id: "windows.toggleLayout", key: nil, modifiers: []),
+        TilingBinding(id: "windows.layout.tiles", key: "/", modifiers: [.option]),
+        TilingBinding(id: "windows.layout.accordion", key: ",", modifiers: [.option]),
+        TilingBinding(id: "windows.workspace.moveToNextDisplay", key: "\t", modifiers: [.option, .shift]),
     ]
 
     @Test(arguments: tilingBindings)
@@ -147,7 +151,7 @@ import Testing
                 .accessibilityNeeded(.switching), .accessibilityNeeded(.moving), .accessibilityNeeded(.switching),
             ])
         // The shortcuts stay registered.
-        #expect(plugin.commands.compactMap(\.defaultShortcut).count == 30)
+        #expect(plugin.commands.compactMap(\.defaultShortcut).count == 28)
         await plugin.deactivate()
     }
 
@@ -256,6 +260,7 @@ import Testing
         guard modifiers.contains(.option) else { return nil }
         switch code {
         case 37: return "ł"  // ⌥L
+        case 40: return "ķ"  // ⌥K
         case 0: return "ą"  // ⌥A
         case 18, 19: return "¡"  // ⌥1, ⌥2 types a symbol, not a letter
         case 48: return "\t"
@@ -277,10 +282,12 @@ import Testing
         #expect(ShortcutSafety.check(fixed, translate: polish).isSafe)
     }
 
-    @Test func theLayoutCheckCoversTheNewKeysAndNamesOptionL() {
-        // ⌥L (focus right) types "ł" on a Polish layout: the check names it, and ⌃⌥ makes the set safe.
+    @Test func theLayoutCheckCoversTheNewKeysAndNamesOptionK() {
+        // ⌥K (focus right) types a letter on a Polish layout: the check names it, and ⌃⌥ makes the set safe. ⌥H and
+        // ⌥L are no longer defaults, so the two worst collisions are gone.
         let result = ShortcutSafety.check(WindowsPlugin.defaultShortcuts, translate: polish)
-        #expect(result.offending.contains(KeyShortcut(key: "l", modifiers: [.option])))
+        #expect(result.offending.contains(KeyShortcut(key: "k", modifiers: [.option])))
+        #expect(!result.offending.contains { $0.key == "l" || $0.key == "h" })
         #expect(!result.isSafe)
         // ⌥- and ⌥= type symbols, never letters.
         #expect(!result.offending.contains { $0.key == "-" || $0.key == "=" })
@@ -288,24 +295,26 @@ import Testing
         #expect(ShortcutSafety.check(fixed, translate: polish).isSafe)
     }
 
-    @Test func theLayoutCheckCoversToggleLayoutOnALayoutWhereItTypesALetter() {
-        #expect(WindowsPlugin.defaultShortcuts.contains(WindowsPlugin.toggleLayoutShortcut))
+    @Test func theLayoutCheckCoversTheLayoutShortcutsOnALayoutWhereTheyTypeALetter() {
+        #expect(WindowsPlugin.defaultShortcuts.contains(WindowsPlugin.layoutTilesShortcut))
+        #expect(WindowsPlugin.defaultShortcuts.contains(WindowsPlugin.layoutAccordionShortcut))
+        #expect(WindowsPlugin.defaultShortcuts.contains(WindowsPlugin.moveToNextDisplayShortcut))
         // On the Polish table ⌥/ types nothing letter-like.
         #expect(
-            !ShortcutSafety.check([WindowsPlugin.toggleLayoutShortcut], translate: polish).offending.contains {
+            !ShortcutSafety.check([WindowsPlugin.layoutTilesShortcut], translate: polish).offending.contains {
                 $0.key == "/"
             })
         // On a layout where it types a letter the check names it and ⌃⌥ fixes it.
         let letterOnSlash: ShortcutSafety.KeyTranslation = { code, _ in code == 44 ? "ß" : nil }
-        let result = ShortcutSafety.check([WindowsPlugin.toggleLayoutShortcut], translate: letterOnSlash)
-        #expect(result.offending == [WindowsPlugin.toggleLayoutShortcut])
+        let result = ShortcutSafety.check([WindowsPlugin.layoutTilesShortcut], translate: letterOnSlash)
+        #expect(result.offending == [WindowsPlugin.layoutTilesShortcut])
         #expect(
             ShortcutSafety.check(ShortcutSafety.controlOption(for: result.offending), translate: letterOnSlash).isSafe)
     }
 
     @Test func everyBoundKeyHasAKeyCode() {
         for shortcut in WindowsPlugin.defaultShortcuts { #expect(ShortcutSafety.keyCodes[shortcut.key] != nil) }
-        for letter in "hjkl" { #expect(ShortcutSafety.keyCodes[String(letter)] != nil) }
+        for letter in "hjkl," { #expect(ShortcutSafety.keyCodes[String(letter)] != nil) }
     }
 
     @Test func theSystemTranslationAnswersForTheActiveLayout() {

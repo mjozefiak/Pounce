@@ -61,13 +61,21 @@ import Testing
         #expect(shortcut(of: "windows.workspace.1") == "⌥1")
         #expect(shortcut(of: "windows.moveToWorkspace.9") == "⌥⇧9")
         #expect(shortcut(of: "windows.workspace.back") == "⌥⇥")
-        #expect(shortcut(of: "windows.focus.left") == "⌥H")
-        #expect(shortcut(of: "windows.focus.right") == "⌥L")
-        #expect(shortcut(of: "windows.move.down") == "⌥⇧J")
+        // Window management v2: the owner's AeroSpace set. J and K are left and right; up and down have no default.
+        #expect(shortcut(of: "windows.focus.left") == "⌥J")
+        #expect(shortcut(of: "windows.focus.right") == "⌥K")
+        #expect(shortcut(of: "windows.focus.up") == nil)
+        #expect(shortcut(of: "windows.focus.down") == nil)
+        #expect(shortcut(of: "windows.move.left") == "⌥⇧J")
+        #expect(shortcut(of: "windows.move.right") == "⌥⇧K")
+        #expect(shortcut(of: "windows.move.down") == nil)
+        #expect(shortcut(of: "windows.layout.tiles") == "⌥/")
+        #expect(shortcut(of: "windows.layout.accordion") == "⌥,")
+        #expect(shortcut(of: "windows.workspace.moveToNextDisplay") == "⌥⇧⇥")
         #expect(shortcut(of: "windows.resize.grow") == "⌥=")
         #expect(shortcut(of: "windows.resize.shrink") == "⌥-")
-        // ⌥/ cycles the layout kind (registered with the zones phase).
-        #expect(shortcut(of: "windows.toggleLayout") == "⌥/")
+        // Toggle Layout has no shortcut since v2: ⌥/ is Auto-tile.
+        #expect(shortcut(of: "windows.toggleLayout") == nil)
         #expect(shortcut(of: "windows.zones.zone.1") == nil)
     }
 

@@ -23976,6 +23976,222 @@
           }
         }
       }
+    },
+    "Accordion" : {
+      "comment" : "Window Management layout kind: windows overlap with edges showing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accordion"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akordeon"
+          }
+        }
+      }
+    },
+    "Accordion padding" : {
+      "comment" : "Window Management setting: how far the windows behind the front one stick out",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accordion padding"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odstęp akordeonu"
+          }
+        }
+      }
+    },
+    "Accordion direction" : {
+      "comment" : "Window Management setting: the direction the accordion's edges stick out",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accordion direction"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kierunek akordeonu"
+          }
+        }
+      }
+    },
+    "Horizontal" : {
+      "comment" : "Window Management: accordion edges stick out left and right",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Horizontal"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poziomo"
+          }
+        }
+      }
+    },
+    "Vertical" : {
+      "comment" : "Window Management: accordion edges stick out above and below",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vertical"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pionowo"
+          }
+        }
+      }
+    },
+    "Padding %lld" : {
+      "comment" : "Window Management summary: accordion padding in points",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Padding %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odstęp %lld"
+          }
+        }
+      }
+    },
+    "Resize step" : {
+      "comment" : "Window Management setting: points one grow or shrink moves",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resize step"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Krok zmiany rozmiaru"
+          }
+        }
+      }
+    },
+    "Only one display" : {
+      "comment" : "Window HUD: the move-workspace-to-next-display shortcut was pressed with one display",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only one display"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tylko jeden wyświetlacz"
+          }
+        }
+      }
+    },
+    "Move Workspace to Next Display" : {
+      "comment" : "Command: swaps the workspace on this display with the one on the next display",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move Workspace to Next Display"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przenieś workspace na następny wyświetlacz"
+          }
+        }
+      }
+    },
+    "Auto-tile Layout" : {
+      "comment" : "Command: gives the current workspace Auto-tile; again flips its direction",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto-tile Layout"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układ Auto-tile"
+          }
+        }
+      }
+    },
+    "Accordion Layout" : {
+      "comment" : "Command: gives the current workspace Accordion; again flips its direction",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accordion Layout"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układ akordeon"
+          }
+        }
+      }
+    },
+    "Automatic" : {
+      "comment" : "Window Management: follows the display shape",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatic"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatycznie"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

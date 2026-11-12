@@ -168,6 +168,11 @@ extension ReducerContext {
         if let pending = state.pendingFocus, pending.id == id { state.pendingFocus = nil }
         guard let id, state.windows[id] != nil else { return }
         touchRecency(id)
+        if let workspace = state.model.workspace(of: id), state.model.isVisible(workspace),
+            planner.arrangesOnFocusChange(state, for: workspace)
+        {
+            arrangeRequested = true
+        }
         state.unmanaged.remove(id)
         state.rehides[id] = nil
         if state.config.followFocus, !state.isFrozen { followFocus(of: id, now: now) }

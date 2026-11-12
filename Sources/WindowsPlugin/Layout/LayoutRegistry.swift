@@ -10,12 +10,13 @@ extension LayoutKind {
     static let tiling = LayoutKind("tiling")
     static let zones = LayoutKind("zones")
     static let free = LayoutKind("free")
+    static let accordion = LayoutKind("accordion")
 }
 
 /// The strategies of this build, by kind. The reducer and the engine take it as an argument, so a test can pass a
 /// registry of its own.
 struct LayoutRegistry: Sendable {
-    static let standard = LayoutRegistry([TilingStrategy(), ZonesStrategy(), FreeStrategy()])
+    static let standard = LayoutRegistry([TilingStrategy(), ZonesStrategy(), FreeStrategy(), AccordionStrategy()])
 
     private let strategies: [LayoutKind: any LayoutStrategy]
     /// The kinds in registration order: what the pane offers and *Toggle layout* cycles through.

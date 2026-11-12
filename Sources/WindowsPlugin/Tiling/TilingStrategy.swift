@@ -16,7 +16,8 @@ struct TilingStrategy: LayoutStrategy {
     static let innerGapID = "innerGap"
     static let outerGapID = "outerGap"
     static let rootOrientationID = "rootOrientation"
-    static let defaultGap = 8
+    static let resizeStepID = "resizeStep"
+    static let defaultGap = 10
     static let maximumGap = 64
 
     /// The gaps and the first split: the global gaps are `plugins.windows.gap.inner` and `gap.outer`, the first
@@ -40,6 +41,12 @@ struct TilingStrategy: LayoutStrategy {
                 domain: .choices(
                     TilingOrientation.allCases.map { LayoutOption.Choice(id: $0.rawValue, title: $0.displayName) }),
                 defaultValue: .string(TilingOrientation.horizontal.rawValue), settingKey: nil),
+            LayoutOption(
+                id: Self.resizeStepID,
+                title: String(
+                    localized: "Resize step", comment: "Window Management setting: points one grow or shrink moves"),
+                domain: .points(WindowsSettings.resizeStepRange), defaultValue: .int(WindowsSettings.defaultResizeStep),
+                settingKey: WindowsSettings.Key.resizeStep),
         ]
     }
 
@@ -63,12 +70,12 @@ struct TilingStrategy: LayoutStrategy {
                 id: WindowsCommandID.grow,
                 title: LocalizedStringResource("Grow Window", comment: "Command: makes the focused tile larger"),
                 symbolName: "arrow.up.left.and.arrow.down.right", family: .resize, key: "=",
-                command: .resize(TilingTree.resizeStep)),
+                command: .resizeSteps(1)),
             LayoutCommandSpec(
                 id: WindowsCommandID.shrink,
                 title: LocalizedStringResource("Shrink Window", comment: "Command: makes the focused tile smaller"),
                 symbolName: "arrow.down.right.and.arrow.up.left", family: .resize, key: "-",
-                command: .resize(-TilingTree.resizeStep)),
+                command: .resizeSteps(-1)),
         ]
         for direction in LayoutDirection.allCases {
             specs.append(
@@ -145,6 +152,11 @@ struct TilingStrategy: LayoutStrategy {
             next = moved
         case LayoutCommand.resizeID:
             guard let delta = command.payload(as: Double.self), next.resize(window, by: delta) else { return nil }
+        case LayoutCommand.resizeStepsID:
+            guard let steps = command.payload(as: Double.self),
+                let share = Self.share(ofSteps: steps, window: window, tree: tree, input: input),
+                next.resize(window, by: share)
+            else { return nil }
         case LayoutCommand.joinID:
             guard let direction = command.direction, next.join(window, direction) else { return nil }
         case LayoutCommand.toggleOrientationID:
@@ -156,6 +168,27 @@ struct TilingStrategy: LayoutStrategy {
             return nil
         }
         return LayoutEdit(state: AnyLayoutState(next), focus: nil, hints: input.hints)
+    }
+
+    /// The share of the container that `steps` resize steps (points) are along the axis of the container `resize`
+    /// will change: the window's own container when it has siblings, else the nearest one around it that does.
+    private static func share(ofSteps steps: Double, window: WindowID, tree: TilingTree, input: LayoutInput) -> Double?
+    {
+        guard let path = tree.path(to: window) else { return nil }
+        let points = Double(input.resolved.int(resizeStepID) ?? WindowsSettings.defaultResizeStep)
+        let frames = TilingLayout.frames(tree, area: input.area, gaps: input.resolved.tilingGaps)
+        for depth in stride(from: path.count - 1, through: 0, by: -1) {
+            guard let container = tree.root.container(at: path[0..<depth]), container.children.count > 1 else {
+                continue
+            }
+            let rects = container.windows.compactMap { frames[$0] }
+            guard let first = rects.first else { return nil }
+            let union = rects.dropFirst().reduce(first) { $0.union($1) }
+            let length = container.orientation == .horizontal ? union.width : union.height
+            guard length > 0 else { return nil }
+            return steps * points / Double(length)
+        }
+        return nil
     }
 
     func removing(_ window: WindowID, from state: AnyLayoutState) -> AnyLayoutState {
@@ -177,12 +210,15 @@ struct TilingStrategy: LayoutStrategy {
 // The commands only Auto-tile understands.
 extension LayoutCommand {
     static let resizeID = "tiling.resize"
+    /// Grows (positive) or shrinks (negative) by that many resize steps (`plugins.windows.resize.step` points).
+    static let resizeStepsID = "tiling.resizeSteps"
     static let joinID = "tiling.join"
     static let toggleOrientationID = "tiling.toggleOrientation"
     static let balanceID = "tiling.balance"
 
     /// Grows (positive) or shrinks (negative) the window by that share of its container.
     static func resize(_ delta: Double) -> LayoutCommand { LayoutCommand(resizeID, encoding: delta) }
+    static func resizeSteps(_ steps: Double) -> LayoutCommand { LayoutCommand(resizeStepsID, encoding: steps) }
     /// Puts the window and its neighbour in that direction into a new container.
     static func join(_ direction: LayoutDirection) -> LayoutCommand { LayoutCommand(joinID, encoding: direction) }
     static let toggleOrientation = LayoutCommand(toggleOrientationID)
@@ -191,6 +227,7 @@ extension LayoutCommand {
 
 extension EngineCommand {
     static func resize(_ delta: Double) -> EngineCommand { .layout(.resize(delta)) }
+    static func resizeSteps(_ steps: Double) -> EngineCommand { .layout(.resizeSteps(steps)) }
     static func join(_ direction: LayoutDirection) -> EngineCommand { .layout(.join(direction)) }
     static let toggleOrientation = EngineCommand.layout(.toggleOrientation)
     static let balance = EngineCommand.layout(.balance)

@@ -29,6 +29,8 @@ import Testing
         seed: String? = nil
     ) async throws -> Rig {
         let harness = try WindowsHarness()
+        // The matrix tests are written for four workspaces.
+        WindowsSettings(harness.pluginSettings).setWorkspaceCount(4)
         if let seed { try Data(seed.utf8).write(to: harness.directory.appending(path: AssignmentStore.fileName)) }
         let client = FakeWindowClient(displays: displays, windows: [makeWindow(1)])
         let plugin = WindowsPlugin(
@@ -220,7 +222,7 @@ import Testing
         #expect(rig.model.cell(workspace: ws(1), display: display).isInactive)
         rig.model.setKind(.free, for: ws(2))
         #expect(settings.workspaceOverrides.byWorkspace[ws(2)] == nil)
-        #expect(rig.model.pane.selectableKinds == [.tiling, .zones, .free])
+        #expect(rig.model.pane.selectableKinds == [.tiling, .zones, .free, .accordion])
     }
 
     // MARK: Identify

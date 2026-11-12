@@ -167,6 +167,7 @@ public final class WindowsPlugin: LintelPlugin {
         }
         launchActivationDone = true
         lastStartError = nil
+        migrateDefaultShortcuts()
         guard runtime == nil else { return }
         let parts = WindowsComposition.parts(showsStrip: showsStrip, showsOverlay: showsOverlay)
         let runtime = WindowsRuntime(
@@ -198,6 +199,17 @@ public final class WindowsPlugin: LintelPlugin {
             layoutsWindow.show()
         }
         #endif
+    }
+
+    /// The one-time move of the default shortcuts to the v2 set (`ShortcutMigration`).
+    func migrateDefaultShortcuts() {
+        let version = settings.shortcutDefaultsVersion
+        guard version < WindowsSettings.currentShortcutDefaultsVersion else { return }
+        let context = context
+        let migration = ShortcutMigration(
+            commandIDs: WindowsCommandID.shortcutCommandIDs(in: registry),
+            shortcut: { context.commandShortcut($0) }, setShortcut: { context.setCommandShortcut($0, $1) })
+        settings.setShortcutDefaultsVersion(migration.run(from: version))
     }
 
     /// Accessibility was granted: the self-check could not compare any window before, so it runs again. A mismatch

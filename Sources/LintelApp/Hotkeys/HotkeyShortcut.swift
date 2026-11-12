@@ -93,6 +93,7 @@ nonisolated struct HotkeyShortcut: Hashable, Sendable {
         codes["-"] = kVK_ANSI_Minus
         codes["="] = kVK_ANSI_Equal
         codes["/"] = kVK_ANSI_Slash
+        codes[","] = kVK_ANSI_Comma
         return codes
     }()
 

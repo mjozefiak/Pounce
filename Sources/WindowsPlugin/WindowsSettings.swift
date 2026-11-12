@@ -13,6 +13,12 @@ struct WindowsSettings: Sendable {
         static let defaultKind = "defaultKind"
         static let innerGap = "gap.inner"
         static let outerGap = "gap.outer"
+        /// Points: how far the windows behind the focused one stick out in an Accordion workspace (0 to 200).
+        static let accordionPadding = "accordion.padding"
+        /// Points: how much one grow or shrink command moves an Auto-tile edge (5 to 200).
+        static let resizeStep = "resize.step"
+        /// Hidden: the version of the one-time migration of the default shortcuts (`ShortcutMigration`).
+        static let shortcutDefaultsVersion = "shortcutDefaultsVersion"
         /// Layout ids: the zone layout of a display with no assignment, by the shape of the display (spec Q19).
         static let defaultZoneLayoutLandscape = "defaultZoneLayout.landscape"
         static let defaultZoneLayoutPortrait = "defaultZoneLayout.portrait"
@@ -55,7 +61,15 @@ struct WindowsSettings: Sendable {
     static let minimumWorkspaces = 1
     /// A fixed upper bound of the design: numbered commands, the strip and the assignment matrix assume it.
     static let maximumWorkspaces = 9
-    static let defaultWorkspaceCount = 4
+    static let defaultWorkspaceCount = 9
+    /// The accordion padding (`plugins.windows.accordion.padding`) and the resize step in points: the defaults and
+    /// the ranges `AccordionStrategy` and `TilingStrategy` declare their options with.
+    static let defaultAccordionPadding = 30
+    static let accordionPaddingRange = 0...200
+    static let defaultResizeStep = 50
+    static let resizeStepRange = 5...200
+    /// The version the migration of the default shortcuts brings the stored shortcuts to.
+    static let currentShortcutDefaultsVersion = 1
     /// Never tiled or placed: Lintel itself, System Settings and Calculator (spec Q6). This is the list the release
     /// default has, exactly what `BACKWARD_COMPATIBILITY.md` documents.
     static let documentedFloatingApps = ["com.lintelapp.Lintel", "com.apple.systempreferences", "com.apple.calculator"]
@@ -170,6 +184,8 @@ struct WindowsSettings: Sendable {
     var qaStripTrace: String? { settings.string(Key.qaStripTrace) }
     var qaScriptedFiles: Bool { settings.bool(Key.qaScriptedFiles, default: false) }
     #endif
+    var shortcutDefaultsVersion: Int { max(0, settings.integer(Key.shortcutDefaultsVersion, default: 0)) }
+    func setShortcutDefaultsVersion(_ version: Int) { settings.set(max(0, version), for: Key.shortcutDefaultsVersion) }
     var snapHintShown: Bool { settings.bool(Key.snapHintShown, default: false) }
     var parkedLaunches: Int { max(0, settings.integer(Key.parkedLaunches, default: 0)) }
 

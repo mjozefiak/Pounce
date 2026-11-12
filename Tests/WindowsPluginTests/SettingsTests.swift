@@ -332,7 +332,7 @@ extension SettingsTests {
         #expect(lines[1].detail == "Free")
         // Auto-tile lines name the gaps and the first split.
         #expect(lines[0].detail.hasPrefix("Auto-tile · "))
-        #expect(lines[0].detail.contains("8") && lines[2].detail.contains("8 / 0"))
+        #expect(lines[0].detail.contains("10") && lines[2].detail.contains("10 / 0"))
     }
 
     @Test func overridesFromANewerVersionAreLockedAndKeptAsTheyAre() throws {
@@ -366,8 +366,8 @@ extension SettingsTests {
         defer { harness.tearDown() }
         let model = plugin.paneModel
         model.setModifiers(.controlOption, for: .focus)
-        #expect(log.get("windows.focus.right") == KeyShortcut(key: "l", modifiers: [.control, .option]))
-        #expect(log.get("windows.focus.left") == KeyShortcut(key: "h", modifiers: [.control, .option]))
+        #expect(log.get("windows.focus.right") == KeyShortcut(key: "k", modifiers: [.control, .option]))
+        #expect(log.get("windows.focus.left") == KeyShortcut(key: "j", modifiers: [.control, .option]))
         // The move family holds ⌥⇧; the focus family may not take it.
         model.setModifiers(.optionShift, for: .focus)
         #expect(model.modifierConflict)
@@ -383,8 +383,8 @@ extension SettingsTests {
         let model = WindowsSettingsModel(
             context: plugin.context, settings: plugin.settings, registry: .standard, runtime: { nil },
             translate: { code, modifiers in
-                // A Polish layout: ⌥L types "ł".
-                modifiers.contains(.control) ? nil : (code == 37 ? "ł" : nil)
+                // A Polish layout: ⌥K types a letter.
+                modifiers.contains(.control) ? nil : (code == 40 ? "ķ" : nil)
             })
         for family in ShortcutFamily.allCases {
             for binding in family.bindings(in: .standard) {
@@ -393,7 +393,7 @@ extension SettingsTests {
         }
         model.refreshSafety()
         #expect(model.needsShortcutWarning)
-        #expect(model.unsafeKeyNames.contains("L"))
+        #expect(model.unsafeKeyNames.contains("K"))
         model.useControlOption()
         #expect(!model.needsShortcutWarning)
         #expect(log.get("windows.focus.right")?.modifiers == [.control, .option])

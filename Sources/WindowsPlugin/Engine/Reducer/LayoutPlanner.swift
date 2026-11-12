@@ -65,6 +65,11 @@ struct LayoutPlanner: Sendable {
         return offersSnapTargets(state, for: workspace)
     }
 
+    /// Whether the frames of this workspace depend on the focused window (its kind arranges again on a focus change).
+    func arrangesOnFocusChange(_ state: EngineState, for workspace: WorkspaceID) -> Bool {
+        strategies[state.config.layout.resolved(for: workspace).kind]?.arrangesOnFocusChange == true
+    }
+
     /// Whether moving a window of this workspace by hand may start a snap drag. Cheap: no layout input is built.
     func offersSnapTargets(_ state: EngineState, for workspace: WorkspaceID) -> Bool {
         strategies[state.config.layout.resolved(for: workspace).kind]?.snapping != nil

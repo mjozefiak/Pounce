@@ -26,6 +26,8 @@ enum WindowsHUDState: Equatable, Sendable {
     case stillStopping
     /// A command that acts on the focused window found none that is on screen: nothing was moved.
     case noFocusedWindow
+    /// *Move workspace to next display* with one display: nothing was moved.
+    case singleDisplay
 
     init(report: RecoveryReport) {
         self =
@@ -64,13 +66,17 @@ enum WindowsHUDState: Equatable, Sendable {
             String(
                 localized: "No focused window",
                 comment: "Window HUD: a move or float shortcut was pressed and no window on screen has the focus")
+        case .singleDisplay:
+            String(
+                localized: "Only one display",
+                comment: "Window HUD: the move-workspace-to-next-display shortcut was pressed with one display")
         }
     }
 
     var detail: String? {
         switch self {
         case .workspace(_, let count): return WindowSearchSource.windowCount(count)
-        case .accessibilityNeeded, .snapHint, .noFocusedWindow: return nil
+        case .accessibilityNeeded, .snapHint, .noFocusedWindow, .singleDisplay: return nil
         case .stillStopping:
             return String(
                 localized: "Try again in a moment.", comment: "Window HUD: what to do while windows are put back")
@@ -105,6 +111,7 @@ enum WindowsHUDState: Equatable, Sendable {
         case .parkedNeedsAccessibility: "exclamationmark.triangle.fill"
         case .stillStopping: "clock.fill"
         case .noFocusedWindow: "macwindow"
+        case .singleDisplay: "display"
         case .snapHint: "rectangle.split.3x1"
         }
     }
@@ -136,7 +143,7 @@ enum WindowsHUDState: Equatable, Sendable {
         case .restored(_, let otherSpace, let failed): otherSpace + failed > 0 ? .seconds(4) : .seconds(2)
         case .parkedNeedsAccessibility: .seconds(6)
         case .snapHint, .stillStopping: .seconds(4)
-        case .noFocusedWindow: .seconds(2)
+        case .noFocusedWindow, .singleDisplay: .seconds(2)
         }
     }
 }

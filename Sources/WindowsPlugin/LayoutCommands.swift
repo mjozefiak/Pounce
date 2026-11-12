@@ -15,13 +15,17 @@ final class LayoutCommands {
     private let context: PluginContext
     private let currentWorkspace: @MainActor () -> WorkspaceID?
     private let apply: @MainActor () async -> Void
+    /// Runs an engine command through the runtime (it reads the focus first and honours the Accessibility gate).
+    private let runEngine: @MainActor (EngineCommand, AccessibilityPurpose) async -> Void
 
     init(
         context: PluginContext, settings: WindowsSettings, registry: LayoutRegistry, assignments: AssignmentStore,
         layouts: LayoutRepository,
         engine: WindowEngine, gate: AccessibilityGate,
-        currentWorkspace: @escaping @MainActor () -> WorkspaceID?, apply: @escaping @MainActor () async -> Void
+        currentWorkspace: @escaping @MainActor () -> WorkspaceID?, apply: @escaping @MainActor () async -> Void,
+        runEngine: @escaping @MainActor (EngineCommand, AccessibilityPurpose) async -> Void = { _, _ in }
     ) {
+        self.runEngine = runEngine
         self.context = context
         self.settings = settings
         self.registry = registry
@@ -50,6 +54,60 @@ final class LayoutCommands {
         settings.setWorkspaceOverrides(overrides)
         await apply()
         context.resultsChanged()
+    }
+
+    /// *Auto-tile layout* and *Accordion layout*: gives the current workspace `kind` (the override is written like
+    /// *Toggle layout* does: a kind equal to the default clears it, a value from a newer version is never
+    /// overwritten). Pressed while the workspace already has the kind, it flips the direction instead: for Auto-tile
+    /// the split of the focused container (a command of the tree), for Accordion the `accordionOrientation` option
+    /// of the workspace (configuration, not state).
+    func setLayout(_ kind: LayoutKind) async {
+        guard gate.allows(.moving), registry.contains(kind), let workspace = currentWorkspace() else { return }
+        var overrides = settings.workspaceOverrides
+        guard !overrides.isReadOnly else { return }
+        let defaultKind = settings.defaultKind(in: registry)
+        let current = settings.workspaceOverrides(in: registry).byWorkspace[workspace]?.kind ?? defaultKind
+        if current == kind {
+            await flipDirection(of: kind, workspace: workspace, overrides: overrides)
+            return
+        }
+        var entry = overrides.byWorkspace[workspace] ?? WorkspaceOverride()
+        entry.kind = kind == defaultKind ? nil : kind
+        overrides.byWorkspace[workspace] = entry.isEmpty ? nil : entry
+        settings.setWorkspaceOverrides(overrides)
+        await apply()
+        context.resultsChanged()
+    }
+
+    private func flipDirection(of kind: LayoutKind, workspace: WorkspaceID, overrides: WorkspaceOverrides) async {
+        switch kind {
+        case .tiling:
+            await runEngine(.toggleOrientation, .moving)
+        case .accordion:
+            var overrides = overrides
+            let id = AccordionStrategy.orientationID
+            var entry = overrides.byWorkspace[workspace] ?? WorkspaceOverride()
+            let config = LayoutConfig(settings: settings, registry: registry, overrides: overrides.byWorkspace)
+            let resolved = config.resolved(for: workspace)
+            var area = CGRect(x: 0, y: 0, width: 1, height: 0)
+            if let cell = await currentCell() {
+                let displays = await context.windows.displays()
+                let keyed = DisplayKeys.keys(for: displays)
+                if let display = displays.first(where: { keyed.keys[$0.id] == cell.displayKey }) {
+                    area = display.visibleFrame
+                }
+            }
+            let next: AccordionLayout.Orientation =
+                resolved.accordionOrientation(for: area) == .horizontal ? .vertical : .horizontal
+            let option = registry.option(id: id)
+            entry.options[id] = next.rawValue == option?.defaultValue.stringValue ? nil : .string(next.rawValue)
+            overrides.byWorkspace[workspace] = entry.isEmpty ? nil : entry
+            settings.setWorkspaceOverrides(overrides)
+            await apply()
+            context.resultsChanged()
+        default:
+            break
+        }
     }
 
     /// A layout slot command: the layout bound to the slot becomes the layout of the current workspace on the

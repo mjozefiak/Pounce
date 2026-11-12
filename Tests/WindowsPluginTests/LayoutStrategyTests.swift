@@ -43,17 +43,17 @@ import Testing
     }
 
     @Test func aKindThisBuildDoesNotKnowIsKeptAndWrittenBackUnchanged() throws {
-        let json = #"{"version":1,"workspaces":{"1":{"order":[],"accordion":{"depth":3}}},"hidden":[]}"#
+        let json = #"{"version":1,"workspaces":{"1":{"order":[],"spiral":{"depth":3}}},"hidden":[]}"#
         let file = try JSONDecoder().decode(StateFile.self, from: Data(json.utf8))
         let stored = file.state.layouts
-        #expect(stored[WorkspaceID(1)!]?["accordion"] != nil)
+        #expect(stored[WorkspaceID(1)!]?["spiral"] != nil)
         let registry = LayoutRegistry.standard
         let loaded = registry.decode(stored)
         #expect(registry.encode(loaded) == stored)
         // And through the reducer: restored, then saved unchanged by an unrelated change.
         var state = EngineState(workspaceCount: 2, displays: [FakeWindowClient.mainDisplay])
         (state, _) = EngineReducer.reduce(state, .restoreLayouts(stored))
-        #expect(state.layouts[WorkspaceID(1)!]?["accordion"] != nil)
+        #expect(state.layouts[WorkspaceID(1)!]?["spiral"] != nil)
     }
 
     @Test func aKnownKindThatDoesNotDecodeIsDroppedNotCorrupt() {

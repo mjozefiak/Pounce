@@ -47,7 +47,7 @@ import Testing
         let harness = try WindowsHarness()
         defer { harness.tearDown() }
         let settings = WindowsSettings(harness.pluginSettings)
-        #expect(settings.workspaceCount == 4)
+        #expect(settings.workspaceCount == 9)
         #expect(settings.floatingApps == WindowsSettings.defaultFloatingApps)
         #expect(settings.followFocus)
         #expect(settings.showHUD)

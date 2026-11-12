@@ -188,7 +188,7 @@ import Testing
         let harness = try WindowsHarness()
         defer { harness.tearDown() }
         let json = """
-            {"version":1,"workspaces":{"1":{"kind":"accordion","innerGap":500,"outerGap":-3,
+            {"version":1,"workspaces":{"1":{"kind":"spiral","innerGap":500,"outerGap":-3,
             "rootOrientation":"diagonal"},"12":{"kind":"free"}}}
             """
         harness.pluginSettings.set(json, for: WindowsSettings.Key.workspaces)
@@ -198,7 +198,7 @@ import Testing
         let config = LayoutConfig(settings: settings, registry: .standard)
         #expect(config.overrides[ws(1)] == WorkspaceOverride(innerGap: TilingStrategy.maximumGap, outerGap: 0))
         #expect(config.overrides.count == 1)
-        #expect(settings.workspaceOverrides.byWorkspace[ws(1)]?.kind == LayoutKind("accordion"))
+        #expect(settings.workspaceOverrides.byWorkspace[ws(1)]?.kind == LayoutKind("spiral"))
         #expect(settings.workspaceOverrides.byWorkspace.count == 1)
     }
 
@@ -207,7 +207,7 @@ import Testing
         defer { harness.tearDown() }
         let fresh = WindowsSettings(WindowsHarness.freshSettings())
         #expect(fresh.defaultKind(in: .standard) == .tiling)
-        #expect(fresh.innerGap == 8 && fresh.outerGap == 8)
+        #expect(fresh.innerGap == 10 && fresh.outerGap == 10)
         let settings = WindowsSettings(harness.pluginSettings)
         settings.setDefaultKind(.zones)
         settings.setInnerGap(500)

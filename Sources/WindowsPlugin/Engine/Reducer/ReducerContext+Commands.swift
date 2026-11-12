@@ -27,6 +27,8 @@ extension ReducerContext {
             guard let target = state.model.previous else { return }
             state.isFrozen = false
             switchTo(target, now: now)
+        case .moveWorkspaceToNextDisplay:
+            moveWorkspaceToNextDisplay(now: now)
         case .moveFocusedWindow(let workspace):
             moveFocusedWindow(to: workspace, now: now)
         case .setWorkspaceCount(let count):
@@ -58,6 +60,23 @@ extension ReducerContext {
                 trailing.append(.notice(.noFocusedWindow))
             }
             run(layoutCommand, on: id, now: now)
+        }
+    }
+
+    /// Both workspaces stay shown, so nothing is parked: they only change display and are arranged again there. The
+    /// focus goes to the most recently used window of the workspace that moved (none: nothing is focused).
+    private mutating func moveWorkspaceToNextDisplay(now: Double) {
+        guard !state.isFrozen else { return }
+        guard state.model.displays.count > 1 else {
+            trailing.append(.notice(.singleDisplay))
+            return
+        }
+        guard state.model.moveCurrentToNextDisplay() else { return }
+        if let next = state.model.current.flatMap({ mostRecentWindow(in: $0) }) {
+            setFocus(next, now: now)
+        } else {
+            state.focused = nil
+            state.pendingFocus = nil
         }
     }
 

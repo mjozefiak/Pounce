@@ -201,9 +201,10 @@ import Testing
         let (_, harness, _, model) = try setup()
         defer { harness.tearDown() }
         model.refreshSafety()
-        let firstKeys = model.unsafeShortcuts.prefix(3).map(\.key)
-        #expect(firstKeys.allSatisfy { $0.first?.isLetter == true }, "\(firstKeys)")
+        // The one letter among the v2 defaults (⌥K, focus right) comes before the digits.
+        let firstKeys = model.unsafeShortcuts.prefix(2).map(\.key)
+        #expect(firstKeys.first == "k", "\(firstKeys)")
         let banner = WindowsBanner.derive(model.status) { _ in }
-        #expect(String(localized: try #require(banner?.detail)).contains("⌥H"))
+        #expect(String(localized: try #require(banner?.detail)).contains("⌥K"))
     }
 }

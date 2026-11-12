@@ -195,6 +195,39 @@ status item and this menu as the accessible path (what is implemented; no menu b
 status item per box (up to nine; each box is then a real item with its own label and press, at the cost of menu bar
 room and the notch, and a spec decision). The one-item design is not changed here.
 
+## Accordion, layout commands and the v2 defaults (window management v2, Phase 1)
+
+- **Accordion** (`Layouts/AccordionLayout.swift`, kind `accordion`, last in `LayoutRegistry.standard`). The state is the
+  window order (`AccordionState`, stored as `{"order": [...]}`); the focused window comes from `LayoutInput.focused`.
+  `AccordionLayout.frames` is pure: every window takes the area after the outer gap (the inner gap does not apply, the
+  windows overlap), the windows before the focused one are one frame that ends `padding` short of the right edge, the
+  ones after it are one frame that starts `padding` in, and the focused one has its own. Because of that a change of
+  focus changes two frames (a few more at the first and last window), so a quick walk through nine windows stays far
+  below the watchdog's 60 changes a second (`AccordionTests`). Options: `accordionPadding` (global
+  `plugins.windows.accordion.padding`, 30, 0 to 200) and `accordionOrientation` (`auto`: horizontal on a landscape
+  display, vertical on a portrait one). The strategy has no gap options of its own (the ids belong to Auto-tile), so it
+  reads the global gaps through `makeConfig` (`AccordionConfig`); a per-workspace gap override does not apply to it.
+- **`arrangesOnFocusChange`** (`LayoutCapabilities`/`LayoutStrategy`, default `false`): the reducer arranges a workspace
+  again on `windowFocused` only when its kind says so. Frame requests still go only to windows whose target changed.
+- **`windows.layout.tiles` / `windows.layout.accordion`** (`LayoutCommands.setLayout`): write the kind override like
+  *Toggle Layout* (a kind equal to the default clears it, overrides from a newer version are never overwritten). Pressed
+  while the workspace already has that kind they flip the direction: Auto-tile through the engine command
+  `toggleOrientation`, Accordion through the `accordionOrientation` option of the workspace (configuration, not state).
+  They are in `WindowsCommandID.reserved`; there is no engine input for a kind.
+- **Resize step**: grow and shrink send `tiling.resizeSteps` (±1). The strategy turns the setting `resize.step` (points,
+  default 50) into the share of the container that `TilingTree.resize` moves, from the container's real length.
+  `tiling.resize` (a share) stays for callers that want one.
+- **`windows.workspace.moveToNextDisplay`**: `EngineCommand.moveWorkspaceToNextDisplay` swaps the current workspace with
+  the one on the next display (wrapping); both stay shown, so nothing is parked. The focus goes to the moved
+  workspace's most recently used window. With one display the engine reports `EngineNotice.singleDisplay` and the HUD
+  says "Only one display" (shown even when the workspace HUD is off, like "No focused window").
+- **Default shortcuts and the migration**: J/K focus and move left/right, ⌥/ Auto-tile, ⌥, Accordion, ⌥⇧Tab next
+  display; `toggleLayout` has none. `ShortcutMigration` (run once from `activate()`, marker
+  `plugins.windows.shortcutDefaultsVersion`) moves stored shortcuts that are still equal to the v1 default, frees the
+  keys first and never gives a key another command holds. The check for shortcuts that type characters covers the whole
+  catalogue (`WindowsCommandID.shortcutCommandIDs`).
+- **New defaults**: nine workspaces, gaps 10/10, accordion padding 30. A stored value always wins.
+
 ## Focus at the time of a command (window management v2, Phase 0)
 
 The engine's idea of the focused window comes from events, which can be late, coalesced or taken for echoes. So a
