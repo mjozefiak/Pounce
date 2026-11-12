@@ -11,6 +11,8 @@ struct EngineConfig: Equatable, Sendable {
     var followFocus = true
     /// Bundle identifiers of apps that are never arranged.
     var floatingBundleIDs: Set<String> = Set(WindowsSettings.defaultFloatingApps)
+    /// The workspace new windows of an app start on (active workspace rules only; `RuleResolver`).
+    var appWorkspaces: [String: WorkspaceID] = [:]
     /// A window that is re-hidden more than this many times is left alone until it is focused.
     var rehideCap = 3
     /// A move or resize event within this many points of a frame the engine set is our own echo.

@@ -89,6 +89,11 @@ public final class WindowsPlugin: LintelPlugin {
             chooseApp: chooseApp)
         model.startFailure = { [weak self] in self?.lastStartError }
         model.openLayouts = { [weak self] in self?.layoutsWindow.show() }
+        model.openConfigure = { [weak self] in self?.configureWindow.show() }
+        model.configureSummary = { [weak self] in
+            guard let self else { return "" }
+            return WindowsConfigureModel.summary(pane: paneModel, commands: commands)
+        }
         model.hud = hud
         model.restoreFromJournal = { [context] in
             await Self.restoreFromJournal(context: context)
@@ -102,6 +107,12 @@ public final class WindowsPlugin: LintelPlugin {
     #endif
     /// The Layouts window, built on first use; it reads the pane model and the running plugin.
     private(set) lazy var layoutsWindow: LayoutsWindowController = makeLayoutsWindow()
+
+    /// The Configure window, built on first use.
+    private(set) lazy var configureWindow = WindowsConfigureWindowController(makeModel: { [weak self] in
+        guard let self else { return nil }
+        return WindowsConfigureModel(pane: paneModel, commands: { [weak self] in self?.commands ?? [] })
+    })
 
     private(set) lazy var editorWindow = GridEditorWindowController()
     /// The first activation of this process honours safe mode; a later one (the user switched the plugin on
@@ -234,6 +245,7 @@ public final class WindowsPlugin: LintelPlugin {
         editorWindow.pluginSwitchedOff()
         // A layouts window with an editor sheet stays until the editor is answered.
         if !editorWindow.isOpen { layoutsWindow.close() }
+        configureWindow.close()
         identifier.tearDown()
         await runtime.stop(waitingForTrustTask: waitingForTrustTask)
     }

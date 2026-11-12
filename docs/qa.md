@@ -718,3 +718,15 @@ grant after every rebuild.
 13. **Shortcuts.** ⌃⌥M (VoiceOver modifier clash), ⌃⌥D; the status-bar menu entries.
 14. **Known unrelated flake:** `AppsPluginTests` `SuggestionsLifecycleTests/theSeedWaitsForTheFirstFinishedScan`
     depends on live Spotlight on the test machine.
+
+### Window management v2: Configure window and rules (manual, not covered by tests)
+
+The Configure window and its recorders are SwiftUI and the shell's recorder; there is no snapshot test. Before each
+release that touches them, on a QA build (`--qa --qa-windows --qa-accessibility granted --qa-setting
+plugins.windows.enabled=true --qa-settings windows`) open Settings → Window Management → *Configure…* and check, with
+screenshots in light and dark, at the smallest and largest text size, in English and Polish: Shortcuts (search,
+a warning icon on ⌥K with a Polish layout, a conflict after recording the same key twice, *Replace*, *Reset*, *Reset
+All to Defaults…* sheet), Workspaces (a name appears in the strip's menu and the HUD, the effective gaps are shown),
+Gaps & Layout, Rules (add a running app, change Float/Workspace, a rule for a workspace that is off is marked).
+Keyboard: Tab reaches every control; VoiceOver reads the workspace name fields and the pickers by their labels.
+The shortcut layer itself (Carbon registration) is only checked by hand on an installed app, with the owner's consent.

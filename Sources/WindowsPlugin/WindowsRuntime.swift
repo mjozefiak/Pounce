@@ -105,7 +105,12 @@ final class WindowsRuntime: WindowSwitching {
     private func handle(_ report: EngineReport) {
         switch report {
         case .hud(let workspace, let count):
-            if settings.showHUD { hud.show(.workspace(number: workspace.rawValue, windowCount: count)) }
+            if settings.showHUD {
+                hud.show(
+                    .workspace(
+                        number: workspace.rawValue, windowCount: count,
+                        name: settings.workspaceNames.name(of: workspace)))
+            }
         case .summary(let summary):
             summaryChanged(summary)
         case .banner(let banner):
@@ -156,7 +161,8 @@ final class WindowsRuntime: WindowSwitching {
     func stripBoxes() -> [StripBox] {
         StripModel.boxes(
             summary: lastSummary ?? WorkspaceSummary(current: nil, visible: [:], counts: [:]),
-            workspaceCount: settings.workspaceCount, occupiedOnly: settings.stripMode == .occupied)
+            workspaceCount: settings.workspaceCount, occupiedOnly: settings.stripMode == .occupied,
+            names: settings.workspaceNames)
     }
 
     /// Shows or hides the strip as the setting says.

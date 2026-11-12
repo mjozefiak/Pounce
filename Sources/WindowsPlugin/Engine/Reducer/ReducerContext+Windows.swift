@@ -47,13 +47,16 @@ extension ReducerContext {
 
     /// Starts tracking a window and gives it a workspace. A window without a known process start is tracked but
     /// never parked.
-    private mutating func track(_ info: WindowInfo, processStart: Double?) {
+    private mutating func track(_ info: WindowInfo, processStart: Double?, appliesRules: Bool = false) {
         let previous = state.windows[info.id]
         state.windows[info.id] = TrackedWindow(
             id: info.id, bundleID: info.bundleID, title: info.title, frame: info.frame,
             processStart: processStart ?? previous?.processStart)
         let display = FrameMath.display(for: info.frame, in: state.displays).map { state.displayKey(of: $0) }
-        state.model.add(info.id, onDisplay: display)
+        // A rule gives a window that is created now (never one that was there at the start) its workspace, without
+        // switching to it; a workspace that is hidden parks it with the next reconcile.
+        let ruled = appliesRules ? info.bundleID.flatMap { state.config.appWorkspaces[$0] } : nil
+        state.model.add(info.id, to: ruled, onDisplay: display)
     }
 
     mutating func windowAppeared(_ info: WindowInfo, processStart: Double?, now: Double) {
@@ -63,7 +66,7 @@ extension ReducerContext {
             return
         }
         if state.windows[info.id] == nil {
-            track(info, processStart: processStart)
+            track(info, processStart: processStart, appliesRules: true)
             arrangeRequested = true
         } else {
             if let processStart { state.windows[info.id]?.processStart = processStart }

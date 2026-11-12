@@ -13,7 +13,7 @@ enum AccessibilityPurpose: Equatable, Sendable {
 
 enum WindowsHUDState: Equatable, Sendable {
     /// After a switch: the workspace number and how many windows it holds (about 600 ms).
-    case workspace(number: Int, windowCount: Int)
+    case workspace(number: Int, windowCount: Int, name: String? = nil)
     /// A shortcut was pressed without Accessibility: nothing moved, and a button opens the setting.
     case accessibilityNeeded(AccessibilityPurpose)
     /// *Restore all windows*, a recovery at launch or a re-grant: how many windows came back.
@@ -38,8 +38,9 @@ enum WindowsHUDState: Equatable, Sendable {
 
     var title: String {
         switch self {
-        case .workspace(let number, _):
-            String(localized: "Workspace \(number)", comment: "Window switcher: a workspace")
+        case .workspace(let number, _, let name):
+            [String(localized: "Workspace \(number)", comment: "Window switcher: a workspace"), name]
+                .compactMap { $0 }.joined(separator: " · ")
         case .accessibilityNeeded(.switching):
             String(
                 localized: "Allow Accessibility to switch workspaces",
@@ -75,7 +76,7 @@ enum WindowsHUDState: Equatable, Sendable {
 
     var detail: String? {
         switch self {
-        case .workspace(_, let count): return WindowSearchSource.windowCount(count)
+        case .workspace(_, let count, _): return WindowSearchSource.windowCount(count)
         case .accessibilityNeeded, .snapHint, .noFocusedWindow, .singleDisplay: return nil
         case .stillStopping:
             return String(

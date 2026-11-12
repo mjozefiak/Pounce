@@ -27,30 +27,8 @@ extension WindowsSettingsPane {
         } label: {
             label(Text("Strip shows", comment: "Window Management setting: which boxes the strip draws"))
         }
-        ForEach(ShortcutFamily.active(in: model.registry), id: \.self) { family in
-            modifierRow(family.title, family: family)
-        }
+        // The shortcut rows, the warning and the per-workspace settings are in the Configure window.
         if !model.registry.libraryKinds.isEmpty { layoutSlots }
-        if model.modifierConflict {
-            label(
-                Text(
-                    "Use different modifiers for the two shortcut families.",
-                    comment: "Window Management shortcut rows: the other family already uses this choice"))
-        }
-        if model.needsShortcutWarning {
-            HStack {
-                label(
-                    Text(ShortcutWarning.title(count: model.flagged.count)),
-                    help: Text(ShortcutWarning.detail(model.unsafeShortcuts)))
-                Spacer()
-                Button {
-                    model.useControlOption()
-                } label: {
-                    Text(ShortcutWarning.action)
-                }
-            }
-        }
-        workspaceLayouts
         floatingApps
     }
 

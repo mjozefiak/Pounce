@@ -49,6 +49,9 @@ final class WindowsSettingsModel {
     @ObservationIgnored var startFailure: () -> WindowsPlugin.StartError? = { nil }
     /// Opens the Layouts window (the plugin sets it).
     @ObservationIgnored var openLayouts: () -> Void = {}
+    /// Opens the Configure window and reads the line under its row (the plugin sets both).
+    @ObservationIgnored var openConfigure: () -> Void = {}
+    @ObservationIgnored var configureSummary: () -> String = { "" }
     /// Where the restore report is shown when no engine runs; the plugin passes its own presenter, so the pane
     /// and the plugin never use two different ones.
     @ObservationIgnored var hud: any WindowsHUDPresenting = NullHUD()
@@ -233,6 +236,28 @@ final class WindowsSettingsModel {
         guard let bundleID = chooseApp(), !floatingApps.contains(bundleID) else { return }
         floatingApps.append(bundleID)
         settings.setFloatingApps(floatingApps)
+        changed()
+    }
+
+    /// Adds an app to the floating list, or takes it off (the Rules section of the Configure window).
+    func setFloating(_ bundleID: String, _ on: Bool) {
+        if on, !floatingApps.contains(bundleID) {
+            floatingApps.append(bundleID)
+        } else if !on {
+            floatingApps.removeAll { $0 == bundleID }
+        } else {
+            return
+        }
+        settings.setFloatingApps(floatingApps)
+        changed()
+    }
+
+    /// The app picker's answer (an open panel at /Applications), for the Rules section.
+    func pickApp() -> String? { chooseApp() }
+
+    /// Writes the app rules and tells the engine.
+    func setAppRules(_ rules: AppRules) {
+        guard settings.setAppRules(rules) else { return }
         changed()
     }
 

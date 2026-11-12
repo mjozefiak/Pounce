@@ -24192,6 +24192,654 @@
           }
         }
       }
+    },
+    "Default · %@" : {
+      "comment" : "Configure: the workspace follows the default value",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default · %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Domyślnie · %@"
+          }
+        }
+      }
+    },
+    "Configure…" : {
+      "comment" : "Window Management: opens the Configure window",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configure…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konfiguruj…"
+          }
+        }
+      }
+    },
+    "Configure" : {
+      "comment" : "Window Management setting: shortcuts, workspaces, gaps and layouts",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configure"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konfiguracja"
+          }
+        }
+      }
+    },
+    "Configure Window Management" : {
+      "comment" : "Configure window title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configure Window Management"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konfiguracja zarządzania oknami"
+          }
+        }
+      }
+    },
+    "Reset all shortcuts?" : {
+      "comment" : "Configure: confirmation title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset all shortcuts?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zresetować wszystkie skróty?"
+          }
+        }
+      }
+    },
+    "Reset All" : {
+      "comment" : "Configure: confirmation button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset All"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zresetuj wszystkie"
+          }
+        }
+      }
+    },
+    "Search shortcuts" : {
+      "comment" : "Configure: search field of the shortcut list",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search shortcuts"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szukaj skrótów"
+          }
+        }
+      }
+    },
+    "Reset All to Defaults…" : {
+      "comment" : "Configure: resets every shortcut",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset All to Defaults…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywróć wszystkie domyślne…"
+          }
+        }
+      }
+    },
+    "Modifiers" : {
+      "comment" : "Configure: the modifier keys of a numbered family",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modifiers"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modyfikatory"
+          }
+        }
+      }
+    },
+    "This shortcut types a character on your keyboard." : {
+      "comment" : "Configure: tooltip of the warning icon of a shortcut",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This shortcut types a character on your keyboard."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten skrót wpisuje znak na Twojej klawiaturze."
+          }
+        }
+      }
+    },
+    "Types a character on your keyboard" : {
+      "comment" : "Configure: spoken warning of a shortcut that types a character",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Types a character on your keyboard"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wpisuje znak na Twojej klawiaturze"
+          }
+        }
+      }
+    },
+    "Reset %@" : {
+      "comment" : "Configure: puts one shortcut back to its default (spoken)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zresetuj %@"
+          }
+        }
+      }
+    },
+    "Also used by %@" : {
+      "comment" : "Configure: another command has the same shortcut",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Also used by %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Używany też przez: %@"
+          }
+        }
+      }
+    },
+    "Replace" : {
+      "comment" : "Configure: takes the shortcut from the other command",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replace"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zastąp"
+          }
+        }
+      }
+    },
+    "Some of these settings were saved by a newer version of Lintel and can’t be changed here." : {
+      "comment" : "Configure: workspace settings from a newer version",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some of these settings were saved by a newer version of Lintel and can’t be changed here."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Część tych ustawień zapisano w nowszej wersji aplikacji Lintel i nie można ich tu zmienić."
+          }
+        }
+      }
+    },
+    "Gaps of workspace %lld" : {
+      "comment" : "Configure: spoken name of the gaps picker",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gaps of workspace %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odstępy obszaru roboczego %lld"
+          }
+        }
+      }
+    },
+    "Direction of workspace %lld" : {
+      "comment" : "Configure: spoken name of the direction picker",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Direction of workspace %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kierunek obszaru roboczego %lld"
+          }
+        }
+      }
+    },
+    "Name of workspace %lld" : {
+      "comment" : "Configure: spoken name of a workspace name field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name of workspace %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nazwa obszaru roboczego %lld"
+          }
+        }
+      }
+    },
+    "Shortcuts" : {
+      "comment" : "Configure: sidebar section",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shortcuts"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skróty"
+          }
+        }
+      }
+    },
+    "Gaps & Layout" : {
+      "comment" : "Configure: sidebar section",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gaps & Layout"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odstępy i układ"
+          }
+        }
+      }
+    },
+    "Move" : {
+      "comment" : "Configure: group of shortcuts",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przenoszenie"
+          }
+        }
+      }
+    },
+    "Resize" : {
+      "comment" : "Configure: group of shortcuts",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resize"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zmiana rozmiaru"
+          }
+        }
+      }
+    },
+    "Display" : {
+      "comment" : "Configure: group of shortcuts",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Display"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyświetlacz"
+          }
+        }
+      }
+    },
+    "Other" : {
+      "comment" : "Configure: group of shortcuts",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inne"
+          }
+        }
+      }
+    },
+    "Workspace" : {
+      "comment" : "Configure: workspace table column",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Workspace"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obszar roboczy"
+          }
+        }
+      }
+    },
+    "Gaps" : {
+      "comment" : "Configure: workspace table column",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gaps"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odstępy"
+          }
+        }
+      }
+    },
+    "Direction" : {
+      "comment" : "Configure: workspace table column",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Direction"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kierunek"
+          }
+        }
+      }
+    },
+    "%lld workspaces · %lld shortcuts · %lld rules" : {
+      "comment" : "Settings: the line under Configure (workspaces, shortcuts and rules)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld workspaces · %2$lld shortcuts · %3$lld rules"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld obszarów roboczych · %2$lld skrótów · %3$lld reguł"
+          }
+        }
+      }
+    },
+    "Rules apply when a window is created. Float keeps an app’s windows where they are; a workspace rule starts its new windows there." : {
+      "comment" : "Configure: what app rules do",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rules apply when a window is created. Float keeps an app’s windows where they are; a workspace rule starts its new windows there."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reguły działają przy tworzeniu okna. Float zostawia okna aplikacji tam, gdzie są; reguła obszaru roboczego otwiera jej nowe okna w tym obszarze."
+          }
+        }
+      }
+    },
+    "Some rules were saved by a newer version of Lintel and can’t be changed here." : {
+      "comment" : "Configure: app rules from a newer version",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some rules were saved by a newer version of Lintel and can’t be changed here."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Część reguł zapisano w nowszej wersji aplikacji Lintel i nie można ich tu zmienić."
+          }
+        }
+      }
+    },
+    "Choose…" : {
+      "comment" : "Configure: picks an app from /Applications for a rule",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybierz…"
+          }
+        }
+      }
+    },
+    "Add App" : {
+      "comment" : "Configure: adds an app to the rules",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add App"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodaj aplikację"
+          }
+        }
+      }
+    },
+    "Workspace %lld is off" : {
+      "comment" : "Configure: a rule points to a workspace that is off",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Workspace %lld is off"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obszar roboczy %lld jest wyłączony"
+          }
+        }
+      }
+    },
+    "Float" : {
+      "comment" : "Configure: the app's windows are never arranged",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Float"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pływające"
+          }
+        }
+      }
+    },
+    "Rule for %@" : {
+      "comment" : "Configure: spoken name of the rule picker of an app",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rule for %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reguła dla %@"
+          }
+        }
+      }
+    },
+    "Rules" : {
+      "comment" : "Configure: sidebar section",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rules"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reguły"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

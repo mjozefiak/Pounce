@@ -236,8 +236,10 @@ final class WorkspaceStripController: NSObject {
         let menu = NSMenu()
         for box in boxes {
             let item = NSMenuItem(
-                title: String(
-                    localized: "Go to Workspace \(box.number)", comment: "Command: switches to a numbered workspace"),
+                title: box.name.map { "\(box.number) · \($0)" }
+                    ?? String(
+                        localized: "Go to Workspace \(box.number)",
+                        comment: "Command: switches to a numbered workspace"),
                 action: #selector(menuSelected(_:)), keyEquivalent: "")
             item.target = self
             item.tag = box.number

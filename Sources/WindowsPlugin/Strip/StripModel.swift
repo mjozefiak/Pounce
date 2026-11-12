@@ -9,6 +9,8 @@ struct StripBox: Equatable, Sendable {
     var isCurrent: Bool
     /// Shown on another display right now (still an outline; the accessibility label says so).
     var isShownElsewhere: Bool
+    /// The user's name for the workspace, if it has one (shown in the spoken label and the menu, never in the box).
+    var name: String? = nil
 }
 
 /// Which boxes the strip draws and which one is active (spec Q16), on plain values.
@@ -17,7 +19,9 @@ enum StripModel {
     ///   - occupiedOnly: `plugins.windows.strip.mode == occupied`: only workspaces that hold a window, plus the
     ///     current one and any shown on a display. The default `all` shows every configured workspace, so the
     ///     boxes never move under the cursor.
-    static func boxes(summary: WorkspaceSummary, workspaceCount: Int, occupiedOnly: Bool) -> [StripBox] {
+    static func boxes(
+        summary: WorkspaceSummary, workspaceCount: Int, occupiedOnly: Bool, names: WorkspaceNames = WorkspaceNames()
+    ) -> [StripBox] {
         let shown = Set(summary.visible.values)
         return WorkspaceID.all(count: workspaceCount).compactMap { workspace in
             let count = summary.counts[workspace] ?? 0
@@ -25,7 +29,7 @@ enum StripModel {
             if occupiedOnly, count == 0, !isCurrent, !shown.contains(workspace) { return nil }
             return StripBox(
                 number: workspace.rawValue, windowCount: count, isCurrent: isCurrent,
-                isShownElsewhere: shown.contains(workspace) && !isCurrent)
+                isShownElsewhere: shown.contains(workspace) && !isCurrent, name: names.name(of: workspace))
         }
     }
 
@@ -43,10 +47,9 @@ enum StripModel {
     /// "Workspace 3, 4 windows" (spec: UI/UX). That the box is the current one is not in the label: the element's
     /// *selected* state says it (Apple's guidance), so VoiceOver does not speak it twice.
     static func accessibilityLabel(_ box: StripBox) -> String {
-        var parts = [
-            String(localized: "Workspace \(box.number)", comment: "Window switcher: a workspace"),
-            WindowSearchSource.windowCount(box.windowCount),
-        ]
+        var parts = [String(localized: "Workspace \(box.number)", comment: "Window switcher: a workspace")]
+        if let name = box.name { parts.append(name) }
+        parts.append(WindowSearchSource.windowCount(box.windowCount))
         if !box.isCurrent, box.isShownElsewhere {
             parts.append(
                 String(

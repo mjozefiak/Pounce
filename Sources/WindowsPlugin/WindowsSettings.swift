@@ -24,6 +24,10 @@ struct WindowsSettings: Sendable {
         static let defaultZoneLayoutPortrait = "defaultZoneLayout.portrait"
         /// One versioned JSON value with the per-workspace overrides (`WorkspaceOverrides`).
         static let workspaces = "workspaces"
+        /// One versioned JSON value with the workspace names (`WorkspaceNames`).
+        static let workspaceNames = "workspaceNames"
+        /// One versioned JSON value with the per-app workspace rules (`AppRules`); float rules stay in `floatingApps`.
+        static let appRules = "appRules"
         /// The Layouts window's remembered frame (`NSStringFromRect`), kept here and not in the window system's
         /// own autosave so a QA run never writes to the real defaults domain.
         static let layoutsWindowFrame = "layoutsWindowFrame"
@@ -167,6 +171,28 @@ struct WindowsSettings: Sendable {
 
     /// The per-workspace overrides; a value that is not readable counts as none.
     var workspaceOverrides: WorkspaceOverrides { WorkspaceOverrides(json: settings.string(Key.workspaces)) }
+
+    /// The optional workspace names; a value that is not readable counts as none.
+    var workspaceNames: WorkspaceNames { WorkspaceNames(json: settings.string(Key.workspaceNames)) }
+
+    /// Stores the names unless the stored value is from a newer version. Returns whether it was written.
+    @discardableResult
+    func setWorkspaceNames(_ names: WorkspaceNames) -> Bool {
+        guard !workspaceNames.isReadOnly else { return false }
+        settings.set(names.json, for: Key.workspaceNames)
+        return true
+    }
+
+    /// The per-app workspace rules; a value that is not readable counts as none.
+    var appRules: AppRules { AppRules(json: settings.string(Key.appRules)) }
+
+    /// Stores the rules unless the stored value is from a newer version. Returns whether it was written.
+    @discardableResult
+    func setAppRules(_ rules: AppRules) -> Bool {
+        guard !appRules.isReadOnly else { return false }
+        settings.set(rules.json, for: Key.appRules)
+        return true
+    }
 
     var layoutsWindowFrame: String? { settings.string(Key.layoutsWindowFrame) }
     func setLayoutsWindowFrame(_ frame: String) { settings.set(frame, for: Key.layoutsWindowFrame) }

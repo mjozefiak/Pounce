@@ -107,6 +107,18 @@ struct WindowsSettingsPane: View {
                     "How a workspace arranges its windows unless it has a layout of its own.",
                     comment: "Window Management setting help: the layout kinds"))
         }
+        LabeledContent {
+            Button {
+                model.openConfigure()
+            } label: {
+                Text("Configure…", comment: "Window Management: opens the Configure window")
+            }
+            .disabled(!isActive)
+        } label: {
+            label(
+                Text("Configure", comment: "Window Management setting: shortcuts, workspaces, gaps and layouts"),
+                help: isActive ? Text(verbatim: model.configureSummary()) : nil)
+        }
         if !model.registry.libraryKinds.isEmpty {
             LabeledContent {
                 Button {

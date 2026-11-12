@@ -228,6 +228,29 @@ room and the notch, and a spec decision). The one-item design is not changed her
   catalogue (`WindowsCommandID.shortcutCommandIDs`).
 - **New defaults**: nine workspaces, gaps 10/10, accordion padding 30. A stored value always wins.
 
+## Configure window, workspace names and rules (window management v2, Phases 2 and 3)
+
+- **Configure window** (`Settings/WindowsConfigureWindowController`, `WindowsConfigureModel`, `WindowsConfigureView`): a
+  plugin-owned window (like the Layouts window: built on first use, rebuilt after a close, closed when the plugin is
+  switched off) with a sidebar: **Shortcuts** (every command with the shell's own recorder, search by every word, groups,
+  a warning icon for a shortcut that types a character, a conflict line with *Replace*, *Reset* per row and *Reset All*
+  behind a destructive confirmation, and one *Modifiers* row for each numbered family), **Workspaces** (name, layout kind,
+  gaps and direction of each workspace; the effective value is always shown, "Default · 10 pt"), **Gaps & Layout** (the
+  default kind and the global points options: gaps, accordion padding, resize step) and **Rules**. The model reads and
+  writes through `WindowsSettingsModel`, so the pane, the window and the engine never disagree. The shell's recorders
+  write a shortcut themselves and cannot be intercepted, so a second command on the same key is shown as a conflict
+  afterwards (the list is read again every 0.7 s while the window is open) and *Replace* takes it from the other one.
+  The pane in Settings keeps the basics, a *Configure…* row ("9 workspaces · 12 shortcuts · 3 rules") and Advanced loses
+  the shortcut-family rows and the per-workspace summaries.
+- **Workspace names** (`WorkspaceNames`, `plugins.windows.workspaceNames`): in the strip's spoken label ("Workspace 3,
+  Code, 4 windows"), its menu ("3 · Code") and the HUD; the boxes themselves keep their number.
+- **Rules** (`AppRules`, `RuleResolver`, `plugins.windows.appRules`): the Rules list is the floating apps plus the
+  workspace rules. `EngineConfig.appWorkspaces` carries the active ones (float wins, a workspace that is off does not
+  apply). The reducer applies a rule only when it first tracks a window from a `windowAppeared` input: a window that
+  existed at the start, or a second window of an app, is never moved by it, and the workspace is not switched (a hidden
+  workspace parks the window).
+- Not done in this change: the focus border (Phase 4) needs the spike on a real Mac first (step 4.1).
+
 ## Focus at the time of a command (window management v2, Phase 0)
 
 The engine's idea of the focused window comes from events, which can be late, coalesced or taken for echoes. So a
