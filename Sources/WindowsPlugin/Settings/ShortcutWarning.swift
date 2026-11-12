@@ -16,9 +16,16 @@ enum ShortcutWarning {
             + shortcut.key.uppercased()
     }
 
+    /// The keys that eat a letter come first (⌥L types "ł"), then the rest, each group in command order: the text
+    /// names only the first few, and a digit is a smaller loss than a letter.
+    static func ordered(_ shortcuts: [KeyShortcut]) -> [KeyShortcut] {
+        func isLetter(_ shortcut: KeyShortcut) -> Bool { shortcut.key.first?.isLetter == true }
+        return shortcuts.filter(isLetter) + shortcuts.filter { !isLetter($0) }
+    }
+
     /// "⌥K, ⌥1, ⌥2" (the first `namedKeys`).
     static func names(_ shortcuts: [KeyShortcut]) -> String {
-        shortcuts.prefix(namedKeys).map(name(of:)).joined(separator: ", ")
+        ordered(shortcuts).prefix(namedKeys).map(name(of:)).joined(separator: ", ")
     }
 
     static func title(count: Int) -> LocalizedStringResource {

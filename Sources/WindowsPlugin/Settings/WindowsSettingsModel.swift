@@ -173,7 +173,10 @@ final class WindowsSettingsModel {
     func refreshSafety() {
         let bound = boundCommandIDs.compactMap { id in context.commandShortcut(id).map { (id: id, shortcut: $0) } }
         let offending = ShortcutSafety.check(bound.map(\.shortcut), translate: translate).offending
-        flagged = bound.filter { offending.contains($0.shortcut) }
+        let hit = bound.filter { offending.contains($0.shortcut) }
+        // Letters first, like the text of the warning (`ShortcutWarning.ordered`).
+        let letters = Set(ShortcutWarning.ordered(hit.map(\.shortcut)).prefix { $0.key.first?.isLetter == true })
+        flagged = hit.filter { letters.contains($0.shortcut) } + hit.filter { !letters.contains($0.shortcut) }
         status.unsafeShortcuts = unsafeShortcuts
     }
 

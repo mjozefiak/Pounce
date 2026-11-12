@@ -111,7 +111,7 @@ extension ReducerContext {
         {
             return
         }
-        if let current = state.model.current, let next = mostRecentWindow(in: current) {
+        if let next = state.model.current.flatMap({ mostRecentWindow(in: $0) }) ?? visibleWindow() {
             setFocus(next, now: now)
         } else {
             state.focused = nil

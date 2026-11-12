@@ -44,9 +44,9 @@ import Testing
         #expect(String(localized: try #require(banner.fix.first).title) == "Use ⌃⌥ for these")
         // Names the first three and counts the rest.
         let detail = String(localized: try #require(banner.detail))
-        #expect(detail.contains("⌥K, ⌥1, ⌥L"))
+        #expect(detail.contains("⌥K, ⌥L, ⌥⇧H"))
         #expect(detail.contains("2"))
-        #expect(!detail.contains("⌥⇧H"))
+        #expect(!detail.contains("⌥9"))
     }
 
     @Test func theWarningStaysOffWhenNothingTypesAndTheBannerIsReadyAgain() {
@@ -104,7 +104,7 @@ import Testing
                 == "⌥K, ⌥1 type characters on this keyboard layout.")
         #expect(
             String(localized: ShortcutWarning.detail(keys))
-                == "⌥K, ⌥1, ⌥L and 2 more type characters on this keyboard layout.")
+                == "⌥K, ⌥L, ⌥⇧H and 2 more type characters on this keyboard layout.")
         #expect(ShortcutWarning.name(of: KeyShortcut(key: "1", modifiers: [.option, .shift])) == "⌥⇧1")
         #expect(ShortcutWarning.name(of: KeyShortcut(key: "l", modifiers: [.control, .option])) == "⌃⌥L")
     }
@@ -183,5 +183,27 @@ import Testing
         model.refreshSafety()
         #expect(!model.needsShortcutWarning)
         #expect(model.status.unsafeShortcuts.isEmpty)
+    }
+
+    // MARK: Letters before digits in the text (QA: "⌥1, ⌥4, ⌥5 and 14 more" hid ⌥L)
+
+    @Test func theKeysThatEatALetterAreNamedBeforeTheDigits() {
+        let digits = (1...9).map { KeyShortcut(key: String($0), modifiers: [.option]) }
+        let letters = ["h", "k", "l"].map { KeyShortcut(key: $0, modifiers: [.option]) }
+        let ordered = ShortcutWarning.ordered(digits + letters)
+        #expect(Array(ordered.prefix(3)) == letters)
+        // The order inside each group is the command order.
+        #expect(Array(ordered.dropFirst(3)) == digits)
+        #expect(ShortcutWarning.names(digits + letters) == "⌥H, ⌥K, ⌥L")
+    }
+
+    @Test func theModelListsFlaggedLettersFirst() throws {
+        let (_, harness, _, model) = try setup()
+        defer { harness.tearDown() }
+        model.refreshSafety()
+        let firstKeys = model.unsafeShortcuts.prefix(3).map(\.key)
+        #expect(firstKeys.allSatisfy { $0.first?.isLetter == true }, "\(firstKeys)")
+        let banner = WindowsBanner.derive(model.status) { _ in }
+        #expect(String(localized: try #require(banner?.detail)).contains("⌥H"))
     }
 }

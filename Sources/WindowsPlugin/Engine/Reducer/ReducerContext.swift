@@ -57,6 +57,24 @@ struct ReducerContext {
         return state.model.windows(in: workspace).last { $0 != excluding && state.windows[$0] != nil }
     }
 
+    /// A window the user can see on any shown workspace (the most recently used, else the last in order), for when the
+    /// workspace that was left or entered has none: the system focus must not stay on a parked window.
+    func visibleWindow(excluding: WindowID? = nil) -> WindowID? {
+        for id in state.focusOrder.reversed()
+        where id != excluding && state.windows[id] != nil
+            && state.model.workspace(of: id).map(state.model.isVisible) == true
+        {
+            return id
+        }
+        for workspace in state.model.workspaces where state.model.isVisible(workspace) {
+            if let id = state.model.windows(in: workspace).last(where: { $0 != excluding && state.windows[$0] != nil })
+            {
+                return id
+            }
+        }
+        return nil
+    }
+
     // MARK: Batches
 
     mutating func request(_ id: WindowID, _ frame: CGRect, _ purpose: FramePurpose, now: Double) {

@@ -73,8 +73,9 @@ import Testing
         #expect(String(localized: banner.title).contains("\(expected.count)"))
         // The detail names the first of them (in command order) and counts the rest.
         let detail = String(localized: try #require(banner.detail))
-        for item in expected.prefix(ShortcutWarning.namedKeys) {
-            #expect(detail.contains(ShortcutWarning.name(of: item.shortcut)), "\(item.id) is not in: \(detail)")
+        let named = ShortcutWarning.ordered(expected.map(\.shortcut)).prefix(ShortcutWarning.namedKeys)
+        for shortcut in named {
+            #expect(detail.contains(ShortcutWarning.name(of: shortcut)), "\(shortcut) is not in: \(detail)")
         }
         if expected.count > ShortcutWarning.namedKeys {
             #expect(detail.contains("\(expected.count - ShortcutWarning.namedKeys) more"))

@@ -240,4 +240,67 @@ import Testing
         #expect(EngineCommand.moveDirection(.left).needsFocusedWindow)
         #expect(!EngineCommand.focusDirection(.left).needsFocusedWindow)
     }
+
+    // MARK: Empty source workspace: system focus must not stay on a parked window (QA D1)
+
+    private let second = FakeWindowClient.secondDisplay
+
+    /// Windows 1 and 2 on workspace 1 (display 1); window 2 then goes to workspace 2, which the second display shows.
+    private func twoDisplays() -> EngineState {
+        var current = EngineReducer.reduce(
+            EngineState(workspaceCount: 4),
+            .snapshot(
+                windows: [makeWindow(1), makeWindow(2)], displays: [main, second], focused: nil,
+                processStarts: [100: 1_100], now: t0)
+        ).0
+        current = focus(current, id(2))
+        (current, _) = command(current, .moveFocusedWindow(to: ws(2)))
+        return focus(current, id(1))
+    }
+
+    @Test func movingTheLastWindowOfAWorkspaceFocusesAVisibleWindowOnAnotherDisplay() {
+        let start = twoDisplays()
+        #expect(start.model.windows(in: ws(1)) == [id(1)])
+        let (next, effects) = command(start, .moveFocusedWindow(to: ws(3)))
+        #expect(next.parked.keys.sorted() == [id(1)])
+        #expect(focusTargets(effects) == [id(2)])
+        #expect(next.focused == id(2))
+    }
+
+    @Test func movingTheLastWindowOnASingleDisplayClearsTheFocusAndAsksForNoParkedWindow() {
+        var current = focus(state([1]), id(1))
+        let effects: [EngineEffect]
+        (current, effects) = command(current, .moveFocusedWindow(to: ws(3)))
+        #expect(current.focused == nil)
+        #expect(focusTargets(effects).isEmpty)
+    }
+
+    @Test func movingWithNoRecencyHistoryFocusesTheLastWindowInTileOrder() {
+        // Nothing was ever focused, the engine only knows the observation of window 3.
+        var current = state([1, 2, 3])
+        (current, _) = reduce(current, .focusObserved(id(3), now: t0))
+        current.focusOrder = []
+        let (next, effects) = command(current, .moveFocusedWindow(to: ws(4)))
+        #expect(focusTargets(effects) == [id(2)])
+        #expect(next.focused == id(2))
+    }
+
+    @Test func switchingToAnEmptyWorkspaceFocusesAVisibleWindowOfAnotherDisplay() {
+        var current = twoDisplays()
+        // Workspace 3 replaces the one on the display that holds window 1; window 2 stays visible on the other.
+        (current, _) = command(current, .showWorkspace(ws(3)))
+        #expect(current.model.isVisible(ws(2)))
+        #expect(current.focused == id(2))
+    }
+
+    @Test func switchingToAWorkspaceWithoutRecencyFocusesItsLastWindowInOrder() {
+        var current = state([1, 2], count: 3)
+        (current, _) = command(current, .showWorkspace(ws(2)))
+        current.focusOrder = []
+        current.pendingFocus = nil
+        current.focused = nil
+        let (next, effects) = command(current, .showWorkspace(ws(1)))
+        #expect(next.focused == id(2))
+        #expect(focusTargets(effects) == [id(2)])
+    }
 }

@@ -77,9 +77,10 @@ extension ReducerContext {
         }
         guard state.model.move(id, to: workspace) else { return }
         reconcileParking(now: now)
-        // The focus goes to the window used last on the workspace the window came from; with none left it is not
-        // handed to a parked window, so the next move cannot take one.
-        if let next = mostRecentWindow(in: old, excluding: id) {
+        // The focus goes to the window used last on the workspace the window came from (its last in order without
+        // history), else to a window visible anywhere, so the system focus does not stay on a parked window. With
+        // none at all nothing is focused and the next move is refused.
+        if let next = mostRecentWindow(in: old, excluding: id) ?? visibleWindow(excluding: id) {
             setFocus(next, now: now)
         } else if state.model.workspace(of: id).map(state.model.isVisible) != true {
             state.focused = nil
