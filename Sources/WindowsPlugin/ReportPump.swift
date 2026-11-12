@@ -9,6 +9,7 @@ enum EngineReport: Sendable {
     case banner(EngineBanner)
     case windowMoved(WindowID, CGRect)
     case restored(RecoveryReport)
+    case notice(EngineNotice)
 }
 
 /// Carries the engine's reports to the main actor through one ordered stream and one task, so they are handled
@@ -41,7 +42,8 @@ final class ReportPump {
             summary: { continuation.yield(.report(.summary($0))) },
             banner: { continuation.yield(.report(.banner($0))) },
             windowMoved: { id, frame in continuation.yield(.report(.windowMoved(id, frame))) },
-            restored: { continuation.yield(.report(.restored($0))) })
+            restored: { continuation.yield(.report(.restored($0))) },
+            notice: { continuation.yield(.report(.notice($0))) })
         task = Task { @MainActor [weak self] in
             for await item in stream {
                 switch item {

@@ -152,7 +152,9 @@ import Testing
         model.useControlOption()
         #expect(!model.needsShortcutWarning)
         #expect(log.get("windows.workspace.1")?.modifiers == [.control, .option])
-        #expect(log.get("windows.moveToWorkspace.1")?.modifiers == [.control, .option, .shift])
+        // Only the flagged command changed: the rest of the family keeps its modifiers.
+        #expect(log.get("windows.workspace.2") == nil)
+        #expect(log.sets.count == 2)
     }
 
     // MARK: Data
@@ -396,7 +398,11 @@ extension SettingsTests {
         #expect(!model.needsShortcutWarning)
         #expect(log.get("windows.focus.right")?.modifiers == [.control, .option])
         #expect(log.get("windows.move.right")?.modifiers == [.control, .option, .shift])
-        #expect(log.get("windows.resize.grow")?.modifiers == [.control, .option])
+        // Keys that type nothing keep ⌥, so the families now say "Mixed" instead of the first binding's value.
+        #expect(log.get("windows.focus.left")?.modifiers == [.option])
+        #expect(log.get("windows.resize.grow")?.modifiers == [.option])
+        #expect(model.mixedFamilies == [.focus, .moveWindow])
+        #expect(model.choices[.focus] == nil)
     }
 
     /// Round-16 audit L-1: the release default is exactly the documented list; the QA app's id is added only in a

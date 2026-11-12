@@ -7,7 +7,7 @@ import LintelKit
 /// route"). DEBUG only; the route itself only exists in a `--qa` run. Every verb goes through the same runtime and
 /// model entry points the UI uses.
 extension WindowsPlugin: PluginQACommands {
-    /// `resetState`, `restoreAll`, `snap <zone number>`, `import <path>`, `export <selected|all> <path>` (the rest of
+    /// `state`, `resetState`, `restoreAll`, `snap <zone number>`, `import <path>`, `export <selected|all> <path>` (the rest of
     /// the line is the path), `addFloating <bundle id>`, `openLayouts`.
     public func runQACommand(_ line: String) async -> String {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -17,6 +17,9 @@ extension WindowsPlugin: PluginQACommands {
         var argument: String? = String(trimmed.dropFirst(verb.count)).trimmingCharacters(in: .whitespaces)
         if argument?.isEmpty == true { argument = nil }
         switch verb {
+        case "state":
+            guard let runtime else { return "error: plugin is off" }
+            return "ok: " + (await runtime.engine.inspect { Self.stateLine($0) })
         case "resetState":
             guard let runtime else { return "error: plugin is off" }
             await runtime.resetState()
@@ -74,6 +77,26 @@ extension WindowsPlugin: PluginQACommands {
         default:
             return "error: unknown verb \(verb)"
         }
+    }
+
+    /// What a QA run needs to see after a command: the current workspace, the window the engine counts as focused,
+    /// which window is on which workspace and the focus counters. Window numbers only (no titles, no bundle ids).
+    private nonisolated static func stateLine(_ state: EngineState) -> String {
+        func name(_ id: WindowID) -> String { "\(id.pid).\(id.number)" }
+        var parts = [
+            "current=\(state.model.current.map { String($0.rawValue) } ?? "-")",
+            "focused=\(state.focused.map(name) ?? "-")",
+        ]
+        for workspace in state.model.workspaces {
+            let windows = state.model.windows(in: workspace)
+            if !windows.isEmpty {
+                parts.append("ws\(workspace.rawValue)=" + windows.map(name).joined(separator: ","))
+            }
+        }
+        parts.append("parked=\(state.parked.count)")
+        parts.append("focusMismatches=\(state.diagnostics.focusMismatches)")
+        parts.append("focusReadTimeouts=\(state.diagnostics.focusReadTimeouts)")
+        return parts.joined(separator: " ")
     }
 
     /// Snaps the focused window to zone `number` of the layout it sits in, as a drag released over it would.

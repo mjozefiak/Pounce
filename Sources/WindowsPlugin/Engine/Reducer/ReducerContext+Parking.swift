@@ -84,18 +84,37 @@ extension ReducerContext {
         switchTo(workspace, now: now)
     }
 
-    mutating func switchTo(_ workspace: WorkspaceID, now: Double) {
+    /// Shows `workspace`. Unless the caller picks the focus itself, the focus goes to the most recently used window
+    /// of the shown workspace when the focused window was hidden by the switch (none: nothing is focused).
+    mutating func switchTo(_ workspace: WorkspaceID, now: Double, handsOffFocus: Bool = true) {
         let hidden = hiddenWindowsIfShown(workspace)
         if !state.canJournal, hidden {
             trailing.append(.banner(.cannotJournal))
             return
         }
         let before = state.model.current
+        let focusWasVisible = isShown(state.focused)
         state.model.show(workspace)
         arrangeRequested = true
         reconcileParking(now: now)
         if let current = state.model.current, current != before {
             trailing.append(.hud(workspace: current, windowCount: state.model.windowCount(in: current)))
+        }
+        if handsOffFocus { handOffFocus(focusWasVisible: focusWasVisible, now: now) }
+    }
+
+    /// After a switch: a focused window that is still on a shown workspace keeps the focus; otherwise the most
+    /// recently used window of the current workspace gets it, or nothing does (a hidden window must never stay the
+    /// target of "move the focused window").
+    /// A focus on a window that this switch just revealed does not count: while its workspace was hidden the window
+    /// was parked, so the system's focus was not really there (QA D1-3), and the window is asked for explicitly.
+    private mutating func handOffFocus(focusWasVisible: Bool, now: Double) {
+        if focusWasVisible, isShown(state.focused) { return }
+        if let next = state.model.current.flatMap({ mostRecentWindow(in: $0) }) ?? visibleWindow() {
+            setFocus(next, now: now)
+        } else {
+            state.focused = nil
+            state.pendingFocus = nil
         }
     }
 

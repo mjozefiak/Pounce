@@ -24,6 +24,8 @@ enum WindowsHUDState: Equatable, Sendable {
     case snapHint
     /// An earlier run is still putting windows back: nothing could be done yet.
     case stillStopping
+    /// A command that acts on the focused window found none that is on screen: nothing was moved.
+    case noFocusedWindow
 
     init(report: RecoveryReport) {
         self =
@@ -58,13 +60,17 @@ enum WindowsHUDState: Equatable, Sendable {
             String(
                 localized: "Windows are still being put back",
                 comment: "Window HUD: an earlier run has not finished restoring windows")
+        case .noFocusedWindow:
+            String(
+                localized: "No focused window",
+                comment: "Window HUD: a move or float shortcut was pressed and no window on screen has the focus")
         }
     }
 
     var detail: String? {
         switch self {
         case .workspace(_, let count): return WindowSearchSource.windowCount(count)
-        case .accessibilityNeeded, .snapHint: return nil
+        case .accessibilityNeeded, .snapHint, .noFocusedWindow: return nil
         case .stillStopping:
             return String(
                 localized: "Try again in a moment.", comment: "Window HUD: what to do while windows are put back")
@@ -98,6 +104,7 @@ enum WindowsHUDState: Equatable, Sendable {
             restored > 0 && otherSpace + failed == 0 ? "checkmark.circle.fill" : "exclamationmark.circle.fill"
         case .parkedNeedsAccessibility: "exclamationmark.triangle.fill"
         case .stillStopping: "clock.fill"
+        case .noFocusedWindow: "macwindow"
         case .snapHint: "rectangle.split.3x1"
         }
     }
@@ -129,6 +136,7 @@ enum WindowsHUDState: Equatable, Sendable {
         case .restored(_, let otherSpace, let failed): otherSpace + failed > 0 ? .seconds(4) : .seconds(2)
         case .parkedNeedsAccessibility: .seconds(6)
         case .snapHint, .stillStopping: .seconds(4)
+        case .noFocusedWindow: .seconds(2)
         }
     }
 }

@@ -194,3 +194,37 @@ every change), and its right-click or Control-click menu lists "Go to Workspace 
 status item and this menu as the accessible path (what is implemented; no menu bar room beyond one item); **(b)** one
 status item per box (up to nine; each box is then a real item with its own label and press, at the cost of menu bar
 room and the notch, and a spec decision). The one-item design is not changed here.
+
+## Focus at the time of a command (window management v2, Phase 0)
+
+The engine's idea of the focused window comes from events, which can be late, coalesced or taken for echoes. So a
+command that acts on the focused window (`windows.moveToWorkspace.N`, `windows.move.*`, `windows.toggleFloating`, and
+the other layout commands) is run by `WindowsRuntime.run`, which reads `client.focusedWindow()` first (bounded by
+`focusReadBudget`, 250 ms, through `withDeadline` on the plugin clock) and calls
+`WindowEngine.send(_:observingFocus:)`: one batch of `.focusObserved(id)` and the command, so two quick shortcuts
+cannot interleave their reads and commands.
+
+- `.focusObserved` only sets `state.focused` (never switches workspace, unlike `.windowFocused`). The reducer also
+  keeps `pendingFocus`: the target of its latest `.focus` effect for one second (engine time) or until a focus event
+  for that window arrives. An observation of a window that is hidden, parked or unknown while a request is pending is
+  the system lagging behind, so the requested window stays; any other observation wins. A differing observation is
+  counted in `focusMismatches` (no ids).
+- `focusOrder` is a list of windows by recency (memory only). The most recently used window of a workspace is its
+  newest entry; `switchTo` gives it the focus when the focused window was hidden by the switch, and a move hands the
+  focus to it instead of the last window in order. With no window on that workspace the focus goes to a window visible
+  on another display (most recently used, else last in order), and with none visible nothing is focused: the system
+  focus never stays on a parked window.
+- `moveFocusedWindow` and `toggleFloating` act only on a window whose workspace is shown. When none is focused, or the read did not answer,
+  nothing moves and the HUD says "No focused window". `focus.*` stays tolerant: with an unmanaged window focused (Finder,
+  Lintel) it counts from the last managed one (`previousFocus`).
+- A window that is parked while its workspace is shown is mid-restore (a second shortcut can arrive before the first
+  one's results are reduced), so the guard looks at the workspace, not at `state.parked`.
+- A switch keeps the focus only when the focused window was already on a shown workspace *before* the switch. A window
+  the switch just revealed was parked a moment ago and the system's focus is not really there (re-QA D1-3), so it is
+  asked for explicitly like any other hand-off target. When a move or switch leaves no visible window at all (single
+  display, everything else hidden) nothing is focused and the system focus stays where it is: the engine refuses to act
+  on it, and stealing the activation for Lintel's own window was judged worse than typing into a parked window.
+- `AXWindowClient.focus` raises the window, sets AXMain and AXFocused on it, sets the app's focused window and makes the
+  app frontmost by Accessibility (not only `NSRunningApplication.activate()`, which needs Lintel to be active). The
+  extra attributes are the proposed fix for a parked window of the same app keeping the focus; real-desktop verified: no.
+
