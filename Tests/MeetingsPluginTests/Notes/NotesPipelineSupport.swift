@@ -12,7 +12,9 @@ enum NotesFake {
 
     static func lastUser(_ messages: [ChatMessage]) -> String { messages.last?.content ?? "" }
 
-    static func isMap(_ messages: [ChatMessage]) -> Bool { messages.first?.content == NotesPrompt.mapSystem }
+    static func isMap(_ messages: [ChatMessage]) -> Bool {
+        messages.first.map { NotesPrompt.isMapSystem($0.content) } ?? false
+    }
     static func isReduce(_ messages: [ChatMessage]) -> Bool { messages.first?.content == NotesPrompt.reduceSystem }
     static func isSummary(_ messages: [ChatMessage]) -> Bool { messages.first?.content == NotesPrompt.summarySystem }
 
@@ -115,13 +117,16 @@ struct NotesRig {
 
     var model: NotesModel { NotesModel(lease: lease, runtime: llm, modelURL: url) }
 
+    /// Without the semantic verifier unless one is given: these suites pin the MAP and REDUCE requests (the
+    /// verifier's own requests are tested in `NotesPipelineVerifierTests`).
     func pipeline(
         _ configure: (inout NotesPipeline.Configuration) -> Void = { _ in },
-        sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+        sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) },
+        verifier: NotesVerifierFactory? = nil
     ) -> NotesPipeline {
         var configuration = NotesPipeline.Configuration()
         configure(&configuration)
-        return NotesPipeline(model: model, configuration: configuration, sleep: sleep)
+        return NotesPipeline(model: model, configuration: configuration, sleep: sleep, verifier: verifier)
     }
 
     /// Waits for the lease to be given back.

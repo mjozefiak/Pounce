@@ -15,8 +15,15 @@ typealias NotesTraceSink = @Sendable (NotesTraceEvent) -> Void
 /// person, a due date, a speaker, the summary or the notes, and never an id the model wrote that is not one of
 /// the points (those are only counted).
 enum NotesTrace {
-    /// Bumped when an event or a field changes meaning or goes away (adding one does not).
-    static let schemaVersion = 1
+    /// Bumped when an event or a field changes meaning or goes away (adding one does not). 2: the verified
+    /// summary points are shown as key points (`Section.keyPoints`, `Route.listedByCode`), so their fates and
+    /// `NotesTraceReduce.nearDuplicatesSkipped` mean something else than in 1, and `NotesTraceReduce.keyPoints`
+    /// is new. 3: a summary point whose text drifts from its quote is repaired (`NotesGuard.RepairReason
+    /// .driftedFromQuote`), so `NotesTraceVerification.repaired` counts more than in 2, and
+    /// `NotesTraceVerification.repairReasons` is new. 4: a summary point that is a sentence of the model's (or
+    /// salvaged) paragraph is no longer a key point (`Route.modelSummary`), so `NotesTraceReduce.keyPoints` counts
+    /// fewer than in 3.
+    static let schemaVersion = 4
 
     /// The points of `verified` that the deduplication took out, in their order.
     static func removedIDs(from verified: [NotesPoint], kept: [NotesPoint]) -> [String] {
@@ -183,30 +190,50 @@ struct NotesTraceVerification: Equatable, Sendable, Codable {
     var reasons: [NotesGuard.DropReason: Int]
     var repaired: Int
     var downgraded: Int
+    /// `repaired` by the reason of each repair (schema 3; empty when decoded from an older trace).
+    var repairReasons: [NotesGuard.RepairReason: Int]
+    /// Tasks whose person is the speaker, given by the guard (a count; empty trace field reads as 0).
+    var ownerFromSpeaker = 0
+    /// What the semantic verifier did (counts only); nil when it did not run and in older traces. `repaired`
+    /// and `repairReasons` above are the counts after it.
+    var verifier: NotesTraceVerifier?
 
     private enum CodingKeys: String, CodingKey {
-        case proposed, verified, dropped, reasons, repaired, downgraded
+        case proposed, verified, dropped, reasons, repaired, downgraded, repairReasons, ownerFromSpeaker, verifier
     }
 
-    /// `reasons` is written as an object keyed by the reason's raw value (a dictionary keyed by an enum would
-    /// become an array of alternating keys and values).
+    /// `reasons` and `repairReasons` are written as objects keyed by the reason's raw value (a dictionary keyed
+    /// by an enum would become an array of alternating keys and values).
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         proposed = try container.decode(Int.self, forKey: .proposed)
         verified = try container.decode(NotesTraceKinds.self, forKey: .verified)
         dropped = try container.decode(Int.self, forKey: .dropped)
-        let raw = try container.decode([String: Int].self, forKey: .reasons)
-        var decoded: [NotesGuard.DropReason: Int] = [:]
-        for (key, count) in raw {
-            guard let reason = NotesGuard.DropReason(rawValue: key) else {
-                throw DecodingError.dataCorruptedError(
-                    forKey: .reasons, in: container, debugDescription: "Unknown drop reason")
+        reasons = try Self.decodeCounts(
+            NotesGuard.DropReason.self, forKey: .reasons, in: container, unknown: "Unknown drop reason")
+        repaired = try container.decode(Int.self, forKey: .repaired)
+        downgraded = try container.decode(Int.self, forKey: .downgraded)
+        repairReasons =
+            container.contains(.repairReasons)
+            ? try Self.decodeCounts(
+                NotesGuard.RepairReason.self, forKey: .repairReasons, in: container, unknown: "Unknown repair reason")
+            : [:]
+        ownerFromSpeaker = try container.decodeIfPresent(Int.self, forKey: .ownerFromSpeaker) ?? 0
+        verifier = try container.decodeIfPresent(NotesTraceVerifier.self, forKey: .verifier)
+    }
+
+    private static func decodeCounts<Reason: RawRepresentable & Hashable>(
+        _ type: Reason.Type, forKey key: CodingKeys, in container: KeyedDecodingContainer<CodingKeys>,
+        unknown: String
+    ) throws -> [Reason: Int] where Reason.RawValue == String {
+        var decoded: [Reason: Int] = [:]
+        for (raw, count) in try container.decode([String: Int].self, forKey: key) {
+            guard let reason = Reason(rawValue: raw) else {
+                throw DecodingError.dataCorruptedError(forKey: key, in: container, debugDescription: unknown)
             }
             decoded[reason] = count
         }
-        reasons = decoded
-        repaired = try container.decode(Int.self, forKey: .repaired)
-        downgraded = try container.decode(Int.self, forKey: .downgraded)
+        return decoded
     }
 
     func encode(to encoder: any Encoder) throws {
@@ -218,16 +245,48 @@ struct NotesTraceVerification: Equatable, Sendable, Codable {
             Dictionary(uniqueKeysWithValues: reasons.map { ($0.key.rawValue, $0.value) }), forKey: .reasons)
         try container.encode(repaired, forKey: .repaired)
         try container.encode(downgraded, forKey: .downgraded)
+        try container.encode(
+            Dictionary(uniqueKeysWithValues: repairReasons.map { ($0.key.rawValue, $0.value) }),
+            forKey: .repairReasons)
+        try container.encode(ownerFromSpeaker, forKey: .ownerFromSpeaker)
+        try container.encodeIfPresent(verifier, forKey: .verifier)
     }
 
-    init(proposed: Int, verdict: NotesGuard.PointVerdict) {
+    init(proposed: Int, verdict: NotesGuard.PointVerdict, verifier: NotesTraceVerifier? = nil) {
+        self.verifier = verifier
         self.proposed = proposed
         verified = NotesTraceKinds(verdict.verified)
         dropped = verdict.dropped
         reasons = verdict.reasons
         repaired = verdict.repaired
         downgraded = verdict.downgraded
+        repairReasons = verdict.repairReasons
+        ownerFromSpeaker = verdict.ownerFromSpeaker
     }
+}
+
+/// The semantic verifier of one run: counts, flags and the prompt version, never text.
+struct NotesTraceVerifier: Equatable, Sendable, Codable {
+    var promptVersion: Int
+    /// Points that could be asked: kept by the guard, or repaired only for `unsupportedDetail` or
+    /// `driftedFromQuote` (after deduplication).
+    var eligible = 0
+    /// Points that got an answer of any kind before the time limit (`supported + weaker + unsupported + failed`).
+    var asked = 0
+    var supported = 0
+    var weaker = 0
+    var unsupported = 0
+    /// Answers that were malformed, cut off, failed or cancelled: the point stays as the guard left it.
+    var failed = 0
+    /// Eligible points left without an answer because the time ran out (or the run was stopped).
+    var notAsked = 0
+    /// Repaired points that got the model's text back.
+    var restoredModelText = 0
+    /// Kept points replaced by their quote (`NotesGuard.RepairReason.verifierRejected`).
+    var rejectedKept = 0
+    var budgetExceeded = false
+    /// Wall-clock time of the verifier stage.
+    var elapsedMs = 0
 }
 
 struct NotesTraceReduceRequest: Equatable, Sendable, Codable {
@@ -274,8 +333,11 @@ struct NotesTraceReduce: Equatable, Sendable, Codable {
     /// An id listed twice in its own section (kept once, not rejected).
     var repeatedIDs = 0
     var backfilled = 0
-    /// Points left out and not added back because a near-duplicate is in their section.
+    /// Points left out and not added back because a near-duplicate is in their section (the key points
+    /// included).
     var nearDuplicatesSkipped = 0
+    /// The summary points shown as key points.
+    var keyPoints = 0
     var summaryReplaced = false
 }
 
@@ -288,11 +350,15 @@ struct NotesTraceSummary: Equatable, Sendable, Codable {
     var sourceIDs: [String]
     var sourceStartMs: Int?
     var sourceEndMs: Int?
+    /// Why the model's paragraph was refused (a rule, never text); nil for older traces and for no refusal.
+    var refusal: NotesGuard.SummaryRefusal?
 }
 
 struct NotesTracePoint: Equatable, Sendable, Codable {
     enum Section: String, Sendable, Codable {
         case summary, decisions, tasks, questions
+        /// The key points: the verified summary points the code lists (`NotesGuard.ReduceVerdict.keyPoints`).
+        case keyPoints
 
         init?(kind: NotesPointKind) {
             switch kind {
@@ -318,12 +384,19 @@ struct NotesTracePoint: Equatable, Sendable, Codable {
         case backfilled
         /// A summary point whose first sentence is in the paragraph composed by the code.
         case composedSummary
+        /// A summary point whose whole text is a sentence of the model's (or salvaged) paragraph, so it is not
+        /// listed again among the key points.
+        case modelSummary
+        /// A summary point the code lists among the key points (REDUCE does not choose them).
+        case listedByCode
     }
 
     enum Loss: Equatable, Sendable, Codable {
-        /// A summary point (no section of its own) and the paragraph shown is the model's.
+        /// Schema 1 only (summary points had no section then): a summary point and the paragraph shown is the
+        /// model's. Not produced since schema 2, where the point is a key point.
         case summaryKindModelParagraph
-        /// A summary point that is not among the first four sources of the composed paragraph.
+        /// Schema 1 only: a summary point that is not among the first four sources of the composed paragraph.
+        /// Not produced since schema 2, where the point is a key point.
         case summaryKindNotInComposedParagraph
         /// A source of the composed paragraph, but the composer shows no paragraph.
         case summaryNotShown
@@ -416,6 +489,7 @@ final class NotesTraceRecorder: Sendable {
             state.reduce.repeatedIDs = audit.repeatedIDs
             state.reduce.backfilled = verdict.backfilled
             state.reduce.nearDuplicatesSkipped = audit.nearDuplicateOf.count
+            state.reduce.keyPoints = verdict.keyPoints.count
             state.reduce.summaryReplaced = verdict.summaryReplaced
             return (state.reduce, state.codeOrderIDs)
         }
@@ -428,7 +502,7 @@ final class NotesTraceRecorder: Sendable {
                 NotesTraceSummary(
                     origin: audit.summaryOrigin, present: verdict.summary != nil, shown: summaryShown,
                     sourceIDs: audit.summarySources, sourceStartMs: sourceTimes.min(),
-                    sourceEndMs: sourceTimes.max())))
+                    sourceEndMs: sourceTimes.max(), refusal: audit.summaryRefusal)))
 
         let proposedKinds = Dictionary(proposed.map { ($0.id, $0.kind) }, uniquingKeysWith: { first, _ in first })
         for point in points {
@@ -454,24 +528,32 @@ final class NotesTraceRecorder: Sendable {
                 notRendered: notRendered))
     }
 
-    /// Read from the verdict and the guard's audit: the composer shows every point of `decisions`, `tasks` and
-    /// `questions` as a bullet and nothing else, and the paragraph when `NotesComposer.shownSummary` has one.
+    /// Read from the verdict and the guard's audit: the composer shows every point of `keyPoints`, `decisions`,
+    /// `tasks` and `questions` as a bullet and nothing else, and the paragraph when `NotesComposer.shownSummary`
+    /// has one. A summary point both listed and in the composed paragraph counts as a key point (the bullet
+    /// shows its whole text).
     static func fate(
         of point: NotesPoint, verdict: NotesGuard.ReduceVerdict, audit: NotesGuard.ReduceAudit,
         codeOrderIDs: Set<String>, summaryShown: Bool
     ) -> NotesTracePoint.Fate {
         guard let section = NotesTracePoint.Section(kind: point.kind) else {
+            if verdict.keyPoints.contains(where: { $0.id == point.id }) {
+                return .rendered(.keyPoints, via: .listedByCode)
+            }
             if audit.summarySources.contains(point.id) {
                 return summaryShown ? .rendered(.summary, via: .composedSummary) : .notRendered(.summaryNotShown)
             }
-            return .notRendered(
-                audit.summaryOrigin == .model ? .summaryKindModelParagraph : .summaryKindNotInComposedParagraph)
+            if audit.inModelParagraph.contains(point.id) {
+                return summaryShown ? .rendered(.summary, via: .modelSummary) : .notRendered(.summaryNotShown)
+            }
+            if let other = audit.nearDuplicateOf[point.id] { return .notRendered(.nearDuplicateInSection(of: other)) }
+            return .notRendered(.unexplained)
         }
         let list: [NotesPoint]
         switch section {
         case .decisions: list = verdict.decisions
         case .tasks: list = verdict.tasks
-        case .questions, .summary: list = verdict.questions
+        case .questions, .summary, .keyPoints: list = verdict.questions
         }
         if list.contains(where: { $0.id == point.id }) {
             if audit.backfilled.contains(point.id) { return .rendered(section, via: .backfilled) }
@@ -486,4 +568,5 @@ final class NotesTraceRecorder: Sendable {
 extension NotesPointKind: Codable {}
 extension NotesResult.Status: Codable {}
 extension NotesGuard.DropReason: Codable {}
+extension NotesGuard.RepairReason: Codable {}
 extension NotesGuard.ReduceAudit.SummaryOrigin: Codable {}
