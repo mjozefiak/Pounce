@@ -1,7 +1,7 @@
 # Epic MEET: notatki ze spotkań lepsze niż Claude Meetings
 
 - Data: 2026-11-13
-- Źródła: briefy `.ai/specs/briefs/2026-11-13-meeting-notes-beyond-claude-A.md` i `-B.md`, brief `.ai/specs/briefs/2026-11-09-meeting-notes-dogfood.md`, research `.ai/specs/research/2026-11-13-meeting-notes-*.md`, specy `2026-11-03-meeting-notes`, `2026-11-04-notes-workspace`, `2026-11-06-meeting-segment-split`, `2026-11-06-meeting-speaker-names`, `2026-11-06-meeting-speaker-quality`, `2026-11-06-meeting-quality-harness`, `2026-11-10-external-ai-providers` (lokalny, nieśledzony)
+- Źródła: briefy `.ai/specs/briefs/2026-11-13-meeting-notes-beyond-claude-A.md` i `-B.md`, brief `.ai/specs/briefs/2026-11-09-meeting-notes-dogfood.md`, research `.ai/specs/research/2026-11-13-meeting-notes-*.md`, specy `2026-11-03-meeting-notes`, `2026-11-04-notes-workspace`, `2026-11-06-meeting-segment-split`, `2026-11-06-meeting-speaker-names`, `2026-11-06-meeting-speaker-quality`, `2026-11-06-meeting-quality-harness`, `2026-11-10-external-ai-providers` (nieaktualny, odświeżany w MEET-X.1)
 - Rozstrzygnięcia A vs B, wspólna oś czasu i zbiorcza lista pytań: `.ai/specs/backlog/2026-11-13-backlog-overview.md`
 - Stan kodu: zweryfikowany na `origin/main` (`3356906`) i w PR #63 (`gh pr view 63`, 2026-11-13). Lokalny checkout jest nieaktualny i nie był źródłem faktów.
 - Status: backlog gotowy do implementacji story po story. Kierunek **nie jest potwierdzony przez właściciela**; każda decyzja ma wartość domyślną w sekcji „Decyzje właściciela”.
@@ -293,7 +293,7 @@ Zależności z epikiem DICT: MEET-5.2 używa `TermReplacer` z `LintelCore` (DICT
 - **Plan testów:** testy sesji i resumera na katalogach tymczasowych (obie wartości klucza, trzy ścieżki `ready`); test wygasania z atrapą zegara; test usuwania; test dekodowania stanu; zrzuty panelu.
 - **Prywatność:** audio pozostaje w spoolu AES-GCM; nigdy jako plik jawny. Zmiana wartości domyślnej wymaga osobnej zgody właściciela.
 - **DoD:** wspólne DoD + `qa-approved` + drugi recenzent + zgoda właściciela w PR (§3) + nota wydania (§5).
-- **Start:** `om-auto-create-pr "MeetingsPlugin: opcja keepAudio (plugins.meetings.keepAudio domyślnie false, keptAudioDays 30, poprawione teksty użycia w InfoPlist.xcstrings), AudioState.kept na trzech ścieżkach ready, wygasanie w RetentionJob, przycisk Usuń zachowane nagrania w Prywatności, wpisy w BACKWARD_COMPATIBILITY.md §2 i §3, poprawka decyzji Q7 w specu spotkań; implementacja od nowa na main, szkic z worktree Pounce-keepaudio tylko jako odniesienie — Source doc: .ai/specs/backlog/2026-11-13-epic-meeting-notes-beyond-claude.md (story MEET-1.1)"`
+- **Start:** `om-auto-create-pr "MeetingsPlugin: opcja keepAudio (plugins.meetings.keepAudio domyślnie false, keptAudioDays 30, poprawione teksty użycia w InfoPlist.xcstrings), AudioState.kept na trzech ścieżkach ready, wygasanie w RetentionJob, przycisk Usuń zachowane nagrania w Prywatności, wpisy w BACKWARD_COMPATIBILITY.md §2 i §3, poprawka decyzji Q7 w specu spotkań; implementacja od nowa na main, szkic z lokalnego worktree Pounce-keepaudio, jeśli dostępny, tylko jako odniesienie — Source doc: .ai/specs/backlog/2026-11-13-epic-meeting-notes-beyond-claude.md (story MEET-1.1)"`
 
 ### MEET-1.2 — Harness: metryki deterministyczne transkryptu i mówców
 
@@ -825,14 +825,14 @@ Warunek wejścia: bramka MEET-0.3. Decyzja M-Q8 ⚠.
 ### MEET-X.1 — Odświeżenie specu dostawców zewnętrznych dla kroku pisania notatek
 
 - **Story:** Jako właściciel, dla spotkań niepoufnych, chcę móc świadomie użyć modelu z własnej subskrypcji do napisania notatki z lokalnego transkryptu, jeśli lokalny model przegrywa.
-- **Zależności:** **Warunek:** wynik MEET-0.2 uruchamia M-Q14. Spec `2026-11-10-external-ai-providers.md` jest lokalnym, nieśledzonym plikiem z nieaktualnymi nazwami (`Pounce*`), zajętym numerem ADR (0008) i nieaktualnym założeniem, że `NotesPipeline` nie istnieje.
+- **Zależności:** **Warunek:** wynik MEET-0.2 uruchamia M-Q14. Spec `2026-11-10-external-ai-providers.md` ma nieaktualne nazwy (`Pounce*`), zajętym numerem ADR (0008) i nieaktualnym założeniem, że `NotesPipeline` nie istnieje.
 - **Powierzchnie:** tylko spec (PR projektowy); implementacja osobnymi PR-ami według specu (nowy target dostawców, `TextGenerator`, `notesSource`).
 - **Etykiety:** `documentation`, `risk-low`, `skip-qa`, `priority-medium` · **Estymata:** S
 - **Kryteria akceptacji:**
   1. Given odświeżony spec, Then używa nazw `Lintel*`, wolnego numeru ADR i opisuje `NotesPipeline` jako istniejący; Faza 2 (notatki) jest wydzielona tak, by dało się ją wdrożyć przed dyktowaniem.
-  2. Given spec, Then zgoda jest per dostawca i per funkcja, wynik ma znacznik „wysłano do: X”, a spotkania można oznaczyć jako wykluczone z wysyłki.
+  2. Given spec, Then zgoda jest per dostawca i per funkcja, wynik ma znacznik „wysłano do: X”, a wysyłka jest włączana per spotkanie (domyślnie żadne spotkanie nie jest wysyłane), z przypomnieniem o zgodzie uczestników; tylko tak oznaczone spotkanie jest „niepoufne”.
   3. Given spec, Then mówi wprost, że do dostawcy trafia wyłącznie transkrypt spotkania, nigdy audio, notatki użytkownika z notatnika ani kontekst dyktowania (zasada epica DICT: kontekst nie opuszcza Maca).
-  4. Given PR-0, Then plik `2026-11-10-external-ai-providers.md` jest w repozytorium (dziś nieśledzony), inaczej świeży worktree go nie znajdzie.
+  4. Given PR-0, Then plik `2026-11-10-external-ai-providers.md` jest w repozytorium (spełnione przez PR-0, #72).
 - **Plan testów:** przegląd specu (`om-auto-review-pr`).
 - **Prywatność:** jawny wyjątek od lokalności; decyzja właściciela.
 - **DoD:** PR projektowy zmergowany.

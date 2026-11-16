@@ -64,7 +64,7 @@ Zgodne w obu briefach, przyjęte bez zmian: bez zrzutów ekranu i OCR; tryb pole
 | 12 | Strażniki nagrania | brak | zmiana częstotliwości, bufory zerowe, pętle powiadomień | zmiana częstotliwości już obsłużona; `audio_gap` to jedna flaga | **B w zawężeniu** do tego, czego brakuje (MEET-1.7) |
 | 13 | Limit 90 minut | pomiar, potem podniesienie albo okna | przypadek brzegowy | limit zgadnięty, benchmark nieuruchomiony | **A** (MEET-0.4 mierzy, MEET-3.4 zmienia) |
 | 14 | `words_json` | decyzja otwarta w specu | — | `v1-meetings` już zastosowana w bazie dogfood | **Nowa migracja** |
-| 15 | Jeśli Claude wygra porównanie | kierunek A′ wyprzedza Fazy 1–4 | dostawca jako opcja dla kroku pisania | spec dostawców nieaktualny i nieśledzony | **MEET-X.1 warunkowo**, tylko dla spotkań niepoufnych; Fazy 2–4 zostają |
+| 15 | Jeśli Claude wygra porównanie | kierunek A′ wyprzedza Fazy 1–4 | dostawca jako opcja dla kroku pisania | spec dostawców nieaktualny | **MEET-X.1 warunkowo**, tylko dla spotkań niepoufnych; Fazy 2–4 zostają |
 
 Zgodne w obu briefach, przyjęte bez zmian: nie gonić funkcji na żywo; bez odcisków głosu; notatnik hybrydowy jako własność `MeetingsPlugin`; eksport do folderu i MCP jako opt-in; modele tylko przez harness; nie powtarzać weryfikatora semantycznego i promptu v4.
 
@@ -74,7 +74,7 @@ Zgodne w obu briefach, przyjęte bez zmian: nie gonić funkcji na żywo; bez odc
 - „Strażnik zmiany częstotliwości próbkowania” w dużej części istnieje (`.formatChanged`, odtworzenie tap).
 - `audio_gap` nie nadaje się do pokazania luki w transkrypcie: to jedna flaga na spotkanie bez czytelnika.
 - Krok 1.3 specu `speaker-quality` (metryki mówców w kodzie) nie jest na `main`, choć zależą od niego dwie bramki.
-- `FluidAudio` jest przypięty z `traits: ["Diarizer"]`, nie `[]`; `MeetingsPlugin`, `NotesPlugin` i `WindowsPlugin` są zarejestrowane. `AGENTS.md` w lokalnym checkoucie tego nie odzwierciedla.
+- `FluidAudio` jest przypięty z `traits: ["Diarizer"]`, nie `[]`; `MeetingsPlugin`, `NotesPlugin` i `WindowsPlugin` są zarejestrowane.
 - Zmienne środowiskowe to `LINTEL_*`; usługa Pęku kluczy dyktowania to `com.lintelapp.dictation`.
 - Następny wolny numer ADR to 0010; numer 0007 jest użyty dwa razy. Spec dostawców rezerwuje zajęty 0008.
 - `markerTypes` jest na `PasteboardRepresentation`, nie na `PasteboardClient`.
@@ -160,7 +160,7 @@ Kolejność minimalizująca konflikty; pozycje w tym samym wierszu mogą być ot
 
 | # | PR | Uwagi |
 |---|---|---|
-| 0 | **PR-0** `docs(specs)`: briefy, research, ten backlog i nieśledzony spec `2026-11-10-external-ai-providers.md` w repozytorium | Tylko dokumentacja (`skip-qa`). Bez niego komendy `om-auto-create-pr … Source doc: …` nie znajdą plików w świeżym worktree. Przy okazji: poprawić nieaktualne zdania w `AGENTS.md` (rejestracja pluginów, `traits`) |
+| 0 | **PR-0** `docs(specs)`: briefy, research, ten backlog i nieśledzony spec `2026-11-10-external-ai-providers.md` w repozytorium | Tylko dokumentacja (`skip-qa`). Bez niego komendy `om-auto-create-pr … Source doc: …` nie znajdą plików w świeżym worktree. `AGENTS.md` jest już aktualny (rejestracja pluginów, `traits`) |
 | 1 | **PR #63** (MEET-0.1) | Czynność właściciela. Przed nim nic nie dotyka `Sources/MeetingsPlugin/Notes/`, `MeetingsSettings` ani tekstów spotkań |
 | 2 | DICT-0.1 (ADR 0010, linia bazowa) ∥ MEET-1.1 (`keepAudio`) | MEET-1.1 jak najwcześniej, żeby dogfood zasilał zbiór wzorcowy |
 | 3 | DICT-0.2 ∥ MEET-0.2 ∥ MEET-1.2 ∥ MEET-0.4 | sama dokumentacja i harness; ADR z MEET-0.2 jest potrzebny późniejszym wpisom (MEET-0.3, 1.5, 4.4) |
@@ -178,7 +178,7 @@ Kolejność minimalizująca konflikty; pozycje w tym samym wierszu mogą być ot
 | 15 | późniejsze: MEET-5.2 (po DICT-1.1 i MEET-5.1), MEET-6.1, MEET-6.2, MEET-4.4 (po zebraniu nagrań z notatnikiem) | zwykłe stories, tylko później w kolejce |
 | 16 | warunkowe albo zależne od decyzji: DICT-4.1, DICT-4.2, MEET-5.3, MEET-3.5, MEET-X.1; MEET-6.4 → 6.5 → 6.6 (M-Q12) | każda po spełnieniu własnego warunku |
 
-Otwarte PR-y niezwiązane: #69 (spec window management v2) i #61 (`do-not-merge`) nie kolidują z żadną story.
+Otwarte PR-y niezwiązane: #69 (spec window management v2, zmergowany) i #61 (`do-not-merge`) nie kolidują z żadną story.
 
 ## Zbiorcza lista pytań do właściciela
 
@@ -244,7 +244,7 @@ Wartość domyślna jest tą, pod którą backlog został napisany. ⚠ oznacza 
 
 ## Decyzje właściciela (2026-11-13)
 
-Odpowiedzi na pytania oznaczone ⚠. Pozostałe pytania przyjmują wartości domyślne z Epiców, dopóki właściciel ich nie zmieni.
+Odpowiedzi na pytania oznaczone ⚠. Pozostałe pytania przyjmują wartości domyślne z epików, dopóki właściciel ich nie zmieni.
 
 | Pytanie | Decyzja |
 |---|---|

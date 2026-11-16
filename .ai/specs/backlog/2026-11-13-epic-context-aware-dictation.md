@@ -133,6 +133,7 @@ flowchart TD
   D35 --> D36[DICT-3.6 dogfood]:::gate
   D23 --> D41[DICT-4.1 kandydaci z migawki, warunkowa]
   D11 --> D41
+  D24 --> D41
   D36 --> D42[DICT-4.2 CleanupPrompt v2, warunkowa]
 ```
 

@@ -1,5 +1,7 @@
 # Zewnętrzni dostawcy AI (subskrypcje Claude Code, Codex, Grok…) jako alternatywa dla wbudowanego LLM
 
+> Status: **nieaktualny, nie implementować.** Nazwy `Pounce*`, ADR 0008 zajęty; odświeżenie w MEET-X.1 (`.ai/specs/backlog/2026-11-13-epic-meeting-notes-beyond-claude.md`).
+
 ## 📝 TLDR
 
 Dziś każda funkcja AI w Pounce (formatowanie dyktowania, a wkrótce notatki ze spotkań) działa na wbudowanym modelu llama.cpp (3–19 GB) albo, w dyktowaniu, na serwerze na loopbacku. Na słabszym Macu albo bez miejsca na model te funkcje są niedostępne. Dodajemy opcjonalny **port „zewnętrzny dostawca”**: Pounce uruchamia jako podproces CLI, które użytkownik już ma i za które już płaci (Claude Code, Codex, potem Gemini CLI i Grok Build), na jego własnym logowaniu, a użytkownik wybiera model dostępny w swojej subskrypcji. Jest to świadome, jawne wyjątki od zasady „tekst nie opuszcza Maca”: wymaga zgody per dostawca i funkcja, jest oznaczone przy wyniku i domyślnie wyłączone.

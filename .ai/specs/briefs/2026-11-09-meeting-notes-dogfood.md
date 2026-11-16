@@ -40,4 +40,4 @@ Odrzucone: (a) ręcznie spisany złoty zbiór 3–5 spotkań (1–2 dni pracy u�
 ## Affected areas (if known)
 
 - `Sources/MeetingsPlugin/Export/MarkdownExporter.swift` (eksport `.md`, istnieje).
-- Dane i audyt: `/Users/mjozefiak/DeveloperTools/Pounce-eval-archive/audit/`.
+- Dane i audyt: `Pounce-eval-archive/audit/` (poza repozytorium).
