@@ -121,7 +121,8 @@ final class SettingsRig {
     init(
         settings: [String: SettingValue] = [:], access: MicrophoneAccess = .notDetermined,
         holdVerification: Bool = false,
-        openURL: @escaping @MainActor (URL) -> Void = { _ in }
+        openURL: @escaping @MainActor (URL) -> Void = { _ in },
+        accountName: String = ""
     ) throws {
         harness = try MeetingsHarness(settings: settings)
         verificationRelease = holdVerification ? Latch() : nil
@@ -166,7 +167,8 @@ final class SettingsRig {
             notes: NotesSettingsModel(
                 settings: meetingsSettings, service: notesService, manager: llmModels.manager, lease: LLMLease()),
             speechPackages: [models.package], authorizer: authorizer,
-            listDevices: { [.init(uid: "usb-1", name: "USB mic")] }, openURL: openURL)
+            listDevices: { [.init(uid: "usb-1", name: "USB mic")] }, openURL: openURL,
+            accountName: { accountName })
     }
 
     func setBusy(_ value: Bool) { busy.update { $0 = value } }

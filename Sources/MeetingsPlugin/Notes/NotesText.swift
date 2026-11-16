@@ -231,6 +231,22 @@ enum NotesText {
         return false
     }
 
+    /// Looser than `wordsMatch`, and only for measuring how much of a point's text its quote says, never for
+    /// accepting a quote, a name, a number or a date: the two words share their first five letters with
+    /// whatever ending (a verb in another person or tense: `zmergowano`/`zmergowałem`, `sprawdzić`/`sprawdzi`),
+    /// or a four-letter word is the start of the other (`plan`/`planu`, `zrób`/`zrobić`). Words with a digit,
+    /// number words, weekdays and months never match this way.
+    static func sharesStem(_ first: String, _ second: String) -> Bool {
+        if first.contains(where: \.isNumber) || second.contains(where: \.isNumber) { return false }
+        if isNumberWord(first) || isNumberWord(second) { return false }
+        if Temporal.group(of: first) != nil || Temporal.group(of: second) != nil { return false }
+        let a = Array(first)
+        let b = Array(second)
+        let shorter = min(a.count, b.count)
+        guard shorter >= 4 else { return false }
+        return sharedPrefix(a, b) >= min(5, shorter)
+    }
+
     /// `marek` → `mark`: the `e` that drops out in `Marka`, `Markowi`.
     private static func elided(_ name: String) -> String {
         name.hasSuffix("ek") && name.count > 3 ? String(name.dropLast(2)) + "k" : name

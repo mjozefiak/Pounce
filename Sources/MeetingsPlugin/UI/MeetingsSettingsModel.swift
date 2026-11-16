@@ -29,6 +29,10 @@ final class MeetingsSettingsModel {
     }
     /// A shorter retention waiting for the user's confirmation, with how many meetings it deletes now.
     private(set) var pendingRetention: PendingRetention?
+    /// The saved "Your name" (empty when unset). Change it through `saveSelfName(_:)`.
+    private(set) var selfName: String
+    /// Why the last typed name was not saved; cleared by the next save.
+    private(set) var selfNameError: MeetingsSettings.SelfNameError?
     private(set) var privacyMessage: String?
     private(set) var privacyFailed = false
     /// "Podpowiedzi spotkań" (Phase 3). Turning it on or off starts or stops the detector
@@ -64,6 +68,7 @@ final class MeetingsSettingsModel {
     @ObservationIgnored private let authorizer: any MicrophoneAuthorizer
     @ObservationIgnored private let listDevices: () -> [MicrophoneCapture.InputDevice]
     @ObservationIgnored private let openURL: @MainActor (URL) -> Void
+    @ObservationIgnored private let accountName: () -> String
 
     init(
         settings: MeetingsSettings, library: MeetingsLibrary, privacy: MeetingsPrivacyActions,
@@ -71,7 +76,8 @@ final class MeetingsSettingsModel {
         notes: NotesSettingsModel, speechPackages: [ModelPackage] = ModelCatalog.all,
         authorizer: any MicrophoneAuthorizer,
         listDevices: @escaping () -> [MicrophoneCapture.InputDevice] = MicrophoneCapture.inputDevices,
-        openURL: @escaping @MainActor (URL) -> Void
+        openURL: @escaping @MainActor (URL) -> Void,
+        accountName: @escaping () -> String = { NSFullUserName() }
     ) {
         self.settings = settings
         self.library = library
@@ -84,11 +90,13 @@ final class MeetingsSettingsModel {
         self.authorizer = authorizer
         self.listDevices = listDevices
         self.openURL = openURL
+        self.accountName = accountName
         speechPackageID = speech.package.id
         inputDevice = settings.inputDevice
         voiceProcessing = settings.voiceProcessing
         consentReminder = settings.consentReminder
         retentionDays = settings.retentionDays
+        selfName = settings.selfName
         suggestMeetings = settings.suggestMeetings
         reloadSuggestionLists()
         speech.onLocationChange = { [weak self] in self?.onStatusChange?() }
@@ -154,6 +162,35 @@ final class MeetingsSettingsModel {
     func openSystemAudioSettings() {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AudioCapture") {
             openURL(url)
+        }
+    }
+
+    // MARK: Your name
+
+    /// The first word of the macOS account's full name, offered as "Use: <name>" when it is a valid name that
+    /// is not the saved one. Nothing is saved until the user clicks it.
+    var suggestedSelfName: String? {
+        guard let word = accountName().split(whereSeparator: \.isWhitespace).first.map(String.init),
+            case .success(let name) = MeetingsSettings.validatedSelfName(word), !name.isEmpty, name != selfName
+        else { return nil }
+        return name
+    }
+
+    /// Saves the typed name (the field's submit, or the suggestion's button). A generic word or a name over
+    /// 60 characters is rejected and `selfNameError` says why; an empty one clears the name. When the saved
+    /// value changes, the notes that used it are marked `stale` so the user regenerates them.
+    @discardableResult
+    func saveSelfName(_ text: String) -> Bool {
+        switch settings.setSelfName(text) {
+        case .failure(let error):
+            selfNameError = error
+            return false
+        case .success(let name):
+            selfNameError = nil
+            guard name != selfName else { return true }
+            selfName = name
+            try? library.store?.markNotesStaleForSelfName()
+            return true
         }
     }
 

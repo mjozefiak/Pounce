@@ -79,13 +79,13 @@ import Testing
     @Test func theSessionWritesSourceBundleIDOnlyWhenGiven() async throws {
         let rig = try SessionRig()
         let silent = TrackScript()
-        let withApp = rig.session(mic: silent, system: nil, sourceBundleID: "us.zoom.xos")
+        let withApp = rig.session(mic: silent, system: nil, clock: TestClock(), sourceBundleID: "us.zoom.xos")
         let first = try await withApp.start()
         #expect(try sourceBundleID(rig, first) == "us.zoom.xos")
         rig.mic.end()
         _ = await withApp.finish()
 
-        let without = rig.session(mic: silent, system: nil)
+        let without = rig.session(mic: silent, system: nil, clock: TestClock())
         let second = try await without.start()
         #expect(try sourceBundleID(rig, second) == nil)
         rig.mic.end()

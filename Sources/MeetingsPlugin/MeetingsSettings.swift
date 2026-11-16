@@ -24,6 +24,7 @@ struct MeetingsSettings: Sendable {
         static let suggestExtraBundleIDs = "suggestExtraBundleIDs"
         static let retentionDays = "retentionDays"
         static let orphanAudioDays = "orphanAudioDays"
+        static let selfName = "selfName"
     }
 
     static let defaultSpeechModel = "parakeet-ultra"
@@ -104,6 +105,47 @@ struct MeetingsSettings: Sendable {
 
     var notesReduceInputTokens: Int {
         max(1, settings.integer(Key.notesReduceInputTokens, default: Self.defaultNotesReduceInputTokens))
+    }
+
+    // MARK: Your name
+
+    /// The longest name the field accepts.
+    static let maximumSelfNameLength = 60
+
+    /// Why a typed name is not saved.
+    enum SelfNameError: Error, Equatable, Sendable {
+        /// A word the notes cannot use as a person ("I", "Speaker 1", "On"; `NotesGuard.isGenericLabel`).
+        case generic
+        case tooLong
+    }
+
+    /// The name of the person who records, as the notes call them; empty when unset. Read through the same
+    /// validation as a save, so a hand-edited preference cannot put a generic word or a long text in the prompt.
+    var selfName: String {
+        guard let stored = settings.string(Key.selfName),
+            case .success(let name) = Self.validatedSelfName(stored)
+        else { return "" }
+        return name
+    }
+
+    /// The trimmed name, or the reason it is rejected. Empty is valid: it clears the setting.
+    static func validatedSelfName(_ text: String) -> Result<String, SelfNameError> {
+        let name = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if name.isEmpty { return .success("") }
+        if name.count > maximumSelfNameLength { return .failure(.tooLong) }
+        if NotesGuard.isGenericLabel(name) { return .failure(.generic) }
+        return .success(name)
+    }
+
+    /// Saves the name when it passes `validatedSelfName(_:)`; an empty one removes the setting. A rejected
+    /// name changes nothing.
+    @discardableResult
+    func setSelfName(_ text: String) -> Result<String, SelfNameError> {
+        let result = Self.validatedSelfName(text)
+        if case .success(let name) = result {
+            if name.isEmpty { settings.removeValue(for: Key.selfName) } else { settings.set(name, for: Key.selfName) }
+        }
+        return result
     }
 
     // MARK: Meeting suggestions

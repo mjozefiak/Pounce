@@ -333,6 +333,24 @@ extension MeetingsStore {
         }
     }
 
+    /// The owner's name changed (`plugins.meetings.selfName`): the notes of every meeting that shows it become
+    /// `stale`, in one transaction. That is a diarized meeting with notes (or notes being written) whose
+    /// `is_self` speaker still has the default label `SpeakerLabels.me`; any other meeting never used the name.
+    func markNotesStaleForSelfName() throws {
+        try write { db in
+            try db.execute(
+                sql: """
+                    UPDATE meeting SET notes_status = 'stale'
+                    WHERE (notes_markdown IS NOT NULL OR notes_status = 'running')
+                        AND speaker_mode = ?
+                        AND EXISTS (
+                            SELECT 1 FROM meeting_speaker
+                            WHERE meeting_speaker.meeting_id = meeting.id AND is_self = 1 AND label = ?)
+                    """,
+                arguments: [SpeakerMode.diarized.rawValue, SpeakerLabels.me])
+        }
+    }
+
     /// Deletes meetings; their speakers and segments go with them (`ON DELETE CASCADE`).
     func deleteMeetings(_ ids: [Int64]) throws {
         guard !ids.isEmpty else { return }

@@ -21,6 +21,7 @@ import Testing
         "suggestMutedBundleIDs": "setSuggestMutedBundleIDs",
         "suggestExtraBundleIDs": "setSuggestExtraBundleIDs",
         "retentionDays": "setRetentionDays",
+        "selfName": "setSelfName",
     ]
 
     /// Keys with no pane control, each with the reason. The prototype figure `set-meetings` shows no control for
@@ -68,6 +69,7 @@ import Testing
                 "suggestMutedBundleIDs": "model.unmute(",
                 "suggestExtraBundleIDs": "model.addExtraApp(",
                 "retentionDays": "model.selectRetention(",
+                "selfName": "model.saveSelfName(",
             ]
         )
     ]
