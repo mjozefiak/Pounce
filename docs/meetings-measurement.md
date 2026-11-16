@@ -5,7 +5,7 @@ This is a procedure for the owner. It records **no results**. The `Measured` col
 (`.ai/specs/backlog/2026-11-13-epic-meeting-notes-beyond-claude.md`) stays open until then.
 
 Sources: the MEET-0.4 acceptance criteria, `docs/perf.md` (sections Meeting diarization, Meetings, Meeting notes),
-`docs/qa.md` (Meetings audio sources, Meeting notes, Meetings: owner manual test plan) and step 1.12 of
+`docs/qa.md` (Meetings audio sources, "Meeting notes (Phase 2)", Meetings: owner manual test plan) and step 1.12 of
 `.ai/specs/2026-11-03-meeting-notes.md`.
 
 ## Rules
@@ -36,9 +36,10 @@ open dist/Lintel.app                # then Settings: Meetings on, microphone and
 
 Models (Settings → Models, all downloaded by the app, nothing by hand): the speech model `parakeet-ultra`, the
 diarization model `diarization-community-1` and the notes model (`Qwen3-4B-Instruct-2507-Q4_K_M.gguf`, 2.5 GB; the
-30B-A3B file is 18.6 GB and only fits a large Mac). They live in `~/Library/Application Support/Lintel/Models/{speech,llm,diarization}/`;
+30B-A3B file is 18.6 GB and only fits a large Mac). They live in `~/Library/Application Support/Lintel/Models/{speech,llm,diarization}/`, each in a folder named after
+its package id (the notes model is `Models/llm/llm-qwen3-4b-instruct-2507-q4km/Qwen3-4B-Instruct-2507-Q4_K_M.gguf`);
 list the exact folders with `ls`, the benchmarks below take those paths. Record the model file name and its SHA-256
-(`shasum -a 256 <file>`; for the GGUF compare with the catalog in `Sources/LintelSpeech/ModelCatalog.swift`).
+(`shasum -a 256 <file>`; for the GGUF compare with the catalog in `Sources/LintelSpeech/LLMModelCatalog.swift`).
 
 ### Running one test suite in a release build
 
@@ -50,13 +51,14 @@ root:
 ```sh
 swift build -c release -Xswiftc -enable-testing --product MeetingsPluginTests
 bundle="$(find .build -path '*Release/MeetingsPluginTests.xctest' -maxdepth 6 -print -quit)"
-dev="$(xcode-select -p)"
+dev="${DEVELOPER_DIR:-$(xcode-select -p)}"
 helper="$dev/Toolchains/XcodeDefault.xctoolchain/usr/libexec/swift/pm/swiftpm-testing-helper"
 platform="$dev/Platforms/MacOSX.platform/Developer"
 stage="$(mktemp -d)"; cp "$helper" "$stage/eval-runner"; ln -s "$PWD/$bundle" "$stage/eval.xctest"   # neutral names, see run.sh
-# then, with the LINTEL_* variables of the section in front of it:
-env DYLD_FRAMEWORK_PATH="$platform/Library/Frameworks" DYLD_LIBRARY_PATH="$platform/usr/lib" \
-  /usr/bin/time -l "$stage/eval-runner" --test-bundle-path "$stage/eval.xctest/Contents/MacOS/MeetingsPluginTests" \
+# then, with the LINTEL_* variables of the section after `env`. /usr/bin/time goes FIRST: it is protected by SIP,
+# which removes every DYLD_* variable from its environment, so they must be set by `env` after it:
+/usr/bin/time -l env DYLD_FRAMEWORK_PATH="$platform/Library/Frameworks" DYLD_LIBRARY_PATH="$platform/usr/lib" \
+  "$stage/eval-runner" --test-bundle-path "$stage/eval.xctest/Contents/MacOS/MeetingsPluginTests" \
   --testing-library swift-testing --filter '<SuiteName>' 2>&1 | tee run.log
 ```
 
@@ -74,10 +76,10 @@ Run each scenario once with the app from section 0, with the System Audio Record
 | S1 | Zoom call (desktop app) | Join a call with one other person, both speak for 2 min. Start with ⌃⌥M, stop with ⌃⌥M. | |
 | S2 | Google Meet (Chrome or Safari) | Same in a browser tab. Note the browser. | |
 | S3 | Microsoft Teams | Same. | |
-| S4 | Talk in a room | Microphone only, 2 people in the room, no call. System track is expected to stay silent ("Mówca 1" label when only the microphone spoke, `docs/perf.md`). | |
+| S4 | Talk in a room | Microphone only, 2 people in the room, no call. The system track is expected to stay silent. With diarization working the two people get "Mówca 1" and "Mówca 2" (no "Ja"); a single "Mówca 1" means diarization did not run (`docs/perf.md`), note which. | |
 | S5 | Bluetooth headphones, one route | AirPods or another headset, a call, 2 min. | |
 | S6 | Bluetooth A2DP → HFP switch | Headset connected, start playing audio (A2DP), start the recording, then open a call so the headset goes to HFP, speak on both sides; do it twice and once with the headset connecting while nothing plays (`docs/qa.md` Bluetooth item: the system track must continue within about a second, the gap is silent, the times of the two tracks stay aligned; check "Audio MIDI Setup" for no leftover "Lintel meeting tap" device afterwards). | |
-| S7 | Speakers, no headphones | A call through the Mac speakers. The same sentence must not appear on both tracks (`EchoSuppressor`). Repeat once with `plugins.meetings.voiceProcessing` on (it is off by default; the spec asks the measurement for it, step 1.12). | |
+| S7 | Speakers, no headphones | A call through the Mac speakers. The same sentence must not appear on both tracks (`EchoSuppressor`). The spec (step 1.12) also asks for a run with `plugins.meetings.voiceProcessing` on, but no capture code reads that setting yet (`docs/qa.md` owner plan item 3: "not wired yet"), so a second run would measure nothing: write "voiceProcessing: not wired" in the result and see the gap list, item 10. | |
 
 Result codes: **both** = both tracks recorded and the transcript has both sides; **gap** = a track is missing audio
 for part of the call (note the number of gaps and the total seconds from listening to the meeting window against the
@@ -124,7 +126,7 @@ du -sh ~/Library/Application\ Support/Lintel/Plugins/meetings/Spool     # every 
 whole run:
 
 ```sh
-top -l 360 -s 5 -pid "$pid" -stats pid,cpu,mem | grep -E "^$pid" > cpu.log     # 30 min of 5 s samples; average the cpu column
+top -l 361 -s 5 -pid "$pid" -stats pid,cpu,mem | grep -E "^$pid" > cpu.log     # 30 min of 5 s samples; drop the first line (always 0 %), average the cpu column
 ```
 
 Also compare the transcribed length with the elapsed time at Stop (the meeting window's last time vs the clock).
@@ -134,8 +136,10 @@ Also compare the transcribed length with the elapsed time at Stop (the meeting w
 "finishing". Count frames in the recording and report seconds. Repeat for the 1 h meeting and for the 3 h one. Note that
 the automatic stop at 3 h is a separate path; measure at least one manual Stop on a long meeting (2 h 50 min or more).
 
-**Memory at rest after models are released (< 150 MB):** after the meeting is `ready` and the keep-warm time has passed
-(60 s for the notes model, longer for speech if the setting is changed), `footprint "$pid"`.
+**Memory at rest after models are released (< 150 MB):** after the meeting is `ready` and both keep-warm times have
+passed, `footprint "$pid"`. The meetings speech engine stays warm a fixed 600 s after its last use
+(`MeetingSession`, no setting), the notes model 60 s after the notes are written; so wait at least 10 minutes after
+`ready` and 60 s after the notes, whichever ends later.
 
 **Diarization in the app after Stop.** Tracks longer than 90 minutes are not diarized (`DiarizationBudget`, the meeting
 gets "Ja" / "Inni"). A 3 h meeting therefore will not be diarized in the app until the cap is changed (a code change
@@ -193,9 +197,11 @@ export LINTEL_DIARIZATION_BENCH_AUDIO=/path/to/60min.wav        # then 90min.wav
 
 Take **time** from the `DIARIZATION:` line. Take **peak memory** from `/usr/bin/time -l` of the whole process
 ("peak memory footprint", bytes) and from the line's `during` value. The `during` value is read once after
-the call returns, not a peak (see the gap list, item 3). Peak of the process also includes the test's own copy of the
-audio (the whole WAV as `Data` and as `Float` samples, about 1 GB at 180 min), which the app does not hold (it keeps
-`Int16`, 346 MB at 180 min). Record the audio buffer size next to the peak and say so in the table.
+the call returns, not a peak (see the gap list, item 3). Peak of the process also includes the test's own copies of the
+audio, which the app does not hold: while the WAV is decoded the test holds two byte copies and the `Float` samples
+(about 1.7 GB at 180 min for 16-bit audio), and during the diarization call the `Float` samples (691 MB) plus the
+diarizer's own `Int16` buffer (346 MB at 180 min, one track). The `/usr/bin/time -l` peak may therefore be set by the
+decoding, not by the diarization. Record the audio buffer sizes next to the peak and say so in the table.
 
 Results table (fills the Diarization row and the Diarization row of Meetings in `docs/perf.md`):
 
@@ -228,7 +234,8 @@ export LINTEL_NOTES_LONG_REPEAT=20
 Per Mac and per model:
 
 1. **Cold** run (right after a reboot or after `sudo purge`): `aLongMeetingOnARealModel`. Write down `seconds`, `chunks`.
-2. **Warm** run: the same command again. Write down `seconds`.
+2. **Warm** run: the same command again. Write down `seconds`. It is a new process, so only the file cache is warm,
+   not the loaded model (`docs/perf.md` says the same).
 3. **Corpus** once (`theCorpusOnARealModel`, five short cases): the lines go in the table as they are.
 4. **Peak memory.** The test prints only the footprint before and after, not the peak. Run the section 0 recipe's
    `/usr/bin/time -l` (peak memory footprint of the whole run) and, in a second terminal,
@@ -240,7 +247,7 @@ Per Mac and per model:
    screen recording again, report seconds from the key release to the paste.
 7. **Weakest Mac, 4B model only**, the 1 h case, and whether 8 min holds.
 
-Budget check: Meetings acceptance criterion 2 asks "notes for one hour at most 8 min"; the `docs/perf.md` row says
+Budget check: MEET-0.4 acceptance criterion 2 asks "notes for one hour at most 8 min"; the `docs/perf.md` row says
 about 1 to 2 min on an M4 Max, aim 8 min or less on a weaker Mac.
 
 | Mac | Model file (SHA-256 first 12) | Case | chunks | Cold s | Warm s | status | points | dropped | failedChunks | reduceFailed | footprintBeforeMB | footprintAfterMB | Peak footprint (MB, `/usr/bin/time -l`) | Over 8 min (issue #) |
@@ -278,16 +285,17 @@ Done by a later PR once the tables above are filled. This PR leaves every `Measu
 | Section 5 | The remaining Meetings rows |
 
 Also update, with the numbers: the "Nothing in this table has been measured yet" and "Not yet measured" paragraphs of
-`docs/perf.md`, the 90 minute cap note in ADR 0007 (`docs/decisions/0007-meeting-spike.md`, "3 h diarization is NOT yet
-measured", item 3) and `docs/qa.md` owner plan items 5 and 6. A figure above its budget is an issue, referenced from
+`docs/perf.md`, the 90 minute cap note in ADR 0007 (`docs/decisions/0007-meeting-spike.md`, section "Memory budget (UNMEASURED)":
+"3 h diarization is NOT yet measured", and results row 3) and `docs/qa.md` owner plan items 5 and 6. A figure above its budget is an issue, referenced from
 the cell; the budget stays.
 
 ## 7. Gaps: what the existing tools cannot measure
 
 1. **No signposts.** `docs/perf.md` (Meetings, "Shortcut to the visible HUD…") says "signposts of `MeetingController`".
-   There are none: `grep -rn signpost Sources/MeetingsPlugin` finds nothing. The only logs are `Meeting recording
-   started` / `ended` (`MeetingController`), `Meeting finished: <n> segments, <s> s` (`MeetingSession`), `Audio track
-   <channel> ended` and the diarization lines (`MeetingFinalizer`). There is no log of the Stop key, of the first
+   There are none: `grep -rn signpost Sources/MeetingsPlugin` finds nothing. The logs that touch these rows are
+   `Meeting recording started` / `ended` (`MeetingController`), `Meeting finished: <n> segments, <s> s`, `Audio track
+   <channel> ended`, `did not start` and `stalled` (`MeetingSession`) and the diarization lines (`MeetingFinalizer`).
+   There is no log of the Stop key, of the first
    buffer of each track, or of the HUD leaving `finishing`. So start latency, per-track start and the tail after Stop are
    measured from a screen recording (frame counting), with a resolution of one frame (about 17 ms at 60 fps). Adding
    signposts is a code change and is not part of this story.
@@ -310,6 +318,8 @@ the cell; the budget stays.
    Use a recording that exists as a file (or the QA WAV options), not the spool of a real meeting.
 7. **No automated gap count.** Gap detection in the transcript is a later story (MEET-1.7); until then the "gap" result
    of section 1 is from listening and the clock.
-8. **`swift test -c release`** does not link here per `run.sh` and `docs/perf.md` (Windows plugin row); the recipe in
-   section 0 is the workaround and has not been run while writing this document.
+8. **`swift test -c release`** does not link here per `run.sh` and `docs/perf.md` (the paragraph under "Window
+   management"); the recipe in section 0 is the workaround and has not been run while writing this document.
 9. **Weakest Mac.** The repository cannot say which one it is; the owner names it in the table.
+10. **`voiceProcessing` is not wired.** `plugins.meetings.voiceProcessing` is read only by the settings pane, not by
+    the capture, so the on/off comparison of step 1.12 (scenario S7) cannot be measured until a later story wires it.
