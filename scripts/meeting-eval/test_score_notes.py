@@ -58,6 +58,28 @@ class MatchingTests(unittest.TestCase):
         pairs = sn.match_pairs(["a b c", "a b c d"], ["a b c d"], threshold=0.5)
         self.assertEqual(pairs, [(1, 0)])
 
+    def test_maximum_matching_beats_greedy(self):
+        # sim(g0,n0)=0.9 sim(g0,n1)=0.6 sim(g1,n0)=0.8 sim(g1,n1)=0.0 (below threshold).
+        # Greedy takes g0-n0 first and leaves g1 unmatched (1 pair); maximum matching is g0-n1, g1-n0 (2 pairs).
+        table = {("g0", "n0"): 0.9, ("g0", "n1"): 0.6, ("g1", "n0"): 0.8, ("g1", "n1"): 0.0}
+        pairs = sn.match_pairs(["g0", "g1"], ["n0", "n1"], similarity=lambda g, n: table[(g, n)])
+        self.assertEqual(pairs, [(0, 1), (1, 0)])
+
+    def test_cardinality_wins_over_total_similarity_and_ties_by_index(self):
+        # one pair at 0.95 vs two pairs at 0.5 each: two pairs win.
+        table = {("g0", "n0"): 0.95, ("g0", "n1"): 0.5, ("g1", "n0"): 0.5, ("g1", "n1"): 0.0}
+        sim = lambda g, n: table[(g, n)]
+        self.assertEqual(sn.match_pairs(["g0", "g1"], ["n0", "n1"], similarity=sim), [(0, 1), (1, 0)])
+        # equal similarity everywhere: deterministic and stable across calls.
+        flat = lambda g, n: 1.0
+        first = sn.match_pairs(["a", "b", "c"], ["x", "y"], similarity=flat)
+        self.assertEqual(len(first), 2)
+        self.assertEqual(first, sn.match_pairs(["a", "b", "c"], ["x", "y"], similarity=flat))
+
+    def test_empty_inputs(self):
+        self.assertEqual(sn.match_pairs([], ["a"]), [])
+        self.assertEqual(sn.match_pairs(["a"], []), [])
+
     def test_custom_matcher_is_used(self):
         pairs = sn.match_pairs(["x"], ["y"], similarity=lambda g, n: 1.0)
         self.assertEqual(pairs, [(0, 0)])
