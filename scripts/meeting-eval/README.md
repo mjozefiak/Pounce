@@ -54,3 +54,28 @@ A missing or invalid field is reported as `<field path>: <reason>`, for example 
 ### Dataset target
 
 Three meetings from dogfooding, at least two in Polish and at least one with English terms. Each must pass the validator before the baseline (MEET-1.5) is measured.
+
+## Note metrics (MEET-1.4, part 1)
+
+`score_notes.py` measures notes against a gold entry with code, not a judge. Output is numbers and meeting ids only.
+
+```sh
+python3 -I scripts/meeting-eval/score_notes.py score --gold <entry.json> --notes <notes.json> [--out scored.json]
+python3 -I scripts/meeting-eval/score_notes.py compare --baseline <runs.json> --candidate <runs.json> --metric coverage
+```
+
+`notes.json` (schema 1): `{"schema": 1, "meeting": "<id>", "points": [{"kind": "summary|key_point|decision|task|question", "text", "owner", "due", "quote": {"text", "time"} | null}]}`. `owner` and `due` belong to tasks.
+
+| Metric | Meaning |
+|---|---|
+| `coverage` | gold key points and decisions matched one-to-one by a note point (questions never match) |
+| `quoteConfirmedShare` | note points (not questions) whose quote occurs, token for token, inside one gold transcript segment |
+| `taskF1` | gold tasks vs note tasks matched by text; level `task` = the match, `owner` = and the same owner, `due` = and the same owner and due |
+
+Matching is lexical (Dice over the Polish-normalized tokens of `score.py`, threshold 0.5): a deterministic proxy. Every function takes a `similarity` argument, so the judge panel (part 2) plugs a semantic matcher into the same seam.
+
+`compare` takes two JSON lists of runs (each run `{meeting id: score result}`), at least 3 per variant, paired on the same meetings. It says `above-noise` only when the mean paired difference exceeds the measured run-to-run spread (the larger standard deviation of the two variants, averaged over meetings); otherwise `within-noise`, or `insufficient-runs`.
+
+`require_local_judge(entry, judge_is_local)` raises `ConsentError` for a non-local judge unless the entry has `participants_agreed` and `cloud_judges` both true.
+
+Not here yet (part 2): the local judge panel, repeats for disputed matches and the spread between repeats.
