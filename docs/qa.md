@@ -675,6 +675,8 @@ QA items listed in the PR body.
 
 ## Meetings: owner manual test plan (hardware, permissions, real apps)
 
+The measurement procedure for the budgets and the real-app scenarios (tables to fill, exact commands) is `docs/meetings-measurement.md`.
+
 Nothing below was run by the implementing agents: they have no microphone, no System Audio Recording consent,
 no real meeting apps, no Bluetooth gear and no long-running soak. Always launch with the isolating `--qa…`
 options from this file unless the item says it needs real data (then use a throwaway macOS user or accept
