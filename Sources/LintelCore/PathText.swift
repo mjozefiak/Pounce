@@ -1,6 +1,7 @@
 import Foundation
 
-/// Path string helpers that never touch the file system.
+/// Path string helpers that never touch the file system. `FilesPlugin` adds `expand`, which may (it
+/// standardises through `NSString.standardizingPath`, which asks the file system about `/private`).
 public enum PathText {
     /// `/a` + `b` = `/a/b`.
     public static func join(_ base: String, _ component: String) -> String {
@@ -24,23 +25,6 @@ public enum PathText {
         if ancestor == path { return true }
         if ancestor == "/" { return path.hasPrefix("/") }
         return path.hasPrefix(ancestor + "/")
-    }
-
-    /// Expands `~`, standardises the path and drops a trailing slash. Returns `nil` for a relative path.
-    public static func expand(_ text: String, home: String) -> String? {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        let absolute: String
-        if trimmed == "~" {
-            absolute = home
-        } else if trimmed.hasPrefix("~/") {
-            absolute = home + trimmed.dropFirst()
-        } else if trimmed.hasPrefix("/") {
-            absolute = trimmed
-        } else {
-            return nil
-        }
-        let standardized = (absolute as NSString).standardizingPath
-        return standardized.isEmpty ? nil : standardized
     }
 
     /// Replaces the home folder with `~`, for display.
