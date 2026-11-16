@@ -20,6 +20,8 @@ risk-high: retencja, format na dysku, nowy klucz ustawień. Nowy wiersz ustawie�
 
 ## Progress
 
+PR: #80
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Rdzeń
@@ -31,4 +33,4 @@ risk-high: retencja, format na dysku, nowy klucz ustawień. Nowy wiersz ustawie�
 - [x] 2.1 Panel Prywatność (przełącznik, licznik, przycisk, arkusz)
 - [x] 2.2 Teksty en/pl i InfoPlist
 - [x] 2.3 BACKWARD_COMPATIBILITY, AGENTS.md, spec Q7
-- [ ] 2.4 Pełna bramka i zrzuty QA
+- [x] 2.4 Pełna bramka i zrzuty QA
