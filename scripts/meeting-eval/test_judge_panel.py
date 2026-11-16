@@ -170,6 +170,23 @@ class ProtocolTests(unittest.TestCase):
             jp.judges_from_config({"judges": [{"name": "a"}]}, "p")
         with self.assertRaises(jp.PanelError):
             jp.judges_from_config({}, "p")
+        base = {"name": "a", "family": "qwen", "local": True, "argv": ["x"]}
+        for bad in ("300", -1, 0, True):  # timeout must be a positive number, not a crash in subprocess
+            with self.assertRaises(jp.PanelError):
+                jp.judges_from_config({"judges": [dict(base, timeout=bad)]}, "p")
+        with self.assertRaises(jp.PanelError):
+            jp.judges_from_config({"judges": [dict(base, argv=["x", 1])]}, "p")
+        for bad in (-0.1, 1.5, "0.2", None):
+            with self.assertRaises(jp.PanelError):
+                jp.judges_from_config({"candidate_floor": bad, "judges": [base]}, "p")
+        judges, repeats, floor = jp.judges_from_config({"judges": [dict(base, timeout=12.5)]}, "p")
+        self.assertEqual((judges[0].timeout, repeats, floor), (12.5, 5, 0.15))
+
+    def test_candidate_floor_zero_asks_every_pair(self):
+        # "alfa beta" vs "gamma delta": Dice 0, skipped at the default floor, asked at floor 0.
+        p = jp.Panel(GOLD, [Scripted("a", "qwen", yes), Scripted("b", "llama", yes)], floor=0)
+        self.assertEqual(p.similarity("alfa beta", "gamma delta"), 1.0)
+        self.assertEqual((p.calls, p.report()["candidateFloor"]), (2, 0))
 
 
 class CliTests(unittest.TestCase):
@@ -214,6 +231,23 @@ class CliTests(unittest.TestCase):
         self.assertIn("syn-1", err)
         self.assertNotIn("sqlite", out + err)
 
+    def test_isolated_mode_cli_starts_from_another_folder(self):
+        # `python3 -I` (as documented) drops the script folder from sys.path; both tools must still import.
+        import subprocess
+        here = os.path.dirname(os.path.abspath(jp.__file__))
+        for tool in ("judge_panel.py", "score_notes.py"):
+            done = subprocess.run([sys.executable, "-I", os.path.join(here, tool), "--help"], cwd=self.tmp.name,
+                                  capture_output=True, text=True, timeout=60)
+            self.assertEqual(done.returncode, 0, tool + ": " + done.stderr[-300:])
+        cfg = self.write("j.json", {"judges": [self.judge("a", "qwen"), self.judge("b", "llama")]})
+        notes = self.write("n.json", {"schema": 1, "meeting": "syn-1", "points": [
+            {"kind": "decision", "text": N, "owner": None, "due": None, "quote": None}]})
+        done = subprocess.run([sys.executable, "-I", os.path.join(here, "judge_panel.py"), "score", "--gold",
+                               self.write("g.json", GOLD), "--notes", notes, "--judges", cfg],
+                              cwd=self.tmp.name, capture_output=True, text=True, timeout=60)
+        self.assertEqual(done.returncode, 0, done.stderr[-300:])
+        self.assertIn("100.0% (1/1)", done.stdout)
+
     def test_missing_config_exits_2(self):
         with contextlib.redirect_stderr(io.StringIO()), mock.patch.dict(os.environ, {}, clear=False):
             os.environ.pop(jp.JUDGES_ENV, None)
@@ -226,8 +260,8 @@ class RealJudgeTests(unittest.TestCase):
 
     def test_identical_matches_and_different_does_not(self):
         with open(os.environ[jp.JUDGES_ENV], encoding="utf-8") as f:
-            judges, repeats = jp.judges_from_config(json.load(f), jp.load_match_prompt())
-        p = jp.Panel(GOLD, judges, repeats)
+            judges, repeats, floor = jp.judges_from_config(json.load(f), jp.load_match_prompt())
+        p = jp.Panel(GOLD, judges, repeats, floor)
         self.assertGreater(p.similarity("Anna przygotuje raport kwartalny do piątku", "Anna przygotuje raport kwartalny do piątku"), 0.5)
         self.assertEqual(p.similarity("Anna przygotuje raport kwartalny do piątku", "Budżet na marketing wynosi dwa tysiące złotych"), 0.0)
 

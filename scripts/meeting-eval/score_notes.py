@@ -24,9 +24,13 @@ needs a semantic judgement, the judge panel (part 2) passes its own matcher to t
 import argparse
 import json
 import math
+import os
 import sys
 
-import score
+# `python3 -I` leaves the script's folder out of sys.path; put back only this folder, never the working directory.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+import score  # noqa: E402
 
 SCHEMA = 1
 MATCH_THRESHOLD = 0.5
@@ -95,7 +99,7 @@ def _assign(weights):
     return col_of_row
 
 
-_CARDINALITY = 10 ** 9  # larger than any sum of scaled similarities, so cardinality always wins
+_SCALE = 10 ** 6  # similarity in 0..1 scaled to integers
 
 
 def match_pairs(gold_texts, note_texts, similarity=lexical_similarity, threshold=MATCH_THRESHOLD):
@@ -108,13 +112,14 @@ def match_pairs(gold_texts, note_texts, similarity=lexical_similarity, threshold
     size = max(ng, nn)
     if not size:
         return []
+    cardinality = size * _SCALE + 1  # larger than any sum of scaled similarities, so cardinality always wins
     weights = [[0] * size for _ in range(size)]
     edges = set()
     for i, g in enumerate(gold_texts):
         for j, n in enumerate(note_texts):
             s = similarity(g, n)
             if s >= threshold:
-                weights[i][j] = _CARDINALITY + int(round(s * 10 ** 6))
+                weights[i][j] = cardinality + int(round(s * _SCALE))
                 edges.add((i, j))
     cols = _assign(weights)
     return sorted((i, j) for i, j in enumerate(cols) if (i, j) in edges)

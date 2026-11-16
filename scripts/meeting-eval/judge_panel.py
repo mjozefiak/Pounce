@@ -25,7 +25,10 @@ import re
 import subprocess
 import sys
 
-import score_notes
+# `python3 -I` leaves the script's folder out of sys.path; put back only this folder, never the working directory.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+import score_notes  # noqa: E402
 
 SCHEMA = 1
 MIN_REPEATS = 5
@@ -104,17 +107,26 @@ class CommandJudge(Judge):
 
 
 def judges_from_config(config, prompt):
-    """config: {"repeats": 5, "judges": [{"name", "family", "local": bool, "argv": [...], "timeout"?}]}"""
+    """config: {"repeats": 5, "candidate_floor"?: 0.15, "judges": [{"name", "family", "local": bool, "argv": [...],
+    "timeout"?: seconds}]}. Returns (judges, repeats, candidate_floor)."""
     if not isinstance(config, dict) or not isinstance(config.get("judges"), list):
         raise PanelError("judges config: judges missing")
+    floor = config.get("candidate_floor", CANDIDATE_FLOOR)
+    if isinstance(floor, bool) or not isinstance(floor, (int, float)) or not 0 <= floor <= 1:
+        raise PanelError("judges config: candidate_floor must be a number in 0..1")
     out = []
     for i, j in enumerate(config["judges"]):
         if not isinstance(j, dict) or not all(isinstance(j.get(k), str) and j[k] for k in ("name", "family")):
             raise PanelError("judges[%d]: name and family required" % i)
         if not isinstance(j.get("local"), bool) or not isinstance(j.get("argv"), list) or not j["argv"]:
             raise PanelError("judges[%d]: local (bool) and argv required" % i)
-        out.append(CommandJudge(j["name"], j["family"], j["local"], j["argv"], prompt, j.get("timeout", 300)))
-    return out, config.get("repeats", MIN_REPEATS)
+        if not all(isinstance(a, str) and a for a in j["argv"]):
+            raise PanelError("judges[%d]: argv must be non-empty strings" % i)
+        timeout = j.get("timeout", 300)
+        if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or timeout <= 0:
+            raise PanelError("judges[%d]: timeout must be a positive number of seconds" % i)
+        out.append(CommandJudge(j["name"], j["family"], j["local"], j["argv"], prompt, timeout))
+    return out, config.get("repeats", MIN_REPEATS), floor
 
 
 # ---------------------------------------------------------------- panel
@@ -181,6 +193,7 @@ class Panel:
             "protocol": SCHEMA,
             "judges": [{"name": j.name, "family": j.family, "local": j.is_local} for j in self.judges],
             "repeats": self.repeats,
+            "candidateFloor": self.floor,
             "decisions": len(asked),
             "disputed": len(disputed),
             "judgeCalls": self.calls,
@@ -223,8 +236,8 @@ def main(argv=None):
         return 2
     try:
         gold, notes = score_notes._load(args.gold), score_notes._load(args.notes)
-        judges, repeats = judges_from_config(score_notes._load(cfg_path), load_match_prompt())
-        scored = score_with_panel(gold, notes, Panel(gold, judges, repeats))
+        judges, repeats, floor = judges_from_config(score_notes._load(cfg_path), load_match_prompt())
+        scored = score_with_panel(gold, notes, Panel(gold, judges, repeats, floor))
         sys.stdout.write(render(scored))
         if args.out:
             with open(args.out, "w", encoding="utf-8") as f:
