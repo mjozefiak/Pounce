@@ -38,6 +38,24 @@ import Testing
         #expect(try store.loadDocument(id: id)?.consentTextCopiedAt == Date(timeIntervalSince1970: 1_800_000_000))
     }
 
+    @Test func aCopyBeforeTheMeetingHasAnIdIsStoredOnceItHasOne() async throws {
+        let rig = try ControllerRig()
+        let store = try #require(rig.library.store)
+        let id = try store.insertMeeting(uuid: "u-early", startedAt: Date(), speechModelID: "m")
+        rig.behaviour.meetingID = id
+        let startLatch = Latch()
+        rig.behaviour.startLatch = startLatch
+        rig.controller.start()
+        await eventually("the session is starting") { rig.session?.startCount == 1 }
+        #expect(rig.controller.phase == .preparing)
+        rig.controller.perform(.copyConsentText)
+        #expect(rig.pasteboard.string() == MeetingConsentText.sentence)
+        #expect(try store.loadDocument(id: id)?.consentTextCopiedAt == nil)
+        startLatch.open()
+        await eventually("recording") { rig.controller.phase == .recording }
+        #expect(try store.loadDocument(id: id)?.consentTextCopiedAt == Date(timeIntervalSince1970: 1_800_000_000))
+    }
+
     @Test func aMeetingWithoutACopyHasNoTime() async throws {
         let rig = try ControllerRig()
         let store = try #require(rig.library.store)
@@ -75,6 +93,33 @@ import Testing
         let row = try #require(value)
         #expect((row["c"] as Int64?) == nil)
         #expect(try queue.read { try migrator.appliedIdentifiers($0) } == ["v1-meetings", "v2-consent"])
+    }
+
+    /// `BACKWARD_COMPATIBILITY.md` section 2: a build from before `v2-consent` opens a database that has it,
+    /// migrates nothing and loses nothing (the column is nullable and that build never names it).
+    @Test func aBuildWithoutTheMigrationStillOpensTheNewerDatabase() throws {
+        let queue = try DatabaseQueue()
+        try MeetingsStore.migrator.migrate(queue)
+        try queue.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO meeting (uuid, started_at, status, consent_text_copied_at)
+                    VALUES ('newer', 1000, 'ready', 1800000000)
+                    """)
+        }
+        // The older build's migrator knows only `v1-meetings` (already applied, so its body never runs).
+        var older = DatabaseMigrator()
+        older.registerMigration("v1-meetings") { _ in }
+        try older.migrate(queue)
+        #expect(try queue.read { try older.hasBeenSuperseded($0) })
+        try queue.write { db in
+            try db.execute(sql: "INSERT INTO meeting (uuid, started_at, status) VALUES ('older', 2000, 'ready')")
+        }
+        let rows = try queue.read { db in
+            try Row.fetchAll(db, sql: "SELECT uuid, consent_text_copied_at AS c FROM meeting ORDER BY uuid")
+        }
+        #expect(rows.map { $0["uuid"] as String } == ["newer", "older"])
+        #expect(rows.map { $0["c"] as Int64? } == [1_800_000_000, nil])
     }
 
     // MARK: Language
