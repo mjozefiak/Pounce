@@ -143,7 +143,7 @@ extension Permission {
         case .microphone:
             String(
                 localized:
-                    "Lets Lintel hear you while you dictate or record a meeting. Dictation audio is never saved; meeting audio is stored encrypted on this Mac until the transcript is complete, and the audio of unfinished meetings is kept for a limited time.",
+                    "Lets Lintel hear you while you dictate or record a meeting. Dictation audio is never saved; meeting audio is stored encrypted on this Mac until the transcript is complete unless you turn on Keep recordings, and the audio of unfinished meetings is kept for a limited time.",
                 comment: "Explanation of the Microphone permission")
         case .systemAudioRecording:
             String(

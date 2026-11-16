@@ -13,9 +13,15 @@ final class RetentionJob {
         /// 0 means unlimited.
         var retentionDays: Int
         var orphanAudioDays: Int
+        /// How long the audio of a `ready` meeting stays when `keepAudio` is on.
+        var keptAudioDays: Int = MeetingsSettings.defaultKeptAudioDays
 
         func cutoff(now: Date) -> Date? {
             retentionDays > 0 ? now.addingTimeInterval(-Double(retentionDays) * 24 * 60 * 60) : nil
+        }
+
+        func keptCutoff(now: Date) -> Date {
+            now.addingTimeInterval(-Double(max(1, keptAudioDays)) * 24 * 60 * 60)
         }
 
         func orphanCutoff(now: Date) -> Date {
@@ -95,9 +101,16 @@ final class RetentionJob {
                 let candidates = Set(try store.incompleteSpoolUUIDs(excluding: protected))
                 let orphans = spool.removeSpools(olderThan: policy.orphanCutoff(now: now), among: candidates)
                 try store.markAudioDeleted(uuids: orphans)
-                if !uuids.isEmpty || !orphans.isEmpty {
+                // Kept audio of a meeting that is still in the library ages out on its own clock; the
+                // transcript stays.
+                let keptCandidates = try store.expiredKeptSpoolUUIDs(
+                    cutoff: policy.keptCutoff(now: now), excluding: protected)
+                spool.removeSpools(forMeetings: keptCandidates)
+                let keptGone = keptCandidates.filter { !spool.hasSpool(forMeeting: $0) }
+                try store.markAudioDeleted(uuids: keptGone)
+                if !uuids.isEmpty || !orphans.isEmpty || !keptGone.isEmpty {
                     logger.info(
-                        "Retention deleted \(uuids.count, privacy: .public) meetings and \(orphans.count, privacy: .public) old spools"
+                        "Retention deleted \(uuids.count, privacy: .public) meetings and \(orphans.count + keptGone.count, privacy: .public) old spools"
                     )
                 }
                 var vacuumed = false

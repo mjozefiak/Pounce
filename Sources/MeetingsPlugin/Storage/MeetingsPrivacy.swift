@@ -82,6 +82,23 @@ struct MeetingsPrivacyActions {
         return PrivacyReport(removed: gone.count, failed: candidates.count - gone.count)
     }
 
+    /// The audio kept by `plugins.meetings.keepAudio` goes and its `audio_state` becomes `deleted`; the transcripts
+    /// and notes stay. Meetings being recorded, processed or finished are not touched.
+    @MainActor
+    func deleteKeptRecordings() throws -> PrivacyReport {
+        guard let store = library.store else { return PrivacyReport(removed: 0) }
+        let candidates = try store.keptSpoolUUIDs(excluding: library.protectedMeetingIDs)
+        spool.removeSpools(forMeetings: candidates)
+        let gone = candidates.filter { !remains(spoolOf: $0) }
+        try store.markAudioDeleted(uuids: gone)
+        changed()
+        return PrivacyReport(removed: gone.count, failed: candidates.count - gone.count)
+    }
+
+    /// How many meetings hold kept audio.
+    @MainActor
+    func keptRecordingCount() -> Int { (try? library.store?.keptAudioCount()) ?? 0 }
+
     /// Whether the spool folder of `uuid` (any kind of entry, a link included) is still on the disk.
     private func remains(spoolOf uuid: String) -> Bool {
         guard let parsed = UUID(uuidString: uuid) else { return false }

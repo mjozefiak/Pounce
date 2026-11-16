@@ -407,8 +407,8 @@ States to screenshot, in light and dark mode (and once in Polish):
   says it cannot be deleted; the
   "Needs Attention" filter shows incomplete and failed meetings, and also meetings whose notes failed or are
   outdated (a deliberate extension of the spec's incomplete/failed/stale list); the audio claim on the landing page
-  and in Settings → Permissions matches the behaviour (deleted once the transcript is ready; an interrupted
-  meeting keeps its audio up to 7 days so it can be finished); all meetings, the three filters (⌘1 to ⌘3), a search by a word from a title and from a transcript (also
+  and in Settings → Permissions matches the behaviour (deleted once the transcript is ready unless Keep recordings is on, which keeps it
+  30 days; an interrupted meeting keeps its audio up to 7 days so it can be finished); all meetings, the three filters (⌘1 to ⌘3), a search by a word from a title and from a transcript (also
   without Polish letters: `budzet` finds `budżet`), the preview (notes when there are any, else the transcript), the empty
   library, and the "unavailable" banner (cannot be forced in QA mode: the Keychain is the in-memory one; covered by
   unit tests, manual check below);

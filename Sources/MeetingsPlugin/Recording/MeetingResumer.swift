@@ -90,6 +90,8 @@ struct MeetingResumer: MeetingResuming {
     let finalize: @Sendable (Int64, UUID) async -> Void
     let echo: EchoSuppressor
     let now: @Sendable () -> Date
+    /// `plugins.meetings.keepAudio` when the meeting becomes `ready`.
+    let keepAudio: @Sendable () -> Bool
     let logger: Logger
 
     init(
@@ -98,9 +100,10 @@ struct MeetingResumer: MeetingResuming {
         speech: @escaping @Sendable () async -> ResumeSpeech?, lease: SpeechEngineLease = .shared,
         keepWarm: @escaping @Sendable () -> Duration = { .seconds(600) },
         finalize: @escaping @Sendable (Int64, UUID) async -> Void, echo: EchoSuppressor = EchoSuppressor(),
-        now: @escaping @Sendable () -> Date = { Date() },
+        now: @escaping @Sendable () -> Date = { Date() }, keepAudio: @escaping @Sendable () -> Bool = { false },
         logger: Logger = Logger(subsystem: "com.lintelapp", category: "meetings")
     ) {
+        self.keepAudio = keepAudio
         self.store = store
         self.keys = keys
         self.spool = spool
@@ -489,6 +492,14 @@ struct MeetingResumer: MeetingResuming {
         } catch {
             logger.error("The meeting could not be marked ready; the audio is kept")
             return .databaseUnwritable
+        }
+        if keepAudio() {
+            do {
+                try store.setAudioState(meeting.id, state: .kept)
+            } catch {
+                logger.error("The audio state could not be updated after keeping the spool")
+            }
+            return .ready
         }
         // `deleted` is recorded only when the removal is confirmed; otherwise the next recovery pass retries.
         guard spool.removeConfirmed(meeting: uuid, keys: keys) else {
