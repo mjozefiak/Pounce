@@ -825,7 +825,7 @@ Warunek wejścia: bramka MEET-0.3. Decyzja M-Q8 ⚠.
 ### MEET-X.1 — Odświeżenie specu dostawców zewnętrznych dla kroku pisania notatek
 
 - **Story:** Jako właściciel, dla spotkań niepoufnych, chcę móc świadomie użyć modelu z własnej subskrypcji do napisania notatki z lokalnego transkryptu, jeśli lokalny model przegrywa.
-- **Zależności:** **Warunek:** wynik MEET-0.2 uruchamia M-Q14. Spec `2026-11-10-external-ai-providers.md` ma nieaktualne nazwy (`Pounce*`), zajętym numerem ADR (0008) i nieaktualnym założeniem, że `NotesPipeline` nie istnieje.
+- **Zależności:** **Warunek:** wynik MEET-0.2 uruchamia M-Q14. Spec `2026-11-10-external-ai-providers.md` ma nieaktualne nazwy (`Pounce*`), zajęty numer ADR (0008) i nieaktualne założenie, że `NotesPipeline` nie istnieje.
 - **Powierzchnie:** tylko spec (PR projektowy); implementacja osobnymi PR-ami według specu (nowy target dostawców, `TextGenerator`, `notesSource`).
 - **Etykiety:** `documentation`, `risk-low`, `skip-qa`, `priority-medium` · **Estymata:** S
 - **Kryteria akceptacji:**

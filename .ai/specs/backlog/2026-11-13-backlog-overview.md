@@ -160,7 +160,7 @@ Kolejność minimalizująca konflikty; pozycje w tym samym wierszu mogą być ot
 
 | # | PR | Uwagi |
 |---|---|---|
-| 0 | **PR-0** `docs(specs)`: briefy, research, ten backlog i nieśledzony spec `2026-11-10-external-ai-providers.md` w repozytorium | Tylko dokumentacja (`skip-qa`). Bez niego komendy `om-auto-create-pr … Source doc: …` nie znajdą plików w świeżym worktree. `AGENTS.md` jest już aktualny (rejestracja pluginów, `traits`) |
+| 0 | **PR-0** `docs(specs)`: briefy, research, ten backlog i dotąd nieśledzony spec `2026-11-10-external-ai-providers.md` w repozytorium | Tylko dokumentacja (`skip-qa`). Bez niego komendy `om-auto-create-pr … Source doc: …` nie znajdą plików w świeżym worktree. `AGENTS.md` jest już aktualny (rejestracja pluginów, `traits`) |
 | 1 | **PR #63** (MEET-0.1) | Czynność właściciela. Przed nim nic nie dotyka `Sources/MeetingsPlugin/Notes/`, `MeetingsSettings` ani tekstów spotkań |
 | 2 | DICT-0.1 (ADR 0010, linia bazowa) ∥ MEET-1.1 (`keepAudio`) | MEET-1.1 jak najwcześniej, żeby dogfood zasilał zbiór wzorcowy |
 | 3 | DICT-0.2 ∥ MEET-0.2 ∥ MEET-1.2 ∥ MEET-0.4 | sama dokumentacja i harness; ADR z MEET-0.2 jest potrzebny późniejszym wpisom (MEET-0.3, 1.5, 4.4) |
@@ -178,7 +178,7 @@ Kolejność minimalizująca konflikty; pozycje w tym samym wierszu mogą być ot
 | 15 | późniejsze: MEET-5.2 (po DICT-1.1 i MEET-5.1), MEET-6.1, MEET-6.2, MEET-4.4 (po zebraniu nagrań z notatnikiem) | zwykłe stories, tylko później w kolejce |
 | 16 | warunkowe albo zależne od decyzji: DICT-4.1, DICT-4.2, MEET-5.3, MEET-3.5, MEET-X.1; MEET-6.4 → 6.5 → 6.6 (M-Q12) | każda po spełnieniu własnego warunku |
 
-Otwarte PR-y niezwiązane: #69 (spec window management v2, zmergowany) i #61 (`do-not-merge`) nie kolidują z żadną story.
+PR-y niezwiązane: #69 (spec window management v2, zmergowany) i #61 (`do-not-merge`) nie kolidują z żadną story.
 
 ## Zbiorcza lista pytań do właściciela
 
