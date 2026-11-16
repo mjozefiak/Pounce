@@ -1,4 +1,5 @@
 import Foundation
+import LintelCore
 import Synchronization
 
 /// The only owner of the file index (spec: Współbieżność). Changes arrive in batches (scan listings,
