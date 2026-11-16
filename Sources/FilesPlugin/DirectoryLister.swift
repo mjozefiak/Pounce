@@ -1,5 +1,7 @@
 import Darwin
 import Foundation
+import LintelCore
+import LintelPersistence
 import Synchronization
 
 /// What reading one folder for path mode found.
@@ -18,7 +20,7 @@ enum DirectoryListing: Hashable, Sendable {
 ///
 /// - Index exclusions do not apply: the user typed the path (A4). Hidden entries are reported with
 ///   `isHidden` so the source can decide.
-/// - TCC-protected places are never opened without Full Disk Access (A5): `TCCProtectedLocations.resolve`
+/// - TCC-protected places are never opened without Full Disk Access (A5): `TCCPathResolver.resolve`
 ///   checks every path on the way, links included, before touching it.
 /// - The last folder read is cached by its modification time, so typing a filter does not read the disk
 ///   again for every key.
@@ -68,7 +70,7 @@ final class DirectoryLister: Sendable {
     /// Lists `folder` (absolute, standardised) on the calling thread.
     func list(_ folder: String, fullDiskAccess: Bool) -> DirectoryListing {
         let real: String
-        switch TCCProtectedLocations.resolve(folder, home: home, fullDiskAccess: fullDiskAccess) {
+        switch TCCPathResolver.resolve(folder, home: home, fullDiskAccess: fullDiskAccess) {
         case .protected: return .protected
         case .missing: return .missing
         case .resolved(let path): real = path

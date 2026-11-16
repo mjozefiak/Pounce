@@ -1,5 +1,6 @@
 import CoreServices
 import Foundation
+import LintelCore
 import Synchronization
 
 /// One FSEvents event.
