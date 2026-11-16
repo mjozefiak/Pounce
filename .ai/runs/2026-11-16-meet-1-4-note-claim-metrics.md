@@ -29,8 +29,8 @@ First of two allowed PRs for MEET-1.4: deterministic, code-computed metrics of m
 
 ### Phase 1: metrics
 
-- [ ] 1.1 score_notes.py: note schema, matcher seam, coverage, quote share, task F1 levels
-- [ ] 1.2 Paired comparison with noise rule and consent gate
-- [ ] 1.3 Tests on hand-computed synthetic fixtures
-- [ ] 1.4 README section
+- [x] 1.1 score_notes.py: note schema, matcher seam, coverage, quote share, task F1 levels — 1ac7720
+- [x] 1.2 Paired comparison with noise rule and consent gate — 1ac7720
+- [x] 1.3 Tests on hand-computed synthetic fixtures — 1ac7720
+- [x] 1.4 README section — 1ac7720
 - [ ] 1.5 Gate and unittest output in PR body
