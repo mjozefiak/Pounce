@@ -21,14 +21,26 @@ struct EvalResult: Codable, Equatable, Sendable {
         var text: String
         /// Additive and optional (schema 1 stays compatible): the speaker label of the segment, when diarized.
         var speaker: String?
+        /// Additive and optional: the speaker per word, with times, when the engine reports them. The scorer
+        /// prefers it over spreading the segment's words evenly over its duration. Carries no text.
+        var words: [Word]?
 
-        init(track: String, startMs: Int, endMs: Int, text: String, speaker: String? = nil) {
+        init(
+            track: String, startMs: Int, endMs: Int, text: String, speaker: String? = nil, words: [Word]? = nil
+        ) {
             self.track = track
             self.startMs = startMs
             self.endMs = endMs
             self.text = text
             self.speaker = speaker
+            self.words = words
         }
+    }
+
+    struct Word: Codable, Equatable, Sendable {
+        var startMs: Int
+        var endMs: Int
+        var speaker: String?
     }
 
     struct ASR: Codable, Equatable, Sendable {
