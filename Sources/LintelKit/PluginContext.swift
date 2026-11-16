@@ -127,6 +127,19 @@ public struct PluginContext: Sendable {
     /// Opens the Models pane of Settings, scrolled to the package's row when it is given. Added with the main
     /// window; the default does nothing.
     public let openModels: @MainActor @Sendable (_ packageID: String?) -> Void
+    /// Reads and moves other applications' windows (Accessibility). The default
+    /// client reports no windows and no displays and is `unsupported`.
+    public let windows: any WindowClient
+    /// Sets (or, with `nil`, clears) the global shortcut of one of this plugin's commands, as if the user had
+    /// recorded it, so a pane can offer one row per family of numbered commands. The default does nothing.
+    public let setCommandShortcut: @MainActor @Sendable (_ commandID: String, _ shortcut: KeyShortcut?) -> Void
+    /// The shortcut a command has right now (the user's, or its default); `nil` when none. Added with window
+    /// management; the default answers `nil`.
+    public let commandShortcut: @MainActor @Sendable (_ commandID: String) -> KeyShortcut?
+    /// The plugin this context belongs to (the host builds one context per plugin). Defaults to the settings' id.
+    public let pluginID: PluginID
+    /// Values the plugins of this app instance share (see `PluginServices`); `UnsharedPluginServices` by default.
+    public let services: any PluginServices
     /// The note sources of the ACTIVE plugins, for the Notes section. The shell drops (and logs once) a source
     /// whose `pluginID` differs from its plugin's `manifest.id`, and any later source of the same `PluginID`.
     /// Added with the Notes workspace; the default has none.
@@ -168,6 +181,13 @@ public struct PluginContext: Sendable {
         modelsDirectory: URL? = nil,
         availableCommands: @escaping @MainActor @Sendable () -> [CommandInfo] = { [] },
         openModels: @escaping @MainActor @Sendable (_ packageID: String?) -> Void = { _ in },
+        windows: any WindowClient = NoWindowClient(),
+        setCommandShortcut: @escaping @MainActor @Sendable (_ commandID: String, _ shortcut: KeyShortcut?) -> Void = {
+            _, _ in
+        },
+        commandShortcut: @escaping @MainActor @Sendable (_ commandID: String) -> KeyShortcut? = { _ in nil },
+        services: any PluginServices = UnsharedPluginServices(),
+        pluginID: PluginID? = nil,
         noteSources: @escaping @MainActor @Sendable () -> [any NoteSource] = { [] },
         noteSourcesChanged: @escaping @Sendable () -> AsyncStream<Void> = { AsyncStream { $0.finish() } },
         openNote: @escaping @MainActor @Sendable (NoteKey) -> Bool = { _ in false },
@@ -196,6 +216,11 @@ public struct PluginContext: Sendable {
             modelsDirectory ?? storageDirectory.appending(path: "Models", directoryHint: .isDirectory)
         self.availableCommands = availableCommands
         self.openModels = openModels
+        self.windows = windows
+        self.setCommandShortcut = setCommandShortcut
+        self.commandShortcut = commandShortcut
+        self.services = services
+        self.pluginID = pluginID ?? settings.pluginID
         self.noteSources = noteSources
         self.noteSourcesChanged = noteSourcesChanged
         self.openNote = openNote

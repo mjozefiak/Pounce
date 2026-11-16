@@ -174,6 +174,20 @@ final class HotkeyService {
         registrar.shortcut(for: .command(commandID))
     }
 
+    /// Sets or clears a command's shortcut for a plugin (a pane's row for a family of numbered commands). It counts
+    /// as the user's choice: the command's default is never applied again. A shortcut Lintel cannot map is ignored.
+    func setCommandShortcut(_ commandID: String, _ shortcut: KeyShortcut?) {
+        let mapped: HotkeyShortcut?
+        if let shortcut {
+            guard let converted = HotkeyShortcut(shortcut) else { return }
+            mapped = converted
+        } else {
+            mapped = nil
+        }
+        registrar.setShortcut(mapped, for: .command(commandID))
+        userRecordedCommandShortcut(commandID)
+    }
+
     /// The user recorded (or cleared) a command's shortcut: its default is never applied again.
     func userRecordedCommandShortcut(_ commandID: String) {
         var applied = Set(stringArray(SettingsKeys.commandShortcutDefaultsApplied))

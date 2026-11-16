@@ -176,10 +176,13 @@ enum TestContext {
         @MainActor func status(of permission: Permission) -> PermissionStatus { .notDetermined }
     }
 
-    static func make(modelsDirectory: URL? = nil) -> PluginContext {
+    static func make(
+        modelsDirectory: URL? = nil, pluginID: PluginID = "minimal",
+        services: any PluginServices = UnsharedPluginServices()
+    ) -> PluginContext {
         PluginContext(
             storageDirectory: FileManager.default.temporaryDirectory.appending(path: "lintel-kit-tests"),
-            settings: PluginSettings(pluginID: "minimal", store: MemorySettings()),
+            settings: PluginSettings(pluginID: pluginID, store: MemorySettings()),
             usage: NoUsage(),
             logger: .init(subsystem: "com.lintelapp.tests", category: "kit"),
             keychain: NoKeychain(),
@@ -188,7 +191,8 @@ enum TestContext {
             workspace: NoWorkspace(),
             permissions: NoPermissions(),
             clock: ContinuousClock(),
-            modelsDirectory: modelsDirectory
+            modelsDirectory: modelsDirectory,
+            services: services
         )
     }
 }

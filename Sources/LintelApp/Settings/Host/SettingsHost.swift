@@ -150,12 +150,14 @@ final class SettingsHostModel {
             case .failed: .failed
             case .disabled: .off
             }
+        var failureStatus: SettingsStatus?
+        if case .failed(let error) = entry.state { failureStatus = (error as? any PluginFailureStatus)?.failureStatus }
         let plugin = entry.plugin
         return StatusDerivation.banner(
             host: state,
             pluginStatus: { plugin.settingsStatus },
             required: Permission.allCases.filter(plugin.requiredPermissions.contains),
-            permission: { reader.status(of: $0) })
+            permission: { reader.status(of: $0) }, failureStatus: failureStatus)
     }
 
     /// Every lifecycle change of a plugin builds the panes and reads the banner and the dots again.

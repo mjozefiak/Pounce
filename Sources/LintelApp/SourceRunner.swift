@@ -1,4 +1,5 @@
 import Foundation
+import LintelCore
 import LintelKit
 import Synchronization
 
@@ -69,94 +70,21 @@ nonisolated enum SourceRunner {
         budget: Duration,
         clock: any Clock<Duration>
     ) async -> SourceOutcome {
-        let latch = OutcomeLatch()
-        return await withTaskCancellationHandler {
-            await withCheckedContinuation { continuation in
-                latch.install(continuation)
-                let work = Task {
-                    do {
-                        let candidates = try await source.search(query, limit: limit)
-                        latch.resolve(.results(candidates))
-                    } catch is CancellationError {
-                        latch.resolve(.cancelled)
-                    } catch {
-                        latch.resolve(.failed(error))
-                    }
-                }
-                let deadline = Task {
-                    do {
-                        try await clock.sleep(for: budget)
-                        latch.resolve(.timedOut)
-                    } catch {
-                        // Cancelled because the source answered first.
-                    }
-                }
-                latch.track(work)
-                latch.track(deadline)
+        let work = Task { () -> SourceOutcome in
+            do {
+                return .results(try await source.search(query, limit: limit))
+            } catch is CancellationError {
+                return .cancelled
+            } catch {
+                return .failed(error)
             }
-        } onCancel: {
-            latch.resolve(.cancelled)
         }
-    }
-}
-
-/// Resumes a continuation exactly once with the first outcome, then cancels the remaining tasks.
-/// Every path (source answer, deadline, outer cancellation) may race; the mutex makes the first one
-/// win and the rest no-ops.
-private nonisolated final class OutcomeLatch: Sendable {
-    private struct State {
-        var continuation: CheckedContinuation<SourceOutcome, Never>?
-        var outcome: SourceOutcome?
-        var tasks: [Task<Void, Never>] = []
-        var finished = false
-    }
-
-    private let state = Mutex(State())
-
-    func install(_ continuation: CheckedContinuation<SourceOutcome, Never>) {
-        let early: SourceOutcome? = state.withLock { state in
-            if let outcome = state.outcome {
-                state.finished = true
-                return outcome
-            }
-            state.continuation = continuation
-            return nil
+        // The deadline is the shared helper; what happens to a source that overran is decided here: it is told to
+        // stop, and nobody waits for it to notice.
+        guard let outcome = await withDeadline(budget, clock: clock, { await work.value }) else {
+            work.cancel()
+            return Task.isCancelled ? .cancelled : .timedOut
         }
-        if let early {
-            continuation.resume(returning: early)
-        }
-    }
-
-    func track(_ task: Task<Void, Never>) {
-        let cancelNow = state.withLock { state in
-            if state.finished || state.outcome != nil {
-                return true
-            }
-            state.tasks.append(task)
-            return false
-        }
-        if cancelNow {
-            task.cancel()
-        }
-    }
-
-    func resolve(_ outcome: SourceOutcome) {
-        let (continuation, tasks): (CheckedContinuation<SourceOutcome, Never>?, [Task<Void, Never>]) =
-            state.withLock { state in
-                guard state.outcome == nil else { return (nil, []) }
-                state.outcome = outcome
-                let continuation = state.continuation
-                state.continuation = nil
-                if continuation != nil {
-                    state.finished = true
-                }
-                let tasks = state.tasks
-                state.tasks = []
-                return (continuation, tasks)
-            }
-        for task in tasks {
-            task.cancel()
-        }
-        continuation?.resume(returning: outcome)
+        return outcome
     }
 }

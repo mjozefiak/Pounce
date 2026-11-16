@@ -29,6 +29,17 @@ struct AppEnvironment {
     var fullDiskAccess: PermissionStatus?
     /// False in QA mode: a paste is logged instead of posting a real Command-V to the tester's apps.
     var postsKeystrokes = true
+    /// The client plugins read and move other apps' windows through (`PluginContext.windows`). The real
+    /// Accessibility client in the app (`live()`); the default (no windows, unsupported) everywhere else, so tests
+    /// and QA mode never touch the tester's windows.
+    var windowClient: any WindowClient = NoWindowClient()
+    #if DEBUG
+    /// QA mode only (`--qa-command-file`): where the QA command route reads its commands.
+    var qaCommandFile: URL?
+    var qaReplaysCommands = false
+    #endif
+    /// What the plugins of this app instance share (`PluginContext.services`).
+    let services = AppPluginServices()
 
     /// `Plugins/<id>/` under the data root.
     func storageDirectory(for id: PluginID) -> URL {
@@ -93,6 +104,8 @@ struct AppEnvironment {
             EscapeKeyClaim = { _ in .inactive },
         openSettings: @escaping @MainActor @Sendable () -> Void = {},
         openModels: @escaping @MainActor @Sendable (String?) -> Void = { _ in },
+        setCommandShortcut: @escaping @MainActor @Sendable (String, KeyShortcut?) -> Void = { _, _ in },
+        commandShortcut: @escaping @MainActor @Sendable (String) -> KeyShortcut? = { _ in nil },
         availableCommands: @escaping @MainActor @Sendable () -> [CommandInfo] = { [] },
         noteSources: @escaping @MainActor @Sendable () -> [any NoteSource] = { [] },
         noteSourcesChanged: @escaping @Sendable () -> AsyncStream<Void> = { AsyncStream { $0.finish() } },
@@ -119,6 +132,11 @@ struct AppEnvironment {
             modelsDirectory: modelsDirectory,
             availableCommands: availableCommands,
             openModels: openModels,
+            windows: windowClient,
+            setCommandShortcut: setCommandShortcut,
+            commandShortcut: commandShortcut,
+            services: services,
+            pluginID: manifest.id,
             noteSources: noteSources,
             noteSourcesChanged: noteSourcesChanged,
             openNote: openNote,
@@ -152,7 +170,8 @@ struct AppEnvironment {
             keychain: SystemKeychainClient(),
             pasteboardName: nil,
             usage: openRanking(in: root),
-            registersGlobalHotkeys: true
+            registersGlobalHotkeys: true,
+            windowClient: AXWindowClient()
         )
         environment.prepareModelsDirectory(fileManager: fileManager)
         return environment
@@ -169,16 +188,20 @@ struct AppEnvironment {
         try createPrivateDirectory(root, fileManager: fileManager)
         let fileHome = root.appending(path: "files-home", directoryHint: .isDirectory)
         try createPrivateDirectory(fileHome, fileManager: fileManager)
-        let settings = InMemorySettingsStore(
-            qaNotesSettings(
-                qaAppActivitySettings(
-                    qaFileIndexSettings(options.settings, emptyHome: fileHome.path),
-                    activity: options.appActivity,
-                    live: options.liveAppActivity
-                ),
-                fixtures: options.notesFixtures
-            )
+        var seeded = qaNotesSettings(
+            qaAppActivitySettings(
+                qaFileIndexSettings(options.settings, emptyHome: fileHome.path),
+                activity: options.appActivity,
+                live: options.liveAppActivity
+            ),
+            fixtures: options.notesFixtures
         )
+        // A QA run never opens an open or save panel: they write their sizes into the real defaults domain.
+        if seeded[QAOptions.windowsScriptedFilesKey] == nil { seeded[QAOptions.windowsScriptedFilesKey] = .bool(true) }
+        let settings: any SettingsStore =
+            options.persistentSettings
+            ? QAFileSettingsStore(url: root.appending(path: QAFileSettingsStore.fileName), seeded: seeded)
+            : InMemorySettingsStore(seeded)
         let environment = AppEnvironment(
             dataRoot: root,
             cachesRoot: root.appending(path: "Caches", directoryHint: .isDirectory),
@@ -192,8 +215,18 @@ struct AppEnvironment {
             fullDiskAccess: options.fullDiskAccess ?? .denied,
             postsKeystrokes: false
         )
-        environment.prepareModelsDirectory(fileManager: fileManager)
-        return environment
+        var qaEnvironment = environment
+        // Never the real Accessibility client in QA mode unless the run asks for it (`--qa-real-windows`): else a fake
+        // with fake windows, or the one that reports nothing.
+        if options.realWindows {
+            qaEnvironment.windowClient = AXWindowClient()
+        } else {
+            qaEnvironment.windowClient = options.fakeWindows ? QAWindowClient() : NoWindowClient()
+        }
+        qaEnvironment.qaCommandFile = options.commandFile
+        qaEnvironment.qaReplaysCommands = options.replaysCommands
+        qaEnvironment.prepareModelsDirectory(fileManager: fileManager)
+        return qaEnvironment
     }
 
     /// The file index in QA mode never sees the tester's folders: unless the run names a fake home

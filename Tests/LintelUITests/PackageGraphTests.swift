@@ -8,7 +8,7 @@ import Testing
     private static let allowedImports: Set<String> = ["LintelKit", "LintelCore", "SwiftUI", "AppKit"]
     private static let forbiddenTargets = [
         "LintelPersistence", "LintelSpeech", "LintelApp", "AppsPlugin", "FilesPlugin", "ClipboardPlugin",
-        "DictationPlugin", "MeetingsPlugin",
+        "DictationPlugin", "MeetingsPlugin", "WindowsPlugin",
     ]
 
     private var root: URL {

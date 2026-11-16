@@ -4,9 +4,13 @@ Lintel is a native app that reads the clipboard, indexes files and stores a key 
 QA runs (manual or agent-driven) must never touch the tester's real data. DEBUG builds therefore
 accept launch arguments that isolate a run; release builds compile the parsing out
 (`Sources/LintelApp/QA/QAOptions.swift` is wrapped in `#if DEBUG`), so the arguments do nothing in a
-shipped app.
+shipped app. The QA bundle itself is guarded the same way: `Sources/LintelApp/QA/QAIdentityGuard.swift` (DEBUG only) makes
+`Lintel-QA` refuse to start without a `--qa…` argument, before anything is created or read, because its Keychain
+services and data folder are not derived from the bundle id.
 
 ## Launching
+
+**The QA build is a different app from the real Lintel.** `CONFIGURATION=debug scripts/make-app.sh` gives the bundle the id `com.lintelapp.Lintel.QA`, the display name "Lintel QA" and the executable and process name `Lintel-QA`, and leaves out the `.lintellayouts` document type, so Launch Services, the Accessibility grant (grant it to "Lintel QA" the first time) and `UserDefaults` (`com.lintelapp.Lintel.QA`) are separate from the owner's installed Lintel. The bundle is written to `dist/Lintel-QA.app` (the release bundle stays `dist/Lintel.app`, which the DMG is made from). The QA app refuses to start without a `--qa…` argument (the Keychain services and the data folder are not derived from the bundle id; `QAIdentityGuard`, DEBUG builds only). **QA tools must address the QA process by PID** (keep the PID of the process you started), never by a name match: a helper that matched "Lintel" once closed the owner's real window. In a DEBUG build the plugin's default floating apps list also names the QA id (so the QA app's own windows are never tiled); a release build's default is exactly Lintel, System Settings and Calculator.
 
 ```bash
 swift build
@@ -17,7 +21,7 @@ Or build a bundle (ad-hoc signed, never with the "Lintel Release" identity local
 
 ```bash
 CONFIGURATION=debug scripts/make-app.sh
-dist/Lintel.app/Contents/MacOS/Lintel --qa --qa-show-menu --qa-quit-after 8
+dist/Lintel-QA.app/Contents/MacOS/Lintel-QA --qa --qa-show-menu --qa-quit-after 8
 ```
 
 The menu appears with the process's localization; run with `-AppleLanguages '(pl)'` to check the
@@ -42,7 +46,7 @@ Any `--qa…` argument turns QA mode on:
 | Full Disk Access | read by listing `~/Library/Safari` and similar folders | `--qa-full-disk-access`, default `denied`; the real state is never read |
 | App activity (suggestions) | `Plugins/apps/activity.json`, filled by app switches and a one-time Spotlight seed | `activity.json` under the QA data root, filled only from `--qa-activity`; the tracker and the seed run only with `--qa-activity-live` |
 
-AppKit itself may still write window and status-item state to the `com.lintelapp.Lintel` defaults domain.
+AppKit itself may still write window and status-item state to the app's own defaults domain; since round 16 that is `com.lintelapp.Lintel.QA` for a bundle built with `CONFIGURATION=debug`, never the real `com.lintelapp.Lintel`.
 If that domain did not exist before a QA session, remove it afterwards with
 `defaults delete com.lintelapp.Lintel`.
 
@@ -109,16 +113,16 @@ never shows which apps (for example which password manager) the tester has insta
 when capturing the Clipboard History settings pane.
 
 ```bash
-dist/Lintel.app/Contents/MacOS/Lintel --qa --qa-setting plugins.clipboard.qaSeed=demo \
+dist/Lintel-QA.app/Contents/MacOS/Lintel-QA --qa --qa-setting plugins.clipboard.qaSeed=demo \
   --qa-accessibility granted --qa-panel clipboard --qa-appearance light
 # Recording paused, Accessibility missing, access set to ask:
-dist/Lintel.app/Contents/MacOS/Lintel --qa --qa-setting plugins.clipboard.qaSeed=demo \
+dist/Lintel-QA.app/Contents/MacOS/Lintel-QA --qa --qa-setting plugins.clipboard.qaSeed=demo \
   --qa-setting plugins.clipboard.paused=true --qa-accessibility denied --qa-pasteboard-access ask \
   --qa-panel clipboard
 # Empty history, settings pane, onboarding step:
-dist/Lintel.app/Contents/MacOS/Lintel --qa --qa-accessibility granted --qa-panel clipboard
-dist/Lintel.app/Contents/MacOS/Lintel --qa --qa-setting plugins.clipboard.qaSeed=demo --qa-settings clipboard
-dist/Lintel.app/Contents/MacOS/Lintel --qa --qa-onboarding-step clipboard.intro
+dist/Lintel-QA.app/Contents/MacOS/Lintel-QA --qa --qa-accessibility granted --qa-panel clipboard
+dist/Lintel-QA.app/Contents/MacOS/Lintel-QA --qa --qa-setting plugins.clipboard.qaSeed=demo --qa-settings clipboard
+dist/Lintel-QA.app/Contents/MacOS/Lintel-QA --qa --qa-onboarding-step clipboard.intro
 ```
 
 Pasting (Return posts ⌘V into the previous app) needs Accessibility and a real target app, so it is a
@@ -135,7 +139,7 @@ mkdir -p "$FIXTURES/Notes Demo.app/Contents"
 plutil -create xml1 "$FIXTURES/Notes Demo.app/Contents/Info.plist"
 plutil -insert CFBundleIdentifier -string com.example.notes "$FIXTURES/Notes Demo.app/Contents/Info.plist"
 # … more bundles …
-dist/Lintel.app/Contents/MacOS/Lintel --qa \
+dist/Lintel-QA.app/Contents/MacOS/Lintel-QA --qa \
   --qa-setting "plugins.apps.roots=$FIXTURES" --qa-setting plugins.apps.spotlight=false \
   --qa-record-use apps:com.example.notes --qa-panel search --qa-query no --qa-appearance dark
 ```
@@ -164,15 +168,15 @@ done
 COMMON=(--qa --qa-setting "plugins.apps.roots=$FIX" --qa-setting plugins.apps.spotlight=false
   --qa-activity com.example.mail=5 --qa-activity com.example.notes=3 --qa-activity com.example.maps)
 # The empty panel with "Suggested" (⌘1–⌘3 open the rows, ⌃X hides the selected one):
-dist/Lintel.app/Contents/MacOS/Lintel "${COMMON[@]}" --qa-panel search --qa-appearance dark
+dist/Lintel-QA.app/Contents/MacOS/Lintel-QA "${COMMON[@]}" --qa-panel search --qa-appearance dark
 # Suggested and "Recently Used" without duplicates:
-dist/Lintel.app/Contents/MacOS/Lintel "${COMMON[@]}" --qa-record-use apps:com.example.mail \
+dist/Lintel-QA.app/Contents/MacOS/Lintel-QA "${COMMON[@]}" --qa-record-use apps:com.example.mail \
   --qa-record-use apps:com.example.music --qa-panel search
 # Settings → Apps (Suggest Apps, hidden apps, Clear App Activity…), with one hidden app:
-dist/Lintel.app/Contents/MacOS/Lintel "${COMMON[@]}" \
+dist/Lintel-QA.app/Contents/MacOS/Lintel-QA "${COMMON[@]}" \
   --qa-setting plugins.apps.suggestions.hidden=com.example.maps --qa-settings apps
 # Suggestions turned off: no section, the history stays:
-dist/Lintel.app/Contents/MacOS/Lintel "${COMMON[@]}" --qa-setting plugins.apps.suggestions.enabled=false \
+dist/Lintel-QA.app/Contents/MacOS/Lintel-QA "${COMMON[@]}" --qa-setting plugins.apps.suggestions.enabled=false \
   --qa-panel search
 ```
 
@@ -196,15 +200,15 @@ FIX=/tmp/lintel-p3-qa
 mkdir -p "$FIX/home/Projects/Website" "$FIX/home/Desktop" "$FIX/home/Documents" "$FIX/apps"
 touch "$FIX/home/Projects/Quarterly Report.txt" "$FIX/home/Projects/Website/notes.txt" \
   "$FIX/home/Desktop/desk-plan.txt" "$FIX/home/Documents/tax-form.txt"
-dist/Lintel.app/Contents/MacOS/Lintel --qa \
+dist/Lintel-QA.app/Contents/MacOS/Lintel-QA --qa \
   --qa-setting "plugins.files.qaHome=$FIX/home" --qa-setting "plugins.files.roots=$FIX/home" \
   --qa-setting plugins.files.setupCompleted=true --qa-full-disk-access denied \
   --qa-setting "plugins.apps.roots=$FIX/apps" --qa-setting plugins.apps.spotlight=false \
   --qa-panel search --qa-query report
 # The Full Disk Access onboarding step and the Files settings pane:
-dist/Lintel.app/Contents/MacOS/Lintel --qa --qa-setting "plugins.files.qaHome=$FIX/home" \
+dist/Lintel-QA.app/Contents/MacOS/Lintel-QA --qa --qa-setting "plugins.files.qaHome=$FIX/home" \
   --qa-onboarding-step files.fullDiskAccess
-dist/Lintel.app/Contents/MacOS/Lintel --qa --qa-setting "plugins.files.qaHome=$FIX/home" \
+dist/Lintel-QA.app/Contents/MacOS/Lintel-QA --qa --qa-setting "plugins.files.qaHome=$FIX/home" \
   --qa-setting plugins.files.setupCompleted=true --qa-settings files
 ```
 
@@ -223,7 +227,7 @@ folders (file path search spec). In QA mode `~` is the fake home, so build the f
 mkdir -p "$FIX/home/Projects/ng/.ai/runs/2026-10-27-qa-fixes/screenshots" "$FIX/home/Documents/Invoices"
 touch "$FIX/home/Projects/ng/.ai/runs/2026-10-27-qa-fixes/plan.txt" \
   "$FIX/home/Projects/ng/.ai/runs/2026-10-27-qa-fixes/.hidden.txt" "$FIX/home/Documents/Invoices/march.txt"
-dist/Lintel.app/Contents/MacOS/Lintel --qa \
+dist/Lintel-QA.app/Contents/MacOS/Lintel-QA --qa \
   --qa-setting "plugins.files.qaHome=$FIX/home" --qa-setting "plugins.files.roots=$FIX/home" \
   --qa-setting plugins.files.setupCompleted=true --qa-full-disk-access denied \
   --qa-panel search --qa-query "~/Projects/ng/.ai/runs/2026-10-27-qa-fixes/"
@@ -251,14 +255,14 @@ COMMON=(--qa --qa-setting "plugins.files.qaHome=$FIX/home" --qa-setting "plugins
   --qa-setting "plugins.apps.roots=$FIX/apps" --qa-setting plugins.apps.spotlight=false
   --qa-setting plugins.clipboard.qaSeed=demo --qa-spotlight off)
 # The welcome screen, from the first page or on one page:
-dist/Lintel.app/Contents/MacOS/Lintel "${COMMON[@]}" --qa-onboarding
-dist/Lintel.app/Contents/MacOS/Lintel "${COMMON[@]}" --qa-onboarding-step shortcut
+dist/Lintel-QA.app/Contents/MacOS/Lintel-QA "${COMMON[@]}" --qa-onboarding
+dist/Lintel-QA.app/Contents/MacOS/Lintel-QA "${COMMON[@]}" --qa-onboarding-step shortcut
 # Settings → Permissions and Advanced:
-dist/Lintel.app/Contents/MacOS/Lintel "${COMMON[@]}" --qa-accessibility denied --qa-full-disk-access granted \
+dist/Lintel-QA.app/Contents/MacOS/Lintel-QA "${COMMON[@]}" --qa-accessibility denied --qa-full-disk-access granted \
   --qa-pasteboard-access ask --qa-settings permissions
-dist/Lintel.app/Contents/MacOS/Lintel "${COMMON[@]}" --qa-settings advanced
+dist/Lintel-QA.app/Contents/MacOS/Lintel-QA "${COMMON[@]}" --qa-settings advanced
 # About (the notices come from the bundle, so use the app built by make-app.sh):
-dist/Lintel.app/Contents/MacOS/Lintel --qa --qa-about
+dist/Lintel-QA.app/Contents/MacOS/Lintel-QA --qa --qa-about
 ```
 
 Add `-AppleLanguages '(pl)'` for the Polish strings and `--qa-appearance light|dark` for each appearance.
@@ -383,7 +387,7 @@ Options that matter (see the table above for all of them):
 
 ```sh
 CONFIGURATION=debug scripts/make-app.sh
-APP=dist/Lintel.app/Contents/MacOS/Lintel
+APP=dist/Lintel-QA.app/Contents/MacOS/Lintel-QA
 # The library with meetings in it needs recorded or seeded meetings: record one from the WAV files first
 # (run the record command from the menu, stop it, wait for "ready"), keeping --qa-data-root so the next run sees it:
 $APP --qa --qa-data-root /tmp/lintel-qa-meetings --qa-setting plugins.meetings.enabled=true \
@@ -579,6 +583,84 @@ run only for the detection itself (use the QA data root so the library is isolat
   detection works on this Mac" (not "Not available"); starting a call then clears it.
 - A headset or mute flap (mic use stops and restarts within 30 s) gives no second pill; a pill answered "Not now" does
   not come back for the same call. Two apps joining together give one pill, the second after the first is answered.
+
+## Window management: manual items (real Mac, Accessibility granted)
+
+The engine is tested against a scriptable fake client (`Tests/WindowsPluginTests/WindowEngineTests.swift`, also under
+Thread Sanitizer in CI). What only a real Mac can show is listed here and is filled in with the spike results in
+`docs/decisions/0009-window-management-spike.md`. The plugin is registered (off by default) since step 1.12, so these
+run with it switched on.
+
+**QA mode.** `--qa-windows` (DEBUG) gives window management a fake client with five fake windows and two fake displays
+(`Sources/LintelApp/QA/QAWindowClient.swift`); without it QA mode reports no windows, never the real ones. Combine with
+`--qa-settings windows`, `--qa-accessibility granted|denied`, `--qa-setting plugins.windows.enabled=true` and
+`--qa-appearance light|dark`. Example: `Lintel --qa --qa-windows --qa-accessibility granted --qa-setting plugins.windows.enabled=true --qa-settings windows`.
+
+**Real windows under QA.** `--qa-real-windows` (DEBUG) selects the real `AXWindowClient` instead of the fake one while
+keeping every other isolation (temporary data root, in-memory Keychain, no global hotkeys); give the tester's own apps a
+pass with `--qa-setting plugins.windows.floatingApps=<comma-separated bundle ids>` (a list setting). Hotkeys stay off
+because the shortcut library keeps its recorded shortcuts in the real defaults domain. `--qa-persistent-settings` keeps
+the QA settings in `<data root>/qa-settings.json` (inside the isolated root; command-line `--qa-setting` values win at
+every launch), so a second launch sees what the first stored. `--qa-setting plugins.windows.qaCapturable=true` (DEBUG
+only) makes the zone overlay, the HUD and the display identifier capturable for screenshots (the menu bar strip is a
+status item and was never excluded); release builds always keep them out of screen sharing (`ScreenCapture`).
+`--qa-setting plugins.windows.qaDragTrace=<file>` (DEBUG only) appends one line per snap drag with the time of each
+stage from the engine receiving the first moved event to the overlay being ordered in
+(`ingest`, `flushStart`, `read`, `reportedOnMain`, `targets`, `overlayShown`, in ms): the part before `ingest` is the
+Accessibility notification reaching Lintel and is read from the outside (the window's first move).
+The Layouts window keeps its frame in the plugin settings (`plugins.windows.layoutsWindowFrame`), never in the window
+system's autosave.
+
+**Menu bar strip QA.** `--qa` DEBUG runs add `qa windows stripRects` (the screen rect of every box, so a tester can click the real boxes) and the setting `plugins.windows.qaStripTrace` (logs what a click delivers: event x, location in the window, the cursor position, the item frame and the mapped x). QA pass 3 showed that the system delivers a status item's click at the item's centre, so every click read as the middle box; the controller therefore maps the click from where the mouse went down on the item (a local monitor), else the cursor's screen position (`StripLayout.resolvedClickX`); when neither is inside the item (VoiceOver, Voice Control) it opens the strip's menu instead of choosing a box. This is verified by tests with the observed numbers, **not yet on a real menu bar**; each box is also an accessibility element with its selected state, and the system's menu bar item may still show no children to a tester's Accessibility inspector. The one-item-per-box fallback remains the owner's manual decision.
+
+**QA command route.** `--qa-command-file <path>` (DEBUG, only in a `--qa` run) starts a poller (every 50 ms) that reads
+one line at a time from that file, runs it through the commands the shortcuts use, and appends `ok | <line>` or
+`error: <why> | <line>` to `<path>.log`. A line is a command id of an active plugin (`windows.workspace.2`,
+`windows.moveToWorkspace.3`, `windows.focus.left`, `windows.move.right`, `windows.resize.grow`, `windows.toggleLayout`,
+`windows.zones.nextLayout`, `windows.zones.layout.3`, `windows.zones.zone.2`, `windows.restoreAllWindows`, ...) or
+`qa windows <verb>`: `resetState`, `restoreAll`, `snap <zone number>` (snaps the focused window as a drag released over
+that zone would), `import <path>`, `export <selected|all> <path>` (the mode comes first, so the rest of the line is the path; an unknown mode is an error), `addFloating <bundle id>`, `openLayouts`. Lines that
+start with `#` and empty lines are ignored; a line is run when its newline arrives, and only whole lines are decoded. The route starts at the end of an existing file, so a relaunch does not replay an earlier run: `--qa-command-replay` runs what is already in it. A file that was replaced or rewritten (a different file, or different bytes where the last read ended) is read again from its start. A QA run never opens an open or save
+panel (they write their sizes and the Go To sheet's frame into the real defaults domain): files and the "Add App…"
+picker are scripted by the verbs above (`plugins.windows.qaScriptedFiles`, on in every `--qa` run).
+
+| # | Scenario | Expect |
+|---|---|---|
+| 1 | Switch workspaces with 20 windows of 5 apps | Windows of the old workspace disappear into the bottom right corner, the new ones return to their frames, no flicker; the budget in `docs/perf.md` holds. |
+| 2 | Frame rounding on a Retina display | A restored window reads back the same frame within the echo tolerance (2 points); no loop of moves. |
+| 3 | An app that hangs (`kill -STOP` its process), then switch; `kill -CONT` it and switch again | The other apps' windows still move; the hung app's windows stay where they are (their park timed out), are **kept** by the engine even if a resync/Space-change snapshot is taken while the app does not answer (a read that fails is "unknown", never "closed": `WindowClient.readWindows` reports `unreachable`/`unreadable` from the failed read itself, and the engine looks again by itself, after 5 s, 10 s, 20 s... up to every 60 s, until the app answers; only for an app the engine holds a window of), and are parked and tiled again on the next switch or event after the app answers; "Copy diagnostics" counts the Accessibility timeouts. A window that really closed (the app answers and no longer lists it) is still removed. (QA 2026-11 found the windows dropped for good; fixed in round 9, regression tests `WindowEngineTests`, `EngineReducerTests`.) |
+| 4 | Unplug and replug an external display, change its resolution | Workspaces of the removed display are parked on the remaining one; parked windows are re-parked in the new corner; everything returns when the display does. |
+| 5 | Kill Lintel (`kill -9`) while windows are parked, start it again (plugin on, then plugin off) | Parked windows come back at launch in both cases. |
+| 6 | An app that re-centres its hidden window (some Electron apps) | The window is hidden again at most three times, then left alone until focused; no flicker loop; the watchdog does not trip. |
+| 7 | Stage Manager on; "Displays have separate Spaces" off | The banners in Settings name the problem (keys verified in ADR 0009). |
+| 8 | Real `_AXUIElementGetWindow` self-check (ADR 0009 row 7) | With Accessibility granted and a few windows open the plugin starts; a missing symbol makes the pane show "Update Lintel". |
+| 9 | Menu bar strip (single status item): click each box, right-click, VoiceOver on the boxes, fill the menu bar | Each click switches to that box; boxes read "Workspace 3, 4 windows" and the current one is also announced as selected, once; with no room the banner says so. **If the click mapping or the accessibility children do not work, the fallback (one status item per box, at most nine) is a manual decision of the owner**, not taken automatically. |
+| 10 | Accessibility off: press ⌥2 | The HUD says "Allow Accessibility to switch workspaces" with a button; nothing moves. Grant it with windows parked: they come back within about 2 s. |
+| 11 | Keyboard layout check on a Polish layout (⌥ plus a letter types a letter) and on US | The pane and the welcome step name keys that type a letter and offer ⌃⌥; none for the digit keys. With Auto-tile (step 2.5) ⌥L (focus right) and ⌥⇧L (move right) are named on a Polish layout; "Use ⌃⌥" moves every family (go, move to workspace, focus, move, resize) and the warning goes. ⌥- and ⌥= type symbols, never letters, so they are never named. |
+| 12 | Safe mode: leave windows parked (kill -9) on two launches in a row | The third start shows "Switched off after a problem" with its own explanation (not the generic "This feature couldn't start"); Try Again starts it. With `--qa-persistent-settings` the two-launch counter can be tried under QA isolation. |
+| 13 | Real AX observers: create, move, resize, close, minimise and fullscreen windows of 5 apps | The engine follows (look at "Copy diagnostics"); no event storm; fullscreen exit manages the window again (reported as a resize). |
+| 15 | An app that is slow to become scriptable (launch one with a long start) | Its notifications are added on retry (after 1, 2 and 4 s); its windows are still seen through the engine's snapshot meanwhile. |
+| 16 | Auto-tile (default layout) with 4 windows of 3 apps on one display: open a window, close one, switch workspaces and back | A new window lands after the focused one; a closed window's space goes to its neighbours; the tiles fill the display's visible frame with the gaps from Settings (default 8 pt) and never overlap; a workspace that was not shown tiles when it is shown. Nothing is arranged before Accessibility is granted. |
+| 17 | ⌥H/J/K/L focus, ⌥⇧H/J/K/L move, ⌥- and ⌥= resize, with the windows of an app that has a minimum size | Focus follows the tiles; a move swaps, enters a neighbouring split or leaves its own; resize changes the share by 5 % and stops at 10 %. A window that refuses its tile size is centred in the tile once and never chased. |
+| 18 | Join, toggle split direction, toggle floating, balance (unbound by default; bind them in Settings or run them from a custom binding) | Join stacks a window with its neighbour; toggling floating releases the window and the others refill; it returns after the previously focused window. Balance gives every tile the same share. |
+| 19 | Drag or resize a tiled window by hand | It is not snapped back while you drag; the next structural change (window opened or closed, workspace shown, a command) places it on its tile again. Record how this feels: the spec does not say whether a drag should snap back at once. |
+| 20 | Floating apps: add an app in Advanced, then open its window; remove the default Calculator from the list | The app's windows are left where they are; Calculator then tiles. Lintel's own windows and System Settings are never tiled by default. |
+| 21 | Per-workspace overrides (Advanced, *Edit* on a workspace): kind Free, gaps 0, first split Stacked | Free leaves the windows where they are, with the tiling state kept; switching back to Auto-tile tiles again. The summary line of the workspace matches what is on screen. |
+| 22 | Toggle layout command (⌥/) | Cycles the current workspace through Auto-tile, Zones and Free; the per-workspace line in Advanced shows the override and it disappears when the kind equals the default. Every kind's state is kept: Zones back to Auto-tile restores the same tree and the same zone placement. |
+| 24 | Zones with the fake client (`--qa-windows`, `--qa-setting plugins.windows.defaultKind=zones`, optionally `--qa-setting plugins.windows.defaultZoneLayout.landscape=stock.grid2x2`) | The five fake windows fill the zones of the layout on the first fake display in join order, the rest stack in the focused zone; `windows.zones.zone.N` (bind one in Settings first) and ⌥⇧H/J/K/L move the focused window between zones. The fake client emits no events, so dragging cannot be tried there. |
+| 25 | Real Shift-drag snapping (Zones workspace, two apps): drag a window with the title bar, press Shift before and after the drag starts, release over a zone, release Shift first, release outside every zone; also select text and drag a file in Finder with Shift held | The overlay appears within 150 ms of the first drag event (`docs/perf.md`; the budget is end to end and includes the app's own Accessibility notification delay) over the display that shows the workspace only while the left button is down and Shift is held and a managed window moves; the zone under the cursor is highlighted and VoiceOver says "Zone 2"; release snaps the window to that zone; releasing Shift first, or the button away from every zone, snaps nothing; text selection and Finder drags never show it. The panels never take focus or a click. Pointer, Shift and button are read with `NSEvent.pressedMouseButtons`, `.modifierFlags` and `.mouseLocation` on a 60 Hz timer that runs only during a drag: this needs no permission (a global `flagsChanged` monitor would need Accessibility, and no monitor can consume events), so there is none. Record any case where the overlay lags the cursor. |
+| 26 | The one-time hint: switch a workspace to Zones for the first time with Accessibility granted | A HUD says "Hold ⇧ while dragging to snap" once, never again (hidden setting `plugins.windows.snapHintShown`). Not shown without Accessibility. |
+| 27 | Overlay on two displays, with a display above or left of the main one, Increase Contrast, Reduce Transparency, light and dark, English and Polish | Zone numbers sit on opaque pills and meet contrast over any wallpaper; the highlighted zone differs by border weight and pill fill, not by colour alone; the panel covers its own display exactly (coordinates are converted between the Accessibility space and Cocoa's). Attach screenshots as PR evidence. |
+| 23 | Fake client (`--qa-windows`, plugin on, Accessibility granted) | The five fake windows tile on the first fake display at once (use `--qa-setting plugins.windows.defaultKind=free` to see them untouched, `--qa-setting plugins.windows.gap.inner=0` for no gaps); the focus, move and resize shortcuts and the Advanced editor drive them in memory. The fake client emits no events, so opening and closing windows needs a real Mac (row 16). |
+| 28 | Layouts window (Settings → Window Management → Layouts…, or `--qa-setting plugins.windows.qaOpenLayouts=true` in a DEBUG build with `--qa-windows`): pick layouts per cell, *Apply to…*, change a workspace's kind, *Identify*, arrow keys, ⌫ and 1 to 6 on the matrix | The labels read "Columns 2 · default" until a cell is chosen; every change is written to `assignments.json` at once and the windows re-arrange; *Apply to…* writes the chosen cells; the kind menu of a workspace follows Settings (a kind equal to the default clears the override); *Identify* shows the display's number for two seconds on that display; with the plugin off the window says so and nothing can be edited. Check the smallest and largest text size, light and dark, English and Polish, VoiceOver on a cell ("Workspace 2, Display 2, Columns 2 · default") and Full Keyboard Access on the pickers. |
+| 29 | Two identical monitors (same UUID) in the Layouts window | The note says they are told apart by position; each column keeps its own assignment after a restart. |
+| 30 | Layout editor (Layouts window → *New layout* or *Edit…* on one of Mine): click zones to divide them, ⇧-click, ⌘-click two zones and *Merge*, drag a divider, change a zone's x, y, width and height fields, *Undo*/*Redo*, ⌘S, Esc | The sheet opens over the Layouts window; a live preview of the same zones is drawn over the chosen display (and follows every edit, also on a second display chosen in the picker); a drag is one undo step; refused edits say why in the red line (for example "Those zones don't make one rectangle"); *Save* adds or replaces the layout and the Layouts window selects it; Esc on a clean editor closes it, with changes it asks "Discard your changes to this layout?". Record the time to open (`docs/perf.md`). |
+| 31 | Editor with the keyboard and VoiceOver only | Tab walks the zones, then the vertical and horizontal dividers, and leaves the canvas at both ends; S and ⇧S divide (down to a track of 1% of the display, then the editor says it cannot get narrower; a click divides only into pieces of at least 5%, so a track under 10% is divided with the keys or the numeric fields), Space selects, M merges, arrows move a divider by 1%, Delete on a divider merges its neighbours (or says they don't line up); VoiceOver reads each zone-list row as "Zone 2, x 25%, y 0%, width 50%, height 100%", dividers as "Vertical divider at 50%" with increment and decrement, and the zone list has *Divide side by side* / *Divide stacked* actions. Check the smallest and largest text size, light and dark, English and Polish, Increase Contrast. |
+| 32 | Switch Window Management off while the editor has unsaved changes | The editor asks to discard; *Keep editing* leaves it open with the note "Window Management is off…", *Save* still saves and closes; a clean editor closes at once. |
+| 33 | Layout library: Duplicate a stock layout, Rename, Delete one that two cells use, Import a file, Export one layout and all of mine | Delete names the number of cells and up to six of them and says "This can't be undone."; after it the cells show "<default> · default"; Import shows the summary sheet before anything is added and refuses oversize, newer-version and malformed files with a message; Export writes a `.lintellayouts` file that imports into another Mac without slots or assignments. |
+| 34 | Layout slots (Settings → Window Management → Advanced → Layout slots) and *Next Zone Layout* | Bind a layout to a slot and record a shortcut: it gives the current workspace on the focused display that layout at once (the Layouts window matrix shows it); an unbound slot does nothing; *Next Zone Layout* walks the stock templates and then Mine and wraps; with Accessibility off the HUD asks for it and nothing changes. |
+| 35 | Double-click a `.lintellayouts` file in Finder (Lintel running, then not running) | Lintel opens the Layouts window with the import summary; nothing is added until *Import*; with the plugin off the window says so. Finder shows Lintel as the app for the file type. |
+| 14 | `swift`-side screenshots: Settings pane, HUD, strip in light and dark, smallest and largest text, English and Polish | Attach as PR evidence (not captured by an agent without a display, see the PR). |
 
 ## Never during QA
 

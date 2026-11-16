@@ -47,8 +47,17 @@ enum StatusDerivation {
         host: HostState,
         pluginStatus: () -> SettingsStatus?,
         required: [Permission],
-        permission: (Permission) -> PermissionStatus
+        permission: (Permission) -> PermissionStatus,
+        failureStatus: SettingsStatus? = nil
     ) -> Banner? {
+        // A failure that brought its own banner (`PluginFailureStatus`) is shown as the plugin gave it, buttons included;
+        // any other failure gets the generic banner below.
+        if case .failed = host, let status = failureStatus {
+            return Banner(
+                level: status.level, title: String(localized: status.title),
+                detail: status.detail.map { String(localized: $0) },
+                actions: Array(status.fix.prefix(maximumActions)))
+        }
         switch host {
         case .changing:
             return nil
