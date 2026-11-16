@@ -68,7 +68,41 @@ private let day: TimeInterval = 86_400
         }
     }
 
+    @Test func recoveryDoesNotCountALeftoverWhoseFolderIsGoneAsKept() throws {
+        let rig = try RecoveryRig(texts: [:])
+        let meeting = try rig.seed(.ready, mic: TrackScript())
+        try FileManager.default.removeItem(at: rig.spool.directory(for: meeting.uuid))
+        rig.harness.meetingsSettings.setKeepAudio(true)
+        let library = rig.library()
+        library.open()
+        let store = try #require(library.store)
+        #expect(try store.audioState(of: meeting.id) == .deleted)
+        #expect(try store.keptAudioCount() == 0)
+        library.close()
+    }
+
     // MARK: Expiry and deletion
+
+    @Test func retentionLeavesTheKeptAudioOfALiveMeetingAlone() async throws {
+        let now = Date(timeIntervalSince1970: 500 * day)
+        let harness = try MeetingsHarness()
+        let spool = RecordingSpool(existing: ["held"])
+        let library = harness.library(now: { now }, spool: spool)
+        library.open()
+        let store = try #require(library.store)
+        let id = try store.insertMeeting(
+            uuid: "held", startedAt: now.addingTimeInterval(-40 * day), speechModelID: "m", status: .ready)
+        try store.setStatus(id, status: .ready, endedAt: now.addingTimeInterval(-40 * day), durationMs: 1_000)
+        try store.setAudioState(id, state: .kept)
+        library.registerLive(meetingID: id)
+        _ = await library.applyRetention()
+        #expect(try store.audioState(of: id) == .kept)
+        #expect(spool.state.withLock { $0.existing } == ["held"])
+        library.unregisterLive(meetingID: id)
+        _ = await library.applyRetention()
+        #expect(try store.audioState(of: id) == .deleted)
+        #expect(spool.state.withLock { $0.existing }.isEmpty)
+    }
 
     @Test func retentionRemovesKeptAudioOlderThanTheDaysAndNothingElse() async throws {
         let now = Date(timeIntervalSince1970: 500 * day)
@@ -128,6 +162,28 @@ private let day: TimeInterval = 86_400
         #expect(try store.audioState(of: other) == .spool)
         #expect(try store.meetingCount() == 2)
         #expect(privacy.keptRecordingCount() == 0)
+    }
+
+    @Test func deleteKeptRecordingsRefusesALiveMeetingAndAClosedLibrary() throws {
+        let harness = try MeetingsHarness()
+        let library = harness.library()
+        let spool = SpoolStorage(pluginDirectory: harness.pluginDirectory)
+        let closed = MeetingsPrivacyActions(library: library, spool: spool) {}
+        #expect(try closed.deleteKeptRecordings() == PrivacyReport(removed: 0))
+        #expect(closed.keptRecordingCount() == 0)
+        library.open()
+        let store = try #require(library.store)
+        let uuid = UUID()
+        let id = try store.insertMeeting(
+            uuid: SpoolStorage.name(of: uuid), startedAt: Date(), speechModelID: "m", status: .ready)
+        try store.setAudioState(id, state: .kept)
+        _ = try spool.prepare(meeting: uuid)
+        library.registerLive(meetingID: id)
+        let privacy = MeetingsPrivacyActions(library: library, spool: spool) {}
+        #expect(try privacy.deleteKeptRecordings() == PrivacyReport(removed: 0, failed: 0))
+        #expect(try store.audioState(of: id) == .kept)
+        #expect(spool.hasSpool(forMeeting: SpoolStorage.name(of: uuid)))
+        #expect(privacy.keptRecordingCount() == 1)
     }
 
     // MARK: Compatibility

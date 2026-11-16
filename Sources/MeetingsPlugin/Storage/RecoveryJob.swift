@@ -116,9 +116,12 @@ final class RecoveryJob {
         let keeps = keepAudio()
         for leftover in leftovers where !liveMeetingIDs.contains(leftover.id) {
             // With `keepAudio` on, the crash may have hit between `ready` and the state write: the audio the
-            // user asked to keep is kept, and ages out on its own clock.
+            // user asked to keep is kept, and ages out on its own clock. A folder that is already gone has
+            // nothing to keep (an earlier delete finished, only its state write did not), so it is not counted.
             if keeps {
-                if (try? store.setAudioState(leftover.id, state: .kept)) == nil { report.writeFailures += 1 }
+                let state: AudioState =
+                    spool.hasSpool(forMeeting: SpoolStorage.name(of: leftover.uuid)) ? .kept : .deleted
+                if (try? store.setAudioState(leftover.id, state: state)) == nil { report.writeFailures += 1 }
                 continue
             }
             guard spool.removeConfirmed(meeting: leftover.uuid, keys: keys) else { continue }
