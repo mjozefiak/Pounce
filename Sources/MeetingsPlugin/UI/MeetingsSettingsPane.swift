@@ -45,6 +45,7 @@ struct MeetingsPaneContent: View {
     private enum PrivacyConfirmation: Identifiable {
         case clearLibrary
         case deleteRecordings
+        case deleteKeptRecordings
         var id: Self { self }
     }
 
@@ -92,6 +93,13 @@ struct MeetingsPaneContent: View {
             MeetingsConfirmations.deleteRecordings
         ) {
             model.deleteTemporaryRecordings()
+        }
+        .destructiveConfirmation(
+            isPresented: Binding(
+                get: { confirmation == .deleteKeptRecordings }, set: { if !$0 { confirmation = nil } }),
+            MeetingsConfirmations.deleteKeptRecordings
+        ) {
+            model.deleteKeptRecordings()
         }
     }
 
@@ -428,6 +436,37 @@ struct MeetingsPaneContent: View {
                 help: Text(
                     "Audio of interrupted meetings.",
                     comment: "Settings → Meetings: help under Temporary recordings"))
+        }
+        Toggle(isOn: $model.keepAudio) {
+            label(
+                Text("Keep recordings", comment: "Settings → Meetings switch that keeps the encrypted audio"),
+                help: Text(
+                    "Keeps the encrypted audio of the voices in your meetings for \(model.keptAudioDays) days, on this Mac only.",
+                    comment: "Settings → Meetings: help under Keep recordings (days)"))
+        }
+        .toggleStyle(.switch)
+        if model.keepAudio || model.keptAudioCount > 0 {
+            LabeledContent {
+                Button(role: .destructive) {
+                    confirmation = .deleteKeptRecordings
+                } label: {
+                    Text(
+                        "Delete Kept Recordings…",
+                        comment: "Meetings settings button that deletes the audio kept by Keep recordings"
+                    )
+                    .font(textSize.font(.body))
+                }
+                .lintelDestructiveButton()
+                .disabled(!model.canChangeLibrary || model.keptAudioCount == 0)
+            } label: {
+                label(
+                    Text("Kept recordings", comment: "Settings → Meetings row of the audio kept after a meeting"),
+                    help: Text(
+                        model.keepAudio
+                            ? "\(model.keptAudioCount) kept."
+                            : "\(model.keptAudioCount) kept. Switched off: they stay until they expire or you delete them.",
+                        comment: "Settings → Meetings: help under Kept recordings (count)"))
+            }
         }
         if let message = model.privacyMessage {
             Text(message)

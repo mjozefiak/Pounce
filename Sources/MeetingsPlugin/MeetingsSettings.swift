@@ -24,12 +24,15 @@ struct MeetingsSettings: Sendable {
         static let suggestExtraBundleIDs = "suggestExtraBundleIDs"
         static let retentionDays = "retentionDays"
         static let orphanAudioDays = "orphanAudioDays"
+        static let keepAudio = "keepAudio"
+        static let keptAudioDays = "keptAudioDays"
         static let selfName = "selfName"
     }
 
     static let defaultSpeechModel = "parakeet-ultra"
     static let defaultRetentionDays = 90
     static let defaultOrphanAudioDays = 7
+    static let defaultKeptAudioDays = 30
     static let defaultNotesChunkTokens = 3_000
     static let defaultNotesReduceInputTokens = 4_500
     /// Choices in Settings; 0 keeps meetings until the user deletes them.
@@ -195,6 +198,13 @@ struct MeetingsSettings: Sendable {
         return days < 0 ? Self.defaultRetentionDays : days
     }
 
+    /// Keep the encrypted recording after the transcript is ready (owner decision M-Q3). Off by default: it
+    /// stores more than the app did before, so it only changes when the user flips it.
+    var keepAudio: Bool { settings.bool(Key.keepAudio, default: false) }
+
+    /// How long kept audio stays; at least a day.
+    var keptAudioDays: Int { max(1, settings.integer(Key.keptAudioDays, default: Self.defaultKeptAudioDays)) }
+
     var orphanAudioDays: Int { max(1, settings.integer(Key.orphanAudioDays, default: Self.defaultOrphanAudioDays)) }
 
     func setSpeechModelID(_ id: String) { settings.set(id, for: Key.speechModel) }
@@ -230,5 +240,6 @@ struct MeetingsSettings: Sendable {
     func setSuggestMutedBundleIDs(_ ids: [String]) { settings.set(ids, for: Key.suggestMutedBundleIDs) }
     func setSuggestExtraBundleIDs(_ ids: [String]) { settings.set(ids, for: Key.suggestExtraBundleIDs) }
     func setRetentionDays(_ days: Int) { settings.set(max(0, days), for: Key.retentionDays) }
+    func setKeepAudio(_ value: Bool) { settings.set(value, for: Key.keepAudio) }
     func setOrphanAudioDays(_ days: Int) { settings.set(days, for: Key.orphanAudioDays) }
 }

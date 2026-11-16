@@ -459,7 +459,8 @@ struct SessionRig {
         micInput: ControlledInput? = nil, gate: MeetingSessionGate? = nil, uuid: UUID = UUID(),
         modelID: String = "test-model", lease: SpeechEngineLease? = nil, engine: (any SpeechEngine)? = nil,
         withSystem: Bool = true, clock: TestClock? = nil, micAudio: (any AudioInput)? = nil,
-        beforeReady: (@Sendable (Int64, UUID) async -> Void)? = nil, sourceBundleID: String? = nil
+        beforeReady: (@Sendable (Int64, UUID) async -> Void)? = nil, sourceBundleID: String? = nil,
+        keepAudio: Bool = false
     ) -> MeetingSession {
         var nowFn: @Sendable () -> Date = { Date() }
         var sleepFn: @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
@@ -476,7 +477,8 @@ struct SessionRig {
             lease: lease ?? self.lease, keepWarm: { .seconds(321) }, sleepAssertion: sleepAssertion,
             gate: gate ?? self.gate, limits: limits ?? shortLimits, freeSpace: freeSpace, uuid: uuid,
             now: nowFn, sleep: sleepFn,
-            beforeReady: beforeReady, sourceBundleID: sourceBundleID)
+            beforeReady: beforeReady, sourceBundleID: sourceBundleID,
+            keepAudio: { keepAudio })
     }
 
     var shortLimits: MeetingSessionLimits {

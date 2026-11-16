@@ -12,7 +12,7 @@ Użytkownik chce nagrywać spotkania (online i na żywo, po polsku z angielskimi
 | Q4 | Osobny `MeetingsPlugin` + wspólny target `PounceSpeech`. | Dyktowanie jest już wdrożone, więc `PounceSpeech` powstaje przez **mechaniczne wyciągnięcie** kodu z `DictationPlugin` (Faza 0). |
 | Q5 | Zaszyfrowana biblioteka + „Kopiuj Markdown” i „Zapisz .md”. | `meetings.sqlite` (SQLCipher), list mode, okno spotkania. |
 | Q6 | Ręcznie **oraz** podpowiedź po wykryciu spotkania. | Faza 3: wykrywanie użycia mikrofonu przez inne aplikacje (domyślnie wyłączone, opt-in). |
-| Q7 | Tymczasowy plik audio, kasowany po udanym przetworzeniu. | Zaszyfrowany spool na dysku, odzyskiwanie po awarii; warunek offline diaryzacji. |
+| Q7 | Tymczasowy plik audio, kasowany po udanym przetworzeniu. **Zmienione (MEET-1.1, decyzja M-Q3):** domyślnie nadal tak; opcja `plugins.meetings.keepAudio` (domyślnie wyłączona) zachowuje zaszyfrowany spool po `ready` na 30 dni (`audio_state = kept`). | Zaszyfrowany spool na dysku, odzyskiwanie po awarii; warunek offline diaryzacji. |
 | Q8 | Jeden stały szablon notatek. | Bez wyboru szablonów i własnych promptów. |
 | Q9 | Notatki **tylko** przez wbudowany LLM (tryb „Built-in” z dyktowania). | Bez zewnętrznego serwera: brak `EndpointProbe`, `LoopbackPolicy`, potwierdzania endpointu, kanarka kontekstu i nowych połączeń sieciowych. |
 | Q10 | Modele przenoszone do wspólnego `Models/`. | Jednorazowa atomowa migracja z `Plugins/dictation/`; nowy `PluginContext.modelsDirectory`. |

@@ -48,12 +48,17 @@ final class RecoveryJob {
     private let spool: SpoolStorage
     private let keys: MeetingKeys
     private let now: () -> Date
+    private let keepAudio: () -> Bool
     private let logger: Logger
 
-    init(spool: SpoolStorage, keys: MeetingKeys, now: @escaping () -> Date = { Date() }, logger: Logger) {
+    init(
+        spool: SpoolStorage, keys: MeetingKeys, now: @escaping () -> Date = { Date() },
+        keepAudio: @escaping () -> Bool = { false }, logger: Logger
+    ) {
         self.spool = spool
         self.keys = keys
         self.now = now
+        self.keepAudio = keepAudio
         self.logger = logger
     }
 
@@ -108,7 +113,14 @@ final class RecoveryJob {
     /// A `ready` meeting never needs its audio: a spool still there is a delete that was interrupted.
     private func removeLeftovers(store: MeetingsStore, report: inout RecoveryReport, liveMeetingIDs: Set<Int64>) {
         guard let leftovers = try? store.readyMeetingsWithSpool() else { return }
+        let keeps = keepAudio()
         for leftover in leftovers where !liveMeetingIDs.contains(leftover.id) {
+            // With `keepAudio` on, the crash may have hit between `ready` and the state write: the audio the
+            // user asked to keep is kept, and ages out on its own clock.
+            if keeps {
+                if (try? store.setAudioState(leftover.id, state: .kept)) == nil { report.writeFailures += 1 }
+                continue
+            }
             guard spool.removeConfirmed(meeting: leftover.uuid, keys: keys) else { continue }
             if (try? store.setAudioState(leftover.id, state: .deleted)) != nil {
                 report.leftoverSpoolsRemoved += 1

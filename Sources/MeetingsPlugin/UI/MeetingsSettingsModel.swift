@@ -22,6 +22,14 @@ final class MeetingsSettingsModel {
     var consentReminder: Bool {
         didSet { settings.setConsentReminder(consentReminder) }
     }
+    /// Keep the encrypted recording for `keptAudioDays` after the transcript is ready. Off by default. Turning it
+    /// off keeps what is already kept (it ages out or is deleted by hand); the pane says so.
+    var keepAudio: Bool {
+        didSet { settings.setKeepAudio(keepAudio) }
+    }
+    /// Meetings that hold kept audio now (read on appear and after a delete).
+    private(set) var keptAudioCount = 0
+    var keptAudioDays: Int { settings.keptAudioDays }
     /// 0 keeps meetings until the user deletes them. Change it through `selectRetention(_:)`: a shorter
     /// period that would delete meetings waits for a confirmation.
     private(set) var retentionDays: Int {
@@ -96,6 +104,7 @@ final class MeetingsSettingsModel {
         voiceProcessing = settings.voiceProcessing
         consentReminder = settings.consentReminder
         retentionDays = settings.retentionDays
+        keepAudio = settings.keepAudio
         selfName = settings.selfName
         suggestMeetings = settings.suggestMeetings
         reloadSuggestionLists()
@@ -109,6 +118,7 @@ final class MeetingsSettingsModel {
         microphone = authorizer.status()
         devices = listDevices()
         reloadSuggestionLists()
+        keptAudioCount = privacy.keptRecordingCount()
         await speech.refresh()
         await diarization.refresh()
         await notes.refresh()
@@ -291,6 +301,19 @@ final class MeetingsSettingsModel {
                     comment: "Meetings settings: result of Delete Temporary Recordings"), report.failed
             )
         }
+    }
+
+    /// Called after the pane's confirmation.
+    func deleteKeptRecordings() {
+        run {
+            let report = try privacy.deleteKeptRecordings()
+            return (
+                String(
+                    localized: "Deleted \(report.removed) kept recordings.",
+                    comment: "Meetings settings: result of Delete Kept Recordings"), report.failed
+            )
+        }
+        keptAudioCount = privacy.keptRecordingCount()
     }
 
     private static func removedMessage(_ count: Int) -> String {

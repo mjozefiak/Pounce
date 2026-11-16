@@ -349,6 +349,14 @@ enum MeetingsConfirmations {
             comment: "Meetings settings confirmation text of Clear Library in the main window"),
         confirmTitle: LocalizedStringResource("Delete All Meetings", comment: "Meetings settings confirmation button"))
 
+    static let deleteKeptRecordings = DestructiveConfirmation(
+        prompt: LocalizedStringResource(
+            "Delete kept recordings?", comment: "Meetings settings confirmation title"),
+        detail: LocalizedStringResource(
+            "The kept audio of all meetings is deleted, so you can no longer listen to it. Transcripts and notes stay.",
+            comment: "Meetings settings confirmation text of Delete Kept Recordings"),
+        confirmTitle: LocalizedStringResource("Delete Recordings", comment: "Meetings settings confirmation button"))
+
     static let deleteRecordings = DestructiveConfirmation(
         prompt: LocalizedStringResource(
             "Delete temporary recordings?", comment: "Meetings settings confirmation title"),

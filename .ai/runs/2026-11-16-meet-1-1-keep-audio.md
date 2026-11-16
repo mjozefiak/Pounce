@@ -23,12 +23,12 @@ risk-high: retencja, format na dysku, nowy klucz ustawień. Nowy wiersz ustawie�
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Rdzeń
-- [ ] 1.1 Ustawienia keepAudio/keptAudioDays i AudioState.kept
-- [ ] 1.2 Trzy ścieżki ready (sesja, resumer, RecoveryJob) i wygasanie w RetentionJob
-- [ ] 1.3 Prywatność: liczenie i usuwanie zachowanych nagrań
+- [x] 1.1 Ustawienia keepAudio/keptAudioDays i AudioState.kept
+- [x] 1.2 Trzy ścieżki ready (sesja, resumer, RecoveryJob) i wygasanie w RetentionJob
+- [x] 1.3 Prywatność: liczenie i usuwanie zachowanych nagrań
 
 ### Phase 2: UI, teksty, dokumenty
-- [ ] 2.1 Panel Prywatność (przełącznik, licznik, przycisk, arkusz)
-- [ ] 2.2 Teksty en/pl i InfoPlist
-- [ ] 2.3 BACKWARD_COMPATIBILITY, AGENTS.md, spec Q7
+- [x] 2.1 Panel Prywatność (przełącznik, licznik, przycisk, arkusz)
+- [x] 2.2 Teksty en/pl i InfoPlist
+- [x] 2.3 BACKWARD_COMPATIBILITY, AGENTS.md, spec Q7
 - [ ] 2.4 Pełna bramka i zrzuty QA

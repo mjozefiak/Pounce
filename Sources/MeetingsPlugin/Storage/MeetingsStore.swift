@@ -41,6 +41,10 @@ enum SpeakerMode: String, Sendable, CaseIterable {
 enum AudioState: String, Sendable, CaseIterable {
     case spool
     case deleted
+    /// The user opted in to `plugins.meetings.keepAudio`: the encrypted spool of a `ready` meeting stays until
+    /// `keptAudioDays` have passed, the meeting is deleted or the user removes it. No schema change: the column
+    /// is free text. Code from before this value reads it as unknown and treats the audio as gone.
+    case kept
 }
 
 /// `meeting_speaker.source_channel` and `meeting_segment.channel`.
@@ -415,6 +419,36 @@ extension MeetingsStore {
                 sql: "SELECT id FROM meeting WHERE started_at < ? AND status NOT IN ('recording', 'processing')",
                 arguments: [cutoff.timeIntervalSince1970]
             ).filter { !protected.contains($0["id"] as Int64) }.count
+        }
+    }
+
+    /// The `uuid`s of `ready` meetings whose audio was kept (`audio_state = kept`), except those in `excluding`.
+    func keptSpoolUUIDs(excluding: Set<Int64> = []) throws -> [String] {
+        try read { db in
+            try Row.fetchAll(db, sql: "SELECT id, uuid FROM meeting WHERE audio_state = 'kept'")
+                .filter { !excluding.contains($0["id"] as Int64) }.map { $0["uuid"] as String }
+        }
+    }
+
+    /// The kept audio that has aged out: meetings that ended (started, when no end time was written) before
+    /// `cutoff`. Meetings in `excluding` are left out.
+    func expiredKeptSpoolUUIDs(cutoff: Date, excluding: Set<Int64> = []) throws -> [String] {
+        try read { db in
+            try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT id, uuid FROM meeting
+                    WHERE audio_state = 'kept' AND COALESCE(ended_at, started_at) < ?
+                    """,
+                arguments: [cutoff.timeIntervalSince1970]
+            ).filter { !excluding.contains($0["id"] as Int64) }.map { $0["uuid"] as String }
+        }
+    }
+
+    /// How many meetings still hold kept audio (the privacy section shows it).
+    func keptAudioCount() throws -> Int {
+        try read { db in
+            try Int.fetchOne(db, sql: "SELECT count(*) FROM meeting WHERE audio_state = 'kept'") ?? 0
         }
     }
 

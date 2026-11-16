@@ -122,7 +122,7 @@ final class RecoveryRig {
     /// The factory `MeetingsLibrary` asks for a resumer. `scripts` are the tracks' speech, in the order the
     /// resumer scans them: system first, then the microphone (each scan gets a fresh detector).
     func resumerFactory(
-        mic: TrackScript, system: TrackScript? = nil, haveModel: Bool = true
+        mic: TrackScript, system: TrackScript? = nil, haveModel: Bool = true, keepAudio: Bool = false
     ) -> @MainActor (MeetingsStore, MeetingKeys, SpoolStorage) -> (any MeetingResuming)? {
         let spans = (system.map { [$0.spans] } ?? []) + [mic.spans]
         let counter = Mutex(0)
@@ -149,7 +149,7 @@ final class RecoveryRig {
                             meetingID: id, statusDuringCall: status,
                             spoolExisted: FileManager.default.fileExists(atPath: spool.directory(for: uuid).path)))
                 },
-                now: { RecoveryRig.now })
+                now: { RecoveryRig.now }, keepAudio: { keepAudio })
         }
     }
 
