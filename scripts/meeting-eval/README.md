@@ -72,10 +72,18 @@ python3 -I scripts/meeting-eval/score_notes.py compare --baseline <runs.json> --
 | `quoteConfirmedShare` | note points (not questions) whose quote occurs, token for token, inside one gold transcript segment |
 | `taskF1` | gold tasks vs note tasks matched by text; level `task` = the match, `owner` = and the same owner, `due` = and the same owner and due |
 
-Matching is lexical (Dice over the Polish-normalized tokens of `score.py`, threshold 0.5): a deterministic proxy. Every function takes a `similarity` argument, so the judge panel (part 2) plugs a semantic matcher into the same seam.
+Matching is lexical (Dice over the Polish-normalized tokens of `score.py`, threshold 0.5): a deterministic proxy. It is a maximum-cardinality one-to-one assignment (ties: higher total similarity, then index order), not greedy. Every function takes a `similarity` argument, so the judge panel (part 2) plugs a semantic matcher into the same seam.
 
 `compare` takes two JSON lists of runs (each run `{meeting id: score result}`), at least 3 per variant, paired on the same meetings. It says `above-noise` only when the mean paired difference exceeds the measured run-to-run spread (the larger standard deviation of the two variants, averaged over meetings); otherwise `within-noise`, or `insufficient-runs`.
 
 `require_local_judge(entry, judge_is_local)` raises `ConsentError` for a non-local judge unless the entry has `participants_agreed` and `cloud_judges` both true.
 
-Not here yet (part 2): the local judge panel, repeats for disputed matches and the spread between repeats.
+## Judge panel (MEET-1.4, part 2)
+
+`judge_panel.py` decides semantic matches with 2-3 local judges from different model families and plugs into the `similarity` seam of `score_notes.py`. A candidate pair (lexical Dice >= 0.15; below it nobody is asked) gets one vote per judge; unanimous = decided; otherwise the pair is disputed and every judge votes until it has at least 5 votes (`repeats`), and the pair matches when more than half of all votes say yes. The report gives the number of pairs asked and disputed, judge calls and the spread between repeats (standard deviation of the per-repeat share of yes votes, mean and max). Protocol and prompt: `notes-rubric.md` section 6.
+
+```sh
+python3 -I scripts/meeting-eval/judge_panel.py score --gold <entry.json> --notes <notes.json> --judges <judges.json> [--out scored.json]
+```
+
+`judges.json` (or the path in `$LINTEL_MEETING_EVAL_JUDGES`): `{"repeats": 5, "judges": [{"name", "family", "local": true, "argv": ["..."], "timeout": 300}]}`. A judge is a command started without a shell; the prompt goes to stdin and it answers `{"match": true|false}`. `local` is the operator's declaration. Before any call, every judge goes through `require_local_judge`: a non-local judge on an entry without `participants_agreed` and `cloud_judges` ends with exit code 3 and no judge is called. Output has ids, judge names, families and numbers only. Tests use a scripted fake judge; the real-model test is skipped unless `$LINTEL_MEETING_EVAL_JUDGES` is set.

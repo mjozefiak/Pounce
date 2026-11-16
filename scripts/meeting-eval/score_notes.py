@@ -13,7 +13,7 @@ Gold entry: the MEET-1.3 schema (`validate_gold.py`). Notes file (`notes.json`, 
 Metrics (all fractions 0..1 with their counts):
   coverage             gold key points + decisions matched by a note point (question points never match)
   quoteConfirmedShare  note points whose quote occurs, token for token, inside ONE gold transcript segment
-  taskF1               gold tasks vs note tasks, one-to-one matching by text, then the matched pairs are
+  taskF1               gold tasks vs note tasks, maximum one-to-one matching by text, then the matched pairs are
                        checked again: level "task" (match), "owner" (+ same owner), "due" (+ same owner and due)
 
 Matching goes through a matcher: a function (gold_text, note_text) -> similarity in 0..1. The default is
@@ -53,23 +53,71 @@ def lexical_similarity(gold_text, note_text):
     return 2 * len(a & b) / (len(a) + len(b))
 
 
+def _assign(weights):
+    """Maximum-weight assignment on a square matrix (Hungarian algorithm, integer weights).
+    Returns col_of_row. Ties resolve by the fixed iteration order, so the result is deterministic."""
+    n = len(weights)
+    inf = float("inf")
+    u, v, p, way = [0] * (n + 1), [0] * (n + 1), [0] * (n + 1), [0] * (n + 1)
+    for i in range(1, n + 1):
+        p[0] = i
+        j0 = 0
+        minv = [inf] * (n + 1)
+        used = [False] * (n + 1)
+        while True:
+            used[j0] = True
+            i0, delta, j1 = p[j0], inf, 0
+            for j in range(1, n + 1):
+                if used[j]:
+                    continue
+                cur = -weights[i0 - 1][j - 1] - u[i0] - v[j]
+                if cur < minv[j]:
+                    minv[j], way[j] = cur, j0
+                if minv[j] < delta:
+                    delta, j1 = minv[j], j
+            for j in range(n + 1):
+                if used[j]:
+                    u[p[j]] += delta
+                    v[j] -= delta
+                else:
+                    minv[j] -= delta
+            j0 = j1
+            if p[j0] == 0:
+                break
+        while j0:
+            j1 = way[j0]
+            p[j0] = p[j1]
+            j0 = j1
+    col_of_row = [None] * n
+    for j in range(1, n + 1):
+        if p[j]:
+            col_of_row[p[j] - 1] = j - 1
+    return col_of_row
+
+
+_CARDINALITY = 10 ** 9  # larger than any sum of scaled similarities, so cardinality always wins
+
+
 def match_pairs(gold_texts, note_texts, similarity=lexical_similarity, threshold=MATCH_THRESHOLD):
-    """Greedy one-to-one matching, best similarity first, ties by index. Returns [(gold_i, note_j)]."""
-    scored = []
+    """Maximum-cardinality one-to-one matching of the pairs at or above the threshold (#85).
+
+    Among the maximum assignments the one with the highest total similarity wins; remaining ties follow
+    the fixed index order. Returns [(gold_i, note_j)] sorted. Greedy best-first could leave a gold point
+    unmatched although another assignment covers both."""
+    ng, nn = len(gold_texts), len(note_texts)
+    size = max(ng, nn)
+    if not size:
+        return []
+    weights = [[0] * size for _ in range(size)]
+    edges = set()
     for i, g in enumerate(gold_texts):
         for j, n in enumerate(note_texts):
             s = similarity(g, n)
             if s >= threshold:
-                scored.append((-s, i, j))
-    scored.sort()
-    used_g, used_n, pairs = set(), set(), []
-    for _, i, j in scored:
-        if i in used_g or j in used_n:
-            continue
-        used_g.add(i)
-        used_n.add(j)
-        pairs.append((i, j))
-    return sorted(pairs)
+                weights[i][j] = _CARDINALITY + int(round(s * 10 ** 6))
+                edges.add((i, j))
+    cols = _assign(weights)
+    return sorted((i, j) for i, j in enumerate(cols) if (i, j) in edges)
 
 
 # ---------------------------------------------------------------- metrics

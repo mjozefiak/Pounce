@@ -24,12 +24,12 @@ Second PR of MEET-1.4: a panel of 2-3 local judges from different model families
 
 ## Progress
 
-> Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
+> Convention: `- [x]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: panel
 
-- [ ] 1.1 Maximum one-to-one matching in score_notes (#85) with a test where greedy differs
-- [ ] 1.2 judge_panel.py: judges, panel, disputed repeats, spread, consent gate
-- [ ] 1.3 Tests with a scripted fake judge; real judge test behind env var
-- [ ] 1.4 Judge protocol and prompt in notes-rubric.md; README section
-- [ ] 1.5 Gate and unittest output in PR body
+- [x] 1.1 Maximum one-to-one matching in score_notes (#85) with a test where greedy differs
+- [x] 1.2 judge_panel.py: judges, panel, disputed repeats, spread, consent gate
+- [x] 1.3 Tests with a scripted fake judge; real judge test behind env var
+- [x] 1.4 Judge protocol and prompt in notes-rubric.md; README section
+- [x] 1.5 Gate and unittest output in PR body
