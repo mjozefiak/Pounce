@@ -1,3 +1,4 @@
+import LintelCore
 import Testing
 
 @testable import FilesPlugin
