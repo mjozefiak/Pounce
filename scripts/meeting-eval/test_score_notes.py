@@ -119,6 +119,31 @@ class MetricTests(unittest.TestCase):
         with self.assertRaises(sn.NotesError):
             sn.score_notes(GOLD, {"schema": 1, "points": [{"kind": "bogus", "text": "x"}]})
 
+    def test_malformed_point_fields(self):
+        for bad in ({"owner": 1}, {"due": 20261201}, {"quote": "plain text"}, {"quote": {"time": "00:01"}}):
+            point = dict(pt("task", "x"), **bad)
+            with self.assertRaises(sn.NotesError):
+                sn.score_notes(GOLD, {"schema": 1, "points": [point]})
+
+    def test_notes_of_another_meeting_refused(self):
+        with self.assertRaises(sn.NotesError):
+            sn.score_notes(GOLD, dict(NOTES, meeting="syn-2"))
+
+    def test_notes_without_meeting_id_scored(self):
+        notes = {k: v for k, v in NOTES.items() if k != "meeting"}
+        self.assertEqual(sn.score_notes(GOLD, notes)["coverage"]["num"], 2)
+
+    def test_deterministic(self):
+        # same input, same output, byte for byte: no set or dict order leaks into the result
+        first = json.dumps(sn.score_notes(GOLD, NOTES), sort_keys=True)
+        for _ in range(20):
+            self.assertEqual(json.dumps(sn.score_notes(GOLD, NOTES), sort_keys=True), first)
+
+    def test_ties_broken_by_index(self):
+        # two equal candidates: the lower note index wins, every time
+        for _ in range(20):
+            self.assertEqual(sn.match_pairs(["a b"], ["a b", "a b"]), [(0, 0)])
+
     def test_custom_matcher_changes_coverage(self):
         s = sn.score_notes(GOLD, NOTES, similarity=lambda g, n: 1.0)
         self.assertEqual(s["coverage"]["num"], 3)

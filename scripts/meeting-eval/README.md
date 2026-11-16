@@ -64,7 +64,7 @@ python3 -I scripts/meeting-eval/score_notes.py score --gold <entry.json> --notes
 python3 -I scripts/meeting-eval/score_notes.py compare --baseline <runs.json> --candidate <runs.json> --metric coverage
 ```
 
-`notes.json` (schema 1): `{"schema": 1, "meeting": "<id>", "points": [{"kind": "summary|key_point|decision|task|question", "text", "owner", "due", "quote": {"text", "time"} | null}]}`. `owner` and `due` belong to tasks.
+`notes.json` (schema 1): `{"schema": 1, "meeting": "<id>", "points": [{"kind": "summary|key_point|decision|task|question", "text", "owner", "due", "quote": {"text", "time"} | null}]}`. `owner` and `due` belong to tasks. A `meeting` that differs from the gold entry's `id` is refused; malformed fields exit with code 2 and the field path only.
 
 | Metric | Meaning |
 |---|---|

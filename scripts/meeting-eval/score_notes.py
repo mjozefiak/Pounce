@@ -134,10 +134,24 @@ def validate_notes(notes):
             raise NotesError("points[%d].text: missing" % i)
         if p.get("kind") not in ("summary", "key_point", "decision", "task", "question"):
             raise NotesError("points[%d].kind: invalid" % i)
+        for key in ("owner", "due"):
+            if p.get(key) is not None and not isinstance(p[key], str):
+                raise NotesError("points[%d].%s: must be text or null" % (i, key))
+        q = p.get("quote")
+        if q is not None and not (isinstance(q, dict) and isinstance(q.get("text"), str)):
+            raise NotesError("points[%d].quote: must be null or an object with text" % i)
+
+
+def check_same_meeting(gold, notes):
+    """Notes that name a meeting must name the gold entry's meeting."""
+    mid = notes.get("meeting")
+    if mid is not None and mid != gold.get("id"):
+        raise NotesError("notes.meeting: does not match the gold entry id")
 
 
 def score_notes(gold, notes, similarity=lexical_similarity, threshold=MATCH_THRESHOLD):
     validate_notes(notes)
+    check_same_meeting(gold, notes)
     return {
         "schema": SCHEMA,
         "meeting": gold.get("id"),
