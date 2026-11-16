@@ -25,7 +25,7 @@ First PR of MEET-1.3: the entry format of the meeting gold set and a validator, 
 
 ### Phase 1: schema and validator
 
-- [x] 1.1 Validator and entry schema
-- [x] 1.2 Tests (one valid, three invalid entries, more)
-- [x] 1.3 README with LINTEL_MEETING_GOLD_DIR
+- [x] 1.1 Validator and entry schema — 8acc7c6
+- [x] 1.2 Tests (one valid, three invalid entries, more) — 8acc7c6
+- [x] 1.3 README with LINTEL_MEETING_GOLD_DIR — 8acc7c6
 - [ ] 1.4 Gate and unittest output in PR body
