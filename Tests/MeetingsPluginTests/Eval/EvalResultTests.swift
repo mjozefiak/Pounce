@@ -40,6 +40,24 @@ struct EvalResultTests {
         #expect(decoded.speaker == "Ja")
     }
 
+    @Test func wordsAreOptionalAndAdditive() throws {
+        let absent = #"{"track":"mic","startMs":1,"endMs":2,"text":"t"}"#
+        #expect(try JSONDecoder().decode(EvalResult.Segment.self, from: Data(absent.utf8)).words == nil)
+        let plain = EvalResult.Segment(track: "mic", startMs: 1, endMs: 2, text: "t")
+        let object = try #require(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(plain)) as? [String: Any])
+        #expect(object["words"] == nil)
+
+        let words: [EvalResult.Word] = [
+            .init(startMs: 1, endMs: 5, speaker: "Ja"), .init(startMs: 5, endMs: 9, speaker: nil),
+        ]
+        let value = EvalResult.Segment(
+            track: "mic", startMs: 1, endMs: 9, text: "dwa słowa", speaker: "Ja", words: words)
+        let decoded = try JSONDecoder().decode(EvalResult.Segment.self, from: JSONEncoder().encode(value))
+        #expect(decoded == value)
+        #expect(decoded.words?.first?.speaker == "Ja")
+    }
+
     @Test func keysAreExactlyTheSchema() throws {
         let literal = """
             {"schema":1,"recording":"r","audioSeconds":1.5,

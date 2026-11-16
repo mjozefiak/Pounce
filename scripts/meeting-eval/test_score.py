@@ -205,6 +205,222 @@ class PipelineTests(unittest.TestCase):
             self.assertIsNone(data["recordings"]["b"]["wer"])
 
 
+def sseg(start, end, text, speaker, track="system"):
+    d = seg(start, end, text, track)
+    d["speaker"] = speaker
+    return d
+
+
+def turn(start, end, speaker, text=None):
+    d = {"startMs": start, "endMs": end, "speaker": speaker}
+    if text is not None:
+        d["text"] = text
+    return d
+
+
+class PolishNormalizerTests(unittest.TestCase):
+    def test_numbers_words_and_digits_agree(self):
+        self.assertEqual(score.tokens("dwadzieścia pięć"), ["25"])
+        self.assertEqual(score.tokens("dwa tysiące dwadzieścia pięć"), ["2025"])
+        self.assertEqual(score.tokens("sto jeden"), ["101"])
+        self.assertEqual(score.tokens("tysiąc"), ["1000"])
+        self.assertEqual(score.tokens("Mamy 25 osób."), score.tokens("mamy dwadzieścia pięć osób"))
+
+    def test_digit_before_thousand_matches_words(self):
+        self.assertEqual(score.tokens("5 tysięcy"), ["5000"])
+        self.assertEqual(score.tokens("2 tysiące dwadzieścia pięć"), ["2025"])
+        self.assertEqual(score.tokens("pięć tysięcy złotych"), score.tokens("5 tysięcy złotych"))
+        self.assertEqual(score.tokens("rok 2025 i tysiąc"), ["rok", "2025", "i", "1000"])
+
+    def test_hand_counted_wer_with_numbers_case_and_punctuation(self):
+        # Reference after folding: budżet | 5000 | zł | na | 3 | sprinty | w | q1 (8 words).
+        # Hypothesis "Budżet: pięć tysięcy zł, na cztery sprinty." folds to
+        # budżet | 5000 | zł | na | 4 | sprinty: "3"->"4" is one substitution, "w" and "q1" two
+        # deletions; case, punctuation and the spelled-out 5000 cost nothing: 3/8 = 37.5%.
+        w = score.wer(score.tokens("budżet 5 tysięcy zł na trzy sprinty w Q1"),
+                      score.tokens("Budżet: pięć tysięcy zł, na cztery sprinty."))
+        self.assertEqual(w["errors"], 3)
+        self.assertAlmostEqual(w["rate"] * 100, 37.5, delta=0.1)
+
+    def test_adjacent_units_are_separate_numbers(self):
+        self.assertEqual(score.tokens("jeden dwa"), ["1", "2"])
+        self.assertEqual(score.tokens("dziesięć jeden"), ["10", "1"])
+
+    def test_wer_equates_digits_and_words(self):
+        w = score.wer(score.tokens("mamy dwadzieścia pięć osób"), score.tokens("Mamy 25 osób"))
+        self.assertEqual(w["errors"], 0)
+
+    def test_hand_counted_wer(self):
+        # ref 5 words; "nasz"->"wasz" is one substitution, "q4" is deleted: 2/5
+        w = score.wer(score.tokens("To jest nasz plan Q4"), score.tokens("to jest wasz plan"))
+        self.assertAlmostEqual(w["rate"], 0.4, delta=0.001)
+
+
+class EnglishTermErrorTests(unittest.TestCase):
+    def test_share_of_reference_terms_missing(self):
+        refs = {"excerpts": [{"startMs": 0, "endMs": 10000,
+                              "text": "deadline w sprint i backlog"}],
+                "englishTerms": ["deadline", "sprint", "backlog", "roadmap"]}
+        res = result([seg(0, 9000, "deadline w sprint i bekloga")])
+        out = score.score_recording(res, refs)
+        # roadmap is not in the reference and is skipped; backlog is missing: 1 of 3
+        self.assertAlmostEqual(out["termError"], 1 / 3, places=6)
+
+    def test_none_without_list(self):
+        refs = {"excerpts": [{"startMs": 0, "endMs": 10000, "text": "ala"}]}
+        self.assertIsNone(score.score_recording(result([seg(0, 9000, "ala")]), refs)["termError"])
+
+
+class SpeakerMetricTests(unittest.TestCase):
+    TURNS = [turn(0, 10000, "A"), turn(10000, 20000, "B")]
+
+    def test_wrong_speaker_word_share(self):
+        segs = [sseg(0, 10000, "a b c d", "S0"),      # 4 words in A
+                sseg(10000, 16000, "e f g", "S1"),    # 3 words in B
+                sseg(16000, 20000, "h i j", "S0")]    # 3 words in B, labelled like A
+        rep = score.speaker_report(segs, self.TURNS)
+        self.assertEqual((rep["wrongSpeakerWords"], rep["countedWords"]), (3, 10))
+        self.assertAlmostEqual(rep["wrongSpeakerWordShare"], 0.3, places=6)
+
+    def test_swapped_cluster_names_are_not_errors(self):
+        segs = [sseg(0, 10000, "a b", "X"), sseg(10000, 20000, "c d", "Y")]
+        self.assertEqual(score.speaker_report(segs, self.TURNS)["wrongSpeakerWords"], 0)
+
+    def test_word_times_override_even_spread(self):
+        words = [{"startMs": 1000, "endMs": 2000, "speaker": "S0"},
+                 {"startMs": 11000, "endMs": 12000, "speaker": "S1"}]
+        s = sseg(0, 20000, "x y", "S0")
+        s["words"] = words
+        rep = score.speaker_report([s], self.TURNS)
+        self.assertEqual((rep["wrongSpeakerWords"], rep["countedWords"]), (0, 2))
+
+    def test_word_level_clusters_count_and_bad_words_are_skipped(self):
+        words = [{"startMs": 1000, "endMs": 2000, "speaker": "S0"},
+                 {"startMs": 11000, "endMs": 12000, "speaker": "S1"},
+                 {"startMs": 13000, "speaker": "S1"}, "x"]  # no endMs, not a dict: skipped
+        s = sseg(0, 20000, "x y z w", "S0")
+        s["words"] = words
+        rep = score.speaker_report([s], self.TURNS)
+        self.assertEqual((rep["hypClusters"], rep["clusterDiff"]), (2, 0))
+        self.assertEqual(rep["countedWords"], 2)
+
+    def test_unknown_turn_words_excluded_and_counted(self):
+        turns = [turn(0, 10000, "A"), turn(10000, 20000, "unknown")]
+        segs = [sseg(0, 10000, "a b", "S0"), sseg(10000, 20000, "c d e", "S1")]
+        rep = score.speaker_report(segs, turns)
+        self.assertEqual((rep["countedWords"], rep["unknownWords"]), (2, 3))
+        self.assertEqual(rep["unknownSegments"], 1)
+        self.assertEqual(rep["evaluatedSegments"], 1)
+
+    def test_mixed_segments_and_warning(self):
+        segs = [sseg(0, 8000, "a", "S0"),
+                sseg(8000, 14000, "b", "S0"),   # A 2 s, B 4 s: both above 0.9 s -> mixed
+                sseg(14000, 20000, "c", "S1")]
+        rep = score.speaker_report(segs, self.TURNS)
+        self.assertEqual((rep["mixedSegments"], rep["evaluatedSegments"]), (1, 3))
+        self.assertAlmostEqual(rep["mixedSegmentShare"], 1 / 3, places=6)
+        self.assertTrue(any("mixed" in w for w in rep["warnings"]))
+
+    def test_sliver_of_other_speaker_is_not_mixed(self):
+        segs = [sseg(0, 10400, "a b c", "S0"), sseg(10400, 20000, "d", "S1")]
+        rep = score.speaker_report(segs, self.TURNS)  # 400 ms of B < 500 ms
+        self.assertEqual(rep["mixedSegments"], 0)
+        self.assertEqual(rep["warnings"], [])
+
+    def test_exactly_ten_percent_does_not_warn(self):
+        turns = [turn(0, 100000, "A"), turn(100000, 200000, "B")]
+        segs = [sseg(i * 10000, (i + 1) * 10000, "x", "S0") for i in range(9)]
+        segs.append(sseg(95000, 105000, "x", "S0"))  # 5 s A + 5 s B: the one mixed of ten
+        rep = score.speaker_report(segs, turns)
+        self.assertEqual((rep["mixedSegments"], rep["evaluatedSegments"]), (1, 10))
+        self.assertFalse(any("mixed" in w for w in rep["warnings"]))
+
+    def test_cluster_difference_warns_at_two(self):
+        one = [sseg(0, 5000, "a", "S0"), sseg(5000, 10000, "a", "S1"), sseg(10000, 20000, "b", "S2")]
+        rep = score.speaker_report(one, self.TURNS)
+        self.assertEqual(rep["clusterDiff"], 1)
+        self.assertEqual(rep["warnings"], [])
+        four = one + [sseg(10000, 12000, "c", "S3")]
+        rep = score.speaker_report(four, self.TURNS)
+        self.assertEqual(rep["clusterDiff"], 2)
+        self.assertTrue(any("cluster" in w for w in rep["warnings"]))
+
+    def test_speaker_count_overrides_turns(self):
+        segs = [sseg(0, 10000, "a", "S0"), sseg(10000, 20000, "b", "S1")]
+        self.assertEqual(score.speaker_report(segs, self.TURNS, speaker_count=4)["clusterDiff"], -2)
+
+    def test_no_turns_no_report(self):
+        self.assertIsNone(score.speaker_report([sseg(0, 1, "a", "S0")], []))
+
+
+class CpWerTests(unittest.TestCase):
+    TURNS = [turn(0, 10000, "A", "ala ma kota"), turn(10000, 20000, "B", "kot ma ale")]
+    SEGS = [sseg(0, 10000, "ala ma kota", "S0"), sseg(10000, 20000, "kot ma ale", "S1")]
+
+    def setUp(self):
+        self._orig = score._import_meeteval
+
+    def tearDown(self):
+        score._import_meeteval = self._orig
+
+    def test_skipped_without_meeteval(self):
+        score._import_meeteval = lambda: None
+        value, note = score.cp_wer(self.SEGS, self.TURNS)
+        self.assertIsNone(value)
+        self.assertIn("MeetEval", note)
+
+    def test_skipped_without_turn_text(self):
+        score._import_meeteval = lambda: object()
+        value, note = score.cp_wer(self.SEGS, [turn(0, 10000, "A")])
+        self.assertIsNone(value)
+        self.assertIn("no text", note)
+
+    def test_uses_meeteval_when_present(self):
+        calls = {}
+
+        class Rate:
+            error_rate = 0.25
+
+        def cpwer(reference, hypothesis):
+            calls["ref"], calls["hyp"] = reference, hypothesis
+            return {"s": Rate()}
+
+        class Fake:
+            class wer:
+                class api:
+                    pass
+
+        Fake.wer.api.cpwer = staticmethod(cpwer)
+        score._import_meeteval = lambda: Fake
+        value, note = score.cp_wer(self.SEGS, self.TURNS)
+        self.assertEqual((value, note), (0.25, None))
+        self.assertEqual({d["speaker"] for d in calls["ref"]}, {"A", "B"})
+        self.assertEqual(calls["hyp"][0]["words"], "ala ma kota")
+
+    def test_meeteval_failure_does_not_fail(self):
+        class Fake:
+            class wer:
+                class api:
+                    @staticmethod
+                    def cpwer(reference, hypothesis):
+                        raise RuntimeError("api moved")
+
+        score._import_meeteval = lambda: Fake
+        value, note = score.cp_wer(self.SEGS, self.TURNS)
+        self.assertIsNone(value)
+        self.assertIn("RuntimeError", note)
+
+    def test_report_keeps_other_metrics_without_meeteval(self):
+        score._import_meeteval = lambda: None
+        refs = {"excerpts": [], "speakerTurns": self.TURNS}
+        out = score.score_recording(result(self.SEGS), refs)
+        self.assertIsNone(out["cpWer"])
+        self.assertEqual(out["wrongSpeakerWordShare"], 0.0)
+        text = score.render_score({"recordings": {"r": out}, "problems": []})
+        self.assertIn("MeetEval is not installed", text)
+        self.assertNotIn("ala ma kota", text)
+
+
 class CompareTests(unittest.TestCase):
     def rec(self, **kw):
         base = {k: None for k, _, _ in score.METRICS}
