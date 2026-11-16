@@ -25,6 +25,8 @@ First of two allowed PRs for MEET-1.4: deterministic, code-computed metrics of m
 
 ## Progress
 
+PR: #84
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: metrics
@@ -33,4 +35,4 @@ First of two allowed PRs for MEET-1.4: deterministic, code-computed metrics of m
 - [x] 1.2 Paired comparison with noise rule and consent gate — 1ac7720
 - [x] 1.3 Tests on hand-computed synthetic fixtures — 1ac7720
 - [x] 1.4 README section — 1ac7720
-- [ ] 1.5 Gate and unittest output in PR body
+- [x] 1.5 Gate and unittest output in PR body
