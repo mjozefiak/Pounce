@@ -1,4 +1,5 @@
 import AppKit
+import LintelCore
 import LintelKit
 import LintelUI
 import SwiftUI

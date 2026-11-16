@@ -1,5 +1,6 @@
 import Darwin
 import Foundation
+import LintelCore
 import Synchronization
 import UniformTypeIdentifiers
 
