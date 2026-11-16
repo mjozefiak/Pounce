@@ -226,6 +226,22 @@ class PolishNormalizerTests(unittest.TestCase):
         self.assertEqual(score.tokens("tysiąc"), ["1000"])
         self.assertEqual(score.tokens("Mamy 25 osób."), score.tokens("mamy dwadzieścia pięć osób"))
 
+    def test_digit_before_thousand_matches_words(self):
+        self.assertEqual(score.tokens("5 tysięcy"), ["5000"])
+        self.assertEqual(score.tokens("2 tysiące dwadzieścia pięć"), ["2025"])
+        self.assertEqual(score.tokens("pięć tysięcy złotych"), score.tokens("5 tysięcy złotych"))
+        self.assertEqual(score.tokens("rok 2025 i tysiąc"), ["rok", "2025", "i", "1000"])
+
+    def test_hand_counted_wer_with_numbers_case_and_punctuation(self):
+        # Reference after folding: budżet | 5000 | zł | na | 3 | sprinty | w | q1 (8 words).
+        # Hypothesis "Budżet: pięć tysięcy zł, na cztery sprinty." folds to
+        # budżet | 5000 | zł | na | 4 | sprinty: "3"->"4" is one substitution, "w" and "q1" two
+        # deletions; case, punctuation and the spelled-out 5000 cost nothing: 3/8 = 37.5%.
+        w = score.wer(score.tokens("budżet 5 tysięcy zł na trzy sprinty w Q1"),
+                      score.tokens("Budżet: pięć tysięcy zł, na cztery sprinty."))
+        self.assertEqual(w["errors"], 3)
+        self.assertAlmostEqual(w["rate"] * 100, 37.5, delta=0.1)
+
     def test_adjacent_units_are_separate_numbers(self):
         self.assertEqual(score.tokens("jeden dwa"), ["1", "2"])
         self.assertEqual(score.tokens("dziesięć jeden"), ["10", "1"])
@@ -277,6 +293,16 @@ class SpeakerMetricTests(unittest.TestCase):
         s["words"] = words
         rep = score.speaker_report([s], self.TURNS)
         self.assertEqual((rep["wrongSpeakerWords"], rep["countedWords"]), (0, 2))
+
+    def test_word_level_clusters_count_and_bad_words_are_skipped(self):
+        words = [{"startMs": 1000, "endMs": 2000, "speaker": "S0"},
+                 {"startMs": 11000, "endMs": 12000, "speaker": "S1"},
+                 {"startMs": 13000, "speaker": "S1"}, "x"]  # no endMs, not a dict: skipped
+        s = sseg(0, 20000, "x y z w", "S0")
+        s["words"] = words
+        rep = score.speaker_report([s], self.TURNS)
+        self.assertEqual((rep["hypClusters"], rep["clusterDiff"]), (2, 0))
+        self.assertEqual(rep["countedWords"], 2)
 
     def test_unknown_turn_words_excluded_and_counted(self):
         turns = [turn(0, 10000, "A"), turn(10000, 20000, "unknown")]

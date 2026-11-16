@@ -101,18 +101,23 @@ def _number_rank(tok):
 def fold_numbers(toks):
     """Replace runs of Polish cardinal words by digits (`dwadzieścia pięć` -> `25`).
 
-    Words in a run must descend (hundreds, tens, units); `tysiąc` multiplies what precedes it.
-    A word that cannot continue the run starts a new number. Digit tokens are left as they are.
+    Words in a run must descend (hundreds, tens, units); `tysiąc` multiplies what precedes it,
+    a digit token included (`5 tysięcy` -> `5000`, like `pięć tysięcy`). A word that cannot
+    continue the run starts a new number. Other digit tokens are left as they are.
     """
     out = []
     i, n = 0, len(toks)
     while i < n:
-        if _number_rank(toks[i]) is None and toks[i] not in _THOUSANDS:
+        digit_multiplier = toks[i].isdigit() and i + 1 < n and toks[i + 1] in _THOUSANDS
+        if not digit_multiplier and _number_rank(toks[i]) is None and toks[i] not in _THOUSANDS:
             out.append(toks[i])
             i += 1
             continue
         total, current, last_rank = 0, 0, 4
         used_current = thousand_seen = False
+        if digit_multiplier:
+            current, used_current = int(toks[i]), True
+            i += 1
         while i < n:
             t = toks[i]
             if t in _THOUSANDS:
@@ -333,9 +338,14 @@ def hypothesis_words(segments):
         words = sg.get("words")
         if isinstance(words, list) and words:
             for w in words:
+                if not isinstance(w, dict):
+                    continue
+                a, b = w.get("startMs"), w.get("endMs")
+                if not isinstance(a, (int, float)) or not isinstance(b, (int, float)):
+                    continue
                 who = w.get("speaker") if _is_known(w.get("speaker")) else label
                 if _is_known(who):
-                    out.append(((w["startMs"] + w["endMs"]) / 2, who))
+                    out.append(((a + b) / 2, who))
             continue
         if not _is_known(label):
             continue
@@ -385,7 +395,8 @@ def speaker_report(segments, turns, speaker_count=None):
         return None
     pairs = []
     unknown_words = 0
-    for ms, cluster in hypothesis_words(segments):
+    hyp_words = hypothesis_words(segments)
+    for ms, cluster in hyp_words:
         covered, ref = ref_speaker_at(turns, ms)
         if not covered:
             continue
@@ -405,7 +416,9 @@ def speaker_report(segments, turns, speaker_count=None):
         elif sg["endMs"] > sg["startMs"]:
             unknown_segments += 1
 
-    hyp_clusters = len({sg["speaker"] for sg in segments if _is_known(sg.get("speaker"))})
+    # Segment labels and per-word labels: a cluster that only shows up in `words` still counts.
+    hyp_clusters = len({sg["speaker"] for sg in segments if _is_known(sg.get("speaker"))}
+                       | {cluster for _, cluster in hyp_words})
     ref_people = (speaker_count if isinstance(speaker_count, int) and speaker_count > 0
                   else len({t["speaker"] for t in turns if _is_known(t.get("speaker"))}))
     diff = hyp_clusters - ref_people
