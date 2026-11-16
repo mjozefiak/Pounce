@@ -37,7 +37,7 @@ Niskie: pomiar, bez zmian w produkcie. Ryzyko metodologiczne (oznaczający i oce
 ### Faza 1 — pomiar
 - **1.1** Reguły oznaczania zapisane w archiwum (kto jest kim, co to `unknown`) przed oznaczaniem.
 - **1.2** Oznaczenie odniesienia 5–10 min polskiego i ovn (pliki w archiwum). Weryfikacja: losowa próbka 20 segmentów sprawdzona ponownie przez drugi przebieg, zgodność raportowana.
-- **1.3** Metryki jako kod Swift w `Tests/MeetingsPluginTests/Eval/` (zgodność per segment, liczba klastrów vs osoby, odsetek segmentów mieszających; w archiwum zostają tylko dane odniesienia, bo CI uruchamia `swift test`). **Próg decyzji, ustalony przed pomiarem:** Faza 2 startuje, gdy odsetek segmentów mieszających przekracza 10% albo liczba klastrów różni się od liczby osób o co najmniej 2. Test jednostkowy metryk na sztucznym przykładzie ze znanym wynikiem.
+- [x] **1.3** (zrobione w MEET-1.2: metryki w `scripts/meeting-eval/score.py` z testami w `test_score.py`, pole `words` w `EvalResult`; odstępstwo: kod Python, nie Swift, bo harness jest skryptem poza bramką) Metryki jako kod Swift w `Tests/MeetingsPluginTests/Eval/` (zgodność per segment, liczba klastrów vs osoby, odsetek segmentów mieszających; w archiwum zostają tylko dane odniesienia, bo CI uruchamia `swift test`). **Próg decyzji, ustalony przed pomiarem:** Faza 2 startuje, gdy odsetek segmentów mieszających przekracza 10% albo liczba klastrów różni się od liczby osób o co najmniej 2. Test jednostkowy metryk na sztucznym przykładzie ze znanym wynikiem.
 - **1.4** Raport w `PLAN-meeting-notes-quality.md` z liczbami, liczbą `unknown` i wnioskiem (zmieniamy/nie zmieniamy Fazy 2).
 
 ### Faza 2 — warunkowa
