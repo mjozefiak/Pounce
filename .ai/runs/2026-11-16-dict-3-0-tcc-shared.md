@@ -23,5 +23,5 @@ Drift between `ProtectedFolder` and the shared list (pinned by a test); TSan on 
 
 ### Phase 1: Move
 
-- [ ] 1.1 Move PathText and classification to LintelCore, resolver to LintelPersistence, FilesPlugin uses them
-- [ ] 1.2 Move tests, docs (AGENTS.md), full gate and TSan
+- [x] 1.1 Move PathText and classification to LintelCore, resolver to LintelPersistence, FilesPlugin uses them
+- [x] 1.2 Move tests, docs (AGENTS.md), full gate and TSan
