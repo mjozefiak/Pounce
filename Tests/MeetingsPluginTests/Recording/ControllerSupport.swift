@@ -274,6 +274,8 @@ final class ControllerRig {
     let harness: MeetingsHarness
     let library: MeetingsLibrary
     let hud = RecordingHUD()
+    let pasteboard = RecordingPasteboard()
+    var consentClock = Date(timeIntervalSince1970: 1_800_000_000)
     let authorizer: FakeAuthorizer
     let clock = ManualClock()
     let activity = MeetingActivity()
@@ -314,7 +316,8 @@ final class ControllerRig {
                 }, hud: hud, clock: clock, openSettings: { [unowned self] in self.settingsOpened += 1 },
                 openURL: { [unowned self] url in self.openedURLs.append(url) },
                 openModels: { [unowned self] id in self.modelsOpened.append(id) },
-                changed: { changes.update { $0 += 1 } }, shutdownTimeout: shutdownTimeout,
+                changed: { changes.update { $0 += 1 } }, pasteboard: pasteboard,
+                now: { [unowned self] in self.consentClock }, shutdownTimeout: shutdownTimeout,
                 stateChanged: { ChangeSignal.shared.fire() }, recordingObserver: observer))
     }
 

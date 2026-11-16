@@ -24156,6 +24156,60 @@
           }
         }
       }
+    },
+    "Copy message" : {
+      "comment" : "Meeting HUD button that copies the sentence telling participants about the recording",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy message"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiuj komunikat"
+          }
+        }
+      }
+    },
+    "I'm recording this meeting with Lintel to take notes. Tell me if you object." : {
+      "comment" : "Sentence the recorder pastes into the meeting chat to tell the participants about the recording",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I'm recording this meeting with Lintel to take notes. Tell me if you object."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywam to spotkanie w Lintelu, żeby sporządzić notatki. Daj znać, jeśli masz zastrzeżenia."
+          }
+        }
+      }
+    },
+    "Message copied at %@" : {
+      "comment" : "Meeting window: when the recorder copied the sentence for the participants",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Message copied at %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Komunikat skopiowany o %@"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

@@ -1,4 +1,5 @@
 import Foundation
+import LintelKit
 import LintelSpeech
 import Synchronization
 import os
@@ -65,6 +66,10 @@ final class MeetingController {
         var logger = Logger(subsystem: "com.lintelapp", category: "meetings")
         /// How long the consent reminder stays on the HUD.
         var consentDuration: Duration = .seconds(8)
+        /// Where "Copy message" puts the consent sentence (`PluginContext.pasteboard`); nil = nothing to copy to.
+        var pasteboard: (any PasteboardClient)?
+        /// The time stored when the sentence is copied.
+        var now: @MainActor () -> Date = { Date() }
         /// How long the system track may stay silent before the HUD says so (spec: 20 s).
         var silentSystemAfter: Duration = .seconds(20)
         /// How long `shutDown()` waits for a running recording to finish.
@@ -109,6 +114,8 @@ final class MeetingController {
     private(set) var watcherFirings = 0
     private var session: (any RecordingSession)?
     private var meetingID: Int64?
+    /// "Copy message" was pressed before the meeting had an id.
+    private var pendingConsentCopy: Date?
     /// The app of the suggestion the user accepted for the attempt that is running; set by `begin` once its
     /// guards have passed, so a refused start never leaves it behind.
     private var sourceBundleID: String?
@@ -199,11 +206,35 @@ final class MeetingController {
         }
     }
 
+    /// "Copy message": the sentence goes to the pasteboard in the system language and the time is stored with the
+    /// meeting (never the text). A click before the meeting has an id is stored as soon as it has one.
+    private func copyConsentText() {
+        guard let pasteboard = deps.pasteboard else { return }
+        pasteboard.setString(MeetingConsentText.sentence)
+        let now = deps.now()
+        if let id = meetingID {
+            storeConsentCopy(at: now, meetingID: id)
+        } else if pendingConsentCopy == nil {
+            pendingConsentCopy = now
+        }
+    }
+
+    private func storeConsentCopy(at date: Date, meetingID id: Int64) {
+        pendingConsentCopy = nil
+        do {
+            try deps.library.store?.markConsentTextCopied(id, at: date)
+            deps.changed()
+        } catch {
+            deps.logger.error("Could not store the consent copy time")
+        }
+    }
+
     /// A button of the HUD.
     func perform(_ action: MeetingHUDState.Action) {
         switch action {
         case .stop: stop()
         case .openSettings: deps.openSettings()
+        case .copyConsentText: copyConsentText()
         case .openModels: deps.openModels(deps.settings.speechModelID)
         case .openMicrophoneSettings:
             if let url = Self.microphonePrivacyURL { deps.openURL(url) }
@@ -323,6 +354,7 @@ final class MeetingController {
         guard holdsSession(token) else { return ignoredStaleStart() }
         meetingID = id
         library.registerLive(meetingID: id)
+        if let copiedAt = pendingConsentCopy { storeConsentCopy(at: copiedAt, meetingID: id) }
         if phase == .preparing {
             phase = .recording
             startWatchers(recordsSystem: recordsSystem)
@@ -521,6 +553,7 @@ final class MeetingController {
         releaseActivity()
         deps.recordingObserver?.recordingEnded()
         meetingID = nil
+        pendingConsentCopy = nil
         sourceBundleID = nil
         session = nil
         eventsTask?.cancel()

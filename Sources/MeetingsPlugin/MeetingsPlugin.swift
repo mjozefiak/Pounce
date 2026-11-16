@@ -142,6 +142,7 @@ public final class MeetingsPlugin: LintelPlugin {
             openURL: { url in Task { try? await workspace.open(url) } }, openModels: context.openModels,
             changed: changed, logger: context.logger)
         dependencies.recordingObserver = detector
+        dependencies.pasteboard = context.pasteboard
         adjustControllerDependencies?(&dependencies)
         let controller = MeetingController(dependencies)
         self.controller = controller

@@ -106,6 +106,8 @@ enum MeetingHUDState: Equatable, Sendable {
         /// The speech model is missing or unusable: `PluginContext.openModels`.
         case openModels
         case openMicrophoneSettings
+        /// Puts the consent sentence on the pasteboard (MEET-1.6).
+        case copyConsentText
         case recordSystemAudioOnly
         case dismiss
     }
@@ -242,6 +244,7 @@ extension MeetingHUDState {
         case .recording(let recording):
             switch recording.notice {
             case .noSystemAudio?: [.openSettings, .stop]
+            case .consent?: [.copyConsentText, .stop]
             default: [.stop]
             }
         case .allowMicrophone:
@@ -267,6 +270,10 @@ extension MeetingHUDState {
             String(
                 localized: "Open Privacy settings", comment: "Meeting HUD button that opens the microphone privacy pane"
             )
+        case .copyConsentText:
+            String(
+                localized: "Copy message",
+                comment: "Meeting HUD button that copies the sentence telling participants about the recording")
         case .recordSystemAudioOnly:
             String(
                 localized: "Record system audio only",
