@@ -98,6 +98,43 @@ class ValidateGoldTests(unittest.TestCase):
         del e["english_terms"]
         self.assertIn("english_terms: missing", vg.validate_entry(e))
 
+    def test_schema_must_be_the_integer_one(self):
+        for bad in (True, 1.0, "1", 2):
+            e = valid_entry()
+            e["schema"] = bad
+            self.assertIn("schema: must be 1", vg.validate_entry(e))
+
+    def test_item_ids_required_and_unique(self):
+        e = valid_entry()
+        del e["key_points"][0]["id"]
+        e["tasks"][1]["id"] = "t1"
+        errors = vg.validate_entry(e)
+        self.assertIn("key_points[0].id: missing", errors)
+        self.assertIn("tasks[1].id: duplicate", errors)
+
+    def test_non_object_items_are_named(self):
+        e = valid_entry()
+        e["speakers"].append("x")
+        e["key_points"][0] = "x"
+        errors = vg.validate_entry(e)
+        self.assertIn("speakers[2]: must be an object", errors)
+        self.assertIn("key_points[0]: must be an object", errors)
+        self.assertNotIn("speakers[2].id: missing", errors)
+        e = valid_entry()
+        e["transcript"][0]["speaker"] = ["s1"]
+        self.assertIn("transcript[0].speaker: must be non-empty text", vg.validate_entry(e))
+
+    def test_cloud_judges_need_participants_agreement(self):
+        e = valid_entry()
+        e["consent"] = {"participants_agreed": False, "cloud_judges": True}
+        self.assertIn("consent.cloud_judges: true needs participants_agreed true", vg.validate_entry(e))
+        e["consent"] = {"participants_agreed": True, "cloud_judges": True}
+        self.assertEqual(vg.validate_entry(e), [])
+
+    def test_entry_id_must_equal_folder_name(self):
+        self.assertIn("id: must equal the entry folder name", vg.validate_entry(valid_entry(), folder_name="other"))
+        self.assertEqual(vg.validate_entry(valid_entry(), folder_name="synthetic-pl-01"), [])
+
     def test_cli_exit_codes_and_no_text_in_output(self):
         import contextlib
         import io

@@ -44,10 +44,10 @@ The two WAV files are the decrypted two-track audio of the recording. They are p
 | `speakers` | list | at least 1; each `{id, name, track?}` (`track` is `mic` or `system`); ids unique |
 | `transcript` | list | at least 1 segment `{speaker, start, end, text}`; `speaker` is a speaker id; times in seconds, `end >= start`; the text is the corrected transcript |
 | `english_terms` | list of text | English terms said in the meeting; the list may be empty, the field is required |
-| `key_points` | list | 10 to 25 items `{id, text}` |
+| `key_points` | list | 10 to 25 items `{id, text}`; item ids are unique within the list (also for `decisions` and `tasks`) |
 | `decisions` | list | items `{id, text}`; may be empty |
 | `tasks` | list | at least 1; each `{id, text, owner, due}`; `owner` is a speaker name; `due` is `YYYY-MM-DD` or `null` |
-| `consent` | object | `participants_agreed` (bool) and `cloud_judges` (bool): `true` only when the participants agreed to cloud judges; tools must not send the meeting to a non-local judge otherwise |
+| `consent` | object | `participants_agreed` (bool) and `cloud_judges` (bool): `true` only when the participants agreed to cloud judges (so it needs `participants_agreed: true`); tools must not send the meeting to a non-local judge otherwise |
 
 A missing or invalid field is reported as `<field path>: <reason>`, for example `tasks: missing` or `tasks[0].owner: missing`.
 

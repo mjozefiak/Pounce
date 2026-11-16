@@ -31,15 +31,22 @@ def _is_num(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
-def validate_entry(entry, base_dir=None):
+def validate_entry(entry, base_dir=None, folder_name=None):
     """Return a list of error strings ('<field path>: <reason>'). Empty = valid.
 
     base_dir: folder of the entry; when given, the audio files must exist there.
+    folder_name: name of the entry folder; when given, it must equal the entry id.
     """
     errors = []
 
     def err(path, why):
         errors.append(f"{path}: {why}")
+
+    def is_object(obj, path):
+        if isinstance(obj, dict):
+            return True
+        err(path.rstrip("."), "must be an object")
+        return False
 
     def need(obj, key, path):
         if not isinstance(obj, dict) or key not in obj or obj[key] is None:
@@ -50,12 +57,15 @@ def validate_entry(entry, base_dir=None):
     if not isinstance(entry, dict):
         return ["entry: must be a JSON object"]
 
-    if entry.get("schema") != SCHEMA:
+    schema = entry.get("schema")
+    if not (isinstance(schema, int) and not isinstance(schema, bool) and schema == SCHEMA):
         err("schema", f"must be {SCHEMA}")
 
     eid = need(entry, "id", "")
     if eid is not None and not (isinstance(eid, str) and ID_RE.match(eid)):
         err("id", "must match [a-z0-9][a-z0-9_-]* (max 64)")
+    elif eid is not None and folder_name is not None and eid != folder_name:
+        err("id", "must equal the entry folder name")
 
     lang = need(entry, "language", "")
     if lang is not None and lang not in LANGUAGES:
@@ -92,6 +102,8 @@ def validate_entry(entry, base_dir=None):
         else:
             for i, s in enumerate(speakers):
                 p = f"speakers[{i}]."
+                if not is_object(s, p):
+                    continue
                 sid = need(s, "id", p)
                 name = need(s, "name", p)
                 if sid is not None:
@@ -106,7 +118,7 @@ def validate_entry(entry, base_dir=None):
                         err(p + "name", "must be non-empty text")
                     else:
                         speaker_names.add(name)
-                track = s.get("track") if isinstance(s, dict) else None
+                track = s.get("track")
                 if track is not None and track not in ("mic", "system"):
                     err(p + "track", "must be mic or system")
 
@@ -118,8 +130,12 @@ def validate_entry(entry, base_dir=None):
         else:
             for i, seg in enumerate(transcript):
                 p = f"transcript[{i}]."
+                if not is_object(seg, p):
+                    continue
                 sp = need(seg, "speaker", p)
-                if sp is not None and speaker_ids and sp not in speaker_ids:
+                if sp is not None and not _is_text(sp):
+                    err(p + "speaker", "must be non-empty text")
+                elif sp is not None and speaker_ids and sp not in speaker_ids:
                     err(p + "speaker", "not in speakers")
                 start = need(seg, "start", p)
                 end = need(seg, "end", p)
@@ -150,11 +166,26 @@ def validate_entry(entry, base_dir=None):
         if len(items) < minimum or (maximum is not None and len(items) > maximum):
             rng = f"{minimum}-{maximum}" if maximum else f"at least {minimum}"
             err(key, f"needs {rng} items, has {len(items)}")
-        return items
+        objects = []
+        seen = set()
+        for i, item in enumerate(items):
+            p = f"{key}[{i}]."
+            if not is_object(item, p):
+                continue
+            item_id = need(item, "id", p)
+            if item_id is not None:
+                if not _is_text(item_id):
+                    err(p + "id", "must be non-empty text")
+                elif item_id in seen:
+                    err(p + "id", "duplicate")
+                else:
+                    seen.add(item_id)
+            objects.append((i, item))
+        return objects
 
     # key points: 10-25
     kp = check_items("key_points", KEY_POINTS_MIN, KEY_POINTS_MAX)
-    for i, item in enumerate(kp):
+    for i, item in kp:
         p = f"key_points[{i}]."
         t = need(item, "text", p)
         if t is not None and not _is_text(t):
@@ -162,7 +193,7 @@ def validate_entry(entry, base_dir=None):
 
     # decisions (may be empty: a meeting can decide nothing)
     dec = check_items("decisions", 0)
-    for i, item in enumerate(dec):
+    for i, item in dec:
         p = f"decisions[{i}]."
         t = need(item, "text", p)
         if t is not None and not _is_text(t):
@@ -170,7 +201,7 @@ def validate_entry(entry, base_dir=None):
 
     # tasks: at least one, each with owner (a speaker) and a due date or null
     tasks = check_items("tasks", 1)
-    for i, item in enumerate(tasks):
+    for i, item in tasks:
         p = f"tasks[{i}]."
         t = need(item, "text", p)
         if t is not None and not _is_text(t):
@@ -181,7 +212,7 @@ def validate_entry(entry, base_dir=None):
                 err(p + "owner", "must be non-empty text")
             elif speaker_names and owner not in speaker_names:
                 err(p + "owner", "not a name in speakers")
-        if not isinstance(item, dict) or "due" not in item:
+        if "due" not in item:
             err(p + "due", "missing (use null for no due date)")
         elif item["due"] is not None and not (
             isinstance(item["due"], str) and DUE_RE.match(item["due"])
@@ -198,6 +229,8 @@ def validate_entry(entry, base_dir=None):
                 v = need(consent, k, "consent.")
                 if v is not None and not isinstance(v, bool):
                     err(f"consent.{k}", "must be true or false")
+            if consent.get("cloud_judges") is True and consent.get("participants_agreed") is not True:
+                err("consent.cloud_judges", "true needs participants_agreed true")
 
     return errors
 
@@ -250,7 +283,8 @@ def main(argv=None):
             print(f"FAIL {label}: entry.json: unreadable ({type(e).__name__})")
             bad += 1
             continue
-        errors = validate_entry(entry, os.path.dirname(os.path.abspath(p)) if check_audio else None)
+        folder = os.path.dirname(os.path.abspath(p))
+        errors = validate_entry(entry, folder if check_audio else None, label)
         if errors:
             bad += 1
             print(f"FAIL {label}")
