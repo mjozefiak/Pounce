@@ -257,3 +257,12 @@ Każdy krok zostawia aplikację działającą i wtyczkę wyłączoną domyślnie
 ## 📝 Not doing
 
 Tryby wiązań (`service` i inne), `join-with`, `flatten-workspace-tree`, `close-all-windows-but-current`, workspace'y z literami, import z `aerospace.toml` i dowolny tekstowy język konfiguracji, ramka nieaktywna na pozostałych oknach, reguły według tytułu okna, przypinanie workspace'ów do wyświetlaczy, przycisk "Apply to open windows", prywatne wywołania SkyLight, sterowanie natywnymi Spaces, skrypty i CLI. Każde może być osobnym specem; nic z tego nie zmienia powyższych kontraktów.
+
+## 📌 Addendum 2026-11-17: wyświetlacz, który wraca (sen, kabel)
+
+Na prośbę właściciela (2026-11-17). Zmiana dotyczy modelu workspace'ów z `2026-11-09-window-management.md`, nie faz powyżej.
+
+- `VirtualWorkspaceModel` pamięta, jaki workspace pokazywał usunięty wyświetlacz, oraz fokus i `previous`; ten sam wyświetlacz (UUID) po powrocie pokazuje to samo, o ile żaden inny wyświetlacz nie pokazuje go w międzyczasie. Wcześniej wracał na "najniższy niepokazany" (workspace 1).
+- Pusta lista wyświetlaczy (`displaysChanged([])`, snapshot bez wyświetlaczy) jest ignorowana: model i `state.displays` zostają, nic nie jest chowane ani przywracane.
+- Każda zmiana listy wyświetlaczy zeruje liczniki ponownego chowania i przywraca zarządzanie oknami, które stały się `unmanaged` tylko przez `rehideCap`; okno ukrytego workspace'u jest chowane ponownie.
+- Diagnostyka ("Copy diagnostics"): `Display changes`, `Empty display lists`, `Resyncs` (każdy snapshot).

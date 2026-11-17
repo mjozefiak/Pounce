@@ -100,6 +100,10 @@ struct EngineDiagnostics: Equatable, Sendable {
     var watchdogTrips = 0
     var rehides = 0
     var refusedParks = 0
+    /// Display lists received, how many of them were empty (ignored) and snapshots taken (resyncs).
+    var displayChanges = 0
+    var emptyDisplayLists = 0
+    var resyncs = 0
 }
 
 enum EngineBanner: Equatable, Sendable {

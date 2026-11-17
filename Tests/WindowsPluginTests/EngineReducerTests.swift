@@ -458,6 +458,76 @@ import Testing
         #expect(requests(effects).map(\.purpose) == [.restore])
     }
 
+    @Test func anEmptyDisplayListChangesNothingAndMovesNothing() {
+        var current = state([makeWindow(1), makeWindow(2, pid: 200)])
+        var effects: [EngineEffect]
+        (current, effects) = command(current, .showWorkspace(ws(3)))
+        (current, _) = EngineReducer.reduce(current, .applied(succeed(requests(effects)), now: 1_000))
+        let before = current.model
+        (current, effects) = EngineReducer.reduce(current, .displaysChanged([], now: 1_100))
+        #expect(requests(effects).isEmpty)
+        #expect(current.model == before)
+        #expect(current.model.current == ws(3))
+        #expect(current.diagnostics.displayChanges == 1)
+        #expect(current.diagnostics.emptyDisplayLists == 1)
+        // A shortcut still works while the list is empty, and after the display returns.
+        (current, effects) = EngineReducer.reduce(current, .displaysChanged([main], now: 1_200))
+        #expect(requests(effects).isEmpty)
+        #expect(current.model.current == ws(3))
+        (current, _) = command(current, .showWorkspace(ws(1)), now: 1_300)
+        #expect(current.model.current == ws(1))
+    }
+
+    @Test func aDisplayThatLeavesAndReturnsKeepsTheShownWorkspace() {
+        var current = state([makeWindow(1)])
+        var effects: [EngineEffect]
+        (current, effects) = command(current, .showWorkspace(ws(3)))
+        (current, _) = EngineReducer.reduce(current, .applied(succeed(requests(effects)), now: 1_000))
+        (current, _) = EngineReducer.reduce(current, .displaysChanged([second], now: 1_100))
+        (current, effects) = EngineReducer.reduce(current, .displaysChanged([main], now: 1_200))
+        #expect(current.model.current == ws(3))
+        #expect(current.model.previous == ws(1))
+    }
+
+    @Test func aParkedWindowMovedOnScreenByEveryReconnectIsNeverLeftUnmanaged() {
+        var (current, request) = parkedState()
+        let onScreen = CGRect(x: 100, y: 100, width: 800, height: 600)
+        _ = request
+        for round in 0..<4 {
+            let now = 1_100 + Double(round) * 10
+            (current, _) = EngineReducer.reduce(current, .displaysChanged([main], now: now))
+            (current, _) = EngineReducer.reduce(current, .windowMoved(id(1), frame: onScreen, now: now + 5))
+            #expect(!current.unmanaged.contains(id(1)))
+        }
+        #expect(current.diagnostics.displayChanges == 4)
+    }
+
+    @Test func aWindowLeftUnmanagedByTheRehideCapIsAdoptedAgainOnADisplayChange() {
+        var (current, _) = parkedState()
+        let onScreen = CGRect(x: 100, y: 100, width: 800, height: 600)
+        for round in 0...3 {
+            (current, _) = EngineReducer.reduce(
+                current, .windowMoved(id(1), frame: onScreen, now: 1_100 + Double(round)))
+        }
+        #expect(current.unmanaged.contains(id(1)))
+        let effects: [EngineEffect]
+        (current, effects) = EngineReducer.reduce(current, .displaysChanged([main], now: 1_200))
+        #expect(!current.unmanaged.contains(id(1)))
+        #expect(current.rehides[id(1)] == nil)
+        // Its workspace is hidden, so it is parked again.
+        #expect(requests(effects).map(\.purpose) == [.park])
+    }
+
+    @Test func everySnapshotIsCountedAsAResync() {
+        var current = state([makeWindow(1)])
+        let before = current.diagnostics.resyncs
+        (current, _) = EngineReducer.reduce(
+            current,
+            .snapshot(
+                windows: [makeWindow(1)], displays: [main], focused: nil, processStarts: starts([100]), now: 1_100))
+        #expect(current.diagnostics.resyncs == before + 1)
+    }
+
     @Test func aResolutionChangeRepartksParkedWindowsInTheNewCorner() {
         var (current, _) = parkedState()
         let smaller = DisplayInfo(

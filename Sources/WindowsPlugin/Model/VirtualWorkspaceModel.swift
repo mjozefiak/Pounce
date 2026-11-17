@@ -52,6 +52,15 @@ struct VirtualWorkspaceModel: Equatable, Sendable {
     private(set) var membership: [WindowID: WorkspaceID] = [:]
     /// Windows of each workspace in the order they joined it (also the order stored in `state.json`).
     private(set) var order: [WorkspaceID: [WindowID]] = [:]
+    /// What each display that went away showed, given back when the same display returns (sleep, cable out and in).
+    private var rememberedVisible: [String: WorkspaceID] = [:]
+    /// The focus and `previous` of the last focused display that went away.
+    private var rememberedFocus: RememberedFocus?
+
+    private struct RememberedFocus: Equatable, Sendable {
+        var display: String
+        var previous: WorkspaceID?
+    }
 
     /// - Parameters:
     ///   - displays: the connected displays, main first; the lowest numbered workspaces are shown on them in
@@ -210,6 +219,10 @@ struct VirtualWorkspaceModel: Equatable, Sendable {
             order[gone] = nil
         }
         if let previous, previous.rawValue > newCount { self.previous = nil }
+        rememberedVisible = rememberedVisible.filter { $0.value.rawValue <= newCount }
+        if let remembered = rememberedFocus, let old = remembered.previous, old.rawValue > newCount {
+            rememberedFocus?.previous = nil
+        }
         for display in displays {
             if let shown = visible[display], shown.rawValue > newCount {
                 visible[display] = nil
@@ -218,20 +231,37 @@ struct VirtualWorkspaceModel: Equatable, Sendable {
         }
     }
 
-    /// Displays came or went. A new display shows the lowest workspace no display shows; the workspace of a
-    /// removed display becomes hidden (its windows are parked until it is shown again). The focus moves to the
-    /// main display when the focused display went away.
+    /// Displays came or went. A removed display's workspace becomes hidden (its windows are parked) and is
+    /// remembered: when the same display returns it shows that workspace again, unless another display shows it
+    /// by then, and gets its focus and `previous` back. A new display shows the lowest workspace no display shows.
+    /// The focus moves to the main display when the focused display went away.
     mutating func setDisplays(_ keys: [String]) {
         let newDisplays = Self.unique(keys)
         guard newDisplays != displays else { return }
         let removed = displays.filter { !newDisplays.contains($0) }
-        for display in removed { visible[display] = nil }
+        for display in removed {
+            if let shown = visible[display] { rememberedVisible[display] = shown }
+            visible[display] = nil
+        }
+        if let focus = focusedDisplay, removed.contains(focus) {
+            // Keep the first one: a flap through a placeholder display must not overwrite the real focus.
+            if rememberedFocus == nil { rememberedFocus = RememberedFocus(display: focus, previous: previous) }
+            previous = nil
+        }
         displays = newDisplays
         for display in newDisplays where visible[display] == nil {
-            visible[display] = lowestUnshown()
+            if let old = rememberedVisible.removeValue(forKey: display), workspaces.contains(old), !isVisible(old) {
+                visible[display] = old
+            } else {
+                visible[display] = lowestUnshown()
+            }
         }
-        if let focus = focusedDisplay, !newDisplays.contains(focus) { previous = nil }
         if focusedDisplay.map({ newDisplays.contains($0) }) != true { focusedDisplay = newDisplays.first }
+        if let remembered = rememberedFocus, newDisplays.contains(remembered.display) {
+            focusedDisplay = remembered.display
+            previous = remembered.previous
+            rememberedFocus = nil
+        }
     }
 
     private func lowestUnshown() -> WorkspaceID? {
