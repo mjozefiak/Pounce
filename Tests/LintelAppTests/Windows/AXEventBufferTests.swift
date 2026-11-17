@@ -106,22 +106,65 @@ import Testing
         delayed.schedule()
         delayed.schedule()
         delayed.schedule()
-        try? await Task.sleep(for: .milliseconds(300))
+        var iterator = stream.makeAsyncIterator()
+        // However slow the machine, the one resync comes; then nothing else follows it.
+        #expect(await iterator.next() == .resync)
+        try? await Task.sleep(for: .milliseconds(200))
         buffer.finish()
-        var events: [WindowEvent] = []
-        for await event in stream { events.append(event) }
-        #expect(events == [.resync])
+        #expect(await iterator.next() == nil)
     }
 
-    @Test func cancelStopsAPendingResync() async {
+    @Test func stopCancelsAPendingResync() async {
         let (stream, buffer) = AXEventBuffer.make()
         let delayed = DelayedResync(buffer: buffer, delay: .milliseconds(50))
         delayed.schedule()
-        delayed.cancel()
+        delayed.stop()
         try? await Task.sleep(for: .milliseconds(200))
         buffer.finish()
         var events: [WindowEvent] = []
         for await event in stream { events.append(event) }
         #expect(events.isEmpty)
+    }
+
+    /// A wake handler still running on another thread while the hub stops must not arm a new resync.
+    @Test func aRequestAfterStopIsIgnored() async {
+        let (stream, buffer) = AXEventBuffer.make()
+        let delayed = DelayedResync(buffer: buffer, delay: .milliseconds(20))
+        delayed.stop()
+        delayed.schedule()
+        try? await Task.sleep(for: .milliseconds(200))
+        buffer.finish()
+        var events: [WindowEvent] = []
+        for await event in stream { events.append(event) }
+        #expect(events.isEmpty)
+    }
+
+    @Test func aStopFromAnotherThreadWhileRequestsArriveLeavesAtMostOneResync() async {
+        let (stream, buffer) = AXEventBuffer.make()
+        let delayed = DelayedResync(buffer: buffer, delay: .milliseconds(10))
+        await withTaskGroup(of: Void.self) { group in
+            for _ in 0..<50 { group.addTask { delayed.schedule() } }
+            group.addTask { delayed.stop() }
+        }
+        delayed.schedule()
+        try? await Task.sleep(for: .milliseconds(200))
+        buffer.finish()
+        var events: [WindowEvent] = []
+        for await event in stream { events.append(event) }
+        #expect(events.count <= 1)
+    }
+
+    /// Every system notification token is removed from the center it was added to: the screen parameters come
+    /// from `NotificationCenter.default`, and removing that token from the workspace's center would do nothing.
+    @Test func everyObserverTokenIsRemovedFromItsOwnCenter() throws {
+        let root = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+        let source = try String(
+            contentsOf: root.appending(path: "Sources/LintelApp/Ports/AXObservationHub.swift"), encoding: .utf8)
+        #expect(!source.contains("NSWorkspace.shared.notificationCenter.removeObserver"))
+        let added = source.components(separatedBy: "addObserver(").count - 1
+        let kept = source.components(separatedBy: "}, to: ").count - 1
+        #expect(added == 6)
+        #expect(added == kept)
     }
 }

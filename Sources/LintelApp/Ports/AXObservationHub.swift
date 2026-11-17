@@ -52,8 +52,17 @@ nonisolated final class AXObservationHub: @unchecked Sendable {
     private struct Shared: @unchecked Sendable {
         var thread: Thread?
         var runLoop: CFRunLoop?
-        var tokens: [any NSObjectProtocol] = []
+        var tokens: [ObserverToken] = []
         var isStopped = false
+    }
+
+    /// An observer token and the center it was added to: a token is removed from that center only (removing it
+    /// from another one does nothing, and the observer would outlive the hub).
+    private struct ObserverToken: @unchecked Sendable {
+        let center: NotificationCenter
+        let token: any NSObjectProtocol
+
+        func remove() { center.removeObserver(token) }
     }
 
     private let shared = Mutex(Shared())
@@ -131,15 +140,15 @@ nonisolated final class AXObservationHub: @unchecked Sendable {
     }
 
     func stop() {
-        let tokens = shared.withLock { shared -> [any NSObjectProtocol] in
+        let tokens = shared.withLock { shared -> [ObserverToken] in
             shared.isStopped = true
             let tokens = shared.tokens
             shared.tokens = []
             shared.thread = nil
             return tokens
         }
-        for token in tokens { NSWorkspace.shared.notificationCenter.removeObserver(token) }
-        delayedResync.cancel()
+        for token in tokens { token.remove() }
+        delayedResync.stop()
         perform { [self] in
             for pid in Array(apps.keys) { unobserve(pid) }
             if let loop = runLoop { CFRunLoopStop(loop) }
@@ -153,14 +162,15 @@ nonisolated final class AXObservationHub: @unchecked Sendable {
         CFRunLoopWakeUp(runLoop)
     }
 
-    /// Keeps a system notification token; one that arrives after `stop()` is removed at once.
-    private func add(_ token: any NSObjectProtocol) {
+    /// Keeps a system notification token with its center; one that arrives after `stop()` is removed at once.
+    private func add(_ token: any NSObjectProtocol, to center: NotificationCenter) {
+        let entry = ObserverToken(center: center, token: token)
         let stopped = shared.withLock { shared -> Bool in
             if shared.isStopped { return true }
-            shared.tokens.append(token)
+            shared.tokens.append(entry)
             return false
         }
-        if stopped { NSWorkspace.shared.notificationCenter.removeObserver(token) }
+        if stopped { entry.remove() }
     }
 
     private func observeSystemNotifications() {
@@ -177,7 +187,7 @@ nonisolated final class AXObservationHub: @unchecked Sendable {
                 buffer.append(.appLaunched(pid: pid))
                 guard let self else { return }
                 self.perform { [self] in observe(pid) }
-            })
+            }, to: center)
         add(
             center.addObserver(forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: nil) {
                 [weak self] note in
@@ -189,7 +199,7 @@ nonisolated final class AXObservationHub: @unchecked Sendable {
                 guard let self else { return }
                 self.terminated(pid)
                 self.perform { [self] in unobserve(pid) }
-            })
+            }, to: center)
         let delayed = delayedResync
         let emit: @Sendable (SystemNotificationKind) -> Void = { kind in
             for event in SystemEventTable.events(for: kind) { buffer.append(event) }
@@ -198,19 +208,21 @@ nonisolated final class AXObservationHub: @unchecked Sendable {
         add(
             center.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: nil) { _ in
                 emit(.spaceChanged)
-            })
+            }, to: center)
         add(
             center.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: nil) { _ in
                 emit(.didWake)
-            })
+            }, to: center)
         add(
             center.addObserver(forName: NSWorkspace.screensDidWakeNotification, object: nil, queue: nil) { _ in
                 emit(.screensDidWake)
-            })
+            }, to: center)
+        // The screen parameters come from the app's own center, not the workspace's.
+        let appCenter = NotificationCenter.default
         add(
-            NotificationCenter.default.addObserver(
+            appCenter.addObserver(
                 forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: nil
-            ) { _ in emit(.displaysChanged) })
+            ) { _ in emit(.displaysChanged) }, to: appCenter)
     }
 
     // MARK: Observers (AX thread only)

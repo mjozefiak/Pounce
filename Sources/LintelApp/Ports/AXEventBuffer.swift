@@ -77,11 +77,20 @@ nonisolated enum SystemEventTable {
 }
 
 /// One delayed resync at a time: a new request replaces a pending one, so a wake that announces itself twice
-/// (system and screens) costs one late resync.
+/// (system and screens) costs one late resync. After `stop()` nothing is appended any more: a request that comes
+/// later (a wake handler still running on another thread) is ignored, and a timer that already slept checks the
+/// same lock before it appends.
 nonisolated final class DelayedResync: Sendable {
+    private struct State {
+        var task: Task<Void, Never>?
+        /// Which request is the current one; a replaced timer that wakes up finds another number and does nothing.
+        var generation: UInt64 = 0
+        var isStopped = false
+    }
+
     private let buffer: AXEventBuffer
     private let delay: Duration
-    private let pending = Mutex<Task<Void, Never>?>(nil)
+    private let state = Mutex(State())
 
     init(buffer: AXEventBuffer, delay: Duration = SystemEventTable.followUpDelay) {
         self.buffer = buffer
@@ -89,23 +98,35 @@ nonisolated final class DelayedResync: Sendable {
     }
 
     func schedule() {
-        let buffer = buffer
         let delay = delay
-        let task = Task {
-            try? await Task.sleep(for: delay)
-            guard !Task.isCancelled else { return }
-            buffer.append(.resync)
-        }
-        pending.withLock { current in
-            current?.cancel()
-            current = task
+        state.withLock { state in
+            guard !state.isStopped else { return }
+            state.task?.cancel()
+            state.generation &+= 1
+            let generation = state.generation
+            state.task = Task { [weak self] in
+                try? await Task.sleep(for: delay)
+                self?.fire(generation)
+            }
         }
     }
 
-    func cancel() {
-        pending.withLock { current in
-            current?.cancel()
-            current = nil
+    /// Cancels a pending resync for good; later requests are ignored.
+    func stop() {
+        state.withLock { state in
+            state.isStopped = true
+            state.task?.cancel()
+            state.task = nil
+        }
+    }
+
+    private func fire(_ generation: UInt64) {
+        let buffer = buffer
+        state.withLock { state in
+            guard !state.isStopped, state.generation == generation else { return }
+            state.task = nil
+            // Appended under the lock, so a `stop()` either comes first (nothing is appended) or after.
+            buffer.append(.resync)
         }
     }
 }
