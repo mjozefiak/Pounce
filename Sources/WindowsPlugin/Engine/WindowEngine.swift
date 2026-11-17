@@ -50,6 +50,11 @@ actor WindowEngine {
     private var stopped = false
     /// The retry that looks at the windows again while an app has not answered (`trackUnknown`).
     private var retryTask: Task<Void, Never>?
+    /// The timer that ends a resize by hand when no resize came for `userResizeSettle`.
+    private var settleTask: Task<Void, Never>?
+    private var settleRevision = -1
+    /// How long after the last adopted resize the drag counts as over (the window then lands on its exact tile).
+    static let userResizeSettle: Duration = .milliseconds(250)
     /// How long after a snapshot that could not read an app the engine looks again (and again, until it can).
     static let unknownRetry: Duration = .seconds(5)
     /// The longest wait between two looks (the wait doubles from `unknownRetry` up to this).
@@ -164,6 +169,8 @@ actor WindowEngine {
         stopped = true
         retryTask?.cancel()
         retryTask = nil
+        settleTask?.cancel()
+        settleTask = nil
         pumpTask?.cancel()
         // The pump is awaited, so the client's stream has really ended when `stop()` returns and a restart's
         // `subscribe()` cannot be handed a stream that is still dying.
@@ -492,6 +499,31 @@ actor WindowEngine {
         ingest(.resync)
     }
 
+    /// Arms the timer that ends a resize by hand: each adopted resize starts it again, so it fires only once the
+    /// window has been still for `userResizeSettle` (on the engine's clock).
+    private func updateSettleTimer() {
+        guard let resize = state.userResize, !stopped else {
+            settleTask?.cancel()
+            settleTask = nil
+            settleRevision = -1
+            return
+        }
+        guard resize.revision != settleRevision else { return }
+        settleTask?.cancel()
+        settleRevision = resize.revision
+        let (window, revision) = (resize.window, resize.revision)
+        settleTask = Task { [weak self, time] in
+            do { try await time.sleep(Self.userResizeSettle) } catch { return }
+            await self?.settleResize(window, revision: revision)
+        }
+    }
+
+    private func settleResize(_ window: WindowID, revision: Int) {
+        guard !Task.isCancelled, !stopped, state.userResize?.revision == revision else { return }
+        settleTask = nil
+        enqueue([.userResizeSettled(window, now: time.now())])
+    }
+
     private func snapshotInput() async -> EngineInput {
         await translator.snapshot(now: time.now(), tracked: Set(state.windows.keys.map(\.pid)))
     }
@@ -523,6 +555,7 @@ actor WindowEngine {
             ledger.closeIfFinished(id)
         }
         updateRetry()
+        updateSettleTimer()
         resumeWaiters()
     }
 

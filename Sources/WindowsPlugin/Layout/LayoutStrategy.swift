@@ -156,6 +156,8 @@ protocol LayoutStrategy: Sendable {
     var snapping: (any SnapTargetProviding)? { get }
     /// The kind adds rows to the pane for settings that are not options.
     var settingRows: (any SettingRowProviding)? { get }
+    /// The kind adopts a resize the user made with the mouse (the siblings follow).
+    var resizing: (any UserResizeAdopting)? { get }
     /// The JSON stored under the kind's name; `nil` for an empty state.
     func encode(_ state: AnyLayoutState) -> JSONValue?
     /// The state a stored JSON describes; `nil` when it does not decode (it is dropped, not a corrupt file).
@@ -167,6 +169,7 @@ extension LayoutStrategy {
     var library: (any LayoutLibraryProviding)? { nil }
     var snapping: (any SnapTargetProviding)? { nil }
     var settingRows: (any SettingRowProviding)? { nil }
+    var resizing: (any UserResizeAdopting)? { nil }
     var options: [LayoutOption] { [] }
     var commands: [LayoutCommandSpec] { [] }
     func summaryParts(_ resolved: ResolvedLayout) -> [String] { [] }

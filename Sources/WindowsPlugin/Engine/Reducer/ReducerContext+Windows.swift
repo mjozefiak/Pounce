@@ -115,6 +115,7 @@ extension ReducerContext {
         }
         guard let record = state.parked[id] else {
             state.windows[id]?.frame = frame
+            if adoptUserResize(id, frame: frame, now: now) { return }
             noteUserMove(id, frame: frame)
             return
         }

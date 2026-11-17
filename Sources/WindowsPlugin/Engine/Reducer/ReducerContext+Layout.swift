@@ -72,7 +72,9 @@ extension ReducerContext {
             let tiles = found.result.frames
             for id in tiles.keys.sorted() {
                 guard let tile = tiles[id], let window = state.windows[id], state.parked[id] == nil,
-                    !state.unmanaged.contains(id), !requests.contains(where: { $0.id == id })
+                    !state.unmanaged.contains(id), !requests.contains(where: { $0.id == id }),
+                    // The window the user is resizing is left alone until the drag settles.
+                    state.userResize?.window != id
                 else { continue }
                 let tolerance = state.config.echoTolerance
                 // A stubborn window gets one new try when its tile changed size (never a loop: the size is

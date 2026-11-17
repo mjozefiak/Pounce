@@ -5,7 +5,7 @@ import LintelKit
 extension TilingTree: LayoutStateValue {}
 
 /// Auto-tile: an i3/AeroSpace-style tree of split containers per workspace (state kind `tiling`).
-struct TilingStrategy: LayoutStrategy {
+struct TilingStrategy: LayoutStrategy, UserResizeAdopting {
     var kind: LayoutKind { .tiling }
     var displayName: String {
         String(localized: "Auto-tile", comment: "Window Management layout kind: windows tile the screen")
@@ -156,6 +156,15 @@ struct TilingStrategy: LayoutStrategy {
             return nil
         }
         return LayoutEdit(state: AnyLayoutState(next), focus: nil, hints: input.hints)
+    }
+
+    var resizing: (any UserResizeAdopting)? { self }
+
+    func adopt(_ frame: CGRect, of window: WindowID, tiles: [WindowID: CGRect], _ input: LayoutInput) -> LayoutEdit? {
+        guard var tree = input.state?.as(TilingTree.self),
+            tree.adopt(frame: frame, of: window, tiles: tiles)
+        else { return nil }
+        return LayoutEdit(state: AnyLayoutState(tree), focus: nil, hints: input.hints)
     }
 
     func removing(_ window: WindowID, from state: AnyLayoutState) -> AnyLayoutState {

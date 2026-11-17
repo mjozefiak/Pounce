@@ -257,3 +257,13 @@ Każdy krok zostawia aplikację działającą i wtyczkę wyłączoną domyślnie
 ## 📝 Not doing
 
 Tryby wiązań (`service` i inne), `join-with`, `flatten-workspace-tree`, `close-all-windows-but-current`, workspace'y z literami, import z `aerospace.toml` i dowolny tekstowy język konfiguracji, ramka nieaktywna na pozostałych oknach, reguły według tytułu okna, przypinanie workspace'ów do wyświetlaczy, przycisk "Apply to open windows", prywatne wywołania SkyLight, sterowanie natywnymi Spaces, skrypty i CLI. Każde może być osobnym specem; nic z tego nie zmienia powyższych kontraktów.
+
+## 🔧 Addendum 2026-11-17: zmiana rozmiaru kafla myszą (decyzja właściciela)
+
+Nowe zachowanie Auto-tile; v1 i v2 nie opisywały zmiany rozmiaru myszą (okno było przywracane na swój kafel przy następnym przeliczeniu), więc nie ma sprzeczności z kontraktami, jest uzupełnienie.
+
+- **Co się dzieje.** Przeciągnięcie krawędzi kafla (AX `kAXResizedNotification`) zmienia wagi drzewa: okno zyskuje o tyle, o ile przesunięto krawędź, a pozostałe okna po tej stronie krawędzi, w najbliższym kontenerze danej osi, który je ma, tracą po równo (reguła AeroSpace'a). Wagi są udziałami, więc nic nie zmienia się w `state.json`.
+- **Czego nie robi.** Krawędź bez sąsiada po swojej stronie, samo przesunięcie okna bez zmiany rozmiaru, różnica do 5 pt i rozmiar poniżej minimalnego udziału (`TilingTree.minimumShare`) są ignorowane; okno wraca na kafel. Okna `stubborn`, pływające, `unmanaged`, ramki będące echem naszego żądania (także w oknie echa 0,5 s) i silnik zamrożony nie są adoptowane. Zones i Free nie mają tej zdolności.
+- **Podczas przeciągania.** Okno przeciągane nie dostaje żądań (nie walczymy z ręką), sąsiedzi przeliczają się najwyżej 10 razy na sekundę (watchdog liczy zmiany ramek). Po 250 ms bez zmiany rozmiaru (zegar silnika) okno ląduje na swoim dokładnym kaflu.
+- **Architektura.** Zdolność opcjonalna `LayoutStrategy.resizing` (domyślnie `nil`), czysta operacja `TilingTree.adopt`, część reducera `ReducerContext+UserResize`, wejście `EngineInput.userResizeSettled`; reducer nie nazywa żadnego rodzaju układu.
+- **Znane ograniczenie.** Każda zmiana rozmiaru kafla, która nie jest naszym echem, jest adoptowana, także gdy aplikacja zmieniła rozmiar sama; aplikacje, które odmawiają rozmiaru, są już `stubborn`.

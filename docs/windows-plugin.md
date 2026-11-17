@@ -94,6 +94,16 @@ kind.
 the trade-off is that a typo is caught by a test and not by the compiler, in return for shared enums that name no
 verb. Each kind keeps its ids and payload types next to its strategy.
 
+## Resizing a tile with the mouse
+
+`LayoutStrategy.resizing` (a `UserResizeAdopting`, `nil` by default; only Auto-tile has it) turns a manual size change
+into weights: `ReducerContext+UserResize.adoptUserResize` runs from `windowMoved`, asks the strategy for the edit
+(`TilingTree.adopt`, pure) and sets `EngineState.userResize` (memory only). While it is set, `arrangeIfRequested`
+skips that window and reflows the siblings at most every 100 ms (the watchdog counts frame changes). The engine arms a
+250 ms timer on its injected clock after each adopted resize; it feeds `EngineInput.userResizeSettled`, which clears
+the state and arranges, so the window lands on its exact tile. A resize is ignored for stubborn, floating, unmanaged,
+frozen and in-flight (echo window) windows. Manual: `docs/qa.md` needs real Accessibility.
+
 ## An app that does not answer
 
 A window is only "gone" when its app says so. `WindowClient.readWindows(tracked:)` returns the windows with what the read

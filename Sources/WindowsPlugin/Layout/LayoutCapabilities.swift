@@ -53,3 +53,12 @@ struct LayoutSettingRow: Identifiable {
 protocol SettingRowProviding {
     func settingRows(_ context: LayoutSettingsContext) -> [LayoutSettingRow]
 }
+
+/// The kind adopts a resize the user made by hand: a manual size change of an arranged window moves the share of its
+/// neighbours (Auto-tile: the weights of the tree). The reducer asks the kind for the edit and never reads the state.
+protocol UserResizeAdopting: Sendable {
+    /// The edit that makes `frame` (where the user left `window`) the window's tile, given where every window of the
+    /// workspace is now (`tiles`) and the strategy state brought up to date in `input.state`; `nil` when nothing
+    /// follows (no neighbour on the resized side, a move, a size the layout does not allow).
+    func adopt(_ frame: CGRect, of window: WindowID, tiles: [WindowID: CGRect], _ input: LayoutInput) -> LayoutEdit?
+}
