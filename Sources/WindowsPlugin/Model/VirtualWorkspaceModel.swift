@@ -60,6 +60,9 @@ struct VirtualWorkspaceModel: Equatable, Sendable {
     private struct RememberedFocus: Equatable, Sendable {
         var display: String
         var previous: WorkspaceID?
+        /// The displays connected when it was remembered: a focused display that leaves later replaces it only
+        /// when it was one of them, so a stand-in display (a placeholder while asleep) never does.
+        var displays: [String]
     }
 
     /// - Parameters:
@@ -244,8 +247,9 @@ struct VirtualWorkspaceModel: Equatable, Sendable {
             visible[display] = nil
         }
         if let focus = focusedDisplay, removed.contains(focus) {
-            // Keep the first one: a flap through a placeholder display must not overwrite the real focus.
-            if rememberedFocus == nil { rememberedFocus = RememberedFocus(display: focus, previous: previous) }
+            if rememberedFocus.map({ $0.displays.contains(focus) }) ?? true {
+                rememberedFocus = RememberedFocus(display: focus, previous: previous, displays: displays)
+            }
             previous = nil
         }
         displays = newDisplays

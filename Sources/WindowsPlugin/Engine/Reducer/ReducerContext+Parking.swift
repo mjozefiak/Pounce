@@ -72,7 +72,6 @@ extension ReducerContext {
         for (id, record) in state.parked.sorted(by: { $0.key < $1.key }) {
             // A window whose workspace is shown again is being restored, not re-parked.
             if let workspace = state.model.workspace(of: id), state.model.isVisible(workspace) { continue }
-            guard !displays.isEmpty else { continue }
             let corner = FrameMath.parkedFrame(for: record.home, displays: displays, sliver: state.config.parkSliver)
             if !FrameMath.originsApproximatelyEqual(corner, record.parkedFrame, tolerance: 0.5) {
                 state.parked[id]?.parkedFrame = corner

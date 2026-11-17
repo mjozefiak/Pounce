@@ -490,9 +490,8 @@ import Testing
     }
 
     @Test func aParkedWindowMovedOnScreenByEveryReconnectIsNeverLeftUnmanaged() {
-        var (current, request) = parkedState()
+        var (current, _) = parkedState()
         let onScreen = CGRect(x: 100, y: 100, width: 800, height: 600)
-        _ = request
         for round in 0..<4 {
             let now = 1_100 + Double(round) * 10
             (current, _) = EngineReducer.reduce(current, .displaysChanged([main], now: now))

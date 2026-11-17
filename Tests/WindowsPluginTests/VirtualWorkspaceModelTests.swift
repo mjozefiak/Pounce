@@ -253,4 +253,30 @@ import Testing
         model.setDisplays(["D"])
         #expect(model.current == ws(1))
     }
+
+    @Test func theFocusOfALaterRemovedDisplayReplacesAnOlderRememberedFocus() {
+        var model = VirtualWorkspaceModel(workspaceCount: 4, displays: ["A", "B"])
+        model.focusDisplay("B")
+        model.setDisplays(["A"])
+        #expect(model.focusedDisplay == "A")
+        model.show(ws(3))
+        // Asleep: the remaining display is replaced by a placeholder, then both return.
+        model.setDisplays(["placeholder"])
+        model.setDisplays(["A", "B"])
+        #expect(model.focusedDisplay == "A")
+        #expect(model.current == ws(3))
+        #expect(model.previous == ws(1))
+    }
+
+    @Test func aPlaceholderThatLeavesKeepsTheRealDisplaysFocus() {
+        var model = VirtualWorkspaceModel(workspaceCount: 4, displays: ["A", "B"])
+        model.focusDisplay("B")
+        model.show(ws(4))
+        model.setDisplays(["placeholder"])
+        model.setDisplays(["other placeholder"])
+        model.setDisplays(["A", "B"])
+        #expect(model.focusedDisplay == "B")
+        #expect(model.current == ws(4))
+        #expect(model.previous == ws(2))
+    }
 }
