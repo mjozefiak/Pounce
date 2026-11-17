@@ -57,7 +57,9 @@ nonisolated final class AXObservationHub: @unchecked Sendable {
     }
 
     /// An observer token and the center it was added to: a token is removed from that center only (removing it
-    /// from another one does nothing, and the observer would outlive the hub).
+    /// from another one does nothing, and the observer would outlive the hub). `@unchecked Sendable`: the token is
+    /// opaque, never read, and only handed back to `removeObserver`, which `NotificationCenter` allows from any
+    /// thread.
     private struct ObserverToken: @unchecked Sendable {
         let center: NotificationCenter
         let token: any NSObjectProtocol
