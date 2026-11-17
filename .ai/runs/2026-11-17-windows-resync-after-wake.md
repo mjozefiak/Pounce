@@ -26,6 +26,6 @@ After sleep or a display change the engine reads the real window frames again, s
 
 ### Phase 1: resync
 
-- [ ] 1.1 Event table, delayed resync and hub wiring
-- [ ] 1.2 Unit tests (table, delayed resync) and engine test
-- [ ] 1.3 Spec addendum and gate
+- [x] 1.1 Event table, delayed resync and hub wiring
+- [x] 1.2 Unit tests (table, delayed resync) and engine test
+- [x] 1.3 Spec addendum and gate

@@ -72,3 +72,56 @@ import Testing
         #expect(changes.remove == [9])
     }
 }
+
+/// F1 (window management, resync after wake): the table from system notifications to engine events.
+@Suite struct SystemEventTableTests {
+    @Test func aWakeAppendsOneResyncAndAsksForAFollowUp() {
+        for kind in [SystemNotificationKind.didWake, .screensDidWake] {
+            #expect(SystemEventTable.events(for: kind) == [.resync])
+            #expect(SystemEventTable.needsFollowUp(kind))
+        }
+    }
+
+    @Test func aDisplayChangeIsAlwaysFollowedByAResync() {
+        #expect(SystemEventTable.events(for: .displaysChanged) == [.displaysChanged, .resync])
+        #expect(!SystemEventTable.needsFollowUp(.displaysChanged))
+    }
+
+    @Test func aSpaceChangeStaysAsItWas() {
+        #expect(SystemEventTable.events(for: .spaceChanged) == [.spaceChanged])
+        #expect(!SystemEventTable.needsFollowUp(.spaceChanged))
+    }
+
+    @Test func everyKindIsCovered() {
+        for kind in SystemNotificationKind.allCases { #expect(!SystemEventTable.events(for: kind).isEmpty) }
+    }
+
+    @Test func theFollowUpComesAboutTwoSecondsLater() {
+        #expect(SystemEventTable.followUpDelay == .seconds(2))
+    }
+
+    @Test func repeatedRequestsGiveOneDelayedResync() async {
+        let (stream, buffer) = AXEventBuffer.make()
+        let delayed = DelayedResync(buffer: buffer, delay: .milliseconds(50))
+        delayed.schedule()
+        delayed.schedule()
+        delayed.schedule()
+        try? await Task.sleep(for: .milliseconds(300))
+        buffer.finish()
+        var events: [WindowEvent] = []
+        for await event in stream { events.append(event) }
+        #expect(events == [.resync])
+    }
+
+    @Test func cancelStopsAPendingResync() async {
+        let (stream, buffer) = AXEventBuffer.make()
+        let delayed = DelayedResync(buffer: buffer, delay: .milliseconds(50))
+        delayed.schedule()
+        delayed.cancel()
+        try? await Task.sleep(for: .milliseconds(200))
+        buffer.finish()
+        var events: [WindowEvent] = []
+        for await event in stream { events.append(event) }
+        #expect(events.isEmpty)
+    }
+}

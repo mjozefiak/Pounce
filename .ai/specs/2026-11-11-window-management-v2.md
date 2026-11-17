@@ -257,3 +257,7 @@ Każdy krok zostawia aplikację działającą i wtyczkę wyłączoną domyślnie
 ## 📝 Not doing
 
 Tryby wiązań (`service` i inne), `join-with`, `flatten-workspace-tree`, `close-all-windows-but-current`, workspace'y z literami, import z `aerospace.toml` i dowolny tekstowy język konfiguracji, ramka nieaktywna na pozostałych oknach, reguły według tytułu okna, przypinanie workspace'ów do wyświetlaczy, przycisk "Apply to open windows", prywatne wywołania SkyLight, sterowanie natywnymi Spaces, skrypty i CLI. Każde może być osobnym specem; nic z tego nie zmienia powyższych kontraktów.
+
+## Addendum 2026-11-17: ponowny odczyt okien po wybudzeniu i zmianie wyświetlaczy
+
+Na prośbę właściciela. Dotąd nic nie reagowało na uśpienie: `.displaysChanged` pracuje na zapamiętanych ramkach, więc okna przesunięte przez macOS bez powiadomienia AX zostawały poza swoimi kafelkami. Teraz `AXObservationHub` obserwuje `NSWorkspace.didWakeNotification` i `screensDidWakeNotification` i dodaje `.resync` (pełny odczyt okien), po około 2 s drugi `.resync` (aplikacje odpowiadają wolno tuż po wybudzeniu; kolejne prośby zastępują oczekującą), a każde `.displaysChanged` jest od razu po nim `.resync`. Mapowanie powiadomienie → zdarzenia to czysta tablica (`SystemEventTable`). Bez zmiany kontraktu `LintelKit` i bez zmiany reducera; pamięć wyświetlacza i licznik `rehides` to osobne poprawki (A2).

@@ -46,6 +46,7 @@ nonisolated final class AXObservationHub: @unchecked Sendable {
     private let lookup: WindowIDLookup
     private let ownPID: Int32
     private let terminated: @Sendable (Int32) -> Void
+    private let delayedResync: DelayedResync
     private let logger = Logger(subsystem: "com.lintelapp", category: "windows")
     /// `start`, `stop` and the notification handlers run on different threads: this state is behind one lock.
     private struct Shared: @unchecked Sendable {
@@ -66,6 +67,7 @@ nonisolated final class AXObservationHub: @unchecked Sendable {
     ) {
         self.terminated = terminated
         self.buffer = buffer
+        self.delayedResync = DelayedResync(buffer: buffer)
         self.lookup = lookup
         self.ownPID = ownPID
     }
@@ -137,6 +139,7 @@ nonisolated final class AXObservationHub: @unchecked Sendable {
             return tokens
         }
         for token in tokens { NSWorkspace.shared.notificationCenter.removeObserver(token) }
+        delayedResync.cancel()
         perform { [self] in
             for pid in Array(apps.keys) { unobserve(pid) }
             if let loop = runLoop { CFRunLoopStop(loop) }
@@ -187,14 +190,27 @@ nonisolated final class AXObservationHub: @unchecked Sendable {
                 self.terminated(pid)
                 self.perform { [self] in unobserve(pid) }
             })
+        let delayed = delayedResync
+        let emit: @Sendable (SystemNotificationKind) -> Void = { kind in
+            for event in SystemEventTable.events(for: kind) { buffer.append(event) }
+            if SystemEventTable.needsFollowUp(kind) { delayed.schedule() }
+        }
         add(
             center.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: nil) { _ in
-                buffer.append(.spaceChanged)
+                emit(.spaceChanged)
+            })
+        add(
+            center.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: nil) { _ in
+                emit(.didWake)
+            })
+        add(
+            center.addObserver(forName: NSWorkspace.screensDidWakeNotification, object: nil, queue: nil) { _ in
+                emit(.screensDidWake)
             })
         add(
             NotificationCenter.default.addObserver(
                 forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: nil
-            ) { _ in buffer.append(.displaysChanged) })
+            ) { _ in emit(.displaysChanged) })
     }
 
     // MARK: Observers (AX thread only)
