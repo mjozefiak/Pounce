@@ -171,7 +171,7 @@ instead of failing if the code under test breaks; the time limit and CI's own ti
 
 ## Menu bar strip: size and look
 
-Boxes are 24 × 18 pt (gap and padding 3 pt, 12 pt semibold number, radius 5, outline 1.25 pt) for up to six boxes and 22 × 18 pt (gap and padding 2 pt) for seven to nine; nine boxes are 218 pt wide. The image height is `min(22, NSStatusBar.system.thickness)`. The active box is a fill with the number cut out; an empty workspace that is not current and not shown on another display is outlined at 45 % alpha. All of it is in `StripLayout` and `StripImage`, and the click mapping reads the same metrics (`StripLayout.metrics(boxCount:)`).
+Boxes are 24 × 18 pt (gap and padding 3 pt, 12 pt semibold number, radius 5, outline 1.25 pt) for up to six boxes and 22 × 18 pt (gap and padding 2 pt) for seven to nine; nine boxes are 218 pt wide. The image height is `min(22, NSStatusBar.system.thickness)`. The active box is a fill with the number cut out; an empty workspace that is not current and not shown on another display is outlined at 45 % alpha (70 % with Increase Contrast; the strip redraws when the setting changes). All of it is in `StripLayout` and `StripImage`, and the click mapping reads the same metrics (`StripLayout.metrics(boxCount:)`).
 
 ## Menu bar strip: how a click is mapped (round 13)
 

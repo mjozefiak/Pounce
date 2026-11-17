@@ -260,7 +260,7 @@ The owner asked for bigger, easier to click boxes. This replaces "dziewięć pud
 
 - Up to six boxes: 24 × 18 pt, gap and padding 3 pt, number 12 pt semibold, corner radius 5, outline 1.25 pt. Seven to nine boxes: 22 × 18 pt, gap and padding 2 pt. Nine boxes are 218 pt wide (step 1.6's test "pasek z 9 pudełkami mieści się w limicie szerokości" accepts that). Every box meets the 20 × 20 pt macOS minimum target.
 - The image height is `min(22, NSStatusBar.system.thickness)` (never below the 18 pt box).
-- An empty workspace that is not current and not shown on another display is drawn dimmed (outline and number at 45 % alpha). The active box stays a fill with the number cut out and the others outlines, so no state depends on colour or on the dimming alone. The default mode stays `all` (v1 Q16: positions never move under the cursor); hiding empty workspaces is still the opt-in `occupied` mode.
+- An empty workspace that is not current and not shown on another display is drawn dimmed (outline and number at 45 % alpha; 70 % with Increase Contrast, about 5:1 for the number on a plain light or dark menu bar instead of about 2.6:1; redrawn when the setting changes). The active box stays a fill with the number cut out and the others outlines, so no state depends on colour or on the dimming alone. The default mode stays `all` (v1 Q16: positions never move under the cursor); hiding empty workspaces is still the opt-in `occupied` mode.
 
 ## 📝 Not doing
 

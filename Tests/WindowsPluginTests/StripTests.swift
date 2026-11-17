@@ -188,13 +188,27 @@ import Testing
             StripBox(number: 2, windowCount: 0, isCurrent: false, isShownElsewhere: false),
             StripBox(number: 3, windowCount: 0, isCurrent: true, isShownElsewhere: false),
         ]
-        let image = StripImage.render(boxes, thickness: 24)
+        let image = StripImage.render(boxes, thickness: 24, increaseContrast: false)
         let occupied = try peakAlpha(image, boxes: boxes, index: 0)
         let empty = try peakAlpha(image, boxes: boxes, index: 1)
         let current = try peakAlpha(image, boxes: boxes, index: 2)
         #expect(occupied > 0.9)
-        #expect(empty > 0.2 && empty < 0.7, "empty alpha \(empty)")
+        #expect(empty > 0.2 && empty < 0.6, "empty alpha \(empty)")
         #expect(current > 0.9)
+        // Increase Contrast dims an empty box less (its number stays readable on a light or dark menu bar).
+        let contrast = StripImage.render(boxes, thickness: 24, increaseContrast: true)
+        let emptyWithContrast = try peakAlpha(contrast, boxes: boxes, index: 1)
+        #expect(emptyWithContrast > empty + 0.15 && emptyWithContrast < 0.9, "empty alpha \(emptyWithContrast)")
+        #expect(try peakAlpha(contrast, boxes: boxes, index: 0) > 0.9)
+    }
+
+    @Test func theInkAlphaDimsOnlyEmptyBoxesAndLessWithIncreaseContrast() {
+        let empty = StripBox(number: 2, windowCount: 0, isCurrent: false, isShownElsewhere: false)
+        let occupied = StripBox(number: 1, windowCount: 3, isCurrent: false, isShownElsewhere: false)
+        #expect(StripImage.inkAlpha(empty, increaseContrast: false) == StripImage.emptyAlpha)
+        #expect(StripImage.inkAlpha(empty, increaseContrast: true) == StripImage.emptyAlphaIncreasedContrast)
+        #expect(StripImage.emptyAlphaIncreasedContrast > StripImage.emptyAlpha)
+        for contrast in [false, true] { #expect(StripImage.inkAlpha(occupied, increaseContrast: contrast) == 1) }
     }
 
     // MARK: Wiring to the engine
@@ -281,6 +295,26 @@ import Testing
             origin + StripLayout.originX(ofBox: 1, boxCount: count) - StripLayout.metrics(boxCount: count).gap / 2
         #expect(box(clickX: gapMiddle - 0.4, count: count, buttonWidth: buttonWidth) == 0)
         #expect(box(clickX: gapMiddle + 0.4, count: count, buttonWidth: buttonWidth) == 1)
+    }
+
+    @Test func everyGapAndBothEndsMapToTheNearerBoxForOneToNineBoxes() {
+        for count in 1...9 {
+            let m = StripLayout.metrics(boxCount: count)
+            let image = StripLayout.width(boxCount: count)
+            #expect(StripLayout.index(atX: 0, boxCount: count) == 0, "\(count) boxes, left end")
+            #expect(StripLayout.index(atX: image, boxCount: count) == count - 1, "\(count) boxes, right end")
+            #expect(StripLayout.index(atX: -0.1, boxCount: count) == nil)
+            #expect(StripLayout.index(atX: image + 0.1, boxCount: count) == nil)
+            for index in 1..<count {
+                let gapMiddle = StripLayout.originX(ofBox: index, boxCount: count) - m.gap / 2
+                #expect(StripLayout.index(atX: gapMiddle - 0.1, boxCount: count) == index - 1, "\(count)/\(index)")
+                #expect(StripLayout.index(atX: gapMiddle + 0.1, boxCount: count) == index, "\(count)/\(index)")
+                // Both edges of the box itself.
+                let left = StripLayout.originX(ofBox: index, boxCount: count)
+                #expect(StripLayout.index(atX: left, boxCount: count) == index)
+                #expect(StripLayout.index(atX: left + m.boxWidth, boxCount: count) == index)
+            }
+        }
     }
 
     // MARK: The real click path (QA round 3, N3)

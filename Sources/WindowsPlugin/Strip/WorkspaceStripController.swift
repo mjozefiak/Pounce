@@ -42,6 +42,8 @@ final class WorkspaceStripController: NSObject {
     static let roomRecheckDelay: TimeInterval = 1
     private var recheckPending = false
     private var observers: [any NSObjectProtocol] = []
+    /// Observers on `NSWorkspace.shared.notificationCenter` (a separate centre from `observers`).
+    private var workspaceObservers: [any NSObjectProtocol] = []
 
     init(
         select: @escaping @MainActor (Int) -> Void, restoreAll: @escaping @MainActor () -> Void, announce: Bool = true
@@ -69,6 +71,7 @@ final class WorkspaceStripController: NSObject {
             return StripItemState(frame: window.frame, hasScreen: window.screen != nil, isVisible: window.isVisible)
         }
         observeRoomChanges()
+        observeDisplayOptions()
         let capture = capture
         downMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak item] event in
             // Local monitors run on the main thread; nothing here touches main-actor state.
@@ -81,6 +84,8 @@ final class WorkspaceStripController: NSObject {
     func remove() {
         for observer in observers { NotificationCenter.default.removeObserver(observer) }
         observers = []
+        for observer in workspaceObservers { NSWorkspace.shared.notificationCenter.removeObserver(observer) }
+        workspaceObservers = []
         if let downMonitor { NSEvent.removeMonitor(downMonitor) }
         downMonitor = nil
         capture.reset()
@@ -150,6 +155,16 @@ final class WorkspaceStripController: NSObject {
                     Task { @MainActor in self?.checkRoom() }
                 })
         }
+    }
+
+    /// Increase Contrast changes how strongly an empty box is dimmed (`StripImage.emptyAlpha(increaseContrast:)`).
+    private func observeDisplayOptions() {
+        workspaceObservers.append(
+            NSWorkspace.shared.notificationCenter.addObserver(
+                forName: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil, queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor in self?.redraw() }
+            })
     }
 
     /// Settings asks for the answer as it is now (the pane appeared, Lintel became active): no waiting.
@@ -322,16 +337,27 @@ final class StripBoxElement: NSAccessibilityElement {
 
 /// Draws the strip as a template image: the active box filled with its number cut out, the others outlined. An empty
 /// workspace that is not shown anywhere is drawn dimmed (outline and number at `StripImage.emptyAlpha`), so "no
-/// windows" is visible without moving a box; the active box stays fill versus outline, never colour alone.
+/// windows" is visible without moving a box; the active box stays fill versus outline, never colour alone. With
+/// Increase Contrast the dimming is milder (about 5:1 for the number on a plain light or dark menu bar, not 2.6:1).
 enum StripImage {
     static let emptyAlpha: CGFloat = 0.45
+    static let emptyAlphaIncreasedContrast: CGFloat = 0.7
     static let outlineWidth: CGFloat = 1.25
     static let cornerRadius: CGFloat = 5
 
     /// Whether the box is drawn dimmed: nothing on it and neither current nor shown on another display.
     static func isDimmed(_ box: StripBox) -> Bool { box.windowCount == 0 && !box.isCurrent && !box.isShownElsewhere }
 
-    @MainActor static func render(_ boxes: [StripBox], thickness: CGFloat = NSStatusBar.system.thickness) -> NSImage {
+    /// The alpha of a box's outline and number.
+    static func inkAlpha(_ box: StripBox, increaseContrast: Bool) -> CGFloat {
+        guard isDimmed(box) else { return 1 }
+        return increaseContrast ? emptyAlphaIncreasedContrast : emptyAlpha
+    }
+
+    @MainActor static func render(
+        _ boxes: [StripBox], thickness: CGFloat = NSStatusBar.system.thickness,
+        increaseContrast: Bool = NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
+    ) -> NSImage {
         let height = StripLayout.imageHeight(thickness: thickness)
         let size = NSSize(width: max(1, StripLayout.width(boxCount: boxes.count)), height: height)
         let boxWidth = StripLayout.metrics(boxCount: boxes.count).boxWidth
@@ -342,7 +368,7 @@ enum StripImage {
                     x: StripLayout.originX(ofBox: index, boxCount: count),
                     y: ((rect.height - StripLayout.boxHeight) / 2).rounded(),
                     width: boxWidth, height: StripLayout.boxHeight)
-                draw(box, in: frame)
+                draw(box, in: frame, alpha: inkAlpha(box, increaseContrast: increaseContrast))
             }
             return true
         }
@@ -352,11 +378,11 @@ enum StripImage {
         return image
     }
 
-    private static func draw(_ box: StripBox, in frame: NSRect) {
+    private static func draw(_ box: StripBox, in frame: NSRect, alpha: CGFloat) {
         let inset = outlineWidth / 2
         let path = NSBezierPath(
             roundedRect: frame.insetBy(dx: inset, dy: inset), xRadius: cornerRadius, yRadius: cornerRadius)
-        let ink = NSColor.black.withAlphaComponent(isDimmed(box) ? emptyAlpha : 1)
+        let ink = NSColor.black.withAlphaComponent(alpha)
         let text = NSAttributedString(
             string: String(box.number),
             attributes: [
