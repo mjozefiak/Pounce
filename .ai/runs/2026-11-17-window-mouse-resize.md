@@ -13,6 +13,8 @@ Any non-echo resize of a tiled window is adopted (an app resizing itself); mitig
 
 ## Progress
 
+PR: #95
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Pure operation and capability
