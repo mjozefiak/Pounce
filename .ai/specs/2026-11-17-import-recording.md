@@ -1,8 +1,12 @@
 # Import nagrania: spotkanie z pliku audio lub wideo
 
-Powiązane: `2026-11-03-meeting-notes.md` (potok spotkań, spool, biblioteka), `2026-11-06-meeting-speaker-names.md` („To ja”, nazwy mówców), `2026-11-06-meeting-segment-split.md` (planuje migrację `v2-segment-words`), PR #80 (`keepAudio`), issue #91 (flagi QA `--qa-meeting-*-wav` sparsowane, ale niepodpięte). Nazwy w kodzie: produkt to Lintel (`MeetingsPlugin`, `LintelSpeech`, klucze `plugins.meetings.*`); repozytorium nazywa się Pounce.
+Powiązane: `2026-11-03-meeting-notes.md` (potok spotkań, spool, biblioteka), `2026-11-06-meeting-speaker-names.md` („To ja”, nazwy mówców), `2026-11-06-meeting-segment-split.md` (planuje migrację `v2-segment-words`), PR #80 (`keepAudio`), otwarty PR #88 (MEET-1.6, migracja `v2-consent`), issue #91 (flagi QA `--qa-meeting-*-wav` sparsowane, ale niepodpięte), backlog `backlog/2026-11-13-epic-meeting-notes-beyond-claude.md`. Nazwy w kodzie: produkt to Lintel (`MeetingsPlugin`, `LintelSpeech`, klucze `plugins.meetings.*`); repozytorium nazywa się Pounce.
 
 Stan: **propozycja, design-only**. Nic z tego dokumentu nie istnieje w kodzie. Interfejs wymaga prototypu zaakceptowanego przez właściciela (Faza 0) przed jakąkolwiek implementacją UI.
+
+**Relacja do epiku „notatki lepsze niż Claude”.** Epik wymienia „import plików audio” w sekcji „Poza zakresem”, więc ten spec jest **osobnym torem**, nie story epiku, i nie zmienia jego kolejności ani bramek. Zgodność z decyzjami epiku:
+- **M-Q4 (zamrożenie na czas dogfoodu):** import nie dotyka `NotesPipeline`, `NotesGuard`, `NotesComposer`, `NotesPrompt`, `TranscriptChunker` ani zapisu segmentów (segmenty zapisuje niezmieniony `MeetingResumer`). Jedyna zmiana w notatkach to wybór modelu na jedno zlecenie w `NotesService` (krok 2.3), który nie zmienia treści notatek nagrań na żywo. Mimo to krok 2.3 i Faza 3 nie wchodzą na `main` przed bramką MEET-0.3, chyba że właściciel zdecyduje inaczej (pytanie Q17).
+- **M-Q12, M-Q13, M-Q14 (MCP, eksport do folderu, dostawca zewnętrzny):** zaimportowane spotkanie jest dla nich zwykłym spotkaniem. Import nie tworzy wyjątku: udostępnianie przez MCP zostaje per spotkanie i domyślnie wyłączone, eksport do folderu zostaje opt-in, a wysłanie notatek importu do dostawcy zewnętrznego podlega tym samym regułom zgody co nagranie (przypomnienie o zgodzie z arkusza nie jest zgodą na chmurę). `origin` jest dostępne tym funkcjom, ale żadna nie zmienia zachowania na jego podstawie bez osobnej decyzji.
 
 ## 📝 TLDR
 Osoba, która ma już nagranie rozmowy (plik audio albo duże nagranie ekranu `.mov`), nie może dziś zrobić z niego spotkania w Lintelu: biblioteka przyjmuje tylko to, co Lintel sam nagrał. Proponowane przyszłe zachowanie: użytkownik wskazuje plik (akcja „Import Recording…” albo przeciągnięcie), a Lintel wyciąga z niego samą ścieżkę audio, zapisuje ją do tego samego zaszyfrowanego spoola co nagranie na żywo i kończy spotkanie istniejącym potokiem (`MeetingResumer` → transkrypcja, `MeetingFinalizer` → diaryzacja, `NotesService` → notatki) w prawdziwej bibliotece. Spotkanie jest trwale oznaczone jako import, plik źródłowy nie jest kopiowany ani zmieniany, a audio znika po transkrypcji, chyba że włączone jest `keepAudio`.
@@ -25,7 +29,8 @@ Import to **nowe wejście do istniejącego potoku**, nie drugi potok:
 2. **Arkusz importu** (wg prototypu): data spotkania do korekty, wybór notatek (model albo „bez notatek”), przypomnienie o zgodzie uczestników, informacja o jednym torze. Import nigdy nie startuje bez potwierdzenia w arkuszu, także po przeciągnięciu pliku.
 3. **Wyciąganie audio** (`AssetAudioSource: AudioSampleSource`): `AVAssetReader` czyta wyłącznie ścieżki audio, strumieniowo, do 16 kHz mono; próbki idą prosto do `SpoolWriter` (zaszyfrowany spool, kanał `mic`). Wideo nie jest dekodowane, plik nie jest kopiowany, nie powstaje żaden plik tymczasowy z audio jawnym tekstem.
 4. **Wpis w bibliotece**: po udanym wyciągnięciu powstaje wiersz `meeting` ze statusem `processing`, `origin = 'import'`, `started_at` z arkusza, `imported_at = now`.
-5. **Dokończenie**: `MeetingResumer.resume` (ten sam kod co „Dokończ” i odzyskiwanie po awarii) transkrybuje, diaryzuje jeden tor i oznacza spotkanie `ready`; `onMeetingReady` kolejkuje notatki w `NotesService` (`LLMLease`, `background`).
+5. **Dokończenie**: `MeetingResumer.resume` (ten sam kod co „Dokończ” i odzyskiwanie po awarii) transkrybuje, diaryzuje jeden tor i oznacza spotkanie `ready`. `MeetingResumer` sam nie wywołuje `onMeetingReady` (robią to `MeetingsLibrary` po odzyskiwaniu i „Dokończ” oraz `MeetingController` po nagraniu), a `MeetingsLibrary.finish` przyjmuje tylko spotkania `incomplete`, które nie są żywe. Dlatego `MeetingImporter` po wyniku `.ready` sam sprawdza, czy powstał choć jeden segment (punkt 6), i dopiero wtedy wywołuje `MeetingsLibrary.meetingReady(id)`, które kolejkuje notatki w `NotesService` (`LLMLease`, `background`) z wyborem z arkusza (krok 2.3).
+6. **Nic nie usłyszano**: `MeetingResumer` dla spoola bez mowy kończy `ready` z pustym transkryptem (nie zna stanu „nothing heard”, który ma tylko `MeetingSession.discardMeeting`). Importer, zanim ogłosi gotowość, sprawdza liczbę segmentów; przy zerze usuwa wiersz (`MeetingsStore.deleteMeetings`) i spool (`SpoolStorage.removeSpools`, także gdy `keepAudio` go zostawiło), wyrejestrowuje spotkanie i zwraca `ImportError.nothingHeard`. Zachowanie `MeetingResumer` zostaje bez zmian.
 
 Odrzucone warianty:
 - **`MeetingSession` z plikiem jako `AudioInput`**: sesja zakłada czas rzeczywisty (limity z zegara, `stallTimeout`, strumień `.unbounded` bez przeciwciśnienia: 3 h audio trafiłyby do pamięci szybciej, niż da się je zapisać). Wymagałoby to gałęzi „nie na żywo” w 976-liniowym aktorze. Ten adapter powstaje tylko dla QA (#91), z tempem czasu rzeczywistego.
@@ -36,18 +41,18 @@ Odrzucone warianty:
 Porównanie z rynkiem (z wiedzy ogólnej, bez pomiaru): MacWhisper, Aiko i Buzz importują pliki przez przeciągnięcie i transkrybują lokalnie, ale traktują plik jako dokument (trzymają ścieżkę albo kopię). Lintel świadomie tego nie robi: po imporcie nie zależy od pliku źródłowego i nie pamięta jego położenia. Otter i Fireflies importują do chmury, co odpada z definicji. To, co tamte robią dobrze i warto przejąć: przeciągnięcie pliku jako główne wejście i widoczny postęp z anulowaniem.
 
 ## 📝 Architecture
-Wszystko w `Sources/MeetingsPlugin/`, nowy folder domenowy `Import/` (testy `Tests/MeetingsPluginTests/Import/`). Bez zmian w `LintelKit`, `LintelSpeech`, `LintelCore`, `LintelPersistence`; bez nowych pakietów (AVFoundation jest już zależnością `LintelSpeech` i `MeetingsPlugin`).
+Logika w `Sources/MeetingsPlugin/`, nowy folder domenowy `Import/` (testy `Tests/MeetingsPluginTests/Import/`). Bez zmian w `LintelKit`, `LintelSpeech`, `LintelCore`, `LintelPersistence`; bez nowych pakietów (AVFoundation jest już zależnością `LintelSpeech` i `MeetingsPlugin`). Poza wtyczką zmieniają się tylko: `Resources/Info.plist` (typy dokumentów, krok 3.3), `LintelApp` (cel upuszczenia na oknie głównym, który przekazuje plik do istniejącego `PluginHost.openFile`; dziś okno główne nie przyjmuje upuszczeń, krok 3.3) i DEBUG-owe `QA/QAOptions` (krok 1.3).
 
 | Element | Status | Rola |
 |---|---|---|
 | `RecordingProbe` | nowy | `AVURLAsset` → `RecordingInfo` (czas trwania, liczba ścieżek audio, `hasProtectedContent`, data z metadanych) albo `ImportError`. Czyta tylko nagłówki. |
 | `AssetAudioSource` | nowy | `AudioSampleSource` nad `AVAssetReader` + `AVAssetReaderAudioMixOutput` (wszystkie ścieżki audio zmiksowane, LPCM Float32). Docelowo 16 kHz mono wprost z ustawień wyjścia czytnika; jeśli spike 0.2 pokaże, że konwersja czytnika zawodzi dla któregoś formatu, czytnik oddaje format źródłowy, a `MonoResampler` robi resztę. Jeden bufor naraz w pamięci. |
-| `MeetingImporter` | nowy (aktor) | Etapy: wyciąganie → wpis → `MeetingResumer` → wynik. Jedyny właściciel anulowania i sprzątania. Zdarzenia `ImportEvent` niosą liczby i ułamki, nigdy tekst, ścieżkę ani nazwę pliku. |
+| `MeetingImporter` | nowy (aktor) | Etapy: wyciąganie → wpis → `MeetingResumer` → kontrola „nic nie usłyszano” → `meetingReady` → wynik. Jedyny właściciel anulowania i sprzątania. Kolejność anulowania: anuluje i **czeka na koniec** zadania wyciągania albo `MeetingResumer` (wynik `.cancelled` niczego nie zmienia), dopiero potem usuwa wiersz bezpośrednio w `MeetingsStore` i spool w `SpoolStorage`, a na końcu `unregisterLive`. Nie używa `deleteMeeting` z biblioteki, który odmawia dla spotkań aktywnych. Zdarzenia `ImportEvent` niosą liczby i ułamki, nigdy tekst, ścieżkę ani nazwę pliku. |
 | `ImportState` | nowy (czysty) | Maszyna stanów widoku, jak `MeetingHUDState`: `confirming`, `extracting(fraction)`, `waitingForModel`, `transcribing(remaining)`, `recognisingSpeakers`, `done(meetingID)`, `failed(ImportError)`, `cancelled`. |
 | `FileAudioInput` | nowy, tylko DEBUG | `AudioInput` nad dowolnym `AudioSampleSource`, w tempie czasu rzeczywistego. Podpina flagi z issue #91. |
 | `SpoolWriter`, `SpoolStorage`, `MeetingKeys` | istniejące | Zaszyfrowany spool `Spool/<uuid>/`, kanał `mic`. |
 | `MeetingResumer`, `MeetingFinalizer`, `SpeakerAssigner` | istniejące, bez zmian zachowania | VAD, transkrypcja `.background`, diaryzacja, `ready`, `keepAudio`. |
-| `NotesService` | istniejący, mała zmiana | `Job` dostaje opcjonalny model na jedno zlecenie (wybór z arkusza), tylko w pamięci. |
+| `NotesService` | istniejący, mała zmiana | `Job` dostaje opcjonalny model na jedno zlecenie (wybór z arkusza), tylko w pamięci. Importer zostawia wybór (`NotesChoice`) w pamięci `NotesService` dla danego `meetingID` przed `MeetingResumer`; `meetingBecameReady(id)` go zużywa (`.none`: brak zlecenia, `.model(X)`: zlecenie z X także przy `notesEnabled = false`, `.settingsDefault` albo brak wpisu: jak dziś). Anulowanie lub błąd importu usuwa wpis. |
 | `MeetingsStore` | istniejący, migracja | Kolumny `origin`, `imported_at`; retencja liczona od importu. |
 | `MeetingsLibrary.registerLive`, `IOKitSleepAssertion` | istniejące | Import rejestruje spotkanie jako żywe (retencja, odzyskiwanie i „Delete Temporary Recordings…” go nie dotykają) i trzyma blokadę uśpienia do końca. |
 
@@ -63,7 +68,7 @@ flowchart LR
   D --> N[NotesService · istniejący]
 ```
 
-Wniosek z diagramu: nowy kod kończy się na spoolu i wierszu; od tego miejsca import jest nieodróżnialny od spotkania przerwanego w stanie `processing`, więc odzyskiwanie po awarii, `keepAudio`, biblioteka, okno spotkania i źródło Notes (`MeetingNoteSource`) działają bez zmian.
+Wniosek z diagramu: nowy kod kończy się na spoolu i wierszu (plus kontrola „nic nie usłyszano” i wywołanie `meetingReady` po wyniku `MeetingResumer`); od tego miejsca import jest nieodróżnialny od spotkania przerwanego w stanie `processing`, więc odzyskiwanie po awarii, `keepAudio`, biblioteka, okno spotkania i źródło Notes (`MeetingNoteSource`) działają bez zmian.
 
 ### Jeden tor: skutki
 Plik jest zmiksowany, więc Lintel nie wie, który głos jest użytkownika. Import zapisuje wszystko jako kanał `mic` bez toru `system`:
@@ -79,7 +84,7 @@ Plik jest zmiksowany, więc Lintel nie wie, który głos jest użytkownika. Impo
 - Notatki importu to zwykłe zlecenie `NotesService` (`LLMLease`, `background`), jedno naraz, anulowane między tokenami przez zlecenie `interactive`.
 
 ## 📝 Data Model
-**Jedna addytywna migracja, w jednym własnym PR-ze** (krok 2.1): `vN-meeting-origin`, gdzie `N` to kolejny wolny numer w chwili implementacji (`v2`, albo `v3`, jeśli `v2-segment-words` wejdzie wcześniej; kolejność rejestracji w `MeetingsStore.migrator` jest kolejnością wejścia na `main`).
+**Jedna addytywna migracja, w jednym własnym PR-ze** (krok 2.1): `vN-meeting-origin`, gdzie `N` to kolejny wolny numer w chwili implementacji. Na `main` @ `058d5f3` jest tylko `v1-meetings`, ale otwarty PR #88 dodaje `v2-consent` (kolumna `consent_text_copied_at`), a spec `2026-11-06-meeting-segment-split.md` planuje `v2-segment-words`; ta migracja będzie więc najpewniej `v3` albo `v4`. GRDB rozpoznaje migracje po nazwie, a kolejność rejestracji w `MeetingsStore.migrator` musi być kolejnością wejścia na `main`: PR kroku 2.1 przed merge'em robi merge `main`, nadaje numer po ostatniej zarejestrowanej migracji, dopisuje swoją na końcu listy i ma test, że baza po wszystkich wcześniejszych migracjach (łącznie z `v2-consent`) przechodzi tę migrację bez utraty danych. Dwa PR-y z migracją nie wchodzą równolegle: drugi czeka na merge pierwszego.
 
 ```sql
 ALTER TABLE meeting ADD COLUMN origin TEXT NOT NULL DEFAULT 'live';
@@ -104,7 +109,7 @@ Brak nowych kontraktów w `LintelKit`. Powierzchnie chronione (`BACKWARD_COMPATI
 |---|---|
 | 1. Kontrakt wtyczek | Bez zmian. `MeetingsPlugin` zaczyna odpowiadać na istniejące `handleOpenedFile(_:)` (dziś domyślne `false`). |
 | 2. Dane na dysku | Migracja `vN-meeting-origin`; stałe znaczenie `origin` i `imported_at`; reguła retencji importów. |
-| 3. Klucze ustawień | **Zero nowych kluczy.** Import czyta istniejące: `speechModel`, `speechLanguage`, `speechModelFolder`, `diarization`, `diarizationModelFolder`, `notesEnabled`, `builtInLLMModel`, `keepAudio`, `keptAudioDays`, `consentReminder`, `selfName`, `retentionDays`. Wybory z arkusza (data, model notatek) dotyczą jednego importu i nie są zapisywane w ustawieniach. |
+| 3. Klucze ustawień | **Zero nowych kluczy.** Import czyta istniejące: `speechModel`, `speechLanguage`, `speechModelFolder`, `diarization`, `diarizationModelFolder`, `notesEnabled`, `builtInLLMModel`, `keepAudio`, `keptAudioDays`, `consentReminder`, `selfName`, `retentionDays`. Wybory z arkusza (data, model notatek) dotyczą jednego importu i nie są zapisywane w ustawieniach. Ewentualne klucze QA tylko pod `#if DEBUG` (np. do `--qa-meeting-import`) nie są kontraktem i są opisane w `docs/qa.md`, jak wszystkie klucze QA. |
 | 4. Tożsamość pakietu | `Resources/Info.plist` dostaje `CFBundleDocumentTypes` dla `public.audio` i `public.movie` (rola `Viewer`, `LSHandlerRank` = `Alternate`): Lintel pojawia się w „Otwórz w”, nigdy jako domyślna aplikacja. Bez nowych uprawnień i entitlementów. |
 | 5. Skróty i zachowanie | Polecenie `meetings.import` („Import Recording…”, w menu, **bez domyślnego skrótu**); akcja wiersza `meetings.library.import`; limit 3 h; reguła „import nie zachowuje pliku ani audio”. |
 
@@ -153,7 +158,7 @@ Walidacja: `startedAt` nie może być w przyszłości (przycinane do „teraz”
 Wejścia:
 1. **Polecenie `meetings.import`** („Import Recording…” / „Importuj nagranie…”): menu paska, paleta poleceń (`PluginContext.availableCommands`), bez skrótu. Otwiera `NSOpenPanel` (typy `.audio`, `.movie`, jeden plik).
 2. **Biblioteka spotkań** (`meetings.library`): akcja wiersza „Import Recording…” oraz przycisk w stanie pustym.
-3. **Przeciągnięcie pliku**: na ikonę w Docku i na okno główne; oba idą przez istniejące `PluginHost.openFile` → `MeetingsPlugin.handleOpenedFile`. Panel launchera nie przyjmuje upuszczeń (chowa się przy utracie fokusu).
+3. **Przeciągnięcie pliku**: na ikonę w Docku i na okno główne; oba idą przez istniejące `PluginHost.openFile` → `MeetingsPlugin.handleOpenedFile`. Okno główne dostaje nowy cel upuszczenia w `LintelApp` (dziś go nie ma). Panel launchera nie przyjmuje upuszczeń (chowa się przy utracie fokusu). **`PluginHost.openFile` oferuje plik każdej zarejestrowanej wtyczce, także wyłączonej**, więc `MeetingsPlugin.handleOpenedFile` sam zwraca `false`, gdy wtyczka nie jest aktywna albo plik nie jest audio ani wideo; wyłączona wtyczka nie otwiera arkusza ani okna.
 
 Każde wejście kończy się tym samym **arkuszem importu**; upuszczenie pliku nigdy nie zaczyna importu samo. Arkusz pokazuje:
 - nazwę pliku, czas trwania, informację „plik nie zostanie skopiowany ani zmieniony; przetwarzanie odbywa się na tym Macu”;
@@ -178,7 +183,7 @@ Makiety w tym PR-ze: brak, celowo (patrz „Mockups” w opisie PR): aplikacja n
 | DRM (`hasProtectedContent`) | „Tego pliku nie można odczytać, bo jest chroniony.” | nic |
 | Nieobsługiwany kontener albo kodek (`.mkv`, `.webm`, `.ogg`) | „Lintel nie czyta tego formatu. Zapisz nagranie jako .mov, .mp4, .m4a, .mp3 lub .wav.” | nic |
 | Dłuższy niż 3 h | „Nagranie jest dłuższe niż 3 godziny.” przed startem; bez przycinania | nic |
-| Cisza albo brak mowy | „Nic nie usłyszano” (jak przy nagraniu) | wiersz i spool usunięte |
+| Cisza albo brak mowy | „Nic nie usłyszano” (jak przy nagraniu) | wiersz i spool usunięte przez importer po wyniku `.ready` z zerem segmentów (`MeetingResumer` nie zna tego stanu); `meetingReady` nie jest wywoływane, notatki nie są kolejkowane |
 | Za mało miejsca (`SpoolFormat.minimumFreeBytes`; 3 h to ok. 346 MB spoola) | komunikat przed startem | nic |
 | Brak modelu mowy | „Get It in Models”, import nie startuje | nic |
 | Biblioteka niedostępna (błąd Keychain inny niż `errSecItemNotFound`) | import odrzucony, komunikat biblioteki | nic nie jest usuwane ani resetowane |
@@ -191,7 +196,7 @@ Makiety w tym PR-ze: brak, celowo (patrz „Mockups” w opisie PR): aplikacja n
 | Wybrany model notatek odinstalowany przed końcem | stan „czeka na model” (`NotesBoard.needsModel`) | transkrypt gotowy, notatki później przez „Regenerate” |
 | Ten sam plik importowany drugi raz | drugie, osobne spotkanie | brak wykrywania duplikatów (nie przechowujemy niczego, po czym dałoby się je wykryć) |
 | Plik w miejscu chronionym TCC (Pulpit, Dokumenty, dysk zewnętrzny) | wybór w `NSOpenPanel` lub upuszczenie daje dostęp do tego pliku; brak zgody = `unreadable` | Lintel nie prosi o Full Disk Access dla importu; zachowanie upuszczenia potwierdza spike 0.2 |
-| Wtyczka Meetings wyłączona, plik upuszczony | plik nieobsłużony (istniejące zachowanie `PluginHost.openFile`) | nic |
+| Wtyczka Meetings wyłączona, plik upuszczony | plik nieobsłużony: `PluginHost.openFile` pyta też wyłączone wtyczki, więc odmawia sam `MeetingsPlugin.handleOpenedFile` (sprawdza, czy jest aktywny) | nic |
 | Nagranie zaczyna się w trakcie importu | nagranie startuje normalnie | import trwa dalej w tle |
 | Zmienna liczba klatek, kilka ścieżek audio, dźwięk 5.1, 48/96 kHz | bez komunikatu | wszystko miksowane do 16 kHz mono |
 
@@ -249,7 +254,9 @@ Każda faza jest osobno wydawalna; każdy krok to jeden mały PR z `main` (gał�
 - Given plik z mową dwóch osób, When import się kończy, Then spotkanie jest `ready`, `origin = 'import'`, segmenty mają kanał `mic`, żaden mówca nie ma `is_self`, spool jest usunięty, `audio_state = deleted`.
 - Given `keepAudio = true`, Then spool zostaje i `audio_state = kept`.
 - Given anulowanie podczas wyciągania, transkrypcji albo diaryzacji, Then nie ma wiersza, segmentów, mówców ani folderu spoola, a liczba spotkań jest taka jak przed importem.
-- Given plik z samą ciszą, Then `nothingHeard` i brak wiersza.
+- Given plik z samą ciszą (także przy `keepAudio = true`), Then `nothingHeard`, brak wiersza i folderu spoola, a `onMeetingReady` nie zostało wywołane.
+- Given import zakończony `ready` z mową, Then `onMeetingReady` zostało wywołane dokładnie raz dla tego spotkania.
+- Given anulowanie w chwili, gdy `MeetingResumer` kończy diaryzację, Then importer czeka na jego wynik przed usunięciem i nie zostaje ani wiersz, ani spool, ani wpis w `liveMeetingIDs`.
 - Given trwające nagranie, Then `recordingActive`; Given trwający import, Then `importInProgress`.
 - Given import w toku, When rusza `RetentionJob`, `RecoveryJob` albo „Delete Temporary Recordings…”, Then spool importu jest nietknięty.
 - Given przechwycony log całego importu, Then nie zawiera ścieżki, nazwy pliku, tytułu ani tekstu (test na `ImportLogging`).
@@ -274,7 +281,8 @@ Każda faza jest osobno wydawalna; każdy krok to jeden mały PR z `main` (gał�
 
 **3.3 Przeciągnięcie pliku**: `handleOpenedFile`, upuszczenie na okno główne, `CFBundleDocumentTypes` (BC sekcja 4).
 - Given plik audio albo wideo i aktywna wtyczka, When `handleOpenedFile`, Then zwraca `true` i otwiera arkusz, a import **nie** startuje. Given `.lintellayouts` albo inny typ, Then `false` (Windows nadal dostaje swój plik).
-- Given wtyczka wyłączona, Then plik nie jest obsłużony i nic nie powstaje.
+- Given wtyczka wyłączona (zarejestrowana, nieaktywna), When `PluginHost.openFile` oferuje jej plik audio, Then `handleOpenedFile` zwraca `false`, arkusz się nie otwiera i nic nie powstaje.
+- Given plik upuszczony na okno główne, Then trafia do `PluginHost.openFile` (ta sama ścieżka co Dock).
 - Given `Info.plist`, Then typy mają rangę `Alternate` (test na plik).
 
 ### Faza 4 — domknięcie
@@ -309,3 +317,4 @@ Bramka pytań otwartych została rozstrzygnięta automatycznie; każdą wartoś�
 | Q14 | Kilka plików naraz albo kolejka importów? | Jeden plik, jeden import naraz | Najmniejszy zakres; kolejka to dodatek bez zmian danych. |
 | Q15 | Formaty spoza AVFoundation (`.mkv`, `.webm`, `.ogg`)? | Nieobsługiwane, komunikat z podpowiedzią | Wymaganie „bez nowych zależności”. |
 | Q16 | Import dłuższy niż budżet diaryzacji (90 min)? | Istniejące zachowanie awaryjne („Mówca 1”) | Budżet jest tematem ADR 0007, nie tego speca. |
+| Q17 **(właściciel)** | Czy import może wejść na `main` w trakcie dogfoodu (M-Q4)? | Fazy 0–1 i krok 2.1 tak (nie zmieniają notatek); krok 2.3 i Faza 3 po bramce MEET-0.3 | Import jest poza epikiem, ale zmienia `NotesService` i dodaje nowe spotkania do biblioteki; najbezpieczniej nie mieszać ich z danymi dogfoodu. |
