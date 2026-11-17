@@ -36,6 +36,9 @@ enum MeetingHUDState: Equatable, Sendable {
         var showsConsent = false
         /// No signal on the system track for the first 20 s.
         var noSystemAudio = false
+        /// The microphone track, expected to record, delivered nothing above the signal threshold for about
+        /// 10 s. Cleared as soon as sound returns; never stored.
+        var noMicrophoneAudio = false
         var lowDisk = false
         /// A track ended while recording (device unplugged, permission revoked, stalled).
         var lost: Set<AudioChannel> = []
@@ -50,6 +53,7 @@ enum MeetingHUDState: Equatable, Sendable {
             if lost.contains(.mic) { return .deviceDisconnected }
             if lost.contains(.system) { return .systemAudioLost }
             if unavailable.contains(.mic), recordsMicrophone { return .deviceDisconnected }
+            if noMicrophoneAudio, recordsMicrophone { return .noMicrophoneAudio }
             if unavailable.contains(.system) || noSystemAudio, recordsSystem { return .noSystemAudio }
             if let secondsLeft { return .limitCountdown(secondsLeft) }
             if let busy = modelUnavailable { return .modelUnavailable(busy: busy) }
@@ -67,6 +71,7 @@ enum MeetingHUDState: Equatable, Sendable {
         case deviceDisconnected
         case systemAudioLost
         case noSystemAudio
+        case noMicrophoneAudio
         case limitCountdown(Int)
         case modelUnavailable(busy: Bool)
         case loadingModel
@@ -211,6 +216,10 @@ extension MeetingHUDState {
             return String(
                 localized: "Check the system audio recording permission",
                 comment: "Meeting HUD notice when the system track stays silent for the first 20 seconds")
+        case .noMicrophoneAudio:
+            return String(
+                localized: "No microphone audio – check the microphone permission and input",
+                comment: "Meeting HUD notice when the microphone track stays silent for about 10 seconds")
         case .limitCountdown(let seconds):
             let left = clock(seconds)
             return String(
@@ -242,6 +251,7 @@ extension MeetingHUDState {
         case .recording(let recording):
             switch recording.notice {
             case .noSystemAudio?: [.openSettings, .stop]
+            case .noMicrophoneAudio?: [.openMicrophoneSettings, .stop]
             default: [.stop]
             }
         case .allowMicrophone:

@@ -10441,6 +10441,24 @@
         }
       }
     },
+    "No microphone audio – check the microphone permission and input" : {
+      "comment" : "Meeting HUD notice when the microphone track stays silent for about 10 seconds",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No microphone audio – check the microphone permission and input"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak dźwięku z mikrofonu – sprawdź uprawnienie i wejście"
+          }
+        }
+      }
+    },
     "Recording ends in %@" : {
       "comment" : "Meeting HUD countdown before the 3 hour limit; minutes and seconds",
       "extractionState" : "manual",

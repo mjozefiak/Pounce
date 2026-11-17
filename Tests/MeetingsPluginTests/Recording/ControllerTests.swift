@@ -552,7 +552,59 @@ import Testing
         await rig.advance(by: .seconds(60), firing: 1)
         #expect(rig.hud.lastRecording?.noSystemAudio == false)
         #expect(rig.hud.lastRecording?.notice != .noSystemAudio)
-        #expect(rig.clock.sleepers == 0)
+        // Only the microphone watcher is left.
+        #expect(rig.clock.sleepers == 1)
+    }
+
+    // MARK: Silent microphone
+
+    /// What an input that delivers buffers of digital silence reports as its level.
+    private static var zeroBufferLevel: Float { MicrophoneCapture.level(of: [Float](repeating: 0, count: 1_600)) }
+
+    @Test func zeroBuffersAreBelowTheSignalThreshold() {
+        #expect(Self.zeroBufferLevel <= MeetingController.signalThreshold)
+    }
+
+    @Test func aMicrophoneThatDeliversOnlySilenceFor10SecondsGetsTheNoticeAndSpeechClearsIt() async throws {
+        let rig = try ControllerRig()
+        await rig.startRecording()
+        await eventually("the watchers") { rig.clock.sleepers >= 3 }
+        rig.session?.send(.level(.mic, Self.zeroBufferLevel))
+        rig.session?.send(.level(.system, 0.3))
+        await rig.drainEvents()
+        await rig.advanceMicrophoneCheck(by: .seconds(10))
+        #expect(rig.hud.lastRecording?.noMicrophoneAudio == true)
+        #expect(rig.hud.lastRecording?.notice == .noMicrophoneAudio)
+        #expect(rig.hud.last?.detail == "No microphone audio – check the microphone permission and input")
+        #expect(rig.hud.last?.actions == [.openMicrophoneSettings, .stop])
+        rig.session?.send(.level(.mic, 0.2))
+        await eventually { rig.hud.lastRecording?.noMicrophoneAudio == false }
+        #expect(rig.hud.lastRecording?.notice != .noMicrophoneAudio)
+    }
+
+    @Test func aMicrophoneWithSoundInTheIntervalKeepsTheHUDQuiet() async throws {
+        let rig = try ControllerRig()
+        await rig.startRecording()
+        await eventually("the watchers") { rig.clock.sleepers >= 3 }
+        rig.session?.send(.level(.mic, 0.2))
+        rig.session?.send(.level(.mic, Self.zeroBufferLevel))
+        await rig.drainEvents()
+        await rig.advanceMicrophoneCheck(by: .seconds(10))
+        #expect(rig.hud.lastRecording?.noMicrophoneAudio == false)
+    }
+
+    @Test func noMicrophoneNoticeWhenTheMicrophoneIsNotRecorded() async throws {
+        let rig = try ControllerRig(access: .denied)
+        rig.controller.start()
+        await eventually { rig.controller.phase == .awaitingMicrophoneDecision }
+        rig.controller.perform(.recordSystemAudioOnly)
+        await eventually { rig.controller.phase == .recording }
+        await eventually("the watchers") { rig.clock.sleepers >= 1 }
+        rig.session?.send(.level(.mic, 0))
+        await rig.drainEvents()
+        rig.clock.advance(by: .seconds(30))
+        await rig.drainEvents()
+        #expect(rig.hud.lastRecording?.noMicrophoneAudio == false)
     }
 
     @Test func theLimitCountdownIsShown() async throws {
