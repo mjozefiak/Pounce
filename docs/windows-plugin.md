@@ -99,9 +99,12 @@ verb. Each kind keeps its ids and payload types next to its strategy.
 `LayoutStrategy.resizing` (a `UserResizeAdopting`, `nil` by default; only Auto-tile has it) turns a manual size change
 into weights: `ReducerContext+UserResize.adoptUserResize` runs from `windowMoved`, asks the strategy for the edit
 (`TilingTree.adopt`, pure) and sets `EngineState.userResize` (memory only). While it is set, `arrangeIfRequested`
-skips that window and reflows the siblings at most every 100 ms (the watchdog counts frame changes). The engine arms a
-250 ms timer on its injected clock after each adopted resize; it feeds `EngineInput.userResizeSettled`, which clears
-the state and arranges, so the window lands on its exact tile. A resize is ignored for stubborn, floating, unmanaged,
+skips that window and reflows the siblings at most every 100 ms, less often when a reflow moves more than 3 windows
+(at most 30 frame changes a second, half the watchdog's limit: `userResizeReflowInterval`). The engine arms a 250 ms
+timer on its injected clock after each adopted resize; it feeds `EngineInput.userResizeSettled`. With the mouse button
+up (`WindowEngine.systemLeftButtonDown`, injected in tests) it clears the state and arranges, so the window lands on its
+exact tile; while the button is held the user only paused, so the siblings catch up once with the last size and the
+button is looked at every 250 ms (at most 10 s) until it is up: a drag is never fought. A resize is ignored for stubborn, floating, unmanaged,
 frozen and in-flight (echo window) windows. Manual: `docs/qa.md` needs real Accessibility.
 
 ## An app that does not answer

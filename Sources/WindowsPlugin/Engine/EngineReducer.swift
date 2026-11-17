@@ -61,8 +61,8 @@ enum EngineReducer {
             context.place(id, rect, now: now)
         case .restoreLayouts(let stored):
             context.restoreLayouts(stored)
-        case .userResizeSettled(let id, let now):
-            context.userResizeSettled(id, now: now)
+        case .userResizeSettled(let id, let released, let now):
+            context.userResizeSettled(id, released: released, now: now)
         }
 
         // An event from a window of a process that did not answer means it answers again: what its failed parks left

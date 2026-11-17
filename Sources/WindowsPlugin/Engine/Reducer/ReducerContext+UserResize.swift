@@ -3,8 +3,8 @@ import Foundation
 import LintelKit
 
 // Resizing a tiled window with the mouse: the kind adopts the new size (the siblings follow), the window itself is
-// left alone while the drag lasts and put on its exact tile when it settles. No kind is named here. Depends on: the
-// context and the planner only.
+// left alone while the drag lasts (the mouse button is held) and put on its exact tile when it settles. No kind is
+// named here. Depends on: the context and the planner only.
 
 /// A resize by hand that is going on (memory only).
 struct UserResizeState: Equatable, Sendable {
@@ -16,9 +16,15 @@ struct UserResizeState: Equatable, Sendable {
 }
 
 extension ReducerContext {
-    /// At most one reflow of the siblings per this many seconds while the user drags (10 per second): a live drag
-    /// reports every 30 ms, which with several siblings would trip the watchdog.
-    static var userResizeReflowInterval: Double { 0.1 }
+    /// The frame changes per second a drag may cause: half the watchdog's limit, so the rest of the engine keeps room.
+    static var userResizeFrameBudget: Double { Double(Watchdog.defaultLimit) / 2 }
+
+    /// The shortest time between two reflows of the siblings while the user drags: at most 10 per second, fewer when a
+    /// reflow moves many windows, so the frame changes stay within `userResizeFrameBudget`. A live drag reports every
+    /// 30 ms, and the watchdog counts every frame change (8 windows reflowed 10 times a second would trip it).
+    static func userResizeReflowInterval(moving windows: Int) -> Double {
+        max(0.1, Double(max(0, windows)) / userResizeFrameBudget)
+    }
 
     /// A window of a shown workspace changed size by hand: the kind of its workspace adopts it. Returns whether it did.
     /// Ignored: our own echoes (the caller has dropped them), a window with a frame change in flight (an app that
@@ -39,7 +45,9 @@ extension ReducerContext {
         let previous = state.userResize
         var current = UserResizeState(
             window: id, lastReflow: previous?.lastReflow ?? -.infinity, revision: (previous?.revision ?? 0) &+ 1)
-        if now - current.lastReflow >= Self.userResizeReflowInterval {
+        // Every other window of the workspace may move in one reflow (the dragged one is left alone).
+        let interval = Self.userResizeReflowInterval(moving: found.result.frames.count - 1)
+        if now - current.lastReflow >= interval {
             current.lastReflow = now
             arrangeRequested = true
         }
@@ -47,11 +55,16 @@ extension ReducerContext {
         return true
     }
 
-    /// The drag ended (no resize came for a while): the window is arranged like the others again, so it lands on
-    /// its exact tile.
-    mutating func userResizeSettled(_ id: WindowID, now: Double) {
+    /// No resize of the window came for a while. Released (the mouse button is up): the drag is over, and the window is
+    /// arranged like the others again, so it lands on its exact tile. Still held (the user only paused): the siblings
+    /// catch up with the last adopted size, which a throttled event may have left out, and the window stays alone.
+    mutating func userResizeSettled(_ id: WindowID, released: Bool, now: Double) {
         guard state.userResize?.window == id else { return }
-        state.userResize = nil
+        if released {
+            state.userResize = nil
+        } else {
+            state.userResize?.lastReflow = now
+        }
         arrangeRequested = true
     }
 }
