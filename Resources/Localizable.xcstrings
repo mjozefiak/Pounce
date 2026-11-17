@@ -10442,7 +10442,7 @@
       }
     },
     "No microphone audio – check the microphone permission and input" : {
-      "comment" : "Meeting HUD notice when the microphone track stays silent for about 10 seconds",
+      "comment" : "Meeting HUD notice when the microphone delivers only digital silence for about 10 seconds",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {

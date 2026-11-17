@@ -67,7 +67,7 @@ final class MeetingController {
         var consentDuration: Duration = .seconds(8)
         /// How long the system track may stay silent before the HUD says so (spec: 20 s).
         var silentSystemAfter: Duration = .seconds(20)
-        /// How long the microphone track may stay at or below the signal threshold before the HUD says so.
+        /// How long the microphone track may deliver only digital silence before the HUD says so.
         var silentMicrophoneAfter: Duration = .seconds(10)
         /// How long `shutDown()` waits for a running recording to finish.
         var shutdownTimeout: Duration = .seconds(20)
@@ -121,7 +121,7 @@ final class MeetingController {
     private var eventsTask: Task<Void, Never>?
     private var watchers: [Task<Void, Never>] = []
     private var sawSystemSignal = false
-    /// Microphone watcher: any level arrived, and any level above the threshold since the last check.
+    /// Microphone watcher: any level arrived, and any level that was not digital silence since the last check.
     private var sawMicrophoneLevel = false
     private var sawMicrophoneSignal = false
     /// How many microphone checks ran (tests wait on it; not counted in `watcherFirings`).
@@ -447,7 +447,10 @@ final class MeetingController {
         case .mic:
             recording.micLevel = level
             sawMicrophoneLevel = true
-            if level > Self.signalThreshold {
+            // Not `signalThreshold`: a working microphone in a quiet room, or a headset that gates its
+            // microphone while the owner listens, can stay below -60 dBFS for a long time. Only exact zeros,
+            // what a blocked or muted input delivers, count as "no microphone audio" (#90).
+            if level > 0 {
                 sawMicrophoneSignal = true
                 if recording.noMicrophoneAudio {
                     recording.noMicrophoneAudio = false
@@ -516,7 +519,7 @@ final class MeetingController {
         }
     }
 
-    /// Called every `silentMicrophoneAfter`: a track that delivered levels but none above the threshold in the
+    /// Called every `silentMicrophoneAfter`: a track that delivered levels but only digital silence in the
     /// whole interval gets the notice. A track without any level (stalled, lost) is `trackLost`'s business.
     private func checkMicrophoneSilence() {
         defer {

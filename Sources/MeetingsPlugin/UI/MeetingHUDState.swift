@@ -36,8 +36,8 @@ enum MeetingHUDState: Equatable, Sendable {
         var showsConsent = false
         /// No signal on the system track for the first 20 s.
         var noSystemAudio = false
-        /// The microphone track, expected to record, delivered nothing above the signal threshold for about
-        /// 10 s. Cleared as soon as sound returns; never stored.
+        /// The microphone track, expected to record, delivered only digital silence (every sample zero) for
+        /// about 10 s. Cleared as soon as any sound returns; never stored.
         var noMicrophoneAudio = false
         var lowDisk = false
         /// A track ended while recording (device unplugged, permission revoked, stalled).
@@ -219,7 +219,7 @@ extension MeetingHUDState {
         case .noMicrophoneAudio:
             return String(
                 localized: "No microphone audio – check the microphone permission and input",
-                comment: "Meeting HUD notice when the microphone track stays silent for about 10 seconds")
+                comment: "Meeting HUD notice when the microphone delivers only digital silence for about 10 seconds")
         case .limitCountdown(let seconds):
             let left = clock(seconds)
             return String(

@@ -471,7 +471,8 @@ import Testing
         await rig.startRecording()
         #expect(rig.hud.lastRecording?.showsConsent == true)
         #expect(rig.hud.last?.detail == "Tell the participants you are recording")
-        await eventually("the watchers") { rig.clock.sleepers >= 2 }
+        // Consent, microphone and system watchers.
+        await eventually("the watchers") { rig.clock.sleepers >= 3 }
         await rig.advance(by: .seconds(8), firing: 1)
         #expect(rig.hud.lastRecording?.showsConsent == false)
         #expect(rig.hud.last?.detail == nil)
@@ -485,6 +486,7 @@ import Testing
         #expect(rig.hud.lastRecording?.loadingModel == true)
         #expect(rig.hud.last?.detail == "Tell the participants you are recording")
         // Once the consent window is over the load notice shows, as long as the model is loading.
+        await eventually("the watchers") { rig.clock.sleepers >= 3 }
         await rig.advance(by: .seconds(8), firing: 1)
         #expect(rig.hud.last?.detail == "Loading the speech model – recording continues")
         rig.session?.send(.modelLoaded)
@@ -518,7 +520,7 @@ import Testing
     @Test func theSystemTrackStaysSilentFor20SecondsAndTheHUDSaysSo() async throws {
         let rig = try ControllerRig()
         await rig.startRecording()
-        await eventually("the watchers") { rig.clock.sleepers >= 2 }
+        await eventually("the watchers") { rig.clock.sleepers >= 3 }
         rig.session?.send(.level(.mic, 0.4))
         rig.session?.send(.level(.system, 0))
         await rig.drainEvents()
@@ -539,7 +541,7 @@ import Testing
     @Test func soundOnTheSystemTrackBeforeTheDeadlineKeepsTheHUDQuiet() async throws {
         let rig = try ControllerRig()
         await rig.startRecording()
-        await eventually("the watchers") { rig.clock.sleepers >= 2 }
+        await eventually("the watchers") { rig.clock.sleepers >= 3 }
         rig.session?.send(.level(.system, 0.2))
         await rig.drainEvents()
         await rig.advance(by: .seconds(30), firing: 2)
@@ -549,11 +551,13 @@ import Testing
     @Test func noSystemWatcherWhenOnlyTheMicrophoneIsRecorded() async throws {
         let rig = try ControllerRig(settings: ["plugins.meetings.systemAudio": .bool(false)])
         await rig.startRecording()
+        // Consent and microphone watchers.
+        await eventually("the watchers") { rig.clock.sleepers >= 2 }
         await rig.advance(by: .seconds(60), firing: 1)
         #expect(rig.hud.lastRecording?.noSystemAudio == false)
         #expect(rig.hud.lastRecording?.notice != .noSystemAudio)
-        // Only the microphone watcher is left.
-        #expect(rig.clock.sleepers == 1)
+        // Only the microphone watcher is left; it sleeps again after its check.
+        await eventuallyPolling("the microphone watcher") { rig.clock.sleepers == 1 }
     }
 
     // MARK: Silent microphone
@@ -591,6 +595,30 @@ import Testing
         await rig.drainEvents()
         await rig.advanceMicrophoneCheck(by: .seconds(10))
         #expect(rig.hud.lastRecording?.noMicrophoneAudio == false)
+    }
+
+    /// A working microphone while its owner listens: room noise at -80 dBFS, far below `signalThreshold`.
+    private static var quietRoomLevel: Float { MicrophoneCapture.level(of: [Float](repeating: 0.0001, count: 1_600)) }
+
+    @Test func aQuietButWorkingMicrophoneIsNotDigitalSilence() {
+        #expect(Self.quietRoomLevel > 0)
+        #expect(Self.quietRoomLevel <= MeetingController.signalThreshold)
+    }
+
+    @Test func anOwnerWhoOnlyListensInAQuietRoomGetsNoNotice() async throws {
+        let rig = try ControllerRig(settings: [
+            "plugins.meetings.systemAudio": .bool(false), "plugins.meetings.consentReminder": .bool(false),
+        ])
+        await rig.startRecording()
+        for _ in 0..<3 {
+            // Only the microphone watcher; it sleeps again after every check.
+            await eventuallyPolling("the microphone watcher") { rig.clock.sleepers == 1 }
+            rig.session?.send(.level(.mic, Self.quietRoomLevel))
+            await rig.drainEvents()
+            await rig.advanceMicrophoneCheck(by: .seconds(10))
+            #expect(rig.hud.lastRecording?.noMicrophoneAudio == false)
+        }
+        #expect(rig.controller.microphoneChecks == 3)
     }
 
     @Test func noMicrophoneNoticeWhenTheMicrophoneIsNotRecorded() async throws {

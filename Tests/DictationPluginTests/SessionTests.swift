@@ -362,6 +362,13 @@ private func session(
         let loud = MicrophoneCapture.level(of: [Float](repeating: 0.1, count: 100))
         #expect(quiet > 0 && loud > quiet && loud < 1)
     }
+
+    @Test func onlyDigitalSilenceIsZero() {
+        let hiss = MicrophoneCapture.level(of: [Float](repeating: 0.0001, count: 100))
+        #expect(hiss == MicrophoneCapture.quietestSoundLevel)
+        #expect(MicrophoneCapture.level(of: [0, 0, 0.000_01, 0]) > 0)
+        #expect(MicrophoneCapture.level(of: [Float](repeating: -0.5, count: 100)) > 0.8)
+    }
 }
 
 @Suite struct DictationSessionLeaseTests {
