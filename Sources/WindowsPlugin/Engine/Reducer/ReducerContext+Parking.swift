@@ -53,6 +53,16 @@ extension ReducerContext {
     }
 
     mutating func displaysChanged(_ displays: [DisplayInfo], now: Double) {
+        state.diagnostics.displayChanges += 1
+        // No display at all (the only display is asleep): keep the model and move nothing; the list that comes
+        // back is the one that counts.
+        guard !displays.isEmpty else {
+            state.diagnostics.emptyDisplayLists += 1
+            return
+        }
+        // A new display list is a fresh start for windows that macOS kept moving back on screen.
+        state.rehides = [:]
+        state.unmanaged = []
         state.displays = displays
         state.model.setDisplays(DisplayKeys.orderedKeys(for: displays))
         arrangeRequested = true
@@ -62,7 +72,6 @@ extension ReducerContext {
         for (id, record) in state.parked.sorted(by: { $0.key < $1.key }) {
             // A window whose workspace is shown again is being restored, not re-parked.
             if let workspace = state.model.workspace(of: id), state.model.isVisible(workspace) { continue }
-            guard !displays.isEmpty else { continue }
             let corner = FrameMath.parkedFrame(for: record.home, displays: displays, sliver: state.config.parkSliver)
             if !FrameMath.originsApproximatelyEqual(corner, record.parkedFrame, tolerance: 0.5) {
                 state.parked[id]?.parkedFrame = corner

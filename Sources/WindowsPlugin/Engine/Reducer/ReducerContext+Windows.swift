@@ -9,8 +9,13 @@ extension ReducerContext {
         windows: [WindowInfo], displays: [DisplayInfo], focused: WindowID?, processStarts: [Int32: Double],
         unreachable: Set<Int32> = [], unreadable: Set<WindowID> = [], now: Double
     ) {
-        state.displays = displays
-        state.model.setDisplays(DisplayKeys.orderedKeys(for: displays))
+        state.diagnostics.resyncs += 1
+        if displays.isEmpty {
+            state.diagnostics.emptyDisplayLists += 1
+        } else {
+            state.displays = displays
+            state.model.setDisplays(DisplayKeys.orderedKeys(for: displays))
+        }
         state.focused = focused
         if let focused { touchRecency(focused) }
         let live = windows.filter { EngineReducer.isManaged($0, config: state.config) }
