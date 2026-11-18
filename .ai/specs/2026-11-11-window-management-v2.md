@@ -254,9 +254,26 @@ Każdy krok zostawia aplikację działającą i wtyczkę wyłączoną domyślnie
 - 4.4 **Sekcja Focus border.** Włącznik, kolor, szerokość, promień, podgląd, ostrzeżenie "Border is wider than the gap". Test: model, `StringCatalogTests`.
 - 4.5 **Polish.** Audyt dostępności, budżet w `docs/perf.md`, `BACKWARD_COMPATIBILITY.md` (klucz `focusBorder`), `docs/qa.md`.
 
+## 📝 Addendum 2026-11-17: size and look of the menu bar strip
+
+The owner asked for bigger, easier to click boxes. This replaces "dziewięć pudełek po 18 pt" here and "at most nine boxes, 18 pt each" in the v1 spec (Architecture, "Menu bar room"):
+
+- Up to six boxes: 24 × 18 pt, gap and padding 3 pt, number 12 pt semibold, corner radius 5, outline 1.25 pt. Seven to nine boxes: 22 × 18 pt, gap and padding 2 pt. Nine boxes are 218 pt wide (step 1.6's test "pasek z 9 pudełkami mieści się w limicie szerokości" accepts that). Every box meets the 20 × 20 pt macOS minimum target.
+- The image height is `min(22, NSStatusBar.system.thickness)` (never below the 18 pt box).
+- An empty workspace that is not current and not shown on another display is drawn dimmed (outline and number at 45 % alpha; 70 % with Increase Contrast, about 5:1 for the number on a plain light or dark menu bar instead of about 2.6:1; redrawn when the setting changes). The active box stays a fill with the number cut out and the others outlines, so no state depends on colour or on the dimming alone. The default mode stays `all` (v1 Q16: positions never move under the cursor); hiding empty workspaces is still the opt-in `occupied` mode.
+
 ## 📝 Not doing
 
 Tryby wiązań (`service` i inne), `join-with`, `flatten-workspace-tree`, `close-all-windows-but-current`, workspace'y z literami, import z `aerospace.toml` i dowolny tekstowy język konfiguracji, ramka nieaktywna na pozostałych oknach, reguły według tytułu okna, przypinanie workspace'ów do wyświetlaczy, przycisk "Apply to open windows", prywatne wywołania SkyLight, sterowanie natywnymi Spaces, skrypty i CLI. Każde może być osobnym specem; nic z tego nie zmienia powyższych kontraktów.
+
+## 📌 Addendum 2026-11-17: wyświetlacz, który wraca (sen, kabel)
+
+Na prośbę właściciela (2026-11-17). Zmiana dotyczy modelu workspace'ów z `2026-11-09-window-management.md`, nie faz powyżej.
+
+- `VirtualWorkspaceModel` pamięta, jaki workspace pokazywał usunięty wyświetlacz, oraz fokus i `previous`; ten sam wyświetlacz (UUID) po powrocie pokazuje to samo, o ile żaden inny wyświetlacz nie pokazuje go w międzyczasie. Wcześniej wracał na "najniższy niepokazany" (workspace 1).
+- Pusta lista wyświetlaczy (`displaysChanged([])`, snapshot bez wyświetlaczy) jest ignorowana: model i `state.displays` zostają, nic nie jest chowane ani przywracane.
+- Każda zmiana listy wyświetlaczy zeruje liczniki ponownego chowania i przywraca zarządzanie oknami, które stały się `unmanaged` tylko przez `rehideCap`; okno ukrytego workspace'u jest chowane ponownie.
+- Diagnostyka ("Copy diagnostics"): `Display changes`, `Empty display lists`, `Resyncs` (każdy snapshot).
 
 ## 🔧 Addendum 2026-11-17: zmiana rozmiaru kafla myszą (decyzja właściciela)
 
@@ -267,3 +284,7 @@ Nowe zachowanie Auto-tile; v1 i v2 nie opisywały zmiany rozmiaru myszą (okno b
 - **Podczas przeciągania.** Okno przeciągane nie dostaje żądań (nie walczymy z ręką), sąsiedzi przeliczają się najwyżej 10 razy na sekundę, a rzadziej, gdy jedno przeliczenie przesuwa więcej niż 3 okna: najwyżej 30 zmian ramek na sekundę, połowa limitu watchdoga. Po 250 ms bez zmiany rozmiaru (zegar silnika) i z puszczonym przyciskiem myszy okno ląduje na swoim dokładnym kaflu. Pauza z wciśniętym przyciskiem to nie koniec przeciągania: sąsiedzi raz doganiają ostatni rozmiar, a okno czeka na puszczenie przycisku (sprawdzane co 250 ms, najwyżej 10 s).
 - **Architektura.** Zdolność opcjonalna `LayoutStrategy.resizing` (domyślnie `nil`), czysta operacja `TilingTree.adopt`, część reducera `ReducerContext+UserResize`, wejście `EngineInput.userResizeSettled`; reducer nie nazywa żadnego rodzaju układu.
 - **Znane ograniczenie.** Każda zmiana rozmiaru kafla, która nie jest naszym echem, jest adoptowana, także gdy aplikacja zmieniła rozmiar sama; aplikacje, które odmawiają rozmiaru, są już `stubborn`.
+
+## Addendum 2026-11-17: ponowny odczyt okien po wybudzeniu i zmianie wyświetlaczy
+
+Na prośbę właściciela. Dotąd nic nie reagowało na uśpienie: `.displaysChanged` pracuje na zapamiętanych ramkach, więc okna przesunięte przez macOS bez powiadomienia AX zostawały poza swoimi kafelkami. Teraz `AXObservationHub` obserwuje `NSWorkspace.didWakeNotification` i `screensDidWakeNotification` i dodaje `.resync` (pełny odczyt okien), po około 2 s drugi `.resync` (aplikacje odpowiadają wolno tuż po wybudzeniu; kolejne prośby zastępują oczekującą), a każde `.displaysChanged` jest od razu po nim `.resync`. Mapowanie powiadomienie → zdarzenia to czysta tablica (`SystemEventTable`). `stop()` usuwa każdego obserwatora z centrum, w którym go dodano (zmiana parametrów ekranu przychodzi z `NotificationCenter.default`, nie z centrum `NSWorkspace`), a opóźniony `.resync` po `stop()` nie zostanie już dodany ani ponownie zaplanowany. Bez zmiany kontraktu `LintelKit` i bez zmiany reducera; pamięć wyświetlacza i licznik `rehides` to osobne poprawki (A2).

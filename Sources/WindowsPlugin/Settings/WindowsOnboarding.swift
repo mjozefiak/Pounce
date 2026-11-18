@@ -38,16 +38,18 @@ struct WindowsSetupView: View {
             }
             if model.needsShortcutWarning {
                 HStack {
-                    Text(
-                        "\(model.unsafeKeyNames) types a character on this keyboard layout.",
-                        comment: "Window Management shortcut warning: names the keys"
-                    )
-                    .font(textSize.font(.callout))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(ShortcutWarning.title(count: model.flagged.count))
+                            .font(textSize.font(.body))
+                        Text(ShortcutWarning.detail(model.unsafeShortcuts))
+                            .font(textSize.font(.callout))
+                            .foregroundStyle(LintelBrand.secondaryText)
+                    }
                     Spacer()
                     Button {
                         model.useControlOption()
                     } label: {
-                        Text("Use ⌃⌥", comment: "Window Management shortcut warning button")
+                        Text(ShortcutWarning.action)
                     }
                 }
             }

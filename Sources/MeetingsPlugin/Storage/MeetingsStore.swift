@@ -233,6 +233,10 @@ final class MeetingsStore: Sendable {
                     """
             )
         }
+        // MEET-1.6: when the recorder copied the consent sentence (Unix seconds); NULL = never. Additive only.
+        migrator.registerMigration("v2-consent") { db in
+            try db.execute(sql: "ALTER TABLE meeting ADD COLUMN consent_text_copied_at INTEGER")
+        }
         return migrator
     }
 }
@@ -313,6 +317,16 @@ extension MeetingsStore {
             try db.execute(
                 sql: "UPDATE meeting SET notes_markdown = ?, notes_status = ? WHERE id = ?",
                 arguments: [markdown, status.rawValue, id])
+        }
+    }
+
+    /// Remembers that the recorder copied the consent sentence (only the time, never the text). The first copy
+    /// is kept; a later one does not move it.
+    func markConsentTextCopied(_ id: Int64, at date: Date) throws {
+        try write { db in
+            try db.execute(
+                sql: "UPDATE meeting SET consent_text_copied_at = ? WHERE id = ? AND consent_text_copied_at IS NULL",
+                arguments: [Int64(date.timeIntervalSince1970), id])
         }
     }
 

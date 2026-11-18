@@ -111,6 +111,10 @@ struct MeetingWindowView: View {
                 Text(Self.metadata(document))
                     .font(.subheadline).foregroundStyle(.secondary)
                     .textSelection(.enabled)
+                if let line = Self.consentLine(document) {
+                    Text(verbatim: line)
+                        .font(.subheadline).foregroundStyle(.secondary)
+                }
             }
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
@@ -126,6 +130,15 @@ struct MeetingWindowView: View {
     private func commitTitle() {
         let draft = titleDraft
         Task { await model.renameTitle(draft) }
+    }
+
+    /// "Message copied at 10:02", or `nil` when the recorder never copied the consent sentence.
+    static func consentLine(_ document: MeetingDocument) -> String? {
+        guard let copiedAt = document.consentTextCopiedAt else { return nil }
+        let time = copiedAt.formatted(date: .omitted, time: .shortened)
+        return String(
+            localized: "Message copied at \(time)",
+            comment: "Meeting window: when the recorder copied the sentence for the participants")
     }
 
     static func metadata(_ document: MeetingDocument) -> String {

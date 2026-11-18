@@ -19,6 +19,11 @@ enum WindowsDiagnostics {
             "Watchdog trips: \(diagnostics.watchdogTrips)",
             "Re-hides: \(diagnostics.rehides)",
             "Refused parks: \(diagnostics.refusedParks)",
+            "Display changes: \(diagnostics.displayChanges)",
+            "Empty display lists: \(diagnostics.emptyDisplayLists)",
+            "Resyncs: \(diagnostics.resyncs)",
+            "Focus mismatches: \(diagnostics.focusMismatches)",
+            "Focus read timeouts: \(diagnostics.focusReadTimeouts)",
         ].joined(separator: "\n")
     }
 }

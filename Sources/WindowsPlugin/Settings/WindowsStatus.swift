@@ -16,6 +16,8 @@ struct WindowsStatusInputs: Equatable, Sendable {
     var stripEnabled = true
     var stripHasRoom: Bool?
     var workspaceCount = WindowsSettings.defaultWorkspaceCount
+    /// The registered shortcuts that type a character on the active keyboard layout (`ShortcutSafety`).
+    var unsafeShortcuts: [KeyShortcut] = []
 }
 
 /// The ids of the banner's own actions.
@@ -24,6 +26,7 @@ enum WindowsStatusAction {
     static let openStageManager = "openStageManager"
     static let openSpaces = "openSpaces"
     static let startAgain = "startAgain"
+    static let useControlOption = "useControlOption"
 }
 
 /// The banner of Settings → Window Management as a pure function (spec: UI/UX, "Banner states"). Priority:
@@ -98,6 +101,15 @@ enum WindowsBanner {
                     "Turn on “Displays have separate Spaces” in System Settings.",
                     comment: "Settings banner detail: displays do not have separate Spaces"),
                 fix: [plugin(WindowsStatusAction.openSpaces, openSettings)])
+        }
+        // Registered shortcuts that type a letter take that letter away system-wide (Q3: registered anyway, so the
+        // warning is visible here and one click away from fixed).
+        if !inputs.unsafeShortcuts.isEmpty {
+            return SettingsStatus(
+                level: .attention,
+                title: ShortcutWarning.title(count: inputs.unsafeShortcuts.count),
+                detail: ShortcutWarning.detail(inputs.unsafeShortcuts),
+                fix: [plugin(WindowsStatusAction.useControlOption, ShortcutWarning.action)])
         }
         if inputs.stripEnabled, inputs.stripHasRoom == false {
             return SettingsStatus(

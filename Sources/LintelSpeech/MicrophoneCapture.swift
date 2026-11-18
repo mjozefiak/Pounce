@@ -120,12 +120,19 @@ public final class MicrophoneCapture: AudioInput, @unchecked Sendable {
         continuation?.finish()
     }
 
-    /// A 0...1 loudness for the HUD from the RMS, on a log scale so quiet speech still moves it.
+    /// The lowest level of a chunk that holds any sound at all: a working microphone's quietest room noise
+    /// (below -60 dBFS) still reports this, so a level of exactly 0 means digital silence.
+    public static let quietestSoundLevel: Float = 1e-6
+
+    /// A 0...1 loudness for the HUD from the RMS, on a log scale so quiet speech still moves it. It is 0 only
+    /// for digital silence (no chunk, or every sample zero, which is what a blocked microphone delivers);
+    /// anything else is at least `quietestSoundLevel`.
     public static func level(of samples: [Float]) -> Float {
         guard !samples.isEmpty else { return 0 }
         let meanSquare = samples.reduce(Float(0)) { $0 + $1 * $1 } / Float(samples.count)
-        let decibels = 10 * log10(max(meanSquare, 1e-9))
-        return min(1, max(0, (decibels + 60) / 60))
+        guard meanSquare > 0 else { return 0 }
+        let decibels = 10 * log10(meanSquare)
+        return min(1, max(quietestSoundLevel, (decibels + 60) / 60))
     }
 
     // MARK: Input devices

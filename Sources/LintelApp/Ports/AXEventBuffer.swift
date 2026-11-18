@@ -41,6 +41,96 @@ nonisolated final class AXEventBuffer: Sendable {
     }
 }
 
+/// The system notifications that change what the engine must look at again.
+nonisolated enum SystemNotificationKind: Equatable, Sendable, CaseIterable {
+    case spaceChanged
+    case displaysChanged
+    /// `NSWorkspace.didWakeNotification`.
+    case didWake
+    /// `NSWorkspace.screensDidWakeNotification`.
+    case screensDidWake
+}
+
+/// The one table from a system notification to the events it appends (and whether a second, later resync
+/// follows). Pure, so it is unit-tested; `AXObservationHub` only wires the real notifications to it.
+///
+/// A display change or a wake can move windows while the AX move notifications are missed, and `.displaysChanged`
+/// alone does not read the windows again (it works on cached frames), so a `.resync` always follows it. After a
+/// wake the apps answer slowly for a moment, so a second resync follows `followUpDelay` later.
+nonisolated enum SystemEventTable {
+    static let followUpDelay: Duration = .seconds(2)
+
+    static func events(for kind: SystemNotificationKind) -> [WindowEvent] {
+        switch kind {
+        case .spaceChanged: [.spaceChanged]
+        case .displaysChanged: [.displaysChanged, .resync]
+        case .didWake, .screensDidWake: [.resync]
+        }
+    }
+
+    static func needsFollowUp(_ kind: SystemNotificationKind) -> Bool {
+        switch kind {
+        case .didWake, .screensDidWake: true
+        case .spaceChanged, .displaysChanged: false
+        }
+    }
+}
+
+/// One delayed resync at a time: a new request replaces a pending one, so a wake that announces itself twice
+/// (system and screens) costs one late resync. After `stop()` nothing is appended any more: a request that comes
+/// later (a wake handler still running on another thread) is ignored, and a timer that already slept checks the
+/// same lock before it appends.
+nonisolated final class DelayedResync: Sendable {
+    private struct State {
+        var task: Task<Void, Never>?
+        /// Which request is the current one; a replaced timer that wakes up finds another number and does nothing.
+        var generation: UInt64 = 0
+        var isStopped = false
+    }
+
+    private let buffer: AXEventBuffer
+    private let delay: Duration
+    private let state = Mutex(State())
+
+    init(buffer: AXEventBuffer, delay: Duration = SystemEventTable.followUpDelay) {
+        self.buffer = buffer
+        self.delay = delay
+    }
+
+    func schedule() {
+        let delay = delay
+        state.withLock { state in
+            guard !state.isStopped else { return }
+            state.task?.cancel()
+            state.generation &+= 1
+            let generation = state.generation
+            state.task = Task { [weak self] in
+                try? await Task.sleep(for: delay)
+                self?.fire(generation)
+            }
+        }
+    }
+
+    /// Cancels a pending resync for good; later requests are ignored.
+    func stop() {
+        state.withLock { state in
+            state.isStopped = true
+            state.task?.cancel()
+            state.task = nil
+        }
+    }
+
+    private func fire(_ generation: UInt64) {
+        let buffer = buffer
+        state.withLock { state in
+            guard !state.isStopped, state.generation == generation else { return }
+            state.task = nil
+            // Appended under the lock, so a `stop()` either comes first (nothing is appended) or after.
+            buffer.append(.resync)
+        }
+    }
+}
+
 /// Maps an Accessibility notification to the event the engine understands.
 nonisolated enum AXNotificationMapper {
     /// - Parameters:
