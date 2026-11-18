@@ -265,3 +265,16 @@ The owner asked for bigger, easier to click boxes. This replaces "dziewięć pud
 ## 📝 Not doing
 
 Tryby wiązań (`service` i inne), `join-with`, `flatten-workspace-tree`, `close-all-windows-but-current`, workspace'y z literami, import z `aerospace.toml` i dowolny tekstowy język konfiguracji, ramka nieaktywna na pozostałych oknach, reguły według tytułu okna, przypinanie workspace'ów do wyświetlaczy, przycisk "Apply to open windows", prywatne wywołania SkyLight, sterowanie natywnymi Spaces, skrypty i CLI. Każde może być osobnym specem; nic z tego nie zmienia powyższych kontraktów.
+
+## 📌 Addendum 2026-11-17: wyświetlacz, który wraca (sen, kabel)
+
+Na prośbę właściciela (2026-11-17). Zmiana dotyczy modelu workspace'ów z `2026-11-09-window-management.md`, nie faz powyżej.
+
+- `VirtualWorkspaceModel` pamięta, jaki workspace pokazywał usunięty wyświetlacz, oraz fokus i `previous`; ten sam wyświetlacz (UUID) po powrocie pokazuje to samo, o ile żaden inny wyświetlacz nie pokazuje go w międzyczasie. Wcześniej wracał na "najniższy niepokazany" (workspace 1).
+- Pusta lista wyświetlaczy (`displaysChanged([])`, snapshot bez wyświetlaczy) jest ignorowana: model i `state.displays` zostają, nic nie jest chowane ani przywracane.
+- Każda zmiana listy wyświetlaczy zeruje liczniki ponownego chowania i przywraca zarządzanie oknami, które stały się `unmanaged` tylko przez `rehideCap`; okno ukrytego workspace'u jest chowane ponownie.
+- Diagnostyka ("Copy diagnostics"): `Display changes`, `Empty display lists`, `Resyncs` (każdy snapshot).
+
+## Addendum 2026-11-17: ponowny odczyt okien po wybudzeniu i zmianie wyświetlaczy
+
+Na prośbę właściciela. Dotąd nic nie reagowało na uśpienie: `.displaysChanged` pracuje na zapamiętanych ramkach, więc okna przesunięte przez macOS bez powiadomienia AX zostawały poza swoimi kafelkami. Teraz `AXObservationHub` obserwuje `NSWorkspace.didWakeNotification` i `screensDidWakeNotification` i dodaje `.resync` (pełny odczyt okien), po około 2 s drugi `.resync` (aplikacje odpowiadają wolno tuż po wybudzeniu; kolejne prośby zastępują oczekującą), a każde `.displaysChanged` jest od razu po nim `.resync`. Mapowanie powiadomienie → zdarzenia to czysta tablica (`SystemEventTable`). `stop()` usuwa każdego obserwatora z centrum, w którym go dodano (zmiana parametrów ekranu przychodzi z `NotificationCenter.default`, nie z centrum `NSWorkspace`), a opóźniony `.resync` po `stop()` nie zostanie już dodany ani ponownie zaplanowany. Bez zmiany kontraktu `LintelKit` i bez zmiany reducera; pamięć wyświetlacza i licznik `rehides` to osobne poprawki (A2).

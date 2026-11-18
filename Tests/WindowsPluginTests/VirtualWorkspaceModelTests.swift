@@ -212,4 +212,71 @@ import Testing
         model.focusDisplay("nope")
         #expect(model.focusedDisplay == "b")
     }
+
+    // MARK: Display reconnect (a display that goes away and returns shows what it showed)
+
+    @Test func aReturningDisplayShowsTheWorkspaceItShowedBeforeAnEmptyList() {
+        var model = VirtualWorkspaceModel(workspaceCount: 4, displays: ["D"])
+        model.show(ws(3))
+        model.show(ws(2))
+        #expect(model.previous == ws(3))
+        model.setDisplays([])
+        model.setDisplays(["D"])
+        #expect(model.current == ws(2))
+        #expect(model.focusedDisplay == "D")
+        #expect(model.previous == ws(3))
+    }
+
+    @Test func aReturningDisplayAfterAPlaceholderShowsItsOldWorkspace() {
+        var model = VirtualWorkspaceModel(workspaceCount: 4, displays: ["D"])
+        model.show(ws(3))
+        model.setDisplays(["placeholder"])
+        model.setDisplays(["D"])
+        #expect(model.current == ws(3))
+        #expect(model.focusedDisplay == "D")
+    }
+
+    @Test func aReturningDisplayDoesNotShowAWorkspaceAnotherDisplayShowsNow() {
+        var model = VirtualWorkspaceModel(workspaceCount: 4, displays: ["A", "B"])
+        model.setDisplays(["A"])
+        model.show(ws(2))
+        model.setDisplays(["A", "B"])
+        #expect(model.visible["A"] == ws(2))
+        #expect(model.visible["B"] == ws(1))
+    }
+
+    @Test func aRememberedWorkspaceAboveTheNewCountIsForgotten() {
+        var model = VirtualWorkspaceModel(workspaceCount: 4, displays: ["D"])
+        model.show(ws(4))
+        model.setDisplays([])
+        model.setWorkspaceCount(2)
+        model.setDisplays(["D"])
+        #expect(model.current == ws(1))
+    }
+
+    @Test func theFocusOfALaterRemovedDisplayReplacesAnOlderRememberedFocus() {
+        var model = VirtualWorkspaceModel(workspaceCount: 4, displays: ["A", "B"])
+        model.focusDisplay("B")
+        model.setDisplays(["A"])
+        #expect(model.focusedDisplay == "A")
+        model.show(ws(3))
+        // Asleep: the remaining display is replaced by a placeholder, then both return.
+        model.setDisplays(["placeholder"])
+        model.setDisplays(["A", "B"])
+        #expect(model.focusedDisplay == "A")
+        #expect(model.current == ws(3))
+        #expect(model.previous == ws(1))
+    }
+
+    @Test func aPlaceholderThatLeavesKeepsTheRealDisplaysFocus() {
+        var model = VirtualWorkspaceModel(workspaceCount: 4, displays: ["A", "B"])
+        model.focusDisplay("B")
+        model.show(ws(4))
+        model.setDisplays(["placeholder"])
+        model.setDisplays(["other placeholder"])
+        model.setDisplays(["A", "B"])
+        #expect(model.focusedDisplay == "B")
+        #expect(model.current == ws(4))
+        #expect(model.previous == ws(2))
+    }
 }

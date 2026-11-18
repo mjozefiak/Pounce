@@ -35,6 +35,8 @@ struct MeetingDocument: Sendable, Equatable {
     var segments: [Segment]
     /// The speech model the recording was made with (Details in the Notes workspace).
     var speechModelID: String? = nil
+    /// When the recorder copied the consent sentence from the HUD; `nil` if never (MEET-1.6).
+    var consentTextCopiedAt: Date? = nil
 
     func speaker(id: Int64?) -> Speaker? {
         guard let id else { return nil }
@@ -95,7 +97,10 @@ extension MeetingsStore {
                 notesMarkdown: row["notes_markdown"],
                 notesStatus: NotesStatus(rawValue: row["notes_status"]) ?? .none,
                 notesDroppedCount: row["notes_dropped_count"], speakers: speakers, segments: segments,
-                speechModelID: row["speech_model_id"])
+                speechModelID: row["speech_model_id"],
+                consentTextCopiedAt: (row["consent_text_copied_at"] as Int64?).map {
+                    Date(timeIntervalSince1970: TimeInterval($0))
+                })
         }
     }
 

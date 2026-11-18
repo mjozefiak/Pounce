@@ -53,6 +53,16 @@ extension ReducerContext {
     }
 
     mutating func displaysChanged(_ displays: [DisplayInfo], now: Double) {
+        state.diagnostics.displayChanges += 1
+        // No display at all (the only display is asleep): keep the model and move nothing; the list that comes
+        // back is the one that counts.
+        guard !displays.isEmpty else {
+            state.diagnostics.emptyDisplayLists += 1
+            return
+        }
+        // A new display list is a fresh start for windows that macOS kept moving back on screen.
+        state.rehides = [:]
+        state.unmanaged = []
         state.displays = displays
         state.model.setDisplays(DisplayKeys.orderedKeys(for: displays))
         arrangeRequested = true
@@ -62,7 +72,6 @@ extension ReducerContext {
         for (id, record) in state.parked.sorted(by: { $0.key < $1.key }) {
             // A window whose workspace is shown again is being restored, not re-parked.
             if let workspace = state.model.workspace(of: id), state.model.isVisible(workspace) { continue }
-            guard !displays.isEmpty else { continue }
             let corner = FrameMath.parkedFrame(for: record.home, displays: displays, sliver: state.config.parkSliver)
             if !FrameMath.originsApproximatelyEqual(corner, record.parkedFrame, tolerance: 0.5) {
                 state.parked[id]?.parkedFrame = corner
@@ -84,18 +93,37 @@ extension ReducerContext {
         switchTo(workspace, now: now)
     }
 
-    mutating func switchTo(_ workspace: WorkspaceID, now: Double) {
+    /// Shows `workspace`. Unless the caller picks the focus itself, the focus goes to the most recently used window
+    /// of the shown workspace when the focused window was hidden by the switch (none: nothing is focused).
+    mutating func switchTo(_ workspace: WorkspaceID, now: Double, handsOffFocus: Bool = true) {
         let hidden = hiddenWindowsIfShown(workspace)
         if !state.canJournal, hidden {
             trailing.append(.banner(.cannotJournal))
             return
         }
         let before = state.model.current
+        let focusWasVisible = isShown(state.focused)
         state.model.show(workspace)
         arrangeRequested = true
         reconcileParking(now: now)
         if let current = state.model.current, current != before {
             trailing.append(.hud(workspace: current, windowCount: state.model.windowCount(in: current)))
+        }
+        if handsOffFocus { handOffFocus(focusWasVisible: focusWasVisible, now: now) }
+    }
+
+    /// After a switch: a focused window that is still on a shown workspace keeps the focus; otherwise the most
+    /// recently used window of the current workspace gets it, or nothing does (a hidden window must never stay the
+    /// target of "move the focused window").
+    /// A focus on a window that this switch just revealed does not count: while its workspace was hidden the window
+    /// was parked, so the system's focus was not really there (QA D1-3), and the window is asked for explicitly.
+    private mutating func handOffFocus(focusWasVisible: Bool, now: Double) {
+        if focusWasVisible, isShown(state.focused) { return }
+        if let next = state.model.current.flatMap({ mostRecentWindow(in: $0) }) ?? visibleWindow() {
+            setFocus(next, now: now)
+        } else {
+            state.focused = nil
+            state.pendingFocus = nil
         }
     }
 

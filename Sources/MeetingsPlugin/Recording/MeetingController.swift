@@ -1,4 +1,5 @@
 import Foundation
+import LintelKit
 import LintelSpeech
 import Synchronization
 import os
@@ -65,8 +66,14 @@ final class MeetingController {
         var logger = Logger(subsystem: "com.lintelapp", category: "meetings")
         /// How long the consent reminder stays on the HUD.
         var consentDuration: Duration = .seconds(8)
+        /// Where "Copy message" puts the consent sentence (`PluginContext.pasteboard`); nil = nothing to copy to.
+        var pasteboard: (any PasteboardClient)?
+        /// The time stored when the sentence is copied.
+        var now: @MainActor () -> Date = { Date() }
         /// How long the system track may stay silent before the HUD says so (spec: 20 s).
         var silentSystemAfter: Duration = .seconds(20)
+        /// How long the microphone track may deliver only digital silence before the HUD says so.
+        var silentMicrophoneAfter: Duration = .seconds(10)
         /// How long `shutDown()` waits for a running recording to finish.
         var shutdownTimeout: Duration = .seconds(20)
         /// How long a stop waits for the session's own `.finished` event after `finish()` returned, before it
@@ -109,6 +116,8 @@ final class MeetingController {
     private(set) var watcherFirings = 0
     private var session: (any RecordingSession)?
     private var meetingID: Int64?
+    /// "Copy message" was pressed before the meeting had an id.
+    private var pendingConsentCopy: Date?
     /// The app of the suggestion the user accepted for the attempt that is running; set by `begin` once its
     /// guards have passed, so a refused start never leaves it behind.
     private var sourceBundleID: String?
@@ -119,6 +128,11 @@ final class MeetingController {
     private var eventsTask: Task<Void, Never>?
     private var watchers: [Task<Void, Never>] = []
     private var sawSystemSignal = false
+    /// Microphone watcher: any level arrived, and any level that was not digital silence since the last check.
+    private var sawMicrophoneLevel = false
+    private var sawMicrophoneSignal = false
+    /// How many microphone checks ran (tests wait on it; not counted in `watcherFirings`).
+    private(set) var microphoneChecks = 0
     private var lastShownLevels = (mic: Float(0), system: Float(0))
 
     init(_ dependencies: Dependencies) {
@@ -199,11 +213,35 @@ final class MeetingController {
         }
     }
 
+    /// "Copy message": the sentence goes to the pasteboard in the system language and the time is stored with the
+    /// meeting (never the text). A click before the meeting has an id is stored as soon as it has one.
+    private func copyConsentText() {
+        guard let pasteboard = deps.pasteboard else { return }
+        pasteboard.setString(MeetingConsentText.sentence)
+        let now = deps.now()
+        if let id = meetingID {
+            storeConsentCopy(at: now, meetingID: id)
+        } else if pendingConsentCopy == nil {
+            pendingConsentCopy = now
+        }
+    }
+
+    private func storeConsentCopy(at date: Date, meetingID id: Int64) {
+        pendingConsentCopy = nil
+        do {
+            try deps.library.store?.markConsentTextCopied(id, at: date)
+            deps.changed()
+        } catch {
+            deps.logger.error("Could not store the consent copy time")
+        }
+    }
+
     /// A button of the HUD.
     func perform(_ action: MeetingHUDState.Action) {
         switch action {
         case .stop: stop()
         case .openSettings: deps.openSettings()
+        case .copyConsentText: copyConsentText()
         case .openModels: deps.openModels(deps.settings.speechModelID)
         case .openMicrophoneSettings:
             if let url = Self.microphonePrivacyURL { deps.openURL(url) }
@@ -300,6 +338,8 @@ final class MeetingController {
         recording.recordsSystem = recordsSystem
         recording.showsConsent = deps.settings.consentReminder
         sawSystemSignal = false
+        sawMicrophoneLevel = false
+        sawMicrophoneSignal = false
         lastShownLevels = (0, 0)
         deps.hud.show(.recording(recording))
         let consumer = Task { [weak self] in
@@ -323,12 +363,14 @@ final class MeetingController {
         guard holdsSession(token) else { return ignoredStaleStart() }
         meetingID = id
         library.registerLive(meetingID: id)
+        if let copiedAt = pendingConsentCopy { storeConsentCopy(at: copiedAt, meetingID: id) }
         if phase == .preparing {
             phase = .recording
             startWatchers(recordsSystem: recordsSystem)
             deps.recordingObserver?.recordingStarted(sourceBundleID: sourceBundleID)
         }
         deps.logger.info("Meeting recording started")
+        if !systemOnly { deps.logger.info("Microphone recording started") }
         // Until `.finished` arrives (or the stream is cancelled by a forced shutdown).
         await consumer.value
     }
@@ -339,6 +381,7 @@ final class MeetingController {
     }
 
     private func microphoneDenied(offersSystemOnly: Bool) {
+        deps.logger.notice("Microphone permission denied")
         if offersSystemOnly {
             // Waiting for the user's decision holds nothing; `begin` takes the activity again.
             releaseActivity()
@@ -433,7 +476,19 @@ final class MeetingController {
     private func handleLevel(_ channel: AudioChannel, _ level: Float) {
         deps.recordingObserver?.recordingLevel(channel, level)
         switch channel {
-        case .mic: recording.micLevel = level
+        case .mic:
+            recording.micLevel = level
+            sawMicrophoneLevel = true
+            // Not `signalThreshold`: a working microphone in a quiet room, or a headset that gates its
+            // microphone while the owner listens, can stay below -60 dBFS for a long time. Only exact zeros,
+            // what a blocked or muted input delivers, count as "no microphone audio" (#90).
+            if level > 0 {
+                sawMicrophoneSignal = true
+                if recording.noMicrophoneAudio {
+                    recording.noMicrophoneAudio = false
+                    refresh()
+                }
+            }
         case .system:
             recording.systemLevel = level
             if level > Self.signalThreshold {
@@ -470,6 +525,17 @@ final class MeetingController {
                     self.refresh()
                 })
         }
+        if recording.recordsMicrophone {
+            let delay = deps.silentMicrophoneAfter
+            watchers.append(
+                Task { [weak self] in
+                    while !Task.isCancelled {
+                        try? await clock.sleep(for: delay)
+                        guard !Task.isCancelled, let self, self.phase == .recording else { return }
+                        self.checkMicrophoneSilence()
+                    }
+                })
+        }
         if recordsSystem {
             let delay = deps.silentSystemAfter
             watchers.append(
@@ -483,6 +549,23 @@ final class MeetingController {
                     self.refresh()
                 })
         }
+    }
+
+    /// Called every `silentMicrophoneAfter`: a track that delivered levels but only digital silence in the
+    /// whole interval gets the notice. A track without any level (stalled, lost) is `trackLost`'s business.
+    private func checkMicrophoneSilence() {
+        defer {
+            sawMicrophoneSignal = false
+            microphoneChecks += 1
+            deps.stateChanged()
+        }
+        guard phase == .recording, sawMicrophoneLevel, !sawMicrophoneSignal,
+            !recording.lost.contains(.mic), !recording.unavailable.contains(.mic),
+            !recording.noMicrophoneAudio
+        else { return }
+        recording.noMicrophoneAudio = true
+        deps.logger.notice("Microphone track is silent")
+        refresh()
     }
 
     private func watcherFired() {
@@ -521,6 +604,7 @@ final class MeetingController {
         releaseActivity()
         deps.recordingObserver?.recordingEnded()
         meetingID = nil
+        pendingConsentCopy = nil
         sourceBundleID = nil
         session = nil
         eventsTask?.cancel()
