@@ -24,6 +24,63 @@ struct ReducerContext {
         planner = LayoutPlanner(strategies: strategies)
     }
 
+    // MARK: Focus
+
+    /// Asks the system to focus `id` and remembers it as the focused window, so the next command acts on it even
+    /// before the system's own focus event arrives (`PendingFocus`).
+    mutating func setFocus(_ id: WindowID, now: Double) {
+        state.focused = id
+        state.pendingFocus = PendingFocus(id: id, expires: now + PendingFocus.lifetime)
+        touchRecency(id)
+        trailing.append(.focus(id))
+    }
+
+    /// Notes that `id` was the most recently used window.
+    mutating func touchRecency(_ id: WindowID) {
+        guard state.windows[id] != nil else { return }
+        state.focusOrder.removeAll { $0 == id }
+        state.focusOrder.append(id)
+        if state.focusOrder.count > 256 { state.focusOrder.removeFirst(state.focusOrder.count - 256) }
+    }
+
+    mutating func forgetRecency(_ id: WindowID) {
+        state.focusOrder.removeAll { $0 == id }
+        if state.pendingFocus?.id == id { state.pendingFocus = nil }
+    }
+
+    /// The window of `workspace` that was focused last, else (a cold start has no history) the last in its order.
+    func mostRecentWindow(in workspace: WorkspaceID, excluding: WindowID? = nil) -> WindowID? {
+        for id in state.focusOrder.reversed()
+        where id != excluding && state.windows[id] != nil && state.model.workspace(of: id) == workspace {
+            return id
+        }
+        return state.model.windows(in: workspace).last { $0 != excluding && state.windows[$0] != nil }
+    }
+
+    /// Whether `id` is a tracked window on a shown workspace.
+    func isShown(_ id: WindowID?) -> Bool {
+        guard let id, state.windows[id] != nil, let workspace = state.model.workspace(of: id) else { return false }
+        return state.model.isVisible(workspace)
+    }
+
+    /// A window the user can see on any shown workspace (the most recently used, else the last in order), for when the
+    /// workspace that was left or entered has none: the system focus must not stay on a parked window.
+    func visibleWindow(excluding: WindowID? = nil) -> WindowID? {
+        for id in state.focusOrder.reversed()
+        where id != excluding && state.windows[id] != nil
+            && state.model.workspace(of: id).map(state.model.isVisible) == true
+        {
+            return id
+        }
+        for workspace in state.model.workspaces where state.model.isVisible(workspace) {
+            if let id = state.model.windows(in: workspace).last(where: { $0 != excluding && state.windows[$0] != nil })
+            {
+                return id
+            }
+        }
+        return nil
+    }
+
     // MARK: Batches
 
     mutating func request(_ id: WindowID, _ frame: CGRect, _ purpose: FramePurpose, now: Double) {

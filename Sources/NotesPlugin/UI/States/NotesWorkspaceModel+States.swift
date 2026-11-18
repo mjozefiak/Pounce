@@ -217,6 +217,15 @@ extension NotesWorkspaceModel {
         return result
     }
 
+    /// The owner's actions for the inspector's Actions list. The strips of an interrupted or a writing note already
+    /// carry every one of them, so the inspector lists none then and no button appears twice.
+    func inspectorSourceActions(for document: NoteDocumentModel) -> [NoteSourceAction] {
+        switch document.state {
+        case .interrupted?, .writing?: return []
+        default: return document.actions
+        }
+    }
+
     private static var tryAgain: String {
         String(localized: "Try again", comment: "Notes: strip action that tries the failed step again")
     }

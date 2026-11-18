@@ -162,7 +162,8 @@ struct NoteDetailsPane: View {
         }
     }
 
-    /// Prototype `.acl`: what can be done with the note. Regenerate comes with the agent (step 6.x).
+    /// Prototype `.acl`: what can be done with the note. The owner's own actions (Meetings: "Regenerate Notes")
+    /// come from `NoteSource.actions(for:)`, so the conditions are the owner's and Notes names no plugin.
     private var actions: some View {
         VStack(alignment: .leading, spacing: 0) {
             sectionHeader(Text("Actions", comment: "Inspector, Details: heading of the note's actions"), first: false)
@@ -173,6 +174,13 @@ struct NoteDetailsPane: View {
                     tint: LintelBrand.accentText
                 ) { Task { await model.makeNote(from: document.id) } }
                 .disabled(!model.canMakeNote(document.id) || document.phase != .loaded)
+            }
+            ForEach(model.inspectorSourceActions(for: document)) { action in
+                actionRow(
+                    action.symbolName, Text(action.title), keys: nil,
+                    tint: action.isDestructive ? LintelBrand.statusError : LintelBrand.ink
+                ) { Task { await model.perform("doc.\(action.id)") } }
+                .disabled(document.phase != .loaded)
             }
             actionRow(
                 "doc.on.doc", Text("Copy Markdown", comment: "Path bar: copies the note as Markdown"), keys: "⌘⇧C",
