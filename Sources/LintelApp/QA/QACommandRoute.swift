@@ -7,10 +7,17 @@ import LintelKit
 /// to `<path>.log`. It exists only in a debug `--qa` run (`AppEnvironment.qa`), polls at a bounded interval, and is
 /// compiled out of release builds.
 ///
-/// A line is `<command id>` (any active plugin command, for example `windows.workspace.2`, `windows.focus.left`,
-/// `windows.toggleLayout`, `windows.zones.nextLayout`, `windows.zones.layout.3`, `windows.restoreAllWindows`) or
-/// `qa <plugin id> <verb ...>` for a verb of a plugin that implements `PluginQACommands` (Window Management:
-/// `resetState`, `restoreAll`, `snap <zone>`, `import <path>`, `export <selected|all> <path>`, `addFloating <bundle id>`).
+/// A line is `<command id>` or `qa <plugin id> <verb ...>`.
+///
+/// - `<command id>` is any active plugin command (for example `windows.workspace.2`, `windows.moveToWorkspace.3`,
+///   `windows.focus.left`, `windows.toggleLayout`, `windows.restoreAllWindows`). It runs through `PluginCommand.run`,
+///   the closure the keyboard shortcut calls, so the plugin's own dispatcher, its focus read and its Accessibility gate
+///   are exercised on isolated data. What a `--qa` run does **not** cover is the shortcut layer: Carbon registration and
+///   the translation of keys on the active layout (`docs/qa.md`).
+/// - `qa <plugin id> <verb ...>` is a verb of a plugin that implements `PluginQACommands` (Window Management: `state`,
+///   `resetState`, `restoreAll`, `snap <zone>`, `import <path>`, `export <selected|all> <path>`,
+///   `addFloating <bundle id>`).
+///
 /// Lines starting with `#` and empty lines are ignored.
 @MainActor
 final class QACommandRoute {
