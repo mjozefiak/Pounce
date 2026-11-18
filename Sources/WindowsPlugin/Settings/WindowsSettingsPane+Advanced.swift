@@ -40,15 +40,13 @@ extension WindowsSettingsPane {
         if model.needsShortcutWarning {
             HStack {
                 label(
-                    Text("Some shortcuts type letters", comment: "Window Management shortcut warning"),
-                    help: Text(
-                        "On this keyboard layout \(model.unsafeKeyNames) types a character.",
-                        comment: "Window Management shortcut warning: names the keys"))
+                    Text(ShortcutWarning.title(count: model.flagged.count)),
+                    help: Text(ShortcutWarning.detail(model.unsafeShortcuts)))
                 Spacer()
                 Button {
                     model.useControlOption()
                 } label: {
-                    Text("Use ⌃⌥", comment: "Window Management shortcut warning button")
+                    Text(ShortcutWarning.action)
                 }
             }
         }
@@ -64,9 +62,14 @@ extension WindowsSettingsPane {
                 set: { if let value = ModifierChoice(rawValue: $0) { model.setModifiers(value, for: family) } })
         ) {
             if choice == nil {
-                Text("Custom", comment: "Window Management shortcut modifiers: recorded by hand").font(
-                    textSize.font(.body)
-                ).tag("custom")
+                if model.mixedFamilies.contains(family) {
+                    Text("Mixed", comment: "Window Management shortcut modifiers: the family's shortcuts differ")
+                        .font(textSize.font(.body)).tag("custom")
+                } else {
+                    Text("Custom", comment: "Window Management shortcut modifiers: recorded by hand").font(
+                        textSize.font(.body)
+                    ).tag("custom")
+                }
             }
             ForEach(ModifierChoice.allCases) { option in
                 Text(verbatim: option.symbols + family.keysLabel).font(textSize.font(.body)).tag(option.rawValue)

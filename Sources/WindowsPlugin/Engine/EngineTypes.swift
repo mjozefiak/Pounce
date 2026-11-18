@@ -100,6 +100,26 @@ struct EngineDiagnostics: Equatable, Sendable {
     var watchdogTrips = 0
     var rehides = 0
     var refusedParks = 0
+    /// Focus-dependent commands whose system focus differed from what the engine believed (a count, no ids).
+    var focusMismatches = 0
+    /// Focus reads that did not answer in time before a focus-dependent command.
+    var focusReadTimeouts = 0
+}
+
+/// A command the engine refused to run, which the user should be told about.
+enum EngineNotice: Equatable, Sendable {
+    /// A command that acts on the focused window found none the user can see.
+    case noFocusedWindow
+}
+
+/// The window the engine asked the system to focus and has not heard back from yet. An observation of the system
+/// focus that still shows the old, hidden window does not override it (spec: Phase 0, precedence).
+struct PendingFocus: Equatable, Sendable {
+    var id: WindowID
+    var expires: Double
+
+    /// How long, in engine time, the system is given to catch up with a focus change the engine asked for.
+    static let lifetime: Double = 1
 }
 
 enum EngineBanner: Equatable, Sendable {
@@ -136,6 +156,12 @@ struct EngineState: Equatable, Sendable {
     var focused: WindowID?
     /// The window that had the focus before `focused`; where a new window goes when it took the focus itself.
     var previousFocus: WindowID?
+    /// The windows in the order they were focused, the newest last (memory only, never stored). The most recently
+    /// used window of a workspace is the newest entry that belongs to it, so a window that moves takes its recency
+    /// with it. A cold start has none and a workspace then falls back to its own order.
+    var focusOrder: [WindowID] = []
+    /// The target of the engine's latest focus request until the system confirms it or `PendingFocus.lifetime` ends.
+    var pendingFocus: PendingFocus?
     /// The state of every layout kind of each workspace, by the kind's name. A kind's state survives a switch to
     /// another kind and is brought up to date with the live windows when its kind is used again.
     var layouts: [WorkspaceID: [String: AnyLayoutState]] = [:]
@@ -231,6 +257,27 @@ enum EngineCommand: Equatable, Sendable {
     case reload
 }
 
+extension EngineCommand {
+    /// Whether the command acts on the window that has the focus, so the runtime reads the system focus first.
+    var readsFocus: Bool {
+        switch self {
+        case .moveFocusedWindow, .toggleFloating: true
+        case .layout(_, let window): window == nil
+        default: false
+        }
+    }
+
+    /// Whether the command is refused (with a HUD) when no visible managed window has the focus. Focus and resize
+    /// stay tolerant: they count from the last managed window.
+    var needsFocusedWindow: Bool {
+        switch self {
+        case .moveFocusedWindow, .toggleFloating: true
+        case .layout(let command, let window): window == nil && command.id == LayoutCommand.moveID
+        default: false
+        }
+    }
+}
+
 enum EngineInput: Equatable, Sendable {
     /// Everything at once: the first look, a Space change, a refresh.
     /// `processStarts` gives the start time of every process that owns a window, by pid. `unreachable` names the
@@ -255,6 +302,11 @@ enum EngineInput: Equatable, Sendable {
     case journalAvailability(Bool)
     /// Asks the engine to place a window at a frame, as a layout does.
     case place(WindowID, CGRect, now: Double)
+    /// What the system says has the focus right now, read just before a command that acts on the focused window. It
+    /// changes `focused` only; unlike `windowFocused` it never switches workspace.
+    case focusObserved(WindowID?, now: Double)
+    /// The system did not answer the focus read in time (a count for the diagnostics).
+    case focusReadTimedOut(now: Double)
     /// The layout states stored by an earlier run, before the first snapshot.
     case restoreLayouts([WorkspaceID: [String: JSONValue]])
 }
@@ -266,7 +318,7 @@ extension EngineInput {
         case .snapshot(_, _, _, _, _, _, let now), .windowAppeared(_, _, let now), .windowGone(_, let now),
             .windowMoved(_, _, let now), .windowFocused(_, let now), .displaysChanged(_, let now),
             .command(_, let now), .applied(_, let now), .frameStarted(_, let now), .watchdogTripped(let now),
-            .place(_, _, let now):
+            .place(_, _, let now), .focusObserved(_, let now), .focusReadTimedOut(let now):
             now
         case .configChanged, .journalAvailability, .restoreLayouts:
             nil
@@ -290,4 +342,6 @@ enum EngineEffect: Equatable, Sendable {
     /// The strip and anything else that shows the workspaces must redraw.
     case summaryChanged(WorkspaceSummary)
     case banner(EngineBanner)
+    /// A command was refused; the HUD says why.
+    case notice(EngineNotice)
 }

@@ -14,6 +14,8 @@ struct EngineReporter: Sendable {
     var windowMoved: @Sendable (WindowID, CGRect) -> Void = { _, _ in }
     /// Windows came back without a command asking for it (a Space change showed journal entries again).
     var restored: @Sendable (RecoveryReport) -> Void = { _ in }
+    /// A command was refused (the HUD says why).
+    var notice: @Sendable (EngineNotice) -> Void = { _ in }
 }
 
 /// Carries out the effects the reducer returned, against a `WindowClient` and the `StateStore`. It decides
@@ -271,6 +273,8 @@ struct EffectExecutor {
             reporter.summary(summary)
         case .banner(let banner):
             reporter.banner(banner)
+        case .notice(let notice):
+            reporter.notice(notice)
         case .journalPark, .journalRemove, .setFrame:
             break
         }
