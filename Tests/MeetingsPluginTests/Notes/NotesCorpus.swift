@@ -96,7 +96,8 @@ enum NotesInvariants {
             #expect(!markdown.lowercased().contains(marker), "\(context): the notes contain \(marker)")
         }
         let guardrail = NotesGuard(utterances: transcript)
-        for point in result.points {
+        #expect(result.keyPoints.allSatisfy { $0.kind == .summary }, "\(context): a key point that is no summary point")
+        for point in result.points + result.keyPoints {
             // Every point stands on a quote that is really in the recording.
             #expect(!point.quote.isEmpty, "\(context): a point without a quote")
             #expect(

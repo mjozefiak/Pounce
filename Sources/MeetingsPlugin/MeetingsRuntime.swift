@@ -85,7 +85,8 @@ struct MeetingsRuntime: Sendable {
             system: request.recordsSystemAudio ? makeSystemAudio() : nil,
             makeVAD: { LazyVAD(modelFolder: vadFolder) }, engine: makeEngine(modelID: request.modelID),
             modelID: request.modelID, modelFolder: request.modelFolder, sleepAssertion: IOKitSleepAssertion(),
-            gate: gate, beforeReady: finalizer.hook, sourceBundleID: request.sourceBundleID, logger: logger)
+            gate: gate, beforeReady: finalizer.hook, sourceBundleID: request.sourceBundleID,
+            keepAudio: { [settings] in settings.keepAudio }, logger: logger)
     }
 
     // MARK: Recovery and "Dokończ"
@@ -100,7 +101,7 @@ struct MeetingsRuntime: Sendable {
             speech: {
                 guard case .ready(let id, let folder) = await runtime.speechLookup() else { return nil }
                 return ResumeSpeech(engine: runtime.makeEngine(modelID: id), modelID: id, folder: folder)
-            }, finalize: finalizer.hook, logger: logger)
+            }, finalize: finalizer.hook, keepAudio: { [settings] in settings.keepAudio }, logger: logger)
     }
 }
 

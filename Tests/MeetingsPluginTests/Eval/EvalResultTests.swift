@@ -40,6 +40,24 @@ struct EvalResultTests {
         #expect(decoded.speaker == "Ja")
     }
 
+    @Test func wordsAreOptionalAndAdditive() throws {
+        let absent = #"{"track":"mic","startMs":1,"endMs":2,"text":"t"}"#
+        #expect(try JSONDecoder().decode(EvalResult.Segment.self, from: Data(absent.utf8)).words == nil)
+        let plain = EvalResult.Segment(track: "mic", startMs: 1, endMs: 2, text: "t")
+        let object = try #require(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(plain)) as? [String: Any])
+        #expect(object["words"] == nil)
+
+        let words: [EvalResult.Word] = [
+            .init(startMs: 1, endMs: 5, speaker: "Ja"), .init(startMs: 5, endMs: 9, speaker: nil),
+        ]
+        let value = EvalResult.Segment(
+            track: "mic", startMs: 1, endMs: 9, text: "dwa słowa", speaker: "Ja", words: words)
+        let decoded = try JSONDecoder().decode(EvalResult.Segment.self, from: JSONEncoder().encode(value))
+        #expect(decoded == value)
+        #expect(decoded.words?.first?.speaker == "Ja")
+    }
+
     @Test func keysAreExactlyTheSchema() throws {
         let literal = """
             {"schema":1,"recording":"r","audioSeconds":1.5,
@@ -94,6 +112,29 @@ struct EvalResultTests {
         #expect(try FileManager.default.contentsOfDirectory(atPath: out.path) == ["demo.json"])
         let decoded = try JSONDecoder().decode(EvalResult.self, from: Data(contentsOf: url))
         #expect(decoded.diarization == nil)
+    }
+
+    @Test func writesTheNotesTraceWithMode0600AndTheSchemaKeys() throws {
+        let events: [NotesTraceEvent] = [
+            .started(schemaVersion: NotesTrace.schemaVersion, promptVersion: 1, utterances: 3, chunks: 1),
+            .deduplicated(removedIDs: [], keptIDs: ["p1"]),
+            .finished(status: .ok, verified: 1, rendered: 1, notRendered: 0),
+        ]
+        let directory = try TemporaryDirectory()
+        let out = directory.url.appending(path: "out")
+        let url = try EvalResultWriter.write(NotesTraceFile(recording: "demo", events: events), to: out)
+        #expect(url.lastPathComponent == "demo.notes-trace.json")
+        let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
+        #expect((attributes[.posixPermissions] as? Int) == 0o600)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: out.path) == ["demo.notes-trace.json"])
+        let data = try Data(contentsOf: url)
+        let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        #expect(Set(object.keys) == ["schema", "recording", "events"])
+        #expect(object["schema"] as? Int == NotesTrace.schemaVersion)
+        #expect(object["recording"] as? String == "demo")
+        #expect((object["events"] as? [Any])?.count == 3)
+        let decoded = try JSONDecoder().decode(NotesTraceFile.self, from: data)
+        #expect(decoded.events == events)
     }
 
     @Test func footprintSamplerReturnsAPositivePeak() async throws {

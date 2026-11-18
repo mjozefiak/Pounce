@@ -168,6 +168,41 @@ struct NoteStripTests {
         #expect(rig.model.currentDocument?.actionFailed == false)
     }
 
+    @Test("a ready note lists the owner's actions in the inspector and runs one through the same path as a strip")
+    func inspectorActionsOnReadyNote() async throws {
+        let rig = StatesRig()
+        let performed = Flag()
+        rig.meetings.setActions([
+            NoteSourceAction(
+                id: "meetings.regenerate", title: LocalizedStringResource("Regenerate Notes"),
+                symbolName: "arrow.triangle.2.circlepath", perform: { performed.set() })
+        ])
+        await rig.openFirst()
+        let document = try #require(rig.model.currentDocument)
+        #expect(rig.model.inspectorSourceActions(for: document).map(\.id) == ["meetings.regenerate"])
+        await rig.model.perform("doc.meetings.regenerate")
+        #expect(performed.value)
+        #expect(document.actionFailed == false)
+    }
+
+    @Test("a note without owner actions lists none, and an interrupted or writing one leaves them to its strip")
+    func inspectorActionsHiddenWhereStripsShowThem() async throws {
+        let none = StatesRig()
+        await none.openFirst()
+        let readyDocument = try #require(none.model.currentDocument)
+        #expect(none.model.inspectorSourceActions(for: readyDocument).isEmpty)
+        for state in [NoteState.interrupted, .writing(done: 1, of: 3)] {
+            let rig = StatesRig(state: state)
+            rig.meetings.setActions([
+                NoteSourceAction(id: "meetings.finish", title: LocalizedStringResource("Finish"), symbolName: "x") {}
+            ])
+            await rig.openFirst()
+            let document = try #require(rig.model.currentDocument)
+            #expect(rig.model.inspectorSourceActions(for: document).isEmpty)
+            #expect(rig.model.strips.first?.actions.map(\.id) == ["doc.meetings.finish"])
+        }
+    }
+
     @Test("an action that throws leaves a strip that can be dismissed, and changes nothing else")
     func actionFails() async throws {
         let rig = StatesRig(state: .interrupted)

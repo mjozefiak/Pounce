@@ -238,6 +238,8 @@ the benchmark has run (ADR 0007).
 Nothing in this table has been measured yet: it needs the speech and diarization models, a Mac with the system-audio
 permission granted and real meetings, none of which `swift test` or a `--qa…` run can provide. The targets are the spec's.
 
+The step-by-step procedure for the owner (what to record, the commands, the result tables, which row each number goes to, and the tools that do not exist) is `docs/meetings-measurement.md` (story MEET-0.4).
+
 | Budget | Target | Measured | How to measure |
 |---|---|---|---|
 | Shortcut to the visible HUD and both tracks started | < 300 ms | not yet measured | Build with `scripts/make-app.sh`, grant microphone and system audio, run `log stream --predicate 'subsystem == "com.lintelapp"'` and note the time between the `meetings.record` command and the first buffer of each track (signposts of `MeetingController`); 10 runs, report p50 and max. |

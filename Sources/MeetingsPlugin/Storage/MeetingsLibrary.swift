@@ -113,7 +113,9 @@ final class MeetingsLibrary {
     var canRecord: Bool { status == .ready }
 
     var policy: RetentionJob.Policy {
-        .init(retentionDays: settings.retentionDays, orphanAudioDays: settings.orphanAudioDays)
+        .init(
+            retentionDays: settings.retentionDays, orphanAudioDays: settings.orphanAudioDays,
+            keptAudioDays: settings.keptAudioDays)
     }
 
     /// Opens the library, recovers interrupted meetings and only then starts the retention job.
@@ -220,7 +222,8 @@ final class MeetingsLibrary {
     private func recoverInterruptedMeetings(store: MeetingsStore, keys: MeetingKeys) {
         let resumer = makeResumer(store, keys, spoolStorage)
         self.resumer = resumer
-        let job = RecoveryJob(spool: spoolStorage, keys: keys, now: now, logger: logger)
+        let job = RecoveryJob(
+            spool: spoolStorage, keys: keys, now: now, keepAudio: { [settings] in settings.keepAudio }, logger: logger)
         recovery = job
         let report = job.recover(store: store, canResume: resumer != nil, liveMeetingIDs: liveMeetingIDs)
         lastRecovery = report

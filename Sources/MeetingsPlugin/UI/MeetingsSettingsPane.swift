@@ -39,10 +39,13 @@ struct MeetingsPaneContent: View {
     @Environment(\.lintelTextSize) private var textSize
     @State private var confirmation: PrivacyConfirmation?
     @State private var newApp = ""
+    @State private var selfNameDraft = ""
+    @FocusState private var selfNameFocused: Bool
 
     private enum PrivacyConfirmation: Identifiable {
         case clearLibrary
         case deleteRecordings
+        case deleteKeptRecordings
         var id: Self { self }
     }
 
@@ -90,6 +93,13 @@ struct MeetingsPaneContent: View {
             MeetingsConfirmations.deleteRecordings
         ) {
             model.deleteTemporaryRecordings()
+        }
+        .destructiveConfirmation(
+            isPresented: Binding(
+                get: { confirmation == .deleteKeptRecordings }, set: { if !$0 { confirmation = nil } }),
+            MeetingsConfirmations.deleteKeptRecordings
+        ) {
+            model.deleteKeptRecordings()
         }
     }
 
@@ -165,6 +175,7 @@ struct MeetingsPaneContent: View {
                         comment: "Settings → Dictation: help under the language of the Whisper model"))
             }
         }
+        selfNameRow
         MenuPicker(selection: Binding(get: { model.retentionDays }, set: { model.selectRetention($0) })) {
             ForEach(model.retentionChoices(), id: \.self) { days in
                 Text(MeetingsSettingsPane.retentionTitle(days)).font(textSize.font(.body)).tag(days)
@@ -172,6 +183,63 @@ struct MeetingsPaneContent: View {
         } label: {
             Text("Keep meetings for", comment: "Meetings settings label of the retention choice")
                 .font(textSize.font(.body))
+        }
+    }
+
+    /// "Your name": a field that saves on Return or when it loses focus, and a button that fills it from the
+    /// macOS account only when clicked.
+    @ViewBuilder private var selfNameRow: some View {
+        LabeledContent {
+            TextField(
+                text: $selfNameDraft,
+                prompt: Text("Your name", comment: "Meetings settings: placeholder of the owner's name field")
+            ) {
+                Text("Your name", comment: "Meetings settings: label of the owner's name field")
+            }
+            .labelsHidden()
+            .font(textSize.font(.body))
+            .multilineTextAlignment(.trailing)
+            .frame(maxWidth: 200)
+            .focused($selfNameFocused)
+            .onSubmit { commitSelfName() }
+            .onChange(of: selfNameFocused) { _, focused in
+                if !focused { commitSelfName() }
+            }
+            .onAppear { selfNameDraft = model.selfName }
+        } label: {
+            label(
+                Text("Your name", comment: "Meetings settings: label of the owner's name field"),
+                help: Text(
+                    "Used in notes so tasks get an owner.",
+                    comment: "Settings → Meetings: help under the Your name field"))
+            if let error = model.selfNameError {
+                Text(Self.selfNameMessage(error))
+                    .font(textSize.font(.callout))
+                    .foregroundStyle(LintelBrand.statusError)
+            }
+            if let suggestion = model.suggestedSelfName {
+                Button {
+                    selfNameDraft = suggestion
+                    commitSelfName()
+                } label: {
+                    Text("Use: \(suggestion)", comment: "Meetings settings: button that fills Your name; the name")
+                        .font(textSize.font(.callout))
+                }
+                .buttonStyle(.link)
+            }
+        }
+    }
+
+    private func commitSelfName() {
+        if model.saveSelfName(selfNameDraft) { selfNameDraft = model.selfName }
+    }
+
+    static func selfNameMessage(_ error: MeetingsSettings.SelfNameError) -> LocalizedStringKey {
+        switch error {
+        case .generic:
+            "Use a real name, not a word like “I” or “Speaker 1”."
+        case .tooLong:
+            "The name is too long (60 characters at most)."
         }
     }
 
@@ -368,6 +436,37 @@ struct MeetingsPaneContent: View {
                 help: Text(
                     "Audio of interrupted meetings.",
                     comment: "Settings → Meetings: help under Temporary recordings"))
+        }
+        Toggle(isOn: $model.keepAudio) {
+            label(
+                Text("Keep recordings", comment: "Settings → Meetings switch that keeps the encrypted audio"),
+                help: Text(
+                    "Keeps the encrypted audio of the voices in your meetings for \(model.keptAudioDays) days, on this Mac only.",
+                    comment: "Settings → Meetings: help under Keep recordings (days)"))
+        }
+        .toggleStyle(.switch)
+        if model.keepAudio || model.keptAudioCount > 0 {
+            LabeledContent {
+                Button(role: .destructive) {
+                    confirmation = .deleteKeptRecordings
+                } label: {
+                    Text(
+                        "Delete Kept Recordings…",
+                        comment: "Meetings settings button that deletes the audio kept by Keep recordings"
+                    )
+                    .font(textSize.font(.body))
+                }
+                .lintelDestructiveButton()
+                .disabled(!model.canChangeLibrary || model.keptAudioCount == 0)
+            } label: {
+                label(
+                    Text("Kept recordings", comment: "Settings → Meetings row of the audio kept after a meeting"),
+                    help: Text(
+                        model.keepAudio
+                            ? "\(model.keptAudioCount) kept."
+                            : "\(model.keptAudioCount) kept. Switched off: they stay until they expire or you delete them.",
+                        comment: "Settings → Meetings: help under Kept recordings (count)"))
+            }
         }
         if let message = model.privacyMessage {
             Text(message)

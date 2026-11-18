@@ -13,7 +13,9 @@ import Testing
 ///     LINTEL_MEETING_EVAL_SPEECH_FOLDER=<Models>/speech/parakeet-ultra swift test -c release --filter MeetingEvalTests
 ///
 /// Optional: `_NAME`, `_ENGINE` (`parakeet-ultra` | `whisper-large-v3-turbo`), `_LANGUAGE` (`pl` | `en`, Whisper
-/// only), `_CODE_VERSION`, `_NOTES_MODEL` (a .gguf), `_DIARIZATION_FOLDER`, `_ALLOW_DEBUG`. The WAV must be
+/// only), `_CODE_VERSION`, `_NOTES_MODEL` (a .gguf), `_DUMP_REJECTIONS` (`1`: also write
+/// `<name>.notes-rejections.json` with the text of every refused point; the only file that holds notes text
+/// besides the result), `_DIARIZATION_FOLDER`, `_SPEAKER_NAMES` (a JSON of oracle names that replace "Mówca N" after diarization), `_ALLOW_DEBUG`. The WAV must be
 /// 16 kHz mono. The transcript goes only into the JSON; the test prints numbers, never text.
 @Suite(
     .serialized,
@@ -143,6 +145,20 @@ struct MeetingEvalTests {
                     rows[index].speaker = plan.speakers[speaker].label
                 }
             }
+            // Experiment only: replace "Mówca N" with oracle names (JSON `{"Mówca N": {"name": ...}}`). The names are
+            // text, so they reach the notes pipeline input and nothing else (no trace, no printed output).
+            if let path = Self.value("SPEAKER_NAMES") {
+                let mapping = try JSONDecoder().decode(
+                    [String: OracleSpeakerName].self, from: Data(contentsOf: URL(filePath: path)))
+                var replaced = 0
+                for index in rows.indices {
+                    if let label = rows[index].speaker, let name = mapping[label]?.name, !name.isEmpty {
+                        rows[index].speaker = name
+                        replaced += 1
+                    }
+                }
+                print("MEETING-EVAL speaker-names replaced=\(replaced)")
+            }
             result.asr.segments = rows
             print(
                 "MEETING-EVAL diarization seconds=\(Self.ms(seconds)) peakMB=\(Self.ms(peak)) speakers=\(speakers)")
@@ -154,9 +170,17 @@ struct MeetingEvalTests {
             configuration.chunkTokens = MeetingsSettings.defaultNotesChunkTokens
             configuration.reduceInputTokens = MeetingsSettings.defaultNotesReduceInputTokens
             let runtime = LlamaRuntime(contextLength: NotesModel.contextLength)
+            let recorder = RecordingRuntime(runtime)
             let notesModel = NotesModel(
-                lease: LLMLease(), runtime: runtime, modelURL: modelURL, keepWarm: { .seconds(1) })
-            let pipeline = NotesPipeline(model: notesModel, configuration: configuration)
+                lease: LLMLease(), runtime: recorder, modelURL: modelURL, keepWarm: { .seconds(1) })
+            let traceEvents = Mutex<[NotesTraceEvent]>([])
+            // `LINTEL_MEETING_EVAL_NO_VERIFIER=1`: a control run without the semantic verifier on the same build.
+            let noVerifier = Self.value("NO_VERIFIER") == "1"
+            print("MEETING-EVAL notes verifier=\(noVerifier ? "off" : "on")")
+            let pipeline = NotesPipeline(
+                model: notesModel, configuration: configuration,
+                trace: { event in traceEvents.withLock { $0.append(event) } },
+                verifier: noVerifier ? nil : { @Sendable runtime in LLMNotesVerifier(runtime: runtime) })
             let utterances = rows.map { NotesUtterance(startMs: $0.startMs, speaker: $0.speaker ?? "?", text: $0.text) }
             let footprint = FootprintSampler()
             footprint.start()
@@ -179,6 +203,24 @@ struct MeetingEvalTests {
                 status: notes.status.rawValue, chunkCount: notes.chunkCount, verifiedPoints: notes.verifiedPointCount,
                 dropped: notes.droppedCount, failedChunks: notes.failedChunks.count, reduceFailed: notes.reduceFailed,
                 markdown: notes.markdown ?? "")
+            let events = traceEvents.withLock { $0 }
+            let balance = NotesTrace.balance(of: events)
+            let traceURL = try EvalResultWriter.write(NotesTraceFile(recording: name, events: events), to: outDirectory)
+            print(
+                "MEETING-EVAL notes-trace events=\(events.count) verified=\(balance.verified)"
+                    + " rendered=\(balance.rendered) notRendered=\(balance.notRendered)"
+                    + " unexplained=\(balance.unexplained)")
+            print("MEETING-EVAL wrote \(traceURL.path)")
+            // Off unless asked for: the file holds transcript-derived text, so only numbers are printed.
+            if let dump = try NotesRejectionReport.writeIfEnabled(
+                Self.value("DUMP_REJECTIONS") == "1", recording: name, records: recorder.records,
+                utterances: utterances, to: outDirectory)
+            {
+                print(
+                    "MEETING-EVAL notes-rejections answers=\(dump.report.answers.count)"
+                        + " points=\(dump.report.pointCount) rejected=\(dump.report.rejectedCount)")
+                print("MEETING-EVAL wrote \(dump.url.path)")
+            }
             print(
                 "MEETING-EVAL notes seconds=\(Self.ms(seconds)) peakMB=\(Self.ms(peak)) status=\(notes.status.rawValue)"
                     + " chunks=\(notes.chunkCount) points=\(notes.verifiedPointCount) dropped=\(notes.droppedCount)")
@@ -188,6 +230,9 @@ struct MeetingEvalTests {
         print("MEETING-EVAL wrote \(written.path)")
     }
 }
+
+/// One entry of the oracle speaker-name file; only `name` is read.
+private struct OracleSpeakerName: Decodable { let name: String? }
 
 /// An in-memory source of Float chunks for the diarizer (the evaluation has no spool for it).
 private final class EvalArraySource: AudioSampleSource {

@@ -53,6 +53,7 @@ let package = Package(
             name: "LintelPersistence",
             dependencies: [
                 "LintelKit",
+                "LintelCore",
                 .product(name: "GRDB", package: "GRDBCipher"),
             ]
         ),

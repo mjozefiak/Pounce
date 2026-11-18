@@ -24,11 +24,15 @@ struct MeetingsSettings: Sendable {
         static let suggestExtraBundleIDs = "suggestExtraBundleIDs"
         static let retentionDays = "retentionDays"
         static let orphanAudioDays = "orphanAudioDays"
+        static let keepAudio = "keepAudio"
+        static let keptAudioDays = "keptAudioDays"
+        static let selfName = "selfName"
     }
 
     static let defaultSpeechModel = "parakeet-ultra"
     static let defaultRetentionDays = 90
     static let defaultOrphanAudioDays = 7
+    static let defaultKeptAudioDays = 30
     static let defaultNotesChunkTokens = 3_000
     static let defaultNotesReduceInputTokens = 4_500
     /// Choices in Settings; 0 keeps meetings until the user deletes them.
@@ -106,6 +110,47 @@ struct MeetingsSettings: Sendable {
         max(1, settings.integer(Key.notesReduceInputTokens, default: Self.defaultNotesReduceInputTokens))
     }
 
+    // MARK: Your name
+
+    /// The longest name the field accepts.
+    static let maximumSelfNameLength = 60
+
+    /// Why a typed name is not saved.
+    enum SelfNameError: Error, Equatable, Sendable {
+        /// A word the notes cannot use as a person ("I", "Speaker 1", "On"; `NotesGuard.isGenericLabel`).
+        case generic
+        case tooLong
+    }
+
+    /// The name of the person who records, as the notes call them; empty when unset. Read through the same
+    /// validation as a save, so a hand-edited preference cannot put a generic word or a long text in the prompt.
+    var selfName: String {
+        guard let stored = settings.string(Key.selfName),
+            case .success(let name) = Self.validatedSelfName(stored)
+        else { return "" }
+        return name
+    }
+
+    /// The trimmed name, or the reason it is rejected. Empty is valid: it clears the setting.
+    static func validatedSelfName(_ text: String) -> Result<String, SelfNameError> {
+        let name = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if name.isEmpty { return .success("") }
+        if name.count > maximumSelfNameLength { return .failure(.tooLong) }
+        if NotesGuard.isGenericLabel(name) { return .failure(.generic) }
+        return .success(name)
+    }
+
+    /// Saves the name when it passes `validatedSelfName(_:)`; an empty one removes the setting. A rejected
+    /// name changes nothing.
+    @discardableResult
+    func setSelfName(_ text: String) -> Result<String, SelfNameError> {
+        let result = Self.validatedSelfName(text)
+        if case .success(let name) = result {
+            if name.isEmpty { settings.removeValue(for: Key.selfName) } else { settings.set(name, for: Key.selfName) }
+        }
+        return result
+    }
+
     // MARK: Meeting suggestions
 
     var suggestMeetings: Bool { settings.bool(Key.suggestMeetings, default: false) }
@@ -153,6 +198,13 @@ struct MeetingsSettings: Sendable {
         return days < 0 ? Self.defaultRetentionDays : days
     }
 
+    /// Keep the encrypted recording after the transcript is ready (owner decision M-Q3). Off by default: it
+    /// stores more than the app did before, so it only changes when the user flips it.
+    var keepAudio: Bool { settings.bool(Key.keepAudio, default: false) }
+
+    /// How long kept audio stays; at least a day.
+    var keptAudioDays: Int { max(1, settings.integer(Key.keptAudioDays, default: Self.defaultKeptAudioDays)) }
+
     var orphanAudioDays: Int { max(1, settings.integer(Key.orphanAudioDays, default: Self.defaultOrphanAudioDays)) }
 
     func setSpeechModelID(_ id: String) { settings.set(id, for: Key.speechModel) }
@@ -188,5 +240,6 @@ struct MeetingsSettings: Sendable {
     func setSuggestMutedBundleIDs(_ ids: [String]) { settings.set(ids, for: Key.suggestMutedBundleIDs) }
     func setSuggestExtraBundleIDs(_ ids: [String]) { settings.set(ids, for: Key.suggestExtraBundleIDs) }
     func setRetentionDays(_ days: Int) { settings.set(max(0, days), for: Key.retentionDays) }
+    func setKeepAudio(_ value: Bool) { settings.set(value, for: Key.keepAudio) }
     func setOrphanAudioDays(_ days: Int) { settings.set(days, for: Key.orphanAudioDays) }
 }

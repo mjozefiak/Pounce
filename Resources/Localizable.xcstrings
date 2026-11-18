@@ -3421,24 +3421,6 @@
         }
       }
     },
-    "Lets Lintel hear you while you dictate or record a meeting. Dictation audio is never saved; meeting audio is stored encrypted on this Mac until the transcript is complete, and the audio of unfinished meetings is kept for a limited time." : {
-      "comment" : "Explanation of the Microphone permission",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lets Lintel hear you while you dictate or record a meeting. Dictation audio is never saved; meeting audio is stored encrypted on this Mac until the transcript is complete, and the audio of unfinished meetings is kept for a limited time."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pozwala aplikacji Lintel słyszeć Cię podczas dyktowania i nagrywania spotkania. Dźwięk dyktowania nigdy nie jest zapisywany; dźwięk spotkania jest przechowywany w zaszyfrowanej postaci na tym Macu, dopóki transkrypt nie będzie kompletny, a dźwięk niedokończonych spotkań jest przechowywany przez ograniczony czas."
-          }
-        }
-      }
-    },
     "Lets Lintel paste into the app you were using. Without it, Lintel only copies." : {
       "comment" : "Explanation of the Accessibility permission",
       "extractionState" : "manual",
@@ -9253,6 +9235,96 @@
         }
       }
     },
+    "Your name" : {
+      "comment" : "Meetings settings: label of the owner's name field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your name"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Twoje imię"
+          }
+        }
+      }
+    },
+    "Used in notes so tasks get an owner." : {
+      "comment" : "Settings → Meetings: help under the Your name field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used in notes so tasks get an owner."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Używane w notatkach, żeby zadania miały właściciela."
+          }
+        }
+      }
+    },
+    "Use: %@" : {
+      "comment" : "Meetings settings: button that fills Your name; the name",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use: %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Użyj: %@"
+          }
+        }
+      }
+    },
+    "Use a real name, not a word like “I” or “Speaker 1”." : {
+      "comment" : "Meetings settings: the name was rejected as a generic word",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use a real name, not a word like “I” or “Speaker 1”."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wpisz prawdziwe imię, a nie słowo w rodzaju „Ja” czy „Mówca 1”."
+          }
+        }
+      }
+    },
+    "The name is too long (60 characters at most)." : {
+      "comment" : "Meetings settings: the name was rejected as too long",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The name is too long (60 characters at most)."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imię jest za długie (najwyżej 60 znaków)."
+          }
+        }
+      }
+    },
     "Keep meetings for" : {
       "comment" : "Meetings settings label of the retention choice",
       "extractionState" : "manual",
@@ -10365,6 +10437,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sprawdź uprawnienie nagrywania dźwięku systemu"
+          }
+        }
+      }
+    },
+    "No microphone audio – check the microphone permission and input" : {
+      "comment" : "Meeting HUD notice when the microphone delivers only digital silence for about 10 seconds",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No microphone audio – check the microphone permission and input"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak dźwięku z mikrofonu – sprawdź uprawnienie i wejście"
           }
         }
       }
@@ -23829,6 +23919,204 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nie udało się odczytać tego pliku."
+          }
+        }
+      }
+    },
+    "Lets Lintel hear you while you dictate or record a meeting. Dictation audio is never saved; meeting audio is stored encrypted on this Mac until the transcript is complete unless you turn on Keep recordings, and the audio of unfinished meetings is kept for a limited time." : {
+      "comment" : "Explanation of the Microphone permission",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lets Lintel hear you while you dictate or record a meeting. Dictation audio is never saved; meeting audio is stored encrypted on this Mac until the transcript is complete unless you turn on Keep recordings, and the audio of unfinished meetings is kept for a limited time."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pozwala aplikacji Lintel słyszeć Cię podczas dyktowania i nagrywania spotkania. Dźwięk dyktowania nigdy nie jest zapisywany; dźwięk spotkania jest przechowywany w zaszyfrowanej postaci na tym Macu, dopóki transkrypt nie będzie kompletny, chyba że włączysz zachowywanie nagrań, a dźwięk niedokończonych spotkań jest przechowywany przez ograniczony czas."
+          }
+        }
+      }
+    },
+    "Delete kept recordings?" : {
+      "comment" : "Meetings settings confirmation title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete kept recordings?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunąć zachowane nagrania?"
+          }
+        }
+      }
+    },
+    "The kept audio of all meetings is deleted, so you can no longer listen to it. Transcripts and notes stay." : {
+      "comment" : "Meetings settings confirmation text of Delete Kept Recordings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The kept audio of all meetings is deleted, so you can no longer listen to it. Transcripts and notes stay."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zachowany dźwięk wszystkich spotkań zostanie usunięty, więc nie będzie można go odsłuchać. Transkrypty i notatki zostają."
+          }
+        }
+      }
+    },
+    "Deleted %lld kept recordings." : {
+      "comment" : "Meetings settings: result of Delete Kept Recordings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deleted %lld kept recordings."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunięto zachowane nagrania: %lld."
+          }
+        }
+      }
+    },
+    "Keep recordings" : {
+      "comment" : "Settings → Meetings switch that keeps the encrypted audio",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep recordings"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zachowuj nagrania"
+          }
+        }
+      }
+    },
+    "Keeps the encrypted audio of the voices in your meetings for %lld days, on this Mac only." : {
+      "comment" : "Settings → Meetings: help under Keep recordings (days)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keeps the encrypted audio of the voices in your meetings for %lld days, on this Mac only."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przechowuje zaszyfrowany dźwięk głosów ze spotkań przez %lld dni, tylko na tym Macu."
+          }
+        }
+      }
+    },
+    "Delete Kept Recordings…" : {
+      "comment" : "Meetings settings button that deletes the audio kept by Keep recordings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Kept Recordings…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń zachowane nagrania…"
+          }
+        }
+      }
+    },
+    "Kept recordings" : {
+      "comment" : "Settings → Meetings row of the audio kept after a meeting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kept recordings"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zachowane nagrania"
+          }
+        }
+      }
+    },
+    "%lld kept." : {
+      "comment" : "Settings → Meetings: help under Kept recordings (count)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld kept."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zachowane: %lld."
+          }
+        }
+      }
+    },
+    "%lld kept. Switched off: they stay until they expire or you delete them." : {
+      "comment" : "Settings → Meetings: help under Kept recordings (count)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld kept. Switched off: they stay until they expire or you delete them."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zachowane: %lld. Wyłączone: zostają do wygaśnięcia albo do ręcznego usunięcia."
+          }
+        }
+      }
+    },
+    "Kept, encrypted" : {
+      "comment" : "Notes details: the audio of the meeting is kept by Keep recordings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kept, encrypted"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zachowany, zaszyfrowany"
           }
         }
       }

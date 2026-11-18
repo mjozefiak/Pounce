@@ -62,6 +62,9 @@ struct NotesResult: Equatable, Sendable {
     /// The decisions, tasks and open questions that stand in the notes, with their quotes (for the regression
     /// tests; nothing stores or shows them).
     var points: [NotesPoint] = []
+    /// The summary points that stand in the notes as key points, in time order (for the regression tests;
+    /// nothing stores or shows them).
+    var keyPoints: [NotesPoint] = []
 }
 
 enum NotesFailure: Error, Equatable {
@@ -86,7 +89,7 @@ struct NotesPipeline: Sendable {
     struct Configuration: Sendable {
         var chunkTokens = TranscriptChunker.defaultChunkTokens
         var reduceInputTokens = 4500
-        var mapMaxTokens = 700
+        var mapMaxTokens = 1000
         var reduceMaxTokens = 1500
         var mapTimeout: Duration = .seconds(300)
         var reduceTimeout: Duration = .seconds(600)
@@ -96,6 +99,12 @@ struct NotesPipeline: Sendable {
         var busyLimit: Duration = .seconds(1800)
         /// The language of the headings when the transcript does not tell.
         var fallbackLanguage: NotesLanguage = .english
+        /// The generation time the semantic verifier may take in one run, all its points together (counted like
+        /// `mapTimeout`: only while a request runs on the model). One check is a prompt of about 500 to 900
+        /// tokens and an answer of about six, so roughly a second on the 4B model; 120 s covers the 60 to 90
+        /// points of an hour-long meeting and caps the extra time at about one and a half MAP passes of such a
+        /// meeting (about 80 s). Points left when it runs out get no verdict and keep the guard's result.
+        var verifierBudget: Duration = .seconds(120)
 
         init() {}
     }
@@ -105,16 +114,19 @@ struct NotesPipeline: Sendable {
     private let sleep: @Sendable (Duration) async throws -> Void
     /// Where the stage trace goes (`NotesTrace`); `nil`, the default, records nothing.
     private let trace: NotesTraceSink?
+    /// Builds the semantic verifier over the notes' own model; `nil` leaves the guard's rules alone.
+    private let makeVerifier: NotesVerifierFactory?
 
     init(
         model: NotesModel, configuration: Configuration = Configuration(),
         sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) },
-        trace: NotesTraceSink? = nil
+        trace: NotesTraceSink? = nil, verifier: NotesVerifierFactory? = NotesPipeline.defaultVerifier
     ) {
         self.model = model
         self.configuration = configuration
         self.sleep = sleep
         self.trace = trace
+        makeVerifier = verifier
     }
 
     /// Writes the notes. Throws `CancellationError` when cancelled and `NotesFailure` when the model cannot be
@@ -165,7 +177,8 @@ struct NotesPipeline: Sendable {
             try Task.checkCancellation()
             onEvent(.map(done: index, total: chunks.count))
             let outcome = try await mapChunk(
-                chunk, lease: lease, canSplit: true, firstPoint: proposed.count + 1, recorder: recorder)
+                chunk, language: verifier.language, lease: lease, canSplit: true, firstPoint: proposed.count + 1,
+                recorder: recorder)
             proposed.append(contentsOf: outcome.points)
             failed.append(contentsOf: outcome.failed)
             if outcome.failed.contains(chunk.id) { failedWhole += 1 }
@@ -175,21 +188,29 @@ struct NotesPipeline: Sendable {
         func result(
             status: NotesResult.Status, markdown: String?, dropped: Int = 0, points: Int = 0,
             reduceFailed: Bool = false, replaced: Bool = false, rejected: Int = 0, repaired: Int = 0,
-            downgraded: Int = 0, backfilled: Int = 0, kept: [NotesPoint] = []
+            downgraded: Int = 0, backfilled: Int = 0, kept: [NotesPoint] = [], keyPoints: [NotesPoint] = []
         ) -> NotesResult {
             NotesResult(
                 status: status, markdown: markdown, droppedCount: dropped, failedChunks: failed,
                 chunkCount: chunks.count, verifiedPointCount: points, reduceFailed: reduceFailed,
                 summaryReplaced: replaced, rejectedIDs: rejected, language: verifier.language,
                 promptVersion: String(NotesPrompt.version), repairedCount: repaired, downgradedCount: downgraded,
-                backfilledCount: backfilled, points: kept)
+                backfilledCount: backfilled, points: kept, keyPoints: keyPoints)
         }
         if failedWhole == chunks.count { return result(status: .failed, markdown: nil) }
 
         // The code, not the model, names the points.
         for index in proposed.indices { proposed[index].id = "p\(index + 1)" }
-        let verdict = verifier.verifyPoints(proposed)
-        recorder?.emit(.verified(NotesTraceVerification(proposed: proposed.count, verdict: verdict)))
+        let checked = verifier.verifyPoints(proposed)
+        var verdict = checked
+        var verifierTrace: NotesTraceVerifier?
+        if let makeVerifier {
+            let reviewed = try await review(checked, notesGuard: verifier, lease: lease, make: makeVerifier)
+            verdict = reviewed.verdict
+            verifierTrace = reviewed.trace
+        }
+        recorder?.emit(
+            .verified(NotesTraceVerification(proposed: proposed.count, verdict: verdict, verifier: verifierTrace)))
         let unique = Self.deduplicated(verdict.verified)
         let points = Self.ordered(unique)
         recorder?.emit(
@@ -230,7 +251,8 @@ struct NotesPipeline: Sendable {
             status: reduced.failed ? .partial : flowStatus, markdown: markdown, dropped: verdict.dropped,
             points: points.count, reduceFailed: reduced.failed, replaced: final.summaryReplaced,
             rejected: final.rejectedIDs, repaired: verdict.repaired, downgraded: verdict.downgraded,
-            backfilled: final.backfilled, kept: final.decisions + final.tasks + final.questions)
+            backfilled: final.backfilled, kept: final.decisions + final.tasks + final.questions,
+            keyPoints: final.keyPoints)
     }
 
     /// Chunk overlap and a model that says a thing twice give the same point twice; the first one stays. Two
@@ -258,6 +280,64 @@ struct NotesPipeline: Sendable {
         return utterances.map(\.speaker).filter { seen.insert($0).inserted }
     }
 
+    // MARK: Semantic verifier
+
+    /// Asks the verifier about every point the guard kept or repaired in a way it may undo
+    /// (`NotesGuard.PointReview.claim`), one at a time on the notes' lease, within `verifierBudget` of generation
+    /// time, and applies the answers (`NotesGuard.applyingVerifications`). Only the points the deduplication keeps
+    /// are asked (it does not depend on the text). Cancelling the run throws; running out of time, a failed or
+    /// malformed answer leave a point as the guard left it.
+    private func review(
+        _ verdict: NotesGuard.PointVerdict, notesGuard: NotesGuard, lease: NotesLease,
+        make: @escaping NotesVerifierFactory
+    ) async throws -> (verdict: NotesGuard.PointVerdict, trace: NotesTraceVerifier) {
+        let kept = Set(Self.deduplicated(verdict.verified).map(\.id))
+        var requests: [NotesVerifierRequestItem] = []
+        for (point, review) in zip(verdict.verified, verdict.reviews) where kept.contains(point.id) {
+            guard let claim = review.claim(of: point) else { continue }
+            requests.append(.init(id: point.id, request: notesGuard.verificationRequest(for: point, claim: claim)))
+        }
+        var trace = NotesTraceVerifier(promptVersion: NotesVerifierPrompt.version, eligible: requests.count)
+        guard !requests.isEmpty else { return (verdict, trace) }
+        let items = requests
+
+        let store = NotesVerificationStore()
+        let contextLength = model.key.contextLength
+        let started = ContinuousClock.now
+        let finished = try await NotesDeadline.run(limit: configuration.verifierBudget, sleep: sleep) { phase in
+            phase(.running)
+            let verifier = make(NotesLeaseRuntime(lease: lease, contextLength: contextLength, onPhase: phase))
+            for item in items {
+                if Task.isCancelled { return false }
+                store.record(item.id, await verifier.verification(item.request))
+            }
+            return true
+        }
+        let results = store.close()
+        try Task.checkCancellation()
+        let elapsed = ContinuousClock.now - started
+        trace.elapsedMs = Int(
+            elapsed.components.seconds * 1000 + elapsed.components.attoseconds / 1_000_000_000_000_000)
+        trace.budgetExceeded = finished == nil
+        for verification in results.values {
+            trace.asked += 1
+            guard verification.source == .answered else {
+                trace.failed += 1
+                continue
+            }
+            switch verification.verdict {
+            case .supported: trace.supported += 1
+            case .weaker: trace.weaker += 1
+            case .unsupported: trace.unsupported += 1
+            }
+        }
+        trace.notAsked = requests.count - trace.asked
+        let applied = NotesGuard.applyingVerifications(results, to: verdict)
+        trace.restoredModelText = applied.effect.restoredModelText
+        trace.rejectedKept = applied.effect.rejectedKept
+        return (applied.verdict, trace)
+    }
+
     // MARK: MAP
 
     private struct MapOutcome {
@@ -267,12 +347,13 @@ struct NotesPipeline: Sendable {
 
     /// `firstPoint` is the number the code gives the chunk's first proposed point (`p<firstPoint>`).
     private func mapChunk(
-        _ chunk: TranscriptChunk, lease: NotesLease, canSplit: Bool, firstPoint: Int, recorder: NotesTraceRecorder?
+        _ chunk: TranscriptChunk, language: NotesLanguage, lease: NotesLease, canSplit: Bool, firstPoint: Int,
+        recorder: NotesTraceRecorder?
     ) async throws -> MapOutcome {
         var attempts = NotesTraceAttempts()
         let completion = try await complete(
             lease, maxTokens: configuration.mapMaxTokens, timeout: configuration.mapTimeout,
-            messages: { NotesPrompt.mapMessages(chunk: chunk, reminder: $0) },
+            messages: { NotesPrompt.mapMessages(chunk: chunk, language: language, reminder: $0) },
             parse: { raw -> [NotesPoint]? in
                 if case .points(let points) = NotesParser.parseMap(raw) { points } else { nil }
             }, attempts: &attempts)
@@ -300,7 +381,8 @@ struct NotesPipeline: Sendable {
             var merged = MapOutcome()
             for half in halves {
                 let outcome = try await mapChunk(
-                    half, lease: lease, canSplit: false, firstPoint: firstPoint + merged.points.count,
+                    half, language: language, lease: lease, canSplit: false,
+                    firstPoint: firstPoint + merged.points.count,
                     recorder: recorder)
                 merged.points.append(contentsOf: outcome.points)
                 merged.failed.append(contentsOf: outcome.failed)
@@ -643,5 +725,78 @@ final class NotesLease: Sendable {
                 throw NotesFailure.modelUnavailable
             }
         }
+    }
+}
+
+/// Builds the semantic verifier over the runtime the notes hold (`NotesLeaseRuntime`: the same model as MAP,
+/// no second load).
+typealias NotesVerifierFactory = @Sendable (any LLMRuntime) -> any NotesVerifying
+
+extension NotesPipeline {
+    /// The one switch of the semantic verifier (spec `2026-11-06-meeting-notes-semantic-verifier`, Faza B). Off,
+    /// the notes are what the guard's rules alone make of them, as before.
+    ///
+    /// Off by default: in the evaluation on 2026-11-06 the verifier raised the share of points shown in the
+    /// model's own words from about 9-19% to about 45-53% (Qwen3-4B), but the blind judges' faithfulness fell on
+    /// the Polish recording (3 -> 1, unsupported claims 3 -> 9 and 10) and the overall scores did not improve
+    /// beyond noise (spec 2026-11-06-meeting-notes-semantic-verifier, results in the eval archive). Switch on
+    /// only after a verifier that passes a stricter gate.
+    static let notesVerifierEnabled = false
+
+    /// `LLMNotesVerifier` when `notesVerifierEnabled`, else nil.
+    static var defaultVerifier: NotesVerifierFactory? {
+        guard notesVerifierEnabled else { return nil }
+        return { @Sendable runtime in LLMNotesVerifier(runtime: runtime) }
+    }
+}
+
+/// One point to verify: its id and the request.
+struct NotesVerifierRequestItem: Sendable {
+    var id: String
+    var request: NotesVerificationRequest
+}
+
+/// The verdicts gathered while the verifier runs. Closed once the run is over (finished, out of time or
+/// cancelled): a verdict that comes later is dropped, so a point cut off by the time limit has none.
+final class NotesVerificationStore: Sendable {
+    private struct State {
+        var results: [String: NotesVerification] = [:]
+        var closed = false
+    }
+
+    private let state = Mutex(State())
+
+    func record(_ id: String, _ verification: NotesVerification) {
+        state.withLock { state in
+            if !state.closed { state.results[id] = verification }
+        }
+    }
+
+    func close() -> [String: NotesVerification] {
+        state.withLock { state in
+            state.closed = true
+            return state.results
+        }
+    }
+}
+
+/// The notes' lease seen as an `LLMRuntime`, so `LLMNotesVerifier` generates on the model the notes already hold
+/// (with the lease's takeover rules) and reports the request's phase to the verifier's time limit. It never loads
+/// or unloads anything itself.
+struct NotesLeaseRuntime: LLMRuntime {
+    let lease: NotesLease
+    let contextLength: Int
+    let onPhase: @Sendable (GenerationPhase) -> Void
+
+    var isLoaded: Bool { get async { true } }
+    func load(modelAt url: URL) async throws {}
+    func unload() async {}
+
+    func generate(messages: [ChatMessage], maxTokens: Int) async throws -> String {
+        try await generateResult(messages: messages, maxTokens: maxTokens).text
+    }
+
+    func generateResult(messages: [ChatMessage], maxTokens: Int) async throws -> GenerationResult {
+        try await lease.generateResult(messages: messages, maxTokens: maxTokens, onPhase: onPhase)
     }
 }

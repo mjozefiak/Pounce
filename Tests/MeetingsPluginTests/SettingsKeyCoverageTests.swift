@@ -21,6 +21,8 @@ import Testing
         "suggestMutedBundleIDs": "setSuggestMutedBundleIDs",
         "suggestExtraBundleIDs": "setSuggestExtraBundleIDs",
         "retentionDays": "setRetentionDays",
+        "keepAudio": "setKeepAudio",
+        "selfName": "setSelfName",
     ]
 
     /// Keys with no pane control, each with the reason. The prototype figure `set-meetings` shows no control for
@@ -31,6 +33,7 @@ import Testing
         "notesChunkTokens": "tuning key set with defaults only; no pane control by design",
         "notesReduceInputTokens": "tuning key set with defaults only; no pane control by design",
         "orphanAudioDays": "tuning key set with defaults only; no pane control by design",
+        "keptAudioDays": "tuning key set with defaults only; the switch's help names the days (owner decision M-Q3)",
     ]
 
     /// The pane view and model sources, relative to the repository root.
@@ -68,6 +71,8 @@ import Testing
                 "suggestMutedBundleIDs": "model.unmute(",
                 "suggestExtraBundleIDs": "model.addExtraApp(",
                 "retentionDays": "model.selectRetention(",
+                "keepAudio": "$model.keepAudio",
+                "selfName": "model.saveSelfName(",
             ]
         )
     ]

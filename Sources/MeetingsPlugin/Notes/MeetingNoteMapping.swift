@@ -59,10 +59,18 @@ enum MeetingNoteMapping {
                         "Speech model", comment: "Notes details: the model that wrote the transcript"),
                     value: model))
         }
-        let audio =
-            document.audioState == .spool
-            ? String(localized: "Kept for recovery", comment: "Notes details: the audio of the meeting is still stored")
-            : String(localized: "Deleted", comment: "Notes details: the audio of the meeting is gone")
+        let audio: String
+        switch document.audioState {
+        case .spool:
+            audio = String(
+                localized: "Kept for recovery", comment: "Notes details: the audio of the meeting is still stored")
+        case .kept:
+            audio = String(
+                localized: "Kept, encrypted",
+                comment: "Notes details: the audio of the meeting is kept by Keep recordings")
+        case .deleted:
+            audio = String(localized: "Deleted", comment: "Notes details: the audio of the meeting is gone")
+        }
         result.append(
             NoteDetail(
                 label: LocalizedStringResource("Audio", comment: "Notes details: what is left of the recording"),

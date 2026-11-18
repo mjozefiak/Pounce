@@ -1,5 +1,6 @@
 import Darwin
 import Foundation
+import LintelCore
 
 /// What the scanner and the watcher leave out of the index (spec step 3.1).
 ///

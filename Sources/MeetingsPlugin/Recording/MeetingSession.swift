@@ -41,6 +41,8 @@ actor MeetingSession {
     private let store: MeetingsStore
     private let keys: MeetingKeys
     private let spoolStorage: SpoolStorage
+    /// Read when the meeting becomes `ready`: `plugins.meetings.keepAudio` at that moment decides.
+    private let keepAudio: @Sendable () -> Bool
     private let engine: any SpeechEngine
     private let modelID: String
     private let modelFolder: URL
@@ -116,9 +118,10 @@ actor MeetingSession {
         echo: EchoSuppressor = EchoSuppressor(), uuid: UUID = UUID(), now: @escaping @Sendable () -> Date = { Date() },
         sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) },
         beforeReady: (@Sendable (Int64, UUID) async -> Void)? = nil,
-        sourceBundleID: String? = nil,
+        sourceBundleID: String? = nil, keepAudio: @escaping @Sendable () -> Bool = { false },
         logger: Logger = Logger(subsystem: "com.lintelapp", category: "meetings")
     ) {
+        self.keepAudio = keepAudio
         self.sourceBundleID = sourceBundleID
         (events, continuation) = AsyncStream.makeStream(of: Event.self, bufferingPolicy: .unbounded)
         self.store = store
@@ -899,6 +902,14 @@ actor MeetingSession {
         } catch {
             logger.error("The meeting could not be marked ready; the audio is kept")
             return false
+        }
+        if keepAudio() {
+            do {
+                try store.setAudioState(id, state: .kept)
+            } catch {
+                logger.error("The audio state could not be updated after keeping the spool")
+            }
+            return true
         }
         _ = spoolStorage.removeSpools(forMeetings: [SpoolStorage.name(of: meetingUUID)])
         do {

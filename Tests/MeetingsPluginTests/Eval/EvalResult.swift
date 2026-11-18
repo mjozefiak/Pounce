@@ -1,6 +1,8 @@
 import Darwin
 import Foundation
 
+@testable import MeetingsPlugin
+
 /// The JSON one evaluation run writes (schema 1). The key names are a contract with `scripts/meeting-eval`:
 /// do not rename them. It carries numbers and the transcript the scorer needs; the runner never prints the text.
 struct EvalResult: Codable, Equatable, Sendable {
@@ -19,14 +21,26 @@ struct EvalResult: Codable, Equatable, Sendable {
         var text: String
         /// Additive and optional (schema 1 stays compatible): the speaker label of the segment, when diarized.
         var speaker: String?
+        /// Additive and optional: the speaker per word, with times, when the engine reports them. The scorer
+        /// prefers it over spreading the segment's words evenly over its duration. Carries no text.
+        var words: [Word]?
 
-        init(track: String, startMs: Int, endMs: Int, text: String, speaker: String? = nil) {
+        init(
+            track: String, startMs: Int, endMs: Int, text: String, speaker: String? = nil, words: [Word]? = nil
+        ) {
             self.track = track
             self.startMs = startMs
             self.endMs = endMs
             self.text = text
             self.speaker = speaker
+            self.words = words
         }
+    }
+
+    struct Word: Codable, Equatable, Sendable {
+        var startMs: Int
+        var endMs: Int
+        var speaker: String?
     }
 
     struct ASR: Codable, Equatable, Sendable {
@@ -112,24 +126,56 @@ struct EvalResult: Codable, Equatable, Sendable {
     }
 }
 
+/// The notes trace one run writes beside the result (`<name>.notes-trace.json`). It holds ids, counts, enums
+/// and times only (see `NotesTrace`), never transcript or notes text.
+struct NotesTraceFile: Codable, Equatable {
+    var schema: Int = NotesTrace.schemaVersion
+    var recording: String
+    var events: [NotesTraceEvent]
+}
+
 enum EvalResultWriter {
     struct WriteFailure: Error { let code: Int32 }
 
     static func data(for result: EvalResult) throws -> Data {
+        try encoded(result)
+    }
+
+    static func data(for trace: NotesTraceFile) throws -> Data {
+        try encoded(trace)
+    }
+
+    private static func encoded<Value: Encodable>(_ value: Value) throws -> Data {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .prettyPrinted, .withoutEscapingSlashes]
-        return try encoder.encode(result)
+        return try encoder.encode(value)
     }
 
     /// Writes `<directory>/<recording>.json` atomically (a temporary file in the same folder, created with mode
     /// 0600, then renamed over the target) and returns its URL.
     @discardableResult
     static func write(_ result: EvalResult, to directory: URL) throws -> URL {
+        try writeAtomically(try data(for: result), named: "\(result.recording).json", to: directory)
+    }
+
+    /// Writes `<directory>/<recording>.notes-trace.json` the same way.
+    @discardableResult
+    static func write(_ trace: NotesTraceFile, to directory: URL) throws -> URL {
+        try writeAtomically(try data(for: trace), named: "\(trace.recording).notes-trace.json", to: directory)
+    }
+
+    /// Writes `<directory>/<recording>.notes-rejections.json` the same way.
+    @discardableResult
+    static func write(_ report: NotesRejectionReport, to directory: URL) throws -> URL {
+        try writeAtomically(
+            try encoded(report), named: "\(report.recording).notes-rejections.json", to: directory)
+    }
+
+    private static func writeAtomically(_ body: Data, named name: String, to directory: URL) throws -> URL {
         let manager = FileManager.default
         try manager.createDirectory(at: directory, withIntermediateDirectories: true)
-        let target = directory.appending(path: "\(result.recording).json")
-        let temporary = directory.appending(path: ".\(result.recording).json.\(UUID().uuidString).tmp")
-        let body = try data(for: result)
+        let target = directory.appending(path: name)
+        let temporary = directory.appending(path: ".\(name).\(UUID().uuidString).tmp")
         guard
             manager.createFile(atPath: temporary.path, contents: body, attributes: [.posixPermissions: 0o600])
         else { throw WriteFailure(code: errno) }
