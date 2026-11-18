@@ -139,4 +139,17 @@ import Testing
         #expect(recording { $0.showsConsent = true }.announcement == "Meeting recording started")
         #expect(recording { $0.loadingModel = true }.announcement == "Meeting recording started")
     }
+
+    @Test func theSilentMicrophoneNoticeNeedsAMicrophoneTrackAndYieldsToALostDevice() {
+        var value = MeetingHUDState.Recording()
+        value.noMicrophoneAudio = true
+        #expect(value.notice == .noMicrophoneAudio)
+        value.noSystemAudio = true
+        #expect(value.notice == .noMicrophoneAudio)
+        value.lost = [.mic]
+        #expect(value.notice == .deviceDisconnected)
+        value.lost = []
+        value.recordsMicrophone = false
+        #expect(value.notice == .noSystemAudio)
+    }
 }

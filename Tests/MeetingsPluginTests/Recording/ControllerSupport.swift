@@ -337,6 +337,13 @@ final class ControllerRig {
         await eventually("the marker event") { hud.lastRecording?.elapsedSeconds == marker }
     }
 
+    /// Advances the clock and waits until the microphone watcher has checked once more.
+    func advanceMicrophoneCheck(by duration: Duration) async {
+        let before = controller.microphoneChecks
+        clock.advance(by: duration)
+        await eventually("the microphone check") { controller.microphoneChecks > before }
+    }
+
     /// Advances the clock and waits until `firing` controller timers have run out because of it.
     func advance(by duration: Duration, firing: Int) async {
         let before = controller.watcherFirings
