@@ -180,6 +180,25 @@ import Testing
         await rig.engine.stop()
     }
 
+    /// F1 (resync after wake): a window macOS moved while no move event arrived is placed again by a resync, which
+    /// a display change alone (it works on cached frames) does not do.
+    @Test func aResyncPlacesAWindowThatWasMovedBehindTheEnginesBack() async throws {
+        let rig = try rig([makeWindow(1), makeWindow(2)])
+        defer { rig.harness.tearDown() }
+        await rig.engine.start()
+        let tile = CGRect(x: 0, y: 25, width: 960, height: 1055)
+        #expect(rig.client.frame(of: id(1)) == tile)
+        rig.time.advance(2)
+        rig.client.moveBehindTheEnginesBack(id(1), to: CGRect(x: 40, y: 60, width: 500, height: 400))
+        await rig.engine.ingest(.displaysChanged)
+        await rig.engine.settle()
+        #expect(rig.client.frame(of: id(1)) == CGRect(x: 40, y: 60, width: 500, height: 400))
+        await rig.engine.ingest(.resync)
+        await rig.engine.settle()
+        #expect(rig.client.frame(of: id(1)) == tile)
+        await rig.engine.stop()
+    }
+
     @Test func aRootOrientationOverrideStacksTheWindows() async throws {
         let config = tilingConfig(overrides: [ws(1): WorkspaceOverride(rootOrientation: .vertical)])
         let rig = try rig([makeWindow(1), makeWindow(2)], config: config)
