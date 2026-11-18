@@ -169,6 +169,10 @@ answer the test polls with the capped `eventually(_:_:)`), which fails cleanly i
 mutant fails in 0.12 s). Other waits (`waitForSleepers`, `waitUntilStalled`, a plain `await task.value`) can still hang
 instead of failing if the code under test breaks; the time limit and CI's own timeout are the backstop there.
 
+## Menu bar strip: size and look
+
+Boxes are 24 × 18 pt (gap and padding 3 pt, 12 pt semibold number, radius 5, outline 1.25 pt) for up to six boxes and 22 × 18 pt (gap and padding 2 pt) for seven to nine; nine boxes are 218 pt wide. The image height is `min(22, NSStatusBar.system.thickness)`. The active box is a fill with the number cut out; an empty workspace that is not current and not shown on another display is outlined at 45 % alpha (70 % with Increase Contrast; the strip redraws when the setting changes). All of it is in `StripLayout` and `StripImage`, and the click mapping reads the same metrics (`StripLayout.metrics(boxCount:)`).
+
 ## Menu bar strip: how a click is mapped (round 13)
 
 The system delivers a click on a status item at the item's centre, so the event's own x always named the middle box.

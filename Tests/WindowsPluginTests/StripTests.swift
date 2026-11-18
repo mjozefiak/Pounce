@@ -46,6 +46,16 @@ import Testing
                 == 1)
     }
 
+    @Test func onlyAnEmptyBoxThatIsNotShownAnywhereIsDimmed() {
+        func box(count: Int, current: Bool = false, elsewhere: Bool = false) -> StripBox {
+            StripBox(number: 1, windowCount: count, isCurrent: current, isShownElsewhere: elsewhere)
+        }
+        #expect(StripImage.isDimmed(box(count: 0)))
+        #expect(!StripImage.isDimmed(box(count: 2)))
+        #expect(!StripImage.isDimmed(box(count: 0, current: true)))
+        #expect(!StripImage.isDimmed(box(count: 0, elsewhere: true)))
+    }
+
     @Test func aBoxIsAnnouncedWithItsNumberItsWindowsAndWhetherItIsCurrent() {
         let current = StripBox(number: 3, windowCount: 4, isCurrent: true, isShownElsewhere: false)
         #expect(StripModel.accessibilityLabel(current).hasPrefix("Workspace 3, "))
@@ -61,25 +71,39 @@ import Testing
 
     @Test func widthGrowsByOneBoxAndAGap() {
         #expect(StripLayout.width(boxCount: 0) == 0)
-        #expect(StripLayout.width(boxCount: 1) == 22)
-        #expect(StripLayout.width(boxCount: 4) == 82)
-        #expect(StripLayout.width(boxCount: 9) == 182)
+        #expect(StripLayout.width(boxCount: 1) == 30)
+        #expect(StripLayout.width(boxCount: 4) == 111)
+        #expect(StripLayout.width(boxCount: 6) == 165)
+        // Seven to nine boxes use the narrower metrics.
+        #expect(StripLayout.width(boxCount: 7) == CGFloat(170))
+        #expect(StripLayout.width(boxCount: 9) == 218)
+        #expect(StripLayout.metrics(boxCount: 6) == .init(boxWidth: 24, gap: 3, padding: 3))
+        #expect(StripLayout.metrics(boxCount: 7) == .init(boxWidth: 22, gap: 2, padding: 2))
+        for count in 1...9 { #expect(StripLayout.metrics(boxCount: count).boxWidth >= 20, "macOS minimum target") }
+    }
+
+    @Test func theImageHeightFollowsTheMenuBarButNeverExceeds22OrDropsBelowTheBox() {
+        #expect(StripLayout.imageHeight(thickness: 24) == 22)
+        #expect(StripLayout.imageHeight(thickness: 22) == 22)
+        #expect(StripLayout.imageHeight(thickness: 20) == 20)
+        #expect(StripLayout.imageHeight(thickness: 10) == 18)
     }
 
     @Test func aClickMapsToTheBoxUnderIt() {
         let count = 4
         for index in 0..<count {
-            let left = StripLayout.originX(ofBox: index)
+            let left = StripLayout.originX(ofBox: index, boxCount: count)
+            let width = StripLayout.metrics(boxCount: count).boxWidth
             #expect(StripLayout.index(atX: left + 1, boxCount: count) == index)
-            #expect(StripLayout.index(atX: left + StripLayout.boxWidth / 2, boxCount: count) == index)
-            #expect(StripLayout.index(atX: left + StripLayout.boxWidth - 1, boxCount: count) == index)
+            #expect(StripLayout.index(atX: left + width / 2, boxCount: count) == index)
+            #expect(StripLayout.index(atX: left + width - 1, boxCount: count) == index)
         }
     }
 
     @Test func aClickInAGapGoesToTheNearerBoxAndOutsideIsNothing() {
-        // The gap between box 0 and box 1 spans 20...22; its first half belongs to box 0.
-        #expect(StripLayout.index(atX: 20.4, boxCount: 4) == 0)
-        #expect(StripLayout.index(atX: 21.6, boxCount: 4) == 1)
+        // The gap between box 0 and box 1 spans 27...30; its first half belongs to box 0.
+        #expect(StripLayout.index(atX: 28.4, boxCount: 4) == 0)
+        #expect(StripLayout.index(atX: 28.6, boxCount: 4) == 1)
         // The padding belongs to the end boxes.
         #expect(StripLayout.index(atX: 0.5, boxCount: 4) == 0)
         #expect(StripLayout.index(atX: StripLayout.width(boxCount: 4) - 0.5, boxCount: 4) == 3)
@@ -131,6 +155,60 @@ import Testing
             })
         #expect(try #require(image.tiffRepresentation) != (try #require(other.tiffRepresentation)))
         #expect(StripImage.render([]).size.width == 1)
+        #expect(image.size.height == StripLayout.imageHeight(thickness: NSStatusBar.system.thickness))
+    }
+
+    /// The strongest alpha the template image has anywhere inside box `index`'s columns (outline, number or fill).
+    @MainActor private func peakAlpha(_ image: NSImage, boxes: [StripBox], index: Int) throws -> CGFloat {
+        let scale = 4
+        let rep = try #require(
+            NSBitmapImageRep(
+                bitmapDataPlanes: nil, pixelsWide: Int(image.size.width) * scale,
+                pixelsHigh: Int(image.size.height) * scale, bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true,
+                isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+        let context = try #require(NSGraphicsContext(bitmapImageRep: rep))
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = context
+        context.cgContext.scaleBy(x: CGFloat(scale), y: CGFloat(scale))
+        image.draw(in: NSRect(origin: .zero, size: image.size))
+        NSGraphicsContext.restoreGraphicsState()
+        let metrics = StripLayout.metrics(boxCount: boxes.count)
+        let left = Int(StripLayout.originX(ofBox: index, boxCount: boxes.count) * CGFloat(scale))
+        let right = left + Int(metrics.boxWidth * CGFloat(scale))
+        var peak: CGFloat = 0
+        for x in left..<right {
+            for y in 0..<rep.pixelsHigh { peak = max(peak, rep.colorAt(x: x, y: y)?.alphaComponent ?? 0) }
+        }
+        return peak
+    }
+
+    @MainActor @Test func anEmptyNonCurrentBoxIsDrawnDimmerThanAnOccupiedOneAndTheCurrentOneIsFilled() throws {
+        let boxes = [
+            StripBox(number: 1, windowCount: 2, isCurrent: false, isShownElsewhere: false),
+            StripBox(number: 2, windowCount: 0, isCurrent: false, isShownElsewhere: false),
+            StripBox(number: 3, windowCount: 0, isCurrent: true, isShownElsewhere: false),
+        ]
+        let image = StripImage.render(boxes, thickness: 24, increaseContrast: false)
+        let occupied = try peakAlpha(image, boxes: boxes, index: 0)
+        let empty = try peakAlpha(image, boxes: boxes, index: 1)
+        let current = try peakAlpha(image, boxes: boxes, index: 2)
+        #expect(occupied > 0.9)
+        #expect(empty > 0.2 && empty < 0.6, "empty alpha \(empty)")
+        #expect(current > 0.9)
+        // Increase Contrast dims an empty box less (its number stays readable on a light or dark menu bar).
+        let contrast = StripImage.render(boxes, thickness: 24, increaseContrast: true)
+        let emptyWithContrast = try peakAlpha(contrast, boxes: boxes, index: 1)
+        #expect(emptyWithContrast > empty + 0.15 && emptyWithContrast < 0.9, "empty alpha \(emptyWithContrast)")
+        #expect(try peakAlpha(contrast, boxes: boxes, index: 0) > 0.9)
+    }
+
+    @Test func theInkAlphaDimsOnlyEmptyBoxesAndLessWithIncreaseContrast() {
+        let empty = StripBox(number: 2, windowCount: 0, isCurrent: false, isShownElsewhere: false)
+        let occupied = StripBox(number: 1, windowCount: 3, isCurrent: false, isShownElsewhere: false)
+        #expect(StripImage.inkAlpha(empty, increaseContrast: false) == StripImage.emptyAlpha)
+        #expect(StripImage.inkAlpha(empty, increaseContrast: true) == StripImage.emptyAlphaIncreasedContrast)
+        #expect(StripImage.emptyAlphaIncreasedContrast > StripImage.emptyAlpha)
+        for contrast in [false, true] { #expect(StripImage.inkAlpha(occupied, increaseContrast: contrast) == 1) }
     }
 
     // MARK: Wiring to the engine
@@ -175,7 +253,9 @@ import Testing
             let image = StripLayout.width(boxCount: count)
             let buttonWidth = image + 12
             for index in 0..<count {
-                let centre = (buttonWidth - image) / 2 + StripLayout.originX(ofBox: index) + StripLayout.boxWidth / 2
+                let centre =
+                    (buttonWidth - image) / 2 + StripLayout.originX(ofBox: index, boxCount: count)
+                    + StripLayout.metrics(boxCount: count).boxWidth / 2
                 #expect(
                     box(clickX: centre, count: count, buttonWidth: buttonWidth) == index, "\(count) boxes, box \(index)"
                 )
@@ -188,7 +268,9 @@ import Testing
         let image = StripLayout.width(boxCount: count)
         // The image is drawn flush left with 5 points of inset, not centred: the box centres follow the cell.
         for index in 0..<count {
-            let centre = 5 + StripLayout.originX(ofBox: index) + StripLayout.boxWidth / 2
+            let centre =
+                5 + StripLayout.originX(ofBox: index, boxCount: count) + StripLayout.metrics(boxCount: count).boxWidth
+                / 2
             #expect(
                 box(clickX: centre, count: count, buttonWidth: image + 40, drawnMinX: 5, drawnWidth: image) == index)
         }
@@ -209,50 +291,76 @@ import Testing
         #expect(box(clickX: origin + 0.1, count: count, buttonWidth: buttonWidth) == 0)
         #expect(box(clickX: origin + image - 0.1, count: count, buttonWidth: buttonWidth) == count - 1)
         // The gap between two boxes goes to the nearer one.
-        let gapMiddle = origin + StripLayout.originX(ofBox: 1) - StripLayout.gap / 2
+        let gapMiddle =
+            origin + StripLayout.originX(ofBox: 1, boxCount: count) - StripLayout.metrics(boxCount: count).gap / 2
         #expect(box(clickX: gapMiddle - 0.4, count: count, buttonWidth: buttonWidth) == 0)
         #expect(box(clickX: gapMiddle + 0.4, count: count, buttonWidth: buttonWidth) == 1)
     }
 
+    @Test func everyGapAndBothEndsMapToTheNearerBoxForOneToNineBoxes() {
+        for count in 1...9 {
+            let m = StripLayout.metrics(boxCount: count)
+            let image = StripLayout.width(boxCount: count)
+            #expect(StripLayout.index(atX: 0, boxCount: count) == 0, "\(count) boxes, left end")
+            #expect(StripLayout.index(atX: image, boxCount: count) == count - 1, "\(count) boxes, right end")
+            #expect(StripLayout.index(atX: -0.1, boxCount: count) == nil)
+            #expect(StripLayout.index(atX: image + 0.1, boxCount: count) == nil)
+            for index in 1..<count {
+                let gapMiddle = StripLayout.originX(ofBox: index, boxCount: count) - m.gap / 2
+                #expect(StripLayout.index(atX: gapMiddle - 0.1, boxCount: count) == index - 1, "\(count)/\(index)")
+                #expect(StripLayout.index(atX: gapMiddle + 0.1, boxCount: count) == index, "\(count)/\(index)")
+                // Both edges of the box itself.
+                let left = StripLayout.originX(ofBox: index, boxCount: count)
+                #expect(StripLayout.index(atX: left, boxCount: count) == index)
+                #expect(StripLayout.index(atX: left + m.boxWidth, boxCount: count) == index)
+            }
+        }
+    }
+
     // MARK: The real click path (QA round 3, N3)
 
-    /// What QA observed on macOS 26: the item's window is 100 x 24 at x 4290, the 4-box image (82 pt) is centred in it
-    /// (origin 9), and the event reports the click at the item's centre (x 50) whatever was clicked, so the event's x
-    /// always chose box 3 of 4 (index 2). The cursor's own screen x is what says where the click was.
+    /// What QA observed on macOS 26: the status item's window is wider than the image, the image is centred in it, and
+    /// the event reports the click at the item's centre whatever was clicked, so the event's x always chose a middle
+    /// box. The cursor's own screen x is what says where the click was. (Numbers rescaled for the 111 pt image of four
+    /// 24 pt boxes in a 130 pt window: the image starts at 9.5.)
     @Test func theCursorPositionNotTheItemCentreChoosesTheBoxWhenTheEventAlwaysReportsTheCentre() {
-        let frame = CGRect(x: 4290, y: 3, width: 100, height: 24)
-        let origin = StripLayout.imageOriginX(buttonWidth: 100, imageWidth: StripLayout.width(boxCount: 4))
-        #expect(origin == 9)
+        let frame = CGRect(x: 4290, y: 3, width: 130, height: 24)
+        let origin = StripLayout.imageOriginX(buttonWidth: 130, imageWidth: StripLayout.width(boxCount: 4))
+        #expect(origin == 9.5)
         func box(cursor: CGFloat) -> Int? {
             guard
                 let x = StripLayout.resolvedClickX(pressScreenX: nil, cursorScreenX: cursor, itemFrame: frame)
             else { return nil }
             return StripLayout.index(atX: x - origin, boxCount: 4)
         }
-        // The observed clicks: left of the image, then the four boxes, the right edge and outside.
+        // Left of the image, then the four boxes, the right edge and outside.
         #expect(box(cursor: 4296) == nil)
-        #expect(box(cursor: 4310) == 0)
-        #expect(box(cursor: 4330) == 1)
-        #expect(box(cursor: 4350) == 2)
-        #expect(box(cursor: 4370) == 3)
-        #expect(box(cursor: 4380) == 3)
-        #expect(box(cursor: 4388) == nil)
+        #expect(box(cursor: 4315) == 0)
+        #expect(box(cursor: 4340) == 1)
+        #expect(box(cursor: 4365) == 2)
+        #expect(box(cursor: 4390) == 3)
+        #expect(box(cursor: 4405) == 3)
+        #expect(box(cursor: 4418) == nil)
         // The old behaviour, for the record: the event's centre x alone always meant index 2.
-        #expect(StripLayout.index(atX: 50 - origin, boxCount: 4) == 2)
+        #expect(StripLayout.index(atX: 65 - origin, boxCount: 4) == 2)
     }
 
     @Test func theBoxScreenRectsAreWhereToClick() {
-        let frame = CGRect(x: 4290, y: 3, width: 100, height: 24)
-        let rects = StripLayout.boxScreenRects(boxCount: 4, itemFrame: frame, imageOriginX: 9)
+        let frame = CGRect(x: 4290, y: 3, width: 130, height: 24)
+        let rects = StripLayout.boxScreenRects(boxCount: 4, itemFrame: frame, imageOriginX: 9.5)
         #expect(rects.count == 4)
-        // The first box starts after the image's 2 pt padding; neighbours are one box plus a gap apart.
-        #expect(rects[0].minX == CGFloat(4290 + 9 + 2))
-        #expect(rects[1].minX - rects[0].minX == StripLayout.boxWidth + StripLayout.gap)
+        // The first box starts after the image's 3 pt padding; neighbours are one box plus a gap apart.
+        #expect(rects[0].minX == CGFloat(4290 + 9.5 + 3))
+        #expect(rects[1].minX - rects[0].minX == 27)
+        #expect(rects.allSatisfy { $0.width == 24 && $0.height == StripLayout.boxHeight })
         // A click at the middle of each rect maps back to its own box.
         for (index, rect) in rects.enumerated() {
             let x = StripLayout.resolvedClickX(pressScreenX: rect.midX, cursorScreenX: nil, itemFrame: frame)
-            #expect(StripLayout.index(atX: (x ?? -1) - 9, boxCount: 4) == index)
+            #expect(StripLayout.index(atX: (x ?? -1) - 9.5, boxCount: 4) == index)
         }
+        // Seven boxes use the narrower metrics, and the rects follow them.
+        let seven = StripLayout.boxScreenRects(boxCount: 7, itemFrame: frame, imageOriginX: 0)
+        #expect(seven.allSatisfy { $0.width == 22 } && seven[1].minX - seven[0].minX == 24)
     }
 
     /// Round-13 audit L2: the children are updated in place while the set of boxes is unchanged (VoiceOver keeps its

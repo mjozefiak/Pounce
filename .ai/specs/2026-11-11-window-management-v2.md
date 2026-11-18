@@ -254,6 +254,14 @@ Każdy krok zostawia aplikację działającą i wtyczkę wyłączoną domyślnie
 - 4.4 **Sekcja Focus border.** Włącznik, kolor, szerokość, promień, podgląd, ostrzeżenie "Border is wider than the gap". Test: model, `StringCatalogTests`.
 - 4.5 **Polish.** Audyt dostępności, budżet w `docs/perf.md`, `BACKWARD_COMPATIBILITY.md` (klucz `focusBorder`), `docs/qa.md`.
 
+## 📝 Addendum 2026-11-17: size and look of the menu bar strip
+
+The owner asked for bigger, easier to click boxes. This replaces "dziewięć pudełek po 18 pt" here and "at most nine boxes, 18 pt each" in the v1 spec (Architecture, "Menu bar room"):
+
+- Up to six boxes: 24 × 18 pt, gap and padding 3 pt, number 12 pt semibold, corner radius 5, outline 1.25 pt. Seven to nine boxes: 22 × 18 pt, gap and padding 2 pt. Nine boxes are 218 pt wide (step 1.6's test "pasek z 9 pudełkami mieści się w limicie szerokości" accepts that). Every box meets the 20 × 20 pt macOS minimum target.
+- The image height is `min(22, NSStatusBar.system.thickness)` (never below the 18 pt box).
+- An empty workspace that is not current and not shown on another display is drawn dimmed (outline and number at 45 % alpha; 70 % with Increase Contrast, about 5:1 for the number on a plain light or dark menu bar instead of about 2.6:1; redrawn when the setting changes). The active box stays a fill with the number cut out and the others outlines, so no state depends on colour or on the dimming alone. The default mode stays `all` (v1 Q16: positions never move under the cursor); hiding empty workspaces is still the opt-in `occupied` mode.
+
 ## 📝 Not doing
 
 Tryby wiązań (`service` i inne), `join-with`, `flatten-workspace-tree`, `close-all-windows-but-current`, workspace'y z literami, import z `aerospace.toml` i dowolny tekstowy język konfiguracji, ramka nieaktywna na pozostałych oknach, reguły według tytułu okna, przypinanie workspace'ów do wyświetlaczy, przycisk "Apply to open windows", prywatne wywołania SkyLight, sterowanie natywnymi Spaces, skrypty i CLI. Każde może być osobnym specem; nic z tego nie zmienia powyższych kontraktów.

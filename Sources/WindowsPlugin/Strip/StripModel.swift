@@ -58,14 +58,32 @@ enum StripModel {
 
 /// The geometry of the strip image and the mapping from a click to a box. Pure.
 enum StripLayout {
-    static let boxWidth: CGFloat = 18
-    static let boxHeight: CGFloat = 14
-    static let gap: CGFloat = 2
-    static let padding: CGFloat = 2
+    static let boxHeight: CGFloat = 18
+    /// The tallest the image may be; the real height is the smaller of this and the menu bar's thickness.
+    static let maxImageHeight: CGFloat = 22
+    /// More boxes than this use the narrower metrics so nine boxes stay within a bounded width.
+    static let roomyBoxLimit = 6
+
+    /// The horizontal metrics for a strip of `boxCount` boxes: up to six boxes 24 pt wide with 3 pt gaps and padding;
+    /// seven to nine boxes 22 pt wide with 2 pt gaps and padding (both meet the 20 pt macOS minimum target size).
+    struct Metrics: Equatable, Sendable {
+        var boxWidth: CGFloat
+        var gap: CGFloat
+        var padding: CGFloat
+    }
+
+    static func metrics(boxCount: Int) -> Metrics {
+        boxCount <= roomyBoxLimit
+            ? Metrics(boxWidth: 24, gap: 3, padding: 3) : Metrics(boxWidth: 22, gap: 2, padding: 2)
+    }
+
+    /// The image height for a menu bar that is `thickness` points tall.
+    static func imageHeight(thickness: CGFloat) -> CGFloat { min(maxImageHeight, max(boxHeight, thickness)) }
 
     static func width(boxCount: Int) -> CGFloat {
         guard boxCount > 0 else { return 0 }
-        return padding * 2 + CGFloat(boxCount) * boxWidth + CGFloat(boxCount - 1) * gap
+        let m = metrics(boxCount: boxCount)
+        return m.padding * 2 + CGFloat(boxCount) * m.boxWidth + CGFloat(boxCount - 1) * m.gap
     }
 
     /// Where the image starts inside the button, in the button's coordinates. `drawnImageMinX` is what the button's
@@ -115,21 +133,26 @@ enum StripLayout {
     /// The screen rect of every box when the item's window is at `itemFrame` and the image starts `imageOriginX` into
     /// it (`y` is the window's, boxes are centred vertically).
     static func boxScreenRects(boxCount: Int, itemFrame: CGRect, imageOriginX: CGFloat) -> [CGRect] {
-        (0..<boxCount).map { index in
+        let width = metrics(boxCount: boxCount).boxWidth
+        return (0..<boxCount).map { index in
             CGRect(
-                x: itemFrame.minX + imageOriginX + originX(ofBox: index),
-                y: itemFrame.midY - boxHeight / 2, width: boxWidth, height: boxHeight)
+                x: itemFrame.minX + imageOriginX + originX(ofBox: index, boxCount: boxCount),
+                y: itemFrame.midY - boxHeight / 2, width: width, height: boxHeight)
         }
     }
 
     /// The left edge of box `index` in image coordinates.
-    static func originX(ofBox index: Int) -> CGFloat { padding + CGFloat(index) * (boxWidth + gap) }
+    static func originX(ofBox index: Int, boxCount: Int) -> CGFloat {
+        let m = metrics(boxCount: boxCount)
+        return m.padding + CGFloat(index) * (m.boxWidth + m.gap)
+    }
 
     /// The box under a click at `x` points from the left edge of the image: the box itself, or the nearer one when
     /// the click falls in a gap or the padding. `nil` outside the image.
     static func index(atX x: CGFloat, boxCount: Int) -> Int? {
         guard boxCount > 0, x >= 0, x <= width(boxCount: boxCount) else { return nil }
-        let raw = Int(((x - padding + gap / 2) / (boxWidth + gap)).rounded(.down))
+        let m = metrics(boxCount: boxCount)
+        let raw = Int(((x - m.padding + m.gap / 2) / (m.boxWidth + m.gap)).rounded(.down))
         return min(max(raw, 0), boxCount - 1)
     }
 }
