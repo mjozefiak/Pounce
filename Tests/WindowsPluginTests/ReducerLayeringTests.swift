@@ -11,7 +11,8 @@ import Testing
 @Suite(.timeLimit(.minutes(1))) struct ReducerLayeringTests {
     /// Top to bottom: each part may call itself and the ones above it, and the shared base (`ReducerContext`).
     private let layers = [
-        "LayoutPlanner", "ReducerContext+Layout", "ReducerContext+Parking", "ReducerContext+Windows",
+        "LayoutPlanner", "ReducerContext+Layout", "ReducerContext+UserResize", "ReducerContext+Parking",
+        "ReducerContext+Windows",
         "ReducerContext+Results", "ReducerContext+Commands",
     ]
 

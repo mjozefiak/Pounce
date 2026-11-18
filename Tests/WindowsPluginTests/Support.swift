@@ -208,11 +208,13 @@ func makeEngine(
     workspaceCount: Int = WindowsSettings.defaultWorkspaceCount, config: EngineConfig = EngineConfig(),
     tick: Duration = .milliseconds(30), commandBudget: Duration? = nil, watchdog: Watchdog = Watchdog(),
     reporter: EngineReporter = EngineReporter(), strategies: LayoutRegistry = .standard,
-    canMove: @escaping @Sendable () -> Bool = { true }
+    canMove: @escaping @Sendable () -> Bool = { true },
+    leftButtonDown: @escaping @Sendable () async -> Bool = { false }
 ) -> WindowEngine {
     WindowEngine(
         client: client, store: store, clock: clock, workspaceCount: workspaceCount, config: config, tick: tick,
-        commandBudget: commandBudget, watchdog: watchdog, reporter: reporter, strategies: strategies, canMove: canMove)
+        commandBudget: commandBudget, watchdog: watchdog, reporter: reporter, strategies: strategies, canMove: canMove,
+        leftButtonDown: leftButtonDown)
 }
 
 /// The reducer over the standard strategies.

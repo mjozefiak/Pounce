@@ -8,7 +8,10 @@ struct Watchdog: Sendable {
     private var stamps: [Double] = []
     private var overSince: Double?
 
-    init(limit: Int = 60, sustain: Double = 2) {
+    /// The engine's limit: frame changes per second.
+    static let defaultLimit = 60
+
+    init(limit: Int = Watchdog.defaultLimit, sustain: Double = 2) {
         self.limit = limit
         self.sustain = sustain
     }

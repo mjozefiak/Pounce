@@ -50,6 +50,16 @@ actor WindowEngine {
     private var stopped = false
     /// The retry that looks at the windows again while an app has not answered (`trackUnknown`).
     private var retryTask: Task<Void, Never>?
+    /// The timer that ends a resize by hand when no resize came for `userResizeSettle`.
+    private var settleTask: Task<Void, Never>?
+    private var settleRevision = -1
+    /// How long after the last adopted resize the drag counts as over when the mouse button is up (the window then
+    /// lands on its exact tile); while it is held, how often the button is looked at again.
+    static let userResizeSettle: Duration = .milliseconds(250)
+    /// The longest a held button keeps a still window off its tile.
+    static let userResizeHoldLimit: Duration = .seconds(10)
+    /// Whether the left mouse button is down now (`systemLeftButtonDown`; a script in tests).
+    private let leftButtonDown: @Sendable () async -> Bool
     /// How long after a snapshot that could not read an app the engine looks again (and again, until it can).
     static let unknownRetry: Duration = .seconds(5)
     /// The longest wait between two looks (the wait doubles from `unknownRetry` up to this).
@@ -96,6 +106,7 @@ actor WindowEngine {
         reporter: EngineReporter = EngineReporter(),
         strategies: LayoutRegistry,
         canMove: @escaping @Sendable () -> Bool = { true },
+        leftButtonDown: @escaping @Sendable () async -> Bool = WindowEngine.systemLeftButtonDown,
         logger: Logger = Logger(subsystem: "com.lintelapp", category: "windows")
     ) {
         var state = EngineState(workspaceCount: workspaceCount)
@@ -111,6 +122,7 @@ actor WindowEngine {
         translator = EventTranslator(client: client)
         self.strategies = strategies
         self.canMove = canMove
+        self.leftButtonDown = leftButtonDown
         self.logger = logger
         executor = EffectExecutor(
             client: client, store: store, reporter: reporter, strategies: strategies, watchdog: watchdog,
@@ -164,6 +176,8 @@ actor WindowEngine {
         stopped = true
         retryTask?.cancel()
         retryTask = nil
+        settleTask?.cancel()
+        settleTask = nil
         pumpTask?.cancel()
         // The pump is awaited, so the client's stream has really ended when `stop()` returns and a restart's
         // `subscribe()` cannot be handed a stream that is still dying.
@@ -506,6 +520,47 @@ actor WindowEngine {
         ingest(.resync)
     }
 
+    /// Arms the timer that ends a resize by hand: each adopted resize starts it again, so it fires only once the
+    /// window has been still for `userResizeSettle` (on the engine's clock). A pause with the mouse button still held
+    /// is not the end of the drag: the siblings catch up once, and the window stays alone until the button is up
+    /// (looked at every `userResizeSettle`, for at most `userResizeHoldLimit`, so a button reading that never changes
+    /// cannot keep the window off its tile).
+    private func updateSettleTimer() {
+        guard let resize = state.userResize, !stopped else {
+            settleTask?.cancel()
+            settleTask = nil
+            settleRevision = -1
+            return
+        }
+        guard resize.revision != settleRevision else { return }
+        settleTask?.cancel()
+        settleRevision = resize.revision
+        let (window, revision) = (resize.window, resize.revision)
+        let looks = max(1, Int(Self.userResizeHoldLimit / Self.userResizeSettle))
+        settleTask = Task { [weak self, time, leftButtonDown] in
+            var caughtUp = false
+            for look in 1...looks {
+                do { try await time.sleep(Self.userResizeSettle) } catch { return }
+                let held = look < looks ? await leftButtonDown() : false
+                guard !Task.isCancelled else { return }
+                if !held {
+                    await self?.settleResize(window, revision: revision, released: true)
+                    return
+                }
+                if !caughtUp {
+                    caughtUp = true
+                    await self?.settleResize(window, revision: revision, released: false)
+                }
+            }
+        }
+    }
+
+    private func settleResize(_ window: WindowID, revision: Int, released: Bool) {
+        guard !Task.isCancelled, !stopped, state.userResize?.revision == revision else { return }
+        if released { settleTask = nil }
+        enqueue([.userResizeSettled(window, released: released, now: time.now())])
+    }
+
     private func snapshotInput() async -> EngineInput {
         await translator.snapshot(now: time.now(), tracked: Set(state.windows.keys.map(\.pid)))
     }
@@ -537,6 +592,7 @@ actor WindowEngine {
             ledger.closeIfFinished(id)
         }
         updateRetry()
+        updateSettleTimer()
         resumeWaiters()
     }
 

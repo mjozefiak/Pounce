@@ -65,6 +65,8 @@ enum EngineReducer {
             context.state.diagnostics.focusReadTimeouts += 1
         case .restoreLayouts(let stored):
             context.restoreLayouts(stored)
+        case .userResizeSettled(let id, let released, let now):
+            context.userResizeSettled(id, released: released, now: now)
         }
 
         // An event from a window of a process that did not answer means it answers again: what its failed parks left

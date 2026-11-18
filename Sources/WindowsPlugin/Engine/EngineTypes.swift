@@ -187,6 +187,8 @@ struct EngineState: Equatable, Sendable {
     var unknownApps: Set<Int32> = []
     /// Whether the journal can be written; without it no window is parked.
     var canJournal = true
+    /// A resize of a tiled window by hand that is going on (memory only).
+    var userResize: UserResizeState?
     var diagnostics = EngineDiagnostics()
 
     init(workspaceCount: Int = WindowsSettings.defaultWorkspaceCount, displays: [DisplayInfo] = []) {
@@ -313,6 +315,9 @@ enum EngineInput: Equatable, Sendable {
     case focusReadTimedOut(now: Double)
     /// The layout states stored by an earlier run, before the first snapshot.
     case restoreLayouts([WorkspaceID: [String: JSONValue]])
+    /// No resize of the window came for a while. `released`: the mouse button is up, so the drag by hand is over;
+    /// otherwise the user only paused, and the siblings catch up with the last size.
+    case userResizeSettled(WindowID, released: Bool, now: Double)
 }
 
 extension EngineInput {
@@ -322,7 +327,8 @@ extension EngineInput {
         case .snapshot(_, _, _, _, _, _, let now), .windowAppeared(_, _, let now), .windowGone(_, let now),
             .windowMoved(_, _, let now), .windowFocused(_, let now), .displaysChanged(_, let now),
             .command(_, let now), .applied(_, let now), .frameStarted(_, let now), .watchdogTripped(let now),
-            .place(_, _, let now), .focusObserved(_, let now), .focusReadTimedOut(let now):
+            .place(_, _, let now), .focusObserved(_, let now), .focusReadTimedOut(let now),
+            .userResizeSettled(_, _, let now):
             now
         case .configChanged, .journalAvailability, .restoreLayouts:
             nil
