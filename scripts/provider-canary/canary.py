@@ -4,6 +4,11 @@
 Spec: .ai/specs/2026-11-10-external-ai-providers.md, section "Kanarek izolacji" and steps 0.1, 0.2.
 NOT part of the build, the tests of the app or CI. Nothing in the app calls it.
 
+The default run never loads the user's own hooks, settings, MCP servers or plugins: every call made with the real
+login passes the isolation flags (checked by `require_isolated` before the process starts), and every call made
+without them runs in a temporary HOME built here, where the CLI is not logged in. Calls that load the user's real
+configuration exist only behind `--positive-control-real-config` (off by default; see the README).
+
 Every byte sent to the CLI is synthetic text generated here, with a random canary marker per call. The report holds
 numbers, flag names, exit codes, paths and counts. It never holds the markers, prompts, answers or stderr text
 (failure output is classified and cut to a redacted first line). Python 3 standard library only; run with `python3 -I`.
@@ -27,6 +32,13 @@ ISOLATION_FLAGS = [
     "-p", "--output-format", "json", "--tools", "", "--no-session-persistence", "--disable-slash-commands",
     "--strict-mcp-config", "--setting-sources",
 ]
+# Each of these must be in the argv of every call that runs with the user's real HOME (the product's requirement).
+REQUIRED_WITH_REAL_CONFIG = ["-p", "--tools", "--no-session-persistence", "--disable-slash-commands",
+                             "--strict-mcp-config", "--setting-sources"]
+# Flags that would bring configuration back in; the product argv must never hold them.
+FORBIDDEN_IN_PRODUCT = ["--settings", "--mcp-config", "--plugin-dir", "--plugin-url", "--add-dir", "--agents",
+                        "--append-system-prompt", "--continue", "-c", "--resume", "-r", "--dangerously-skip-permissions"]
+USER_HOOK_EVENTS = ["SessionStart", "UserPromptSubmit", "Stop", "SessionEnd"]
 FIXED_PATH = "/usr/bin:/bin:/usr/sbin:/sbin"
 ENV_ALLOW = ["HOME", "USER", "LANG", "TMPDIR", "CLAUDE_CONFIG_DIR"]  # USER: the Keychain login is found by it
 PROXY_VARS = ["HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "no_proxy", "all_proxy"]
@@ -35,6 +47,10 @@ AUTH_VARS = ["ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CLAUDE_CODE_OAUTH_TOK
 # Estimator of the app (NotesText.estimateTokens, ADR 0004): words times tokens per word.
 POLISH_TOKENS_PER_WORD = 2.69
 ENGLISH_TOKENS_PER_WORD = 1.17
+SKIPPED_REAL_CONFIG = "runs with the user's real settings and hooks; only with --positive-control-real-config"
+REAL_CONFIG_WARNING = ("WARNING: --positive-control-real-config loads your REAL Claude Code configuration: your own hooks "
+                       "run, your MCP servers and plugins start, and one session file is written to (and removed from) "
+                       "your config directory.")
 STATIC_SYSTEM = ("You write meeting notes. Reply with: SUMMARY (3 sentences), then at most 8 lines starting with '- ' "
                  "(decisions and tasks with owners), then one final line 'CODE: ' followed by the meeting code "
                  "string that appears in the transcript.")
@@ -112,6 +128,131 @@ def build_env(source, tmpdir, extra=None, config_dir=None, home=None):
             env.pop("CLAUDE_CONFIG_DIR", None)
     env.update(extra or {})
     return env
+
+
+def isolated_argv(claude, model, system_prompt, extra=None):
+    """The argv of the product (spec, "API Contracts") plus `extra`. Content never goes here, only to stdin."""
+    return [claude] + list(ISOLATION_FLAGS) + ["", "--model", model, "--system-prompt", system_prompt] + list(extra or [])
+
+
+def missing_isolation(argv):
+    """Names of the required isolation flags `argv` lacks or sets to a value that loads something."""
+    missing = [f for f in REQUIRED_WITH_REAL_CONFIG if f not in argv]
+    for flag in ("--tools", "--setting-sources"):
+        if flag in argv and (argv.index(flag) + 1 >= len(argv) or argv[argv.index(flag) + 1] != ""):
+            missing.append(flag + " (must be empty)")
+    return missing
+
+
+def forbidden_in_product(argv):
+    """Flags in `argv` that would load configuration back in (the product argv must hold none)."""
+    return [a for a in argv if a in FORBIDDEN_IN_PRODUCT]
+
+
+def require_isolated(argv):
+    """Refuses, before any process starts, an argv that would load the user's configuration from the real HOME."""
+    missing = missing_isolation(argv)
+    if missing:
+        raise RuntimeError("refusing to run with the real configuration without: " + ", ".join(missing))
+    return argv
+
+
+def write_json(path, value):
+    with open(path, "w") as f:
+        json.dump(value, f)
+
+
+def build_user_config(home, marks):
+    """A synthetic user-level configuration in `home`: command hooks, an MCP server and an enabled plugin with a
+    hook. Each one, when the CLI runs it, creates an empty marker file in `marks`. Returns the marker names."""
+    cfg = os.path.join(home, ".claude")
+    market = os.path.join(home, "canary-market")
+    plugin = os.path.join(market, "canary-plugin")
+    for d in (os.path.join(cfg, "plugins"), os.path.join(cfg, "agents"), os.path.join(market, ".claude-plugin"),
+              os.path.join(plugin, ".claude-plugin"), os.path.join(plugin, "hooks")):
+        os.makedirs(d, mode=0o700, exist_ok=True)
+
+    def touch(name):
+        return {"hooks": [{"type": "command", "command": "/usr/bin/touch " + os.path.join(marks, name)}]}
+
+    write_json(os.path.join(cfg, "settings.json"), {
+        "hooks": {e: [touch("hook-user-" + e)] for e in USER_HOOK_EVENTS},
+        "enabledPlugins": {"canary-plugin@canary-market": True}})
+    # user-scope MCP servers live in the global config file next to the config directory
+    write_json(os.path.join(home, ".claude.json"), {"mcpServers": {"canary-user": {
+        "command": "/usr/bin/touch", "args": [os.path.join(marks, "mcp-user")]}}})
+    write_json(os.path.join(market, ".claude-plugin", "marketplace.json"), {
+        "name": "canary-market", "owner": {"name": "canary"},
+        "plugins": [{"name": "canary-plugin", "source": "./canary-plugin", "description": "canary"}]})
+    write_json(os.path.join(plugin, ".claude-plugin", "plugin.json"),
+               {"name": "canary-plugin", "version": "0.0.1", "description": "canary"})
+    write_json(os.path.join(plugin, "hooks", "hooks.json"), {"hooks": {"SessionStart": [touch("plugin-hook")]}})
+    with open(os.path.join(cfg, "agents", "canary-agent.md"), "w") as f:  # a definition, not a process
+        f.write("---\nname: canary-agent\ndescription: Synthetic canary agent.\n---\nReply OK.\n")
+    now = time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime())
+    write_json(os.path.join(cfg, "plugins", "known_marketplaces.json"), {"canary-market": {
+        "source": {"source": "directory", "path": market}, "installLocation": market, "lastUpdated": now}})
+    write_json(os.path.join(cfg, "plugins", "installed_plugins.json"), {"version": 2, "plugins": {
+        "canary-plugin@canary-market": [{"scope": "user", "installPath": plugin, "version": "0.0.1",
+                                         "installedAt": now, "lastUpdated": now}]}})
+    return ["hook-user-" + e for e in USER_HOOK_EVENTS] + ["mcp-user", "plugin-hook"]
+
+
+def session_files_with_marker(config_dir, marker):
+    """Paths of session files (`projects/**/*.jsonl`) under `config_dir` that contain `marker`. Nothing else is
+    read out of them: the caller gets paths, and reports paths or counts."""
+    needle, found = marker.encode(), []
+    for root, _dirs, files in os.walk(os.path.join(config_dir, "projects")):
+        for name in files:
+            if not name.endswith(".jsonl"):
+                continue
+            path = os.path.join(root, name)
+            try:
+                with open(path, "rb") as f:
+                    tail = b""
+                    while True:
+                        chunk = f.read(8 << 20)
+                        if not chunk:
+                            break
+                        if needle in tail + chunk:
+                            found.append(path)
+                            break
+                        tail = chunk[-(len(needle) - 1):]
+            except OSError:
+                pass
+    return sorted(found)
+
+
+def read_stream(stdout, user_plugin="canary-plugin"):
+    """(safe summary of a stream-json run, answer text). Counts and built-in names only."""
+    out = {"initSeen": False, "hookEventsStarted": {}}
+    answer = ""
+    for line in (stdout or "").splitlines():
+        try:
+            ev = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(ev, dict):
+            continue
+        if ev.get("type") == "system" and ev.get("subtype") == "init":
+            plugins = [(p.get("name") if isinstance(p, dict) else p) for p in (ev.get("plugins") or [])]
+            out.update({"initSeen": True, "tools": len(ev.get("tools") or []),
+                        "mcpServers": len(ev.get("mcp_servers") or []), "skills": len(ev.get("skills") or []),
+                        "slashCommands": len(ev.get("slash_commands") or []), "plugins": len(plugins),
+                        "agents": len(ev.get("agents") or []),
+                        "canaryAgentListed": "canary-agent" in [str(a) for a in (ev.get("agents") or [])],
+                        "builtInPluginNames": sorted(str(p) for p in plugins if str(p).startswith("cc-plugin-")),
+                        "pluginsNotBuiltIn": len([p for p in plugins if not str(p).startswith("cc-plugin-")]),
+                        "canaryPluginLoaded": user_plugin in plugins})
+        elif ev.get("type") == "system" and ev.get("subtype") == "hook_started":
+            name = str(ev.get("hook_event"))
+            name = name if name in USER_HOOK_EVENTS else "other"
+            out["hookEventsStarted"][name] = out["hookEventsStarted"].get(name, 0) + 1
+        elif ev.get("type") == "result":
+            out["is_error"] = ev.get("is_error")
+            answer = str(ev.get("result") or "")
+    out["hookEventsStartedTotal"] = sum(out["hookEventsStarted"].values())
+    return out, answer
 
 
 def dropped_env_names(source):
@@ -325,8 +466,12 @@ class Canary:
         self.empty_cwd = os.path.join(self.work, "cwd")
         self.decoy = os.path.join(self.work, "decoy")
         self.marks = os.path.join(self.work, "marks")
-        for d in (self.child_tmp, self.empty_cwd, self.decoy, self.marks):
-            os.makedirs(d, mode=0o700)
+        try:
+            for d in (self.child_tmp, self.empty_cwd, self.decoy, self.marks):
+                os.makedirs(d, mode=0o700)
+        except BaseException:
+            shutil.rmtree(self.work, ignore_errors=True)
+            raise
         self.markers = {}
         self.since = time.time()
         self.claude = args.claude
@@ -339,8 +484,18 @@ class Canary:
         return self.markers[name]
 
     def flags(self, model, extra=None):
-        out = list(ISOLATION_FLAGS) + ["", "--model", model, "--system-prompt", STATIC_SYSTEM]
-        return [self.claude] + out + (extra or [])
+        return isolated_argv(self.claude, model, STATIC_SYSTEM, extra)
+
+    def real(self, argv, stdin_text, cwd=None, **kw):
+        """A call with the user's real HOME (the login). Refused unless argv carries every isolation flag."""
+        return run_child(require_isolated(argv), stdin_text, self.env(), cwd or self.empty_cwd, **kw)
+
+    def temp_home_env(self, home):
+        """The allowlist with a temporary HOME and no way to log in: no config directory, no auth variable."""
+        env = self.env(home=home)
+        for name in AUTH_VARS + ["CLAUDE_CONFIG_DIR"]:
+            env.pop(name, None)
+        return env
 
     # -- locator, version, env
     def locator(self):
@@ -419,7 +574,7 @@ class Canary:
         marker = self.marker(name)
         text = synthetic_transcript(tokens, language, marker)
         est = estimate_tokens(text, language)
-        r = run_child(self.flags(model), text, self.env(), self.empty_cwd, timeout=self.args.timeout)
+        r = self.real(self.flags(model), text, timeout=self.args.timeout)
         summary, answer = parse_result(r["_stdout"])
         entry = dict(public(r), model=model, language=language, chars=len(text), estimatorTokens=est, **summary)
         if summary.get("input_tokens_total"):
@@ -480,10 +635,11 @@ class Canary:
         # Isolated run. stream-json with verbose only to read the init event (tools, MCP, plugins, skills); the
         # product uses --output-format json, the other flags are identical.
         marker = self.marker("isolation")
-        argv = [self.claude, "-p", "--output-format", "stream-json", "--verbose", "--tools", "",
-                "--no-session-persistence", "--disable-slash-commands", "--strict-mcp-config", "--setting-sources", "",
-                "--model", model, "--system-prompt", STATIC_SYSTEM, "--max-turns", "2"]
-        r = run_child(argv, self.probe_prompt(marker), self.env(), self.decoy, timeout=180)
+        argv = [self.claude, "-p", "--output-format", "stream-json", "--verbose", "--include-hook-events",
+                "--tools", "", "--no-session-persistence", "--disable-slash-commands", "--strict-mcp-config",
+                "--setting-sources", "", "--model", model, "--system-prompt", STATIC_SYSTEM, "--max-turns", "2"]
+        r = self.real(argv, self.probe_prompt(marker), cwd=self.decoy, timeout=180)
+        stream = read_stream(r["_stdout"])[0]
         init, answer = {}, ""
         for line in r["_stdout"].splitlines():
             try:
@@ -500,11 +656,17 @@ class Canary:
                 answer = str(ev.get("result") or "")
         marks = self.marks_state()
         self.report["checks"]["isolation"] = dict(public(r), model=model, init=init, marks=marks,
+            hookEventsStarted=stream["hookEventsStartedTotal"], noHookStarted=stream["hookEventsStartedTotal"] == 0,
+            pluginsNotBuiltIn=stream.get("pluginsNotBuiltIn"), builtInPluginNames=stream.get("builtInPluginNames"),
             answerHasProjectToken=self.project_token in answer, answerHasSecretFileContent=self.secret in answer,
             tools1FileReadBlocked=self.secret not in answer, tool2ShellBlocked=not marks["shell-marker"],
             hook3NotRun=not marks["hook-project"], claudeMd4NotLoaded=self.project_token not in answer,
             mcp4NotLaunched=not marks["mcp-launched"], **{"class": classify(r["exit"], r["_stderr"])})
-        # Positive control: project settings only, tools allowed, session persisted. Proves each detector can fire.
+        if not self.args.positive_control_real_config:
+            self.report["checks"]["control"] = {"skipped": True, "reason": SKIPPED_REAL_CONFIG}
+            return
+        # Positive control with the REAL HOME (opt-in): project settings, tools allowed, session persisted in the
+        # user's config directory. Proves the tool, shell, CLAUDE.md and project detectors can fire.
         self.clear_marks()
         cm = self.marker("control")
         argv = [self.claude, "-p", "--output-format", "json", "--setting-sources", "project", "--model", model,
@@ -517,29 +679,120 @@ class Canary:
             note="Detectors fire only if the flags are removed; if a detector below is false, the matching isolation "
                  "result above proves nothing.")
 
-    # -- hooks and plugins of the user: which hook modules the CLI loads with and without --setting-sources ""
-    def hook_modules(self):
+    # -- user-level configuration: hooks, MCP servers, plugins and session files, in a temporary HOME
+    def user_config_case(self, label, extra):
+        root = os.path.join(self.work, "user-" + label)
+        home, marks, cwd = (os.path.join(root, n) for n in ("home", "marks", "cwd"))
+        for d in (home, marks, cwd):
+            os.makedirs(d, mode=0o700)
+        names = build_user_config(home, marks)
+        marker = self.marker("userConfig-" + label)
+        argv = [self.claude, "-p", "--output-format", "stream-json", "--verbose", "--include-hook-events",
+                "--model", self.args.cheap_model, "--max-turns", "1"] + extra
+        r = run_child(argv, "Synthetic probe %s. Reply with the single word OK." % marker,
+                      self.temp_home_env(home), cwd, timeout=120)
+        stream, _answer = read_stream(r["_stdout"])
+        fired = {n: os.path.exists(os.path.join(marks, n)) for n in names}
+        sessions = session_files_with_marker(os.path.join(home, ".claude"), marker)
+        return dict(public(r), flags=[a for a in extra if a.startswith("--")], marks=fired,
+                    userHooksFired=sorted(n[len("hook-user-"):] for n, v in fired.items() if v and n.startswith("hook-user-")),
+                    mcpLaunched=fired["mcp-user"], pluginHookFired=fired["plugin-hook"],
+                    sessionFilesWithMarker=len(sessions), stream=stream,
+                    modelCallMade=stream.get("is_error") is False)
+
+    def no_content_commands(self):
+        """`--version` and `auth status` (the product's processes without content) against the same synthetic user
+        configuration: do they run a user hook, an MCP server or a plugin hook?"""
+        root = os.path.join(self.work, "user-noContent")
+        home, marks, cwd = (os.path.join(root, n) for n in ("home", "marks", "cwd"))
+        for d in (home, marks, cwd):
+            os.makedirs(d, mode=0o700)
+        names = build_user_config(home, marks)
         out = {}
-        for label, extra in (("withSettingSourcesEmpty", ["--setting-sources", ""]), ("withoutTheFlag", [])):
-            dbg = os.path.join(self.child_tmp, "debug-%s.txt" % label)
+        for label, args in (("version", ["--version"]), ("authStatus", ["auth", "status"])):
+            r = run_child([self.claude] + args, "", self.temp_home_env(home), cwd, timeout=60)
+            out[label] = {"exit": r["exit"], "markersCreated": sorted(n for n in names if os.path.exists(os.path.join(marks, n)))}
+        out["nothingRan"] = not any(v["markersCreated"] for v in out.values())
+        return out
+
+    def user_config(self):
+        """Is the user's own configuration loaded? Sensitive control (no flags) against the product flags and each
+        flag alone. The temporary HOME has no login, so every call here ends with "Not logged in" after the CLI
+        loaded (or did not load) the configuration: no model call, no usage of the subscription."""
+        product = isolated_argv(self.claude, self.args.cheap_model, STATIC_SYSTEM)
+        product = [a for i, a in enumerate(product) if i > 0 and a not in ("-p", "--output-format", "json")]
+        product = product[:product.index("--model")] + product[product.index("--model") + 2:]  # set by the case
+        cases = [("control", []), ("product", product), ("settingSourcesOnly", ["--setting-sources", ""]),
+                 ("strictMcpOnly", ["--strict-mcp-config"]), ("safeModeOnly", ["--safe-mode"]),
+                 ("noSessionPersistenceOnly", ["--no-session-persistence"])]
+        out = {label: self.user_config_case(label, extra) for label, extra in cases}
+        out["noContentCommands"] = self.no_content_commands()
+        c, p = out["control"], out["product"]
+        out["controlIsSensitive"] = bool({"SessionStart", "UserPromptSubmit"} <= set(c["userHooksFired"])
+                                         and c["mcpLaunched"] and c["pluginHookFired"]
+                                         and c["stream"].get("canaryPluginLoaded") and c["sessionFilesWithMarker"] > 0)
+        out["productLoadsNoUserConfig"] = bool(p["stream"]["initSeen"] and not any(p["marks"].values())
+                                               and p["stream"]["hookEventsStartedTotal"] == 0
+                                               and p["stream"].get("mcpServers") == 0
+                                               and p["stream"].get("pluginsNotBuiltIn") == 0)
+        out["productLeavesNoSessionFile"] = p["sessionFilesWithMarker"] == 0
+        out["note"] = ("Temporary HOME, no login: the run stops at 'Not logged in' after start-up, so the Stop hook "
+                       "and anything loaded only after a successful request are not exercised here (see hookEvents).")
+        self.report["checks"]["userConfig"] = out
+
+    # -- hooks with the real login: does any hook start under the product flags, through the end of the turn?
+    def hook_events(self):
+        """One short call with the real HOME and the product flags, plus a canary hook passed by `--settings` (not
+        a user setting; the product never passes it). The canary hook proves that hook events are reported and that
+        the Stop stage is reached; every other started hook would be one of the user's own."""
+        marks = os.path.join(self.marks, "flag-hooks")
+        os.makedirs(marks, mode=0o700, exist_ok=True)
+        events = ["UserPromptSubmit", "Stop"]
+        settings = {"hooks": {e: [{"hooks": [{"type": "command", "command": "/usr/bin/touch " + os.path.join(marks, e)}]}]
+                              for e in events}}
+        dbg = os.path.join(self.child_tmp, "debug-hooks.txt")
+        argv = [self.claude, "-p", "--output-format", "stream-json", "--verbose", "--include-hook-events",
+                "--tools", "", "--no-session-persistence", "--disable-slash-commands", "--strict-mcp-config",
+                "--setting-sources", "", "--model", self.args.cheap_model, "--system-prompt", STATIC_SYSTEM,
+                "--max-turns", "1", "--settings", json.dumps(settings), "--debug", "hooks", "--debug-file", dbg]
+        r = self.real(argv, "Synthetic probe %s. Reply with the single word OK." % self.marker("hookEvents"))
+        stream, _answer = read_stream(r["_stdout"])
+        fired = {e: os.path.exists(os.path.join(marks, e)) for e in events}
+        started = stream["hookEventsStarted"]
+        out = dict(public(r), stream=stream, canaryHooksFired=fired, hookModulesByTier=self.hook_tiers(dbg),
+                   detectorWorks=all(fired.values()),
+                   hooksStartedBeyondCanary=stream["hookEventsStartedTotal"] - sum(1 for e in events if started.get(e)),
+                   note="hooksStartedBeyondCanary must be 0: a higher number is a hook of the user's own configuration.")
+        if self.args.positive_control_real_config:
+            # REAL user settings, hooks and plugins are loaded and run here (opt-in).
+            dbg2 = os.path.join(self.child_tmp, "debug-hooks-real.txt")
             argv = [self.claude, "-p", "--output-format", "json", "--tools", "", "--no-session-persistence",
-                    "--model", self.args.cheap_model, "--max-turns", "1", "--debug", "hooks", "--debug-file", dbg] + extra
-            r = run_child(argv, "Reply with the single word OK.", self.env(), self.empty_cwd, timeout=120)
-            tiers = {"user": 0, "builtin": 0, "other": 0}
-            try:
-                for line in open(dbg, errors="replace"):
+                    "--model", self.args.cheap_model, "--max-turns", "1", "--debug", "hooks", "--debug-file", dbg2]
+            c = run_child(argv, "Reply with the single word OK.", self.env(), self.empty_cwd, timeout=120)
+            out["realConfigWithoutTheFlag"] = {"exit": c["exit"], "seconds": c["seconds"],
+                                               "hookModulesByTier": self.hook_tiers(dbg2)}
+        else:
+            out["realConfigWithoutTheFlag"] = {"skipped": True, "reason": SKIPPED_REAL_CONFIG}
+        self.report["checks"]["hookEvents"] = out
+
+    @staticmethod
+    def hook_tiers(path):
+        """Counts of 'hooks module ... loaded' lines of the CLI debug log by tier; names are not recorded."""
+        tiers = {"user": 0, "builtin": 0, "other": 0}
+        try:
+            with open(path, errors="replace") as f:
+                for line in f:
                     m = re.search(r"hooks module \S+ loaded .*tier (\w+)", line)
                     if m:
                         tiers[m.group(1) if m.group(1) in tiers else "other"] += 1
-            except OSError:
-                tiers = None
-            out[label] = {"exit": r["exit"], "seconds": r["seconds"], "hookModulesByTier": tiers}
-        out["note"] = "Counts of 'hooks module ... loaded' lines in the CLI debug log; names are not recorded."
-        self.report["checks"]["hookModules"] = out
+        except OSError:
+            return None
+        return tiers
 
     # -- truncation
     def truncation(self):
-        r = run_child(self.flags(self.args.cheap_model), "Write the numbers from 1 to 400 separated by spaces. No other text.",
+        r = run_child(require_isolated(self.flags(self.args.cheap_model)),
+                      "Write the numbers from 1 to 400 separated by spaces. No other text.",
                       self.env(extra={"CLAUDE_CODE_MAX_OUTPUT_TOKENS": "40"}), self.empty_cwd, timeout=120)
         summary, answer = parse_result(r["_stdout"])
         self.report["checks"]["truncation"] = dict(public(r), **summary, answerLastChars=len(answer),
@@ -549,13 +802,14 @@ class Canary:
     # -- failures and cancellation
     def failures(self):
         out = {}
-        m = run_child(self.flags("lintel-canary-no-such-model", ["--max-turns", "1"]), "OK?", self.env(), self.empty_cwd, timeout=120)
+        m = self.real(self.flags("lintel-canary-no-such-model", ["--max-turns", "1"]), "OK?", timeout=120)
         out["badModel"] = dict(public(m), **{"class": classify(m["exit"], failure_text(m))}, stderrFirstLine=redact(m["_stderr"]),
                                **parse_result(m["_stdout"])[0])
-        f = run_child([self.claude, "-p", "--lintel-canary-no-such-flag"], "OK?", self.env(), self.empty_cwd, timeout=60)
+        f = self.real(self.flags(self.args.cheap_model, ["--lintel-canary-no-such-flag"]), "OK?", timeout=60)
         out["badFlag"] = dict(public(f), **{"class": classify(f["exit"], f["_stderr"])}, stderrFirstLine=redact(f["_stderr"]))
-        c = run_child(self.flags(self.args.cheap_model), "Write a 3000 word synthetic story about a lighthouse keeper, in many paragraphs.",
-                      self.env(), self.empty_cwd, cancel_after=self.args.cancel_after)
+        c = self.real(self.flags(self.args.cheap_model),
+                      "Write a 3000 word synthetic story about a lighthouse keeper, in many paragraphs.",
+                      cancel_after=self.args.cancel_after)
         out["cancelSigterm"] = dict(public(c), cancelAfterSeconds=self.args.cancel_after,
                                     **{"class": classify(c["exit"], c["_stderr"], signaled=True)},
                                     stderrFirstLine=redact(c["_stderr"]))
@@ -596,8 +850,11 @@ class Canary:
         hits, counts = scan_for_markers(roots, list(self.markers.values()), self.since)
         names = {v: k for k, v in self.markers.items()}
         per_call = {names[m]: [shorten(p) for p in paths] for m, paths in hits.items()}
+        cfg = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude")
+        isolated = sorted(n for n in self.markers if n != "control" and not n.startswith("userConfig-"))
+        sessions = {n: len(session_files_with_marker(cfg, self.markers[n])) for n in isolated}
         cleaned = []
-        if self.args.cleanup_control:
+        if self.args.cleanup_control and self.args.positive_control_real_config:
             cfg_projects = os.path.join(os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude"), "projects")
             for p in hits.get(self.markers.get("control", ""), []):
                 if p.startswith(cfg_projects + os.sep) and p.endswith(".jsonl"):
@@ -609,14 +866,44 @@ class Canary:
                             os.rmdir(d)
                     except OSError:
                         pass
+        counts["truncatedRoots"] = [shorten(r) for r in counts["truncatedRoots"]]
+        emptied = self.remove_own_empty_project_dirs(cfg) if self.args.positive_control_real_config else 0
         self.report["checks"]["diskCopies"] = {
             "rootsScanned": [shorten(r) for r in roots], **counts,
             "pathsContainingMarkerByCall": {k: v for k, v in per_call.items() if v},
             "callsWithAnyCopy": sorted(k for k, v in per_call.items() if v),
-            "isolatedCallsWithCopy": sorted(k for k, v in per_call.items() if v and k != "control"),
-            "controlSessionFilesRemoved": cleaned,
-            "note": "The control call keeps its session on purpose: it proves the scan can find a copy.",
+            "isolatedCallsWithCopy": sorted(k for k, v in per_call.items() if v and k in isolated),
+            "isolatedCallsChecked": len(isolated),
+            "sessionFilesWithMarkerByIsolatedCall": sessions,
+            "noSessionFileFromIsolatedCalls": not any(sessions.values()),
+            "controlSessionFilesRemoved": cleaned, "ownEmptyProjectDirsRemoved": emptied,
+            "ownProjectDirsLeftInConfig": len(self.own_project_dirs(cfg)),
+            "note": "Only the marker is searched for; paths and counts are reported, never file content. The proof "
+                    "that the search can find a session file is userConfig.control (temporary HOME) and, with "
+                    "--positive-control-real-config, the control call.",
         }
+
+    def own_project_dirs(self, cfg):
+        """Directories under `<config>/projects` named after THIS run's temporary directory."""
+        base, tag = os.path.join(cfg, "projects"), os.path.basename(self.work)
+        try:
+            return sorted(os.path.join(base, n) for n in os.listdir(base) if tag in n)
+        except OSError:
+            return []
+
+    def remove_own_empty_project_dirs(self, cfg):
+        """Removes this run's project directories from the config directory when they hold no file at all."""
+        removed = 0
+        for d in self.own_project_dirs(cfg):
+            if any(files for _r, _d, files in os.walk(d)):
+                continue
+            for root, _dirs, _files in os.walk(d, topdown=False):
+                try:
+                    os.rmdir(root)
+                except OSError:
+                    pass
+            removed += not os.path.exists(d)
+        return removed
 
     def run(self):
         self.locator()
@@ -624,7 +911,8 @@ class Canary:
         if self.args.no_calls:
             self.tcc()
             return self.report
-        steps = [("auth", self.auth), ("timings", self.timings), ("isolation", self.isolation), ("hooks", self.hook_modules),
+        steps = [("auth", self.auth), ("timings", self.timings), ("userConfig", self.user_config),
+                 ("isolation", self.isolation), ("hooks", self.hook_events),
                  ("truncation", self.truncation), ("failures", self.failures), ("tcc", self.tcc), ("disk", self.disk)]
         only = set(self.args.only.split(",")) if self.args.only else None
         for name, step in steps:
@@ -661,12 +949,29 @@ def summarize(report):
         lines.append("isolation: filesBlocked=%s shellBlocked=%s hookNotRun=%s claudeMdNotLoaded=%s mcpNotLaunched=%s tools=%s" % (
             iso["tools1FileReadBlocked"], iso["tool2ShellBlocked"], iso["hook3NotRun"], iso["claudeMd4NotLoaded"],
             iso["mcp4NotLaunched"], iso.get("init", {}).get("toolNames")))
+    uc = c.get("userConfig")
+    if uc:
+        lines.append("userConfig (temporary HOME): controlIsSensitive=%s productLoadsNoUserConfig=%s "
+                     "productLeavesNoSessionFile=%s" % (uc["controlIsSensitive"], uc["productLoadsNoUserConfig"],
+                                                        uc["productLeavesNoSessionFile"]))
+        for name in ("control", "product", "settingSourcesOnly", "strictMcpOnly", "safeModeOnly", "noSessionPersistenceOnly"):
+            e = uc[name]
+            lines.append("  %-25s hooks=%s mcp=%s pluginHook=%s sessionFiles=%s modelCall=%s" % (
+                name, e["userHooksFired"], e["mcpLaunched"], e["pluginHookFired"], e["sessionFilesWithMarker"],
+                e["modelCallMade"]))
+    he = c.get("hookEvents")
+    if uc:
+        lines.append("  --version / auth status ran nothing of the user config: %s" % uc["noContentCommands"]["nothingRan"])
+    if he:
+        lines.append("hookEvents (real login, product flags): detectorWorks=%s hooksStartedBeyondCanary=%s modules=%s" % (
+            he["detectorWorks"], he["hooksStartedBeyondCanary"], he["hookModulesByTier"]))
     if "control" in c:
-        lines.append("control marks: %s" % c["control"]["marks"])
+        lines.append("control: %s" % (c["control"].get("marks") or "skipped (opt-in)"))
     if "diskCopies" in c:
         d = c["diskCopies"]
-        lines.append("disk: callsWithAnyCopy=%s isolatedCallsWithCopy=%s filesChanged=%s read=%s truncatedRoots=%s" % (
-            d["callsWithAnyCopy"], d["isolatedCallsWithCopy"], d["filesChangedSince"], d["filesRead"], d["truncatedRoots"]))
+        lines.append("disk: callsWithAnyCopy=%s isolatedCallsWithCopy=%s of %s sessionFiles=%s filesChanged=%s read=%s truncatedRoots=%s" % (
+            d["callsWithAnyCopy"], d["isolatedCallsWithCopy"], d["isolatedCallsChecked"],
+            d["sessionFilesWithMarkerByIsolatedCall"], d["filesChangedSince"], d["filesRead"], d["truncatedRoots"]))
     return "\n".join(lines)
 
 
@@ -682,7 +987,9 @@ def main(argv=None):
     ap.add_argument("--no-calls", action="store_true", help="offline checks only (locator, env, TCC probe); no model call")
     ap.add_argument("--timeout", type=int, default=900)
     ap.add_argument("--cancel-after", type=float, default=1.5)
-    ap.add_argument("--only", help="comma list of steps: auth,timings,isolation,hooks,truncation,failures,tcc,disk")
+    ap.add_argument("--only", help="comma list of steps: auth,timings,userConfig,isolation,hooks,truncation,failures,tcc,disk")
+    ap.add_argument("--positive-control-real-config", action="store_true",
+                    help="OFF by default. Also run the controls that load your REAL settings: your own hooks run")
     ap.add_argument("--merge-into", help="existing report JSON whose checks are updated by this run")
     ap.add_argument("--keep-workdir", action="store_true")
     ap.add_argument("--no-cleanup-control", dest="cleanup_control", action="store_false")
@@ -691,11 +998,16 @@ def main(argv=None):
     if not args.claude or not os.path.exists(args.claude):
         print("claude binary not found; pass --claude", file=sys.stderr)
         return 2
-    canary = Canary(args)
+    if args.positive_control_real_config:
+        print(REAL_CONFIG_WARNING, file=sys.stderr)
+    canary = None
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))  # so that the work directory is removed on SIGTERM too
     try:
+        canary = Canary(args)
         report = canary.run()
     finally:
-        canary.close()
+        if canary is not None:
+            canary.close()
     if args.merge_into:
         with open(args.merge_into) as f:
             base = json.load(f)

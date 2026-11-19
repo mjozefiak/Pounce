@@ -5,7 +5,32 @@ Manual isolation and timing canary for the Claude Code CLI as a meeting-notes pr
 `docs/decisions/0011-external-providers.md`). **Nothing in the app, the build or CI calls it.** Python 3 standard
 library only; run with `python3 -I` from a copy of the script (or `python3 scripts/provider-canary/canary.py`).
 
-Tests of the script (no real CLI, a fake one): `python3 -m unittest discover scripts/provider-canary`.
+Tests of the script (no real CLI, a fake one, a fake home): `python3 -I -m unittest discover -s scripts/provider-canary`.
+
+## What it touches of yours (read this first)
+
+- **The default run never loads your own Claude Code settings, hooks, MCP servers or plugins.** Every call that uses
+  your real login carries the isolation flags (`--setting-sources ""`, `--strict-mcp-config`, `--tools ""`,
+  `--disable-slash-commands`, `--no-session-persistence`); `require_isolated` refuses, before the process starts, an
+  argv that lacks one. Every call made *without* those flags (the sensitive controls of `userConfig`) runs in a
+  temporary `HOME` that the script builds and deletes. The CLI is not logged in there, so those calls end with "Not
+  logged in" and use nothing of the subscription.
+- The CLI itself still reads your login and its own state in your config directory (`~/.claude`,
+  `~/.claude.json`), as it does for any call. The script writes nothing there.
+- **`--positive-control-real-config` (off by default) is the exception. WARNING: it runs your real hooks.** It adds
+  two calls with your real `HOME` and without the isolation flags: `control` (project settings of the decoy, tools
+  allowed, the session saved in your config directory and removed again, your user-level MCP servers may start) and
+  `hookEvents.realConfigWithoutTheFlag` (all your settings: every hook of yours for session start, prompt submit and
+  stop runs once, your plugins load). Use it only if you accept that. It is the only way to prove that the tool,
+  shell and `CLAUDE.md` detectors can fire, because those need a logged-in model call. The first version of this
+  script ran both calls on every full run; that is how the owner's real hooks ran during the first measurement
+  (ADR 0011, "What the first run did").
+- The disk scan (`disk`) walks your config directory, `~/.cache`, the system temp directory and the
+  `~/Library/{Caches,Application Support,Logs}` folders whose name contains `claude` or `anthropic`. It only searches
+  files modified since the start for this run's random markers and reports paths and counts. It prints no file
+  content and changes nothing (with the opt-in control it removes that control's own session file and its own empty
+  project directories).
+- The temporary work directory (`$TMPDIR/provider-canary-*`) is removed at the end, also when a step raises.
 
 ## What it sends
 
@@ -17,7 +42,9 @@ lines, not model output). The script asserts that no marker is in the report bef
 ## Run
 
 ```sh
-python3 scripts/provider-canary/canary.py --out /tmp/canary.json          # about 14 short model calls and one of 40 000 tokens
+python3 scripts/provider-canary/canary.py --out /tmp/canary.json          # about 9 short logged-in calls and one of 40 000 tokens
+python3 scripts/provider-canary/canary.py --only userConfig               # no model call: user-level hooks, MCP, plugins, session files
+python3 scripts/provider-canary/canary.py --only userConfig,isolation,hooks,disk   # the isolation proof: 2 short model calls
 python3 scripts/provider-canary/canary.py --no-calls                      # offline checks only (locator, env, TCC probe)
 python3 scripts/provider-canary/canary.py --only isolation,disk --out ...  # a subset; --merge-into <report> to add to one
 python3 scripts/provider-canary/canary.py --large-tokens 100000 --only timings   # the Q12 budget (about 140 000 real tokens)
@@ -34,10 +61,13 @@ the working directory and a private `TMPDIR`.
 |---|---|---|
 | 1 | File tools | `isolation`: decoy project, prompt asks to read a file outside the working directory; flags `--tools ""`. |
 | 2 | Shell | Same call asks to run `touch <marker file>`. |
-| 3 | Hooks | A project hook in the decoy writes a marker file. `hook-project` must not appear. `hookModules` counts the hook modules the CLI loads (debug log) with and without `--setting-sources ""`: user-level modules must drop to 0. |
-| 4 | `CLAUDE.md`, MCP, plugins | The decoy has a `CLAUDE.md` with a token and a `.mcp.json` whose server is `touch <file>`. The init event reports tools, MCP servers, skills and plugins. |
-| control | Positive control | The same decoy with tools allowed, project settings loaded and the session persisted. Hook, MCP server and shell marker must appear and the session file must contain the marker, or the isolated results prove nothing. The control session file is removed from `~/.claude/projects` afterwards. |
+| 3 | Hooks, project level | A project hook in the decoy writes a marker file. `hook-project` must not appear, and the stream must report 0 started hooks (`--include-hook-events`). |
+| 3 | Hooks, MCP and plugins, **user level** | `userConfig`: a temporary `HOME` with a synthetic user configuration: command hooks for SessionStart, UserPromptSubmit, Stop and SessionEnd in `settings.json`, an MCP server in `.claude.json`, an enabled plugin with a SessionStart hook, an agent definition. Each one creates an empty marker file when the CLI runs it. Six cases: `control` (no flag: everything must fire, or the test proves nothing), `product` (the product flags: nothing may fire) and each flag alone (`--setting-sources ""`, `--strict-mcp-config`, `--safe-mode`, `--no-session-persistence`). No login there, so no model call; the Stop hook is not reached. |
+| 3 | Hooks under the real login | `hooks` (`hookEvents`): one call with the real `HOME` and the product flags plus a canary hook passed by `--settings` (UserPromptSubmit and Stop; the product never passes `--settings`). The canary hooks must fire (the detector works through the end of the turn) and `hooksStartedBeyondCanary` must be 0: any other started hook would be one of yours. The debug log's hook modules are counted by tier (user tier must be 0). |
+| 4 | `CLAUDE.md`, MCP, plugins | The decoy has a `CLAUDE.md` with a token and a `.mcp.json` whose server is `touch <file>`. The init event reports tools, MCP servers, skills and plugins (`pluginsNotBuiltIn` must be 0). |
+| control | Positive control with the real config, **opt-in** | Only with `--positive-control-real-config` (see the warning above). The same decoy with tools allowed, project settings loaded and the session persisted. Hook, MCP server and shell marker must appear and the session file must contain the marker. Without it, the tool, shell and `CLAUDE.md` results rest on the init event (`tools` is empty) and have no positive control in that run. |
 | 5 | TCC | `tccInheritance`: opens two TCC-protected files from the script and from a plain child. See below. |
+| 6 | Session files | `userConfig`: after each case the temporary config directory's `projects/**/*.jsonl` is searched for that call's marker: 1 file without `--no-session-persistence`, 0 with it. `disk` does the same search in the real config directory for every isolated call (`sessionFilesWithMarkerByIsolatedCall`, all 0). Paths and counts only. |
 | 6 | Copies on disk | `disk`: every file modified since the start under the CLI config directory, `~/.claude.json`, `~/.cache`, the system temp directory, `~/Library/{Caches,Application Support,Logs}/*claude*|*anthropic*`, the child `TMPDIR` and working directories is searched for each call's marker. Report: paths and counts. |
 | 7 | Login | `auth`: `claude auth status` (only `loggedIn`, `authMethod`, `apiProvider` are kept; the e-mail is dropped), the same under an empty config directory and an empty `HOME`, with one short call each. |
 | 0.2 | Timings | `timings`: a tiny call, about 3 000 tokens in Polish and English, and one large call (default 40 000 estimator tokens); wall time, `duration_api_ms`, reported tokens, ratio to the app's estimator. |

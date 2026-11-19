@@ -1,5 +1,8 @@
+import contextlib
+import io
 import json
 import os
+import shutil
 import stat
 import tempfile
 import time
@@ -83,9 +86,134 @@ class PureTests(unittest.TestCase):
         self.assertEqual(canary.classify(-15, "", signaled=True), "cancelled")
 
 
+class IsolationArgvTests(unittest.TestCase):
+    def test_product_argv_has_every_required_flag_with_empty_values(self):
+        argv = canary.isolated_argv("/x/claude", "haiku", "SYS")
+        self.assertEqual(canary.missing_isolation(argv), [])
+        self.assertEqual(canary.forbidden_in_product(argv), [])
+        for flag in ("--no-session-persistence", "--strict-mcp-config", "--disable-slash-commands", "-p"):
+            self.assertIn(flag, argv)
+        self.assertEqual(argv[argv.index("--setting-sources") + 1], "")
+        self.assertEqual(argv[argv.index("--tools") + 1], "")
+        self.assertEqual(argv[argv.index("--output-format") + 1], "json")
+
+    def test_each_missing_or_non_empty_flag_is_reported(self):
+        base = canary.isolated_argv("/x/claude", "haiku", "SYS")
+        for flag in ("--no-session-persistence", "--strict-mcp-config", "--disable-slash-commands"):
+            self.assertEqual(canary.missing_isolation([a for a in base if a != flag]), [flag])
+        loaded = list(base)
+        loaded[loaded.index("--setting-sources") + 1] = "user"
+        self.assertEqual(canary.missing_isolation(loaded), ["--setting-sources (must be empty)"])
+        self.assertEqual(canary.missing_isolation(["claude", "-p"])[:2], ["--tools", "--no-session-persistence"])
+        self.assertEqual(canary.forbidden_in_product(base + ["--settings", "{}"]), ["--settings"])
+
+    def test_require_isolated_refuses_before_any_process(self):
+        with self.assertRaises(RuntimeError):
+            canary.require_isolated(["claude", "-p", "--model", "haiku"])
+        argv = canary.isolated_argv("/x/claude", "haiku", "SYS")
+        self.assertIs(canary.require_isolated(argv), argv)
+
+    def test_positive_control_with_the_real_config_is_off_by_default(self):
+        ap_default = self._parse([])
+        self.assertFalse(ap_default)
+        self.assertTrue(self._parse(["--positive-control-real-config"]))
+
+    def _parse(self, extra):
+        seen = {}
+
+        class Stop(Exception):
+            pass
+
+        def fake_init(self_, args):
+            seen["flag"] = args.positive_control_real_config
+            raise Stop()
+
+        original = canary.Canary.__init__
+        canary.Canary.__init__ = fake_init
+        try:
+            with contextlib.redirect_stderr(io.StringIO()) as err:
+                with self.assertRaises(Stop):
+                    canary.main(["--claude", "/bin/sh"] + extra)
+        finally:
+            canary.Canary.__init__ = original
+        self.assertEqual("REAL" in err.getvalue(), bool(seen["flag"]))  # the warning is printed only with the flag
+        return seen["flag"]
+
+
+class UserConfigTests(unittest.TestCase):
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.dir, True)
+
+    def test_build_user_config_stays_inside_home_and_names_its_markers(self):
+        home, marks = os.path.join(self.dir, "home"), os.path.join(self.dir, "marks")
+        os.makedirs(marks)
+        names = canary.build_user_config(home, marks)
+        self.assertEqual(set(names), {"hook-user-SessionStart", "hook-user-UserPromptSubmit", "hook-user-Stop",
+                                      "hook-user-SessionEnd", "mcp-user", "plugin-hook"})
+        with open(os.path.join(home, ".claude", "settings.json")) as f:
+            settings = json.load(f)
+        command = settings["hooks"]["SessionStart"][0]["hooks"][0]["command"]
+        self.assertTrue(command.startswith("/usr/bin/touch " + marks))
+        self.assertTrue(settings["enabledPlugins"]["canary-plugin@canary-market"])
+        with open(os.path.join(home, ".claude.json")) as f:
+            self.assertIn("canary-user", json.load(f)["mcpServers"])
+        self.assertEqual(os.listdir(marks), [])  # building it runs nothing
+
+    def test_temp_home_env_cannot_log_in_and_drops_the_real_config(self):
+        c = canary.Canary.__new__(canary.Canary)
+        c.child_tmp = self.dir
+        old = dict(os.environ)
+        os.environ.update({"ANTHROPIC_API_KEY": "k", "CLAUDE_CONFIG_DIR": "/real", "CLAUDE_CODE_OAUTH_TOKEN": "t"})
+        try:
+            env = c.temp_home_env("/tmp-home")
+        finally:
+            os.environ.clear()
+            os.environ.update(old)
+        self.assertEqual(env["HOME"], "/tmp-home")
+        for name in ("ANTHROPIC_API_KEY", "CLAUDE_CONFIG_DIR", "CLAUDE_CODE_OAUTH_TOKEN"):
+            self.assertNotIn(name, env)
+
+    def test_session_scan_returns_paths_only_for_jsonl_with_the_marker(self):
+        proj = os.path.join(self.dir, "projects", "enc")
+        os.makedirs(proj)
+        for name, text in (("a.jsonl", "x LCANARY-aaa private words"), ("b.jsonl", "nothing"), ("c.txt", "LCANARY-aaa")):
+            with open(os.path.join(proj, name), "w") as f:
+                f.write(text)
+        found = canary.session_files_with_marker(self.dir, "LCANARY-aaa")
+        self.assertEqual(found, [os.path.join(proj, "a.jsonl")])
+        self.assertEqual(canary.session_files_with_marker(os.path.join(self.dir, "missing"), "LCANARY-aaa"), [])
+
+    def test_read_stream_counts_hooks_and_keeps_no_foreign_names(self):
+        lines = [
+            {"type": "system", "subtype": "init", "tools": [], "mcp_servers": [{"name": "private-server"}],
+             "plugins": [{"name": "cc-plugin-privacy"}, {"name": "my-private-plugin"}], "agents": ["a"]},
+            {"type": "system", "subtype": "hook_started", "hook_event": "Stop", "hook_name": "private hook name"},
+            {"type": "system", "subtype": "hook_started", "hook_event": "Weird"},
+            {"type": "result", "is_error": False, "result": "the answer"},
+        ]
+        out, answer = canary.read_stream("\n".join(json.dumps(x) for x in lines) + "\nnot json\n")
+        self.assertEqual((out["mcpServers"], out["plugins"], out["pluginsNotBuiltIn"]), (1, 2, 1))
+        self.assertEqual(out["hookEventsStarted"], {"Stop": 1, "other": 1})
+        self.assertEqual(answer, "the answer")
+        text = json.dumps(out)
+        for private in ("private", "the answer"):
+            self.assertNotIn(private, text)
+
+
+FAKE_CLI = ('if [ "$1" = "--version" ]; then echo "9.9.9 (Claude Code)"; exit 0; fi\n'
+            'if [ "$1" = "auth" ]; then echo \'{"loggedIn":true,"authMethod":"x","email":"a@b.c"}\'; exit 0; fi\n'
+            'echo "$@" >> "$CANARY_TEST_ARGV_LOG"\n'
+            'in=$(cat); echo "$in" > "$TMPDIR/copy-$$.txt"\n'
+            'case " $* " in *" --no-session-persistence "*) ;; *) mkdir -p "$HOME/.claude/projects/p"; '
+            'echo "$in" > "$HOME/.claude/projects/p/$$.jsonl";; esac\n'
+            'echo \'{"type":"result","result":"CODE: none","is_error":false,"usage":{"input_tokens":7,"output_tokens":3}}\'\n')
+
+
 class ProcessTests(unittest.TestCase):
     def setUp(self):
         self.dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.dir, True)
 
     def test_run_child_reports_numbers_not_text_in_public(self):
         path = fake_claude(self.dir, 'cat >/dev/null; echo out; echo err >&2; exit 3\n')
@@ -115,22 +243,86 @@ class ProcessTests(unittest.TestCase):
         self.assertEqual(hits["LCANARY-bbb"], [])
         self.assertEqual(counts["filesChangedSince"], 1)
 
-    def test_end_to_end_with_fake_cli_leaks_no_marker_into_report(self):
-        body = ('if [ "$1" = "--version" ]; then echo "9.9.9 (Claude Code)"; exit 0; fi\n'
-                'if [ "$1" = "auth" ]; then echo \'{"loggedIn":true,"authMethod":"x","email":"a@b.c"}\'; exit 0; fi\n'
-                'in=$(cat); echo "$in" > "$TMPDIR/copy-$$.txt"\n'
-                'echo \'{"type":"result","result":"CODE: none","is_error":false,"usage":{"input_tokens":7,"output_tokens":3}}\'\n')
-        path = fake_claude(self.dir, body)
-        out = os.path.join(self.dir, "report.json")
-        rc = canary.main(["--claude", path, "--out", out, "--medium-tokens", "100", "--large-tokens", "200",
-                          "--cancel-after", "0.2", "--no-cleanup-control"])
+    def run_main(self, extra):
+        """Runs the whole canary against the fake CLI with a fake real HOME. Returns (report, argv lines, work dirs)."""
+        path = fake_claude(self.dir, FAKE_CLI)
+        out, log = os.path.join(self.dir, "report.json"), os.path.join(self.dir, "argv.log")
+        home, tmp = os.path.join(self.dir, "real-home"), os.path.join(self.dir, "systmp")
+        os.makedirs(home)
+        os.makedirs(tmp)
+        old, old_tmp, old_allow = dict(os.environ), tempfile.tempdir, list(canary.ENV_ALLOW)
+        os.environ.update({"HOME": home, "TMPDIR": tmp, "CANARY_TEST_ARGV_LOG": log})
+        os.environ.pop("CLAUDE_CONFIG_DIR", None)
+        tempfile.tempdir = tmp
+        canary.ENV_ALLOW.append("CANARY_TEST_ARGV_LOG")
+        try:
+            with contextlib.redirect_stderr(io.StringIO()):
+                rc = canary.main(["--claude", path, "--out", out, "--medium-tokens", "100", "--large-tokens", "200",
+                                  "--cancel-after", "0.2"] + extra)
+        finally:
+            canary.ENV_ALLOW[:] = old_allow
+            tempfile.tempdir = old_tmp
+            os.environ.clear()
+            os.environ.update(old)
         self.assertEqual(rc, 0)
-        report = json.load(open(out))
-        self.assertNotIn("a@b.c", json.dumps(report))
+        with open(out) as f:
+            report = json.load(f)
+        with open(log) as f:
+            argv_lines = f.read().splitlines()
+        return report, argv_lines, home, tmp
+
+    def test_end_to_end_default_run_is_isolated_and_cleans_up(self):
+        report, argv_lines, home, tmp = self.run_main([])
+        text = json.dumps(report)
+        self.assertNotIn("a@b.c", text)
+        self.assertNotIn("LCANARY-", text)
         self.assertEqual(report["cli"]["version"], "9.9.9")
         self.assertIn("coldTiny", report["checks"])
-        # the fake CLI writes its stdin to TMPDIR, which is in the child's private temp: the scan must see it
-        self.assertTrue(report["checks"]["diskCopies"]["callsWithAnyCopy"])
+        checks = report["checks"]
+        # positive controls with the real configuration are skipped by default
+        self.assertTrue(checks["control"]["skipped"])
+        self.assertTrue(checks["hookEvents"]["realConfigWithoutTheFlag"]["skipped"])
+        # the fake CLI writes its stdin to TMPDIR (private temp of the child): the scan must see it
+        self.assertTrue(checks["diskCopies"]["callsWithAnyCopy"])
+        # ... and a session file whenever --no-session-persistence is missing: only in the temporary HOME cases
+        self.assertEqual(checks["userConfig"]["control"]["sessionFilesWithMarker"], 1)
+        self.assertEqual(checks["userConfig"]["product"]["sessionFilesWithMarker"], 0)
+        self.assertEqual(checks["userConfig"]["noSessionPersistenceOnly"]["sessionFilesWithMarker"], 0)
+        self.assertTrue(checks["diskCopies"]["noSessionFileFromIsolatedCalls"])
+        self.assertFalse(os.path.exists(os.path.join(home, ".claude")))  # nothing written to the "real" config
+        # every call without the isolation flags is one of the five temporary-HOME cases
+        loose = [a for a in argv_lines if canary.missing_isolation(a.split(" ") + [""])]
+        self.assertEqual(len(loose), 5, loose)
+        # the work directory is removed
+        self.assertEqual([n for n in os.listdir(tmp) if n.startswith("provider-canary-")], [])
+
+    def test_end_to_end_opt_in_runs_the_real_config_controls(self):
+        report, _argv, home, tmp = self.run_main(["--positive-control-real-config"])
+        checks = report["checks"]
+        self.assertNotIn("skipped", checks["control"])
+        self.assertNotIn("skipped", checks["hookEvents"]["realConfigWithoutTheFlag"])
+        self.assertEqual(len(checks["diskCopies"]["controlSessionFilesRemoved"]), 1)
+        self.assertEqual([n for n in os.listdir(tmp) if n.startswith("provider-canary-")], [])
+
+    def test_work_directory_is_removed_when_a_step_raises(self):
+        path = fake_claude(self.dir, FAKE_CLI)
+        tmp = os.path.join(self.dir, "systmp")
+        os.makedirs(tmp)
+        old_tmp, original = tempfile.tempdir, canary.Canary.env_allowlist
+        tempfile.tempdir = tmp
+
+        def boom(self_):
+            raise ValueError("synthetic failure")
+
+        canary.Canary.env_allowlist = boom
+        try:
+            with contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(ValueError):
+                    canary.main(["--claude", path, "--no-calls"])
+        finally:
+            canary.Canary.env_allowlist = original
+            tempfile.tempdir = old_tmp
+        self.assertEqual(os.listdir(tmp), [])
 
 
 if __name__ == "__main__":
