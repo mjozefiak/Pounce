@@ -273,7 +273,7 @@ final class NotesTraceLog: Sendable {
 
         // The composer shows what the trace says it shows.
         let markdown = try #require(result.markdown)
-        #expect(markdown.contains("### Kluczowe punkty"))
+        #expect(markdown.contains("### Ustalenia"))
         #expect(markdown.contains("Zatwierdzamy budżet marketingu na ten kwartał."))
         #expect(!markdown.contains("bez zmian"))
     }
@@ -310,7 +310,7 @@ final class NotesTraceLog: Sendable {
         #expect(result.keyPoints.isEmpty)
         #expect(log.balance.isBalanced)
         let markdown = try #require(result.markdown)
-        #expect(!markdown.contains("### Kluczowe punkty"))
+        #expect(!markdown.contains("### Ustalenia"))
     }
 
     @Test func overlappingChunksShowTheDeduplication() async throws {
@@ -404,7 +404,7 @@ final class NotesTraceLog: Sendable {
     /// The bullets under the key points heading, in order.
     private static func keyPointLines(_ markdown: String) -> [String] {
         let lines = markdown.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
-        guard let start = lines.firstIndex(of: "### Kluczowe punkty") else { return [] }
+        guard let start = lines.firstIndex(of: "### Ustalenia") else { return [] }
         return Array(lines[(start + 1)...].drop { $0.isEmpty }.prefix { $0.hasPrefix("- ") })
     }
 
@@ -421,12 +421,12 @@ final class NotesTraceLog: Sendable {
         let markdown = try #require(result.markdown)
         #expect(
             Self.keyPointLines(markdown) == [
-                "- Przejdźmy do budżetu, na marketing zostało czterdzieści tysięcy złotych. \\[00\\:05\\]",
-                "- Kampania w telewizji kosztowała więcej niż zakładaliśmy. \\[00\\:20\\]",
-                "- Klienci chwalą nową aplikację mobilną. \\[00\\:40\\]",
-                "- Konkurencja obniżyła ceny w zeszłym miesiącu. \\[01\\:00\\]",
-                "- Zespół sprzedaży potrzebuje dwóch nowych osób. \\[01\\:20\\]",
-                "- Serwer produkcyjny działał stabilnie przez cały kwartał. \\[01\\:40\\]",
+                "- Przejdźmy do budżetu, na marketing zostało czterdzieści tysięcy złotych.",
+                "- Kampania w telewizji kosztowała więcej niż zakładaliśmy.",
+                "- Klienci chwalą nową aplikację mobilną.",
+                "- Konkurencja obniżyła ceny w zeszłym miesiącu.",
+                "- Zespół sprzedaży potrzebuje dwóch nowych osób.",
+                "- Serwer produkcyjny działał stabilnie przez cały kwartał.",
             ])
         #expect(!markdown.contains("fuzj"))
         #expect(!markdown.contains("### Decyzje"))
@@ -453,8 +453,8 @@ final class NotesTraceLog: Sendable {
         let markdown = try #require(result.markdown)
         #expect(
             Self.keyPointLines(markdown) == [
-                "- Zespół sprzedaży potrzebuje dwóch nowych osób. \\[01\\:20\\]",
-                "- Serwer produkcyjny działał stabilnie przez cały kwartał. \\[01\\:40\\]",
+                "- Zespół sprzedaży potrzebuje dwóch nowych osób.",
+                "- Serwer produkcyjny działał stabilnie przez cały kwartał.",
             ])
         #expect(markdown.components(separatedBy: "Klienci chwalą nową aplikację mobilną.").count == 2)
         #expect(!markdown.contains("fuzj"))
