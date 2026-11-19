@@ -36,7 +36,10 @@ Two owner decisions changed the starting point of this ADR:
 2. **The snapshot lives in memory for one dictation.** It is cleared on paste, on cancel and on error. Nothing
    from it is written to a log, `ranking.sqlite`, `dictation.sqlite`, a crash report or diagnostics. Field
    lengths are not logged either. The one exception is what dictation stores today or by rule 5: the bundle id
-   and the profile name (`app_profile`).
+   and the profile name (`app_profile`). The same holds for every other source: the clipboard content, file
+   names and paths from the listing, the terms of the user dictionary, and the dictated text itself (raw,
+   cleaned, or with a resolved reference inserted) never reach a log, a crash report or diagnostics. Logs carry
+   source names, durations, skip reasons and error codes only.
 3. **The snapshot is used by Swift rules only.** It is not part of any LLM prompt in Phases 0 to 3.
    **Everything a reference resolves to is inserted by Swift and never passes through a formatter:** the
    clipboard text, a file path found on disk, the path behind "ten plik". The formatter, and the continuity
@@ -254,8 +257,10 @@ public protocol FileNameLookup: Sendable {
 
 Notes on the shape:
 
-- `FieldKind` is an open set like the other two. The backlog names only `FocusContextSource` and `SkipReason`
-  as open; a closed `FieldKind` would break plugins the first time a kind is added, so it follows the same rule.
+- **Deviation from the backlog, awaiting owner confirmation:** `FieldKind` is an open set like the other two.
+  The backlog (DICT-2.1) names only `FocusContextSource` and `SkipReason` as open; a closed `FieldKind` would
+  break plugins the first time a kind is added, so it follows the same rule. If the owner prefers the backlog's
+  closed form, DICT-2.1 makes it a closed `enum` and this note is removed; nothing else in the contract changes.
   Which kinds Accessibility can tell apart beyond these four: **[0.2]**. `FocusContext.field` is not optional;
   code that holds an optional snapshot must unwrap it before comparing with `.none`, or the comparison reads as
   `Optional.none`.
@@ -379,6 +384,7 @@ cache and 300 ms on the first listing, at most 20 results.
 | Clipboard `accessBehavior` and the alert on macOS 26 and 27 | DICT-0.2 criterion 5 | DICT-3.1 |
 | Whether the window's document can stand in for "this file" | DICT-0.2 criterion 1 | DICT-3.5 |
 | Unchecked identifiers on the denied list | DICT-2.3 | DICT-2.3 |
+| `FieldKind` as an open set (deviation from the backlog text of DICT-2.1) | owner | DICT-2.1 |
 | Prompt version for a list of terms (DICT-4.2), and the backlog edit it needs | owner | DICT-4.2 |
 | Off/on comparison in the dogfood | owner | DICT-3.6 |
 
