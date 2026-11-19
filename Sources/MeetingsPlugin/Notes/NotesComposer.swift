@@ -3,12 +3,13 @@ import LintelCore
 
 /// Writes the notes. The Markdown is composed here from verified points. What is guaranteed:
 /// - the headings, labels, participants and the person and due-date wording are the code's own;
-/// - every bullet is a verified point's text (checked against its quote, or the transcript's own words of the
-///   quote when it was not), without a time; a task is a checklist item with its owner and due date; the key points are the verified summary points in time
-///   order (`NotesGuard.ReduceVerdict.keyPoints`), between the summary and the decisions;
-/// - the summary paragraph is either composed in code from those texts or the model's paragraph, which is the
-///   one piece of model wording that can appear, and only after `NotesGuard.summaryIsFaithful` found no name,
-///   number, date or negation in it that the verified material lacks (a paraphrase is possible);
+/// - every bullet is a verified point's text (checked against its quote; a point that failed is not shown), without
+///   a time; a task is a checklist item with its owner and due date; the order of the sections is Summary,
+///   Decisions, Action items, Topics discussed (the findings REDUCE chose, `NotesGuard.ReduceVerdict.keyPoints`),
+///   Open questions, Participants;
+/// - the summary paragraph is the model's paragraph, which is the one piece of free model wording that can
+///   appear, and only after `NotesGuard.summaryIsFaithful` found no name, number, date or negation in it that the
+///   verified material lacks (a paraphrase is possible); it is never composed from points or quotes;
 /// - everything goes through `NotesMarkdown`, the same allow-list renderer the export uses, so no image, link,
 ///   HTML or network resource can appear, and a leading `#`, `-` or `1.` of the paragraph cannot become a
 ///   heading or a list.
@@ -29,11 +30,11 @@ enum NotesComposer {
         var nothing: String
 
         static let polish = Labels(
-            summary: "Podsumowanie", keyPoints: "Ustalenia", decisions: "Decyzje", tasks: "Zadania",
+            summary: "Podsumowanie", keyPoints: "Omówione tematy", decisions: "Decyzje", tasks: "Zadania",
             questions: "Otwarte kwestie", participants: "Uczestnicy", person: "osoba", due: "termin",
             nothing: "W nagraniu nie znaleziono decyzji, zadań ani otwartych kwestii.")
         static let english = Labels(
-            summary: "Summary", keyPoints: "Key points", decisions: "Decisions", tasks: "Action items",
+            summary: "Summary", keyPoints: "Topics discussed", decisions: "Decisions", tasks: "Action items",
             questions: "Open questions", participants: "Participants", person: "owner", due: "due",
             nothing: "No decisions, action items or open questions were found in the recording.")
 
@@ -63,10 +64,6 @@ enum NotesComposer {
             heading(labels.summary)
             lines.append(summary)
         }
-        if !verdict.keyPoints.isEmpty {
-            heading(labels.keyPoints)
-            bullets(verdict.keyPoints.map { item($0, labels: labels) })
-        }
         if !verdict.decisions.isEmpty {
             heading(labels.decisions)
             bullets(verdict.decisions.map { item($0, labels: labels) })
@@ -75,12 +72,16 @@ enum NotesComposer {
             heading(labels.tasks)
             bullets(verdict.tasks.map { item($0, labels: labels) }, checklist: true)
         }
+        if !verdict.keyPoints.isEmpty {
+            heading(labels.keyPoints)
+            bullets(verdict.keyPoints.map { item($0, labels: labels) })
+        }
         if !verdict.questions.isEmpty {
             heading(labels.questions)
             bullets(verdict.questions.map { item($0, labels: labels) })
         }
         if lines.isEmpty { lines.append(labels.nothing) }
-        let names = participants.map(flat).filter { !$0.isEmpty && $0 != "?" }
+        let names = participants.map(flat).filter { !$0.isEmpty && !NotesGuard.isGenericLabel($0) }
         if !names.isEmpty {
             heading(labels.participants)
             lines.append(inertParagraph(names.joined(separator: ", ")))
