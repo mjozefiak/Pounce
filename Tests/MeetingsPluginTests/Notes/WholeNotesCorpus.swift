@@ -107,6 +107,13 @@ struct WholeNotesFault {
                         "DECISION | ~00:10 | The budget is \(fake.number) dollars."),
                 expect: .dropped, absent: [fake.number]),
             .init(
+                name: "numberWords", hard: true,
+                answer: answer + "\n"
+                    + line(
+                        "DECISION | ~00:10 | Budżet wynosi siedem tysięcy czterysta złotych.",
+                        "DECISION | ~00:10 | The budget is seven thousand four hundred dollars."),
+                expect: .dropped, absent: [line("siedem tysięcy", "seven thousand")]),
+            .init(
                 name: "weekday", hard: true,
                 answer: answer + "\n"
                     + line(

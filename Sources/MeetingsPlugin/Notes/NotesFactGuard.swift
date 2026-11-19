@@ -12,7 +12,10 @@ import LintelCore
 /// - links, images, HTML, control and bidi characters never reach the notes;
 /// - only counters and codes leave this type; it never logs text.
 ///
-/// What it cannot see (named limit): a false sentence without a number, date or proper noun passes. The quality
+/// What it cannot see (named limits): a false sentence without a number, date or proper noun passes. A capitalised
+/// word at the start of a sentence or after a colon is not checked as a name, so an invented person who opens a
+/// line ("Zenon prepares the report") passes; only the owner field is checked against the recording. A clock time
+/// is checked by its hour only, and the English "ten" and "one" in a line are never read as numbers. The quality
 /// gate counts such sentences by hand in the finished notes.
 struct NotesFactGuard: Sendable {
     enum Rule: String, Sendable, CaseIterable { case numbers, dates, names, shape }
@@ -236,8 +239,9 @@ extension NotesFactGuard {
             for index in all.indices.dropLast() { set.insert(all[index] + all[index + 1]) }
             words = set
             byInitial = Dictionary(grouping: set, by: { $0.first ?? " " })
-            let spokenRuns = NotesNumberForms.spokenValues(all)
-            values = spokenRuns
+            // In a Polish meeting "ten" is the pronoun (this), never the number 10.
+            let polish = NotesLanguage.dominant(in: utterances.map(\.text).joined(separator: " ")) == .polish
+            values = NotesNumberForms.spokenValues(polish ? all.map { $0 == "ten" ? "_" : $0 } : all)
             self.units = units
             hours = NotesNumberForms.spokenHours(all)
             temporal = Set(all.compactMap { Temporal.group(of: $0) })

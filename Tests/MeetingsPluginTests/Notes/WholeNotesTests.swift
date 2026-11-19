@@ -56,6 +56,11 @@ final class ScriptedGenerator: NotesGenerating, @unchecked Sendable {
             #expect(
                 !groups.contains(Temporal.group(of: NotesText.words(corpus.fake.weekday).joined()) ?? "?"),
                 "\(corpus.name): weekday")
+            // The `numberWords` fault spells the planted number out; it must not be said in words either.
+            #expect(corpus.fake.number == "7400", "\(corpus.name): the numberWords fault spells 7400")
+            #expect(
+                !NotesNumberForms.spokenValues(corpus.utterances.flatMap { NotesText.words($0.text) }).contains(7400),
+                "\(corpus.name): 7400 is said in words")
             for planted in [corpus.fake.number, corpus.fake.name, corpus.fake.person] {
                 #expect(
                     !said.contains(NotesText.words(planted).joined()), "\(corpus.name): \(planted) is in the transcript"
@@ -220,6 +225,38 @@ final class ScriptedGenerator: NotesGenerating, @unchecked Sendable {
         #expect(!kept("Zgłoszenie jest w Trello."))
         #expect(!kept("Firma Kwantoris się spóźnia."))
         #expect(kept("Ewie napisać do poniedziałku."))
+    }
+
+    /// A weekday is not a clock hour and the Polish pronoun "ten" is not the number 10: without these rules a
+    /// meeting that said "do piątku" or "ten lokal" backs an invented "17:00" or "10".
+    @Test func aWeekdayIsNoHourAndThePolishTenIsNoNumber() {
+        let polish = NotesFactGuard(utterances: [
+            NotesUtterance(
+                startMs: 0, speaker: "Iga", text: "Bierzemy ten lokal, umowę podpiszę do piątku, a w czwartek dzwonię."),
+            NotesUtterance(startMs: 4000, speaker: "Olek", text: "Dobrze, to drugi raz o tym mówimy."),
+        ])
+        func keptPolish(_ line: String) -> Bool {
+            polish.check(NotesDraftParser.parse("OPEN | \(line)").draft).draft.open.count == 1
+        }
+        #expect(keptPolish("Umowa będzie podpisana do piątku."))
+        #expect(keptPolish("Iga dzwoni w czwartek."))
+        #expect(!keptPolish("Podpisanie jest o 17:00."))
+        #expect(!keptPolish("Telefon jest o 16:00."))
+        #expect(!keptPolish("Spotkanie jest o 14:00."))
+        #expect(!keptPolish("Mamy 10 ofert."))
+        #expect(!keptPolish("Mamy dziesięć ofert."))
+
+        let hour = NotesFactGuard(utterances: [
+            NotesUtterance(startMs: 0, speaker: "Iga", text: "Widzimy się o drugiej, a raport na piątą."),
+        ])
+        for line in ["Spotkanie jest o 14:00.", "Raport jest na 17:00."] {
+            #expect(hour.check(NotesDraftParser.parse("OPEN | \(line)").draft).draft.open.count == 1, "\(line)")
+        }
+
+        let english = NotesFactGuard(utterances: [
+            NotesUtterance(startMs: 0, speaker: "Dan", text: "We got ten offers for the new office this week."),
+        ])
+        #expect(english.check(NotesDraftParser.parse("OPEN | We have 10 offers.").draft).draft.open.count == 1)
     }
 }
 

@@ -156,11 +156,16 @@ enum NotesNumberForms {
         return kind == .thousand || kind == .million
     }
 
-    /// The hours named by Polish ordinals ("piątej" → 5).
+    /// The endings of a feminine ordinal, the form a clock hour is said in ("o piątej", "na piątą", "trzecia").
+    private static let hourEndings: Set<String> = ["a", "ej", "ia", "iej"]
+
+    /// The hours named by Polish ordinals ("piątej" → 5). A weekday with the same stem ("piątek", "czwartku") or
+    /// another ordinal ("drugi") names no hour.
     static func spokenHours(_ words: [String]) -> Set<Int> {
         var hours: Set<Int> = []
         for word in words {
-            for (stem, value) in hourStems where word.hasPrefix(stem) && word.count <= stem.count + 4 {
+            for (stem, value) in hourStems
+            where word.hasPrefix(stem) && hourEndings.contains(String(word.dropFirst(stem.count))) {
                 hours.insert(value)
             }
         }
