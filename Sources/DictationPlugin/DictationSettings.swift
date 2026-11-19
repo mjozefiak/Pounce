@@ -21,6 +21,7 @@ struct DictationSettings: Sendable {
         static let historyEnabled = "historyEnabled"
         static let retentionDays = "retentionDays"
         static let maximumEntries = "maximumEntries"
+        static let vocabularyEnabled = "vocabularyEnabled"
     }
 
     static let defaultRetentionDays = 30
@@ -75,6 +76,9 @@ struct DictationSettings: Sendable {
     }
 
     var restoresClipboard: Bool { settings.bool(Key.restoreClipboard, default: true) }
+
+    /// Whether the user's vocabulary is applied after formatting (DICT-1.1); the pane for it is DICT-1.2.
+    var vocabularyEnabled: Bool { settings.bool(Key.vocabularyEnabled, default: true) }
 
     var mode: Mode { settings.string(Key.mode).flatMap(Mode.init(rawValue:)) ?? .raw }
 
@@ -149,6 +153,7 @@ struct DictationSettings: Sendable {
 
     func setKeepWarmMinutes(_ minutes: Int) { settings.set(minutes, for: Key.keepWarmMinutes) }
     func setRestoresClipboard(_ value: Bool) { settings.set(value, for: Key.restoreClipboard) }
+    func setVocabularyEnabled(_ value: Bool) { settings.set(value, for: Key.vocabularyEnabled) }
     func setSpeechModelID(_ id: String) { settings.set(id, for: Key.speechModel) }
     func setSpeechLanguage(_ language: String) { settings.set(language, for: Key.speechLanguage) }
 }

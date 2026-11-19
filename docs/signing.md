@@ -46,6 +46,10 @@ To finish the rotation, once:
 
 `.github/workflows/release.yml` (job `build`):
 
+0. Before anything else, a tag run takes the version from the tag (`scripts/version-from-tag.sh`) and fails
+   when the tag is not `vX.Y.Z` or `vX.Y.Z-beta.N`, when the tagged commit is not on `main` (the build number
+   is the commit count, which only grows along `main`), or when `CHANGELOG.md` has no section for the version.
+   This happens before the signing secrets are imported.
 1. Creates a temporary keychain with a random password, imports the `.p12` with access for
    `/usr/bin/codesign`, sets the key partition list so `codesign` never prompts, and adds the keychain
    to the search list. Only this step receives `SIGNING_P12` and `SIGNING_P12_PASSWORD`; the decoded
@@ -56,11 +60,12 @@ To finish the rotation, once:
    keychain only.
 3. Runs `scripts/make-dmg.sh` with `SIGN_IDENTITY="Lintel Release"` and `SIGN_KEYCHAIN`. The embedded
    `SQLCipher.framework` and `llama.framework` are signed first, then the app with the hardened runtime and
-   `Resources/Lintel.entitlements`, then the DMG.
+   `Resources/Lintel.entitlements`, then the DMG. `APP_VERSION` (the tag without `v`) and `APP_BUILD` (`git rev-list --count HEAD`) are stamped into the copied `Info.plist` by `scripts/stamp-version.sh` before the first `codesign`, so the signature covers them; `Resources/Info.plist` stays `0.0.0` / `0`.
 4. Checks that the designated requirement names the identifier and the certificate hash (not a cdhash),
    matches `Resources/designated-requirement.txt`, and is identical after a second, independent build.
-5. Uploads `Lintel.dmg`, its SHA-256 and the designated requirement as the `Lintel-dmg` artifact, then
-   deletes the temporary keychain. Only a `v*` tag runs the `publish` job that creates a GitHub Release.
+5. Uploads `Lintel.dmg`, its SHA-256 and the designated requirement (on a tag also `CHANGELOG.md` and the
+   extracted section) as the `Lintel-dmg` artifact, then
+   deletes the temporary keychain. Only a `v*` tag runs the `publish` job that creates a GitHub Release (body: install text and the changelog section; `-beta` tags are pre-releases; `CHANGELOG.md` is attached).
 
 Pull requests from forks get no secrets; their DMG is signed ad-hoc and the requirement checks are
 skipped. A tag build without the secrets fails.

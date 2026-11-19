@@ -302,6 +302,25 @@ Measurement checklist (copy into the PR that records the numbers):
 - [ ] Dictation tail with a notes job running.
 - [ ] If a figure differs from the table above by a large factor, change `notesChunkTokens` / `notesReduceInputTokens` here and in `MeetingsSettings`, and record why.
 
+## External AI providers (spec: Zewnętrzni dostawcy AI, steps 0.1 and 0.2; ADR 0011)
+
+Measured by the manual canary `scripts/provider-canary/canary.py` on 2026-11-19: Claude Code 2.1.328, Sonnet,
+macOS 27.0.1, Apple M4 Max (128 GB), subscription login, synthetic text only, answers of 212 to 450 tokens, one run
+of each row. Nothing in the app calls the provider yet; these are inputs for `ProviderNotesGenerator` limits.
+
+| Budget | Target | Measured | How to measure |
+|---|---|---|---|
+| `claude -p` tiny prompt, first call of a run ("cold") | no target; input for the timeout | 3.76 s wall, 2.31 s API; 812 input tokens | `canary.py --only timings` |
+| One call with about 3 000 estimator tokens (Polish) | no target | 4.57 s wall, 3.53 s API; 4 834 input tokens | same |
+| One call with about 3 000 estimator tokens (English) | no target | 3.99 s wall, 2.92 s API; 6 288 input tokens | same |
+| One call with about 40 000 estimator tokens (Q12 part size, Polish) | well under the working limit of 600 s per call | 6.02 s wall, 4.93 s API; 56 408 input tokens | `canary.py --only timings --large-tokens 40000` |
+| One call with 100 000 estimator tokens (Q12 budget) | under 600 s | not yet measured | `canary.py --only timings --large-tokens 100000` |
+| One-hour and three-hour synthetic transcript in one call | under 600 s | not yet measured | same, with a size from `NotesText.estimateTokens` |
+| Largest input the CLI takes on stdin without error or cut | sets `inputBudgetTokens` | not yet measured (56 408 tokens accepted) | grow `--large-tokens` until an error |
+| Reported tokens over the app's estimator | a ratio near 1 | 1.34 (Polish 3 000), 1.39 (Polish 40 000), 1.82 (English 3 000), after about 810 fixed tokens | `reportedOverEstimator` in the report, minus the 812 of the tiny call |
+| SIGTERM to the process group during generation | exit within the 2 s grace, no process left | exit 143 after 0.69 s, 0 processes left | `canary.py --only failures` |
+| Notes written by the provider, 1 h meeting end to end (`ProviderNotesGenerator`) | to be set from the above | not yet measured | spec step 1.16 |
+
 ## Window management (spec `2026-11-09-window-management`)
 
 | Budget | Target | Measured | How |

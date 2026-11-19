@@ -1,4 +1,5 @@
 import Foundation
+import LintelCore
 import LintelKit
 import Synchronization
 import Testing
@@ -62,6 +63,7 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         var ranges = [(1 * AudioFormat.sampleRate)..<(2 * AudioFormat.sampleRate)]
         var audioStarted = 0
         var formatter: (any TextFormatter)?
+        var replaceTerms: @Sendable (String) -> String = { $0 }
         var recorded: [DictationEntry] = []
         var mode = FormatMode.raw
         var now = ContinuousClock.now
@@ -102,7 +104,8 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
                         rig.audioStarted += 1
                         return DictationSession(
                             audio: ScriptedAudioInput(seconds: rig.audioSeconds), vad: RangeVAD(rig.ranges),
-                            engine: engine, formatter: rig.formatter, modelFolder: folder, lease: lease,
+                            engine: engine, formatter: rig.formatter, replaceTerms: rig.replaceTerms,
+                            modelFolder: folder, lease: lease,
                             keepWarm: { keepWarm }, onEvent: onEvent)
                     },
                     lease: lease, paster: paste.paster(), hud: hud,
@@ -407,6 +410,37 @@ final class FakeAuthorizer: MicrophoneAuthorizer, @unchecked Sendable {
         #expect(entry.targetBundleID == "com.example.target")
         #expect(entry.speechModelID == "fixture")
         #expect(entry.formatterModel == nil)
+    }
+
+    @Test func aRawDictationChangedByTheVocabularyKeepsThePastedTextAsFormatted() async throws {
+        let rig = try Rig()
+        defer { rig.tearDown() }
+        let replacer = TermReplacer(entries: [.init(term: "Seg-One", aliases: ["segment 1"])])
+        rig.replaceTerms = { replacer.apply(to: $0) }
+        let controller = rig.controller()
+        try await dictate(rig, controller)
+
+        await waitUntil { !rig.recorded.isEmpty }
+        let entry = try #require(rig.recorded.first)
+        #expect(rig.paste.pasteboard.string() == "Seg-One")
+        #expect(entry.rawText == "segment 1")
+        #expect(entry.formattedText == "Seg-One")
+        #expect(entry.formatMode == .raw)
+        #expect(entry.formatStatus == .none)
+    }
+
+    @Test func aRawDictationTheVocabularyDidNotChangeHasNoFormattedText() async throws {
+        let rig = try Rig()
+        defer { rig.tearDown() }
+        let replacer = TermReplacer(entries: [.init(term: "Kafka", aliases: ["kafka"])])
+        rig.replaceTerms = { replacer.apply(to: $0) }
+        let controller = rig.controller()
+        try await dictate(rig, controller)
+
+        await waitUntil { !rig.recorded.isEmpty }
+        let entry = try #require(rig.recorded.first)
+        #expect(entry.rawText == "segment 1")
+        #expect(entry.formattedText == nil)
     }
 
     @Test func aCleanedDictationKeepsBothVersions() async throws {

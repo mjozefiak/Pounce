@@ -26,7 +26,8 @@ import Testing
     /// Keys with no pane control, each with the reason.
     static let exempt: [String: String] = [
         "keepWarmMinutes":
-            "tuning key set with defaults only; no pane control by design (BACKWARD_COMPATIBILITY section 3)"
+            "tuning key set with defaults only; no pane control by design (BACKWARD_COMPATIBILITY section 3)",
+        "vocabularyEnabled": "DICT-1.1 has no UI; the Vocabulary pane and its switch are DICT-1.2",
     ]
 
     /// The pane view and model sources, relative to the repository root.

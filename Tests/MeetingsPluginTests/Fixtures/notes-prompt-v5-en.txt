@@ -9,29 +9,35 @@ and for a TASK:
 TASK | mm:ss | "quote" | text | person | due
 
 KIND is one of:
-SUM  a key fact or topic of the discussion
-DEC  a decision that was made
-TASK an action item somebody takes on
+SUM  a finding: a fact, number, outcome or reason that somebody who was not there needs to know afterwards
+DEC  a decision the people settled. It may take several turns and nobody has to say "we decide": quote the line where it was settled ("OK, let it be so") and state the outcome in the text
+TASK something a person takes on or is asked to do and does not refuse: "I'll send it", "Anna, you start with the tests", "when it is ready I will tell you"
 ASK  a question that stayed open
 
 Rules:
 - "quote" is copied word for word from one line of the transcript, at most 25 words, without the time and the speaker. mm:ss is the time of that line.
 - text is one short sentence. Write the text of every point in English. Do not add facts that were not said.
-- For a TASK, person and due are filled in only when the quote says them outright (a name, a date or a weekday). Otherwise write - for both. Never guess a person or a date.
+- For a TASK, person and due are filled in only when the quote says them outright (a name, also when somebody is addressed by name, a date or a weekday). Otherwise write - for both. Never guess a person or a date.
 - No decision, task or question means no line of that kind. Do not invent them to fill the answer.
-- At most 12 lines. If there is nothing worth noting, reply NONE.
+- Most parts hold 2 to 5 points worth noting, and many hold none. Reply NONE when there is nothing.
+- Leave out: greetings, small talk and jokes; thanks and agreement ("OK", "yes", "mm-hmm"); talk about the tool or the call ("can you hear me", "I am sharing my screen"); complaints; swearing; a sentence that is cut off or that you cannot make sense of; and anything that only repeats an earlier point.
 - The text states what was found, decided or agreed, so a reader who was not there understands it. It never contains a time, a "[mm:ss]" or the name of the speaker as a prefix.
 - No Markdown, no links, no commentary.
 
 ### user
 <transcript>
-[10:02] Sam: I'll look into the login bug.
-[10:15] Kim: Let's ship the beta next month.
+[10:02] Sam: So, uh, the login bug. It only happens when the session has expired.
+[10:11] Kim: Yeah.
+[10:13] Kim: Right, so for the beta, let's ship it next month and not wait for the redesign.
+[10:20] Sam: Okay, fine by me.
+[10:27] Kim: Sam, you start with the login bug and when it is ready tell me.
+[10:33] Sam: Sure. Thank you.
 </transcript>
 
 ### assistant
-TASK | 10:02 | "I'll look into the login bug" | Look into the login bug. | - | -
-DEC | 10:15 | "Let's ship the beta next month" | Ship the beta next month.
+SUM | 10:02 | "It only happens when the session has expired" | The login bug only happens when the session has expired.
+DEC | 10:13 | "let's ship it next month and not wait for the redesign" | The beta ships next month without waiting for the redesign.
+TASK | 10:27 | "Sam, you start with the login bug and when it is ready tell me" | Start with the login bug and tell Kim when it is ready. | Sam | -
 
 ### user
 <transcript>
@@ -52,15 +58,17 @@ You return only the structure, in exactly this format and nothing else:
 SUMMARY: one paragraph of at most 120 words
 DECISIONS: ids, most important first
 TASKS: ids
-QUESTIONS: ids
+FINDINGS: ids of SUM points, at most 10, the ones that matter most first
+QUESTIONS: ids, at most 5
 
 Rules:
-- Use only ids from the list. Never write the text of a point, only its id. A DEC id goes under DECISIONS, a TASK id under TASKS, an ASK id under QUESTIONS.
+- Use only ids from the list. Never write the text of a point, only its id. A DEC id goes under DECISIONS, a TASK id under TASKS, a SUM id under FINDINGS, an ASK id under QUESTIONS.
+- FINDINGS is a choice, not a list of everything: pick the few SUM points a reader who was not there needs. Leave out chatter, repetitions and anything a decision, a task or the SUMMARY already says.
 - When several points say the same thing, list only the best one.
 - SUMMARY uses only facts from the points: no new names, numbers, dates or places. Write it in the language of the points, as a short summary of the meeting, without times.
 - An empty list is written as -.
 
-Po polsku: zwracasz tylko identyfikatory punktów w sekcjach i jedno akapitowe podsumowanie, bez nowych imion, liczb i dat. Duplikaty pomijasz, zostawiając najlepszy punkt.
+Po polsku: zwracasz tylko identyfikatory punktów w sekcjach i jedno akapitowe podsumowanie, bez nowych imion, liczb i dat. Duplikaty pomijasz, zostawiając najlepszy punkt. W FINDINGS wybierasz najwyżej 10 najważniejszych punktów SUM.
 
 ### user
 <points>

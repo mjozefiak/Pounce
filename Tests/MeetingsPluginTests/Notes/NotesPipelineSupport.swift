@@ -48,6 +48,7 @@ enum NotesFake {
         var decisions: [String] = []
         var tasks: [String] = []
         var questions: [String] = []
+        var findings: [String] = []
         var firstSummary: String?
         for line in lastUser(messages).split(separator: "\n") {
             guard let match = line.firstMatch(of: /^(p\d+) \[(\w+)\] (.*)$/) else { continue }
@@ -55,7 +56,9 @@ enum NotesFake {
             case "DEC": decisions.append(String(match.1))
             case "TASK": tasks.append(String(match.1))
             case "ASK": questions.append(String(match.1))
-            case "SUM": firstSummary = firstSummary ?? String(match.3)
+            case "SUM":
+                firstSummary = firstSummary ?? String(match.3)
+                findings.append(String(match.1))
             default: break
             }
         }
@@ -63,7 +66,7 @@ enum NotesFake {
             summary ?? firstSummary.map { NotesText.firstSentence($0) } ?? "Spotkanie dotyczyło kilku spraw."
         func list(_ ids: [String]) -> String { ids.isEmpty ? "-" : ids.joined(separator: ", ") }
         return
-            "SUMMARY: \(paragraph)\nDECISIONS: \(list(decisions))\nTASKS: \(list(tasks))\nQUESTIONS: \(list(questions))"
+            "SUMMARY: \(paragraph)\nDECISIONS: \(list(decisions))\nTASKS: \(list(tasks))\nFINDINGS: \(list(findings))\nQUESTIONS: \(list(questions))"
     }
 
     static func answer(_ messages: [ChatMessage]) -> String {
