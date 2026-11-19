@@ -119,6 +119,92 @@ struct TermReplacerTests {
     }
 
     @Test(
+        "does not replace inside emails, URLs, identifiers, hyphenated words or contractions",
+        arguments: [
+            "user@lodz.pl", "https://lodz.pl/lodz/x", "my_lodz and lodz_city", "pre-lodz", "lodz-city",
+            "C:\\lodz\\x", "don't stop", "don\u{2019}t stop", "a.lodz", "v1.service",
+        ])
+    func compounds(input: String) {
+        let r = TermReplacer(entries: [
+            .init(term: "Łódź", aliases: ["lodz"]),
+            .init(term: "Done", aliases: ["don"]),
+            .init(term: "Svc", aliases: ["service"]),
+        ])
+        #expect(r.apply(to: input) == input)
+    }
+
+    @Test(
+        "sentence punctuation does not block a match",
+        arguments: [
+            ("jadę do lodz.", "jadę do Łódź."), ("(lodz)", "(Łódź)"), ("lodz, ok", "Łódź, ok"),
+            ("lodz...", "Łódź..."), ("\"lodz\"", "\"Łódź\""), ("lodz. Potem", "Łódź. Potem"),
+            ("lodz-", "Łódź-"), ("lodz!", "Łódź!"),
+        ])
+    func sentencePunctuation(input: String, expected: String) {
+        let r = TermReplacer(entries: [.init(term: "Łódź", aliases: ["lodz"])])
+        #expect(r.apply(to: input) == expected)
+    }
+
+    @Test("an alias or term with punctuation matches its own text")
+    func punctuatedAliases() {
+        let r = TermReplacer(entries: [
+            .init(term: "GPT-5", aliases: []),
+            .init(term: "email", aliases: ["e-mail"]),
+        ])
+        #expect(r.apply(to: "use gpt-5 and gpt - 5 today") == "use GPT-5 and GPT-5 today")
+        #expect(r.apply(to: "send an e-mail, or e - mail") == "send an email, or email")
+        #expect(r.apply(to: "e mail and e, mail") == "e mail and e, mail")
+        #expect(r.apply(to: "gpt 5") == "gpt 5")
+    }
+
+    @Test("a paragraph break never joins an alias")
+    func paragraphBreak() {
+        let r = replacer()
+        #expect(r.apply(to: "auth\nservice") == "AuthService")
+        #expect(r.apply(to: "auth\n\nservice") == "auth\n\nservice")
+        #expect(r.apply(to: "auth \n \n service") == "auth \n \n service")
+    }
+
+    @Test("apply is idempotent")
+    func idempotent() {
+        let r = TermReplacer(entries: [
+            .init(term: "AuthService", aliases: ["auth service"]),
+            .init(term: "Seg-One", aliases: []),
+            .init(term: "Uno", aliases: ["one"]),
+            .init(term: "GPT-5", aliases: ["gpt 5"]),
+            .init(term: "email", aliases: ["e-mail"]),
+            .init(term: "Łódź", aliases: ["lodz"]),
+        ])
+        let inputs = [
+            "otwórz auth service teraz", "seg-one i one", "gpt 5 oraz gpt-5", "wyślij e-mail do lodz.",
+            "user@lodz.pl", "one", "Seg-One, one.",
+        ]
+        for input in inputs + ["AUTH SERVICE"] {
+            let once = r.apply(to: input)
+            #expect(r.apply(to: once) == once)
+        }
+        #expect(r.apply(to: "seg-one i one") == "Seg-One i Uno")
+        let table = replacer()
+        for input in ["auth service, auth service!", "postgres s q l i postgres sql", "jadę do lodz w piątek"] {
+            let once = table.apply(to: input)
+            #expect(table.apply(to: once) == once)
+        }
+    }
+
+    @Test("thousands of aliases sharing a first word stay fast")
+    func manyAliasesSameFirstWord() {
+        let entries = (0..<2_000).map {
+            TermReplacer.Entry(term: "Term\($0)", aliases: ["the word\($0) here", "the thing\($0)"])
+        }
+        let r = TermReplacer(entries: entries)
+        let text = (0..<2_000).map { $0 % 2 == 0 ? "the thing\($0)" : "the other\($0)" }.joined(separator: " ")
+        var result = ""
+        let elapsed = ContinuousClock().measure { result = r.apply(to: text) }
+        #expect(result.hasPrefix("Term0 the other1 Term2"))
+        #expect(elapsed < .milliseconds(200))
+    }
+
+    @Test(
         "performance: 500 words and 200 terms (off by default, set LINTEL_PERF=1)",
         .enabled(if: ProcessInfo.processInfo.environment["LINTEL_PERF"] == "1"))
     func performance() {
