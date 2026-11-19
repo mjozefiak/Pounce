@@ -23,7 +23,8 @@ struct NoteBlockRow: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 2)
-        .padding(.horizontal, 12 * textSize.scale)
+        // The text starts where the header's does (prototype: the gutter's width, now left empty).
+        .padding(.leading, 5.4 * 12.5 * textSize.scale)
         .padding(.trailing, 28 * textSize.scale)
     }
 }

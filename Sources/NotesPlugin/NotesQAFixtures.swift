@@ -13,6 +13,8 @@ enum NotesQAFixtures {
     static let interruptedID = NoteKey(pluginID: "meetings", id: "00000000-0000-0000-0000-000000000005")
     static let reminderID = NoteKey(pluginID: "dictation", id: "fixture/2")
     static let needsModelID = NoteKey(pluginID: "meetings", id: "00000000-0000-0000-0000-000000000007")
+    /// Notes in the format of prompt v4: no times, tasks as a checklist (the PR #108 QA).
+    static let summaryID = NoteKey(pluginID: "meetings", id: "00000000-0000-0000-0000-000000000008")
     static let failedID = NoteKey(pluginID: "meetings", id: "00000000-0000-0000-0000-000000000006")
 
     /// The notes, newest first, dated relative to `now` so a QA run always shows today and yesterday.
@@ -21,6 +23,10 @@ enum NotesQAFixtures {
         return [
             NoteSummary(
                 id: meetingID, kind: .meeting, title: "Orchard weekly sync", startedAt: ago(3), durationMs: 2_520_000,
+                sourceApp: "Zoom", state: .ready),
+            NoteSummary(
+                id: summaryID, kind: .meeting, title: "Harbor sprint planning", startedAt: ago(2),
+                durationMs: 1_800_000,
                 sourceApp: "Zoom", state: .ready),
             NoteSummary(
                 id: dictationID, kind: .dictation, title: "Hi Kasia, I moved the review to Thursday at 10.",
@@ -65,6 +71,36 @@ enum NotesQAFixtures {
         - Who reviews the Polish translation? \\[12:46\\]
         """
 
+    static let summaryNotes = """
+        ### Summary
+
+        The team agreed to freeze the Harbor release on Friday and to move the invoice export to the next sprint.
+
+        ### Key points
+
+        - The Harbor beta has two open crash reports.
+        - The invoice export needs a design review first.
+
+        ### Decisions
+
+        - Freeze the Harbor release on Friday.
+        - Move the invoice export to the next sprint.
+
+        ### Action items
+
+        - [ ] Fix the two crash reports — owner\\: Ola, due\\: Thursday
+        - [ ] Book the design review for the export — owner\\: Piotr
+        - [ ] Send the freeze notice to support
+
+        ### Open questions
+
+        - Who signs off the release notes?
+
+        ### Participants
+
+        Ola, Piotr, Kasia
+        """
+
     /// Segments: (speaker id, start ms, text).
     static let segments: [(speaker: String, start: Int, text: String)] = [
         ("1", 761_000, "I’d move the pricing page, it isn’t ready."),
@@ -103,6 +139,20 @@ enum NotesQAFixtures {
                         version: "1"),
                 ], speakers: speakers,
                 details: [NoteDetail(label: "Speech model", value: "Parakeet Ultra")])
+        case summaryID:
+            return NoteContent(
+                summary: summary,
+                layers: [
+                    NoteLayer(id: "notes", author: .agent, markdown: summaryNotes, version: "1"),
+                    NoteLayer(
+                        id: "transcript", author: .stt,
+                        markdown: segments.map { $0.text }.joined(separator: "\n\n"),
+                        provenance: segments.enumerated().map { index, segment in
+                            NoteBlockProvenance(
+                                blockIndex: index, speakerID: segment.speaker, startMs: segment.start,
+                                segmentRef: "\(index)")
+                        }, version: "1"),
+                ], speakers: speakers, details: [])
         case dictationID:
             return NoteContent(
                 summary: summary,
