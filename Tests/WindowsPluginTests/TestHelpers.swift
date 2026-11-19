@@ -221,7 +221,8 @@ extension WindowEngine {
 extension WindowsRuntime {
     /// `settle()` that cannot hang the run.
     @discardableResult
-    func settleGuarded(limit: Duration = .seconds(20), sourceLocation: SourceLocation = #_sourceLocation) async -> Bool {
+    func settleGuarded(limit: Duration = .seconds(20), sourceLocation: SourceLocation = #_sourceLocation) async -> Bool
+    {
         await guardedAwait("settle()", limit: limit, sourceLocation: sourceLocation) { await self.settle() }
     }
 }

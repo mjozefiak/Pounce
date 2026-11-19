@@ -430,7 +430,7 @@ final class VirtualClock: Clock, @unchecked Sendable {
     static let autoAdvanceLimit = 20_000
     /// Runs on the sleeping task after its first cancellation check and before the sleeper is registered: the window
     /// in which a cancel used to leave a sleeper behind. A test sets it to cancel the task exactly there.
-    nonisolated(unsafe) var beforeRegistration: (@Sendable () -> Void)?
+    var beforeRegistration: (@Sendable () -> Void)?
 
     init(start: Double = 10_000, autoAdvance: Bool = true) {
         current = Instant(offset: .seconds(start))
@@ -464,16 +464,9 @@ final class VirtualClock: Clock, @unchecked Sendable {
         return ready.map(\.continuation)
     }
 
-    /// Waits until `count` tasks are asleep on this clock (deterministic: no polling).
-    func waitForSleepers(_ count: Int) async {
-        await withCheckedContinuation { continuation in
-            let ready = lock.withLock { () -> Bool in
-                if armed(count, dueWithin: nil) { return true }
-                sleeperWaiters.append((UUID(), count, nil, continuation))
-                return false
-            }
-            if ready { continuation.resume() }
-        }
+    /// Waits until `count` tasks are asleep on this clock, at most 30 s of real time (see the overload with a limit).
+    func waitForSleepers(_ count: Int, sourceLocation: SourceLocation = #_sourceLocation) async {
+        await waitForSleepers(count, limit: .seconds(30), sourceLocation: sourceLocation)
     }
 
     /// `waitForSleepers` that gives up after `limit` of real time (or when the waiting task is cancelled) and records
@@ -506,7 +499,8 @@ final class VirtualClock: Clock, @unchecked Sendable {
         await withTaskCancellationHandler {
             await withCheckedContinuation { continuation in
                 let ready = lock.withLock { () -> Bool in
-                    if armed(count, dueWithin: dueWithin) { return true }
+                    // Checked under the lock `giveUp` takes: a task cancelled before it parks is not parked.
+                    if Task.isCancelled || armed(count, dueWithin: dueWithin) { return true }
                     sleeperWaiters.append((id, count, dueWithin, continuation))
                     return false
                 }

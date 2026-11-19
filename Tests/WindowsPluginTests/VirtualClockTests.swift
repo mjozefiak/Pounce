@@ -4,7 +4,7 @@ import Testing
 @testable import WindowsPlugin
 
 /// The test clock is shared by most engine tests, so a sleeper it leaks makes `sleeperCount` assertions flaky (#101).
-@Suite struct VirtualClockTests {
+@Suite(.timeLimit(.minutes(1))) struct VirtualClockTests {
     @Test func aSleepCancelledBeforeItIsRegisteredLeavesNoSleeperBehind() async {
         let clock = VirtualClock(autoAdvance: false)
         // Cancel the sleeping task itself after its first cancellation check and before it registers: the window a
