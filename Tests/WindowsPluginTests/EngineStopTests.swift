@@ -35,8 +35,8 @@ import Testing
         await engine.start()
         await engine.ingest(.moved(WindowID(pid: 100, number: 1)))
         // Whichever of the two comes first, the tick never comes (virtual clock): the flush by hand ends the wait.
-        let waiting = Task { await engine.settle() }
-        await engine.flushEvents()
+        let waiting = Task { await engine.settleGuarded() }
+        await engine.flushGuarded()
         await waiting.value
         await engine.stop()
     }
@@ -66,7 +66,7 @@ import Testing
         #expect(!(await store.hidden.isEmpty))
         // The abandoned work is still running and finishes once the app answers; nothing is left parked.
         client.releaseStalls()
-        await engine.settle()
+        await engine.settleGuarded()
         await engine.stop()
         #expect(await store.hidden.isEmpty)
     }

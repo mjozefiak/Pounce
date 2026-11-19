@@ -226,7 +226,7 @@ import Testing
         let runtime = try #require(plugin.runtime)
         #expect(runtime.strip == nil)
         await runtime.engine.send(.moveFocusedWindow(to: WorkspaceID(3)!))
-        await runtime.settle()
+        await runtime.settleGuarded()
         #expect(runtime.stripBoxes().first { $0.number == 3 }?.windowCount == 1)
         let boxes = runtime.stripBoxes()
         #expect(boxes.map(\.number) == [1, 2, 3, 4])

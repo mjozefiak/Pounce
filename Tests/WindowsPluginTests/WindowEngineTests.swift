@@ -144,7 +144,7 @@ import Testing
 
         rig.client.setFocused(id(1))
         await rig.engine.ingest(.focused(id(1)))
-        await rig.engine.settle()
+        await rig.engine.settleGuarded()
         #expect(rig.client.frame(of: id(1)) == home)
         #expect((await rig.engine.snapshot).model.current == ws(1))
         await rig.engine.stop()
@@ -160,7 +160,7 @@ import Testing
         // The app moves the window back after each of our changes; the engine hears of it, one event at a time.
         for _ in 0..<4 {
             await rig.engine.ingest(.moved(id(1)))
-            await rig.engine.flushEvents()
+            await rig.engine.flushGuarded()
         }
         let state = await rig.engine.snapshot
         #expect(state.unmanaged == [id(1)])
@@ -181,7 +181,7 @@ import Testing
         // Each frame we set comes back as a move of that window: exactly our own echoes.
         await rig.engine.ingest(.moved(id(1)))
         await rig.engine.ingest(.moved(id(2, pid: 200)))
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         #expect(rig.client.calls.count == 2)
         let state = await rig.engine.snapshot
         #expect(state.diagnostics.echoesDropped >= 1)
@@ -198,7 +198,7 @@ import Testing
         for index in 0..<2_000 {
             await rig.engine.ingest(index.isMultiple(of: 2) ? .moved(id(1)) : .resized(id(1)))
         }
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         // One single-window read, and no full scan of every app.
         #expect(rig.client.windowsReads == readsBefore)
         #expect(rig.client.singleReads == 1)
@@ -215,8 +215,8 @@ import Testing
         // Re-ordered: a move after the close, then the close.
         await rig.engine.ingest(.moved(id(1)))
         await rig.engine.ingest(.destroyed(id(1)))
-        await rig.engine.flushEvents()
-        await rig.engine.settle()
+        await rig.engine.flushGuarded()
+        await rig.engine.settleGuarded()
         #expect((await rig.engine.snapshot).windows.isEmpty)
         #expect(await rig.store.hidden.isEmpty)
         #expect(rig.client.calls.count == 1)
@@ -229,7 +229,7 @@ import Testing
         await rig.engine.send(.showWorkspace(ws(2)))
         rig.client.add(makeWindow(5, pid: 300))
         await rig.engine.ingest(.created(id(5, pid: 300)))
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         #expect((await rig.engine.snapshot).model.workspace(of: id(5, pid: 300)) == ws(2))
         #expect(rig.client.frame(of: id(5, pid: 300)) == home)
     }
@@ -296,12 +296,12 @@ import Testing
 
         rig.client.setDisplays([FakeWindowClient.mainDisplay])
         await rig.engine.ingest(.displaysChanged)
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         #expect(rig.client.frame(of: id(2, pid: 200))?.origin == parkedOrigin)
 
         rig.client.setDisplays([FakeWindowClient.mainDisplay, FakeWindowClient.secondDisplay])
         await rig.engine.ingest(.displaysChanged)
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         #expect(rig.client.frame(of: id(2, pid: 200))?.origin.x ?? 0 >= 1_920)
         #expect(await rig.store.hidden.isEmpty)
         await rig.engine.stop()
@@ -314,7 +314,7 @@ import Testing
         rig.client.add(makeWindow(2, pid: 200))
         rig.client.remove(id(1))
         await rig.engine.ingest(.spaceChanged)
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         #expect((await rig.engine.snapshot).windows.keys.sorted() == [id(2, pid: 200)])
     }
 
@@ -379,19 +379,19 @@ extension WindowEngineTests {
         // A window the engine never heard of moves: it is tracked from then on.
         client.add(makeWindow(2))
         await engine.ingest(.moved(WindowID(pid: 100, number: 2)))
-        await engine.settle()
+        await engine.settleGuarded()
         #expect(await engine.snapshot.windows.keys.contains(WindowID(pid: 100, number: 2)))
         // It goes fullscreen (reported as a resize): it is let go.
         client.remove(WindowID(pid: 100, number: 2))
         client.add(makeWindow(2, fullscreen: true))
         await engine.ingest(.resized(WindowID(pid: 100, number: 2)))
-        await engine.settle()
+        await engine.settleGuarded()
         #expect(await engine.snapshot.windows[WindowID(pid: 100, number: 2)] == nil)
         // And it is managed again when it leaves fullscreen.
         client.remove(WindowID(pid: 100, number: 2))
         client.add(makeWindow(2))
         await engine.ingest(.resized(WindowID(pid: 100, number: 2)))
-        await engine.settle()
+        await engine.settleGuarded()
         #expect(await engine.snapshot.windows[WindowID(pid: 100, number: 2)] != nil)
         await engine.stop()
     }
@@ -415,7 +415,7 @@ extension WindowEngineTests {
 
         // A snapshot while it still does not answer (a resync): its window is not listed, but it is not gone.
         await rig.engine.ingest(.resync)
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         var state = await rig.engine.snapshot
         #expect(state.windows[id(1)] != nil)
         #expect(state.model.workspace(of: id(1)) != nil)
@@ -438,18 +438,18 @@ extension WindowEngineTests {
         await rig.engine.start()
         rig.client.setUnreadable(true, id(1))
         await rig.engine.ingest(.resync)
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         var state = await rig.engine.snapshot
         #expect(state.windows[id(1)] != nil)
         #expect(state.windows[id(2)] != nil)
         // It can be read again: still there. Then it closes: gone.
         rig.client.setUnreadable(false, id(1))
         await rig.engine.ingest(.resync)
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         #expect(await rig.engine.snapshot.windows[id(1)] != nil)
         rig.client.remove(id(1))
         await rig.engine.ingest(.resync)
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         state = await rig.engine.snapshot
         #expect(state.windows[id(1)] == nil)
         #expect(state.windows[id(2)] != nil)
@@ -465,13 +465,13 @@ extension WindowEngineTests {
         rig.client.setListFails(true, forProcess: 100)
         #expect(await rig.client.isResponding(pid: 100))
         await rig.engine.ingest(.resync)
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         #expect(await rig.engine.snapshot.windows[id(1)] != nil)
         // It recovers, and the window is gone (closed meanwhile): the next successful read removes it.
         rig.client.setListFails(false, forProcess: 100)
         rig.client.remove(id(1))
         await rig.engine.ingest(.resync)
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         #expect(await rig.engine.snapshot.windows[id(1)] == nil)
         await rig.engine.stop()
     }
@@ -484,10 +484,10 @@ extension WindowEngineTests {
         await rig.engine.start()
         rig.client.setBehavior(.hung, forProcess: 100)
         await rig.engine.ingest(.resync)
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         #expect(await rig.engine.snapshot.windows[id(1)] != nil)
         await rig.engine.ingest(.appTerminated(pid: 100))
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         #expect(await rig.engine.snapshot.windows[id(1)] == nil)
         await rig.engine.stop()
     }
@@ -500,7 +500,7 @@ extension WindowEngineTests {
         await rig.engine.start()
         rig.client.setBehavior(.hung, forProcess: 100)
         await rig.engine.ingest(.resync)
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         #expect(await rig.engine.snapshot.windows[id(1)] != nil)
         // Meanwhile the window closes and the app answers again; nobody tells the engine.
         rig.client.remove(id(1))
@@ -509,7 +509,7 @@ extension WindowEngineTests {
         rig.time.advance(WindowEngine.unknownRetry.seconds + 1)
         await rig.time.waitForSleepers(1, limit: .seconds(30))
         rig.time.advance(1)
-        await rig.engine.settle()
+        await rig.engine.settleGuarded()
         #expect(await rig.engine.snapshot.windows[id(1)] == nil)
         await rig.engine.stop()
     }
@@ -522,29 +522,29 @@ extension WindowEngineTests {
         await rig.engine.start()
         rig.client.setBehavior(.hung, forProcess: 100)
         await rig.engine.ingest(.resync)
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         #expect(await rig.time.waitForSleepers(1, limit: .seconds(30)))
         let armed = await rig.engine.currentRetryGeneration
         // 1. The app answers and the engine clears the retry before the old one got to run.
         rig.client.setBehavior(.normal, forProcess: 100)
         await rig.engine.ingest(.resync)
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         #expect(await rig.engine.currentRetryGeneration != armed)
         let reads = rig.client.windowsReads
         await rig.engine.retryUnknown(generation: armed)
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         #expect(await rig.engine.currentRetryDelay == WindowEngine.unknownRetry)
         #expect(rig.client.windowsReads == reads)
         // 2. The app hangs again: a new retry is armed; the old one still does nothing and starts no second chain.
         rig.client.setBehavior(.hung, forProcess: 100)
         await rig.engine.ingest(.resync)
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         #expect(await rig.time.waitForSleepers(1, limit: .seconds(30)))
         let sleepers = rig.time.sleeperCount
         let delay = await rig.engine.currentRetryDelay
         let readsBefore = rig.client.windowsReads
         await rig.engine.retryUnknown(generation: armed)
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         #expect(await rig.engine.currentRetryDelay == delay)
         #expect(rig.time.sleeperCount == sleepers)
         #expect(rig.client.windowsReads == readsBefore)
@@ -565,7 +565,7 @@ extension WindowEngineTests {
         rig.client.setBehavior(.normal, forProcess: 100)
         rig.client.remove(id(2))
         await rig.engine.ingest(.destroyed(id(2)))
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         #expect(rig.client.frame(of: id(1))?.origin == parkedOrigin)
         await rig.engine.stop()
     }
@@ -583,7 +583,7 @@ extension WindowEngineTests {
         await looks.wait(atLeast: before + 1, what)
         await rig.time.waitForSleepers(1, limit: .seconds(30))
         rig.time.advance(0.01)
-        await rig.engine.settle()
+        await rig.engine.settleGuarded()
     }
 
     private func observeLooks(_ rig: Rig) async -> CountGate {
@@ -596,7 +596,7 @@ extension WindowEngineTests {
         rig.time.advance(seconds)
         await rig.time.waitForSleepers(1, limit: .seconds(30))
         rig.time.advance(0.01)
-        await rig.engine.settle()
+        await rig.engine.settleGuarded()
     }
 
     /// QA round 4, D11: an app that appears with windows the engine cannot read (stopped, or still starting) while it
@@ -642,7 +642,7 @@ extension WindowEngineTests {
         #expect(rig.client.windowsReads >= reads + WindowEngine.untrackedRetryLimit)
         let before = rig.client.windowsReads
         rig.time.advance(3600)
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         #expect(rig.client.windowsReads == before)
         await rig.engine.stop()
     }
@@ -665,7 +665,7 @@ extension WindowEngineTests {
         rig.client.add(makeWindow(22, pid: 400))
         rig.client.setBehavior(.hung, forProcess: 400)
         await rig.engine.ingest(.resync)
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         #expect(await rig.time.waitForSleepers(1, limit: .seconds(30)))
         #expect(await rig.engine.untrackedAttempts(of: 400) == 0)
         #expect(await rig.engine.untrackedAttempts(of: 300) == WindowEngine.untrackedRetryLimit)
@@ -678,7 +678,7 @@ extension WindowEngineTests {
         #expect(rig.time.sleeperCount == 0)
         let before = rig.client.windowsReads
         rig.time.advance(3600)
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         #expect(rig.client.windowsReads == before)
         await rig.engine.stop()
     }
@@ -704,7 +704,7 @@ extension WindowEngineTests {
         rig.client.add(makeWindow(12, pid: 300))
         rig.client.setBehavior(.hung, forProcess: 300)
         await rig.engine.ingest(.resync)
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         #expect(await rig.time.waitForSleepers(1, limit: .seconds(30)))
         #expect(await rig.engine.untrackedAttempts(of: 300) == 0)
         await look(rig, looks)
@@ -724,7 +724,7 @@ extension WindowEngineTests {
         // A window of an app that answers normally: nothing armed after a resync either.
         rig.client.add(makeWindow(31, pid: 500))
         await rig.engine.ingest(.resync)
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         #expect(rig.time.sleeperCount == 0)
         // The same app timing out arms the look.
         rig.client.setBehavior(.hung, forProcess: 500)
@@ -732,7 +732,7 @@ extension WindowEngineTests {
         rig.client.add(makeWindow(32, pid: 600))
         rig.client.setBehavior(.hung, forProcess: 600)
         await rig.engine.ingest(.resync)
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         #expect(await rig.time.waitForSleepers(1, limit: .seconds(30)))
         await rig.engine.stop()
     }
@@ -745,7 +745,7 @@ extension WindowEngineTests {
         await rig.engine.start()
         rig.client.setBehavior(.hung, forProcess: 100)
         await rig.engine.ingest(.resync)
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         // The retry task registers its sleep on its own turn (slower under TSan): wait for it, bounded.
         #expect(await rig.time.waitForSleepers(1, limit: .seconds(30)))
         var reads = rig.client.windowsReads
@@ -792,7 +792,7 @@ extension WindowEngineTests {
         // The app answers (it is not hung) and no longer lists the window: it is gone.
         rig.client.remove(id(2, pid: 200))
         await rig.engine.ingest(.resync)
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         let state = await rig.engine.snapshot
         #expect(state.windows[id(2, pid: 200)] == nil)
         #expect(state.windows[id(1)] != nil)
@@ -805,13 +805,13 @@ extension WindowEngineTests {
         await rig.engine.start()
         rig.client.setBehavior(.hung, forProcess: 100)
         await rig.engine.ingest(.resync)
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         #expect(await rig.engine.snapshot.windows[id(1)] != nil)
         // It comes back and the window was closed meanwhile: the next look removes it.
         rig.client.setBehavior(.normal, forProcess: 100)
         rig.client.remove(id(1))
         await rig.engine.ingest(.resync)
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         #expect(await rig.engine.snapshot.windows[id(1)] == nil)
         await rig.engine.stop()
     }
@@ -860,7 +860,7 @@ extension WindowEngineTests {
         rig.client.releaseStalls()
         await hide.value
         await show.value
-        await rig.engine.settle()
+        await rig.engine.settleGuarded()
         let state = await rig.engine.snapshot
         #expect(state.parked.isEmpty)
         #expect(rig.client.frame(of: hung.id)?.origin != parkedOrigin)
