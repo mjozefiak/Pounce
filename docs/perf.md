@@ -195,6 +195,19 @@ and filled in then; nothing here is estimated.
 | Resident memory with the built-in 4B model loaded / after keep-warm unload | ≈ 3.3 GB / back to the baseline | – | Manual (Activity Monitor) |
 | Time of one chunk request | printed by `LINTEL_LLM_URL=… swift test --filter CleanupFixtureTests/realServer` | – | Manual |
 
+### Context (ADR 0010, epic DICT)
+
+Budgets of ADR 0010. Nothing is measured yet: the code does not exist. DICT-2.7 measures the first two rows,
+DICT-3.3 the file lookup.
+
+| Budget | Target | Measured | Status |
+|---|---|---|---|
+| Context snapshot at the shortcut press | ≤ 250 ms in total; after that the dictation runs without context, and recording and the HUD never wait for it | – | Not yet measured (DICT-2.7) |
+| Rules after transcription (dictionary and insertion rules), 500 words | ≤ 20 ms | – | Not yet measured (DICT-2.7) |
+| `FileNameLookup`, warm cache | ≤ 50 ms | – | Not yet measured (DICT-3.3) |
+| `FileNameLookup`, first listing of a folder | ≤ 300 ms | – | Not yet measured (DICT-3.3) |
+| `FileNameLookup`, results | ≤ 20 | – | Not yet measured (DICT-3.3) |
+
 Run the local integration tests with the model installed (they are off by default):
 
 ```sh
