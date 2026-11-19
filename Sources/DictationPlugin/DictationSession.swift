@@ -67,6 +67,8 @@ actor DictationSession {
     private let modelID: String
     private let keepWarm: @Sendable () -> Duration
     private let formatter: (any TextFormatter)?
+    /// The user's vocabulary, applied to the final text after formatting (`rawText` is left as heard).
+    private let replaceTerms: @Sendable (String) -> String
     private let modelFolder: URL
     private let limit: Int
     private let warning: Int
@@ -101,6 +103,7 @@ actor DictationSession {
         vad: any VoiceActivityDetector,
         engine: any SpeechEngine,
         formatter: (any TextFormatter)? = nil,
+        replaceTerms: @escaping @Sendable (String) -> String = { $0 },
         modelFolder: URL,
         lease: SpeechEngineLease = SpeechEngineLease(),
         modelID: String = "dictation",
@@ -117,6 +120,7 @@ actor DictationSession {
         self.modelID = modelID
         self.keepWarm = keepWarm
         self.formatter = formatter
+        self.replaceTerms = replaceTerms
         self.modelFolder = modelFolder
         self.limit = Self.samples(in: maximumDuration)
         self.warning = max(0, Self.samples(in: maximumDuration) - Self.samples(in: warningBefore))
@@ -248,7 +252,7 @@ actor DictationSession {
             }
         }
         return Output(
-            text: text,
+            text: replaceTerms(text),
             duration: Double(store.count) / Double(AudioFormat.sampleRate),
             segmentCount: tasks.count,
             failedSegments: failed,
