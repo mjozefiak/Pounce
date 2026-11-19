@@ -7,6 +7,8 @@ Changelog:
 
 Ten plik jest wersjonowany. Każda zmiana kotwic, wag, promptu albo schematu podnosi `rubric_version` i dopisuje linię do changelogu. Wyników z różnych wersji rubryki nigdy się nie porównuje ani nie uśrednia.
 
+Dla spotkań właściciela tę rubrykę zastępuje `fable-judge.md` (`judge_protocol_version` 1), który nie nagradza czasów `[mm:ss]` w notatce; ten plik zostaje dla wyników już zebranych.
+
 Sędzia to niezależny subagent Claude, nigdy model, który wygenerował notatki (Qwen3-4B / Qwen3-30B-A3B). Ocenia gotowe notatki (`notes.markdown` z wyniku `MeetingEvalTests`) względem transkryptu, z którego powstały.
 
 ## 1. Co sędzia dostaje i czego nie karze (format generatora)

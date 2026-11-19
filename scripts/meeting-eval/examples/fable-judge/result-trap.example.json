@@ -1,0 +1,32 @@
+{
+  "protocol_version": 1,
+  "meeting": "901",
+  "reference": [
+    {"id": "r1", "kind": "decision", "text": "Wydanie 2.4 w czwartek 12 marca zamiast w poniedziałek.", "owner": null, "due": null, "segment": 5, "core": true},
+    {"id": "r2", "kind": "decision", "text": "Limit eksportu rośnie z 5 do 10 tysięcy wierszy.", "owner": null, "due": null, "segment": 11, "core": true},
+    {"id": "r3", "kind": "task", "text": "Naprawić eksport CSV.", "owner": "Marek", "due": "środa", "segment": 6, "core": true},
+    {"id": "r4", "kind": "task", "text": "Napisać do klienta o nowym terminie wydania.", "owner": "Iza", "due": "dziś", "segment": 7, "core": true},
+    {"id": "r5", "kind": "finding", "text": "Testy regresji przeszły; został błąd eksportu CSV przy pustych wierszach, który nie blokuje wydania.", "owner": null, "due": null, "segment": 1, "core": false},
+    {"id": "r6", "kind": "finding", "text": "Migracja bazy na nowy serwer: bez decyzji, temat wraca po wydaniu.", "owner": null, "due": null, "segment": 9, "core": false},
+    {"id": "r7", "kind": "context", "text": "Klient z hurtowni czeka na raport zapasów obiecany w tej wersji.", "owner": null, "due": null, "segment": 4, "core": false}
+  ],
+  "omissions": [
+    {"ref_id": "r4", "coverage": "missed", "why": "W notatce nie ma zadania Izy."}
+  ],
+  "fabrications": [
+    {"category": "number_or_date", "severity": "major", "notes_quote": "Limit eksportu rośnie z 5 do 20 tysięcy wierszy.", "why": "W transkrypcie limit rośnie do 10 tysięcy.", "segment": 11},
+    {"category": "task", "severity": "major", "notes_quote": "Ola: przenieść bazę na nowy serwer, do piątku.", "why": "Migracja była luźnym pomysłem odłożonym na po wydaniu; nikt nie przyjął zadania i nie padł termin.", "segment": 9}
+  ],
+  "format_defects": [
+    {"category": "timestamp_in_notes", "count": 1, "why": "Punkt kończy się czasem „[00:05]”."},
+    {"category": "author_marker", "count": 1, "why": "Punkt zaczyna się od „AI:”."}
+  ],
+  "evidence": {
+    "coverage": "Brakuje zadania Izy (r4, core). RECALL = 9/11 = 0,82.",
+    "faithfulness": "Dwa zmyślenia major: „z 5 do 20 tysięcy” i „Ola: przenieść bazę na nowy serwer, do piątku”.",
+    "tasks": "Jedno zadanie pominięte i jedno zmyślone.",
+    "formatting": "Czas „[00:05]” i oznaczenie „AI:” w notatce."
+  },
+  "scores": {"coverage": 3, "faithfulness": 1, "tasks": 1, "formatting": 2},
+  "overall": 46
+}

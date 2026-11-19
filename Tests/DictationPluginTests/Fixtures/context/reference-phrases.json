@@ -1,0 +1,696 @@
+{
+  "version": 1,
+  "about": "Synthetic reference phrases for voice references (ADR 0010, story DICT-0.3). Written for this file; none comes from a real dictation or meeting. Each phrase is a list of segments between pauses. Segments are compared with clipboardPhrases after lowercasing and trimming punctuation. A none phrase is prose or unresolved (a reference that must not resolve).",
+  "clipboardPhrases": [
+    "wklej schowek",
+    "wklej ze schowka",
+    "wstaw schowek",
+    "paste clipboard",
+    "paste the clipboard",
+    "insert clipboard"
+  ],
+  "files": [
+    "Sources/Auth/AuthService.swift",
+    "Sources/App/AppDelegate.swift",
+    "Sources/Search/Ranker.swift",
+    "web/src/login_form.tsx",
+    "web/package.json",
+    "docs/README.md",
+    "scripts/make_release.sh",
+    "config/settings.yaml",
+    "config/settings.json"
+  ],
+  "phrases": [
+    {
+      "id": "pl-clipboard-01",
+      "language": "pl",
+      "segments": [
+        "popraw ten błąd",
+        "wklej schowek",
+        "i dodaj test"
+      ],
+      "expected": "clipboard"
+    },
+    {
+      "id": "pl-clipboard-02",
+      "language": "pl",
+      "segments": [
+        "wklej schowek"
+      ],
+      "expected": "clipboard"
+    },
+    {
+      "id": "pl-clipboard-03",
+      "language": "pl",
+      "segments": [
+        "wyjaśnij mi ten komunikat",
+        "wklej ze schowka"
+      ],
+      "expected": "clipboard"
+    },
+    {
+      "id": "pl-clipboard-04",
+      "language": "pl",
+      "segments": [
+        "wstaw schowek",
+        "i powiedz co jest nie tak"
+      ],
+      "expected": "clipboard"
+    },
+    {
+      "id": "pl-clipboard-05",
+      "language": "pl",
+      "segments": [
+        "to jest log z serwera",
+        "wklej schowek",
+        "znajdź przyczynę"
+      ],
+      "expected": "clipboard"
+    },
+    {
+      "id": "pl-clipboard-06",
+      "language": "pl",
+      "segments": [
+        "przetłumacz na angielski",
+        "wklej ze schowka"
+      ],
+      "expected": "clipboard"
+    },
+    {
+      "id": "pl-clipboard-07",
+      "language": "pl",
+      "segments": [
+        "wklej ze schowka",
+        "i skróć to do trzech zdań"
+      ],
+      "expected": "clipboard"
+    },
+    {
+      "id": "pl-clipboard-08",
+      "language": "pl",
+      "segments": [
+        "porównaj z tym fragmentem",
+        "wstaw schowek"
+      ],
+      "expected": "clipboard"
+    },
+    {
+      "id": "pl-clipboard-09",
+      "language": "pl",
+      "segments": [
+        "mam taki błąd kompilacji",
+        "wklej schowek",
+        "jak to naprawić"
+      ],
+      "expected": "clipboard"
+    },
+    {
+      "id": "pl-clipboard-10",
+      "language": "pl",
+      "segments": [
+        "dodaj do opisu zmian",
+        "wklej ze schowka",
+        "i popraw literówki"
+      ],
+      "expected": "clipboard"
+    },
+    {
+      "id": "en-clipboard-01",
+      "language": "en",
+      "segments": [
+        "fix this error",
+        "paste clipboard",
+        "and add a test"
+      ],
+      "expected": "clipboard"
+    },
+    {
+      "id": "en-clipboard-02",
+      "language": "en",
+      "segments": [
+        "paste the clipboard"
+      ],
+      "expected": "clipboard"
+    },
+    {
+      "id": "en-clipboard-03",
+      "language": "en",
+      "segments": [
+        "explain this message",
+        "paste clipboard"
+      ],
+      "expected": "clipboard"
+    },
+    {
+      "id": "en-clipboard-04",
+      "language": "en",
+      "segments": [
+        "insert clipboard",
+        "and tell me what is wrong"
+      ],
+      "expected": "clipboard"
+    },
+    {
+      "id": "en-clipboard-05",
+      "language": "en",
+      "segments": [
+        "here is the server log",
+        "paste the clipboard",
+        "find the cause"
+      ],
+      "expected": "clipboard"
+    },
+    {
+      "id": "en-clipboard-06",
+      "language": "en",
+      "segments": [
+        "translate this to polish",
+        "paste clipboard"
+      ],
+      "expected": "clipboard"
+    },
+    {
+      "id": "en-clipboard-07",
+      "language": "en",
+      "segments": [
+        "paste the clipboard",
+        "and shorten it to three sentences"
+      ],
+      "expected": "clipboard"
+    },
+    {
+      "id": "en-clipboard-08",
+      "language": "en",
+      "segments": [
+        "compare with this snippet",
+        "insert clipboard"
+      ],
+      "expected": "clipboard"
+    },
+    {
+      "id": "en-clipboard-09",
+      "language": "en",
+      "segments": [
+        "i get this build error",
+        "paste clipboard",
+        "how do i fix it"
+      ],
+      "expected": "clipboard"
+    },
+    {
+      "id": "en-clipboard-10",
+      "language": "en",
+      "segments": [
+        "add this to the change description",
+        "paste the clipboard",
+        "and fix the typos"
+      ],
+      "expected": "clipboard"
+    },
+    {
+      "id": "pl-file-01",
+      "language": "pl",
+      "segments": [
+        "otwórz małpa auth service kropka swift"
+      ],
+      "expected": "file",
+      "file": "Sources/Auth/AuthService.swift"
+    },
+    {
+      "id": "pl-file-02",
+      "language": "pl",
+      "segments": [
+        "popraw błąd w",
+        "małpa ranker kropka swift"
+      ],
+      "expected": "file",
+      "file": "Sources/Search/Ranker.swift"
+    },
+    {
+      "id": "pl-file-03",
+      "language": "pl",
+      "segments": [
+        "auth service kropka swift ma za długą funkcję"
+      ],
+      "expected": "file",
+      "file": "Sources/Auth/AuthService.swift"
+    },
+    {
+      "id": "pl-file-04",
+      "language": "pl",
+      "segments": [
+        "dodaj pole do tag login form kropka tsx"
+      ],
+      "expected": "file",
+      "file": "web/src/login_form.tsx"
+    },
+    {
+      "id": "pl-file-05",
+      "language": "pl",
+      "segments": [
+        "zaktualizuj wersję w małpa package kropka json"
+      ],
+      "expected": "file",
+      "file": "web/package.json"
+    },
+    {
+      "id": "pl-file-06",
+      "language": "pl",
+      "segments": [
+        "dopisz sekcję do readme kropka md"
+      ],
+      "expected": "file",
+      "file": "docs/README.md"
+    },
+    {
+      "id": "pl-file-07",
+      "language": "pl",
+      "segments": [
+        "uruchom małpa make release kropka sh"
+      ],
+      "expected": "file",
+      "file": "scripts/make_release.sh"
+    },
+    {
+      "id": "pl-file-08",
+      "language": "pl",
+      "segments": [
+        "zmień port w settings kropka yaml"
+      ],
+      "expected": "file",
+      "file": "config/settings.yaml"
+    },
+    {
+      "id": "pl-file-09",
+      "language": "pl",
+      "segments": [
+        "przeczytaj małpa app delegate kropka swift",
+        "i opisz co robi"
+      ],
+      "expected": "file",
+      "file": "Sources/App/AppDelegate.swift"
+    },
+    {
+      "id": "pl-file-10",
+      "language": "pl",
+      "segments": [
+        "w małpa settings kropka json brakuje klucza"
+      ],
+      "expected": "file",
+      "file": "config/settings.json"
+    },
+    {
+      "id": "en-file-01",
+      "language": "en",
+      "segments": [
+        "open at auth service dot swift"
+      ],
+      "expected": "file",
+      "file": "Sources/Auth/AuthService.swift"
+    },
+    {
+      "id": "en-file-02",
+      "language": "en",
+      "segments": [
+        "fix the bug in",
+        "at ranker dot swift"
+      ],
+      "expected": "file",
+      "file": "Sources/Search/Ranker.swift"
+    },
+    {
+      "id": "en-file-03",
+      "language": "en",
+      "segments": [
+        "ranker dot swift needs a unit test"
+      ],
+      "expected": "file",
+      "file": "Sources/Search/Ranker.swift"
+    },
+    {
+      "id": "en-file-04",
+      "language": "en",
+      "segments": [
+        "add a field to tag login form dot tsx"
+      ],
+      "expected": "file",
+      "file": "web/src/login_form.tsx"
+    },
+    {
+      "id": "en-file-05",
+      "language": "en",
+      "segments": [
+        "bump the version in at package dot json"
+      ],
+      "expected": "file",
+      "file": "web/package.json"
+    },
+    {
+      "id": "en-file-06",
+      "language": "en",
+      "segments": [
+        "add a section to readme dot md"
+      ],
+      "expected": "file",
+      "file": "docs/README.md"
+    },
+    {
+      "id": "en-file-07",
+      "language": "en",
+      "segments": [
+        "run at make release dot sh"
+      ],
+      "expected": "file",
+      "file": "scripts/make_release.sh"
+    },
+    {
+      "id": "en-file-08",
+      "language": "en",
+      "segments": [
+        "change the port in settings dot yaml"
+      ],
+      "expected": "file",
+      "file": "config/settings.yaml"
+    },
+    {
+      "id": "en-file-09",
+      "language": "en",
+      "segments": [
+        "read at app delegate dot swift",
+        "and describe what it does"
+      ],
+      "expected": "file",
+      "file": "Sources/App/AppDelegate.swift"
+    },
+    {
+      "id": "en-file-10",
+      "language": "en",
+      "segments": [
+        "a key is missing in at settings dot json"
+      ],
+      "expected": "file",
+      "file": "config/settings.json"
+    },
+    {
+      "id": "pl-none-01",
+      "language": "pl",
+      "segments": [
+        "wklej schowek to polecenie którego używam najczęściej"
+      ],
+      "expected": "none",
+      "note": "clipboard phrase inside a sentence",
+      "kind": "prose"
+    },
+    {
+      "id": "pl-none-02",
+      "language": "pl",
+      "segments": [
+        "nie wiem czy wklej ze schowka działa w tym edytorze"
+      ],
+      "expected": "none",
+      "note": "clipboard phrase inside a sentence",
+      "kind": "prose"
+    },
+    {
+      "id": "pl-none-03",
+      "language": "pl",
+      "segments": [
+        "powiedz wstaw schowek a zobaczysz co się stanie"
+      ],
+      "expected": "none",
+      "note": "clipboard phrase inside a sentence",
+      "kind": "prose"
+    },
+    {
+      "id": "pl-none-04",
+      "language": "pl",
+      "segments": [
+        "skopiuj to do schowka",
+        "i wyślij mi mailem"
+      ],
+      "expected": "none",
+      "note": "clipboard word, no phrase",
+      "kind": "prose"
+    },
+    {
+      "id": "pl-none-05",
+      "language": "pl",
+      "segments": [
+        "schowek w tym samochodzie jest za mały"
+      ],
+      "expected": "none",
+      "note": "clipboard word, other meaning",
+      "kind": "prose"
+    },
+    {
+      "id": "pl-none-06",
+      "language": "pl",
+      "segments": [
+        "otwórz plik konfiguracyjny"
+      ],
+      "expected": "none",
+      "note": "the word plik alone triggers nothing",
+      "kind": "prose"
+    },
+    {
+      "id": "pl-none-07",
+      "language": "pl",
+      "segments": [
+        "małpa siedzi na drzewie i je banana"
+      ],
+      "expected": "none",
+      "note": "trigger word in prose, no file matches",
+      "kind": "prose"
+    },
+    {
+      "id": "pl-none-08",
+      "language": "pl",
+      "segments": [
+        "dodaj tag do tego wydania"
+      ],
+      "expected": "none",
+      "note": "trigger word in prose, no file matches",
+      "kind": "prose"
+    },
+    {
+      "id": "pl-none-09",
+      "language": "pl",
+      "segments": [
+        "na końcu zdania stawiamy kropka"
+      ],
+      "expected": "none",
+      "note": "the word kropka without a file name",
+      "kind": "prose"
+    },
+    {
+      "id": "pl-none-10",
+      "language": "pl",
+      "segments": [
+        "małpa settings"
+      ],
+      "expected": "none",
+      "note": "two files match, no extension spoken",
+      "kind": "unresolved"
+    },
+    {
+      "id": "pl-none-11",
+      "language": "pl",
+      "segments": [
+        "otwórz małpa user repository kropka swift"
+      ],
+      "expected": "none",
+      "note": "trigger and extension, no such file",
+      "kind": "unresolved"
+    },
+    {
+      "id": "pl-none-12",
+      "language": "pl",
+      "segments": [
+        "ten serwis do autoryzacji działa wolno"
+      ],
+      "expected": "none",
+      "note": "words of a file name, no trigger and no extension",
+      "kind": "prose"
+    },
+    {
+      "id": "en-none-01",
+      "language": "en",
+      "segments": [
+        "paste clipboard is the command i use most"
+      ],
+      "expected": "none",
+      "note": "clipboard phrase inside a sentence",
+      "kind": "prose"
+    },
+    {
+      "id": "en-none-02",
+      "language": "en",
+      "segments": [
+        "i am not sure paste the clipboard works in this editor"
+      ],
+      "expected": "none",
+      "note": "clipboard phrase inside a sentence",
+      "kind": "prose"
+    },
+    {
+      "id": "en-none-03",
+      "language": "en",
+      "segments": [
+        "say insert clipboard and see what happens"
+      ],
+      "expected": "none",
+      "note": "clipboard phrase inside a sentence",
+      "kind": "prose"
+    },
+    {
+      "id": "en-none-04",
+      "language": "en",
+      "segments": [
+        "copy this to the clipboard",
+        "and send it to me"
+      ],
+      "expected": "none",
+      "note": "clipboard word, no phrase",
+      "kind": "prose"
+    },
+    {
+      "id": "en-none-05",
+      "language": "en",
+      "segments": [
+        "the clipboard on the wall holds the schedule"
+      ],
+      "expected": "none",
+      "note": "clipboard word, other meaning",
+      "kind": "prose"
+    },
+    {
+      "id": "en-none-06",
+      "language": "en",
+      "segments": [
+        "open the configuration file"
+      ],
+      "expected": "none",
+      "note": "the word file alone triggers nothing",
+      "kind": "prose"
+    },
+    {
+      "id": "en-none-07",
+      "language": "en",
+      "segments": [
+        "we meet at the office at nine"
+      ],
+      "expected": "none",
+      "note": "trigger word in prose, no file matches",
+      "kind": "prose"
+    },
+    {
+      "id": "en-none-08",
+      "language": "en",
+      "segments": [
+        "tag me in the comment when it is done"
+      ],
+      "expected": "none",
+      "note": "trigger word in prose, no file matches",
+      "kind": "prose"
+    },
+    {
+      "id": "en-none-09",
+      "language": "en",
+      "segments": [
+        "put a dot at the end of the sentence"
+      ],
+      "expected": "none",
+      "note": "the word dot without a file name",
+      "kind": "prose"
+    },
+    {
+      "id": "en-none-10",
+      "language": "en",
+      "segments": [
+        "at settings"
+      ],
+      "expected": "none",
+      "note": "two files match, no extension spoken",
+      "kind": "unresolved"
+    },
+    {
+      "id": "en-none-11",
+      "language": "en",
+      "segments": [
+        "open at user repository dot swift"
+      ],
+      "expected": "none",
+      "note": "trigger and extension, no such file",
+      "kind": "unresolved"
+    },
+    {
+      "id": "en-none-12",
+      "language": "en",
+      "segments": [
+        "the auth service is slow today"
+      ],
+      "expected": "none",
+      "note": "words of a file name, no trigger and no extension",
+      "kind": "prose"
+    },
+    {
+      "id": "pl-clipboard-11",
+      "language": "pl",
+      "segments": [
+        "Popraw ten błąd.",
+        "Wklej schowek.",
+        "I dodaj test."
+      ],
+      "expected": "clipboard"
+    },
+    {
+      "id": "en-clipboard-11",
+      "language": "en",
+      "segments": [
+        "Explain this message.",
+        "Paste the clipboard."
+      ],
+      "expected": "clipboard"
+    },
+    {
+      "id": "pl-none-13",
+      "language": "pl",
+      "segments": [
+        "wklej schowek proszę"
+      ],
+      "expected": "none",
+      "note": "extra word in the segment",
+      "kind": "prose"
+    },
+    {
+      "id": "pl-none-14",
+      "language": "pl",
+      "segments": [
+        "nie wklejaj schowka"
+      ],
+      "expected": "none",
+      "note": "negated, not a phrase from the list",
+      "kind": "prose"
+    },
+    {
+      "id": "en-none-13",
+      "language": "en",
+      "segments": [
+        "paste clipboard here"
+      ],
+      "expected": "none",
+      "note": "extra word in the segment",
+      "kind": "prose"
+    },
+    {
+      "id": "en-none-14",
+      "language": "en",
+      "segments": [
+        "do not paste the clipboard"
+      ],
+      "expected": "none",
+      "note": "negated, phrase inside a longer segment",
+      "kind": "prose"
+    }
+  ]
+}
