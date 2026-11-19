@@ -1,6 +1,7 @@
 # ADR 0010: Context-aware dictation (trust model, frozen contract, reference phrases)
 
-- Status: **Proposed.** It becomes Accepted when the owner accepts it in the pull request. Until the DICT-0.2
+- Status: **Proposed.** It is merged as Proposed; it becomes Accepted when the owner accepts it, in a later
+  commit that changes only this line. Until the DICT-0.2
   probes are run, the points marked **[0.2]** are working values, not decisions.
 - Date: 2026-11-19
 - Backlog: `.ai/specs/backlog/2026-11-13-epic-context-aware-dictation.md`, story DICT-0.3. Owner decisions of
