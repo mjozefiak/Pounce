@@ -1,0 +1,39 @@
+name: Feature request
+description: Suggest a change or a new feature.
+labels: ["feature"]
+body:
+  - type: markdown
+    attributes:
+      value: A new feature needs a spec before it is built; see CONTRIBUTING.md.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, and what gets in the way?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: dropdown
+    id: feature
+    attributes:
+      label: Which feature does it relate to
+      options:
+        - Launcher / app search
+        - File search
+        - Clipboard history
+        - Dictation
+        - Meetings
+        - Notes
+        - Window management
+        - Settings / onboarding
+        - Install / update
+        - Other
