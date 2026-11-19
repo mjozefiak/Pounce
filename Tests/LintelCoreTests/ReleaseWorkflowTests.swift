@@ -194,6 +194,25 @@ import Testing
         #expect(text.contains("fetch-depth: 0"))
     }
 
+    /// The job-level group lets the next tag's `sign` run between this tag's `sign` and `publish`, so `publish` checks
+    /// the order again, inside the group, before it creates the release (the spec's "a second tag's ancestry check runs
+    /// only after the first tag is published").
+    @Test func publishChecksTheReleaseOrderAgainBeforeCreatingTheRelease() throws {
+        let jobs = try jobs()
+        for name in ["sign", "publish"] {
+            let text = code(try #require(jobs[name])).joined(separator: "\n")
+            #expect(
+                text.contains("run: scripts/check-release-order.sh --github \"$GITHUB_SHA\" \"$GITHUB_REF_NAME\""),
+                "\(name)")
+        }
+        let publish = code(try #require(jobs["publish"])).joined(separator: "\n")
+        let order = try #require(publish.range(of: "scripts/check-release-order.sh"))
+        let create = try #require(publish.range(of: "gh release create"))
+        #expect(order.lowerBound < create.lowerBound)
+        #expect(publish.contains("fetch-depth: 0"))
+        #expect(publish.contains("persist-credentials: false"))
+    }
+
     @Test func entitlementsFilesDifferOnlyInLibraryValidation() throws {
         func entitlements(_ name: String) throws -> [String: Any] {
             let data = try Data(contentsOf: Self.root.appending(path: "Resources/\(name)"))

@@ -188,7 +188,8 @@ jobs:
     environment: release
     # All tag runs share this group, `queue: max` (up to 100 waiting jobs; the default keeps one and cancels the
     # older ones), never cancelled: two tags pushed together both get signed, one after the other. `publish` has the
-    # same group, so the next tag's `sign` (and its order check) starts only after the previous release exists.
+    # same group, so only one sign or publish job runs at a time. The group is per job, so the next tag's `sign` can
+    # run between this tag's `sign` and `publish`; that is why `publish` checks the release order again.
     concurrency:
       group: release-tags
       queue: max
@@ -207,24 +208,12 @@ jobs:
 
       # First thing in the serialised job, before any secret is used: a tag must point at a strict descendant of the
       # commit of the newest published release (drafts ignored, pre-releases included), so build numbers and
-      # publication order agree. No release yet passes. Manual runs publish nothing and skip it.
+      # publication order agree. No release yet passes. Manual runs publish nothing and skip it. `publish` repeats it.
       - name: Check the release order
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          PREVIOUS_TAG="$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
-            --jq "[.[] | select(.draft == false and .tag_name != \"$GITHUB_REF_NAME\")] | sort_by(.published_at) | last | .tag_name // empty")"
-          PREVIOUS_COMMIT=""
-          if [[ -n "$PREVIOUS_TAG" ]]; then
-            PREVIOUS_COMMIT="$(git rev-parse --verify --quiet "refs/tags/$PREVIOUS_TAG^{commit}" || true)"
-            if [[ -z "$PREVIOUS_COMMIT" ]]; then
-              echo "::error::The newest release is $PREVIOUS_TAG but that tag is not in this clone."
-              exit 1
-            fi
-            echo "Newest published release: $PREVIOUS_TAG"
-          fi
-          scripts/check-release-order.sh "$GITHUB_SHA" "$PREVIOUS_COMMIT"
+        run: scripts/check-release-order.sh --github "$GITHUB_SHA" "$GITHUB_REF_NAME"
 
       # No third-party action in this job: Apple's tools, the repository's scripts and the two first-party actions.
       - name: Select Xcode
@@ -390,6 +379,20 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # The order check below needs the history and the tags.
+          fetch-depth: 0
+
+      # Again, now that every earlier tag's publish has finished (this job holds the `release-tags` group): the tag of
+      # another release may have been signed and published since this tag's `sign` checked. Nothing is published unless
+      # this tag is a strict descendant of the newest published release.
+      - name: Check the release order again
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/check-release-order.sh --github "$GITHUB_SHA" "$GITHUB_REF_NAME"
+
       # Lintel-dmg comes from the sign job (the notarized DMG and its checksum), release-notes from the build job.
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
