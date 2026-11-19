@@ -484,6 +484,8 @@ struct SessionRig {
     var shortLimits: MeetingSessionLimits {
         var limits = MeetingSessionLimits()
         limits.discardBelow = .seconds(15)
+        // The older tests expect a track that ends to be lost at once; resuming has its own tests.
+        limits.resumeAttempts = 0
         return limits
     }
 

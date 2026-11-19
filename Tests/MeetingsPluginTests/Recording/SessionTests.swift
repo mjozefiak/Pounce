@@ -205,6 +205,55 @@ private let micOnly: TrackScript? = nil
         #expect(try rig.rows(id).map(\.text) == ["Mic before it died", "From the call"])
     }
 
+    @Test func aMicrophoneWhoseStreamEndsIsStartedAgainAndKeepsRecording() async throws {
+        let rig = try SessionRig(texts: [71: "After the device change"])
+        var mic = TrackScript()
+        mic.silence(1)
+        mic.say(71, seconds: 2)
+        mic.silence(8)
+        var limits = rig.shortLimits
+        limits.resumeAttempts = 3
+        limits.resumeDelay = .milliseconds(1)
+        // A frozen clock: no wall-clock gap, so no silence is inserted and the scripted VAD stays aligned.
+        let session = rig.session(mic: mic, system: nil, limits: limits, clock: TestClock())
+        let log = SessionEventLog(session)
+        let id = try await session.start()
+        rig.mic.end()
+        #expect(await log.wait { $0 == .trackResumed(.mic) })
+        #expect(rig.mic.starts == 2)
+        #expect(!log.contains { $0 == .trackLost(.mic) })
+        let events = log.all
+        #expect(events.firstIndex(of: .trackInterrupted(.mic)) != nil)
+        rig.mic.push(mic.samples)
+        let outcome = await session.finish()
+        #expect(outcome.result == .ready)
+        #expect(try rig.rows(id).map(\.text) == ["After the device change"])
+    }
+
+    @Test func aMicrophoneThatNeverComesBackIsLostAfterTheAttempts() async throws {
+        let rig = try SessionRig(texts: [:])
+        var mic = TrackScript()
+        mic.silence(2)
+        var system = TrackScript()
+        system.silence(2)
+        var limits = rig.shortLimits
+        limits.resumeAttempts = 2
+        limits.resumeDelay = .milliseconds(1)
+        let session = rig.session(mic: mic, system: system, limits: limits)
+        let log = SessionEventLog(session)
+        _ = try await session.start()
+        rig.mic.setFailStart(true)
+        rig.mic.end()
+        #expect(await log.wait { $0 == .trackLost(.mic) })
+        let events = log.all
+        let interrupted = try #require(events.firstIndex(of: .trackInterrupted(.mic)))
+        let lost = try #require(events.firstIndex(of: .trackLost(.mic)))
+        #expect(interrupted < lost)
+        #expect(!events.contains(.trackResumed(.mic)))
+        #expect(await session.state == .recording)
+        _ = await session.finish()
+    }
+
     @Test func losingTheSystemTrackContinuesWithTheMicrophone() async throws {
         let rig = try SessionRig(texts: [61: "Only me now"])
         var mic = TrackScript()

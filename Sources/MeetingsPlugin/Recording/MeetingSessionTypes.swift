@@ -43,6 +43,12 @@ enum MeetingSessionEvent: Equatable, Sendable {
     case trackUnavailable(AudioChannel)
     /// A track ended while recording (device unplugged, permission revoked); the other one carries on.
     case trackLost(AudioChannel)
+    /// A track's stream ended or stalled (input device or format changed, sleep); the session is trying to
+    /// start it again. The track's meter goes dark. It ends in `trackResumed` or, when every attempt fails,
+    /// `trackLost`.
+    case trackInterrupted(AudioChannel)
+    /// An interrupted track is recording again; the gap was filled with silence so the timeline holds.
+    case trackResumed(AudioChannel)
     /// A segment was written to the library; `total` is the number of segments saved so far.
     case segmentSaved(AudioChannel, total: Int)
     /// The spool of a track failed; the transcript is still being written.
@@ -120,6 +126,13 @@ struct MeetingSessionLimits: Sendable {
     var heartbeat: Duration = .seconds(1)
     /// A track that delivers no audio for this long (wall clock) is treated as lost.
     var stallTimeout: Duration = .seconds(10)
+    /// How many times a track whose stream ended or stalled is started again before it counts as lost
+    /// (0 loses it at once).
+    var resumeAttempts = 5
+    /// The wait before each of those attempts, so a device change has time to settle.
+    var resumeDelay: Duration = .seconds(2)
+    /// A gap longer than this is filled with only this much silence; the rest shifts the track on the timeline.
+    var longestGapFill: Duration = .seconds(120)
 
     static func seconds(_ duration: Duration) -> Double {
         let parts = duration.components
