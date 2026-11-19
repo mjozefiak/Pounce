@@ -19,7 +19,8 @@ jobs:
     # preview; if the label disappears, macos-26 with Xcode 26 is the fallback (the code avoids
     # macOS 27-only APIs). See the Phase 0 PR for the decision.
     runs-on: xcode-27
-    timeout-minutes: 30
+    # Sum of the step limits below (about 40 min) plus checkout, toolchain, build and lint.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -43,22 +44,38 @@ jobs:
         run: swift build
 
       - name: Test
-        run: swift test
+        timeout-minutes: 16
+        run: scripts/test-with-watchdog.sh --limit 800 --name test -- swift test
 
       - name: Test PluginHost under Thread Sanitizer
-        run: swift test --sanitize=thread --filter "PluginHostTests|RecoveryOrderingTests|PluginServicesTests"
+        timeout-minutes: 17
+        run: scripts/test-with-watchdog.sh --limit 900 --name tsan-pluginhost -- swift test --sanitize=thread --filter "PluginHostTests|RecoveryOrderingTests|PluginServicesTests"
 
       - name: Test Notes writers and registry under Thread Sanitizer
-        run: swift test --sanitize=thread --filter NotesPluginTests
+        timeout-minutes: 6
+        run: scripts/test-with-watchdog.sh --limit 220 --name tsan-notes -- swift test --sanitize=thread --filter NotesPluginTests
 
       - name: Test FileIndex and FilesPlugin under Thread Sanitizer
-        run: swift test --sanitize=thread --filter FilesPluginTests
+        timeout-minutes: 5
+        run: scripts/test-with-watchdog.sh --limit 170 --name tsan-files -- swift test --sanitize=thread --filter FilesPluginTests
 
       - name: Test model leases under Thread Sanitizer
-        run: swift test --sanitize=thread --filter "SpeechEngineLeaseTests|LLMLeaseTests|ModelManagerRegistryTests|ModelManagerQueueTests|DictationSessionLeaseTests"
+        timeout-minutes: 5
+        run: scripts/test-with-watchdog.sh --limit 160 --name tsan-leases -- swift test --sanitize=thread --filter "SpeechEngineLeaseTests|LLMLeaseTests|ModelManagerRegistryTests|ModelManagerQueueTests|DictationSessionLeaseTests"
 
       - name: Test the window engine under Thread Sanitizer
-        run: swift test --sanitize=thread --filter "WindowEngineTests|WindowEngineConcurrencyTests|EventFlowTests|EngineStopTests|StopBudgetTests|EchoAndJournalOrderTests|RecoveryTests|StartStopRaceTests|WaiterLeakTests|LayoutStrategyTests|ToyStrategyTests|TilingEngineTests|ZoneEngineTests|ZoneDragControllerTests|ZoneDragSignalTests"
+        timeout-minutes: 5
+        run: scripts/test-with-watchdog.sh --limit 170 --name tsan-windows -- swift test --sanitize=thread --filter "WindowEngineTests|WindowEngineConcurrencyTests|EventFlowTests|EngineStopTests|StopBudgetTests|EchoAndJournalOrderTests|RecoveryTests|StartStopRaceTests|WaiterLeakTests|LayoutStrategyTests|ToyStrategyTests|TilingEngineTests|ZoneEngineTests|ZoneDragControllerTests|ZoneDragSignalTests"
 
       - name: Format lint
         run: swift format lint --strict -r Sources Tests
+
+      # A hung test run leaves stack samples and the names of the unfinished tests here (never test output).
+      - name: Upload watchdog diagnostics
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-watchdog
+          path: ${{ runner.temp }}/test-watchdog
+          if-no-files-found: ignore
+          retention-days: 7
