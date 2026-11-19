@@ -150,7 +150,7 @@ Wniosek z diagramu: epiki są prawie niezależne. Łączy je pięć rzeczy: kole
 | `LintelApp/Ports/` (kolejki AX) | PR #70, DICT-2.2 | PR #70 przed DICT-2.2 (DICT-2.1 na niego nie czeka) |
 | Migracje `meetings.sqlite` | MEET-1.6, 1.7, 2.1, 3.1, 4.1, 5.2, 5.3, 6.1, 6.5 (oraz MEET-3.5, jeśli ruszy) | Jedna migracja na PR; numer `vN-<funkcja>` przydzielany przy merge (następny wolny na `main`); przy rebase autor przenumerowuje swoją |
 | Migracje `dictation.sqlite` | DICT-1.4 | Jedyna w epiku DICT (`v2-context`) |
-| Numery ADR | DICT-0.1 (0010), MEET-0.2, 2.1, 5.1, 6.4 | 0010 zarezerwowany dla kontekstu dyktowania; pozostałe biorą następny wolny przy merge. Podwójny 0007 zostaje (zmiana nazwy plików zerwałaby odnośniki) |
+| Numery ADR | DICT-0.1 (0010), MEET-0.2 (zastąpiona oceną Fable, decyzja 2026-11-19 nr 2; czy ADR kierunku nadal powstaje: interpretacja, do potwierdzenia przez właściciela), 2.1, 5.1, 6.4 | 0010 zarezerwowany dla kontekstu dyktowania; pozostałe biorą następny wolny przy merge. Podwójny 0007 zostaje (zmiana nazwy plików zerwałaby odnośniki) |
 | `docs/perf.md` | DICT-0.3, 2.7, MEET-0.4, 1.5, 3.4 | Każda story dotyka tylko własnych wierszy |
 | Słowniki | `vocabulary.json` (dyktowanie), `plugins.meetings.glossaryTerms` (spotkania) | Osobne dane, wspólna logika. Wspólny słownik dla obu pluginów wymagałby portu w `LintelKit`; poza tym backlogiem |
 | Zewnętrzni dostawcy | MEET-X.1, DICT-4.2 | Kontekst dyktowania nigdy nie idzie do dostawcy; do dostawcy może iść tylko transkrypt spotkania za zgodą. Od 2026-11-19 dostawcy są w produkcie, domyślnie wyłączeni; transkrypt idzie dopiero po włączeniu przez użytkownika, z tekstem zgody dla uczestników (decyzja nr 1) |
