@@ -49,10 +49,13 @@ import Testing
         }
     }
 
-    @Test func unreleasedHasAtLeastOneEntry() throws {
+    /// Unreleased may be empty (right after a release); a released section may not, because
+    /// `scripts/changelog-section.sh` refuses an empty one and the tag build would fail.
+    @Test func everyVersionedSectionHasAnEntry() throws {
         let all = try lines()
-        let start = try #require(all.firstIndex(of: "## [Unreleased]"))
-        let body = all[(start + 1)...].prefix { !$0.hasPrefix("## ") }
-        #expect(body.contains { $0.hasPrefix("- ") })
+        for (index, heading) in all.enumerated() where heading.hasPrefix("## ") && heading != "## [Unreleased]" {
+            let body = all[(index + 1)...].prefix { !$0.hasPrefix("## ") }
+            #expect(body.contains { $0.hasPrefix("- ") }, "Empty section: \(heading)")
+        }
     }
 }

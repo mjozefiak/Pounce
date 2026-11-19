@@ -20,6 +20,18 @@ assert_fails "a pre-release without a section fails" run changelog-prerelease.md
 assert_fails "a malformed pre-release fails" run changelog-prerelease.md 0.1.0-
 assert_fails "a v prefix is not a version" run changelog-prerelease.md v0.1.0
 
+# malformed versions are usage errors (64), not missing sections (1)
+code() { run "$@" >/dev/null 2>&1; print -r -- $?; }
+assert_eq 64 "$(code changelog-normal.md 1.1)" "1.1 exits 64"
+assert_eq 64 "$(code changelog-normal.md '1.0.0|Unreleased')" "an alternation is not a version"
+assert_eq 64 "$(code changelog-normal.md '.*')" "a regex is not a version"
+assert_eq 1 "$(code changelog-normal.md 2.0.0)" "a missing section exits 1"
+
+# link-reference definitions at the end of the file are not part of the last section
+assert_eq $'### Added\n\n- First beta.' "$(run changelog-links.md 0.1.0-beta.1)" "last section without the link footer"
+assert_eq $'### Fixed\n\n- See [the guide][guide].\n\n[guide]: https://example.com/guide' \
+  "$(run changelog-links.md 0.2.0)" "a definition inside a section is kept"
+
 # duplicate
 assert_fails "a duplicated version fails" run changelog-duplicate.md 1.0.0
 assert_contains "$(runerr changelog-duplicate.md 1.0.0)" "2 sections for 1.0.0" "duplicate message"
