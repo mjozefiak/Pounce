@@ -328,16 +328,30 @@ Measured by hand with `RealWholeNotesTests` (`LINTEL_WHOLE_NOTES_CLAUDE=1`, neve
 (numbers only; the content stays on the encrypted evaluation image). Working thresholds: at least 80% and 0 false
 sentences. The local track (4B) is not part of this measurement; the comparison of models is a separate run.
 
-| Measure | Threshold | Measured |
-|---|---|---|
-| Decisions and tasks of the reference list found (synthetic, 18 notes) | at least 80% | 52 of 54 (96%); one miss is a wording the automatic stem match does not see, one is a note without a decision |
-| Tasks whose owner is right (a real name, or "Do przypisania" when only generic labels were said) | at least 80% | 36 of 36 (100%) |
-| False sentences after the guard (read by hand, synthetic) | 0 | 0 clearly false; 3 speculative open questions or hedges ("appears to have agreed") read as borderline |
-| Lines the guard removed from the model's answer (synthetic, 18 notes) | no target | 1 summary (a wrong number: 40 instead of 41) |
-| Guard on planted faults (synthetic corpus, offline in CI) | 100% of the hard classes | 32 of 32 at the time of the measurement (number, weekday, owner outside the meeting, generic label as owner, link/HTML/image, injection); 38 of 38 since the review added the number spelled out in words; 0 false removals on the 6 correct answers. Every case plants the same values (7400, Zenon, Kwantoris), so the count is classes times cases, not 38 different faults |
-| One call, 1 h-class synthetic meeting (about 3 000 input tokens) | under 600 s | 4.2 to 11.9 s wall, 2 550 to 3 065 input and 320 to 560 output tokens |
-| Real meeting A (4 776 words, 273 utterances, 15 051 estimator tokens, 1 call) | no target | 16.2 s; 19 384 input and about 1 480 output tokens; notes of 441 words with 5 decisions, 5 tasks (all with an owner), 3 topics, 4 open points; 0 lines removed |
-| Real meeting B (1 760 words, 199 utterances, 6 341 estimator tokens, 1 call) | no target | 10.3 s; 10 078 input tokens; notes of 208 words with 0 decisions, 2 tasks (none with an owner), 2 topics, 2 open points; 1 line removed (a name not in the recording) |
+**Recount with the current guard (2026-11-20, guard of `main` at d599242, after the review of PR #147).** The first
+table below was measured with the guard from before that review. The row figures were recounted this way: the
+owner's two real meetings offline, by running the stored model answers again through the current parser and guard
+(`theGuardOverStoredAnswers`; no model call, nothing sent); the planted-fault and correct-answer rows by running the
+current tests; the synthetic corpus **with one new provider run**, because the model answers of that corpus were
+never stored (the harness kept only the notes after the guard, and the evaluation image holds none): one harness
+pass, 3 runs of the 6 made-up meetings, the same model, prompt and flags as above. A new run is a new sample of the
+model, so the synthetic figures differ from the first ones by the model's spread as well as by the guard; the
+real-meeting figures differ by the guard alone. The "Before" column keeps the earlier figures.
+
+| Measure | Threshold | Before (guard before the review) | Now (guard of d599242) |
+|---|---|---|---|
+| Decisions and tasks of the reference list found (synthetic, 18 notes) | at least 80% | 52 of 54 (96%); one miss is a wording the automatic stem match does not see, one is a note without a decision | 53 of 54 (98%); the one miss is a decision not found in one run of the one-sided English meeting; new sample |
+| Tasks whose owner is right (a real name, or "Do przypisania" when only generic labels were said) | at least 80% | 36 of 36 (100%) | 36 of 36 (100%) |
+| False sentences after the guard (read by hand, synthetic) | 0 | 0 clearly false; 3 speculative open questions or hedges ("appears to have agreed") read as borderline | 0 clearly false among what was read: only the 7 open points outside the reference list were read, and 4 of them are borderline (1 hedge about a missing reply, 3 times a question that nobody asked, derived from a condition). The notes of this pass were not stored, so the other lines (decisions, tasks, summaries) were matched to the reference list by the automatic stem match and **not read by hand**; this row is therefore only partly re-verified |
+| Lines the guard removed from the model's answer (synthetic, 18 notes) | no target | 1 summary (a wrong number: 40 instead of 41) | 0 of 18 (no line, no owner and no due date removed) |
+| Guard on planted faults (synthetic corpus, offline in CI) | 100% of the hard classes | 32 of 32 at the time of the measurement (number, weekday, owner outside the meeting, generic label as owner, link/HTML/image, injection); 38 of 38 since the review added the number spelled out in words; 0 false removals on the 6 correct answers. Every case plants the same values (7400, Zenon, Kwantoris), so the count is classes times cases, not 38 different faults | 38 of 38 hard cases caught (all classes above plus the number in words); 0 false removals on the 6 correct answers (`aCorrectAnswerLosesNothing`); same plant values, so not 38 different faults |
+| One call, 1 h-class synthetic meeting (about 3 000 input tokens) | under 600 s | 4.2 to 11.9 s wall, 2 550 to 3 065 input and 320 to 560 output tokens | 4.2 to 12.1 s wall, 2 549 to 3 064 input and 327 to 600 output tokens (new run) |
+| Real meeting A (4 776 words, 273 utterances, 15 051 estimator tokens, 1 call) | no target | 16.2 s; 19 384 input and about 1 480 output tokens; notes of 441 words with 5 decisions, 5 tasks (all with an owner), 3 topics, 4 open points; 0 lines removed | stored answer through the current guard: 5 decisions, 5 tasks, 3 topics, 4 open points; 0 lines removed, 0 owners reset, 0 due dates removed. No change. Time and tokens are from the original call; the words of the composed notes were not recomputed |
+| Real meeting B (1 760 words, 199 utterances, 6 341 estimator tokens, 1 call) | no target | 10.3 s; 10 078 input tokens; notes of 208 words with 0 decisions, 2 tasks (none with an owner), 2 topics, 2 open points; 1 line removed (a name not in the recording) | stored answer through the current guard: 0 decisions, 2 tasks, 2 topics, 2 open points; 1 line removed (rule: names), 0 owners reset, 0 due dates removed. No change. Time and tokens are from the original call |
+
+Result against the working thresholds (80% and 0 false facts): the 98% and 100% rows meet them; the "0 false
+facts" row has no clearly false sentence in what was read, but, as the row says, not every note of the new pass was
+read by hand. The recount did not change the real-meeting figures.
 
 Two findings of the measurement changed the track before this row: the Polish example made the model answer an
 English meeting in Polish (the code now names the language of the notes in the request), and a product name the speech
@@ -351,10 +365,11 @@ Limits of this measurement:
 - The synthetic corpus, its reference lists and the prompt were written by the same author in the same PR, so the
   96% may be higher than on meetings nobody tuned for; the reference match is an automatic stem match.
 - "0 false sentences" was read by hand on the synthetic notes only; the real notes were not read here.
-- The review of PR #147 changed the guard after this measurement (a weekday such as "piątek" no longer counts as a
-  clock hour, the Polish pronoun "ten" no longer as the number 10, a time inside a line is removed). The figures
-  above are from the guard before that change; the removed-line counts may differ when the stored answers are
-  checked again (`theGuardOverStoredAnswers`).
+- The review of PR #147 changed the guard after the first measurement (a weekday such as "piątek" no longer counts
+  as a clock hour, the Polish pronoun "ten" no longer as the number 10, a time inside a line is removed). The
+  recount above uses the changed guard; for the real meetings the stored answers gave the same counts as before.
+- The synthetic model answers are still not stored (only the real ones are), so the synthetic row cannot be
+  recounted offline after a future guard change; it needs a new run each time.
 
 ### Which model writes the whole-transcript notes: provider and local (decision no. 14)
 
