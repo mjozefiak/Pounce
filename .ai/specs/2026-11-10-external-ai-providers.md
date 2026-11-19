@@ -1,6 +1,6 @@
 # Zewnętrzni dostawcy AI dla notatek ze spotkań (Claude Code, potem klucz API)
 
-> Status: **odświeżony 2026-11-19, implementacja po akceptacji właściciela.** Story MEET-X.1 (`.ai/specs/backlog/2026-11-13-epic-meeting-notes-beyond-claude.md`), decyzje właściciela z 2026-11-19 (PR #104). Ten dokument zastępuje wersję z 2026-11-10 w całości. PR ze specem jest tylko projektem: nie zmienia kodu. Wartości domyślne Q2, Q6, Q7, Q8, Q10 i Q11 (sekcja „Open Questions”) **nie są rozstrzygnięte**: każdą potwierdza właściciel najpóźniej przed PR, którego dotyczy.
+> Status: **odświeżony 2026-11-19, implementacja po akceptacji właściciela.** Story MEET-X.1 (`.ai/specs/backlog/2026-11-13-epic-meeting-notes-beyond-claude.md`), decyzje właściciela z 2026-11-19 (PR #104; doprecyzowania D1–D5 w `.ai/specs/backlog/2026-11-13-backlog-overview.md`, sekcja „Decyzje właściciela (2026-11-19)”). Ten dokument zastępuje wersję z 2026-11-10 w całości. PR ze specem jest tylko projektem: nie zmienia kodu. Wartości domyślne Q2, Q6, Q7, Q8, Q10 i Q11 (sekcja „Open Questions”) **nie są rozstrzygnięte**: każdą potwierdza właściciel najpóźniej przed PR, którego dotyczy.
 
 ## 📝 TLDR
 
