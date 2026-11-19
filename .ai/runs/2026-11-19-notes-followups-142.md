@@ -10,16 +10,21 @@ Source doc: issue #142
 
 ### Phase 1: Find the cause and fix REDUCE fallback
 
-- [ ] 1.1 Diagnose why REDUCE ends partial (trace, timeout/maxTokens/parse) and fix or document
-- [ ] 1.2 Fallback pick spreads over the whole meeting (tests)
+- [x] 1.1 Diagnose why REDUCE ends partial (trace, timeout/maxTokens/parse) and fix or document
+- [x] 1.2 Fallback pick spreads over the whole meeting (tests)
 
 ### Phase 2: Tasks, questions, reports
 
-- [ ] 2.1 Task dedup and non-work task filter (tests)
-- [ ] 2.2 Drop context-free open questions (tests)
-- [ ] 2.3 Reports: verdict or drop (tests)
+- [x] 2.1 Task dedup and non-work task filter (tests)
+- [x] 2.2 Drop context-free open questions (tests)
+- [x] 2.3 Reports: verdict or drop (tests)
 
 ### Phase 3: Prompt v6 and measurement
 
-- [ ] 3.1 Prompt v6 + snapshots (+ en/pl strings if touched)
-- [ ] 3.2 N-run stability measurement on synthetic input, before/after table
+- [x] 3.1 Prompt v6 + snapshots (+ en/pl strings if touched)
+- [x] 3.2 N-run stability measurement on synthetic input, before/after table
+
+## Notes
+
+- 1.1 Cause found by reading the code, not reproduced on a real model (no model in this session; real-meeting runs were not required): `complete()` retried a cut-off REDUCE with the SAME prompt and a doubled limit, and decoding is greedy, so a looping answer loops again until `.failed`, which `reduceSingle` turns into `codeOrder` and `partial`. Fix: the retry after a cut-off also adds the format reminder, so the prompt changes. A noise answer still ends `partial` (stability table: 10/20 -> 2/20 partial). `NotesTrace` attempts (`truncated`, `malformed`, `timedOut`) show which of the three happened on a real run.
+- Measurement: `Tests/MeetingsPluginTests/Notes/NotesStabilityTests.swift`; numbers in the PR body and the scratchpad `stability.md`.

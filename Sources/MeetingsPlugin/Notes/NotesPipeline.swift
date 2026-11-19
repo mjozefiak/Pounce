@@ -466,16 +466,39 @@ struct NotesPipeline: Sendable {
         }
     }
 
-    /// REDUCE could not be had: every decision, task and question, and the first topics, in time order, and no
-    /// paragraph (nothing is composed without REDUCE). Without the topics a meeting of findings only would
-    /// read as one with nothing in it.
+    /// REDUCE could not be had: every decision and task in time order, the questions and the topics picked evenly
+    /// over the WHOLE meeting (not the first ones: the middle is where the main decision usually is), and no
+    /// paragraph (nothing is composed without REDUCE). Without the topics a meeting of findings only would read
+    /// as one with nothing in it.
     static func codeOrder(_ points: [NotesPoint]) -> NotesReduceOutput {
         NotesReduceOutput(
             decisions: points.filter { $0.kind == .decision }.map(\.id),
             tasks: points.filter { $0.kind == .task }.map(\.id),
-            questions: points.filter { $0.kind == .question }.map(\.id),
-            keyPoints: points.filter { $0.kind == .summary }.prefix(NotesGuard.maxKeyPoints).map(\.id),
+            questions: spread(points.filter { $0.kind == .question }, count: NotesGuard.maxQuestions).map(\.id),
+            keyPoints: spread(points.filter { $0.kind == .summary }, count: NotesGuard.maxKeyPoints).map(\.id),
             summary: nil)
+    }
+
+    /// At most `count` of the points, spread over the time they cover: the first one, then each time the one
+    /// whose nearest chosen neighbour is farthest away in time (ties go to the earlier one), returned in their
+    /// original order. All of them when there are no more than `count`. Pure and deterministic.
+    static func spread(_ points: [NotesPoint], count: Int) -> [NotesPoint] {
+        guard count > 0 else { return [] }
+        guard points.count > count else { return points }
+        var chosen: [Int] = [0]
+        var nearest = points.map { abs($0.timeMs - points[0].timeMs) }
+        while chosen.count < count {
+            var best = -1
+            for index in points.indices where !chosen.contains(index) {
+                if best < 0 || nearest[index] > nearest[best] { best = index }
+            }
+            guard best >= 0 else { break }
+            chosen.append(best)
+            for index in points.indices {
+                nearest[index] = min(nearest[index], abs(points[index].timeMs - points[best].timeMs))
+            }
+        }
+        return chosen.sorted().map { points[$0] }
     }
 
     /// The lists' first items, then their second items and so on.
@@ -654,6 +677,9 @@ struct NotesPipeline: Sendable {
                 retried = true
                 switch error as? AttemptError {
                 case .truncated?:
+                    // Greedy decoding gives the same loop for the same prompt, so the retry also asks for the
+                    // format again (a changed prompt), not only for more room.
+                    reminder = true
                     let larger = min(limit * 2, room)
                     if larger <= limit { return .failed }
                     limit = larger

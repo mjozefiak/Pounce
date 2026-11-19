@@ -158,7 +158,9 @@ import Testing
             let result = try await inner(call, messages, tokens)
             guard NotesFake.isMap(messages) else { return result }
             let kept = result.text.split(separator: "\n").filter { line in
-                !missed.contains { line.contains("\"" + $0.trimmingCharacters(in: CharacterSet(charactersIn: ".?!")) + "\"") }
+                !missed.contains {
+                    line.contains("\"" + $0.trimmingCharacters(in: CharacterSet(charactersIn: ".?!")) + "\"")
+                }
             }
             return .done(kept.isEmpty ? "NONE" : kept.joined(separator: "\n"))
         }
@@ -189,7 +191,8 @@ import Testing
     }
 
     static func table(_ rows: [Row]) -> String {
-        var out = "run | reduce model | status | decisions | tasks | topics | topic thirds | questions | summary | requests\n"
+        var out =
+            "run | reduce model | status | decisions | tasks | topics | topic thirds | questions | summary | requests\n"
         out += "--- | --- | --- | --- | --- | --- | --- | --- | --- | ---\n"
         for r in rows {
             out +=
