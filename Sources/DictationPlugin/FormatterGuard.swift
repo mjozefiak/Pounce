@@ -232,14 +232,25 @@ enum FormatterGuard {
     /// of EQUAL value. A marker with no words after it, or inside the replacement, frees only its own phrase.
     /// Cost one: any other inserted, deleted or different word before the replacement. In the replacement
     /// (after the first marker that has words after it) a spoken word may only be matched, removed as a
-    /// filler, repetition or stutter, replaced by a near form, or absorbed by an equal-valued digit: never
-    /// deleted and never replaced by an unrelated word.
+    /// filler, repetition or stutter, replaced by a word that does not bring back a word of the withdrawn
+    /// part (a near form of it, or a word the speaker did not say), or absorbed by an equal-valued digit:
+    /// never deleted.
     static func derivationCost(spoken: [String], written: [String]) -> Int {
         let rows = spoken.count + 1
         let columns = written.count + 1
         guard rows * columns <= derivationLimit else { return Int.max }
         let infinity = Int.max / 2
         let tailStart = replacementStart(spoken) ?? spoken.count
+        // In the replacement a written word may stand for a spoken one (a recognition fix, an inflection) as
+        // long as it does not bring back a word of the withdrawn part: not equal to, and not a near form of,
+        // a word before the replacement that the replacement does not also say. Digits only by equal value.
+        let tailWords = Set(spoken[min(tailStart, spoken.count)...])
+        let withdrawnWords = Set(spoken[..<min(tailStart, spoken.count)]).subtracting(tailWords)
+        let spokenWords = Set(spoken)
+        func bringsBack(_ word: String) -> Bool {
+            if word.contains(where: \.isNumber) { return true }
+            return withdrawnWords.contains { $0 == word || isNearForm($0, word) }
+        }
 
         var freeEnds = [[Int]](repeating: [], count: rows)
         let markers = occurrences(of: retractionMarkers, in: spoken)
@@ -290,9 +301,13 @@ enum FormatterGuard {
                 guard row < spoken.count else { continue }
                 if spoken[row] == written[column] {
                     relax(row + 1, column + 1, here)
-                } else if isNearForm(spoken[row], written[column]) {
-                    relax(row + 1, column + 1, here + 1)
-                } else if row < tailStart {
+                } else if row < tailStart
+                    || (!bringsBack(written[column])
+                        && (isNearForm(spoken[row], written[column]) || !spokenWords.contains(written[column])))
+                {
+                    // In the replacement: a near form of the spoken word, or a word the speaker did not say
+                    // (a contraction, a recognition fix); never a word of the withdrawn part and never a
+                    // duplicate of another spoken word, which would hide a dropped word.
                     relax(row + 1, column + 1, here + 1)
                 }
                 for group in NumberWords.digitValues(in: written, at: column) {

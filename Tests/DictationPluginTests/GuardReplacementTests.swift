@@ -106,6 +106,12 @@ import Testing
         ("the price is five fifty sorry six sixty", "The price is 60."),
         ("the train leaves at six fifteen sorry at seven seventeen", "The train leaves at 17."),
         ("spotkanie o trzeciej nie czekaj o trzy trzydzieści", "Spotkanie o 30."),
+        // The replacement may not bring back the withdrawn name through a near form (a different person).
+        ("wyślij to do Kowalskiego nie czekaj do Kowalskiej", "Wyślij to do Kowalskiego."),
+        ("zadzwoń do Michała nie czekaj do Michaliny", "Zadzwoń do Michała."),
+        ("send it to John I mean to Johnson", "Send it to John."),
+        ("zaproś Aleksandra nie czekaj Aleksandrę", "Zaproś Aleksandra."),
+        ("send it to Stephen sorry to Stephanie", "Send it to Stephen."),
     ])
     func keptWithdrawnAndLostFinalIsRejected(input: String, output: String) {
         #expect(!accepted(input, output), "\(output)")
@@ -217,6 +223,11 @@ import Testing
         ("cena to cztery dwadzieścia nie czekaj pięć pięćdziesiąt", "Cena to 5,50."),
         ("cena to cztery dwadzieścia nie czekaj pięć pięćdziesiąt", "Cena to pięć pięćdziesiąt."),
         ("the price is five fifty sorry six sixty", "The price is 6,60."),
+        // A contraction in the replacement is not the withdrawn word coming back.
+        (
+            "actually I think we should move the meeting to thursday because the client cannot join on monday",
+            "I think we should move the meeting to Thursday because the client can't join on Monday."
+        ),
     ])
     func aSecondMarkerAndNumberPairsKeepTheCorrectOutputAccepted(input: String, output: String) {
         #expect(accepted(input, output), "\(output)")
