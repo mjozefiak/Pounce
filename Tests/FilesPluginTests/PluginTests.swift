@@ -6,7 +6,7 @@ import Testing
 @testable import FilesPlugin
 
 @MainActor
-@Suite("FilesPlugin")
+@Suite("FilesPlugin", .timeLimit(.minutes(2)))
 struct FilesPluginTests {
     private static let fixture = [
         "home/Projects/Quarterly Report.pages",
@@ -185,7 +185,7 @@ struct FilesPluginTests {
 }
 
 @MainActor
-@Suite("File actions")
+@Suite("File actions", .timeLimit(.minutes(2)))
 struct FileActionTests {
     private func setUp() async throws -> (PluginHarness, any SearchSource, Candidate) {
         let harness = try PluginHarness(settings: ["plugins.files.setupCompleted": .bool(true)])

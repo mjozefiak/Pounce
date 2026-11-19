@@ -239,45 +239,36 @@ final class ChangeCounter: Sendable {
 }
 
 /// Waits until `condition` holds, checking again after every event of `counter`. Not a poll: the next check
-/// happens when something changed. The 60 s limit only ends a hang, and reports it at the caller's line.
+/// happens when something changed. `limit` is one total deadline, counted once, that only ends a hang; the
+/// caller's `#expect` reports the `false` at its own line.
 @MainActor
 func awaitEvents(
-    _ counter: ChangeCounter, limit: Duration = .seconds(60), sourceLocation: SourceLocation = #_sourceLocation,
+    _ counter: ChangeCounter, limit: Duration = .seconds(60),
     until condition: () async throws -> Bool
 ) async rethrows -> Bool {
+    let clock = ContinuousClock()
+    let deadline = clock.now.advanced(by: limit)
     while true {
         let seen = counter.value
         if try await condition() { return true }
-        guard await counter.wait(after: seen, limit: limit) else {
-            if !Task.isCancelled {
-                Issue.record(
-                    "Nothing changed for \(limit) while waiting for a condition", sourceLocation: sourceLocation)
-            }
-            return false
-        }
+        let remaining = clock.now.duration(to: deadline)
+        guard remaining > .zero, await counter.wait(after: seen, limit: remaining) else { return false }
     }
 }
 
 /// Waits until `condition`, which reads observable state, holds; it is evaluated again whenever a value it
-/// read changes. The 60 s limit only ends a hang, and reports it at the caller's line.
+/// read changes. `limit` is one total deadline that only ends a hang; the caller's `#expect` reports `false`.
 @MainActor
 func awaitState(
-    limit: Duration = .seconds(60), sourceLocation: SourceLocation = #_sourceLocation,
-    until condition: @MainActor () -> Bool
+    limit: Duration = .seconds(60), until condition: @MainActor () -> Bool
 ) async -> Bool {
     let clock = ContinuousClock()
     let deadline = clock.now.advanced(by: limit)
     while true {
         let changed = ChangeCounter()
         if withObservationTracking({ condition() }, onChange: { changed.signal() }) { return true }
-        guard await changed.wait(after: 0, limit: max(.zero, clock.now.duration(to: deadline))) else {
-            if !Task.isCancelled {
-                Issue.record(
-                    "State did not change within \(limit) while waiting for a condition", sourceLocation: sourceLocation
-                )
-            }
-            return false
-        }
+        let remaining = clock.now.duration(to: deadline)
+        guard remaining > .zero, await changed.wait(after: 0, limit: remaining) else { return false }
     }
 }
 

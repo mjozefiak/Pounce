@@ -10,7 +10,7 @@ import Testing
 /// Spec `2026-11-04-lintel-main-window`, step 4.3: the Files pane on the `SettingsPane` template (prototype
 /// `set-files`), its banner and the template pane. Every plugin works on a fake home in a
 /// temporary folder; no protected location is touched.
-@Suite @MainActor struct FilesPaneTests {
+@Suite(.timeLimit(.minutes(2))) @MainActor struct FilesPaneTests {
     /// The view types a `body` holds, found by reflection (the branch an `if` took is stored, the other is not).
     private static func typeNames(in value: Any, depth: Int = 0) -> Set<String> {
         guard depth < 60 else { return [] }

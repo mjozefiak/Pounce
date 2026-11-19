@@ -70,22 +70,20 @@ final class ControllerRun: Sendable {
     /// A non-empty index is not enough: a partial snapshot or the first scanned folder fills it while the
     /// scan still runs, and stopping then skips the complete save.
     @MainActor
-    func ready(sourceLocation: SourceLocation = #_sourceLocation) async -> Bool {
-        await awaitEvents(statusEvents, sourceLocation: sourceLocation) { self.reportedPhases.contains(.ready) }
+    func ready() async -> Bool {
+        await awaitEvents(statusEvents) { self.reportedPhases.contains(.ready) }
     }
 
     /// The index holds the answer once the controller applied the changes: waits for the next published
     /// batch, then checks again.
     @MainActor
-    func eventuallyIndexed(
-        sourceLocation: SourceLocation = #_sourceLocation, _ condition: () -> Bool
-    ) async -> Bool {
-        await awaitEvents(changes, sourceLocation: sourceLocation) { condition() }
+    func eventuallyIndexed(_ condition: () -> Bool) async -> Bool {
+        await awaitEvents(changes) { condition() }
     }
 }
 
 @MainActor
-@Suite("Index controller", .serialized)
+@Suite("Index controller", .serialized, .timeLimit(.minutes(2)))
 struct IndexControllerTests {
     let directory: TemporaryDirectory
     var root: String { directory.sub("root") }
@@ -195,20 +193,13 @@ struct IndexControllerTests {
     }
 }
 
-/// Waits until an FSEvents stream started at `since` reports every change in `changes` (a path suffix and the event flag) (FSEvents
-/// reports `/private/var/…` where the fixture says `/var/…`), that is until the
+/// Waits until an FSEvents stream started at `since` reports every change in `changes` (a path suffix and
+/// the event flag; FSEvents reports `/private/var/…` where the fixture says `/var/…`), that is until the
 /// history a restarted controller replays contains them. `false` after a 60 s hang guard.
 @MainActor
-func historyHolds(
-    root: String, since: UInt64, changes: [(suffix: String, flag: Int)],
-    sourceLocation: SourceLocation = #_sourceLocation
-)
-    async
-    -> Bool
-{
+func historyHolds(root: String, since: UInt64, changes: [(suffix: String, flag: Int)]) async -> Bool {
     let watcher = FileEventWatcher(paths: [root], sinceWhen: since, latency: 0.05)
     guard watcher.start() else {
-        Issue.record("FSEvents refused to watch the fixture", sourceLocation: sourceLocation)
         return false
     }
     defer { watcher.stop() }
@@ -230,9 +221,6 @@ func historyHolds(
         let first = await group.next() ?? false
         group.cancelAll()
         return first
-    }
-    if !found, !Task.isCancelled {
-        Issue.record("The FSEvents history never held the changes", sourceLocation: sourceLocation)
     }
     return found
 }
@@ -400,7 +388,7 @@ extension RescanPlannerTests {
 /// A root the user added as a symbolic link (for example `~/Dropbox`, which points into
 /// `~/Library/CloudStorage`) is indexed through the link, and its changes arrive under the link's path.
 @MainActor
-@Suite("Symlinked root", .serialized)
+@Suite("Symlinked root", .serialized, .timeLimit(.minutes(2)))
 struct SymlinkedRootTests {
     @Test func symlinkedRootIsIndexedAndFollowed() async throws {
         let directory = try TemporaryDirectory()
