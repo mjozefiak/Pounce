@@ -9,6 +9,11 @@
 #   SIGN_IDENTITY  code-signing identity; "-" (default) signs ad-hoc. The release workflow passes
 #                  "Lintel Release". Never use that identity on a developer Mac (docs/signing.md).
 #   SIGN_KEYCHAIN  optional keychain to look the identity up in (the release workflow's temporary one).
+#   APP_VERSION    CFBundleShortVersionString to stamp (X.Y.Z or X.Y.Z-beta.N), together with APP_BUILD.
+#   APP_BUILD      CFBundleVersion to stamp, a plain positive integer. Both are set by the release workflow
+#                  (scripts/version-from-tag.sh, git rev-list --count HEAD); with neither set the bundle keeps what
+#                  Resources/Info.plist says (0.0.0 / 0). Setting only one of them is an error. They are written into
+#                  the copied Info.plist before any codesign (scripts/stamp-version.sh), never into the source file.
 set -euo pipefail
 
 APP_NAME="Lintel"
@@ -16,6 +21,12 @@ ROOT="${0:A:h:h}"
 CONFIGURATION="${CONFIGURATION:-release}"
 SIGN_IDENTITY="${SIGN_IDENTITY:--}"
 SIGN_KEYCHAIN="${SIGN_KEYCHAIN:-}"
+APP_VERSION="${APP_VERSION:-}"
+APP_BUILD="${APP_BUILD:-}"
+if [[ -n "$APP_VERSION" || -n "$APP_BUILD" ]] && [[ -z "$APP_VERSION" || -z "$APP_BUILD" ]]; then
+  echo "APP_VERSION and APP_BUILD must be set together (or both left unset)" >&2
+  exit 64
+fi
 case "$CONFIGURATION" in
   release|debug) ;;
   *) echo "CONFIGURATION must be release or debug, got: $CONFIGURATION" >&2; exit 64 ;;
@@ -52,6 +63,10 @@ if [[ "$CONFIGURATION" == debug ]]; then
   # The real app owns the .lintellayouts association; the QA build must not compete for it.
   "$PLIST_BUDDY" -c "Delete :CFBundleDocumentTypes" "$OUT/Contents/Info.plist" 2>/dev/null || true
   "$PLIST_BUDDY" -c "Delete :UTExportedTypeDeclarations" "$OUT/Contents/Info.plist" 2>/dev/null || true
+fi
+# Stamp the version into the COPIED plist, before any codesign (a later change would break the signature).
+if [[ -n "$APP_VERSION" ]]; then
+  "$ROOT/scripts/stamp-version.sh" "$OUT/Contents/Info.plist" "$APP_VERSION" "$APP_BUILD"
 fi
 printf 'APPL????' > "$OUT/Contents/PkgInfo"
 
@@ -118,4 +133,6 @@ BUILT_PL="$OUT/Contents/Resources/KeyboardShortcuts_KeyboardShortcuts.bundle/Con
 cmp -s Resources/KeyboardShortcuts/pl.lproj/Localizable.strings "$BUILT_PL" \
   || { echo "The Polish recorder strings did not reach the built KeyboardShortcuts bundle" >&2; exit 1; }
 
-echo "Built: $OUT ($CONFIGURATION, signed with ${SIGN_IDENTITY/#-/ad-hoc})"
+BUILT_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$OUT/Contents/Info.plist")"
+BUILT_BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$OUT/Contents/Info.plist")"
+echo "Built: $OUT ($CONFIGURATION, version $BUILT_VERSION ($BUILT_BUILD), signed with ${SIGN_IDENTITY/#-/ad-hoc})"
