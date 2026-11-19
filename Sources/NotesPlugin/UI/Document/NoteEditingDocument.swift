@@ -2,8 +2,7 @@ import LintelKit
 import LintelUI
 import SwiftUI
 
-/// The open note in the editor (prototype `mode: 'edit'`: format bar, the header, then the Markdown with the author
-/// gutter). The buffer is the layer's Markdown as the editor rendered it; every edit goes to the note's writer
+/// The open note in the editor (prototype `mode: 'edit'`: format bar, the header, then the Markdown). The buffer is the layer's Markdown as the editor rendered it; every edit goes to the note's writer
 /// through its `NoteEditingSession`, which writes at most a second later and at every save point (spec "Saving").
 struct NoteEditingDocument: View {
     let model: NotesWorkspaceModel
@@ -27,8 +26,7 @@ struct NoteEditingDocument: View {
                 ? { body, selection, text in await model.addComment(body: body, selection: selection, buffer: text) }
                 : nil,
             highlights: preferences.showComments ? document.highlights : [],
-            onSelectThread: { document.selectedThreadID = $0 }, attribution: attribution,
-            showsAuthorBars: preferences.showAuthorBars,
+            onSelectThread: { document.selectedThreadID = $0 },
             onFocusChange: { focused in
                 // Losing focus is a save point.
                 if !focused { Task { await session.flush() } }
@@ -49,15 +47,5 @@ struct NoteEditingDocument: View {
         surface.qaSelect = document.qaCommentQuote
         #endif
         return surface
-    }
-
-    /// Who wrote each block while typing: the layer's overlay chain, or (before the first write) the layer as
-    /// rendered, so what is typed on top of it is the user's.
-    private var attribution: ([String]) -> [BlockAttributionInfo] {
-        { [document] blocks in
-            guard let layer = document.selectedLayer else { return [] }
-            let known = document.attributions[layer.id] ?? .seeding(layer: layer)
-            return known.infos(blocks: blocks, useStored: false)
-        }
     }
 }

@@ -210,7 +210,9 @@ struct NoteEditorRepresentable: NSViewRepresentable {
         let scale = textSize.scale
         let hasGutter = attribution != nil
         scroll.contentInsets = NSEdgeInsets(
-            top: 6 * scale, left: (hasGutter ? 6 : 5.4 * 12.5 + 6) * scale, bottom: 24 * scale, right: 28 * scale)
+            top: 6 * scale, left: (hasGutter ? 6 : 5.4 * 12.5) * scale, bottom: 24 * scale,
+            right: (hasGutter ? 28 : 40) * scale
+        )
         controller.gutter?.textScale = scale
         controller.gutter?.showsBars = mode.showsAuthorBars(preference: showsAuthorBars)
         scroll.hasHorizontalScroller = !wrapsLines
