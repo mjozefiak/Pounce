@@ -67,7 +67,7 @@
 | ID | Pytanie | Wartość domyślna przyjęta w backlogu |
 |---|---|---|
 | M-Q1 | Merge PR #63 teraz, po ponownym uruchomieniu niestabilnego sprawdzenia? | **Tak.** Blokuje wszystko, co dotyka `Sources/MeetingsPlugin/Notes/`. |
-| M-Q2 | Co znaczy „lepiej niż Claude”? | **Cztery tezy + ślepe porównanie** (tabela wyżej). |
+| M-Q2 | Co znaczy „lepiej niż Claude”? | **Cztery tezy + ślepe porównanie** (tabela wyżej). **Ślepe porównanie (MEET-0.2) zastąpione oceną Fable 2026-11-19 (decyzja 2).** |
 | M-Q3 ⚠ | `keepAudio` jako opcja (zmienia decyzję Q7 specu spotkań). Przed dogfoodem? Na ile dni? Pytać przy pierwszym nagraniu? | **Tak, przed dogfoodem lub w jego pierwszych dniach, domyślnie wyłączone, 30 dni, bez pytania przy pierwszym nagraniu** (sam przełącznik w Prywatności). Bez audio nie powstanie zbiór wzorcowy; 14 dni wygasłoby przed jego zebraniem. |
 | M-Q4 | Które zmiany wolno wydawać w trakcie dwóch tygodni dogfoodu („bez zmian w kodzie produktu” z briefu 2026-11-09)? | **Tylko te, które nie zmieniają treści notatek:** Faza 1 tego epica. Wszystko, co zmienia `NotesPipeline`, `NotesGuard`, `NotesComposer` lub segmenty, czeka na bramkę MEET-0.3. |
 | M-Q5 | Zbiór wzorcowy: ile pracy ręcznej i czy sędziowie chmurowi? | **3 spotkania na start** (poprawiony transkrypt z mówcami, 10–25 punktów, zadania), rosnące z dogfoodu; **panel sędziów lokalny**, chmurowi tylko na nagraniach ze zgodą uczestników. **Uchylone dla sędziego Fable 2026-11-19 (decyzja 2); zob. przegląd backlogu, sekcja „Decyzje właściciela (2026-11-19)”.** |
@@ -629,7 +629,7 @@ Warunek wejścia: bramka MEET-0.3. Decyzja M-Q8 ⚠.
 
 ### MEET-4.3 — Prezentacja notatek hybrydowych
 
-> **Status 2026-11-19:** **wycofana 2026-11-19, decyzja 4** (oznaczenia AI/człowiek usunięte; bez `NoteBlockProvenance.author`). Zob. przegląd backlogu, sekcja „Decyzje właściciela (2026-11-19)”.
+> **Status 2026-11-19:** **wycofana 2026-11-19, decyzja 4** (oznaczenia AI/człowiek do usunięcia z notatek; bez `NoteBlockProvenance.author`). Zob. przegląd backlogu, sekcja „Decyzje właściciela (2026-11-19)”.
 
 - **Story:** Jako czytelnik chcę odróżniać swoje linie od tekstu AI i móc poprawić swoje notatki po spotkaniu, aby notatka została moja.
 - **Zależności:** MEET-4.2. Kolejka `LintelKit`: po DICT-3.3 (przegląd).
@@ -832,7 +832,7 @@ Warunek wejścia: bramka MEET-0.3. Decyzja M-Q8 ⚠.
 
 ### MEET-X.1 — Odświeżenie specu dostawców zewnętrznych dla kroku pisania notatek
 
-> **Status 2026-11-19:** pilna i bezwarunkowa (decyzja 1): nie zależy od wyniku MEET-0.2; dostawcy domyślnie wyłączeni, transkrypt do dostawcy dopiero po włączeniu przez użytkownika, z tekstem zgody dla uczestników. Zob. przegląd backlogu, sekcja „Decyzje właściciela (2026-11-19)”.
+> **Status 2026-11-19:** pilna i bezwarunkowa (decyzja 1): nie zależy od wyniku MEET-0.2; dostawcy domyślnie wyłączeni, transkrypt do dostawcy dopiero po włączeniu przez użytkownika, z tekstem zgody dla uczestników. Warunek poniżej nie obowiązuje; ograniczenie do spotkań niepoufnych w opisie story nie jest częścią decyzji (do potwierdzenia przez właściciela przy odświeżeniu specu). Zob. przegląd backlogu, sekcja „Decyzje właściciela (2026-11-19)”.
 
 - **Story:** Jako właściciel, dla spotkań niepoufnych, chcę móc świadomie użyć modelu z własnej subskrypcji do napisania notatki z lokalnego transkryptu, jeśli lokalny model przegrywa.
 - **Zależności:** **Warunek:** wynik MEET-0.2 uruchamia M-Q14. Spec `2026-11-10-external-ai-providers.md` ma nieaktualne nazwy (`Pounce*`), zajęty numer ADR (0008) i nieaktualne założenie, że `NotesPipeline` nie istnieje.
