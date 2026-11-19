@@ -34,16 +34,6 @@ struct NotesPaneContent: View {
             Section {
                 modelRow
                 toggle(
-                    Text("Author bars", comment: "Inspector, Details: toggle for the author bars"),
-                    help: Text(
-                        "Who wrote each block: AI, You, STT.",
-                        comment: "Inspector, Details: what the author bars show"), isOn: $preferences.showAuthorBars)
-                toggle(
-                    Text("Source quotes", comment: "Inspector, Details: toggle for the quote chips"),
-                    help: Text(
-                        "Timestamps that open the transcript.",
-                        comment: "Inspector, Details: what the quote chips do"), isOn: $preferences.showQuotes)
-                toggle(
                     Text("Wrap lines", comment: "Inspector, Details: toggle for wrapping long lines in the editor"),
                     help: nil, isOn: $preferences.wrapLines)
             } header: {

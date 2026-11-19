@@ -177,13 +177,14 @@ enum NoteBlocks {
 enum NoteQuote {
     /// The text without its trailing time, and that time in milliseconds.
     static func split(_ text: String) -> (text: String, timeMs: Int?) {
-        guard let match = text.firstMatch(of: /\s*\\?\[([0-9]{1,2}(?::[0-9]{2}){1,2})\\?\]\s*$/),
+        guard let match = text.firstMatch(of: /\s*\\?\[([0-9]{1,2}(?:\\?:[0-9]{2}){1,2})\\?\]\s*$/),
             let ms = milliseconds(String(match.output.1))
         else { return (text, nil) }
         return (String(text[..<match.range.lowerBound]), ms)
     }
 
     static func milliseconds(_ clock: String) -> Int? {
+        let clock = clock.replacingOccurrences(of: "\\", with: "")
         let parts = clock.split(separator: ":").compactMap { Int($0) }
         guard parts.count == clock.split(separator: ":").count, (2...3).contains(parts.count) else { return nil }
         let seconds = parts.reduce(0) { $0 * 60 + $1 }

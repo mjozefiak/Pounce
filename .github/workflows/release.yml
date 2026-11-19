@@ -43,7 +43,7 @@ jobs:
       HAS_SIGNING_SECRETS: ${{ secrets.SIGNING_P12 != '' }}
       IDENTITY: Lintel Release
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: true
           # The build number is the commit count, so the whole history is needed.
@@ -80,7 +80,7 @@ jobs:
           echo "prerelease=$IS_PRERELEASE" >> "$GITHUB_OUTPUT"
         id: version
 
-      - uses: maxim-lobanov/setup-xcode@v1
+      - uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
         with:
           xcode-version: latest-stable
 
@@ -198,7 +198,7 @@ jobs:
           cd dist
           shasum -a 256 Lintel.dmg | tee Lintel.dmg.sha256
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: Lintel-dmg
           path: |
@@ -222,7 +222,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: Lintel-dmg
           path: dist
@@ -239,7 +239,7 @@ jobs:
 
           1. Download **Lintel.dmg** below and open it.
           2. Drag **Lintel** onto the **Applications** folder.
-          3. Open Lintel from Applications. A paw icon appears in the menu bar.
+          3. Open Lintel from Applications. A ring with a small cut appears in the menu bar.
 
           Requires macOS 26 or later on Apple silicon.
 
