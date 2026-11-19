@@ -22,6 +22,7 @@ enum WindowsDiagnostics {
             "Display changes: \(diagnostics.displayChanges)",
             "Empty display lists: \(diagnostics.emptyDisplayLists)",
             "Resyncs: \(diagnostics.resyncs)",
+            "Resizes ignored while displays settled: \(diagnostics.resizesIgnoredDuringDisplaySettle)",
             "Focus mismatches: \(diagnostics.focusMismatches)",
             "Focus read timeouts: \(diagnostics.focusReadTimeouts)",
         ].joined(separator: "\n")

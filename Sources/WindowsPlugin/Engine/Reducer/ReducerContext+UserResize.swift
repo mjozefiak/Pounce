@@ -16,6 +16,9 @@ struct UserResizeState: Equatable, Sendable {
 }
 
 extension ReducerContext {
+    /// How long after a display change a size change is not taken for a resize by hand (seconds, engine clock).
+    static var displaySettleDuration: Double { 3 }
+
     /// The frame changes per second a drag may cause: half the watchdog's limit, so the rest of the engine keeps room.
     static var userResizeFrameBudget: Double { Double(Watchdog.defaultLimit) / 2 }
 
@@ -28,7 +31,8 @@ extension ReducerContext {
 
     /// A window of a shown workspace changed size by hand: the kind of its workspace adopts it. Returns whether it did.
     /// Ignored: our own echoes (the caller has dropped them), a window with a frame change in flight (an app that
-    /// answers a size with its own, see `checkSize`), stubborn, floating and unmanaged windows, a frozen engine.
+    /// answers a size with its own, see `checkSize`), stubborn, floating and unmanaged windows, a frozen engine, and
+    /// any size change for `displaySettleDuration` after the displays changed.
     mutating func adoptUserResize(_ id: WindowID, frame: CGRect, now: Double) -> Bool {
         guard !state.isFrozen, state.windows[id] != nil, !state.floating.contains(id), !state.unmanaged.contains(id),
             !state.stubborn.contains(id), state.parked[id] == nil,
@@ -40,6 +44,13 @@ extension ReducerContext {
         input.state = found.result.state
         input.hints = found.result.hints
         guard let edit = resizing.adopt(frame, of: id, tiles: found.result.frames, input) else { return false }
+        // After a wake or a display change the system resizes windows by itself (a fallback display of another size
+        // can appear for a moment); adopting that would rewrite the stored weights. The next arrange undoes it.
+        // Checked last, so the count holds only size changes that would otherwise have been adopted.
+        if now < state.displaySettleUntil {
+            state.diagnostics.resizesIgnoredDuringDisplaySettle += 1
+            return false
+        }
         state.layouts[workspace, default: [:]][found.strategy.kind.rawValue] = edit.state
         state.placementHints = edit.hints
         let previous = state.userResize
