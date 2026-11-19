@@ -63,10 +63,32 @@ enum FormatterGuard {
     ]
 
     /// Fillers and hesitations, which also shorten the text by themselves.
+    /// A run of "y" or "e" is a hesitation however many letters the recogniser wrote ("yy", "yyyy", "eeee").
     static let fillers: [[String]] = [
-        ["yyy"], ["yy"], ["eee"], ["ee"], ["um"], ["uh"], ["uhm"], ["hmm"], ["no", "więc"], ["no", "cóż"],
-        ["you", "know"],
+        ["um"], ["uh"], ["uhm"], ["erm"], ["eh"], ["mhm"], ["hmm"], ["no", "więc"], ["no", "cóż"], ["you", "know"],
     ]
+
+    /// Words after which "you know" is content ("let you know", "if you know", "do you know"), not a filler.
+    private static let youKnowIsContentAfter: Set<String> = ["let", "if", "do", "did", "don't", "dont"]
+
+    /// The lengths of the fillers that start at `index`.
+    static func fillerLengths(_ tokens: [String], at index: Int) -> [Int] {
+        var lengths: [Int] = []
+        let word = tokens[index]
+        if word.count >= 2, word.allSatisfy({ $0 == "y" }) || word.allSatisfy({ $0 == "e" }) {
+            lengths.append(1)
+        }
+        for phrase in fillers where matches(tokens, phrase, at: index) {
+            if phrase == ["you", "know"], index > 0, youKnowIsContentAfter.contains(tokens[index - 1]) { continue }
+            lengths.append(phrase.count)
+        }
+        return lengths
+    }
+
+    /// Where the fillers occur in the tokens, as half-open ranges.
+    private static func fillerOccurrences(in tokens: [String]) -> [(start: Int, end: Int)] {
+        tokens.indices.flatMap { index in fillerLengths(tokens, at: index).map { (index, index + $0) } }
+    }
 
     static func check(input: String, output rawOutput: String) -> Verdict {
         let output = clean(rawOutput)
@@ -139,7 +161,7 @@ enum FormatterGuard {
     /// The words of the fillers and markers in the tokens, plus `retractedSpanCap` per marker: how many
     /// words the closed lists can account for. Zero when the chunk holds none.
     static func removableAllowance(_ tokens: [String]) -> Int {
-        let fillerWords = occurrences(of: fillers, in: tokens).reduce(0) { $0 + $1.end - $1.start }
+        let fillerWords = fillerOccurrences(in: tokens).reduce(0) { $0 + $1.end - $1.start }
         let markers = occurrences(of: retractionMarkers, in: tokens)
         let markerWords = markers.reduce(0) { $0 + $1.end - $1.start }
         return fillerWords + markerWords + markers.count * retractedSpanCap
@@ -178,17 +200,27 @@ enum FormatterGuard {
         return shared >= 4 && Double(shared) >= 0.6 * Double(shorter)
     }
 
+    /// The length of the marker or filler the tokens end on, if any.
+    private static func trailingRemovable(_ tokens: [String]) -> Int? {
+        for phrase in retractionMarkers
+        where tokens.count >= phrase.count && Array(tokens.suffix(phrase.count)) == phrase {
+            return phrase.count
+        }
+        for length in 1...min(2, tokens.count) where fillerLengths(tokens, at: tokens.count - length).contains(length) {
+            return length
+        }
+        return nil
+    }
+
     /// The input's last word that is not a trailing filler or marker.
     static func effectiveSpoken(_ spoken: [String]) -> [String] {
         var tokens = spoken
         var changed = true
         while changed, !tokens.isEmpty {
             changed = false
-            for phrase in retractionMarkers + fillers
-            where tokens.count >= phrase.count && Array(tokens.suffix(phrase.count)) == phrase {
-                tokens.removeLast(phrase.count)
+            if let length = trailingRemovable(tokens) {
+                tokens.removeLast(length)
                 changed = true
-                break
             }
         }
         return tokens.isEmpty ? spoken : tokens
@@ -255,9 +287,7 @@ enum FormatterGuard {
         var freeEnds = [[Int]](repeating: [], count: rows)
         let markers = occurrences(of: retractionMarkers, in: spoken)
         for index in 0..<spoken.count {
-            for phrase in fillers where matches(spoken, phrase, at: index) {
-                freeEnds[index].append(index + phrase.count)
-            }
+            for length in fillerLengths(spoken, at: index) { freeEnds[index].append(index + length) }
             for length in 1...4 where index + 2 * length <= spoken.count {
                 if spoken[index..<(index + length)] == spoken[(index + length)..<(index + 2 * length)] {
                     freeEnds[index].append(index + length)

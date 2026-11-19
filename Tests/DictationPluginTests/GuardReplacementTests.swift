@@ -285,6 +285,21 @@ import Testing
         #expect(!accepted(input, context + " Spotkanie jest o dziesiątej."))
     }
 
+    @Test func youKnowIsContentAfterLetAndIfButAFillerElsewhere() {
+        let input = "send the file to Mark sorry to Steven and I will let you know"
+        #expect(accepted(input, "Send the file to Steven and I will let you know."))
+        #expect(!accepted(input, "Send the file to Steven and I will let."))
+        // A filler "you know" in the middle may still go.
+        #expect(accepted("we should you know move the meeting to monday", "We should move the meeting to Monday."))
+    }
+
+    @Test(arguments: ["yyyy", "yyyyy", "eeee", "eeeee", "erm", "eh", "mhm", "yy", "ee"])
+    func aHesitationIsRemovedWhateverTheSpelling(filler: String) {
+        let input = "\(filler) zamów dwie pizze nie czekaj trzy pizze z szynką \(filler)"
+        #expect(accepted(input, "Zamów trzy pizze z szynką."))
+        #expect(FormatterGuard.removableAllowance(input.split(separator: " ").map(String.init)) > 0)
+    }
+
     @Test func aDigitWithAnotherValueIsNotAbsorbed() {
         // 70 is not "sześćdziesięciu": the digit is an unrelated token in the replacement.
         #expect(

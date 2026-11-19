@@ -187,7 +187,7 @@ enum AutocorrectCorpus {
         }
         // Documented fail-safe falls back to the raw text, not a defect (ADR 0010): "no" is not a marker, so
         // dropping "the twelfth no" cannot be derived. A bare "no" is content too often to be added.
-        let failSafe: Set<String> = ["en-cor-3", "en-fil-2"]
+        let failSafe: Set<String> = ["en-cor-3"]
         rejected = rejected.mapValues { $0.filter { !failSafe.contains(String($0.prefix { $0 != ":" })) } }
             .filter { !$0.value.isEmpty }
         let all = rejected.values.reduce(0) { $0 + $1.count }
@@ -326,7 +326,9 @@ enum AutocorrectCorpus {
 /// the marker phrases and fillers are removed.
 @Suite struct CleanupPromptCorpusSeparationTests {
     private static let phrases: [[String]] =
-        (FormatterGuard.retractionMarkers + FormatterGuard.fillers + [["nie"], ["albo"], ["no"], ["or"]])
+        (FormatterGuard.retractionMarkers + FormatterGuard.fillers + [
+            ["yyy"], ["yy"], ["eee"], ["ee"], ["nie"], ["albo"], ["no"], ["or"],
+        ])
         .sorted { $0.count > $1.count }
 
     /// Words of a text without marker phrases and fillers.
