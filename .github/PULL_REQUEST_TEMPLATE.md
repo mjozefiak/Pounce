@@ -5,6 +5,7 @@
 ## Checklist
 
 - [ ] Validation gate passed: `swift build`, `swift test`, `swift format lint --strict -r Sources Tests` (or: docs-only, no gate needed)
+- [ ] User-visible change: one line added under `## [Unreleased]` in `CHANGELOG.md` (or: not user-visible)
 - [ ] Tests added or updated
 - [ ] New user-visible strings have English and Polish values in `Resources/Localizable.xcstrings`
 - [ ] Touches a surface in `BACKWARD_COMPATIBILITY.md` (plugin contract, on-disk data, settings keys, signing, shortcuts, release assets): yes / no
