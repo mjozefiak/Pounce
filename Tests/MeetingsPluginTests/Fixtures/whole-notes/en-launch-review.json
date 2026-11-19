@@ -1,0 +1,67 @@
+{
+ "name": "en-launch-review",
+ "language": "en",
+ "durationSec": 420,
+ "fake": {
+  "number": "7400",
+  "weekday": "Tuesday",
+  "name": "Kwantoris",
+  "person": "Zenon",
+  "generic": "Speaker 1",
+  "due": "Tuesday"
+ },
+ "transcript": [
+  "[00:02] Priya: Okay, let's get going, I only have until half past.",
+  "[00:06] Dan: Sure. So the launch.",
+  "[00:09] Priya: Right, the launch is currently set for the fifteenth of March, and QA says",
+  "[00:16] Priya: they need two more weeks on the payment flow.",
+  "[00:21] Lee: Two weeks is optimistic. Last time it took three.",
+  "[00:26] Dan: Yeah.",
+  "[00:28] Dan: What if we ship without the Apple Pay part and add it later?",
+  "[00:34] Lee: That cuts maybe a third of the testing.",
+  "[00:39] Priya: Hmm, marketing already announced Apple Pay though.",
+  "[00:44] Dan: They announced it for the spring, not for day one.",
+  "[00:49] Priya: Fair. Okay so let's do that, launch on the fifteenth without Apple Pay, and Apple Pay follows in April.",
+  "[01:00] Lee: Works for me.",
+  "[01:03] Priya: Dan, can you tell marketing today so they fix the banner?",
+  "[01:08] Dan: Yes, I'll message them this afternoon.",
+  "[01:13] Priya: And Lee, update the test plan so it only covers card payments, by Wednesday.",
+  "[01:20] Lee: Will do.",
+  "[01:23] Dan: Who is telling the partner at Northwind?",
+  "[01:27] Priya: Not sure yet, I'll think about it."
+ ],
+ "gold": {
+  "decisions": [
+   [
+    "launch",
+    "apple"
+   ]
+  ],
+  "tasks": [
+   {
+    "match": [
+     "marketing",
+     "banner"
+    ],
+    "person": "Dan",
+    "due": "today"
+   },
+   {
+    "match": [
+     "test",
+     "plan"
+    ],
+    "person": "Lee",
+    "due": "wednesday"
+   }
+  ],
+  "open": [
+   [
+    "northwind"
+   ]
+  ]
+ },
+ "correct": "TITLE: Launch date and Apple Pay\nSUMMARY: The team reviewed the launch schedule because QA needs more time on the payment flow. They agreed to launch on schedule without Apple Pay, which will follow later.\nDECISION | ~00:49 | Launch stays on March 15 without Apple Pay; Apple Pay follows in April.\nTASK | ~01:03 | Dan | today | Tell marketing to fix the banner that announces Apple Pay.\nTASK | ~01:13 | Lee | Wednesday | Update the test plan to cover card payments only.\nTOPIC: Testing time\nPOINT | QA asked for two more weeks on the payment flow, and Lee thinks it may take three.\nPOINT | Skipping Apple Pay cuts about a third of the testing.\nOPEN | Nobody has been assigned to inform the partner at Northwind.",
+ "extraFaults": [],
+ "synthetic": true
+}
