@@ -180,6 +180,7 @@ final class ScriptedNoteSource: NoteSource, Sendable {
         var contentGate: Gate?
         var deleteFails = false
         var onDelete: (@Sendable (NoteKey) -> Void)?
+        var onSubscribe: (@Sendable () -> Void)?
         var renameFails = false
         var renamed: [(NoteKey, String)] = []
     }
@@ -321,7 +322,11 @@ final class ScriptedNoteSource: NoteSource, Sendable {
     func actions(for key: NoteKey) -> [NoteSourceAction] { state.withLock { $0.actions } }
     func setActions(_ actions: [NoteSourceAction]) { state.withLock { $0.actions = actions } }
 
+    /// Called at the start of every `makeChanges()`, on the caller's task, before the stream exists.
+    func setOnSubscribe(_ hook: (@Sendable () -> Void)?) { state.withLock { $0.onSubscribe = hook } }
+
     func makeChanges() -> AsyncStream<Void> {
+        state.withLock { $0.onSubscribe }?()
         let (stream, continuation) = AsyncStream.makeStream(of: Void.self, bufferingPolicy: .bufferingNewest(1))
         let id = UUID()
         state.withLock { $0.continuations[id] = continuation }
