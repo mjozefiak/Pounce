@@ -1,18 +1,18 @@
 # ADR 0010: Context-aware dictation (trust model, frozen contract, reference phrases)
 
-- Status: **Proposed.** It is merged as Proposed; it becomes Accepted when the owner accepts it, in a later
-  commit that changes only this line. Until the DICT-0.2
-  probes are run, the points marked **[0.2]** are working values, not decisions.
+- Status: **Accepted** (owner decision of 2026-11-19: the DICT-0.1 gate is passed and the epic starts). Until
+  the DICT-0.2 probes are run, the points marked **[0.2]** are working values, not decisions.
 - Date: 2026-11-19
 - Backlog: `.ai/specs/backlog/2026-11-13-epic-context-aware-dictation.md`, story DICT-0.3. Owner decisions of
-  2026-11-19 (numbers 1, 6 and 7) are applied; they are recorded in the backlog overview by PR #104 (open when this was written, so this branch does not hold them yet).
+  2026-11-19 (numbers 1, 6 and 7) are applied; they are recorded in the backlog overview (PR #104, merged).
 - Number 0010: free on `main` and in the open pull requests (checked 2026-11-19). `0007` is used twice.
-- Owner decisions on this ADR (2026-11-19, accepted; the ADR as a whole stays Proposed):
+- Owner decisions on this ADR (2026-11-19, accepted):
   1. DICT-2.1 may start before the DICT-0.2 probes; the probes must be done before DICT-2.2.
   2. The decision-7 change is `CleanupPrompt` version 2; the list of terms (DICT-4.2) is a later prompt
      version.
   3. `CleanupPrompt` version 2 ships only after it passes the self-correction corpus (PR #115). `known_bad`
      cases are reported separately and never masked, and the result is reported for each built-in model.
+  4. `FieldKind` is an open set, like `FocusContextSource` and `SkipReason`.
 
 **How to read the marks.** **[0.2]** means "to be confirmed by the DICT-0.2 probe" (in the backlog's language:
 *do potwierdzenia próbą DICT-0.2*). The probes (Accessibility read matrix, terminal context, pasting into TUI
@@ -267,10 +267,9 @@ public protocol FileNameLookup: Sendable {
 
 Notes on the shape:
 
-- **Deviation from the backlog, awaiting owner confirmation:** `FieldKind` is an open set like the other two.
-  The backlog (DICT-2.1) names only `FocusContextSource` and `SkipReason` as open; a closed `FieldKind` would
-  break plugins the first time a kind is added, so it follows the same rule. If the owner prefers the backlog's
-  closed form, DICT-2.1 makes it a closed `enum` and this note is removed; nothing else in the contract changes.
+- **Deviation from the backlog, accepted by the owner (2026-11-19, owner decision 4):** `FieldKind` is an open
+  set like the other two. The backlog (DICT-2.1) names only `FocusContextSource` and `SkipReason` as open; a
+  closed `FieldKind` would break plugins the first time a kind is added, so it follows the same rule.
   Which kinds Accessibility can tell apart beyond these four: **[0.2]**. `FocusContext.field` is not optional;
   code that holds an optional snapshot must unwrap it before comparing with `.none`, or the comparison reads as
   `Optional.none`.
@@ -394,9 +393,10 @@ cache and 300 ms on the first listing, at most 20 results.
 | Clipboard `accessBehavior` and the alert on macOS 26 and 27 | DICT-0.2 criterion 5 | DICT-3.1 |
 | Whether the window's document can stand in for "this file" | DICT-0.2 criterion 1 | DICT-3.5 |
 | Unchecked identifiers on the denied list | DICT-2.3 | DICT-2.3 |
-| `FieldKind` as an open set (deviation from the backlog text of DICT-2.1) | owner | DICT-2.1 |
-| Backlog edit of DICT-4.2 for its prompt version (the version itself is decided: owner decision 2) | backlog edit | DICT-4.2 |
 | Off/on comparison in the dogfood | owner | DICT-3.6 |
+
+Closed on 2026-11-19: `FieldKind` as an open set (accepted, owner decision 4) and the backlog text of DICT-4.2
+(edited to match owner decision 2).
 
 DICT-2.1 (the `LintelKit` types) depends on none of the **[0.2]** values, only on the shape above. *Owner
 decision 1 (2026-11-19):* DICT-2.1 may start before the DICT-0.2 probes; the probes must be done before
