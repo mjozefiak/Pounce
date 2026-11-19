@@ -4,9 +4,12 @@ name: Release
 # and publishes a GitHub Release. Pull requests that touch the app and manual runs build and sign the
 # same DMG and upload it as a workflow artifact without publishing anything.
 on:
+  # A push to main (a merged pull request) that touches the app builds the DMG too, so a source change that breaks
+  # packaging shows up on main within minutes and not at the next tag. Nothing is published: `publish` runs for tags
+  # only. The path filter does not apply to tag pushes.
   push:
     tags: ["v*"]
-  pull_request:
+    branches: [main]
     paths:
       - Package.swift
       - Package.resolved
@@ -14,6 +17,26 @@ on:
       - Packages/**
       - Sources/**
       - Resources/**
+      - scripts/**
+      - .github/workflows/release.yml
+  # Pull requests build the DMG only when packaging can change: the scripts, the bundle's plist and entitlements,
+  # the package graph and this file. Source-only and docs-only pull requests are covered by ci.yml alone; the macOS
+  # runners are few and this job repeats the whole test run. `Localizable.xcstrings` changes in most UI pull requests,
+  # so it is left to `StringCatalogTests` in ci.yml and to the build on the push to main (above). To build a DMG for any other branch, run this workflow
+  # by hand (workflow_dispatch).
+  pull_request:
+    paths:
+      - Package.swift
+      - Package.resolved
+      - .gitmodules
+      - Packages/**
+      - Resources/Info.plist
+      - Resources/*.entitlements
+      - Resources/designated-requirement.txt
+      - Resources/InfoPlist.xcstrings
+      - Resources/THIRD_PARTY_NOTICES.txt
+      - Resources/Assets.xcassets/**
+      - Resources/KeyboardShortcuts/**
       - scripts/**
       - .github/workflows/release.yml
   workflow_dispatch:
@@ -28,6 +51,8 @@ concurrency:
 jobs:
   build:
     name: Build signed DMG
+    # Dependabot pull requests get no DMG build: they get no secrets, and ci.yml already builds and tests them.
+    if: github.actor != 'dependabot[bot]'
     # Same runner as CI: GitHub's Xcode 27 image (public preview, Apple silicon).
     runs-on: xcode-27
     timeout-minutes: 40
@@ -120,7 +145,9 @@ jobs:
 
           echo "SIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
 
+      # A push to main is tested by ci.yml on the same commit; here it only checks that the app still packages.
       - name: Test
+        if: github.event_name != 'push' || startsWith(github.ref, 'refs/tags/')
         run: swift test
 
       - name: Build app and DMG
