@@ -7,6 +7,12 @@
 - Backlog: `.ai/specs/backlog/2026-11-13-epic-context-aware-dictation.md`, story DICT-0.3. Owner decisions of
   2026-11-19 (numbers 1, 6 and 7) are applied; they are recorded in the backlog overview by PR #104 (open when this was written, so this branch does not hold them yet).
 - Number 0010: free on `main` and in the open pull requests (checked 2026-11-19). `0007` is used twice.
+- Owner decisions on this ADR (2026-11-19, accepted; the ADR as a whole stays Proposed):
+  1. DICT-2.1 may start before the DICT-0.2 probes; the probes must be done before DICT-2.2.
+  2. The decision-7 change is `CleanupPrompt` version 2; the list of terms (DICT-4.2) is a later prompt
+     version.
+  3. `CleanupPrompt` version 2 ships only after it passes the self-correction corpus (PR #115). `known_bad`
+     cases are reported separately and never masked, and the result is reported for each built-in model.
 
 **How to read the marks.** **[0.2]** means "to be confirmed by the DICT-0.2 probe" (in the backlog's language:
 *do potwierdzenia próbą DICT-0.2*). The probes (Accessibility read matrix, terminal context, pasting into TUI
@@ -140,11 +146,14 @@ sets the rules the new prompt and the adjusted `FormatterGuard` must keep.
 **Keeping both versions is the safe failure.** ADR 0005 records why: an earlier version 2 with a "keep only
 the last version" rule made the default 4B model keep the wrong version without any sign. Losing what the user
 meant is worse than leaving a correction in the text. Code cannot see whether the model was sure, so this is
-enforced as an acceptance rule: the new prompt ships only if, on the regression set and for every model in the
-catalog, no case ends with the retracted version kept and the final one lost. The regression set is the
-synthetic corpus of the decision-7 work (run plan `dictation-autocorrect-corpus`); it must hold PL and EN
-cases of retraction with a replacement, retraction without one, and text that only looks like a retraction.
-No case comes from a real dictation.
+enforced as an acceptance rule: the new prompt ships only if, on the regression set and for every built-in
+model in the catalog, no case ends with the retracted version kept and the final one lost. The regression set
+is the synthetic self-correction corpus of the decision-7 work (PR #115, run plan
+`dictation-autocorrect-corpus`); it must hold PL and EN cases of retraction with a replacement, retraction
+without one, and text that only looks like a retraction. No case comes from a real dictation. *Owner decision
+3 (2026-11-19):* version 2 ships only after it passes that corpus; the result is reported for each built-in
+model, and the `known_bad` cases are reported separately and never masked (not dropped, not counted as
+passes).
 
 **The raw text is always available.** This is a hard rule, not a fallback detail:
 
@@ -166,10 +175,10 @@ so a correctly removed long retraction is thrown away. The adjustment must keep 
 
 **Version numbers.** The decision-7 change is `CleanupPrompt.version` 1 → 2, a user-visible behaviour
 (`BACKWARD_COMPATIBILITY.md` sections 3 and 5: release note, a new golden prompt file). DICT-4.2 (a list of
-terms in the prompt) keeps its own condition and would be a later version. *Proposal, for the owner to
-confirm:* the list of terms is not decided by decision 7. If confirmed, the backlog text of DICT-4.2 needs an
-edit: its surfaces say "1 → 2" and `prompt-v2.txt`, and its criterion 4 says the prompt "stays in version 1"
-for other sources; both would name the version without the list instead.
+terms in the prompt) keeps its own condition and is a later version. *Owner decision 2 (2026-11-19):*
+accepted; the list of terms is not part of decision 7. The backlog text of DICT-4.2 still needs an edit (not
+made in this PR): its surfaces say "1 → 2" and `prompt-v2.txt`, and its criterion 4 says the prompt "stays in
+version 1" for other sources; both must name the version after version 2 instead.
 
 **Known limits.**
 
@@ -386,11 +395,12 @@ cache and 300 ms on the first listing, at most 20 results.
 | Whether the window's document can stand in for "this file" | DICT-0.2 criterion 1 | DICT-3.5 |
 | Unchecked identifiers on the denied list | DICT-2.3 | DICT-2.3 |
 | `FieldKind` as an open set (deviation from the backlog text of DICT-2.1) | owner | DICT-2.1 |
-| Prompt version for a list of terms (DICT-4.2), and the backlog edit it needs | owner | DICT-4.2 |
+| Backlog edit of DICT-4.2 for its prompt version (the version itself is decided: owner decision 2) | backlog edit | DICT-4.2 |
 | Off/on comparison in the dogfood | owner | DICT-3.6 |
 
-DICT-2.1 (the `LintelKit` types) depends on none of the **[0.2]** values, only on the shape above. It can start
-once this ADR is Accepted. The owner may still prefer to wait for the probes; the backlog orders it that way.
+DICT-2.1 (the `LintelKit` types) depends on none of the **[0.2]** values, only on the shape above. *Owner
+decision 1 (2026-11-19):* DICT-2.1 may start before the DICT-0.2 probes; the probes must be done before
+DICT-2.2, which is the first story that uses their values.
 
 ## Consequences
 
