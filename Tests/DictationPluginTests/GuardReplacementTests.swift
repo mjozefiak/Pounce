@@ -178,44 +178,86 @@ import Testing
         #expect(documented == 3)
     }
 
+    /// The markers the speaker says in the corpus, listed here on purpose and not read from the guard, so the
+    /// tests below do not depend on the code under test.
+    private static let spokenMarkers: [[String]] = [
+        ["czekaj"], ["jednak"], ["właściwie"], ["pomyłka"], ["przepraszam"], ["to", "znaczy"],
+        ["wait"], ["actually"], ["sorry"], ["scratch", "that"], ["i", "mean"],
+    ]
+
+    /// The words the speaker said after the FIRST marker that has words after it (the final version, with
+    /// anything that follows), found independently of `FormatterGuard.replacementStart`.
+    private static func finalVersion(of tokens: [String]) -> [String] {
+        for index in tokens.indices {
+            for marker in spokenMarkers where index + marker.count < tokens.count {
+                if Array(tokens[index..<(index + marker.count)]) == marker {
+                    return Array(tokens[(index + marker.count)...])
+                }
+            }
+        }
+        return []
+    }
+
+    /// Whether `words` occur in `output` in order.
+    private static func inOrder(_ words: [String], in output: [String]) -> Bool {
+        var rest = output[...]
+        for word in words {
+            guard let found = rest.firstIndex(of: word) else { return false }
+            rest = rest[(found + 1)...]
+        }
+        return true
+    }
+
     /// The general rule behind it, without any wording from the corpus: delete one run of input words. If the
-    /// guard accepts a result under the ordinary 0.6 bound (which `main` rejected as too short), every word the
-    /// speaker said after the last marker is still in it, in order.
-    @Test func noDeletionReachesTheReplacementAfterTheLastMarker() throws {
+    /// guard accepts a result under the ordinary 0.6 bound (which `main` rejected as too short), every word
+    /// the speaker said as the final version is still in it, in order. Run on the corpus' withdrawing cases
+    /// as they are, and with an apology or a hedge appended ("... przepraszam", "... sorry", "... jednak"),
+    /// which must neither move the final version nor license a deletion.
+    @Test func noDeletionReachesTheFinalVersion() throws {
         var accepts = 0
         for item in try AutocorrectCorpus.load() where AutocorrectCorpus.withdrawing.contains(item.category) {
-            let spoken = item.raw.split(separator: " ").map(String.init)
-            let tokens = AutocorrectCorpus.tokens(item.raw)
-            let tail = FormatterGuard.replacementStart(tokens) ?? tokens.count
-            for start in 0..<spoken.count {
-                for end in (start + 1)...spoken.count {
-                    let kept = Array(spoken[..<start]) + Array(spoken[end...])
-                    guard !kept.isEmpty else { continue }
-                    let output = kept.joined(separator: " ") + "."
-                    // Only what `main` rejected as too short (ratio under 0.6) is in scope here.
-                    guard Double(kept.count) / Double(spoken.count) < FormatterGuard.lengthRange.lowerBound else {
-                        continue
-                    }
-                    if accepted(item.raw, output) {
+            for suffix in ["", " przepraszam", " sorry", " jednak"] {
+                let raw = item.raw + suffix
+                let spoken = raw.split(separator: " ").map(String.init)
+                // The appended marker may go; it is no part of the final version.
+                let final = Self.finalVersion(of: AutocorrectCorpus.tokens(item.raw))
+                guard !final.isEmpty else { continue }
+                for start in 0..<spoken.count {
+                    for end in (start + 1)...spoken.count {
+                        let kept = Array(spoken[..<start]) + Array(spoken[end...])
+                        guard !kept.isEmpty, Double(kept.count) / Double(spoken.count) < 0.6 else { continue }
+                        let output = kept.joined(separator: " ") + "."
+                        guard accepted(raw, output) else { continue }
                         accepts += 1
-                        // Nothing the speaker said after the last marker is gone: the replacement is a
-                        // subsequence of the output (a withdrawn word that stayed too is the "both versions
-                        // kept" class, which loses nothing).
-                        var rest = AutocorrectCorpus.tokens(output)[...]
-                        var kept = true
-                        for word in tokens[tail...] {
-                            guard let found = rest.firstIndex(of: word) else {
-                                kept = false
-                                break
-                            }
-                            rest = rest[(found + 1)...]
-                        }
-                        #expect(kept, "\(item.id): accepted deleting [\(start),\(end)) -> \(output)")
+                        #expect(
+                            Self.inOrder(final, in: AutocorrectCorpus.tokens(output)),
+                            "\(item.id)\(suffix): accepted deleting [\(start),\(end)) -> \(output)")
                     }
                 }
             }
         }
         #expect(accepts > 0)
+    }
+
+    /// Number words of another value that look like the right one (a near form) must not stand for it: the
+    /// input says the near form, the output has the corpus' correct number.
+    @Test func aNearFormNumberOfAnotherValueIsNotTheFinalNumber() throws {
+        let swaps = [
+            "trzy": "trzynaście", "pięć": "piętnaście", "sześćdziesięciu": "sześćset", "three": "thirteen",
+            "sixty": "sixteen", "thirteenth": "thirtieth", "fifty": "fifteen",
+        ]
+        var checked = 0
+        for item in try AutocorrectCorpus.load() where AutocorrectCorpus.withdrawing.contains(item.category) {
+            let spoken = item.raw.split(separator: " ").map(String.init)
+            let final = Self.finalVersion(of: AutocorrectCorpus.tokens(item.raw))
+            for (word, swapped) in swaps where final.contains(word) {
+                let input = spoken.map { $0.lowercased() == word ? swapped : $0 }.joined(separator: " ")
+                guard input != item.raw, AutocorrectCorpus.tokens(item.expected).contains(word) else { continue }
+                checked += 1
+                #expect(!accepted(input, item.expected), "\(item.id): \(word) -> \(swapped)")
+            }
+        }
+        #expect(checked > 0)
     }
 
     // MARK: Correct results stay accepted

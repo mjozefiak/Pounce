@@ -279,6 +279,9 @@ enum FormatterGuard {
         let tailWords = Set(spoken[min(tailStart, spoken.count)...])
         let withdrawnWords = Set(spoken[..<min(tailStart, spoken.count)]).subtracting(tailWords)
         let spokenWords = Set(spoken)
+        func isNumber(_ word: String) -> Bool {
+            word.contains(where: \.isNumber) || NumberWords.value(of: [word]) != nil
+        }
         func bringsBack(_ word: String) -> Bool {
             if word.contains(where: \.isNumber) { return true }
             return withdrawnWords.contains { $0 == word || isNearForm($0, word) }
@@ -333,11 +336,14 @@ enum FormatterGuard {
                     relax(row + 1, column + 1, here)
                 } else if row < tailStart
                     || (!bringsBack(written[column])
-                        && (isNearForm(spoken[row], written[column]) || !spokenWords.contains(written[column])))
+                        && (isNearForm(spoken[row], written[column])
+                            || (!spokenWords.contains(written[column]) && !isNumber(spoken[row])
+                                && !isNumber(written[column]))))
                 {
                     // In the replacement: a near form of the spoken word, or a word the speaker did not say
-                    // (a contraction, a recognition fix); never a word of the withdrawn part and never a
-                    // duplicate of another spoken word, which would hide a dropped word.
+                    // (a contraction, a recognition fix) that is not a number and does not replace one; never
+                    // a word of the withdrawn part and never a duplicate of another spoken word, which would
+                    // hide a dropped word.
                     relax(row + 1, column + 1, here + 1)
                 }
                 for group in NumberWords.digitValues(in: written, at: column) {
