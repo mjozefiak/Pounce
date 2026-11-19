@@ -6,7 +6,7 @@ import Testing
 @testable import FilesPlugin
 
 @MainActor
-@Suite("FilesPlugin")
+@Suite("FilesPlugin", .timeLimit(.minutes(2)))
 struct FilesPluginTests {
     private static let fixture = [
         "home/Projects/Quarterly Report.pages",
@@ -28,7 +28,7 @@ struct FilesPluginTests {
         #expect(harness.plugin.searchStatus.map(\.id) == ["files.setup"])
 
         harness.plugin.completeSetup()
-        #expect(await eventually { harness.plugin.state.status.phase == .ready })
+        #expect(await awaitState { harness.plugin.state.status.phase == .ready })
         #expect(try await harness.names("quarterly") == ["Quarterly Report.pages"])
         await harness.plugin.deactivate()
     }
@@ -37,7 +37,7 @@ struct FilesPluginTests {
         let harness = try PluginHarness(settings: ["plugins.files.setupCompleted": .bool(true)])
         try harness.directory.make(Self.fixture)
         try await harness.plugin.activate()
-        #expect(await eventually { harness.plugin.state.status.phase == .ready })
+        #expect(await awaitState { harness.plugin.state.status.phase == .ready })
 
         #expect(try await harness.names("notes") == ["notes.txt"])
         #expect(try await harness.names("desk-plan").isEmpty)
@@ -53,10 +53,10 @@ struct FilesPluginTests {
         let harness = try PluginHarness(settings: ["plugins.files.setupCompleted": .bool(true)])
         try harness.directory.make(Self.fixture)
         try await harness.plugin.activate()
-        #expect(await eventually { harness.plugin.state.status.phase == .ready })
+        #expect(await awaitState { harness.plugin.state.status.phase == .ready })
 
         harness.plugin.settings.setProtected(.desktop, added: true)
-        #expect(try await eventually { try await harness.names("desk-plan") == ["desk-plan.txt"] })
+        #expect(try await awaitEvents(harness.changes) { try await harness.names("desk-plan") == ["desk-plan.txt"] })
         #expect(try await harness.names("tax-form").isEmpty)
         await harness.plugin.deactivate()
     }
@@ -66,7 +66,7 @@ struct FilesPluginTests {
         harness.permissions.fullDiskAccess = .granted
         try harness.directory.make(Self.fixture)
         try await harness.plugin.activate()
-        #expect(await eventually { harness.plugin.state.status.phase == .ready })
+        #expect(await awaitState { harness.plugin.state.status.phase == .ready })
 
         #expect(try await harness.names("desk-plan") == ["desk-plan.txt"])
         #expect(try await harness.names("tax-form") == ["tax-form.pdf"])
@@ -78,12 +78,12 @@ struct FilesPluginTests {
         let harness = try PluginHarness(settings: ["plugins.files.setupCompleted": .bool(true)])
         try harness.directory.make(Self.fixture)
         try await harness.plugin.activate()
-        #expect(await eventually { harness.plugin.state.status.phase == .ready })
+        #expect(await awaitState { harness.plugin.state.status.phase == .ready })
         #expect(try await harness.names("tax-form").isEmpty)
 
         harness.permissions.fullDiskAccess = .granted
         harness.plugin.refreshAccess()
-        #expect(try await eventually { try await harness.names("tax-form") == ["tax-form.pdf"] })
+        #expect(try await awaitEvents(harness.changes) { try await harness.names("tax-form") == ["tax-form.pdf"] })
         await harness.plugin.deactivate()
     }
 
@@ -105,7 +105,7 @@ struct FilesPluginTests {
     @Test func allowOpensTheFullDiskAccessSettings() async throws {
         let harness = try PluginHarness()
         harness.plugin.openAccessSettings()
-        #expect(await eventually { !harness.workspace.opened.isEmpty })
+        #expect(await awaitEvents(harness.workspace.openings) { !harness.workspace.opened.isEmpty })
         #expect(harness.workspace.opened.first?.absoluteString.contains("Privacy_AllFiles") == true)
     }
 
@@ -127,11 +127,12 @@ struct FilesPluginTests {
         let harness = try PluginHarness(settings: ["plugins.files.setupCompleted": .bool(true)])
         try harness.directory.make(Self.fixture)
         try await harness.plugin.activate()
-        #expect(await eventually { harness.plugin.state.status.phase == .ready })
+        #expect(await awaitState { harness.plugin.state.status.phase == .ready })
 
         harness.plugin.rebuild()
         await harness.plugin.deactivate()
-        try await Task.sleep(for: .milliseconds(300))
+        // `deactivate()` awaited the task; a status still on its way to the main actor is ignored (inactive).
+        await Task.yield()
         #expect(harness.plugin.controller == nil)
         #expect(harness.plugin.state.status.phase == .waiting)
         await harness.plugin.waitForIndex()
@@ -142,12 +143,15 @@ struct FilesPluginTests {
         let harness = try PluginHarness(settings: ["plugins.files.setupCompleted": .bool(true)])
         try harness.directory.make(Self.fixture)
         try await harness.plugin.activate()
-        #expect(await eventually { harness.plugin.state.status.phase == .ready })
+        #expect(await awaitState { harness.plugin.state.status.phase == .ready })
         let scans = try #require(harness.plugin.controller).fullScanCount
 
         harness.plugin.rebuild()
-        #expect(await eventually { (harness.plugin.controller?.fullScanCount ?? 0) == 1 })
-        #expect(await eventually { harness.plugin.state.status.phase == .ready })
+        // The new controller's scan count and the phase move together; every phase change signals `changes`.
+        #expect(
+            await awaitEvents(harness.changes) {
+                (harness.plugin.controller?.fullScanCount ?? 0) == 1 && harness.plugin.state.status.phase == .ready
+            })
         #expect(scans == 1)
         #expect(try await harness.names("notes") == ["notes.txt"])
         await harness.plugin.deactivate()
@@ -157,7 +161,7 @@ struct FilesPluginTests {
         let harness = try PluginHarness(settings: ["plugins.files.setupCompleted": .bool(true)])
         try harness.directory.make(Self.fixture)
         try await harness.plugin.activate()
-        #expect(await eventually { harness.plugin.state.status.phase == .ready })
+        #expect(await awaitState { harness.plugin.state.status.phase == .ready })
         await harness.plugin.deactivate()
         try await harness.plugin.eraseData()
         #expect(harness.plugin.index.snapshot.liveCount == 0)
@@ -181,13 +185,13 @@ struct FilesPluginTests {
 }
 
 @MainActor
-@Suite("File actions")
+@Suite("File actions", .timeLimit(.minutes(2)))
 struct FileActionTests {
     private func setUp() async throws -> (PluginHarness, any SearchSource, Candidate) {
         let harness = try PluginHarness(settings: ["plugins.files.setupCompleted": .bool(true)])
         try harness.directory.make(["home/Projects/budget.numbers"])
         try await harness.plugin.activate()
-        #expect(await eventually { harness.plugin.state.status.phase == .ready })
+        #expect(await awaitState { harness.plugin.state.status.phase == .ready })
         let source = try #require(harness.plugin.searchSources.first)
         let candidate = try #require(try await source.search(TextNormalizer.query("budget"), limit: 5).first)
         return (harness, source, candidate)
