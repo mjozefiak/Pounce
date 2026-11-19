@@ -16,9 +16,22 @@ import Testing
 /// `segments.jsonl`, `speakers.json`, `meta.json`) and `LINTEL_WHOLE_NOTES_OUT=<dir under /Volumes/LintelMeetingEval/work>`
 /// real meetings are sent too; their notes and the raw answers are written ONLY to that directory, and only
 /// numbers are printed. The child process gets the isolation flags of ADR 0011 and an allowlisted environment.
-@Suite(.enabled(if: ProcessInfo.processInfo.environment["LINTEL_WHOLE_NOTES_CLAUDE"] != nil), .serialized)
+@Suite(
+    .enabled(
+        if: ProcessInfo.processInfo.environment["LINTEL_WHOLE_NOTES_CLAUDE"] != nil
+            || ProcessInfo.processInfo.environment["LINTEL_WHOLE_NOTES_LLAMA_URL"] != nil), .serialized)
 struct RealWholeNotesTests {
     private static let environment = ProcessInfo.processInfo.environment
+
+    /// The Claude Code CLI, or, with `LINTEL_WHOLE_NOTES_LLAMA_URL=http://127.0.0.1:<port>`, a `llama-server` that
+    /// the tester started by hand on a local model (model comparison; the context is the server's `-c`).
+    static func makeGenerator() -> any HarnessGenerator {
+        if let url = environment["LINTEL_WHOLE_NOTES_LLAMA_URL"], let base = URL(string: url) {
+            let budget = Int(environment["LINTEL_WHOLE_NOTES_BUDGET"] ?? "") ?? 24_000
+            return LlamaServerGenerator(base: base, inputBudgetTokens: budget)
+        }
+        return ClaudeCLIGenerator(model: environment["LINTEL_WHOLE_NOTES_MODEL"] ?? "sonnet")
+    }
 
     @Test func theSyntheticCorpusOnTheProviderModel() async throws {
         guard Self.environment["LINTEL_WHOLE_NOTES_ONLY"] != "real" else { return }
@@ -27,7 +40,7 @@ struct RealWholeNotesTests {
         var all: [String] = []
         for run in 1...runs {
             for corpus in try WholeNotesCase.all() {
-                let generator = ClaudeCLIGenerator(model: Self.environment["LINTEL_WHOLE_NOTES_MODEL"] ?? "sonnet")
+                let generator = Self.makeGenerator()
                 let started = ContinuousClock.now
                 let result = try await WholeNotesPipeline(generator: generator).run(
                     utterances: corpus.utterances, durationMs: corpus.durationMs)
@@ -39,7 +52,10 @@ struct RealWholeNotesTests {
                     let directory = URL(filePath: out).appending(path: "synthetic")
                     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
                     try (result.markdown ?? "").write(
-                        to: directory.appending(path: "\(corpus.name)-run\(run)-notes.md"), atomically: true,
+                        to: directory.appending(
+                            path:
+                                "\(corpus.name)-\(Self.environment["LINTEL_WHOLE_NOTES_TAG"] ?? "run")-run\(run)-notes.md"
+                        ), atomically: true,
                         encoding: .utf8)
                 }
                 totals.decisionsExpected += rubric.decisionsExpected
@@ -89,7 +105,7 @@ struct RealWholeNotesTests {
             let id = directory.lastPathComponent
             let document = try Self.loadExport(directory)
             let utterances = NotesUtterance.make(from: document)
-            let generator = ClaudeCLIGenerator(model: Self.environment["LINTEL_WHOLE_NOTES_MODEL"] ?? "sonnet")
+            let generator = Self.makeGenerator()
             let started = ContinuousClock.now
             let result = try await WholeNotesPipeline(generator: generator).run(
                 utterances: utterances, durationMs: document.durationMs)
@@ -199,6 +215,75 @@ struct RealWholeNotesTests {
                     endMs: $0.endMs,
                     speakerID: $0.speakerId, text: $0.text)
             })
+    }
+}
+
+/// What the harness reads back from a generator besides the answer.
+protocol HarnessGenerator: NotesGenerating {
+    var allTexts: [String] { get }
+    var lastText: String? { get }
+    var callCount: Int { get }
+    var inputTokens: Int { get }
+    var outputTokens: Int { get }
+}
+
+extension ClaudeCLIGenerator: HarnessGenerator {}
+
+/// A `NotesGenerating` over a `llama-server` on the loopback (test-only; the tester starts the server on a GGUF
+/// file by hand). Greedy sampling, no thinking, one request per call; the prompt goes in the request body only.
+final class LlamaServerGenerator: HarnessGenerator, @unchecked Sendable {
+    struct Failure: Error { var detail: String }
+
+    let profile: NotesGeneratorProfile
+    private let base: URL
+    private let state = Mutex((texts: [String](), input: 0, output: 0))
+
+    init(base: URL, inputBudgetTokens: Int) {
+        self.base = base
+        profile = NotesGeneratorProfile(
+            strategy: .wholeTranscript, inputBudgetTokens: inputBudgetTokens,
+            promptFormat: WholeNotesPrompt.version + "+llama")
+    }
+
+    var allTexts: [String] { state.withLock { $0.texts } }
+    var lastText: String? { state.withLock { $0.texts.last } }
+    var callCount: Int { state.withLock { $0.texts.count } }
+    var inputTokens: Int { state.withLock { $0.input } }
+    var outputTokens: Int { state.withLock { $0.output } }
+
+    func open() async throws {}
+    func release() async {}
+
+    func generateResult(
+        messages: [ChatMessage], maxTokens: Int, onPhase: (@Sendable (GenerationPhase) -> Void)?
+    ) async throws -> GenerationResult {
+        guard base.host == "127.0.0.1" else { throw Failure(detail: "loopback only") }
+        let serialized = ProviderPromptSerializer.serialize(messages)
+        let body: [String: Any] = [
+            "messages": [
+                ["role": "system", "content": serialized.system], ["role": "user", "content": serialized.input],
+            ],
+            "temperature": 0, "max_tokens": maxTokens, "stream": false,
+            "chat_template_kwargs": ["enable_thinking": false],
+        ]
+        var request = URLRequest(url: base.appending(path: "v1/chat/completions"))
+        request.httpMethod = "POST"
+        request.timeoutInterval = 3600
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, _) = try await URLSession.shared.data(for: request)
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let choices = json["choices"] as? [[String: Any]], let first = choices.first,
+            let message = first["message"] as? [String: Any], let text = message["content"] as? String
+        else { throw Failure(detail: "bad reply") }
+        let usage = json["usage"] as? [String: Any]
+        state.withLock {
+            $0.input += usage?["prompt_tokens"] as? Int ?? 0
+            $0.output += usage?["completion_tokens"] as? Int ?? 0
+        }
+        let cut = (first["finish_reason"] as? String) == "length"
+        if !cut { state.withLock { $0.texts.append(text) } }
+        return GenerationResult(text: cut ? "" : text, stoppedByTokenLimit: cut)
     }
 }
 
