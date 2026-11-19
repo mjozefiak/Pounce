@@ -195,7 +195,7 @@ struct FSEventsLatencyBenchmarks {
         try await Task.sleep(for: .milliseconds(500))
         let clock = ContinuousClock()
 
-        func measure(_ label: String, _ change: () throws -> Void, until condition: () -> Bool) async throws {
+        func measure(_ label: String, change: () throws -> Void, until condition: () -> Bool) async throws {
             let start = clock.now
             try change()
             #expect(await run.eventuallyIndexed(condition))
@@ -203,19 +203,19 @@ struct FSEventsLatencyBenchmarks {
             print("BENCH fsevents \(label): \(FileBenchmarks.ms(elapsed))")
             #expect(elapsed < .seconds(2))
         }
-        try await measure("create", { try directory.make(["root/folder/gamma-new.txt"]) }) {
-            run.contains("gamma-new.txt")
-        }
+        try await measure(
+            "create", change: { try directory.make(["root/folder/gamma-new.txt"]) },
+            until: { run.contains("gamma-new.txt") })
         try await measure(
             "rename",
-            {
+            change: {
                 try FileManager.default.moveItem(
                     atPath: directory.sub("root/folder/gamma-new.txt"), toPath: directory.sub("root/delta-moved.txt"))
-            }
-        ) { run.contains("delta-moved.txt") && !run.contains("gamma-new.txt") }
-        try await measure("delete", { try FileManager.default.removeItem(atPath: directory.sub("root/folder")) }) {
-            !run.contains("beta.txt") && !run.contains("folder")
-        }
+            },
+            until: { run.contains("delta-moved.txt") && !run.contains("gamma-new.txt") })
+        try await measure(
+            "delete", change: { try FileManager.default.removeItem(atPath: directory.sub("root/folder")) },
+            until: { !run.contains("beta.txt") && !run.contains("folder") })
         await run.stop()
     }
 }
