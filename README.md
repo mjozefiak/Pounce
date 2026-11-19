@@ -36,10 +36,11 @@ dictation, meeting notes and window management are off until you turn them on.
 
 No account, no analytics, no tracking. Every feature can be turned off and its data erased in Settings.
 
-Lintel connects to the network only to download the speech and language models you ask for in
-Settings → Models (from `huggingface.co`, pinned to a fixed revision and checked against a SHA-256
-checksum). The optional dictation cleanup can talk to a server on your own Mac (`localhost` only).
-There is no update check yet and no other network traffic: new versions come from the
+Lintel connects to the network only to download the speech and language models you choose to download
+(in Settings → Models, or from the download button a feature shows when it needs a model). They come
+from Hugging Face (`huggingface.co` and its download servers), pinned to a fixed revision and checked
+against a SHA-256 checksum. The optional dictation cleanup can talk to a server on your own Mac
+(`localhost` only). There is no update check yet and no other network traffic: new versions come from the
 [releases page](https://github.com/mjozefiak/lintel/releases).
 
 ## Install
@@ -64,14 +65,19 @@ allow it once:
 
 ## Permissions
 
-Lintel never asks for a permission on its own. **Settings → Permissions** lists the ones the enabled
-features need, with their state and a button to the right page in System Settings. All are optional:
+Lintel asks for a permission only when you use the feature that needs it (the microphone, for example,
+on your first dictation or recording). **Settings → Permissions** lists the ones the enabled features need,
+with their state and a button to the right page in System Settings. None is needed to start Lintel:
 
 | Permission | Used by | Without it |
 |---|---|---|
 | Accessibility | Clipboard history: pasting into the previous app (⌘V) | Return copies the entry; you paste yourself. |
+| Accessibility | Dictation: pasting the text into the app you are using | The text is copied; you paste yourself. |
+| Accessibility | Window management: moving and arranging windows | Windows are not moved; a notice says why and opens the setting. |
 | Full Disk Access | File search: Desktop, Documents, Downloads and iCloud Drive without a prompt per folder | Those folders are skipped; add them one at a time in Settings → Files. |
 | Clipboard access (Privacy & Security) | Clipboard history: reading what you copy | If macOS is set to ask or deny, the history shows a notice and records nothing. |
+| Microphone | Dictation and meeting notes | Dictation does not start; a meeting can record only the system audio. |
+| System audio recording | Meeting notes: the other side of a call | Recordings have only your microphone. |
 
 The clipboard history's encryption key lives in your login keychain (service `com.lintelapp.clipboard`). No
 permission is needed; macOS may ask once to allow access.
