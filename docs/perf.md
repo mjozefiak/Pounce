@@ -340,8 +340,8 @@ sentences. The local track (4B) is not part of this measurement; the comparison 
 | Real meeting B (1 760 words, 199 utterances, 6 341 estimator tokens, 1 call) | no target | 10.3 s; 10 078 input tokens; notes of 208 words with 0 decisions, 2 tasks (none with an owner), 2 topics, 2 open points; 1 line removed (a name not in the recording) |
 
 Two findings of the measurement changed the track before this row: the Polish example made the model answer an
-English meeting in Polish (the code now names the language of the notes in the request), and a name the speech
-recognition garbled and the model corrected ("girce" → "Jirze") was removed by a too strict guard (an edit distance of
+English meeting in Polish (the code now names the language of the notes in the request), and a product name the speech
+recognition garbled and the model corrected was removed by a too strict guard (an edit distance of
 two is allowed from five letters, as the spec says).
 
 Limits of this measurement:
@@ -373,7 +373,7 @@ their 3 runs were identical; Claude was run 3 times on the synthetic corpus and 
 
 Why the larger model: the current model cards on Hugging Face list `Qwen3.5-122B-A10B` as Apache-2.0, with 201
 languages, a native context of 262 144 tokens and a GGUF build by unsloth; 56.4 GB of weights plus a 41k context
-fits the 60 to 80 GB the decision allowed. Files: `~/DeveloperTools/lintel-meeting-eval/models/qwen3.5-122b-a10b-q3km/`
+fits the 60 to 80 GB the decision allowed. Files: a local folder outside the repository
 (3 shards, 56.4 GB, SHA-256 of every shard checked against the Hugging Face LFS hashes; revision
 `51eab4d59d53f573fb9206cb3ce613f1d0aa392b`). It is not in `LLMModelCatalog` and the app is unchanged.
 
