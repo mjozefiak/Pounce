@@ -249,6 +249,8 @@ enum AutocorrectCorpus {
         var knownBadHit: [String: Int] = [:]
         var lostFinal: [String: Int] = [:]
         var total: [String: Int] = [:]
+        // Negatives whose answer (not a raw fallback) lost a `must_keep` word: over-removal. Case ids only.
+        var overRemoved: [String] = []
         for item in try AutocorrectCorpus.load() {
             let key = "\(item.lang)/\(item.category)"
             total[key, default: 0] += 1
@@ -274,6 +276,9 @@ enum AutocorrectCorpus {
                 if (item.knownBad ?? []).contains(where: { AutocorrectCorpus.tokens($0) == resultTokens }) {
                     knownBadHit[key, default: 0] += 1
                 }
+                if item.category == "negative", !AutocorrectCorpus.satisfies(result.text, item) {
+                    overRemoved.append(item.id)
+                }
                 if AutocorrectCorpus.keepsWithdrawn(result.text, item) {
                     keptWithdrawn[key, default: 0] += 1
                     // The ADR 0010 acceptance rule: the withdrawn version kept AND the final one lost.
@@ -285,6 +290,19 @@ enum AutocorrectCorpus {
             }
         }
         await warm.unload()
+        let withdrawing = AutocorrectCorpus.withdrawing
+        let all = try AutocorrectCorpus.load()
+        func sum(_ counts: [String: Int], _ categories: Set<String>) -> Int {
+            counts.filter { categories.contains(String($0.key.split(separator: "/").last ?? "")) }
+                .values.reduce(0, +)
+        }
+        print(
+            "[autocorrect-model-total] v\(CleanupPrompt.version) all \(passed.values.reduce(0, +))/\(all.count)"
+                + " withdrawals \(sum(passed, withdrawing))/\(sum(total, withdrawing))"
+                + " negatives \(sum(passed, ["negative"]))/\(sum(total, ["negative"]))"
+                + " keptWithdrawn \(keptWithdrawn.values.reduce(0, +)) lostFinal \(lostFinal.values.reduce(0, +))"
+                + " fellBack \(fellBack.values.reduce(0, +)) knownBad \(knownBadHit.values.reduce(0, +))"
+                + " overRemovedNegatives \(overRemoved.count) \(overRemoved.sorted())")
         for key in total.keys.sorted() {
             let counts = "\(passed[key, default: 0])/\(total[key] ?? 0)"
             let failures =
