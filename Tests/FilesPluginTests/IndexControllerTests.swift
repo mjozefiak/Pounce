@@ -1,15 +1,29 @@
 import CoreServices
 import Foundation
 import LintelCore
+import Synchronization
 import Testing
 import os
 
 @testable import FilesPlugin
 
-/// Runs an `IndexController` over a fixture folder (spec 3.4: FSEvents and the snapshot).
+/// The phases an `IndexController` reported, in order.
+final class PhaseLog: Sendable {
+    private let log = Mutex<[IndexStatus.Phase]>([])
+    var values: [IndexStatus.Phase] { log.withLock { $0 } }
+    func append(_ phase: IndexStatus.Phase) { log.withLock { $0.append(phase) } }
+}
+
+/// Runs an `IndexController` over a fixture folder (spec 3.4: FSEvents and the snapshot). It keeps what the
+/// controller reports, so a test waits for the next event instead of polling the clock.
 final class ControllerRun: Sendable {
     let index: FileIndex
     let controller: IndexController
+    /// Signals after every `onChange` (a batch of changes was applied and published).
+    let changes: ChangeCounter
+    /// Signals after every `onStatus`.
+    let statusEvents: ChangeCounter
+    private let phases: PhaseLog
     private let task: Task<Void, Never>
 
     init(root: String, storage: URL, index: FileIndex = FileIndex(), exclusions: [String] = []) {
@@ -20,12 +34,22 @@ final class ControllerRun: Sendable {
         var configuration = IndexController.Configuration(plan: plan, storageDirectory: storage)
         configuration.eventLatency = 0.05
         configuration.workerCount = 2
+        let changes = ChangeCounter()
+        let statusEvents = ChangeCounter()
+        let phases = PhaseLog()
         let controller = IndexController(
             index: index, configuration: configuration,
             logger: Logger(subsystem: "com.lintelapp.tests", category: "files"),
-            onStatus: { _ in }, onChange: {})
+            onStatus: { status in
+                phases.append(status.phase)
+                statusEvents.signal()
+            },
+            onChange: { changes.signal() })
         self.index = index
         self.controller = controller
+        self.changes = changes
+        self.statusEvents = statusEvents
+        self.phases = phases
         task = Task.detached { await controller.run() }
     }
 
@@ -39,13 +63,27 @@ final class ControllerRun: Sendable {
         return (0..<store.flags.count).contains { store.isLive(Int32($0)) && store.name(Int32($0)) == name }
     }
 
+    /// Every phase the controller reported, in order.
+    var reportedPhases: [IndexStatus.Phase] { phases.values }
+
+    /// The controller finished loading or scanning and saved the snapshot (`IndexStatus.Phase.ready`).
+    /// A non-empty index is not enough: a partial snapshot or the first scanned folder fills it while the
+    /// scan still runs, and stopping then skips the complete save.
+    @MainActor
     func ready() async -> Bool {
-        await eventually { await self.index.count > 0 }
+        await awaitEvents(statusEvents) { self.reportedPhases.contains(.ready) }
+    }
+
+    /// The index holds the answer once the controller applied the changes: waits for the next published
+    /// batch, then checks again.
+    @MainActor
+    func eventuallyIndexed(_ condition: () -> Bool) async -> Bool {
+        await awaitEvents(changes) { condition() }
     }
 }
 
 @MainActor
-@Suite("Index controller", .serialized)
+@Suite("Index controller", .serialized, .timeLimit(.minutes(2)))
 struct IndexControllerTests {
     let directory: TemporaryDirectory
     var root: String { directory.sub("root") }
@@ -56,36 +94,33 @@ struct IndexControllerTests {
         try directory.make(["root/alpha.txt", "root/folder/beta.txt", "storage/"])
     }
 
-    @Test func createRenameAndDeleteShowUpWithinTwoSeconds() async throws {
+    /// The watcher is started before the first scan (`IndexController.run`), so a change made once the
+    /// controller is ready is seen. How fast FSEvents delivers it is a budget, measured in `Benchmarks.swift`.
+    @Test func createRenameAndDeleteShowUpInTheIndex() async throws {
         let run = ControllerRun(root: root, storage: storage)
         #expect(await run.ready())
         #expect(run.contains("beta.txt"))
-        // Let the stream start before changing things.
-        try await Task.sleep(for: .milliseconds(300))
 
         try directory.make(["root/folder/gamma-new.txt"])
-        #expect(await eventually(timeout: .seconds(2)) { run.contains("gamma-new.txt") })
+        #expect(await run.eventuallyIndexed { run.contains("gamma-new.txt") })
 
         try FileManager.default.moveItem(
             atPath: directory.sub("root/folder/gamma-new.txt"), toPath: directory.sub("root/delta-moved.txt"))
-        #expect(
-            await eventually(timeout: .seconds(2)) { run.contains("delta-moved.txt") && !run.contains("gamma-new.txt") }
-        )
+        #expect(await run.eventuallyIndexed { run.contains("delta-moved.txt") && !run.contains("gamma-new.txt") })
 
         try FileManager.default.removeItem(atPath: directory.sub("root/folder"))
-        #expect(await eventually(timeout: .seconds(2)) { !run.contains("beta.txt") && !run.contains("folder") })
+        #expect(await run.eventuallyIndexed { !run.contains("beta.txt") && !run.contains("folder") })
 
         try directory.make(["root/new-folder/inner/epsilon.txt"])
-        #expect(await eventually(timeout: .seconds(2)) { run.contains("epsilon.txt") })
+        #expect(await run.eventuallyIndexed { run.contains("epsilon.txt") })
         await run.stop()
     }
 
     @Test func excludedFoldersStayOutAfterChanges() async throws {
         let run = ControllerRun(root: root, storage: storage)
         #expect(await run.ready())
-        try await Task.sleep(for: .milliseconds(300))
         try directory.make(["root/node_modules/pkg/index.js", "root/visible-marker.txt"])
-        #expect(await eventually(timeout: .seconds(2)) { run.contains("visible-marker.txt") })
+        #expect(await run.eventuallyIndexed { run.contains("visible-marker.txt") })
         #expect(!run.contains("index.js"))
         await run.stop()
     }
@@ -96,18 +131,24 @@ struct IndexControllerTests {
         #expect(first.controller.fullScanCount == 1)
         await first.stop()
         #expect(FileManager.default.fileExists(atPath: IndexSnapshot.url(in: storage).path))
+        let savedEventID = try IndexSnapshot.load(from: storage).lastEventID
 
         // Changed while Lintel was not running.
         try directory.make(["root/folder/while-away.txt"])
         try FileManager.default.removeItem(atPath: directory.sub("root/alpha.txt"))
-        try await Task.sleep(for: .milliseconds(1500))
+        // The second run replays FSEvents history. Wait until the system's history holds both changes, which
+        // is what the replay reads, instead of guessing how long the daemon takes to write it.
+        #expect(
+            await historyHolds(
+                root: root, since: savedEventID,
+                changes: [
+                    ("/root/folder/while-away.txt", kFSEventStreamEventFlagItemCreated),
+                    ("/root/alpha.txt", kFSEventStreamEventFlagItemRemoved),
+                ]))
 
         let second = ControllerRun(root: root, storage: storage)
         #expect(await second.ready())
-        #expect(
-            await eventually(timeout: .seconds(3)) {
-                second.contains("while-away.txt") && !second.contains("alpha.txt")
-            })
+        #expect(await second.eventuallyIndexed { second.contains("while-away.txt") && !second.contains("alpha.txt") })
         #expect(second.controller.fullScanCount == 0)
         await second.stop()
     }
@@ -121,8 +162,9 @@ struct IndexControllerTests {
         try snapshot.save(in: storage)
 
         let second = ControllerRun(root: root, storage: storage)
+        // `ready` comes after the full scan, which counts itself first.
         #expect(await second.ready())
-        #expect(await eventually { second.controller.fullScanCount == 1 })
+        #expect(second.controller.fullScanCount == 1)
         await second.stop()
     }
 
@@ -136,7 +178,7 @@ struct IndexControllerTests {
 
         let second = ControllerRun(root: root, storage: storage)
         #expect(await second.ready())
-        #expect(await eventually { second.controller.fullScanCount == 1 })
+        #expect(second.controller.fullScanCount == 1)
         await second.stop()
         #expect(try IndexSnapshot.load(from: storage).complete)
     }
@@ -149,6 +191,38 @@ struct IndexControllerTests {
         await run.stop()
         #expect(try IndexSnapshot.load(from: storage).store.liveCount == run.index.snapshot.liveCount)
     }
+}
+
+/// Waits until an FSEvents stream started at `since` reports every change in `changes` (a path suffix and
+/// the event flag; FSEvents reports `/private/var/…` where the fixture says `/var/…`), that is until the
+/// history a restarted controller replays contains them. `false` after a 60 s hang guard.
+@MainActor
+func historyHolds(root: String, since: UInt64, changes: [(suffix: String, flag: Int)]) async -> Bool {
+    let watcher = FileEventWatcher(paths: [root], sinceWhen: since, latency: 0.05)
+    guard watcher.start() else {
+        return false
+    }
+    defer { watcher.stop() }
+    let found = await withTaskGroup(of: Bool.self) { group in
+        group.addTask {
+            var missing = changes
+            for await _ in watcher.wakeups {
+                for event in watcher.drain().events {
+                    missing.removeAll { event.path.hasSuffix($0.suffix) && event.has($0.flag) }
+                }
+                if missing.isEmpty { return true }
+            }
+            return false
+        }
+        group.addTask {
+            try? await Task.sleep(for: .seconds(60))
+            return false
+        }
+        let first = await group.next() ?? false
+        group.cancelAll()
+        return first
+    }
+    return found
 }
 
 @Suite("Index snapshot")
@@ -314,7 +388,7 @@ extension RescanPlannerTests {
 /// A root the user added as a symbolic link (for example `~/Dropbox`, which points into
 /// `~/Library/CloudStorage`) is indexed through the link, and its changes arrive under the link's path.
 @MainActor
-@Suite("Symlinked root", .serialized)
+@Suite("Symlinked root", .serialized, .timeLimit(.minutes(2)))
 struct SymlinkedRootTests {
     @Test func symlinkedRootIsIndexedAndFollowed() async throws {
         let directory = try TemporaryDirectory()
@@ -323,9 +397,10 @@ struct SymlinkedRootTests {
             atPath: directory.sub("link"), withDestinationPath: directory.sub("target"))
         let run = ControllerRun(
             root: directory.sub("link"), storage: directory.url.appending(path: "storage", directoryHint: .isDirectory))
-        #expect(await eventually { run.contains("inside.txt") && run.contains("deep.txt") })
+        #expect(await run.ready())
+        #expect(run.contains("inside.txt") && run.contains("deep.txt"))
         try Data("x".utf8).write(to: directory.url.appending(path: "target/sub/added.txt"))
-        #expect(await eventually(timeout: .seconds(3)) { run.contains("added.txt") })
+        #expect(await run.eventuallyIndexed { run.contains("added.txt") })
         await run.stop()
     }
 }
