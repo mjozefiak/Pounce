@@ -23,12 +23,14 @@ import Testing
         try String(contentsOf: root.appending(path: path), encoding: .utf8)
     }
 
-    /// Identities of the packages (URL last component without `.git`, or the last path component) and binary targets.
+    /// Identities of the packages (URL last component without `.git`, the last path component, or the registry
+    /// identity) and binary targets. The label may follow other arguments, as in `.package(name: "X", path: "...")`.
     static func dependencies(inManifest manifest: String) -> Set<String> {
         var names = Set<String>()
         let patterns = [
-            #"\.package\(\s*url:\s*"[^"]*/([^/"]+?)(?:\.git)?""#,
-            #"\.package\(\s*path:\s*"(?:[^"]*/)?([^/"]+)""#,
+            #"\.package\([^)]*?\burl:\s*"[^"]*/([^/"]+?)(?:\.git)?""#,
+            #"\.package\([^)]*?\bpath:\s*"(?:[^"]*/)?([^/"]+)""#,
+            #"\.package\([^)]*?\bid:\s*"([^"]+)""#,
             #"\.binaryTarget\(\s*name:\s*"([^"]+)""#,
         ]
         for pattern in patterns {
@@ -41,8 +43,10 @@ import Testing
         return names
     }
 
-    /// Problems found: a dependency without a mapping, or whose notice text is missing.
+    /// Problems found: a dependency without a mapping, or whose notice is missing. A notice counts only when a line
+    /// starts with its text (its title line), so a mention of the name in another notice's prose does not.
     static func noticeProblems(manifests: [String], notices: String) -> [String] {
+        let lines = notices.split(whereSeparator: \.isNewline)
         var problems: [String] = []
         for dependency in manifests.reduce(into: Set<String>(), { $0.formUnion(dependencies(inManifest: $1)) }).sorted()
         {
@@ -50,28 +54,37 @@ import Testing
                 problems.append("\(dependency): unknown dependency, add a notice and an entry to noticeMap")
                 continue
             }
-            for text in required where !notices.contains(text) {
+            for text in required where !lines.contains(where: { $0.hasPrefix(text) }) {
                 problems.append("\(dependency): THIRD_PARTY_NOTICES.txt has no notice mentioning \(text)")
             }
         }
         return problems
     }
 
-    /// Every `uses:` value that is neither a local action (`./...`) nor `owner/name@<40 hex>`.
+    /// Every `uses:` value (quotes removed) that is neither a local action (`./...`), `owner/name@<40 hex>`, nor a
+    /// Docker image pinned by digest (`docker://image@sha256:<64 hex>`).
     static func unpinnedActions(inWorkflow text: String) -> [String] {
         var bad: [String] = []
         for line in text.split(separator: "\n") {
             guard let range = line.range(of: #"^\s*(?:-\s+)?uses:\s*(\S+)"#, options: .regularExpression) else {
                 continue
             }
-            let value = line[range].split(separator: ":", maxSplits: 1)[1].trimmingCharacters(in: .whitespaces)
+            let value = line[range].split(separator: ":", maxSplits: 1)[1]
+                .trimmingCharacters(in: .whitespaces.union(CharacterSet(charactersIn: "\"'")))
             if value.hasPrefix("./") { continue }
             let parts = value.split(separator: "@", maxSplits: 1).map(String.init)
-            let sha = parts.count == 2 ? parts[1] : ""
-            let isCommit = sha.count == 40 && sha.allSatisfy { $0.isHexDigit && !$0.isUppercase }
-            if !isCommit { bad.append(value) }
+            let ref = parts.count == 2 ? parts[1] : ""
+            let isPinned =
+                value.hasPrefix("docker://")
+                ? ref.hasPrefix("sha256:") && isLowercaseHex(ref.dropFirst("sha256:".count), count: 64)
+                : isLowercaseHex(Substring(ref), count: 40)
+            if !isPinned { bad.append(value) }
         }
         return bad
+    }
+
+    private static func isLowercaseHex(_ text: Substring, count: Int) -> Bool {
+        text.count == count && text.allSatisfy { $0.isASCII && $0.isHexDigit && !$0.isUppercase }
     }
 
     @Test func everyManifestDependencyHasANotice() throws {
@@ -86,6 +99,23 @@ import Testing
         let manifest = #".package(url: "https://github.com/sindresorhus/KeyboardShortcuts.git", exact: "1.10.0")"#
         #expect(Self.noticeProblems(manifests: [manifest], notices: "KeyboardShortcuts 1.10.0").isEmpty)
         #expect(!Self.noticeProblems(manifests: [manifest], notices: "FluidAudio 0.18.2").isEmpty)
+    }
+
+    @Test func aNameOnlyMentionedInAnotherNoticeFails() {
+        let manifest = #".package(url: "https://github.com/sqlcipher/SQLCipher.swift.git", exact: "4.20.0")"#
+        let prose = "SQLite, the database engine inside SQLCipher, is in the public domain.\n"
+        #expect(!Self.noticeProblems(manifests: [manifest], notices: prose).isEmpty)
+        let notice = prose + "====\nSQLCipher Community Edition 4.20.0\n====\n"
+        #expect(Self.noticeProblems(manifests: [manifest], notices: notice).isEmpty)
+    }
+
+    @Test func everyPackageFormIsSeen() {
+        let manifest = """
+            .package(name: "Named", path: "Packages/Named"),
+            .package(id: "scope.registered", from: "1.0.0"),
+            .package(name: "Old", url: "https://example.com/old-style.git", from: "1.0.0"),
+            """
+        #expect(Self.dependencies(inManifest: manifest) == ["named", "scope.registered", "old-style"])
     }
 
     @Test func anUnknownDependencyFails() {
@@ -115,5 +145,24 @@ import Testing
               - uses: owner/short@abc123
             """
         #expect(Self.unpinnedActions(inWorkflow: text) == ["actions/checkout@v7", "owner/short@abc123"])
+    }
+
+    @Test func quotesCommentsReusableWorkflowsAndDockerRefs() {
+        let sha = String(repeating: "b", count: 40)
+        let digest = String(repeating: "c", count: 64)
+        let text = """
+              - uses: "owner/quoted@\(sha)"
+              - uses: 'owner/single@v2'
+              # - uses: owner/commented@v1
+                uses: owner/repo/.github/workflows/build.yml@main
+              - uses: docker://alpine@sha256:\(digest)
+              - uses: docker://alpine:3.20
+              - uses: owner/upper@\(sha.uppercased())
+            """
+        #expect(
+            Self.unpinnedActions(inWorkflow: text) == [
+                "owner/single@v2", "owner/repo/.github/workflows/build.yml@main", "docker://alpine:3.20",
+                "owner/upper@\(sha.uppercased())",
+            ])
     }
 }
