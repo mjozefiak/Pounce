@@ -298,7 +298,7 @@ Pięć doprecyzowań właściciela z 2026-11-19 (ostateczne). Nadpisują rekomen
 | D4 | **Bez** flagi per spotkanie i bez przełącznika „każde nowe spotkanie”. Moment decyzyjny to **wybór modelu/dostawcy w ustawieniach**: jedno świadome okno zgody („transkrypty wszystkich spotkań, z imionami, trafią do dostawcy X”); potem każde spotkanie idzie do wybranego dostawcy, dopóki użytkownik nie wróci na model lokalny. Domyślnie nadal model lokalny. Zgoda nadal egzekwowana w kodzie przed każdym procesem dostawcy (testy „0 procesów bez zgody” zostają). Znacznik „wysłano do: Claude · model” na poziomie spotkania zostaje. | Kryterium MEET-X.1 o wysyłce włączanej per spotkanie zastąpione zgodą przy wyborze dostawcy; nie ma podziału na spotkania poufne i niepoufne. Domyślnie model lokalny, więc bez wyboru dostawcy nic nie jest wysyłane. |
 | D5 | v1 = Claude Code CLI na subskrypcji; BYOK (klucz API, Pęk kluczy, HTTPS z listą hostów) to druga faza, zaraz po v1. | Kolejność faz w odświeżonym specu dostawców: najpierw Claude Code CLI, potem BYOK. |
 
-Skutki dla backlogu według właściciela: MEET-X.1 — kryterium o fladze per spotkanie zastąpione zgodą przy wyborze dostawcy; MEET-1.6 bez zmian; B3 (pierwszy przebieg sędziego) nie czeka już na właściciela.
+Skutki dla backlogu według właściciela: MEET-X.1 — kryterium o fladze per spotkanie zastąpione zgodą przy wyborze dostawcy; MEET-1.6 bez zmian; B3 (pierwszy przebieg sędziego Fable; identyfikator spoza tego backlogu) nie czeka już na właściciela.
 
 ### Punkt zamknięty: informacja dla uczestników
 
