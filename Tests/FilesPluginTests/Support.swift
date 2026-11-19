@@ -1,6 +1,7 @@
 import Foundation
 import LintelCore
 import LintelKit
+import Observation
 import Synchronization
 import Testing
 import os
@@ -113,11 +114,16 @@ final class ListingCollector: Sendable {
 @MainActor final class RecordingWorkspace: WorkspaceClient {
     private(set) var opened: [URL] = []
     private(set) var revealed: [[URL]] = []
+    /// Signals after every `open`.
+    let openings = ChangeCounter()
 
     nonisolated init() {}
 
     var frontmostApplicationPID: pid_t? { nil }
-    func open(_ url: URL) async throws { opened.append(url) }
+    func open(_ url: URL) async throws {
+        opened.append(url)
+        openings.signal()
+    }
     func revealInFinder(_ urls: [URL]) { revealed.append(urls) }
 }
 
@@ -168,11 +174,111 @@ actor RecordingUsage: UsageRecorder {
     func removeAll(pluginID: PluginID) async throws { removed.append(pluginID) }
 }
 
-/// Counts `resultsChanged` calls from any thread.
+/// Counts events from any thread (`resultsChanged`, `onChange`, `onStatus`) and lets a test wait for the next
+/// one. A waiter ends when the count passes the value it saw, when its task is cancelled, or, as a hang
+/// guard only, after `limit`.
 final class ChangeCounter: Sendable {
-    private let count = Mutex(0)
-    var value: Int { count.withLock { $0 } }
-    func signal() { count.withLock { $0 += 1 } }
+    private struct State {
+        var count = 0
+        var nextID = 0
+        var waiters: [Int: (after: Int, continuation: CheckedContinuation<Bool, Never>)] = [:]
+        var cancelled: Set<Int> = []
+    }
+    private let state = Mutex(State())
+    var value: Int { state.withLock { $0.count } }
+
+    func signal() {
+        let ready = state.withLock { state -> [CheckedContinuation<Bool, Never>] in
+            state.count += 1
+            let passed = state.waiters.filter { $0.value.after < state.count }
+            for id in passed.keys { state.waiters[id] = nil }
+            return passed.values.map(\.continuation)
+        }
+        for continuation in ready { continuation.resume(returning: true) }
+    }
+
+    /// `true` once the count is above `seen`; `false` when the task was cancelled or `limit` passed.
+    func wait(after seen: Int, limit: Duration = .seconds(60)) async -> Bool {
+        let id = state.withLock { state -> Int in
+            state.nextID += 1
+            return state.nextID
+        }
+        let guardTask = Task { [self] in
+            try? await Task.sleep(for: limit)
+            guard !Task.isCancelled else { return }
+            release(id, returning: false)
+        }
+        defer { guardTask.cancel() }
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+                enum Outcome {
+                    case wait
+                    case now(Bool)
+                }
+                let outcome = state.withLock { state -> Outcome in
+                    if state.cancelled.remove(id) != nil { return .now(false) }
+                    if state.count > seen { return .now(true) }
+                    state.waiters[id] = (seen, continuation)
+                    return .wait
+                }
+                if case .now(let result) = outcome { continuation.resume(returning: result) }
+            }
+        } onCancel: {
+            release(id, returning: false)
+        }
+    }
+
+    private func release(_ id: Int, returning result: Bool) {
+        let continuation = state.withLock { state -> CheckedContinuation<Bool, Never>? in
+            if let waiter = state.waiters.removeValue(forKey: id) { return waiter.continuation }
+            state.cancelled.insert(id)
+            return nil
+        }
+        continuation?.resume(returning: result)
+    }
+}
+
+/// Waits until `condition` holds, checking again after every event of `counter`. Not a poll: the next check
+/// happens when something changed. The 60 s limit only ends a hang, and reports it at the caller's line.
+@MainActor
+func awaitEvents(
+    _ counter: ChangeCounter, limit: Duration = .seconds(60), sourceLocation: SourceLocation = #_sourceLocation,
+    until condition: () async throws -> Bool
+) async rethrows -> Bool {
+    while true {
+        let seen = counter.value
+        if try await condition() { return true }
+        guard await counter.wait(after: seen, limit: limit) else {
+            if !Task.isCancelled {
+                Issue.record(
+                    "Nothing changed for \(limit) while waiting for a condition", sourceLocation: sourceLocation)
+            }
+            return false
+        }
+    }
+}
+
+/// Waits until `condition`, which reads observable state, holds; it is evaluated again whenever a value it
+/// read changes. The 60 s limit only ends a hang, and reports it at the caller's line.
+@MainActor
+func awaitState(
+    limit: Duration = .seconds(60), sourceLocation: SourceLocation = #_sourceLocation,
+    until condition: @MainActor () -> Bool
+) async -> Bool {
+    let clock = ContinuousClock()
+    let deadline = clock.now.advanced(by: limit)
+    while true {
+        let changed = ChangeCounter()
+        if withObservationTracking({ condition() }, onChange: { changed.signal() }) { return true }
+        guard await changed.wait(after: 0, limit: max(.zero, clock.now.duration(to: deadline))) else {
+            if !Task.isCancelled {
+                Issue.record(
+                    "State did not change within \(limit) while waiting for a condition", sourceLocation: sourceLocation
+                )
+            }
+            return false
+        }
+    }
 }
 
 /// A plugin wired to fakes: settings in memory, a fake home and fixture roots in a temporary folder.
@@ -223,16 +329,4 @@ struct PluginHarness {
         let source = try #require(plugin.searchSources.first)
         return try await source.search(TextNormalizer.query(text), limit: limit).map(\.title)
     }
-}
-
-/// Polls until `condition` holds.
-@MainActor func eventually(timeout: Duration = .seconds(5), _ condition: () async throws -> Bool) async rethrows -> Bool
-{
-    let clock = ContinuousClock()
-    let deadline = clock.now.advanced(by: timeout)
-    while clock.now < deadline {
-        if try await condition() { return true }
-        try? await Task.sleep(for: .milliseconds(25))
-    }
-    return try await condition()
 }

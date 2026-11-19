@@ -174,3 +174,48 @@ struct PathModeBenchmarks {
         #expect(p95Warm < .milliseconds(20))
     }
 }
+
+/// FSEvents budget (`docs/perf.md`): a created, moved and removed file shows up in the index within 2 s.
+/// This is a latency claim about the real system, so it is measured here and not asserted by the functional
+/// test `IndexControllerTests.createRenameAndDeleteShowUpInTheIndex`, which waits for the events.
+/// Run with `LINTEL_BENCHMARKS=1 swift test -c release --filter FSEventsLatencyBenchmarks`.
+@MainActor
+@Suite(
+    "FSEventsLatencyBenchmarks", .serialized,
+    .enabled(if: ProcessInfo.processInfo.environment["LINTEL_BENCHMARKS"] != nil))
+struct FSEventsLatencyBenchmarks {
+    @Test func createRenameAndDeleteShowUpWithinTwoSeconds() async throws {
+        let directory = try TemporaryDirectory()
+        try directory.make(["root/alpha.txt", "root/folder/beta.txt", "storage/"])
+        let run = ControllerRun(
+            root: directory.sub("root"), storage: directory.url.appending(path: "storage", directoryHint: .isDirectory))
+        #expect(await run.ready())
+        // Events of the fixture itself, buffered during the scan, are handled right after `ready`; let that
+        // batch finish so it cannot pick up the first change early and understate its latency.
+        try await Task.sleep(for: .milliseconds(500))
+        let clock = ContinuousClock()
+
+        func measure(_ label: String, _ change: () throws -> Void, until condition: () -> Bool) async throws {
+            let start = clock.now
+            try change()
+            #expect(await run.eventuallyIndexed(condition))
+            let elapsed = clock.now - start
+            print("BENCH fsevents \(label): \(FileBenchmarks.ms(elapsed))")
+            #expect(elapsed < .seconds(2))
+        }
+        try await measure("create", { try directory.make(["root/folder/gamma-new.txt"]) }) {
+            run.contains("gamma-new.txt")
+        }
+        try await measure(
+            "rename",
+            {
+                try FileManager.default.moveItem(
+                    atPath: directory.sub("root/folder/gamma-new.txt"), toPath: directory.sub("root/delta-moved.txt"))
+            }
+        ) { run.contains("delta-moved.txt") && !run.contains("gamma-new.txt") }
+        try await measure("delete", { try FileManager.default.removeItem(atPath: directory.sub("root/folder")) }) {
+            !run.contains("beta.txt") && !run.contains("folder")
+        }
+        await run.stop()
+    }
+}
