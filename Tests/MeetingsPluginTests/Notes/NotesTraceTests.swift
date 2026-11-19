@@ -362,8 +362,9 @@ final class NotesTraceLog: Sendable {
         #expect(log.reduce?.reduceFailed == true)
         #expect(log.summary?.origin == .absent)
         let points = log.points
-        // Nothing is chosen without REDUCE: no paragraph, no topics.
-        #expect(points["p1"]?.fate == .notRendered(.notChosen))
+        // Without REDUCE nothing is composed (no paragraph), but the first topics are kept so that a meeting of
+        // findings only does not read as empty (the code-order fallback of `NotesPipeline.codeOrder`).
+        #expect(points["p1"]?.fate == .rendered(.keyPoints, via: .codeOrder))
         #expect(points["p2"]?.fate == .rendered(.decisions, via: .codeOrder))
         #expect(points["p3"]?.fate == .rendered(.tasks, via: .codeOrder))
         #expect(points["p4"]?.fate == .rendered(.questions, via: .codeOrder))
