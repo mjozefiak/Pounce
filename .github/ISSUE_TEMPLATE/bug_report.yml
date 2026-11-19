@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         Do not paste clipboard contents, transcripts, notes or other private text into this form.
-        For security problems, use the private report link on the issue chooser instead.
+        For security problems, follow SECURITY.md (linked from the issue chooser) instead.
   - type: textarea
     id: what-happened
     attributes:

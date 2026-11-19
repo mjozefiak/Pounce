@@ -26,8 +26,8 @@ Do not include real clipboard contents, transcripts, notes or other private data
 
 ## Scope
 
-In scope: the app, its release workflow, signing and update pipeline, the encrypted stores and the
-Keychain handling.
+In scope: the app, its release workflow and code signing, the encrypted stores and the Keychain
+handling.
 
 Out of scope:
 
@@ -44,6 +44,7 @@ before you publish. If you want credit, say so and you will be named in the rele
 
 - The clipboard, dictation, meetings and notes stores are encrypted with SQLCipher. Their keys live in the
   login keychain.
-- Plugins are compiled into the app. Lintel does not load code at runtime (no bundles, dylibs or scripts).
+- Plugins are compiled into the app. Lintel does not load plugins at runtime (no plugin bundles, dylibs or
+  scripts).
 
 More detail is in [AGENTS.md](AGENTS.md) and [CODE_REVIEW.md](CODE_REVIEW.md).

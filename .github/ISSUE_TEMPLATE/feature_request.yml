@@ -4,7 +4,7 @@ labels: ["feature"]
 body:
   - type: markdown
     attributes:
-      value: Larger features need a spec before they are built; see CONTRIBUTING.md.
+      value: A new feature needs a spec before it is built; see CONTRIBUTING.md.
   - type: textarea
     id: problem
     attributes:
