@@ -6,7 +6,9 @@ import shutil
 import stat
 import tempfile
 import time
+import subprocess
 import unittest
+from unittest import mock
 
 import canary
 
@@ -113,6 +115,26 @@ class IsolationArgvTests(unittest.TestCase):
         argv = canary.isolated_argv("/x/claude", "haiku", "SYS")
         self.assertIs(canary.require_isolated(argv), argv)
 
+    def test_only_the_content_free_commands_may_skip_the_flags(self):
+        self.assertEqual(canary.require_no_content(["--version"]), ["--version"])
+        self.assertEqual(canary.require_no_content(("auth", "status")), ["auth", "status"])
+        for args in (["-p"], ["auth", "login"], ["--version", "-p"], ["auth", "status", "--settings", "{}"], []):
+            with self.assertRaises(RuntimeError):
+                canary.require_no_content(args)
+
+    def test_unknown_step_in_only_is_refused_before_any_process(self):
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        old_tmp, tempfile.tempdir = tempfile.tempdir, tmp
+        try:
+            with contextlib.redirect_stderr(io.StringIO()) as err:
+                rc = canary.main(["--claude", "/bin/sh", "--only", "isolation,hookEvents"])
+        finally:
+            tempfile.tempdir = old_tmp
+        self.assertEqual(rc, 2)
+        self.assertIn("hookEvents", err.getvalue())
+        self.assertEqual(os.listdir(tmp), [])  # no work directory, no call
+
     def test_positive_control_with_the_real_config_is_off_by_default(self):
         ap_default = self._parse([])
         self.assertFalse(ap_default)
@@ -201,10 +223,10 @@ class UserConfigTests(unittest.TestCase):
             self.assertNotIn(private, text)
 
 
-FAKE_CLI = ('if [ "$1" = "--version" ]; then echo "9.9.9 (Claude Code)"; exit 0; fi\n'
+FAKE_CLI = ('printf \'%s\\t%s\\n\' "$HOME" "$*" >> "$CANARY_TEST_ARGV_LOG"\n'
+            'if [ "$1" = "--version" ]; then echo "9.9.9 (Claude Code)"; exit 0; fi\n'
             'if [ "$1" = "auth" ]; then echo \'{"loggedIn":true,"authMethod":"x","email":"a@b.c"}\'; exit 0; fi\n'
-            'echo "$@" >> "$CANARY_TEST_ARGV_LOG"\n'
-            'in=$(cat); echo "$in" > "$TMPDIR/copy-$$.txt"\n'
+                        'in=$(cat); echo "$in" > "$TMPDIR/copy-$$.txt"\n'
             'case " $* " in *" --no-session-persistence "*) ;; *) mkdir -p "$HOME/.claude/projects/p"; '
             'echo "$in" > "$HOME/.claude/projects/p/$$.jsonl";; esac\n'
             'echo \'{"type":"result","result":"CODE: none","is_error":false,"usage":{"input_tokens":7,"output_tokens":3}}\'\n')
@@ -229,6 +251,28 @@ class ProcessTests(unittest.TestCase):
         self.assertLess(time.monotonic() - t, 5)
         self.assertTrue(r["cancelled"])
         self.assertEqual(r["leftoverProcesses"], 0)
+
+    def test_interrupted_run_kills_the_child_group(self):
+        pidfile = os.path.join(self.dir, "pid")
+        path = fake_claude(self.dir, 'echo $$ > "%s"\nsleep 30 &\nsleep 30\n' % pidfile)
+        real_sleep = time.sleep
+
+        def interrupt(_seconds):
+            deadline = time.monotonic() + 5
+            while not os.path.exists(pidfile) and time.monotonic() < deadline:
+                real_sleep(0.02)
+            real_sleep(0.1)
+            raise KeyboardInterrupt()
+
+        t = time.monotonic()
+        with mock.patch.object(canary.time, "sleep", interrupt):
+            with self.assertRaises(KeyboardInterrupt):
+                canary.run_child([path], "", {"PATH": canary.FIXED_PATH}, self.dir, cancel_after=10)
+        self.assertLess(time.monotonic() - t, 8)
+        with open(pidfile) as f:
+            pgid = f.read().strip()
+        left = subprocess.run(["/usr/bin/pgrep", "-g", pgid], capture_output=True, text=True).stdout.split()
+        self.assertEqual(left, [])
 
     def test_scan_finds_marker_across_chunks_and_ignores_old_files(self):
         old = os.path.join(self.dir, "old.txt")
@@ -268,7 +312,7 @@ class ProcessTests(unittest.TestCase):
         with open(out) as f:
             report = json.load(f)
         with open(log) as f:
-            argv_lines = f.read().splitlines()
+            argv_lines = [tuple(line.split("\t", 1)) for line in f.read().splitlines()]
         return report, argv_lines, home, tmp
 
     def test_end_to_end_default_run_is_isolated_and_cleans_up(self):
@@ -290,9 +334,14 @@ class ProcessTests(unittest.TestCase):
         self.assertEqual(checks["userConfig"]["noSessionPersistenceOnly"]["sessionFilesWithMarker"], 0)
         self.assertTrue(checks["diskCopies"]["noSessionFileFromIsolatedCalls"])
         self.assertFalse(os.path.exists(os.path.join(home, ".claude")))  # nothing written to the "real" config
-        # every call without the isolation flags is one of the five temporary-HOME cases
-        loose = [a for a in argv_lines if canary.missing_isolation(a.split(" ") + [""])]
+        # every call with the real HOME carries the isolation flags or is a command without content
+        for call_home, args in argv_lines:
+            if call_home == home and canary.missing_isolation(args.split(" ") + [""]):
+                self.assertIn(args.split(" "), canary.NO_CONTENT_COMMANDS)
+        # every model call without the flags is one of the five temporary-HOME cases
+        loose = [(h, a) for h, a in argv_lines if "-p" in a.split(" ") and canary.missing_isolation(a.split(" ") + [""])]
         self.assertEqual(len(loose), 5, loose)
+        self.assertTrue(all(h != home for h, _a in loose))
         # the work directory is removed
         self.assertEqual([n for n in os.listdir(tmp) if n.startswith("provider-canary-")], [])
 

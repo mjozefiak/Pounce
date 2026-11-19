@@ -5,9 +5,11 @@ Spec: .ai/specs/2026-11-10-external-ai-providers.md, section "Kanarek izolacji" 
 NOT part of the build, the tests of the app or CI. Nothing in the app calls it.
 
 The default run never loads the user's own hooks, settings, MCP servers or plugins: every call made with the real
-login passes the isolation flags (checked by `require_isolated` before the process starts), and every call made
-without them runs in a temporary HOME built here, where the CLI is not logged in. Calls that load the user's real
-configuration exist only behind `--positive-control-real-config` (off by default; see the README).
+login passes the isolation flags (checked by `require_isolated` before the process starts). The only exceptions run
+no content and open no session: `--version` and `auth status` (checked by `require_no_content`; measured to load
+nothing in `userConfig.noContentCommands`). Every other call without the flags runs in a temporary HOME built here,
+where the CLI is not logged in. Calls that load the user's real configuration exist only behind
+`--positive-control-real-config` (off by default; see the README).
 
 Every byte sent to the CLI is synthetic text generated here, with a random canary marker per call. The report holds
 numbers, flag names, exit codes, paths and counts. It never holds the markers, prompts, answers or stderr text
@@ -38,6 +40,9 @@ REQUIRED_WITH_REAL_CONFIG = ["-p", "--tools", "--no-session-persistence", "--dis
 # Flags that would bring configuration back in; the product argv must never hold them.
 FORBIDDEN_IN_PRODUCT = ["--settings", "--mcp-config", "--plugin-dir", "--plugin-url", "--add-dir", "--agents",
                         "--append-system-prompt", "--continue", "-c", "--resume", "-r", "--dangerously-skip-permissions"]
+# The only commands run with the real HOME and without the isolation flags in a default run: the product's processes
+# without content (spec, "Dwa rodzaje procesów"). `userConfig.noContentCommands` measures that they load nothing.
+NO_CONTENT_COMMANDS = [["--version"], ["auth", "status"]]
 USER_HOOK_EVENTS = ["SessionStart", "UserPromptSubmit", "Stop", "SessionEnd"]
 FIXED_PATH = "/usr/bin:/bin:/usr/sbin:/sbin"
 ENV_ALLOW = ["HOME", "USER", "LANG", "TMPDIR", "CLAUDE_CONFIG_DIR"]  # USER: the Keychain login is found by it
@@ -51,6 +56,7 @@ SKIPPED_REAL_CONFIG = "runs with the user's real settings and hooks; only with -
 REAL_CONFIG_WARNING = ("WARNING: --positive-control-real-config loads your REAL Claude Code configuration: your own hooks "
                        "run, your MCP servers and plugins start, and one session file is written to (and removed from) "
                        "your config directory.")
+STEP_NAMES = ["auth", "timings", "userConfig", "isolation", "hooks", "truncation", "failures", "tcc", "disk"]
 STATIC_SYSTEM = ("You write meeting notes. Reply with: SUMMARY (3 sentences), then at most 8 lines starting with '- ' "
                  "(decisions and tasks with owners), then one final line 'CODE: ' followed by the meeting code "
                  "string that appears in the transcript.")
@@ -155,6 +161,13 @@ def require_isolated(argv):
     if missing:
         raise RuntimeError("refusing to run with the real configuration without: " + ", ".join(missing))
     return argv
+
+
+def require_no_content(args):
+    """Refuses any command other than the content-free `--version` and `auth status` (no prompt, no session)."""
+    if list(args) not in NO_CONTENT_COMMANDS:
+        raise RuntimeError("refusing to run without the isolation flags: not a command without content")
+    return list(args)
 
 
 def write_json(path, value):
@@ -360,6 +373,21 @@ def run_child(argv, stdin_text, env, cwd, timeout=600, cancel_after=None):
         info["timedOut"] = True
         _signal_group(pgid, signal.SIGKILL)
         out, err = proc.communicate()
+    except BaseException:
+        # Ctrl-C, SIGTERM/SIGHUP (raised as SystemExit) or any error: the child is in its own session and gets no
+        # signal from the terminal, so kill its group here or it keeps generating after the canary is gone.
+        _signal_group(pgid, signal.SIGKILL)
+        try:
+            proc.wait(timeout=5)
+        except BaseException:
+            pass
+        for stream in (proc.stdin, proc.stdout, proc.stderr):
+            try:
+                if stream:
+                    stream.close()
+            except OSError:
+                pass
+        raise
     elapsed = time.monotonic() - start
     code = proc.returncode
     left = subprocess.run(["/usr/bin/pgrep", "-g", str(pgid)], capture_output=True, text=True).stdout.split()
@@ -490,6 +518,11 @@ class Canary:
         """A call with the user's real HOME (the login). Refused unless argv carries every isolation flag."""
         return run_child(require_isolated(argv), stdin_text, self.env(), cwd or self.empty_cwd, **kw)
 
+    def real_no_content(self, args, env=None, timeout=60):
+        """`--version` or `auth status` with the real HOME and no isolation flags (no content, no session)."""
+        return run_child([self.claude] + require_no_content(args), "", env or self.env(), self.empty_cwd,
+                         timeout=timeout)
+
     def temp_home_env(self, home):
         """The allowlist with a temporary HOME and no way to log in: no config directory, no auth variable."""
         env = self.env(home=home)
@@ -505,7 +538,7 @@ class Canary:
         with open(real, "rb") as f:
             magic = f.read(4)
         macho = magic in (b"\xcf\xfa\xed\xfe", b"\xca\xfe\xba\xbe", b"\xfe\xed\xfa\xcf")
-        ver = run_child([self.claude, "--version"], "", self.env(), self.empty_cwd, timeout=30)
+        ver = self.real_no_content(["--version"], timeout=30)
         text = ver["_stdout"].strip()
         m = re.match(r"(\d+)\.(\d+)\.(\d+)", text)
         self.report["cli"] = {
@@ -528,7 +561,7 @@ class Canary:
     # -- auth status and not-logged-in behaviour
     def auth(self):
         res = {}
-        r = run_child([self.claude, "auth", "status"], "", self.env(), self.empty_cwd, timeout=60)
+        r = self.real_no_content(["auth", "status"])
         parsed = {}
         try:
             data = json.loads(r["_stdout"])
@@ -541,7 +574,7 @@ class Canary:
             env = self.env(extra=add)
             for n in drop:
                 env.pop(n, None)
-            v = run_child([self.claude, "auth", "status"], "", env, self.empty_cwd, timeout=60)
+            v = self.real_no_content(["auth", "status"], env=env)
             try:
                 variants[label] = json.loads(v["_stdout"]).get("loggedIn")
             except ValueError:
@@ -552,7 +585,7 @@ class Canary:
             for p in kwargs.values():
                 os.makedirs(p, mode=0o700, exist_ok=True)
             env = self.env(**kwargs)
-            st = run_child([self.claude, "auth", "status"], "", env, self.empty_cwd, timeout=60)
+            st = self.real_no_content(["auth", "status"], env=env)
             try:
                 d = json.loads(st["_stdout"])
                 logged = d.get("loggedIn")
@@ -647,7 +680,8 @@ class Canary:
             except ValueError:
                 continue
             if ev.get("type") == "system" and ev.get("subtype") == "init":
-                init = {k: (len(v) if isinstance(v, list) else v) for k, v in ev.items()
+                init = {k: (len(v) if isinstance(v, (list, dict)) else shorten(v) if isinstance(v, str) else v)
+                        for k, v in ev.items()
                         if k in ("tools", "mcp_servers", "slash_commands", "skills", "plugins", "agents", "memory_paths")}
                 init["toolNames"] = sorted(ev.get("tools") or [])
                 init["mcpServerNames"] = [s.get("name") for s in (ev.get("mcp_servers") or []) if isinstance(s, dict)]
@@ -911,13 +945,13 @@ class Canary:
         if self.args.no_calls:
             self.tcc()
             return self.report
-        steps = [("auth", self.auth), ("timings", self.timings), ("userConfig", self.user_config),
-                 ("isolation", self.isolation), ("hooks", self.hook_events),
-                 ("truncation", self.truncation), ("failures", self.failures), ("tcc", self.tcc), ("disk", self.disk)]
+        steps = {"auth": self.auth, "timings": self.timings, "userConfig": self.user_config,
+                 "isolation": self.isolation, "hooks": self.hook_events, "truncation": self.truncation,
+                 "failures": self.failures, "tcc": self.tcc, "disk": self.disk}
         only = set(self.args.only.split(",")) if self.args.only else None
-        for name, step in steps:
+        for name in STEP_NAMES:  # in this order; `main` has refused unknown names already
             if only is None or name in only:
-                step()
+                steps[name]()
         return self.report
 
     def close(self):
@@ -987,7 +1021,7 @@ def main(argv=None):
     ap.add_argument("--no-calls", action="store_true", help="offline checks only (locator, env, TCC probe); no model call")
     ap.add_argument("--timeout", type=int, default=900)
     ap.add_argument("--cancel-after", type=float, default=1.5)
-    ap.add_argument("--only", help="comma list of steps: auth,timings,userConfig,isolation,hooks,truncation,failures,tcc,disk")
+    ap.add_argument("--only", help="comma list of steps: " + ",".join(STEP_NAMES))
     ap.add_argument("--positive-control-real-config", action="store_true",
                     help="OFF by default. Also run the controls that load your REAL settings: your own hooks run")
     ap.add_argument("--merge-into", help="existing report JSON whose checks are updated by this run")
@@ -1000,8 +1034,15 @@ def main(argv=None):
         return 2
     if args.positive_control_real_config:
         print(REAL_CONFIG_WARNING, file=sys.stderr)
+    if args.only:
+        unknown = sorted(set(args.only.split(",")) - set(STEP_NAMES))
+        if unknown:
+            print("unknown step in --only: %s (steps: %s)" % (", ".join(unknown), ",".join(STEP_NAMES)), file=sys.stderr)
+            return 2
     canary = None
-    signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))  # so that the work directory is removed on SIGTERM too
+    # so that the running child is killed and the work directory removed on SIGTERM and SIGHUP too
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
+    signal.signal(signal.SIGHUP, lambda *_: sys.exit(129))
     try:
         canary = Canary(args)
         report = canary.run()
@@ -1015,8 +1056,10 @@ def main(argv=None):
         base["notVerified"] = sorted(set(base.get("notVerified", [])) | set(report.get("notVerified", [])))
         report = base
     text = json.dumps(report, indent=2, sort_keys=True)
-    for marker in canary.markers.values():
-        assert marker not in text, "marker leaked into the report"
+    synthetic = list(canary.markers.values()) + [getattr(canary, n, None) for n in ("project_token", "secret")]
+    if any(s and s in text for s in synthetic):  # an explicit check: `assert` would vanish under python -O
+        print("a canary marker leaked into the report; nothing written", file=sys.stderr)
+        return 3
     if args.out:
         with open(args.out, "w") as f:
             f.write(text + "\n")

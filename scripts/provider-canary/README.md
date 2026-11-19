@@ -12,9 +12,11 @@ Tests of the script (no real CLI, a fake one, a fake home): `python3 -I -m unitt
 - **The default run never loads your own Claude Code settings, hooks, MCP servers or plugins.** Every call that uses
   your real login carries the isolation flags (`--setting-sources ""`, `--strict-mcp-config`, `--tools ""`,
   `--disable-slash-commands`, `--no-session-persistence`); `require_isolated` refuses, before the process starts, an
-  argv that lacks one. Every call made *without* those flags (the sensitive controls of `userConfig`) runs in a
-  temporary `HOME` that the script builds and deletes. The CLI is not logged in there, so those calls end with "Not
-  logged in" and use nothing of the subscription.
+  argv that lacks one. The only calls with your real `HOME` and without the flags are `claude --version` and
+  `claude auth status` (no prompt, no session; `require_no_content` refuses any other command, and
+  `userConfig.noContentCommands` shows that they run no hook, MCP server or plugin). Every other call made *without*
+  those flags (the sensitive controls of `userConfig`) runs in a temporary `HOME` that the script builds and deletes.
+  The CLI is not logged in there, so those calls end with "Not logged in" and use nothing of the subscription.
 - The CLI itself still reads your login and its own state in your config directory (`~/.claude`,
   `~/.claude.json`), as it does for any call. The script writes nothing there.
 - **`--positive-control-real-config` (off by default) is the exception. WARNING: it runs your real hooks.** It adds
@@ -30,7 +32,9 @@ Tests of the script (no real CLI, a fake one, a fake home): `python3 -I -m unitt
   files modified since the start for this run's random markers and reports paths and counts. It prints no file
   content and changes nothing (with the opt-in control it removes that control's own session file and its own empty
   project directories).
-- The temporary work directory (`$TMPDIR/provider-canary-*`) is removed at the end, also when a step raises.
+- The temporary work directory (`$TMPDIR/provider-canary-*`) is removed at the end, also when a step raises or the
+  script gets Ctrl-C, SIGTERM or SIGHUP; a `claude` process still running then is killed with its process group
+  first (it runs in its own session, so the terminal's Ctrl-C does not reach it).
 
 ## What it sends
 

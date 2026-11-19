@@ -161,8 +161,8 @@ work in 2.1.328 (every logged-in canary call of the default run uses them). Note
 
 | # | Check | Result | Evidence |
 |---|---|---|---|
-| 1 | File tools | **Pass.** With `--tools ""` the model could not read a file outside the working directory; the answer did not hold the file's token. | Init event: `tools` is empty. The positive control (tools allowed) did read it. |
-| 2 | Shell | **Pass.** The marker file was not created. | The control created it. |
+| 1 | File tools | **Pass.** With `--tools ""` the model could not read a file outside the working directory; the answer did not hold the file's token. | Init event: `tools` is empty. First run: the positive control (tools allowed) did read it. |
+| 2 | Shell | **Pass.** The marker file was not created. | First run: the control created it. |
 | 3 | Hooks | **Pass, project and user level.** The decoy project hook did not run. A user-level command hook runs without the flags and does not run with them (section "User-level isolation"); under the real login no hook of the owner started. In the debug log the CLI loads 2 user-level hook modules without `--setting-sources ""` (first run) and 0 with it (4 built-in modules in both). | First run: the control ran the project hook. Second run: the temporary-`HOME` control ran the user hooks. |
 | 4 | `CLAUDE.md`, MCP, plugins | **Pass**, with one unexplained observation (above). The project token was not in the answer, the decoy MCP server was not launched; init reports 0 MCP servers, 0 skills, 0 slash commands, 4 built-in plugins and 6 agents (5 in the temporary `HOME`; the extra one under the login was not identified, agents are definitions and `--tools ""` leaves no tool to start one). A user-scope MCP server and a user plugin do not load with the flags. | First run: the control answered the token and launched the MCP server. Second run: the temporary-`HOME` control started the user MCP server and loaded the plugin. |
 | 5 | TCC inheritance | **Not verified.** See below. | |
