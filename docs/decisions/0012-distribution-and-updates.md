@@ -1,11 +1,11 @@
-# ADR 0011: Distribution and updates (Developer ID, notarization, a protected sign job)
+# ADR 0012: Distribution and updates (Developer ID, notarization, a protected sign job)
 
 - Status: **Accepted** for the signing and release workflow parts (owner decisions D1, D2 and D3 of 2026-11-19). The
   updater, the feed and Homebrew are **deferred**; they are only named here.
 - Date: 2026-11-19
 - Spec: `.ai/specs/2026-11-19-updates-and-open-source-hygiene.md` (Phase 3 and Step 2.3). The spec calls this ADR
-  "0010"; that number was taken by `0010-dictation-context.md` first, so this is the next free one (checked
-  2026-11-19, `main` and the open branches).
+  "0010"; that number was taken by `0010-dictation-context.md` and 0011 by `0011-external-providers.md`, so this is
+  the next free one (checked 2026-11-19 after merging `main`).
 
 ## Context
 
@@ -61,9 +61,17 @@ reporting "Notarized Developer ID" and a valid staple, for the app and the DMG. 
 - `publish` (tags only): the GitHub Release (assets: one `.dmg`, one `.dmg.sha256`, `CHANGELOG.md`) and the website
   dispatch. A second Environment, `publish`, comes with Step 2.4.
 
-All tag runs share one concurrency group with `queue: max`, so two tags pushed together both finish, in order, and none
-is cancelled (a default group keeps one waiting run and cancels the older ones). `queue: max` cannot be combined with
-`cancel-in-progress: true`, so a pull request's newer push now queues behind its older run instead of cancelling it.
+Pull requests keep a workflow-level group with `cancel-in-progress`. Releases are serialised by a **job-level** group,
+`release-tags`, on `sign` and `publish` with `queue: max` (docs.github.com, workflow syntax, `jobs.<job_id>.concurrency`:
+`queue` is `single` by default, which keeps one pending job and cancels the older one; `max` keeps up to 100; it cannot
+be combined with `cancel-in-progress: true`). Two tags pushed together are both signed, one after the other, none
+cancelled. The first step of `sign` (inside the group, before any secret is used) runs `scripts/check-release-order.sh`:
+the tagged commit must be a strict descendant of the commit of the newest published release (drafts ignored,
+pre-releases included; no release yet passes), so build numbers and publication order cannot disagree. Residual gap:
+the group is per job, not per run, so between the end of `sign` of tag A and the start of its `publish` the queued `sign`
+of tag B can run first and then reads a "newest release" that does not yet include A. Publication order stays A, B, and
+B still has to be a descendant of the release before A; a B that is older than A could slip through. The owner's
+approval of each `release` deployment, in order, is the control for that case.
 
 ### Remaining risk
 

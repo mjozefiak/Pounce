@@ -141,11 +141,57 @@ import Testing
         #expect(offenders.isEmpty, "Pass expressions through env:, not run: text: \(offenders)")
     }
 
-    @Test func tagRunsQueueAndNeverCancel() throws {
+    @Test func pullRequestsCancelAndTagReleasesQueueInTheJobs() throws {
         let text = code(try workflow().components(separatedBy: "\n")).joined(separator: "\n")
-        #expect(text.contains("\n  queue: max\n"))
-        #expect(!text.contains("cancel-in-progress"), "queue: max cannot be combined with cancel-in-progress: true")
-        #expect(text.contains("'release-tags'"))
+        // Workflow level: per ref, cancelling only for pull requests, no queue.
+        #expect(text.contains("\nconcurrency:\n  group: release-${{ github.ref }}\n"))
+        #expect(text.contains("  cancel-in-progress: ${{ github.event_name == 'pull_request' }}\n"))
+        #expect(!text.contains("\n  queue: max"))
+        // Job level: sign and publish share one queued, never-cancelled group.
+        let jobs = try jobs()
+        for name in ["sign", "publish"] {
+            let job = code(try #require(jobs[name])).joined(separator: "\n")
+            #expect(job.contains("    concurrency:\n      group: release-tags\n      queue: max\n"), "\(name)")
+            #expect(!job.contains("cancel-in-progress"), "\(name)")
+        }
+        #expect(!code(try #require(jobs["build"])).joined().contains("release-tags"))
+    }
+
+    @Test func signAndPublishNeverRunForPullRequestsOrMainPushes() throws {
+        let jobs = try jobs()
+        let publish = code(try #require(jobs["publish"]))
+        let condition = try #require(publish.first { $0.hasPrefix("    if: ") })
+        #expect(condition.contains("github.event_name == 'push'") && condition.contains("refs/tags/v"))
+        #expect(!condition.contains("||"))
+        // sign: the first alternative is a tag push, the second a manual run on main (checked above).
+        let sign = code(try #require(jobs["sign"]))
+        let signCondition = try #require(sign.first { $0.hasPrefix("    if: ") })
+        #expect(signCondition.components(separatedBy: "||")[0].contains("refs/tags/v"))
+    }
+
+    @Test func keepsTheTriggersOfTheMainBranchPush() throws {
+        let lines = try workflow().components(separatedBy: "\n")
+        let onBlock = code(lines).prefix { $0 != "permissions:" }.joined(separator: "\n")
+        #expect(onBlock.contains("  push:\n    tags: [\"v*\"]\n    branches: [main]\n    paths:\n"))
+        // The narrowed pull_request list: no Sources/** (ci.yml covers source-only pull requests).
+        let pullRequest = try #require(onBlock.components(separatedBy: "  pull_request:\n").last)
+        let pullRequestPaths = pullRequest.components(separatedBy: "  workflow_dispatch:")[0]
+        #expect(!pullRequestPaths.contains("Sources/**"))
+        #expect(pullRequestPaths.contains("Resources/*.entitlements"))
+        let build = code(try #require(try jobs()["build"])).joined(separator: "\n")
+        #expect(build.contains("if: github.actor != 'dependabot[bot]'"))
+        #expect(
+            build.contains(
+                "if: github.event_name != 'push' || startsWith(github.ref, 'refs/tags/')\n        run: swift test"))
+    }
+
+    @Test func signChecksTheReleaseOrderBeforeAnySecret() throws {
+        let sign = code(try #require(try jobs()["sign"]))
+        let text = sign.joined(separator: "\n")
+        let order = try #require(text.range(of: "scripts/check-release-order.sh"))
+        let firstSecret = try #require(text.range(of: "secrets."))
+        #expect(order.lowerBound < firstSecret.lowerBound)
+        #expect(text.contains("fetch-depth: 0"))
     }
 
     @Test func entitlementsFilesDifferOnlyInLibraryValidation() throws {

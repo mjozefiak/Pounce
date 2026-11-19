@@ -3,7 +3,7 @@
 > **Status (2026-11-19).** The release workflow and the scripts now sign with **Developer ID** (Apple Team ID
 > `39G44CM6GF`) and notarize; this file was corrected only where the old text had become false. The full rewrite, the
 > recorded designated requirement and the removal of `scripts/make-signing-cert.sh` come with the next pull request
-> (spec `.ai/specs/2026-11-19-updates-and-open-source-hygiene.md`, Step 3.4). Design: `docs/decisions/0011-distribution-and-updates.md`.
+> (spec `.ai/specs/2026-11-19-updates-and-open-source-hygiene.md`, Step 3.4). Design: `docs/decisions/0012-distribution-and-updates.md`.
 
 macOS ties Accessibility, Full Disk Access and Keychain access to an app's *designated requirement*. With ad-hoc
 signing that requirement is the binary's hash, so every update would look like a new app and users would lose their
@@ -78,8 +78,9 @@ pull request). It compiles nothing, runs no tests and uses no third-party action
 **`publish`** (tags only, after `sign`): creates the GitHub Release (body: install text and the changelog section; `-beta`
 tags are pre-releases; assets: the DMG, its checksum, `CHANGELOG.md`) and asks the website to rebuild.
 
-Pull requests get no Environment and no secrets, and always build ad-hoc. All tag runs share one concurrency group with
-`queue: max`, so they go one at a time and none is cancelled.
+Pull requests get no Environment and no secrets, and always build ad-hoc. `sign` and `publish` of all tags share the job-level concurrency group `release-tags` (`queue: max`), so releases go one
+at a time and none is cancelled; the first step of `sign` checks that the tagged commit is a strict descendant of the
+newest published release's commit (`scripts/check-release-order.sh`).
 
 ### Library validation
 

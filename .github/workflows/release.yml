@@ -6,7 +6,7 @@ name: Release
 # tag's section of CHANGELOG.md. A malformed tag, a tag outside main or a missing section fails the run in its first
 # step.
 #
-# Three jobs (spec 2026-11-19-updates-and-open-source-hygiene, Step 2.3; docs/decisions/0010-distribution-and-updates.md):
+# Three jobs (spec 2026-11-19-updates-and-open-source-hygiene, Step 2.3; docs/decisions/0012-distribution-and-updates.md):
 #   build    every trigger. No secrets, no Environment. Tests, an ad-hoc signed app (uploaded as a zip made with
 #            ditto, which keeps symlinks, permissions and extended attributes) and the release notes.
 #   sign     the only job with the Environment `release` (the Developer ID and notary secrets). Runs only for a v*
@@ -17,9 +17,12 @@ name: Release
 # Pull requests that touch the app, and manual runs without `sign`, build an ad-hoc DMG and upload it as a workflow
 # artifact without signing or publishing anything.
 on:
+  # A push to main (a merged pull request) that touches the app builds the DMG too, so a source change that breaks
+  # packaging shows up on main within minutes and not at the next tag. Nothing is published: `publish` runs for tags
+  # only. The path filter does not apply to tag pushes.
   push:
     tags: ["v*"]
-  pull_request:
+    branches: [main]
     paths:
       - Package.swift
       - Package.resolved
@@ -27,6 +30,26 @@ on:
       - Packages/**
       - Sources/**
       - Resources/**
+      - scripts/**
+      - .github/workflows/release.yml
+  # Pull requests build the DMG only when packaging can change: the scripts, the bundle's plist and entitlements,
+  # the package graph and this file. Source-only and docs-only pull requests are covered by ci.yml alone; the macOS
+  # runners are few and this job repeats the whole test run. `Localizable.xcstrings` changes in most UI pull requests,
+  # so it is left to `StringCatalogTests` in ci.yml and to the build on the push to main (above). To build a DMG for any other branch, run this workflow
+  # by hand (workflow_dispatch).
+  pull_request:
+    paths:
+      - Package.swift
+      - Package.resolved
+      - .gitmodules
+      - Packages/**
+      - Resources/Info.plist
+      - Resources/*.entitlements
+      - Resources/designated-requirement.txt
+      - Resources/InfoPlist.xcstrings
+      - Resources/THIRD_PARTY_NOTICES.txt
+      - Resources/Assets.xcassets/**
+      - Resources/KeyboardShortcuts/**
       - scripts/**
       - .github/workflows/release.yml
   workflow_dispatch:
@@ -39,17 +62,18 @@ on:
 permissions:
   contents: read
 
-# One group for every tag run, with queueing switched on (`queue: max`, up to 100 waiting runs): a plain group keeps
-# only ONE waiting run and cancels the older ones, so two tags pushed together would lose the first. Runs of a tag go
-# one at a time and none is cancelled. Every other ref has its own group. `queue: max` cannot be combined with
-# `cancel-in-progress: true`, so a newer push to a pull request now queues behind the older run instead of cancelling it.
+# Pull requests cancel their own older runs, as before. Every other ref has its own group and nothing is cancelled.
+# Tag releases are serialised by the job-level group `release-tags` on `sign` and `publish` (below), not here: a
+# workflow-level `queue: max` cannot be combined with `cancel-in-progress: true`.
 concurrency:
-  group: ${{ startsWith(github.ref, 'refs/tags/') && 'release-tags' || format('release-{0}', github.ref) }}
-  queue: max
+  group: release-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
     name: Build (ad-hoc)
+    # Dependabot pull requests get no DMG build: they get no secrets, and ci.yml already builds and tests them.
+    if: github.actor != 'dependabot[bot]'
     # Same runner as CI: GitHub's Xcode 27 image (public preview, Apple silicon).
     runs-on: xcode-27
     timeout-minutes: 40
@@ -106,7 +130,10 @@ jobs:
           swift --version
           sw_vers
 
+      # A push to main is tested by ci.yml on the same commit; here it only checks that the app still packages.
+      # TODO: wrap this in scripts/test-with-watchdog.sh once that script is on main (separate pull request).
       - name: Test
+        if: github.event_name != 'push' || startsWith(github.ref, 'refs/tags/')
         run: swift test
 
       # A tag builds the app only (the sign job makes the DMG from the signed app); every other run also builds an
@@ -159,6 +186,12 @@ jobs:
     # (event pull_request) can never satisfy it. scripts/ and the workflow are those of the tagged / main commit.
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch' && inputs.sign == true && github.ref == 'refs/heads/main'
     environment: release
+    # All tag runs share this group, `queue: max` (up to 100 waiting jobs; the default keeps one and cancels the
+    # older ones), never cancelled: two tags pushed together both get signed, one after the other. `publish` has the
+    # same group, so the next tag's `sign` (and its order check) starts only after the previous release exists.
+    concurrency:
+      group: release-tags
+      queue: max
     runs-on: xcode-27
     timeout-minutes: 60
     permissions:
@@ -169,6 +202,29 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # The order check below needs the history and the tags.
+          fetch-depth: 0
+
+      # First thing in the serialised job, before any secret is used: a tag must point at a strict descendant of the
+      # commit of the newest published release (drafts ignored, pre-releases included), so build numbers and
+      # publication order agree. No release yet passes. Manual runs publish nothing and skip it.
+      - name: Check the release order
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PREVIOUS_TAG="$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+            --jq "[.[] | select(.draft == false and .tag_name != \"$GITHUB_REF_NAME\")] | sort_by(.published_at) | last | .tag_name // empty")"
+          PREVIOUS_COMMIT=""
+          if [[ -n "$PREVIOUS_TAG" ]]; then
+            PREVIOUS_COMMIT="$(git rev-parse --verify --quiet "refs/tags/$PREVIOUS_TAG^{commit}" || true)"
+            if [[ -z "$PREVIOUS_COMMIT" ]]; then
+              echo "::error::The newest release is $PREVIOUS_TAG but that tag is not in this clone."
+              exit 1
+            fi
+            echo "Newest published release: $PREVIOUS_TAG"
+          fi
+          scripts/check-release-order.sh "$GITHUB_SHA" "$PREVIOUS_COMMIT"
 
       # No third-party action in this job: Apple's tools, the repository's scripts and the two first-party actions.
       - name: Select Xcode
@@ -325,6 +381,9 @@ jobs:
   publish:
     name: Publish GitHub Release
     needs: [build, sign]
+    concurrency:
+      group: release-tags
+      queue: max
     # Follow-up (spec Step 2.4): `environment: publish` for LINTEL_WEB_DISPATCH_TOKEN; that Environment does not exist yet.
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
