@@ -50,7 +50,7 @@
     "id": "pl-ret-4",
     "lang": "pl",
     "category": "retraction",
-    "raw": "napisz do Tomka że projekt jest gotowy nie, czekaj, że projekt jest prawie gotowy",
+    "raw": "napisz do Tomka że projekt jest skończony nie, czekaj, że projekt jest prawie gotowy",
     "expected": "Napisz do Tomka, że projekt jest prawie gotowy.",
     "must_keep": [
       "Tomka",
@@ -58,6 +58,7 @@
       "gotowy"
     ],
     "must_drop": [
+      "skończony",
       "czekaj"
     ]
   },
@@ -80,14 +81,14 @@
     "id": "pl-ret-6",
     "lang": "pl",
     "category": "retraction",
-    "raw": "zadzwoń do księgowej nie, czekaj, najpierw sprawdź fakturę",
-    "expected": "Najpierw sprawdź fakturę.",
+    "raw": "zadzwoń do księgowej nie, czekaj, do kadrowej w sprawie urlopu",
+    "expected": "Zadzwoń do kadrowej w sprawie urlopu.",
     "must_keep": [
-      "sprawdź",
-      "fakturę"
+      "zadzwoń",
+      "kadrowej",
+      "urlopu"
     ],
     "must_drop": [
-      "zadzwoń",
       "księgowej",
       "czekaj"
     ]
@@ -120,6 +121,25 @@
     "must_drop": [
       "Zosię",
       "czekaj"
+    ]
+  },
+  {
+    "id": "pl-ret-9",
+    "lang": "pl",
+    "category": "retraction",
+    "raw": "spotkajmy się we wtorek a nie czekaj w środę",
+    "expected": "Spotkajmy się w środę.",
+    "must_keep": [
+      "spotkajmy",
+      "środę"
+    ],
+    "must_drop": [
+      "wtorek",
+      "czekaj"
+    ],
+    "known_bad": [
+      "Spotkajmy się we wtorek.",
+      "Spotkajmy się we wtorek, a nie czekaj, w środę."
     ]
   },
   {
@@ -156,14 +176,15 @@
     "id": "pl-rth-3",
     "lang": "pl",
     "category": "rethink",
-    "raw": "użyjemy Postgresa albo jednak zostaniemy przy SQLite",
-    "expected": "Zostaniemy przy SQLite.",
+    "raw": "użyjemy chmury albo jednak zostaniemy przy własnym serwerze",
+    "expected": "Zostaniemy przy własnym serwerze.",
     "must_keep": [
       "zostaniemy",
-      "SQLite"
+      "własnym",
+      "serwerze"
     ],
     "must_drop": [
-      "Postgresa",
+      "chmury",
       "jednak"
     ]
   },
@@ -217,14 +238,14 @@
     "id": "pl-rth-7",
     "lang": "pl",
     "category": "rethink",
-    "raw": "zrobimy prezentację w Keynote albo jednak w PowerPoincie",
-    "expected": "Zrobimy prezentację w PowerPoincie.",
+    "raw": "zrobimy prezentację na tablicy albo jednak na slajdach",
+    "expected": "Zrobimy prezentację na slajdach.",
     "must_keep": [
       "prezentację",
-      "PowerPoincie"
+      "slajdach"
     ],
     "must_drop": [
-      "Keynote",
+      "tablicy",
       "jednak"
     ]
   },
@@ -232,14 +253,19 @@
     "id": "pl-cor-1",
     "lang": "pl",
     "category": "correction",
-    "raw": "spotkanie jest o dziesiątej to znaczy o jedenastej w sali konferencyjnej",
+    "raw": "spotkanie jest o dziesiątej nie to znaczy o jedenastej w sali konferencyjnej",
     "expected": "Spotkanie jest o jedenastej w sali konferencyjnej.",
     "must_keep": [
       "jedenastej",
       "sali"
     ],
     "must_drop": [
-      "dziesiątej"
+      "dziesiątej",
+      "znaczy"
+    ],
+    "known_bad": [
+      "Spotkanie jest o dziesiątej w sali konferencyjnej.",
+      "Spotkanie jest o dziesiątej, nie, to znaczy o jedenastej w sali konferencyjnej."
     ]
   },
   {
@@ -275,7 +301,7 @@
     "id": "pl-cor-4",
     "lang": "pl",
     "category": "correction",
-    "raw": "umowę podpisze Nowak ale właściwie Nowicki w czwartek",
+    "raw": "umowę podpisze Nowak a właściwie Nowicki w czwartek",
     "expected": "Umowę podpisze Nowicki w czwartek.",
     "must_keep": [
       "Nowicki",
@@ -289,14 +315,16 @@
     "id": "pl-cor-5",
     "lang": "pl",
     "category": "correction",
-    "raw": "budżet wynosi dwadzieścia tysięcy to znaczy dwadzieścia pięć tysięcy złotych",
+    "raw": "budżet wynosi osiemnaście tysięcy to znaczy dwadzieścia pięć tysięcy złotych",
     "expected": "Budżet wynosi dwadzieścia pięć tysięcy złotych.",
     "must_keep": [
+      "dwadzieścia",
       "pięć",
       "tysięcy",
       "złotych"
     ],
     "must_drop": [
+      "osiemnaście",
       "znaczy"
     ]
   },
@@ -343,6 +371,25 @@
     "must_drop": [
       "trzydzieści",
       "znaczy"
+    ]
+  },
+  {
+    "id": "pl-cor-9",
+    "lang": "pl",
+    "category": "correction",
+    "raw": "wdrożymy to dziś na staging nie to znaczy na produkcję",
+    "expected": "Wdrożymy to dziś na produkcję.",
+    "must_keep": [
+      "wdrożymy",
+      "dziś",
+      "produkcję"
+    ],
+    "must_drop": [
+      "staging",
+      "znaczy"
+    ],
+    "known_bad": [
+      "Wdrożymy to dziś na staging."
     ]
   },
   {
@@ -639,6 +686,35 @@
     "must_drop": []
   },
   {
+    "id": "pl-neg-9",
+    "lang": "pl",
+    "category": "negative",
+    "raw": "napisz Piotrkowi nie czekaj na mnie z kolacją",
+    "expected": "Napisz Piotrkowi: nie czekaj na mnie z kolacją.",
+    "must_keep": [
+      "Piotrkowi",
+      "nie",
+      "czekaj",
+      "kolacją"
+    ],
+    "must_drop": []
+  },
+  {
+    "id": "pl-neg-10",
+    "lang": "pl",
+    "category": "negative",
+    "raw": "czerwone światło to znaczy stop a nie zwolnij",
+    "expected": "Czerwone światło to znaczy stop, a nie zwolnij.",
+    "must_keep": [
+      "światło",
+      "znaczy",
+      "stop",
+      "nie",
+      "zwolnij"
+    ],
+    "must_drop": []
+  },
+  {
     "id": "en-ret-1",
     "lang": "en",
     "category": "retraction",
@@ -704,14 +780,15 @@
     "id": "en-rth-1",
     "lang": "en",
     "category": "rethink",
-    "raw": "we'll use Postgres or actually stay with SQLite",
-    "expected": "We'll stay with SQLite.",
+    "raw": "we'll use the cloud or actually stay with our own server",
+    "expected": "We'll stay with our own server.",
     "must_keep": [
       "stay",
-      "SQLite"
+      "own",
+      "server"
     ],
     "must_drop": [
-      "Postgres",
+      "cloud",
       "actually"
     ]
   },
@@ -749,8 +826,8 @@
     "id": "en-rth-4",
     "lang": "en",
     "category": "rethink",
-    "raw": "we buy the red sofa or actually the grey one",
-    "expected": "We buy the grey one.",
+    "raw": "we'll buy the red sofa or actually the grey one",
+    "expected": "We'll buy the grey one.",
     "must_keep": [
       "grey",
       "buy"
@@ -773,6 +850,10 @@
     "must_drop": [
       "ten",
       "mean"
+    ],
+    "known_bad": [
+      "The meeting is at ten in the main room.",
+      "The meeting is at ten, I mean eleven, in the main room."
     ]
   },
   {
@@ -816,6 +897,25 @@
     ],
     "must_drop": [
       "Smith"
+    ]
+  },
+  {
+    "id": "en-cor-5",
+    "lang": "en",
+    "category": "correction",
+    "raw": "we deploy tonight to staging I mean to production",
+    "expected": "We deploy tonight to production.",
+    "must_keep": [
+      "deploy",
+      "production",
+      "tonight"
+    ],
+    "must_drop": [
+      "staging",
+      "mean"
+    ],
+    "known_bad": [
+      "We deploy tonight to staging."
     ]
   },
   {
@@ -961,6 +1061,34 @@
       "cash",
       "or",
       "card"
+    ],
+    "must_drop": []
+  },
+  {
+    "id": "en-neg-6",
+    "lang": "en",
+    "category": "negative",
+    "raw": "there is no wait at the clinic on Mondays",
+    "expected": "There is no wait at the clinic on Mondays.",
+    "must_keep": [
+      "no",
+      "wait",
+      "clinic",
+      "Mondays"
+    ],
+    "must_drop": []
+  },
+  {
+    "id": "en-neg-7",
+    "lang": "en",
+    "category": "negative",
+    "raw": "I mean what I said yesterday about the budget",
+    "expected": "I mean what I said yesterday about the budget.",
+    "must_keep": [
+      "mean",
+      "said",
+      "yesterday",
+      "budget"
     ],
     "must_drop": []
   }

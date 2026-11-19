@@ -17,17 +17,42 @@ enum AutocorrectCorpus {
         let expected: String
         let mustKeep: [String]
         let mustDrop: [String]
+        /// Outputs that keep the withdrawn version (the ADR 0005 failure: "o dziesiątej" kept instead of
+        /// "o jedenastej"). Each must fail the corpus check on a withdrawn word.
+        let knownBad: [String]?
 
         enum CodingKeys: String, CodingKey {
             case id, lang, category, raw, expected
             case mustKeep = "must_keep"
             case mustDrop = "must_drop"
+            case knownBad = "known_bad"
         }
     }
 
     static let categories: Set<String> = [
         "retraction", "rethink", "correction", "falsestart", "filler", "negative",
     ]
+
+    /// Categories in which the speaker withdraws a version and says another one.
+    static let withdrawing: Set<String> = ["retraction", "rethink", "correction"]
+
+    /// The words that only mark a correction. A `must_drop` list made of these alone would pass an output that
+    /// keeps the withdrawn version and drops just the marker.
+    static let markers: Set<String> = [
+        "nie", "czekaj", "jednak", "znaczy", "przepraszam", "pomyłka", "właściwie",
+        "no", "wait", "actually", "mean", "sorry",
+    ]
+
+    /// The `must_drop` words that belong to the withdrawn version, not to the marker.
+    static func withdrawnWords(_ item: Case) -> [String] {
+        item.mustDrop.filter { !markers.contains($0.lowercased()) }
+    }
+
+    /// Whether `text` still holds a word of the withdrawn version.
+    static func keepsWithdrawn(_ text: String, _ item: Case) -> Bool {
+        let words = Set(tokens(text))
+        return withdrawnWords(item).contains { words.contains($0.lowercased()) }
+    }
 
     static func load() throws -> [Case] {
         let url = try #require(Bundle.module.url(forResource: "Fixtures/autocorrect/cases", withExtension: "json"))
@@ -96,6 +121,30 @@ enum AutocorrectCorpus {
         }
     }
 
+    @Test func everyWithdrawalNamesTheWithdrawnValue() throws {
+        for item in try AutocorrectCorpus.load() where AutocorrectCorpus.withdrawing.contains(item.category) {
+            #expect(!AutocorrectCorpus.withdrawnWords(item).isEmpty, "\(item.id): must_drop holds only markers")
+        }
+    }
+
+    /// ADR 0005: the default model kept the withdrawn time ("o dziesiątej") and dropped the correction. The
+    /// corpus check must catch that output through `must_drop`, not only through a missing `must_keep` word.
+    @Test func knownBadOutputsKeepingTheWithdrawnVersionFail() throws {
+        let cases = try AutocorrectCorpus.load()
+        let withBad = cases.filter { !($0.knownBad ?? []).isEmpty }
+        #expect(withBad.filter { $0.lang == "pl" }.count >= 2)
+        #expect(withBad.filter { $0.lang == "en" }.count >= 2)
+        #expect(withBad.contains { $0.id == "pl-cor-1" })
+        for item in withBad {
+            #expect(AutocorrectCorpus.withdrawing.contains(item.category), "\(item.id)")
+            for output in item.knownBad ?? [] {
+                #expect(AutocorrectCorpus.keepsWithdrawn(output, item), "\(item.id): a known bad output passes")
+                #expect(!AutocorrectCorpus.satisfies(output, item), "\(item.id): a known bad output passes")
+            }
+            #expect(!AutocorrectCorpus.keepsWithdrawn(item.expected, item), "\(item.id)")
+        }
+    }
+
     @Test func coversEveryCategoryAndBothLanguages() throws {
         let cases = try AutocorrectCorpus.load()
         #expect(cases.filter { $0.lang == "pl" }.count >= 40)
@@ -127,8 +176,10 @@ enum AutocorrectCorpus {
         }
     }
 
-    /// Cleans every case with the built-in model in `LINTEL_LLAMA_MODEL` and prints only how many cases per
-    /// category keep and drop the right words (no text). Off by default, like the other real-model tests.
+    /// Cleans every case with the built-in model in `LINTEL_LLAMA_MODEL` and prints only counts per category
+    /// (no text): cases that keep and drop the right words, cleaned outputs that still hold the withdrawn
+    /// version (the ADR 0005 failure) and chunks that fell back to the raw text. Off by default, like the other
+    /// real-model tests.
     @Test(.enabled(if: ProcessInfo.processInfo.environment["LINTEL_LLAMA_MODEL"] != nil))
     func realModelPassCountsPerCategory() async throws {
         let path = try #require(ProcessInfo.processInfo.environment["LINTEL_LLAMA_MODEL"])
@@ -137,16 +188,25 @@ enum AutocorrectCorpus {
         let formatter = BuiltInFormatter(runtime: warm)
         await formatter.prepare()
         var passed: [String: Int] = [:]
+        var keptWithdrawn: [String: Int] = [:]
+        var fellBack: [String: Int] = [:]
         var total: [String: Int] = [:]
         for item in try AutocorrectCorpus.load() {
             let key = "\(item.lang)/\(item.category)"
             total[key, default: 0] += 1
             let result = try await formatter.format(chunk: item.raw, previousContext: nil)
             if AutocorrectCorpus.satisfies(result.text, item) { passed[key, default: 0] += 1 }
+            if case .fellBack = result.outcome {
+                fellBack[key, default: 0] += 1
+            } else if AutocorrectCorpus.keepsWithdrawn(result.text, item) {
+                keptWithdrawn[key, default: 0] += 1
+            }
         }
         await warm.unload()
         for key in total.keys.sorted() {
-            print("[autocorrect-model] \(key): \(passed[key, default: 0])/\(total[key] ?? 0)")
+            let counts = "\(passed[key, default: 0])/\(total[key] ?? 0)"
+            let failures = "keptWithdrawn \(keptWithdrawn[key, default: 0]) fellBack \(fellBack[key, default: 0])"
+            print("[autocorrect-model] \(key): \(counts) \(failures)")
         }
     }
 }
