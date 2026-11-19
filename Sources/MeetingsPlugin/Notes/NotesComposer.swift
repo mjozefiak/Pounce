@@ -31,7 +31,7 @@ enum NotesComposer {
         static let polish = Labels(
             summary: "Podsumowanie", keyPoints: "Ustalenia", decisions: "Decyzje", tasks: "Zadania",
             questions: "Otwarte kwestie", participants: "Uczestnicy", person: "osoba", due: "termin",
-            nothing: "W nagraniu nie znaleziono decyzji, zadań ani otwartych pytań.")
+            nothing: "W nagraniu nie znaleziono decyzji, zadań ani otwartych kwestii.")
         static let english = Labels(
             summary: "Summary", keyPoints: "Key points", decisions: "Decisions", tasks: "Action items",
             questions: "Open questions", participants: "Participants", person: "owner", due: "due",
@@ -83,7 +83,7 @@ enum NotesComposer {
         let names = participants.map(flat).filter { !$0.isEmpty && $0 != "?" }
         if !names.isEmpty {
             heading(labels.participants)
-            lines.append(names.joined(separator: ", "))
+            lines.append(inertParagraph(names.joined(separator: ", ")))
         }
         return NotesMarkdown.render(lines.joined(separator: "\n"))
     }
@@ -97,7 +97,7 @@ enum NotesComposer {
     /// The point's text and, for a task, its owner and due date, on one line. No time: the notes are a summary and
     /// the times stay in the transcript.
     private static func item(_ point: NotesPoint, labels: Labels) -> String {
-        var line = flat(point.text)
+        var line = withoutTime(withoutCheckbox(flat(point.text)))
         if point.kind == .task {
             var details: [String] = []
             if let person = point.person.map(flat), !person.isEmpty { details.append("\(labels.person): \(person)") }
@@ -120,6 +120,18 @@ enum NotesComposer {
                 return String(trimmed)
             }
         }
+    }
+
+    /// A leading `[ ]` or `[x]` the model wrote: the checklist marker is the code's, only on tasks.
+    private static func withoutCheckbox(_ text: String) -> String {
+        var result = Substring(text)
+        while let match = result.prefixMatch(of: /\[[ xX]\][ ]*/) { result = result[match.range.upperBound...] }
+        return String(result)
+    }
+
+    /// A time the model left at the end of a point (`[10:15]`, `(10:15)`): the notes show no times.
+    private static func withoutTime(_ text: String) -> String {
+        text.replacing(/[ ]*[\[(]\d{1,2}(?::\d{2}){1,2}[\])][ ]*$/, with: "")
     }
 
     private static func flat(_ text: String) -> String {

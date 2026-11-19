@@ -90,12 +90,15 @@ extension BlockAttributionInfo {
 struct NoteInlineText: View {
     let document: NoteDocumentModel
     let text: String
-    var fallbackTimesMs: [Int] = []
     var font: Font?
     @Environment(\.lintelTextSize) private var textSize
+    /// `MeetingNoteLayers.notesLayerID`; NotesPlugin never imports MeetingsPlugin.
+    static let meetingNotesLayerID = "notes"
 
     var body: some View {
-        Text(NoteInline.attributed(NoteQuote.split(text).text))
+        // Only the meeting notes layer ever carried `[mm:ss]`; a time the user typed elsewhere stays.
+        let shown = document.layerID == NoteInlineText.meetingNotesLayerID ? NoteQuote.split(text).text : text
+        Text(NoteInline.attributed(shown))
             .font(font ?? textSize.font(.callout))
             .foregroundStyle(LintelBrand.ink)
             .fixedSize(horizontal: false, vertical: true)
@@ -119,12 +122,11 @@ struct NoteBlockBody: View {
                 .padding(.top, 6 * textSize.scale)
                 .accessibilityAddTraits(.isHeader)
         case .paragraph(let text):
-            NoteInlineText(document: document, text: text, fallbackTimesMs: block.quoteTimesMs)
+            NoteInlineText(document: document, text: text)
         case .list(let lines):
             VStack(alignment: .leading, spacing: 2 * textSize.scale) {
                 ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
-                    NoteListLine(
-                        document: document, line: line, fallbackTimesMs: lines.count == 1 ? block.quoteTimesMs : [])
+                    NoteListLine(document: document, line: line)
                 }
             }
         case .table(let table):
@@ -150,7 +152,6 @@ struct NoteBlockBody: View {
 struct NoteListLine: View {
     let document: NoteDocumentModel
     let line: NoteBlock.ListLine
-    let fallbackTimesMs: [Int]
     @Environment(\.lintelTextSize) private var textSize
 
     var body: some View {
@@ -160,7 +161,7 @@ struct NoteListLine: View {
                 .foregroundStyle(LintelBrand.secondaryText)
                 .frame(minWidth: 14 * textSize.scale, alignment: .trailing)
                 .accessibilityHidden(true)
-            NoteInlineText(document: document, text: line.text, fallbackTimesMs: fallbackTimesMs)
+            NoteInlineText(document: document, text: line.text)
         }
         .padding(.leading, CGFloat(line.depth) * 18 * textSize.scale)
         .accessibilityElement(children: .contain)

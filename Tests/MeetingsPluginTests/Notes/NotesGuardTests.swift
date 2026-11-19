@@ -407,7 +407,7 @@ enum GuardFixtures {
 
     @Test func aMeetingWithNothingInItSaysSo() {
         let markdown = compose(NotesReduceOutput(), points: [])
-        #expect(markdown.hasPrefix("W nagraniu nie znaleziono decyzji, zadań ani otwartych pytań."))
+        #expect(markdown.hasPrefix("W nagraniu nie znaleziono decyzji, zadań ani otwartych kwestii."))
         #expect(markdown.contains("### Uczestnicy"))
     }
 
