@@ -22,4 +22,5 @@ section (pre-releases use `x.y.z-beta.N`). No version has been released yet.
 
 ### Changed
 
+- Meeting notes (prompt v6): a task is listed once and small-talk tasks are left out, questions that do not say what they ask about and reports of a problem without a cause or fix are left out, and when the final organising step fails the topics shown are spread over the whole meeting instead of the first ones.
 - Pounce is now called Lintel, with a new icon and brand colors.

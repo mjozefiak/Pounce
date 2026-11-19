@@ -481,7 +481,7 @@ struct NotesPipeline: Sendable {
 
     /// At most `count` of the points, spread over the time they cover: the first one, then each time the one
     /// whose nearest chosen neighbour is farthest away in time (ties go to the earlier one), returned in their
-    /// original order. All of them when there are no more than `count`. Pure and deterministic.
+    /// original order (the points are in time order, as MAP finds them). All of them when there are no more than `count`. Pure and deterministic.
     static func spread(_ points: [NotesPoint], count: Int) -> [NotesPoint] {
         guard count > 0 else { return [] }
         guard points.count > count else { return points }
@@ -679,10 +679,15 @@ struct NotesPipeline: Sendable {
                 case .truncated?:
                     // Greedy decoding gives the same loop for the same prompt, so the retry also asks for the
                     // format again (a changed prompt), not only for more room.
+                    let changedPrompt = !reminder
                     reminder = true
                     let larger = min(limit * 2, room)
-                    if larger <= limit { return .failed }
-                    limit = larger
+                    // No room to grow: a changed prompt at the same limit is still worth one try.
+                    if larger > limit {
+                        limit = larger
+                    } else if !changedPrompt {
+                        return .failed
+                    }
                 case .malformed?: reminder = true
                 default: break
                 }

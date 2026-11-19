@@ -11,7 +11,8 @@ import Testing
         due: String? = nil
     ) -> NotesPoint {
         NotesPoint(
-            id: id, kind: kind, timeMs: seconds * 1000, quote: "quote \(id)", text: text, person: person, due: due,
+            id: id, kind: kind, timeMs: seconds * 1000, quote: text == "Text" ? "quote \(id)" : text, text: text,
+            person: person, due: due,
             speaker: nil)
     }
 
@@ -144,7 +145,7 @@ import Testing
                     text: "Bring coffee for everyone.", person: "Ewa", due: "Monday", speaker: nil),
                 NotesPoint(
                     id: "p2", kind: .task, timeMs: 10_000, quote: "See you next week and enjoy the weekend",
-                    text: "See everyone next week.", person: nil, due: nil, speaker: nil),
+                    text: "See you next week.", person: nil, due: nil, speaker: nil),
                 NotesPoint(
                     id: "p3", kind: .task, timeMs: 20_000, quote: "Marek, please send the offer to the client",
                     text: "Send the offer to the client.", person: "Marek", due: nil, speaker: nil),
@@ -158,9 +159,13 @@ import Testing
         ("Do zobaczenia w piątek.", true), ("Share your screen please.", true),
         ("Send the offer to the client.", false), ("Przygotuj raport do piątku.", false),
         ("Book the training room.", false),
+        ("Thanks, I'll send the report tomorrow.", false), ("Dzięki, to ja wyślę ofertę jutro.", false),
+        ("Dzięki temu Marek przygotuje migrację do piątku.", false),
+        ("Thanks to the cache, Anna will measure the latency.", false),
+        ("Fix the mute button in the call screen.", false), ("Prepare the lunch-and-learn slides.", false),
     ])
     func theNonWorkRuleLooksForOneThingEach(text: String, nonWork: Bool) {
-        #expect(NotesRelevance.isNonWorkTask(text: text, quote: text) == nonWork)
+        #expect(NotesRelevance.isNonWorkTask(text: text) == nonWork)
     }
 
     // MARK: Questions without context
@@ -168,6 +173,8 @@ import Testing
     @Test(arguments: [
         ("When will it be ready?", true), ("Is that okay?", true), ("Kiedy to będzie gotowe?", true),
         ("Czy to jest ok?", true), ("Who will handle the contract with the supplier?", false),
+        ("When is the release?", false), ("Kiedy będzie oferta?", false), ("Kiedy jest demo?", false),
+        ("Who pays?", false), ("What's the deadline?", false), ("What's ready?", true),
         ("Kto zajmie się umową z dostawcą?", false), ("Who owns billing?", false),
         ("When will the offer be ready?", false), ("Can we ship on Friday?", false),
     ])
@@ -199,9 +206,64 @@ import Testing
         ("The login bug only happens when the session has expired.", false),
         ("Błąd eksportu wynika z pełnego dysku, więc trzeba go wyczyścić.", false),
         ("The budget is eight thousand.", false),
+        ("Marek naprawił błąd w eksporcie.", false), ("Anna rozwiązała problem z fakturami.", false),
+        ("Błąd eksportu wynika z pełnego dysku.", false), ("Eksport się wywala z powodu braku pamięci.", false),
+        ("The main issue was pricing; the client accepted a 10% discount.", false),
+        ("Bug count dropped from 40 to 12.", false),
     ])
     func aProblemNeedsACauseAConditionAFixOrANextStep(text: String, withoutVerdict: Bool) {
         #expect(NotesRelevance.isReportWithoutVerdict(text) == withoutVerdict)
+    }
+
+    @Test func aQuoteThatStartsWithAThanksDoesNotRemoveTheTask() {
+        let lines = [("a", "Dzięki, to ja wyślę ofertę jutro.")]
+        let verdict = Self.verified(
+            lines,
+            [
+                NotesPoint(
+                    id: "p1", kind: .task, timeMs: 0, quote: "Dzięki, to ja wyślę ofertę jutro",
+                    text: "Wysłać ofertę jutro.", person: nil, due: nil, speaker: nil)
+            ])
+        #expect(verdict.verified.map(\.id) == ["p1"])
+    }
+
+    @Test func tasksThatDifferInOneDistinguishingTokenStayApart() {
+        func task(_ id: String, _ text: String, _ person: String? = nil) -> NotesPoint {
+            NotesPoint(
+                id: id, kind: .task, timeMs: 0, quote: text, text: text, person: person, due: nil, speaker: nil)
+        }
+        let pairs = [
+            ("Prepare the test plan for iOS.", "Prepare the test plan for Android."),
+            ("Send the Q3 report to the board by email.", "Send the Q4 report to the board by email."),
+            ("Przygotuj ofertę dla Acme.", "Przygotuj ofertę dla Beta."),
+        ]
+        for (a, b) in pairs {
+            let kept = NotesRelevance.deduplicatedTasks([task("p1", a), task("p2", b)]).tasks
+            #expect(kept.count == 2, "\(a) / \(b)")
+        }
+        #expect(
+            NotesRelevance.deduplicatedTasks([task("p1", "Send the offer."), task("p2", "Send the offer!")]).tasks.count
+                == 1)
+    }
+
+    @Test func aReduceCutOffWithNoRoomLeftIsStillAskedOnceWithAChangedPrompt() async throws {
+        let seen = Mutex2()
+        let rig = NotesRig(contextLength: 2000) { _, messages, _ in
+            if NotesFake.isMap(messages) { return .done(NotesFake.mapAnswer(messages)) }
+            guard NotesFake.isReduce(messages) else { return .done("SUMMARY: x") }
+            seen.add(NotesFake.lastUser(messages))
+            if NotesFake.lastUser(messages).contains(NotesPrompt.formatReminder) {
+                return .done(NotesFake.reduceAnswer(messages, summary: "Spotkanie dotyczyło zatwierdzania punktów."))
+            }
+            return .cutOff("SUMMARY: loop")
+        }
+        let result = try await rig.pipeline().run(utterances: decisionLines(count: 3))
+        #expect(!result.reduceFailed)
+        #expect(seen.all.count >= 2)
+        let reduceCalls = rig.llm.calls.filter { NotesFake.isReduce($0.messages) }
+        // The first request already had less room than the limit, so the second one could not grow.
+        #expect(reduceCalls.count == 2 && reduceCalls[0].maxTokens == reduceCalls[1].maxTokens)
+        #expect(reduceCalls[0].maxTokens < NotesPipeline.Configuration().reduceMaxTokens)
     }
 
     @Test func aFindingThatOnlyReportsAProblemIsDropped() {

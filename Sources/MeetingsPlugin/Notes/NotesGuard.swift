@@ -313,7 +313,7 @@ struct NotesGuard: Sendable {
         }
         switch outcome.point.kind {
         case .task:
-            if NotesRelevance.isNonWorkTask(text: outcome.point.text, quote: outcome.point.quote) {
+            if NotesRelevance.isNonWorkTask(text: outcome.point.text) {
                 return .failure(.nonWorkTask)
             }
         case .question:
@@ -796,15 +796,18 @@ struct NotesGuard: Sendable {
         var backfilled = 0
         // Decisions and tasks are rare and each one matters, so one REDUCE forgot is added back. Questions and
         // findings are not: what REDUCE did not choose stays out.
+        var backfilledTasks = Set<String>()
         func fill(_ list: inout [NotesPoint], kind: NotesPointKind) {
             for point in points where point.kind == kind && !listed.contains(point.id) {
-                if let twin = list.first(where: { Self.nearDuplicate($0, point) }) {
+                // Tasks are merged with their twins below, which also keeps the person and date of either.
+                if kind != .task, let twin = list.first(where: { Self.nearDuplicate($0, point) }) {
                     trail?.nearDuplicateOf[point.id] = twin.id
                     continue
                 }
                 list.append(point)
                 backfilled += 1
                 trail?.backfilled.insert(point.id)
+                if kind == .task { backfilledTasks.insert(point.id) }
             }
         }
         fill(&decisions, kind: .decision)
@@ -812,7 +815,13 @@ struct NotesGuard: Sendable {
         // The model may list one piece of work twice (restated later, or in two chunks); it stands once.
         let unique = NotesRelevance.deduplicatedTasks(tasks)
         tasks = unique.tasks
-        for (id, twin) in unique.removed { trail?.nearDuplicateOf[id] = twin }
+        for (id, twin) in unique.removed {
+            trail?.nearDuplicateOf[id] = twin
+            if backfilledTasks.contains(id) {
+                backfilled -= 1
+                trail?.backfilled.remove(id)
+            }
+        }
         if questions.count > Self.maxQuestions {
             for point in questions[Self.maxQuestions...] { trail?.questionsOverLimit.insert(point.id) }
             questions = Array(questions.prefix(Self.maxQuestions))

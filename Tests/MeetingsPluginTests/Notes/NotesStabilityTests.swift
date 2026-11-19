@@ -99,7 +99,7 @@ import Testing
         if text.hasPrefix("Marek, please send") { return ("TASK", "Send the offer to the client.", "Marek", "Friday") }
         if text.hasPrefix("Marek will send") { return ("TASK", "Send the offer to the client.", "Marek", "Friday") }
         if text.hasPrefix("Ewa, bring coffee") { return ("TASK", "Bring coffee for everyone.", "Ewa", "Monday") }
-        if text.hasPrefix("See you next week") { return ("TASK", "See everyone next week.", "-", "-") }
+        if text.hasPrefix("See you next week") { return ("TASK", "See you next week.", "-", "-") }
         if text.hasPrefix("Anna, write") { return ("TASK", "Write the rollout checklist.", "Anna", "Wednesday") }
         if text.hasPrefix("Ewa will book") { return ("TASK", "Book the training room.", "Ewa", "-") }
         return nil
