@@ -8,7 +8,7 @@ import Testing
 /// The second review of the pipeline (spec 2.3): a model whose text differs from its quotes, a REDUCE that
 /// forgets points, merges that do not fit, time spent waiting for dictation, and the token limit of a retry.
 @Suite struct NotesPipelineHardeningTests {
-    @Test func aTextThatSaysMoreThanItsQuoteNeverReachesTheNotes() async throws {
+    @Test func aTextThatSaysMoreThanItsQuoteIsLeftOutNotReplacedByTheQuote() async throws {
         let rig = NotesRig { _, messages, _ in
             guard NotesFake.isMap(messages) else { return .done(NotesFake.answer(messages)) }
             return .done(
@@ -19,15 +19,16 @@ import Testing
         }
         let result = try await rig.pipeline().run(utterances: NotesFixtures.meeting())
         #expect(result.status == .ok)
-        #expect(result.repairedCount == 2)
+        #expect(result.droppedCount == 2)
         let markdown = try #require(result.markdown)
         #expect(!markdown.contains("Kowalski"))
         #expect(!markdown.contains("5 mln"))
-        #expect(markdown.contains("Zatwierdzamy ten budżet bez zmian."))
-        #expect(markdown.contains("Kto zajmie się umową z dostawcą?"))
+        // Nothing of the quotes stands in their place.
+        #expect(!markdown.contains("Zatwierdzamy ten budżet bez zmian"))
+        #expect(!markdown.contains("Kto zajmie się umową z dostawcą"))
     }
 
-    @Test func aReduceThatForgetsPointsDoesNotLoseThem() async throws {
+    @Test func aReduceThatForgetsDecisionsAndTasksDoesNotLoseThemButQuestionsStayOut() async throws {
         let rig = NotesRig { _, messages, _ in
             if NotesFake.isReduce(messages) {
                 return .done("SUMMARY: Spotkanie o budżecie.\nDECISIONS: -\nTASKS: -\nQUESTIONS: -")
@@ -36,11 +37,11 @@ import Testing
         }
         let result = try await rig.pipeline().run(utterances: NotesFixtures.meeting())
         #expect(result.status == .ok)
-        #expect(result.backfilledCount == 3)
+        #expect(result.backfilledCount == 2)
         let markdown = try #require(result.markdown)
         #expect(markdown.contains("### Decyzje"))
         #expect(markdown.contains("### Zadania"))
-        #expect(markdown.contains("### Otwarte kwestie"))
+        #expect(!markdown.contains("### Otwarte kwestie"))
     }
 
     @Test(.timeLimit(.minutes(1)))

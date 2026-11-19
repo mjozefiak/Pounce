@@ -24,12 +24,112 @@ struct NotesUtterance: Equatable, Sendable {
         let ordered = document.segments.enumerated().sorted {
             ($0.element.startMs, $0.element.id, $0.offset) < ($1.element.startMs, $1.element.id, $1.offset)
         }
-        return ordered.compactMap { _, segment in
+        let raw: [Piece] = ordered.compactMap { _, segment in
             let text = sanitized(segment.text)
             guard !text.isEmpty else { return nil }
             let name = segment.speakerID.flatMap { names[$0] }.flatMap { $0.isEmpty ? nil : $0 }
-            return NotesUtterance(startMs: segment.startMs, speaker: name ?? "?", text: text)
+            return Piece(
+                startMs: segment.startMs, endMs: max(segment.endMs, segment.startMs), speaker: name ?? "?", text: text)
         }
+        return cleaned(raw).map { NotesUtterance(startMs: $0.startMs, speaker: $0.speaker, text: $0.text) }
+    }
+
+    // MARK: Cleaning
+
+    /// A segment on its way to an utterance; the end is needed to measure the gap to the next one.
+    private struct Piece {
+        var startMs: Int
+        var endMs: Int
+        var speaker: String
+        var text: String
+    }
+
+    /// Two segments of one speaker closer than this are one utterance (the recognizer cuts a sentence every
+    /// 15 s, in the middle of it).
+    static let mergeGapMs = 2000
+    /// A merged utterance stops growing at this many words, so a point still has a meaningful place.
+    static let mergedWordLimit = 120
+
+    /// Makes the transcript fit for the model, without changing what was said:
+    /// 1. drops segments in an alphabet other than the meeting's (recognition noise on silence: a line of Cyrillic
+    ///    in a Polish meeting);
+    /// 2. drops acknowledgements: a segment of at most two words from a closed list ("mm-hmm", "okej", "thank
+    ///    you"), which cost a line of overhead each and carry no content;
+    /// 3. joins consecutive segments of one speaker less than `mergeGapMs` apart.
+    private static func cleaned(_ pieces: [Piece]) -> [Piece] {
+        let script = dominantScript(of: pieces.map(\.text))
+        var kept: [Piece] = []
+        for piece in pieces {
+            if let script, isForeign(piece.text, to: script) { continue }
+            if isAcknowledgement(piece.text) { continue }
+            if var last = kept.last, last.speaker == piece.speaker,
+                piece.startMs - last.endMs < mergeGapMs,
+                wordCount(last.text) + wordCount(piece.text) <= mergedWordLimit
+            {
+                last.text += " " + piece.text
+                last.endMs = max(last.endMs, piece.endMs)
+                kept[kept.count - 1] = last
+            } else {
+                kept.append(piece)
+            }
+        }
+        return kept
+    }
+
+    private static func wordCount(_ text: String) -> Int {
+        text.split(whereSeparator: \.isWhitespace).count
+    }
+
+    private static let acknowledgements: Set<String> = [
+        "mm", "mmm", "mhm", "mm hmm", "hmm", "hm", "uh huh", "aha", "ah", "oh", "eh", "yeah", "yes", "yep", "yup",
+        "ok", "okay", "okej", "oke", "no", "tak", "dobra", "dobrze", "jasne", "super", "spoko", "right", "sure",
+        "fine", "good", "great", "cool", "thanks", "thank you", "dzieki", "dziekuje", "dzieki wielkie", "bye",
+        "do widzenia", "czesc", "hello", "hi", "hej",
+    ]
+
+    /// At most two words, all of them from the closed list of acknowledgements.
+    static func isAcknowledgement(_ text: String) -> Bool {
+        let words = NotesText.words(text)
+        guard !words.isEmpty, words.count <= 3 else { return false }
+        let phrase = words.joined(separator: " ")
+        if acknowledgements.contains(phrase) { return true }
+        return words.count <= 2 && words.allSatisfy { acknowledgements.contains($0) }
+    }
+
+    private enum Script { case latin, cyrillic, other }
+
+    private static func script(of scalar: Unicode.Scalar) -> Script? {
+        guard scalar.properties.isAlphabetic else { return nil }
+        switch scalar.value {
+        case 0x0041...0x024F, 0x1E00...0x1EFF: return .latin
+        case 0x0400...0x052F: return .cyrillic
+        default: return .other
+        }
+    }
+
+    private static func scriptCounts(_ text: String) -> [Script: Int] {
+        var counts: [Script: Int] = [:]
+        for scalar in text.unicodeScalars {
+            if let script = script(of: scalar) { counts[script, default: 0] += 1 }
+        }
+        return counts
+    }
+
+    /// The alphabet most letters of the transcript are in; nil without letters.
+    private static func dominantScript(of texts: [String]) -> Script? {
+        var total: [Script: Int] = [:]
+        for text in texts {
+            for (script, count) in scriptCounts(text) { total[script, default: 0] += count }
+        }
+        return total.max { ($0.value, "\($0.key)") < ($1.value, "\($1.key)") }?.key
+    }
+
+    /// More than half of the letters of the text are in another alphabet than `script`.
+    private static func isForeign(_ text: String, to script: Script) -> Bool {
+        let counts = scriptCounts(text)
+        let total = counts.values.reduce(0, +)
+        guard total > 0 else { return false }
+        return (total - (counts[script] ?? 0)) * 2 > total
     }
 
     static func sanitized(_ text: String) -> String {

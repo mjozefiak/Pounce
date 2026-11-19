@@ -33,7 +33,7 @@ import Testing
         ])
     func theRefusalIsRecorded(summary: String, expected: NotesGuard.SummaryRefusal) {
         let result = audit(summary)
-        #expect(result.summaryOrigin == .composedAfterRefusal)
+        #expect(result.summaryOrigin == .refused)
         #expect(result.summaryRefusal == expected)
     }
 
@@ -45,16 +45,16 @@ import Testing
 
     @Test func theTraceCarriesTheRefusalAndAnOlderTraceDecodes() throws {
         let summary = NotesTraceSummary(
-            origin: .composedAfterRefusal, present: true, shown: true, sourceIDs: ["p5"], refusal: .negation)
+            origin: .refused, present: false, shown: false, sourceIDs: [], refusal: .negation)
         let data = try JSONEncoder().encode(summary)
         let object = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
         #expect(object["refusal"] as? String == "negation")
         #expect(try JSONDecoder().decode(NotesTraceSummary.self, from: data) == summary)
 
         let older = Data(
-            #"{"origin":"composedAfterRefusal","present":true,"shown":true,"sourceIDs":["p5"]}"#.utf8)
+            #"{"origin":"model","present":true,"shown":true,"sourceIDs":[]}"#.utf8)
         let decoded = try JSONDecoder().decode(NotesTraceSummary.self, from: older)
         #expect(decoded.refusal == nil)
-        #expect(decoded.origin == .composedAfterRefusal)
+        #expect(decoded.origin == .model)
     }
 }

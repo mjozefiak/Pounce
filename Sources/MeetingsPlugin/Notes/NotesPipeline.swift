@@ -53,17 +53,15 @@ struct NotesResult: Equatable, Sendable {
     var rejectedIDs: Int
     var language: NotesLanguage
     var promptVersion: String
-    /// Points whose text said more than the quote and was replaced by the transcript's own words.
-    var repairedCount = 0
-    /// Decisions and tasks that were questions in the transcript and became open questions.
+    /// Decisions, tasks and findings that were questions in the transcript and became open questions.
     var downgradedCount = 0
     /// Verified points the REDUCE answer left out that were added back.
     var backfilledCount = 0
     /// The decisions, tasks and open questions that stand in the notes, with their quotes (for the regression
     /// tests; nothing stores or shows them).
     var points: [NotesPoint] = []
-    /// The summary points that stand in the notes as key points, in time order (for the regression tests;
-    /// nothing stores or shows them).
+    /// The summary points that stand in the notes as topics discussed, in REDUCE's order (for the regression
+    /// tests; nothing stores or shows them).
     var keyPoints: [NotesPoint] = []
 }
 
@@ -187,14 +185,14 @@ struct NotesPipeline: Sendable {
 
         func result(
             status: NotesResult.Status, markdown: String?, dropped: Int = 0, points: Int = 0,
-            reduceFailed: Bool = false, replaced: Bool = false, rejected: Int = 0, repaired: Int = 0,
+            reduceFailed: Bool = false, replaced: Bool = false, rejected: Int = 0,
             downgraded: Int = 0, backfilled: Int = 0, kept: [NotesPoint] = [], keyPoints: [NotesPoint] = []
         ) -> NotesResult {
             NotesResult(
                 status: status, markdown: markdown, droppedCount: dropped, failedChunks: failed,
                 chunkCount: chunks.count, verifiedPointCount: points, reduceFailed: reduceFailed,
                 summaryReplaced: replaced, rejectedIDs: rejected, language: verifier.language,
-                promptVersion: String(NotesPrompt.version), repairedCount: repaired, downgradedCount: downgraded,
+                promptVersion: String(NotesPrompt.version), downgradedCount: downgraded,
                 backfilledCount: backfilled, points: kept, keyPoints: keyPoints)
         }
         if failedWhole == chunks.count { return result(status: .failed, markdown: nil) }
@@ -229,8 +227,7 @@ struct NotesPipeline: Sendable {
                 decisions: [], tasks: [], questions: [], summary: nil, summaryReplaced: false, rejectedIDs: 0)
             let markdown = NotesComposer.markdown(verdict: empty, participants: participants, labels: labels)
             return result(
-                status: .ok, markdown: markdown, dropped: verdict.dropped, repaired: verdict.repaired,
-                downgraded: verdict.downgraded)
+                status: .ok, markdown: markdown, dropped: verdict.dropped, downgraded: verdict.downgraded)
         }
 
         let reduced = try await reduce(points: points, lease: lease, recorder: recorder)
@@ -250,7 +247,7 @@ struct NotesPipeline: Sendable {
         return result(
             status: reduced.failed ? .partial : flowStatus, markdown: markdown, dropped: verdict.dropped,
             points: points.count, reduceFailed: reduced.failed, replaced: final.summaryReplaced,
-            rejected: final.rejectedIDs, repaired: verdict.repaired, downgraded: verdict.downgraded,
+            rejected: final.rejectedIDs, downgraded: verdict.downgraded,
             backfilled: final.backfilled, kept: final.decisions + final.tasks + final.questions,
             keyPoints: final.keyPoints)
     }
@@ -275,15 +272,16 @@ struct NotesPipeline: Sendable {
         points.enumerated().sorted { ($0.element.timeMs, $0.offset) < ($1.element.timeMs, $1.offset) }.map(\.element)
     }
 
+    /// The names of the people who spoke, in order of appearance. A generic label ("Mówca 1", "Speaker 2", "Ja")
+    /// names nobody, so it is not listed: the diarization may have put several people under one of them.
     static func participants(of utterances: [NotesUtterance]) -> [String] {
         var seen = Set<String>()
-        return utterances.map(\.speaker).filter { seen.insert($0).inserted }
+        return utterances.map(\.speaker).filter { !NotesGuard.isGenericLabel($0) && seen.insert($0).inserted }
     }
 
     // MARK: Semantic verifier
 
-    /// Asks the verifier about every point the guard kept or repaired in a way it may undo
-    /// (`NotesGuard.PointReview.claim`), one at a time on the notes' lease, within `verifierBudget` of generation
+    /// Asks the verifier about every point the guard kept, one at a time on the notes' lease, within `verifierBudget` of generation
     /// time, and applies the answers (`NotesGuard.applyingVerifications`). Only the points the deduplication keeps
     /// are asked (it does not depend on the text). Cancelling the run throws; running out of time, a failed or
     /// malformed answer leave a point as the guard left it.
@@ -293,9 +291,9 @@ struct NotesPipeline: Sendable {
     ) async throws -> (verdict: NotesGuard.PointVerdict, trace: NotesTraceVerifier) {
         let kept = Set(Self.deduplicated(verdict.verified).map(\.id))
         var requests: [NotesVerifierRequestItem] = []
-        for (point, review) in zip(verdict.verified, verdict.reviews) where kept.contains(point.id) {
-            guard let claim = review.claim(of: point) else { continue }
-            requests.append(.init(id: point.id, request: notesGuard.verificationRequest(for: point, claim: claim)))
+        for point in verdict.verified where kept.contains(point.id) {
+            requests.append(
+                .init(id: point.id, request: notesGuard.verificationRequest(for: point, claim: point.text)))
         }
         var trace = NotesTraceVerifier(promptVersion: NotesVerifierPrompt.version, eligible: requests.count)
         guard !requests.isEmpty else { return (verdict, trace) }
@@ -333,8 +331,7 @@ struct NotesPipeline: Sendable {
         }
         trace.notAsked = requests.count - trace.asked
         let applied = NotesGuard.applyingVerifications(results, to: verdict)
-        trace.restoredModelText = applied.effect.restoredModelText
-        trace.rejectedKept = applied.effect.rejectedKept
+        trace.rejectedKept = applied.effect.rejected
         return (applied.verdict, trace)
     }
 
@@ -425,6 +422,7 @@ struct NotesPipeline: Sendable {
             merged.output.decisions.append(contentsOf: part.output.decisions)
             merged.output.tasks.append(contentsOf: part.output.tasks)
             merged.output.questions.append(contentsOf: part.output.questions)
+            merged.output.keyPoints.append(contentsOf: part.output.keyPoints)
             if let summary = part.output.summary { summaries.append(summary) }
             merged.failed = merged.failed || part.failed
         }
@@ -462,7 +460,8 @@ struct NotesPipeline: Sendable {
         }
     }
 
-    /// REDUCE could not be had: every point of a kind, in time order, and no paragraph (the guard composes it).
+    /// REDUCE could not be had: every decision, task and question, in time order, and neither a paragraph nor
+    /// findings (nothing is chosen without REDUCE).
     static func codeOrder(_ points: [NotesPoint]) -> NotesReduceOutput {
         NotesReduceOutput(
             decisions: points.filter { $0.kind == .decision }.map(\.id),
@@ -493,8 +492,8 @@ struct NotesPipeline: Sendable {
     private static let maxMergeDepth = 8
 
     /// Merges partial summaries into one paragraph, a level at a time while they do not fit one request. When
-    /// two of them do not fit together (or the levels run out) it gives up with `failed`, and the guard composes
-    /// the paragraph from the points.
+    /// two of them do not fit together (or the levels run out) it gives up with `failed`, and the notes have no
+    /// paragraph.
     private func mergeSummaries(
         _ summaries: [String], lease: NotesLease, recorder: NotesTraceRecorder?, depth: Int = 0
     ) async throws -> (text: String?, failed: Bool) {

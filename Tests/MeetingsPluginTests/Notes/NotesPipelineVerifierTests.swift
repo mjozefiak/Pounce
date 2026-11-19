@@ -43,8 +43,8 @@ final class FakeNotesVerifier: NotesVerifying, @unchecked Sendable {
     static let taskText = "Wysłać ofertę do klienta."
     static let negatedText = "Umowa nie zostanie przygotowana."
 
-    /// p1 a summary point that drifts (repaired, restorable), p2 a kept decision, p3 a kept task, p4 a decision
-    /// whose negation is turned around (repaired, never sent).
+    /// p1 a summary point that drifts (removed by the guard), p2 a kept decision, p3 a kept task, p4 a decision
+    /// whose negation is turned around (removed by the guard).
     static let mapAnswer = """
         SUM | 0:05 | "Zaczynamy spotkanie o budżecie na przyszły kwartał" | \(driftedText)
         DEC | 0:21 | "Zatwierdzamy budżet marketingowy w wysokości czterdziestu tysięcy złotych" | \(decisionText)
@@ -98,11 +98,11 @@ final class FakeNotesVerifier: NotesVerifying, @unchecked Sendable {
 
     // MARK: What is asked
 
-    @Test func theNegationRepairIsNeverAskedAndEveryOtherPointIs() async throws {
+    @Test func aPointTheGuardRemovedIsNeverAskedAndEveryOtherPointIs() async throws {
         let fake = FakeNotesVerifier([:], otherwise: Self.failed)
         let (result, _) = try await run(verifier: fake.factory)
-        #expect(Set(fake.asked.map(\.text)) == [Self.driftedText, Self.decisionText, Self.taskText])
-        #expect(!fake.asked.contains { $0.text.contains("nie zostanie") })
+        #expect(Set(fake.asked.map(\.text)) == [Self.decisionText, Self.taskText])
+        #expect(!fake.asked.contains { $0.text.contains("nie zostanie") || $0.text == Self.driftedText })
         // The task's request is its text and the quote as the guard sees them.
         let task = try #require(fake.asked.first { $0.kind == .task })
         #expect(task.quote == "Marek wyśle ofertę do klienta w piątek.")
@@ -112,52 +112,37 @@ final class FakeNotesVerifier: NotesVerifying, @unchecked Sendable {
         #expect(result == control)
     }
 
-    // MARK: Repaired points
-
-    @Test func supportedRestoresTheModelTextOfARepairedPoint() async throws {
-        let fake = FakeNotesVerifier(
-            [Self.driftedText: Self.answered(.supported)], otherwise: Self.answered(.supported))
+    @Test func supportedAnswersChangeNothing() async throws {
+        let fake = FakeNotesVerifier([:], otherwise: Self.answered(.supported))
         let log = NotesTraceLog()
         let (result, _) = try await run(verifier: fake.factory, log: log)
         let (control, _) = try await run(verifier: nil)
-        #expect(Self.text(of: "p1", in: control) == Self.driftedQuote)
-        #expect(Self.text(of: "p1", in: result) == Self.driftedText)
-        #expect(result.repairedCount == control.repairedCount - 1)
-        // The negation repair stays a repair.
-        #expect(Self.text(of: "p4", in: result) == "Ja przygotuję umowę.")
+        #expect(result == control)
         let counters = try #require(Self.verifierTrace(log)?.verifier)
-        #expect(counters.eligible == 3)
-        #expect(counters.asked == 3)
-        #expect(counters.supported == 3)
-        #expect(counters.restoredModelText == 1)
+        #expect(counters.eligible == 2)
+        #expect(counters.asked == 2)
+        #expect(counters.supported == 2)
         #expect(counters.rejectedKept == 0)
         #expect(counters.promptVersion == NotesVerifierPrompt.version)
         #expect(!counters.budgetExceeded)
     }
 
-    @Test func weakerUnsupportedOrFailedKeepTheExcerpt() async throws {
-        for verdict in [Self.answered(.weaker), Self.answered(.unsupported), Self.failed] {
-            let fake = FakeNotesVerifier([Self.driftedText: verdict], otherwise: Self.answered(.supported))
-            let (result, _) = try await run(verifier: fake.factory)
-            #expect(Self.text(of: "p1", in: result) == Self.driftedQuote, "\(verdict)")
-        }
-    }
+    // MARK: Rejected points
 
-    // MARK: Kept points
-
-    @Test func aKeptPointTheVerifierRejectsShowsItsQuote() async throws {
+    @Test func aPointTheVerifierRejectsIsRemovedAndItsQuoteIsNotShown() async throws {
         let fake = FakeNotesVerifier([Self.decisionText: Self.answered(.weaker)], otherwise: Self.failed)
         let log = NotesTraceLog()
         let (result, _) = try await run(verifier: fake.factory, log: log)
-        #expect(
-            Self.text(of: "p2", in: result)
-                == "Zatwierdzamy budżet marketingowy w wysokości czterdziestu tysięcy złotych.")
+        #expect(Self.text(of: "p2", in: result) == nil)
+        let markdown = try #require(result.markdown)
+        #expect(!markdown.contains("Zatwierdzamy budżet marketingowy"))
+        #expect(!markdown.contains("Zatwierdzono budżet marketingowy"))
         #expect(Self.text(of: "p3", in: result) == Self.taskText)
         let verification = try #require(Self.verifierTrace(log))
-        #expect(verification.repairReasons[.verifierRejected] == 1)
+        #expect(verification.reasons[.verifierRejected] == 1)
         #expect(verification.verifier?.rejectedKept == 1)
         #expect(verification.verifier?.weaker == 1)
-        #expect(verification.verifier?.failed == 2)
+        #expect(verification.verifier?.failed == 1)
     }
 
     @Test func aFailedVerdictOnAKeptPointLeavesItUnchanged() async throws {
@@ -172,16 +157,16 @@ final class FakeNotesVerifier: NotesVerifying, @unchecked Sendable {
     // MARK: The built-in verifier on the notes' own model
 
     @Test func theDefaultVerifierAsksTheNotesModelThroughTheLease() async throws {
-        let (restored, rig) = try await run(
+        let (kept, rig) = try await run(
             verifier: Self.builtInVerifier, handler: Self.handler(verifierAnswer: "VERDICT: SUPPORTED"))
-        #expect(rig.llm.calls.filter { $0.messages.first?.content == NotesVerifierPrompt.system }.count == 3)
-        #expect(Self.text(of: "p1", in: restored) == Self.driftedText)
+        #expect(rig.llm.calls.filter { $0.messages.first?.content == NotesVerifierPrompt.system }.count == 2)
+        #expect(Self.text(of: "p2", in: kept) == Self.decisionText)
         #expect(await rig.waitUntilReleased())
 
         let (rejected, _) = try await run(
             verifier: Self.builtInVerifier, handler: Self.handler(verifierAnswer: "VERDICT: UNSUPPORTED"))
-        #expect(Self.text(of: "p2", in: rejected)?.hasPrefix("Zatwierdzamy") == true)
-        #expect(Self.text(of: "p1", in: rejected) == Self.driftedQuote)
+        #expect(Self.text(of: "p2", in: rejected) == nil)
+        #expect(Self.text(of: "p3", in: rejected) == nil)
     }
 
     @Test func aModelThatDoesNotAnswerInTheFormatChangesNothing() async throws {
@@ -191,9 +176,8 @@ final class FakeNotesVerifier: NotesVerifying, @unchecked Sendable {
         let (control, _) = try await run(verifier: nil)
         #expect(result == control)
         let counters = try #require(Self.verifierTrace(log)?.verifier)
-        #expect(counters.failed == 3)
+        #expect(counters.failed == 2)
         #expect(counters.rejectedKept == 0)
-        #expect(counters.restoredModelText == 0)
     }
 
     /// Fails loudly on purpose when `notesVerifierEnabled` is flipped to `true`: whoever switches the verifier on
@@ -240,14 +224,13 @@ final class FakeNotesVerifier: NotesVerifying, @unchecked Sendable {
         let (result, _) = try await run(
             verifier: fake.factory, configure: { $0.verifierBudget = .milliseconds(200) }, log: log)
         #expect(result.status == .ok)
-        // The first point (p1, repaired) got its answer in time; the kept ones got none and stay as they were.
-        #expect(Self.text(of: "p1", in: result) == Self.driftedText)
+        // The first point (p2) got its answer in time; the other got none and stays as it was.
         #expect(Self.text(of: "p2", in: result) == Self.decisionText)
         #expect(Self.text(of: "p3", in: result) == Self.taskText)
         let counters = try #require(Self.verifierTrace(log)?.verifier)
         #expect(counters.budgetExceeded)
         #expect(counters.asked == 1)
-        #expect(counters.notAsked == 2)
+        #expect(counters.notAsked == 1)
         #expect(counters.rejectedKept == 0)
     }
 
@@ -273,7 +256,7 @@ final class FakeNotesVerifier: NotesVerifying, @unchecked Sendable {
         words.subtract(["sum", "dec", "task"])
         let leaked = words.intersection(Self.words(described))
         #expect(leaked.isEmpty, "\(leaked.sorted())")
-        #expect(described.contains("restoredModelText"))
+        #expect(described.contains("rejectedKept"))
         #expect(try JSONDecoder().decode(NotesTraceVerification.self, from: Data(json.utf8)) == verification)
 
         // A trace written before the verifier has no counters and still reads.
@@ -282,7 +265,7 @@ final class FakeNotesVerifier: NotesVerifying, @unchecked Sendable {
         let older = try JSONDecoder().decode(
             NotesTraceVerification.self, from: JSONSerialization.data(withJSONObject: object))
         #expect(older.verifier == nil)
-        #expect(older.repaired == verification.repaired)
+        #expect(older.dropped == verification.dropped)
     }
 
     private static func words(_ text: String) -> Set<String> {
