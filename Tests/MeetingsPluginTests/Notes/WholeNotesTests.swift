@@ -445,6 +445,31 @@ final class ScriptedGenerator: NotesGenerating, @unchecked Sendable {
         #expect(generator.released == 1)
     }
 
+    /// Holds the task of a run so the generator can cancel it from inside a request.
+    private final class RunHandle: Sendable {
+        let task = Mutex<Task<NotesResult, any Error>?>(nil)
+    }
+
+    @Test func aCancellationBetweenPartsSendsNoFurtherPart() async throws {
+        let handle = RunHandle()
+        let generator = ScriptedGenerator(budget: 1) { call, _ in
+            if call == 1 {
+                while handle.task.withLock({ $0 }) == nil { await Task.yield() }
+                handle.task.withLock { $0?.cancel() }
+            }
+            return GenerationResult(text: Self.answer, stoppedByTokenLimit: false)
+        }
+        var configuration = WholeNotesPipeline.Configuration()
+        configuration.partTokens = 600
+        #expect(WholeNotesPipeline.parts(of: Self.utterances, budget: 1, partTokens: 600).count >= 3)
+        let pipeline = WholeNotesPipeline(generator: generator, configuration: configuration)
+        let task = Task { try await pipeline.run(utterances: Self.utterances) }
+        handle.task.withLock { $0 = task }
+        await #expect(throws: CancellationError.self) { _ = try await task.value }
+        #expect(generator.calls.count == 1, "a part was sent after the job was cancelled")
+        #expect(generator.opened == 1 && generator.released == 1)
+    }
+
     @Test func aCutOffAnswerIsRetriedOnceAndNeverUsed() async throws {
         let generator = ScriptedGenerator { call, _ in
             GenerationResult(text: Self.answer, stoppedByTokenLimit: call == 1)
