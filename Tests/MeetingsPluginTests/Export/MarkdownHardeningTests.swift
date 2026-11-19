@@ -49,6 +49,8 @@ import Testing
             var text = Substring(line)
             if text.hasPrefix("> _") { text = text.dropFirst(2) }  // the exporter's own stale-notes quote
             if let stamp = text.prefixMatch(of: /\[\d+:\d\d:\d\d\][ ]/) { text = text[stamp.range.upperBound...] }
+            // The composer's own checklist marker is the one bracket pair that stays.
+            if let box = text.prefixMatch(of: /[ ]*[-*+][ ]\[[ xX]\][ ]/) { text = text[box.range.upperBound...] }
             var escaped = false
             for scalar in text.unicodeScalars {
                 if escaped {

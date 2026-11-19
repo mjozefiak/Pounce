@@ -112,7 +112,7 @@ private struct HistoryTaskKey: Equatable {
     var note: NoteItemID
 }
 
-/// Details (prototype `lib-details`): the view toggles with the author legend, then what the source says about
+/// Details (prototype `lib-details`): the view toggles, then what the source says about
 /// the note. Every toggle writes its `plugins.notes.*` setting at once.
 struct NoteDetailsPane: View {
     let model: NotesWorkspaceModel
@@ -123,17 +123,6 @@ struct NoteDetailsPane: View {
         @Bindable var preferences = model.preferences
         return VStack(alignment: .leading, spacing: 0) {
             sectionHeader(Text("View", comment: "Inspector, Details: heading of the view toggles"), first: true)
-            toggleRow(
-                Text("Author bars", comment: "Inspector, Details: toggle for the author bars"),
-                hint: Text(
-                    "Who wrote each block: AI, You, STT.", comment: "Inspector, Details: what the author bars show"),
-                isOn: $preferences.showAuthorBars)
-            AuthorLegend()
-            toggleRow(
-                Text("Source quotes", comment: "Inspector, Details: toggle for the quote chips"),
-                hint: Text(
-                    "Timestamps that open the transcript.", comment: "Inspector, Details: what the quote chips do"),
-                isOn: $preferences.showQuotes)
             toggleRow(
                 Text(
                     "Comments in text", comment: "Inspector, Details: toggle for the comment highlights in the editor"),
@@ -267,30 +256,4 @@ struct NoteDetailsPane: View {
         .overlay(alignment: .bottom) { LintelDivider() }
         .accessibilityElement(children: .combine)
     }
-}
-
-/// The author legend: what each bar colour means. It sits under the Author bars toggle and is read as words.
-struct AuthorLegend: View {
-    @Environment(\.lintelTextSize) private var textSize
-
-    var body: some View {
-        HStack(spacing: 14) {
-            ForEach(Self.authors, id: \.rawValue) { author in
-                HStack(spacing: 6) {
-                    RoundedRectangle(cornerRadius: 2).fill(author.barColor).frame(width: 3, height: 12 * textSize.scale)
-                    Text(verbatim: author.gutterText)
-                        .font(textSize.font(.footnote).monospaced())
-                        .foregroundStyle(LintelBrand.secondaryText)
-                }
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(Text(verbatim: author.spokenName))
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(.vertical, 6)
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel(Text("Author legend", comment: "Accessibility label of the legend of the author bars"))
-    }
-
-    nonisolated static let authors: [NoteAuthor] = [.agent, .human, .stt]
 }

@@ -288,7 +288,7 @@ struct MeetingNoteLayerTests {
         #expect(layer.provenance.first?.startMs == 0)
     }
 
-    @Test("the notes layer carries the time of each quote")
+    @Test("the composed notes carry no times, and an older note's quote time is still read")
     func notesQuotes() throws {
         let notes = NotesComposer.markdown(
             verdict: NotesGuard.ReduceVerdict(
@@ -297,8 +297,12 @@ struct MeetingNoteLayerTests {
                 questions: [NotesPoint(id: "p2", kind: .question, timeMs: 3_725_000, quote: "q", text: "Who pays")],
                 summary: nil, summaryReplaced: false, rejectedIDs: 0),
             participants: [], labels: .english)
+        #expect(!notes.contains("\\[") && !notes.contains("01\\:23"))
         let layer = try #require(MeetingNoteLayers.notesLayer(document(segments: [], notes: notes)))
-        let times = layer.provenance.map(\.quoteTimesMs)
+        #expect(layer.provenance.isEmpty)
+        let old = "### Decisions\n\n- Ship it \\[01\\:23\\]\n\n### Open questions\n\n- Who pays \\[1\\:02\\:05\\]"
+        let oldLayer = try #require(MeetingNoteLayers.notesLayer(document(segments: [], notes: old)))
+        let times = oldLayer.provenance.map(\.quoteTimesMs)
         #expect(times.contains([83_000]))
         #expect(times.contains([3_725_000]))
         #expect(layer.author == .agent)
