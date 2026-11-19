@@ -426,6 +426,9 @@ final class VirtualClock: Clock, @unchecked Sendable {
     /// this many the clock records a failure and cancels the sleep instead of letting it spin.
     private var autoAdvancedSleeps = 0
     static let autoAdvanceLimit = 20_000
+    /// Runs on the sleeping task after its first cancellation check and before the sleeper is registered: the window
+    /// in which a cancel used to leave a sleeper behind. A test sets it to cancel the task exactly there.
+    nonisolated(unsafe) var beforeRegistration: (@Sendable () -> Void)?
 
     init(start: Double = 10_000, autoAdvance: Bool = true) {
         current = Instant(offset: .seconds(start))
@@ -532,13 +535,21 @@ final class VirtualClock: Clock, @unchecked Sendable {
             nextID += 1
             return nextID
         }
+        beforeRegistration?()
         try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
-                let ready = lock.withLock { () -> [CheckedContinuation<Void, Never>] in
+                // Registering and checking for cancellation happen under one lock. `onCancel` takes the same lock, so
+                // either it runs after the sleeper is stored (and removes it) or this sees the cancelled task here.
+                let (cancelled, ready) = lock.withLock { () -> (Bool, [CheckedContinuation<Void, Never>]) in
+                    if Task.isCancelled { return (true, []) }
                     sleepers[id] = Sleeper(deadline: deadline, continuation: continuation)
                     let ready = sleeperWaiters.filter { $0.count <= sleepers.count }.map(\.continuation)
                     sleeperWaiters.removeAll { $0.count <= sleepers.count }
-                    return ready
+                    return (false, ready)
+                }
+                if cancelled {
+                    continuation.resume(throwing: CancellationError())
+                    return
                 }
                 for waiter in ready { waiter.resume() }
             }
