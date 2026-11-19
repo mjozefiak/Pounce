@@ -1,5 +1,5 @@
 {
-  "originHash" : "a36600010049c590c0b4d3d6778746b0fff799e882d70289364b7a64b0a1f16e",
+  "originHash" : "d932bc5912e5f066b9b7b30405698be2ca1ac1c7617011091e4035b036069893",
   "pins" : [
     {
       "identity" : "argmax-oss-swift",
@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/FluidInference/FluidAudio.git",
       "state" : {
-        "revision" : "e396cf780c4abf8e395087467c0585d3b0d17f68",
-        "version" : "0.18.2"
+        "revision" : "c8b41f98eae668794dd0083bbe028fe7e6585051",
+        "version" : "0.18.3"
       }
     },
     {

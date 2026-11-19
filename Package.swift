@@ -25,7 +25,7 @@ let package = Package(
         // Core ML (Apache-2.0), used by LintelSpeech and, for diarization, by MeetingsPlugin. 0.x: its API stays
         // behind the SpeechEngine and Diarizer ports (ADR 0003, ADR 0007). `traits: ["Diarizer"]` leaves out text
         // to speech and the bundled Rust text engine (the trait is opt-out upstream, which is why Lintel names it).
-        .package(url: "https://github.com/FluidInference/FluidAudio.git", exact: "0.18.2", traits: ["Diarizer"]),
+        .package(url: "https://github.com/FluidInference/FluidAudio.git", exact: "0.18.3", traits: ["Diarizer"]),
         // Whisper large-v3-turbo through Core ML (MIT), the second speech engine with a pinned language
         // (ADR 0003), used by LintelSpeech only.
         .package(url: "https://github.com/argmaxinc/argmax-oss-swift.git", exact: "1.1.1"),
