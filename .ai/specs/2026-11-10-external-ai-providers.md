@@ -4,7 +4,7 @@
 
 ## 📝 TLDR
 
-Dziś notatki ze spotkań pisze wyłącznie wbudowany model llama.cpp (`NotesPipeline` przez `LLMLease`). Na spotkaniach właściciela daje on słabsze notatki niż Claude, a na słabszym Macu jest wolny albo niedostępny. Proponujemy opcjonalne, **domyślnie wyłączone** źródło notatek: Lintel uruchamia zainstalowane u użytkownika **Claude Code CLI** jako podproces, na jego własnym logowaniu, i przekazuje mu transkrypt wybranego spotkania. Zaraz po tym (Faza 2) dochodzi drugi kanał: własny klucz API (BYOK).
+Dziś notatki ze spotkań pisze wyłącznie wbudowany model llama.cpp (`NotesPipeline` przez `LLMLease`). Na spotkaniach właściciela daje on słabsze notatki niż Claude, a na słabszym Macu jest wolny albo niedostępny. Proponujemy opcjonalne, **domyślnie wyłączone** źródło notatek: Lintel uruchamia zainstalowane u użytkownika **Claude Code CLI** jako podproces, na jego własnym logowaniu, i przekazuje mu transkrypt spotkania, dla którego powstają notatki. Zaraz po tym (Faza 2) dochodzi drugi kanał: własny klucz API (BYOK).
 
 Momentem decyzji jest **wybór dostawcy i modelu w ustawieniach**: jedno świadome okno zgody mówi, że transkrypty wszystkich spotkań, z imionami mówców, będą trafiać do dostawcy. Od tej chwili każde spotkanie idzie do wybranego dostawcy, dopóki użytkownik nie wróci na model lokalny. Zgoda jest zapisana i **sprawdzana w kodzie przed każdym uruchomieniem procesu** (i przed każdym żądaniem sieciowym w Fazie 2). Każde spotkanie, którego notatki napisał dostawca, ma znacznik „wysłano do: Claude · model”. Dyktowanie jest poza v1, a kontekst dyktowania (epik DICT) nie trafia do dostawcy nigdy.
 
@@ -59,7 +59,7 @@ Alternatywa do Q5, rozważona i odrzucona: pseudonimy („S1”, „S2”) w wys
 
 **Rozważone i odrzucone:**
 - *Dyktowanie jako pierwszy konsument* (wersja z 2026-11-10): niesie najwięcej ryzyka (opóźnienie, kontekst DICT, zmiana `LintelKit`) i nie jest tym, co właściciel zamówił jako pilne.
-- *Flaga wysyłki per spotkanie, przełącznik „każde nowe spotkanie”, potwierdzenie „uczestnicy wiedzą”, wariant zdania dla uczestników* (rekomendacje review K2, W1, Q9): odrzucone decyzją właściciela z 2026-11-19. Decyzja zapada raz, przy wyborze dostawcy; kto ma poufne spotkanie, wraca na model lokalny przed nagraniem albo przed „Regenerate Notes”. Skutek uboczny jest nazwany w oknie zgody i w Risks.
+- *Flaga wysyłki per spotkanie, przełącznik „każde nowe spotkanie”, potwierdzenie „uczestnicy wiedzą”, wariant zdania dla uczestników* (rekomendacje review K2, W1, Q9): odrzucone decyzją właściciela z 2026-11-19. Decyzja zapada raz, przy wyborze dostawcy; kto ma poufne spotkanie, wraca na model lokalny, zanim spotkanie przejdzie w `ready` (najprościej przed nagraniem), albo przed „Regenerate Notes”. Skutek uboczny jest nazwany w oknie zgody i w Risks.
 - *Znacznik bez migracji*: sprawdzone i odrzucone. Znacznik musi być trwały per spotkanie i przeżyć zmianę ustawień, więc nie może pochodzić z `plugins.meetings.*`. `notes_model` ma zamknięte znaczenie w BC §5. Sufiks w `notes_prompt_version` (`TEXT`) mógłby unieść format promptu, ale nie nazwę modelu, i mieszałby dwa znaczenia w jednym polu. Dwie kolumny `NULL` to najmniejsza uczciwa zmiana.
 - *Zapis znacznika w `notes_model` jako `cli:<provider>/<model>`*: zmienia znaczenie chronionej kolumny (`BACKWARD_COMPATIBILITY.md` §5: „`notes_model` is an `LLMModelCatalog` id”).
 - *Wspólne ustawienia `app.ai.*` i `PluginContext.hostSettings`*: zbędna zmiana chronionego `LintelKit` przy jednym konsumencie. Model i ścieżkę trzyma plugin; wybór modelu per funkcja jest zresztą lepszy niż globalny.
@@ -79,7 +79,7 @@ Stan wiedzy z 2026-11-10 (Claude Code 2.1.322, sprawdzone lokalnie) i z review z
 - **Codex CLI:** brak flagi promptu systemowego, wyłączenie powłoki niepotwierdzone, `-o <plik>` zapisuje odpowiedź jako jawny plik, warunki OpenAI nieprzeczytane. Niegotowy.
 - **Gemini CLI, Grok Build:** do weryfikacji u źródła (plany, rozliczanie w trybie headless, flagi izolacji).
 - **Regulamin Anthropic:** dozwolone jest własne logowanie użytkownika w niezmodyfikowanym Claude Code; zabronione zbieranie i pośredniczenie w poświadczeniach. Czy darmowa aplikacja OSS wołająca `claude -p` to „running Claude Code in your products”, nie jest rozstrzygnięte (ryzyko przyjęte 2026-11-10).
-- **Rynek:** Raycast AI, Msty, Zed i Cursor stawiają na BYOK albo własną subskrypcję; wywoływanie zainstalowanych CLI to wzorzec z edytorów. Przejmujemy „deskryptor dostawcy + test połączenia”, pomijamy zarządzanie kontami i rozliczeniami. Granola i podobne notatniki wysyłają transkrypt domyślnie; my odwrotnie: domyślnie nic, decyzja per spotkanie.
+- **Rynek:** Raycast AI, Msty, Zed i Cursor stawiają na BYOK albo własną subskrypcję; wywoływanie zainstalowanych CLI to wzorzec z edytorów. Przejmujemy „deskryptor dostawcy + test połączenia”, pomijamy zarządzanie kontami i rozliczeniami. Granola i podobne notatniki wysyłają transkrypt domyślnie; my odwrotnie: domyślnie nic, a wysyłka dopiero po świadomym wyborze dostawcy.
 
 ## 📝 Architecture
 
@@ -96,18 +96,20 @@ flowchart LR
   Run -. Faza 2 .-> HTTP["ProviderHTTPTransport: lista hostów"]
 ```
 
-Wniosek z diagramu: jest dokładnie jedno wejście do procesu (i w Fazie 2 do sieci), `ProviderRunner`, i ono samo pyta o autoryzację. Konsument nie może „zapomnieć” o sprawdzeniu.
+Wniosek z diagramu: jest dokładnie jedno wejście dla procesu **niosącego dane użytkownika** (i w Fazie 2 dla żądania sieciowego), `ProviderRunner.run`, i ono samo pyta o autoryzację. Konsument nie może „zapomnieć” o sprawdzeniu.
+
+**Dwa rodzaje procesów.** (1) *Z treścią*: tylko `run`, zawsze za autoryzacją; to je liczy macierz „0 procesów”. (2) *Bez treści*: `--version` lokalizatora, `claude auth status` i „Try it”. Nie niosą żadnych danych użytkownika (stdin pusty albo stała skompilowana w Lintelu, argv stały; test na każdy z nich), nie wymagają zgody, ale startują **wyłącznie po działaniu użytkownika w panelu aktywnego pluginu** (pojawienie się panelu, kliknięcie „Try it” albo „Check again”), nigdy z `settingsPane()` ani z gettera `settingsStatus`, nigdy przy nieaktywnym pluginie (`InactiveSettingsPaneTests` zostaje zielony) i nigdy w tle. Wynik statusu jest trzymany w pamięci modelu panelu, a getter tylko go czyta (wzór: `refreshStatus()` w Dictation i Meetings). „Try it” przechodzi przez `ProviderGate` i wymaga `isolationVerified`. `ProviderProcess` ma dwa osobne wejścia (`runContent`, `runProbe`), więc test źródłowy potrafi je rozróżnić: `runContent` jest wołane tylko z `ProviderRunner.run`.
 
 **Graf zależności (AGENTS.md):** `LintelProviders` zależy tylko od `LintelSpeech` (typy wartości `ChatMessage`, `GenerationResult`), od żadnego pluginu i nie od `LintelApp`. W Fazie 2 dochodzi `LintelKit` (port `KeychainClient`). Pluginy mogą go importować; nie importują siebie nawzajem. Test grafu (wzór: `LintelSpeechTests`) czyta `Package.swift` i źródła. **`LintelKit` i `LintelSpeech` nie zmieniają się w Fazie 1.**
 
 ### `LintelProviders` (nowy target)
 
 - **`ProviderDescriptor`** (dane i czyste funkcje): `id` (`claude-code`), `recipient` (firma, do której trafia tekst; wchodzi do treści okna zgody), nazwa wyświetlana jako zwykły tekst, nazwy binarek, `authStatusArguments`, `arguments(model:systemPrompt:) -> [String]` (jedyne miejsce, gdzie powstaje argv), `parseOutput`, `classify(stderr:exitCode:)`, katalog modeli, zakres wspieranych wersji, `isolationVerified` (ustawiane w kodzie dopiero po kanarku z PR 1; bez tego `ProviderRunner` odmawia startu).
-- **`ProviderLocator`**: stała lista katalogów (`~/.local/bin`, `/opt/homebrew/bin`, `/usr/local/bin`) albo ścieżka wskazana ręcznie. Nie polega na `PATH` aplikacji GUI ani na funkcjach powłoki. Walidacja: zwykły plik wykonywalny, właściciel to użytkownik albo root, brak zapisu dla grupy i innych; potem `--version`. Model zagrożeń: nie bronimy się przed złośliwym oprogramowaniem z uprawnieniami tego samego użytkownika (i tak czytałoby tokeny CLI), bronimy się przed błędną konfiguracją.
+- **`ProviderLocator`**: stała lista katalogów (`~/.local/bin`, `/opt/homebrew/bin`, `/usr/local/bin`) albo ścieżka wskazana ręcznie. Nie polega na `PATH` aplikacji GUI ani na funkcjach powłoki. Standardowe instalacje to dowiązania symboliczne (instalator natywny, Homebrew), więc lokalizator najpierw rozwiązuje dowiązanie, a potem waliduje cel: zwykły plik wykonywalny, właściciel to użytkownik albo root, brak zapisu dla grupy i innych; potem `--version`. Instalacja przez npm wymaga `node` na `PATH`: czy i jak ją wspierać (katalog `node` dopisany do stałego `PATH` albo tylko „Choose file…”), rozstrzyga spike w PR 1. Model zagrożeń: nie bronimy się przed złośliwym oprogramowaniem z uprawnieniami tego samego użytkownika (i tak czytałoby tokeny CLI), bronimy się przed błędną konfiguracją.
 - **`ProviderProcess`**: `Process` z potokiem stdin. Cała treść użytkownika idzie stdin, nigdy argv (argv widać w `ps`). Limit stdout 1 MB. **stderr jest czytany do pamięci z limitem (64 KB), klasyfikowany do zamkniętego enuma `ProviderFailure` (`incompatibleVersion`, `rateLimited`, `notSignedIn`, `network`, `other`) i porzucany**: nigdy logowany ani zapisywany. Osobna grupa procesów, limit czasu, anulowanie SIGTERM i po 2 s SIGKILL grupy. Katalog roboczy: nowy pusty katalog `0700` w katalogu caches pluginu, usuwany w `defer` i sprzątany przy starcie (prefiks `provider-`). Środowisko z listy dozwolonych: `HOME`, stały `PATH`, `LANG`, `TMPDIR`, `CLAUDE_CONFIG_DIR`, zmienne proxy oraz zmienne uwierzytelniania dostawcy bez zmian, jeśli są w środowisku Lintela (regulamin zabrania „removing, disabling or restricting” metod uwierzytelniania; status ostrzega wtedy, że CLI może rozliczać za token).
 - **`ProviderGate`** (jeden na proces aplikacji, jak `LLMLease.shared`): jedno wywołanie naraz na dostawcę, kolejka FIFO. Priorytety `interactive`/`background` dojdą razem z drugim konsumentem; w v1 jedynym jest praca w tle.
 - **`ProviderAuthorization`**: `Sendable` domknięcie `() async -> ProviderDecision` (`allowed` albo powód odmowy) dostarczane przez konsumenta przy każdym żądaniu. `ProviderRunner` woła je **bezpośrednio przed każdym** `Process.run()` (i przed każdym żądaniem HTTP w Fazie 2), już po wyjściu z kolejki `ProviderGate`. Odmowa kończy żądanie błędem `notAuthorized`, bez procesu.
-- **`ProviderRunner`**: `run(messages:model:timeout:authorization:) async throws -> GenerationResult`. Składa prompt wersjonowanym serializatorem, przechodzi przez bramkę, pyta o autoryzację, uruchamia proces, parsuje wynik. To jedyny publiczny sposób uruchomienia procesu.
+- **`ProviderRunner`**: `run(messages:model:timeout:authorization:) async throws -> GenerationResult`. Przechodzi przez bramkę, pyta o autoryzację, uruchamia proces, parsuje wynik. To jedyny sposób uruchomienia procesu z treścią. (Prompt składa konsument swoim wersjonowanym serializatorem.)
 - **`ProviderStatus`**: `notInstalled` · `notSignedIn` · `incompatibleVersion` · `ready`. Odczyt z `claude auth status`; adres e-mail konta zostaje wyłącznie w pamięci parsera i nie trafia do UI, logów ani ustawień (test).
 - **`ProviderFeatureID`**: zbiór otwarty (`RawRepresentable` struct, jak `ModelKind`), w v1 tylko `meetings.notes`. Zgoda jest per id funkcji, więc przyszli konsumenci (czat w aplikacji, akcje po spotkaniu, „Ask agent”, dyktowanie) wymagają własnej, nowej zgody.
 - **`ProviderSystem`**: zestaw części dotykających systemu (lokalizator, fabryka procesu, w Fazie 2 transport). `live` jest aplikacji; `quiet` (fałszywy lokalizator i proces z licznikiem uruchomień) jest instalowany w każdym środowisku `LintelAppTests` i `MeetingsPluginTests`, wzorem `MeetingsSystem.quiet` i `QuietMeetings.install()`. Test na wzór `NoRealSystemTests` sprawdza, że żaden prawdziwy `Process` nie powstał.
@@ -124,13 +126,17 @@ Wniosek z diagramu: jest dokładnie jedno wejście do procesu (i w Fazie 2 do si
 - **`NotesService`**: wybór generatora przy starcie każdego zadania, z bieżących ustawień. Przy ważnej zgodzie do dostawcy idzie **każde** zadanie notatek: spotkanie, które przeszło w `ready` (gdy `notesEnabled`), oraz „Regenerate Notes”, **także dla spotkań nagranych przed włączeniem dostawcy** (okno zgody mówi to wprost). Nic nie jest wysyłane samo z siebie: włączenie dostawcy nie przepisuje starych notatek, a odzyskiwanie po awarii (`NotesRecovery`) tylko zmienia `running` w `failed`. `notesSource = provider` bez ważnej zgody (np. po zmianie wersji tekstu albo ręcznej edycji ustawień) zachowuje się jak `builtIn` i panel pokazuje baner z prośbą o ponowną zgodę.
 - **Zmiana dostawcy albo modelu = nowa zgoda.** Zapis zgody zawiera id deskryptora i model. Wybór innego modelu albo dostawcy otwiera okno zgody ponownie; do czasu potwierdzenia poprzedni wybór zostaje w mocy, a „Cancel” niczego nie zmienia.
 - **Powrót na model lokalny = natychmiastowy koniec wysyłki.** Przełączenie źródła na „Built-in” (albo cofnięcie zgody) działa od najbliższego pytania o autoryzację: zadania czekające w kolejce startują już na modelu wbudowanym, a zadanie w toku jest anulowane przed kolejnym procesem (trwający proces dostaje SIGTERM), wcześniejszy tekst notatek zostaje (reguła „failed/cancelled keeps earlier text”) i zadanie wraca do kolejki raz, na model wbudowany. Zapis zgody jest usuwany, więc ponowny wybór dostawcy znów pokazuje okno. Tego, co już wysłano, nie da się cofnąć; UI mówi to wprost.
-- **Fallback (Q7, PR 7):** `plugins.meetings.notesProviderFallback`, domyślnie wyłączony. Tylko dostawca → wbudowany, gdy model jest zainstalowany. **Nigdy wbudowany → dostawca** (test). Po fallbacku `notes_model` ma id wbudowanego, a kolumny dostawcy są puste.
+- **Odmowa autoryzacji kończy zadanie, nie kawałek.** Dzisiejszy `NotesPipeline` ponawia nieznany błąd raz, potem liczy kawałek jako nieudany i kończy wynikiem `partial`. `notAuthorized` nie może iść tą drogą: jest traktowane jak `CancellationError` / `NotesFailure.modelBusy`, czyli bez retry, bez wyniku częściowego, `settleNotes(previous)`, a potem jeden powrót do kolejki. Test: po odmowie `notes_markdown`, `notes_model` i `notes_provider*` są niezmienione. Zapis wyniku (`conclude`) bierze dostawcę i model z generatora, który faktycznie pisał, a nie z ustawień w chwili zapisu.
+- **Zmiana modelu w trakcie zadania:** po „Turn On” dla nowego modelu trwający proces starego modelu dostaje SIGTERM, jego wynik jest odrzucany, zadanie wraca do kolejki raz i startuje od początku z nowym modelem. Notatki nigdy nie są sklejane z dwóch modeli.
+- **Cykl życia zgody.** Nie ma osobnego przycisku „cofnij zgodę”: cofnięcie to powrót na „Built-in”, który usuwa `providerConsent`. Wyłączenie pluginu zgody nie usuwa (ustawienie zostaje, ale przy wyłączonym pluginie nic nie startuje; po włączeniu obowiązuje dalej, a baner panelu od razu to pokazuje). Erase Data pluginu Meetings usuwa `providerConsent` i przywraca `notesSource = builtIn`. Podniesienie `textVersion` po aktualizacji nie kasuje zapisu, tylko go unieważnia: do ponownego „Turn On” notatki pisze model wbudowany, a baner prosi o zgodę.
+- **Automatyczne ponowienia też są wysyłką.** Dwie istniejące ścieżki startują zadanie bez nowego kliknięcia: ponowny przebieg po zmianie imienia mówcy w trakcie pisania (`storedStale` → `rerun`) oraz dokończenie przerwanego spotkania po starcie aplikacji (`RecoveryJob` → `ready`, „Dokończ”). Przy ważnej zgodzie idą do dostawcy jak każde inne zadanie (zgoda mówi „wszystkie spotkania”), a przy braku zgody albo po powrocie na „Built-in” na model wbudowany. Obie są w macierzy.
+- **Fallback (Q7, PR 7):** `plugins.meetings.notesProviderFallback`, domyślnie wyłączony. Tylko dostawca → wbudowany, gdy model jest zainstalowany. **Nigdy wbudowany → dostawca** (test). Fallback powtarza **całe** zadanie na modelu wbudowanym (bez sklejania wyników dwóch modeli). Po fallbacku `notes_model` ma id wbudowanego, a kolumny dostawcy są puste.
 - **Panel Modele i banery:** przy `notesSource = provider` bez fallbacku model notatek nie jest „selected” w `modelUsage` (`MeetingsPlugin+Models.swift`), więc „N models are needed” i „Download Notes Model” go nie żądają. Test banera.
 - **Tekst dla uczestników:** `MeetingConsentText` **bez zmian** (decyzja właściciela).
 
 ### Reguły repozytorium zmieniane razem z kodem
 
-W tym samym PR co kod, który potrafi wysłać (PR 5): `CODE_REVIEW.md` §5 (nowe, nazwane wyjście danych: podproces dostawcy, z warunkami tego specu), `AGENTS.md` (wiersz Meetings „the only network access…”, nowy target, graf), `BACKWARD_COMPATIBILITY.md` §2, §3 i §5, napisy w aplikacji (`en` + `pl`), w tym podsumowanie pluginu „Everything runs on this Mac and nothing is uploaded.” (`MeetingsViews.swift`). README i `docs/index.html` zmieniają się w PR 6, czyli wtedy, gdy użytkownik dostaje drogę do włączenia. Test językowy: żaden napis w katalogu i na stronie nie mówi „nothing is uploaded” bez „by default”.
+W tym samym PR co kod, który potrafi wysłać (PR 5): `CODE_REVIEW.md` §5 (nowe, nazwane wyjście danych: podproces dostawcy, z warunkami tego specu), `AGENTS.md` (wiersz Meetings „the only network access…”, nowy target, graf), `BACKWARD_COMPATIBILITY.md` §2, §3 i §5, napisy w aplikacji (`en` + `pl`), w tym podsumowanie pluginu „Everything runs on this Mac and nothing is uploaded.” (`MeetingsViews.swift`). README i `docs/index.html` zmieniają się w PR 6, czyli wtedy, gdy użytkownik dostaje drogę do włączenia. Test językowy: żaden napis w `Localizable.xcstrings` (`en` i `pl`) ani na stronie (obie wersje językowe) nie obiecuje, że nic nie jest wysyłane, bez zastrzeżenia „domyślnie”.
 
 ## 📝 Data Model
 
@@ -206,7 +212,7 @@ protocol NotesGenerating: Sendable {
 
 **Argumenty Claude Code (golden test deskryptora; lista do potwierdzenia w PR 1):** `claude -p --model <m> --output-format json --tools "" --no-session-persistence --disable-slash-commands --strict-mcp-config --setting-sources "" --system-prompt <statyczny prompt Lintela>`, treść na stdin. Statyczny prompt w argv jest dopuszczalny (nasz tekst, nie dane użytkownika). `--no-session-persistence` i wyłączenie hooków są **wymogiem wydania**: bez dowodu z kanarka `isolationVerified` zostaje `false`.
 
-`tryOut` wysyła stały, nieosobowy tekst Lintela (żadnych danych użytkownika), tylko po kliknięciu „Try it”. Jest dostępny przed zgodą, żeby dało się sprawdzić model przed decyzją; nie przechodzi przez `MeetingProviderAuthorization`, bo nie niesie danych spotkań, i ma własny test, że jego stdin jest stałą.
+`tryOut` wysyła stały, nieosobowy tekst Lintela (żadnych danych użytkownika), tylko po kliknięciu „Try it”. Jest dostępny przed zgodą, żeby dało się sprawdzić model przed decyzją; to proces bez treści (patrz Architecture), z własnym testem, że jego stdin jest stałą.
 
 ## 📝 UI/UX
 
@@ -223,7 +229,8 @@ protocol NotesGenerating: Sendable {
   Przyciski „Turn On” / „Cancel”. „Cancel” zostawia poprzedni wybór bez zmian.
 - **Stale widoczny stan:** dopóki dostawca jest wybrany, baner panelu Meetings (`settingsStatus`) mówi „Ready · Notes are written by Claude Code. Transcripts leave this Mac.”, a wiersz wyboru ma podpis z modelem. Powrót na „Built-in” to jedno kliknięcie w tym samym wierszu, bez potwierdzenia.
 - **Tekst dla uczestników:** „Copy message” i przypomnienie w HUD zostają dokładnie takie jak dziś (MEET-1.6). Nie wspominają o dostawcy ani o chmurze.
-- **Znacznik przy wyniku:** „Sent to: Claude · <model>” w wierszu biblioteki, w oknie spotkania i w Details w Notes (przez `MeetingNoteSource`/`NoteDetail`, bez zmian w `LintelKit`: tekst idzie istniejącym polem opisu źródła). To informacja o prywatności spotkania. **Żadnych pasków ani etykiet per blok, żadnego „AI/You”** (decyzja 4). Eksport Markdown i kopia ⌘⇧C dostają jedną linię w stopce (Q6).
+- **Znacznik przy wyniku:** „Sent to: Claude · <model>” („Wysłano do: Claude · <model>”, brzmienie z decyzji właściciela) w wierszu biblioteki, w oknie spotkania i w Details w Notes. Do Notes trafia jako jeszcze jedna pozycja `NoteContent.details` (`NoteDetail`: etykieta + wartość) z `MeetingNoteMapping.details`, więc `LintelKit` się nie zmienia. Znacznik opisuje notatki, które są teraz w spotkaniu (napisał je dostawca z wysłanego transkryptu); po fallbacku albo przerwanym zadaniu go nie ma, choć część transkryptu mogła wyjść (ograniczenie zapisane w Risks). To informacja o prywatności spotkania. **Żadnych pasków ani etykiet per blok, żadnego „AI/You”** (decyzja 4).
+- **Stopka eksportu (Q6):** jedną linię dopisuje sam `MeetingsPlugin` tam, gdzie składa Markdown spotkania (`MarkdownExporter`: kopia z biblioteki i eksport z okna spotkania). Kopia ⌘⇧C, „Save .md…” i „Export All Notes…” w Notes biorą warstwę ze źródła; czy dostają tę samą linię (przez tekst warstwy ze źródła albo przez `NoteContent.details`), rozstrzyga prototyp i PR 6, bez nowej wiedzy o dostawcach w `NotesPlugin`.
 - **Dostępność:** każda plakietka i ikona ma etykietę VoiceOver i nie opiera się na samym kolorze; arkusze obsługiwane z klawiatury; teksty skalują się przez `lintelTextSize`.
 - **Lokalizacja:** `en` + `pl` w `Localizable.xcstrings` (`StringCatalogTests`).
 - **Bez nowych elementów przy spotkaniu poza znacznikiem:** żadnego przełącznika w HUD, w oknie spotkania ani w bibliotece.
@@ -256,7 +263,7 @@ protocol NotesGenerating: Sendable {
 
 ## 🧪 Macierz testów „0 procesów bez zgody”
 
-Testy liczą uruchomienia fałszywego procesu z `ProviderSystem.quiet`. Są warunkiem merge PR 5 i zostają w zestawie na stałe.
+Testy liczą uruchomienia **procesów z treścią** (`runContent`) na fałszywym procesie z `ProviderSystem.quiet`; procesy bez treści mają własne testy (stały stdin, brak startu przy nieaktywnym pluginie). Są warunkiem merge PR 5 i zostają w zestawie na stałe.
 
 | # | Zapis zgody | Sytuacja | Oczekiwane uruchomienia |
 |---|---|---|---|
@@ -268,18 +275,23 @@ Testy liczą uruchomienia fałszywego procesu z `ProviderSystem.quiet`. Są waru
 | 6 | niepoprawny JSON | `provider` | 0 |
 | 7 | ważna | plugin wyłączony | 0 |
 | 8 | ważna | `notesSource = builtIn` | 0 |
-| 9 | ważna | odzyskanie po awarii (`NotesRecovery`), bez akcji użytkownika | 0 |
+| 9 | ważna | `NotesRecovery` po awarii w trakcie pisania notatek (`running` → `failed`), bez akcji użytkownika | 0 |
 | 10 | ważna | błąd modelu wbudowanego przy `builtIn` (brak fallbacku w tę stronę) | 0 |
 | 11 | ważna | deskryptor bez `isolationVerified` | 0 |
 | 12 | ważna | włączenie dostawcy przy bibliotece ze starymi spotkaniami, bez akcji użytkownika | 0 |
-| 13 | ważna, cofnięta po 1. kawałku | zadanie w toku | dokładnie 1 |
+| 13 | ważna, unieważniona po 1. kawałku (`textVersion` podniesione w teście) | zadanie w toku | dokładnie 1; `notes_markdown` i `notes_provider*` bez zmian |
 | 14 | ważna | powrót na „Built-in” po 1. kawałku | dokładnie 1; zadanie kończy na wbudowanym |
 | 15 | ważna | powrót na „Built-in”, trzy zadania w kolejce | 0 dla zakolejkowanych |
 | 16 | ważna | zmiana modelu bez potwierdzenia okna („Cancel”) | uruchomienia tylko z poprzednim modelem |
 | 17 | ważna | `provider`, spotkanie przechodzi w `ready` | ≥ 1 |
 | 18 | ważna | „Regenerate Notes” na spotkaniu sprzed włączenia | ≥ 1 |
+| 19 | ważna | ponowny przebieg po zmianie imienia mówcy (`rerun`) | ≥ 1 |
+| 20 | brak albo po powrocie na „Built-in” | ponowny przebieg po zmianie imienia mówcy (`rerun`) | 0 |
+| 21 | ważna | dokończenie przerwanego spotkania (`RecoveryJob` → `ready`) | ≥ 1 |
+| 22 | brak albo po powrocie na „Built-in” | dokończenie przerwanego spotkania | 0 |
+| 23 | ważna | zmiana modelu („Turn On”) po 1. kawałku | 1 ze starym modelem, potem całość z nowym; wynik starego odrzucony |
 
-Dodatkowo: test, że `ProviderRunner` nie ma ścieżki uruchomienia procesu bez wywołania `authorization` (jedna funkcja startu, test źródłowy na `Process(` poza `ProviderProcess`).
+Dodatkowo: test, że `ProviderRunner.run` nie ma ścieżki bez wywołania `authorization`, oraz testy źródłowe: `Process(` tylko w `ProviderProcess`, `runContent` wołane tylko z `ProviderRunner.run`.
 
 ## 🧪 Kanarek izolacji (PR 1, warunek wydania)
 
@@ -359,7 +371,7 @@ Kolejność: 0 → 1 → (2 ∥ 3 ∥ 4) → 5 → 6 → 7 → 8 → 9; potem 10
 - **1.8 Migracja** (PR 4): `v3-notes-provider`, czytniki i strzeżone `UPDATE`, wiersze BC §2 i §5. *Test:* baza sprzed migracji otwiera się i czyta `NULL`; `notes_model` nietknięte; nieudane albo anulowane zadanie nie zmienia `notes_provider*`; notatki napisane ponownie modelem wbudowanym czyszczą znacznik.
 - **1.9 Ustawienia i zgoda** (PR 5): klucze z Data Model, parser `providerConsent`. *Test:* wartości domyślne, nic nie jest zapisywane bez wywołania settera, zła wartość = brak zgody, zmiana wersji tekstu, dostawcy albo modelu unieważnia, powrót na `builtIn` usuwa zapis zgody.
 - **1.10 `MeetingProviderAuthorization`, `ProviderNotesGenerator`, serializator** (PR 5). *Test:* **cała macierz „0 procesów”**; golden serializatora `cli1`; lista zamknięta (a)–(d) na fixture z kanarkami; `notes_prompt_version` z sufiksem; QA tylko przez DEBUG-owy `--qa-setting` z fałszywą binarką.
-- **1.11 Kolejka i `modelUsage`** (PR 5): wybór generatora przy starcie zadania, anulowanie i jednorazowy powrót do kolejki po odmowie autoryzacji. *Test:* wiersze 13–16 macierzy; brak nowej wartości `notes_status`; baner „N models are needed” nie żąda modelu notatek przy `provider` z ważną zgodą i bez fallbacku, a żąda go znów po powrocie na `builtIn`.
+- **1.11 Kolejka i `modelUsage`** (PR 5): wybór generatora przy starcie zadania, anulowanie i jednorazowy powrót do kolejki po odmowie autoryzacji. *Test:* wiersze 13–16 i 19–23 macierzy; odmowa autoryzacji nie daje wyniku `partial`; brak nowej wartości `notes_status`; baner „N models are needed” nie żąda modelu notatek przy `provider` z ważną zgodą i bez fallbacku, a żąda go znów po powrocie na `builtIn`.
 - **1.12 Reguły repozytorium i napisy** (PR 5): `CODE_REVIEW.md` §5, `AGENTS.md`, BC §3, napisy `en` + `pl`. *Test:* test językowy „nothing is uploaded”, `StringCatalogTests`.
 - **1.13 Prototyp** (przed PR 6): `om-ux-design`, akceptacja właściciela. *Wynik:* linia `Prototype:` dopisana do tego specu osobnym PR-em projektowym.
 - **1.14 UI** (PR 6): wiersze w Basics, okno zgody przy wyborze dostawcy i przy zmianie modelu, baner stanu, znacznik (biblioteka, okno spotkania, Details w Notes), stopka eksportu, README, `docs/index.html`. *Test:* modele widoków (okno przy każdej zmianie dostawcy i modelu, „Cancel” niczego nie zapisuje, powrót na „Built-in” bez okna), `MeetingConsentText` niezmienione (istniejący test MEET-1.6 zielony bez zmian), golden eksportu, `pages.yml`; dowód: zrzuty jasne i ciemne 1:1 z prototypem, VoiceOver.
@@ -370,10 +382,10 @@ Kolejność: 0 → 1 → (2 ∥ 3 ∥ 4) → 5 → 6 → 7 → 8 → 9; potem 10
 
 Drugi kanał do tego samego odbiorcy, dla użytkownika bez subskrypcji albo bez CLI. Deskryptor `anthropic-api` (`recipient = anthropic`), osobny od `claude-code`.
 
-- **Klucz:** wyłącznie w Pęku kluczy przez port `KeychainClient` z `LintelKit` (`kSecClassGenericPassword`, osobna usługa `com.lintelapp.providers`, konto = id deskryptora). Bez `MasterKeyStore` (to nie klucz bazy). **Nigdy** w `UserDefaults`, logach, fixture'ach, komunikatach błędów, argv ani w zrzutach QA. Po zapisaniu UI pokazuje tylko „Key saved” i cztery ostatnie znaki; klucza nie da się odczytać z powrotem w UI. Rozróżnione błędy Pęku kluczy (CR §4): błąd inny niż „nie znaleziono” wyłącza kanał i niczego nie usuwa. „Remove key” i Erase Data pluginu Meetings usuwają wpis.
+- **Klucz:** wyłącznie w Pęku kluczy przez port `KeychainClient` z `LintelKit` (`kSecClassGenericPassword`, osobna usługa `com.lintelapp.providers`, konto = `<id pluginu>.<id deskryptora>`, czyli klucz należy do funkcji, która go wpisała, i przyszły drugi konsument ma własny wpis). Bez `MasterKeyStore` (to nie klucz bazy). **Nigdy** w `UserDefaults`, logach, fixture'ach, komunikatach błędów, argv ani w zrzutach QA. Po zapisaniu UI pokazuje tylko „Key saved” i cztery ostatnie znaki; klucza nie da się odczytać z powrotem w UI. Rozróżnione błędy Pęku kluczy (CR §4): błąd inny niż „nie znaleziono” wyłącza kanał i niczego nie usuwa. „Remove key” i Erase Data pluginu Meetings usuwają wpis Meetings i tylko jego.
 - **Transport:** nowy `ProviderHTTPTransport`: tylko HTTPS, zamknięta lista hostów skompilowana w deskryptorze (wzór: `ModelCatalog.isAllowedDownloadHost`), sesja efemeryczna, bez cache, ciasteczek i proxy użytkownika poza systemowym, przekierowania odrzucane, każdy URL sprawdzany przed wysłaniem. **`LoopbackPolicy` i `LoopbackTransport` zostają bez zmian i nie są do tego używane.** Żadnego SDK; nowa zależność pakietowa nie jest potrzebna.
 - **Bramka:** identyczna. `ProviderRunner` pyta o autoryzację przed **każdym żądaniem sieciowym**. Przejście z `claude-code` na `anthropic-api` to zmiana dostawcy, więc wymaga nowego okna zgody (inny tekst: rozliczenie za token z Twojego konta API, zasady przechowywania danych API; reszta jak w Fazie 1, łącznie z imionami, starymi spotkaniami i zdaniem o uczestnikach).
-- **Macierz „0 żądań sieciowych bez zgody”:** te same 18 wierszy co dla procesów, liczone na fałszywym transporcie z `ProviderSystem.quiet`, plus: brak klucza → 0 żądań; host spoza listy → 0 żądań; przekierowanie → odrzucone; test, że w `LintelProviders` nie ma `URLSession` poza `ProviderHTTPTransport` (test źródłowy).
+- **Macierz „0 żądań sieciowych bez zgody”:** te same 23 wiersze co dla procesów, liczone na fałszywym transporcie z `ProviderSystem.quiet`, plus: brak klucza → 0 żądań; host spoza listy → 0 żądań; przekierowanie → odrzucone; test, że w `LintelProviders` nie ma `URLSession` poza `ProviderHTTPTransport` (test źródłowy).
 - **Redakcja:** klucz jest typem opakowującym bez `CustomStringConvertible` i bez `Codable`; nagłówek uwierzytelniania powstaje w jednym miejscu; test źródłowy loggera obejmuje ten typ; treść odpowiedzi błędu API jest klasyfikowana do `ProviderFailure` i porzucana jak stderr.
 - **Kanarek nie dotyczy** (brak agenta, narzędzi i plików), ale ADR dostaje dopisek o zasadach przechowywania danych po stronie API i liście hostów.
 
@@ -386,6 +398,8 @@ Kroki:
 - **2.5 UI** (PR 9, po prototypie): wybór kanału, pole klucza (bezpieczne pole, wklejanie), „Try it”, okno zgody dla API. *Test:* modele widoków; dowód: zrzuty bez klucza na ekranie.
 
 ### Faza 3 i 4
+
+Fazy 3 i 4 to wskazówki dla przyszłych, osobnych specy (albo dopisków do tego po decyzji właściciela), nie projekt do implementacji z tego dokumentu. Zapisane są tu tylko ograniczenia, które już dziś są pewne.
 
 - **3.x Kolejni dostawcy CLI:** po jednym PR na deskryptor, każdy z własnym kanarkiem (dla Codex: wynik przez stdout zamiast `-o`, `--ephemeral`, udowodnione wyłączenie powłoki) i decyzją prawną w ADR. Nowy dostawca = nowe okno zgody.
 - **4.x Dyktowanie (po decyzji Q2):** `LLMSource.provider`, `ProviderFormatter` nad tymi samymi `CleanupPrompt`, `Segmenter`, `FormatterGuard`; własna zgoda (`dictation.cleanup`). Do dostawcy idą tylko kawałki rozpoznanej wypowiedzi i poprzedni kawałek tej samej wypowiedzi (`previousContext`), **nigdy** `FocusContext`, słownik, schowek, zaznaczenie, tytuł okna ani ścieżki. *Test:* wiadomości do dostawcy równe `CleanupPrompt.messages` bez żadnego pola migawki, także przy włączonym kontekście DICT. Bramka opóźnienia p95 ≤ 8 s na kawałek; `ProviderGate` dostaje wtedy priorytet `interactive`.
@@ -403,7 +417,7 @@ Kroki:
 | W5 kopie na dysku | Kanarek, punkt 6; `--no-session-persistence` jako wymóg |
 | W6 reguły i napisy | „Reguły repozytorium zmieniane razem z kodem”, krok 1.12 |
 | S1 `hostSettings` / `app.ai.*` | usunięte; wszystko w `plugins.meetings.*` |
-| S2 cofnięcie zgody w trakcie | autoryzacja przed każdym procesem; macierz 13–15 |
+| S2 cofnięcie zgody w trakcie | autoryzacja przed każdym procesem, odmowa kończy zadanie; macierz 13–15 i 23 |
 | S3 wersja formatu promptu | `ProviderPromptSerializer` `cli1` |
 | S4 otwarty zbiór funkcji | `ProviderFeatureID` |
 | S5 stderr | `ProviderProcess`, `ProviderFailure` |
