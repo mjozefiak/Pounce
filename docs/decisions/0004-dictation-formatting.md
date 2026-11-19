@@ -86,5 +86,8 @@ transcript in tags under a fixed "transcription editor" system prompt [9].
 `CleanupPrompt.version` is 2 (owner decision 7, ADR 0010 decision 2): a fragment the speaker explicitly takes
 back with a spoken marker is removed together with the marker, the replacement stays, and the model keeps both
 versions when it is not sure. `FormatterGuard` relaxes the lower length bound for such chunks only, found by
-code (see ADR 0010, "Result of the version 2 change"). Both formatters (server and built-in) share the prompt
-and the guard.
+code (see ADR 0010, "Result of the version 2 change"). The relaxed output must be derivable from the input: a
+filler, a repetition or a span that ends in a marker may be removed freely, any other missing word costs one
+edit against a small budget, so the marker anchors the removal and a cut middle or a summary is rejected. The
+prompt's examples are not corpus cases (`CleanupPromptCorpusSeparationTests`). Both formatters (server and
+built-in) share the prompt and the guard.
