@@ -230,6 +230,23 @@ private let micOnly: TrackScript? = nil
         #expect(try rig.rows(id).map(\.text) == ["After the device change"])
     }
 
+    @Test func theRestartWaitsForTheDelayWhenTheStreamEnds() async throws {
+        let rig = try SessionRig(texts: [:])
+        var mic = TrackScript()
+        mic.silence(2)
+        var limits = rig.shortLimits
+        limits.resumeAttempts = 1
+        limits.resumeDelay = .milliseconds(400)
+        let session = rig.session(mic: mic, system: nil, limits: limits, clock: TestClock())
+        let log = SessionEventLog(session)
+        _ = try await session.start()
+        let began = ContinuousClock.now
+        rig.mic.end()
+        #expect(await log.wait { $0 == .trackResumed(.mic) })
+        #expect(ContinuousClock.now - began >= .milliseconds(350))
+        _ = await session.finish()
+    }
+
     @Test func aMicrophoneThatNeverComesBackIsLostAfterTheAttempts() async throws {
         let rig = try SessionRig(texts: [:])
         var mic = TrackScript()

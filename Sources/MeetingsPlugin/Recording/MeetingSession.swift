@@ -426,7 +426,12 @@ actor MeetingSession {
         track.consume?.cancel()
         await track.audio.stop()
         for attempt in 1...attempts {
-            if limits.resumeDelay > .zero { try? await Task.sleep(for: limits.resumeDelay) }
+            if limits.resumeDelay > .zero {
+                // Unstructured on purpose: when the stream ended, this runs inside the track's own consume
+                // task, which was just cancelled, and a cancelled sleep would return at once.
+                let delay = limits.resumeDelay
+                await Task { try? await Task.sleep(for: delay) }.value
+            }
             guard tracks[channel] === track, track.alive, finishTask == nil, state == .recording else {
                 track.resuming = false
                 return
@@ -444,6 +449,10 @@ actor MeetingSession {
                 let silence = Int(gap * Double(AudioFormat.sampleRate))
                 track.resuming = false
                 if silence > 0 { await receive(track, [Float](repeating: 0, count: silence)) }
+                guard finishTask == nil, state == .recording else {
+                    await track.audio.stop()
+                    return
+                }
                 track.lastAudioAt = now()
                 track.levelGate.open()
                 consume(track, stream)
