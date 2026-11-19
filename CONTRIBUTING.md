@@ -33,7 +33,7 @@ Run these in order before you open a PR:
 1. `swift build`
 2. `swift test`
 3. `swift format lint --strict -r Sources Tests`
-4. If you changed `scripts/changelog-section.sh` or `CHANGELOG.md`: `zsh scripts/tests/run.zsh`
+4. If you changed `scripts/*.sh`, `CHANGELOG.md` or the release workflow: `zsh scripts/tests/run.zsh`
 
 CI runs the same commands, plus some tests under `--sanitize=thread`
 ([ci.yml](.github/workflows/ci.yml)). A docs-only PR says so in its body.
@@ -46,6 +46,7 @@ CI runs the same commands, plus some tests under `--sanitize=thread`
 - A user-visible change adds one line under `## [Unreleased]` in [CHANGELOG.md](CHANGELOG.md), in the
   matching `### Added / Changed / Fixed / Removed / Security` group, written for users. Internal-only
   changes (refactors, tests, CI, docs) need no line.
+- Do not edit the version in `Resources/Info.plist`: it stays `0.0.0` / `0`. A release takes its version from the tag (`vX.Y.Z` or `vX.Y.Z-beta.N`) and its build number from the commit count; the tag needs a `## [X.Y.Z]` section in CHANGELOG.md.
 - Fill in the PR template. Labels follow the state machine in [SDLC.md](SDLC.md).
 - Review: CI must be green. A UI change needs screenshots of the running app in light and dark mode
   (the QA gate in [SDLC.md](SDLC.md)). A PR labeled `needs-qa` does not merge without `qa-approved`.

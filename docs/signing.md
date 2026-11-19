@@ -54,13 +54,13 @@ To finish the rotation, once:
 2. Probes `codesign` with the identity. The certificate is self-signed and therefore untrusted; if a
    runner image refuses to sign with it, the workflow trusts it in that ephemeral runner's System
    keychain only.
-3. Runs `scripts/make-dmg.sh` with `SIGN_IDENTITY="Lintel Release"` and `SIGN_KEYCHAIN`. The embedded
+3. Takes the version from the tag (`scripts/version-from-tag.sh`; a tag that is not `vX.Y.Z` or `vX.Y.Z-beta.N`, or one without a `CHANGELOG.md` section, fails the run before anything is built) and runs `scripts/make-dmg.sh` with `SIGN_IDENTITY="Lintel Release"` and `SIGN_KEYCHAIN`. The embedded
    `SQLCipher.framework` and `llama.framework` are signed first, then the app with the hardened runtime and
-   `Resources/Lintel.entitlements`, then the DMG.
+   `Resources/Lintel.entitlements`, then the DMG. `APP_VERSION` (the tag without `v`) and `APP_BUILD` (`git rev-list --count HEAD`) are stamped into the copied `Info.plist` by `scripts/stamp-version.sh` before the first `codesign`, so the signature covers them; `Resources/Info.plist` stays `0.0.0` / `0`.
 4. Checks that the designated requirement names the identifier and the certificate hash (not a cdhash),
    matches `Resources/designated-requirement.txt`, and is identical after a second, independent build.
 5. Uploads `Lintel.dmg`, its SHA-256 and the designated requirement as the `Lintel-dmg` artifact, then
-   deletes the temporary keychain. Only a `v*` tag runs the `publish` job that creates a GitHub Release.
+   deletes the temporary keychain. Only a `v*` tag runs the `publish` job that creates a GitHub Release (body: install text and the changelog section; `-beta` tags are pre-releases; `CHANGELOG.md` is attached).
 
 Pull requests from forks get no secrets; their DMG is signed ad-hoc and the requirement checks are
 skipped. A tag build without the secrets fails.
