@@ -174,9 +174,9 @@ enum AutocorrectCorpus {
         }
     }
 
-    /// Data for the next step (CleanupPrompt v2 and the guard): how many `expected` texts the current guard
-    /// would turn back into the raw text. No blocking assertion; the numbers go to the PR body.
-    @Test func reportsHowTheCurrentGuardTreatsExpected() throws {
+    /// Owner decision 7: the guard must let the corpus' `expected` texts through (a correctly removed retraction
+    /// is not "too short"). Counts per category go to the PR body; a rejected `expected` fails the test.
+    @Test func guardAcceptsEveryExpectedText() throws {
         var rejected: [String: [String]] = [:]
         var total: [String: Int] = [:]
         for item in try AutocorrectCorpus.load() {
@@ -191,11 +191,49 @@ enum AutocorrectCorpus {
             let list = rejected[category, default: []]
             print("[autocorrect-guard] \(category): \(list.count)/\(total[category] ?? 0) \(list.sorted())")
         }
+        #expect(rejected.isEmpty, "\(rejected)")
+    }
+
+    /// Attacks on every case: an empty answer, an unrelated text, a cut-off beginning, an addition, and the
+    /// ADR 0005 failure with a known bad output must not be accepted as the cleaned text... except where the
+    /// known bad output is a plausible cleaning the guard cannot judge (reported, never counted as a pass).
+    @Test func guardRejectsEmptyForeignTruncatedAndExtendedOutputs() throws {
+        for item in try AutocorrectCorpus.load() {
+            #expect(FormatterGuard.check(input: item.raw, output: "") == .rejected(.empty), "\(item.id)")
+            let foreign = FormatterGuard.check(input: item.raw, output: "Jutro rano będzie padał deszcz w całym kraju.")
+            #expect(foreign != .accepted("Jutro rano będzie padał deszcz w całym kraju."), "\(item.id): foreign")
+            let extended = item.expected + " Dodatkowo proszę o potwierdzenie rezerwacji sali i przesłanie notatki."
+            #expect(
+                FormatterGuard.check(input: item.raw, output: extended) != .accepted(extended), "\(item.id): extended")
+            // Chunks under five words are bounded only by the +3 rule, so they are not cut here.
+            if AutocorrectCorpus.withdrawing.contains(item.category), FormatterGuard.words(in: item.raw) >= 5 {
+                let words = item.raw.split(separator: " ")
+                let cut = words.prefix(words.count / 2).joined(separator: " ") + "."
+                // A cut that happens to end on the input's last word ("... sofę albo jednak szarą sofę" ->
+                // "kupimy czerwoną sofę") is the kept-withdrawn-version failure of ADR 0005. The guard cannot
+                // tell which version stayed; the real-model report measures it.
+                let sameEnd = AutocorrectCorpus.tokens(cut).last == AutocorrectCorpus.tokens(item.raw).last
+                if !sameEnd {
+                    #expect(FormatterGuard.check(input: item.raw, output: cut) != .accepted(cut), "\(item.id): cut")
+                }
+            }
+        }
+    }
+
+    /// The negative cases are text that only looks like a retraction; the guard accepts them unchanged.
+    @Test func guardAcceptsNegativesUnchangedAndRejectsDroppingThem() throws {
+        for item in try AutocorrectCorpus.load() where item.category == "negative" {
+            #expect(
+                FormatterGuard.check(input: item.raw, output: item.expected) == .accepted(item.expected), "\(item.id)")
+            let words = item.expected.split(separator: " ")
+            let lost = words.prefix(max(1, words.count / 3)).joined(separator: " ") + "."
+            #expect(FormatterGuard.check(input: item.raw, output: lost) != .accepted(lost), "\(item.id): lost")
+        }
     }
 
     /// Cleans every case with the built-in model in `LINTEL_LLAMA_MODEL` and prints only counts per category
     /// (no text): cases that keep and drop the right words, cleaned outputs that still hold the withdrawn
-    /// version (the ADR 0005 failure) and chunks that fell back to the raw text. Off by default, like the other
+    /// version (the ADR 0005 failure), cleaned outputs equal to a `known_bad` text (reported on its own, never counted as a pass) and chunks that fell back to the raw text (the guard rejected the answer). Off by default, like the other
     /// real-model tests. It loads its own copy of the model, so run it alone:
     /// `LINTEL_LLAMA_MODEL=<gguf> swift test --filter AutocorrectCorpusTests`.
     @Test(.enabled(if: ProcessInfo.processInfo.environment["LINTEL_LLAMA_MODEL"] != nil))
@@ -208,23 +246,51 @@ enum AutocorrectCorpus {
         var passed: [String: Int] = [:]
         var keptWithdrawn: [String: Int] = [:]
         var fellBack: [String: Int] = [:]
+        var knownBadHit: [String: Int] = [:]
+        var lostFinal: [String: Int] = [:]
         var total: [String: Int] = [:]
         for item in try AutocorrectCorpus.load() {
             let key = "\(item.lang)/\(item.category)"
             total[key, default: 0] += 1
             let result = try await formatter.format(chunk: item.raw, previousContext: nil)
             if AutocorrectCorpus.satisfies(result.text, item) { passed[key, default: 0] += 1 }
+            let resultTokens = AutocorrectCorpus.tokens(result.text)
+            // The texts are synthetic; with the variable set, the failing ones are printed for prompt work.
+            if ProcessInfo.processInfo.environment["LINTEL_CORPUS_VERBOSE"] != nil,
+                !AutocorrectCorpus.satisfies(result.text, item)
+            {
+                var answer = ""
+                if case .fellBack = result.outcome {
+                    let messages = CleanupPrompt.messages(transcript: item.raw, context: nil)
+                    answer = (try? await warm.generate(messages: messages, maxTokens: 128)) ?? "?"
+                }
+                print("[autocorrect-fail] \(item.id) \(result.outcome): \(result.text) || \(answer)")
+            }
             if case .fellBack = result.outcome {
                 fellBack[key, default: 0] += 1
-            } else if AutocorrectCorpus.keepsWithdrawn(result.text, item) {
-                keptWithdrawn[key, default: 0] += 1
+            } else {
+                // A raw fallback keeps both versions (the safe failure) and may equal a known bad text, so only
+                // an answer the model gave and the guard accepted counts here.
+                if (item.knownBad ?? []).contains(where: { AutocorrectCorpus.tokens($0) == resultTokens }) {
+                    knownBadHit[key, default: 0] += 1
+                }
+                if AutocorrectCorpus.keepsWithdrawn(result.text, item) {
+                    keptWithdrawn[key, default: 0] += 1
+                    // The ADR 0010 acceptance rule: the withdrawn version kept AND the final one lost.
+                    let words = Set(AutocorrectCorpus.tokens(result.text))
+                    if !item.mustKeep.allSatisfy({ AutocorrectCorpus.holds(words, $0) }) {
+                        lostFinal[key, default: 0] += 1
+                    }
+                }
             }
         }
         await warm.unload()
         for key in total.keys.sorted() {
             let counts = "\(passed[key, default: 0])/\(total[key] ?? 0)"
-            let failures = "keptWithdrawn \(keptWithdrawn[key, default: 0]) fellBack \(fellBack[key, default: 0])"
-            print("[autocorrect-model] \(key): \(counts) \(failures)")
+            let failures =
+                "keptWithdrawn \(keptWithdrawn[key, default: 0]) fellBack \(fellBack[key, default: 0])"
+                + " knownBad \(knownBadHit[key, default: 0]) lostFinal \(lostFinal[key, default: 0])"
+            print("[autocorrect-model] v\(CleanupPrompt.version) \(key): \(counts) \(failures)")
         }
     }
 }

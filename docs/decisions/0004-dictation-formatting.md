@@ -80,3 +80,11 @@ transcript in tags under a fixed "transcription editor" system prompt [9].
 - [7] https://huggingface.co/superwhisper/s1-mini-GGUF
 - [8] https://superwhisper.userjot.com/board/p/ability-to-have-language-model-ignore-questions.
 - [9] https://tryvoiceink.com/docs/prompt-management
+
+## Addendum (2026-11-19): CleanupPrompt version 2
+
+`CleanupPrompt.version` is 2 (owner decision 7, ADR 0010 decision 2): a fragment the speaker explicitly takes
+back with a spoken marker is removed together with the marker, the replacement stays, and the model keeps both
+versions when it is not sure. `FormatterGuard` relaxes the lower length bound for such chunks only, found by
+code (see ADR 0010, "Result of the version 2 change"). Both formatters (server and built-in) share the prompt
+and the guard.

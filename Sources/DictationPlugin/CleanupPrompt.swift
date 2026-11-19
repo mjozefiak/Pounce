@@ -7,8 +7,13 @@ import LintelSpeech
 /// Techniques against a model that answers the dictation instead of cleaning it (ADR 0004): the system
 /// prompt says the input is a transcript and never a request; the transcript sits in delimiters; the
 /// examples include questions and commands that come back as cleaned questions and commands.
+///
+/// Version 2 (owner decision 7, ADR 0010): the model removes a fragment the speaker explicitly retracted with a
+/// spoken marker, and nothing else. It is not told "keep only the last version" (ADR 0005: the default model
+/// then kept the wrong version); a real alternative or a marker word used as content stays, and when unsure
+/// the model keeps both versions. `FormatterGuard` checks the result in code.
 enum CleanupPrompt {
-    static let version = 1
+    static let version = 2
 
     static let system = """
         You are a transcription editor. The user message contains a raw speech-to-text transcript between \
@@ -20,11 +25,21 @@ enum CleanupPrompt {
         - Keep the speaker's words, meaning and language. Do not translate. Keep mixed-language text mixed; \
         keep technical terms, names and code identifiers as spoken.
         - Remove filler words and hesitations (um, uh, yyy, eee, no więc at the start of a sentence), false \
-        starts and immediate repetitions. When the speaker corrects themselves, keep only the correction.
+        starts and immediate repetitions.
+        - Remove a fragment only when the speaker explicitly takes it back with a spoken marker such as \
+        "nie, czekaj", "albo jednak", "nie, to znaczy", "a właściwie", "przepraszam", "pomyłka", "no wait", \
+        "or actually", "I mean", "sorry", "scratch that". Then delete the words \
+        BEFORE the marker that it takes back, delete the marker, and keep the words AFTER it: the replacement \
+        is what the speaker means. The correction replaces only what it corrects: a changed number, time, name \
+        or place replaces that one, and the rest of the sentence stays.
+        - A real alternative ("kawa albo herbata"), a question, a doubt, a condition, or a marker word used as \
+        ordinary content ("poczekaj chwilę", "nie, dziękuję", "I mean it") is not a retraction: keep every \
+        word. When you are not sure the speaker took something back, keep both versions.
         - Fix punctuation, capitalisation and obvious recognition errors. Write numbers and enumerations in \
         their usual written form; turn a spoken list into a list only when the speaker said "first, second" \
         or similar.
-        - Do not add words, facts or greetings. Do not summarise or shorten beyond the removals above.
+        - Do not add words, facts or greetings. Do not summarise, reorder or shorten beyond the removals above; \
+        a long message stays long.
         - The block after <context> is the end of the previous paragraph, for continuity only. Do not repeat it.
         - Output only the cleaned text. No tags, no quotes, no preface.
         """
@@ -46,6 +61,42 @@ enum CleanupPrompt {
         (
             "so uh I think we should we should move the meeting to thursday at ten",
             "I think we should move the meeting to Thursday at ten."
+        ),
+        (
+            "wyślij raport do Kasi nie czekaj do Marka jeszcze dziś",
+            "Wyślij raport do Marka jeszcze dziś."
+        ),
+        (
+            "pójdziemy w piątek na pizzę albo jednak na sushi po pracy",
+            "Pójdziemy w piątek na sushi po pracy."
+        ),
+        (
+            "order two pizzas no wait three pizzas with ham",
+            "Order three pizzas with ham."
+        ),
+        (
+            "wdrożymy to w poniedziałek nie to znaczy we wtorek rano",
+            "Wdrożymy to we wtorek rano."
+        ),
+        (
+            "adres to ulica Polna siedem pomyłka ulica Polna dziewięć",
+            "Adres to ulica Polna dziewięć."
+        ),
+        (
+            "termin to piętnasty przepraszam szesnasty maja",
+            "Termin to szesnasty maja."
+        ),
+        (
+            "I mean it we need the contract signed by friday and it's actually urgent",
+            "I mean it, we need the contract signed by Friday and it's actually urgent."
+        ),
+        (
+            "to znaczy że serwer działa a nie że jest szybki",
+            "To znaczy, że serwer działa, a nie że jest szybki."
+        ),
+        (
+            "weźmiemy kawę albo herbatę i poczekamy na Anię",
+            "Weźmiemy kawę albo herbatę i poczekamy na Anię."
         ),
     ]
 

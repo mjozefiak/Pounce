@@ -15,10 +15,45 @@ enum FormatterGuard {
         case tooShort
         case languageChanged
         case answered
+        /// The output holds words the speaker never said (an unrelated or invented text), or, in a chunk that used
+        /// the relaxed length bound, does not end where the input ends (a summary or a truncation).
+        case addedContent
     }
 
     /// The output may hold 0.6 to 1.15 times the input's words.
     static let lengthRange = 0.6...1.15
+
+    /// The lower bound for a chunk in which the speaker withdrew something or hesitated: removing a retracted
+    /// fragment and its marker legitimately cuts the text by more than the ordinary bound allows ("pójdziemy
+    /// na pizzę albo jednak na sushi" is 7 words, "Pójdziemy na sushi." is 3, a ratio of 0.43). The shortest
+    /// correct result of the synthetic self-correction corpus is 0.38 (the model removes the retracted part and
+    /// the marker, never more), so 0.3 leaves room and still rejects an output that is a fragment of the input.
+    static let removalFloor = 0.3
+
+    /// For any chunk of at least five words: the share of novel words above which the output is not a cleaned
+    /// version of the input but another text (an unrelated or invented answer of the right length). Generous
+    /// on purpose: "obvious recognition errors" are fixed (v1 rule), so a few words do change.
+    static let unrelatedShare = 0.5
+
+    /// How many of the output's words may be absent from the input in a relaxed chunk. A cleaned text only
+    /// rewrites punctuation, case, inflection and digits, so most words occur in the input; a summary, an
+    /// answer or an unrelated text does not. Words with digits are not counted (the model may write "11" for
+    /// "jedenastej"). The corpus' correct results add no word at all, so 0.2 only leaves room for inflection.
+    static let maximumNovelShare = 0.2
+
+    /// The spoken markers with which a speaker withdraws a fragment (ADR 0010, decision 2): a closed list in
+    /// Polish and English, found by code in the input, never on the model's word. Each entry is a phrase of
+    /// lower-cased words.
+    static let retractionMarkers: [[String]] = [
+        ["czekaj"], ["jednak"], ["właściwie"], ["pomyłka"], ["przepraszam"], ["to", "znaczy"],
+        ["wait"], ["actually"], ["sorry"], ["scratch", "that"], ["i", "mean"],
+    ]
+
+    /// Fillers and hesitations, which also shorten the text by themselves.
+    static let fillers: [[String]] = [
+        ["yyy"], ["yy"], ["eee"], ["ee"], ["um"], ["uh"], ["uhm"], ["hmm"], ["no", "więc"], ["no", "cóż"],
+        ["you", "know"],
+    ]
 
     static func check(input: String, output rawOutput: String) -> Verdict {
         let output = clean(rawOutput)
@@ -29,17 +64,30 @@ enum FormatterGuard {
         let inputWords = words(in: input)
         let outputWords = words(in: output)
         // A very short chunk can lose a filler word and so fall under the ratio by itself.
+        // The bound drops only for a chunk in which the speaker withdrew or hesitated, and then the output must
+        // still be made of the input's words and end where the input ends.
+        var usesRelaxedBound = false
         if inputWords >= 5 {
             let ratio = Double(outputWords) / Double(inputWords)
             if ratio > lengthRange.upperBound { return .rejected(.tooLong) }
-            if ratio < lengthRange.lowerBound { return .rejected(.tooShort) }
+            if ratio < lengthRange.lowerBound {
+                // Only a chunk with a marker or a filler may be this short, and only down to the floor.
+                guard containsRemovable(input), ratio >= removalFloor else { return .rejected(.tooShort) }
+                usesRelaxedBound = true
+            }
         } else if outputWords > inputWords + 3 {
             return .rejected(.tooLong)
         }
-
         let before = Language.dominant(in: input)
         let after = Language.dominant(in: output)
         if before != .unknown, after != .unknown, before != after { return .rejected(.languageChanged) }
+        if usesRelaxedBound, !onlyRemovesFragments(input: input, output: output) {
+            return .rejected(.addedContent)
+        }
+        // Another text of the right length: checked last so a changed language keeps its own reason.
+        if inputWords >= 5, novelShare(input: input, output: output) > unrelatedShare {
+            return .rejected(.addedContent)
+        }
         return .accepted(output)
     }
 
@@ -62,6 +110,40 @@ enum FormatterGuard {
             result = result.replacingOccurrences(of: tag, with: "")
         }
         return result.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Whether the input holds a retraction marker or a filler from the closed lists.
+    static func containsRemovable(_ input: String) -> Bool {
+        let tokens = tokens(input)
+        return (retractionMarkers + fillers).contains { contains(tokens, phrase: $0) }
+    }
+
+    /// For a relaxed chunk: the output adds (almost) no word to the input and keeps the input's last word, so
+    /// it is the input with fragments removed, not a summary or another text.
+    static func onlyRemovesFragments(input: String, output: String) -> Bool {
+        let spoken = tokens(input)
+        let written = tokens(output)
+        guard let lastSpoken = spoken.last, let lastWritten = written.last else { return false }
+        if novelShare(input: input, output: output) > maximumNovelShare { return false }
+        return lastWritten == lastSpoken || lastWritten.contains(where: \.isNumber)
+    }
+
+    /// The share of the output's words (digits not counted) that the input does not hold.
+    static func novelShare(input: String, output: String) -> Double {
+        let known = Set(tokens(input))
+        let counted = tokens(output).filter { !$0.contains(where: \.isNumber) }
+        guard !counted.isEmpty else { return 0 }
+        return Double(counted.filter { !known.contains($0) }.count) / Double(counted.count)
+    }
+
+    private static func tokens(_ text: String) -> [String] {
+        text.lowercased().replacingOccurrences(of: "’", with: "'")
+            .split { !($0.isLetter || $0.isNumber || $0 == "'") }.map(String.init)
+    }
+
+    private static func contains(_ tokens: [String], phrase: [String]) -> Bool {
+        guard !phrase.isEmpty, tokens.count >= phrase.count else { return false }
+        return (0...(tokens.count - phrase.count)).contains { Array(tokens[$0..<($0 + phrase.count)]) == phrase }
     }
 
     static func words(in text: String) -> Int {

@@ -410,3 +410,45 @@ DICT-2.2, which is the first story that uses their values.
   text bound it; the regression set of the decision-7 work must prove the "wrong version kept" failure is gone.
 - No baseline means the epic's value is judged by the dogfood numbers and the owner's own use, not by a
   measured improvement.
+
+## Result of the version 2 change (2026-11-19)
+
+`CleanupPrompt.version` is 2 and `FormatterGuard` is adjusted as Decision 2 requires. Numbers come from the
+synthetic corpus (79 cases, 38 of them withdrawals), both built-in catalog models, greedy decoding, on an Apple
+silicon Mac. "Pass" means the output keeps the `must_keep` words and drops the `must_drop` words. The version 1
+prompt was run with the new guard, so the columns differ only by the prompt.
+
+| Model | Prompt | Pass, all (79) | Pass, withdrawals (38) | Pass, negatives (21) | Kept withdrawn and lost final | Fell back to raw | `known_bad` text returned |
+|---|---|---|---|---|---|---|---|
+| Qwen3 4B Instruct 2507 Q4_K_M | v1 | 53 | 15 | 19 | not measured | 0 | 1 |
+| Qwen3 4B Instruct 2507 Q4_K_M | v2 | 73 | 34 | 20 | 0 | 1 | 0 |
+| Qwen3 30B-A3B Instruct 2507 Q4_K_M | v1 | 49 | 12 | 19 | not measured | 0 | 1 |
+| Qwen3 30B-A3B Instruct 2507 Q4_K_M | v2 | 72 | 34 | 20 | 0 | 2 | 1 |
+
+- The acceptance rule of Decision 2 holds for both models: no case ends with the retracted version kept and the
+  final one lost. The remaining withdrawal failures keep both versions (the safe failure) or fall back to raw.
+- The 4B model did keep the wrong version in version 1 (Polish corrections: 0 of 9 pass); the version 2 wording
+  ("delete the words before the marker, keep the words after") and the examples fix that on this corpus. Polish
+  withdrawals still pass 21 of 25 on 4B, so it is not perfect: 2 cases keep both versions, 1 falls back, 1 drops
+  an unrelated word. It does carry self-corrections, with these limits; the corpus is small (79 cases) and
+  the examples are in the prompt, so the owner's own phrasing may do worse.
+- The 30B model's one `known_bad` hit is "both versions kept" ("... we wtorek, a nie czekaj, w środę"), not a
+  lost final version.
+- Over-removal is the new risk: on 4B a negative ("czerwone światło to znaczy stop a nie zwolnij") lost words
+  (1 of 21 negatives on both models). The guard cannot see it (the output only drops words, and the relaxed
+  bound allows that when a marker is present), so only the prompt and the raw text protect the user.
+
+**The guard.** The lower bound 0.6 stays for every chunk without a marker or filler from the closed lists
+(`retractionMarkers`, `fillers`). For a chunk with one it drops to 0.3 (`removalFloor`; the shortest correct
+output in the corpus is 0.38). Below 0.6 the output must also add at most 20% novel words (digits not counted)
+and end on the input's last word (or a digit): a summary, a cut-off text, an invented text or an answer is
+rejected as `addedContent`. This last-word rule also turns a model that kept the first version ("Wyślę to
+mailem.") into a raw fallback. Any chunk of at least five words is rejected as `addedContent` when more than 50%
+of its output words are not in the input (another text of the right length). The 1.15 upper bound, `answered`
+and `languageChanged` are unchanged. With the old guard 28 of the 79 `expected` texts were rejected; now 0 are.
+`known_bad` is reported separately and never counted as a pass. The guard cannot judge which of two kept
+versions the speaker meant; that is measured on the model, per release, with `AutocorrectCorpusTests`.
+
+**Condition.** Version 2 is safe on both catalog models on this corpus. Should a smaller model be added to the
+catalog, it must pass the same report before it may use version 2; until then the choice is the model's, not a
+size limit.

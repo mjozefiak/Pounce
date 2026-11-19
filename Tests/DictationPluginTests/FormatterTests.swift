@@ -101,6 +101,58 @@ final class ScriptedTransport: HTTPTransport, @unchecked Sendable {
         #expect(FormatterGuard.check(input: "yyy tak", output: "Tak.") == .accepted("Tak."))
     }
 
+    // Owner decision 7 / ADR 0010: the length bound drops only for a chunk with a marker or filler.
+
+    @Test func aRetractionMayShortenTheTextBelowTheOrdinaryBound() {
+        let input = "pójdziemy na pizzę albo jednak na sushi"
+        #expect(FormatterGuard.check(input: input, output: "Pójdziemy na sushi.") == .accepted("Pójdziemy na sushi."))
+    }
+
+    @Test func theSameShorteningWithoutAMarkerStaysRejected() {
+        let input = "pójdziemy na pizzę potem do kina a na koniec na sushi"
+        #expect(FormatterGuard.check(input: input, output: "Pójdziemy na sushi.") == .rejected(.tooShort))
+    }
+
+    @Test func aSummaryOrFragmentOfARetractionChunkIsRejected() {
+        let input = "przełóżmy spotkanie na piątek albo jednak na poniedziałek"
+        #expect(FormatterGuard.check(input: input, output: "Piątek.") == .rejected(.tooShort))
+        // Long enough, but it stops before the end: the final version is lost.
+        #expect(
+            FormatterGuard.check(input: input, output: "Przełóżmy spotkanie na piątek.")
+                == .rejected(.addedContent))
+    }
+
+    @Test func addedOrUnrelatedContentInARetractionChunkIsRejected() {
+        let input = "zamów dwie pizze nie czekaj trzy pizze z szynką"
+        #expect(
+            FormatterGuard.check(
+                input: input,
+                output:
+                    "Zamów trzy pizze z szynką i ananasem dla wszystkich gości oraz przygotuj jeszcze deser i napoje.")
+                == .rejected(.tooLong))
+        #expect(
+            FormatterGuard.check(input: input, output: "Pogoda jutro będzie ładna w całym kraju.")
+                == .rejected(.addedContent))
+        #expect(FormatterGuard.check(input: input, output: "") == .rejected(.empty))
+        #expect(FormatterGuard.check(input: input, output: "<think>x</think>") == .rejected(.empty))
+    }
+
+    @Test func aRetractionChunkStillCannotBeAnsweredOrTranslated() {
+        let input = "what is the capital of france no wait of poland please tell me"
+        #expect(FormatterGuard.check(input: input, output: "Sure, it is Warsaw.") == .rejected(.answered))
+        let polish = "pójdziemy na pizzę albo jednak na sushi"
+        #expect(
+            FormatterGuard.check(input: polish, output: "We will go and eat some sushi now")
+                == .rejected(.languageChanged))
+    }
+
+    @Test func writingTheNumberAsDigitsIsNotAddedContent() {
+        let input = "spotkanie jest o dziesiątej nie to znaczy o jedenastej w sali numer 5"
+        #expect(
+            FormatterGuard.check(input: input, output: "Spotkanie jest o 11 w sali numer 5.")
+                == .accepted("Spotkanie jest o 11 w sali numer 5."))
+    }
+
     @Test func languageDetection() {
         #expect(Language.dominant(in: "to jest bardzo ważne i nie ma czasu na to") == .polish)
         #expect(Language.dominant(in: "this is the thing that we should have done") == .english)
@@ -228,16 +280,16 @@ final class ScriptedTransport: HTTPTransport, @unchecked Sendable {
             .map { "[\($0.role)]\n\($0.content)" }.joined(separator: "\n\n") + "\n"
         if ProcessInfo.processInfo.environment["LINTEL_RECORD_SNAPSHOT"] != nil {
             let source = URL(filePath: #filePath).deletingLastPathComponent()
-                .appending(path: "Fixtures/cleanup/prompt-v1.txt")
+                .appending(path: "Fixtures/cleanup/prompt-v2.txt")
             try rendered.write(to: source, atomically: true, encoding: .utf8)
         }
-        let url = try #require(Bundle.module.url(forResource: "Fixtures/cleanup/prompt-v1", withExtension: "txt"))
+        let url = try #require(Bundle.module.url(forResource: "Fixtures/cleanup/prompt-v2", withExtension: "txt"))
         let expected = try String(contentsOf: url, encoding: .utf8)
         #expect(
             rendered == expected,
             "The cleanup prompt changed. Bump CleanupPrompt.version, update the snapshot and note it in the release notes."
         )
-        #expect(CleanupPrompt.version == 1)
+        #expect(CleanupPrompt.version == 2)
     }
 
     @Test func transcriptsAreDelimitedAndQuestionsAreExamples() {
