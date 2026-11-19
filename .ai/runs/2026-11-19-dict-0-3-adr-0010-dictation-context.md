@@ -40,6 +40,8 @@ One document a reviewer can check every later DICT pull request against: the tru
 
 ## Progress
 
+PR: #107
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: ADR
@@ -53,4 +55,4 @@ One document a reviewer can check every later DICT pull request against: the tru
 
 ### Phase 3: Validation
 
-- [ ] 3.1 Run the validation gate and the review pass
+- [x] 3.1 Run the validation gate and the review pass — f01d6b2
