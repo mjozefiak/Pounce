@@ -1,6 +1,6 @@
 # Execution plan: Fable judge protocol for meeting notes (B1)
 
-Status: in-progress
+Status: complete
 
 ## Goal
 
@@ -32,6 +32,7 @@ The layout follows the existing harness (MEET-1.2 to MEET-1.4 live in `scripts/m
 Docs and offline Python only; no Swift code changes, so the Swift gate does not apply. Run `python3 -m unittest discover scripts/meeting-eval` and paste the result into the PR.
 
 ## Progress
+PR: #109
 
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
