@@ -17,10 +17,17 @@ struct ReferencePhrasesFormatTests {
         var segments: [String]?
         var expected: String?
         var file: String?
+        var kind: String?
     }
 
     static let classes: Set<String> = ["clipboard", "file", "none"]
     static let languages: Set<String> = ["pl", "en"]
+    static let noneKinds: Set<String> = ["prose", "unresolved"]
+
+    /// A transcript reads "Wklej schowek."; the phrase list holds "wklej schowek".
+    static func normalized(_ segment: String) -> String {
+        segment.lowercased().trimmingCharacters(in: .whitespaces.union(.punctuationCharacters))
+    }
 
     static func load() throws -> Document {
         let url = try #require(
@@ -58,7 +65,7 @@ struct ReferencePhrasesFormatTests {
             }
 
             // The rule "the phrase is a whole segment" must be readable from the file itself.
-            let hasWholePhrase = segments.contains(where: clipboardPhrases.contains)
+            let hasWholePhrase = segments.contains { clipboardPhrases.contains(normalized($0)) }
             if expected == "clipboard", !hasWholePhrase {
                 problems.append("\(name): no segment is a clipboard phrase")
             }
@@ -71,13 +78,19 @@ struct ReferencePhrasesFormatTests {
             } else if phrase.file != nil {
                 problems.append("\(name): a file outside the file class")
             }
+            if expected == "none", !noneKinds.contains(phrase.kind ?? "") {
+                problems.append("\(name): a none phrase is neither prose nor unresolved")
+            }
         }
 
         for expected in classes.sorted() {
             let inClass = phrases.filter { $0.expected == expected }
-            let minimum = expected == "none" ? 20 : 15
-            if inClass.count < minimum {
-                problems.append("class \(expected) has \(inClass.count) phrases, needs \(minimum)")
+            if expected == "none" {
+                // Unresolved references do not count: the class must hold enough ordinary prose.
+                let prose = inClass.filter { $0.kind == "prose" }.count
+                if prose < 20 { problems.append("class none has \(prose) plain phrases, needs 20") }
+            } else if inClass.count < 15 {
+                problems.append("class \(expected) has \(inClass.count) phrases, needs 15")
             }
             for language in languages.sorted() where !inClass.contains(where: { $0.language == language }) {
                 problems.append("class \(expected) has no \(language) phrase")
@@ -104,10 +117,10 @@ struct ReferencePhrasesFormatTests {
         var document = try Self.load()
         var kept = 0
         document.phrases.removeAll { phrase in
-            guard phrase.expected == "none" else { return false }
+            guard phrase.expected == "none", phrase.kind == "prose" else { return false }
             kept += 1
             return kept > 19
         }
-        #expect(Self.problems(in: document).contains("class none has 19 phrases, needs 20"))
+        #expect(Self.problems(in: document).contains("class none has 19 plain phrases, needs 20"))
     }
 }

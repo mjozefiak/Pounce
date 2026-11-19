@@ -4,7 +4,7 @@
   probes are run, the points marked **[0.2]** are working values, not decisions.
 - Date: 2026-11-19
 - Backlog: `.ai/specs/backlog/2026-11-13-epic-context-aware-dictation.md`, story DICT-0.3. Owner decisions of
-  2026-11-19 (numbers 1, 6 and 7) are applied; they are recorded in the backlog overview by PR #104.
+  2026-11-19 (numbers 1, 6 and 7) are applied; they are recorded in the backlog overview by PR #104 (open when this was written, so this branch does not hold them yet).
 - Number 0010: free on `main` and in the open pull requests (checked 2026-11-19). `0007` is used twice.
 
 **How to read the marks.** **[0.2]** means "to be confirmed by the DICT-0.2 probe" (in the backlog's language:
@@ -30,12 +30,18 @@ Two owner decisions changed the starting point of this ADR:
 
 ### The rules that never change
 
-1. **Off means nothing is read.** With `plugins.dictation.contextEnabled = false` (the default) the port is
-   never called. A source that is not in `contextSources` is not in the request.
+1. **Off means nothing is read.** `plugins.dictation.contextEnabled = false` (the default) is the master switch:
+   the port is never called, and the clipboard and the file system are not read either, whatever
+   `clipboardReference` and `fileReferences` say. A source that is not in `contextSources` is not in the request.
 2. **The snapshot lives in memory for one dictation.** It is cleared on paste, on cancel and on error. Nothing
    from it is written to a log, `ranking.sqlite`, `dictation.sqlite`, a crash report or diagnostics. Field
-   lengths are not logged either.
+   lengths are not logged either. The one exception is what dictation stores today or by rule 5: the bundle id
+   and the profile name (`app_profile`).
 3. **The snapshot is used by Swift rules only.** It is not part of any LLM prompt in Phases 0 to 3.
+   **Everything a reference resolves to is inserted by Swift and never passes through a formatter:** the
+   clipboard text, a file path found on disk, the path behind "ten plik". The formatter, and the continuity
+   block built from the previous chunk, see spoken words only. DICT-3.4 and DICT-3.5 need the same test as
+   DICT-3.1 criterion 4 (a recording formatter that receives no resolved content).
 4. **Dictation context never goes to an external provider.** This holds in every phase and for every provider
    (Claude and any later one), and also for "My server". The owner switched external providers on for the
    product (decision 1 of 2026-11-19); for dictation that covers the dictated transcript only, after the user's
@@ -57,12 +63,12 @@ This table is the single source for the consent sheet, the Context pane and the 
 | Source | When it is read | Limit | Where it goes | How long it lives | Hard refusals |
 |---|---|---|---|---|---|
 | Application (bundle id, pid) | At the shortcut press, when `contextEnabled` or `appProfiles` is on | One identifier | Profile rules; the profile name goes to history (`app_profile`) | Bundle id as today in history; pid in memory for one dictation | None (the bundle id is already read today for history) |
-| `window`: title and document of the focused window | At the shortcut press | One title, one document URL | Swift rules | Memory, one dictation | No Accessibility grant; application on the denied list; Lintel's own windows. Whether the document attribute is reliable: **[0.2]** |
+| `window`: title and document of the focused window | At the shortcut press | One title, one document URL | Nothing in Phases 0 to 3 uses it yet; the document may serve "ten plik" (**[0.2]**) | Memory, one dictation | No Accessibility grant; application on the denied list; Lintel's own windows. Whether the document attribute is reliable: **[0.2]** |
 | `field`: kind of the focused field, text before and after the caret | At the shortcut press | 500 characters before, 200 after, read by range, never the whole value | Insertion rules use at most the last two characters before the caret and the first one after it | Memory, one dictation | Secure text field; Secure Event Input active; no grant; denied application; Lintel's own windows; time limit |
-| `selection`: selected text | At the shortcut press | 2000 characters | Swift rules | Memory, one dictation | Same as `field` |
+| `selection`: selected text | At the shortcut press | 2000 characters | Nothing in Phases 0 to 3 uses it yet. The consent text must say so, or the source stays out of the default list until a rule needs it | Memory, one dictation | Same as `field` |
 | `terminal`: foreground process name and working directory | At the shortcut press, only when the user switched this source on (it is not in the default list) | One process name, one path | Profile `agentCLI`, root folder for file lookup | Memory, one dictation | Source off; a process of another user; no certain match of the active tab (**[0.2]**); `ssh` and `tmux` give no directory |
-| `clipboard`: text of the clipboard | Only when the user spoke a clipboard phrase as a whole segment and `clipboardReference` is on | 20 000 characters, text only | Pasted verbatim by Swift into the result. The formatter never sees the content or the marker | Not kept. History stores the marker `⟦schowek⟧` | Setting off; concealed or transient marker types; non-text content; over the limit; `accessBehavior` other than "always allow" (**[0.2]**) |
-| `files`: file names under the terminal's working directory | Only when the user spoke a file trigger and `fileReferences` and `terminal` are on | Depth 8, 50 000 entries, 20 results, time limit | One verified relative path in the pasted text | Listing cache in memory until the dictation ends. The pasted path is dictated content and stays in history | A place macOS protects with a privacy prompt without Full Disk Access (checked before any file-system call); `node_modules`, `.git`, `.build`, `DerivedData`; remote terminal |
+| `clipboard`: text of the clipboard | Only when the user spoke a clipboard phrase as a whole segment and `clipboardReference` is on | 20 000 characters of text; or, for "ten plik" with `clipboardReference` and `fileReferences` both on, exactly one file URL | Pasted verbatim by Swift into the result (for a file URL: the path in the target's syntax). The formatter never sees the content or the marker | Not kept. History stores the marker `⟦schowek⟧` | Setting off; concealed or transient marker types; content that is neither text nor exactly one file URL; over the limit; `accessBehavior` other than "always allow" (**[0.2]**) |
+| `files`: file names under the terminal's working directory | Only when the user spoke a file trigger and `fileReferences` and `terminal` are on | Depth 8, 50 000 entries, 20 results, time limit | One verified relative path, inserted by Swift after formatting | Listing cache in memory until the dictation ends. The pasted path is dictated content and stays in history | A place macOS protects with a privacy prompt without Full Disk Access (checked before any file-system call); `node_modules`, `.git`, `.build`, `DerivedData`; remote terminal |
 | `vocabulary`: the user's own terms | After formatting | The user's file | Deterministic replacement in Swift | `Plugins/dictation/vocabulary.json` (0600) until the user removes it or erases the data | None. Terms are not logged |
 
 Known limit, stated to the user: a web page can build a password field from an ordinary text field. Lintel
@@ -87,12 +93,12 @@ holds the application only. The user can add and remove entries.
 
 | Application | Bundle identifier | Checked |
 |---|---|---|
-| Passwords (Apple) | `com.apple.Passwords` | on an installed copy, macOS 27 |
+| Passwords (Apple) | `com.apple.Passwords` | read from the application's `Info.plist` on the author's Mac, 2026-11-19 |
 | Keychain Access | `com.apple.keychainaccess` | not checked on an installed copy |
 | 1Password 8 | `com.1password.1password` | not checked on an installed copy |
 | 1Password 7 | `com.agilebits.onepassword7` | not checked on an installed copy |
 | Bitwarden | `com.bitwarden.desktop` | not checked on an installed copy |
-| NordPass | `com.nordsec.nordpass` | on an installed copy |
+| NordPass | `com.nordsec.nordpass` | read from the application's `Info.plist` on the author's Mac, 2026-11-19 |
 | KeePassXC | `org.keepassxc.keepassxc` | not checked on an installed copy |
 | Dashlane | `com.dashlane.dashlanephonefinal` | not checked on an installed copy |
 | LastPass | `com.lastpass.LastPass` | not checked on an installed copy |
@@ -100,7 +106,8 @@ holds the application only. The user can add and remove entries.
 | Proton Pass | `me.proton.pass.electron` | not checked on an installed copy |
 
 DICT-2.3 must check every "not checked" identifier against the vendor's current build before it ships the
-default. An identifier that cannot be confirmed is dropped from the list, not guessed. The list is a second
+default (KeePassXC in particular has had more than one identifier). An identifier that cannot be confirmed is
+dropped from the list, not guessed. The list is a second
 line of defence: secure fields are refused by the port whatever the application is.
 
 ## Decision 2: what the cleanup model may do (owner decision 7, D-Q10 overridden)
@@ -113,8 +120,9 @@ sets the rules the new prompt and the adjusted `FormatterGuard` must keep.
 
 - fillers, hesitations, false starts and immediate repetitions (as version 1 does);
 - a fragment the speaker **explicitly retracted**: the speaker said it, then cancelled or replaced it with a
-  spoken marker ("albo jednak", "nie, czekaj", "to znaczy", "I mean", "no wait", "scratch that"). Only the
-  final version stays. The marker goes too.
+  spoken marker ("albo jednak", "nie, czekaj", "no wait", "scratch that"). Only the final version stays. The
+  marker goes too. The markers are a closed PL and EN list in code. "To znaczy" and "I mean" usually explain
+  instead of retracting, so they are on the list only if the regression set shows no wrongly removed text.
 
 **The model may not:**
 
@@ -125,10 +133,14 @@ sets the rules the new prompt and the adjusted `FormatterGuard` must keep.
 - answer a question, carry out a command, translate, or change names, numbers and code identifiers;
 - see the snapshot, the clipboard content, the dictionary or file names (trust rule 3).
 
-**When the model is not sure, both versions stay.** ADR 0005 records why: an earlier version 2 with a
-"keep only the last version" rule made the default 4B model keep the wrong version without any sign. Losing
-what the user meant is worse than leaving a correction in the text. The new prompt is acceptable only if the
-regression set shows no case where the retracted version survives and the final one is lost.
+**Keeping both versions is the safe failure.** ADR 0005 records why: an earlier version 2 with a "keep only
+the last version" rule made the default 4B model keep the wrong version without any sign. Losing what the user
+meant is worse than leaving a correction in the text. Code cannot see whether the model was sure, so this is
+enforced as an acceptance rule: the new prompt ships only if, on the regression set and for every model in the
+catalog, no case ends with the retracted version kept and the final one lost. The regression set is the
+synthetic corpus of the decision-7 work (run plan `dictation-autocorrect-corpus`); it must hold PL and EN
+cases of retraction with a replacement, retraction without one, and text that only looks like a retraction.
+No case comes from a real dictation.
 
 **The raw text is always available.** This is a hard rule, not a fallback detail:
 
@@ -142,17 +154,25 @@ so a correctly removed long retraction is thrown away. The adjustment must keep 
 
 - the upper bound (1.15) stays, and so do the "answered" and "language changed" checks: these enforce "may not
   add";
-- the lower bound may be relaxed only for a chunk whose input holds a retraction marker from a closed PL and EN
-  list checked in code, not on the model's word;
-- the guard still rejects an output that is short for no reason the code can see.
+- the lower bound (0.6) may be relaxed only for a chunk whose input holds a marker from the closed list, found
+  by code, not on the model's word. The relaxed bound is one fixed number in code, chosen on the regression set
+  and recorded in that pull request. A chunk without a marker keeps 0.6;
+- for a relaxed chunk the guard also checks in code that nothing was added: the share of output words that do
+  not occur in the input is under a fixed number (not zero: numbers and inflection change).
 
 **Version numbers.** The decision-7 change is `CleanupPrompt.version` 1 → 2, a user-visible behaviour
-(`BACKWARD_COMPATIBILITY.md` section 5, release note, a new golden prompt file). DICT-4.2 (a list of terms in the
-prompt) keeps its own condition and would be a later version. *Proposal, for the owner to confirm:* the list of
-terms is not decided by decision 7.
+(`BACKWARD_COMPATIBILITY.md` sections 3 and 5: release note, a new golden prompt file). DICT-4.2 (a list of
+terms in the prompt) keeps its own condition and would be a later version. *Proposal, for the owner to
+confirm:* the list of terms is not decided by decision 7. If confirmed, the backlog text of DICT-4.2 needs an
+edit: its surfaces say "1 → 2" and `prompt-v2.txt`, and its criterion 4 says the prompt "stays in version 1"
+for other sources; both would name the version without the list instead.
 
-**Known limit.** A voice reference is resolved in Swift before formatting. A retraction spoken after "wklej
-schowek" does not cancel the paste. The HUD confirmation with Esc (first five uses) is the way to cancel.
+**Known limits.**
+
+- A voice reference is recognised in Swift before formatting. A retraction spoken after "wklej schowek" does
+  not cancel the paste. The HUD confirmation with Esc (first five uses) is the way to cancel.
+- Formatting runs chunk by chunk while the user speaks. A retraction of something said in an earlier chunk
+  cannot be removed: that chunk is already formatted, and the model sees only its end as the continuity block.
 
 ## Decision 3: the frozen contract
 
@@ -192,6 +212,9 @@ public struct FocusContextRequest: Equatable, Sendable {
     public var maxCharactersAfterCaret: Int   // default 200
     public var maxSelectionCharacters: Int    // default 2000
     public var budget: Duration               // default 250 ms for the whole snapshot
+    public init(
+        sources: Set<FocusContextSource>, maxCharactersBeforeCaret: Int = 500, maxCharactersAfterCaret: Int = 200,
+        maxSelectionCharacters: Int = 2000, budget: Duration = .milliseconds(250))
 }
 
 public struct FocusContext: Equatable, Sendable {
@@ -205,12 +228,17 @@ public struct FocusContext: Equatable, Sendable {
     public var documentURL: URL?
     public var terminal: TerminalContext?     // default nil
     public var skipped: [FocusContextSource: SkipReason]
+    public init(
+        bundleID: String? = nil, processID: Int32? = nil, field: FieldKind = .none, textBeforeCaret: String? = nil,
+        textAfterCaret: String? = nil, selectedText: String? = nil, windowTitle: String? = nil,
+        documentURL: URL? = nil, terminal: TerminalContext? = nil, skipped: [FocusContextSource: SkipReason] = [:])
 }
 
 public struct TerminalContext: Equatable, Sendable {
     public var foregroundProcess: String?     // the process name, for example "claude"
     public var workingDirectory: URL?         // nil when remote
     public var isRemote: Bool                 // ssh, tmux
+    public init(foregroundProcess: String? = nil, workingDirectory: URL? = nil, isRemote: Bool = false)
 }
 
 public struct NoFocusContextReader: FocusContextReader  // field .none, no text, every requested source .unsupported
@@ -228,10 +256,14 @@ Notes on the shape:
 
 - `FieldKind` is an open set like the other two. The backlog names only `FocusContextSource` and `SkipReason`
   as open; a closed `FieldKind` would break plugins the first time a kind is added, so it follows the same rule.
-  Which kinds Accessibility can tell apart beyond these four: **[0.2]**.
+  Which kinds Accessibility can tell apart beyond these four: **[0.2]**. `FocusContext.field` is not optional;
+  code that holds an optional snapshot must unwrap it before comparing with `.none`, or the comparison reads as
+  `Optional.none`.
+- Every struct has an explicit public initialiser with defaults (a public struct gets none for free), so
+  plugins and tests can build values.
 - The snapshot's age is not in the contract. The plugin records the time itself and compares the pid before
-  pasting (older than 120 s or another pid: insertion rules are skipped; the 120 s value is confirmed in the
-  dogfood, DICT-2.5).
+  pasting (older than 120 s or another pid: insertion rules are skipped; the 120 s value comes from DICT-2.5
+  and is confirmed in the dogfood, DICT-3.6).
 - Every probe-dependent member is optional and may stay `nil` (`documentURL`, `terminal`). So a negative probe
   result changes behaviour, not the shape. That is why the shape can be frozen before the probes; the values
   below cannot.
@@ -248,7 +280,7 @@ Notes on the shape:
 | Whole snapshot | 250 ms, then dictation runs without context; `snapshot` returns within 300 ms | decided as a budget, not measured |
 | One Accessibility call | 250 ms working value (the `messagingTimeout` `AXWindowClient` uses today) | **[0.2]**: the probe gives the real return time with a stopped main thread and the recommended value |
 | Clipboard reference | 20 000 characters, text only | decided |
-| File lookup | depth 8, 50 000 entries, 20 results; over a limit the result is empty | decided |
+| File lookup | depth 8, 50 000 entries; over either the result is empty. Results are cut at `limit`, at most 20 | decided |
 | Paste warning for agent CLIs | over 800 characters or 3 lines; the text is not shortened | **[0.2]**: the probe checks where each tool folds a paste |
 
 ### Terminal: when the context is certain
@@ -272,6 +304,11 @@ and Phase 3 ends at DICT-3.1. The types stay in the contract and stay `nil`.
 - **File** (D-Q8): a trigger word ("małpa", "at", "tag") followed by a name, or a name with a spoken extension
   ("kropka swift", "dot swift"). The word "plik" or "file" alone triggers nothing. One winner that exists on
   disk, or the words stay as spoken.
+- **Where a file name starts.** The name is a run of at most four words directly after the trigger or directly
+  before the spoken extension. The resolver tries the longest run first and takes the first run whose words
+  equal the name tokens of exactly one file (with the extension, when one was spoken). In "zmień port w settings
+  kropka yaml" the runs "port w settings" and "w settings" match nothing and "settings" with `yaml` matches one
+  file. Working rule for DICT-3.4; the reference phrases are written to it.
 
 Mention syntax per tool, working table, **[0.2]** as a whole (probe criterion 4). If the probe does not confirm
 a row, that tool gets the plain relative path.
@@ -317,8 +354,11 @@ whether it is worth the two weeks.
 are judged against (0 false substitutions in the `none` class; at least 90% in `clipboard`). Every phrase is
 synthetic: written for this file, none taken from a real dictation or meeting. Each has a language, the
 segments between pauses, and the expected result (`clipboard`, `file`, `none`). File phrases name the expected
-path in the file's small synthetic tree. `ReferencePhrasesFormatTests` checks the format (at least 60 phrases,
-at least 20 in `none`, no phrase without a class).
+path in the file's small synthetic tree. A `none` phrase is either `prose` or `unresolved` (a reference that
+must not resolve: no such file, or two files match). `ReferencePhrasesFormatTests` checks the format: at least
+60 phrases, no phrase without a class, at least 20 plain-prose phrases in `none`, at least 15 in each other
+class, both languages in every class. Segments are compared with the clipboard phrases after lowercasing and
+trimming punctuation, because a real transcript reads "Wklej schowek.".
 
 The set may grow. A phrase is never removed or relaxed to make a resolver pass.
 
@@ -339,7 +379,7 @@ cache and 300 ms on the first listing, at most 20 results.
 | Clipboard `accessBehavior` and the alert on macOS 26 and 27 | DICT-0.2 criterion 5 | DICT-3.1 |
 | Whether the window's document can stand in for "this file" | DICT-0.2 criterion 1 | DICT-3.5 |
 | Unchecked identifiers on the denied list | DICT-2.3 | DICT-2.3 |
-| Prompt version for a list of terms (DICT-4.2) | owner | DICT-4.2 |
+| Prompt version for a list of terms (DICT-4.2), and the backlog edit it needs | owner | DICT-4.2 |
 | Off/on comparison in the dogfood | owner | DICT-3.6 |
 
 DICT-2.1 (the `LintelKit` types) depends on none of the **[0.2]** values, only on the shape above. It can start

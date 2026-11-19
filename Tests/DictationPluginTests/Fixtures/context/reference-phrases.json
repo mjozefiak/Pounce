@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "about": "Synthetic reference phrases for voice references (ADR 0010, story DICT-0.3). Written for this file; none comes from a real dictation or meeting. Each phrase is a list of segments between pauses.",
+  "about": "Synthetic reference phrases for voice references (ADR 0010, story DICT-0.3). Written for this file; none comes from a real dictation or meeting. Each phrase is a list of segments between pauses. Segments are compared with clipboardPhrases after lowercasing and trimming punctuation. A none phrase is prose or unresolved (a reference that must not resolve).",
   "clipboardPhrases": [
     "wklej schowek",
     "wklej ze schowka",
@@ -398,7 +398,8 @@
         "wklej schowek to polecenie którego używam najczęściej"
       ],
       "expected": "none",
-      "note": "clipboard phrase inside a sentence"
+      "note": "clipboard phrase inside a sentence",
+      "kind": "prose"
     },
     {
       "id": "pl-none-02",
@@ -407,7 +408,8 @@
         "nie wiem czy wklej ze schowka działa w tym edytorze"
       ],
       "expected": "none",
-      "note": "clipboard phrase inside a sentence"
+      "note": "clipboard phrase inside a sentence",
+      "kind": "prose"
     },
     {
       "id": "pl-none-03",
@@ -416,7 +418,8 @@
         "powiedz wstaw schowek a zobaczysz co się stanie"
       ],
       "expected": "none",
-      "note": "clipboard phrase inside a sentence"
+      "note": "clipboard phrase inside a sentence",
+      "kind": "prose"
     },
     {
       "id": "pl-none-04",
@@ -426,7 +429,8 @@
         "i wyślij mi mailem"
       ],
       "expected": "none",
-      "note": "clipboard word, no phrase"
+      "note": "clipboard word, no phrase",
+      "kind": "prose"
     },
     {
       "id": "pl-none-05",
@@ -435,7 +439,8 @@
         "schowek w tym samochodzie jest za mały"
       ],
       "expected": "none",
-      "note": "clipboard word, other meaning"
+      "note": "clipboard word, other meaning",
+      "kind": "prose"
     },
     {
       "id": "pl-none-06",
@@ -444,7 +449,8 @@
         "otwórz plik konfiguracyjny"
       ],
       "expected": "none",
-      "note": "the word plik alone triggers nothing"
+      "note": "the word plik alone triggers nothing",
+      "kind": "prose"
     },
     {
       "id": "pl-none-07",
@@ -453,7 +459,8 @@
         "małpa siedzi na drzewie i je banana"
       ],
       "expected": "none",
-      "note": "trigger word in prose, no file matches"
+      "note": "trigger word in prose, no file matches",
+      "kind": "prose"
     },
     {
       "id": "pl-none-08",
@@ -462,7 +469,8 @@
         "dodaj tag do tego wydania"
       ],
       "expected": "none",
-      "note": "trigger word in prose, no file matches"
+      "note": "trigger word in prose, no file matches",
+      "kind": "prose"
     },
     {
       "id": "pl-none-09",
@@ -471,7 +479,8 @@
         "na końcu zdania stawiamy kropka"
       ],
       "expected": "none",
-      "note": "the word kropka without a file name"
+      "note": "the word kropka without a file name",
+      "kind": "prose"
     },
     {
       "id": "pl-none-10",
@@ -480,7 +489,8 @@
         "małpa settings"
       ],
       "expected": "none",
-      "note": "two files match, no extension spoken"
+      "note": "two files match, no extension spoken",
+      "kind": "unresolved"
     },
     {
       "id": "pl-none-11",
@@ -489,7 +499,8 @@
         "otwórz małpa user repository kropka swift"
       ],
       "expected": "none",
-      "note": "trigger and extension, no such file"
+      "note": "trigger and extension, no such file",
+      "kind": "unresolved"
     },
     {
       "id": "pl-none-12",
@@ -498,7 +509,8 @@
         "ten serwis do autoryzacji działa wolno"
       ],
       "expected": "none",
-      "note": "words of a file name, no trigger and no extension"
+      "note": "words of a file name, no trigger and no extension",
+      "kind": "prose"
     },
     {
       "id": "en-none-01",
@@ -507,7 +519,8 @@
         "paste clipboard is the command i use most"
       ],
       "expected": "none",
-      "note": "clipboard phrase inside a sentence"
+      "note": "clipboard phrase inside a sentence",
+      "kind": "prose"
     },
     {
       "id": "en-none-02",
@@ -516,7 +529,8 @@
         "i am not sure paste the clipboard works in this editor"
       ],
       "expected": "none",
-      "note": "clipboard phrase inside a sentence"
+      "note": "clipboard phrase inside a sentence",
+      "kind": "prose"
     },
     {
       "id": "en-none-03",
@@ -525,7 +539,8 @@
         "say insert clipboard and see what happens"
       ],
       "expected": "none",
-      "note": "clipboard phrase inside a sentence"
+      "note": "clipboard phrase inside a sentence",
+      "kind": "prose"
     },
     {
       "id": "en-none-04",
@@ -535,7 +550,8 @@
         "and send it to me"
       ],
       "expected": "none",
-      "note": "clipboard word, no phrase"
+      "note": "clipboard word, no phrase",
+      "kind": "prose"
     },
     {
       "id": "en-none-05",
@@ -544,7 +560,8 @@
         "the clipboard on the wall holds the schedule"
       ],
       "expected": "none",
-      "note": "clipboard word, other meaning"
+      "note": "clipboard word, other meaning",
+      "kind": "prose"
     },
     {
       "id": "en-none-06",
@@ -553,7 +570,8 @@
         "open the configuration file"
       ],
       "expected": "none",
-      "note": "the word file alone triggers nothing"
+      "note": "the word file alone triggers nothing",
+      "kind": "prose"
     },
     {
       "id": "en-none-07",
@@ -562,7 +580,8 @@
         "we meet at the office at nine"
       ],
       "expected": "none",
-      "note": "trigger word in prose, no file matches"
+      "note": "trigger word in prose, no file matches",
+      "kind": "prose"
     },
     {
       "id": "en-none-08",
@@ -571,7 +590,8 @@
         "tag me in the comment when it is done"
       ],
       "expected": "none",
-      "note": "trigger word in prose, no file matches"
+      "note": "trigger word in prose, no file matches",
+      "kind": "prose"
     },
     {
       "id": "en-none-09",
@@ -580,7 +600,8 @@
         "put a dot at the end of the sentence"
       ],
       "expected": "none",
-      "note": "the word dot without a file name"
+      "note": "the word dot without a file name",
+      "kind": "prose"
     },
     {
       "id": "en-none-10",
@@ -589,7 +610,8 @@
         "at settings"
       ],
       "expected": "none",
-      "note": "two files match, no extension spoken"
+      "note": "two files match, no extension spoken",
+      "kind": "unresolved"
     },
     {
       "id": "en-none-11",
@@ -598,7 +620,8 @@
         "open at user repository dot swift"
       ],
       "expected": "none",
-      "note": "trigger and extension, no such file"
+      "note": "trigger and extension, no such file",
+      "kind": "unresolved"
     },
     {
       "id": "en-none-12",
@@ -607,7 +630,67 @@
         "the auth service is slow today"
       ],
       "expected": "none",
-      "note": "words of a file name, no trigger and no extension"
+      "note": "words of a file name, no trigger and no extension",
+      "kind": "prose"
+    },
+    {
+      "id": "pl-clipboard-11",
+      "language": "pl",
+      "segments": [
+        "Popraw ten błąd.",
+        "Wklej schowek.",
+        "I dodaj test."
+      ],
+      "expected": "clipboard"
+    },
+    {
+      "id": "en-clipboard-11",
+      "language": "en",
+      "segments": [
+        "Explain this message.",
+        "Paste the clipboard."
+      ],
+      "expected": "clipboard"
+    },
+    {
+      "id": "pl-none-13",
+      "language": "pl",
+      "segments": [
+        "wklej schowek proszę"
+      ],
+      "expected": "none",
+      "note": "extra word in the segment",
+      "kind": "prose"
+    },
+    {
+      "id": "pl-none-14",
+      "language": "pl",
+      "segments": [
+        "nie wklejaj schowka"
+      ],
+      "expected": "none",
+      "note": "negated, not a phrase from the list",
+      "kind": "prose"
+    },
+    {
+      "id": "en-none-13",
+      "language": "en",
+      "segments": [
+        "paste clipboard here"
+      ],
+      "expected": "none",
+      "note": "extra word in the segment",
+      "kind": "prose"
+    },
+    {
+      "id": "en-none-14",
+      "language": "en",
+      "segments": [
+        "do not paste the clipboard"
+      ],
+      "expected": "none",
+      "note": "negated, phrase inside a longer segment",
+      "kind": "prose"
     }
   ]
 }
