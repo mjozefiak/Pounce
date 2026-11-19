@@ -45,13 +45,13 @@ enum AutocorrectCorpus {
 
     /// The `must_drop` words that belong to the withdrawn version, not to the marker.
     static func withdrawnWords(_ item: Case) -> [String] {
-        item.mustDrop.filter { !markers.contains($0.lowercased()) }
+        item.mustDrop.filter { !markers.contains(spoken($0)) }
     }
 
     /// Whether `text` still holds a word of the withdrawn version.
     static func keepsWithdrawn(_ text: String, _ item: Case) -> Bool {
         let words = Set(tokens(text))
-        return withdrawnWords(item).contains { words.contains($0.lowercased()) }
+        return withdrawnWords(item).contains { holds(words, $0) }
     }
 
     static func load() throws -> [Case] {
@@ -61,14 +61,31 @@ enum AutocorrectCorpus {
 
     /// Lower-cased words of a text, split on anything that is not a letter, digit or apostrophe.
     static func tokens(_ text: String) -> [String] {
-        text.lowercased().split { !($0.isLetter || $0.isNumber || $0 == "'" || $0 == "’") }.map(String.init)
+        text.lowercased().replacingOccurrences(of: "’", with: "'")
+            .split { !($0.isLetter || $0.isNumber || $0 == "'") }.map(String.init)
+    }
+
+    /// The forms a `must_keep` or `must_drop` entry accepts: "jedenastej|11" is the spoken word first, then the
+    /// digits the cleanup prompt may write instead.
+    static func forms(_ entry: String) -> [String] {
+        entry.lowercased().split(separator: "|").map(String.init)
+    }
+
+    /// The spoken form of an entry, the one the raw and expected texts use.
+    static func spoken(_ entry: String) -> String {
+        forms(entry).first ?? entry.lowercased()
+    }
+
+    /// Whether a set of words holds any form of an entry.
+    static func holds(_ words: Set<String>, _ entry: String) -> Bool {
+        forms(entry).contains { words.contains($0) }
     }
 
     /// Whether `text` keeps every `mustKeep` word and drops every `mustDrop` word.
     static func satisfies(_ text: String, _ item: Case) -> Bool {
         let words = Set(tokens(text))
-        return item.mustKeep.allSatisfy { words.contains($0.lowercased()) }
-            && item.mustDrop.allSatisfy { !words.contains($0.lowercased()) }
+        return item.mustKeep.allSatisfy { holds(words, $0) }
+            && item.mustDrop.allSatisfy { !holds(words, $0) }
     }
 }
 
@@ -90,7 +107,7 @@ enum AutocorrectCorpus {
         for item in try AutocorrectCorpus.load() {
             let raw = Set(AutocorrectCorpus.tokens(item.raw))
             for word in item.mustKeep + item.mustDrop {
-                #expect(raw.contains(word.lowercased()), "\(item.id): \(word) is not in raw")
+                #expect(raw.contains(AutocorrectCorpus.spoken(word)), "\(item.id): \(word) is not in raw")
             }
         }
     }
@@ -99,10 +116,10 @@ enum AutocorrectCorpus {
         for item in try AutocorrectCorpus.load() {
             let words = Set(AutocorrectCorpus.tokens(item.expected))
             for word in item.mustKeep {
-                #expect(words.contains(word.lowercased()), "\(item.id): expected lost \(word)")
+                #expect(words.contains(AutocorrectCorpus.spoken(word)), "\(item.id): expected lost \(word)")
             }
             for word in item.mustDrop {
-                #expect(!words.contains(word.lowercased()), "\(item.id): expected still has \(word)")
+                #expect(!AutocorrectCorpus.holds(words, word), "\(item.id): expected still has \(word)")
             }
         }
     }
@@ -179,7 +196,8 @@ enum AutocorrectCorpus {
     /// Cleans every case with the built-in model in `LINTEL_LLAMA_MODEL` and prints only counts per category
     /// (no text): cases that keep and drop the right words, cleaned outputs that still hold the withdrawn
     /// version (the ADR 0005 failure) and chunks that fell back to the raw text. Off by default, like the other
-    /// real-model tests.
+    /// real-model tests. It loads its own copy of the model, so run it alone:
+    /// `LINTEL_LLAMA_MODEL=<gguf> swift test --filter AutocorrectCorpusTests`.
     @Test(.enabled(if: ProcessInfo.processInfo.environment["LINTEL_LLAMA_MODEL"] != nil))
     func realModelPassCountsPerCategory() async throws {
         let path = try #require(ProcessInfo.processInfo.environment["LINTEL_LLAMA_MODEL"])

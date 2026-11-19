@@ -20,8 +20,9 @@ Low: test-only.
 
 - [x] 1.1 Fixture JSON — 9617832
 - [x] 1.2 Swift Testing suite and real-model test — 9617832
-- [ ] 1.3 Full gate
+- [x] 1.3 Full gate
 
 ### Phase 2: Review fixes
 
 - [x] 2.1 Corpus corrections, ADR 0005 known-bad outputs, marker-only must_drop check
+- [x] 2.2 Independent review fixes (reordering, ambiguous cases, digit forms, curly apostrophe, more negatives)

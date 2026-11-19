@@ -22,12 +22,12 @@
     "raw": "zamów dwie pizze nie, czekaj, trzy pizze z szynką",
     "expected": "Zamów trzy pizze z szynką.",
     "must_keep": [
-      "trzy",
+      "trzy|3",
       "pizze",
       "szynką"
     ],
     "must_drop": [
-      "dwie",
+      "dwie|2",
       "czekaj"
     ]
   },
@@ -207,7 +207,7 @@
     "id": "pl-rth-5",
     "lang": "pl",
     "category": "rethink",
-    "raw": "kupimy czerwoną sofę albo jednak szarą",
+    "raw": "kupimy czerwoną sofę albo jednak szarą sofę",
     "expected": "Kupimy szarą sofę.",
     "must_keep": [
       "Kupimy",
@@ -256,11 +256,11 @@
     "raw": "spotkanie jest o dziesiątej nie to znaczy o jedenastej w sali konferencyjnej",
     "expected": "Spotkanie jest o jedenastej w sali konferencyjnej.",
     "must_keep": [
-      "jedenastej",
+      "jedenastej|11",
       "sali"
     ],
     "must_drop": [
-      "dziesiątej",
+      "dziesiątej|10",
       "znaczy"
     ],
     "known_bad": [
@@ -275,11 +275,11 @@
     "raw": "potrzebujemy pięćdziesięciu sztuk przepraszam sześćdziesięciu sztuk",
     "expected": "Potrzebujemy sześćdziesięciu sztuk.",
     "must_keep": [
-      "sześćdziesięciu",
+      "sześćdziesięciu|60",
       "sztuk"
     ],
     "must_drop": [
-      "pięćdziesięciu",
+      "pięćdziesięciu|50",
       "przepraszam"
     ]
   },
@@ -290,11 +290,11 @@
     "raw": "termin mija dwunastego a właściwie trzynastego marca",
     "expected": "Termin mija trzynastego marca.",
     "must_keep": [
-      "trzynastego",
+      "trzynastego|13",
       "marca"
     ],
     "must_drop": [
-      "dwunastego"
+      "dwunastego|12"
     ]
   },
   {
@@ -318,13 +318,13 @@
     "raw": "budżet wynosi osiemnaście tysięcy to znaczy dwadzieścia pięć tysięcy złotych",
     "expected": "Budżet wynosi dwadzieścia pięć tysięcy złotych.",
     "must_keep": [
-      "dwadzieścia",
-      "pięć",
-      "tysięcy",
-      "złotych"
+      "dwadzieścia|25",
+      "pięć|25",
+      "tysięcy|000|tys",
+      "złotych|zł"
     ],
     "must_drop": [
-      "osiemnaście",
+      "osiemnaście|18",
       "znaczy"
     ]
   },
@@ -336,11 +336,11 @@
     "expected": "Adres to ulica Lipowa dwadzieścia.",
     "must_keep": [
       "Lipowa",
-      "dwadzieścia",
+      "dwadzieścia|20",
       "Adres"
     ],
     "must_drop": [
-      "dwanaście",
+      "dwanaście|12",
       "pomyłka"
     ]
   },
@@ -348,14 +348,15 @@
     "id": "pl-cor-7",
     "lang": "pl",
     "category": "correction",
-    "raw": "spotkanie z Anną nie z Hanną w środę",
+    "raw": "spotkanie z Anną nie przepraszam z Hanną w środę",
     "expected": "Spotkanie z Hanną w środę.",
     "must_keep": [
       "Hanną",
       "środę"
     ],
     "must_drop": [
-      "Anną"
+      "Anną",
+      "przepraszam"
     ]
   },
   {
@@ -365,11 +366,11 @@
     "raw": "pociąg odjeżdża o szóstej trzydzieści to znaczy o szóstej czterdzieści",
     "expected": "Pociąg odjeżdża o szóstej czterdzieści.",
     "must_keep": [
-      "czterdzieści",
+      "czterdzieści|40",
       "odjeżdża"
     ],
     "must_drop": [
-      "trzydzieści",
+      "trzydzieści|30",
       "znaczy"
     ]
   },
@@ -534,7 +535,8 @@
       "zawiesza"
     ],
     "must_drop": [
-      "yyy"
+      "yyy",
+      "wiesz"
     ]
   },
   {
@@ -576,7 +578,8 @@
       "płatnościami"
     ],
     "must_drop": [
-      "eee"
+      "eee",
+      "cóż"
     ]
   },
   {
@@ -615,7 +618,7 @@
     "must_keep": [
       "Czekaj",
       "wejściu",
-      "ósmej"
+      "ósmej|8"
     ],
     "must_drop": []
   },
@@ -715,6 +718,32 @@
     "must_drop": []
   },
   {
+    "id": "pl-neg-11",
+    "lang": "pl",
+    "category": "negative",
+    "raw": "przepraszam za spóźnienie korki były straszne",
+    "expected": "Przepraszam za spóźnienie, korki były straszne.",
+    "must_keep": [
+      "Przepraszam",
+      "spóźnienie",
+      "korki"
+    ],
+    "must_drop": []
+  },
+  {
+    "id": "pl-neg-12",
+    "lang": "pl",
+    "category": "negative",
+    "raw": "no to właściwie wszystko jest już gotowe do wysyłki",
+    "expected": "No to właściwie wszystko jest już gotowe do wysyłki.",
+    "must_keep": [
+      "właściwie",
+      "gotowe",
+      "wysyłki"
+    ],
+    "must_drop": []
+  },
+  {
     "id": "en-ret-1",
     "lang": "en",
     "category": "retraction",
@@ -737,12 +766,12 @@
     "raw": "order two pizzas no wait three pizzas with ham",
     "expected": "Order three pizzas with ham.",
     "must_keep": [
-      "three",
+      "three|3",
       "pizzas",
       "ham"
     ],
     "must_drop": [
-      "two",
+      "two|2",
       "wait"
     ]
   },
@@ -811,11 +840,11 @@
     "id": "en-rth-3",
     "lang": "en",
     "category": "rethink",
-    "raw": "I'll email the client or actually just call them",
-    "expected": "I'll just call them.",
+    "raw": "I'll email or actually just call the client",
+    "expected": "I'll just call the client.",
     "must_keep": [
       "call",
-      "them"
+      "client"
     ],
     "must_drop": [
       "email",
@@ -826,10 +855,11 @@
     "id": "en-rth-4",
     "lang": "en",
     "category": "rethink",
-    "raw": "we'll buy the red sofa or actually the grey one",
-    "expected": "We'll buy the grey one.",
+    "raw": "we'll buy the red sofa or actually the grey sofa",
+    "expected": "We'll buy the grey sofa.",
     "must_keep": [
       "grey",
+      "sofa",
       "buy"
     ],
     "must_drop": [
@@ -844,11 +874,11 @@
     "raw": "the meeting is at ten I mean eleven in the main room",
     "expected": "The meeting is at eleven in the main room.",
     "must_keep": [
-      "eleven",
+      "eleven|11",
       "room"
     ],
     "must_drop": [
-      "ten",
+      "ten|10",
       "mean"
     ],
     "known_bad": [
@@ -863,11 +893,11 @@
     "raw": "we need fifty units sorry sixty units",
     "expected": "We need sixty units.",
     "must_keep": [
-      "sixty",
+      "sixty|60",
       "units"
     ],
     "must_drop": [
-      "fifty",
+      "fifty|50",
       "sorry"
     ]
   },
@@ -878,11 +908,11 @@
     "raw": "the deadline is the twelfth no the thirteenth of March",
     "expected": "The deadline is the thirteenth of March.",
     "must_keep": [
-      "thirteenth",
+      "thirteenth|13th|13",
       "March"
     ],
     "must_drop": [
-      "twelfth"
+      "twelfth|12th|12"
     ]
   },
   {
@@ -1034,7 +1064,7 @@
     "must_keep": [
       "Wait",
       "entrance",
-      "eight"
+      "eight|8"
     ],
     "must_drop": []
   },
@@ -1089,6 +1119,32 @@
       "said",
       "yesterday",
       "budget"
+    ],
+    "must_drop": []
+  },
+  {
+    "id": "en-neg-8",
+    "lang": "en",
+    "category": "negative",
+    "raw": "it's actually cheaper to rent the van for a week",
+    "expected": "It's actually cheaper to rent the van for a week.",
+    "must_keep": [
+      "actually",
+      "cheaper",
+      "van"
+    ],
+    "must_drop": []
+  },
+  {
+    "id": "en-neg-9",
+    "lang": "en",
+    "category": "negative",
+    "raw": "sorry for the late reply I was travelling",
+    "expected": "Sorry for the late reply, I was travelling.",
+    "must_keep": [
+      "Sorry",
+      "reply",
+      "travelling"
     ],
     "must_drop": []
   }
