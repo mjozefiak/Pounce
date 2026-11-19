@@ -47,7 +47,8 @@ Claude Code CLI can be run in the way the decisions require.
    working values.
 7. **Marker on the meeting, not on blocks.** "Sent to: Claude · model" in the app only (library row, meeting
    window, Notes details). No AI marks per block, no provider name in exports or copies. The marker describes the
-   notes now stored; partial sends leave no trace (accepted limitation, Q11).
+   notes now stored; there is no send log in v1 (no table or file of past sends), so partial sends leave no
+   trace (accepted limitation, Q11).
 8. **Descriptor flag `isolationVerified`.** `ProviderRunner` refuses to start a process for a descriptor whose
    flag is `false`. It is set in code only from the canary result in this ADR.
 9. **The provider process never runs the user's hooks and never loads the user's settings, MCP servers or
