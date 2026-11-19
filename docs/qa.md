@@ -339,6 +339,15 @@ Needs a real Keychain and the app built by `scripts/make-app.sh` (not `--qa`, wh
 - Keychain Access shows one `com.lintelapp.dictation` item; Settings → Features → Dictation → Erase Data removes it and the `Plugins/dictation` folder (downloaded models in `Models/` stay; "Remove model" deletes them);
 - delete the `com.lintelapp.dictation` item by hand and relaunch: the old file is renamed `dictation.sqlite.unreadable-<date>` and the history starts empty.
 
+## Meetings capture counters (#135, manual)
+
+Settings → Meetings → Advanced → **Copy diagnostics** puts the counters of the last 20 meetings on the pasteboard
+(numbers and the channel names `mic` / `system` only; file `Plugins/meetings/capture-counters.json`). After a real
+recording with system audio: paste it and check `recorded` against `speech sent to engine` per channel, the
+`hard cuts`, `empty results dropped`, `ring buffers dropped`, `taps recreated`, `silence inserted` lines and
+`Audio gap written while recording`. Switch the output device (headset on/off) during a recording: `taps recreated`
+rises and `Audio gap written` becomes `yes`. No text, name, title or device name may appear.
+
 ## Meetings audio sources (manual)
 
 The real Core Audio tap (`CoreAudioProcessTapBackend`) is compiled but never exercised by `swift test`: a tap shows the

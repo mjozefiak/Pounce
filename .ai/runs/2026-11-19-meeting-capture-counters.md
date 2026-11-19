@@ -35,11 +35,11 @@ names, titles or device names (a test scans the report).
 
 ### Phase 1: Counters
 
-- [ ] 1.1 Counter types and report formatter
-- [ ] 1.2 System source / tap ring statistics
-- [ ] 1.3 Session counting, live audio_gap, log
+- [x] 1.1 Counter types and report formatter
+- [x] 1.2 System source / tap ring statistics
+- [x] 1.3 Session counting, live audio_gap, log
 
 ### Phase 2: Surfacing
 
-- [ ] 2.1 Persistence and Copy diagnostics in the pane
+- [x] 2.1 Persistence and Copy diagnostics in the pane
 - [ ] 2.2 Docs and QA
