@@ -259,7 +259,7 @@ import Testing
         let (plugin, client, harness) = try await plugin(granted: false)
         defer { harness.tearDown() }
         try await plugin.activate()
-        await plugin.runtime?.settle()
+        await plugin.runtime?.settleGuarded()
         #expect(client.calls.isEmpty)
         #expect(client.frame(of: WindowID(pid: 100, number: 1)) == CGRect(x: 100, y: 100, width: 800, height: 600))
         await plugin.deactivate()

@@ -51,7 +51,7 @@ import Testing
         client.moveBehindTheEnginesBack(id(1), to: CGRect(x: 300, y: 300, width: 400, height: 300))
         await engine.ingest(.moved(id(1)))
         // Nothing is running that could report it: the event waits in the coalescer for a tick that never comes.
-        await engine.waitForWork()
+        await engine.waitForWorkGuarded()
         #expect(moved.value == nil)
         await engine.stop()
     }
@@ -63,12 +63,12 @@ import Testing
         client.moveBehindTheEnginesBack(id(1), to: CGRect(x: 300, y: 300, width: 400, height: 300))
         await engine.ingest(.moved(id(1)))
         await eventually("the first move was reported") { moved.value == id(1) }
-        await engine.waitForWork()
+        await engine.waitForWorkGuarded()
         // A different window moves right after (no tick has passed): it waits for the tick, no flush storm.
         moved.clear()
         client.moveBehindTheEnginesBack(id(2), to: CGRect(x: 320, y: 320, width: 400, height: 300))
         await engine.ingest(.moved(id(2)))
-        await engine.waitForWork()
+        await engine.waitForWorkGuarded()
         #expect(moved.value == nil)
         await engine.stop()
     }

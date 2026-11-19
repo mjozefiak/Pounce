@@ -232,19 +232,19 @@ import Testing
         dragged.size.width += 100
         rig.client.moveBehindTheEnginesBack(id(1), to: dragged)
         rig.client.emit([.resized(id(1))])
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         // Siblings follow; the dragged window keeps what the user made.
         #expect(abs((rig.client.frame(of: id(2))?.width ?? 0) - 590) < 1.5)
         #expect(rig.client.frame(of: id(1)) == dragged)
         #expect(await rig.engine.snapshot.userResize?.window == id(1))
         // 100 ms later the timer has not fired: nothing lands yet.
         rig.clock.advance(0.1)
-        await rig.engine.settle()
+        await rig.engine.settleGuarded()
         #expect(rig.client.frame(of: id(1)) == dragged)
         rig.clock.advance(0.25)
         // The timer's task hops onto the engine; give it the turns it needs.
         for _ in 0..<200 where await rig.engine.snapshot.userResize != nil { await Task.yield() }
-        await rig.engine.settle()
+        await rig.engine.settleGuarded()
         #expect(await rig.engine.snapshot.userResize == nil)
         let landed = try #require(rig.client.frame(of: id(1)))
         #expect(abs(landed.width - 740) < 1.5)
@@ -262,7 +262,7 @@ import Testing
             frame.size.width += CGFloat(step) * 4
             rig.client.moveBehindTheEnginesBack(id(1), to: frame)
             rig.client.emit([.resized(id(1))])
-            await rig.engine.flushEvents()
+            await rig.engine.flushGuarded()
             rig.clock.advance(0.03)
         }
         let state = await rig.engine.snapshot
@@ -290,7 +290,7 @@ import Testing
             frame.size.width += CGFloat(phase < 30 ? phase : 60 - phase) * 10
             rig.client.moveBehindTheEnginesBack(id(1), to: frame)
             rig.client.emit([.resized(id(1))])
-            await rig.engine.flushEvents()
+            await rig.engine.flushGuarded()
             rig.clock.advance(0.03)
         }
         let state = await rig.engine.snapshot
@@ -311,14 +311,14 @@ import Testing
         dragged.size.width += 100
         rig.client.moveBehindTheEnginesBack(id(1), to: dragged)
         rig.client.emit([.resized(id(1))])
-        await rig.engine.flushEvents()
-        await rig.engine.settle()
+        await rig.engine.flushGuarded()
+        await rig.engine.settleGuarded()
         rig.clock.advance(0.03)
         dragged.size.width += 60
         rig.client.moveBehindTheEnginesBack(id(1), to: dragged)
         rig.client.emit([.resized(id(1))])
-        await rig.engine.flushEvents()
-        await rig.engine.settle()
+        await rig.engine.flushGuarded()
+        await rig.engine.settleGuarded()
         #expect(abs((rig.client.frame(of: id(2))?.width ?? 0) - 590) < 1.5)
         // The user holds still with the button down for two seconds.
         // Each look waits for the settle timer to be armed before time moves (an advance with nobody asleep moves
@@ -329,7 +329,7 @@ import Testing
         }
         // The last look has run once the timer is armed again; then the work it started is done.
         guard await rig.clock.waitForSleepers(1, dueWithin: .seconds(1), limit: .seconds(20)) else { return }
-        await rig.engine.settle()
+        await rig.engine.settleGuarded()
         #expect(await rig.engine.snapshot.userResize?.window == id(1))
         #expect(rig.client.frame(of: id(1)) == dragged)
         // The siblings caught up with the last size.
@@ -344,7 +344,7 @@ import Testing
             await waitForState(
                 "the drag ended after the button went up", { await rig.engine.snapshot.userResize == nil })
         else { return }
-        await rig.engine.settle()
+        await rig.engine.settleGuarded()
         #expect(await rig.engine.snapshot.userResize == nil)
         await rig.engine.stop()
     }

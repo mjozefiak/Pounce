@@ -250,7 +250,7 @@ private final class FakeOverlay: ZoneOverlayPresenting {
     private func dragWindow(_ engine: WindowEngine, _ client: FakeWindowClient) async {
         client.moveBehindTheEnginesBack(id(1), to: CGRect(x: 300, y: 300, width: 400, height: 400))
         await engine.ingest(.moved(id(1)))
-        await engine.settle()
+        await engine.settleGuarded()
     }
 
     @Test func aMovedWindowOfAZonesWorkspaceIsReported() async throws {
@@ -267,7 +267,7 @@ private final class FakeOverlay: ZoneOverlayPresenting {
         let moved = try await run(kind: .zones) { engine, client in
             // The engine placed the windows at start; the client echoes that frame back.
             await engine.ingest(.moved(id(1)))
-            await engine.settle()
+            await engine.settleGuarded()
             _ = client
         }
         #expect(moved.isEmpty)
@@ -313,7 +313,7 @@ private final class FakeOverlay: ZoneOverlayPresenting {
             context: harness.context(windows: client, permissions: ScriptedPermissions(granted: true)), hud: hud,
             activationCenter: NotificationCenter())
         try await plugin.activate()
-        await plugin.runtime?.settle()
+        await plugin.runtime?.settleGuarded()
         #expect(hud.shown.contains(.snapHint))
         #expect(settings.snapHintShown)
         #expect(WindowsHUDState.snapHint.title == "Hold ⇧ while dragging to snap")
@@ -324,7 +324,7 @@ private final class FakeOverlay: ZoneOverlayPresenting {
             context: harness.context(windows: client, permissions: ScriptedPermissions(granted: true)), hud: again,
             activationCenter: NotificationCenter())
         try await second.activate()
-        await second.runtime?.settle()
+        await second.runtime?.settleGuarded()
         #expect(!again.shown.contains(.snapHint))
         await second.deactivate()
     }
@@ -338,7 +338,7 @@ private final class FakeOverlay: ZoneOverlayPresenting {
             context: harness.context(windows: client, permissions: ScriptedPermissions(granted: true)), hud: hud,
             activationCenter: NotificationCenter())
         try await plugin.activate()
-        await plugin.runtime?.settle()
+        await plugin.runtime?.settleGuarded()
         #expect(!hud.shown.contains(.snapHint))
         await plugin.deactivate()
         let denied = try WindowsHarness()
@@ -349,7 +349,7 @@ private final class FakeOverlay: ZoneOverlayPresenting {
             context: denied.context(windows: client, permissions: ScriptedPermissions(granted: false)), hud: deniedHUD,
             activationCenter: NotificationCenter())
         try await second.activate()
-        await second.runtime?.settle()
+        await second.runtime?.settleGuarded()
         #expect(!deniedHUD.shown.contains(.snapHint))
         await second.deactivate()
     }
