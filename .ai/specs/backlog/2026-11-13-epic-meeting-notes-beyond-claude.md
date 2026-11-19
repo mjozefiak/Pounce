@@ -67,10 +67,10 @@
 | ID | Pytanie | Wartość domyślna przyjęta w backlogu |
 |---|---|---|
 | M-Q1 | Merge PR #63 teraz, po ponownym uruchomieniu niestabilnego sprawdzenia? | **Tak.** Blokuje wszystko, co dotyka `Sources/MeetingsPlugin/Notes/`. |
-| M-Q2 | Co znaczy „lepiej niż Claude”? | **Cztery tezy + ślepe porównanie** (tabela wyżej). |
+| M-Q2 | Co znaczy „lepiej niż Claude”? | **Cztery tezy + ślepe porównanie** (tabela wyżej). **Ślepe porównanie (MEET-0.2) zastąpione oceną Fable 2026-11-19 (decyzja 2).** |
 | M-Q3 ⚠ | `keepAudio` jako opcja (zmienia decyzję Q7 specu spotkań). Przed dogfoodem? Na ile dni? Pytać przy pierwszym nagraniu? | **Tak, przed dogfoodem lub w jego pierwszych dniach, domyślnie wyłączone, 30 dni, bez pytania przy pierwszym nagraniu** (sam przełącznik w Prywatności). Bez audio nie powstanie zbiór wzorcowy; 14 dni wygasłoby przed jego zebraniem. |
 | M-Q4 | Które zmiany wolno wydawać w trakcie dwóch tygodni dogfoodu („bez zmian w kodzie produktu” z briefu 2026-11-09)? | **Tylko te, które nie zmieniają treści notatek:** Faza 1 tego epica. Wszystko, co zmienia `NotesPipeline`, `NotesGuard`, `NotesComposer` lub segmenty, czeka na bramkę MEET-0.3. |
-| M-Q5 | Zbiór wzorcowy: ile pracy ręcznej i czy sędziowie chmurowi? | **3 spotkania na start** (poprawiony transkrypt z mówcami, 10–25 punktów, zadania), rosnące z dogfoodu; **panel sędziów lokalny**, chmurowi tylko na nagraniach ze zgodą uczestników. |
+| M-Q5 | Zbiór wzorcowy: ile pracy ręcznej i czy sędziowie chmurowi? | **3 spotkania na start** (poprawiony transkrypt z mówcami, 10–25 punktów, zadania), rosnące z dogfoodu; **panel sędziów lokalny**, chmurowi tylko na nagraniach ze zgodą uczestników. **Uchylone dla sędziego Fable 2026-11-19 (decyzja 2); zob. przegląd backlogu, sekcja „Decyzje właściciela (2026-11-19)”.** |
 | M-Q6 ⚠ | Kalendarz (EventKit) jako źródło uczestników: odwrócić zamkniętą decyzję? | **Nie z góry.** MEET-3.5 rusza tylko, gdy sugestie imion (MEET-3.3) nie przejdą bramki 80%, albo po wyraźnej decyzji. |
 | M-Q7 | 2–3 wbudowane szablony notatek (zmienia Q8 specu spotkań)? | **Nie w tym epiku.** Notatki hybrydowe pokrywają większość potrzeby. |
 | M-Q8 ⚠ | Notatnik w trakcie nagrania: własność `MeetingsPlugin` czy nowy port z Notes? | **Własność `MeetingsPlugin`**; Notes widzi go jako warstwę tylko do odczytu. Reguła „bez warstwy w stanie `recording`” i N10 zostają nietknięte. |
@@ -79,7 +79,7 @@
 | M-Q11 | Podział segmentów: jeden PR (spec mówi „Faza 1 i 2 razem”) czy dwa? | **Dwa PR-y** (MEET-3.1 zapisuje słowa i nie zmienia zachowania; MEET-3.2 dzieli). |
 | M-Q12 ⚠ | Lokalny MCP: zgodny z „nic nie opuszcza Maca”? Model udostępniania? | **Tak, jako jawny wyjątek:** domyślnie wyłączony, tylko odczyt, **udostępnianie włączane per spotkanie**, dziennik dostępu, bez obietnicy rozróżniania klientów. |
 | M-Q13 ⚠ | Automatyczny eksport do folderu (jawny Markdown poza zaszyfrowaną bazą)? | **Tak, opt-in, z ostrzeżeniem.** |
-| M-Q14 ⚠ | Jeśli Claude wyraźnie wygra ślepe porównanie także z modelem 30B? | **Dla spotkań niepoufnych pierwszeństwo dostaje MEET-X.1** (dostawca zewnętrzny dla kroku pisania); Fazy 2–4 zostają, bo poprawiają też wejście dla modelu chmurowego. |
+| M-Q14 ⚠ | Jeśli Claude wyraźnie wygra ślepe porównanie także z modelem 30B? | **Dla spotkań niepoufnych pierwszeństwo dostaje MEET-X.1** (dostawca zewnętrzny dla kroku pisania); Fazy 2–4 zostają, bo poprawiają też wejście dla modelu chmurowego. **Przestarzałe 2026-11-19 (decyzja 1): MEET-X.1 pilna i bezwarunkowa; zob. przegląd backlogu, sekcja „Decyzje właściciela (2026-11-19)”.** |
 | M-Q15 | Drugi przebieg mowy: całe spotkanie Whisperem czy tylko segmenty oznaczone? | **Decyduje pomiar MEET-5.1**; bez zysku WER funkcja nie powstaje. |
 | M-Q16 | Zmiana domyślnego modelu notatek (Bielik, Gemma)? | **Nie bez harnessu.** Pomiar w MEET-5.1; repozytoria Bielika są bramkowane. |
 | M-Q17 ⚠ | Zbiór wzorcowy wymaga odszyfrowanego dźwięku poza aplikacją (narzędzie poza repozytorium, monit Pęku kluczy dla `com.lintelapp.meetings`). Zgoda? | **Tak:** jawny dźwięk tylko na zaszyfrowanym obrazie dysku ze zbiorem wzorcowym, kasowany razem z wpisem; aplikacja nadal nigdy nie zapisuje jawnego audio. |
@@ -107,12 +107,12 @@
 |---|---|---|---|
 | 0 | Domknięcie i bramki, bez nowego kodu produktu | MEET-0.1 – 0.4 | — |
 | 1 | Fundament równoległy do dogfoodu (nie zmienia treści notatek) | MEET-1.1 – 1.7 | MEET-0.1 |
-| 2 | Sprawdzalne notatki | MEET-2.1 – 2.5 | bramka MEET-0.3, linia bazowa MEET-1.5 |
+| 2 | Sprawdzalne notatki | MEET-2.1 – 2.5 | bramka MEET-0.3 (zastąpiona oceną Fable, 2026-11-19), linia bazowa MEET-1.5 |
 | 3 | Kto mówił | MEET-3.1 – 3.5 | MEET-1.2, MEET-1.5 |
-| 4 | Notatki hybrydowe | MEET-4.1 – 4.4 | bramka MEET-0.3 |
+| 4 | Notatki hybrydowe | MEET-4.1 – 4.4 (MEET-4.3 wycofana 2026-11-19, decyzja 4) | bramka MEET-0.3 (zastąpiona oceną Fable) |
 | 5 | Jakość PL/EN | MEET-5.1 – 5.3 | MEET-1.5; DICT-1.1 dla 5.2 |
 | 6 | Archiwum i mosty | MEET-6.1 – 6.6 | MEET-2.1 dla 6.1 i 6.2; MEET-0.1 i DICT-3.0 dla 6.3; decyzja M-Q12 dla 6.4 – 6.6 |
-| X | Warunkowa: dostawca zewnętrzny | MEET-X.1 | wynik MEET-0.2 (M-Q14) |
+| X | ~~Warunkowa~~ pilna i bezwarunkowa (decyzja 2026-11-19 nr 1): dostawca zewnętrzny | MEET-X.1 | ~~wynik MEET-0.2 (M-Q14)~~ brak warunku |
 
 Fazy 2, 3 i 4 są od siebie niezależne i mogą iść w dowolnej kolejności po bramce; kolejność domyślna to 2 → 3 → 4, bo sprawdzalność jest tezą, której Claude nie spełnia, a właściciele zadań to jedyny powtarzalny zysk w dotychczasowych pomiarach.
 
@@ -123,8 +123,8 @@ flowchart TD
   classDef gate fill:#fde68a,color:#111,stroke:#b45309
   classDef contract fill:#fecaca,color:#111,stroke:#b91c1c
   classDef cond fill:#e5e7eb,color:#111,stroke:#6b7280
-  M01[MEET-0.1 merge PR 63]:::gate --> M02[MEET-0.2 ślepe porównanie]:::gate
-  M01 --> M03[MEET-0.3 dogfood i bramka]:::gate
+  M01[MEET-0.1 merge PR 63]:::gate --> M02["MEET-0.2 ślepe porównanie, zastąpione oceną Fable 2026-11-19"]:::gate
+  M01 --> M03["MEET-0.3 dogfood i bramka, zastąpione oceną Fable 2026-11-19"]:::gate
   M01 --> M04[MEET-0.4 pomiar budżetów]
   M01 --> M11[MEET-1.1 keepAudio]
   M01 --> M12[MEET-1.2 metryki deterministyczne]
@@ -153,7 +153,7 @@ flowchart TD
   M03 --> M41[MEET-4.1 notatnik w trakcie]
   M41 --> M42[MEET-4.2 kotwice w NotesPipeline]
   M15 --> M42
-  M42 --> M43[MEET-4.3 prezentacja]
+  M42 --> M43["MEET-4.3 prezentacja, wycofana 2026-11-19"]:::cond
   M43 --> M44[MEET-4.4 pomiar]
   M15 --> M51[MEET-5.1 pomiar silników i modeli]
   M51 --> M52[MEET-5.2 słownik spotkania]
@@ -168,12 +168,12 @@ flowchart TD
   M61 --> M66
   M02 --> M03
   M02 --> M15
-  M02 -.Claude wygrywa.-> MX1[MEET-X.1 odświeżenie specu dostawców]:::cond
+  MX1["MEET-X.1 odświeżenie specu dostawców, pilna i bezwarunkowa od 2026-11-19"]
 ```
 
 Wniosek z diagramu: PR #63 jest jedynym węzłem, od którego zależy wszystko. Dwa żółte węzły po nim (dogfood i linia bazowa) rozdzielają pracę na „wolno od razu” (Faza 1, MEET-6.3) i „dopiero po danych” (Fazy 2–5).
 
-Zależności z epikiem DICT: MEET-5.2 używa `TermReplacer` z `LintelCore` (DICT-1.1); MEET-2.5, MEET-4.3 i MEET-3.5 zmieniają `LintelKit` i muszą być uszeregowane z DICT-2.1 i DICT-3.3; MEET-6.3 używa wspólnego `TCCProtectedLocations` z DICT-3.0. Szczegóły w `2026-11-13-backlog-overview.md`.
+Zależności z epikiem DICT: MEET-5.2 używa `TermReplacer` z `LintelCore` (DICT-1.1); MEET-2.5 i MEET-3.5 zmieniają `LintelKit` (MEET-4.3 wycofana 2026-11-19) i muszą być uszeregowane z DICT-2.1 i DICT-3.3; MEET-6.3 używa wspólnego `TCCProtectedLocations` z DICT-3.0. Szczegóły w `2026-11-13-backlog-overview.md`.
 
 ## Wspólne reguły dla każdej story
 
@@ -223,6 +223,8 @@ Zależności z epikiem DICT: MEET-5.2 używa `TermReplacer` z `LintelCore` (DICT
 
 ### MEET-0.2 — Ślepe porównanie z Claude na tym samym transkrypcie
 
+> **Status 2026-11-19:** zastąpiona pętlą oceny notatek przez sędziego Fable (decyzja 2); ślepe porównanie nie jest wykonywane. Zob. przegląd backlogu, sekcja „Decyzje właściciela (2026-11-19)”.
+
 - **Story:** Jako właściciel chcę jednego uczciwego porównania notatek Lintela z notatkami Claude, aby wiedzieć, czy struktura wygrywa z jakością modelu.
 - **Zależności:** MEET-0.1. Decyzje M-Q5, M-Q14.
 - **Powierzchnie:** żadna w `Sources/`. Wynik w `docs/decisions/00NN-meeting-notes-direction.md` (numer przy merge).
@@ -238,6 +240,8 @@ Zależności z epikiem DICT: MEET-5.2 używa `TermReplacer` z `LintelCore` (DICT
 - **Start:** `om-auto-create-pr "Dodaj ADR kierunku notatek ze spotkań: wynik ślepego porównania Lintel 4B / Lintel 30B / Claude (kolejność, kategorie braków, decyzja o kierunku A′), bez treści transkryptu — Source doc: .ai/specs/backlog/2026-11-13-epic-meeting-notes-beyond-claude.md (story MEET-0.2)"`
 
 ### MEET-0.3 — Dogfood dwa tygodnie i bramka zatrzymania
+
+> **Status 2026-11-19:** zastąpiona pętlą oceny notatek przez sędziego Fable (decyzja 2); dwutygodniowy dogfood nie jest bramką. Zob. przegląd backlogu, sekcja „Decyzje właściciela (2026-11-19)”.
 
 - **Story:** Jako właściciel chcę dwóch tygodni prawdziwego używania z dziennikiem błędów, aby dalsze inwestycje wynikały z powtarzalnych wzorców.
 - **Zależności:** MEET-0.1; MEET-0.2 (ADR, do którego trafia wynik). Decyzja M-Q4.
@@ -625,6 +629,8 @@ Warunek wejścia: bramka MEET-0.3. Decyzja M-Q8 ⚠.
 
 ### MEET-4.3 — Prezentacja notatek hybrydowych
 
+> **Status 2026-11-19:** **wycofana 2026-11-19, decyzja 4** (oznaczenia AI/człowiek do usunięcia z notatek; bez `NoteBlockProvenance.author`). Zob. przegląd backlogu, sekcja „Decyzje właściciela (2026-11-19)”.
+
 - **Story:** Jako czytelnik chcę odróżniać swoje linie od tekstu AI i móc poprawić swoje notatki po spotkaniu, aby notatka została moja.
 - **Zależności:** MEET-4.2. Kolejka `LintelKit`: po DICT-3.3 (przegląd).
 - **Powierzchnie:** `LintelKit` (addytywnie: `NoteBlockProvenance.author: NoteAuthor? = nil`; dziś autor istnieje tylko na poziomie warstwy; §1); `NotesPlugin` (pasek autora per blok, gdy pole jest ustawione); `MeetingsPlugin` (okno spotkania, `MeetingNoteLayers`, `MarkdownExporter`); semantyka stanu `stale` (§5 mówi dziś, że ustawia go tylko zmiana nazwy mówcy albo „To ja”); `Resources/Localizable.xcstrings`.
@@ -640,6 +646,8 @@ Warunek wejścia: bramka MEET-0.3. Decyzja M-Q8 ⚠.
 - **Start:** `om-auto-create-pr "Prezentacja notatek hybrydowych: addytywne pole NoteBlockProvenance.author w LintelKit, paski autora Ty/AI w NotesPlugin, stan stale i regeneracja po edycji linii użytkownika, oznaczenie autora w eksporcie Markdown — Source doc: .ai/specs/backlog/2026-11-13-epic-meeting-notes-beyond-claude.md (story MEET-4.3)"`
 
 ### MEET-4.4 — Pomiar notatek hybrydowych
+
+> **Status 2026-11-19 (interpretacja, do potwierdzenia przez właściciela):** zależy od wycofanej MEET-4.3 (decyzja 4); zależności i kryteria do przeliczenia przy specu. Zob. przegląd backlogu, sekcja „Decyzje właściciela (2026-11-19)”.
 
 - **Story:** Jako właściciel chcę wiedzieć, czy kotwice poprawiają pokrycie tego, co sam zanotowałem.
 - **Zależności:** MEET-4.3, MEET-0.2 (ADR); co najmniej 3 nowe spotkania nagrane z notatkami użytkownika po wydaniu MEET-4.1 – 4.3 i opisane wzorcowo przez właściciela (kilka tygodni po MEET-4.3).
@@ -824,14 +832,16 @@ Warunek wejścia: bramka MEET-0.3. Decyzja M-Q8 ⚠.
 
 ### MEET-X.1 — Odświeżenie specu dostawców zewnętrznych dla kroku pisania notatek
 
-- **Story:** Jako właściciel, dla spotkań niepoufnych, chcę móc świadomie użyć modelu z własnej subskrypcji do napisania notatki z lokalnego transkryptu, jeśli lokalny model przegrywa.
-- **Zależności:** **Warunek:** wynik MEET-0.2 uruchamia M-Q14. Spec `2026-11-10-external-ai-providers.md` ma nieaktualne nazwy (`Pounce*`), zajęty numer ADR (0008) i nieaktualne założenie, że `NotesPipeline` nie istnieje.
+> **Status 2026-11-19:** pilna i bezwarunkowa (decyzja 1): nie zależy od wyniku MEET-0.2; dostawcy domyślnie wyłączeni, transkrypt do dostawcy dopiero po włączeniu przez użytkownika. Warunek poniżej i ograniczenie „dla spotkań niepoufnych” w opisie story nie obowiązują. Doprecyzowania 2026-11-19 (D1–D5 w przeglądzie): zgoda raz, przy wyborze dostawcy w ustawieniach (okno mówi wprost, że trafiają transkrypty wszystkich spotkań z imionami mówców), bez flagi per spotkanie, bez podziału na spotkania niepoufne i bez potwierdzenia „uczestnicy wiedzą”; domyślnie model lokalny; zgoda egzekwowana w kodzie przed każdym procesem dostawcy; znacznik „wysłano do: Claude · model” per spotkanie; tekst dla uczestników (MEET-1.6) bez zmian; v1 Claude Code CLI na subskrypcji, BYOK zaraz potem. Zob. przegląd backlogu, sekcja „Decyzje właściciela (2026-11-19)”.
+
+- **Story:** Jako właściciel, ~~dla spotkań niepoufnych,~~ chcę móc świadomie użyć modelu z własnej subskrypcji do napisania notatki z lokalnego transkryptu, jeśli lokalny model przegrywa.
+- **Zależności:** ~~**Warunek:** wynik MEET-0.2 uruchamia M-Q14.~~ (bez warunku od 2026-11-19, decyzja 1) Spec `2026-11-10-external-ai-providers.md` ma nieaktualne nazwy (`Pounce*`), zajęty numer ADR (0008) i nieaktualne założenie, że `NotesPipeline` nie istnieje.
 - **Powierzchnie:** tylko spec (PR projektowy); implementacja osobnymi PR-ami według specu (nowy target dostawców, `TextGenerator`, `notesSource`).
 - **Etykiety:** `documentation`, `risk-low`, `skip-qa`, `priority-medium` · **Estymata:** S
 - **Kryteria akceptacji:**
   1. Given odświeżony spec, Then używa nazw `Lintel*`, wolnego numeru ADR i opisuje `NotesPipeline` jako istniejący; Faza 2 (notatki) jest wydzielona tak, by dało się ją wdrożyć przed dyktowaniem.
-  2. Given spec, Then zgoda jest per dostawca i per funkcja, wynik ma znacznik „wysłano do: X”, a wysyłka jest włączana per spotkanie (domyślnie żadne spotkanie nie jest wysyłane), z przypomnieniem o zgodzie uczestników; tylko tak oznaczone spotkanie jest „niepoufne”.
-  3. Given spec, Then mówi wprost, że do dostawcy trafia wyłącznie transkrypt spotkania, nigdy audio, notatki użytkownika z notatnika ani kontekst dyktowania (zasada epica DICT: kontekst nie opuszcza Maca).
+  2. ~~Given spec, Then zgoda jest per dostawca i per funkcja, wynik ma znacznik „wysłano do: X”, a wysyłka jest włączana per spotkanie (domyślnie żadne spotkanie nie jest wysyłane), z przypomnieniem o zgodzie uczestników; tylko tak oznaczone spotkanie jest „niepoufne”.~~ **Zastąpione 2026-11-19 (doprecyzowanie D4):** Given spec, Then domyślnie działa model lokalny; wybór dostawcy w ustawieniach otwiera jedno okno zgody („transkrypty wszystkich spotkań, z imionami, trafią do dostawcy X”), po którym każde spotkanie idzie do tego dostawcy, dopóki użytkownik nie wróci na model lokalny; nie ma flagi per spotkanie ani potwierdzenia „uczestnicy wiedzą”; zgoda jest egzekwowana w kodzie przed każdym procesem dostawcy (testy „0 procesów bez zgody”), a spotkanie ma znacznik „wysłano do: Claude · model”. v1 to Claude Code CLI na subskrypcji, BYOK (klucz API w Pęku kluczy, HTTPS z listą hostów) druga faza.
+  3. Given spec, Then mówi wprost, że do dostawcy trafia wyłącznie transkrypt spotkania (z imionami mówców, doprecyzowanie D2), nigdy audio, notatki użytkownika z notatnika ani kontekst dyktowania (zasada epica DICT: kontekst nie opuszcza Maca).
   4. Given PR-0, Then plik `2026-11-10-external-ai-providers.md` jest w repozytorium (spełnione przez PR-0, #72).
 - **Plan testów:** przegląd specu (`om-auto-review-pr`).
 - **Prywatność:** jawny wyjątek od lokalności; decyzja właściciela.
