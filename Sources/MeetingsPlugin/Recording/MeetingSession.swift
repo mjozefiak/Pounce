@@ -93,6 +93,10 @@ actor MeetingSession {
     private var lastDiskCheckAt = Date.distantPast
     private var startedAt = Date.distantPast
     private var replayUnavailable = false
+    /// Numbers only (see `CaptureCounters`); written by the actor, never from an audio callback.
+    private var counters = CaptureCounters()
+    private var audioGapWritten = false
+    private let recordCounters: @Sendable (CaptureCounters) -> Void
     private var pendingFinish = false
     private var startWaiters: [CheckedContinuation<Void, Never>] = []
     private var heartbeatTask: Task<Void, Never>?
@@ -119,8 +123,10 @@ actor MeetingSession {
         sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) },
         beforeReady: (@Sendable (Int64, UUID) async -> Void)? = nil,
         sourceBundleID: String? = nil, keepAudio: @escaping @Sendable () -> Bool = { false },
+        recordCounters: @escaping @Sendable (CaptureCounters) -> Void = { _ in },
         logger: Logger = Logger(subsystem: "com.lintelapp", category: "meetings")
     ) {
+        self.recordCounters = recordCounters
         self.keepAudio = keepAudio
         self.sourceBundleID = sourceBundleID
         (events, continuation) = AsyncStream.makeStream(of: Event.self, bufferingPolicy: .unbounded)
@@ -228,6 +234,10 @@ actor MeetingSession {
         return handle
     }
 
+    private func noteModelUnavailable(busy: Bool) {
+        if busy { counters.modelBusy += 1 } else { counters.modelUnavailable += 1 }
+    }
+
     private func startModelLoad() {
         let continuation = continuation
         let logger = logger
@@ -237,6 +247,7 @@ actor MeetingSession {
                 return try await self.acquireLease()
             } catch {
                 let busy = (error as? ModelLeaseError) == .busy
+                await self?.noteModelUnavailable(busy: busy)
                 logger.error("Meeting speech model unavailable (busy: \(busy, privacy: .public))")
                 if !Task.isCancelled { continuation.yield(.modelUnavailable(busy: busy)) }
                 return nil
@@ -338,6 +349,7 @@ actor MeetingSession {
             requestFinish()
             return
         }
+        refreshCaptureStats()
         let stall = MeetingSessionLimits.seconds(limits.stallTimeout)
         for track in tracks.values where track.alive && current.timeIntervalSince(track.lastAudioAt) >= stall {
             await recoverOrLose(track, reason: "no audio for \(Int(stall)) s")
@@ -357,6 +369,7 @@ actor MeetingSession {
         guard tracks[channel] === track, track.alive, !chunk.isEmpty else { return }
         track.store.append(chunk)
         track.received = track.store.count
+        counters[channel].recordedSamples += chunk.count
         track.lastAudioAt = now()
         if let writer = track.spool, !track.spoolFailed {
             do {
@@ -371,11 +384,17 @@ actor MeetingSession {
             for event in try await track.vad.process(chunk) {
                 switch event.kind {
                 case .speechStart:
-                    if track.speechStart == nil { track.speechStart = event.sampleIndex }
+                    if track.speechStart == nil {
+                        track.speechStart = event.sampleIndex
+                        counters[channel].vadSegmentsOpened += 1
+                    }
                 case .speechEnd:
                     if let start = track.speechStart {
+                        counters[channel].vadSegmentsClosed += 1
                         closeSegment(track, start..<max(start, event.sampleIndex))
                         track.speechStart = nil
+                    } else {
+                        counters[channel].vadUnmatchedEnds += 1
                     }
                 }
             }
@@ -384,6 +403,7 @@ actor MeetingSession {
         }
         // Never a segment longer than the model's window.
         while let start = track.speechStart, track.store.count - start > Self.longestSegment {
+            counters[channel].hardCuts += 1
             closeSegment(track, start..<start + Self.longestSegment)
             track.speechStart = start + Self.longestSegment
         }
@@ -414,6 +434,7 @@ actor MeetingSession {
         guard track.alive, !track.resuming else { return }
         logger.notice(
             "Audio track \(channel.rawValue, privacy: .public) interrupted: \(reason, privacy: .public)")
+        counters[channel].interruptions += 1
         let attempts = limits.resumeAttempts
         guard attempts > 0, state == .recording else {
             await track.audio.stop()
@@ -448,7 +469,11 @@ actor MeetingSession {
                     MeetingSessionLimits.seconds(limits.longestGapFill))
                 let silence = Int(gap * Double(AudioFormat.sampleRate))
                 track.resuming = false
-                if silence > 0 { await receive(track, [Float](repeating: 0, count: silence)) }
+                if silence > 0 {
+                    counters[channel].gapFillSamples += silence
+                    noteAudioGap()
+                    await receive(track, [Float](repeating: 0, count: silence))
+                }
                 guard finishTask == nil, state == .recording else {
                     await track.audio.stop()
                     return
@@ -459,6 +484,7 @@ actor MeetingSession {
                 logger.notice(
                     "Audio track \(channel.rawValue, privacy: .public) resumed after attempt \(attempt, privacy: .public)"
                 )
+                counters[channel].resumes += 1
                 continuation.yield(.trackResumed(channel))
                 return
             } catch {
@@ -478,8 +504,10 @@ actor MeetingSession {
             "Audio track \(track.channel.rawValue, privacy: .public) lost: \(reason, privacy: .public)")
         track.alive = false
         track.levelGate.close()
+        counters[track.channel].lost += 1
         continuation.yield(.trackLost(track.channel))
         if let start = track.speechStart {
+            counters[track.channel].forcedCloses += 1
             closeSegment(track, start..<track.store.count)
             track.speechStart = nil
         }
@@ -529,7 +557,10 @@ actor MeetingSession {
 
     private enum SegmentOutcome: Sendable {
         case text(String)
+        /// No speech model to take the segment.
         case deferred
+        /// The background queue was full (`.spool` result).
+        case spool
         case failed
     }
 
@@ -544,11 +575,18 @@ actor MeetingSession {
     /// the spool instead (the replay transcribes it after the meeting), which keeps memory bounded.
     private func closeSegment(_ track: TrackState, _ range: Range<Int>) {
         let samples = track.store.slice(range)
-        guard !samples.isEmpty else { return }
+        guard !samples.isEmpty else {
+            counters[track.channel].emptyRanges += 1
+            return
+        }
         if track.backlogSamples > 0, track.backlogSamples + samples.count > SpeechEngineLease.backgroundLimit {
+            counters[track.channel].backlogDeferred += 1
             track.deferred.append(range)
             return
         }
+        counters[track.channel].segmentsSent += 1
+        counters[track.channel].speechSamplesSent += samples.count
+        if samples.count < AudioFormat.sampleRate / 2 { counters[track.channel].shortSegments += 1 }
         let id = nextSegmentID
         nextSegmentID += 1
         track.backlogSamples += samples.count
@@ -580,7 +618,7 @@ actor MeetingSession {
         do {
             switch try await handle.transcribe(samples) {
             case .transcript(let segment): return .text(segment.text)
-            case .spool: return .deferred
+            case .spool: return .spool
             }
         } catch {
             logger.error("A segment failed to transcribe")
@@ -592,11 +630,29 @@ actor MeetingSession {
         track.inflight[job.id] = nil
         track.backlogSamples -= job.samples.count
         switch outcome {
-        case .text(let text): accept(track.channel, job.range, text)
+        case .text(let text):
+            if Self.isBlank(text) {
+                counters[track.channel].emptyResults += 1
+            } else {
+                counters[track.channel].textResults += 1
+            }
+            accept(track.channel, job.range, text)
         // A failed segment gets one more try from the spool after the meeting, like a deferred one.
-        case .deferred, .failed: track.deferred.append(job.range)
+        case .deferred:
+            counters[track.channel].deferredNoModel += 1
+            track.deferred.append(job.range)
+        case .spool:
+            counters[track.channel].spoolResults += 1
+            track.deferred.append(job.range)
+        case .failed:
+            counters[track.channel].failedResults += 1
+            track.deferred.append(job.range)
         }
         commitReady(force: false)
+    }
+
+    private static func isBlank(_ text: String) -> Bool {
+        text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private func accept(_ channel: AudioChannel, _ range: Range<Int>, _ text: String) {
@@ -748,8 +804,10 @@ actor MeetingSession {
         }
         for track in tracks.values { await track.audio.stop() }
         for track in tracks.values { await track.consume?.value }
+        refreshCaptureStats()
         for track in tracks.values {
             if let start = track.speechStart {
+                counters[track.channel].forcedCloses += 1
                 closeSegment(track, start..<track.store.count)
                 track.speechStart = nil
             }
@@ -898,9 +956,15 @@ actor MeetingSession {
         switch outcome {
         case .text(let text):
             replayedSegments += 1
+            if Self.isBlank(text) {
+                counters[track.channel].replayedEmpty += 1
+            } else {
+                counters[track.channel].replayedText += 1
+            }
             accept(track.channel, range, text)
-        case .deferred, .failed:
+        case .deferred, .spool, .failed:
             // Readable but not transcribable: stays in the spool for a later run.
+            counters[track.channel].replayedFailed += 1
             failedSegments += 1
             keptSegments += 1
         }
@@ -951,7 +1015,44 @@ actor MeetingSession {
         logger.notice(
             "Meeting finished: \(self.savedCount, privacy: .public) segments, \(durationMs / 1_000, privacy: .public) s"
         )
+        publishCounters(id: id, durationMs: durationMs)
         return outcome
+    }
+
+    // MARK: Capture counters
+
+    /// Pulls the system source's statistics (numbers only) into the counters and, the first time the audio is
+    /// known to have a hole, writes `meeting.audio_gap`.
+    private func refreshCaptureStats() {
+        for (channel, track) in tracks {
+            guard let provider = track.audio as? any CaptureStatsProviding else { continue }
+            let stats = provider.captureStats
+            counters[channel].apply(stats)
+            if stats.hasGap { noteAudioGap() }
+        }
+    }
+
+    /// `audio_gap` on the live meeting: the column already exists, so nothing migrates. Seconds of gap would need
+    /// a new column and are a follow-up.
+    private func noteAudioGap() {
+        guard !audioGapWritten, let id = meetingID else { return }
+        do {
+            try store.setAudioGap(id)
+            audioGapWritten = true
+        } catch {
+            logger.error("The audio gap could not be written")
+        }
+    }
+
+    private func publishCounters(id: Int64, durationMs: Int) {
+        refreshCaptureStats()
+        counters.meetingID = id
+        counters.durationMs = durationMs
+        counters.audioGapWritten = audioGapWritten
+        for line in CaptureDiagnostics.section(counters) where !line.isEmpty {
+            logger.notice("Capture counters \(line, privacy: .public)")
+        }
+        recordCounters(counters)
     }
 
     /// Removes a silent short meeting. False (and nothing announced) when the row could not be removed.

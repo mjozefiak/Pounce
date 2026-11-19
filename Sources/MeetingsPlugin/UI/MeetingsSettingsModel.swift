@@ -78,6 +78,18 @@ final class MeetingsSettingsModel {
     @ObservationIgnored private let openURL: @MainActor (URL) -> Void
     @ObservationIgnored private let accountName: () -> String
 
+    /// Set by the plugin: the saved capture counters and the pasteboard. `nil` in tests that do not need them.
+    @ObservationIgnored var captureCounters: (@Sendable () -> [CaptureCounters])?
+    @ObservationIgnored var copyText: (@MainActor (String) -> Void)?
+    private(set) var copiedDiagnostics = false
+
+    /// *Copy diagnostics*: the counters of the last meetings as plain text, numbers only.
+    func copyDiagnostics() {
+        let meetings = captureCounters?() ?? []
+        copyText?(CaptureDiagnostics.report(meetings))
+        copiedDiagnostics = true
+    }
+
     init(
         settings: MeetingsSettings, library: MeetingsLibrary, privacy: MeetingsPrivacyActions,
         speech: MeetingsModelCardModel, diarization: MeetingsModelCardModel, systemAudioTest: SystemAudioTestModel,

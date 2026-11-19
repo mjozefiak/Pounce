@@ -274,6 +274,64 @@ import Testing
         #expect(backend.observationCancelled)
     }
 
+    @Test func theStatisticsCountEventsInsertedSilenceAndRingDrops() async throws {
+        let backend = FakeBackend()
+        let clock = FakeClock(1_000_000_000)
+        let source = source(backend, clock: clock, anchor: 1_000_000_000)
+        let collector = StreamCollector(try await source.start { _ in })
+        #expect(source.captureStats == SystemCaptureStats())
+        backend.deliver(buffer(at: 1_000))
+        // 400 ms of missing buffers become silence.
+        backend.deliver(buffer(at: 1_500, startFrame: 4_800))
+        backend.setDropped(5)
+        var stats = source.captureStats
+        #expect(stats.silenceInsertedSamples > 5_000)
+        #expect(stats.ringDropped == 5)
+        #expect(stats.hasGap)
+        // A device change retires the tap: its drops are kept, the new tap counts from zero.
+        backend.changeOutputDevice()
+        for _ in 0..<200 where source.captureStats.tapsRecreated == 0 { await Task.yield() }
+        backend.setDropped(2)
+        stats = source.captureStats
+        #expect(stats.tapsRecreated == 1)
+        #expect(stats.ringDropped == 7)
+        await source.stop()
+        _ = await collector.finished()
+        #expect(source.captureStats.ringDropped >= 7)
+    }
+
+    @Test func formatChangesAndResyncsAreCounted() async throws {
+        let backend = FakeBackend()
+        let clock = FakeClock(1_000_000_000)
+        let source = source(backend, clock: clock, anchor: 1_000_000_000)
+        let collector = StreamCollector(try await source.start { _ in })
+        backend.deliver(buffer(at: 1_000))
+        backend.deliver(
+            TapBuffer(
+                samples: Synth.sine(frequency: 440, rate: 44_100, frames: 4_410), channels: 1, sampleRate: 44_100,
+                hostTime: 1_100 * 1_000_000))
+        #expect(source.captureStats.formatChanges == 1)
+        // A jump of an hour is absorbed as a resync, not as an hour of silence.
+        backend.deliver(
+            TapBuffer(
+                samples: Synth.sine(frequency: 440, rate: 44_100, frames: 4_410), channels: 1, sampleRate: 44_100,
+                hostTime: 3_600_000 * 1_000_000))
+        #expect(source.captureStats.timelineResyncs == 1)
+        await source.stop()
+        _ = await collector.finished()
+    }
+
+    @Test func aFailedObservationAndAFailedRecreationAreCounted() async throws {
+        let backend = FakeBackend()
+        backend.failObservation(.tapUnavailable(1))
+        let clock = FakeClock(1_000_000_000)
+        let source = source(backend, clock: clock, anchor: 1_000_000_000)
+        _ = try await source.start { _ in }
+        #expect(source.captureStats.outputChangesNotObserved == 1)
+        #expect(!source.captureStats.hasGap)
+        await source.stop()
+    }
+
     @Test func aDisabledFlagThrowsTheTypedFailureWithoutTouchingCoreAudio() async {
         let backend = FakeBackend()
         let source = source(backend, clock: FakeClock(), enabled: false)

@@ -330,6 +330,13 @@ extension MeetingsStore {
         }
     }
 
+    /// Marks the meeting's audio as having a hole (`audio_gap = 1`). Never clears it.
+    func setAudioGap(_ id: Int64) throws {
+        try write { db in
+            try db.execute(sql: "UPDATE meeting SET audio_gap = 1 WHERE id = ?", arguments: [id])
+        }
+    }
+
     func setAudioState(_ id: Int64, state: AudioState) throws {
         try write { db in
             try db.execute(sql: "UPDATE meeting SET audio_state = ? WHERE id = ?", arguments: [state.rawValue, id])
