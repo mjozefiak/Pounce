@@ -33,17 +33,19 @@ appearance change.
 
 ## Progress
 
+PR: #122
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Providers spec
 
-- [ ] 1.1 Decisions, status, TLDR and the questions table (Q8 overturned)
-- [ ] 1.2 Architecture, port, size limits, what leaves the Mac, consent window, edge cases
-- [ ] 1.3 Tests, matrix wording, risks, phasing and the PR split
-- [ ] 1.4 Search for leftovers of the chunk track
+- [x] 1.1 Decisions, status, TLDR and the questions table (Q8 overturned) — a71c212
+- [x] 1.2 Architecture, port, size limits, what leaves the Mac, consent window, edge cases — a71c212
+- [x] 1.3 Tests, matrix wording, risks, phasing and the PR split — a71c212
+- [x] 1.4 Search for leftovers of the chunk track — a71c212
 
 ### Phase 2: ADR 0010 and backlog
 
-- [ ] 2.1 ADR 0010 Accepted, FieldKind accepted
-- [ ] 2.2 DICT-4.2 story text
-- [ ] 2.3 Backlog overview clarifications
+- [x] 2.1 ADR 0010 Accepted, FieldKind accepted — db459da
+- [x] 2.2 DICT-4.2 story text — 8393cc2
+- [x] 2.3 Backlog overview clarifications — 50f156a
