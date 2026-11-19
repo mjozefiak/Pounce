@@ -65,7 +65,7 @@ Zgodne w obu briefach, przyjęte bez zmian: bez zrzutów ekranu i OCR; tryb pole
 | 12 | Strażniki nagrania | brak | zmiana częstotliwości, bufory zerowe, pętle powiadomień | zmiana częstotliwości już obsłużona; `audio_gap` to jedna flaga | **B w zawężeniu** do tego, czego brakuje (MEET-1.7) |
 | 13 | Limit 90 minut | pomiar, potem podniesienie albo okna | przypadek brzegowy | limit zgadnięty, benchmark nieuruchomiony | **A** (MEET-0.4 mierzy, MEET-3.4 zmienia) |
 | 14 | `words_json` | decyzja otwarta w specu | — | `v1-meetings` już zastosowana w bazie dogfood | **Nowa migracja** |
-| 15 | Jeśli Claude wygra porównanie | kierunek A′ wyprzedza Fazy 1–4 | dostawca jako opcja dla kroku pisania | spec dostawców nieaktualny | **MEET-X.1 warunkowo**, tylko dla spotkań niepoufnych; Fazy 2–4 zostają. *(Decyzja 2026-11-19 nr 1: MEET-X.1 pilna i bezwarunkowa, nie zależy od wyniku MEET-0.2.)* |
+| 15 | Jeśli Claude wygra porównanie | kierunek A′ wyprzedza Fazy 1–4 | dostawca jako opcja dla kroku pisania | spec dostawców nieaktualny | **MEET-X.1 warunkowo**, tylko dla spotkań niepoufnych; Fazy 2–4 zostają. *(Decyzja 2026-11-19 nr 1: MEET-X.1 pilna i bezwarunkowa, nie zależy od wyniku MEET-0.2; ograniczenie do spotkań niepoufnych do potwierdzenia przez właściciela.)* |
 
 Zgodne w obu briefach, przyjęte bez zmian: nie gonić funkcji na żywo; bez odcisków głosu; notatnik hybrydowy jako własność `MeetingsPlugin`; eksport do folderu i MCP jako opt-in; modele tylko przez harness; nie powtarzać weryfikatora semantycznego i promptu v4.
 
@@ -131,7 +131,7 @@ flowchart LR
   DICT30 --> MEET63[MEET-6.3 eksport do folderu]
   MEET31[MEET-3.1 TimedWord w LintelSpeech] -.wspólna warstwa mowy.-> DICTany[testy DictationPlugin bez zmian]
   MEET62[MEET-6.2 LLM interactive] -.dyktowanie ma pierwszeństwo.-> DICTfmt[formatowanie dyktowania]
-  DEC1[Decyzja 2026-11-19 nr 1: dostawcy domyślnie wyłączeni]:::owner --> MEETX1[MEET-X.1 spec dostawców, pilna i bezwarunkowa]
+  DEC1["Decyzja 2026-11-19 nr 1: dostawcy domyślnie wyłączeni"]:::owner --> MEETX1[MEET-X.1 spec dostawców, pilna i bezwarunkowa]
   MEETX1 -.zgodność: kontekst dyktowania nie idzie do dostawcy.-> DICT42[DICT-4.2]
 ```
 
@@ -164,7 +164,7 @@ Kolejność minimalizująca konflikty; pozycje w tym samym wierszu mogą być ot
 | 0 | **PR-0** `docs(specs)`: briefy, research, ten backlog i dotąd nieśledzony spec `2026-11-10-external-ai-providers.md` w repozytorium | Tylko dokumentacja (`skip-qa`). Bez niego komendy `om-auto-create-pr … Source doc: …` nie znajdą plików w świeżym worktree. `AGENTS.md` jest już aktualny (rejestracja pluginów, `traits`) |
 | 1 | **PR #63** (MEET-0.1) | Czynność właściciela. Przed nim nic nie dotyka `Sources/MeetingsPlugin/Notes/`, `MeetingsSettings` ani tekstów spotkań |
 | 2 | ~~DICT-0.1~~ (zaliczona decyzją 2026-11-19; ADR 0010 bez liczb linii bazowej) ∥ MEET-1.1 (`keepAudio`) ∥ **MEET-X.1 (pilna)** | MEET-1.1 jak najwcześniej, żeby dogfood zasilał zbiór wzorcowy |
-| 3 | DICT-0.2 ∥ ~~MEET-0.2~~ (zastąpione oceną Fable) ∥ MEET-1.2 ∥ MEET-0.4 | sama dokumentacja i harness; ADR kierunku (dawniej z MEET-0.2) nadal potrzebny wpisom 1.5, 4.4 |
+| 3 | DICT-0.2 ∥ ~~MEET-0.2~~ (zastąpione oceną Fable) ∥ MEET-1.2 ∥ MEET-0.4 | sama dokumentacja i harness; ADR kierunku (dawniej z MEET-0.2) nadal potrzebny wpisom 1.5, 4.4 (interpretacja, do potwierdzenia przez właściciela) |
 | 4 | DICT-0.3 ∥ MEET-1.3 (schemat i walidator) ∥ MEET-1.6 | MEET-1.6 to pierwsza migracja spotkań w tym backlogu |
 | 5 | DICT-1.1 → DICT-1.2 ∥ MEET-1.7 → MEET-1.4 | |
 | 6 | DICT-1.3 → DICT-1.4 ∥ DICT-3.0 → MEET-6.3 | DICT-3.0 to czysta refaktoryzacja; może wejść wcześniej |
@@ -177,7 +177,7 @@ Kolejność minimalizująca konflikty; pozycje w tym samym wierszu mogą być ot
 | 13 | DICT-3.4 → DICT-3.5 ∥ MEET-4.1 → MEET-4.2 → ~~MEET-4.3~~ (wycofana 2026-11-19, decyzja 4) | |
 | 14 | DICT-3.6 ∥ MEET-5.1 | |
 | 15 | późniejsze: MEET-5.2 (po DICT-1.1 i MEET-5.1), MEET-6.1, MEET-6.2, MEET-4.4 (po zebraniu nagrań z notatnikiem) | zwykłe stories, tylko później w kolejce |
-| 16 | warunkowe albo zależne od decyzji (MEET-X.1 przeniesiona do wierszy 2 i pilna, decyzja 2026-11-19 nr 1): DICT-4.1, DICT-4.2, MEET-5.3, MEET-3.5; MEET-6.4 → 6.5 → 6.6 (M-Q12) | każda po spełnieniu własnego warunku |
+| 16 | warunkowe albo zależne od decyzji (MEET-X.1 pilna, decyzja 2026-11-19 nr 1; przeniesiona do wiersza 2, miejsce to interpretacja do potwierdzenia): DICT-4.1, DICT-4.2, MEET-5.3, MEET-3.5; MEET-6.4 → 6.5 → 6.6 (M-Q12) | każda po spełnieniu własnego warunku |
 
 PR-y niezwiązane: #69 (spec window management v2, zmergowany) i #61 (`do-not-merge`) nie kolidują z żadną story.
 
@@ -191,7 +191,7 @@ Wartość domyślna jest tą, pod którą backlog został napisany. ⚠ oznacza 
 |---|---|---|---|
 | C-Q1 | Zacommitować briefy, research i backlog jako PR-0? | tak | wszystkie komendy startowe |
 | C-Q2 | Dwa równoległe strumienie agentów (po jednym na epic), czy jeden? | dwa | oś czasu; przy jednym: MEET E0–E1 przed DICT E1 |
-| C-Q3 | Który epic ma pierwszeństwo w kolejce `LintelKit` i w recenzjach `risk-high`? | kolejność z grafu: DICT-2.1, MEET-2.5, DICT-3.3, MEET-4.3, MEET-3.5 | graf i tabela kolejności PR-ów |
+| C-Q3 | Który epic ma pierwszeństwo w kolejce `LintelKit` i w recenzjach `risk-high`? | kolejność z grafu: DICT-2.1, MEET-2.5, DICT-3.3, ~~MEET-4.3~~ (wycofana 2026-11-19, decyzja 4), MEET-3.5 | graf i tabela kolejności PR-ów |
 
 ### Dyktowanie
 
@@ -206,7 +206,7 @@ Wartość domyślna jest tą, pod którą backlog został napisany. ⚠ oznacza 
 | D-Q7 | Pliki: listowanie w hoście czy indeks `FilesPlugin`? | listowanie w hoście | DICT-3.3 |
 | D-Q8 | Wyzwalacze pliku: „małpa”, „at”, „tag”, nazwa z rozszerzeniem; samo „plik X” nie? | tak | DICT-3.4 |
 | D-Q9 | `AXManualAccessibility` w Electronie? | nie | DICT-2.2 |
-| D-Q10 | `CleanupPrompt` bez zmian w Fazach 0–3? | tak. **Uchylone 2026-11-19 (decyzja nr 7):** `CleanupPrompt` v2 usuwa zmiany zdania i autopoprawki, `FormatterGuard` do dostosowania | DICT-4.2 |
+| D-Q10 | `CleanupPrompt` bez zmian w Fazach 0–3? | tak. **Uchylone 2026-11-19 (decyzja nr 7):** `CleanupPrompt` zmienia się, by usuwać zmiany zdania i autopoprawki, `FormatterGuard` do dostosowania | DICT-4.2 (interpretacja, do potwierdzenia: nowa praca obok DICT-4.2, nie DICT-4.2) |
 | D-Q11 ⚠ | Uchylić nie-cele „reguły per aplikacja” i „własny słownik” ze specu dyktowania? | tak | DICT-0.3 |
 | D-Q12 | Zapisywać w historii listę użytych źródeł (bez treści)? | tak | DICT-1.4 |
 | D-Q13 | Kandydaci na terminy z ekranu? | warunkowo, po bramce 2% | DICT-4.1 |
@@ -260,23 +260,25 @@ Odpowiedzi na pytania oznaczone ⚠. Pozostałe pytania przyjmują wartości dom
 | M-Q12 lokalny MCP | Domyślnie wyłączony, udostępnianie per spotkanie. |
 | M-Q13 auto-eksport Markdown | Opt-in, wybór folderu, ostrzeżenie o braku szyfrowania. |
 | M-Q14 plan B, jeśli wygra Claude | Zewnętrzny dostawca (spec external-ai-providers) dla spotkań niepoufnych, za zgodą. |
-| M-Q17 zbiór wzorcowy | Poza repo, 3 spotkania właściciela (za zgodą uczestników), lokalni sędziowie; w repo tylko liczby. |
+| M-Q17 zbiór wzorcowy | Poza repo, 3 spotkania właściciela (za zgodą uczestników), lokalni sędziowie; w repo tylko liczby. *(„Lokalni sędziowie” uchylone dla sędziego Fable 2026-11-19, decyzja 2.)* |
 
 ## Decyzje właściciela (2026-11-19)
 
 Dziewięć decyzji nadpisuje ten backlog tam, gdzie się różnią. Źródło: wiadomość właściciela z 2026-11-19. Epiki mają przy dotkniętych stories krótką adnotację ze wskazaniem na tę sekcję; treść stories nie jest przepisana.
 
-| # | Decyzja | Skutek dla stories |
-|---|---|---|
-| 1 | Zewnętrzni dostawcy (Claude itd.) w produkcie: TAK, pilnie. Domyślnie WYŁĄCZENI; transkrypt idzie do dostawcy dopiero po włączeniu przez użytkownika, z tekstem zgody dla uczestników. | **MEET-X.1 pilna i bezwarunkowa**: nie zależy już od wyniku MEET-0.2 ani od M-Q14. Spec `2026-11-10-external-ai-providers.md` nadal wymaga odświeżenia przed implementacją (baner zmieniony: odświeżenie pilne). M-Q14 przestarzałe. Tekst zgody dla uczestników łączy się z MEET-1.6. |
-| 2 | Fable jako recenzent jakości notatek: zielone światło na ocenianie WSZYSTKICH spotkań właściciela (świadome uchylenie M-Q5 dla sędziego Fable). Zastępuje ślepe porównanie MEET-0.2 i bramkę dogfoodu MEET-0.3. Uwagi właściciela nanoszone później. | **MEET-0.2 i MEET-0.3 zastąpione** pętlą oceny notatek przez sędziego Fable. M-Q5 uchylone dla tego sędziego (zapis niżej). MEET-1.5 (linia bazowa) i późniejsze bramki liczą się od tej oceny. |
-| 3 | Notatka = podsumowanie spotkania (ustalenia, decyzje, zadania). Żadnych timestampów w notatce. Timestampy zostają w transkrypcie. | Zmiana treści notatek (`NotesComposer`, cytaty `[mm:ss]` w notatce); dotyka stories o sprawdzalności (MEET-2.x) i odtwarzaniu (MEET-2.5): odsłuch z notatki bez znacznika czasu wymaga innego kotwiczenia. Do rozpisania w specu. |
-| 4 | Oznaczenia AI/człowiek w notatkach: usunąć (także z historii zmian jako osobnego oznaczenia). | **MEET-4.3 (`NoteBlockProvenance.author`) wycofana 2026-11-19, decyzja 4**: wypada z kolejki `LintelKit` i z kolejności PR-ów. MEET-4.4 miała ją w zależnościach (do przeliczenia przy specu); usunięcie oznaczeń z Notes (paski autora, historia) to osobna zmiana w spec-first. |
-| 5 | Formatowanie notatek do poprawy (obecne złe); #64 w zakresie. | Nowa praca nad formatem notatek, w tym #64. Brak numeru story; do nadania przy specu. |
-| 6 | Bramka DICT-0.1 zaliczona decyzją właściciela (bez liczenia 5 z 20; brak linii bazowej zaakceptowany). Epik DICT rusza. | **DICT-0.1 zaliczona.** DICT-1.x startują. ADR 0010 powstaje bez liczb z pomiaru; warunek D-Q13 (≤ 2% fałszywych podmian) nie ma danych, więc DICT-4.1 zostaje wstrzymana do własnego pomiaru. |
-| 7 | Dyktowanie: formatowanie ma usuwać zmiany zdania i autopoprawki („albo jednak”, „nie, czekaj”) i dawać sensowną wiadomość. | **D-Q10 uchylone**: `CleanupPrompt` v2 (usuwanie zmian zdania i autopoprawek), `FormatterGuard` do dostosowania. Dotyka DICT-4.2 (z kandydata po pomiarze do pracy zleconej) i testów snapshotowych promptu. |
-| 8 | Nowe funkcje (spec najpierw): czat w aplikacji (szukanie w notatkach, poprawki notatek), akcje po spotkaniu (Jira, mail; agent proponuje, użytkownik zatwierdza). | Dwa nowe specy, bez implementacji przed specem. Czat sąsiaduje z MEET-6.1 – 6.2 (archiwum), akcje po spotkaniu z MEET-X.1 (zgoda na wysyłkę danych poza Maca). |
-| 9 | Pilne błędy: mikrofon nie łapie głosu (log: „Audio track mic ended”, HUD „Microphone disconnected”); okna po uśpieniu nadal się psują; transkrypcja miesza języki. | Trzy poprawki poza epikami, pilne. Mikrofon: MEET-1.7 (strażniki nagrania) ma pierwszeństwo przed resztą Fazy 1. Mieszanie języków łączy się z MEET-5.1 (pomiar silników). |
+Kolumna „Skutek wprost” zawiera tylko to, co wynika z brzmienia decyzji. Kolumna „Interpretacja autora” to wnioski autora tego wpisu: **interpretacja, do potwierdzenia przez właściciela**, nie decyzja. Do czasu potwierdzenia nie zmieniają statusu żadnej story.
+
+| # | Decyzja (brzmienie właściciela) | Skutek wprost | Interpretacja autora (do potwierdzenia przez właściciela) |
+|---|---|---|---|
+| 1 | Zewnętrzni dostawcy (Claude itd.) w produkcie: TAK, pilnie. Domyślnie WYŁĄCZENI; transkrypt idzie do dostawcy dopiero po włączeniu przez użytkownika, z tekstem zgody dla uczestników. | **MEET-X.1 pilna i bezwarunkowa** (przestaje być warunkowa): nie zależy już od wyniku MEET-0.2 ani od M-Q14; M-Q14 przestarzałe. Dostawcy domyślnie wyłączeni; bez włączenia przez użytkownika nic nie jest wysyłane. Spec `2026-11-10-external-ai-providers.md` nadal wymaga odświeżenia przed implementacją (baner zmieniony: odświeżenie pilne). | Miejsce MEET-X.1 w tygodniu 0 osi czasu i w wierszu 2 kolejności PR-ów. Tekst zgody dla uczestników łączy się z MEET-1.6 (przypomnienie o zgodzie). Dotychczasowe ograniczenie MEET-X.1 do spotkań niepoufnych nie jest częścią decyzji; czy zostaje, rozstrzyga właściciel przy odświeżeniu specu. |
+| 2 | Fable jako recenzent jakości notatek: zielone światło na ocenianie WSZYSTKICH spotkań właściciela (świadome uchylenie M-Q5 dla sędziego Fable). Zastępuje ślepe porównanie MEET-0.2 i bramkę dogfoodu MEET-0.3. Uwagi właściciela nanoszone później. | **MEET-0.2 i MEET-0.3 zastąpione** oceną notatek przez sędziego Fable. M-Q5 uchylone tylko dla tego sędziego (zapis niżej); dla innych sędziów chmurowych M-Q5 obowiązuje bez zmian. | MEET-1.5 (linia bazowa) i późniejsze bramki liczą się od oceny Fable. ADR kierunku, który miał powstać w MEET-0.2, nadal jest potrzebny wpisom MEET-1.5 i MEET-4.4. |
+| 3 | Notatka = podsumowanie spotkania (ustalenia, decyzje, zadania). Żadnych timestampów w notatce. Timestampy zostają w transkrypcie. | Bez znaczników czasu w treści notatki; transkrypt zachowuje znaczniki. | Dotyczy cytatów `[mm:ss]` składanych przez `NotesComposer`; dotyka stories o sprawdzalności (MEET-2.x) i odtwarzaniu (MEET-2.5): odsłuch z notatki bez znacznika czasu wymaga innego kotwiczenia. Do rozpisania w specu. |
+| 4 | Oznaczenia AI/człowiek w notatkach: usunąć (także z historii zmian jako osobnego oznaczenia). MEET-4.3 (`NoteBlockProvenance.author`) wypada z kolejki. | **MEET-4.3 wycofana 2026-11-19, decyzja 4**: wypada z kolejki `LintelKit` i z kolejności PR-ów. | MEET-4.4 ma MEET-4.3 w zależnościach i wymaga przeliczenia przy specu. Usunięcie istniejących oznaczeń z Notes (paski autora, historia) to osobna zmiana, spec najpierw. |
+| 5 | Formatowanie notatek do poprawy (obecne złe); #64 w zakresie. | Nowa praca nad formatem notatek, w tym #64. | Brak numeru story; do nadania przy specu. |
+| 6 | Bramka DICT-0.1 zaliczona decyzją właściciela (bez liczenia 5 z 20; brak linii bazowej zaakceptowany). Epik DICT rusza. | **DICT-0.1 zaliczona**, epik DICT rusza (DICT-1.x mogą startować). | ADR 0010 powstaje bez liczb z pomiaru. Warunek D-Q13 (≤ 2% fałszywych podmian z kryterium 2 DICT-0.1) nie ma danych, więc DICT-4.1 zostaje wstrzymana do własnego pomiaru. |
+| 7 | Dyktowanie: formatowanie ma usuwać zmiany zdania i autopoprawki („albo jednak”, „nie, czekaj”) i dawać sensowną wiadomość. Uchyla D-Q10 (`CleanupPrompt` bez zmian); `FormatterGuard` do dostosowania. | **D-Q10 uchylone** w zakresie „`CleanupPrompt` bez zmian”: prompt zmienia się tak, by usuwać zmiany zdania i autopoprawki; `FormatterGuard` do dostosowania. | To nowa praca, nie DICT-4.2: lista terminów w prompcie (treść DICT-4.2) nie jest tą decyzją zlecona i zachowuje swój warunek. Obie zmiany dotykają `CleanupPrompt.version`, `FormatterGuard` i snapshotów promptu, więc numer wersji trzeba uzgodnić. |
+| 8 | Nowe funkcje (spec najpierw): czat w aplikacji (szukanie w notatkach, poprawki notatek), akcje po spotkaniu (Jira, mail; agent proponuje, użytkownik zatwierdza). | Dwa nowe specy, bez implementacji przed specem. | Czat sąsiaduje z MEET-6.1 – 6.2 (archiwum), akcje po spotkaniu z MEET-X.1 (zgoda na wysyłkę danych poza Maca). |
+| 9 | Pilne błędy: mikrofon nie łapie głosu (log: „Audio track mic ended”, HUD „Microphone disconnected”); okna po uśpieniu nadal się psują; transkrypcja miesza języki. | Trzy pilne poprawki błędów. | Poprawki idą poza epikami. Mikrofon: MEET-1.7 (strażniki nagrania) ma pierwszeństwo przed resztą Fazy 1. Mieszanie języków łączy się z MEET-5.1 (pomiar silników). |
 
 ### Zapis M-Q5 (dosłownie, jako świadoma decyzja właściciela)
 
@@ -284,7 +286,7 @@ Dziewięć decyzji nadpisuje ten backlog tam, gdzie się różnią. Źródło: w
 
 ### Punkt otwarty: informacja dla uczestników
 
-⚠ **Do potwierdzenia przez właściciela.** Ocena przez sędziego Fable wysyła transkrypty prawdziwych spotkań do dostawcy chmurowego. Tekst informacji i zgody dla uczestników (MEET-1.6, „Copy message” w przypomnieniu o zgodzie) powinien to obejmować, tak samo jak wysyłkę do zewnętrznego dostawcy z decyzji nr 1. Dopóki właściciel nie potwierdzi brzmienia, MEET-1.6 nie powinna być mergowana z tekstem sprzecznym z tą praktyką. W repozytorium nie ma treści spotkań ani transkryptów; ocena odbywa się poza nim, a w repozytorium zostają same liczby.
+⚠ **Do potwierdzenia przez właściciela.** Ocena przez sędziego Fable wysyła transkrypty prawdziwych spotkań do dostawcy chmurowego. Tekst informacji i zgody dla uczestników (MEET-1.6, „Copy message” w przypomnieniu o zgodzie) powinien to obejmować, tak samo jak wysyłkę do zewnętrznego dostawcy z decyzji nr 1. MEET-1.6 jest już na `main` (PR #88); jej obecny tekst nie wspomina o ocenie przez Fable ani o wysyłce do dostawcy. Brzmienie uzupełnienia (i czy w ogóle) ustala właściciel; do tego czasu agenci nie zmieniają tekstu zgody. W repozytorium nie ma treści spotkań ani transkryptów; ocena odbywa się poza nim, a w repozytorium zostają same liczby.
 
 ### Zmiany statusu stories
 

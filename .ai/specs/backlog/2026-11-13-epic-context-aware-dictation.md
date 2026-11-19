@@ -65,7 +65,7 @@
 | D-Q7 | Skąd lista plików: indeks `FilesPlugin` (nowy wkład pluginu) czy ograniczone listowanie katalogu roboczego w hoście? | **Listowanie w hoście** (`FileNameLookup`): mniejszy kontrakt, działa bez włączonego wyszukiwania plików. Indeks jako rozszerzenie później. |
 | D-Q8 | Słowa wyzwalające plik: „małpa”, „at”, „tag” + nazwa, albo nazwa z wypowiedzianym rozszerzeniem. Czy samo „plik X” ma wyzwalać? | **Nie**; „plik” jest zwykłym słowem. |
 | D-Q9 | Włączać `AXManualAccessibility` w aplikacjach Electron? | **Nie.** VS Code, Cursor i Slack dostają profil z identyfikatora i tytuł okna. |
-| D-Q10 | Lista terminów w prompcie LLM (`CleanupPrompt` v2)? | **Nie w Fazach 0–3.** Kandydat DICT-4.2, tylko po pomiarze. **Uchylone 2026-11-19 (decyzja 7):** `CleanupPrompt` v2 usuwa zmiany zdania i autopoprawki, `FormatterGuard` do dostosowania; zob. przegląd backlogu, sekcja „Decyzje właściciela (2026-11-19)”. |
+| D-Q10 | Lista terminów w prompcie LLM (`CleanupPrompt` v2)? | **Nie w Fazach 0–3.** Kandydat DICT-4.2, tylko po pomiarze. **Założenie „`CleanupPrompt` bez zmian w Fazach 0–3” uchylone 2026-11-19 (decyzja 7):** prompt zmienia się, by usuwać zmiany zdania i autopoprawki, `FormatterGuard` do dostosowania. Lista terminów w prompcie nie jest tą decyzją rozstrzygnięta (interpretacja, do potwierdzenia przez właściciela: DICT-4.2 zachowuje swój warunek); zob. przegląd backlogu, sekcja „Decyzje właściciela (2026-11-19)”. |
 | D-Q11 ⚠ | Uchylić nie-cele specu dyktowania („reguły per aplikacja”, „własny słownik”)? | **Tak**, wprost w ADR 0010. |
 | D-Q12 | Zapisywać w historii listę użytych źródeł (bez treści)? | **Tak**, kolumna `context_sources`. |
 | D-Q13 | Kandydaci na terminy z ekranu (dopasowanie fonetyczne, DICT-4.1): robić? | **Warunkowo**, tylko gdy DICT-0.1 (kryterium 2) pokaże ≤ 2% fałszywych podmian. |
@@ -564,6 +564,8 @@ Te dwie story mają pełny format, ale ruszają tylko po spełnieniu warunku. Po
 
 ### DICT-4.1 — Kandydaci na terminy z migawki i dopasowanie fonetyczne
 
+> **Status 2026-11-19 (interpretacja, do potwierdzenia przez właściciela):** DICT-0.1 zaliczona bez liczenia (decyzja 6), więc warunek D-Q13 nie ma danych; story wstrzymana do własnego pomiaru.
+
 - **Story:** Jako osoba dyktująca chcę, by nazwy widoczne w oknie (identyfikatory, nazwy plików) poprawiały pisownię rozpoznanych słów, bez dopisywania ich do słownika.
 - **Zależności:** DICT-2.3, DICT-2.4, DICT-1.1. **Warunek:** DICT-0.1 kryterium 2 dało ≤ 2% fałszywych podmian (D-Q13).
 - **Powierzchnie:** `LintelCore` (klucz fonetyczny PL/EN w `TermReplacer`), `DictationPlugin` (`TermCandidates`); ustawienie `plugins.dictation.contextTerms` (Bool, domyślnie `false`).
@@ -580,6 +582,8 @@ Te dwie story mają pełny format, ale ruszają tylko po spełnieniu warunku. Po
 - **Start:** `om-auto-create-pr "DictationPlugin: TermCandidates z migawki (tylko tokeny wyglądające na identyfikator) i dopasowanie fonetyczne PL/EN w TermReplacer z progiem i marginesem, klucz plugins.dictation.contextTerms domyślnie false, bramka 2% fałszywych podmian — Source doc: .ai/specs/backlog/2026-11-13-epic-context-aware-dictation.md (story DICT-4.1)"`
 
 ### DICT-4.2 — Lista terminów w `CleanupPrompt` v2 i reguła strażnika
+
+> **Status 2026-11-19 (interpretacja, do potwierdzenia przez właściciela):** decyzja 7 (usuwanie zmian zdania i autopoprawek) to osobna praca na tych samych powierzchniach (`CleanupPrompt.version`, `FormatterGuard`, snapshoty promptu); warunek tej story zostaje, a numer wersji promptu trzeba uzgodnić.
 
 - **Story:** Jako osoba używająca formatowania LLM chcę, by model nie „poprawiał” terminów ze słownika, aby formatowanie nie psuło nazw.
 - **Zależności:** DICT-1.1, DICT-3.6. **Warunek:** dogfood pokazał, że LLM zmienia terminy przed zamianą słownikową w sposób, którego zamiana po LLM nie naprawia; oraz pomiar na `LlamaRuntime`, że +250 tokenów mieści się w budżecie ogona (< 8 s na modelu 4B).

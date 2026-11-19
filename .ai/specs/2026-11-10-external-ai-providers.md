@@ -1,6 +1,6 @@
 # Zewnętrzni dostawcy AI (subskrypcje Claude Code, Codex, Grok…) jako alternatywa dla wbudowanego LLM
 
-> Status: **odświeżenie pilne (MEET-X.1, decyzja właściciela 2026-11-19 nr 1), nadal nie implementować przed odświeżeniem.** Nazwy `Pounce*`, ADR 0008 zajęty; odświeżenie w MEET-X.1 (`.ai/specs/backlog/2026-11-13-epic-meeting-notes-beyond-claude.md`, decyzje: `.ai/specs/backlog/2026-11-13-backlog-overview.md`, sekcja „Decyzje właściciela (2026-11-19)”).
+> Status: **odświeżenie pilne (MEET-X.1, decyzja właściciela 2026-11-19 nr 1), nadal nie implementować przed odświeżeniem.** Decyzja: dostawcy domyślnie wyłączeni, transkrypt idzie do dostawcy dopiero po włączeniu przez użytkownika, z tekstem zgody dla uczestników. Nazwy `Pounce*`, ADR 0008 zajęty; odświeżenie w MEET-X.1 (`.ai/specs/backlog/2026-11-13-epic-meeting-notes-beyond-claude.md`, decyzje: `.ai/specs/backlog/2026-11-13-backlog-overview.md`, sekcja „Decyzje właściciela (2026-11-19)”).
 
 ## 📝 TLDR
 

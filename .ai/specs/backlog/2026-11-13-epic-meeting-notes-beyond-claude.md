@@ -70,7 +70,7 @@
 | M-Q2 | Co znaczy „lepiej niż Claude”? | **Cztery tezy + ślepe porównanie** (tabela wyżej). |
 | M-Q3 ⚠ | `keepAudio` jako opcja (zmienia decyzję Q7 specu spotkań). Przed dogfoodem? Na ile dni? Pytać przy pierwszym nagraniu? | **Tak, przed dogfoodem lub w jego pierwszych dniach, domyślnie wyłączone, 30 dni, bez pytania przy pierwszym nagraniu** (sam przełącznik w Prywatności). Bez audio nie powstanie zbiór wzorcowy; 14 dni wygasłoby przed jego zebraniem. |
 | M-Q4 | Które zmiany wolno wydawać w trakcie dwóch tygodni dogfoodu („bez zmian w kodzie produktu” z briefu 2026-11-09)? | **Tylko te, które nie zmieniają treści notatek:** Faza 1 tego epica. Wszystko, co zmienia `NotesPipeline`, `NotesGuard`, `NotesComposer` lub segmenty, czeka na bramkę MEET-0.3. |
-| M-Q5 | Zbiór wzorcowy: ile pracy ręcznej i czy sędziowie chmurowi? | **3 spotkania na start** (poprawiony transkrypt z mówcami, 10–25 punktów, zadania), rosnące z dogfoodu; **panel sędziów lokalny**, chmurowi tylko na nagraniach ze zgodą uczestników.  **Uchylone dla sędziego Fable 2026-11-19 (decyzja 2); zob. przegląd backlogu, sekcja „Decyzje właściciela (2026-11-19)”.** |
+| M-Q5 | Zbiór wzorcowy: ile pracy ręcznej i czy sędziowie chmurowi? | **3 spotkania na start** (poprawiony transkrypt z mówcami, 10–25 punktów, zadania), rosnące z dogfoodu; **panel sędziów lokalny**, chmurowi tylko na nagraniach ze zgodą uczestników. **Uchylone dla sędziego Fable 2026-11-19 (decyzja 2); zob. przegląd backlogu, sekcja „Decyzje właściciela (2026-11-19)”.** |
 | M-Q6 ⚠ | Kalendarz (EventKit) jako źródło uczestników: odwrócić zamkniętą decyzję? | **Nie z góry.** MEET-3.5 rusza tylko, gdy sugestie imion (MEET-3.3) nie przejdą bramki 80%, albo po wyraźnej decyzji. |
 | M-Q7 | 2–3 wbudowane szablony notatek (zmienia Q8 specu spotkań)? | **Nie w tym epiku.** Notatki hybrydowe pokrywają większość potrzeby. |
 | M-Q8 ⚠ | Notatnik w trakcie nagrania: własność `MeetingsPlugin` czy nowy port z Notes? | **Własność `MeetingsPlugin`**; Notes widzi go jako warstwę tylko do odczytu. Reguła „bez warstwy w stanie `recording`” i N10 zostają nietknięte. |
@@ -79,7 +79,7 @@
 | M-Q11 | Podział segmentów: jeden PR (spec mówi „Faza 1 i 2 razem”) czy dwa? | **Dwa PR-y** (MEET-3.1 zapisuje słowa i nie zmienia zachowania; MEET-3.2 dzieli). |
 | M-Q12 ⚠ | Lokalny MCP: zgodny z „nic nie opuszcza Maca”? Model udostępniania? | **Tak, jako jawny wyjątek:** domyślnie wyłączony, tylko odczyt, **udostępnianie włączane per spotkanie**, dziennik dostępu, bez obietnicy rozróżniania klientów. |
 | M-Q13 ⚠ | Automatyczny eksport do folderu (jawny Markdown poza zaszyfrowaną bazą)? | **Tak, opt-in, z ostrzeżeniem.** |
-| M-Q14 ⚠ | Jeśli Claude wyraźnie wygra ślepe porównanie także z modelem 30B? | **Dla spotkań niepoufnych pierwszeństwo dostaje MEET-X.1** (dostawca zewnętrzny dla kroku pisania); Fazy 2–4 zostają, bo poprawiają też wejście dla modelu chmurowego.  **Przestarzałe 2026-11-19 (decyzja 1): MEET-X.1 pilna i bezwarunkowa; zob. przegląd backlogu, sekcja „Decyzje właściciela (2026-11-19)”.** |
+| M-Q14 ⚠ | Jeśli Claude wyraźnie wygra ślepe porównanie także z modelem 30B? | **Dla spotkań niepoufnych pierwszeństwo dostaje MEET-X.1** (dostawca zewnętrzny dla kroku pisania); Fazy 2–4 zostają, bo poprawiają też wejście dla modelu chmurowego. **Przestarzałe 2026-11-19 (decyzja 1): MEET-X.1 pilna i bezwarunkowa; zob. przegląd backlogu, sekcja „Decyzje właściciela (2026-11-19)”.** |
 | M-Q15 | Drugi przebieg mowy: całe spotkanie Whisperem czy tylko segmenty oznaczone? | **Decyduje pomiar MEET-5.1**; bez zysku WER funkcja nie powstaje. |
 | M-Q16 | Zmiana domyślnego modelu notatek (Bielik, Gemma)? | **Nie bez harnessu.** Pomiar w MEET-5.1; repozytoria Bielika są bramkowane. |
 | M-Q17 ⚠ | Zbiór wzorcowy wymaga odszyfrowanego dźwięku poza aplikacją (narzędzie poza repozytorium, monit Pęku kluczy dla `com.lintelapp.meetings`). Zgoda? | **Tak:** jawny dźwięk tylko na zaszyfrowanym obrazie dysku ze zbiorem wzorcowym, kasowany razem z wpisem; aplikacja nadal nigdy nie zapisuje jawnego audio. |
@@ -123,8 +123,8 @@ flowchart TD
   classDef gate fill:#fde68a,color:#111,stroke:#b45309
   classDef contract fill:#fecaca,color:#111,stroke:#b91c1c
   classDef cond fill:#e5e7eb,color:#111,stroke:#6b7280
-  M01[MEET-0.1 merge PR 63]:::gate --> M02[MEET-0.2 ślepe porównanie]:::gate
-  M01 --> M03[MEET-0.3 dogfood i bramka]:::gate
+  M01[MEET-0.1 merge PR 63]:::gate --> M02["MEET-0.2 ślepe porównanie, zastąpione oceną Fable 2026-11-19"]:::gate
+  M01 --> M03["MEET-0.3 dogfood i bramka, zastąpione oceną Fable 2026-11-19"]:::gate
   M01 --> M04[MEET-0.4 pomiar budżetów]
   M01 --> M11[MEET-1.1 keepAudio]
   M01 --> M12[MEET-1.2 metryki deterministyczne]
@@ -153,7 +153,7 @@ flowchart TD
   M03 --> M41[MEET-4.1 notatnik w trakcie]
   M41 --> M42[MEET-4.2 kotwice w NotesPipeline]
   M15 --> M42
-  M42 --> M43[MEET-4.3 prezentacja]
+  M42 --> M43["MEET-4.3 prezentacja, wycofana 2026-11-19"]:::cond
   M43 --> M44[MEET-4.4 pomiar]
   M15 --> M51[MEET-5.1 pomiar silników i modeli]
   M51 --> M52[MEET-5.2 słownik spotkania]
@@ -168,7 +168,7 @@ flowchart TD
   M61 --> M66
   M02 --> M03
   M02 --> M15
-  M02 -.MEET-X.1 bezwarunkowa od 2026-11-19.-> MX1[MEET-X.1 odświeżenie specu dostawców]:::cond
+  MX1["MEET-X.1 odświeżenie specu dostawców, pilna i bezwarunkowa od 2026-11-19"]
 ```
 
 Wniosek z diagramu: PR #63 jest jedynym węzłem, od którego zależy wszystko. Dwa żółte węzły po nim (dogfood i linia bazowa) rozdzielają pracę na „wolno od razu” (Faza 1, MEET-6.3) i „dopiero po danych” (Fazy 2–5).
@@ -646,6 +646,8 @@ Warunek wejścia: bramka MEET-0.3. Decyzja M-Q8 ⚠.
 - **Start:** `om-auto-create-pr "Prezentacja notatek hybrydowych: addytywne pole NoteBlockProvenance.author w LintelKit, paski autora Ty/AI w NotesPlugin, stan stale i regeneracja po edycji linii użytkownika, oznaczenie autora w eksporcie Markdown — Source doc: .ai/specs/backlog/2026-11-13-epic-meeting-notes-beyond-claude.md (story MEET-4.3)"`
 
 ### MEET-4.4 — Pomiar notatek hybrydowych
+
+> **Status 2026-11-19 (interpretacja, do potwierdzenia przez właściciela):** zależy od wycofanej MEET-4.3 (decyzja 4); zależności i kryteria do przeliczenia przy specu. Zob. przegląd backlogu, sekcja „Decyzje właściciela (2026-11-19)”.
 
 - **Story:** Jako właściciel chcę wiedzieć, czy kotwice poprawiają pokrycie tego, co sam zanotowałem.
 - **Zależności:** MEET-4.3, MEET-0.2 (ADR); co najmniej 3 nowe spotkania nagrane z notatkami użytkownika po wydaniu MEET-4.1 – 4.3 i opisane wzorcowo przez właściciela (kilka tygodni po MEET-4.3).
