@@ -101,7 +101,7 @@ Tygodnie liczone od dnia, w którym właściciel zmerguje PR-0 i PR #63. Ogranic
 |---|---|---|---|
 | 0 | merge PR-0 i PR #63; odpowiedzi na pytania ⚠ | ~~DICT-0.1~~ (zaliczona decyzją 2026-11-19) | MEET-0.1; start MEET-1.1; **MEET-X.1 (pilna, decyzja 2026-11-19 nr 1; tydzień 0 to interpretacja, do potwierdzenia przez właściciela)** |
 | 1 | ~~ślepe porównanie (jeden wieczór)~~ (zastąpione oceną Fable, decyzja 2026-11-19 nr 2); start dogfoodu z `keepAudio` | DICT-0.2, DICT-0.3; DICT-1.1 | ~~MEET-0.2~~ (zastąpione oceną Fable), MEET-0.4, MEET-1.2, MEET-1.3 (schemat), MEET-1.6 |
-| 2 | dogfood; recenzja i akceptacja ADR 0010 | DICT-1.2, 1.3, 1.4, DICT-3.0 | MEET-1.7, MEET-1.4 |
+| 2 | dogfood; ~~recenzja i akceptacja ADR 0010~~ (Accepted 2026-11-19, doprecyzowanie D10) | DICT-1.2, 1.3, 1.4, DICT-3.0 | MEET-1.7, MEET-1.4 |
 | 3 | ~~bramka MEET-0.3~~ (zastąpiona oceną Fable); poprawione transkrypty 3 spotkań (dane MEET-1.3) | DICT-2.1, potem DICT-2.2 i 2.3 | MEET-6.3, MEET-1.5 |
 | 4 | QA zgody (DICT-2.4) | DICT-2.4, 2.5, 2.6 | MEET-2.1, 2.2, 2.3, 2.4 |
 | 5 | QA odsłuchu | DICT-2.7, DICT-3.1 | MEET-2.5 (po DICT-2.1), MEET-3.1 |

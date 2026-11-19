@@ -4,7 +4,7 @@
   the DICT-0.2 probes are run, the points marked **[0.2]** are working values, not decisions.
 - Date: 2026-11-19
 - Backlog: `.ai/specs/backlog/2026-11-13-epic-context-aware-dictation.md`, story DICT-0.3. Owner decisions of
-  2026-11-19 (numbers 1, 6 and 7) are applied; they are recorded in the backlog overview by PR #104 (open when this was written, so this branch does not hold them yet).
+  2026-11-19 (numbers 1, 6 and 7) are applied; they are recorded in the backlog overview (PR #104, merged).
 - Number 0010: free on `main` and in the open pull requests (checked 2026-11-19). `0007` is used twice.
 - Owner decisions on this ADR (2026-11-19, accepted):
   1. DICT-2.1 may start before the DICT-0.2 probes; the probes must be done before DICT-2.2.
