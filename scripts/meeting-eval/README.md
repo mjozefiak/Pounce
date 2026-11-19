@@ -95,12 +95,14 @@ python3 -I scripts/meeting-eval/judge_panel.py score --gold <entry.json> --notes
 The tool that calls the judge is **not** in this repository, and neither is any meeting. A judge answer holds quotes and reasons, so it stays on the owner's encrypted image. `validate_judge_result.py` checks an answer against `fable-judge-result.schema.json` and reduces it to numbers and category names, the only part that may go into a pull request:
 
 ```sh
-python3 -I scripts/meeting-eval/validate_judge_result.py validate --segments <N> --meeting <id> run-1.json run-2.json run-3.json
+python3 -I scripts/meeting-eval/validate_judge_result.py validate --segments <meta.segment_count> --meeting <meta.id> run-1.json run-2.json run-3.json
 python3 -I scripts/meeting-eval/validate_judge_result.py public --label M01 run-1.json           # numbers of one run
 python3 -I scripts/meeting-eval/validate_judge_result.py aggregate --label M01 --markdown run-1.json run-2.json run-3.json
 python3 -I scripts/meeting-eval/validate_judge_result.py check-trap --expected examples/fable-judge/trap-expected.json run-1.json
 ```
 
-Exit codes: 0 valid (or the trap was caught), 1 invalid (or the trap was missed), 2 usage or input error. Output has field paths, labels, category names and numbers only, never text of a meeting. `aggregate` takes an odd number of runs (at least 3) of one note and gives the median and spread of every score, the fabrications named by more than half of the runs, and the verdict (`pass`, `needs_work`, `fail`).
+Exit codes: 0 valid (or the trap was caught), 1 invalid (or the trap was missed), 2 usage or input error. Output has field paths, labels, category names and numbers only, never text of a meeting: `public` and `aggregate` build their output from an allow-list (whole numbers, closed category names and the `--label` the operator gives; the label never defaults to anything in the answer) and refuse an answer that is not valid. `aggregate` takes an odd number of runs (at least 3) of one note and gives the median and spread of every score, the fabrications named by more than half of the runs, and the verdict (`pass`, `needs_work`, `fail`). The thresholds behind the verdict are a first proposal without data, to be calibrated after the first series.
+
+The input is the export of the `meeting-export` tool (outside the repository) as it is: `segments.jsonl`, `speakers.json`, `notes.md` and `meta.json` (section 2 of `fable-judge.md` says which fields are used and how the prompt is built from them).
 
 `examples/fable-judge/` is an invented meeting with a clean note, a trap note with planted errors and hand-written example answers; the tests use it.

@@ -3,7 +3,7 @@
 judge_protocol_version: 1
 
 Changelog:
-- 1 (2026-11-19): pierwsza wersja. Rubryka po decyzjach właściciela 2026-11-19, cztery wymiary 0–4, prompt, schemat wyniku, 3 przebiegi, kontrola sędziego na danych syntetycznych.
+- 1 (2026-11-19): pierwsza wersja. Rubryka po decyzjach właściciela 2026-11-19, cztery wymiary 0–4, prompt, schemat wyniku, 3 przebiegi, kontrola sędziego na danych syntetycznych. Wejście w kształcie eksportu `meeting-export` 1; progi to propozycja bez danych.
 
 Ten plik jest wersjonowany. Każda zmiana rubryki, kotwic, wag, progów, promptu albo schematu wyniku podnosi `judge_protocol_version` i dopisuje linię do changelogu. Wyników z różnych wersji nigdy się nie porównuje ani nie uśrednia.
 
@@ -21,44 +21,57 @@ Zakres:
 - Sędzia ocenia gotową notatkę względem transkryptu tego samego spotkania. Prawdą odniesienia jest transkrypt, nie rzeczywistość: błędów rozpoznawania mowy nie przypisuje się notatce.
 - Protokół obejmuje wszystkie spotkania właściciela, które właściciel wyeksportuje.
 - Protokół nie mierzy jakości transkryptu ani rozpoznania mówców (to `score.py`, MEET-1.2) i nie zmienia zbioru wzorcowego (MEET-1.3) ani lokalnego panelu (`judge_panel.py`, MEET-1.4).
-- `notes-rubric.md` (`rubric_version` 1) zostaje bez zmian dla wyników już zebranych. Do nowych ocen spotkań właściciela używa się tej rubryki, bo tamta nagradza czasy `[mm:ss]` w notatce, a decyzja 3 uznaje je za wadę.
+- `notes-rubric.md` (`rubric_version` 1) zostaje dla wyników już zebranych (bez zmiany wersji; jedna linia na jego początku odsyła tutaj). Do nowych ocen spotkań właściciela używa się tej rubryki, bo tamta nagradza czasy `[mm:ss]` w notatce, a decyzja 3 uznaje je za wadę.
 - Narzędzie, które wywołuje sędziego, **nie leży w repozytorium**. W repozytorium są: ten protokół, schemat wyniku, walidator `validate_judge_result.py` i przykład syntetyczny.
 
 ## 2. Wejście
 
-Spotkanie eksportuje narzędzie spoza repozytorium, uruchamiane ręcznie przez właściciela. Eksport leży **wyłącznie na zaszyfrowanym obrazie dysku właściciela**, jeden katalog na spotkanie:
+Spotkanie eksportuje narzędzie `meeting-export` (`tool.version` `"1"`), które leży poza repozytorium i które właściciel uruchamia ręcznie. Protokół przyjmuje jego eksport takim, jaki jest; to protokół dostosowuje się do eksportu, nie odwrotnie. Eksport leży **wyłącznie na zaszyfrowanym obrazie dysku właściciela**. Pliki leżą płasko w katalogu podanym jako `--out-dir`, jeden katalog na spotkanie (eksport nie tworzy podkatalogu i odmawia, gdy któryś plik już istnieje):
 
 ```
-<zaszyfrowany obraz>/judge/<id spotkania>/
-  segments.jsonl     # transkrypt
-  notes.md           # oceniana notatka, dokładnie tak, jak ją widzi użytkownik
-  meta.json          # dane o eksporcie, bez treści
-  runs/<wersja protokołu>/<wariant>/run-1.json, run-2.json, run-3.json   # odpowiedzi sędziego (sekcja 6)
+<zaszyfrowany obraz>/judge/<katalog spotkania>/     # = --out-dir eksportu
+  segments.jsonl     # transkrypt (zawsze; pusty plik, gdy nie ma segmentów)
+  speakers.json      # mówcy (zawsze; [] gdy ich nie ma)
+  notes.md           # oceniana notatka, z nagłówkiem tytułu dodanym przez eksport (tylko gdy jest tytuł lub notatka)
+  meta.json          # dane o spotkaniu i eksporcie, bez treści; zapisywany jako ostatni
+  audio-mic.wav, audio-system.wav   # tylko gdy zostało nagranie; narzędzie sędziego ich nie czyta
+  runs/<wersja protokołu>/<wariant>/run-1.json, run-2.json, run-3.json   # odpowiedzi sędziego (sekcja 6), dopisuje je narzędzie sędziego po eksporcie
 ```
 
-`segments.jsonl`: jedna linia = jeden segment transkryptu, w kolejności nagrania.
+Każdy plik JSON to wiersz bazy zapisany przez `JSONSerialization` z posortowanymi kluczami: nazwy pól to nazwy kolumn (snake_case), `NULL` to jawne `null`, a kolumny przyszłych migracji przechodzą bez zmian. Narzędzie sędziego czyta tylko pola wymienione niżej, a nieznane pomija.
 
-| Pole | Typ | Reguła |
+**Kompletność.** `meta.json` powstaje jako ostatni, więc katalog bez `meta.json` to eksport przerwany: narzędzie go nie ocenia. Ocenia tylko eksport z `meta.tool.name` = `"meeting-export"` i `meta.tool.version` = `"1"`; inna wersja eksportu wymaga przejrzenia tej sekcji.
+
+`segments.jsonl`: jeden obiekt w linii, w kolejności `start_ms`, potem `id`.
+
+| Pole | Typ | Co z nim robi narzędzie sędziego |
 |---|---|---|
-| `index` | liczba | numer segmentu od 0, bez dziur; to jedyny adres, którym sędzia wskazuje miejsce w transkrypcie |
-| `start`, `end` | liczba | sekundy; sędzia ich nie dostaje |
-| `speaker` | tekst | nazwa lub etykieta mówcy z biblioteki (`Speaker 1`, `?`) |
+| `start_ms` | liczba całkowita | ms od początku nagrania; wyznacza tylko kolejność (plik już jest w tej kolejności). **Sędzia nie dostaje czasów.** |
+| `speaker_label` | tekst albo `null` | nazwa lub etykieta mówcy z biblioteki (`Speaker 1`, `Ja`); `null`, gdy mówca nieznany: wtedy `?` |
 | `text` | tekst | treść segmentu |
+| `id`, `channel`, `end_ms`, `speaker_id`, `speaker_is_self`, `meeting_started_at_epoch`, `wall_start_epoch`, `wall_end_epoch`, `wall_start_utc` | różne | nie trafiają do sędziego |
 
-`meta.json` (schema 1):
+Numer segmentu w prompcie i w odpowiedzi sędziego (`segment`) to **numer linii pliku od 0**, nie `id` z bazy (`id` ma dziury). Segment z pustym `text` się pomija, ale jego numer nie przechodzi na następny. Linia transkryptu w `{{SEGMENTS}}`: `[numer] etykieta: tekst`, np. `[5] Ola: To ustalmy: …`.
 
-| Pole | Typ | Reguła |
+`speakers.json`: tablica obiektów `id`, `label`, `is_self`, `source_channel`. `is_self` to liczba `0` albo `1` (nie `true`/`false`, w przeciwieństwie do `speaker_is_self` w segmentach). Etykieta jest już w `segments.jsonl` (`speaker_label`), więc plik służy tylko do sprawdzenia, że `speaker_id` segmentów wskazuje istniejących mówców; do sędziego nie trafia.
+
+`notes.md`: tylko gdy spotkanie ma tytuł lub notatkę. Gdy `meta.has_title` = `true`, eksport dopisuje na początku nagłówek `# <tytuł>` i pustą linię; potem stoi zapisana notatka bez żadnej zmiany (bez końcowego znaku nowej linii). Nagłówek **nie jest częścią notatki**: narzędzie usuwa pierwszą linię i następującą po niej pustą linię, i tylko wtedy, gdy `has_title` = `true` (notatka sama może zaczynać się od `# `). Reszta to `{{NOTES}}`. Spotkanie z `has_notes` = `false` albo bez `notes.md` nie jest oceniane (nie ma czego oceniać).
+
+`meta.json`: jeden obiekt, wszystkie kolumny spotkania **bez** `title` i `notes_markdown`, plus pola eksportu. Nie ma w nim tytułu, listy uczestników ani języka.
+
+| Pole | Typ | Co z nim robi narzędzie sędziego |
 |---|---|---|
-| `schema` | liczba | `1` |
-| `id` | tekst | `[a-z0-9][a-z0-9_-]*`, najwyżej 64 znaki; losowy lub porządkowy, **bez tytułu, daty, firmy i nazwisk** |
-| `synthetic` | bool | `true` tylko dla danych wymyślonych |
-| `language` | tekst | `pl` lub `en`: dominujący język transkryptu |
-| `segments` | liczba | liczba linii `segments.jsonl` |
-| `duration_s` | liczba | długość nagrania w sekundach |
-| `notes` | obiekt | `generator` (model, który napisał notatkę), `prompt_version`, `app_build`; opisuje wariant, sędzia tego nie dostaje |
-| `judge_consent` | obiekt | `fable_cloud: true` wpisuje właściciel przy eksporcie; bez tego narzędzie nie wysyła spotkania (sekcja 7) |
+| `id` | liczba całkowita | identyfikator spotkania w bibliotece; jako tekst dziesiętny (`"12"`) to `{{MEETING}}` i pole `meeting` odpowiedzi (`--meeting` walidatora) |
+| `has_title`, `has_notes` | bool | decydują o nagłówku `notes.md` i o tym, czy spotkanie się ocenia |
+| `segment_count` | liczba całkowita | liczba linii `segments.jsonl` (`--segments` walidatora); różna liczba linii = eksport uszkodzony, nie oceniany |
+| `speaker_count` | liczba całkowita | długość `speakers.json` |
+| `tool` | obiekt | `{"name": "meeting-export", "version": "1"}` |
+| kolumny modeli i `notes_*` (pełna lista w `meeting_columns`) | różne | opisują wariant notatki (sekcja 8); sędzia ich nie dostaje |
+| `uuid`, `started_at`, `ended_at`, `started_at_utc`, `ended_at_utc`, `duration_ms`, `audio_state`, `audio`, `sqlcipher_version`, `applied_migrations`, `segment_columns`, `time_note` i reszta | różne | nie trafiają do sędziego |
 
-Przykład w `examples/fable-judge/` (spotkanie wymyślone).
+Dominujący język transkryptu sędzia ustala sam z transkryptu, bo eksport go nie podaje. Uczestników nie podaje się; notatka nie musi ich wymieniać (sekcja 3).
+
+Przykład w `examples/fable-judge/` (spotkanie wymyślone, w kształcie eksportu `meeting-export` 1; `meta.json` ma tam tylko część kolumn spotkania).
 
 ## 3. Co jest dobrą notatką
 
@@ -71,7 +84,7 @@ Decyzja właściciela nr 3: **notatka to podsumowanie spotkania**. Czytelnik, kt
 Wadą notatki jest:
 
 - **czas w notatce** (`[12:34]`, „w 14. minucie”). Czasy zostają w transkrypcie (decyzja 3);
-- **oznaczenie autora** przy treści („AI”, „You”, „STT”, „napisane przez model”). Decyzja 4 je usuwa;
+- **oznaczenie autora** przy treści („AI”, „You”, „STT”, „napisane przez model”). Decyzja 4 usuwa je z notatki i z historii zmian; sędzia widzi tylko notatkę, więc ocenia oznaczenia w niej, a historii zmian nie dostaje;
 - surowa mowa przepisana z transkryptu zamiast zdania, powtórzenia, wata, punkt w złej sekcji, brak krótkiego podsumowania na górze, zły język, zepsuty Markdown (decyzja 5: formatowanie jest częścią oceny).
 
 Notatka nie musi cytować transkryptu ani wymieniać uczestników.
@@ -165,6 +178,8 @@ Wymiar `tasks` celowo liczy drugi raz to, co już weszło do `coverage` i `faith
 
 ## 5. Skala i progi
 
+> **Progi to propozycja bez danych.** Wszystkie liczby progów w tym protokole (werdykt: 60 i 80, mediany `coverage` <= 1 i `formatting` >= 3, 2 potwierdzone zmyślenia major; bramka: 5 spotkań i mediana 70; porównanie wariantów: 5 punktów; niestabilność: rozrzut 1 i 10 w sekcji 8; kontrola sędziego: `overall` >= 80 w sekcji 9) wpisano przed pierwszym przebiegiem, bez żadnych zmierzonych wyników. Kalibruje się je po pierwszej serii na spotkaniach właściciela; każda zmiana podnosi `judge_protocol_version`.
+
 **Wynik jednego przebiegu.** Cztery wymiary 0–4 i `overall` 0–100 ze wzoru. Walidator przelicza kotwice z list (`caps`): ocena wyższa niż wynika z list jest obniżana do kotwicy i dostaje flagę `<wymiar>_above_cap`; `overall` inne niż ze wzoru dostaje flagę `overall_mismatch` i liczy się wartość przeliczona. Kotwic, których nie da się policzyć z samych list (zły właściciel lub termin prawdziwego zadania w `tasks`, „nic nie ustalono” w `coverage`, odwrócony główny wynik w `faithfulness`, „większość zadań” w `tasks`), walidator nie sprawdza: tam liczy się ocena sędziego, o ile nie przekracza kotwicy z list.
 
 **Werdykt notatki** liczy kod z 3 przebiegów (sekcja 8), nigdy sędzia:
@@ -188,13 +203,13 @@ Gdy bramka nie przechodzi, tabela braków i zmyśleń według kategorii wyznacza
 
 **Porównanie wariantów (zastępuje MEET-0.2).** Dwa warianty notatek do tych samych spotkań (inny model, prompt, kod) ocenia się osobno, każdy w 3 przebiegach. Wariant A jest lepszy od B tylko wtedy, gdy średnia z median `overall` różni się o więcej niż 5 punktów i o więcej niż największy rozrzut `overall` wśród wszystkich par (spotkanie, wariant) obu wariantów; inaczej raport mówi „brak rozstrzygnięcia”. Potwierdzone zmyślenia major podaje się obok, niezależnie od `overall`.
 
-Progi 60, 80, 70 i 5 spotkań to **pierwsza propozycja bez danych**. Po pierwszej serii właściciel może je zmienić; zmiana podnosi wersję protokołu.
+Progi 60, 80, 70, 5 spotkań i 5 punktów to **pierwsza propozycja bez danych**, do skalibrowania po pierwszej serii (ramka na początku tej sekcji). Zmiana któregokolwiek podnosi wersję protokołu.
 
 ## 6. Prompt sędziego i schemat wyniku
 
 **Model.** `claude-fable-5-2`, ten sam w całej porównywanej serii; identyfikator zapisuje się przy wyniku. Bez narzędzi, bez wyszukiwania, bez pamięci między przebiegami. Parametry próbkowania zostają domyślne i są zapisane przy wyniku.
 
-**Podstawienia.** Narzędzie podstawia w jednym przebiegu: `{{RUBRIC}}` (sekcja 4, dosłownie), `{{MEETING}}` (`id` z `meta.json`), `{{LANGUAGE}}`, `{{SEGMENTS}}` i `{{NOTES}}` (plik `notes.md` bez zmian). Segment podaje się jako jedną linię `[index] Mówca: tekst`, **bez czasów**. Przed podstawieniem narzędzie usuwa z transkryptu i notatki każde wystąpienie znaczników `<rubric>`, `</rubric>`, `<transcript>`, `</transcript>`, `<notes>`, `</notes>`. Sędzia nie dostaje nazwy generatora, wersji promptu, wersji aplikacji, tytułu spotkania, nazwy pliku ani wyników innych przebiegów.
+**Podstawienia.** Narzędzie podstawia w jednym przebiegu: `{{RUBRIC}}` (sekcja 4, dosłownie), `{{MEETING}}` (`id` z `meta.json` jako tekst dziesiętny), `{{SEGMENTS}}` (sekcja 2: linie `[numer] etykieta: tekst` z `segments.jsonl`, numer = linia pliku od 0, etykieta = `speaker_label` albo `?`, **bez czasów**: `start_ms` i pola `wall_*` nie trafiają do sędziego) i `{{NOTES}}` (`notes.md` bez nagłówka `# <tytuł>`, który dopisał eksport, poza tym bez zmian). Przed podstawieniem narzędzie usuwa z transkryptu i notatki każde wystąpienie znaczników `<rubric>`, `</rubric>`, `<transcript>`, `</transcript>`, `<notes>`, `</notes>`. Sędzia nie dostaje nazwy generatora, wersji promptu, wersji aplikacji, tytułu spotkania, nazwy pliku ani wyników innych przebiegów.
 
 Tekst między `JUDGE-PROMPT-BEGIN` a `JUDGE-PROMPT-END` jest promptem. Nie zawiera treści żadnego spotkania.
 
@@ -208,7 +223,7 @@ ZASADY BEZPIECZEŃSTWA
 - Prawdą odniesienia jest transkrypt. Błędów rozpoznawania mowy nie przypisuj notatce.
 
 PROCEDURA (w tej kolejności)
-1. Przeczytaj cały transkrypt, także środek. Każda linia to „[numer segmentu] Mówca: tekst”. Zbuduj listę odniesienia (reference) WYŁĄCZNIE z transkryptu, zgodnie z rubryką. Przy każdej pozycji podaj numer segmentu, w którym to padło (dla decyzji zmienionej później: segment ostatecznego brzmienia). Sprawdź, czy decyzje nie zostały później cofnięte i czy pomysły nie są tylko pomysłami.
+1. Przeczytaj cały transkrypt, także środek. Każda linia to „[numer segmentu] Mówca: tekst”; „?” to mówca nieznany. Czasów w transkrypcie nie ma. Zbuduj listę odniesienia (reference) WYŁĄCZNIE z transkryptu, zgodnie z rubryką. Przy każdej pozycji podaj numer segmentu, w którym to padło (dla decyzji zmienionej później: segment ostatecznego brzmienia). Sprawdź, czy decyzje nie zostały później cofnięte i czy pomysły nie są tylko pomysłami.
 2. Dopiero teraz przeczytaj notatkę. Nie dopisuj i nie usuwaj pozycji listy.
 3. Każdą pozycję missed lub partial wpisz do omissions z krótkim uzasadnieniem.
 4. Przejdź każde zdanie i każdy punkt notatki. Każde twierdzenie bez pokrycia w transkrypcie albo ze zmienionym sensem wpisz osobno do fabrications: dosłowny cytat z notatki (jedno zdanie lub punkt), kategoria, severity, krótkie uzasadnienie i numer segmentu, który temu przeczy lub jest najbliższy (null, gdy nie ma żadnego).
@@ -242,7 +257,7 @@ Tylko jeden obiekt JSON, bez Markdownu, bez ```, bez tekstu przed i po. Dokładn
 }
 Puste listy zapisuj jako []. Identyfikatory pozycji to r1, r2, … bez powtórzeń. Pola owner i due tylko przy kind = task; przy innych null. Lista reference ma co najmniej jedną pozycję.
 
-Dominujący język transkryptu: {{LANGUAGE}}
+Dominujący język transkryptu ustal sam z transkryptu.
 
 <rubric>
 {{RUBRIC}}
@@ -266,7 +281,7 @@ Dominujący język transkryptu: {{LANGUAGE}}
 - liczby są całkowite bez części ułamkowej (`3`, nie `3.0`, choć JSON Schema `integer` przyjmuje oba), a teksty niepuste także po usunięciu spacji;
 - z `--segments N` każdy numer segmentu mieści się w transkrypcie, z `--meeting ID` odpowiedź dotyczy ocenianego spotkania.
 
-Niepoprawna odpowiedź: jedna powtórka w świeżym kontekście; druga porażka = przebieg nieudany (zapisany, nieliczony, wymieniony w tabeli). Narzędzie sprawdza też, czy każdy `notes_quote` występuje dosłownie w `notes.md` (po normalizacji białych znaków); zmyślenie z cytatem, którego nie ma w notatce, nie liczy się i podnosi licznik `unverified_quote`.
+Niepoprawna odpowiedź: jedna powtórka w świeżym kontekście; druga porażka = przebieg nieudany (zapisany, nieliczony, wymieniony w tabeli). Narzędzie sprawdza też, czy każdy `notes_quote` występuje dosłownie w `{{NOTES}}`, czyli w `notes.md` bez nagłówka tytułu (po normalizacji białych znaków); zmyślenie z cytatem, którego nie ma w notatce, nie liczy się i podnosi licznik `unverified_quote`.
 
 ## 7. Prywatność
 
@@ -274,8 +289,8 @@ Niepoprawna odpowiedź: jedna powtórka w świeżym kontekście; druga porażka 
 2. **Do repozytorium wyłącznie liczby i kategorie.** Dozwolone jest to, co wypisują `validate_judge_result.py public` i `aggregate`: oceny, `overall`, RECALL, liczniki braków i zmyśleń według kategorii i wagi, nazwy kategorii wad formatu, flagi, werdykt. Spotkanie nazywa się etykietą porządkową (`M01`, `M02`); klucz etykieta → spotkanie zostaje na obrazie.
 3. **Wysłanie transkryptu do dostawcy chmurowego to świadoma decyzja właściciela** (decyzja 2 z 2026-11-19). Uchyla ona M-Q5 **tylko dla tego sędziego** i tylko dla spotkań właściciela. Lokalny panel (`judge_panel.py` z `require_local_judge`), zbiór wzorcowy i jego pole `consent` działają jak dotąd; żaden inny sędzia chmurowy nie jest przez to dozwolony.
 4. **Informacja dla uczestników: decyzja właściciela z 2026-11-19.** Tekst informacji dla uczestników spotkań zostaje bez zmian; nie wspomina o sędzi Fable ani o chmurze. Pierwszy przebieg na prawdziwych spotkaniach nie czeka na nic więcej.
-5. **Zgoda na spotkanie jest jawna.** Narzędzie wysyła spotkanie tylko wtedy, gdy `meta.json` ma `judge_consent.fable_cloud: true`, wpisane przez właściciela przy eksporcie. Spotkanie, którego właściciel nie chce wysyłać, po prostu nie jest eksportowane.
-6. **Do dostawcy idzie tylko prompt z sekcji 6.** Bez tytułu spotkania, dat, ścieżek, nazw plików, adresów e-mail i danych konta poza tym, czego wymaga samo wywołanie. Dźwięk nigdy nie jest wysyłany.
+5. **Zgodą jest decyzja 2 i sam eksport.** Decyzja 2 obejmuje wszystkie spotkania właściciela, a eksport (`meeting-export`) nie ma pola zgody, więc protokół go nie wymaga. Narzędzie wysyła tylko kompletne eksporty (z `meta.json`) z katalogu `judge/` na zaszyfrowanym obrazie. Spotkania, którego właściciel nie chce wysyłać, nie eksportuje się tam albo usuwa się jego katalog przed przebiegiem.
+6. **Do dostawcy idzie tylko prompt z sekcji 6.** Bez tytułu spotkania (nagłówek `notes.md` jest usuwany), dat i czasów (`start_ms`, `wall_*`, `started_at*`), `speakers.json`, pozostałych pól `meta.json`, ścieżek, nazw plików, adresów e-mail i danych konta poza tym, czego wymaga samo wywołanie. Dźwięk nigdy nie jest wysyłany.
 7. Warunki przetwarzania po stronie dostawcy (przechowywanie, użycie danych) ten protokół przyjmuje za sprawdzone przez właściciela; nie opisuje ich i niczego o nich nie zakłada.
 8. Przykłady, testy i fixture'y w repozytorium są wyłącznie syntetyczne. Żadna treść prawdziwego spotkania ani dyktowania nie trafia do repozytorium, także „zanonimizowana”.
 
@@ -285,7 +300,7 @@ Niepoprawna odpowiedź: jedna powtórka w świeżym kontekście; druga porażka 
 - **N = 3 przebiegi** na parę (spotkanie, wariant notatki), każdy w świeżym kontekście, bez historii i bez wyników innych przebiegów. Liczba przebiegów jest nieparzysta; więcej niż 3 wolno, mniej nie.
 - **Kolejność** wszystkich przebiegów serii jest losowana z zapisanym ziarnem; przebiegi tej samej pary nie następują bezpośrednio po sobie.
 - **Wynik pary:** w każdym wymiarze i dla `overall` mediana i rozrzut (max − min), zapis `mediana ± rozrzut`.
-- **Niestabilny** jest wynik z rozrzutem > 1 w którymkolwiek wymiarze albo > 10 w `overall`. Taki wynik nie dostaje `pass`, nie rozstrzyga porównań wariantów, a właściciel czyta `evidence` przebiegów na obrazie.
+- **Niestabilny** jest wynik z rozrzutem > 1 w którymkolwiek wymiarze albo > 10 w `overall` (progi to propozycja bez danych, sekcja 5). Taki wynik nie dostaje `pass`, nie rozstrzyga porównań wariantów, a właściciel czyta `evidence` przebiegów na obrazie.
 - **Zmyślenie potwierdzone** to takie, które wskazała więcej niż połowa przebiegów (2 z 3). Dwa przebiegi wskazują to samo zmyślenie, gdy cytat z notatki jednego zawiera cytat drugiego (po normalizacji wielkości liter i białych znaków). Potwierdzone zmyślenie jest major, gdy co najmniej połowa jego wskazań ma severity major; jego kategoria to kategoria najczęstsza wśród wskazań. Zmyślenia wskazane przez połowę przebiegów lub mniej podaje się osobno (`single_run`) i nie liczą się do werdyktu. Jeden plik odpowiedzi liczy się raz: `aggregate` odrzuca ten sam plik podany dwa razy.
 - **Braki** podaje się jako medianę liczby braków w kategorii, bo lista odniesienia powstaje w każdym przebiegu od nowa i pozycji między przebiegami nie da się zestawić jeden do jednego.
 
@@ -309,7 +324,7 @@ Sędzia też może się mylić, więc każdą serię zaczyna próba na danych **
 Seria jest ważna tylko wtedy, gdy w **każdym** z 3 przebiegów:
 
 1. dla `notes-trap.md` polecenie `check-trap` kończy się kodem 0 (wszystkie wstrzyknięte błędy wskazane, każdy osobnym wpisem);
-2. dla `notes.md` nie ma żadnego zmyślenia major ani wady twardej, a `overall` >= 80.
+2. dla `notes.md` nie ma żadnego zmyślenia major ani wady twardej, a `overall` >= 80 (próg to propozycja bez danych, sekcja 5).
 
 Gdy próba nie przechodzi, serii na prawdziwych spotkaniach się nie uruchamia (albo jej wyników się nie używa), a przyczynę zapisuje się w sekcji 11. Próbę powtarza się przy każdej zmianie modelu lub wersji protokołu. Kolejne pułapki dodaje się tylko jako dane syntetyczne; pułapka zrobiona z prawdziwego spotkania zostaje na obrazie i nie trafia do repozytorium.
 

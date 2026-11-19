@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "protocol_version": 1,
-  "meeting": "synthetic-release-01",
+  "meeting": "901",
   "fabrications": [
     {"category": ["number_or_date", "decision"], "severity": "major"},
     {"category": ["task"], "severity": "major"}

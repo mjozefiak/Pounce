@@ -1,6 +1,6 @@
 # Wydanie wersji 2.4
 
-Wydanie wersji 2.4 przesunięto z poniedziałku na czwartek 12 marca, żeby wcześniej naprawić błąd eksportu CSV. Klient z Gdyni czeka na raport zapasów obiecany w tej wersji.
+Wydanie wersji 2.4 przesunięto z poniedziałku na czwartek 12 marca, żeby wcześniej naprawić błąd eksportu CSV. Klient z hurtowni czeka na raport zapasów obiecany w tej wersji.
 
 ## Ustalenia
 
