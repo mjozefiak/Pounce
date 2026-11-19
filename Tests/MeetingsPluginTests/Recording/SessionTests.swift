@@ -247,6 +247,36 @@ private let micOnly: TrackScript? = nil
         _ = await session.finish()
     }
 
+    @Test func theGapOfARestartIsFilledWithSilenceSoTheTrackStaysOnTheTimeline() async throws {
+        let rig = try SessionRig(texts: [72: "Spoken after the gap"])
+        var mic = TrackScript()
+        mic.silence(2)
+        // The input was away for 3 s of wall clock; the speech is scripted at 5 s on the common timeline.
+        mic.silence(3)
+        mic.say(72, seconds: 2)
+        mic.silence(8)
+        var limits = rig.shortLimits
+        limits.resumeAttempts = 1
+        limits.resumeDelay = .milliseconds(1)
+        let clock = TestClock()
+        let session = rig.session(mic: mic, system: nil, limits: limits, clock: clock)
+        let log = SessionEventLog(session)
+        let id = try await session.start()
+        rig.mic.push(Array(mic.samples[0..<2 * rate]))
+        // The clock moves only after the first 2 s were received, or their arrival time would move with it.
+        #expect(await log.wait { $0 == .elapsed(seconds: 2) })
+        clock.tick(advancing: 3)
+        rig.mic.end()
+        #expect(await log.wait { $0 == .trackResumed(.mic) })
+        // Without the 3 s of silence these samples would land at 2 s and miss the scripted speech.
+        rig.mic.push(Array(mic.samples.dropFirst(5 * rate)))
+        let outcome = await session.finish()
+        #expect(outcome.result == .ready)
+        let rows = try rig.rows(id)
+        #expect(rows.map(\.text) == ["Spoken after the gap"])
+        #expect(abs((rows.first?.startMs ?? 0) - 5_000) < 300)
+    }
+
     @Test func aMicrophoneThatNeverComesBackIsLostAfterTheAttempts() async throws {
         let rig = try SessionRig(texts: [:])
         var mic = TrackScript()
