@@ -49,20 +49,27 @@ struct NotesUtterance: Equatable, Sendable {
     static let mergeGapMs = 2000
     /// A merged utterance stops growing at this many words, so a point still has a meaningful place.
     static let mergedWordLimit = 120
+    /// A segment in a foreign alphabet is dropped only up to this many words.
+    static let maxForeignNoiseWords = 8
 
     /// Makes the transcript fit for the model, without changing what was said:
     /// 1. drops segments in an alphabet other than the meeting's (recognition noise on silence: a line of Cyrillic
     ///    in a Polish meeting);
     /// 2. drops acknowledgements: a segment of at most two words from a closed list ("mm-hmm", "okej", "thank
-    ///    you"), which cost a line of overhead each and carry no content;
-    /// 3. joins consecutive segments of one speaker less than `mergeGapMs` apart.
+    ///    you"), which cost a line of overhead each and carry no content, unless it answers a question of
+    ///    another speaker;
+    /// 3. joins consecutive segments of one named speaker less than `mergeGapMs` apart (the start of the joined
+    ///    utterance is the start of its first segment).
     private static func cleaned(_ pieces: [Piece]) -> [Piece] {
         let script = dominantScript(of: pieces.map(\.text))
         var kept: [Piece] = []
         for piece in pieces {
-            if let script, isForeign(piece.text, to: script) { continue }
-            if isAcknowledgement(piece.text) { continue }
-            if var last = kept.last, last.speaker == piece.speaker,
+            // Recognition noise on silence is short; a long line in another language is somebody speaking.
+            if let script, wordCount(piece.text) <= maxForeignNoiseWords, isForeign(piece.text, to: script) { continue }
+            // "Yes." answering a question is what settles a decision or a task, so it stays.
+            let answersQuestion = kept.last.map { $0.speaker != piece.speaker && $0.text.hasSuffix("?") } ?? false
+            if isAcknowledgement(piece.text), !answersQuestion { continue }
+            if var last = kept.last, last.speaker == piece.speaker, !NotesGuard.isGenericLabel(piece.speaker),
                 piece.startMs - last.endMs < mergeGapMs,
                 wordCount(last.text) + wordCount(piece.text) <= mergedWordLimit
             {
@@ -82,12 +89,12 @@ struct NotesUtterance: Equatable, Sendable {
 
     private static let acknowledgements: Set<String> = [
         "mm", "mmm", "mhm", "mm hmm", "hmm", "hm", "uh huh", "aha", "ah", "oh", "eh", "yeah", "yes", "yep", "yup",
-        "ok", "okay", "okej", "oke", "no", "tak", "dobra", "dobrze", "jasne", "super", "spoko", "right", "sure",
+        "ok", "okay", "okej", "oke", "tak", "dobra", "dobrze", "jasne", "super", "spoko", "right", "sure",
         "fine", "good", "great", "cool", "thanks", "thank you", "dzieki", "dziekuje", "dzieki wielkie", "bye",
         "do widzenia", "czesc", "hello", "hi", "hej",
     ]
 
-    /// At most two words, all of them from the closed list of acknowledgements.
+    /// A closed list of acknowledgements, as a whole phrase or at most two words from it.
     static func isAcknowledgement(_ text: String) -> Bool {
         let words = NotesText.words(text)
         guard !words.isEmpty, words.count <= 3 else { return false }

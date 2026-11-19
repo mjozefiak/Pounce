@@ -99,3 +99,55 @@ import Testing
         #expect(NotesPrompt.reduceSystem.contains("QUESTIONS"))
     }
 }
+
+@Suite struct NotesTranscriptCleaningReviewTests {
+    private func make(_ rows: [(speaker: Int64, start: Int, end: Int, text: String)], names: [Int64: String])
+        -> [NotesUtterance]
+    {
+        let doc = MeetingDocument(
+            id: 1, uuid: "u", startedAt: Date(timeIntervalSince1970: 0), durationMs: 100_000, title: nil,
+            status: .ready, speakerMode: .diarized, audioState: .deleted, notesMarkdown: nil, notesStatus: .none,
+            notesDroppedCount: 0,
+            speakers: names.map { .init(id: $0.key, label: $0.value, isSelf: false, channel: .system) },
+            segments: rows.enumerated().map {
+                .init(
+                    id: Int64($0.offset + 1), channel: .system, startMs: $0.element.start, endMs: $0.element.end,
+                    speakerID: $0.element.speaker, text: $0.element.text)
+            })
+        return NotesUtterance.make(from: doc)
+    }
+
+    @Test func anAnswerToAQuestionOfAnotherSpeakerIsKept() {
+        let utterances = make(
+            [(1, 0, 3000, "Marku, możesz wysłać ofertę do piątku?"), (2, 4000, 5000, "Jasne.")],
+            names: [1: "Ala", 2: "Marek"])
+        #expect(utterances.map(\.text) == ["Marku, możesz wysłać ofertę do piątku?", "Jasne."])
+    }
+
+    @Test func anEnglishNoIsNotDropped() {
+        let utterances = make(
+            [(1, 0, 3000, "We ship Friday, agreed with the plan."), (2, 8000, 9000, "No.")],
+            names: [1: "Ann", 2: "Bob"])
+        #expect(utterances.last?.text == "No.")
+    }
+
+    @Test func aLongLineInAnotherAlphabetIsSomebodysSpeech() {
+        let long = "Я думаю что мы должны перенести релиз на следующую неделю потому что тесты ещё не закончены"
+        let utterances = make(
+            [
+                (
+                    1, 0, 3000,
+                    "Zatwierdzamy budżet na przyszły kwartał dla całego zespołu, a potem omawiamy harmonogram wydania nowej wersji aplikacji i podział zadań między wszystkie zespoły."
+                ), (2, 8000, 12_000, long),
+            ],
+            names: [1: "Ala", 2: "Olek"])
+        #expect(utterances.count == 2)
+    }
+
+    @Test func segmentsWithAGenericLabelAreNotJoined() {
+        let utterances = make(
+            [(1, 0, 3000, "Pierwsza osoba mówi tutaj coś."), (2, 3500, 6000, "Druga osoba odpowiada coś innego.")],
+            names: [:])
+        #expect(utterances.count == 2)
+    }
+}

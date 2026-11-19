@@ -460,13 +460,16 @@ struct NotesPipeline: Sendable {
         }
     }
 
-    /// REDUCE could not be had: every decision, task and question, in time order, and neither a paragraph nor
-    /// findings (nothing is chosen without REDUCE).
+    /// REDUCE could not be had: every decision, task and question, and the first topics, in time order, and no
+    /// paragraph (nothing is composed without REDUCE). Without the topics a meeting of findings only would
+    /// read as one with nothing in it.
     static func codeOrder(_ points: [NotesPoint]) -> NotesReduceOutput {
         NotesReduceOutput(
             decisions: points.filter { $0.kind == .decision }.map(\.id),
             tasks: points.filter { $0.kind == .task }.map(\.id),
-            questions: points.filter { $0.kind == .question }.map(\.id), summary: nil)
+            questions: points.filter { $0.kind == .question }.map(\.id),
+            keyPoints: points.filter { $0.kind == .summary }.prefix(NotesGuard.maxKeyPoints).map(\.id),
+            summary: nil)
     }
 
     static func batches(_ points: [NotesPoint], budget: Int, cost: (NotesPoint) -> Int) -> [[NotesPoint]] {
