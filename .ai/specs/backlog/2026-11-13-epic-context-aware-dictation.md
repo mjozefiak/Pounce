@@ -65,7 +65,7 @@
 | D-Q7 | Skąd lista plików: indeks `FilesPlugin` (nowy wkład pluginu) czy ograniczone listowanie katalogu roboczego w hoście? | **Listowanie w hoście** (`FileNameLookup`): mniejszy kontrakt, działa bez włączonego wyszukiwania plików. Indeks jako rozszerzenie później. |
 | D-Q8 | Słowa wyzwalające plik: „małpa”, „at”, „tag” + nazwa, albo nazwa z wypowiedzianym rozszerzeniem. Czy samo „plik X” ma wyzwalać? | **Nie**; „plik” jest zwykłym słowem. |
 | D-Q9 | Włączać `AXManualAccessibility` w aplikacjach Electron? | **Nie.** VS Code, Cursor i Slack dostają profil z identyfikatora i tytuł okna. |
-| D-Q10 | Lista terminów w prompcie LLM (`CleanupPrompt` v2)? | **Nie w Fazach 0–3.** Kandydat DICT-4.2, tylko po pomiarze. **Założenie „`CleanupPrompt` bez zmian w Fazach 0–3” uchylone 2026-11-19 (decyzja 7):** prompt zmienia się, by usuwać zmiany zdania i autopoprawki, `FormatterGuard` do dostosowania. Lista terminów w prompcie nie jest tą decyzją rozstrzygnięta (interpretacja, do potwierdzenia przez właściciela: DICT-4.2 zachowuje swój warunek); zob. przegląd backlogu, sekcja „Decyzje właściciela (2026-11-19)”. |
+| D-Q10 | Lista terminów w prompcie LLM (`CleanupPrompt` v2)? | **Nie w Fazach 0–3.** Kandydat DICT-4.2, tylko po pomiarze. **Założenie „`CleanupPrompt` bez zmian w Fazach 0–3” uchylone 2026-11-19 (decyzja 7):** prompt zmienia się, by usuwać zmiany zdania i autopoprawki, `FormatterGuard` do dostosowania. **Doprecyzowane przez właściciela 2026-11-19 (ADR 0010):** zmiana z decyzji 7 to `CleanupPrompt` w wersji 2; lista terminów (DICT-4.2) to późniejsza wersja promptu i zachowuje swój warunek; zob. przegląd backlogu, sekcja „Decyzje właściciela (2026-11-19)”. |
 | D-Q11 ⚠ | Uchylić nie-cele specu dyktowania („reguły per aplikacja”, „własny słownik”)? | **Tak**, wprost w ADR 0010. |
 | D-Q12 | Zapisywać w historii listę użytych źródeł (bez treści)? | **Tak**, kolumna `context_sources`. |
 | D-Q13 | Kandydaci na terminy z ekranu (dopasowanie fonetyczne, DICT-4.1): robić? | **Warunkowo**, tylko gdy DICT-0.1 (kryterium 2) pokaże ≤ 2% fałszywych podmian. |
@@ -134,7 +134,7 @@ flowchart TD
   D23 --> D41[DICT-4.1 kandydaci z migawki, warunkowa]
   D11 --> D41
   D24 --> D41
-  D36 --> D42[DICT-4.2 CleanupPrompt v2, warunkowa]
+  D36 --> D42[DICT-4.2 lista terminów w CleanupPrompt, późniejsza wersja, warunkowa]
 ```
 
 Wniosek z diagramu: dwa czerwone węzły (DICT-2.1 i DICT-3.3) to zmiany `LintelKit`; idą po kolei, w jednej kolejce z kontraktowymi stories epica MEET (kolejność w przeglądzie). Typy terminala są zamrażane już w DICT-2.1, więc DICT-3.2 nie dotyka kontraktu. Faza 1 nie czeka na żaden z nich.
@@ -581,21 +581,21 @@ Te dwie story mają pełny format, ale ruszają tylko po spełnieniu warunku. Po
 - **DoD:** wspólne DoD + wynik bramki 2% w PR.
 - **Start:** `om-auto-create-pr "DictationPlugin: TermCandidates z migawki (tylko tokeny wyglądające na identyfikator) i dopasowanie fonetyczne PL/EN w TermReplacer z progiem i marginesem, klucz plugins.dictation.contextTerms domyślnie false, bramka 2% fałszywych podmian — Source doc: .ai/specs/backlog/2026-11-13-epic-context-aware-dictation.md (story DICT-4.1)"`
 
-### DICT-4.2 — Lista terminów w `CleanupPrompt` v2 i reguła strażnika
+### DICT-4.2 — Lista terminów w późniejszej wersji `CleanupPrompt` i reguła strażnika
 
-> **Status 2026-11-19 (interpretacja, do potwierdzenia przez właściciela):** decyzja 7 (usuwanie zmian zdania i autopoprawek) to osobna praca na tych samych powierzchniach (`CleanupPrompt.version`, `FormatterGuard`, snapshoty promptu); warunek tej story zostaje, a numer wersji promptu trzeba uzgodnić.
+> **Status 2026-11-19 (decyzja właściciela, ADR 0010):** `CleanupPrompt` w wersji 2 to zmiana z decyzji 7: usuwanie fragmentów jawnie wycofanych przez mówiącego (zmiany zdania, autopoprawki). To osobna praca, nie ta story. Lista terminów z tej story to **późniejsza wersja promptu**: pierwsza wolna po wersji 2 w chwili startu (niżej „wersja N”, dziś byłaby to 3). Warunek story zostaje bez zmian. Story startuje po wydaniu wersji 2, bo obie zmiany dotykają `CleanupPrompt.version`, `FormatterGuard` i snapshotów promptu.
 
 - **Story:** Jako osoba używająca formatowania LLM chcę, by model nie „poprawiał” terminów ze słownika, aby formatowanie nie psuło nazw.
-- **Zależności:** DICT-1.1, DICT-3.6. **Warunek:** dogfood pokazał, że LLM zmienia terminy przed zamianą słownikową w sposób, którego zamiana po LLM nie naprawia; oraz pomiar na `LlamaRuntime`, że +250 tokenów mieści się w budżecie ogona (< 8 s na modelu 4B).
-- **Powierzchnie:** `CleanupPrompt.version` 1 → 2 (zachowanie widoczne dla użytkownika, §5, nota wydania), `FormatterGuard` (nowa reguła), fixture `prompt-v2.txt`.
-- **Etykiety:** `feature`, `risk-high` (ADR 0005 notuje, że prompt v2 był już raz cofnięty), `skip-qa`, `priority-low` · **Estymata:** M
+- **Zależności:** DICT-1.1, DICT-3.6, wydana `CleanupPrompt` w wersji 2 (decyzja 7). **Warunek:** dogfood pokazał, że LLM zmienia terminy przed zamianą słownikową w sposób, którego zamiana po LLM nie naprawia; oraz pomiar na `LlamaRuntime`, że +250 tokenów mieści się w budżecie ogona (< 8 s na modelu 4B).
+- **Powierzchnie:** `CleanupPrompt.version` 2 → N (zachowanie widoczne dla użytkownika, §5, nota wydania), `FormatterGuard` (nowa reguła obok reguł wersji 2), fixture `prompt-vN.txt`.
+- **Etykiety:** `feature`, `risk-high` (ADR 0005 notuje, że wcześniejsza zmiana promptu była już raz cofnięta), `skip-qa`, `priority-low` · **Estymata:** M
 - **Kryteria akceptacji:**
-  1. Given lista do 20 terminów bliskich transkryptowi, Then stoi po stałym prefiksie promptu, a migawka promptu jest pod testem.
+  1. Given lista do 20 terminów bliskich transkryptowi, Then stoi po stałym prefiksie promptu wersji 2 (reguły usuwania wycofanych fragmentów zostają bez zmian), a migawka promptu jest pod testem.
   2. Given wynik modelu z identyfikatorem, którego nie ma w transkrypcie ani na liście, Then `FormatterGuard` odrzuca kawałek i wraca tekst surowy.
-  3. Given liczby zapisane cyframi i poprawione zwykłe słowa, Then przechodzą jak dziś; wszystkie istniejące przypadki strażnika są zielone.
-  4. Given źródło LLM inne niż model wbudowany („Mój serwer” albo dostawca zewnętrzny), Then lista terminów nie jest dołączana, a prompt pozostaje w wersji 1; nic ze słownika ani z migawki nie opuszcza procesu.
+  3. Given liczby zapisane cyframi i poprawione zwykłe słowa, Then przechodzą jak dziś; wszystkie istniejące przypadki strażnika są zielone, a wynik na korpusie autopoprawek (PR #115) nie jest gorszy niż dla wersji 2, osobno dla każdego modelu wbudowanego.
+  4. Given źródło LLM inne niż model wbudowany („Mój serwer” albo dostawca zewnętrzny), Then lista terminów nie jest dołączana, a prompt pozostaje w wersji 2; nic ze słownika ani z migawki nie opuszcza procesu.
   5. Given pomiar na Qwen3-4B na najsłabszym dostępnym Macu właściciela (model i pamięć nazwane w PR), Then ogon ≤ 8 s; inaczej story nie jest mergowana.
 - **Plan testów:** test migawkowy promptu; przypadki strażnika; test prawdziwego modelu wyłączony domyślnie (`LINTEL_LLAMA_MODEL`), wyniki w PR.
 - **Prywatność:** terminy z migawki nie opuszczają procesu.
 - **DoD:** wspólne DoD + nota wydania + drugi recenzent.
-- **Start:** `om-auto-create-pr "CleanupPrompt v2: blok listy terminów po stałym prefiksie i reguła FormatterGuard 'identyfikator tylko z transkryptu lub listy', fixture prompt-v2, pomiar ogona na LlamaRuntime — Source doc: .ai/specs/backlog/2026-11-13-epic-context-aware-dictation.md (story DICT-4.2)"`
+- **Start:** `om-auto-create-pr "CleanupPrompt, wersja po v2: blok listy terminów po stałym prefiksie i reguła FormatterGuard 'identyfikator tylko z transkryptu lub listy', fixture nowej wersji promptu, wynik na korpusie autopoprawek nie gorszy niż v2, pomiar ogona na LlamaRuntime — Source doc: .ai/specs/backlog/2026-11-13-epic-context-aware-dictation.md (story DICT-4.2)"`
