@@ -38,10 +38,10 @@ Docs and offline Python only; no Swift code changes, so the Swift gate does not 
 
 ### Phase 1: Protocol
 
-- [ ] 1.1 Protocol document and result schema
-- [ ] 1.2 Synthetic example and trap note
+- [x] 1.1 Protocol document and result schema — 1ee669b
+- [x] 1.2 Synthetic example and trap note — 843cc3b
 
 ### Phase 2: Validator
 
-- [ ] 2.1 Result validator with tests
-- [ ] 2.2 README section
+- [x] 2.1 Result validator with tests — 6371411
+- [x] 2.2 README section — b4ff33d
