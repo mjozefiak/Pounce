@@ -247,14 +247,14 @@ final class ScriptedGenerator: NotesGenerating, @unchecked Sendable {
         #expect(!keptPolish("Mamy dziesięć ofert."))
 
         let hour = NotesFactGuard(utterances: [
-            NotesUtterance(startMs: 0, speaker: "Iga", text: "Widzimy się o drugiej, a raport na piątą."),
+            NotesUtterance(startMs: 0, speaker: "Iga", text: "Widzimy się o drugiej, a raport na piątą.")
         ])
         for line in ["Spotkanie jest o 14:00.", "Raport jest na 17:00."] {
             #expect(hour.check(NotesDraftParser.parse("OPEN | \(line)").draft).draft.open.count == 1, "\(line)")
         }
 
         let english = NotesFactGuard(utterances: [
-            NotesUtterance(startMs: 0, speaker: "Dan", text: "We got ten offers for the new office this week."),
+            NotesUtterance(startMs: 0, speaker: "Dan", text: "We got ten offers for the new office this week.")
         ])
         #expect(english.check(NotesDraftParser.parse("OPEN | We have 10 offers.").draft).draft.open.count == 1)
     }
@@ -425,20 +425,69 @@ final class ScriptedGenerator: NotesGenerating, @unchecked Sendable {
 
     /// The example must not be a corpus case, or the corpus would measure how well the prompt copies it.
     @Test func theExampleSharesNothingWithTheCorpus() throws {
-        func shingles(_ text: String) -> Set<String> {
-            let words = NotesText.words(text)
-            guard words.count >= 5 else { return [] }
-            return Set((0...(words.count - 5)).map { words[$0..<($0 + 5)].joined(separator: " ") })
-        }
-        let example = shingles(WholeNotesPrompt.exampleTranscript + " " + WholeNotesPrompt.exampleAnswer)
-        let exampleNames = Set(
-            WholeNotesPrompt.exampleTranscript.matches(of: /\]\s+(\p{L}+):/).map { String($0.output.1) })
+        let example = WholeNotesPrompt.exampleTranscript + "\n" + WholeNotesPrompt.exampleAnswer
         for corpus in try WholeNotesCase.all() {
-            let theirs = shingles(corpus.transcript.joined(separator: " ") + " " + corpus.correct)
-            #expect(example.isDisjoint(with: theirs), "\(corpus.name)")
-            let speakers = Set(corpus.utterances.map(\.speaker))
-            #expect(exampleNames.isDisjoint(with: speakers), "\(corpus.name) uses a speaker of the example")
+            let theirs = corpus.transcript.joined(separator: "\n") + "\n" + corpus.correct
+            #expect(
+                ExampleSeparation.overlaps(example, theirs).isEmpty,
+                "\(corpus.name): \(ExampleSeparation.overlaps(example, theirs))")
         }
+    }
+
+    /// The check itself finds a copied case, a lightly reworded one and a reused name, so its silence above means
+    /// something.
+    @Test func theSeparationCheckCatchesACopiedCase() throws {
+        let corpus = try #require(try WholeNotesCase.all().first { $0.name == "pl-office-move" })
+        let theirs = corpus.transcript.joined(separator: "\n") + "\n" + corpus.correct
+        #expect(!ExampleSeparation.overlaps(theirs, theirs).isEmpty)
+        let reworded = corpus.transcript.map { $0.split(separator: " ").dropLast().joined(separator: " ") }
+        #expect(!ExampleSeparation.overlaps(reworded.joined(separator: "\n"), theirs).isEmpty)
+        #expect(
+            ExampleSeparation.overlaps(
+                "[00:01] Hanna: Zamawiamy kawę do biura.", "[00:03] Ula: Dzwoniła do mnie Hanna.")
+                == ["name hanna"])
+    }
+}
+
+/// How close the prompt's example is to a corpus case (the pattern of `CleanupPromptCorpusSeparationTests`).
+enum ExampleSeparation {
+    /// The answer-format keywords are shared by every answer and say nothing about the meeting.
+    private static let format: Set<String> = ["title", "summary", "decision", "task", "topic", "point", "open"]
+
+    static func words(_ text: String) -> [String] {
+        NotesText.words(text).filter { !format.contains($0) && Int($0) == nil }
+    }
+
+    /// Speaker labels and capitalised words inside a sentence: the people, firms and products of a text.
+    static func names(_ text: String) -> Set<String> {
+        var result = Set(text.matches(of: /\]\s+(\p{L}+):/).flatMap { NotesText.words(String($0.output.1)) })
+        for line in text.split(separator: "\n") {
+            let body =
+                line.firstMatch(of: /^(?:\[[\d:]+\]\s+\p{L}+:|[A-Z]+(?:\s*\|[^|]*)*\|)\s*/)
+                .map { String(line[$0.range.upperBound...]) } ?? String(line)
+            for token in NotesText.tokens(body) where token.capitalised && !token.startsSentence {
+                result.insert(token.word)
+            }
+        }
+        return result.subtracting(format)
+    }
+
+    /// The reasons `text` is too close to `other`, empty when it is not: a shared run of four words, a shared name,
+    /// or a Jaccard similarity of the words of four letters or more of at least 0.3.
+    static func overlaps(_ text: String, _ other: String) -> [String] {
+        func runs(_ words: [String]) -> Set<[String]> {
+            guard words.count >= 4 else { return [] }
+            return Set((0...(words.count - 4)).map { Array(words[$0..<($0 + 4)]) })
+        }
+        let mine = words(text)
+        let theirs = words(other)
+        var found = runs(mine).intersection(runs(theirs)).map { "run " + $0.joined(separator: " ") }.sorted()
+        found += names(text).intersection(names(other)).map { "name " + $0 }.sorted()
+        let a = Set(mine.filter { $0.count >= 4 })
+        let b = Set(theirs.filter { $0.count >= 4 })
+        let union = a.union(b)
+        if !union.isEmpty, Double(a.intersection(b).count) / Double(union.count) >= 0.3 { found.append("jaccard") }
+        return found
     }
 }
 
