@@ -4,8 +4,8 @@ import Testing
 @testable import MeetingsPlugin
 
 @Suite struct NotesPromptTests {
-    @Test func theVersionIsFourUntilThePromptChanges() {
-        #expect(NotesPrompt.version == 4)
+    @Test func theVersionIsFiveUntilThePromptChanges() {
+        #expect(NotesPrompt.version == 5)
     }
 
     @Test func theEnglishMapPromptNamesEnglishAndHasNoPolish() {
@@ -87,8 +87,8 @@ import Testing
 
     /// The text of the prompts is a contract: a change shows here and bumps `NotesPrompt.version`.
     @Test(arguments: [
-        (NotesLanguage.polish, "notes-prompt-v4-pl.txt"), (.english, "notes-prompt-v4-en.txt"),
-        (.unknown, "notes-prompt-v4-unknown.txt"),
+        (NotesLanguage.polish, "notes-prompt-v5-pl.txt"), (.english, "notes-prompt-v5-en.txt"),
+        (.unknown, "notes-prompt-v5-unknown.txt"),
     ])
     func theMapPromptMatchesTheGoldenFile(language: NotesLanguage, file: String) throws {
         let chunk = TranscriptChunk(id: "c1", utterances: NotesFixtures.meeting())
