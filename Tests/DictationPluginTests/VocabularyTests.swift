@@ -62,6 +62,33 @@ private func makeDirectory() throws -> URL {
         #expect(store.terms == sample)
     }
 
+    @Test func aHandWrittenTermWithoutAliasesIsRead() throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = VocabularyStore(directory: directory)
+        try Data(#"{"version":1,"terms":[{"term":"Kafka"},{"term":"AuthService","aliases":["auth service"]}]}"#.utf8)
+            .write(to: store.fileURL)
+        store.load()
+        #expect(store.terms.map(\.term) == ["Kafka", "AuthService"])
+        #expect(store.terms.first?.aliases == [])
+        #expect(store.replacer.apply(to: "kafka") == "Kafka")
+        #expect(
+            !FileManager.default.fileExists(atPath: directory.appending(path: VocabularyStore.corruptFileName).path))
+        try store.save(store.terms)
+        #expect(try String(contentsOf: store.fileURL, encoding: .utf8).contains("\"aliases\""))
+    }
+
+    @Test func loadKeepsOnlyTheFirstMaximumTerms() throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = VocabularyStore(directory: directory)
+        let terms = (0..<(VocabularyStore.maximumTerms + 5)).map { #"{"term":"t\#($0)"}"# }
+        try Data(#"{"version":1,"terms":[\#(terms.joined(separator: ","))]}"#.utf8).write(to: store.fileURL)
+        store.load()
+        #expect(store.terms.count == VocabularyStore.maximumTerms)
+        #expect(store.terms.last?.term == "t\(VocabularyStore.maximumTerms - 1)")
+    }
+
     @Test func aNewerFileIsReadButNeverWrittenOrMoved() throws {
         let directory = try makeDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }

@@ -7,7 +7,8 @@ import os
 /// Owner of `Plugins/dictation/vocabulary.json`: the user's own terms and the spoken variants they replace
 /// (DICT-1.1, ADR 0010).
 ///
-/// Format: `{"version": 1, "terms": [{"term": String, "aliases": [String]}]}`, written through
+/// Format: `{"version": 1, "terms": [{"term": String, "aliases": [String]}]}` (`aliases` may be missing
+/// when read, at most `maximumTerms` terms are read), written through
 /// `AtomicFile` (0600). `load()` reads the file once; dictation only reads the prepared `replacer`, never
 /// the disk. A file that does not decode is moved to one `vocabulary.json.corrupt` (replacing the previous
 /// copy) and the vocabulary starts empty; a file with a newer `version` is read when it still has the
@@ -22,6 +23,18 @@ final class VocabularyStore: Sendable {
     struct Term: Codable, Equatable, Sendable {
         var term: String
         var aliases: [String]
+
+        init(term: String, aliases: [String]) {
+            self.term = term
+            self.aliases = aliases
+        }
+
+        /// `aliases` may be missing in a hand-written file; it is always written.
+        init(from decoder: any Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            term = try container.decode(String.self, forKey: .term)
+            aliases = try container.decodeIfPresent([String].self, forKey: .aliases) ?? []
+        }
     }
 
     private struct FileContents: Codable {
@@ -82,12 +95,19 @@ final class VocabularyStore: Sendable {
         let contents = try? JSONDecoder().decode(FileContents.self, from: data)
         if header.version > Self.version {
             logger.notice("vocabulary.json comes from a newer version; the vocabulary is read-only")
-            replace(terms: contents?.terms ?? [], readOnly: true)
+            replace(terms: capped(contents?.terms ?? []), readOnly: true)
         } else if let contents {
-            replace(terms: contents.terms, readOnly: false)
+            replace(terms: capped(contents.terms), readOnly: false)
         } else {
             setAsideCorruptFile()
         }
+    }
+
+    /// Keeps the first `maximumTerms` terms; only the count dropped is logged.
+    private func capped(_ terms: [Term]) -> [Term] {
+        guard terms.count > Self.maximumTerms else { return terms }
+        logger.notice("vocabulary.json has \(terms.count - Self.maximumTerms) terms over the limit; they are ignored")
+        return Array(terms.prefix(Self.maximumTerms))
     }
 
     /// Replaces the whole vocabulary and writes it.
