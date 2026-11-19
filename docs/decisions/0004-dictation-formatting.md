@@ -89,7 +89,7 @@ versions when it is not sure. `FormatterGuard` lowers the length bound only by w
 markers and fillers explain (see ADR 0010, "Result of the version 2 change"). A chunk with a marker must be
 derivable from the input: a filler, a repetition or a span that ends in a marker (at most 8 words) may be
 removed freely, any other missing word costs one edit against a small budget, and the words the speaker said
-AFTER the last marker (the replacement) may never be deleted or swapped for an unrelated word, so an output
+AFTER the first marker that has words after it (the replacement) may never be deleted or swapped for a word of the withdrawn part, a number of another value or a duplicate of another spoken word, so an output
 that keeps the withdrawn version and loses the final one is rejected, as it was before this change. The
 prompt's examples are not corpus cases (`CleanupPromptCorpusSeparationTests`). Both formatters (server and
 built-in) share the prompt and the guard.
