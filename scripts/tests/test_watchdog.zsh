@@ -69,4 +69,14 @@ assert_eq 124 $rc "stubborn process still ends with 124"
 (( SECONDS - start < 20 )) && _pass || _fail "KILL follows TERM after a few seconds"
 sleep 1
 assert_eq "" "$(pgrep -f 'trap "" TERM' || true)" "no orphans of the stubborn process"
+# regression: a block-buffering writer (perl without autoflush) must still show its lines under the pty
+cat >"$tmp/buffered.pl" <<'PL'
+print "Test bufferedHang() started.\n";
+sleep 600;
+PL
+rm -f "$dir"/buf-*
+"$wd" --limit 3 --name buf -- perl "$tmp/buffered.pl" >/dev/null 2>&1; rc=$?
+assert_eq 124 $rc "buffered writer hang exits 124"
+assert_contains "$(<"$dir/buf-unfinished-tests.txt")" "bufferedHang()" "list is not empty for a block-buffering writer"
+
 finish

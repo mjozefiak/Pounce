@@ -6,7 +6,9 @@
 #
 # The command runs under a pseudo-terminal (`script`), so swift test writes its test lines as it goes
 # instead of holding them in a pipe buffer. Its output goes to stdout and, as a copy, to a private
-# temporary file OUTSIDE the watchdog directory. The command's exit code is passed on.
+# temporary file OUTSIDE the watchdog directory (TERM=dumb keeps progress bars out of it). The
+# command's exit code is passed on; a command killed by a signal gives the signal NUMBER (e.g. 9),
+# not 128+N, because that is what `script` reports.
 # Watchdog directory: $RUNNER_TEMP/test-watchdog, else $TMPDIR/test-watchdog.
 # When the limit passes the script
 #   1. runs `sample <pid> 10` on every swiftpm-testing-helper / xctest in the command's process tree
@@ -100,7 +102,7 @@ trap 'interrupted=1' INT TERM
 # "^D" it echoes when stdin (/dev/null) ends, without buffering.
 BS=$(printf '\b'); CR=$(printf '\r')
 ( set -o pipefail
-  script -q /dev/null "$@" </dev/null 2>&1 |
+  TERM=dumb script -q /dev/null "$@" </dev/null 2>&1 |
     sed -l -e "1s/^^D$BS$BS//" -e "s/$CR\$//" | tee "$log" ) &
 cmd=$!
 
