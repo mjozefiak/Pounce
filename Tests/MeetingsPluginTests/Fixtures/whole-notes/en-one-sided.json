@@ -1,0 +1,55 @@
+{
+ "name": "en-one-sided",
+ "language": "en",
+ "durationSec": 240,
+ "fake": {
+  "number": "7400",
+  "weekday": "Tuesday",
+  "name": "Kwantoris",
+  "person": "Zenon",
+  "generic": "Speaker 1",
+  "due": "Tuesday"
+ },
+ "transcript": [
+  "[00:03] Sam: Hi yeah can you hear me?",
+  "[00:06] Sam: Great. So about the invoice, we received it on the ninth.",
+  "[00:13] Sam: Yes, the total was four thousand two hundred, but we agreed on three thousand eight hundred.",
+  "[00:22] Sam: No no, the discount was agreed with Maria last month.",
+  "[00:28] Sam: Okay, so what I propose is you send a corrected invoice and we pay within ten days.",
+  "[00:36] Sam: Uh-huh.",
+  "[00:38] Sam: Yes, by the end of the week would be perfect.",
+  "[00:44] Sam: And please copy Maria on it.",
+  "[00:48] Sam: Right. Then I will confirm the payment on Monday.",
+  "[00:53] Sam: Okay, thank you, bye."
+ ],
+ "gold": {
+  "decisions": [
+   [
+    "corrected",
+    "invoice"
+   ]
+  ],
+  "tasks": [
+   {
+    "match": [
+     "corrected",
+     "invoice"
+    ],
+    "person": null,
+    "due": "week"
+   },
+   {
+    "match": [
+     "confirm",
+     "payment"
+    ],
+    "person": "Sam",
+    "due": "monday"
+   }
+  ],
+  "open": []
+ },
+ "correct": "TITLE: Corrected invoice\nSUMMARY: Sam asked the other side to correct an invoice that did not include an agreed discount. Payment will follow within ten days of the corrected invoice.\nDECISION | ~00:28 | The supplier sends a corrected invoice and Sam's side pays within ten days.\nTASK | ~00:28 | - | end of the week | Send a corrected invoice with the agreed discount and copy Maria.\nTASK | ~00:48 | Sam | Monday | Confirm the payment.\nTOPIC: Invoice amount\nPOINT | The invoice total was 4,200 but the agreed amount is 3,800.\nOPEN | Whether the supplier accepted the proposal is not known.",
+ "extraFaults": [],
+ "synthetic": true
+}

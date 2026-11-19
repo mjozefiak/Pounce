@@ -320,6 +320,30 @@ of each row. Nothing in the app calls the provider yet; these are inputs for `Pr
 | SIGTERM to the process group during generation | exit within the 2 s grace, no process left | exit 143 after 0.69 s, 0 processes left | `canary.py --only failures` |
 | Notes written by the provider, 1 h meeting end to end (`ProviderNotesGenerator`) | to be set from the above | not yet measured | spec step 1.16 |
 
+### Quality gate G: whole-transcript track on the provider model (spec step 1.7e)
+
+Measured by hand with `RealWholeNotesTests` (`LINTEL_WHOLE_NOTES_CLAUDE=1`, never in CI) on 2026-11-19: Claude Code
+2.1.328, `--model sonnet`, the isolation flags of ADR 0011, `WholeNotesPrompt` `whole1`. Input: the synthetic corpus
+(6 made-up meetings, Polish and English; 3 runs each, 18 notes) and, for the owner's two real meetings, one run each
+(numbers only; the content stays on the encrypted evaluation image). Working thresholds: at least 80% and 0 false
+sentences. The local track (4B) is not part of this measurement; the comparison of models is a separate run.
+
+| Measure | Threshold | Measured |
+|---|---|---|
+| Decisions and tasks of the reference list found (synthetic, 18 notes) | at least 80% | 52 of 54 (96%); one miss is a wording the automatic stem match does not see, one is a note without a decision |
+| Tasks whose owner is right (a real name, or "Do przypisania" when only generic labels were said) | at least 80% | 36 of 36 (100%) |
+| False sentences after the guard (read by hand, synthetic) | 0 | 0 clearly false; 3 speculative open questions or hedges ("appears to have agreed") read as borderline |
+| Lines the guard removed from the model's answer (synthetic, 18 notes) | no target | 1 summary (a wrong number: 40 instead of 41) |
+| Guard on planted faults (synthetic corpus, offline in CI) | 100% of the hard classes | 32 of 32 (number, weekday, owner outside the meeting, generic label as owner, link/HTML/image, injection); 0 false removals on the 6 correct answers |
+| One call, 1 h-class synthetic meeting (about 3 000 input tokens) | under 600 s | 4.2 to 11.9 s wall, 2 550 to 3 065 input and 320 to 560 output tokens |
+| Real meeting A (4 776 words, 273 utterances, 15 051 estimator tokens, 1 call) | no target | 16.2 s; 19 384 input and about 1 480 output tokens; notes of 441 words with 5 decisions, 5 tasks (all with an owner), 3 topics, 4 open points; 0 lines removed |
+| Real meeting B (1 760 words, 199 utterances, 6 341 estimator tokens, 1 call) | no target | 10.3 s; 10 078 input tokens; notes of 208 words with 0 decisions, 2 tasks (none with an owner), 2 topics, 2 open points; 1 line removed (a name not in the recording) |
+
+Two findings of the measurement changed the track before this row: the Polish example made the model answer an
+English meeting in Polish (the code now names the language of the notes in the request), and a name the speech
+recognition garbled and the model corrected ("girce" → "Jirze") was removed by a too strict guard (an edit distance of
+two is allowed from five letters, as the spec says).
+
 ## Window management (spec `2026-11-09-window-management`)
 
 | Budget | Target | Measured | How |
