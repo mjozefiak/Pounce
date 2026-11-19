@@ -323,7 +323,7 @@ private final class StatsInput: AudioInput, CaptureStatsProviding {
     }
 
     @Test func spoolResultsOfAFullSharedQueueAreCountedAndReplayed() async throws {
-        let rig = try SessionRig(texts: [76: "Part one", 77: "Part two", 100: "Other"])
+        let rig = try SessionRig(texts: [76: "Part one", 77: "Part two"])
         rig.engine.gate.close()
         // Another user of the same model (dictation, say) already has the background queue's 60 s waiting.
         let other = try await rig.lease.acquire(
@@ -346,18 +346,21 @@ private final class StatsInput: AudioInput, CaptureStatsProviding {
         rig.mic.push(mic.samples)
         rig.mic.end()
         #expect(await log.wait { $0 == .trackLost(.mic) })
+        // The queue stays full until the meeting is finished: `finish()` waits for every segment's result before
+        // the replay, so both get `.spool`, and the replay of a still-full queue keeps them in the spool.
+        let outcome = await session.finish()
         rig.engine.gate.open()
         _ = try await waiting.value
         await other.release()
-        _ = await session.finish()
         let counters = try #require(sink.last)
+        #expect(counters.meetingID == id)
+        #expect(counters.mic.segmentsSent == 2)
         #expect(counters.mic.spoolResults == 2)
         #expect(counters.mic.textResults == 0)
         #expect(counters.mic.backlogDeferred == 0)
-        // The replay puts them back (adjacent ranges may be replayed as one piece).
-        #expect(counters.mic.replayedText >= 1)
-        #expect(counters.mic.replayedFailed == 0)
-        #expect(try rig.rows(id).map(\.text).joined(separator: " ").contains("Part one"))
+        #expect(counters.mic.replayedText == 0)
+        #expect(counters.mic.replayedFailed == 2)
+        #expect(outcome.unfinishedSegments == 2)
     }
 
     @Test func aSegmentWhoseSpoolCannotBeReadBackIsCountedAsLost() async throws {
