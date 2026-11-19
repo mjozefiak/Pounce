@@ -8,7 +8,7 @@ Human contributors follow the same rules.
 
 ## Reporting bugs and proposing features
 
-Use the issue forms: [new issue](https://github.com/mjozefiak/Pounce/issues/new/choose). Do not paste
+Use the issue forms: [new issue](https://github.com/mjozefiak/lintel/issues/new/choose). Do not paste
 clipboard contents, transcripts, notes or other private text into an issue or a log.
 For vulnerabilities, do not open a public issue; see [SECURITY.md](SECURITY.md).
 
@@ -20,7 +20,7 @@ Bug fixes and small changes do not need a spec. See [AGENTS.md](AGENTS.md) (task
 ## Development setup
 
 - macOS 26 or later on Apple silicon, Xcode 27 (Swift 6.4).
-- Clone with submodules: `git clone --recurse-submodules https://github.com/mjozefiak/Pounce.git`
+- Clone with submodules: `git clone --recurse-submodules https://github.com/mjozefiak/lintel.git`
 - Run once: `swift package resolve --disable-keychain` (downloads the SQLCipher binary).
 - `scripts/make-app.sh` builds `dist/Lintel.app`, signed ad-hoc. An ad-hoc build gets a new signature on
   every rebuild, so macOS asks for its permissions again each time. See [docs/signing.md](docs/signing.md).

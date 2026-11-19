@@ -346,29 +346,26 @@ enum GuardFixtures {
 
             Spotkanie dotyczyło budżetu na przyszły kwartał i oferty dla klienta.
 
-            ### Kluczowe punkty
+            ### Ustalenia
 
-            - Spotkanie dotyczyło budżetu na przyszły kwartał. \\[00\\:05\\]
+            - Spotkanie dotyczyło budżetu na przyszły kwartał.
 
             ### Decyzje
 
-            - Zatwierdzono budżet marketingowy w wysokości czterdziestu tysięcy złotych. \\[00\\:21\\]
+            - Zatwierdzono budżet marketingowy w wysokości czterdziestu tysięcy złotych.
 
             ### Zadania
 
-            - Wysłać ofertę do klienta. \\(osoba\\: Marek, termin\\: piątek\\) \\[00\\:34\\]
-            - Przygotować umowę. \\(osoba\\: Ewa\\) \\[00\\:47\\]
+            - [ ] Wysłać ofertę do klienta. — osoba\\: Marek, termin\\: piątek
+            - [ ] Przygotować umowę. — osoba\\: Ewa
 
-            ### Otwarte pytania
+            ### Otwarte kwestie
 
-            - Kto zajmie się fakturami od dostawcy? \\[01\\:02\\]
+            - Kto zajmie się fakturami od dostawcy?
 
             ### Uczestnicy
 
-            - Anna
-            - Marek
-            - Ewa
-            - Piotr
+            Anna, Marek, Ewa, Piotr
             """
         #expect(markdown == expected)
     }
@@ -386,7 +383,7 @@ enum GuardFixtures {
         let markdown = compose(NotesReduceOutput(decisions: ["p1"], summary: nil), points: [GuardFixtures.budget])
         #expect(markdown.contains("### Decyzje"))
         #expect(!markdown.contains("### Zadania"))
-        #expect(!markdown.contains("### Otwarte pytania"))
+        #expect(!markdown.contains("### Otwarte kwestie"))
     }
 
     @Test func anImageAndALinkInAPointOrTheSummaryComeOutAsInertText() {
@@ -410,7 +407,7 @@ enum GuardFixtures {
 
     @Test func aMeetingWithNothingInItSaysSo() {
         let markdown = compose(NotesReduceOutput(), points: [])
-        #expect(markdown.hasPrefix("W nagraniu nie znaleziono decyzji, zadań ani otwartych pytań."))
+        #expect(markdown.hasPrefix("W nagraniu nie znaleziono decyzji, zadań ani otwartych kwestii."))
         #expect(markdown.contains("### Uczestnicy"))
     }
 
@@ -475,15 +472,15 @@ enum GuardFixtures {
 
         let withKeyPoints = NotesComposer.markdown(verdict: mixed, participants: participants, labels: .polish)
         let withoutKeyPoints = NotesComposer.markdown(verdict: plain, participants: participants, labels: .polish)
-        #expect(withKeyPoints.contains("### Kluczowe punkty"))
-        #expect(!withoutKeyPoints.contains("### Kluczowe punkty"))
+        #expect(withKeyPoints.contains("### Ustalenia"))
+        #expect(!withoutKeyPoints.contains("### Ustalenia"))
         // From the decisions on, the notes are the same; the key points stand between summary and decisions.
         let tail: (String) -> Substring? = { markdown in
             markdown.range(of: "### Decyzje").map { markdown[$0.lowerBound...] }
         }
         #expect(tail(withKeyPoints) != nil)
         #expect(tail(withKeyPoints) == tail(withoutKeyPoints))
-        let keyHeading = withKeyPoints.range(of: "### Kluczowe punkty")?.lowerBound
+        let keyHeading = withKeyPoints.range(of: "### Ustalenia")?.lowerBound
         let summaryHeading = withKeyPoints.range(of: "### Podsumowanie")?.lowerBound
         let decisionsHeading = withKeyPoints.range(of: "### Decyzje")?.lowerBound
         #expect(summaryHeading != nil && keyHeading != nil && decisionsHeading != nil)
@@ -496,9 +493,9 @@ enum GuardFixtures {
         let verdict = guardrail.verifyReduce(
             NotesReduceOutput(summary: modelSummary), points: [GuardFixtures.topic, GuardFixtures.budget])
         let markdown = NotesComposer.markdown(verdict: verdict, participants: [], labels: .english)
-        #expect(markdown.contains("### Key points\n\n- Spotkanie dotyczyło budżetu na przyszły kwartał. \\[00\\:05\\]"))
+        #expect(markdown.contains("### Key points\n\n- Spotkanie dotyczyło budżetu na przyszły kwartał."))
         #expect(!markdown.contains("Kluczowe"))
-        #expect(NotesComposer.Labels.polish.keyPoints == "Kluczowe punkty")
+        #expect(NotesComposer.Labels.polish.keyPoints == "Ustalenia")
         #expect(NotesComposer.Labels.english.keyPoints == "Key points")
     }
 
@@ -514,7 +511,7 @@ enum GuardFixtures {
             NotesReduceOutput(summary: modelSummary), points: [hostile, heading])
         #expect(verdict.keyPoints.map(\.id) == ["p5", "p8"])
         let markdown = NotesComposer.markdown(verdict: verdict, participants: [], labels: .polish)
-        #expect(markdown.contains("### Kluczowe punkty"))
+        #expect(markdown.contains("### Ustalenia"))
         #expect(MarkdownHardeningTests.unescapedStructure(in: markdown).isEmpty)
         #expect(markdown.contains("\\!\\[x\\]\\(http\\://evil.example/p.png\\)"))
         #expect(!markdown.contains("\n## "))
@@ -562,7 +559,7 @@ enum GuardFixtures {
         #expect(audited.verdict.keyPoints.map(\.id) == ["p6"])
         let markdown = NotesComposer.markdown(verdict: audited.verdict, participants: [], labels: .polish)
         #expect(markdown.components(separatedBy: "Spotkanie dotyczyło budżetu").count == 2)
-        #expect(markdown.contains("- Rozmawiano o ofercie. Klient czeka na nią. \\[00\\:34\\]"))
+        #expect(markdown.contains("- Rozmawiano o ofercie. Klient czeka na nią."))
     }
 
     /// QA of PR 63 (P0 4): in Polish notes the model wrote the only summary point word for word as its paragraph,
@@ -580,7 +577,7 @@ enum GuardFixtures {
         #expect(audited.audit.inModelParagraph == ["p5"])
         #expect(audited.audit.summarySources.isEmpty)
         let markdown = NotesComposer.markdown(verdict: audited.verdict, participants: [], labels: .polish)
-        #expect(!markdown.contains("### Kluczowe punkty"))
+        #expect(!markdown.contains("### Ustalenia"))
         #expect(markdown.components(separatedBy: "Głównym tematem jest budżet").count == 2)
         #expect(markdown.contains("### Decyzje"))
     }

@@ -10,7 +10,7 @@ release, only the latest release (and `main`) will.
 Do not report vulnerabilities in a public issue, pull request or discussion.
 
 Use GitHub private vulnerability reporting: open the repository's **Security** tab, choose
-**Report a vulnerability**, or go to <https://github.com/mjozefiak/Pounce/security/advisories/new>.
+**Report a vulnerability**, or go to <https://github.com/mjozefiak/lintel/security/advisories/new>.
 
 If that form is not available, open an issue that asks for a private way to reach the maintainer. Do not
 put any details of the problem in that issue.

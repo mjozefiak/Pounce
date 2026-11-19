@@ -128,7 +128,7 @@ import Testing
         let revised = BlockAttributionInfo(index: 2, author: .agent, mark: .revisedNotChecked, showsQuotes: false)
         #expect(revised.spokenLabel.hasSuffix("Revised, not checked against the recording"))
         // The words, not the letters: no label is the bare "AI" or "STT".
-        for author in AuthorLegend.authors { #expect(author.spokenName.count > 3) }
+        for author in [NoteAuthor.agent, .human, .stt] { #expect(author.spokenName.count > 3) }
     }
 
     @Test func theGutterTextIsAIYouSTT() {

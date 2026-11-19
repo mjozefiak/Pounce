@@ -213,6 +213,6 @@ import Testing
 
     @Test func theVerifierPromptIsVersionedSeparately() {
         #expect(NotesVerifierPrompt.version == 1)
-        #expect(NotesPrompt.version == 3)
+        #expect(NotesPrompt.version == 4)
     }
 }
