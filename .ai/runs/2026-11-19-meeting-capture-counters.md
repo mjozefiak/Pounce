@@ -43,3 +43,10 @@ names, titles or device names (a test scans the report).
 
 - [x] 2.1 Persistence and Copy diagnostics in the pane
 - [ ] 2.2 Docs and QA
+
+### Phase 3: Review fixes
+
+- [x] 3.1 End padding of a stopped system tap is not a hole (no `audio_gap` on every meeting)
+- [x] 3.2 Counters of a meeting discarded as quiet are saved; counters saved while the meeting is still `processing`
+- [x] 3.3 Every meeting delete prunes its counters; one lock for every store instance
+- [x] 3.4 Tests for empty ranges, unmatched ends, forced closes, `.spool`, an unloadable model, end padding, a failed recreation, the delete paths and pinned segmentation; follow-ups #145 (gap length) and #146 (VAD rejections)

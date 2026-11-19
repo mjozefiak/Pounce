@@ -346,7 +346,9 @@ Settings → Meetings → Advanced → **Copy diagnostics** puts the counters of
 recording with system audio: paste it and check `recorded` against `speech sent to engine` per channel, the
 `hard cuts`, `empty results dropped`, `ring buffers dropped`, `taps recreated`, `silence inserted` lines and
 `Audio gap written while recording`. Switch the output device (headset on/off) during a recording: `taps recreated`
-rises and `Audio gap written` becomes `yes`. No text, name, title or device name may appear.
+rises and `Audio gap written` becomes `yes`. A plain recording that is only stopped stays `no` (its `end padding`
+is not a hole). A recording of under 15 s with nothing transcribed is listed as `discarded as quiet`. Delete a
+meeting (or Clear Library): its section is gone from the next copy. No text, name, title or device name may appear.
 
 ## Meetings audio sources (manual)
 
