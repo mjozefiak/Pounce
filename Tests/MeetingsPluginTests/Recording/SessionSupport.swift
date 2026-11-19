@@ -238,6 +238,9 @@ struct TrackScript {
         spans.append(start..<(closed ? samples.count : samples.count + 10_000_000))
     }
 
+    /// A raw detector span over samples already scripted (overlapping spans make an unmatched end).
+    mutating func span(_ range: Range<Int>) { spans.append(range) }
+
     var vad: ScriptedVAD { ScriptedVAD(spans) }
 }
 

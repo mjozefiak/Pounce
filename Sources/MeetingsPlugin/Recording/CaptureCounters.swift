@@ -13,10 +13,13 @@ struct SystemCaptureStats: Equatable, Sendable {
     var outputChangesNotObserved = 0
     /// Samples of silence the pipeline inserted for missing buffers or while a tap was down.
     var silenceInsertedSamples = 0
+    /// Samples of silence that only line the track's end up with the end of the recording (not a hole).
+    var endPaddingSamples = 0
     /// Tap buffers dropped because the ring was full or did not fit.
     var ringDropped = 0
 
-    /// A hole in the recorded audio, in the sense of `meeting.audio_gap`.
+    /// A hole in the recorded audio, in the sense of `meeting.audio_gap`. The end padding is not one: every
+    /// stopped tap ends a little before the recording does.
     var hasGap: Bool { silenceInsertedSamples > 0 || ringDropped > 0 || recreateFailures > 0 }
 }
 
@@ -58,6 +61,8 @@ struct ChannelCounters: Equatable, Codable, Sendable {
     var replayedText = 0
     var replayedEmpty = 0
     var replayedFailed = 0
+    /// Held-back segments whose audio could not be read back from the spool: lost for good.
+    var replayUnreadable = 0
     var interruptions = 0
     var resumes = 0
     var lost = 0
@@ -70,6 +75,7 @@ struct ChannelCounters: Equatable, Codable, Sendable {
     var timelineResyncs = 0
     var outputChangesNotObserved = 0
     var silenceInsertedSamples = 0
+    var endPaddingSamples = 0
     var ringDropped = 0
 
     mutating func apply(_ stats: SystemCaptureStats) {
@@ -79,6 +85,7 @@ struct ChannelCounters: Equatable, Codable, Sendable {
         timelineResyncs = stats.timelineResyncs
         outputChangesNotObserved = stats.outputChangesNotObserved
         silenceInsertedSamples = stats.silenceInsertedSamples
+        endPaddingSamples = stats.endPaddingSamples
         ringDropped = stats.ringDropped
     }
 }
@@ -94,6 +101,9 @@ struct CaptureCounters: Equatable, Codable, Sendable {
     var modelUnavailable = 0
     /// `audio_gap` was written for this meeting while it was recording.
     var audioGapWritten = false
+    /// The meeting was removed at the end as quiet (nothing heard); `meetingID` no longer names a row. Kept so
+    /// the counters show what was lost in exactly the meeting that was thrown away.
+    var discarded = false
 
     subscript(channel: AudioChannel) -> ChannelCounters {
         get { channel == .mic ? mic : system }
@@ -115,7 +125,8 @@ enum CaptureDiagnostics {
     static func section(_ counters: CaptureCounters) -> [String] {
         var lines = [
             "",
-            "Meeting \(counters.meetingID): \(counters.durationMs / 1_000) s",
+            "Meeting \(counters.meetingID): \(counters.durationMs / 1_000) s"
+                + (counters.discarded ? ", discarded as quiet" : ""),
             "  Speech model busy: \(counters.modelBusy), unavailable: \(counters.modelUnavailable)",
             "  Audio gap written while recording: \(counters.audioGapWritten ? "yes" : "no")",
         ]
@@ -132,7 +143,7 @@ enum CaptureDiagnostics {
                     + "empty results dropped: \(c.emptyResults), no model: \(c.deferredNoModel), "
                     + "spool results: \(c.spoolResults), failed: \(c.failedResults)",
                 "  [\(channel.rawValue)] replay with text: \(c.replayedText), empty: \(c.replayedEmpty), "
-                    + "failed: \(c.replayedFailed)",
+                    + "failed: \(c.replayedFailed), unreadable in the spool: \(c.replayUnreadable)",
                 "  [\(channel.rawValue)] interruptions: \(c.interruptions), resumes: \(c.resumes), lost: \(c.lost), "
                     + "silence put in place of a gap: \(milliseconds(c.gapFillSamples)) ms",
             ]
@@ -142,6 +153,7 @@ enum CaptureDiagnostics {
                         + "format changes: \(c.formatChanges), timeline resyncs: \(c.timelineResyncs), "
                         + "output changes not observed: \(c.outputChangesNotObserved), "
                         + "silence inserted: \(milliseconds(c.silenceInsertedSamples)) ms, "
+                        + "end padding: \(milliseconds(c.endPaddingSamples)) ms, "
                         + "ring buffers dropped: \(c.ringDropped)")
             }
         }
@@ -150,32 +162,53 @@ enum CaptureDiagnostics {
 }
 
 /// The last meetings' counters as JSON in `Plugins/meetings/capture-counters.json` (0600, atomic). Numbers only;
-/// it needs no migration and goes with `eraseData()` (the whole folder).
+/// it needs no migration and goes with `eraseData()` (the whole folder). Entries of deleted meetings are pruned by
+/// `MeetingsStore` after every delete (retention, Clear Library, a single delete).
 final class CaptureCountersStore: Sendable {
     static let fileName = "capture-counters.json"
     static let keep = 20
 
     private let url: URL
-    private let lock = Mutex(())
+    /// One lock for every instance: the session that records and the library that prunes each hold their own
+    /// store on the same file, and a read-modify-write of one must not lose the other's change.
+    private static let lock = Mutex(())
 
     init(directory: URL) {
         url = directory.appending(path: Self.fileName)
     }
 
     func load() -> [CaptureCounters] {
-        lock.withLock { _ in read() }
+        Self.lock.withLock { _ in read() }
     }
 
+    /// Adds a meeting's counters, replacing an earlier entry of the same (still existing) meeting. A discarded
+    /// meeting's id is free again, so neither replaces nor is replaced by an entry with the same number.
     func record(_ counters: CaptureCounters) throws {
-        try lock.withLock { _ in
-            var all = read().filter { $0.meetingID != counters.meetingID }
+        try Self.lock.withLock { _ in
+            var all = read().filter { $0.discarded || counters.discarded || $0.meetingID != counters.meetingID }
             all.append(counters)
             if all.count > Self.keep { all.removeFirst(all.count - Self.keep) }
-            try FileManager.default.createDirectory(
-                at: url.deletingLastPathComponent(), withIntermediateDirectories: true,
-                attributes: [.posixPermissions: 0o700])
-            try AtomicFile.write(try JSONEncoder().encode(all), to: url)
+            try write(all)
         }
+    }
+
+    /// Removes the entries of meetings that are no longer in `existing`. A discarded meeting has no row; its entry
+    /// stays (one of the last `keep`) unless `dropDiscarded` (Clear Library, everything deleted).
+    func prune(keeping existing: Set<Int64>, dropDiscarded: Bool) throws {
+        try Self.lock.withLock { _ in
+            guard FileManager.default.fileExists(atPath: url.path) else { return }
+            let all = read()
+            let kept = all.filter { $0.discarded ? !dropDiscarded : existing.contains($0.meetingID) }
+            guard kept != all else { return }
+            try write(kept)
+        }
+    }
+
+    private func write(_ all: [CaptureCounters]) throws {
+        try FileManager.default.createDirectory(
+            at: url.deletingLastPathComponent(), withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700])
+        try AtomicFile.write(try JSONEncoder().encode(all), to: url)
     }
 
     private func read() -> [CaptureCounters] {

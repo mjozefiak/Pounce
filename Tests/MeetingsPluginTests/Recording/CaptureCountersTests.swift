@@ -13,6 +13,15 @@ private final class CounterSink: Sendable {
     var record: @Sendable (CaptureCounters) -> Void { { [self] counters in items.withLock { $0.append(counters) } } }
 }
 
+/// An engine whose model never loads (not a busy lease: the load itself fails).
+private struct UnloadableEngine: SpeechEngine {
+    struct LoadFailed: Error {}
+    var isLoaded: Bool { false }
+    func load(modelFolder: URL) async throws { throw LoadFailed() }
+    func transcribe(_ samples: [Float]) async throws -> TranscriptSegment { throw LoadFailed() }
+    func unload() async {}
+}
+
 /// An input that reports system-capture statistics, like `SystemAudioSource`.
 private final class StatsInput: AudioInput, CaptureStatsProviding {
     let inner = ControlledInput()
@@ -264,6 +273,166 @@ private final class StatsInput: AudioInput, CaptureStatsProviding {
         #expect(try rig.store.hasAudioGap(id) == false)
     }
 
+    @Test func aMeetingDiscardedAsQuietStillRecordsItsCounters() async throws {
+        // The engine heard the speech but returned nothing: the meeting is "silent" and thrown away, which is
+        // exactly the case the counters must show.
+        let rig = try SessionRig(texts: [81: "  "])
+        var mic = TrackScript()
+        mic.silence(1)
+        mic.say(81, seconds: 2)
+        mic.silence(2)
+        let sink = CounterSink()
+        let session = rig.session(mic: mic, system: nil, withSystem: false, recordCounters: sink.record)
+        let id = try await session.start()
+        rig.mic.push(mic.samples)
+        rig.mic.end()
+        let outcome = await session.finish()
+        #expect(outcome.result == .discarded)
+        #expect(try rig.store.meetingCount() == 0)
+        let counters = try #require(sink.last)
+        #expect(counters.discarded)
+        #expect(counters.meetingID == id)
+        #expect(counters.mic.segmentsSent == 1)
+        #expect(counters.mic.emptyResults == 1)
+        #expect(counters.mic.recordedSamples == mic.samples.count)
+        #expect(CaptureDiagnostics.report([counters]).contains("discarded as quiet"))
+    }
+
+    @Test func emptyRangesUnmatchedEndsAndForcedClosesAreCounted() async throws {
+        let rig = try SessionRig(texts: [91: "First", 92: "Open at the end"])
+        var mic = TrackScript()
+        mic.silence(1)
+        mic.say(91, seconds: 3)
+        // A start and an end at the same sample: a segment of zero length.
+        mic.say(93, seconds: 0)
+        mic.silence(2)
+        // A second span inside the first: its end closes the segment, the outer end then has nothing open.
+        mic.span(2 * rate..<3 * rate)
+        mic.say(92, seconds: 2, closed: false)
+        let sink = CounterSink()
+        let session = rig.session(mic: mic, system: nil, withSystem: false, recordCounters: sink.record)
+        _ = try await session.start()
+        rig.mic.push(mic.samples)
+        _ = await session.finish()
+        let counters = try #require(sink.last)
+        #expect(counters.mic.emptyRanges == 1)
+        #expect(counters.mic.vadUnmatchedEnds == 1)
+        #expect(counters.mic.forcedCloses == 1)
+        #expect(counters.mic.vadSegmentsOpened == 3)
+        #expect(counters.mic.vadSegmentsClosed == 2)
+    }
+
+    @Test func spoolResultsOfAFullSharedQueueAreCountedAndReplayed() async throws {
+        let rig = try SessionRig(texts: [76: "Part one", 77: "Part two", 100: "Other"])
+        rig.engine.gate.close()
+        // Another user of the same model (dictation, say) already has the background queue's 60 s waiting.
+        let other = try await rig.lease.acquire(
+            modelID: "test-model", folder: rig.directory.url.appending(path: "model"), engine: rig.engine,
+            priority: .background, keepWarm: { .seconds(1) })
+        let waiting = Task {
+            try await other.transcribe([Float](repeating: 1, count: SpeechEngineLease.backgroundLimit))
+        }
+        #expect(await rig.engine.transcribing.wait { rig.engine.entered == 1 })
+        var mic = TrackScript()
+        mic.silence(1)
+        mic.say(76, seconds: 2)
+        mic.silence(1)
+        mic.say(77, seconds: 2)
+        mic.silence(10)
+        let sink = CounterSink()
+        let session = rig.session(mic: mic, system: nil, withSystem: false, recordCounters: sink.record)
+        let log = SessionEventLog(session)
+        let id = try await session.start()
+        rig.mic.push(mic.samples)
+        rig.mic.end()
+        #expect(await log.wait { $0 == .trackLost(.mic) })
+        rig.engine.gate.open()
+        _ = try await waiting.value
+        await other.release()
+        _ = await session.finish()
+        let counters = try #require(sink.last)
+        #expect(counters.mic.spoolResults == 2)
+        #expect(counters.mic.textResults == 0)
+        #expect(counters.mic.backlogDeferred == 0)
+        // The replay puts them back (adjacent ranges may be replayed as one piece).
+        #expect(counters.mic.replayedText >= 1)
+        #expect(counters.mic.replayedFailed == 0)
+        #expect(try rig.rows(id).map(\.text).joined(separator: " ").contains("Part one"))
+    }
+
+    @Test func aSegmentWhoseSpoolCannotBeReadBackIsCountedAsLost() async throws {
+        let rig = try SessionRig(texts: [65: "Unreachable"])
+        let held = try await rig.lease.acquire(
+            modelID: "other", folder: rig.directory.url.appending(path: "other"), engine: ScriptedEngine(texts: [:]),
+            priority: .interactive, keepWarm: { .seconds(1) })
+        var mic = TrackScript()
+        mic.silence(1)
+        mic.say(65, seconds: 2)
+        mic.silence(14)
+        let uuid = UUID()
+        let sink = CounterSink()
+        let session = rig.session(
+            mic: mic, system: nil, uuid: uuid, withSystem: false, recordCounters: sink.record)
+        let log = SessionEventLog(session)
+        _ = try await session.start()
+        #expect(await log.wait { $0 == .modelUnavailable(busy: true) })
+        await held.release()
+        try FileManager.default.removeItem(at: rig.spool.file(for: uuid, track: .mic))
+        rig.mic.push(mic.samples)
+        rig.mic.end()
+        #expect(await log.wait { $0 == .trackLost(.mic) })
+        _ = await session.finish()
+        let counters = try #require(sink.last)
+        #expect(counters.mic.deferredNoModel == 1)
+        #expect(counters.mic.replayUnreadable == 1)
+        #expect(CaptureDiagnostics.report([counters]).contains("unreadable in the spool: 1"))
+    }
+
+    @Test func aModelThatCannotLoadIsCountedAsUnavailableNotBusy() async throws {
+        let rig = try SessionRig(texts: [111: "Never"])
+        var mic = TrackScript()
+        mic.silence(1)
+        mic.say(111, seconds: 2)
+        mic.silence(14)
+        let sink = CounterSink()
+        let session = rig.session(
+            mic: mic, system: nil, engine: UnloadableEngine(), withSystem: false, recordCounters: sink.record)
+        _ = try await session.start()
+        rig.mic.push(mic.samples)
+        rig.mic.end()
+        _ = await session.finish()
+        let counters = try #require(sink.last)
+        #expect(counters.modelUnavailable == 1)
+        #expect(counters.modelBusy == 0)
+        #expect(counters.mic.deferredNoModel == 1)
+    }
+
+    @Test func theCountersOnlyObserveWhatReachesTheEngineAndTheTranscript() async throws {
+        // The segmentation of a fixed script, pinned: the same engine calls and rows as before the counters
+        // existed (a hard cut at 15 s, a zero-length range that sends nothing), whether the counters are kept.
+        for recording in [false, true] {
+            let rig = try SessionRig(texts: [121: "One", 122: "Two"])
+            var mic = TrackScript()
+            mic.silence(1)
+            mic.say(121, seconds: 3)
+            mic.say(123, seconds: 0)
+            mic.silence(1)
+            mic.say(122, seconds: 20)
+            mic.silence(12)
+            let sink = CounterSink()
+            let ignore: @Sendable (CaptureCounters) -> Void = { _ in }
+            let session = rig.session(
+                mic: mic, system: nil, withSystem: false, recordCounters: recording ? sink.record : ignore)
+            let id = try await session.start()
+            rig.mic.push(mic.samples)
+            rig.mic.end()
+            _ = await session.finish()
+            #expect(rig.engine.heard.sorted() == [121, 122, 122])
+            #expect(try rig.rows(id).map(\.text) == ["One", "Two", "Two"])
+            #expect(sink.all.count == (recording ? 1 : 0))
+        }
+    }
+
     // MARK: Privacy
 
     @Test func noTranscriptTextNameTitleOrDeviceNameReachesTheReportTheLogLinesOrTheFile() async throws {
@@ -312,6 +481,91 @@ private final class StatsInput: AudioInput, CaptureStatsProviding {
 }
 
 @Suite struct CaptureCountersStoreTests {
+    /// A library with three finished meetings (one 100 days old) and the counters of each, plus one of a meeting
+    /// that was discarded as quiet.
+    private func library() throws -> (MeetingsStore, TemporaryDirectory, ids: [Int64]) {
+        let directory = try TemporaryDirectory()
+        let store = try MeetingsStore.open(in: directory.url.appending(path: "meetings"), keys: testKeys())
+        var ids: [Int64] = []
+        for (index, age) in [100.0, 1, 1].enumerated() {
+            let id = try store.insertMeeting(
+                uuid: UUID().uuidString.lowercased(), startedAt: Date().addingTimeInterval(-age * 86_400),
+                speechModelID: "m")
+            try store.setStatus(id, status: .ready)
+            ids.append(id)
+            var counters = CaptureCounters()
+            counters.meetingID = id
+            counters.mic.segmentsSent = index
+            try #require(store.captureCounters).record(counters)
+        }
+        var quiet = CaptureCounters()
+        quiet.meetingID = 999
+        quiet.discarded = true
+        try #require(store.captureCounters).record(quiet)
+        return (store, directory, ids)
+    }
+
+    private func saved(_ store: MeetingsStore) throws -> [Int64] {
+        try #require(store.captureCounters).load().filter { !$0.discarded }.map(\.meetingID)
+    }
+
+    private func discardedKept(_ store: MeetingsStore) throws -> Bool {
+        try #require(store.captureCounters).load().contains { $0.discarded }
+    }
+
+    @Test func theCountersFileLivesInThePluginFolderNextToTheLibrary() throws {
+        let (store, directory, _) = try library()
+        let file = directory.url.appending(path: "meetings").appending(path: CaptureCountersStore.fileName)
+        #expect(FileManager.default.fileExists(atPath: file.path))
+        #expect(try saved(store).count == 3)
+    }
+
+    @Test func retentionPrunesTheCountersOfTheMeetingsItDeletes() throws {
+        let (store, directory, ids) = try library()
+        defer { _ = directory }
+        _ = try store.applyRetention(cutoff: Date().addingTimeInterval(-90 * 86_400))
+        #expect(try saved(store) == [ids[1], ids[2]])
+        // A discarded meeting has no row; its entry is one of the last 20 and stays.
+        #expect(try discardedKept(store))
+    }
+
+    @Test func aSingleDeletePrunesThatMeetingsCounters() throws {
+        let (store, directory, ids) = try library()
+        defer { _ = directory }
+        #expect(try store.deleteMeeting(ids[1], spool: RecordingSpool()))
+        #expect(try saved(store) == [ids[0], ids[2]])
+        try store.deleteMeetings([ids[2]])
+        #expect(try saved(store) == [ids[0]])
+    }
+
+    @Test func clearLibraryPrunesEveryDeletedMeetingAndTheDiscardedOnes() throws {
+        let (store, directory, ids) = try library()
+        defer { _ = directory }
+        let live = try store.insertMeeting(uuid: "live", startedAt: Date(), speechModelID: "m")
+        var counters = CaptureCounters()
+        counters.meetingID = live
+        try #require(store.captureCounters).record(counters)
+        _ = try store.deleteFinishedMeetings()
+        #expect(try saved(store) == [live])
+        #expect(try !discardedKept(store))
+        #expect(!ids.contains(live))
+    }
+
+    @Test func aDiscardedMeetingNeitherReplacesNorIsReplacedByAnEntryWithTheSameNumber() throws {
+        let directory = try TemporaryDirectory()
+        let store = CaptureCountersStore(directory: directory.url)
+        var quiet = CaptureCounters()
+        quiet.meetingID = 4
+        quiet.discarded = true
+        try store.record(quiet)
+        // SQLite hands the freed id to the next meeting.
+        var next = CaptureCounters()
+        next.meetingID = 4
+        try store.record(next)
+        try store.record(next)
+        #expect(store.load().map(\.discarded) == [true, false])
+    }
+
     @Test func itKeepsTheLastTwentyMeetingsReplacesTheSameOneAndWritesPrivateFiles() throws {
         let directory = try TemporaryDirectory()
         let store = CaptureCountersStore(directory: directory.url.appending(path: "meetings"))

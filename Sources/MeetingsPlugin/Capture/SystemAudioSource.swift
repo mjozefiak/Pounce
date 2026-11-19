@@ -40,6 +40,8 @@ struct SystemAudioPipeline: Sendable {
     private(set) var resyncs = 0
     /// Samples of silence inserted for missing buffers or by `padding` (a statistic; changes no output).
     private(set) var insertedSilenceSamples = 0
+    /// Samples of silence `padding(upTo:atEnd: true)` added to line the end up (a statistic, not a hole).
+    private(set) var endPaddingSamples = 0
     private var resampler: MonoResampler?
     private var resamplerKey: String?
     /// Samples subtracted from stamp-derived positions after a re-base.
@@ -96,13 +98,13 @@ struct SystemAudioPipeline: Sendable {
         return output
     }
 
-    /// Silence up to `hostTime`, for the end of the recording or a tap that stays down.
-    mutating func padding(upTo hostTime: UInt64) -> [Float] {
+    /// Silence up to `hostTime`, for the end of the recording (`atEnd`) or a tap that stays down.
+    mutating func padding(upTo hostTime: UInt64, atEnd: Bool = false) -> [Float] {
         guard let anchor = anchorHostTime else { return [] }
         let target = sampleIndex(forHostTime: hostTime, anchor: anchor) - shiftSamples
         guard target > emittedSamples else { return [] }
         let silence = [Float](repeating: 0, count: target - emittedSamples)
-        insertedSilenceSamples += silence.count
+        if atEnd { endPaddingSamples += silence.count } else { insertedSilenceSamples += silence.count }
         emittedSamples = target
         return silence
     }
@@ -139,6 +141,7 @@ final class SystemAudioSource: AudioInput, CaptureStatsProviding, @unchecked Sen
         /// Event counts, and what earlier pipelines and taps (replaced or restarted) already reported.
         var stats = SystemCaptureStats()
         var silenceRetired = 0
+        var endPaddingRetired = 0
         var ringDroppedRetired = 0
     }
 
@@ -185,6 +188,7 @@ final class SystemAudioSource: AudioInput, CaptureStatsProviding, @unchecked Sen
         state.withLock { state in
             var stats = state.stats
             stats.silenceInsertedSamples = state.silenceRetired + state.pipeline.insertedSilenceSamples
+            stats.endPaddingSamples = state.endPaddingRetired + state.pipeline.endPaddingSamples
             stats.ringDropped = state.ringDroppedRetired + (state.session?.droppedBuffers ?? 0)
             return stats
         }
@@ -213,6 +217,7 @@ final class SystemAudioSource: AudioInput, CaptureStatsProviding, @unchecked Sen
             if state.running { return true }
             state.running = true
             state.silenceRetired += state.pipeline.insertedSilenceSamples
+            state.endPaddingRetired += state.pipeline.endPaddingSamples
             state.continuation = continuation
             state.onLevel = onLevel
             // A fresh timeline for every start, so a source that was stopped begins from zero again. Without
@@ -378,7 +383,7 @@ final class SystemAudioSource: AudioInput, CaptureStatsProviding, @unchecked Sen
                 (any ProcessTapSession)?, (any OutputChangeObservation)?, AsyncStream<[Float]>.Continuation?,
                 Task<Void, Never>?, [Float], (@Sendable (Float) -> Void)?
             ) in
-            let silence = hostTime.map { state.pipeline.padding(upTo: $0) } ?? []
+            let silence = hostTime.map { state.pipeline.padding(upTo: $0, atEnd: true) } ?? []
             let result = (
                 state.session, state.observation, state.continuation, state.recreation, silence, state.onLevel
             )

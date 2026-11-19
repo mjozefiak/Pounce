@@ -489,6 +489,29 @@ import Testing
         await source.stop()
         let samples = await collector.finished()
         #expect(abs(samples.count - 8_000) <= 6)  // 500 ms
+        // The failure and the silence that kept the timeline moving are counted, and they are a hole.
+        let stats = source.captureStats
+        #expect(stats.recreateFailures == 1)
+        #expect(stats.silenceInsertedSamples > 0)
+        #expect(stats.hasGap)
+    }
+
+    @Test func theEndPaddingOfAStoppedTapIsCountedButIsNotAHole() async throws {
+        let backend = FakeBackend()
+        let clock = FakeClock(1_000_000_000)
+        let source = source(backend, clock: clock, anchor: 1_000_000_000)
+        let collector = StreamCollector(try await source.start { _ in })
+        backend.deliver(buffer(at: 1_000))
+        backend.deliver(buffer(at: 1_100, startFrame: 4_800))
+        // The recording ends 300 ms after the last buffer ended: that silence only lines the track up.
+        clock.set(1_500_000_000)
+        await source.stop()
+        let samples = await collector.finished()
+        #expect(abs(samples.count - 8_000) <= 6)
+        let stats = source.captureStats
+        #expect(abs(stats.endPaddingSamples - 4_800) <= 6)
+        #expect(stats.silenceInsertedSamples == 0)
+        #expect(!stats.hasGap)
     }
 
     @Test func recreateRetriesBeforeGivingUp() async throws {

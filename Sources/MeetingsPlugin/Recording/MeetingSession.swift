@@ -924,6 +924,7 @@ actor MeetingSession {
     /// Audio that cannot be read back from the spool: lost for good, and counted as failed.
     private func failReplay(_ track: TrackState, _ remaining: ArraySlice<Range<Int>>) {
         failedSegments += remaining.count
+        counters[track.channel].replayUnreadable += remaining.count
         let lost = Array(remaining)
         track.deferred.removeAll { lost.contains($0) }
         commitReady(force: false)
@@ -984,7 +985,10 @@ actor MeetingSession {
         let silent =
             savedCount == 0 && deferredCount == 0 && failedSegments == 0 && echoesDropped == 0 && writeFailures == 0
         let shortest = Int(limits.discardBelow.components.seconds) * 1_000
+        let discardedID = meetingID
         if silent, durationMs < shortest, discardMeeting() {
+            // The counters of a meeting thrown away as quiet are what tells whether something was lost.
+            if let discardedID { publishCounters(id: discardedID, durationMs: durationMs, discarded: true) }
             outcome.result = .discarded
             outcome.meetingID = nil
             setState(.idle)
@@ -995,6 +999,9 @@ actor MeetingSession {
             setState(.failed)
             return outcome
         }
+        // Saved while the meeting is still `processing`, so no delete can run between this and `ready` and leave
+        // an entry for a meeting that is gone.
+        publishCounters(id: id, durationMs: durationMs)
         let endedAt = now()
         let unresolved = deferredCount + failedSegments + writeFailures
         if unresolved == 0 {
@@ -1015,7 +1022,6 @@ actor MeetingSession {
         logger.notice(
             "Meeting finished: \(self.savedCount, privacy: .public) segments, \(durationMs / 1_000, privacy: .public) s"
         )
-        publishCounters(id: id, durationMs: durationMs)
         return outcome
     }
 
@@ -1033,7 +1039,7 @@ actor MeetingSession {
     }
 
     /// `audio_gap` on the live meeting: the column already exists, so nothing migrates. Seconds of gap would need
-    /// a new column and are a follow-up.
+    /// a new column (#145).
     private func noteAudioGap() {
         guard !audioGapWritten, let id = meetingID else { return }
         do {
@@ -1044,11 +1050,13 @@ actor MeetingSession {
         }
     }
 
-    private func publishCounters(id: Int64, durationMs: Int) {
-        refreshCaptureStats()
+    private func publishCounters(id: Int64, durationMs: Int, discarded: Bool = false) {
+        // A discarded meeting has no row any more: nothing to write `audio_gap` into.
+        if !discarded { refreshCaptureStats() }
         counters.meetingID = id
         counters.durationMs = durationMs
         counters.audioGapWritten = audioGapWritten
+        counters.discarded = discarded
         for line in CaptureDiagnostics.section(counters) where !line.isEmpty {
             logger.notice("Capture counters \(line, privacy: .public)")
         }
