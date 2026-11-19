@@ -334,7 +334,7 @@ sentences. The local track (4B) is not part of this measurement; the comparison 
 | Tasks whose owner is right (a real name, or "Do przypisania" when only generic labels were said) | at least 80% | 36 of 36 (100%) |
 | False sentences after the guard (read by hand, synthetic) | 0 | 0 clearly false; 3 speculative open questions or hedges ("appears to have agreed") read as borderline |
 | Lines the guard removed from the model's answer (synthetic, 18 notes) | no target | 1 summary (a wrong number: 40 instead of 41) |
-| Guard on planted faults (synthetic corpus, offline in CI) | 100% of the hard classes | 32 of 32 (number, weekday, owner outside the meeting, generic label as owner, link/HTML/image, injection); 0 false removals on the 6 correct answers |
+| Guard on planted faults (synthetic corpus, offline in CI) | 100% of the hard classes | 32 of 32 at the time of the measurement (number, weekday, owner outside the meeting, generic label as owner, link/HTML/image, injection); 38 of 38 since the review added the number spelled out in words; 0 false removals on the 6 correct answers. Every case plants the same values (7400, Zenon, Kwantoris), so the count is classes times cases, not 38 different faults |
 | One call, 1 h-class synthetic meeting (about 3 000 input tokens) | under 600 s | 4.2 to 11.9 s wall, 2 550 to 3 065 input and 320 to 560 output tokens |
 | Real meeting A (4 776 words, 273 utterances, 15 051 estimator tokens, 1 call) | no target | 16.2 s; 19 384 input and about 1 480 output tokens; notes of 441 words with 5 decisions, 5 tasks (all with an owner), 3 topics, 4 open points; 0 lines removed |
 | Real meeting B (1 760 words, 199 utterances, 6 341 estimator tokens, 1 call) | no target | 10.3 s; 10 078 input tokens; notes of 208 words with 0 decisions, 2 tasks (none with an owner), 2 topics, 2 open points; 1 line removed (a name not in the recording) |
@@ -343,6 +343,18 @@ Two findings of the measurement changed the track before this row: the Polish ex
 English meeting in Polish (the code now names the language of the notes in the request), and a name the speech
 recognition garbled and the model corrected ("girce" → "Jirze") was removed by a too strict guard (an edit distance of
 two is allowed from five letters, as the spec says).
+
+Limits of this measurement:
+
+- One run per real meeting, so the spread between runs on real meetings is unknown; the synthetic corpus has 3
+  runs per meeting. The real meetings were not scored against a reference list (numbers only).
+- The synthetic corpus, its reference lists and the prompt were written by the same author in the same PR, so the
+  96% may be higher than on meetings nobody tuned for; the reference match is an automatic stem match.
+- "0 false sentences" was read by hand on the synthetic notes only; the real notes were not read here.
+- The review of PR #147 changed the guard after this measurement (a weekday such as "piątek" no longer counts as a
+  clock hour, the Polish pronoun "ten" no longer as the number 10, a time inside a line is removed). The figures
+  above are from the guard before that change; the removed-line counts may differ when the stored answers are
+  checked again (`theGuardOverStoredAnswers`).
 
 ### Which model writes the whole-transcript notes: provider and local (decision no. 14)
 
@@ -377,6 +389,9 @@ Reading of the numbers:
 - The 122B at Q3 is no better than the 30B on the synthetic corpus (equal 48 of 54), slightly longer notes on the
   real meetings, 4 times slower and needs 96 GB. It does not justify a mode of its own.
 - Comparison with the built-in quoted-chunks track on the same inputs was not run.
+- Limits: the 122B was measured only at Q3_K_M (a higher quantisation may score differently), every model had one
+  run per real meeting, the local models had the 24 000-token input budget and Claude 100 000, and false facts of
+  the local models were not scored, so "fewer decisions found" is the only comparison this table supports.
 
 ## Window management (spec `2026-11-09-window-management`)
 
