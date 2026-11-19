@@ -18,6 +18,7 @@ private let repositoryRoot = URL(filePath: #filePath)
         (".ai/runs/", "history: run plans and handoffs"),
         (".ai/prototypes/", "history: accepted design prototypes"),
         (".ai/scripts/rename-to-lintel.sh", "the rename tool names both the old and the new names"),
+        ("CHANGELOG.md", "release history: the changelog says what the app used to be called"),
         ("Tests/LintelAppTests/RepositoryNamesTests.swift", "this test"),
     ]
     /// A line that only names the MVP spec's file name, which keeps its historical name.
