@@ -1,6 +1,6 @@
 import Foundation
 
-/// The value of spoken numbers (Polish and English, 1 to 999 999), so `FormatterGuard` can tell that a
+/// The value of spoken numbers (Polish and English, 0 to 999 999), so `FormatterGuard` can tell that a
 /// digit the model wrote stands for the number words the speaker said ("sześćdziesięciu" is 60) and not for
 /// some other number. Pure; conservative: a word list that is not a well-formed number gives `nil`.
 enum NumberWords {
@@ -39,59 +39,121 @@ enum NumberWords {
         return table
     }()
 
-    /// Polish whole words for the hundreds (the inflected forms are too irregular for a stem rule).
-    private static let polishHundreds: [String: Int] = [
-        "sto": 100, "stu": 100, "sta": 100, "setny": 100, "setna": 100, "setnego": 100,
-        "dwieście": 200, "dwustu": 200, "dwusta": 200,
-        "trzysta": 300, "trzystu": 300, "czterysta": 400, "czterystu": 400,
-        "pięćset": 500, "pięciuset": 500, "sześćset": 600, "sześciuset": 600,
-        "siedemset": 700, "siedmiuset": 700, "osiemset": 800, "ośmiuset": 800,
-        "dziewięćset": 900, "dziewięciuset": 900,
-    ]
+    private static let ordinalEndings = ["y", "a", "e", "ego", "ej", "emu", "ym", "ą", "ych", "ymi"]
 
-    /// Polish stems, checked longest first: a word that starts with a stem has that value ("dwunastej" is 12,
-    /// "piętnastu" 15, "pięciu" 5). The longer stems come first so "dwadzie" is not read as "dw".
-    private static let polishStems: [(String, Kind, Int)] = {
-        var list: [(String, Kind, Int)] = []
-        let teens: [(String, Int)] = [
-            ("jedena", 11), ("dwana", 12), ("dwuna", 12), ("trzyna", 13), ("czterna", 14), ("piętna", 15),
-            ("szesna", 16), ("siedemna", 17), ("osiemna", 18), ("dziewiętna", 19),
+    /// Every Polish number word the guard knows, spelled out: a stem plus a CLOSED set of number endings (or
+    /// whole forms), so "piątek", "czwartek", "piętro", "trzeba", "jednak" or "dworzec" are not numbers.
+    private static let polish: [String: (Kind, Int)] = {
+        var table: [String: (Kind, Int)] = [:]
+        func add(_ kind: Kind, _ value: Int, whole: [String] = [], stem: String = "", endings: [String] = []) {
+            for word in whole { table[word] = (kind, value) }
+            for ending in endings { table[stem + ending] = (kind, value) }
+        }
+        let units: [(Int, [String], String, [String])] = [
+            (1, ["jeden"], "jedn", ["a", "e", "o", "ą", "ego", "ej", "emu", "ym", "ych", "ymi"]),
+            (2, ["dwa", "dwie", "dwaj", "dwóch", "dwu", "dwom", "dwoma", "dwiema"], "", []),
+            (3, ["trzy", "trzech", "trzem", "trzema", "trzej"], "", []),
+            (4, ["cztery", "czterech", "czterem", "czterema", "czterej"], "", []),
+            (5, ["pięć", "pięciu", "pięcioma"], "", []),
+            (6, ["sześć", "sześciu", "sześcioma"], "", []),
+            (7, ["siedem", "siedmiu", "siedmioma"], "", []),
+            (8, ["osiem", "ośmiu", "ośmioma"], "", []),
+            (9, ["dziewięć", "dziewięciu", "dziewięcioma"], "", []),
         ]
-        for (stem, value) in teens { list.append((stem, .teen, value)) }
-        let tens: [(String, Int)] = [
-            ("dwadzie", 20), ("dwudzie", 20), ("trzydzie", 30), ("czterdzie", 40), ("pięćdzies", 50),
-            ("pięćdzies", 50), ("sześćdzies", 60), ("siedemdzies", 70), ("osiemdzies", 80),
-            ("dziewięćdzies", 90), ("dziesi", 10),
+        for (value, whole, stem, endings) in units { add(.unit, value, whole: whole, stem: stem, endings: endings) }
+        // The ordinals: pierwszy, drugi, trzeci and the regular ones.
+        add(.unit, 1, stem: "pierwsz", endings: ordinalEndings)
+        add(.unit, 2, stem: "drug", endings: ["i", "a", "ie", "iego", "iej", "iemu", "im", "ą", "ich", "imi"])
+        add(.unit, 3, stem: "trzec", endings: ["i", "ia", "ie", "iego", "iej", "iemu", "im", "ią", "ich", "imi"])
+        add(.unit, 4, stem: "czwart", endings: ordinalEndings)
+        add(.unit, 5, stem: "piąt", endings: ordinalEndings)
+        add(.unit, 6, stem: "szóst", endings: ordinalEndings)
+        add(.unit, 7, stem: "siódm", endings: ordinalEndings)
+        add(.unit, 8, stem: "ósm", endings: ordinalEndings)
+        add(.unit, 9, stem: "dziewiąt", endings: ordinalEndings)
+        add(.teen, 10, whole: ["dziesięć", "dziesięciu", "dziesięcioma"], stem: "dziesiąt", endings: ordinalEndings)
+        let teens: [(Int, [String])] = [
+            (11, ["jedenast"]), (12, ["dwanast", "dwunast"]), (13, ["trzynast"]), (14, ["czternast"]),
+            (15, ["piętnast"]), (16, ["szesnast"]), (17, ["siedemnast"]), (18, ["osiemnast"]),
+            (19, ["dziewiętnast"]),
         ]
-        for (stem, value) in tens { list.append((stem, value == 10 ? .teen : .tens, value)) }
-        let units: [(String, Int)] = [
-            ("jedn", 1), ("pierw", 1), ("dw", 2), ("drug", 2), ("trz", 3), ("czter", 4), ("czwar", 4),
-            ("pię", 5), ("pią", 5), ("sześ", 6), ("szós", 6), ("siedem", 7), ("siedmi", 7), ("siódm", 7),
-            ("osiem", 8), ("ośmi", 8), ("ósm", 8), ("dziewi", 9),
+        for (value, roots) in teens {
+            for root in roots {
+                add(
+                    .teen, value, whole: [String(root.dropLast(2)) + "ście"], stem: root,
+                    endings: ordinalEndings + ["u", "oma"])
+            }
+        }
+        let tensLow: [(Int, String, String)] = [
+            (20, "dwadzieścia", "dwudziest"), (30, "trzydzieści", "trzydziest"), (40, "czterdzieści", "czterdziest"),
         ]
-        for (stem, value) in units { list.append((stem, .unit, value)) }
-        list.append(("tysi", .thousand, 1000))
-        return list.sorted { $0.0.count > $1.0.count }
+        for (value, nominative, root) in tensLow {
+            add(.tens, value, whole: [nominative], stem: root, endings: ordinalEndings + ["u", "oma"])
+        }
+        let tensHigh: [(Int, String)] = [
+            (50, "pięćdzies"), (60, "sześćdzies"), (70, "siedemdzies"), (80, "osiemdzies"), (90, "dziewięćdzies"),
+        ]
+        for (value, root) in tensHigh {
+            add(.tens, value, whole: [root + "iąt"], stem: root + "iąt", endings: ordinalEndings)
+            add(.tens, value, stem: root, endings: ["ięciu", "ięcioma"])
+        }
+        let hundreds: [String: Int] = [
+            "sto": 100, "stu": 100, "sta": 100, "dwieście": 200, "dwustu": 200, "dwusta": 200, "trzysta": 300,
+            "trzystu": 300, "czterysta": 400, "czterystu": 400, "pięćset": 500, "pięciuset": 500,
+            "sześćset": 600, "sześciuset": 600, "siedemset": 700, "siedmiuset": 700, "osiemset": 800,
+            "ośmiuset": 800, "dziewięćset": 900, "dziewięciuset": 900,
+        ]
+        for (word, value) in hundreds { table[word] = (.hundred, value) }
+        // The ordinals of the hundreds: setny, dwusetny, trzechsetny ...
+        let hundredOrdinals: [(Int, String)] = [
+            (100, "setn"), (200, "dwusetn"), (300, "trzechsetn"), (400, "czterechsetn"), (500, "pięćsetn"),
+            (600, "sześćsetn"), (700, "siedemsetn"), (800, "osiemsetn"), (900, "dziewięćsetn"),
+        ]
+        for (value, stem) in hundredOrdinals { add(.hundred, value, stem: stem, endings: ordinalEndings) }
+        add(
+            .thousand, 1000,
+            whole: ["tysiąc", "tysiące", "tysięcy", "tysiącu", "tysiącem", "tysiącom", "tysiącami", "tysiącach"],
+            stem: "tysięczn", endings: ordinalEndings)
+        return table
     }()
 
     private static func classify(_ word: String) -> (Kind, Int)? {
         if let entry = english[word] { return entry }
-        if let value = polishHundreds[word] { return (.hundred, value) }
-        for (stem, kind, value) in polishStems where word.hasPrefix(stem) { return (kind, value) }
-        return nil
+        return polish[word]
     }
 
     /// The number the words say, or `nil` when a word is not a number word or the order is not a number.
-    /// The tokens are lower-cased words with no punctuation.
+    /// The tokens are lower-cased words with no punctuation. "zero" alone is 0; English "a hundred", "one
+    /// hundred and five", "fifteen hundred" and a bare "hundred" or "thousand" are read like the Polish
+    /// "sto" and "tysiąc".
     static func value(of words: [String]) -> Int? {
         guard !words.isEmpty, words.count <= 9 else { return nil }
+        if words == ["zero"] { return 0 }
         var total = 0
         var group = 0
         // 3 hundreds, 2 tens and teens, 1 units; 4 before anything in a group.
         var lastClass = 4
-        var lastUnit = 0
+        var lastSingle = 0
         var thousandsUsed = false
-        for word in words {
+        var pendingAnd = false
+        for (index, word) in words.enumerated() {
+            if word == "and" {
+                // Only inside an English number: after the hundreds or the thousands, and before more.
+                guard index > 0, index + 1 < words.count, !pendingAnd, lastClass >= 3,
+                    group >= 100 || (total > 0 && group == 0)
+                else { return nil }
+                pendingAnd = true
+                continue
+            }
+            if word == "a" {
+                // "a hundred", "a thousand".
+                guard index == 0, words.count > 1, ["hundred", "thousand"].contains(words[1]) else { return nil }
+                group = 1
+                lastSingle = 1
+                lastClass = 1
+                continue
+            }
+            pendingAnd = false
             guard let (kind, value) = classify(word) else { return nil }
             switch kind {
             case .hundred:
@@ -99,21 +161,27 @@ enum NumberWords {
                 group = value
                 lastClass = 3
             case .hundredMultiplier:
-                guard lastClass == 1, group == lastUnit, group >= 1, group <= 9 else { return nil }
-                group *= 100
+                if group == 0, lastClass == 4 {
+                    group = 100
+                } else {
+                    guard lastClass <= 2, group == lastSingle, group >= 1, group <= 19 else { return nil }
+                    group *= 100
+                }
                 lastClass = 3
             case .tens:
                 guard lastClass > 2 else { return nil }
                 group += value
                 lastClass = 2
+                lastSingle = 0
             case .teen:
                 guard lastClass > 2 else { return nil }
                 group += value
                 lastClass = 2
+                lastSingle = value
             case .unit:
                 guard lastClass > 1 else { return nil }
                 group += value
-                lastUnit = value
+                lastSingle = lastClass == 4 ? value : 0
                 lastClass = 1
             case .thousand:
                 guard !thousandsUsed, group < 1000 else { return nil }
@@ -123,6 +191,7 @@ enum NumberWords {
                 thousandsUsed = true
             }
         }
+        guard !pendingAnd else { return nil }
         let result = total + group
         return result > 0 ? result : nil
     }

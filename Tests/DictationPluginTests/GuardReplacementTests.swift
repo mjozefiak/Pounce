@@ -22,6 +22,13 @@ import Testing
         (["sixty"], 60), (["fifty"], 50), (["twenty", "five", "thousand"], 25000),
         (["two", "hundred", "thirty"], 230), (["thirteenth"], 13), (["tenth"], 10), (["eleven"], 11),
         (["tysiąc"], 1000), (["trzysta"], 300),
+        (["jeden"], 1), (["jedno"], 1), (["jedna"], 1), (["jednego"], 1), (["zero"], 0),
+        (["dwadzieścia", "jeden"], 21), (["jeden", "tysiąc"], 1000),
+        (["dwusetnego"], 200), (["trzechsetny"], 300), (["piątego"], 5), (["czwartej"], 4),
+        (["piątą"], 5), (["trzeciego"], 3), (["drugim"], 2), (["pierwszy"], 1),
+        (["one", "hundred", "and", "five"], 105), (["a", "hundred"], 100), (["fifteen", "hundred"], 1500),
+        (["hundred"], 100), (["thousand"], 1000), (["a", "thousand"], 1000), (["zero"], 0),
+        (["two", "thousand", "and", "five"], 2005),
     ])
     func numberWordsHaveTheirValue(words: [String], value: Int) {
         #expect(NumberWords.value(of: words) == value)
@@ -29,7 +36,12 @@ import Testing
 
     @Test(arguments: [
         ["ulica"], ["dwa", "trzy"], ["dwadzieścia", "dwanaście"], ["thousand", "thousand"], ["stolik"],
-        ["pięć", "dwadzieścia"], ["hundred"], [],
+        ["pięć", "dwadzieścia"], [],
+        // Ordinary words that start with a number stem.
+        ["piątek"], ["czwartek"], ["piętro"], ["piętrze"], ["piękny"], ["trzeba"], ["trzymaj"], ["jednak"],
+        ["jednostka"], ["dworzec"], ["dwór"], ["sześcian"], ["czterolatek"], ["pierwiastek"],
+        ["sto", "piątek"], ["tysiąc", "dworców"], ["dwadzieścia", "trzeba"], ["and"], ["a"], ["a", "five"],
+        ["one", "and", "five"], ["hundred", "and"], ["five", "and"], ["zero", "five"],
     ])
     func notNumbersGiveNil(words: [String]) {
         #expect(NumberWords.value(of: words) == nil)
@@ -121,6 +133,11 @@ import Testing
             "spotkajmy się we wtorek nie nie w środę o piętnastej w biurze",
             "Spotkajmy się we wtorek o piętnastej w biurze."
         ),
+        // A weekday or a floor is not a number: the digit must not absorb it.
+        ("spotkanie piątego nie czekaj w piątek", "Spotkanie w 5."),
+        ("spotkanie czwartego nie czekaj w czwartek", "Spotkanie w 4."),
+        ("biuro jest na drugim nie czekaj na piętrze", "Biuro jest na 5."),
+        ("zamów pięć pizz nie czekaj piątek dostawa", "Zamów 5 dostawa."),
         // A number word that starts the next one is not a stutter ("pięć pięćdziesiąt" is 5,50).
         ("cena to cztery dwadzieścia nie czekaj pięć pięćdziesiąt", "Cena to 50."),
         ("the price is five fifty sorry six sixty", "The price is 60."),
