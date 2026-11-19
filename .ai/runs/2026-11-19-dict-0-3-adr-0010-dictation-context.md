@@ -44,12 +44,12 @@ One document a reviewer can check every later DICT pull request against: the tru
 
 ### Phase 1: ADR
 
-- [ ] 1.1 Write ADR 0010 (trust model, frozen contract, owner decisions, open points)
+- [x] 1.1 Write ADR 0010 (trust model, frozen contract, owner decisions, open points) — eba3513
 
 ### Phase 2: Budgets and phrases
 
-- [ ] 2.1 Add the budget rows to docs/perf.md
-- [ ] 2.2 Add the reference phrases and the format test
+- [x] 2.1 Add the budget rows to docs/perf.md — 3dfbac4
+- [x] 2.2 Add the reference phrases and the format test — e16b6d6
 
 ### Phase 3: Validation
 
