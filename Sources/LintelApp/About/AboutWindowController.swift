@@ -4,8 +4,8 @@ import SwiftUI
 
 /// What the About window shows, read from the app bundle.
 struct AboutInfo: Equatable {
-    static let websiteURL = URL(string: "https://mjozefiak.github.io/Pounce/")
-    static let sourceURL = URL(string: "https://github.com/mjozefiak/Pounce")
+    static let websiteURL = URL(string: "https://lintelapp.com")
+    static let sourceURL = URL(string: "https://github.com/mjozefiak/lintel")
     static let noticesResource = "THIRD_PARTY_NOTICES"
 
     /// `CFBundleShortVersionString` and `CFBundleVersion`; `nil` for an unbundled build (`swift run`).

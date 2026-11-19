@@ -35,7 +35,7 @@ let package = Package(
             ],
             path: "upstream/GRDB",
             // The privacy manifest would create a resource bundle that a plain .app cannot locate;
-            // Pounce does not ship through the App Store, so it is excluded.
+            // Lintel does not ship through the App Store, so it is excluded.
             exclude: ["PrivacyInfo.xcprivacy", "Documentation.docc"],
             cSettings: [.define("SQLITE_HAS_CODEC")],
             swiftSettings: [

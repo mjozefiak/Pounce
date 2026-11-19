@@ -1,6 +1,6 @@
 # Getting help
 
-Ask questions and report problems in [GitHub issues](https://github.com/mjozefiak/Pounce/issues/new/choose).
+Ask questions and report problems in [GitHub issues](https://github.com/mjozefiak/lintel/issues/new/choose).
 GitHub Discussions are not enabled.
 
 Please include:
