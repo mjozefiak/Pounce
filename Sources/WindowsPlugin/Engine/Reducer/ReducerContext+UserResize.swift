@@ -16,6 +16,9 @@ struct UserResizeState: Equatable, Sendable {
 }
 
 extension ReducerContext {
+    /// How long after a display change a size change is not taken for a resize by hand (seconds, engine clock).
+    static var displaySettleDuration: Double { 3 }
+
     /// The frame changes per second a drag may cause: half the watchdog's limit, so the rest of the engine keeps room.
     static var userResizeFrameBudget: Double { Double(Watchdog.defaultLimit) / 2 }
 
@@ -30,6 +33,12 @@ extension ReducerContext {
     /// Ignored: our own echoes (the caller has dropped them), a window with a frame change in flight (an app that
     /// answers a size with its own, see `checkSize`), stubborn, floating and unmanaged windows, a frozen engine.
     mutating func adoptUserResize(_ id: WindowID, frame: CGRect, now: Double) -> Bool {
+        // After a wake or a display change the system resizes windows by itself (a fallback display of another size
+        // can appear for a moment); adopting that would rewrite the stored weights. The next arrange undoes it.
+        if now < state.displaySettleUntil {
+            state.diagnostics.resizesIgnoredDuringDisplaySettle += 1
+            return false
+        }
         guard !state.isFrozen, state.windows[id] != nil, !state.floating.contains(id), !state.unmanaged.contains(id),
             !state.stubborn.contains(id), state.parked[id] == nil,
             state.expected[id]?.entries.contains(where: { $0.expires >= now }) != true,

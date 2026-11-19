@@ -13,6 +13,9 @@ extension ReducerContext {
         if displays.isEmpty {
             state.diagnostics.emptyDisplayLists += 1
         } else {
+            if !state.displays.isEmpty, Set(state.displays) != Set(displays) {
+                state.displaySettleUntil = now + Self.displaySettleDuration
+            }
             state.displays = displays
             state.model.setDisplays(DisplayKeys.orderedKeys(for: displays))
         }

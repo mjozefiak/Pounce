@@ -104,6 +104,8 @@ struct EngineDiagnostics: Equatable, Sendable {
     var displayChanges = 0
     var emptyDisplayLists = 0
     var resyncs = 0
+    /// Size changes of tiled windows not taken for a resize by hand because the displays had just changed.
+    var resizesIgnoredDuringDisplaySettle = 0
     /// Focus-dependent commands whose system focus differed from what the engine believed (a count, no ids).
     var focusMismatches = 0
     /// Focus reads that did not answer in time before a focus-dependent command.
@@ -189,6 +191,9 @@ struct EngineState: Equatable, Sendable {
     var canJournal = true
     /// A resize of a tiled window by hand that is going on (memory only).
     var userResize: UserResizeState?
+    /// Until when (engine clock) the displays are taken to be changing: the system moves and resizes windows by itself
+    /// after a wake or a display change, which is not a resize by hand (memory only).
+    var displaySettleUntil = -Double.infinity
     var diagnostics = EngineDiagnostics()
 
     init(workspaceCount: Int = WindowsSettings.defaultWorkspaceCount, displays: [DisplayInfo] = []) {

@@ -20,10 +20,10 @@ Non-goals: debouncing display events, new settings, real-clock tests.
 
 ### Phase 1: Settle guard
 
-- [ ] 1.1 Settle window in state, set on display change, honoured by adoptUserResize
-- [ ] 1.2 Tests with explicit `now`
+- [x] 1.1 Settle window in state, set on display change, honoured by adoptUserResize
+- [x] 1.2 Tests with explicit `now`
 
 ### Phase 2: Diagnostics
 
-- [ ] 2.1 Counters and diagnostics text
-- [ ] 2.2 Logger lines in engine and AXObservationHub
+- [x] 2.1 Counters and diagnostics text
+- [x] 2.2 Logger lines in engine and AXObservationHub

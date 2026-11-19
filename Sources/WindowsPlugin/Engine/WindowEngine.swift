@@ -577,8 +577,10 @@ actor WindowEngine {
             var waiters: [BatchLedger.Waiter] = []
             var parents: [Int] = []
             for item in items {
+                let settleBefore = state.displaySettleUntil
                 let (next, produced) = EngineReducer.reduce(state, item.input, strategies: strategies)
                 state = next
+                if state.displaySettleUntil != settleBefore { logDisplayChange() }
                 effects.append(contentsOf: produced)
                 if let waiter = item.waiter { waiters.append(waiter) }
                 if let parent = item.parent { parents.append(parent) }
@@ -594,6 +596,16 @@ actor WindowEngine {
         updateRetry()
         updateSettleTimer()
         resumeWaiters()
+    }
+
+    /// One line per display change or wake resync that changed the displays: counts and sizes only, never a title or
+    /// an app name. Shows what the engine saw when a wake goes wrong (`log show --predicate 'category == "windows"'`).
+    private func logDisplayChange() {
+        let sizes = state.displays.map { "\(Int($0.frame.width))x\(Int($0.frame.height))" }.joined(separator: ",")
+        let shown = state.model.visible.values.map(\.rawValue).sorted().map(String.init).joined(separator: ",")
+        logger.info(
+            "displays changed: [\(sizes, privacy: .public)] windows=\(self.state.windows.count, privacy: .public) parked=\(self.state.parked.count, privacy: .public) unmanaged=\(self.state.unmanaged.count, privacy: .public) stubborn=\(self.state.stubborn.count, privacy: .public) frozen=\(self.state.isFrozen, privacy: .public) shown=[\(shown, privacy: .public)]"
+        )
     }
 
     private var callbacks: EffectExecutor.Callbacks {
