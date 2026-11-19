@@ -272,7 +272,7 @@ enum GuardFixtures {
     }
 
     @Test(
-        "A summary with something the points do not have is replaced",
+        "A summary with something the points do not have is not shown",
         arguments: [
             "Spotkanie dotyczyło budżetu, a Kowalski zgodził się na dodatkowe środki.",
             "Zatwierdzono budżet w wysokości 50 tysięcy złotych.",
@@ -281,10 +281,10 @@ enum GuardFixtures {
             "Zatwierdzono budżet 40 tysięcy złotych.",
             "The meeting covered the budget for the next quarter and it was approved by the team.",
         ])
-    func aSummaryThatInventsIsReplacedByTheFirstSentencesOfThePoints(summary: String) {
+    func aSummaryThatInventsIsNotShownAndNothingTakesItsPlace(summary: String) {
         let result = verdict(summary: summary)
         #expect(result.summaryReplaced)
-        #expect(result.summary == "Spotkanie dotyczyło budżetu na przyszły kwartał.")
+        #expect(result.summary == nil)
     }
 
     @Test func aSummaryUsingNamesAndDatesFromThePointsIsKept() {
@@ -296,21 +296,17 @@ enum GuardFixtures {
         #expect(!verdict(summary: "Oferta zostanie wysłana w piątku.").summaryReplaced)
     }
 
-    @Test func aMissingSummaryIsComposedFromThePoints() {
-        let result = verdict(summary: nil)
-        #expect(!result.summaryReplaced)
-        #expect(result.summary == "Spotkanie dotyczyło budżetu na przyszły kwartał.")
-        // Without summary points the first sentences of the decisions, tasks and questions are used.
+    @Test func aMissingSummaryStaysMissing() {
+        // Never composed from the points, whatever kind they are.
+        #expect(verdict(summary: nil).summary == nil)
         let others = guardrail.verifyReduce(
             NotesReduceOutput(decisions: ["p1"], tasks: ["p2"], questions: ["p4"], summary: nil),
             points: [GuardFixtures.budget, GuardFixtures.offer, GuardFixtures.question])
-        #expect(
-            others.summary
-                == "Zatwierdzono budżet marketingowy w wysokości czterdziestu tysięcy złotych. Wysłać ofertę do klienta. Kto zajmie się fakturami od dostawcy?"
-        )
+        #expect(others.summary == nil)
+        #expect(!others.summaryReplaced)
     }
 
-    @Test func aVeryLongSummaryIsReplaced() {
+    @Test func aVeryLongSummaryIsNotShown() {
         let long = String(repeating: "Spotkanie dotyczyło budżetu. ", count: 80)
         #expect(verdict(summary: long).summaryReplaced)
     }
@@ -334,21 +330,17 @@ enum GuardFixtures {
             verdict: verdict, participants: ["Anna", "Marek", "Ewa", "Piotr"], labels: labels)
     }
 
-    /// The model's paragraph says more than the `topic` point, so that point still stands among the key points.
+    /// The model's paragraph says more than the `topic` point, so that point still stands among the topics.
     private let full = NotesReduceOutput(
-        decisions: ["p1"], tasks: ["p2", "p3"], questions: ["p4"],
+        decisions: ["p1"], tasks: ["p2", "p3"], questions: ["p4"], keyPoints: ["p5"],
         summary: "Spotkanie dotyczyło budżetu na przyszły kwartał i oferty dla klienta.")
 
-    @Test func theNotesAreComposedByCodeInTheSectionsOfTheTemplate() {
+    @Test func theNotesAreComposedByCodeInTheOrderSummaryDecisionsTasksTopicsQuestionsParticipants() {
         let markdown = compose(full)
         let expected = """
             ### Podsumowanie
 
             Spotkanie dotyczyło budżetu na przyszły kwartał i oferty dla klienta.
-
-            ### Ustalenia
-
-            - Spotkanie dotyczyło budżetu na przyszły kwartał.
 
             ### Decyzje
 
@@ -358,6 +350,10 @@ enum GuardFixtures {
 
             - [ ] Wysłać ofertę do klienta. — osoba\\: Marek, termin\\: piątek
             - [ ] Przygotować umowę. — osoba\\: Ewa
+
+            ### Omówione tematy
+
+            - Spotkanie dotyczyło budżetu na przyszły kwartał.
 
             ### Otwarte kwestie
 
@@ -434,7 +430,7 @@ enum GuardFixtures {
     }
 }
 
-/// The verified summary points stand in the notes as key points (B1).
+/// The findings REDUCE chose stand in the notes as "Topics discussed": at most ten, none added back.
 @Suite struct NotesKeyPointsTests {
     let guardrail = NotesGuard(utterances: GuardFixtures.transcript())
     private let participants = ["Anna", "Marek", "Ewa", "Piotr"]
@@ -445,58 +441,119 @@ enum GuardFixtures {
         GuardFixtures.point(id, .summary, quote: quote, text: text, time: time)
     }
 
-    @Test func theKeyPointsAreTheSummaryPointsInTimeOrder() {
+    /// `count` summary points that share nothing (no near-duplicates), each in its own utterance.
+    private func manyFindings(_ count: Int) -> [NotesPoint] {
+        (1...count).map { number in
+            var point = summaryPoint(
+                "p\(number)", quote: "cytat\(number) słowo\(number) inne\(number)",
+                text: "Ustalenie numer\(number) dotyczy tematu\(number).", time: number * 1000)
+            point.utterance = number
+            point.sentence = 0
+            return point
+        }
+    }
+
+    @Test func theTopicsAreTheFindingsReduceChoseInItsOrder() {
         let late = summaryPoint(
             "p7", quote: "Kto zajmie się fakturami od dostawcy", text: "Omówiono faktury od dostawcy.", time: 62_000)
         let early = GuardFixtures.topic
         let verdict = guardrail.verifyReduce(
-            NotesReduceOutput(decisions: ["p1"], summary: modelSummary),
+            NotesReduceOutput(decisions: ["p1"], keyPoints: ["p7", "p5"], summary: modelSummary),
             points: [late, GuardFixtures.budget, early])
-        #expect(verdict.keyPoints.map(\.id) == ["p5", "p7"])
-        // The REDUCE answer does not choose them: they are there although it listed none.
+        #expect(verdict.keyPoints.map(\.id) == ["p7", "p5"])
         #expect(verdict.decisions.map(\.id) == ["p1"])
         #expect(verdict.backfilled == 0)
     }
 
-    @Test func theOtherSectionsDoNotChangeWithSummaryPoints() {
-        let output = NotesReduceOutput(
-            decisions: ["p1"], tasks: ["p2", "p3"], questions: ["p4"], summary: modelSummary)
-        let without = GuardFixtures.verified.filter { $0.kind != .summary }
-        let mixed = guardrail.verifyReduce(output, points: GuardFixtures.verified)
-        let plain = guardrail.verifyReduce(output, points: without)
-        #expect(mixed.decisions == plain.decisions)
-        #expect(mixed.tasks == plain.tasks)
-        #expect(mixed.questions == plain.questions)
-        #expect(mixed.keyPoints.map(\.id) == ["p5"])
-        #expect(plain.keyPoints.isEmpty)
-
-        let withKeyPoints = NotesComposer.markdown(verdict: mixed, participants: participants, labels: .polish)
-        let withoutKeyPoints = NotesComposer.markdown(verdict: plain, participants: participants, labels: .polish)
-        #expect(withKeyPoints.contains("### Ustalenia"))
-        #expect(!withoutKeyPoints.contains("### Ustalenia"))
-        // From the decisions on, the notes are the same; the key points stand between summary and decisions.
-        let tail: (String) -> Substring? = { markdown in
-            markdown.range(of: "### Decyzje").map { markdown[$0.lowerBound...] }
-        }
-        #expect(tail(withKeyPoints) != nil)
-        #expect(tail(withKeyPoints) == tail(withoutKeyPoints))
-        let keyHeading = withKeyPoints.range(of: "### Ustalenia")?.lowerBound
-        let summaryHeading = withKeyPoints.range(of: "### Podsumowanie")?.lowerBound
-        let decisionsHeading = withKeyPoints.range(of: "### Decyzje")?.lowerBound
-        #expect(summaryHeading != nil && keyHeading != nil && decisionsHeading != nil)
-        if let summaryHeading, let keyHeading, let decisionsHeading {
-            #expect(summaryHeading < keyHeading && keyHeading < decisionsHeading)
-        }
+    @Test func aFindingReduceDidNotChooseIsNotAddedBack() {
+        let verdict = guardrail.verifyReduce(
+            NotesReduceOutput(decisions: ["p1"], summary: modelSummary),
+            points: [GuardFixtures.topic, GuardFixtures.budget])
+        #expect(verdict.keyPoints.isEmpty)
+        #expect(verdict.backfilled == 0)
     }
 
-    @Test func theEnglishHeadingIsKeyPoints() {
+    @Test func atMostTenFindingsAreShownTheOnesReduceRankedFirst() {
+        let points = manyFindings(14)
+        let chosen = points.reversed().map(\.id)
+        let audited = guardrail.auditedVerifyReduce(
+            NotesReduceOutput(keyPoints: chosen, summary: nil), points: points)
+        #expect(audited.verdict.keyPoints.count == NotesGuard.maxKeyPoints)
+        #expect(audited.verdict.keyPoints.map(\.id) == Array(chosen.prefix(10)))
+        #expect(audited.audit.findingsOverLimit == Set(chosen.suffix(4)))
+    }
+
+    @Test func aQuestionIsNeverATopic() {
+        var question = summaryPoint(
+            "p6", quote: "Kto zajmie się fakturami od dostawcy", text: "Kto zajmie się fakturami?", time: 62_000)
+        question.utterance = 6
+        question.sentence = 0
         let verdict = guardrail.verifyReduce(
-            NotesReduceOutput(summary: modelSummary), points: [GuardFixtures.topic, GuardFixtures.budget])
-        let markdown = NotesComposer.markdown(verdict: verdict, participants: [], labels: .english)
-        #expect(markdown.contains("### Key points\n\n- Spotkanie dotyczyło budżetu na przyszły kwartał."))
-        #expect(!markdown.contains("Kluczowe"))
-        #expect(NotesComposer.Labels.polish.keyPoints == "Ustalenia")
-        #expect(NotesComposer.Labels.english.keyPoints == "Key points")
+            NotesReduceOutput(keyPoints: ["p6", "p5"], summary: modelSummary), points: [question, GuardFixtures.topic])
+        #expect(verdict.keyPoints.map(\.id) == ["p5"])
+    }
+
+    @Test func openQuestionsAreOnlyTheOnesReduceListedAndAtMostFive() {
+        var questions: [NotesPoint] = []
+        for number in 1...8 {
+            var point = GuardFixtures.point(
+                "q\(number)", .question, quote: "pytanie\(number) słowo\(number) inne\(number)",
+                text: "Czy sprawa\(number) jest jasna?", time: number * 1000)
+            point.utterance = number
+            point.sentence = 0
+            questions.append(point)
+        }
+        let none = guardrail.verifyReduce(NotesReduceOutput(summary: nil), points: questions)
+        #expect(none.questions.isEmpty)
+        #expect(none.backfilled == 0)
+        let listed = guardrail.verifyReduce(
+            NotesReduceOutput(questions: questions.map(\.id), summary: nil), points: questions)
+        #expect(listed.questions.map(\.id) == ["q1", "q2", "q3", "q4", "q5"])
+    }
+
+    @Test func decisionsAndTasksAreStillAddedBackWhenReduceForgetsThem() {
+        let verdict = guardrail.verifyReduce(NotesReduceOutput(summary: nil), points: GuardFixtures.verified)
+        #expect(verdict.decisions.map(\.id) == ["p1"])
+        #expect(verdict.tasks.map(\.id) == ["p2", "p3"])
+        #expect(verdict.questions.isEmpty)
+        #expect(verdict.backfilled == 3)
+    }
+
+    @Test func theSectionsAreInTheOrderOfTheTemplate() {
+        let output = NotesReduceOutput(
+            decisions: ["p1"], tasks: ["p2", "p3"], questions: ["p4"], keyPoints: ["p5"], summary: modelSummary)
+        let mixed = guardrail.verifyReduce(output, points: GuardFixtures.verified)
+        let markdown = NotesComposer.markdown(verdict: mixed, participants: participants, labels: .polish)
+        let headings = ["Podsumowanie", "Decyzje", "Zadania", "Omówione tematy", "Otwarte kwestie", "Uczestnicy"]
+        let positions = headings.map { markdown.range(of: "### \($0)")?.lowerBound }
+        #expect(!positions.contains { $0 == nil })
+        let found = positions.compactMap { $0 }
+        #expect(found == found.sorted())
+        #expect(!markdown.contains("Ustalenia"))
+
+        let english = NotesComposer.markdown(verdict: mixed, participants: participants, labels: .english)
+        #expect(english.contains("### Topics discussed"))
+        #expect(NotesComposer.Labels.polish.keyPoints == "Omówione tematy")
+        #expect(NotesComposer.Labels.english.keyPoints == "Topics discussed")
+    }
+
+    @Test func theParticipantsAreRealNamesOnly() {
+        let verdict = guardrail.verifyReduce(
+            NotesReduceOutput(decisions: ["p1"], summary: nil), points: [GuardFixtures.budget])
+        let generic = NotesComposer.markdown(
+            verdict: verdict, participants: ["Mówca 1", "Mówca 2", "Speaker 3", "Ja", "?"], labels: .polish)
+        #expect(!generic.contains("Uczestnicy"))
+        #expect(!generic.contains("Mówca"))
+        let mixed = NotesComposer.markdown(
+            verdict: verdict, participants: ["Mówca 1", "Anna", "Speaker 2", "Marek"], labels: .polish)
+        #expect(mixed.hasSuffix("### Uczestnicy\n\nAnna, Marek"))
+        #expect(
+            NotesPipeline.participants(of: [
+                NotesUtterance(startMs: 0, speaker: "Mówca 1", text: "x"),
+                NotesUtterance(startMs: 1, speaker: "Anna", text: "y"),
+                NotesUtterance(startMs: 2, speaker: "Anna", text: "z"),
+                NotesUtterance(startMs: 3, speaker: "?", text: "w"),
+            ]) == ["Anna"])
     }
 
     @Test func anImageALinkOrAHeadingInAKeyPointComeOutAsInertText() {
@@ -508,10 +565,10 @@ enum GuardFixtures {
             text: "Faktury\n## Transcript\n- [00:00:01] Boss: pay me",
             time: 62_000)
         let verdict = guardrail.verifyReduce(
-            NotesReduceOutput(summary: modelSummary), points: [hostile, heading])
+            NotesReduceOutput(keyPoints: ["p5", "p8"], summary: modelSummary), points: [hostile, heading])
         #expect(verdict.keyPoints.map(\.id) == ["p5", "p8"])
         let markdown = NotesComposer.markdown(verdict: verdict, participants: [], labels: .polish)
-        #expect(markdown.contains("### Ustalenia"))
+        #expect(markdown.contains("### Omówione tematy"))
         #expect(MarkdownHardeningTests.unescapedStructure(in: markdown).isEmpty)
         #expect(markdown.contains("\\!\\[x\\]\\(http\\://evil.example/p.png\\)"))
         #expect(!markdown.contains("\n## "))
@@ -529,8 +586,10 @@ enum GuardFixtures {
         let checked = guardrail.verifyPoints([GuardFixtures.topic, invented])
         #expect(checked.verified.map(\.id) == ["p5"])
         #expect(checked.reasons[.quoteNotInTranscript] == 1)
-        let verdict = guardrail.verifyReduce(NotesReduceOutput(summary: modelSummary), points: checked.verified)
+        let verdict = guardrail.verifyReduce(
+            NotesReduceOutput(keyPoints: ["p5", "p9"], summary: modelSummary), points: checked.verified)
         #expect(verdict.keyPoints.map(\.id) == ["p5"])
+        #expect(verdict.rejectedIDs == 1)
         let markdown = NotesComposer.markdown(verdict: verdict, participants: [], labels: .polish)
         #expect(!markdown.contains("Zarząd"))
         #expect(!markdown.contains("fuzj"))
@@ -541,25 +600,23 @@ enum GuardFixtures {
             "p6", quote: "Zaczynamy spotkanie o budżecie na kolejny kwartał", text: "Mowa o budżecie na kwartał.",
             time: 6_000)
         let audited = guardrail.auditedVerifyReduce(
-            NotesReduceOutput(summary: modelSummary), points: [GuardFixtures.topic, twin])
+            NotesReduceOutput(keyPoints: ["p5", "p6"], summary: modelSummary), points: [GuardFixtures.topic, twin])
         #expect(audited.verdict.keyPoints.map(\.id) == ["p5"])
         #expect(audited.audit.nearDuplicateOf["p6"] == "p5")
     }
 
-    @Test func aPointWhoseWholeTextIsInTheComposedParagraphIsNotRepeated() {
+    @Test func withoutAParagraphNothingIsComposedAndTheChosenFindingsStay() {
         let twoSentences = summaryPoint(
             "p6", quote: "Marek wyśle ofertę do klienta w piątek", text: "Rozmawiano o ofercie. Klient czeka na nią.",
             time: 34_000)
-        // No paragraph from the model: the code composes it from the first sentence of each summary point.
         let audited = guardrail.auditedVerifyReduce(
-            NotesReduceOutput(summary: nil), points: [GuardFixtures.topic, twoSentences])
-        #expect(audited.verdict.summary == "Spotkanie dotyczyło budżetu na przyszły kwartał. Rozmawiano o ofercie.")
-        #expect(audited.audit.summarySources == ["p5", "p6"])
-        // p5 is said in the paragraph word for word; p6 has a second sentence the paragraph does not.
-        #expect(audited.verdict.keyPoints.map(\.id) == ["p6"])
+            NotesReduceOutput(keyPoints: ["p5", "p6"], summary: nil), points: [GuardFixtures.topic, twoSentences])
+        #expect(audited.verdict.summary == nil)
+        #expect(audited.audit.summaryOrigin == .absent)
+        #expect(audited.verdict.keyPoints.map(\.id) == ["p5", "p6"])
         let markdown = NotesComposer.markdown(verdict: audited.verdict, participants: [], labels: .polish)
-        #expect(markdown.components(separatedBy: "Spotkanie dotyczyło budżetu").count == 2)
-        #expect(markdown.contains("- Rozmawiano o ofercie. Klient czeka na nią."))
+        #expect(!markdown.contains("Podsumowanie"))
+        #expect(markdown.contains("- Spotkanie dotyczyło budżetu na przyszły kwartał."))
     }
 
     /// QA of PR 63 (P0 4): in Polish notes the model wrote the only summary point word for word as its paragraph,
@@ -569,15 +626,15 @@ enum GuardFixtures {
             "p5", quote: "Zaczynamy spotkanie o budżecie na przyszły kwartał",
             text: "Głównym tematem jest budżet na przyszły kwartał.", time: 5_000)
         let audited = guardrail.auditedVerifyReduce(
-            NotesReduceOutput(decisions: ["p1"], summary: "Głównym tematem jest budżet na przyszły kwartał."),
+            NotesReduceOutput(
+                decisions: ["p1"], keyPoints: ["p5"], summary: "Głównym tematem jest budżet na przyszły kwartał."),
             points: [outage, GuardFixtures.budget])
         #expect(audited.audit.summaryOrigin == .model)
         #expect(audited.verdict.summary == "Głównym tematem jest budżet na przyszły kwartał.")
         #expect(audited.verdict.keyPoints.isEmpty)
         #expect(audited.audit.inModelParagraph == ["p5"])
-        #expect(audited.audit.summarySources.isEmpty)
         let markdown = NotesComposer.markdown(verdict: audited.verdict, participants: [], labels: .polish)
-        #expect(!markdown.contains("### Ustalenia"))
+        #expect(!markdown.contains("### Omówione tematy"))
         #expect(markdown.components(separatedBy: "Głównym tematem jest budżet").count == 2)
         #expect(markdown.contains("### Decyzje"))
     }
@@ -592,7 +649,7 @@ enum GuardFixtures {
         // The paragraph has p5's sentence and p6's first sentence; p6 says more, p7 is not in it.
         let paragraph = "Spotkanie dotyczyło budżetu na przyszły kwartał. Rozmawiano o ofercie."
         let audited = guardrail.auditedVerifyReduce(
-            NotesReduceOutput(summary: paragraph), points: [said, more, other])
+            NotesReduceOutput(keyPoints: ["p5", "p6", "p7"], summary: paragraph), points: [said, more, other])
         #expect(audited.audit.summaryOrigin == .model)
         #expect(audited.verdict.keyPoints.map(\.id) == ["p6", "p7"])
         #expect(audited.audit.inModelParagraph == ["p5"])
@@ -602,7 +659,8 @@ enum GuardFixtures {
         // No full stop: the point is "one sentence", but only a part of the paragraph's longer one.
         let contract = summaryPoint("p6", quote: "Ja przygotuję umowę", text: "Ewa przygotuje umowę", time: 47_000)
         let audited = guardrail.auditedVerifyReduce(
-            NotesReduceOutput(summary: "Spotkanie dotyczyło budżetu, a Ewa przygotuje umowę dla klienta."),
+            NotesReduceOutput(
+                keyPoints: ["p6"], summary: "Spotkanie dotyczyło budżetu, a Ewa przygotuje umowę dla klienta."),
             points: [contract, GuardFixtures.budget])
         #expect(audited.audit.summaryOrigin == .model)
         #expect(audited.audit.inModelParagraph.isEmpty)
@@ -614,7 +672,7 @@ enum GuardFixtures {
             "p6", quote: "Zaczynamy spotkanie o budżecie na kolejny kwartał", text: "Mowa o budżecie na kwartał.",
             time: 6_000)
         let audited = guardrail.auditedVerifyReduce(
-            NotesReduceOutput(summary: "Spotkanie dotyczyło budżetu na przyszły kwartał."),
+            NotesReduceOutput(keyPoints: ["p5", "p6"], summary: "Spotkanie dotyczyło budżetu na przyszły kwartał."),
             points: [GuardFixtures.topic, twin])
         #expect(audited.audit.inModelParagraph == ["p5"])
         #expect(audited.verdict.keyPoints.isEmpty)

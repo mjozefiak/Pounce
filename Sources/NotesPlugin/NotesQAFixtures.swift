@@ -13,7 +13,8 @@ enum NotesQAFixtures {
     static let interruptedID = NoteKey(pluginID: "meetings", id: "00000000-0000-0000-0000-000000000005")
     static let reminderID = NoteKey(pluginID: "dictation", id: "fixture/2")
     static let needsModelID = NoteKey(pluginID: "meetings", id: "00000000-0000-0000-0000-000000000007")
-    /// Notes in the format of prompt v4: no times, tasks as a checklist (the PR #108 QA).
+    /// Notes in the format of prompt v5: no times, tasks as a checklist, the sections in the order of the template
+    /// (the PR #108 QA, updated for the notes-summary P0).
     static let summaryID = NoteKey(pluginID: "meetings", id: "00000000-0000-0000-0000-000000000008")
     static let failedID = NoteKey(pluginID: "meetings", id: "00000000-0000-0000-0000-000000000006")
 
@@ -76,11 +77,6 @@ enum NotesQAFixtures {
 
         The team agreed to freeze the Harbor release on Friday and to move the invoice export to the next sprint.
 
-        ### Key points
-
-        - The Harbor beta has two open crash reports.
-        - The invoice export needs a design review first.
-
         ### Decisions
 
         - Freeze the Harbor release on Friday.
@@ -91,6 +87,11 @@ enum NotesQAFixtures {
         - [ ] Fix the two crash reports — owner\\: Ola, due\\: Thursday
         - [ ] Book the design review for the export — owner\\: Piotr
         - [ ] Send the freeze notice to support
+
+        ### Topics discussed
+
+        - The Harbor beta has two open crash reports.
+        - The invoice export needs a design review first.
 
         ### Open questions
 

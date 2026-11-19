@@ -45,13 +45,13 @@ final class RecordingRuntime: LLMRuntime {
     }
 }
 
-/// Why the guard refused or repaired each point of each MAP answer, with the texts needed to see it. The file
+/// Why the guard refused each point of each MAP answer, with the texts needed to see it. The file
 /// holds transcript-derived text, so it stays in the evaluation's output folder (mode 0600); stdout and the
 /// trace get numbers only.
 struct NotesRejectionReport: Codable, Equatable {
     struct Point: Codable, Equatable {
         var kind: String
-        /// `verified`, `repaired:<reason>` or `dropped:<reason>`.
+        /// `verified` or `dropped:<reason>`.
         var outcome: String
         var textLength: Int
         var quoteLength: Int
@@ -102,8 +102,6 @@ struct NotesRejectionReport: Codable, Equatable {
                 let outcome: String
                 if let reason = verdict.reasons.keys.first {
                     outcome = "dropped:\(reason.rawValue)"
-                } else if let reason = verdict.repairReasons.keys.first {
-                    outcome = "repaired:\(reason.rawValue)"
                 } else {
                     outcome = "verified"
                 }
