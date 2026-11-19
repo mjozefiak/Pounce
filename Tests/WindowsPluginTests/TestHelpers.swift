@@ -204,10 +204,11 @@ extension WindowEngine {
         await guardedAwait("waitForWork()", limit: limit, sourceLocation: sourceLocation) { await self.waitForWork() }
     }
 
-    /// `settle()` that cannot hang the run. `settle()` waits for the flush tick too, and the placements the engine
-    /// makes echo back as events after a flush has looked at the coalescer, which arms a tick that nobody advances
-    /// (a virtual clock). So the events are flushed by hand first, until none is left, then `settle()` has nothing
-    /// to wait for but the work.
+    /// `settle()` that cannot hang the run. `settle()` waits for the flush tick too. The engine's pump task ingests
+    /// the client's events on its own schedule (`WindowEngine.swift:143-148`), so an event a test emitted can reach
+    /// the coalescer after `flushEvents()` looked at it and arm a tick (3600 s on a virtual clock that nobody
+    /// advances). So the events are flushed by hand a few times first; that makes the late arrival rare, not
+    /// impossible, and the guard turns the rest into a named failure after `limit` instead of a hang.
     @discardableResult
     func settleGuarded(limit: Duration = .seconds(20), sourceLocation: SourceLocation = #_sourceLocation) async -> Bool
     {
