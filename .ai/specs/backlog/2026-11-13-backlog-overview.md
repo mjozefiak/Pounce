@@ -30,7 +30,7 @@
 | 1 | Uprawnienie Dostępność | bez nowego uprawnienia | ta sama zgoda systemowa, ale nowy cel: ponowna zgoda w aplikacji | `requiredPermissions = [.microphone, .accessibility]`; teksty mówią tylko o wklejaniu i przesuwaniu okien; `AXWindowClient` czyta tytuły okien, nikt nie czyta pól | **Oba mają rację w swojej części.** Bez nowego grantu TCC (A), ze zgodą w aplikacji i nowym opisem w Uprawnieniach (B). DICT-2.4 |
 | 2 | Bramka przed kodem | 0.1: pomiar na historii dyktowania, próg 5 z 20 | brak; Faza 1a może ruszyć od razu | historia zaszyfrowana, klucz w Pęku kluczy, brak narzędzia offline | **A, jako Story 0** (DICT-0.1). Powód przeciw nie istnieje; jedyna trudność to odczyt, rozwiązany monitem Pęku kluczy albo ręcznym eksportem 30 wpisów |
 | 3 | Co najpierw po bramce | migawka i reguły wstawiania | słownik i profile bez Accessibility i bez `LintelKit` | słownik nie potrzebuje żadnego portu | **B.** Faza 1 dostarcza wartość bez chronionego kontraktu i bez odczytu cudzych aplikacji |
-| 4 | Prompt LLM | `CleanupPrompt` v2 z listą terminów i nową regułą strażnika | prompt bez zmian; reguły po kroku LLM | `version = 1`; ADR 0005 notuje cofnięcie wcześniejszej v2 | **B w Fazach 0–3.** Zamiana po LLM naprawia też to, co model „poprawił”. Wariant A zostaje jako warunkowa DICT-4.2. *(Decyzja 2026-11-19 nr 7: „prompt bez zmian” uchylone dla usuwania zmian zdania i autopoprawek; lista terminów nierozstrzygnięta.)* |
+| 4 | Prompt LLM | `CleanupPrompt` v2 z listą terminów i nową regułą strażnika | prompt bez zmian; reguły po kroku LLM | `version = 1`; ADR 0005 notuje cofnięcie wcześniejszej v2 | **B w Fazach 0–3.** Zamiana po LLM naprawia też to, co model „poprawił”. Wariant A zostaje jako warunkowa DICT-4.2. *(Decyzja 2026-11-19 nr 7: „prompt bez zmian” uchylone dla usuwania zmian zdania i autopoprawek, to `CleanupPrompt` w wersji 2; lista terminów to późniejsza wersja, doprecyzowanie D10.)* |
 | 5 | Jak chronić odwołania przed modelem | znaczniki w tekście, strażnik sprawdza „dokładnie raz” | podział tekstu; model nie widzi ani treści, ani znacznika | formatowanie biegnie kawałkami w trakcie nagrania | **B.** Mały model nie może zgubić ani powielić znacznika; koszt to najwyżej jedno dodatkowe wywołanie |
 | 6 | Źródło nazw plików | indeks `FilesPlugin` przez nowy wkład pluginu | ograniczone listowanie katalogu roboczego w hoście | indeks pomija pliki ukryte i wymaga włączonego wyszukiwania; wzorzec `noteSources` istnieje | **B (domyślnie), pytanie D-Q7.** Mniejszy kontrakt (jeden port zamiast portu i wkładu) i niezależność od innego pluginu |
 | 7 | Electron (`AXManualAccessibility`) | ustawiać i przywracać | nie domyślnie | port nie zapisuje dziś nic do cudzych aplikacji poza ramkami okien | **B.** Żadnych zapisów atrybutów w cudzych aplikacjach w tym epiku |
@@ -101,7 +101,7 @@ Tygodnie liczone od dnia, w którym właściciel zmerguje PR-0 i PR #63. Ogranic
 |---|---|---|---|
 | 0 | merge PR-0 i PR #63; odpowiedzi na pytania ⚠ | ~~DICT-0.1~~ (zaliczona decyzją 2026-11-19) | MEET-0.1; start MEET-1.1; **MEET-X.1 (pilna, decyzja 2026-11-19 nr 1; tydzień 0 to interpretacja, do potwierdzenia przez właściciela)** |
 | 1 | ~~ślepe porównanie (jeden wieczór)~~ (zastąpione oceną Fable, decyzja 2026-11-19 nr 2); start dogfoodu z `keepAudio` | DICT-0.2, DICT-0.3; DICT-1.1 | ~~MEET-0.2~~ (zastąpione oceną Fable), MEET-0.4, MEET-1.2, MEET-1.3 (schemat), MEET-1.6 |
-| 2 | dogfood; recenzja i akceptacja ADR 0010 | DICT-1.2, 1.3, 1.4, DICT-3.0 | MEET-1.7, MEET-1.4 |
+| 2 | dogfood; ~~recenzja i akceptacja ADR 0010~~ (Accepted 2026-11-19, doprecyzowanie D10) | DICT-1.2, 1.3, 1.4, DICT-3.0 | MEET-1.7, MEET-1.4 |
 | 3 | ~~bramka MEET-0.3~~ (zastąpiona oceną Fable); poprawione transkrypty 3 spotkań (dane MEET-1.3) | DICT-2.1, potem DICT-2.2 i 2.3 | MEET-6.3, MEET-1.5 |
 | 4 | QA zgody (DICT-2.4) | DICT-2.4, 2.5, 2.6 | MEET-2.1, 2.2, 2.3, 2.4 |
 | 5 | QA odsłuchu | DICT-2.7, DICT-3.1 | MEET-2.5 (po DICT-2.1), MEET-3.1 |
@@ -206,7 +206,7 @@ Wartość domyślna jest tą, pod którą backlog został napisany. ⚠ oznacza 
 | D-Q7 | Pliki: listowanie w hoście czy indeks `FilesPlugin`? | listowanie w hoście | DICT-3.3 |
 | D-Q8 | Wyzwalacze pliku: „małpa”, „at”, „tag”, nazwa z rozszerzeniem; samo „plik X” nie? | tak | DICT-3.4 |
 | D-Q9 | `AXManualAccessibility` w Electronie? | nie | DICT-2.2 |
-| D-Q10 | `CleanupPrompt` bez zmian w Fazach 0–3? | tak. **Uchylone 2026-11-19 (decyzja nr 7):** `CleanupPrompt` zmienia się, by usuwać zmiany zdania i autopoprawki, `FormatterGuard` do dostosowania | DICT-4.2 (interpretacja, do potwierdzenia: nowa praca obok DICT-4.2, nie DICT-4.2) |
+| D-Q10 | `CleanupPrompt` bez zmian w Fazach 0–3? | tak. **Uchylone 2026-11-19 (decyzja nr 7):** `CleanupPrompt` zmienia się, by usuwać zmiany zdania i autopoprawki, `FormatterGuard` do dostosowania | DICT-4.2 (potwierdzone 2026-11-19, D10: decyzja 7 to wersja 2 promptu i nowa praca obok DICT-4.2; lista terminów to późniejsza wersja) |
 | D-Q11 ⚠ | Uchylić nie-cele „reguły per aplikacja” i „własny słownik” ze specu dyktowania? | tak | DICT-0.3 |
 | D-Q12 | Zapisywać w historii listę użytych źródeł (bez treści)? | tak | DICT-1.4 |
 | D-Q13 | Kandydaci na terminy z ekranu? | warunkowo, po bramce 2% | DICT-4.1 |
@@ -276,7 +276,7 @@ Kolumna „Skutek wprost” zawiera tylko to, co wynika z brzmienia decyzji. Kol
 | 4 | Oznaczenia AI/człowiek w notatkach: usunąć (także z historii zmian jako osobnego oznaczenia). MEET-4.3 (`NoteBlockProvenance.author`) wypada z kolejki. | **MEET-4.3 wycofana 2026-11-19, decyzja 4**: wypada z kolejki `LintelKit` i z kolejności PR-ów. Oznaczenia AI/człowiek do usunięcia z notatek, także z historii zmian jako osobne oznaczenie (dziś jeszcze istnieją). | MEET-4.4 ma MEET-4.3 w zależnościach i wymaga przeliczenia przy specu. Usunięcie istniejących oznaczeń z Notes (paski autora, historia) to osobna zmiana, spec najpierw. |
 | 5 | Formatowanie notatek do poprawy (obecne złe); #64 w zakresie. | Nowa praca nad formatem notatek, w tym #64. | Brak numeru story; do nadania przy specu. |
 | 6 | Bramka DICT-0.1 zaliczona decyzją właściciela (bez liczenia 5 z 20; brak linii bazowej zaakceptowany). Epik DICT rusza. | **DICT-0.1 zaliczona**, epik DICT rusza (DICT-1.x mogą startować). | ADR 0010 powstaje bez liczb z pomiaru. Warunek D-Q13 (≤ 2% fałszywych podmian z kryterium 2 DICT-0.1) nie ma danych, więc DICT-4.1 zostaje wstrzymana do własnego pomiaru. |
-| 7 | Dyktowanie: formatowanie ma usuwać zmiany zdania i autopoprawki („albo jednak”, „nie, czekaj”) i dawać sensowną wiadomość. Uchyla D-Q10 (`CleanupPrompt` bez zmian); `FormatterGuard` do dostosowania. | **D-Q10 uchylone** w zakresie „`CleanupPrompt` bez zmian”: prompt zmienia się tak, by usuwać zmiany zdania i autopoprawki; `FormatterGuard` do dostosowania. | To nowa praca, nie DICT-4.2: lista terminów w prompcie (treść DICT-4.2) nie jest tą decyzją zlecona i zachowuje swój warunek. Obie zmiany dotykają `CleanupPrompt.version`, `FormatterGuard` i snapshotów promptu, więc numer wersji trzeba uzgodnić. |
+| 7 | Dyktowanie: formatowanie ma usuwać zmiany zdania i autopoprawki („albo jednak”, „nie, czekaj”) i dawać sensowną wiadomość. Uchyla D-Q10 (`CleanupPrompt` bez zmian); `FormatterGuard` do dostosowania. | **D-Q10 uchylone** w zakresie „`CleanupPrompt` bez zmian”: prompt zmienia się tak, by usuwać zmiany zdania i autopoprawki; `FormatterGuard` do dostosowania. | To nowa praca, nie DICT-4.2: lista terminów w prompcie (treść DICT-4.2) nie jest tą decyzją zlecona i zachowuje swój warunek. ~~Numer wersji trzeba uzgodnić~~ — rozstrzygnięte doprecyzowaniem D10: decyzja 7 to `CleanupPrompt` w wersji 2, lista terminów to późniejsza wersja. |
 | 8 | Nowe funkcje (spec najpierw): czat w aplikacji (szukanie w notatkach, poprawki notatek), akcje po spotkaniu (Jira, mail; agent proponuje, użytkownik zatwierdza). | Dwa nowe specy, bez implementacji przed specem. | Czat sąsiaduje z MEET-6.1 – 6.2 (archiwum), akcje po spotkaniu z MEET-X.1 (zgoda na wysyłkę danych poza Maca). |
 | 9 | Pilne błędy: mikrofon nie łapie głosu (log: „Audio track mic ended”, HUD „Microphone disconnected”); okna po uśpieniu nadal się psują; transkrypcja miesza języki. | Trzy pilne poprawki błędów. | Poprawki idą poza epikami. Mikrofon: MEET-1.7 (strażniki nagrania) ma pierwszeństwo przed resztą Fazy 1. Mieszanie języków łączy się z MEET-5.1 (pomiar silników). |
 
@@ -288,7 +288,7 @@ Brzmienie właściciela: „Fable jako recenzent jakości notatek: zielone świa
 
 ### Doprecyzowania z tego samego dnia
 
-Osiem doprecyzowań właściciela z 2026-11-19 (ostateczne; D6–D8 to odpowiedzi na pytania odświeżonego specu dostawców). Nadpisują rekomendacje review specu dostawców (w tym K2, Q1, Q9) i tam, gdzie się różnią, decyzję nr 1 wyżej.
+Trzynaście doprecyzowań właściciela z 2026-11-19 (ostateczne; D6–D8 to odpowiedzi na pytania odświeżonego specu dostawców, D9–D11 zapadły później tego samego dnia, po ocenie notatek i po ADR 0010, D12–D13 to odpowiedzi na pytania toru jednej generacji). Nadpisują rekomendacje review specu dostawców (w tym K2, Q1, Q9) i tam, gdzie się różnią, decyzję nr 1 wyżej.
 
 | # | Doprecyzowanie (brzmienie właściciela) | Skutek dla backlogu |
 |---|---|---|
@@ -299,9 +299,14 @@ Osiem doprecyzowań właściciela z 2026-11-19 (ostateczne; D6–D8 to odpowiedz
 | D5 | v1 = Claude Code CLI na subskrypcji; BYOK (klucz API, Pęk kluczy, HTTPS z listą hostów) to druga faza, zaraz po v1. | Kolejność faz w odświeżonym specu dostawców: najpierw Claude Code CLI, potem BYOK. |
 | D6 | Q6: **bez** stopki w eksporcie Markdown i w kopii, żadnych oznaczeń AI. Informacja o dostawcy tylko w aplikacji (szczegóły spotkania). | Spec dostawców: stopka wypada z zakresu, testów i podziału na PR-y; test „eksport i kopia nie zawierają nazwy dostawcy”. |
 | D7 | Q11: dziennika wysyłek **nie ma w v1**; wysyłki częściowe bez śladu zostają opisanym ograniczeniem. Automatyczne ponowienia przy ważnej zgodzie: tak, powiedziane w oknie zgody. Znaczniki czasu segmentów idą do dostawcy: tak, wymienione w oknie zgody i w opisie tego, co opuszcza Maca. | Migracja `v3-notes-provider` bez zmian (dwie kolumny). Okno zgody wymienia automatyczne ponowienia i znaczniki czasu segmentów. |
-| D8 | Q2, Q7, Q8: wartości domyślne przyjęte: dyktowanie poza v1, fallback wyłączony i tylko dostawca → lokalny, te same kawałki. Q10 (numer ADR) zostaje do ustalenia przy merge. | Q2, Q7, Q8 w specu dostawców rozstrzygnięte; otwarte tylko Q10. |
+| D8 | Q2, Q7, Q8: wartości domyślne przyjęte: dyktowanie poza v1, fallback wyłączony i tylko dostawca → lokalny, te same kawałki. Q10 (numer ADR) zostaje do ustalenia przy merge. | Q2, Q7, Q8 w specu dostawców rozstrzygnięte; otwarte tylko Q10. **Część o Q8 („te same kawałki”) uchylona tego samego dnia, zob. D9.** |
+| D9 | **Q8 uchylone** po ocenie notatek. Dzisiejszy tor (model wskazuje cytaty, kod skleja listę, strażnik podmienia tekst na cytat, kawałki pod kontekst 8192) nie poprawi jakości z dostawcą. Dla dostawcy wymagana jest jedna generacja z całego transkryptu, z nowym wersjonowanym promptem i strażnikiem faktów dla tekstu pisanego przez model (P1). To warunek sensu całej funkcji dostawców. | Spec dostawców przeprojektowany (sekcja „Tor jednej generacji”): port notatek dopuszcza generator bez kawałkowania; tor z promptem i strażnikiem to osobny PR mierzony na danych syntetycznych **przed** podłączeniem dostawcy; UI zgody nie rusza przed wykazaniem poprawy. Naprawa toru lokalnego (P0) to osobny PR i zależność. Zakres wysyłanych danych bez zmian (transkrypt z imionami i znacznikami czasu), ale transkrypt idzie w całości naraz. Notatka dostawcy to podsumowanie, decyzje i zadania, bez timestampów i bez oznaczeń AI (decyzje 3 i 4). |
+| D10 | ADR 0010 (kontekst dyktowania) **Accepted**: bramka DICT-0.1 zaliczona, epik rusza. `FieldKind` jako zbiór otwarty zaakceptowany. Zmiana z decyzji 7 to `CleanupPrompt` w wersji 2 (usuwanie fragmentów jawnie wycofanych); lista terminów to późniejsza wersja promptu. | `docs/decisions/0010-dictation-context.md` ma status Accepted. DICT-2.1 definiuje `FieldKind` jako zbiór otwarty. Tekst story DICT-4.2 poprawiony: wersja po 2, zależność od wydanej wersji 2. |
+| D11 | B2 i B3 (narzędzie sędziego Fable i jego przebiegi; identyfikatory spoza tego backlogu) **wstrzymane do odwołania**. Właścicielowi chodziło o jednorazową ocenę notatek z zaleceniami, nie o stałą pętlę. | Jednorazowa ocena się odbyła i dała zalecenia (D9 i naprawa toru lokalnego). Żadna bramka nie czeka na przebieg sędziego; decyzja 2 (zgoda na ocenianie spotkań właściciela przez Fable) zostaje w mocy jako zezwolenie, nie jako plan pracy. |
+| D12 | Q12–Q14 specu dostawców **przyjęte**: Q12 jako limity robocze (budżet jednej generacji, części po 40 000 tokenów, najwyżej 8 części), do pomiaru w kanarku; Q13: tytuł napisany przez model nie nadpisuje tytułu spotkania; Q14: tor jednej generacji nie ma stanu `partial`. | W specu dostawców otwarte zostaje tylko Q10 (numer ADR przy merge). |
+| D13 | Bramka jakości G **przyjęta z warunkiem**: wstrzymuje UI zgody, migrację i podłączenie dostawcy w produkcie, ale **G mierzy generator całego transkryptu z modelem dostawcy** (Claude przez harness deweloperski, korpus **syntetyczny**), **nie z lokalnym 4B**. G to jeden pomiar, nie bramka na tygodnie: pierwszy pomiar z Claude zaliczony = PR-y migracji i podłączenia ruszają od razu; niezaliczony = poprawka promptu albo strażnika i ponowny pomiar, bez dodatkowych warunków. Harness uruchamiany ręcznie, tylko dane syntetyczne, poza aplikacją (w produkcie żadnej drogi wysyłki przed zgodą); do repozytorium tylko liczby. Progi 80% i 0 zdań fałszywych zostają robocze. | Spec dostawców: krok 1.7e, wiersz G planu i „Dlaczego taka kolejność” zapisują ten warunek. MEET-X.1 nie czeka na nic poza tym jednym pomiarem (i Q10 przy merge). |
 
-Skutki dla backlogu według właściciela: MEET-X.1 — kryterium o fladze per spotkanie zastąpione zgodą przy wyborze dostawcy; MEET-1.6 bez zmian; B3 (pierwszy przebieg sędziego Fable; identyfikator spoza tego backlogu) nie czeka już na właściciela.
+Skutki dla backlogu według właściciela: MEET-X.1 — kryterium o fladze per spotkanie zastąpione zgodą przy wyborze dostawcy; MEET-1.6 bez zmian; ~~B3 (pierwszy przebieg sędziego Fable; identyfikator spoza tego backlogu) nie czeka już na właściciela~~ — B2 i B3 wstrzymane do odwołania (doprecyzowanie D11).
 
 ### Punkt zamknięty: informacja dla uczestników
 
@@ -311,12 +316,15 @@ Skutki dla backlogu według właściciela: MEET-X.1 — kryterium o fladze per s
 
 | Story / pytanie | Status po 2026-11-19 |
 |---|---|
-| MEET-0.2 | Zastąpiona pętlą oceny przez sędziego Fable (decyzja 2) |
-| MEET-0.3 | Zastąpiona pętlą oceny przez sędziego Fable (decyzja 2) |
+| MEET-0.2 | Zastąpiona oceną przez sędziego Fable (decyzja 2); ocena była jednorazowa, kolejne przebiegi wstrzymane (doprecyzowanie D11) |
+| MEET-0.3 | Zastąpiona oceną przez sędziego Fable (decyzja 2); ocena była jednorazowa, kolejne przebiegi wstrzymane (doprecyzowanie D11) |
 | MEET-4.3 | **Wycofana 2026-11-19, decyzja 4** |
-| MEET-X.1 | Pilna i bezwarunkowa (decyzja 1); zgoda przy wyborze dostawcy zamiast flagi per spotkanie, v1 Claude Code CLI, potem BYOK (doprecyzowania D2–D5) |
+| MEET-X.1 | Pilna i bezwarunkowa (decyzja 1); zgoda przy wyborze dostawcy zamiast flagi per spotkanie, v1 Claude Code CLI, potem BYOK (doprecyzowania D2–D5); dostawca pisze notatkę jedną generacją z całego transkryptu, Q8 specu uchylone (doprecyzowanie D9); Q12–Q14 przyjęte, bramka G to jeden pomiar z Claude na korpusie syntetycznym (doprecyzowania D12–D13) |
 | MEET-1.6 | Bez zmian (doprecyzowanie D1) |
 | DICT-0.1 | Zaliczona decyzją właściciela (decyzja 6) |
+| ADR 0010 | **Accepted** (doprecyzowanie D10) |
+| DICT-4.2 | Warunkowa jak dotąd; wersja promptu po wersji 2 (doprecyzowanie D10) |
+| B2, B3 (sędzia Fable) | Wstrzymane do odwołania (doprecyzowanie D11) |
 | D-Q10 | Uchylone (decyzja 7) |
 | M-Q5 | Uchylone dla sędziego Fable (decyzja 2) |
 | M-Q14 | Przestarzałe (decyzja 1) |
