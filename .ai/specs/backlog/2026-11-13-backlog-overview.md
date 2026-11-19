@@ -65,7 +65,7 @@ Zgodne w obu briefach, przyjęte bez zmian: bez zrzutów ekranu i OCR; tryb pole
 | 12 | Strażniki nagrania | brak | zmiana częstotliwości, bufory zerowe, pętle powiadomień | zmiana częstotliwości już obsłużona; `audio_gap` to jedna flaga | **B w zawężeniu** do tego, czego brakuje (MEET-1.7) |
 | 13 | Limit 90 minut | pomiar, potem podniesienie albo okna | przypadek brzegowy | limit zgadnięty, benchmark nieuruchomiony | **A** (MEET-0.4 mierzy, MEET-3.4 zmienia) |
 | 14 | `words_json` | decyzja otwarta w specu | — | `v1-meetings` już zastosowana w bazie dogfood | **Nowa migracja** |
-| 15 | Jeśli Claude wygra porównanie | kierunek A′ wyprzedza Fazy 1–4 | dostawca jako opcja dla kroku pisania | spec dostawców nieaktualny | **MEET-X.1 warunkowo**, tylko dla spotkań niepoufnych; Fazy 2–4 zostają. *(Decyzja 2026-11-19 nr 1: MEET-X.1 pilna i bezwarunkowa, nie zależy od wyniku MEET-0.2; ograniczenie do spotkań niepoufnych do potwierdzenia przez właściciela.)* |
+| 15 | Jeśli Claude wygra porównanie | kierunek A′ wyprzedza Fazy 1–4 | dostawca jako opcja dla kroku pisania | spec dostawców nieaktualny | **MEET-X.1 warunkowo**, tylko dla spotkań niepoufnych; Fazy 2–4 zostają. *(Decyzja 2026-11-19 nr 1: MEET-X.1 pilna i bezwarunkowa, nie zależy od wyniku MEET-0.2; bez podziału na spotkania niepoufne, zgoda przy wyborze dostawcy, doprecyzowanie D4.)* |
 
 Zgodne w obu briefach, przyjęte bez zmian: nie gonić funkcji na żywo; bez odcisków głosu; notatnik hybrydowy jako własność `MeetingsPlugin`; eksport do folderu i MCP jako opt-in; modele tylko przez harness; nie powtarzać weryfikatora semantycznego i promptu v4.
 
@@ -153,7 +153,7 @@ Wniosek z diagramu: epiki są prawie niezależne. Łączy je pięć rzeczy: kole
 | Numery ADR | DICT-0.1 (0010), MEET-0.2 (zastąpiona oceną Fable, decyzja 2026-11-19 nr 2; czy ADR kierunku nadal powstaje: interpretacja, do potwierdzenia przez właściciela), 2.1, 5.1, 6.4 | 0010 zarezerwowany dla kontekstu dyktowania; pozostałe biorą następny wolny przy merge. Podwójny 0007 zostaje (zmiana nazwy plików zerwałaby odnośniki) |
 | `docs/perf.md` | DICT-0.3, 2.7, MEET-0.4, 1.5, 3.4 | Każda story dotyka tylko własnych wierszy |
 | Słowniki | `vocabulary.json` (dyktowanie), `plugins.meetings.glossaryTerms` (spotkania) | Osobne dane, wspólna logika. Wspólny słownik dla obu pluginów wymagałby portu w `LintelKit`; poza tym backlogiem |
-| Zewnętrzni dostawcy | MEET-X.1, DICT-4.2 | Kontekst dyktowania nigdy nie idzie do dostawcy; do dostawcy może iść tylko transkrypt spotkania za zgodą. Od 2026-11-19 dostawcy są w produkcie, domyślnie wyłączeni; transkrypt idzie dopiero po włączeniu przez użytkownika, z tekstem zgody dla uczestników (decyzja nr 1) |
+| Zewnętrzni dostawcy | MEET-X.1, DICT-4.2 | Kontekst dyktowania nigdy nie idzie do dostawcy; do dostawcy może iść tylko transkrypt spotkania za zgodą. Od 2026-11-19 dostawcy są w produkcie, domyślnie wyłączeni (model lokalny); transkrypt (z imionami mówców) idzie dopiero po wyborze dostawcy w ustawieniach i jednym oknie zgody (decyzja nr 1, doprecyzowania D2 i D4) |
 
 ## Kolejność PR-ów
 
@@ -259,18 +259,18 @@ Odpowiedzi na pytania oznaczone ⚠. Pozostałe pytania przyjmują wartości dom
 | M-Q8 notatnik w trakcie nagrania | Własność MeetingsPlugin (dane w `meetings.sqlite`). |
 | M-Q12 lokalny MCP | Domyślnie wyłączony, udostępnianie per spotkanie. |
 | M-Q13 auto-eksport Markdown | Opt-in, wybór folderu, ostrzeżenie o braku szyfrowania. |
-| M-Q14 plan B, jeśli wygra Claude | Zewnętrzny dostawca (spec external-ai-providers) dla spotkań niepoufnych, za zgodą. |
+| M-Q14 plan B, jeśli wygra Claude | Zewnętrzny dostawca (spec external-ai-providers) dla spotkań niepoufnych, za zgodą. *(Przestarzałe 2026-11-19: decyzja nr 1 i doprecyzowanie D4, zgoda przy wyborze dostawcy, bez podziału na spotkania niepoufne.)* |
 | M-Q17 zbiór wzorcowy | Poza repo, 3 spotkania właściciela (za zgodą uczestników), lokalni sędziowie; w repo tylko liczby. *(„Lokalni sędziowie” uchylone dla sędziego Fable 2026-11-19, decyzja 2.)* |
 
 ## Decyzje właściciela (2026-11-19)
 
-Dziewięć decyzji nadpisuje ten backlog tam, gdzie się różnią. Źródło: wiadomość właściciela z 2026-11-19. Epiki mają przy dotkniętych stories krótką adnotację ze wskazaniem na tę sekcję; treść stories nie jest przepisana.
+Dziewięć decyzji nadpisuje ten backlog tam, gdzie się różnią. Źródło: wiadomość właściciela z 2026-11-19, uzupełniona doprecyzowaniami z tego samego dnia (podsekcja niżej; mają pierwszeństwo przed tabelą). Epiki mają przy dotkniętych stories krótką adnotację ze wskazaniem na tę sekcję; treść stories nie jest przepisana.
 
 Kolumna „Skutek wprost” zawiera tylko to, co wynika z brzmienia decyzji. Kolumna „Interpretacja autora” to wnioski autora tego wpisu: **interpretacja, do potwierdzenia przez właściciela**, nie decyzja. Do czasu potwierdzenia nie zmieniają statusu żadnej story.
 
 | # | Decyzja (brzmienie właściciela) | Skutek wprost | Interpretacja autora (do potwierdzenia przez właściciela) |
 |---|---|---|---|
-| 1 | Zewnętrzni dostawcy (Claude itd.) w produkcie: TAK, pilnie. Domyślnie WYŁĄCZENI; transkrypt idzie do dostawcy dopiero po włączeniu przez użytkownika, z tekstem zgody dla uczestników. | **MEET-X.1 pilna i bezwarunkowa** (przestaje być warunkowa): nie zależy już od wyniku MEET-0.2 ani od M-Q14; M-Q14 przestarzałe. Dostawcy domyślnie wyłączeni; bez włączenia przez użytkownika nic nie jest wysyłane. Spec `2026-11-10-external-ai-providers.md` nadal wymaga odświeżenia przed implementacją (baner zmieniony: odświeżenie pilne). | Miejsce MEET-X.1 w tygodniu 0 osi czasu i w wierszu 2 kolejności PR-ów. Tekst zgody dla uczestników łączy się z MEET-1.6 (przypomnienie o zgodzie). Dotychczasowe ograniczenie MEET-X.1 do spotkań niepoufnych nie jest częścią decyzji; czy zostaje, rozstrzyga właściciel przy odświeżeniu specu. |
+| 1 | Zewnętrzni dostawcy (Claude itd.) w produkcie: TAK, pilnie. Domyślnie WYŁĄCZENI; transkrypt idzie do dostawcy dopiero po włączeniu przez użytkownika, z tekstem zgody dla uczestników. | **MEET-X.1 pilna i bezwarunkowa** (przestaje być warunkowa): nie zależy już od wyniku MEET-0.2 ani od M-Q14; M-Q14 przestarzałe. Dostawcy domyślnie wyłączeni; bez włączenia przez użytkownika nic nie jest wysyłane. Spec `2026-11-10-external-ai-providers.md` nadal wymaga odświeżenia przed implementacją (baner zmieniony: odświeżenie pilne). | Miejsce MEET-X.1 w tygodniu 0 osi czasu i w wierszu 2 kolejności PR-ów. ~~Tekst zgody dla uczestników łączy się z MEET-1.6; ograniczenie do spotkań niepoufnych do rozstrzygnięcia~~ — rozstrzygnięte doprecyzowaniami D1 i D4: MEET-1.6 bez zmian, zgoda przy wyborze dostawcy obejmuje wszystkie spotkania. |
 | 2 | Fable jako recenzent jakości notatek: zielone światło na ocenianie WSZYSTKICH spotkań właściciela (świadome uchylenie M-Q5 dla sędziego Fable). Zastępuje ślepe porównanie MEET-0.2 i bramkę dogfoodu MEET-0.3. Uwagi właściciela nanoszone później. | **MEET-0.2 i MEET-0.3 zastąpione** oceną notatek przez sędziego Fable. M-Q5 uchylone tylko dla tego sędziego (zapis niżej); dla innych sędziów chmurowych M-Q5 obowiązuje bez zmian. | MEET-1.5 (linia bazowa) i późniejsze bramki liczą się od oceny Fable. ADR kierunku, który miał powstać w MEET-0.2, nadal jest potrzebny wpisom MEET-1.5 i MEET-4.4. |
 | 3 | Notatka = podsumowanie spotkania (ustalenia, decyzje, zadania). Żadnych timestampów w notatce. Timestampy zostają w transkrypcie. | Bez znaczników czasu w treści notatki; transkrypt zachowuje znaczniki. | Dotyczy cytatów `[mm:ss]` składanych przez `NotesComposer`; dotyka stories o sprawdzalności (MEET-2.x) i odtwarzaniu (MEET-2.5): odsłuch z notatki bez znacznika czasu wymaga innego kotwiczenia. Do rozpisania w specu. |
 | 4 | Oznaczenia AI/człowiek w notatkach: usunąć (także z historii zmian jako osobnego oznaczenia). MEET-4.3 (`NoteBlockProvenance.author`) wypada z kolejki. | **MEET-4.3 wycofana 2026-11-19, decyzja 4**: wypada z kolejki `LintelKit` i z kolejności PR-ów. Oznaczenia AI/człowiek do usunięcia z notatek, także z historii zmian jako osobne oznaczenie (dziś jeszcze istnieją). | MEET-4.4 ma MEET-4.3 w zależnościach i wymaga przeliczenia przy specu. Usunięcie istniejących oznaczeń z Notes (paski autora, historia) to osobna zmiana, spec najpierw. |
@@ -286,9 +286,23 @@ Brzmienie właściciela: „Fable jako recenzent jakości notatek: zielone świa
 
 > M-Q5 uchylone dla sędziego Fable: właściciel zezwolił, aby Fable oceniał notatki ze WSZYSTKICH jego spotkań. Poprzednie brzmienie („panel sędziów lokalny, chmurowi tylko na nagraniach ze zgodą uczestników”) przestaje obowiązywać dla tego sędziego. To świadoma decyzja właściciela z 2026-11-19.
 
-### Punkt otwarty: informacja dla uczestników
+### Doprecyzowania z tego samego dnia
 
-⚠ **Do potwierdzenia przez właściciela.** Ocena przez sędziego Fable wysyła transkrypty prawdziwych spotkań do dostawcy chmurowego. Tekst informacji i zgody dla uczestników (MEET-1.6, „Copy message” w przypomnieniu o zgodzie) powinien to obejmować, tak samo jak wysyłkę do zewnętrznego dostawcy z decyzji nr 1. MEET-1.6 jest już na `main` (PR #88); jej obecny tekst nie wspomina o ocenie przez Fable ani o wysyłce do dostawcy. Brzmienie uzupełnienia (i czy w ogóle) ustala właściciel; do tego czasu agenci nie zmieniają tekstu zgody. W repozytorium nie ma treści spotkań ani transkryptów; ocena odbywa się poza nim, a w repozytorium zostają same liczby.
+Pięć doprecyzowań właściciela z 2026-11-19 (ostateczne). Nadpisują rekomendacje review specu dostawców (w tym K2, Q1, Q9) i tam, gdzie się różnią, decyzję nr 1 wyżej.
+
+| # | Doprecyzowanie (brzmienie właściciela) | Skutek dla backlogu |
+|---|---|---|
+| D1 | Tekst informacji dla uczestników **bez zmian**: nie wspomina o sędzim Fable ani o chmurze. | MEET-1.6 bez zmian (tekst z PR #88 zostaje). Punkt otwarty o tekście zgody zamknięty (niżej). |
+| D2 | Imiona mówców idą do dostawcy; okno zgody mówi to wprost. | Okno zgody w MEET-X.1 wymienia imiona mówców obok transkryptu. |
+| D3 | **Bez** potwierdzenia „uczestnicy wiedzą” per spotkanie. | Brak kroku potwierdzenia przy nagraniu ani przy wysyłce. |
+| D4 | **Bez** flagi per spotkanie i bez przełącznika „każde nowe spotkanie”. Moment decyzyjny to **wybór modelu/dostawcy w ustawieniach**: jedno świadome okno zgody („transkrypty wszystkich spotkań, z imionami, trafią do dostawcy X”); potem każde spotkanie idzie do wybranego dostawcy, dopóki użytkownik nie wróci na model lokalny. Domyślnie nadal model lokalny. Zgoda nadal egzekwowana w kodzie przed każdym procesem dostawcy (testy „0 procesów bez zgody” zostają). Znacznik „wysłano do: Claude · model” na poziomie spotkania zostaje. | Kryterium MEET-X.1 o wysyłce włączanej per spotkanie zastąpione zgodą przy wyborze dostawcy; nie ma podziału na spotkania poufne i niepoufne. Domyślnie model lokalny, więc bez wyboru dostawcy nic nie jest wysyłane. |
+| D5 | v1 = Claude Code CLI na subskrypcji; BYOK (klucz API, Pęk kluczy, HTTPS z listą hostów) to druga faza, zaraz po v1. | Kolejność faz w odświeżonym specu dostawców: najpierw Claude Code CLI, potem BYOK. |
+
+Skutki dla backlogu według właściciela: MEET-X.1 — kryterium o fladze per spotkanie zastąpione zgodą przy wyborze dostawcy; MEET-1.6 bez zmian; B3 (pierwszy przebieg sędziego) nie czeka już na właściciela.
+
+### Punkt zamknięty: informacja dla uczestników
+
+**Rozstrzygnięte 2026-11-19 (doprecyzowanie D1): tekst bez zmian.** Tekst „Copy message” z MEET-1.6 (PR #88) nie wspomina o ocenie przez sędziego Fable ani o wysyłce do dostawcy i tak zostaje. W repozytorium nie ma treści spotkań ani transkryptów; ocena odbywa się poza nim, a w repozytorium zostają same liczby.
 
 ### Zmiany statusu stories
 
@@ -297,7 +311,8 @@ Brzmienie właściciela: „Fable jako recenzent jakości notatek: zielone świa
 | MEET-0.2 | Zastąpiona pętlą oceny przez sędziego Fable (decyzja 2) |
 | MEET-0.3 | Zastąpiona pętlą oceny przez sędziego Fable (decyzja 2) |
 | MEET-4.3 | **Wycofana 2026-11-19, decyzja 4** |
-| MEET-X.1 | Pilna i bezwarunkowa (decyzja 1) |
+| MEET-X.1 | Pilna i bezwarunkowa (decyzja 1); zgoda przy wyborze dostawcy zamiast flagi per spotkanie, v1 Claude Code CLI, potem BYOK (doprecyzowania D2–D5) |
+| MEET-1.6 | Bez zmian (doprecyzowanie D1) |
 | DICT-0.1 | Zaliczona decyzją właściciela (decyzja 6) |
 | D-Q10 | Uchylone (decyzja 7) |
 | M-Q5 | Uchylone dla sędziego Fable (decyzja 2) |
