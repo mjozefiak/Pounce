@@ -58,14 +58,14 @@
 |---|---|---|
 | D-Q1 ⚠ | Czy kontekst ma być domyślnie włączony? (`BACKWARD_COMPATIBILITY.md` §3: ustawienie, które czyta więcej, wymaga zgody właściciela.) | **Wyłączony.** `contextEnabled = false`, włączany krokiem onboardingu z listą źródeł. |
 | D-Q2 | Czy poprawić wspólny opis Dostępności w Ustawienia → Uprawnienia, tak by mówił o czytaniu okien i pól? Dotyczy też `WindowsPlugin`, który już czyta tytuły okien. | **Tak**, w DICT-2.4. |
-| D-Q3 | Próg bramki DICT-0.1: „mniej niż 5 na 20 dyktowań z nazwą, identyfikatorem lub odwołaniem → nie zaczynać”. | **Przyjęty.** |
+| D-Q3 | Próg bramki DICT-0.1: „mniej niż 5 na 20 dyktowań z nazwą, identyfikatorem lub odwołaniem → nie zaczynać”. | **Przyjęty.** Bramka zaliczona decyzją właściciela 2026-11-19 (decyzja 6), bez liczenia. |
 | D-Q4 ⚠ | Zgoda na jednorazowy odczyt własnej historii dyktowania przez narzędzie poza repozytorium (system pokaże monit Pęku kluczy) **oraz na przechowanie odszyfrowanych transkryptów poza repozytorium jako zbioru regresyjnego**, dłużej niż 30-dniowa retencja historii. | **Tak**: do repozytorium trafiają wyłącznie liczby; zbiór leży na zaszyfrowanym obrazie dysku i jest kasowany po DICT-3.6 (albo po DICT-4.1, jeśli ruszy). Zapasowo ręczny eksport 30 wpisów. |
 | D-Q5 | Profile aplikacji zmieniają wynik u obecnych użytkowników (bez kropki w terminalu). Domyślnie włączone? | **Wyłączone** (`appProfiles = false`); włączane razem z kontekstem w onboardingu. |
 | D-Q6 ⚠ | Odwołanie do schowka: zwykłe dyktowanie czy tylko tryb poleceń? Domyślnie włączone? | **Zamknięta lista fraz w zwykłym dyktowaniu, domyślnie wyłączone**, fraza musi być całym segmentem między pauzami, potwierdzenie w HUD przy pierwszych 5 użyciach. |
 | D-Q7 | Skąd lista plików: indeks `FilesPlugin` (nowy wkład pluginu) czy ograniczone listowanie katalogu roboczego w hoście? | **Listowanie w hoście** (`FileNameLookup`): mniejszy kontrakt, działa bez włączonego wyszukiwania plików. Indeks jako rozszerzenie później. |
 | D-Q8 | Słowa wyzwalające plik: „małpa”, „at”, „tag” + nazwa, albo nazwa z wypowiedzianym rozszerzeniem. Czy samo „plik X” ma wyzwalać? | **Nie**; „plik” jest zwykłym słowem. |
 | D-Q9 | Włączać `AXManualAccessibility` w aplikacjach Electron? | **Nie.** VS Code, Cursor i Slack dostają profil z identyfikatora i tytuł okna. |
-| D-Q10 | Lista terminów w prompcie LLM (`CleanupPrompt` v2)? | **Nie w Fazach 0–3.** Kandydat DICT-4.2, tylko po pomiarze. |
+| D-Q10 | Lista terminów w prompcie LLM (`CleanupPrompt` v2)? | **Nie w Fazach 0–3.** Kandydat DICT-4.2, tylko po pomiarze. **Uchylone 2026-11-19 (decyzja 7):** `CleanupPrompt` v2 usuwa zmiany zdania i autopoprawki, `FormatterGuard` do dostosowania; zob. przegląd backlogu, sekcja „Decyzje właściciela (2026-11-19)”. |
 | D-Q11 ⚠ | Uchylić nie-cele specu dyktowania („reguły per aplikacja”, „własny słownik”)? | **Tak**, wprost w ADR 0010. |
 | D-Q12 | Zapisywać w historii listę użytych źródeł (bez treści)? | **Tak**, kolumna `context_sources`. |
 | D-Q13 | Kandydaci na terminy z ekranu (dopasowanie fonetyczne, DICT-4.1): robić? | **Warunkowo**, tylko gdy DICT-0.1 (kryterium 2) pokaże ≤ 2% fałszywych podmian. |
@@ -171,6 +171,8 @@ Zależności z epikiem MEET: `TermReplacer` z DICT-1.1 trafia do `LintelCore`, b
 ## Faza 0 — bramka i próby
 
 ### DICT-0.1 — Linia bazowa na historii dyktowania (bramka wejścia)
+
+> **Status 2026-11-19:** zaliczona decyzją właściciela (decyzja 6), bez liczenia 5 z 20; brak linii bazowej zaakceptowany. Zob. przegląd backlogu, sekcja „Decyzje właściciela (2026-11-19)”.
 
 - **Story:** Jako właściciel chcę wiedzieć, jak często w moich dyktowaniach padają nazwy plików, identyfikatory i odwołania do schowka, aby nie budować funkcji, której nie potrzebuję.
 - **Zależności:** brak. Decyzja D-Q4.
