@@ -36,7 +36,7 @@ import Testing
         defer { harness.tearDown() }
         // Window 1 is focused: snapping it to zone 2 of Columns 2 moves it to the right column.
         #expect(await plugin.runQACommand("snap 2") == "ok")
-        await plugin.runtime?.settle()
+        await plugin.runtime?.settleGuarded()
         #expect(client.frame(of: WindowID(pid: 100, number: 1))?.minX == 964)
         #expect(await plugin.runQACommand("snap 9").hasPrefix("error"))
         // Reset state freezes the engine like a restore, so no zone is offered until the next workspace command.

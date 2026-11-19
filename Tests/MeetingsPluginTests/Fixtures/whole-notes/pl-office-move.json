@@ -1,0 +1,79 @@
+{
+ "name": "pl-office-move",
+ "language": "pl",
+ "durationSec": 600,
+ "fake": {
+  "number": "7400",
+  "weekday": "środę",
+  "name": "Kwantoris",
+  "person": "Zenon",
+  "generic": "Mówca 1",
+  "due": "wtorek"
+ },
+ "transcript": [
+  "[00:03] Marta: No dobra, zaczynamy, bo mamy tylko pół godziny.",
+  "[00:07] Tomek: Mhm.",
+  "[00:09] Marta: Chodzi o przeprowadzkę biura. Umowa na obecne wygasa w grudniu.",
+  "[00:17] Ewa: A wiadomo już, ile płacimy teraz?",
+  "[00:21] Marta: Teraz jest dwadzieścia osiem tysięcy miesięcznie, a nowy lokal na Woli ma kosztować",
+  "[00:29] Marta: no, dwadzieścia dwa tysiące.",
+  "[00:33] Tomek: To sporo taniej. Tylko że tam jest mało miejsc parkingowych.",
+  "[00:39] Ewa: Dla nas to nie problem, większość jeździ metrem.",
+  "[00:44] Tomek: Dobra, a internet? Ostatnio w Ekopaku mieliśmy awarie co tydzień.",
+  "[00:51] Marta: Właśnie, w nowym budynku jest światłowód od Orange.",
+  "[00:58] Ewa: To ja bym powiedziała, że bierzemy ten lokal na Woli.",
+  "[01:03] Tomek: Się zgadzam.",
+  "[01:05] Marta: Okej, czyli przenosimy się na Wolę, jeśli właściciel zgodzi się na umowę na dwa lata.",
+  "[01:14] Tomek: A jak nie?",
+  "[01:17] Marta: Wtedy wracamy do tematu, ale myślę że się zgodzi.",
+  "[01:23] Marta: Tomek, zadzwoń do właściciela i dogadaj warunki, najlepiej do piątku.",
+  "[01:30] Tomek: Dobra, zadzwonię jutro rano.",
+  "[01:35] Marta: Ewa, a ty sprawdź, ile kosztuje przewiezienie mebli, chociaż trzy oferty.",
+  "[01:42] Ewa: Jasne, zbiorę oferty.",
+  "[01:47] Ewa: Tylko kiedy ta przeprowadzka właściwie, w styczniu?",
+  "[01:52] Marta: No właśnie nie wiem, to zależy od remontu.",
+  "[01:58] Tomek: Dobra, to chyba wszystko."
+ ],
+ "gold": {
+  "decisions": [
+   [
+    "przen",
+    "wol"
+   ]
+  ],
+  "tasks": [
+   {
+    "match": [
+     "zadzwon",
+     "wlasciciel"
+    ],
+    "person": "Tomek",
+    "due": "piatek"
+   },
+   {
+    "match": [
+     "mebl",
+     "ofert"
+    ],
+    "person": "Ewa",
+    "due": null
+   }
+  ],
+  "open": [
+   [
+    "termin",
+    "przeprowadz"
+   ]
+  ]
+ },
+ "correct": "TITLE: Przeprowadzka biura na Wolę\nSUMMARY: Spotkanie dotyczyło przeprowadzki biura, bo umowa na obecny lokal wygasa w grudniu. Zespół wybrał nowy lokal na Woli, który jest tańszy od obecnego.\nDECISION | ~01:05 | Biuro przenosi się na Wolę, jeśli właściciel zgodzi się na umowę na dwa lata.\nTASK | ~01:23 | Tomek | piątek | Zadzwonić do właściciela i uzgodnić warunki umowy.\nTASK | ~01:35 | Ewa | - | Sprawdzić koszt przewiezienia mebli i zebrać co najmniej trzy oferty.\nTOPIC: Koszty lokalu\nPOINT | Obecny lokal kosztuje 28 tysięcy miesięcznie, nowy ma kosztować 22 tysiące.\nPOINT | W nowym budynku jest światłowód od Orange, co ma rozwiązać awarie internetu w Ekopaku.\nOPEN | Termin przeprowadzki zależy od remontu i nie jest ustalony.",
+ "extraFaults": [
+  {
+   "class": "known_gap",
+   "append": "DECISION | ~01:05 | Zespół zrezygnował z przeprowadzki.",
+   "expect": "passes",
+   "gap": true
+  }
+ ],
+ "synthetic": true
+}

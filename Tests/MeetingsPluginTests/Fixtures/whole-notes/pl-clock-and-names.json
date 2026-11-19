@@ -1,0 +1,51 @@
+{
+ "name": "pl-clock-and-names",
+ "language": "pl",
+ "durationSec": 120,
+ "fake": {
+  "number": "7400",
+  "weekday": "środę",
+  "name": "Kwantoris",
+  "person": "Zenon",
+  "generic": "Mówca 1",
+  "due": "wtorek"
+ },
+ "transcript": [
+  "[00:03] Zuzanna: Marek, spotkanie z klientem jest o piątej, tak?",
+  "[00:07] Marek: Tak, o siedemnastej w ich biurze.",
+  "[00:12] Zuzanna: Dobra. Koszt oferty to dwa tysiące pięćset złotych plus VAT.",
+  "[00:19] Marek: Zadzwonię do Ewy i powiem jej, że przesuwamy prezentację na dwudziestego piątego.",
+  "[00:27] Zuzanna: Ewie możesz napisać, nie dzwoń.",
+  "[00:31] Marek: Okej, napiszę do Ewy jeszcze dzisiaj.",
+  "[00:36] Zuzanna: A ja przygotuję slajdy do poniedziałku."
+ ],
+ "gold": {
+  "decisions": [
+   [
+    "przesun",
+    "prezentac"
+   ]
+  ],
+  "tasks": [
+   {
+    "match": [
+     "napisa",
+     "ewy"
+    ],
+    "person": "Marek",
+    "due": "dzis"
+   },
+   {
+    "match": [
+     "slajd"
+    ],
+    "person": "Zuzanna",
+    "due": "poniedzialek"
+   }
+  ],
+  "open": []
+ },
+ "correct": "TITLE: Spotkanie z klientem\nSUMMARY: Zespół omówił spotkanie z klientem i cenę oferty. Prezentacja została przesunięta.\nDECISION | ~00:27 | Prezentacja zostaje przesunięta na 25.\nTASK | ~00:31 | Marek | dzisiaj | Napisać do Ewy o przesunięciu prezentacji.\nTASK | ~00:36 | Zuzanna | poniedziałek | Przygotować slajdy.\nTOPIC: Oferta\nPOINT | Spotkanie z klientem jest o 17:00 w jego biurze.\nPOINT | Oferta kosztuje 2500 złotych plus VAT.",
+ "extraFaults": [],
+ "synthetic": true
+}

@@ -226,7 +226,7 @@ import Testing
         try await run(plugin, "windows.toggleLayout")
         // Zones: the stock Columns 2 layout (landscape default), the second window in the right zone.
         #expect(settings.workspaceOverrides.byWorkspace[ws(1)]?.kind == .zones)
-        await plugin.runtime?.settle()
+        await plugin.runtime?.settleGuarded()
         #expect(client.frame(of: id(2))?.minX == 964)
         try await run(plugin, "windows.toggleLayout")
         #expect(settings.workspaceOverrides.byWorkspace[ws(1)]?.kind == .free)
@@ -236,7 +236,7 @@ import Testing
         harness.clock.advance(1)
         let engine = try #require(plugin.runtime?.engine)
         await engine.ingest(.moved(id(2)))
-        await engine.flushEvents()
+        await engine.flushGuarded()
         client.clearCalls()
         try await run(plugin, "windows.workspace.1")
         #expect(client.calls.isEmpty)
@@ -244,7 +244,7 @@ import Testing
         try await run(plugin, "windows.toggleLayout")
         #expect(settings.workspaceOverrides.byWorkspace[ws(1)] == nil)
         #expect(harness.pluginSettings.string(WindowsSettings.Key.workspaces) == "")
-        await plugin.runtime?.settle()
+        await plugin.runtime?.settleGuarded()
         #expect(client.frame(of: id(2))?.minX == 640)
         await plugin.deactivate()
     }

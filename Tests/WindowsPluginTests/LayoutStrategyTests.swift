@@ -244,7 +244,7 @@ import Testing
             hud: RecordingHUD(), activationCenter: NotificationCenter(), layouts: registry)
         try await plugin.activate()
         let runtime = try #require(plugin.runtime)
-        await runtime.settle()
+        await runtime.settleGuarded()
         // The pane offers the kind by its own name, summarises it with its own words and stores it.
         let model = plugin.paneModel
         #expect(model.selectableKinds == [.tiling, .zones, .free, toy])
@@ -254,10 +254,10 @@ import Testing
         #expect(model.workspaceSummaries.first?.detail == "Toy · toy parts · step 111")
         #expect(WindowsSettings(harness.pluginSettings).defaultKind(in: registry) == toy)
         // The runtime arranges with the strategy's own configuration, and *Toggle layout* cycles through it.
-        await runtime.settle()
+        await runtime.settleGuarded()
         #expect(client.frame(of: id(2))?.minX == 111)
         await runtime.layoutCommands.toggleLayout()
-        await runtime.settle()
+        await runtime.settleGuarded()
         let overrides = WindowsSettings(harness.pluginSettings).workspaceOverrides(in: registry)
         #expect(overrides.byWorkspace[ws(1)]?.kind == .tiling)
         await plugin.deactivate()
@@ -278,7 +278,7 @@ import Testing
         let model = plugin.paneModel
         model.setDefaultKind(toy)
         await model.actions.waitUntilEmpty()
-        await runtime.settle()
+        await runtime.settleGuarded()
 
         // The command catalogue lists the toy's command, with the title and symbol it declared.
         let commands = plugin.commands
@@ -286,7 +286,7 @@ import Testing
         #expect(bump.symbolName == "star")
         // ... and running it reaches the toy's `perform` through the generic engine command.
         await bump.run()
-        await runtime.settle()
+        await runtime.settleGuarded()
         #expect(await runtime.engine.snapshot.layouts[ws(1)]?["toy"]?.as(ToyState.self)?.bumps == 1)
         // The commands of the kinds that are not registered are not offered.
         let standard = WindowsPlugin(
@@ -299,7 +299,7 @@ import Testing
         let option = try #require(model.globalOptionRows.first { $0.id == "toyStep" })
         model.setGlobalValue(.int(250), of: option)
         await model.actions.waitUntilEmpty()
-        await runtime.settle()
+        await runtime.settleGuarded()
         #expect(harness.pluginSettings.integer("toy.step", default: 0) == 250)
         #expect(client.frame(of: id(2))?.minX == 250)
         #expect(model.workspaceSummaries.first?.detail == "Toy · toy parts · step 250")
@@ -307,7 +307,7 @@ import Testing
         // A workspace override of the option is stored flat next to the kind and wins for that workspace.
         model.setOverrideOption(option, to: .int(300), for: ws(1))
         await model.actions.waitUntilEmpty()
-        await runtime.settle()
+        await runtime.settleGuarded()
         #expect(client.frame(of: id(2))?.minX == 300)
         #expect(model.options(of: ws(1)).map(\.id) == ["toyStep"])
         #expect(harness.pluginSettings.string(WindowsSettings.Key.workspaces)?.contains("\"toyStep\":300") == true)
@@ -321,7 +321,7 @@ import Testing
         let targets = await runtime.engine.dragDisplays(for: id(1))
         let zone = try #require(targets.first?.zones.first)
         await runtime.snap(id(1), to: zone)
-        await runtime.settle()
+        await runtime.settleGuarded()
         #expect(await runtime.engine.snapshot.layouts[ws(1)]?["toy"]?.as(ToyState.self)?.bumps == 8)
 
         // A command of a kind that takes an id the plugin owns is left out of the catalogue.

@@ -70,6 +70,8 @@ enum NotesFailure: Error, Equatable {
     case modelUnavailable
     /// Another model kept the memory for the whole waiting time.
     case modelBusy
+    /// The whole-transcript track: the transcript needs more parts than the track allows. Nothing was sent.
+    case transcriptTooLong
 }
 
 /// MAP → REDUCE over the transcript on the built-in model (spec: Architecture → Notatki).

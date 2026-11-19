@@ -1,0 +1,62 @@
+{
+ "name": "pl-generic-labels",
+ "language": "pl",
+ "durationSec": 360,
+ "fake": {
+  "number": "7400",
+  "weekday": "sobotę",
+  "name": "Kwantoris",
+  "person": "Zenon",
+  "generic": "Mówca 1",
+  "due": "wtorek"
+ },
+ "transcript": [
+  "[00:03] Mówca 1: Dobra, to jedziemy z tym wdrożeniem nowego systemu faktur.",
+  "[00:08] Mówca 2: Ja dalej nie jestem przekonany do tego dostawcy.",
+  "[00:13] Mówca 3: Ale oni mają integrację z bankiem, a to jest nasz największy ból.",
+  "[00:19] Mówca 2: No, integracja to plus.",
+  "[00:22] Mówca 1: Cena jest podobna, około trzystu złotych miesięcznie za użytkownika.",
+  "[00:29] Mówca 2: Dobrze, to może zróbmy okres próbny, miesiąc, i zobaczymy.",
+  "[00:35] Mówca 1: Dobra, to tak zróbmy. Bierzemy miesiąc próbny z tym dostawcą.",
+  "[00:41] Mówca 3: Ja skontaktuję się z nimi w poniedziałek.",
+  "[00:46] Mówca 1: I ktoś musi wyciągnąć listę użytkowników, którzy będą testować.",
+  "[00:52] Mówca 2: Zrobię to do środy.",
+  "[00:56] Mówca 3: A co z danymi z poprzedniego roku, czy je migrujemy?",
+  "[01:01] Mówca 1: To zostawmy na koniec próby."
+ ],
+ "gold": {
+  "decisions": [
+   [
+    "okres",
+    "prob"
+   ]
+  ],
+  "tasks": [
+   {
+    "match": [
+     "skontaktowac",
+     "dostawc"
+    ],
+    "person": null,
+    "due": "poniedzialek"
+   },
+   {
+    "match": [
+     "list",
+     "uzytkownik"
+    ],
+    "person": null,
+    "due": "sroda"
+   }
+  ],
+  "open": [
+   [
+    "dane",
+    "migr"
+   ]
+  ]
+ },
+ "correct": "TITLE: Wdrożenie nowego systemu faktur\nSUMMARY: Zespół rozważał wdrożenie nowego systemu faktur od dostawcy z integracją z bankiem. Zdecydowano o miesięcznym okresie próbnym.\nDECISION | ~00:35 | Zespół zaczyna od miesięcznego okresu próbnego z tym dostawcą.\nTASK | ~00:41 | - | poniedziałek | Skontaktować się z dostawcą w sprawie okresu próbnego.\nTASK | ~00:52 | - | środa | Przygotować listę użytkowników, którzy będą testować system.\nTOPIC: Ocena dostawcy\nPOINT | Dostawca ma integrację z bankiem, co jest największym problemem zespołu.\nPOINT | Cena to około 300 złotych miesięcznie za użytkownika.\nOPEN | Czy migrować dane z poprzedniego roku, rozstrzygnie się na koniec próby.",
+ "extraFaults": [],
+ "synthetic": true
+}
