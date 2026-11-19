@@ -119,7 +119,7 @@ final class ScriptedTransport: HTTPTransport, @unchecked Sendable {
         // Long enough, but it stops before the end: the final version is lost.
         #expect(
             FormatterGuard.check(input: input, output: "Przełóżmy spotkanie na piątek.")
-                == .rejected(.addedContent))
+                == .rejected(.endChanged))
     }
 
     @Test func addedOrUnrelatedContentInARetractionChunkIsRejected() {
@@ -132,7 +132,7 @@ final class ScriptedTransport: HTTPTransport, @unchecked Sendable {
                 == .rejected(.tooLong))
         #expect(
             FormatterGuard.check(input: input, output: "Pogoda jutro będzie ładna w całym kraju.")
-                == .rejected(.addedContent))
+                == .rejected(.endChanged))
         #expect(FormatterGuard.check(input: input, output: "") == .rejected(.empty))
         #expect(FormatterGuard.check(input: input, output: "<think>x</think>") == .rejected(.empty))
     }
@@ -280,7 +280,7 @@ final class ScriptedTransport: HTTPTransport, @unchecked Sendable {
             "przygotuj dokumenty dla klienta z Poznania i sprawdź wszystkie załączniki przed wysyłką nie czekaj "
             + "wyślij je jutro rano"
         #expect(rejected(long, "Sprawdź wszystkie załączniki przed wysyłką, wyślij je jutro rano."))
-        #expect(FormatterGuard.check(input: input, output: "Zanieś paczkę do dozorcy.") == .rejected(.addedContent))
+        #expect(FormatterGuard.check(input: input, output: "Zanieś paczkę do dozorcy.") == .rejected(.endChanged))
     }
 
     @Test func languageDetection() {

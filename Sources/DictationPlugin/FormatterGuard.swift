@@ -15,21 +15,33 @@ enum FormatterGuard {
         case tooShort
         case languageChanged
         case answered
-        /// The output holds words the speaker never said (an unrelated or invented text), or, in a chunk that used
-        /// the relaxed length bound, does not end where the input ends (a summary or a truncation).
+        /// The output holds words the speaker never said (an unrelated or invented text), or a replacement the
+        /// speaker said after a retraction was dropped or swapped for another word.
         case addedContent
+        /// A chunk with a retraction or filler does not end where the input ends (a truncation or a summary).
+        case endChanged
     }
 
     /// The output may hold 0.6 to 1.15 times the input's words.
     static let lengthRange = 0.6...1.15
 
-    /// The lower bound for a chunk in which the speaker withdrew something or hesitated: removing a retracted
-    /// fragment and its marker legitimately cuts the text by more than the ordinary bound allows ("pójdziemy
-    /// na pizzę albo jednak na sushi" is 7 words, "Pójdziemy na sushi." is 3, a ratio of 0.43). The value 0.3
-    /// was tuned on the synthetic self-correction corpus (its shortest correct result is 0.38), so it is only a
-    /// coarse outer limit. It is not the safety mechanism: `onlyRemovesFragments` is, because it accepts a cut
-    /// only where code can derive it from the input (a filler, a repetition, or a span that ends in a marker).
+    /// The hard floor for a chunk in which the speaker withdrew something or hesitated. The real bound is
+    /// `lowerBound(inputWords:allowance:)`; this value only stops it from going lower.
     static let removalFloor = 0.3
+
+    /// How many words one retraction may remove besides its marker (the longest retracted span in the
+    /// corpus is five); the same cap bounds the free span in `derivationCost`.
+    static let retractedSpanCap = 8
+
+    /// The fewest output words a chunk may have: `min(0.6 x input, input - allowance)`, never below 0.3 x input.
+    /// The allowance is what the closed lists can explain: the words of every filler and marker, and up to
+    /// `retractedSpanCap` retracted words per marker. A filler alone therefore does not lower the bound of a
+    /// 60-word chunk, and a retraction lowers it by at most a few words, whatever the chunk length.
+    static func lowerBound(inputWords: Int, allowance: Int) -> Double {
+        let ordinary = lengthRange.lowerBound * Double(inputWords)
+        let explained = Double(inputWords - allowance)
+        return max(removalFloor * Double(inputWords), min(ordinary, explained))
+    }
 
     /// For any chunk of at least five words: the share of novel words above which the output is not a cleaned
     /// version of the input but another text (an unrelated or invented answer of the right length). Generous
@@ -64,16 +76,19 @@ enum FormatterGuard {
 
         let inputWords = words(in: input)
         let outputWords = words(in: output)
-        // A very short chunk can lose a filler word and so fall under the ratio by itself.
-        // The bound drops only for a chunk in which the speaker withdrew or hesitated, and then the output must
-        // still be made of the input's words and end where the input ends.
+        let spoken = tokens(input)
+        let written = tokens(output)
+        // A very short chunk can lose a filler word and so fall under the ratio by itself. The bound drops only
+        // by what the closed lists explain, and then the output must still be derivable from the input.
         var usesRelaxedBound = false
         if inputWords >= 5 {
             let ratio = Double(outputWords) / Double(inputWords)
             if ratio > lengthRange.upperBound { return .rejected(.tooLong) }
             if ratio < lengthRange.lowerBound {
-                // Only a chunk with a marker or a filler may be this short, and only down to the floor.
-                guard containsRemovable(input), ratio >= removalFloor else { return .rejected(.tooShort) }
+                let allowance = removableAllowance(spoken)
+                guard allowance > 0,
+                    Double(outputWords) >= lowerBound(inputWords: inputWords, allowance: allowance)
+                else { return .rejected(.tooShort) }
                 usesRelaxedBound = true
             }
         } else if outputWords > inputWords + 3 {
@@ -82,8 +97,16 @@ enum FormatterGuard {
         let before = Language.dominant(in: input)
         let after = Language.dominant(in: output)
         if before != .unknown, after != .unknown, before != after { return .rejected(.languageChanged) }
-        if usesRelaxedBound, !onlyRemovesFragments(input: input, output: output) {
-            return .rejected(.addedContent)
+        // The replacement after a retraction marker must survive in every chunk that has one, relaxed or not.
+        let replacement = replacementStart(spoken)
+        if usesRelaxedBound || replacement != nil {
+            if usesRelaxedBound, novelShare(input: input, output: output) > maximumNovelShare {
+                return .rejected(.addedContent)
+            }
+            if !endsWhereInputEnds(spoken: spoken, written: written) { return .rejected(.endChanged) }
+            if derivationCost(spoken: spoken, written: written) > editBudget(outputWords: written.count) {
+                return .rejected(.addedContent)
+            }
         }
         // Another text of the right length: checked last so a changed language keeps its own reason.
         if inputWords >= 5, novelShare(input: input, output: output) > unrelatedShare {
@@ -113,49 +136,103 @@ enum FormatterGuard {
         return result.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    /// Whether the input holds a retraction marker or a filler from the closed lists.
-    static func containsRemovable(_ input: String) -> Bool {
-        let tokens = tokens(input)
-        return (retractionMarkers + fillers).contains { contains(tokens, phrase: $0) }
+    /// The words of the fillers and markers in the tokens, plus `retractedSpanCap` per marker: how many
+    /// words the closed lists can account for. Zero when the chunk holds none.
+    static func removableAllowance(_ tokens: [String]) -> Int {
+        let fillerWords = occurrences(of: fillers, in: tokens).reduce(0) { $0 + $1.end - $1.start }
+        let markers = occurrences(of: retractionMarkers, in: tokens)
+        let markerWords = markers.reduce(0) { $0 + $1.end - $1.start }
+        return fillerWords + markerWords + markers.count * retractedSpanCap
     }
 
-    /// The most edits (substitutions, insertions, deletions that are not derivable from the input) a relaxed
-    /// chunk may need: two for inflection and punctuation-like slips, or a fifth of the output's words.
+    /// Where the replacement starts: the end of the LAST marker occurrence, when words follow it; `nil` when
+    /// the chunk has no marker or ends on one.
+    static func replacementStart(_ tokens: [String]) -> Int? {
+        guard let last = occurrences(of: retractionMarkers, in: tokens).map(\.end).max(), last < tokens.count
+        else { return nil }
+        return last
+    }
+
+    /// The most edits (substitutions, insertions, deletions that are not derivable from the input) a chunk
+    /// may need: two for inflection and punctuation-like slips, or a tenth of the output's words.
     static func editBudget(outputWords: Int) -> Int {
-        max(2, Int((0.2 * Double(outputWords)).rounded(.up)))
+        max(2, Int((0.1 * Double(outputWords)).rounded(.up)))
     }
 
     /// The largest chunk (input words times output words) the derivation check works on; a bigger one is
     /// refused, which makes the chunk fall back to the raw text.
     private static let derivationLimit = 4_000_000
 
-    /// For a relaxed chunk: the output is the input with only the removals the closed lists allow, and keeps
-    /// the input's last word, so it is not a summary, a cut middle or another text.
-    ///
-    /// The output must be derivable from the input at a small cost (`editBudget`). Free removals: a filler, an
-    /// immediate repetition (up to four words), a stutter (a word that is a proper prefix of the next one), and
-    /// a span that ENDS in a retraction marker (the retracted words before the marker and the marker itself),
-    /// when the retracted part is not longer than the words the speaker said after the marker (up to the next
-    /// marker) plus two. A word with digits in the output may stand for one to four spoken words (a number
-    /// written as digits) or be inserted. Any other difference costs one per word.
-    static func onlyRemovesFragments(input: String, output: String) -> Bool {
-        let spoken = tokens(input)
-        let written = tokens(output)
-        guard let lastSpoken = spoken.last, let lastWritten = written.last else { return false }
-        if novelShare(input: input, output: output) > maximumNovelShare { return false }
-        guard lastWritten == lastSpoken || lastWritten.contains(where: \.isNumber) else { return false }
-        return derivationCost(spoken: spoken, written: written) <= editBudget(outputWords: written.count)
+    /// Whether `word` is a near form of `other`: the same word with another ending or recognition spelling.
+    /// One rule: equal after folding case and diacritics, or a shared prefix of at least four letters that is
+    /// at least 60% of the shorter word ("Marka" for "Mark", "sztuki" for "sztuk", but not "Nowak" for
+    /// "Nowicki"). Anything shorter than four letters must match exactly.
+    static func isNearForm(_ word: String, _ other: String) -> Bool {
+        if word == other { return true }
+        let a = word.folding(options: .diacriticInsensitive, locale: nil).replacingOccurrences(of: "ł", with: "l")
+        let b = other.folding(options: .diacriticInsensitive, locale: nil).replacingOccurrences(of: "ł", with: "l")
+        if a == b { return true }
+        let shared = zip(a, b).prefix { $0 == $1 }.count
+        let shorter = min(a.count, b.count)
+        return shared >= 4 && Double(shared) >= 0.6 * Double(shorter)
     }
 
-    /// The cheapest way to turn `spoken` into `written` (see `onlyRemovesFragments`); `Int.max` when the
-    /// chunk is too large to check.
+    /// The input's last word that is not a trailing filler or marker.
+    static func effectiveSpoken(_ spoken: [String]) -> [String] {
+        var tokens = spoken
+        var changed = true
+        while changed, !tokens.isEmpty {
+            changed = false
+            for phrase in retractionMarkers + fillers
+            where tokens.count >= phrase.count && Array(tokens.suffix(phrase.count)) == phrase {
+                tokens.removeLast(phrase.count)
+                changed = true
+                break
+            }
+        }
+        return tokens.isEmpty ? spoken : tokens
+    }
+
+    /// The output's last word is the input's last word (not counting a trailing filler or marker), a near
+    /// form of it, or digits whose value equals the number words the input ends on.
+    static func endsWhereInputEnds(spoken: [String], written: [String]) -> Bool {
+        let core = effectiveSpoken(spoken)
+        guard let lastSpoken = core.last, let lastWritten = written.last else { return false }
+        if isNearForm(lastWritten, lastSpoken) { return true }
+        var values: [Int] = []
+        if let single = NumberWords.value(ofDigits: lastWritten) { values.append(single) }
+        if written.count >= 2, lastWritten.count == 3 {
+            for length in 2...min(3, written.count) {
+                let start = written.count - length
+                if let match = NumberWords.digitValues(in: written, at: start).first(where: { $0.tokens == length }) {
+                    values.append(match.value)
+                }
+            }
+        }
+        for length in 1...min(9, core.count) {
+            if let spokenValue = NumberWords.value(of: Array(core.suffix(length))), values.contains(spokenValue) {
+                return true
+            }
+        }
+        return false
+    }
+
+    /// The cheapest way to turn `spoken` into `written`; `Int.max` when the chunk is too large to check.
+    ///
+    /// Free (cost 0): a filler, an immediate repetition (up to four words), a stutter (a word that is a proper
+    /// prefix of the next one), a span that ENDS in a retraction marker (the retracted words before it and the
+    /// marker itself) when the retracted part is at most `min(words after the marker, up to the next marker +
+    /// 2, retractedSpanCap)`, and a digit word standing for number words of EQUAL value. Cost one: any other
+    /// inserted, deleted or different word before the replacement. In the replacement (after the last
+    /// marker) a spoken word may only be matched, removed as a filler, repetition or stutter, replaced by a
+    /// near form, or absorbed by an equal-valued digit: never deleted and never replaced by an unrelated word.
     static func derivationCost(spoken: [String], written: [String]) -> Int {
         let rows = spoken.count + 1
         let columns = written.count + 1
         guard rows * columns <= derivationLimit else { return Int.max }
         let infinity = Int.max / 2
+        let tailStart = replacementStart(spoken) ?? spoken.count
 
-        // Free removals from each input position: (end index) of a span deleted at no cost.
         var freeEnds = [[Int]](repeating: [], count: rows)
         let markers = occurrences(of: retractionMarkers, in: spoken)
         for index in 0..<spoken.count {
@@ -176,7 +253,8 @@ enum FormatterGuard {
         for marker in markers {
             let nextStart = markers.map(\.start).filter { $0 >= marker.end }.min() ?? spoken.count
             let after = nextStart - marker.end
-            for start in stride(from: marker.start, through: 0, by: -1) where marker.start - start <= after + 2 {
+            let allowed = min(after + 2, retractedSpanCap)
+            for start in stride(from: marker.start, through: 0, by: -1) where marker.start - start <= allowed {
                 freeEnds[start].append(marker.end)
             }
         }
@@ -192,19 +270,23 @@ enum FormatterGuard {
                 let here = cost[row * columns + column]
                 if here >= infinity { continue }
                 if row < spoken.count {
-                    relax(row + 1, column, here + 1)
+                    if row < tailStart { relax(row + 1, column, here + 1) }
                     for end in freeEnds[row] { relax(end, column, here) }
                 }
-                if column < written.count {
-                    let hasDigit = written[column].contains(where: \.isNumber)
-                    relax(row, column + 1, here + (hasDigit ? 0 : 1))
-                    if row < spoken.count {
-                        relax(row + 1, column + 1, here + (spoken[row] == written[column] ? 0 : 1))
-                        if hasDigit {
-                            for length in 1...4 where row + length <= spoken.count {
-                                relax(row + length, column + 1, here)
-                            }
-                        }
+                guard column < written.count else { continue }
+                relax(row, column + 1, here + 1)
+                guard row < spoken.count else { continue }
+                if spoken[row] == written[column] {
+                    relax(row + 1, column + 1, here)
+                } else if isNearForm(spoken[row], written[column]) {
+                    relax(row + 1, column + 1, here + 1)
+                } else if row < tailStart {
+                    relax(row + 1, column + 1, here + 1)
+                }
+                for group in NumberWords.digitValues(in: written, at: column) {
+                    for length in 1...min(9, spoken.count - row)
+                    where NumberWords.value(of: Array(spoken[row..<(row + length)])) == group.value {
+                        relax(row + length, column + group.tokens, here)
                     }
                 }
             }
@@ -238,11 +320,6 @@ enum FormatterGuard {
     private static func tokens(_ text: String) -> [String] {
         text.lowercased().replacingOccurrences(of: "’", with: "'")
             .split { !($0.isLetter || $0.isNumber || $0 == "'") }.map(String.init)
-    }
-
-    private static func contains(_ tokens: [String], phrase: [String]) -> Bool {
-        guard !phrase.isEmpty, tokens.count >= phrase.count else { return false }
-        return (0...(tokens.count - phrase.count)).contains { Array(tokens[$0..<($0 + phrase.count)]) == phrase }
     }
 
     static func words(in text: String) -> Int {
