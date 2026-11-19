@@ -401,11 +401,51 @@ import Testing
         let shown = state.model.current
         (state, _) = EngineReducer.reduce(state, .displaysChanged([placeholder], now: t0 + 10))
         let squeezed = CGRect(x: 0, y: 0, width: 400, height: 720)
-        (state, _) = EngineReducer.reduce(state, .windowMoved(id(1), frame: squeezed, now: t0 + 10.5))
+        // Past the echo window of the engine's own frame requests, so only the settle guard can refuse them.
+        (state, _) = EngineReducer.reduce(state, .windowMoved(id(1), frame: squeezed, now: t0 + 10.6))
         (state, _) = EngineReducer.reduce(state, .displaysChanged([FakeWindowClient.mainDisplay], now: t0 + 11.7))
-        (state, _) = EngineReducer.reduce(state, .windowMoved(id(1), frame: squeezed, now: t0 + 12))
+        (state, _) = EngineReducer.reduce(state, .windowMoved(id(1), frame: squeezed, now: t0 + 12.3))
         #expect(state.layouts == layouts)
         #expect(state.model.current == shown)
         #expect(state.diagnostics.resizesIgnoredDuringDisplaySettle == 2)
+    }
+
+    @Test func aSizeChangeThatWouldNotBeAdoptedAnywayIsNotCounted() {
+        var state = settled()
+        (state, _) = EngineReducer.reduce(state, .displaysChanged([FakeWindowClient.mainDisplay], now: t0 + 10))
+        let floating = id(2)
+        state.floating.insert(floating)
+        let frame = state.windows[floating]!.frame.insetBy(dx: 20, dy: 20)
+        let (next, _) = EngineReducer.reduce(state, .windowMoved(floating, frame: frame, now: t0 + 11))
+        #expect(next.diagnostics.resizesIgnoredDuringDisplaySettle == 0)
+    }
+
+    @Test func theFirstSnapshotDoesNotStartTheSettleTime() {
+        #expect(settled().displaySettleUntil == -.infinity)
+    }
+
+    @Test func aSnapshotWithOtherDisplaysStartsTheSettleTime() {
+        var state = settled()
+        let windows = (1...3).map { makeWindow(UInt32($0)) }
+        (state, _) = EngineReducer.reduce(
+            state,
+            .snapshot(
+                windows: windows, displays: [placeholder], focused: nil, processStarts: [100: 1_100.0], now: t0 + 10))
+        #expect(state.displaySettleUntil == t0 + 10 + ReducerContext.displaySettleDuration)
+        let (next, _) = EngineReducer.reduce(state, .windowMoved(id(1), frame: widened(state), now: t0 + 11))
+        #expect(next.userResize == nil)
+        #expect(next.diagnostics.resizesIgnoredDuringDisplaySettle == 1)
+    }
+
+    @Test func aSnapshotWithTheSameOrNoDisplaysDoesNotStartTheSettleTime() {
+        var state = settled()
+        let windows = (1...3).map { makeWindow(UInt32($0)) }
+        for displays in [[FakeWindowClient.mainDisplay], []] {
+            (state, _) = EngineReducer.reduce(
+                state,
+                .snapshot(
+                    windows: windows, displays: displays, focused: nil, processStarts: [100: 1_100.0], now: t0 + 10))
+            #expect(state.displaySettleUntil == -.infinity)
+        }
     }
 }
