@@ -66,7 +66,7 @@ Decyzja właściciela nr 3: **notatka to podsumowanie spotkania**. Czytelnik, kt
 
 - **ustalenia**: co stwierdzono i na czym stanęło, także „nic nie postanowiono, temat wraca”;
 - **decyzje**: co postanowiono;
-- **zadania**: kto, co, do kiedy. Osoba i termin tylko wtedy, gdy padły w spotkaniu.
+- **zadania**: kto, co, do kiedy. Osoba i termin tylko wtedy, gdy padły na spotkaniu.
 
 Wadą notatki jest:
 
@@ -113,7 +113,7 @@ WADY FORMATU (format_defects), każda kategoria raz, z liczbą wystąpień (coun
 - wrong_section: decyzja wśród zadań, zadanie wśród ustaleń, pomysł wśród decyzji bez zmiany sensu.
 - verbosity: wata, ogólniki („omówiono różne kwestie”), pogawędki.
 - missing_summary: brak krótkiego podsumowania na górze przy niepustej notatce.
-- language: notatka lub jej część w innym języku niż dominujący język transkryptu; błędy gramatyki i znaków diakrytycznych. Obce terminy, które padły w spotkaniu, są dozwolone.
+- language: notatka lub jej część w innym języku niż dominujący język transkryptu; błędy gramatyki i znaków diakrytycznych. Obce terminy, które padły na spotkaniu, są dozwolone.
 - markup: zepsuty Markdown, puste sekcje, nagłówek bez treści, lista w jednym akapicie.
 Sama długość notatki nie jest zaletą ani wadą.
 
@@ -165,7 +165,7 @@ Wymiar `tasks` celowo liczy drugi raz to, co już weszło do `coverage` i `faith
 
 ## 5. Skala i progi
 
-**Wynik jednego przebiegu.** Cztery wymiary 0–4 i `overall` 0–100 ze wzoru. Walidator przelicza kotwice z list (`caps`): ocena wyższa niż wynika z list jest obniżana do kotwicy i dostaje flagę `<wymiar>_above_cap`; `overall` inne niż ze wzoru dostaje flagę `overall_mismatch` i liczy się wartość przeliczona.
+**Wynik jednego przebiegu.** Cztery wymiary 0–4 i `overall` 0–100 ze wzoru. Walidator przelicza kotwice z list (`caps`): ocena wyższa niż wynika z list jest obniżana do kotwicy i dostaje flagę `<wymiar>_above_cap`; `overall` inne niż ze wzoru dostaje flagę `overall_mismatch` i liczy się wartość przeliczona. Kotwic, których nie da się policzyć z samych list (zły właściciel lub termin prawdziwego zadania w `tasks`, „nic nie ustalono” w `coverage`, odwrócony główny wynik w `faithfulness`, „większość zadań” w `tasks`), walidator nie sprawdza: tam liczy się ocena sędziego, o ile nie przekracza kotwicy z list.
 
 **Werdykt notatki** liczy kod z 3 przebiegów (sekcja 8), nigdy sędzia:
 
@@ -186,7 +186,7 @@ Skutek decyzji 3 i 4: notatka z czasem albo oznaczeniem autora ma `formatting` n
 
 Gdy bramka nie przechodzi, tabela braków i zmyśleń według kategorii wyznacza, co naprawić najpierw; po poprawce ocenia się te same spotkania jeszcze raz.
 
-**Porównanie wariantów (zastępuje MEET-0.2).** Dwa warianty notatek do tych samych spotkań (inny model, prompt, kod) ocenia się osobno, każdy w 3 przebiegach. Wariant A jest lepszy od B tylko wtedy, gdy średnia z median `overall` różni się o więcej niż 5 punktów i o więcej niż większy z rozrzutów obu wariantów; inaczej raport mówi „brak rozstrzygnięcia”. Potwierdzone zmyślenia major podaje się obok, niezależnie od `overall`.
+**Porównanie wariantów (zastępuje MEET-0.2).** Dwa warianty notatek do tych samych spotkań (inny model, prompt, kod) ocenia się osobno, każdy w 3 przebiegach. Wariant A jest lepszy od B tylko wtedy, gdy średnia z median `overall` różni się o więcej niż 5 punktów i o więcej niż największy rozrzut `overall` wśród wszystkich par (spotkanie, wariant) obu wariantów; inaczej raport mówi „brak rozstrzygnięcia”. Potwierdzone zmyślenia major podaje się obok, niezależnie od `overall`.
 
 Progi 60, 80, 70 i 5 spotkań to **pierwsza propozycja bez danych**. Po pierwszej serii właściciel może je zmienić; zmiana podnosi wersję protokołu.
 
@@ -263,6 +263,7 @@ Dominujący język transkryptu: {{LANGUAGE}}
 - identyfikatory `reference[].id` są unikalne, każdy `omissions[].ref_id` istnieje na liście i występuje raz;
 - `owner` i `due` są puste poza zadaniami;
 - kategoria wady formatu występuje raz;
+- liczby są całkowite bez części ułamkowej (`3`, nie `3.0`, choć JSON Schema `integer` przyjmuje oba), a teksty niepuste także po usunięciu spacji;
 - z `--segments N` każdy numer segmentu mieści się w transkrypcie, z `--meeting ID` odpowiedź dotyczy ocenianego spotkania.
 
 Niepoprawna odpowiedź: jedna powtórka w świeżym kontekście; druga porażka = przebieg nieudany (zapisany, nieliczony, wymieniony w tabeli). Narzędzie sprawdza też, czy każdy `notes_quote` występuje dosłownie w `notes.md` (po normalizacji białych znaków); zmyślenie z cytatem, którego nie ma w notatce, nie liczy się i podnosi licznik `unverified_quote`.
@@ -272,7 +273,7 @@ Niepoprawna odpowiedź: jedna powtórka w świeżym kontekście; druga porażka 
 1. **Treść zostaje poza repozytorium.** Transkrypt, notatka, odpowiedzi sędziego (lista odniesienia, cytaty, uzasadnienia, `evidence`) i uwagi właściciela do konkretnych spotkań leżą tylko na zaszyfrowanym obrazie. Nie trafiają do repozytorium, PR-ów, zgłoszeń, logów CI ani do katalogów tymczasowych poza obrazem.
 2. **Do repozytorium wyłącznie liczby i kategorie.** Dozwolone jest to, co wypisują `validate_judge_result.py public` i `aggregate`: oceny, `overall`, RECALL, liczniki braków i zmyśleń według kategorii i wagi, nazwy kategorii wad formatu, flagi, werdykt. Spotkanie nazywa się etykietą porządkową (`M01`, `M02`); klucz etykieta → spotkanie zostaje na obrazie.
 3. **Wysłanie transkryptu do dostawcy chmurowego to świadoma decyzja właściciela** (decyzja 2 z 2026-11-19). Uchyla ona M-Q5 **tylko dla tego sędziego** i tylko dla spotkań właściciela. Lokalny panel (`judge_panel.py` z `require_local_judge`), zbiór wzorcowy i jego pole `consent` działają jak dotąd; żaden inny sędzia chmurowy nie jest przez to dozwolony.
-4. **Informacja dla uczestników: decyzja właściciela z 2026-11-19.** Tekst informacji dla uczestników spotkań zostaje bez zmian; nie wspomina o sędzim Fable ani o chmurze. Pierwszy przebieg na prawdziwych spotkaniach nie czeka na nic więcej.
+4. **Informacja dla uczestników: decyzja właściciela z 2026-11-19.** Tekst informacji dla uczestników spotkań zostaje bez zmian; nie wspomina o sędzi Fable ani o chmurze. Pierwszy przebieg na prawdziwych spotkaniach nie czeka na nic więcej.
 5. **Zgoda na spotkanie jest jawna.** Narzędzie wysyła spotkanie tylko wtedy, gdy `meta.json` ma `judge_consent.fable_cloud: true`, wpisane przez właściciela przy eksporcie. Spotkanie, którego właściciel nie chce wysyłać, po prostu nie jest eksportowane.
 6. **Do dostawcy idzie tylko prompt z sekcji 6.** Bez tytułu spotkania, dat, ścieżek, nazw plików, adresów e-mail i danych konta poza tym, czego wymaga samo wywołanie. Dźwięk nigdy nie jest wysyłany.
 7. Warunki przetwarzania po stronie dostawcy (przechowywanie, użycie danych) ten protokół przyjmuje za sprawdzone przez właściciela; nie opisuje ich i niczego o nich nie zakłada.
@@ -285,7 +286,7 @@ Niepoprawna odpowiedź: jedna powtórka w świeżym kontekście; druga porażka 
 - **Kolejność** wszystkich przebiegów serii jest losowana z zapisanym ziarnem; przebiegi tej samej pary nie następują bezpośrednio po sobie.
 - **Wynik pary:** w każdym wymiarze i dla `overall` mediana i rozrzut (max − min), zapis `mediana ± rozrzut`.
 - **Niestabilny** jest wynik z rozrzutem > 1 w którymkolwiek wymiarze albo > 10 w `overall`. Taki wynik nie dostaje `pass`, nie rozstrzyga porównań wariantów, a właściciel czyta `evidence` przebiegów na obrazie.
-- **Zmyślenie potwierdzone** to takie, które wskazała więcej niż połowa przebiegów (2 z 3). Dwa przebiegi wskazują to samo zmyślenie, gdy cytat z notatki jednego zawiera cytat drugiego (po normalizacji wielkości liter i białych znaków). Zmyślenia wskazane raz podaje się osobno (`single_run`) i nie liczą się do werdyktu.
+- **Zmyślenie potwierdzone** to takie, które wskazała więcej niż połowa przebiegów (2 z 3). Dwa przebiegi wskazują to samo zmyślenie, gdy cytat z notatki jednego zawiera cytat drugiego (po normalizacji wielkości liter i białych znaków). Potwierdzone zmyślenie jest major, gdy co najmniej połowa jego wskazań ma severity major; jego kategoria to kategoria najczęstsza wśród wskazań. Zmyślenia wskazane przez połowę przebiegów lub mniej podaje się osobno (`single_run`) i nie liczą się do werdyktu. Jeden plik odpowiedzi liczy się raz: `aggregate` odrzuca ten sam plik podany dwa razy.
 - **Braki** podaje się jako medianę liczby braków w kategorii, bo lista odniesienia powstaje w każdym przebiegu od nowa i pozycji między przebiegami nie da się zestawić jeden do jednego.
 
 Znane ograniczenia:
@@ -345,7 +346,7 @@ Decyzja 2 przewiduje, że właściciel nanosi swoje uwagi później. Są dwa mie
 | Data | Wersja protokołu | Uwaga właściciela | Skutek |
 |---|---|---|---|
 | 2026-11-19 | 1 | Zgoda na ocenianie wszystkich spotkań właściciela przez Fable (decyzja 2); uchylenie M-Q5 tylko dla tego sędziego. | Ten protokół; sekcja 7 pkt 3. |
-| 2026-11-19 | 1 | Tekst informacji dla uczestników bez zmian; nie wspomina o sędzim Fable ani o chmurze. Pierwszy przebieg nie czeka na właściciela. | Sekcja 7 pkt 4. |
+| 2026-11-19 | 1 | Tekst informacji dla uczestników bez zmian; nie wspomina o sędzi Fable ani o chmurze. Pierwszy przebieg nie czeka na właściciela. | Sekcja 7 pkt 4. |
 | | | | |
 
 Zgodność sędziego z właścicielem (uzupełniana po każdej serii, same liczby):

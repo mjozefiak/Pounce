@@ -16,6 +16,7 @@ Exit codes: 0 valid (or trap caught), 1 invalid (or trap missed), 2 usage/input 
 
 import argparse
 import json
+import os
 import re
 import statistics
 import sys
@@ -499,7 +500,9 @@ def main(argv=None):
             print(json.dumps(public_record(_valid(args.result), args.label), ensure_ascii=False, indent=2))
             return 0
         if args.cmd == "aggregate":
-            agg = aggregate([_valid(path) for path in args.results], args.label)
+            if len({os.path.realpath(path) for path in args.results}) != len(args.results):
+                raise InputError("aggregate: the same answer file is given more than once")
+            agg =aggregate([_valid(path) for path in args.results], args.label)
             print(MARKDOWN_HEADER + "\n" + markdown_row(agg) if args.markdown
                   else json.dumps(agg, ensure_ascii=False, indent=2))
             return 0

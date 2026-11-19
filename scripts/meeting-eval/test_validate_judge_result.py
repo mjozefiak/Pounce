@@ -76,10 +76,12 @@ class ValidateResultTests(unittest.TestCase):
         r["fabrications"] = [fabrication(category="invented", severity="huge")]
         r["format_defects"] = [{"category": "ugly", "count": 0, "why": "x"}]
         r["scores"]["coverage"] = 5
+        r["scores"]["tasks"] = 3.0  # JSON Schema "integer" would take it; the validator does not
         r["overall"] = True
         errors = vj.validate_result(r)
         for path in ("protocol_version", "reference[0].kind", "fabrications[0].category", "fabrications[0].severity",
-                     "format_defects[0].category", "format_defects[0].count", "scores.coverage", "overall"):
+                     "format_defects[0].category", "format_defects[0].count", "scores.coverage", "scores.tasks",
+                     "overall"):
             self.assertTrue(any(e.startswith(path + ":") for e in errors), path)
 
     def test_references_between_lists(self):
@@ -370,10 +372,19 @@ class MainTests(unittest.TestCase):
         trap = os.path.join(EXAMPLES, "result-trap.example.json")
         code, out, _ = run_main(["public", "--label", "M01", trap])
         self.assertEqual((code, json.loads(out)["overall"]), (0, 46))
-        code, out, _ = run_main(["aggregate", "--markdown", "--label", "M01", trap, trap, trap])
-        self.assertEqual(code, 0)
-        self.assertTrue(out.startswith(vj.MARKDOWN_HEADER))
-        self.assertEqual(run_main(["aggregate", trap, trap])[0], 2)
+        with tempfile.TemporaryDirectory() as tmp:
+            runs = []
+            for i in range(3):
+                runs.append(os.path.join(tmp, f"run-{i + 1}.json"))
+                with open(runs[-1], "w", encoding="utf-8") as f:
+                    json.dump(example("result-trap.example.json"), f)
+            code, out, _ = run_main(["aggregate", "--markdown", "--label", "M01"] + runs)
+            self.assertEqual(code, 0)
+            self.assertTrue(out.startswith(vj.MARKDOWN_HEADER))
+            self.assertEqual(run_main(["aggregate"] + runs[:2])[0], 2)
+            code, _, err = run_main(["aggregate", runs[0], runs[1], runs[0]])
+            self.assertEqual(code, 2)
+            self.assertIn("more than once", err)
         expected = os.path.join(EXAMPLES, "trap-expected.json")
         code, out, _ = run_main(["check-trap", "--expected", expected, trap])
         self.assertEqual((code, out.strip()), (0, "trap caught: fabrications 2/2, omissions 1/1, format defects 2/2"))

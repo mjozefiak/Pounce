@@ -21,12 +21,11 @@ The layout follows the existing harness (MEET-1.2 to MEET-1.4 live in `scripts/m
 - The tool that calls the judge (B2, kept outside the repository).
 - Any change to Swift sources, to `notes-rubric.md`, `judge_panel.py` or the gold set format.
 - Any real meeting or dictation content. Every example is invented.
-- Resolving the open point about informing participants: it waits for the owner.
+- Any change to the participant-information text: by the owner's decision of 2026-11-19 it stays unchanged, does not mention the Fable judge or the cloud, and the first run on real meetings does not wait for the owner (recorded in `fable-judge.md` section 7 point 4 and section 11).
 
 ## Risks
 
 - The thresholds are a first proposal without measured data; the protocol says so and versions them.
-- The open point (informing participants) blocks the first run on real meetings, not this PR.
 
 ## Validation
 
