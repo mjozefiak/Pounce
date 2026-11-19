@@ -172,6 +172,15 @@ public final class DictationPlugin: LintelPlugin {
         }
     }
 
+    /// The vocabulary step of a dictation (DICT-1.1): the user's terms replace what was said, or nothing
+    /// changes while `plugins.dictation.vocabularyEnabled` is off or the vocabulary is empty. Read per call, so
+    /// the switch and edits apply to the next dictation.
+    nonisolated static func termReplacement(
+        settings: DictationSettings, vocabulary: VocabularyStore
+    ) -> @Sendable (String) -> String {
+        { text in settings.vocabularyEnabled ? vocabulary.replacer.apply(to: text) : text }
+    }
+
     // MARK: Lifecycle
 
     public func activate() async throws {
@@ -195,7 +204,7 @@ public final class DictationPlugin: LintelPlugin {
                         engine: engine,
                         formatter: Self.formatter(
                             settings: settings, transport: transport, builtIn: builtInLLM, logger: context.logger),
-                        replaceTerms: { settings.vocabularyEnabled ? vocabulary.replacer.apply(to: $0) : $0 },
+                        replaceTerms: Self.termReplacement(settings: settings, vocabulary: vocabulary),
                         modelFolder: folder, lease: lease, modelID: settings.speechModelID,
                         keepWarm: { settings.keepWarm }, logger: context.logger, onEvent: onEvent)
                 },

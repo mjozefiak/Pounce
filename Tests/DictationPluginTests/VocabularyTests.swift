@@ -152,3 +152,51 @@ private func makeDirectory() throws -> URL {
         #expect(empty == plain)
     }
 }
+
+@MainActor
+@Suite struct VocabularyPluginTests {
+    private let sample = [VocabularyStore.Term(term: "AuthService", aliases: ["auth service"])]
+
+    private func replacement(
+        _ harness: DictationHarness, terms: [VocabularyStore.Term]
+    ) throws -> @Sendable (String) -> String {
+        let store = VocabularyStore(directory: harness.context.storageDirectory)
+        try store.save(terms)
+        return DictationPlugin.termReplacement(settings: DictationSettings(harness.context.settings), vocabulary: store)
+    }
+
+    @Test func theVocabularyIsAppliedByDefault() throws {
+        let harness = try DictationHarness()
+        defer { harness.tearDown() }
+        let replace = try replacement(harness, terms: sample)
+        #expect(replace("open auth service") == "open AuthService")
+    }
+
+    @Test func switchedOffTheTextIsUnchangedWhateverTheVocabulary() throws {
+        let harness = try DictationHarness(settings: ["plugins.dictation.vocabularyEnabled": .bool(false)])
+        defer { harness.tearDown() }
+        let replace = try replacement(harness, terms: sample)
+        #expect(replace("open auth service") == "open auth service")
+    }
+
+    @Test func anEmptyVocabularyLeavesTheTextUnchanged() throws {
+        let harness = try DictationHarness()
+        defer { harness.tearDown() }
+        let replace = try replacement(harness, terms: [])
+        #expect(replace("open auth service") == "open auth service")
+    }
+
+    @Test func eraseDataRemovesTheVocabularyAndItsCorruptCopy() async throws {
+        let harness = try DictationHarness()
+        defer { harness.tearDown() }
+        let plugin = DictationPlugin(context: harness.context)
+        try plugin.vocabulary.save(sample)
+        let corrupt = harness.context.storageDirectory.appending(path: VocabularyStore.corruptFileName)
+        try Data("x".utf8).write(to: corrupt)
+        #expect(FileManager.default.fileExists(atPath: plugin.vocabulary.fileURL.path))
+        try await plugin.eraseData()
+        #expect(!FileManager.default.fileExists(atPath: plugin.vocabulary.fileURL.path))
+        #expect(!FileManager.default.fileExists(atPath: corrupt.path))
+        #expect(plugin.vocabulary.replacer.isEmpty)
+    }
+}
