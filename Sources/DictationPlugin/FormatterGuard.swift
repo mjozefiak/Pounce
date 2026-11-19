@@ -25,9 +25,10 @@ enum FormatterGuard {
 
     /// The lower bound for a chunk in which the speaker withdrew something or hesitated: removing a retracted
     /// fragment and its marker legitimately cuts the text by more than the ordinary bound allows ("pójdziemy
-    /// na pizzę albo jednak na sushi" is 7 words, "Pójdziemy na sushi." is 3, a ratio of 0.43). The shortest
-    /// correct result of the synthetic self-correction corpus is 0.38 (the model removes the retracted part and
-    /// the marker, never more), so 0.3 leaves room and still rejects an output that is a fragment of the input.
+    /// na pizzę albo jednak na sushi" is 7 words, "Pójdziemy na sushi." is 3, a ratio of 0.43). The value 0.3
+    /// was tuned on the synthetic self-correction corpus (its shortest correct result is 0.38), so it is only a
+    /// coarse outer limit. It is not the safety mechanism: `onlyRemovesFragments` is, because it accepts a cut
+    /// only where code can derive it from the input (a filler, a repetition, or a span that ends in a marker).
     static let removalFloor = 0.3
 
     /// For any chunk of at least five words: the share of novel words above which the output is not a cleaned
@@ -118,14 +119,112 @@ enum FormatterGuard {
         return (retractionMarkers + fillers).contains { contains(tokens, phrase: $0) }
     }
 
-    /// For a relaxed chunk: the output adds (almost) no word to the input and keeps the input's last word, so
-    /// it is the input with fragments removed, not a summary or another text.
+    /// The most edits (substitutions, insertions, deletions that are not derivable from the input) a relaxed
+    /// chunk may need: two for inflection and punctuation-like slips, or a fifth of the output's words.
+    static func editBudget(outputWords: Int) -> Int {
+        max(2, Int((0.2 * Double(outputWords)).rounded(.up)))
+    }
+
+    /// The largest chunk (input words times output words) the derivation check works on; a bigger one is
+    /// refused, which makes the chunk fall back to the raw text.
+    private static let derivationLimit = 4_000_000
+
+    /// For a relaxed chunk: the output is the input with only the removals the closed lists allow, and keeps
+    /// the input's last word, so it is not a summary, a cut middle or another text.
+    ///
+    /// The output must be derivable from the input at a small cost (`editBudget`). Free removals: a filler, an
+    /// immediate repetition (up to four words), a stutter (a word that is a proper prefix of the next one), and
+    /// a span that ENDS in a retraction marker (the retracted words before the marker and the marker itself),
+    /// when the retracted part is not longer than the words the speaker said after the marker (up to the next
+    /// marker) plus two. A word with digits in the output may stand for one to four spoken words (a number
+    /// written as digits) or be inserted. Any other difference costs one per word.
     static func onlyRemovesFragments(input: String, output: String) -> Bool {
         let spoken = tokens(input)
         let written = tokens(output)
         guard let lastSpoken = spoken.last, let lastWritten = written.last else { return false }
         if novelShare(input: input, output: output) > maximumNovelShare { return false }
-        return lastWritten == lastSpoken || lastWritten.contains(where: \.isNumber)
+        guard lastWritten == lastSpoken || lastWritten.contains(where: \.isNumber) else { return false }
+        return derivationCost(spoken: spoken, written: written) <= editBudget(outputWords: written.count)
+    }
+
+    /// The cheapest way to turn `spoken` into `written` (see `onlyRemovesFragments`); `Int.max` when the
+    /// chunk is too large to check.
+    static func derivationCost(spoken: [String], written: [String]) -> Int {
+        let rows = spoken.count + 1
+        let columns = written.count + 1
+        guard rows * columns <= derivationLimit else { return Int.max }
+        let infinity = Int.max / 2
+
+        // Free removals from each input position: (end index) of a span deleted at no cost.
+        var freeEnds = [[Int]](repeating: [], count: rows)
+        let markers = occurrences(of: retractionMarkers, in: spoken)
+        for index in 0..<spoken.count {
+            for phrase in fillers where matches(spoken, phrase, at: index) {
+                freeEnds[index].append(index + phrase.count)
+            }
+            for length in 1...4 where index + 2 * length <= spoken.count {
+                if spoken[index..<(index + length)] == spoken[(index + length)..<(index + 2 * length)] {
+                    freeEnds[index].append(index + length)
+                }
+            }
+            if index + 1 < spoken.count, spoken[index] != spoken[index + 1],
+                spoken[index + 1].hasPrefix(spoken[index])
+            {
+                freeEnds[index].append(index + 1)
+            }
+        }
+        for marker in markers {
+            let nextStart = markers.map(\.start).filter { $0 >= marker.end }.min() ?? spoken.count
+            let after = nextStart - marker.end
+            for start in stride(from: marker.start, through: 0, by: -1) where marker.start - start <= after + 2 {
+                freeEnds[start].append(marker.end)
+            }
+        }
+
+        var cost = [Int](repeating: infinity, count: rows * columns)
+        cost[0] = 0
+        func relax(_ row: Int, _ column: Int, _ value: Int) {
+            let slot = row * columns + column
+            if value < cost[slot] { cost[slot] = value }
+        }
+        for row in 0..<rows {
+            for column in 0..<columns {
+                let here = cost[row * columns + column]
+                if here >= infinity { continue }
+                if row < spoken.count {
+                    relax(row + 1, column, here + 1)
+                    for end in freeEnds[row] { relax(end, column, here) }
+                }
+                if column < written.count {
+                    let hasDigit = written[column].contains(where: \.isNumber)
+                    relax(row, column + 1, here + (hasDigit ? 0 : 1))
+                    if row < spoken.count {
+                        relax(row + 1, column + 1, here + (spoken[row] == written[column] ? 0 : 1))
+                        if hasDigit {
+                            for length in 1...4 where row + length <= spoken.count {
+                                relax(row + length, column + 1, here)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return cost[rows * columns - 1]
+    }
+
+    private static func matches(_ tokens: [String], _ phrase: [String], at index: Int) -> Bool {
+        index + phrase.count <= tokens.count && Array(tokens[index..<(index + phrase.count)]) == phrase
+    }
+
+    /// Where the marker phrases occur in the tokens, as half-open ranges.
+    private static func occurrences(of phrases: [[String]], in tokens: [String]) -> [(start: Int, end: Int)] {
+        var found: [(start: Int, end: Int)] = []
+        for index in 0..<tokens.count {
+            for phrase in phrases where matches(tokens, phrase, at: index) {
+                found.append((index, index + phrase.count))
+            }
+        }
+        return found
     }
 
     /// The share of the output's words (digits not counted) that the input does not hold.

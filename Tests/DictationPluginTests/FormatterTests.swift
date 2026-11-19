@@ -153,6 +153,136 @@ final class ScriptedTransport: HTTPTransport, @unchecked Sendable {
                 == .accepted("Spotkanie jest o 11 w sali numer 5."))
     }
 
+    // The relaxed length bound is anchored to a marker (owner decision 7 / ADR 0010, review of PR #134).
+
+    private func rejected(_ input: String, _ output: String) -> Bool {
+        if case .rejected = FormatterGuard.check(input: input, output: output) { return true }
+        return false
+    }
+
+    @Test func wordsThatAreNotMarkersNeverRelaxTheBound() {
+        // "albo", "nie", "or" and "no" alone are ordinary words: a 50% cut stays too short.
+        let polish = "weźmiemy ser albo szynkę potem pójdziemy do domu albo do kina nie w piątek"
+        #expect(FormatterGuard.check(input: polish, output: "Weźmiemy ser albo szynkę potem.") == .rejected(.tooShort))
+        let english = "we can take the bus or the tram then walk home or call a cab no problem at all"
+        #expect(
+            FormatterGuard.check(input: english, output: "We can take the bus or the tram.") == .rejected(.tooShort))
+    }
+
+    @Test(arguments: [
+        // A marker word used as content, and the model cuts a middle or a tail that no marker anchors.
+        (
+            "ten rower jest jednak droższy niż myślałem ale dobrze jeździ po lesie i po mieście",
+            "Ten rower jeździ po lesie i po mieście."
+        ),
+        (
+            "ta kurtka jest właściwie za duża na mnie ale ciepła i lekka więc zabiorę ją w góry",
+            "Ta kurtka jest ciepła w góry."
+        ),
+        (
+            "zamknij okno i czekaj na kuriera w przedpokoju bo dzwonek jest zepsuty od zeszłego tygodnia",
+            "Zamknij okno od zeszłego tygodnia."
+        ),
+        (
+            "it's actually cheaper to rent the van for a week than to buy one and pay for parking every month",
+            "It's cheaper to rent the van for a week every month."
+        ),
+        (
+            "please wait for the electrician in the hallway because the bell is broken since last week",
+            "Please wait for the electrician since last week."
+        ),
+        (
+            "I'm sorry to say the garden gate was left open all night and then the dog ran off down the road",
+            "I'm sorry to say the gate ran off down the road."
+        ),
+    ])
+    func aMarkerWordUsedAsContentDoesNotLicenseACutMiddleOrTail(input: String, output: String) {
+        #expect(rejected(input, output))
+    }
+
+    @Test func aLongChunkCannotLoseItsContentBeforeAMarkerNearTheEnd() {
+        let input =
+            "nasza ekipa przyjedzie z samego rana rozłoży narzędzia sprawdzi instalację elektryczną w całym budynku "
+            + "potem pomaluje korytarz i klatkę schodową nie czekaj pomaluje tylko klatkę"
+        #expect(rejected(input, "Nasza ekipa pomaluje tylko klatkę."))
+        // The honest version of the same retraction: only the retracted part and the marker go.
+        let honest =
+            "Nasza ekipa przyjedzie z samego rana, rozłoży narzędzia, sprawdzi instalację elektryczną w całym budynku "
+            + "potem pomaluje tylko klatkę."
+        #expect(FormatterGuard.check(input: input, output: honest) == .accepted(honest))
+    }
+
+    @Test func aMarkerAtTheStartRetractsNothing() {
+        let polish = "przepraszam że się spóźniłem ale korek na obwodnicy był naprawdę duży dziś rano"
+        #expect(rejected(polish, "Przepraszam, korek był duży dziś rano."))
+        let english = "actually the train was late again so we missed the first talk of the morning"
+        #expect(rejected(english, "Actually the train missed the morning."))
+    }
+
+    @Test(arguments: [
+        // Held-out retractions: not in the corpus, markers from the closed list, only the retraction goes.
+        ("przynieś z piwnicy drabinę nie czekaj dwie drabiny i wiadro", "Przynieś z piwnicy dwie drabiny i wiadro."),
+        (
+            "zaplanuj wizytę u lekarza na wtorek albo jednak na czwartek o ósmej trzydzieści",
+            "Zaplanuj wizytę u lekarza na czwartek o ósmej trzydzieści."
+        ),
+        (
+            "rower kosztuje dwieście złotych a właściwie dwieście pięćdziesiąt złotych z dostawą",
+            "Rower kosztuje 250 złotych z dostawą."
+        ),
+        (
+            "umówiliśmy się na basenie to znaczy na hali sportowej o osiemnastej",
+            "Umówiliśmy się na hali sportowej o osiemnastej."
+        ),
+        (
+            "put the ladder in the garage no wait in the shed behind the house",
+            "Put the ladder in the shed behind the house."
+        ),
+        ("the library closes at five I mean at six on weekdays", "The library closes at six on weekdays."),
+        ("we need twelve chairs sorry fourteen chairs for the hall", "We need 14 chairs for the hall."),
+        ("call the plumber on tuesday scratch that on wednesday morning", "Call the plumber on Wednesday morning."),
+    ])
+    func aHeldOutRetractionIsAccepted(input: String, output: String) {
+        #expect(FormatterGuard.check(input: input, output: output) == .accepted(output))
+    }
+
+    /// Known limitation: the guard cannot tell a negated imperative from a retraction marker. "nie czekaj" here
+    /// is an instruction to someone else, yet the output that drops everything before it is derivable from
+    /// the input, so it is accepted. Only the prompt (keep both versions when unsure) and the raw text
+    /// (`dictation.pasteLastRaw`) protect the user in this case.
+    @Test func aNegatedImperativeLooksLikeARetractionToTheGuard() {
+        let input = "napisz Piotrkowi nie czekaj na mnie z kolacją"
+        #expect(
+            FormatterGuard.check(input: input, output: "Na mnie z kolacją.") == .accepted("Na mnie z kolacją."))
+    }
+
+    @Test func attacksOnARetractionChunkAreRejected() {
+        let input = "zanieś paczkę do sąsiada nie czekaj do dozorcy przed szóstą"
+        #expect(FormatterGuard.check(input: input, output: "") == .rejected(.empty))
+        #expect(FormatterGuard.check(input: input, output: "  \n ") == .rejected(.empty))
+        // An answer to a dictated question.
+        let question = "what is the capital of france no wait of poland please tell me"
+        #expect(rejected(question, "The capital of Poland is Warsaw."))
+        // A translation, an unrelated text of the same length, a preface.
+        #expect(
+            FormatterGuard.check(input: input, output: "Take the parcel to the caretaker before six.")
+                == .rejected(.languageChanged))
+        #expect(rejected(input, "Pogoda w górach będzie jutro słoneczna i bardzo ciepła."))
+        #expect(
+            FormatterGuard.check(
+                input: input, output: "Here is the cleaned text: Zanieś paczkę do dozorcy przed szóstą.")
+                == .rejected(.answered))
+        // Longer than 1.15 times the input.
+        let longer = input + " i jeszcze zadzwoń do administracji w sprawie windy oraz klatki"
+        #expect(FormatterGuard.check(input: input, output: longer) == .rejected(.tooLong))
+        // A truncated start (the marker is near the end) and a truncated end.
+        let long =
+            "przygotuj dokumenty dla klienta z Poznania i sprawdź wszystkie załączniki przed wysyłką nie czekaj "
+            + "wyślij je jutro rano"
+        #expect(rejected(long, "Sprawdź wszystkie załączniki przed wysyłką, wyślij je jutro rano."))
+        #expect(FormatterGuard.check(input: input, output: "Zanieś paczkę do dozorcy.") == .rejected(.addedContent))
+    }
+
     @Test func languageDetection() {
         #expect(Language.dominant(in: "to jest bardzo ważne i nie ma czasu na to") == .polish)
         #expect(Language.dominant(in: "this is the thing that we should have done") == .english)
