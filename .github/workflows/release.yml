@@ -6,14 +6,19 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  # Pull requests build the DMG only when packaging can change: the scripts, the bundle's plist and entitlements,
+  # the package graph and this file. Source-only and docs-only pull requests are covered by ci.yml alone; the macOS
+  # runners are few and this job repeats the whole test run. To build a DMG for any other branch, run this workflow
+  # by hand (workflow_dispatch).
   pull_request:
     paths:
       - Package.swift
       - Package.resolved
       - .gitmodules
       - Packages/**
-      - Sources/**
-      - Resources/**
+      - Resources/Info.plist
+      - Resources/*.entitlements
+      - Resources/designated-requirement.txt
       - scripts/**
       - .github/workflows/release.yml
   workflow_dispatch:
@@ -28,6 +33,8 @@ concurrency:
 jobs:
   build:
     name: Build signed DMG
+    # Dependabot pull requests get no DMG build: they get no secrets, and ci.yml already builds and tests them.
+    if: github.actor != 'dependabot[bot]'
     # Same runner as CI: GitHub's Xcode 27 image (public preview, Apple silicon).
     runs-on: xcode-27
     timeout-minutes: 40
