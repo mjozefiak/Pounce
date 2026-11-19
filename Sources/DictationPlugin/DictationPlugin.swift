@@ -52,6 +52,8 @@ public final class DictationPlugin: LintelPlugin {
     private let formattingModel: FormattingSettingsModel
     private let transport: any HTTPTransport
     let history: DictationHistory
+    /// The user's vocabulary (DICT-1.1); loaded on activation, so the settings pane never reads the disk.
+    let vocabulary: VocabularyStore
     /// The history as a Notes source (`noteSources`); its change streams end on `deactivate()`.
     let noteSource: DictationNoteSource
     private let noteChanges = NoteChangeHub()
@@ -120,6 +122,7 @@ public final class DictationPlugin: LintelPlugin {
                 resultsChanged()
                 noteChanges.notify()
             })
+        vocabulary = VocabularyStore(directory: context.storageDirectory, logger: context.logger)
         noteSource = DictationNoteSource(history: history, hub: noteChanges)
         historyModel = HistorySettingsModel(settings: settings, history: history)
         let keptNoteCopies = context.keptNoteCopies
@@ -169,6 +172,15 @@ public final class DictationPlugin: LintelPlugin {
         }
     }
 
+    /// The vocabulary step of a dictation (DICT-1.1): the user's terms replace what was said, or nothing
+    /// changes while `plugins.dictation.vocabularyEnabled` is off or the vocabulary is empty. Read per call, so
+    /// the switch and edits apply to the next dictation.
+    nonisolated static func termReplacement(
+        settings: DictationSettings, vocabulary: VocabularyStore
+    ) -> @Sendable (String) -> String {
+        { text in settings.vocabularyEnabled ? vocabulary.replacer.apply(to: text) : text }
+    }
+
     // MARK: Lifecycle
 
     public func activate() async throws {
@@ -179,6 +191,7 @@ public final class DictationPlugin: LintelPlugin {
         let transport = transport
         let history = history
         let builtInLLM = builtInLLM
+        let vocabulary = vocabulary
         let controller = DictationController(
             .init(
                 authorizer: authorizer, models: models,
@@ -191,6 +204,7 @@ public final class DictationPlugin: LintelPlugin {
                         engine: engine,
                         formatter: Self.formatter(
                             settings: settings, transport: transport, builtIn: builtInLLM, logger: context.logger),
+                        replaceTerms: Self.termReplacement(settings: settings, vocabulary: vocabulary),
                         modelFolder: folder, lease: lease, modelID: settings.speechModelID,
                         keepWarm: { settings.keepWarm }, logger: context.logger, onEvent: onEvent)
                 },
@@ -209,6 +223,7 @@ public final class DictationPlugin: LintelPlugin {
         self.controller = controller
         relay.controller = controller
         history.open()
+        vocabulary.load()
         // The banner's state is known before the shell first reads it; coming back from System Settings or from
         // a download elsewhere re-reads it.
         await settingsModel.refreshStatus()
@@ -235,6 +250,8 @@ public final class DictationPlugin: LintelPlugin {
     /// Keychain item; the folder (`dictation.sqlite`) is deleted by the host. Downloaded models live in the
     /// shared `Models/` folder (ADR 0006) and stay; "Remove model" in Settings deletes them.
     public func eraseData() async throws {
+        // The vocabulary first: a history that cannot be erased must not keep the user's terms alive.
+        try vocabulary.erase()
         try history.erase()
     }
 
