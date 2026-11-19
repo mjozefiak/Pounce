@@ -71,6 +71,41 @@ import Testing
         ("wyślę to mailem albo jednak zadzwonię do klienta", "Wyślę to mailem."),
         ("kupimy czerwoną sofę albo jednak szarą sofę", "Kupimy czerwoną sofę."),
         ("kupimy czerwoną sofę albo jednak szarą sofę", "Kupimy sofę."),
+        // A second marker word after the correction (an apology, a hedge, an elaboration) must not move the
+        // protected replacement: the final version is still the words after the FIRST marker.
+        ("zamów dwie pizze nie czekaj trzy pizze jednak bez cebuli", "Zamów dwie pizze bez cebuli."),
+        ("zamów dwie pizze nie czekaj trzy pizze przepraszam", "Zamów dwie pizze."),
+        ("order two pizzas no wait three pizzas sorry", "Order two pizzas."),
+        (
+            "the meeting is at ten I mean eleven sorry for the late notice",
+            "The meeting is at ten for the late notice."
+        ),
+        (
+            "spotkanie jest o dziesiątej nie czekaj o jedenastej właściwie w sali konferencyjnej",
+            "Spotkanie jest o dziesiątej w sali konferencyjnej."
+        ),
+        ("spotkajmy się we wtorek nie czekaj w środę jednak", "Spotkajmy się we wtorek."),
+        ("book the dentist for monday no wait tuesday actually", "Book the dentist for Monday."),
+        (
+            "potrzebujemy pięćdziesięciu sztuk przepraszam sześćdziesięciu sztuk przepraszam",
+            "Potrzebujemy 50 sztuk."
+        ),
+        ("we need fifty units sorry sixty units wait", "We need 50 units."),
+        ("zamów dwie pizze nie czekaj trzy pizze to znaczy dużych", "Zamów dwie pizze dużych."),
+        // Number words of another value are not near forms ("sześćset" for "sześćdziesiąt").
+        ("budżet to sześćset złotych nie czekaj sześćdziesiąt złotych", "Budżet to sześćset złotych."),
+        ("we need eighteen units sorry eighty units", "We need eighteen units."),
+        ("we need seventy units sorry seventeen units", "We need seventy units."),
+        ("zamów cztery kartony nie czekaj czternaście kartonów", "Zamów cztery kartony."),
+        ("zamów trzy kartony nie czekaj trzynaście kartonów", "Zamów trzy kartony."),
+        ("spotkanie o dziewiątej nie czekaj o dziewiętnastej", "Spotkanie o dziewiątej."),
+        ("zamów siedemset sztuk przepraszam siedemdziesiąt sztuk", "Zamów siedemset sztuk."),
+        ("buy seven boxes sorry seventeen boxes", "Buy seven boxes."),
+        // A number word that starts the next one is not a stutter ("pięć pięćdziesiąt" is 5,50).
+        ("cena to cztery dwadzieścia nie czekaj pięć pięćdziesiąt", "Cena to 50."),
+        ("the price is five fifty sorry six sixty", "The price is 60."),
+        ("the train leaves at six fifteen sorry at seven seventeen", "The train leaves at 17."),
+        ("spotkanie o trzeciej nie czekaj o trzy trzydzieści", "Spotkanie o 30."),
     ])
     func keptWithdrawnAndLostFinalIsRejected(input: String, output: String) {
         #expect(!accepted(input, output), "\(output)")
@@ -171,6 +206,31 @@ import Testing
         #expect(accepted(input, output), "\(output)")
     }
 
+    @Test(arguments: [
+        ("zamów dwie pizze nie czekaj trzy pizze przepraszam", "Zamów trzy pizze."),
+        ("zamów dwie pizze nie czekaj trzy pizze jednak bez cebuli", "Zamów trzy pizze, jednak bez cebuli."),
+        ("order two pizzas no wait three pizzas sorry", "Order three pizzas."),
+        ("book the dentist for monday no wait tuesday actually", "Book the dentist for Tuesday."),
+        ("we need fifty units sorry sixty units actually", "We need 60 units."),
+        ("we need fifty units sorry sixty units wait", "We need 60 units."),
+        ("zamów dwie pizze nie czekaj trzy pizze przepraszam", "Zamów 3 pizze."),
+        ("cena to cztery dwadzieścia nie czekaj pięć pięćdziesiąt", "Cena to 5,50."),
+        ("cena to cztery dwadzieścia nie czekaj pięć pięćdziesiąt", "Cena to pięć pięćdziesiąt."),
+        ("the price is five fifty sorry six sixty", "The price is 6,60."),
+    ])
+    func aSecondMarkerAndNumberPairsKeepTheCorrectOutputAccepted(input: String, output: String) {
+        #expect(accepted(input, output), "\(output)")
+    }
+
+    /// The same rejection in a chunk of 34 words of context: a long chunk gets no extra room.
+    @Test func aTrailingMarkerInALongChunkStillRejectsTheLostFinalVersion() {
+        let context = (0..<34).map { "kontekst\($0)" }.joined(separator: " ")
+        let input = context + " zamów dwie pizze nie czekaj trzy pizze przepraszam"
+        let withdrawn = (context + " Zamów dwie pizze.")
+        #expect(!accepted(input, withdrawn))
+        #expect(accepted(input, context + " Zamów trzy pizze."))
+    }
+
     @Test func aDigitWithAnotherValueIsNotAbsorbed() {
         // 70 is not "sześćdziesięciu": the digit is an unrelated token in the replacement.
         #expect(
@@ -248,5 +308,13 @@ import Testing
         #expect(FormatterGuard.isNearForm("hanną", "hanna"))
         #expect(!FormatterGuard.isNearForm("nowak", "nowicki"))
         #expect(!FormatterGuard.isNearForm("do", "dla"))
+        // Number words of another value are never near forms; the same value in another case is.
+        for (word, other) in [
+            ("sześćset", "sześćdziesiąt"), ("trzy", "trzynaście"), ("cztery", "czternaście"),
+            ("seven", "seventeen"), ("eighteen", "eighty"), ("dziewiątej", "dziewiętnastej"),
+        ] {
+            #expect(!FormatterGuard.isNearForm(word, other), "\(word) \(other)")
+        }
+        #expect(FormatterGuard.isNearForm("piętnastej", "piętnastego"))
     }
 }

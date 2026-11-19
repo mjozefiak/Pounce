@@ -145,12 +145,11 @@ enum FormatterGuard {
         return fillerWords + markerWords + markers.count * retractedSpanCap
     }
 
-    /// Where the replacement starts: the end of the LAST marker occurrence, when words follow it; `nil` when
-    /// the chunk has no marker or ends on one.
+    /// Where the replacement starts: the end of the FIRST marker occurrence that has words after it; `nil`
+    /// when the chunk has no marker or every marker is at the end. A later marker ("sorry", "jednak" as an
+    /// apology or a hedge) sits inside the replacement and must not move its start past the real correction.
     static func replacementStart(_ tokens: [String]) -> Int? {
-        guard let last = occurrences(of: retractionMarkers, in: tokens).map(\.end).max(), last < tokens.count
-        else { return nil }
-        return last
+        occurrences(of: retractionMarkers, in: tokens).map(\.end).filter { $0 < tokens.count }.min()
     }
 
     /// The most edits (substitutions, insertions, deletions that are not derivable from the input) a chunk
@@ -169,6 +168,8 @@ enum FormatterGuard {
     /// "Nowicki"). Anything shorter than four letters must match exactly.
     static func isNearForm(_ word: String, _ other: String) -> Bool {
         if word == other { return true }
+        // Two number words of different value are different numbers ("sześćset" and "sześćdziesiąt").
+        if let x = NumberWords.value(of: [word]), let y = NumberWords.value(of: [other]), x != y { return false }
         let a = word.folding(options: .diacriticInsensitive, locale: nil).replacingOccurrences(of: "ł", with: "l")
         let b = other.folding(options: .diacriticInsensitive, locale: nil).replacingOccurrences(of: "ł", with: "l")
         if a == b { return true }
@@ -225,12 +226,14 @@ enum FormatterGuard {
     /// The cheapest way to turn `spoken` into `written`; `Int.max` when the chunk is too large to check.
     ///
     /// Free (cost 0): a filler, an immediate repetition (up to four words), a stutter (a word that is a proper
-    /// prefix of the next one), a span that ENDS in a retraction marker (the retracted words before it and the
-    /// marker itself) when the retracted part is at most `min(words after the marker, up to the next marker +
-    /// 2, retractedSpanCap)`, and a digit word standing for number words of EQUAL value. Cost one: any other
-    /// inserted, deleted or different word before the replacement. In the replacement (after the last
-    /// marker) a spoken word may only be matched, removed as a filler, repetition or stutter, replaced by a
-    /// near form, or absorbed by an equal-valued digit: never deleted and never replaced by an unrelated word.
+    /// prefix of the next one, unless it is a number word), a span that ENDS in a retraction marker (the
+    /// retracted words before it and the marker itself) when the retracted part is at most `min(words after
+    /// the marker, up to the next marker + 2, retractedSpanCap)`, and a digit word standing for number words
+    /// of EQUAL value. A marker with no words after it, or inside the replacement, frees only its own phrase.
+    /// Cost one: any other inserted, deleted or different word before the replacement. In the replacement
+    /// (after the first marker that has words after it) a spoken word may only be matched, removed as a
+    /// filler, repetition or stutter, replaced by a near form, or absorbed by an equal-valued digit: never
+    /// deleted and never replaced by an unrelated word.
     static func derivationCost(spoken: [String], written: [String]) -> Int {
         let rows = spoken.count + 1
         let columns = written.count + 1
@@ -250,7 +253,9 @@ enum FormatterGuard {
                 }
             }
             if index + 1 < spoken.count, spoken[index] != spoken[index + 1],
-                spoken[index + 1].hasPrefix(spoken[index])
+                spoken[index + 1].hasPrefix(spoken[index]),
+                // "pięć pięćdziesiąt" is 5,50: the first number word is not a stutter.
+                NumberWords.value(of: [spoken[index]]) == nil
             {
                 freeEnds[index].append(index + 1)
             }
@@ -258,7 +263,9 @@ enum FormatterGuard {
         for marker in markers {
             let nextStart = markers.map(\.start).filter { $0 >= marker.end }.min() ?? spoken.count
             let after = nextStart - marker.end
-            let allowed = min(after + 2, retractedSpanCap)
+            // A marker with no words after it retracts nothing, and a marker inside the replacement licenses
+            // no retracted span: only its own phrase is free.
+            let allowed = marker.start >= tailStart || after == 0 ? 0 : min(after + 2, retractedSpanCap, marker.start)
             for start in stride(from: marker.start, through: 0, by: -1) where marker.start - start <= allowed {
                 freeEnds[start].append(marker.end)
             }
