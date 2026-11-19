@@ -1,12 +1,21 @@
 name: Release
 
-# A tag like v0.1.0 or v0.1.0-beta.1 builds Lintel.dmg, signs it with the stable self-signed "Lintel Release"
-# identity and publishes a GitHub Release. The tag is the only source of the version: CFBundleShortVersionString is
-# the tag without "v" and CFBundleVersion is the number of commits (scripts/stamp-version.sh); the release notes are
-# the tag's section of CHANGELOG.md. A malformed tag, a tag outside main or a missing section fails the run in its
-# first step.
-# Pull requests that touch the app and manual runs build and sign the same DMG and upload it as a workflow
-# artifact without publishing anything.
+# A tag like v0.1.0 or v0.1.0-beta.1 builds Lintel.dmg, signs it with Developer ID, notarizes and staples it, and
+# publishes a GitHub Release. The tag is the only source of the version: CFBundleShortVersionString is the tag
+# without "v" and CFBundleVersion is the number of commits (scripts/stamp-version.sh); the release notes are the
+# tag's section of CHANGELOG.md. A malformed tag, a tag outside main or a missing section fails the run in its first
+# step.
+#
+# Three jobs (spec 2026-11-19-updates-and-open-source-hygiene, Step 2.3; docs/decisions/0010-distribution-and-updates.md):
+#   build    every trigger. No secrets, no Environment. Tests, an ad-hoc signed app (uploaded as a zip made with
+#            ditto, which keeps symlinks, permissions and extended attributes) and the release notes.
+#   sign     the only job with the Environment `release` (the Developer ID and notary secrets). Runs only for a v*
+#            tag and for a manual run with `sign: true` on main, never for a pull request. It compiles nothing,
+#            runs no tests and uses no third-party action: it takes ONLY the .app from the build job's artifact,
+#            re-signs it with the repository's own scripts, notarizes and staples the app and the DMG, and verifies.
+#   publish  tags only: the GitHub Release and the website dispatch.
+# Pull requests that touch the app, and manual runs without `sign`, build an ad-hoc DMG and upload it as a workflow
+# artifact without signing or publishing anything.
 on:
   push:
     tags: ["v*"]
@@ -21,27 +30,33 @@ on:
       - scripts/**
       - .github/workflows/release.yml
   workflow_dispatch:
+    inputs:
+      sign:
+        description: "Sign with Developer ID and notarize (only on main; asks the release Environment's reviewer). Publishes nothing."
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
+# One group for every tag run, with queueing switched on (`queue: max`, up to 100 waiting runs): a plain group keeps
+# only ONE waiting run and cancels the older ones, so two tags pushed together would lose the first. Runs of a tag go
+# one at a time and none is cancelled. Every other ref has its own group. `queue: max` cannot be combined with
+# `cancel-in-progress: true`, so a newer push to a pull request now queues behind the older run instead of cancelling it.
 concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ${{ startsWith(github.ref, 'refs/tags/') && 'release-tags' || format('release-{0}', github.ref) }}
+  queue: max
 
 jobs:
   build:
-    name: Build signed DMG
+    name: Build (ad-hoc)
     # Same runner as CI: GitHub's Xcode 27 image (public preview, Apple silicon).
     runs-on: xcode-27
     timeout-minutes: 40
+    permissions:
+      contents: read
     outputs:
       prerelease: ${{ steps.version.outputs.prerelease }}
-    env:
-      # Only the import step below sees the signing secrets. Every other step, including third-party
-      # actions, the tests and the build scripts, gets this flag and the temporary keychain instead.
-      HAS_SIGNING_SECRETS: ${{ secrets.SIGNING_P12 != '' }}
-      IDENTITY: Lintel Release
     steps:
       - uses: actions/checkout@v7
         with:
@@ -91,17 +106,106 @@ jobs:
           swift --version
           sw_vers
 
-      - name: Require signing secrets for releases
-        if: startsWith(github.ref, 'refs/tags/') && env.HAS_SIGNING_SECRETS != 'true'
-        run: |
-          echo "::error::SIGNING_P12 is not available; a release must be signed with the Lintel Release identity."
-          exit 1
+      - name: Test
+        run: swift test
 
-      - name: Import signing certificate into a temporary keychain
-        if: env.HAS_SIGNING_SECRETS == 'true'
+      # A tag builds the app only (the sign job makes the DMG from the signed app); every other run also builds an
+      # ad-hoc DMG, so pull requests keep checking the DMG script.
+      - name: Build app (and an ad-hoc DMG outside tags)
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            scripts/make-app.sh
+          else
+            scripts/make-dmg.sh
+            (cd dist && shasum -a 256 Lintel.dmg | tee Lintel.dmg.sha256)
+          fi
+
+      # ditto keeps symlinks (the frameworks' Versions/Current), permissions and extended attributes, which the
+      # upload-artifact zip would not for a directory. The sign job takes this one file and nothing else from here.
+      - name: Archive the app bundle
+        run: |
+          mkdir -p artifact-app
+          ditto -c -k --keepParent dist/Lintel.app artifact-app/Lintel.app.zip
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Lintel-app
+          path: artifact-app/Lintel.app.zip
+          compression-level: 0
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v7
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          name: release-notes
+          path: |
+            dist/CHANGELOG.md
+            dist/release-notes.md
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        with:
+          name: Lintel-adhoc-dmg
+          path: |
+            dist/Lintel.dmg
+            dist/Lintel.dmg.sha256
+          if-no-files-found: error
+
+  sign:
+    name: Sign and notarize (Developer ID)
+    needs: build
+    # Only a v* tag push, or a manual run with `sign` on main. Every alternative names its event, so a pull request
+    # (event pull_request) can never satisfy it. scripts/ and the workflow are those of the tagged / main commit.
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch' && inputs.sign == true && github.ref == 'refs/heads/main'
+    environment: release
+    runs-on: xcode-27
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    env:
+      IS_TAG_RUN: ${{ startsWith(github.ref, 'refs/tags/') }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # No third-party action in this job: Apple's tools, the repository's scripts and the two first-party actions.
+      - name: Select Xcode
+        run: |
+          XCODE="$(ls -d /Applications/Xcode_*.app 2>/dev/null | grep -vi beta | sort -V | tail -n 1 || true)"
+          if [[ -n "$XCODE" ]]; then
+            sudo xcode-select -s "$XCODE/Contents/Developer"
+          fi
+          echo "DEVELOPER_DIR=$(xcode-select -p)" >> "$GITHUB_ENV"
+          xcodebuild -version
+          xcrun notarytool --version
+          xcrun --find stapler
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: Lintel-app
+          path: artifact-app
+
+      # Only the .app is taken from the artifact (nothing else in it is used or run), into the place the scripts expect.
+      - name: Take the app bundle
+        run: |
+          [[ "$(ls artifact-app | wc -l | tr -d ' ')" == 1 && -f artifact-app/Lintel.app.zip ]] \
+            || { echo "::error::The Lintel-app artifact must hold exactly Lintel.app.zip."; exit 1; }
+          EXTRACT="$RUNNER_TEMP/app-extract"
+          rm -rf "$EXTRACT"
+          mkdir -p "$EXTRACT" dist
+          ditto -x -k artifact-app/Lintel.app.zip "$EXTRACT"
+          [[ -d "$EXTRACT/Lintel.app/Contents/MacOS" ]] || { echo "::error::The artifact holds no Lintel.app."; exit 1; }
+          rm -rf dist/Lintel.app
+          ditto "$EXTRACT/Lintel.app" dist/Lintel.app
+          rm -rf "$EXTRACT" artifact-app
+          plutil -lint dist/Lintel.app/Contents/Info.plist
+
+      - name: Import the Developer ID certificate into a temporary keychain
         env:
-          SIGNING_P12: ${{ secrets.SIGNING_P12 }}
-          SIGNING_P12_PASSWORD: ${{ secrets.SIGNING_P12_PASSWORD }}
+          DEVELOPER_ID_P12: ${{ secrets.DEVELOPER_ID_P12 }}
+          DEVELOPER_ID_P12_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
         run: |
           KEYCHAIN="$RUNNER_TEMP/lintel-signing.keychain-db"
           KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
@@ -115,88 +219,74 @@ jobs:
 
           P12="$RUNNER_TEMP/lintel-signing.p12"
           trap 'rm -f "$P12"' EXIT
-          (umask 077 && printf '%s' "$SIGNING_P12" | base64 --decode > "$P12")
-          security import "$P12" -k "$KEYCHAIN" -f pkcs12 -P "$SIGNING_P12_PASSWORD" -T /usr/bin/codesign >/dev/null
+          (umask 077 && printf '%s' "$DEVELOPER_ID_P12" | base64 --decode > "$P12")
+          security import "$P12" -k "$KEYCHAIN" -f pkcs12 -P "$DEVELOPER_ID_P12_PASSWORD" -T /usr/bin/codesign >/dev/null
           rm -f "$P12"
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
           security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
 
-          # The secrets may still hold the certificate of the previous app name (docs/signing.md, "The
-          # certificate was renamed with the app"). A release must not go out unsigned, so a tag fails; a pull
-          # request builds the DMG ad-hoc and warns, instead of turning every PR red until the secrets rotate.
-          if ! security find-identity -p codesigning "$KEYCHAIN" | grep -q "\"$IDENTITY\""; then
-            if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-              echo "::error::SIGNING_P12 holds no certificate named \"$IDENTITY\". Create it and replace the secrets (docs/signing.md)."
-              exit 1
-            fi
-            echo "::warning::SIGNING_P12 holds no certificate named \"$IDENTITY\"; this DMG is built ad-hoc and the designated requirement is not checked (docs/signing.md)."
-            security delete-keychain "$KEYCHAIN" || true
-            echo "SIGN_KEYCHAIN=" >> "$GITHUB_ENV"
-            exit 0
-          fi
-
-          # The certificate is self-signed, so it is not trusted. codesign signs with it anyway; if a
-          # runner image ever refuses, trust it on this ephemeral runner only.
-          PROBE="$RUNNER_TEMP/probe"
-          cp /usr/bin/true "$PROBE"
-          if ! codesign --force --sign "$IDENTITY" --keychain "$KEYCHAIN" --timestamp=none "$PROBE" 2>/dev/null; then
-            echo "codesign refused the untrusted identity; trusting it on this runner only."
-            security find-certificate -c "$IDENTITY" -p "$KEYCHAIN" > "$RUNNER_TEMP/lintel-signing.pem"
-            sudo security add-trusted-cert -d -r trustRoot -p codeSign -k /Library/Keychains/System.keychain "$RUNNER_TEMP/lintel-signing.pem"
-            codesign --force --sign "$IDENTITY" --keychain "$KEYCHAIN" --timestamp=none "$PROBE"
-          fi
-          rm -f "$PROBE"
-          security find-identity -p codesigning "$KEYCHAIN" | sed -E 's/[0-9A-F]{40}/<sha1>/'
-
-          echo "SIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
-
-      - name: Test
-        run: swift test
-
-      - name: Build app and DMG
-        run: scripts/make-dmg.sh
-
-      - name: Verify signature and designated requirement
-        if: env.SIGN_IDENTITY != ''
+      # The identity is found in the imported certificate, not named in the repository. Exactly one Developer ID
+      # Application identity must be there, and it must belong to the Team ID committed in scripts/release-team-id.txt.
+      # The log shows the Team ID only, not the name on the certificate.
+      - name: Find the signing identity
         run: |
-          codesign --verify --strict --deep --verbose=2 dist/Lintel.app
-          codesign -dv dist/Lintel.app 2>&1 | grep -E '^(Identifier|Authority|TeamIdentifier|CodeDirectory)'
-          codesign -dr - dist/Lintel.app 2>/dev/null | tee dist/designated-requirement.txt
-          grep -q 'identifier "com.lintelapp.Lintel"' dist/designated-requirement.txt
-          # A self-signed identity is a one-certificate chain, so codesign pins it as the leaf
-          # (identical to the root): the requirement names that certificate's hash.
-          grep -Eq 'certificate (leaf|root) = H"[0-9a-f]{40}"' dist/designated-requirement.txt
-          if grep -q cdhash dist/designated-requirement.txt; then
-            echo "::error::The designated requirement is a cdhash: the app was signed ad-hoc."
+          TEAM_ID="$(tr -d '[:space:]' < scripts/release-team-id.txt)"
+          LIST="$(security find-identity -v -p codesigning "$SIGN_KEYCHAIN" | grep 'Developer ID Application:' || true)"
+          COUNT="$(printf '%s' "$LIST" | grep -c . || true)"
+          if [[ "$COUNT" != 1 ]]; then
+            echo "::error::Expected exactly one valid Developer ID Application identity in the imported certificate, found $COUNT."
             exit 1
           fi
-          if grep -q 'REPLACE-WITH' Resources/designated-requirement.txt; then
-            # The file holds a marker until the "Lintel Release" certificate exists (docs/signing.md).
-            if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-              echo "::error::Resources/designated-requirement.txt still holds the placeholder: record the requirement of the new certificate before releasing."
-              exit 1
-            fi
-            echo "::warning::Resources/designated-requirement.txt holds a placeholder, so the requirement is not compared."
-          elif [[ -f Resources/designated-requirement.txt ]]; then
-            if ! diff -u Resources/designated-requirement.txt dist/designated-requirement.txt; then
-              echo "::error::The designated requirement changed. Users would lose their TCC grants (BACKWARD_COMPATIBILITY.md section 4)."
-              exit 1
-            fi
+          if ! printf '%s' "$LIST" | grep -q "($TEAM_ID)\""; then
+            echo "::error::The imported Developer ID identity does not belong to Team ID $TEAM_ID (scripts/release-team-id.txt)."
+            exit 1
           fi
+          HASH="$(printf '%s' "$LIST" | awk '{print $2}')"
+          echo "Developer ID Application identity for Team ID $TEAM_ID found."
+          echo "SIGN_IDENTITY=$HASH" >> "$GITHUB_ENV"
 
-      - name: Second build keeps the same designated requirement
-        if: env.SIGN_IDENTITY != ''
+      - name: Re-sign the app (inside-out, hardened runtime, secure timestamp)
+        run: scripts/make-app.sh --sign-only
+
+      - name: Notarize the app
+        env:
+          NOTARY_KEY_P8: ${{ secrets.NOTARY_KEY_P8 }}
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
         run: |
-          mv dist/Lintel.app "$RUNNER_TEMP/Lintel-first.app"
-          scripts/make-app.sh
-          codesign -dr - dist/Lintel.app 2>/dev/null > "$RUNNER_TEMP/designated-requirement-2.txt"
-          diff -u dist/designated-requirement.txt "$RUNNER_TEMP/designated-requirement-2.txt"
-          echo "Two consecutive builds have the same designated requirement."
+          mkdir -p "$RUNNER_TEMP/notary"
+          ditto -c -k --keepParent dist/Lintel.app "$RUNNER_TEMP/notary/Lintel-app.zip"
+          scripts/notarize.sh "$RUNNER_TEMP/notary/Lintel-app.zip" notary-logs
 
+      - name: Staple the app
+        run: |
+          xcrun stapler staple dist/Lintel.app
+          xcrun stapler validate dist/Lintel.app
+
+      # The DMG is made from the stapled app, so the ticket travels inside it.
+      - name: Build and sign the DMG
+        run: scripts/make-dmg.sh --skip-build
+
+      - name: Notarize and staple the DMG
+        env:
+          NOTARY_KEY_P8: ${{ secrets.NOTARY_KEY_P8 }}
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
+        run: |
+          scripts/notarize.sh dist/Lintel.dmg notary-logs
+          xcrun stapler staple dist/Lintel.dmg
+          xcrun stapler validate dist/Lintel.dmg
+
+      # After the last change to the DMG (signing, notarizing, stapling), never before.
       - name: Checksum
         run: |
           cd dist
           shasum -a 256 Lintel.dmg | tee Lintel.dmg.sha256
+
+      - name: Verify the signed, notarized bundle
+        run: |
+          mkdir -p requirement
+          REQUIREMENT_OUT="$PWD/requirement/designated-requirement.txt" scripts/verify-release-bundle.sh dist/Lintel.app dist/Lintel.dmg
 
       - uses: actions/upload-artifact@v7
         with:
@@ -204,10 +294,28 @@ jobs:
           path: |
             dist/Lintel.dmg
             dist/Lintel.dmg.sha256
-            dist/designated-requirement.txt
-            dist/CHANGELOG.md
-            dist/release-notes.md
           if-no-files-found: error
+
+      # What Step 3.4 records in Resources/designated-requirement.txt.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Lintel-requirement
+          path: requirement/designated-requirement.txt
+          if-no-files-found: error
+
+      # While Resources/designated-requirement.txt holds the placeholder, a tag run fails here (after the checks and the
+      # uploads above) and a manual run only warns. With a recorded requirement the two must be equal.
+      - name: Compare with the recorded requirement
+        run: |
+          if [[ "$IS_TAG_RUN" == true ]]; then MODE=fail; else MODE=warn; fi
+          scripts/requirement.sh compare Resources/designated-requirement.txt requirement/designated-requirement.txt --on-placeholder "$MODE"
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: notary-logs
+          path: notary-logs
+          if-no-files-found: ignore
 
       - name: Remove the temporary keychain
         if: always() && env.SIGN_KEYCHAIN != ''
@@ -216,15 +324,22 @@ jobs:
 
   publish:
     name: Publish GitHub Release
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build, sign]
+    # Follow-up (spec Step 2.4): `environment: publish` for LINTEL_WEB_DISPATCH_TOKEN; that Environment does not exist yet.
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
+      # Lintel-dmg comes from the sign job (the notarized DMG and its checksum), release-notes from the build job.
       - uses: actions/download-artifact@v7
         with:
           name: Lintel-dmg
+          path: dist
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: release-notes
           path: dist
 
       - name: Create GitHub Release
@@ -234,6 +349,8 @@ jobs:
         run: |
           SHA256="$(cut -d' ' -f1 dist/Lintel.dmg.sha256)"
           # The install text first, then this version's section of CHANGELOG.md (the build job extracted it).
+          [[ "$(ls dist/*.dmg | wc -l | tr -d ' ')" == 1 && "$(ls dist/*.dmg.sha256 | wc -l | tr -d ' ')" == 1 ]] \
+            || { echo "::error::A release carries exactly one .dmg and one .dmg.sha256."; exit 1; }
           cat > "$RUNNER_TEMP/notes.md" <<EOF
           ## Install
 
@@ -243,21 +360,10 @@ jobs:
 
           Requires macOS 26 or later on Apple silicon.
 
-          ## First launch: Gatekeeper
+          ## Signed and notarized
 
-          Lintel is free and open source. It is signed with its own stable certificate ("Lintel Release")
-          so macOS keeps your permissions across updates, but it is **not notarized** by Apple. The first
-          time you open it, macOS blocks it. To allow it once:
-
-          1. Open Lintel and close the warning.
-          2. Open **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to
-             the Lintel message, then confirm.
-
-          Right-click → Open no longer skips this check on current macOS. Alternatively, in Terminal:
-
-          \`\`\`bash
-          xattr -dr com.apple.quarantine /Applications/Lintel.app
-          \`\`\`
+          Lintel is free and open source. It is signed with an Apple Developer ID and notarized by Apple,
+          so macOS opens it with its ordinary first-open confirmation.
 
           SHA-256 of \`Lintel.dmg\`: \`${SHA256}\`
 

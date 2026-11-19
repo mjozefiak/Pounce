@@ -1,0 +1,92 @@
+# ADR 0011: Distribution and updates (Developer ID, notarization, a protected sign job)
+
+- Status: **Accepted** for the signing and release workflow parts (owner decisions D1, D2 and D3 of 2026-11-19). The
+  updater, the feed and Homebrew are **deferred**; they are only named here.
+- Date: 2026-11-19
+- Spec: `.ai/specs/2026-11-19-updates-and-open-source-hygiene.md` (Phase 3 and Step 2.3). The spec calls this ADR
+  "0010"; that number was taken by `0010-dictation-context.md` first, so this is the next free one (checked
+  2026-11-19, `main` and the open branches).
+
+## Context
+
+Until now Lintel was signed ad-hoc locally and, in the release workflow, with a self-signed "Lintel Release"
+certificate. That certificate cannot be notarized, so every new user meets the Gatekeeper block ("Open Anyway"), and the
+workflow imported the signing key and then ran the tests and the whole build with the keychain unlocked, in a job that
+pull requests from branches of this repository could reach. No release exists yet, so the identity can still be
+chosen freely.
+
+## Decision
+
+### Identity: Developer ID, Team ID `39G44CM6GF`, no self-signed bridge
+
+Releases are signed with a **Developer ID Application** certificate of the owner's individual Apple Developer account
+(Team ID `39G44CM6GF`, public). The first signed build is Developer ID and notarized; there is no intermediate
+self-signed release. A bridge would cost the users who installed it one more round of permission grants when the real
+identity arrives, for no benefit, because no release exists. The bundle identifier `com.lintelapp.Lintel` stays. The
+designated requirement becomes Team-ID based (`anchor apple generic` and `certificate leaf[subject.OU] = "39G44CM6GF"`):
+it survives certificate renewal, which a pinned certificate hash does not. The exact text `codesign -dr -` prints for
+the first signed build is recorded in `Resources/designated-requirement.txt` by Step 3.4; until then the file holds a
+placeholder, a tag run fails on it and a manual signed run only warns and uploads the requirement it printed.
+
+The Team ID lives in one committed file, `scripts/release-team-id.txt`; `scripts/verify-release-bundle.sh` reads it.
+
+A signature with a Team ID loads the embedded `SQLCipher.framework` and `llama.framework` under library validation, so
+`Resources/Lintel.entitlements` has no `com.apple.security.cs.disable-library-validation`. Ad-hoc builds (local, QA,
+pull requests) have no Team ID and use `Resources/Lintel-adhoc.entitlements`, which keeps it. `scripts/select-entitlements.sh`
+decides from the `TeamIdentifier` of a probe signature, not from the identity's name, and the same rule chooses
+`--timestamp` (Developer ID; notarization requires Apple's secure timestamp) or `--timestamp=none` (no network).
+
+### Notarization
+
+The `sign` job signs the app inside-out (frameworks, then the app, hardened runtime), submits it with
+`xcrun notarytool submit --wait` using an App Store Connect API key, staples the app, builds the DMG **from the stapled
+app**, signs, notarizes and staples the DMG, and only then computes `Lintel.dmg.sha256`. `scripts/verify-release-bundle.sh`
+then requires `codesign --verify --strict --deep`, a requirement that names the Team ID and has no `cdhash`, `spctl`
+reporting "Notarized Developer ID" and a valid staple, for the app and the DMG. A rejected submission uploads
+`notarytool log` as an artifact.
+
+### Three jobs
+
+`release.yml` is split so that the key never sits next to code that compiles or tests:
+
+- `build` (every trigger): no secrets, no Environment. Tests, an ad-hoc app, the release notes. The app travels as a
+  zip made with `ditto` (it keeps symlinks, permissions and extended attributes, which an artifact of a directory would
+  lose and which the frameworks' `Versions/Current` links and the signature depend on). A tag must be on `main`.
+- `sign` (`environment: release`, only for a `v*` tag push and for a manual run with `sign: true` on `main`, never for a
+  pull request): checks out the repository, selects Xcode with `xcode-select`, takes **only the `.app`** from the
+  artifact, imports the certificate into a temporary keychain and runs the repository's own scripts. It compiles nothing,
+  runs no tests and uses no third-party action. Apple's tools and the repository's scripts are the only code that runs
+  next to the key. The Environment `release` holds `DEVELOPER_ID_P12`, `DEVELOPER_ID_P12_PASSWORD`, `NOTARY_KEY_P8`,
+  `NOTARY_KEY_ID` and `NOTARY_ISSUER_ID`, deploys only from `main` and `v*`, and has the owner as required reviewer.
+- `publish` (tags only): the GitHub Release (assets: one `.dmg`, one `.dmg.sha256`, `CHANGELOG.md`) and the website
+  dispatch. A second Environment, `publish`, comes with Step 2.4.
+
+All tag runs share one concurrency group with `queue: max`, so two tags pushed together both finish, in order, and none
+is cancelled (a default group keeps one waiting run and cancels the older ones). `queue: max` cannot be combined with
+`cancel-in-progress: true`, so a pull request's newer push now queues behind its older run instead of cancelling it.
+
+### Remaining risk
+
+Rules and approvals bind an account, and agents act as the owner's account (spec D16, deferred until the first public
+beta). Until then the owner reads the diff of `.github/`, `scripts/` and `Resources/` before approving a `release`
+deployment.
+
+## Deferred
+
+- **Sparkle (in-app updates), spec Phase 4.** Embedding Sparkle, `UpdateController`, channels, the EdDSA key
+  (`SPARKLE_ED_PRIVATE_KEY`, in the Environment `release`), signing the feed in the `sign` job. Nothing of it exists
+  yet; Step 4.1 records how Sparkle's nested code is signed under this layout.
+- **The feed (`appcast.xml`), spec Architecture and Step 4.7.** One signed feed rebuilt on every release, served from the
+  address decided in D4; the website copies it. Not built.
+- **Homebrew, spec Phase 5 (D13).** The project's own tap `mjozefiak/homebrew-lintel` (casks `lintel` and `lintel@beta`),
+  updated by `publish` with `HOMEBREW_TAP_TOKEN` from the Environment `publish`. The official `homebrew/cask` is a later,
+  conditional step. Not built.
+
+## Consequences
+
+- Positive: no Gatekeeper block for new users; a requirement that survives certificate renewal; secrets reachable only by
+  tags and owner-approved manual runs; the signing job has a small, auditable surface.
+- Negative: US$99 per year; two notarization round trips per release; the first signed build costs the owner one round of
+  permission grants (owner checklist A in the spec); queued pull-request runs.
+- Reverting: signing back to a self-signed certificate would change the requirement again (`BACKWARD_COMPATIBILITY.md`
+  section 4) and is not planned.
