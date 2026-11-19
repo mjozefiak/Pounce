@@ -186,7 +186,7 @@ import Testing
         let model = await runtime.engine.snapshot.model
         #expect(model.workspace(of: WindowID(pid: 100, number: 1)) == WorkspaceID(1))
         #expect(model.order[WorkspaceID(2)!, default: []].isEmpty)
-        await runtime.settle()
+        await runtime.settleGuarded()
         await plugin.journal.store.flush()
         let store = StateStore(directory: harness.directory)
         await store.load()

@@ -36,11 +36,11 @@ struct ZoneBenchmarks {
             client.add(makeWindow(window.number, pid: window.pid))
             let start = ContinuousClock.now
             await engine.ingest(.created(window))
-            await engine.settle()
+            await engine.settleGuarded()
             samples.append(Double((ContinuousClock.now - start).components.attoseconds) / 1e15)
             client.remove(window)
             await engine.ingest(.destroyed(window))
-            await engine.settle()
+            await engine.settleGuarded()
         }
         print("zones reflow after one window event (engine + fake client, 10 windows): median \(median(samples)) ms")
         await engine.stop()
