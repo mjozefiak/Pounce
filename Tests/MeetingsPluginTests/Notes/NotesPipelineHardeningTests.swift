@@ -40,7 +40,7 @@ import Testing
         let markdown = try #require(result.markdown)
         #expect(markdown.contains("### Decyzje"))
         #expect(markdown.contains("### Zadania"))
-        #expect(markdown.contains("### Otwarte pytania"))
+        #expect(markdown.contains("### Otwarte kwestie"))
     }
 
     @Test(.timeLimit(.minutes(1)))

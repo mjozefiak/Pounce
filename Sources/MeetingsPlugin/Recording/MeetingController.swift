@@ -446,6 +446,10 @@ final class MeetingController {
             refresh()
         case .trackLost(let channel):
             recording.lost.insert(channel)
+            darken(channel)
+            refresh()
+        case .trackInterrupted(let channel):
+            darken(channel)
             refresh()
         case .spoolFailed, .databaseWriteFailed:
             recording.writeProblem = true
@@ -459,7 +463,7 @@ final class MeetingController {
         case .replaying(let remaining):
             enterFinishing()
             deps.hud.show(.processing(.transcribing(remaining: remaining)))
-        case .limitReached, .echoMayRemain, .segmentSaved, .nothingHeard:
+        case .limitReached, .echoMayRemain, .segmentSaved, .nothingHeard, .trackResumed:
             break
         case .finished(let outcome):
             conclude(outcome)
@@ -471,6 +475,15 @@ final class MeetingController {
             phase = .finishing
             cancelWatchers()
         }
+    }
+
+    /// A track that is interrupted or lost shows no level; the meter must not keep moving.
+    private func darken(_ channel: AudioChannel) {
+        switch channel {
+        case .mic: recording.micLevel = 0
+        case .system: recording.systemLevel = 0
+        }
+        deps.recordingObserver?.recordingLevel(channel, 0)
     }
 
     private func handleLevel(_ channel: AudioChannel, _ level: Float) {

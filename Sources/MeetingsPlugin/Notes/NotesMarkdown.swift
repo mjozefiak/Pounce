@@ -17,7 +17,7 @@ enum NotesMarkdown {
     private enum Block {
         case heading(level: Int, text: String)
         case paragraph(String)
-        case item(depth: Int, number: Int?, text: String)
+        case item(depth: Int, number: Int?, task: Bool?, text: String)
     }
 
     static func render(_ text: String) -> String {
@@ -39,9 +39,11 @@ enum NotesMarkdown {
                 if !lines.isEmpty { lines.append("") }
                 lines.append(escapeLineStart(inline(text)))
                 previousWasItem = false
-            case .item(let depth, let number, let text):
+            case .item(let depth, let number, let task, let text):
                 if !previousWasItem, !lines.isEmpty { lines.append("") }
-                let marker = number.map { "\($0)." } ?? "-"
+                var marker = number.map { "\($0)." } ?? "-"
+                // A checklist item: the only brackets that stay unescaped, written by the code, never by a link.
+                if let task { marker += task ? " [x]" : " [ ]" }
                 lines.append(String(repeating: " ", count: depth * 4) + marker + " " + inline(text))
                 previousWasItem = true
             }
@@ -81,10 +83,12 @@ enum NotesMarkdown {
                 while let top = indents.last, indent < top { indents.removeLast() }
                 if indents.last.map({ indent > $0 }) ?? true { indents.append(indent) }
                 blocks.append(
-                    .item(depth: min(indents.count - 1, maxListDepth), number: item.number, text: item.text))
+                    .item(
+                        depth: min(indents.count - 1, maxListDepth), number: item.number, task: item.task,
+                        text: item.text))
                 lastWasItem = true
-            } else if lastWasItem, case .item(let depth, let number, let text)? = blocks.last {
-                blocks[blocks.count - 1] = .item(depth: depth, number: number, text: text + " " + body)
+            } else if lastWasItem, case .item(let depth, let number, let task, let text)? = blocks.last {
+                blocks[blocks.count - 1] = .item(depth: depth, number: number, task: task, text: text + " " + body)
             } else {
                 paragraph.append(body)
                 indents = []
@@ -114,10 +118,13 @@ enum NotesMarkdown {
         return text.isEmpty ? nil : (match.1.count, text)
     }
 
-    private static func listItem(_ body: String) -> (number: Int?, text: String)? {
-        if let match = body.wholeMatch(of: /[-*+][ ]+(.+)/) { return (nil, String(match.1)) }
+    private static func listItem(_ body: String) -> (number: Int?, task: Bool?, text: String)? {
+        if let match = body.wholeMatch(of: /[-*+][ ]+\[([ xX])\][ ]+(.+)/) {
+            return (nil, match.1 != " ", String(match.2))
+        }
+        if let match = body.wholeMatch(of: /[-*+][ ]+(.+)/) { return (nil, nil, String(match.1)) }
         if let match = body.wholeMatch(of: /(\d{1,9})[.)][ ]+(.+)/), let number = Int(match.1) {
-            return (number, String(match.2))
+            return (number, nil, String(match.2))
         }
         return nil
     }

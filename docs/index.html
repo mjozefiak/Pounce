@@ -8,13 +8,13 @@
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#F6F3ED" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#161310" media="(prefers-color-scheme: dark)">
-<link rel="canonical" href="https://mjozefiak.github.io/Pounce/">
+<link rel="canonical" href="https://mjozefiak.github.io/lintel/">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Crect width='256' height='256' rx='56' fill='%23161310'/%3E%3Cg transform='translate%28128 128%29 scale%280.78%29 translate%28-128 -128%29'%3E%3Cpath fill='%23F1EEE9' d='M99.01 19.82A112 112 0 1 1 19.82 99.01L64.25 110.92A66 66 0 1 0 110.92 64.25Z'/%3E%3Ccircle cx='128' cy='128' r='34' fill='%236BBDAB'/%3E%3C/g%3E%3C/svg%3E">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Lintel">
 <meta property="og:title" content="Lintel — a fast, private launcher for macOS">
 <meta property="og:description" content="App search, file search with its own index, and an encrypted clipboard history. Free and open source.">
-<meta property="og:url" content="https://mjozefiak.github.io/Pounce/">
+<meta property="og:url" content="https://mjozefiak.github.io/lintel/">
 <style>
 :root{
   --bg:#F6F3ED; --surface:#FBF9F5; --surface-2:#EFEBE3;
@@ -171,8 +171,8 @@ footer ul{display:flex;gap:16px;list-style:none}
       <h1 data-i18n="hero.title">Find any app, file or clipboard entry in a keystroke.</h1>
       <p class="lead" data-i18n="hero.lead">Lintel is a native macOS launcher with four things: app search, file search with its own index, an encrypted clipboard history that pastes straight into the app you were using, and optional meeting transcripts with notes. Dictation is built in, and everything stays on this Mac.</p>
       <div class="ctas">
-        <a class="btn btn-primary" href="https://github.com/mjozefiak/Pounce/releases/latest/download/Lintel.dmg"><svg aria-hidden="true"><use href="#i-download"/></svg><span data-i18n="cta.download">Download for macOS</span></a>
-        <a class="btn btn-ghost" href="https://github.com/mjozefiak/Pounce"><svg aria-hidden="true"><use href="#i-github"/></svg><span data-i18n="cta.github">Source on GitHub</span></a>
+        <a class="btn btn-primary" href="https://github.com/mjozefiak/lintel/releases/latest/download/Lintel.dmg"><svg aria-hidden="true"><use href="#i-download"/></svg><span data-i18n="cta.download">Download for macOS</span></a>
+        <a class="btn btn-ghost" href="https://github.com/mjozefiak/lintel"><svg aria-hidden="true"><use href="#i-github"/></svg><span data-i18n="cta.github">Source on GitHub</span></a>
       </div>
       <p class="note" data-i18n="hero.note">macOS 26 or later · Apple silicon · No account, no telemetry</p>
     </div>
@@ -284,7 +284,7 @@ footer ul{display:flex;gap:16px;list-style:none}
     <div class="wrap">
       <h2 id="install-title" data-i18n="install.t">Install in a minute.</h2>
       <ol class="steps">
-        <li data-i18n="i1">Download <a href="https://github.com/mjozefiak/Pounce/releases/latest/download/Lintel.dmg"><strong>Lintel.dmg</strong></a> and open it.</li>
+        <li data-i18n="i1">Download <a href="https://github.com/mjozefiak/lintel/releases/latest/download/Lintel.dmg"><strong>Lintel.dmg</strong></a> and open it.</li>
         <li data-i18n="i2">Drag <strong>Lintel</strong> onto the <strong>Applications</strong> folder.</li>
         <li data-i18n="i3">Open Lintel from Applications. A paw appears in the menu bar and the welcome screen walks you through the shortcut and each feature; every step can be skipped.</li>
       </ol>
@@ -300,8 +300,8 @@ footer ul{display:flex;gap:16px;list-style:none}
       <div class="callout">
         <h3 data-i18n="src.t">Or build it from source</h3>
         <p data-i18n="src.p">Requires Xcode 27 (Swift 6.4).</p>
-        <pre><code>git clone --recurse-submodules https://github.com/mjozefiak/Pounce.git
-cd Lintel
+        <pre><code>git clone --recurse-submodules https://github.com/mjozefiak/lintel.git
+cd lintel
 swift package resolve --disable-keychain
 scripts/make-app.sh    # dist/Lintel.app</code></pre>
       </div>
@@ -339,9 +339,9 @@ scripts/make-app.sh    # dist/Lintel.app</code></pre>
     <span class="spacer"></span>
     <nav aria-label="Footer" data-i18n-aria="foot.label">
       <ul>
-        <li><a href="https://github.com/mjozefiak/Pounce" data-i18n="foot.src">Source</a></li>
-        <li><a href="https://github.com/mjozefiak/Pounce/releases" data-i18n="foot.rel">Releases</a></li>
-        <li><a href="https://github.com/mjozefiak/Pounce/blob/main/LICENSE" data-i18n="foot.lic">License</a></li>
+        <li><a href="https://github.com/mjozefiak/lintel" data-i18n="foot.src">Source</a></li>
+        <li><a href="https://github.com/mjozefiak/lintel/releases" data-i18n="foot.rel">Releases</a></li>
+        <li><a href="https://github.com/mjozefiak/lintel/blob/main/LICENSE" data-i18n="foot.lic">License</a></li>
       </ul>
     </nav>
   </div>
@@ -406,7 +406,7 @@ scripts/make-app.sh    # dist/Lintel.app</code></pre>
     "p4.d": "Klucze szyfrujące historię schowka i bibliotekę spotkań są w Twoim pęku kluczy logowania. Nie potrzeba uprawnienia; macOS może raz zapytać o zgodę na dostęp.",
     "opt": "Opcjonalne",
     "install.t": "Instalacja w minutę.",
-    "i1": "Pobierz <a href=\"https://github.com/mjozefiak/Pounce/releases/latest/download/Lintel.dmg\"><strong>Lintel.dmg</strong></a> i otwórz go.",
+    "i1": "Pobierz <a href=\"https://github.com/mjozefiak/lintel/releases/latest/download/Lintel.dmg\"><strong>Lintel.dmg</strong></a> i otwórz go.",
     "i2": "Przeciągnij <strong>Lintel</strong> do folderu <strong>Programy</strong>.",
     "i3": "Otwórz Lintel z Programów. W pasku menu pojawi się łapka, a ekran powitalny przeprowadzi Cię przez skrót i każdą funkcję; każdy krok można pominąć.",
     "gk.t": "Pierwsze uruchomienie: Gatekeeper",
