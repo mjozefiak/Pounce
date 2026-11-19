@@ -36,7 +36,9 @@ Once the file holds a real requirement, every signed run must produce exactly th
 - The Developer ID certificate and private key, and the App Store Connect API key used for notarization, exist only as
   secrets of the GitHub Environment `release`: `DEVELOPER_ID_P12` (base64 of a `.p12`), `DEVELOPER_ID_P12_PASSWORD`,
   `NOTARY_KEY_P8`, `NOTARY_KEY_ID`, `NOTARY_ISSUER_ID`, plus the owner's password manager. The Environment deploys only
-  from `main` and `v*` and has the owner as required reviewer. No signing secret is stored at repository level. The old
+  from the branch `main` and **tags** `v*` (a tag rule, not a branch rule) and has the owner as required reviewer. A tag
+  run executes the tagged commit's own workflow and scripts, so before approving the owner checks that the tag's commit
+  is on `main` (ADR 0012, "Remaining risk"). No signing secret is stored at repository level. The old
   repository secrets `SIGNING_P12` and `SIGNING_P12_PASSWORD` hold a dead certificate and nothing uses them.
 - Nothing secret is committed. The Team ID (public) is in `scripts/release-team-id.txt`. `Resources/designated-requirement.txt`
   holds the expected requirement (public information); it is not bundled into the app.
@@ -78,9 +80,11 @@ pull request). It compiles nothing, runs no tests and uses no third-party action
 **`publish`** (tags only, after `sign`): creates the GitHub Release (body: install text and the changelog section; `-beta`
 tags are pre-releases; assets: the DMG, its checksum, `CHANGELOG.md`) and asks the website to rebuild.
 
-Pull requests get no Environment and no secrets, and always build ad-hoc. `sign` and `publish` of all tags share the job-level concurrency group `release-tags` (`queue: max`), so releases go one
-at a time and none is cancelled; the first step of `sign` checks that the tagged commit is a strict descendant of the
-newest published release's commit (`scripts/check-release-order.sh`).
+Pull requests get no Environment and no secrets, and always build ad-hoc. `sign` and `publish` of all tags share the
+job-level concurrency group `release-tags` (`queue: max`), so releases go one at a time and none is cancelled. The first
+step of `sign`, and `publish` again right before it creates the release, check that the tagged commit is a strict
+descendant of the newest published release's commit (`scripts/check-release-order.sh --github`); the second check closes
+the window in which another tag's `sign` runs between this tag's `sign` and `publish`.
 
 ### Library validation
 

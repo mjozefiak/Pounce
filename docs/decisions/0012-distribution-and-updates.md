@@ -67,17 +67,29 @@ Pull requests keep a workflow-level group with `cancel-in-progress`. Releases ar
 be combined with `cancel-in-progress: true`). Two tags pushed together are both signed, one after the other, none
 cancelled. The first step of `sign` (inside the group, before any secret is used) runs `scripts/check-release-order.sh`:
 the tagged commit must be a strict descendant of the commit of the newest published release (drafts ignored,
-pre-releases included; no release yet passes), so build numbers and publication order cannot disagree. Residual gap:
-the group is per job, not per run, so between the end of `sign` of tag A and the start of its `publish` the queued `sign`
-of tag B can run first and then reads a "newest release" that does not yet include A. Publication order stays A, B, and
-B still has to be a descendant of the release before A; a B that is older than A could slip through. The owner's
-approval of each `release` deployment, in order, is the control for that case.
+pre-releases included, every page of the releases API read; no release yet passes), so build numbers and publication
+order cannot disagree. The group is per job, not per run, so between the end of `sign` of tag A and the start of its
+`publish` the queued `sign` of tag B can run and read a "newest release" that does not yet include A. `publish`
+therefore runs the same check again, inside the group, right before `gh release create`: by then every earlier
+`publish` has finished, so a B older than A is refused there and nothing is published for it (the spec's "a second
+tag's ancestry check runs only after the first tag is published"). The check in `sign` stays, so a tag that is plainly
+out of order fails before anything is notarized.
 
 ### Remaining risk
 
 Rules and approvals bind an account, and agents act as the owner's account (spec D16, deferred until the first public
 beta). Until then the owner reads the diff of `.github/`, `scripts/` and `Resources/` before approving a `release`
 deployment.
+
+A tag run executes the workflow file and the scripts **of the tagged commit**. Anyone who can push a `v*` tag can
+therefore tag a commit that is not on `main` and whose `release.yml` drops the "tag on main" check or adds steps to
+`sign`; that check stops mistakes, not an attacker. What stops it is outside the file: the Environment `release`
+allows `v*` as a **tag** rule (a branch rule `v*` would also match a branch named, say, `v1`, and a manual run on
+that branch with an edited workflow), and the owner approves a deployment only after checking that the tag's commit is on `main`
+(`git merge-base --is-ancestor <tag> origin/main`). A tag ruleset that lets only the owner create `v*` tags narrows it
+further. A pull request cannot reach the secrets even with an edited workflow: the rules are matched against `GITHUB_REF`,
+which for a pull request is `refs/pull/<n>/merge`, so the Environment refuses the deployment before any reviewer is
+asked.
 
 ## Deferred
 
