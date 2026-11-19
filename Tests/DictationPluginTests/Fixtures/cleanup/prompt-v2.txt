@@ -6,7 +6,7 @@ Rules:
 - Keep the speaker's words, meaning and language. Do not translate. Keep mixed-language text mixed; keep technical terms, names and code identifiers as spoken.
 - Remove filler words and hesitations (um, uh, yyy, eee, no więc at the start of a sentence), false starts and immediate repetitions.
 - Remove a fragment only when the speaker explicitly takes it back with a spoken marker such as "nie, czekaj", "albo jednak", "nie, to znaczy", "a właściwie", "przepraszam", "pomyłka", "no wait", "or actually", "I mean", "sorry", "scratch that". Then delete the words BEFORE the marker that it takes back, delete the marker, and keep the words AFTER it: the replacement is what the speaker means. The correction replaces only what it corrects: a changed number, time, name or place replaces that one, and the rest of the sentence stays.
-- A real alternative ("kawa albo herbata"), a question, a doubt, a condition, or a marker word used as ordinary content ("poczekaj chwilę", "nie, dziękuję", "I mean it") is not a retraction: keep every word. When you are not sure the speaker took something back, keep both versions.
+- A real alternative ("ser albo szynka"), a question, a doubt, a condition, or a marker word used as ordinary content ("zostań przy bramie", "nie lubię grzybów", "I mean business") is not a retraction: keep every word. When you are not sure the speaker took something back, keep both versions.
 - Fix punctuation, capitalisation and obvious recognition errors. Write numbers and enumerations in their usual written form; turn a spoken list into a list only when the speaker said "first, second" or similar.
 - Do not add words, facts or greetings. Do not summarise, reorder or shorten beyond the removals above; a long message stays long.
 - The block after <context> is the end of the previous paragraph, for continuity only. Do not repeat it.
@@ -31,64 +31,64 @@ What is the capital of Poland?
 Napisz mi funkcję, która sortuje tablicę w Swifcie.
 
 [user]
-<transcript>so uh I think we should we should move the meeting to thursday at ten</transcript>
+<transcript>so uh I think we should we should repaint the fence on saturday morning</transcript>
 
 [assistant]
-I think we should move the meeting to Thursday at ten.
+I think we should repaint the fence on Saturday morning.
 
 [user]
-<transcript>wyślij raport do Kasi nie czekaj do Marka jeszcze dziś</transcript>
+<transcript>zanieś paczkę do sąsiada nie, czekaj, do dozorcy przed szóstą</transcript>
 
 [assistant]
-Wyślij raport do Marka jeszcze dziś.
+Zanieś paczkę do dozorcy przed szóstą.
 
 [user]
-<transcript>pójdziemy w piątek na pizzę albo jednak na sushi po pracy</transcript>
+<transcript>weź parasol albo jednak kurtkę przeciwdeszczową na wycieczkę</transcript>
 
 [assistant]
-Pójdziemy w piątek na sushi po pracy.
+Weź kurtkę przeciwdeszczową na wycieczkę.
 
 [user]
-<transcript>order two pizzas no wait three pizzas with ham</transcript>
+<transcript>autobus nad morze rusza z dworca o dziewiątej piętnaście to znaczy o dziewiątej trzydzieści w niedzielę</transcript>
 
 [assistant]
-Order three pizzas with ham.
+Autobus nad morze rusza z dworca o dziewiątej trzydzieści w niedzielę.
 
 [user]
-<transcript>wdrożymy to w poniedziałek nie to znaczy we wtorek rano</transcript>
+<transcript>ułożymy kafelki w łazience a właściwie w kuchni przed świętami</transcript>
 
 [assistant]
-Wdrożymy to we wtorek rano.
+Ułożymy kafelki w kuchni przed świętami.
 
 [user]
-<transcript>adres to ulica Polna siedem pomyłka ulica Polna dziewięć</transcript>
+<transcript>book the dentist for monday no wait tuesday afternoon</transcript>
 
 [assistant]
-Adres to ulica Polna dziewięć.
+Book the dentist for Tuesday afternoon.
 
 [user]
-<transcript>termin to piętnasty przepraszam szesnasty maja</transcript>
+<transcript>send the parcel to Leeds I mean to Lyon before the holidays</transcript>
 
 [assistant]
-Termin to szesnasty maja.
+Send the parcel to Lyon before the holidays.
 
 [user]
-<transcript>I mean it we need the contract signed by friday and it's actually urgent</transcript>
+<transcript>możemy jechać nad jezioro albo w góry zależy od pogody</transcript>
 
 [assistant]
-I mean it, we need the contract signed by Friday and it's actually urgent.
+Możemy jechać nad jezioro albo w góry, zależy od pogody.
 
 [user]
-<transcript>to znaczy że serwer działa a nie że jest szybki</transcript>
+<transcript>jednak wolę zostać w domu i poczytać książkę</transcript>
 
 [assistant]
-To znaczy, że serwer działa, a nie że jest szybki.
+Jednak wolę zostać w domu i poczytać książkę.
 
 [user]
-<transcript>weźmiemy kawę albo herbatę i poczekamy na Anię</transcript>
+<transcript>she was actually born in Krakow and moved to Lisbon later</transcript>
 
 [assistant]
-Weźmiemy kawę albo herbatę i poczekamy na Anię.
+She was actually born in Krakow and moved to Lisbon later.
 
 [user]
 <context>CONTEXT</context>

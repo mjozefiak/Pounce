@@ -32,9 +32,9 @@ enum CleanupPrompt {
         BEFORE the marker that it takes back, delete the marker, and keep the words AFTER it: the replacement \
         is what the speaker means. The correction replaces only what it corrects: a changed number, time, name \
         or place replaces that one, and the rest of the sentence stays.
-        - A real alternative ("kawa albo herbata"), a question, a doubt, a condition, or a marker word used as \
-        ordinary content ("poczekaj chwilę", "nie, dziękuję", "I mean it") is not a retraction: keep every \
-        word. When you are not sure the speaker took something back, keep both versions.
+        - A real alternative ("ser albo szynka"), a question, a doubt, a condition, or a marker word used as \
+        ordinary content ("zostań przy bramie", "nie lubię grzybów", "I mean business") is not a \
+        retraction: keep every word. When you are not sure the speaker took something back, keep both versions.
         - Fix punctuation, capitalisation and obvious recognition errors. Write numbers and enumerations in \
         their usual written form; turn a spoken list into a list only when the speaker said "first, second" \
         or similar.
@@ -59,44 +59,44 @@ enum CleanupPrompt {
             "Napisz mi funkcję, która sortuje tablicę w Swifcie."
         ),
         (
-            "so uh I think we should we should move the meeting to thursday at ten",
-            "I think we should move the meeting to Thursday at ten."
+            "so uh I think we should we should repaint the fence on saturday morning",
+            "I think we should repaint the fence on Saturday morning."
         ),
         (
-            "wyślij raport do Kasi nie czekaj do Marka jeszcze dziś",
-            "Wyślij raport do Marka jeszcze dziś."
+            "zanieś paczkę do sąsiada nie, czekaj, do dozorcy przed szóstą",
+            "Zanieś paczkę do dozorcy przed szóstą."
         ),
         (
-            "pójdziemy w piątek na pizzę albo jednak na sushi po pracy",
-            "Pójdziemy w piątek na sushi po pracy."
+            "weź parasol albo jednak kurtkę przeciwdeszczową na wycieczkę",
+            "Weź kurtkę przeciwdeszczową na wycieczkę."
         ),
         (
-            "order two pizzas no wait three pizzas with ham",
-            "Order three pizzas with ham."
+            "autobus nad morze rusza z dworca o dziewiątej piętnaście to znaczy o dziewiątej trzydzieści w niedzielę",
+            "Autobus nad morze rusza z dworca o dziewiątej trzydzieści w niedzielę."
         ),
         (
-            "wdrożymy to w poniedziałek nie to znaczy we wtorek rano",
-            "Wdrożymy to we wtorek rano."
+            "ułożymy kafelki w łazience a właściwie w kuchni przed świętami",
+            "Ułożymy kafelki w kuchni przed świętami."
         ),
         (
-            "adres to ulica Polna siedem pomyłka ulica Polna dziewięć",
-            "Adres to ulica Polna dziewięć."
+            "book the dentist for monday no wait tuesday afternoon",
+            "Book the dentist for Tuesday afternoon."
         ),
         (
-            "termin to piętnasty przepraszam szesnasty maja",
-            "Termin to szesnasty maja."
+            "send the parcel to Leeds I mean to Lyon before the holidays",
+            "Send the parcel to Lyon before the holidays."
         ),
         (
-            "I mean it we need the contract signed by friday and it's actually urgent",
-            "I mean it, we need the contract signed by Friday and it's actually urgent."
+            "możemy jechać nad jezioro albo w góry zależy od pogody",
+            "Możemy jechać nad jezioro albo w góry, zależy od pogody."
         ),
         (
-            "to znaczy że serwer działa a nie że jest szybki",
-            "To znaczy, że serwer działa, a nie że jest szybki."
+            "jednak wolę zostać w domu i poczytać książkę",
+            "Jednak wolę zostać w domu i poczytać książkę."
         ),
         (
-            "weźmiemy kawę albo herbatę i poczekamy na Anię",
-            "Weźmiemy kawę albo herbatę i poczekamy na Anię."
+            "she was actually born in Krakow and moved to Lisbon later",
+            "She was actually born in Krakow and moved to Lisbon later."
         ),
     ]
 

@@ -294,3 +294,85 @@ enum AutocorrectCorpus {
         }
     }
 }
+
+/// The prompt's examples teach the shape of a retraction; they must not be corpus cases, or a corpus pass
+/// would measure memory instead of behaviour. This fails when an example (input or output) or a quoted phrase
+/// of the system prompt shares three consecutive words with a corpus text, or too many content words, once
+/// the marker phrases and fillers are removed.
+@Suite struct CleanupPromptCorpusSeparationTests {
+    private static let phrases: [[String]] =
+        (FormatterGuard.retractionMarkers + FormatterGuard.fillers + [["nie"], ["albo"], ["no"], ["or"]])
+        .sorted { $0.count > $1.count }
+
+    /// Words of a text without marker phrases and fillers.
+    static func stripped(_ text: String) -> [String] {
+        var words = AutocorrectCorpus.tokens(text)
+        var index = 0
+        while index < words.count {
+            if let phrase = phrases.first(where: { phrase in
+                index + phrase.count <= words.count && Array(words[index..<(index + phrase.count)]) == phrase
+            }) {
+                words.removeSubrange(index..<(index + phrase.count))
+            } else {
+                index += 1
+            }
+        }
+        return words
+    }
+
+    static func runs(_ words: [String], length: Int) -> Set<[String]> {
+        guard words.count >= length else { return [] }
+        return Set((0...(words.count - length)).map { Array(words[$0..<($0 + length)]) })
+    }
+
+    /// Words of four letters or more: the vocabulary that makes two sentences about the same thing.
+    static func content(_ words: [String]) -> Set<String> {
+        Set(words.filter { $0.count >= 4 })
+    }
+
+    /// The reasons `text` is too close to a corpus text, empty when it is not.
+    static func overlaps(_ text: String, corpus: [AutocorrectCorpus.Case]) -> [String] {
+        let words = stripped(text)
+        let mine = runs(words, length: 3)
+        let vocabulary = content(words)
+        var found: [String] = []
+        for item in corpus {
+            for other in [item.raw, item.expected] {
+                let theirs = stripped(other)
+                if !mine.isDisjoint(with: runs(theirs, length: 3)) { found.append("\(item.id) run") }
+                let common = vocabulary.intersection(content(theirs))
+                let union = vocabulary.union(content(theirs))
+                if !union.isEmpty, Double(common.count) / Double(union.count) >= 0.3 {
+                    found.append("\(item.id) jaccard")
+                }
+            }
+        }
+        return found
+    }
+
+    /// The quoted samples in the system prompt that are phrases, not marker lists.
+    static func quotedSamples() -> [String] {
+        let parts = CleanupPrompt.system.components(separatedBy: "\"")
+        return stride(from: 1, to: parts.count, by: 2).map { parts[$0] }
+    }
+
+    @Test func examplesAreNotCorpusCases() throws {
+        let corpus = try AutocorrectCorpus.load()
+        for (index, example) in CleanupPrompt.examples.enumerated() {
+            #expect(Self.overlaps(example.input, corpus: corpus).isEmpty, "example \(index) input")
+            #expect(Self.overlaps(example.output, corpus: corpus).isEmpty, "example \(index) output")
+        }
+        for sample in Self.quotedSamples() {
+            #expect(Self.overlaps(sample, corpus: corpus).isEmpty, "system prompt sample \(sample)")
+        }
+    }
+
+    @Test func theCheckCatchesACopiedCase() throws {
+        let corpus = try AutocorrectCorpus.load()
+        let item = try #require(corpus.first)
+        #expect(!Self.overlaps(item.raw, corpus: corpus).isEmpty)
+        #expect(!Self.overlaps(item.expected, corpus: corpus).isEmpty)
+        let paraphrase = item.expected.split(separator: " ").dropLast().joined(separator: " ")
+        #expect(!Self.overlaps(paraphrase, corpus: corpus).isEmpty)
+    }
+}
