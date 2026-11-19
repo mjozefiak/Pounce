@@ -101,6 +101,26 @@ import Testing
         ("spotkanie o dziewiątej nie czekaj o dziewiętnastej", "Spotkanie o dziewiątej."),
         ("zamów siedemset sztuk przepraszam siedemdziesiąt sztuk", "Zamów siedemset sztuk."),
         ("buy seven boxes sorry seventeen boxes", "Buy seven boxes."),
+        // A marker that is not on the list ("no", "a nie", "or rather", "znaczy", "nie nie") must not let the
+        // final version be dropped for free: every chunk of five words or more is derived from the input.
+        ("the deadline is the twelfth no the thirteenth of March", "The deadline is the twelfth of March."),
+        ("the deadline is the twelfth no the thirteenth of March", "The deadline is the 12th of March."),
+        (
+            "spotkanie jest o dziesiątej a nie o jedenastej w sali konferencyjnej na drugim piętrze",
+            "Spotkanie jest o dziesiątej w sali konferencyjnej na drugim piętrze."
+        ),
+        (
+            "the meeting is at ten or rather eleven in the main room on the second floor",
+            "The meeting is at ten in the main room on the second floor."
+        ),
+        (
+            "zamów dwie pizze znaczy trzy pizze z szynką i dwie cole",
+            "Zamów dwie pizze z szynką i dwie cole."
+        ),
+        (
+            "spotkajmy się we wtorek nie nie w środę o piętnastej w biurze",
+            "Spotkajmy się we wtorek o piętnastej w biurze."
+        ),
         // A number word that starts the next one is not a stutter ("pięć pięćdziesiąt" is 5,50).
         ("cena to cztery dwadzieścia nie czekaj pięć pięćdziesiąt", "Cena to 50."),
         ("the price is five fifty sorry six sixty", "The price is 60."),
@@ -240,6 +260,12 @@ import Testing
         let withdrawn = (context + " Zamów dwie pizze.")
         #expect(!accepted(input, withdrawn))
         #expect(accepted(input, context + " Zamów trzy pizze."))
+    }
+
+    @Test func anUnlistedMarkerInALongChunkStillRejectsTheLostFinalVersion() {
+        let context = (0..<34).map { "kontekst\($0)" }.joined(separator: " ")
+        let input = context + " spotkanie jest o dziesiątej a nie o jedenastej"
+        #expect(!accepted(input, context + " Spotkanie jest o dziesiątej."))
     }
 
     @Test func aDigitWithAnotherValueIsNotAbsorbed() {

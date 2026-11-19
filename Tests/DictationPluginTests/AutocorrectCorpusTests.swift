@@ -185,6 +185,11 @@ enum AutocorrectCorpus {
                 rejected[item.category, default: []].append("\(item.id):\(reason)")
             }
         }
+        // Documented fail-safe falls back to the raw text, not a defect (ADR 0010): "no" is not a marker, so
+        // dropping "the twelfth no" cannot be derived. A bare "no" is content too often to be added.
+        let failSafe: Set<String> = ["en-cor-3", "en-fil-2"]
+        rejected = rejected.mapValues { $0.filter { !failSafe.contains(String($0.prefix { $0 != ":" })) } }
+            .filter { !$0.value.isEmpty }
         let all = rejected.values.reduce(0) { $0 + $1.count }
         print("[autocorrect-guard] rejected \(all) of \(total.values.reduce(0, +))")
         for category in total.keys.sorted() {

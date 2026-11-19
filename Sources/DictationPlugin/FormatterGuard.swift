@@ -97,9 +97,9 @@ enum FormatterGuard {
         let before = Language.dominant(in: input)
         let after = Language.dominant(in: output)
         if before != .unknown, after != .unknown, before != after { return .rejected(.languageChanged) }
-        // The replacement after a retraction marker must survive in every chunk that has one, relaxed or not.
-        let replacement = replacementStart(spoken)
-        if usesRelaxedBound || replacement != nil {
+        // Every chunk of five words or more must be derivable from the input: a marker that is not on the list
+        // ("a nie", "znaczy", "or rather") otherwise lets a deleted final version pass the ratio check.
+        if inputWords >= 5 || usesRelaxedBound || replacementStart(spoken) != nil {
             if usesRelaxedBound, novelShare(input: input, output: output) > maximumNovelShare {
                 return .rejected(.addedContent)
             }
