@@ -194,29 +194,27 @@ import Testing
     // MARK: Through the guard
 
     @Test(arguments: reversed)
-    func aReversedSummaryPointShowsItsQuote(_ point: Reversed) {
+    func aReversedSummaryPointIsRemoved(_ point: Reversed) {
         let guardrail = NotesGuard(utterances: [
             NotesUtterance(startMs: 600_000, speaker: point.speaker, text: point.utterance)
         ])
         let proposed = GuardFixtures.point("p1", .summary, quote: point.quote, text: point.text, time: 600_000)
         let verdict = guardrail.verifyPoints([proposed])
-        #expect(verdict.dropped == 0)
-        #expect(verdict.repaired == 1)
-        #expect(verdict.repairReasons == [.driftedFromQuote: 1])
-        let shown = verdict.verified.first
-        #expect(shown?.text == shown?.quote)
-        #expect(shown?.text != point.text)
+        // The point is gone; the quote is not shown in its place.
+        #expect(verdict.verified.isEmpty)
+        #expect(verdict.dropped == 1)
+        #expect(verdict.reasons == [.driftedFromQuote: 1])
 
         // The same text and quote as a decision, a task or a question: not measured, the text stays.
         for kind in [NotesPointKind.decision, .task, .question] {
             let other = GuardFixtures.point("p2", kind, quote: point.quote, text: point.text, time: 600_000)
             let checked = guardrail.verifyPoints([other])
-            #expect(checked.repairReasons[.driftedFromQuote] == nil, "\(kind)")
-            if checked.repaired == 0 { #expect(checked.verified.first?.text == point.text, "\(kind)") }
+            #expect(checked.reasons[.driftedFromQuote] == nil, "\(kind)")
+            if checked.dropped == 0 { #expect(checked.verified.first?.text == point.text, "\(kind)") }
         }
     }
 
-    @Test func everyRepairHasOneReasonAndTheyAddUpToTheRepairs() {
+    @Test func everyRemovedPointHasOneReasonAndTheyAddUpToTheDropped() {
         let guardrail = NotesGuard(utterances: GuardFixtures.transcript())
         let budgetQuote = "Zatwierdzamy budżet marketingowy w wysokości czterdziestu tysięcy złotych"
         let verdict = guardrail.verifyPoints([
@@ -230,15 +228,14 @@ import Testing
                 time: 21_000),
             GuardFixtures.topic,
         ])
-        #expect(verdict.dropped == 0)
-        #expect(verdict.repaired == 4)
-        #expect(verdict.downgraded == 1)
+        #expect(verdict.dropped == 4)
+        #expect(verdict.downgraded == 0)
         #expect(
-            verdict.repairReasons == [
-                .unsupportedDetail: 1, .negationChanged: 1, .downgradedQuestion: 1, .driftedFromQuote: 1,
+            verdict.reasons == [
+                .unsupportedDetail: 1, .negationChanged: 1, .questionNotAFinding: 1, .driftedFromQuote: 1,
             ])
-        #expect(verdict.repairReasons.values.reduce(0, +) == verdict.repaired)
-        #expect(verdict.verified.last?.text == GuardFixtures.topic.text)
+        #expect(verdict.reasons.values.reduce(0, +) == verdict.dropped)
+        #expect(verdict.verified.map(\.text) == [GuardFixtures.topic.text])
     }
 
     /// The paraphrases of the corpus whose quote is in their transcript, as summary points there, and the
@@ -254,17 +251,16 @@ import Testing
                     "p\(index)", .summary, quote: answer.quote, text: answer.text,
                     time: NotesText.parseClock(answer.time) ?? 0)
                 let verdict = guardrail.verifyPoints([point])
-                // A bait of the corpus whose quote is not in its transcript is dropped before any repair.
+                // A bait of the corpus whose quote is not in its transcript is dropped.
                 guard verdict.dropped == 0 else { continue }
-                #expect(verdict.repairReasons[.driftedFromQuote] == nil, "\(pair.name)")
-                #expect(verdict.repaired == 0, "\(pair.name)")
+                #expect(verdict.reasons[.driftedFromQuote] == nil, "\(pair.name)")
                 #expect(verdict.verified.first?.text == answer.text, "\(pair.name)")
                 checked += 1
             }
         }
         let guardrail = NotesGuard(utterances: GuardFixtures.transcript())
         let topic = guardrail.verifyPoints([GuardFixtures.topic])
-        #expect(topic.repaired == 0)
+        #expect(topic.dropped == 0)
         #expect(topic.verified.first?.text == GuardFixtures.topic.text)
         checked += 1
         #expect(checked >= 6)

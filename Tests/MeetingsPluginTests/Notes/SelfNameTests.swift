@@ -67,7 +67,7 @@ import Testing
             ],
             segments: [
                 .init(id: 1, channel: .mic, startMs: 1_000, endMs: 2_000, speakerID: 1, text: "I'll do it."),
-                .init(id: 2, channel: .system, startMs: 3_000, endMs: 4_000, speakerID: 2, text: "Thanks."),
+                .init(id: 2, channel: .system, startMs: 3_000, endMs: 4_000, speakerID: 2, text: "That works for me."),
             ])
     }
 
