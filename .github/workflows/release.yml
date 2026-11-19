@@ -3,7 +3,8 @@ name: Release
 # A tag like v0.1.0 or v0.1.0-beta.1 builds Lintel.dmg, signs it with the stable self-signed "Lintel Release"
 # identity and publishes a GitHub Release. The tag is the only source of the version: CFBundleShortVersionString is
 # the tag without "v" and CFBundleVersion is the number of commits (scripts/stamp-version.sh); the release notes are
-# the tag's section of CHANGELOG.md. A malformed tag or a missing section fails the run in its first step.
+# the tag's section of CHANGELOG.md. A malformed tag, a tag outside main or a missing section fails the run in its
+# first step.
 # Pull requests that touch the app and manual runs build and sign the same DMG and upload it as a workflow
 # artifact without publishing anything.
 on:
@@ -48,14 +49,21 @@ jobs:
           # The build number is the commit count, so the whole history is needed.
           fetch-depth: 0
 
-      # A tag run fails here, before anything is built or signed, when the tag is not vX.Y.Z or vX.Y.Z-beta.N or
-      # when CHANGELOG.md has no (or an empty, or a duplicated) section for that version. Every other run
-      # (pull request, manual) builds 0.0.0 with the commit count so the stamping path is exercised too.
+      # A tag run fails here, before anything is built or signed, when the tag is not vX.Y.Z or vX.Y.Z-beta.N, when
+      # the tagged commit is not on main, or when CHANGELOG.md has no (or an empty, or a duplicated) section for that
+      # version. Every other run (pull request, manual) builds 0.0.0 with the commit count so the stamping path is
+      # exercised too.
       - name: Version and release notes
         run: |
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
             APP_VERSION="$(scripts/version-from-tag.sh "$GITHUB_REF_NAME")"
             IS_PRERELEASE="$(scripts/version-from-tag.sh --is-prerelease "$GITHUB_REF_NAME")"
+            # The build number is the commit count, which only grows along main: a release tag must be on main.
+            git fetch --no-tags --quiet origin +refs/heads/main:refs/remotes/origin/main
+            if ! git merge-base --is-ancestor HEAD refs/remotes/origin/main; then
+              echo "::error::Tag $GITHUB_REF_NAME is not on a commit of main. Release tags go on main only (the build number is the commit count)."
+              exit 1
+            fi
             mkdir -p dist
             scripts/changelog-section.sh "$APP_VERSION" > dist/release-notes.md
             cp CHANGELOG.md dist/CHANGELOG.md

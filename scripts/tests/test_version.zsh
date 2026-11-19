@@ -67,9 +67,9 @@ assert_eq "99" "$("$pb" -c 'Print :CFBundleVersion' "$signed/Contents/Info.plist
 assert_fails "a stamp after signing breaks the signature (why make-app.sh stamps first)" codesign --verify --strict "$signed"
 
 # make-app.sh: the pairing rule is checked before anything is built
-assert_fails "APP_VERSION without APP_BUILD is rejected" env APP_VERSION=0.1.0 "$ROOT/scripts/make-app.sh"
-assert_fails "APP_BUILD without APP_VERSION is rejected" env APP_BUILD=5 "$ROOT/scripts/make-app.sh"
-assert_contains "$(env APP_VERSION=0.1.0 "$ROOT/scripts/make-app.sh" 2>&1)" "must be set together" "pairing message"
+assert_fails "APP_VERSION without APP_BUILD is rejected" env -u APP_BUILD APP_VERSION=0.1.0 "$ROOT/scripts/make-app.sh"
+assert_fails "APP_BUILD without APP_VERSION is rejected" env -u APP_VERSION APP_BUILD=5 "$ROOT/scripts/make-app.sh"
+assert_contains "$(env -u APP_BUILD APP_VERSION=0.1.0 "$ROOT/scripts/make-app.sh" 2>&1)" "must be set together" "pairing message"
 
 # the source plist is the local-build placeholder
 assert_eq "0.0.0" "$("$pb" -c 'Print :CFBundleShortVersionString' "$ROOT/Resources/Info.plist")" "Resources/Info.plist version"
