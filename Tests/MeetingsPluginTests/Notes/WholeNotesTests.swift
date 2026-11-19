@@ -286,6 +286,29 @@ final class ScriptedGenerator: NotesGenerating, @unchecked Sendable {
         }
     }
 
+    /// Owner decision 3: a time of the transcript never reaches the notes, wherever the model put it.
+    @Test func aTranscriptTimeInsideALineNeverReachesTheNotes() {
+        let draft = NotesDraftParser.parse(
+            """
+            TITLE: Przegląd [00:05]
+            SUMMARY: Zespół ustalił [01:05] termin. Spotkanie z klientem jest o 17:00.
+            DECISION | ~01:05 | Bierzemy lokal ~01:05 na Woli.
+            TASK | ~01:23 | Tomek | piątek [01:30] | [01:23] Zadzwonić do właściciela (01:23)
+            TOPIC: Koszty [00:21]
+            POINT | Czynsz [00:21] spada.
+            OPEN | Kiedy przeprowadzka? [01:52]
+            """
+        ).draft
+        // The renderer escapes colons; the check reads the text without the escapes.
+        let markdown = NotesDraftComposer.markdown(draft: draft, participants: [], labels: .polish)
+            .replacing("\\", with: "")
+        #expect(markdown.matches(of: /\d{1,2}:\d{2}(?!\d)/).map { String($0.output) } == ["17:00"])
+        #expect(markdown.contains("o 17:00"), "a clock hour in a sentence is a fact and stays")
+        for text in ["Przegląd", "Zespół ustalił termin.", "Bierzemy lokal na Woli.", "Zadzwonić do właściciela"] {
+            #expect(markdown.contains(text), "\(text)")
+        }
+    }
+
     @Test func aTaskWithoutAnOwnerSaysSo() {
         let draft = NotesDraftParser.parse("SUMMARY: S.\nTASK | ~0 | - | - | Zrobić rzecz.").draft
         #expect(

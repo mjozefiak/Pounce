@@ -68,14 +68,23 @@ enum NotesDraftComposer {
         return item(task.text) + " — " + details.joined(separator: ", ")
     }
 
-    /// One line: no checklist marker, no time at its end.
+    /// One line: no checklist marker, no time.
     private static func item(_ text: String) -> String {
         var result = Substring(flat(text))
         while let match = result.prefixMatch(of: /\[[ xX]\]\s*/) { result = result[match.range.upperBound...] }
-        return String(result).replacing(/\s*[\[(]\d{1,2}(?::\d{2}){1,2}[\])]\s*$/, with: "")
+        return String(result)
     }
 
+    /// One line of text without the transcript's times (owner decision 3).
     private static func flat(_ text: String) -> String {
-        MarkdownText.cleaned(text, keepNewlines: false).trimmingCharacters(in: .whitespacesAndNewlines)
+        withoutTimes(MarkdownText.cleaned(text, keepNewlines: false)).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// A time in the notations of the transcript and of the answer ("[12:34]", "~12:34", and "(12:34)" at the end of
+    /// a line) is removed wherever it stands; a clock hour in a sentence ("o 17:00") is a fact and stays.
+    static func withoutTimes(_ text: String) -> String {
+        text.replacing(/\s*\[~?\d{1,2}(?::\d{2}){1,2}\]/, with: "")
+            .replacing(/\s*~\d{1,2}(?::\d{2}){1,2}(?!\d)/, with: "")
+            .replacing(/\s*\(\d{1,2}(?::\d{2}){1,2}\)\s*$/, with: "")
     }
 }
