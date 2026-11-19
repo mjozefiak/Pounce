@@ -23,14 +23,17 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 5
         with:
           submodules: true
 
       - uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
+        timeout-minutes: 5
         with:
           xcode-version: latest-stable
 
       - name: Toolchain
+        timeout-minutes: 2
         run: |
           echo "DEVELOPER_DIR=$(xcode-select -p)" >> "$GITHUB_ENV"
           xcodebuild -version
@@ -38,9 +41,11 @@ jobs:
           sw_vers
 
       - name: Script tests
+        timeout-minutes: 3
         run: zsh scripts/tests/run.zsh
 
       - name: Build
+        timeout-minutes: 12
         run: swift build
 
       - name: Test
@@ -68,6 +73,7 @@ jobs:
         run: scripts/test-with-watchdog.sh --limit 170 --name tsan-windows -- swift test --sanitize=thread --filter "WindowEngineTests|WindowEngineConcurrencyTests|EventFlowTests|EngineStopTests|StopBudgetTests|EchoAndJournalOrderTests|RecoveryTests|StartStopRaceTests|WaiterLeakTests|LayoutStrategyTests|ToyStrategyTests|TilingEngineTests|ZoneEngineTests|ZoneDragControllerTests|ZoneDragSignalTests"
 
       - name: Format lint
+        timeout-minutes: 3
         run: swift format lint --strict -r Sources Tests
 
       # A hung test run leaves stack samples and the names of the unfinished tests here (never test output).
