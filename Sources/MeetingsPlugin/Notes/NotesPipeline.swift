@@ -417,15 +417,21 @@ struct NotesPipeline: Sendable {
     ) async throws -> Reduced {
         var merged = Reduced()
         var summaries: [String] = []
+        var questions: [[String]] = []
+        var keyPoints: [[String]] = []
         for batch in batches {
             let part = try await reduceSingle(batch, lease: lease, recorder: recorder)
             merged.output.decisions.append(contentsOf: part.output.decisions)
             merged.output.tasks.append(contentsOf: part.output.tasks)
-            merged.output.questions.append(contentsOf: part.output.questions)
-            merged.output.keyPoints.append(contentsOf: part.output.keyPoints)
+            questions.append(part.output.questions)
+            keyPoints.append(part.output.keyPoints)
             if let summary = part.output.summary { summaries.append(summary) }
             merged.failed = merged.failed || part.failed
         }
+        // The guard keeps the first `maxQuestions` and `maxKeyPoints` in this order, so the batches take turns:
+        // one that comes first in the meeting must not use up the whole limit.
+        merged.output.questions = Self.interleaved(questions)
+        merged.output.keyPoints = Self.interleaved(keyPoints)
         let summary = try await mergeSummaries(summaries, lease: lease, recorder: recorder)
         merged.output.summary = summary.text
         merged.failed = merged.failed || summary.failed
@@ -470,6 +476,17 @@ struct NotesPipeline: Sendable {
             questions: points.filter { $0.kind == .question }.map(\.id),
             keyPoints: points.filter { $0.kind == .summary }.prefix(NotesGuard.maxKeyPoints).map(\.id),
             summary: nil)
+    }
+
+    /// The lists' first items, then their second items and so on.
+    static func interleaved(_ lists: [[String]]) -> [String] {
+        var result: [String] = []
+        var index = 0
+        while lists.contains(where: { index < $0.count }) {
+            for list in lists where index < list.count { result.append(list[index]) }
+            index += 1
+        }
+        return result
     }
 
     static func batches(_ points: [NotesPoint], budget: Int, cost: (NotesPoint) -> Int) -> [[NotesPoint]] {

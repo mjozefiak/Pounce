@@ -710,8 +710,6 @@ struct NotesGuard: Sendable {
             case absent
         }
 
-        /// Points the model listed in their own section.
-        var listed: Set<String> = []
         /// Points added back to their section.
         var backfilled: Set<String> = []
         /// Points not added back, with the point in their section that near-duplicates them.
@@ -766,7 +764,6 @@ struct NotesGuard: Sendable {
                 }
                 if seen.insert(id).inserted {
                     result.append(point)
-                    trail?.listed.insert(id)
                 } else {
                     trail?.repeatedIDs += 1
                 }
@@ -864,7 +861,6 @@ struct NotesGuard: Sendable {
                 continue
             }
             keyPoints.append(point)
-            trail?.listed.insert(id)
         }
         audit = trail
         return ReduceVerdict(

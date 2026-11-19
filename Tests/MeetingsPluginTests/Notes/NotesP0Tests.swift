@@ -151,3 +151,11 @@ import Testing
         #expect(utterances.count == 2)
     }
 }
+
+@Suite struct ReduceBatchMergeTests {
+    @Test func batchesTakeTurnsSoTheFirstOneDoesNotUseUpTheLimit() {
+        let merged = NotesPipeline.interleaved([["p1", "p2", "p3"], ["p10"], [], ["p20", "p21"]])
+        #expect(merged == ["p1", "p10", "p20", "p2", "p21", "p3"])
+        #expect(NotesPipeline.interleaved([]).isEmpty)
+    }
+}
