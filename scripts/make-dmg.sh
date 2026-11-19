@@ -3,6 +3,7 @@
 #
 # Usage: scripts/make-dmg.sh [--skip-build]
 #   --skip-build  reuse an existing dist/Lintel.app (or set SKIP_BUILD=1)
+# The version comes from the built bundle (scripts/make-app.sh stamps APP_VERSION / APP_BUILD into it).
 # Signing uses the same SIGN_IDENTITY / SIGN_KEYCHAIN as scripts/make-app.sh (ad-hoc by default).
 set -euo pipefail
 

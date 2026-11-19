@@ -1,8 +1,12 @@
 name: Release
 
-# A tag like v0.1.0 builds Lintel.dmg, signs it with the stable self-signed "Lintel Release" identity
-# and publishes a GitHub Release. Pull requests that touch the app and manual runs build and sign the
-# same DMG and upload it as a workflow artifact without publishing anything.
+# A tag like v0.1.0 or v0.1.0-beta.1 builds Lintel.dmg, signs it with the stable self-signed "Lintel Release"
+# identity and publishes a GitHub Release. The tag is the only source of the version: CFBundleShortVersionString is
+# the tag without "v" and CFBundleVersion is the number of commits (scripts/stamp-version.sh); the release notes are
+# the tag's section of CHANGELOG.md. A malformed tag, a tag outside main or a missing section fails the run in its
+# first step.
+# Pull requests that touch the app and manual runs build and sign the same DMG and upload it as a workflow
+# artifact without publishing anything.
 on:
   # A push to main (a merged pull request) that touches the app builds the DMG too, so a source change that breaks
   # packaging shows up on main within minutes and not at the next tag. Nothing is published: `publish` runs for tags
@@ -56,6 +60,8 @@ jobs:
     # Same runner as CI: GitHub's Xcode 27 image (public preview, Apple silicon).
     runs-on: xcode-27
     timeout-minutes: 40
+    outputs:
+      prerelease: ${{ steps.version.outputs.prerelease }}
     env:
       # Only the import step below sees the signing secrets. Every other step, including third-party
       # actions, the tests and the build scripts, gets this flag and the temporary keychain instead.
@@ -65,6 +71,39 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: true
+          # The build number is the commit count, so the whole history is needed.
+          fetch-depth: 0
+
+      # A tag run fails here, before anything is built or signed, when the tag is not vX.Y.Z or vX.Y.Z-beta.N, when
+      # the tagged commit is not on main, or when CHANGELOG.md has no (or an empty, or a duplicated) section for that
+      # version. Every other run (pull request, manual) builds 0.0.0 with the commit count so the stamping path is
+      # exercised too.
+      - name: Version and release notes
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            APP_VERSION="$(scripts/version-from-tag.sh "$GITHUB_REF_NAME")"
+            IS_PRERELEASE="$(scripts/version-from-tag.sh --is-prerelease "$GITHUB_REF_NAME")"
+            # The build number is the commit count, which only grows along main: a release tag must be on main.
+            git fetch --no-tags --quiet origin +refs/heads/main:refs/remotes/origin/main
+            if ! git merge-base --is-ancestor HEAD refs/remotes/origin/main; then
+              echo "::error::Tag $GITHUB_REF_NAME is not on a commit of main. Release tags go on main only (the build number is the commit count)."
+              exit 1
+            fi
+            mkdir -p dist
+            scripts/changelog-section.sh "$APP_VERSION" > dist/release-notes.md
+            cp CHANGELOG.md dist/CHANGELOG.md
+          else
+            APP_VERSION=0.0.0
+            IS_PRERELEASE=false
+          fi
+          APP_BUILD="$(git rev-list --count HEAD)"
+          echo "Version $APP_VERSION, build $APP_BUILD, pre-release: $IS_PRERELEASE"
+          {
+            echo "APP_VERSION=$APP_VERSION"
+            echo "APP_BUILD=$APP_BUILD"
+          } >> "$GITHUB_ENV"
+          echo "prerelease=$IS_PRERELEASE" >> "$GITHUB_OUTPUT"
+        id: version
 
       - uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
         with:
@@ -76,15 +115,6 @@ jobs:
           xcodebuild -version
           swift --version
           sw_vers
-
-      - name: Check tag matches app version
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)"
-          if [[ "$GITHUB_REF_NAME" != "v$VERSION" ]]; then
-            echo "::error::Tag $GITHUB_REF_NAME does not match CFBundleShortVersionString $VERSION in Resources/Info.plist"
-            exit 1
-          fi
 
       - name: Require signing secrets for releases
         if: startsWith(github.ref, 'refs/tags/') && env.HAS_SIGNING_SECRETS != 'true'
@@ -202,6 +232,8 @@ jobs:
             dist/Lintel.dmg
             dist/Lintel.dmg.sha256
             dist/designated-requirement.txt
+            dist/CHANGELOG.md
+            dist/release-notes.md
           if-no-files-found: error
 
       - name: Remove the temporary keychain
@@ -225,8 +257,10 @@ jobs:
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          PRERELEASE: ${{ needs.build.outputs.prerelease }}
         run: |
           SHA256="$(cut -d' ' -f1 dist/Lintel.dmg.sha256)"
+          # The install text first, then this version's section of CHANGELOG.md (the build job extracted it).
           cat > "$RUNNER_TEMP/notes.md" <<EOF
           ## Install
 
@@ -253,13 +287,21 @@ jobs:
           \`\`\`
 
           SHA-256 of \`Lintel.dmg\`: \`${SHA256}\`
+
+          ## What's changed
+
           EOF
-          gh release create "$GITHUB_REF_NAME" dist/Lintel.dmg dist/Lintel.dmg.sha256 \
+          cat dist/release-notes.md >> "$RUNNER_TEMP/notes.md"
+          PRERELEASE_FLAG=()
+          if [[ "$PRERELEASE" == true ]]; then
+            PRERELEASE_FLAG=(--prerelease)
+          fi
+          gh release create "$GITHUB_REF_NAME" dist/Lintel.dmg dist/Lintel.dmg.sha256 dist/CHANGELOG.md \
             --repo "$GITHUB_REPOSITORY" \
             --verify-tag \
             --title "Lintel ${GITHUB_REF_NAME#v}" \
             --notes-file "$RUNNER_TEMP/notes.md" \
-            --generate-notes
+            "${PRERELEASE_FLAG[@]}"
 
       # The website (lintel-web, Cloudflare Pages) reads the latest release at build time: version, DMG size
       # and SHA-256. This sends it a `release-published` repository_dispatch so it rebuilds. It runs only after

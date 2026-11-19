@@ -114,6 +114,7 @@ enum NotesParser {
                 case .decisions: output.decisions.append(contentsOf: ids(in: value))
                 case .tasks: output.tasks.append(contentsOf: ids(in: value))
                 case .questions: output.questions.append(contentsOf: ids(in: value))
+                case .findings: output.keyPoints.append(contentsOf: ids(in: value))
                 case .ignored: break
                 }
             } else if current == .summary, !line.isEmpty {
@@ -124,6 +125,7 @@ enum NotesParser {
                 case .decisions: output.decisions.append(contentsOf: ids(in: line))
                 case .tasks: output.tasks.append(contentsOf: ids(in: line))
                 case .questions: output.questions.append(contentsOf: ids(in: line))
+                case .findings: output.keyPoints.append(contentsOf: ids(in: line))
                 default: break
                 }
             }
@@ -139,13 +141,14 @@ enum NotesParser {
         parseReduce(raw)?.summary
     }
 
-    private enum Key { case summary, decisions, tasks, questions, ignored }
+    private enum Key { case summary, decisions, tasks, questions, findings, ignored }
 
     private static let keys: [(names: [String], key: Key)] = [
         (["summary", "podsumowanie"], .summary),
         (["decisions", "decyzje"], .decisions),
         (["tasks", "zadania", "action items"], .tasks),
         (["questions", "open questions", "pytania", "otwarte pytania"], .questions),
+        (["findings", "topics", "key points", "ustalenia", "omowione tematy", "omówione tematy"], .findings),
         (["participants", "uczestnicy"], .ignored),
     ]
 
