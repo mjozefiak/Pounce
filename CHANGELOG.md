@@ -22,4 +22,4 @@ section (pre-releases use `x.y.z-beta.N`). No version has been released yet.
 
 ### Changed
 
-- Pounce is now called Lintel, with a new icon and brand colors. <!-- LEGACY-POUNCE -->
+- Pounce is now called Lintel, with a new icon and brand colors.
