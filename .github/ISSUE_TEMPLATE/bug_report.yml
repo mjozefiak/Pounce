@@ -1,0 +1,74 @@
+name: Bug report
+description: Something in Lintel does not work as expected.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not paste clipboard contents, transcripts, notes or other private text into this form.
+        For security problems, use the private report link on the issue chooser instead.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: input
+    id: lintel-version
+    attributes:
+      label: Lintel version
+      description: Shown in the About window.
+    validations:
+      required: true
+  - type: input
+    id: macos-version
+    attributes:
+      label: macOS version
+    validations:
+      required: true
+  - type: input
+    id: mac-model
+    attributes:
+      label: Mac model and chip
+      placeholder: MacBook Pro, M3
+  - type: dropdown
+    id: feature
+    attributes:
+      label: Affected feature
+      options:
+        - Launcher / app search
+        - File search
+        - Clipboard history
+        - Dictation
+        - Meetings
+        - Notes
+        - Window management
+        - Settings / onboarding
+        - Install / update
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install Lintel
+      options:
+        - Release DMG
+        - Built from source
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Remove or blur anything private first. Do not include clipboard contents, transcripts or notes.
