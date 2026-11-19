@@ -36,6 +36,9 @@ jobs:
           swift --version
           sw_vers
 
+      - name: Script tests
+        run: zsh scripts/tests/run.zsh
+
       - name: Build
         run: swift build
 

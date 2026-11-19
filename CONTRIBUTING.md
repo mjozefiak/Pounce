@@ -33,6 +33,7 @@ Run these in order before you open a PR:
 1. `swift build`
 2. `swift test`
 3. `swift format lint --strict -r Sources Tests`
+4. If you changed `scripts/changelog-section.sh` or `CHANGELOG.md`: `zsh scripts/tests/run.zsh`
 
 CI runs the same commands, plus some tests under `--sanitize=thread`
 ([ci.yml](.github/workflows/ci.yml)). A docs-only PR says so in its body.
@@ -42,6 +43,9 @@ CI runs the same commands, plus some tests under `--sanitize=thread`
 - One branch and one PR per change, based on `main`.
 - Use conventional-commit style titles, for example `feat(meetings): ...`, `fix(windows): ...`,
   `docs(specs): ...`.
+- A user-visible change adds one line under `## [Unreleased]` in [CHANGELOG.md](CHANGELOG.md), in the
+  matching `### Added / Changed / Fixed / Removed / Security` group, written for users. Internal-only
+  changes (refactors, tests, CI, docs) need no line.
 - Fill in the PR template. Labels follow the state machine in [SDLC.md](SDLC.md).
 - Review: CI must be green. A UI change needs screenshots of the running app in light and dark mode
   (the QA gate in [SDLC.md](SDLC.md)). A PR labeled `needs-qa` does not merge without `qa-approved`.
