@@ -159,6 +159,8 @@ import Testing
         ("termin mija dwunastego a właściwie trzynastego marca", "Termin mija 13 marca."),
         ("zamów dwie pizze nie czekaj trzy pizze z szynką", "Zamów 3 pizze z szynką."),
         ("send it to Mark no wait to Steven", "Send it to Steven."),
+        ("spotkajmy się we wtorek a nie czekaj w środę o piętnastej", "Spotkajmy się w środę o 15:00."),
+        ("spotkajmy się we wtorek a nie czekaj w środę o piętnastej", "Spotkajmy się w środę o 15."),
         // Ends on a filler or a marker word: the last word of the input is not what the output must end on.
         ("zamów dwie pizze nie czekaj trzy pizze yyy", "Zamów trzy pizze."),
         ("order two pizzas no wait three pizzas um", "Order three pizzas."),

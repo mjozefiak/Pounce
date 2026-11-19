@@ -195,7 +195,12 @@ enum FormatterGuard {
 
     /// The output's last word is the input's last word (not counting a trailing filler or marker), a near
     /// form of it, or digits whose value equals the number words the input ends on.
-    static func endsWhereInputEnds(spoken: [String], written: [String]) -> Bool {
+    static func endsWhereInputEnds(spoken: [String], written fullWritten: [String]) -> Bool {
+        // A clock time written "15:00" ends in "00", which only says "o'clock" for the hour before it.
+        var written = fullWritten
+        if written.count >= 2, written.last == "00", NumberWords.value(ofDigits: written[written.count - 2]) != nil {
+            written.removeLast()
+        }
         let core = effectiveSpoken(spoken)
         guard let lastSpoken = core.last, let lastWritten = written.last else { return false }
         if isNearForm(lastWritten, lastSpoken) { return true }
