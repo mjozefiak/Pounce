@@ -25,6 +25,8 @@ PROTOCOL = 1
 PUBLIC_SCHEMA = 1
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 REF_RE = re.compile(r"^r[0-9]+$")
+# a label is chosen by the operator (M01, "M01 before"), never taken from the answer
+LABEL_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 ._+-]{0,39}$")
 REFERENCE_KINDS = ("decision", "task", "finding", "number_or_date", "context")
 COVERAGES = ("missed", "partial")
 FABRICATION_CATEGORIES = ("fact", "person_or_attribution", "number_or_date", "decision", "task")
@@ -35,6 +37,7 @@ HARD_FORMAT_DEFECTS = ("timestamp_in_notes", "author_marker")  # owner decisions
 DIMENSIONS = ("coverage", "faithfulness", "tasks", "formatting")
 WEIGHTS = {"coverage": 8, "faithfulness": 9, "tasks": 3, "formatting": 5}  # 4 points each: 100 in total
 MIN_RUNS = 3
+# Thresholds: a first proposal without data, to be calibrated after the first series (fable-judge.md section 5).
 PASS_OVERALL, FAIL_OVERALL = 80, 60
 UNSTABLE_DIMENSION_SPREAD, UNSTABLE_OVERALL_SPREAD = 1, 10
 TOP_KEYS = ("protocol_version", "meeting", "reference", "omissions", "fabrications", "format_defects",
@@ -246,28 +249,52 @@ def overall_of(scores):
     return sum(WEIGHTS[d] * scores[d] for d in DIMENSIONS)
 
 
+def _enum(value, allowed):
+    """Allow-list gate of the public output: only a closed-enum value passes, anything else stops the run."""
+    if not isinstance(value, str) or value not in allowed:
+        raise InputError("public output: a value outside its closed list")
+    return value
+
+
+def _public_label(label):
+    if label is None:
+        return None
+    if not (isinstance(label, str) and LABEL_RE.match(label)):
+        raise InputError("label must match " + LABEL_RE.pattern)
+    return label
+
+
 def public_record(result, label=None):
-    """Numbers and category names of a VALID answer: the only part that may leave the encrypted image."""
+    """Numbers and category names of an answer: the only part that may leave the encrypted image.
+
+    An allow-list: the record is built from scratch out of whole numbers, booleans, closed-enum names and the
+    operator's label. No string of the answer is copied (not even `meeting`), and an answer that is not valid
+    is refused before anything is built.
+    """
+    if validate_result(result):
+        raise InputError("public output: not a valid judge answer (run validate)")
+    label = _public_label(label)
     limit = caps(result)
     scores = {d: min(result["scores"][d], limit[d]) for d in DIMENSIONS}
     flags = [f"{d}_above_cap" for d in DIMENSIONS if result["scores"][d] > limit[d]]
     if result["overall"] != overall_of(result["scores"]):
         flags.append("overall_mismatch")
-    kinds = {r["id"]: r["kind"] for r in result["reference"]}
+    kinds = {r["id"]: _enum(r["kind"], REFERENCE_KINDS) for r in result["reference"]}
     core = {r["id"] for r in result["reference"] if r["core"]}
     omissions = {}
     for o in result["omissions"]:
-        omissions.setdefault(kinds[o["ref_id"]], {"missed": 0, "partial": 0})[o["coverage"]] += 1
+        omissions.setdefault(kinds[o["ref_id"]], {"missed": 0, "partial": 0})[_enum(o["coverage"], COVERAGES)] += 1
     fabrications = {}
     for f in result["fabrications"]:
-        fabrications.setdefault(f["category"], {"major": 0, "minor": 0})[f["severity"]] += 1
+        cell = fabrications.setdefault(_enum(f["category"], FABRICATION_CATEGORIES), {"major": 0, "minor": 0})
+        cell[_enum(f["severity"], SEVERITIES)] += 1
     reference = {}
-    for r in result["reference"]:
-        reference[r["kind"]] = reference.get(r["kind"], 0) + 1
+    for kind in kinds.values():
+        reference[kind] = reference.get(kind, 0) + 1
     return {
         "schema": PUBLIC_SCHEMA,
         "protocol_version": PROTOCOL,
-        "label": label or result["meeting"],
+        "label": label,
         "scores": scores,
         "overall": overall_of(scores),
         "recall": round(recall(result), 2),
@@ -275,7 +302,7 @@ def public_record(result, label=None):
         "omissions": omissions,
         "core_omissions": sum(1 for o in result["omissions"] if o["ref_id"] in core),
         "fabrications": fabrications,
-        "format_defects": {d["category"]: d["count"] for d in result["format_defects"]},
+        "format_defects": {_enum(d["category"], FORMAT_DEFECTS): int(d["count"]) for d in result["format_defects"]},
         "flags": flags,
     }
 
@@ -301,8 +328,8 @@ def _confirmed_fabrications(results):
                 clusters.append(c)
             c["quotes"].append(q)
             c["runs"].add(run)
-            c["severities"].append(f["severity"])
-            c["categories"].append(f["category"])
+            c["severities"].append(_enum(f["severity"], SEVERITIES))
+            c["categories"].append(_enum(f["category"], FABRICATION_CATEGORIES))
     out = {"major": 0, "minor": 0, "by_category": {}, "single_run": 0}
     for c in clusters:
         if 2 * len(c["runs"]) <= len(results):
@@ -321,7 +348,8 @@ def aggregate(results, label=None):
         raise InputError(f"aggregate needs an odd number of runs, at least {MIN_RUNS}")
     if len({r["meeting"] for r in results}) != 1:
         raise InputError("aggregate: the runs are not of one meeting")
-    records = [public_record(r) for r in results]
+    records = [public_record(r) for r in results]  # validates every run first
+    label = _public_label(label)
     n = len(records)
 
     def spread(values):
@@ -352,7 +380,7 @@ def aggregate(results, label=None):
     return {
         "schema": PUBLIC_SCHEMA,
         "protocol_version": PROTOCOL,
-        "label": label or results[0]["meeting"],
+        "label": label,
         "runs": n,
         "scores": scores,
         "overall": overall,
@@ -379,7 +407,7 @@ def markdown_row(agg):
     defects = ", ".join(sorted(agg["format_defect_runs"])) or "none"
     verdict = agg["verdict"] + (" (unstable)" if agg["unstable"] else "")
     return "| %s | %d | %s | %s | %s | %s | %s | %s | %d/%d | %s | %s |" % (
-        agg["label"], agg["runs"], cell(agg["overall"]), cell(agg["scores"]["coverage"]),
+        agg["label"] or "-", agg["runs"], cell(agg["overall"]), cell(agg["scores"]["coverage"]),
         cell(agg["scores"]["faithfulness"]), cell(agg["scores"]["tasks"]), cell(agg["scores"]["formatting"]),
         omissions, conf["major"], conf["minor"], defects, verdict)
 
@@ -502,7 +530,7 @@ def main(argv=None):
         if args.cmd == "aggregate":
             if len({os.path.realpath(path) for path in args.results}) != len(args.results):
                 raise InputError("aggregate: the same answer file is given more than once")
-            agg =aggregate([_valid(path) for path in args.results], args.label)
+            agg = aggregate([_valid(path) for path in args.results], args.label)
             print(MARKDOWN_HEADER + "\n" + markdown_row(agg) if args.markdown
                   else json.dumps(agg, ensure_ascii=False, indent=2))
             return 0

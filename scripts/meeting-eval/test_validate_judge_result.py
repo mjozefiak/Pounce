@@ -17,6 +17,29 @@ def example(name):
         return json.load(f)
 
 
+def example_text(name):
+    with open(os.path.join(EXAMPLES, name), "r", encoding="utf-8") as f:
+        return f.read()
+
+
+def example_segments():
+    return [json.loads(line) for line in example_text("segments.jsonl").splitlines()]
+
+
+def notes_for_judge(text, has_title):
+    """fable-judge.md section 2: drop the `# <title>` line and the empty line the export put before the notes."""
+    if not has_title:
+        return text
+    head, sep, rest = text.partition("\n")
+    assert head.startswith("# ") and rest.startswith("\n"), "export header missing"
+    return rest[1:]
+
+
+def transcript_for_judge(segments):
+    """fable-judge.md section 2: `[line number] label: text`, no times; an empty segment keeps its number."""
+    return [f"[{i}] {s['speaker_label'] or '?'}: {s['text']}" for i, s in enumerate(segments) if s["text"].strip()]
+
+
 def valid_result():
     return {
         "protocol_version": 1,
@@ -52,9 +75,9 @@ class ValidateResultTests(unittest.TestCase):
         self.assertEqual(vj.validate_result(valid_result()), [])
 
     def test_examples_are_valid(self):
-        segments = example("meta.json")["segments"]
+        meta = example("meta.json")
         for name in ("result.example.json", "result-trap.example.json"):
-            self.assertEqual(vj.validate_result(example(name), segments, "synthetic-release-01"), [], name)
+            self.assertEqual(vj.validate_result(example(name), meta["segment_count"], str(meta["id"])), [], name)
 
     def test_missing_and_unknown_keys_are_named(self):
         r = valid_result()
@@ -150,8 +173,9 @@ class ProtocolDocumentTests(unittest.TestCase):
 
     def test_prompt_has_every_placeholder_once_and_every_key(self):
         prompt = self.between("JUDGE-PROMPT")
-        for name in ("RUBRIC", "MEETING", "LANGUAGE", "SEGMENTS", "NOTES"):
+        for name in ("RUBRIC", "MEETING", "SEGMENTS", "NOTES"):
             self.assertEqual(prompt.count("{{%s}}" % name), 1, name)
+        self.assertNotIn("{{LANGUAGE}}", prompt)  # the export has no language; the judge reads it off the transcript
         for key in vj.TOP_KEYS:
             self.assertIn(f'"{key}":', prompt)
         for group in (vj.REFERENCE_KINDS, vj.FABRICATION_CATEGORIES, vj.FORMAT_DEFECTS, vj.COVERAGES, vj.SEVERITIES):
@@ -165,11 +189,77 @@ class ProtocolDocumentTests(unittest.TestCase):
             self.assertIn(f"{i}. {d} (waga {vj.WEIGHTS[d]})", rubric)
         self.assertIn("OVERALL = " + " + ".join(f"{vj.WEIGHTS[d]}*{d}" for d in vj.DIMENSIONS), rubric)
 
-    def test_example_transcript_matches_its_meta(self):
-        with open(os.path.join(EXAMPLES, "segments.jsonl"), "r", encoding="utf-8") as f:
-            segments = [json.loads(line) for line in f]
-        self.assertEqual([s["index"] for s in segments], list(range(example("meta.json")["segments"])))
-        self.assertTrue(example("meta.json")["synthetic"])
+    def test_thresholds_are_marked_as_a_proposal(self):
+        section = self.text.split("## 5. Skala i progi", 1)[1].split("## 6.", 1)[0]
+        self.assertIn("**Progi to propozycja bez danych.**", section)
+        self.assertIn("po pierwszej serii", section)
+
+
+class ExportShapeTests(unittest.TestCase):
+    """The example is in the shape `meeting-export` 1 writes (fable-judge.md section 2), not one of our own."""
+
+    def test_json_files_are_compact_with_sorted_keys(self):
+        for name in ("meta.json", "speakers.json"):
+            text = example_text(name)
+            self.assertEqual(text, json.dumps(json.loads(text), ensure_ascii=False, sort_keys=True, separators=(",", ":")))
+        for line in example_text("segments.jsonl").splitlines():
+            self.assertEqual(line, json.dumps(json.loads(line), ensure_ascii=False, sort_keys=True, separators=(",", ":")))
+        self.assertTrue(example_text("segments.jsonl").endswith("\n"))
+
+    def test_segments(self):
+        segments, meta = example_segments(), example("meta.json")
+        self.assertEqual(len(segments), meta["segment_count"])
+        starts = [s["start_ms"] for s in segments]
+        self.assertEqual(starts, sorted(starts))
+        for s in segments:
+            self.assertTrue(vj._is_int(s["start_ms"]) and vj._is_int(s["end_ms"]) and vj._is_int(s["id"]))
+            self.assertIn(s["channel"], ("mic", "system"))
+            self.assertTrue(s["speaker_label"] is None or isinstance(s["speaker_label"], str))
+            self.assertTrue(s["speaker_is_self"] is None or isinstance(s["speaker_is_self"], bool))
+            self.assertNotIn("meeting_id", s)
+            for old in ("index", "start", "end", "speaker"):
+                self.assertNotIn(old, s)
+
+    def test_speakers_use_integer_is_self(self):
+        speakers, meta = example("speakers.json"), example("meta.json")
+        self.assertEqual(len(speakers), meta["speaker_count"])
+        by_id = {s["id"]: s for s in speakers}
+        for s in speakers:
+            self.assertEqual(set(s), {"id", "label", "is_self", "source_channel"})
+            self.assertIn(s["is_self"], (0, 1))
+            self.assertNotIsInstance(s["is_self"], bool)
+        for seg in example_segments():
+            self.assertEqual(seg["speaker_label"], by_id[seg["speaker_id"]]["label"])
+            self.assertEqual(seg["speaker_is_self"], bool(by_id[seg["speaker_id"]]["is_self"]))
+
+    def test_meta_has_no_title_language_or_participants(self):
+        meta = example("meta.json")
+        for absent in ("title", "notes_markdown", "language", "participants", "synthetic", "judge_consent"):
+            self.assertNotIn(absent, meta)
+        self.assertEqual(meta["tool"], {"name": "meeting-export", "version": "1"})
+        self.assertTrue(vj._is_int(meta["id"]) and vj.ID_RE.match(str(meta["id"])))
+        self.assertTrue(meta["has_title"] and meta["has_notes"])
+
+    def test_notes_carry_the_export_title_header_which_the_judge_never_sees(self):
+        has_title = example("meta.json")["has_title"]
+        for name in ("notes.md", "notes-trap.md"):
+            text = example_text(name)
+            self.assertTrue(text.startswith("# "), name)
+            self.assertFalse(text.endswith("\n"), name)  # notes_markdown verbatim, no trailing newline
+            body = notes_for_judge(text, has_title)
+            self.assertNotIn(text.split("\n", 1)[0], body)
+            self.assertFalse(body.startswith("#"), name)
+        trap = " ".join(notes_for_judge(example_text("notes-trap.md"), has_title).split())
+        for f in example("result-trap.example.json")["fabrications"]:
+            self.assertIn(" ".join(f["notes_quote"].split()), trap)  # no unverified_quote
+
+    def test_transcript_for_the_prompt_has_line_numbers_labels_and_no_times(self):
+        lines = transcript_for_judge(example_segments())
+        self.assertEqual(lines[5], "[5] Ola: To ustalmy: wydajemy w czwartek 12 marca, nie w poniedziałek.")
+        self.assertEqual(len(lines), example("meta.json")["segment_count"])
+        for line, seg in zip(lines, example_segments()):
+            self.assertNotIn(str(seg["start_ms"]) + " ", line + " ")
+        self.assertEqual(transcript_for_judge([{"speaker_label": None, "text": "x"}]), ["[0] ?: x"])
 
 
 class AnchorTests(unittest.TestCase):
@@ -262,6 +352,61 @@ class PublicRecordTests(unittest.TestCase):
             self.assertNotIn(t, out)
 
 
+    def test_no_free_text_of_the_answer_reaches_the_public_output(self):
+        """Every string the judge writes holds a unique sentinel; none may reach `public`, `aggregate` or the table."""
+        def answer(run):
+            r = valid_result()
+            r["meeting"] = "sentinelmeeting"
+            for i, item in enumerate(r["reference"]):
+                item["text"] = f"SENTINEL-{run}-REF-TEXT-{i}"
+                if item["kind"] == "task":
+                    item["owner"], item["due"] = f"SENTINEL-{run}-OWNER-{i}", f"SENTINEL-{run}-DUE-{i}"
+            r["omissions"] = [{"ref_id": "r2", "coverage": "partial", "why": f"SENTINEL-{run}-OMISSION-WHY"}]
+            r["fabrications"] = [
+                fabrication("task", "major", f"SENTINEL-{run}-QUOTE-A same sentence"),
+                fabrication("fact", "minor", f"SENTINEL-{run}-QUOTE-B"),
+            ]
+            for j, f in enumerate(r["fabrications"]):
+                f["why"] = f"SENTINEL-{run}-FAB-WHY-{j}"
+            r["format_defects"] = [{"category": "duplicate", "count": 2, "why": f"SENTINEL-{run}-DEFECT-WHY"}]
+            r["evidence"] = {d: f"SENTINEL-{run}-EVIDENCE-{d}" for d in vj.DIMENSIONS}
+            self.assertEqual(vj.validate_result(r), [])
+            return r
+
+        runs = [answer(n) for n in range(3)]
+        outputs = [json.dumps(vj.public_record(r), ensure_ascii=False) for r in runs]
+        outputs.append(json.dumps(vj.public_record(runs[0], label="M01"), ensure_ascii=False))
+        agg = vj.aggregate(runs)
+        outputs += [json.dumps(agg, ensure_ascii=False), vj.markdown_row(agg)]
+        with tempfile.TemporaryDirectory() as tmp:
+            paths = []
+            for n, r in enumerate(runs):
+                paths.append(os.path.join(tmp, f"run-{n + 1}.json"))
+                with open(paths[-1], "w", encoding="utf-8") as f:
+                    json.dump(r, f)
+            for argv in (["public", paths[0]], ["aggregate"] + paths, ["aggregate", "--markdown"] + paths):
+                code, out, err = run_main(argv)
+                self.assertEqual(code, 0, argv)
+                outputs += [out, err]
+        for out in outputs:
+            self.assertNotIn("SENTINEL", out)
+            self.assertNotIn("sentinelmeeting", out)
+        self.assertIsNone(vj.public_record(runs[0])["label"])  # the label never defaults to the answer's meeting
+
+    def test_public_output_is_an_allow_list(self):
+        r = valid_result()
+        r["format_defects"] = [{"category": "SENTINEL-not-a-category", "count": 1, "why": "x"}]
+        with self.assertRaises(vj.InputError):
+            vj.public_record(r)  # an answer outside the closed lists is refused, not passed through
+        with self.assertRaises(vj.InputError):
+            vj._enum("SENTINEL", vj.FORMAT_DEFECTS)
+        for bad in ("", " M01", "M01\nsecret", "x" * 41, "a/b"):
+            with self.assertRaises(vj.InputError):
+                vj.public_record(valid_result(), label=bad)
+        self.assertEqual(vj.public_record(valid_result(), label="M01 before")["label"], "M01 before")
+        self.assertEqual(run_main(["public", "--label", "bad\nlabel", os.path.join(EXAMPLES, "result.example.json")])[0], 2)
+
+
 class AggregateTests(unittest.TestCase):
     def test_three_clean_runs_pass(self):
         r = example("result.example.json")
@@ -352,7 +497,7 @@ class TrapTests(unittest.TestCase):
 class MainTests(unittest.TestCase):
     def test_validate_exit_codes(self):
         good = os.path.join(EXAMPLES, "result.example.json")
-        code, out, _ = run_main(["validate", "--segments", "14", "--meeting", "synthetic-release-01", good])
+        code, out, _ = run_main(["validate", "--segments", "14", "--meeting", "901", good])
         self.assertEqual(code, 0)
         self.assertIn("1/1 answers valid", out)
         with tempfile.TemporaryDirectory() as tmp:
