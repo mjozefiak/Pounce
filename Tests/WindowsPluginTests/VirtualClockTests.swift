@@ -1,3 +1,4 @@
+import Synchronization
 import Testing
 
 @testable import WindowsPlugin
@@ -9,18 +10,22 @@ import Testing
         // Cancel the sleeping task itself after its first cancellation check and before it registers: the window a
         // cancel hits on a loaded machine.
         clock.beforeRegistration = { withUnsafeCurrentTask { $0?.cancel() } }
-        let sleeping = Task { () -> Bool in
+        let outcome = Mutex<Bool?>(nil)
+        let sleeping = Task {
             do {
                 try await clock.sleep(until: clock.now.advanced(by: .seconds(60)), tolerance: nil)
-                return false
+                outcome.withLock { $0 = false }
             } catch is CancellationError {
-                return true
+                outcome.withLock { $0 = true }
             } catch {
-                return false
+                outcome.withLock { $0 = false }
             }
         }
-        let threwCancellation = await sleeping.value
-        #expect(threwCancellation)
+        // A sleeper left behind never ends: the wait is bounded so that fails the test instead of hanging it.
+        let ended = await waitForState("the cancelled sleep ended", { outcome.withLock { $0 != nil } })
+        sleeping.cancel()
+        #expect(ended)
+        #expect(outcome.withLock { $0 } == true)
         #expect(clock.sleeperCount == 0)
     }
 

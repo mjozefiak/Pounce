@@ -106,3 +106,22 @@ final class CountGate: @unchecked Sendable {
         return reached
     }
 }
+
+/// Waits for `condition` on state that has no event to wait on, by looking every few milliseconds of real time. It
+/// ends with an `Issue` at the caller's line after `limit`, and at once when the waiting task is cancelled, so a state
+/// that never comes fails the test instead of hanging it. Returns whether the condition held.
+@discardableResult
+func waitForState(
+    _ what: String, limit: Duration = .seconds(20), sourceLocation: SourceLocation = #_sourceLocation,
+    _ condition: @Sendable () async -> Bool
+) async -> Bool {
+    let clock = ContinuousClock()
+    let deadline = clock.now.advanced(by: limit)
+    while !Task.isCancelled {
+        if await condition() { return true }
+        if clock.now >= deadline { break }
+        try? await clock.sleep(for: .milliseconds(5))
+    }
+    if !Task.isCancelled { Issue.record("never reached within \(limit): \(what)", sourceLocation: sourceLocation) }
+    return false
+}

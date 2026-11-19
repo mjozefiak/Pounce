@@ -312,29 +312,39 @@ import Testing
         rig.client.moveBehindTheEnginesBack(id(1), to: dragged)
         rig.client.emit([.resized(id(1))])
         await rig.engine.flushEvents()
+        await rig.engine.settle()
         rig.clock.advance(0.03)
         dragged.size.width += 60
         rig.client.moveBehindTheEnginesBack(id(1), to: dragged)
         rig.client.emit([.resized(id(1))])
         await rig.engine.flushEvents()
+        await rig.engine.settle()
         #expect(abs((rig.client.frame(of: id(2))?.width ?? 0) - 590) < 1.5)
         // The user holds still with the button down for two seconds.
+        // Each look waits for the settle timer to be armed before time moves (an advance with nobody asleep moves
+        // the clock and wakes no one), so the looks happen however busy the machine is.
         for _ in 0..<8 {
+            guard await rig.clock.waitForSleepers(1, dueWithin: .seconds(1), limit: .seconds(20)) else { return }
             rig.clock.advance(0.25)
-            for _ in 0..<50 { await Task.yield() }
-            await rig.engine.settle()
         }
+        // The last look has run once the timer is armed again; then the work it started is done.
+        guard await rig.clock.waitForSleepers(1, dueWithin: .seconds(1), limit: .seconds(20)) else { return }
+        await rig.engine.settle()
         #expect(await rig.engine.snapshot.userResize?.window == id(1))
         #expect(rig.client.frame(of: id(1)) == dragged)
         // The siblings caught up with the last size.
         #expect(abs((rig.client.frame(of: id(2))?.width ?? 0) - 560) < 1.5)
         // The button goes up: the next look ends the drag, and the window lands on its tile.
         button.value = false
-        for _ in 0..<4 where await rig.engine.snapshot.userResize != nil {
-            rig.clock.advance(0.25)
-            for _ in 0..<50 { await Task.yield() }
-            await rig.engine.settle()
-        }
+        guard await rig.clock.waitForSleepers(1, dueWithin: .seconds(1), limit: .seconds(20)) else { return }
+        rig.clock.advance(0.25)
+        // The look that sees the button up ends the drag. Nothing signals that from outside the engine, so this is the
+        // one wait on state: it sleeps on the real clock, ends with an Issue at this line, and stops when cancelled.
+        guard
+            await waitForState(
+                "the drag ended after the button went up", { await rig.engine.snapshot.userResize == nil })
+        else { return }
+        await rig.engine.settle()
         #expect(await rig.engine.snapshot.userResize == nil)
         await rig.engine.stop()
     }

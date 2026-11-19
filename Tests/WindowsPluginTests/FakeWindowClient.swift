@@ -418,7 +418,9 @@ final class VirtualClock: Clock, @unchecked Sendable {
     private let lock = NSLock()
     private var current: Instant
     private var sleepers: [UInt64: Sleeper] = [:]
-    private var sleeperWaiters: [(id: UUID, count: Int, continuation: CheckedContinuation<Void, Never>)] = []
+    private var sleeperWaiters:
+        [(id: UUID, count: Int, dueWithin: Duration?, continuation: CheckedContinuation<Void, Never>)] =
+            []
     private var nextID: UInt64 = 0
     private let autoAdvance: Bool
     /// How many sleeps an auto-advancing clock has answered at once. A timed loop that re-arms itself on such a clock
@@ -447,45 +449,71 @@ final class VirtualClock: Clock, @unchecked Sendable {
         return Double(parts.seconds) + Double(parts.attoseconds) / 1e18
     }
 
+    /// Whether `count` sleepers are armed, counting only those due within `dueWithin` of now when it is given. Call
+    /// with the lock held.
+    private func armed(_ count: Int, dueWithin: Duration?) -> Bool {
+        guard let dueWithin else { return sleepers.count >= count }
+        let horizon = current.advanced(by: dueWithin)
+        return sleepers.values.filter { $0.deadline <= horizon }.count >= count
+    }
+
+    /// Releases the waiters whose condition holds. Call with the lock held; resume what it returns outside the lock.
+    private func releasedWaiters() -> [CheckedContinuation<Void, Never>] {
+        let ready = sleeperWaiters.filter { armed($0.count, dueWithin: $0.dueWithin) }
+        sleeperWaiters.removeAll { waiter in ready.contains { $0.id == waiter.id } }
+        return ready.map(\.continuation)
+    }
+
     /// Waits until `count` tasks are asleep on this clock (deterministic: no polling).
     func waitForSleepers(_ count: Int) async {
         await withCheckedContinuation { continuation in
             let ready = lock.withLock { () -> Bool in
-                if sleepers.count >= count { return true }
-                sleeperWaiters.append((UUID(), count, continuation))
+                if armed(count, dueWithin: nil) { return true }
+                sleeperWaiters.append((UUID(), count, nil, continuation))
                 return false
             }
             if ready { continuation.resume() }
         }
     }
 
-    /// `waitForSleepers` that gives up after `limit` of real time and records an `Issue` instead of hanging the run.
-    /// Returns whether the sleepers arrived.
+    /// `waitForSleepers` that gives up after `limit` of real time (or when the waiting task is cancelled) and records
+    /// an `Issue` instead of hanging the run. With `dueWithin` only sleepers whose deadline is that close count: a
+    /// test that waits for a short timer is not satisfied by the engine's long idle timers. Returns whether the
+    /// sleepers arrived.
     @discardableResult
     func waitForSleepers(
-        _ count: Int, limit: Duration, sourceLocation: SourceLocation = #_sourceLocation
+        _ count: Int, dueWithin: Duration? = nil, limit: Duration, sourceLocation: SourceLocation = #_sourceLocation
     ) async -> Bool {
         let id = UUID()
         let timedOut = Mutex(false)
-        let watchdog = Task { [weak self] in
-            try? await ContinuousClock().sleep(for: limit)
-            guard !Task.isCancelled, let self else { return }
+        // Takes the waiter out of the table and resumes it; whoever finds it gone has nothing to do.
+        let giveUp: @Sendable (Bool) -> Void = { [weak self] byTimeout in
+            guard let self else { return }
             let waiter = self.lock.withLock { () -> CheckedContinuation<Void, Never>? in
                 guard let index = self.sleeperWaiters.firstIndex(where: { $0.id == id }) else { return nil }
                 return self.sleeperWaiters.remove(at: index).continuation
             }
             if let waiter {
-                timedOut.withLock { $0 = true }
+                if byTimeout { timedOut.withLock { $0 = true } }
                 waiter.resume()
             }
         }
-        await withCheckedContinuation { continuation in
-            let ready = lock.withLock { () -> Bool in
-                if sleepers.count >= count { return true }
-                sleeperWaiters.append((id, count, continuation))
-                return false
+        let watchdog = Task {
+            try? await ContinuousClock().sleep(for: limit)
+            guard !Task.isCancelled else { return }
+            giveUp(true)
+        }
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                let ready = lock.withLock { () -> Bool in
+                    if armed(count, dueWithin: dueWithin) { return true }
+                    sleeperWaiters.append((id, count, dueWithin, continuation))
+                    return false
+                }
+                if ready { continuation.resume() }
             }
-            if ready { continuation.resume() }
+        } onCancel: {
+            giveUp(false)
         }
         watchdog.cancel()
         let failed = timedOut.withLock { $0 }
@@ -494,7 +522,7 @@ final class VirtualClock: Clock, @unchecked Sendable {
                 "no \(count) sleeper(s) arrived within \(limit): the code under test never armed its timer",
                 sourceLocation: sourceLocation)
         }
-        return !failed
+        return !failed && !Task.isCancelled
     }
 
     /// Moves time forward and wakes every sleeper whose deadline has passed.
@@ -543,9 +571,7 @@ final class VirtualClock: Clock, @unchecked Sendable {
                 let (cancelled, ready) = lock.withLock { () -> (Bool, [CheckedContinuation<Void, Never>]) in
                     if Task.isCancelled { return (true, []) }
                     sleepers[id] = Sleeper(deadline: deadline, continuation: continuation)
-                    let ready = sleeperWaiters.filter { $0.count <= sleepers.count }.map(\.continuation)
-                    sleeperWaiters.removeAll { $0.count <= sleepers.count }
-                    return (false, ready)
+                    return (false, releasedWaiters())
                 }
                 if cancelled {
                     continuation.resume(throwing: CancellationError())
