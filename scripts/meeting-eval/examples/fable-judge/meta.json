@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "id": "synthetic-release-01",
+  "synthetic": true,
+  "language": "pl",
+  "segments": 14,
+  "duration_s": 69,
+  "notes": {"generator": "hand-written", "prompt_version": null, "app_build": null},
+  "judge_consent": {"fable_cloud": true}
+}
