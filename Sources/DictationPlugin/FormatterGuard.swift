@@ -18,6 +18,9 @@ enum FormatterGuard {
         /// The output holds words the speaker never said (an unrelated or invented text), or a replacement the
         /// speaker said after a retraction was dropped or swapped for another word.
         case addedContent
+        /// A word the speaker said after a retraction marker (the final version) is missing from the output, or
+        /// another word stands in its place. Logged by name only, so a fallback can be told from `addedContent`.
+        case replacementLost
         /// A chunk with a retraction or filler does not end where the input ends (a truncation or a summary).
         case endChanged
     }
@@ -127,7 +130,8 @@ enum FormatterGuard {
             }
             if !endsWhereInputEnds(spoken: spoken, written: written) { return .rejected(.endChanged) }
             if derivationCost(spoken: spoken, written: written) > editBudget(outputWords: written.count) {
-                return .rejected(.addedContent)
+                return .rejected(
+                    replacementSurvives(spoken: spoken, written: written) ? .addedContent : .replacementLost)
             }
         }
         // Another text of the right length: checked last so a changed language keeps its own reason.
@@ -174,6 +178,27 @@ enum FormatterGuard {
         occurrences(of: retractionMarkers, in: tokens).map(\.end).filter { $0 < tokens.count }.min()
     }
 
+    /// Whether every word of the replacement (the words after the first marker with words after it) that is not
+    /// a filler is in the output, as the same word, a near form, or a digit token for a number word. `true`
+    /// for a chunk without a replacement. Only names the rejection reason; it never accepts anything.
+    private static func replacementSurvives(spoken: [String], written: [String]) -> Bool {
+        guard let start = replacementStart(spoken) else { return true }
+        var index = start
+        while index < spoken.count {
+            if let length = fillerLengths(spoken, at: index).max() {
+                index += length
+                continue
+            }
+            let word = spoken[index]
+            let present =
+                written.contains { isNearForm($0, word) }
+                || (NumberWords.value(of: [word]) != nil && written.contains { $0.contains(where: \.isNumber) })
+            if !present { return false }
+            index += 1
+        }
+        return true
+    }
+
     /// The most edits (substitutions, insertions, deletions that are not derivable from the input) a chunk
     /// may need: two for inflection and punctuation-like slips, or a tenth of the output's words.
     static func editBudget(outputWords: Int) -> Int {
@@ -182,7 +207,7 @@ enum FormatterGuard {
 
     /// The largest chunk (input words times output words) the derivation check works on; a bigger one is
     /// refused, which makes the chunk fall back to the raw text.
-    private static let derivationLimit = 4_000_000
+    private static let derivationLimit = 10_000
 
     /// Whether `word` is a near form of `other`: the same word with another ending or recognition spelling.
     /// One rule: equal after folding case and diacritics, or a shared prefix of at least four letters that is
@@ -190,14 +215,27 @@ enum FormatterGuard {
     /// "Nowicki"). Anything shorter than four letters must match exactly.
     static func isNearForm(_ word: String, _ other: String) -> Bool {
         if word == other { return true }
+        return isNearForm(
+            word, other, foldedWord: fold(word), foldedOther: fold(other), wordValue: NumberWords.value(of: [word]),
+            otherValue: NumberWords.value(of: [other]))
+    }
+
+    /// `isNearForm` with the folded words and number values given, so a table of cells folds each token once.
+    private static func isNearForm(
+        _ word: String, _ other: String, foldedWord a: String, foldedOther b: String, wordValue: Int?,
+        otherValue: Int?
+    ) -> Bool {
+        if word == other { return true }
         // Two number words of different value are different numbers ("sześćset" and "sześćdziesiąt").
-        if let x = NumberWords.value(of: [word]), let y = NumberWords.value(of: [other]), x != y { return false }
-        let a = word.folding(options: .diacriticInsensitive, locale: nil).replacingOccurrences(of: "ł", with: "l")
-        let b = other.folding(options: .diacriticInsensitive, locale: nil).replacingOccurrences(of: "ł", with: "l")
+        if let wordValue, let otherValue, wordValue != otherValue { return false }
         if a == b { return true }
         let shared = zip(a, b).prefix { $0 == $1 }.count
         let shorter = min(a.count, b.count)
         return shared >= 4 && Double(shared) >= 0.6 * Double(shorter)
+    }
+
+    private static func fold(_ word: String) -> String {
+        word.folding(options: .diacriticInsensitive, locale: nil).replacingOccurrences(of: "ł", with: "l")
     }
 
     /// The length of the marker or filler the tokens end on, if any.
@@ -279,12 +317,29 @@ enum FormatterGuard {
         let tailWords = Set(spoken[min(tailStart, spoken.count)...])
         let withdrawnWords = Set(spoken[..<min(tailStart, spoken.count)]).subtracting(tailWords)
         let spokenWords = Set(spoken)
-        func isNumber(_ word: String) -> Bool {
-            word.contains(where: \.isNumber) || NumberWords.value(of: [word]) != nil
+        // Each token is folded and valued once, not once per cell.
+        let spokenFolded = spoken.map(fold)
+        let writtenFolded = written.map(fold)
+        let spokenValues = spoken.map { NumberWords.value(of: [$0]) }
+        let writtenValues = written.map { NumberWords.value(of: [$0]) }
+        let withdrawn = withdrawnWords.map { ($0, fold($0), NumberWords.value(of: [$0])) }
+        let writtenIsNumber = written.indices.map {
+            written[$0].contains(where: \.isNumber) || writtenValues[$0] != nil
         }
-        func bringsBack(_ word: String) -> Bool {
+        let writtenBringsBack = written.indices.map { column -> Bool in
+            let word = written[column]
             if word.contains(where: \.isNumber) { return true }
-            return withdrawnWords.contains { $0 == word || isNearForm($0, word) }
+            return withdrawn.contains {
+                $0.0 == word
+                    || isNearForm(
+                        $0.0, word, foldedWord: $0.1, foldedOther: writtenFolded[column], wordValue: $0.2,
+                        otherValue: writtenValues[column])
+            }
+        }
+        func near(_ row: Int, _ column: Int) -> Bool {
+            isNearForm(
+                spoken[row], written[column], foldedWord: spokenFolded[row], foldedOther: writtenFolded[column],
+                wordValue: spokenValues[row], otherValue: writtenValues[column])
         }
 
         var freeEnds = [[Int]](repeating: [], count: rows)
@@ -299,7 +354,7 @@ enum FormatterGuard {
             if index + 1 < spoken.count, spoken[index] != spoken[index + 1],
                 spoken[index + 1].hasPrefix(spoken[index]),
                 // "pięć pięćdziesiąt" is 5,50: the first number word is not a stutter.
-                NumberWords.value(of: [spoken[index]]) == nil
+                spokenValues[index] == nil
             {
                 freeEnds[index].append(index + 1)
             }
@@ -335,10 +390,10 @@ enum FormatterGuard {
                 if spoken[row] == written[column] {
                     relax(row + 1, column + 1, here)
                 } else if row < tailStart
-                    || (!bringsBack(written[column])
-                        && (isNearForm(spoken[row], written[column])
-                            || (!spokenWords.contains(written[column]) && !isNumber(spoken[row])
-                                && !isNumber(written[column]))))
+                    || (!writtenBringsBack[column]
+                        && (near(row, column)
+                            || (!spokenWords.contains(written[column]) && spokenValues[row] == nil
+                                && !spoken[row].contains(where: \.isNumber) && !writtenIsNumber[column])))
                 {
                     // In the replacement: a near form of the spoken word, or a word the speaker did not say
                     // (a contraction, a recognition fix) that is not a number and does not replace one; never
@@ -389,6 +444,8 @@ enum FormatterGuard {
         text.split(whereSeparator: \.isWhitespace).count
     }
 
+    /// "przepraszam" is both an answer opening and a retraction marker: the check below is skipped when the
+    /// input contains the opening itself.
     private static let answerOpenings = [
         "oto ", "oczywiście", "jasne,", "jasne!", "sure,", "sure!", "sure.", "certainly", "of course",
         "here is", "here's", "here are", "i can't", "i cannot", "as an ai", "przepraszam",

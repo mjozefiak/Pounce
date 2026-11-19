@@ -414,6 +414,18 @@ import Testing
                 == .rejected(.endChanged))
     }
 
+    @Test func aDroppedFinalVersionIsReplacementLost() {
+        #expect(
+            FormatterGuard.check(
+                input: "zamów dwie pizze nie czekaj trzy pizze z szynką", output: "Zamów dwie pizze z szynką.")
+                == .rejected(.replacementLost))
+        #expect(
+            FormatterGuard.check(
+                input: "zamów dwie pizze nie czekaj trzy pizze z szynką",
+                output: "Zamów dwie pizze nie czekaj trzy pizze z szynką z serem na cienkim cieście.")
+                != .rejected(.replacementLost))
+    }
+
     @Test func nearFormRule() {
         #expect(FormatterGuard.isNearForm("marka", "mark"))
         #expect(FormatterGuard.isNearForm("hanną", "hanna"))
