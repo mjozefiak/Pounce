@@ -1,194 +1,424 @@
-# Zewnętrzni dostawcy AI (subskrypcje Claude Code, Codex, Grok…) jako alternatywa dla wbudowanego LLM
+# Zewnętrzni dostawcy AI dla notatek ze spotkań (Claude Code, potem klucz API)
 
-> Status: **nieaktualny, nie implementować.** Nazwy `Pounce*`, ADR 0008 zajęty; odświeżenie w MEET-X.1 (`.ai/specs/backlog/2026-11-13-epic-meeting-notes-beyond-claude.md`).
+> Status: **odświeżony 2026-11-19, implementacja po akceptacji właściciela.** Story MEET-X.1 (`.ai/specs/backlog/2026-11-13-epic-meeting-notes-beyond-claude.md`), decyzje właściciela z 2026-11-19 (PR #104). Ten dokument zastępuje wersję z 2026-11-10 w całości. PR ze specem jest tylko projektem: nie zmienia kodu.
 
 ## 📝 TLDR
 
-Dziś każda funkcja AI w Pounce (formatowanie dyktowania, a wkrótce notatki ze spotkań) działa na wbudowanym modelu llama.cpp (3–19 GB) albo, w dyktowaniu, na serwerze na loopbacku. Na słabszym Macu albo bez miejsca na model te funkcje są niedostępne. Dodajemy opcjonalny **port „zewnętrzny dostawca”**: Pounce uruchamia jako podproces CLI, które użytkownik już ma i za które już płaci (Claude Code, Codex, potem Gemini CLI i Grok Build), na jego własnym logowaniu, a użytkownik wybiera model dostępny w swojej subskrypcji. Jest to świadome, jawne wyjątki od zasady „tekst nie opuszcza Maca”: wymaga zgody per dostawca i funkcja, jest oznaczone przy wyniku i domyślnie wyłączone.
+Dziś notatki ze spotkań pisze wyłącznie wbudowany model llama.cpp (`NotesPipeline` przez `LLMLease`). Na spotkaniach właściciela daje on słabsze notatki niż Claude, a na słabszym Macu jest wolny albo niedostępny. Proponujemy opcjonalne, **domyślnie wyłączone** źródło notatek: Lintel uruchamia zainstalowane u użytkownika **Claude Code CLI** jako podproces, na jego własnym logowaniu, i przekazuje mu transkrypt wybranego spotkania. Zaraz po tym (Faza 2) dochodzi drugi kanał: własny klucz API (BYOK).
 
-## Rozstrzygnięte decyzje (bramka Open Questions)
+Momentem decyzji jest **wybór dostawcy i modelu w ustawieniach**: jedno świadome okno zgody mówi, że transkrypty wszystkich spotkań, z imionami mówców, będą trafiać do dostawcy. Od tej chwili każde spotkanie idzie do wybranego dostawcy, dopóki użytkownik nie wróci na model lokalny. Zgoda jest zapisana i **sprawdzana w kodzie przed każdym uruchomieniem procesu** (i przed każdym żądaniem sieciowym w Fazie 2). Każde spotkanie, którego notatki napisał dostawca, ma znacznik „wysłano do: Claude · model”. Dyktowanie jest poza v1, a kontekst dyktowania (epik DICT) nie trafia do dostawcy nigdy.
 
-| # | Decyzja | Konsekwencja w projekcie |
+## Decyzje wiążące
+
+| Źródło | Decyzja | Skutek w tym specu |
 |---|---|---|
-| Q1 | Integracja przez **CLI jako podproces** na logowaniu użytkownika. Klucze API poza zakresem. | Pounce nigdy nie czyta, nie kopiuje ani nie przechowuje poświadczeń dostawców; tylko uruchamia binarkę. |
-| Q2 | Dostawca dla **wszystkiego, co dziś używa `LLMRuntime` (przez węższy `TextGenerator`)**: formatowanie dyktowania i notatki ze spotkań. | Jeden port w jednym nowym targecie, dwóch konsumentów. Dyktowanie ma twardy próg opóźnienia (Faza 0, bramka pomiarowa). |
-| Q3 | Zgoda **raz** na dostawcę i funkcję, plus widoczny znacznik „wysłano do: X (model)” przy wyniku. | Zgoda jest egzekwowana w kodzie (fabryka runtime), nie tylko w UI. |
-| Q4 | **Katalog + własny identyfikator + „Wypróbuj”.** | Brak odpytywania CLI o listę modeli. |
-| Q5 | Błąd + „Regeneruj”; powrót do modelu wbudowanego jako przełącznik, domyślnie wyłączony. | Dyktowanie przy błędzie wkleja surowy tekst (jak dziś). |
-| Prawo | **Claude Code w v1 na ryzyko właściciela** (po lekturze `code.claude.com/docs/en/legal-and-compliance`, 2026-11-10), z warunkami z sekcji Risks; OpenAI i Google do sprawdzenia w kroku 0.1. | Adapter Claude izolowany w jednym deskryptorze; Pounce nie filtruje zmiennych uwierzytelniania; nazwy dostawców tylko jako zwykły tekst. |
-| Zakres | **Faza 2 (notatki) zostaje w tym specu** jako osobny PR. | Wejście dopiero po `NotesPipeline`; Faza 1 niezależna. |
+| Właściciel 2026-11-19, decyzja 1 | Zewnętrzni dostawcy: tak, pilnie, domyślnie wyłączeni; transkrypt idzie do dostawcy dopiero po włączeniu przez użytkownika. | MEET-X.1 nie jest już warunkowa. Bramka M-Q14 / MEET-0.2 nie obowiązuje. |
+| Właściciel 2026-11-19 (ostateczne, przez orkiestratora) | **Jedna zgoda przy wyborze dostawcy i modelu w ustawieniach**; potem każde spotkanie idzie do dostawcy, aż do powrotu na model lokalny. **Bez flagi per spotkanie**, bez przełącznika „każde nowe spotkanie”, bez potwierdzenia „uczestnicy wiedzą”. | Nadpisuje MEET-X.1 AC2 („wysyłka włączana per spotkanie”) i rekomendacje K2, Q1, Q9 z review specu. |
+| Właściciel 2026-11-19 (ostateczne) | **Tekst informacji dla uczestników bez zmian**: nie wspomina o chmurze ani o sędzim Fable. | `MeetingConsentText` się nie zmienia. Nadpisuje rekomendację W1 z review. Ryzyko zapisane w Risks jako przyjęte. |
+| Właściciel 2026-11-19 (ostateczne) | Imiona mówców idą do dostawcy; okno zgody mówi to wprost. | Lista „Co opuszcza Maca”, treść okna zgody. |
+| Właściciel 2026-11-19 (ostateczne) | Zgoda nadal egzekwowana w kodzie przed każdym procesem; znacznik „wysłano do: Claude · model” na poziomie spotkania zostaje. | `MeetingProviderAuthorization`, macierz „0 procesów”, kolumny pochodzenia. |
+| Właściciel 2026-11-19 (ostateczne) | v1 = **Claude Code CLI na subskrypcji użytkownika**. Klucz API (BYOK) to **druga faza zaraz po v1**. | Faza 1 = CLI, Faza 2 = BYOK, z tą samą bramką zgody. |
+| Właściciel 2026-11-10 | Ryzyko regulaminowe wywoływania `claude -p` z aplikacji przyjęte, pod warunkami z sekcji Risks. | Bez zmian. |
+| Właściciel 2026-11-19, decyzja 3 | Notatka to podsumowanie (ustalenia, decyzje, zadania), **bez timestampów**. Timestampy zostają w transkrypcie. | Ścieżka dostawcy nie dodaje do notatki żadnego czasu. Patrz „Co opuszcza Maca”. |
+| Właściciel 2026-11-19, decyzja 4 | **Żadnych oznaczeń AI/człowiek** w notatkach, także per blok. | Znacznik dostawcy to informacja o prywatności na poziomie spotkania, nie autorstwo bloku. `NoteBlockProvenance` bez zmian. |
+| Właściciel 2026-11-19, decyzja 2 | Fable ocenia notatki ze wszystkich spotkań właściciela. | To harness (`scripts/meeting-eval`), nie produkt. Zgoda w aplikacji nie obejmuje harnessu, a uchylenie M-Q5 nie włącza niczego w aplikacji. Wspólna może być wiedza (flagi, wyniki kanarka), nie kod. |
+| Epik DICT, nie-cel | Kontekst dyktowania nie opuszcza Maca. | Dyktowanie poza v1; Faza 4 ma własny test „żaden kontekst DICT”. |
+
+## Resolved assumptions (autonomous defaults)
+
+Pytania z review specu (2026-11-19). Q1, Q3, Q4, Q5 i Q9 **rozstrzygnął właściciel** (2026-11-19). Pozostałe to wartości **domyślne, do potwierdzenia przez właściciela**; spec jest spójny przy tych wartościach, a zmiana którejkolwiek przed implementacją jest tania.
+
+| # | Pytanie | Odpowiedź | Stan |
+|---|---|---|---|
+| Q1 | Bramka wysyłki: zgoda per funkcja czy także flaga per spotkanie? | **Jedna zgoda przy wyborze dostawcy i modelu. Bez flagi per spotkanie.** | **rozstrzygnięte przez właściciela** |
+| Q2 | Dyktowanie przez dostawcę w v1? | **Nie.** Osobna faza po decyzji właściciela. Kontekst DICT nigdy. | domyślne, do potwierdzenia przez właściciela |
+| Q3 | Dostawcy w v1? | **Tylko Claude Code CLI.** | **rozstrzygnięte przez właściciela** |
+| Q4 | CLI subskrypcji czy klucz API? | **CLI w v1, klucz API (BYOK) jako Faza 2 zaraz po v1.** | **rozstrzygnięte przez właściciela** |
+| Q5 | Imiona mówców (nadane ręcznie, `selfName`) w wysyłanym transkrypcie? | **Tak**, powiedziane wprost w oknie zgody. | **rozstrzygnięte przez właściciela** |
+| Q6 | Informacja o dostawcy w eksporcie Markdown i kopii ⌘⇧C? | **Tak, jedna linia w stopce** („Transkrypt przetworzył: Claude (Anthropic)”), nic per blok. | domyślne, do potwierdzenia przez właściciela (styk z decyzją 4, patrz Risks) |
+| Q7 | Powrót do modelu wbudowanego przy błędzie dostawcy? | **Wyłączony.** Kierunek wyłącznie dostawca → wbudowany. | domyślne, do potwierdzenia przez właściciela |
+| Q8 | Ten sam pipeline (kawałki 3000 tokenów, `NotesGuard`, `NotesComposer`) dla dostawcy? | **Tak w v1.** Zmiana kawałkowania dopiero po ocenie sędzią Fable. | domyślne, do potwierdzenia przez właściciela |
+| Q9 | Wymagać potwierdzenia „uczestnicy wiedzą” per spotkanie? | **Nie.** Tekst dla uczestników zostaje bez zmian. | **rozstrzygnięte przez właściciela** |
+| Q10 | Numer ADR? | **Nadawany przy merge** (pierwszy wolny; 0010 trzyma DICT). Plik `docs/decisions/00NN-external-providers.md`. | domyślne, do potwierdzenia przez właściciela |
+
+Alternatywa do Q5, rozważona i odrzucona: pseudonimy („S1”, „S2”) w wysyłce i podmiana imion lokalnie. Odrzucona, bo imiona padają też w treści wypowiedzi (których nie da się wiarygodnie zamaskować), a notatka bez imion gubi właścicieli zadań; pseudonimy dawałyby fałszywe poczucie anonimowości.
 
 ## 📝 Problem Statement
 
-- Wbudowany LLM wymaga 3–19 GB dysku i pamięci; na Macu z 8–16 GB RAM jakość i szybkość są słabe, a notatki z godzinnego spotkania (kilka kawałków map → reduce) trwają długo.
-- Wielu użytkowników ma już subskrypcję (Claude Pro/Max, ChatGPT, SuperGrok) i wolałoby użyć jej niż pobierać model.
-- Spec spotkań (Q9) odrzucił zewnętrzne serwery LLM tylko dlatego, że wymagałyby `EndpointProbe` i nowej powierzchni sieciowej; zgoda użytkownika na chmurę nie była wtedy rozważana. Teraz jest to wyraźna prośba produktowa.
+- Wbudowany model wymaga 3–19 GB dysku i pamięci. Notatki z godzinnego spotkania to kilka wywołań MAP i REDUCE, co na Macu z 8–16 GB trwa długo, a jakość bywa niewystarczająca do pracy.
+- Właściciel i część użytkowników ma subskrypcję Claude i zainstalowane Claude Code. Woleliby świadomie użyć jej dla spotkań, które nie są poufne.
+- Lintel obiecuje dziś „nic nie jest wysyłane” (reguły repozytorium, napisy w aplikacji, strona). Każde wyjście danych musi więc być jawne, odwracalne jednym ruchem, widoczne przy spotkaniu i niemożliwe do uruchomienia bez świadomej zgody: ani przez automatyczne kolejkowanie notatek, ani przez „Regenerate Notes”, ani przez stary zapis w ustawieniach.
 
 ## 📝 Proposed Solution
 
-Nowy target **`PounceProviders`** (ADR 0008) z implementacją nowego, węższego portu **`TextGenerator`** opartą na podprocesie CLI. `LLMRuntime` wymaga `load(modelAt:)`, `unload()` i `isLoaded` (`Sources/PounceSpeech/LlamaRuntime.swift:42-52`), które CLI nie ma jak spełnić sensownie, więc `TextGenerator` (`contextLength`, `generate`, `generateResult`) trafia do `PounceSpeech` jako **addytywny** protokół, a `LLMRuntime` go rozszerza. Konsumenci (nowy `ProviderFormatter` w dyktowaniu, `NotesPipeline` w spotkaniach) biorą `any TextGenerator` i nie wiedzą, czy stoi za nim llama.cpp, czy CLI. Istniejący `BuiltInFormatter` zostaje bez zmian (bierze konkretny `KeepWarmRuntime`). Wspólne ustawienia (model, ścieżka binarki, fallback) są globalne (`app.ai.*`), a zgoda i wybór dostawcy należą do pluginu; całość konfiguruje się w nowym panelu **Ustawienia → Dostawcy AI**; każda funkcja wybiera źródło: wbudowany / (dyktowanie: mój serwer) / dostawca.
+1. Nowy target **`LintelProviders`**: uruchamianie CLI dostawcy jako podprocesu (treść tylko przez stdin), z deskryptorem dostawcy, lokalizatorem binarki, limitem procesów i **autoryzacją sprawdzaną w samym targecie przed każdym uruchomieniem**. Nic go nie woła, dopóki plugin go nie podłączy.
+2. W `MeetingsPlugin`: wewnętrzny port generowania notatek nad dzisiejszym `NotesLease` (refaktoryzacja bez zmiany zachowania), a potem druga implementacja portu przez `LintelProviders`.
+3. Jedna bramka: zgoda zapisana w ustawieniach pluginu (`plugins.meetings.*`), związana z konkretnym dostawcą i modelem, sprawdzana przed każdym procesem.
+4. Addytywne kolumny pochodzenia (`notes_provider`, `notes_provider_model`) dla znacznika na poziomie spotkania. Znaczenie `notes_model` się nie zmienia.
+5. Faza 2: drugi kanał do tego samego odbiorcy, czyli klucz API w Pęku kluczy i transport HTTPS z zamkniętą listą hostów.
 
 **Rozważone i odrzucone:**
-- *Klucze API w Keychain* (Q1): rozliczane za token, nie z subskrypcji, nie spełnia celu.
-- *Odczyt tokenów OAuth z plików CLI i własne wywołania HTTP:* wprost zabronione regulaminem Anthropic dla subskrypcji konsumenckich i kruche; Pounce nie dotyka poświadczeń.
-- *SDK agentowe (Claude Agent SDK, Codex SDK) wbudowane w aplikację:* ciężka zależność, a regulaminy dla subskrypcji są tam niejednoznaczne.
-- *Odpytywanie CLI o listę modeli* (Q4): żadne CLI nie daje listy modeli z planu użytkownika.
+- *Dyktowanie jako pierwszy konsument* (wersja z 2026-11-10): niesie najwięcej ryzyka (opóźnienie, kontekst DICT, zmiana `LintelKit`) i nie jest tym, co właściciel zamówił jako pilne.
+- *Flaga wysyłki per spotkanie, przełącznik „każde nowe spotkanie”, potwierdzenie „uczestnicy wiedzą”, wariant zdania dla uczestników* (rekomendacje review K2, W1, Q9): odrzucone decyzją właściciela z 2026-11-19. Decyzja zapada raz, przy wyborze dostawcy; kto ma poufne spotkanie, wraca na model lokalny przed nagraniem albo przed „Regenerate Notes”. Skutek uboczny jest nazwany w oknie zgody i w Risks.
+- *Znacznik bez migracji*: sprawdzone i odrzucone. Znacznik musi być trwały per spotkanie i przeżyć zmianę ustawień, więc nie może pochodzić z `plugins.meetings.*`. `notes_model` ma zamknięte znaczenie w BC §5. Sufiks w `notes_prompt_version` (`TEXT`) mógłby unieść format promptu, ale nie nazwę modelu, i mieszałby dwa znaczenia w jednym polu. Dwie kolumny `NULL` to najmniejsza uczciwa zmiana.
+- *Zapis znacznika w `notes_model` jako `cli:<provider>/<model>`*: zmienia znaczenie chronionej kolumny (`BACKWARD_COMPATIBILITY.md` §5: „`notes_model` is an `LLMModelCatalog` id”).
+- *Wspólne ustawienia `app.ai.*` i `PluginContext.hostSettings`*: zbędna zmiana chronionego `LintelKit` przy jednym konsumencie. Model i ścieżkę trzyma plugin; wybór modelu per funkcja jest zresztą lepszy niż globalny.
+- *Nowy protokół `TextGenerator` w `LintelSpeech`*: w v1 port jest wewnętrzny dla `MeetingsPlugin`, więc `LintelSpeech` się nie zmienia.
+- *Odczyt tokenów OAuth z plików CLI i własne wywołania HTTP na subskrypcji*: zabronione regulaminem Anthropic i kruche. Lintel nie dotyka poświadczeń CLI.
+- *SDK agentowe w aplikacji*: ciężka zależność, niejasny regulamin dla subskrypcji.
+- *Codex, Gemini, Grok w v1*: niegotowe (patrz Research), Faza 3.
 
 ## Research
 
-Sprawdzone lokalnie (Claude Code 2.1.322, Codex CLI 0.153.2, Gemini CLI) i w sieci (stan 2026-11-10; informacje z sieci to źródła wtórne, do weryfikacji w Fazie 0):
+Stan wiedzy z 2026-11-10 (Claude Code 2.1.322, sprawdzone lokalnie) i z review z 2026-11-19. **Wszystkie flagi wymagają ponownej weryfikacji w spike'u (PR 1)**, bo CLI zmienia się co tydzień.
 
-- **Claude Code:** `claude -p` (tryb nieinteraktywny), `--model` (aliasy i pełne ID), `--output-format json`, `--system-prompt`, `--tools ""` (wyłącza wszystkie narzędzia), `--no-session-persistence`, `--disable-slash-commands`, `--strict-mcp-config`, `--setting-sources`, `claude auth status`. **`--bare` odpada:** wg własnego opisu CLI czyta uwierzytelnianie wyłącznie z `ANTHROPIC_API_KEY`/`apiKeyHelper` i nigdy z OAuth/Keychain, więc z subskrypcją nie działa. Izolację trzeba zbudować pojedynczymi flagami.
-- **Codex CLI:** `codex exec` czyta prompt ze stdin (`-`), `-m`, `-s read-only`, `--ephemeral`, `--ignore-user-config` (auth nadal z `CODEX_HOME`), `--ignore-rules`, `--skip-git-repo-check`, `-o <plik>` (ostatnia wiadomość), `--json`, `--output-schema`, `codex login status`. **Ryzyko:** sandbox `read-only` dalej pozwala agentowi *czytać* pliki przez powłokę; trzeba znaleźć wyłączenie narzędzia powłoki (`--disable`/`-c`) i udowodnić je testem kanarkowym (poniżej).
-- **Gemini CLI:** `gemini -p`, `-m`; logowanie Google. Kandydat na Fazę 3.
-- **Grok Build (`grok -p`):** istnieje oficjalne CLI xAI (beta od maja 2026), ale źródła się różnią co do planów z dostępem, nazwy zmiennej klucza i tego, czy tryb headless rozlicza się z subskrypcji, czy z klucza API. **Nie obiecujemy Groka w v1;** Faza 3 zaczyna się od weryfikacji u źródła.
-- **Regulamin (kluczowe ryzyko):** Anthropic zabrania używania tokenów OAuth subskrypcji Free/Pro/Max w produktach i narzędziach firm trzecich (doprecyzowane 2026-02-19). Źródła zgadzają się, że własne logowanie w oficjalnym Claude Code to wzorzec dozwolony, ale nie znalazłem źródła potwierdzającego wprost, że wywołanie `claude -p` z cudzej aplikacji jest w porządku. Pounce nie widzi ani nie przenosi tokenu (CLI robi to samo co w terminalu użytkownika), lecz to szara strefa → **bramka prawna w Fazie 0** (decyzja właściciela po lekturze `code.claude.com/docs/en/legal-and-compliance`).
-- **Rynek:** Raycast AI, Msty, Zed, Cursor stawiają na własne klucze (BYOK) albo własną subskrypcję; wywoływanie zainstalowanych CLI to wzorzec z edytorów i narzędzi agentowych (np. adaptery ACP). Przejmujemy ideę „deskryptor dostawcy + test połączenia”; pomijamy ich zarządzanie kontami i rozliczeniami.
+- **Claude Code:** `claude -p` (tryb nieinteraktywny, prompt ze stdin), `--model`, `--output-format json`, `--system-prompt`, `--tools ""`, `--no-session-persistence`, `--disable-slash-commands`, `--strict-mcp-config`, `--setting-sources ""`, `claude auth status`. `--bare` odpada: czyta uwierzytelnianie tylko z klucza API, więc nie działa z subskrypcją.
+- **Zapis sesji na dysku (wniosek z review, niepotwierdzony testem):** bez `--no-session-persistence` Claude Code zapisuje sesje w katalogu konfiguracji (`projects/*.jsonl`), czyli jawną kopię transkryptu i odpowiedzi.
+- **TCC (wniosek z review, niepotwierdzony testem):** proces uruchomiony przez aplikację jest na macOS przypisany do niej jako „responsible process”. Lintel może mieć Full Disk Access, Accessibility i mikrofon, więc agent CLI z działającym narzędziem albo hookiem czytałby chronione miejsca z uprawnieniami Lintela.
+- **Hooki i konfiguracja użytkownika:** przekazanie `HOME`/`CLAUDE_CONFIG_DIR` ładuje hooki (dowolne polecenia), serwery MCP i `CLAUDE.md`. `--tools ""` nie wyłącza hooków. Pusty własny katalog konfiguracji odpada, jeśli gubi logowanie z Pęku kluczy.
+- **Codex CLI:** brak flagi promptu systemowego, wyłączenie powłoki niepotwierdzone, `-o <plik>` zapisuje odpowiedź jako jawny plik, warunki OpenAI nieprzeczytane. Niegotowy.
+- **Gemini CLI, Grok Build:** do weryfikacji u źródła (plany, rozliczanie w trybie headless, flagi izolacji).
+- **Regulamin Anthropic:** dozwolone jest własne logowanie użytkownika w niezmodyfikowanym Claude Code; zabronione zbieranie i pośredniczenie w poświadczeniach. Czy darmowa aplikacja OSS wołająca `claude -p` to „running Claude Code in your products”, nie jest rozstrzygnięte (ryzyko przyjęte 2026-11-10).
+- **Rynek:** Raycast AI, Msty, Zed i Cursor stawiają na BYOK albo własną subskrypcję; wywoływanie zainstalowanych CLI to wzorzec z edytorów. Przejmujemy „deskryptor dostawcy + test połączenia”, pomijamy zarządzanie kontami i rozliczeniami. Granola i podobne notatniki wysyłają transkrypt domyślnie; my odwrotnie: domyślnie nic, decyzja per spotkanie.
 
 ## 📝 Architecture
 
 ```mermaid
 flowchart LR
-  Dict[DictationPlugin: BuiltInFormatter] --> F
-  Notes[MeetingsPlugin: NotesPipeline] --> F
-  F["ProviderService (fabryka + zgoda)"] -->|any TextGenerator| CLI[CLIProviderGenerator]
-  F -->|any TextGenerator| Llama[KeepWarmRuntime / LLMLease]
-  CLI --> Gate[ProviderGate: 1 proces naraz, interactive przed background]
-  Gate --> Proc[ProviderProcess: stdin, limity, env allowlist, pusty cwd]
-  Proc --> Bin[(claude / codex / gemini / grok)]
+  NS["NotesService (istnieje)"] --> NP["NotesPipeline (istnieje)"]
+  NP --> Port["NotesGenerating (nowy port, wewnętrzny)"]
+  Port --> Lease["LeaseNotesGenerator: LLMLease (dzisiejsze zachowanie)"]
+  Port --> PG["ProviderNotesGenerator (nowy)"]
+  PG --> Run["LintelProviders: ProviderRunner (nowy)"]
+  Auth["MeetingProviderAuthorization: ważna zgoda na dostawcę i model (nowy)"] -.sprawdzane przed każdym startem.-> Run
+  Run --> Gate["ProviderGate: 1 naraz"] --> Proc["ProviderProcess: stdin, limity, env allowlist"]
+  Proc --> CLI[(claude)]
+  Run -. Faza 2 .-> HTTP["ProviderHTTPTransport: lista hostów"]
 ```
 
-**Graf zależności (AGENTS.md):** `PounceProviders` zależy od `PounceSpeech` (tylko po `TextGenerator`, `ChatMessage`, `GenerationResult`) i `PounceKit` (`SettingsStore`); niczego innego z repozytorium i żadnego pluginu. Pluginy mogą go importować, nie importują siebie nawzajem. `PounceApp` jest jedynym miejscem budującym panel ustawień. Test grafu SwiftPM, analogiczny do `PounceSpeechTests`, pilnuje tego. `PounceSpeech` dostaje tylko addytywny protokół `TextGenerator`.
+Wniosek z diagramu: jest dokładnie jedno wejście do procesu (i w Fazie 2 do sieci), `ProviderRunner`, i ono samo pyta o autoryzację. Konsument nie może „zapomnieć” o sprawdzeniu.
 
-**Komponenty `PounceProviders`:**
-- `ProviderDescriptor` (dane + czyste funkcje): `id` (`claude`, `codex`, …), nazwa, nazwy binarek, `authStatusArguments`, `arguments(model:systemPrompt:) -> [String]` (jedyne miejsce, gdzie powstaje lista argumentów), `parseOutput`, katalog modeli, zakres wspieranych wersji. Czysty i w pełni testowalny bez procesu.
-- `ProviderLocator`: szuka binarki w stałej liście (`~/.local/bin`, `/opt/homebrew/bin`, `/usr/local/bin`, `~/.codex/packages/standalone/current/bin`) lub w ścieżce wskazanej w Ustawieniach („Wskaż plik”, np. dla instalacji z `nvm`; bez automatycznego skanowania katalogów wersji). **Model zagrożeń:** złośliwe oprogramowanie z uprawnieniami tego samego użytkownika mogłoby i tak czytać tokeny CLI, więc nie bronimy się przed podmianą binarki przez nie (okno między walidacją a `exec` jest znane i zaakceptowane); bronimy się przed błędną konfiguracją (plik zapisywalny przez grupę/innych). **Nie** polega na `PATH` aplikacji GUI ani na funkcjach powłoki (na Macu autora `claude` jest funkcją zsh, a prawdziwa binarka leży w `~/.local/bin`). Walidacja: zwykły plik wykonywalny, właściciel to użytkownik lub root, brak zapisu dla grupy/innych; potem `--version`.
-- `ProviderProcess`: `Process` z potokiem stdin (cała treść użytkownika idzie **stdin**, nigdy argumentami, bo argv jest widoczny w `ps`), limit stdout 1 MB, stderr odrzucany (nie logujemy, bo może zawierać fragmenty), osobna grupa procesów, limit czasu, anulowanie: SIGTERM, po 2 s SIGKILL grupy. Katalog roboczy: nowy pusty katalog `0700` w `caches`, usuwany po wywołaniu. **Środowisko z listy dozwolonych:** `HOME`, `PATH` (stały, bez katalogów użytkownika poza lokalizacją binarki), `LANG`, `TMPDIR`, `CLAUDE_CONFIG_DIR`, `CODEX_HOME`, zmienne proxy **oraz zmienne uwierzytelniania dostawców (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`…) bez zmian, jeśli występują w środowisku Pounce**: warunki Anthropic zabraniają „removing, disabling or restricting” wbudowanych metod uwierzytelniania, więc Pounce ich nie filtruje. Zamiast tego `ProviderStatus` wykrywa taką zmienną i panel ostrzega: „CLI może rozliczać za token zamiast z subskrypcji”.
-- `ProviderGate` (proces-wide singleton jak `LLMLease.shared`): jedno wywołanie naraz na dostawcę (limity subskrypcji), kolejka z priorytetem `interactive` przed `background`, anulowanie wywołania `background` na rzecz `interactive` i jego ponowienie (ta sama semantyka co `LLMLease`).
-- `CLIProviderGenerator: TextGenerator`: `contextLength` stałe 8192 (zgodne z założeniami kawałkowania notatek, `notesChunkTokens` bez zmian); składa wiadomości (`ChatMessage`) w prompt, woła `ProviderGate`/`ProviderProcess`, zwraca `GenerationResult`. `maxTokens` jest wskazówką w prompcie (żadne z CLI nie ma limitu tokenów); flaga „przerwano limitem” to `false`, chyba że deskryptor potrafi ją odczytać z odpowiedzi (Faza 0).
-- **Brak pułapek (AGENTS.md, ryzyko R7):** cały kod `PounceProviders` poza testami bez `fatalError`, `try!` i force unwrap; błędy `Process`, potoków i systemu plików są zwracane jako `throws`/stan `ProviderStatus`.
-- `ProviderService`: tworzony przez plugin z `PluginContext.settings` (klucze pluginu) i `PluginContext.hostSettings` (patrz niżej); `generator(for: ProviderFeature) -> (any TextGenerator)?` zwraca `nil` bez ważnej zgody, bez zalogowania lub przy niezgodnej wersji CLI. **To jedyne wejście do podprocesów.**
-- `ProviderStatus`: `notInstalled` · `notSignedIn` · `incompatibleVersion` · `ready` (z `claude auth status`/`codex login status`, bez wyświetlania ani zapisywania adresu e-mail konta).
+**Graf zależności (AGENTS.md):** `LintelProviders` zależy tylko od `LintelSpeech` (typy wartości `ChatMessage`, `GenerationResult`), od żadnego pluginu i nie od `LintelApp`. W Fazie 2 dochodzi `LintelKit` (port `KeychainClient`). Pluginy mogą go importować; nie importują siebie nawzajem. Test grafu (wzór: `LintelSpeechTests`) czyta `Package.swift` i źródła. **`LintelKit` i `LintelSpeech` nie zmieniają się w Fazie 1.**
 
-**Co się zmienia w istniejącym kodzie (minimalnie, addytywnie):**
-- `DictationPlugin`: `LLMSource` dostaje wartość `.provider`; nowy `ProviderFormatter: TextFormatter` nad `any TextGenerator` (te same `CleanupPrompt`, `Segmenter`, `FormatterGuard` co `BuiltInFormatter`, wspólna logika kawałków wyciągnięta bez zmiany zachowania wbudowanego; `prepare()` nic nie ładuje); nowe `FallbackReason`: `.providerUnavailable`, `.notAuthorized`. **Widoczność:** przy tych powodach HUD pokazuje krótki komunikat „Dostawca niedostępny, wklejono surowy tekst” / „Zgoda cofnięta” (dziś powody wyłącznie do logów), z etykietą VoiceOver; stan `incompatibleVersion` wyświetla w HUD „Zaktualizuj CLI/Pounce”. Fallback do modelu wbudowanego (Q5) dotyczy też dyktowania i jest w Fazie 1. Nieznana wartość `llmSource` w starszym buildzie wraca do domyślnej (`.server`), więc brak zmiany łamiącej.
-- `MeetingsPlugin` (Faza 2 specu spotkań, jeszcze niezbudowana): `NotesPipeline` przyjmuje `any TextGenerator` zamiast zakładać `LLMLease`; nowe ustawienie `plugins.meetings.notesSource`. Brak nowej kolumny w bazie: znacznik trafia do istniejącego `meeting.notes_model` w formacie `cli:<provider>/<model>` (wbudowane modele mają dotychczasowe ID z `LLMModelCatalog`, więc prefiks `cli:` jest jednoznaczny).
-- `PounceKit`: jedna **addytywna** zmiana (z wartością domyślną, ryzyko R8): `PluginContext.hostSettings` — tylko do odczytu widok `SettingsStore` ograniczony do prefiksu `app.ai.` (`PluginSettings` jest sztywno prefiksowane `plugins.<id>.`, `Sources/PounceKit/PluginContext.swift:16-20`, więc inaczej wspólne klucze byłyby nieosiągalne). Zgody i wybór dostawcy per funkcja zostają w kluczach pluginu, żeby plugin był właścicielem swojej zgody.
-- `PounceSpeech`: addytywny protokół `TextGenerator` (patrz Proposed Solution); `LlamaRuntime`/`KeepWarmRuntime` bez zmiany zachowania.
+### `LintelProviders` (nowy target)
+
+- **`ProviderDescriptor`** (dane i czyste funkcje): `id` (`claude-code`), `recipient` (firma, do której trafia tekst; wchodzi do treści okna zgody), nazwa wyświetlana jako zwykły tekst, nazwy binarek, `authStatusArguments`, `arguments(model:systemPrompt:) -> [String]` (jedyne miejsce, gdzie powstaje argv), `parseOutput`, `classify(stderr:exitCode:)`, katalog modeli, zakres wspieranych wersji, `isolationVerified` (ustawiane w kodzie dopiero po kanarku z PR 1; bez tego `ProviderRunner` odmawia startu).
+- **`ProviderLocator`**: stała lista katalogów (`~/.local/bin`, `/opt/homebrew/bin`, `/usr/local/bin`) albo ścieżka wskazana ręcznie. Nie polega na `PATH` aplikacji GUI ani na funkcjach powłoki. Walidacja: zwykły plik wykonywalny, właściciel to użytkownik albo root, brak zapisu dla grupy i innych; potem `--version`. Model zagrożeń: nie bronimy się przed złośliwym oprogramowaniem z uprawnieniami tego samego użytkownika (i tak czytałoby tokeny CLI), bronimy się przed błędną konfiguracją.
+- **`ProviderProcess`**: `Process` z potokiem stdin. Cała treść użytkownika idzie stdin, nigdy argv (argv widać w `ps`). Limit stdout 1 MB. **stderr jest czytany do pamięci z limitem (64 KB), klasyfikowany do zamkniętego enuma `ProviderFailure` (`incompatibleVersion`, `rateLimited`, `notSignedIn`, `network`, `other`) i porzucany**: nigdy logowany ani zapisywany. Osobna grupa procesów, limit czasu, anulowanie SIGTERM i po 2 s SIGKILL grupy. Katalog roboczy: nowy pusty katalog `0700` w katalogu caches pluginu, usuwany w `defer` i sprzątany przy starcie (prefiks `provider-`). Środowisko z listy dozwolonych: `HOME`, stały `PATH`, `LANG`, `TMPDIR`, `CLAUDE_CONFIG_DIR`, zmienne proxy oraz zmienne uwierzytelniania dostawcy bez zmian, jeśli są w środowisku Lintela (regulamin zabrania „removing, disabling or restricting” metod uwierzytelniania; status ostrzega wtedy, że CLI może rozliczać za token).
+- **`ProviderGate`** (jeden na proces aplikacji, jak `LLMLease.shared`): jedno wywołanie naraz na dostawcę, kolejka FIFO. Priorytety `interactive`/`background` dojdą razem z drugim konsumentem; w v1 jedynym jest praca w tle.
+- **`ProviderAuthorization`**: `Sendable` domknięcie `() async -> ProviderDecision` (`allowed` albo powód odmowy) dostarczane przez konsumenta przy każdym żądaniu. `ProviderRunner` woła je **bezpośrednio przed każdym** `Process.run()` (i przed każdym żądaniem HTTP w Fazie 2), już po wyjściu z kolejki `ProviderGate`. Odmowa kończy żądanie błędem `notAuthorized`, bez procesu.
+- **`ProviderRunner`**: `run(messages:model:timeout:authorization:) async throws -> GenerationResult`. Składa prompt wersjonowanym serializatorem, przechodzi przez bramkę, pyta o autoryzację, uruchamia proces, parsuje wynik. To jedyny publiczny sposób uruchomienia procesu.
+- **`ProviderStatus`**: `notInstalled` · `notSignedIn` · `incompatibleVersion` · `ready`. Odczyt z `claude auth status`; adres e-mail konta zostaje wyłącznie w pamięci parsera i nie trafia do UI, logów ani ustawień (test).
+- **`ProviderFeatureID`**: zbiór otwarty (`RawRepresentable` struct, jak `ModelKind`), w v1 tylko `meetings.notes`. Zgoda jest per id funkcji, więc przyszli konsumenci (czat w aplikacji, akcje po spotkaniu, „Ask agent”, dyktowanie) wymagają własnej, nowej zgody.
+- **`ProviderSystem`**: zestaw części dotykających systemu (lokalizator, fabryka procesu, w Fazie 2 transport). `live` jest aplikacji; `quiet` (fałszywy lokalizator i proces z licznikiem uruchomień) jest instalowany w każdym środowisku `LintelAppTests` i `MeetingsPluginTests`, wzorem `MeetingsSystem.quiet` i `QuietMeetings.install()`. Test na wzór `NoRealSystemTests` sprawdza, że żaden prawdziwy `Process` nie powstał.
+- **Redakcja logów:** `os.Logger` dostaje tylko kody z zamkniętych enumów, liczniki, czasy i id dostawcy. Nigdy argv, stdin, stdout, stderr, odpowiedź modelu, e-mail, ścieżkę `HOME` ani (Faza 2) klucz. Test źródłowy (wzór: `NotesUIScanTests`): żadne wywołanie loggera w `LintelProviders` nie interpoluje wartości typu `String` spoza zamkniętego enuma.
+- **Brak pułapek (ryzyko R7):** bez `fatalError`, `try!` i force unwrap poza testami; błędy `Process`, potoków i plików wracają jako `throws` albo stan.
+
+### `MeetingsPlugin`
+
+- **Port `NotesGenerating`** (wewnętrzny): `open()`, `generateResult(messages:maxTokens:)`, `release()`, zdarzenia oczekiwania. `NotesPipeline` jest dziś zrośnięty z `LLMLease`: `NotesModel { lease, runtime, modelURL, keepWarm }`, `NotesLease.handle()`, semantyka `ModelLeaseError.yielded`/`.busy`, `maxYieldsPerRequest`, `busyLimit`, `NotesEvent.waitingForModel`. Wydzielenie portu to **osobny PR bez zmiany zachowania**: `LeaseNotesGenerator` przenosi dzisiejszą logikę 1:1, a dowodem są niezmienione `NotesRegressionTests`, testy lease i TSan.
+- **`ProviderNotesGenerator`**: implementacja portu przez `ProviderRunner`. Bez `waitingForModel` i bez yield; własne limity czasu (wstępnie MAP 180 s, REDUCE 300 s, jeden retry; wartości ustala pomiar z PR 1, bo dzisiejsze 300 s / 600 s / `busyLimit` 1800 s dotyczą modelu lokalnego). Godzinne spotkanie przy `notesChunkTokens = 3000` to około 5–8 wywołań.
+- **Ten sam pipeline (Q8):** `TranscriptChunker`, `NotesPrompt`, `NotesGuard`, `NotesComposer` bez zmian. Cytaty są weryfikowane lokalnie jak dziś. `NotesVerifier` zostaje wyłączony (`notesVerifierEnabled = false`) i w v1 nie idzie do dostawcy.
+- **Serializator promptu z własną wersją:** `NotesPrompt.mapMessages` składa wieloturowe few-shoty, a CLI przyjmuje jeden prompt. `ProviderPromptSerializer` (format `cli1`) spłaszcza role do bloków ze znacznikami escapowanymi tak samo jak `<transcript>` w `TranscriptChunker`. Golden test. W `notes_prompt_version` (kolumna `TEXT`) zapisuje się `<NotesPrompt.version>+cli1`; czytniki, które porównują wersję, traktują nieznany sufiks jak inną wersję.
+- **`MeetingProviderAuthorization`**: jedyna implementacja `ProviderAuthorization` w v1. Zwraca `allowed` tylko gdy naraz: plugin aktywny, `notesSource == provider`, zapisana zgoda zgadza się z **bieżącym** dostawcą, **bieżącym** modelem, funkcją `meetings.notes` i bieżącą wersją tekstu zgody, dostawca i model **tego żądania** są równe tym ze zgody, a deskryptor ma `isolationVerified`. Ustawienia są czytane przy każdym pytaniu, nie z pamięci podręcznej zadania.
+- **`NotesService`**: wybór generatora przy starcie każdego zadania, z bieżących ustawień. Przy ważnej zgodzie do dostawcy idzie **każde** zadanie notatek: spotkanie, które przeszło w `ready` (gdy `notesEnabled`), oraz „Regenerate Notes”, **także dla spotkań nagranych przed włączeniem dostawcy** (okno zgody mówi to wprost). Nic nie jest wysyłane samo z siebie: włączenie dostawcy nie przepisuje starych notatek, a odzyskiwanie po awarii (`NotesRecovery`) tylko zmienia `running` w `failed`. `notesSource = provider` bez ważnej zgody (np. po zmianie wersji tekstu albo ręcznej edycji ustawień) zachowuje się jak `builtIn` i panel pokazuje baner z prośbą o ponowną zgodę.
+- **Zmiana dostawcy albo modelu = nowa zgoda.** Zapis zgody zawiera id deskryptora i model. Wybór innego modelu albo dostawcy otwiera okno zgody ponownie; do czasu potwierdzenia poprzedni wybór zostaje w mocy, a „Cancel” niczego nie zmienia.
+- **Powrót na model lokalny = natychmiastowy koniec wysyłki.** Przełączenie źródła na „Built-in” (albo cofnięcie zgody) działa od najbliższego pytania o autoryzację: zadania czekające w kolejce startują już na modelu wbudowanym, a zadanie w toku jest anulowane przed kolejnym procesem (trwający proces dostaje SIGTERM), wcześniejszy tekst notatek zostaje (reguła „failed/cancelled keeps earlier text”) i zadanie wraca do kolejki raz, na model wbudowany. Zapis zgody jest usuwany, więc ponowny wybór dostawcy znów pokazuje okno. Tego, co już wysłano, nie da się cofnąć; UI mówi to wprost.
+- **Fallback (Q7, PR 7):** `plugins.meetings.notesProviderFallback`, domyślnie wyłączony. Tylko dostawca → wbudowany, gdy model jest zainstalowany. **Nigdy wbudowany → dostawca** (test). Po fallbacku `notes_model` ma id wbudowanego, a kolumny dostawcy są puste.
+- **Panel Modele i banery:** przy `notesSource = provider` bez fallbacku model notatek nie jest „selected” w `modelUsage` (`MeetingsPlugin+Models.swift`), więc „N models are needed” i „Download Notes Model” go nie żądają. Test banera.
+- **Tekst dla uczestników:** `MeetingConsentText` **bez zmian** (decyzja właściciela).
+
+### Reguły repozytorium zmieniane razem z kodem
+
+W tym samym PR co kod, który potrafi wysłać (PR 5): `CODE_REVIEW.md` §5 (nowe, nazwane wyjście danych: podproces dostawcy, z warunkami tego specu), `AGENTS.md` (wiersz Meetings „the only network access…”, nowy target, graf), `BACKWARD_COMPATIBILITY.md` §2, §3 i §5, napisy w aplikacji (`en` + `pl`), w tym podsumowanie pluginu „Everything runs on this Mac and nothing is uploaded.” (`MeetingsViews.swift`). README i `docs/index.html` zmieniają się w PR 6, czyli wtedy, gdy użytkownik dostaje drogę do włączenia. Test językowy: żaden napis w katalogu i na stronie nie mówi „nothing is uploaded” bez „by default”.
 
 ## 📝 Data Model
 
-Nie ma nowej bazy ani tabeli. Wszystko to ustawienia (chroniony kontrakt kluczy, `BACKWARD_COMPATIBILITY.md`, wiersz do dodania):
+### Migracja `meetings.sqlite` (addytywna, nowa nazwa migracji, np. `v3-notes-provider`)
+
+Tylko to, czego wymaga znacznik pochodzenia na poziomie spotkania:
+
+| Kolumna w `meeting` | Typ | Domyślnie | Znaczenie |
+|---|---|---|---|
+| `notes_provider` | `TEXT NULL` | `NULL` | Id deskryptora, który napisał obecne notatki (`claude-code`, w Fazie 2 `anthropic-api`). `NULL` = model wbudowany albo brak notatek. |
+| `notes_provider_model` | `TEXT NULL` | `NULL` | Model podany dostawcy (alias albo id). |
+
+- `notes_model` zachowuje znaczenie z BC §5 (id z `LLMModelCatalog`); gdy notatki napisał dostawca, jest `NULL`.
+- Obie kolumny są zapisywane tym samym strzeżonym `UPDATE` co wynik zadania (`MeetingsStore+Notes.swift`); przerwane albo nieudane zadanie ich nie rusza, więc znacznik zawsze opisuje tekst, który jest w `notes_markdown`.
+- Znacznik mówi „te notatki napisał dostawca X”. Nie rejestruje prób: zadanie anulowane po pierwszym kawałku wysłało fragment transkryptu, a znacznika nie zostawia. To świadome uproszczenie (zapisane w Risks); pełny dziennik wysyłek byłby nową tabelą i jest poza zakresem.
+- Starszy build nie czyta nowych kolumn i niczego nie traci. Czytniki tolerują `NULL` (test na bazie sprzed migracji).
+- Usunięcie spotkania, Clear Library i Erase Data usuwają znacznik razem z wierszem. Powrót na model lokalny nie kasuje notatek już napisanych przez dostawcę ani ich znacznika (jawność); kolejne „Regenerate Notes” na modelu lokalnym zastępuje tekst i czyści znacznik.
+- Dlaczego nie da się bez migracji: patrz „Rozważone i odrzucone”.
+
+### Ustawienia (`plugins.meetings.*`, deklarowane w `MeetingsSettings.swift`; chroniony kontrakt, BC §3)
 
 | Klucz | Typ | Domyślnie | Uwagi |
 |---|---|---|---|
-| `app.ai.model.<providerID>` | String | pierwszy z katalogu | alias lub własny ID (walidowany `^[A-Za-z0-9._:\-]{1,64}$`, nigdy interpolowany do powłoki) |
-| `app.ai.path.<providerID>` | String? | brak | tylko gdy użytkownik wskazał binarkę ręcznie |
-| `plugins.<id>.providerConsent` | String `"<providerID>\|<ISO8601>\|v<n>"` | brak | zgoda należy do pluginu (`dictation`, `meetings`); zmiana tekstu zgody podnosi `v<n>` i unieważnia zapis; zmiana dostawcy wymaga nowej zgody |
-| `app.ai.fallbackToBuiltIn` | Bool | false | Q5; globalny, czytany przez `hostSettings` |
-| `plugins.dictation.llmSource` | + wartość `provider` | bez zmiany | |
-| `plugins.dictation.provider` / `plugins.meetings.notesProvider` | String (`providerID`) | brak | który dostawca obsługuje funkcję |
-| `plugins.meetings.notesSource` | `builtIn`/`provider` | `builtIn` | |
+| `notesSource` | `builtIn` / `provider` | `builtIn` | Nieznana wartość czytana jako `builtIn`. |
+| `notesProvider` | String (id deskryptora) | brak | Nieznane id = brak dostawcy. |
+| `notesProviderModel` | String | pierwszy z katalogu deskryptora | Walidacja `^[A-Za-z0-9._:\-]{1,64}$`; nigdy interpolowany do powłoki. |
+| `notesProviderPath` | String? | brak | Tylko gdy użytkownik wskazał binarkę ręcznie. |
+| `providerConsent` | JSON: `{provider, model, feature, at, textVersion}` | brak | Jedna zgoda naraz. Ważna tylko, gdy `provider` i `model` równe bieżącym `notesProvider` i `notesProviderModel`, a `textVersion` równe bieżącej wersji tekstu. Niepoprawny JSON = brak zgody. Usuwana przy powrocie na „Built-in”. |
+| `notesProviderFallback` | Bool | `false` | Q7. |
 
-**Dane wrażliwe:** treść dyktowania i transkrypty trafiają do dostawcy wyłącznie przez stdin; Pounce ich nie loguje, nie zapisuje do `ranking.sqlite` ani do schowka (reguły dyktowania i spotkań obowiązują bez zmian). Pounce nie przechowuje żadnych poświadczeń ani adresu e-mail konta. Wyniki zapisane w zaszyfrowanych bibliotekach zachowują dotychczasowe szyfrowanie; dostawca widzi tekst, ale nie ma dostępu do biblioteki.
+**Żaden z tych kluczy nie jest zapisywany bez kliknięcia użytkownika** (jak `notesEnabled`), a `notesSource = provider`, `notesProvider`, `notesProviderModel` i `providerConsent` są zapisywane razem, dopiero po „Turn On” w oknie zgody. Słabsza wartość domyślna któregokolwiek wymaga zgody właściciela i wpisu w notach wydania.
+
+### Co opuszcza Maca (lista zamknięta, testowana)
+
+Do dostawcy trafia wyłącznie:
+
+- (a) tekst segmentów transkryptu spotkania, dla którego powstają notatki, w kawałkach MAP, w postaci, w jakiej dostaje go dziś model wbudowany (łącznie ze znacznikami czasu segmentów `[mm:ss]`, które służą lokalnej weryfikacji cytatów);
+- (b) etykiety mówców, **w tym imiona nadane przez użytkownika i `selfName`** (dane osobowe uczestników; decyzja właściciela, powiedziane w oknie zgody);
+- (c) punkty pośrednie MAP w wywołaniach REDUCE;
+- (d) statyczne prompty systemowe Lintela.
+
+**Nigdy:** audio i spool, tytuł spotkania, `source_bundle_id`, notatki użytkownika z notatnika (MEET-4.1), słownik (MEET-5.2), treść dyktowania i kontekst DICT (`FocusContext`, schowek, zaznaczenie, tytuł okna, ścieżki), nazwy i treść innych spotkań, ścieżki plików.
+
+Test: wiadomości zbudowane z fixture dla dostawcy zawierają tylko pola (a)–(d); fixture ma tytuł, `source_bundle_id` i notatkę z notatnika z ciągami-kanarkami, których nie może być w stdin.
+
+**Decyzja 3 a czasy:** czasy w (a) to wejście do weryfikacji cytatów, nie treść notatki. Notatka nie zawiera timestampów niezależnie od źródła; usuwa je wspólny kod kompozycji i renderowania (praca nad formatem notatek, poza tym specem). Ścieżka dostawcy nie wprowadza własnego formatu notatki. Jeśli praca nad formatem usunie czasy także z wejścia modelu, lista (a) kurczy się razem z nią, bez zmiany tego specu.
+
+**Dane wrażliwe:** transkrypt i notatki istnieją na dysku tylko w zaszyfrowanym `meetings.sqlite`. Lintel nie tworzy ich jawnych kopii: nic w argv, nic w plikach tymczasowych, pusty katalog roboczy. To, czy CLI nie tworzy własnych kopii, dowodzi kanarek. Lintel nie przechowuje żadnych poświadczeń CLI: **w Fazie 1 nie ma żadnego wpisu w Pęku kluczy**.
 
 ## API Contracts
 
-Brak publicznego API. Wewnętrzne kontrakty:
+Brak publicznego API i brak zmian w `LintelKit`. Kontrakty wewnętrzne (szkic, nazwy do utrzymania):
 
 ```swift
-public protocol ProviderDescriptorType: Sendable { /* patrz Architecture */ }
-public enum ProviderFeature: String, Sendable { case dictation, meetings }
-public struct ProviderService: Sendable {
-    public init(settings: any SettingsStore, gate: ProviderGate = .shared, locator: ProviderLocator = .live)
+// LintelProviders
+public struct ProviderFeatureID: RawRepresentable, Hashable, Sendable { public let rawValue: String }
+public enum ProviderDecision: Sendable { case allowed, denied(ProviderDenial) }
+public typealias ProviderAuthorization = @Sendable () async -> ProviderDecision
+
+public struct ProviderRunner: Sendable {
     public func status(of provider: ProviderID) async -> ProviderStatus
-    public func generator(for feature: ProviderFeature) async -> (any TextGenerator)?   // nil bez zgody/logowania
-    public func tryOut(provider: ProviderID, model: String) async -> TryOutResult  // jedno krótkie wywołanie
+    public func run(_ request: ProviderRequest, authorization: ProviderAuthorization) async throws -> GenerationResult
+    public func tryOut(provider: ProviderID, model: String) async -> TryOutResult   // stały tekst próbny, bez danych użytkownika
+}
+
+// MeetingsPlugin (wewnętrzne)
+protocol NotesGenerating: Sendable {
+    func open() async throws
+    func generateResult(messages: [ChatMessage], maxTokens: Int) async throws -> GenerationResult
+    func release() async
 }
 ```
 
-**Argumenty CLI (twarde, testowane w golden testach `ProviderDescriptor`):**
-- *Claude:* `claude -p --model <m> --output-format json --tools "" --no-session-persistence --disable-slash-commands --strict-mcp-config --setting-sources "" --system-prompt <statyczny prompt>`; treść użytkownika na stdin. Statyczny prompt systemowy w argv jest dopuszczalny (to nasz tekst, nie dane użytkownika).
-- *Codex:* `codex exec --ephemeral --ignore-user-config --ignore-rules --skip-git-repo-check -s read-only -C <pusty katalog> -m <m> -o <plik w katalogu> -` plus wyłączenie narzędzia powłoki znalezione w Fazie 0; instrukcje i treść razem na stdin w blokach `<instructions>` / `<transcript>` (brak flagi promptu systemowego).
-- Kod odmawia startu, jeśli deskryptor dostawcy nie przeszedł testu kanarkowego wyłączonych narzędzi (flaga `toolsDisabledVerified` w deskryptorze ustawiona dopiero po teście z Fazy 0).
+**Argumenty Claude Code (golden test deskryptora; lista do potwierdzenia w PR 1):** `claude -p --model <m> --output-format json --tools "" --no-session-persistence --disable-slash-commands --strict-mcp-config --setting-sources "" --system-prompt <statyczny prompt Lintela>`, treść na stdin. Statyczny prompt w argv jest dopuszczalny (nasz tekst, nie dane użytkownika). `--no-session-persistence` i wyłączenie hooków są **wymogiem wydania**: bez dowodu z kanarka `isolationVerified` zostaje `false`.
+
+`tryOut` wysyła stały, nieosobowy tekst Lintela (żadnych danych użytkownika), tylko po kliknięciu „Try it”. Jest dostępny przed zgodą, żeby dało się sprawdzić model przed decyzją; nie przechodzi przez `MeetingProviderAuthorization`, bo nie niesie danych spotkań, i ma własny test, że jego stdin jest stałą.
 
 ## 📝 UI/UX
 
-- **Ustawienia → Dostawcy AI** (nowy panel w `PounceApp`): wiersz na dostawcę ze stanem (`Nie zainstalowano` · `Zaloguj się w terminalu: claude auth login` z przyciskiem „Kopiuj polecenie” · `Wymaga aktualizacji CLI` · `Gotowy`), wybór modelu (menu z katalogu + „Własny identyfikator…”), „Wypróbuj” (wynik: działa / model niedostępny na tym koncie / limit / brak sieci), „Wskaż plik…” dla niestandardowej ścieżki, przełącznik zgody dla każdej funkcji, przełącznik „Wróć do modelu wbudowanego przy błędzie”.
-- **Okno zgody** (przy pierwszym włączeniu danej funkcji): „Pounce będzie wysyłać {rozpoznany tekst dyktowania | transkrypty spotkań} do {Anthropic | OpenAI | …} przez Twoje CLI {nazwa}. Tekst opuszcza tego Maca i podlega zasadom tego dostawcy i Twojej subskrypcji. Audio nigdy nie jest wysyłane.” Przyciski „Włącz” / „Anuluj”; domyślne „Anuluj”. Zgodę można cofnąć w tym samym panelu; cofnięcie działa od następnego wywołania.
-- **Wybór źródła w panelach funkcji:** w Dyktowanie → Formatowanie obok „Wbudowany (Pounce)” i „Mój serwer” pojawia się „Dostawca AI”; w Spotkania → Notatki analogicznie. Pozycja jest nieaktywna z wyjaśnieniem, gdy dostawca nie jest gotowy.
-- **Znaczniki:** w bibliotece spotkań wynik z dostawcy ma ikonę chmury i podpis „Claude · sonnet” (z `notes_model`); HUD dyktowania pokazuje małą ikonę chmury podczas formatowania przez dostawcę. Każda ikona ma etykietę VoiceOver („Przetwarzane przez dostawcę zewnętrznego”) i nie opiera się na samym kolorze.
-- Lokalizacja: nowe klucze w `Localizable.xcstrings` (`en` + `pl`, wymuszone testem), a teksty prywatności na stronie `docs/index.html` i w README muszą zostać zmienione z „nic nie opuszcza Maca” na „domyślnie nic nie opuszcza Maca; zewnętrzni dostawcy tylko za Twoją zgodą”.
+**Każdy nowy ekran wymaga prototypu `om-ux-design` zaakceptowanego przez właściciela i zgodności 1:1** (reguła epica MEET §9). Ten spec opisuje zachowanie i teksty robocze; nie jest zaakceptowanym projektem, dlatego nie ma linii `Prototype:` ani makiet w tym PR. Wszystko powstaje w istniejących szablonach okna głównego: `SettingsPane`, `StatusBanner`, `ConfirmSheet`, `ModelChoiceRow`, kolory tylko z `LintelBrand`.
+
+- **Ustawienia → Meetings → Basics**, pod „Write notes after each meeting”: wiersz „Notes are written by” z wyborem „Built-in (Lintel)” (domyślnie) / „Claude Code”. Pod nim stan dostawcy (`Not installed` · `Sign in in Terminal: claude auth login` z „Copy command” · `Update Claude Code` / `Update Lintel` · `Ready`), wybór modelu (katalog + „Custom identifier…”), „Try it”, w Advanced „Choose file…” dla binarki i przełącznik fallbacku (wyłączony).
+- **Okno zgody** (`ConfirmSheet`, „Cancel” domyślny) pojawia się przy **każdym** wyborze dostawcy i przy **każdej** zmianie modelu. To jedyny moment decyzji. Treść (robocza, do prototypu) mówi wprost:
+  - transkrypty **wszystkich** spotkań, dla których Lintel pisze notatki, **z imionami mówców** (także nadanymi przez Ciebie), będą trafiać do {Anthropic} przez Twoje {Claude Code}, model {model};
+  - dotyczy to także **starszych spotkań**, gdy użyjesz na nich „Regenerate Notes”;
+  - audio, tytuły spotkań i inne dane nie są wysyłane;
+  - tekst podlega zasadom dostawcy i Twojej subskrypcji; dostawca może go przechowywać według swoich zasad;
+  - **uczestnicy spotkań nie są o tym informowani przez Lintela; poinformowanie ich należy do Ciebie**;
+  - wysyłkę kończy powrót na „Built-in (Lintel)” w tym miejscu; tego, co już wysłano, nie da się cofnąć.
+  Przyciski „Turn On” / „Cancel”. „Cancel” zostawia poprzedni wybór bez zmian.
+- **Stale widoczny stan:** dopóki dostawca jest wybrany, baner panelu Meetings (`settingsStatus`) mówi „Ready · Notes are written by Claude Code. Transcripts leave this Mac.”, a wiersz wyboru ma podpis z modelem. Powrót na „Built-in” to jedno kliknięcie w tym samym wierszu, bez potwierdzenia.
+- **Tekst dla uczestników:** „Copy message” i przypomnienie w HUD zostają dokładnie takie jak dziś (MEET-1.6). Nie wspominają o dostawcy ani o chmurze.
+- **Znacznik przy wyniku:** „Sent to: Claude · <model>” w wierszu biblioteki, w oknie spotkania i w Details w Notes (przez `MeetingNoteSource`/`NoteDetail`, bez zmian w `LintelKit`: tekst idzie istniejącym polem opisu źródła). To informacja o prywatności spotkania. **Żadnych pasków ani etykiet per blok, żadnego „AI/You”** (decyzja 4). Eksport Markdown i kopia ⌘⇧C dostają jedną linię w stopce (Q6).
+- **Dostępność:** każda plakietka i ikona ma etykietę VoiceOver i nie opiera się na samym kolorze; arkusze obsługiwane z klawiatury; teksty skalują się przez `lintelTextSize`.
+- **Lokalizacja:** `en` + `pl` w `Localizable.xcstrings` (`StringCatalogTests`).
+- **Bez nowych elementów przy spotkaniu poza znacznikiem:** żadnego przełącznika w HUD, w oknie spotkania ani w bibliotece.
+- **QA:** fałszywa binarka przez DEBUG-owy klucz `--qa-setting`, zrzuty jasne i ciemne. Do PR 5 włącznie nie ma w UI żadnej drogi do wysyłki.
 
 ## 📝 Edge Cases & Failure Scenarios
 
 | Sytuacja | Zachowanie |
 |---|---|
-| CLI nie zainstalowane / wylogowane | Stan w panelu; `generator(for:)` zwraca `nil`; dyktowanie wkleja surowy tekst (`.notConfigured`), notatki `failed` + „Regeneruj”. |
-| Wersja CLI poza wspieranym zakresem | Nowsza: próbujemy i przy błędzie flag (`unknown option`, kod ≠ 0 w < 1 s) przechodzimy w `incompatibleVersion` z komunikatem „Zaktualizuj Pounce”; starsza: „Zaktualizuj CLI”. |
-| Limit subskrypcji / 429 / brak sieci | Wywołanie kończy się błędem; dyktowanie: surowy tekst; notatki: kawałek bez wyniku → `partial`/`failed` + „Regeneruj”; po włączeniu fallbacku i pobranym modelu: ponowienie na wbudowanym i znacznik końcowy to model wbudowany. |
-| Czas odpowiedzi (cold start CLI to sekundy) | Dyktowanie: istniejący budżet `5 s + 0,2 s/słowo` na kawałek; przekroczenie → surowy tekst (`.timedOut`). Notatki: 120 s na kawałek, jeden retry. Pomiar w Fazie 0 decyduje, czy dyktowanie przez dostawcę jest w ogóle sensowne (bramka poniżej). |
-| Wstrzyknięcie promptu w transkrypcie lub dyktowaniu | Narzędzia wyłączone (`--tools ""` itd.), pusty cwd, a wynik jest tylko wyświetlany jako tekst; `NotesGuard`/`FormatterGuard` odrzucają treść bez cytatu/zgodną z wzorcem. Test kanarkowy w Fazie 0 dowodzi, że dostawca nie potrafi odczytać pliku spoza katalogu. |
-| CLI używa klucza API ze środowiska zamiast subskrypcji | Zmiennych nie usuwamy (patrz `ProviderProcess`); panel Dostawcy AI pokazuje ostrzeżenie o rozliczaniu za token, gdy zmienna jest ustawiona w środowisku Pounce, a `status` odczytuje rodzaj uwierzytelnienia z `auth status`, jeśli CLI go podaje. |
-| Dyktowanie w trakcie notatek | `ProviderGate` priorytet `interactive`: wywołanie notatek jest anulowane i ponawiane (jak w `LLMLease`). |
-| Zagubiony proces po zamknięciu Pounce | Grupa procesów zabijana przy `applicationWillTerminate` i przy anulowaniu; katalog roboczy sprzątany przy starcie (stary prefiks `provider-*`). |
-| Aktualizacja Pounce bez zmiany zgody | Zgoda ważna dopóki `v<n>` zgodne; zmiana tekstu zgody wymaga ponownej zgody (funkcja wraca do `nil` do tego czasu). |
-| Brak miejsca / uprawnień do katalogu roboczego | Wywołanie nie startuje, błąd jak „CLI niedostępne”. |
+| `notesSource = provider` bez ważnej zgody (brak, stara wersja tekstu, inny dostawca albo model niż w zapisie) | 0 procesów. Notatki pisze model wbudowany jak przy `builtIn`; baner prosi o ponowną zgodę. |
+| Zgoda ważna, spotkanie przechodzi w `ready`, `notesEnabled` włączone | Idzie do dostawcy. |
+| Zgoda ważna, „Regenerate Notes” na spotkaniu sprzed włączenia dostawcy | Idzie do dostawcy (zapowiedziane w oknie zgody). |
+| Włączenie dostawcy przy istniejącej bibliotece | Nic nie jest wysyłane samo; stare notatki zostają. |
+| Zmiana modelu albo dostawcy | Okno zgody; do „Turn On” obowiązuje poprzedni wybór i poprzednia zgoda. Po „Turn On” zadanie w toku (na starym modelu) dostaje odmowę przy kolejnym procesie i wraca do kolejki raz, już z nowym modelem. |
+| Powrót na „Built-in” albo cofnięcie zgody, gdy zadania czekają w kolejce | Startują na modelu wbudowanym. 0 nowych procesów dostawcy. |
+| Powrót na „Built-in” po 1. kawałku zadania w toku | Kolejne uruchomienie odmówione, trwający proces przerwany, wcześniejsze notatki zostają, zadanie wraca do kolejki raz na model wbudowany. |
+| Plugin wyłączany w trakcie | `shutDown()` anuluje zadanie; grupa procesów zabijana. |
+| CLI nie zainstalowane / wylogowane | Stan w panelu; zadanie kończy się `failed` z powodem, „Regenerate Notes” dostępne. Bez fallbacku nic nie idzie na model wbudowany. |
+| Wersja CLI poza zakresem | Starsza: „Update Claude Code”. Nowsza z błędem flag (sklasyfikowany stderr): `incompatibleVersion`, „Update Lintel”. |
+| Limit subskrypcji / brak sieci | `rateLimited`/`network`; kawałek bez wyniku → `partial`/`failed` jak dziś. Z fallbackiem i modelem: ponowienie na wbudowanym, znacznik końcowy to model wbudowany. |
+| Przekroczenie limitu czasu | Jeden retry, potem jak błąd. |
+| Wstrzyknięcie promptu w transkrypcie | Narzędzia wyłączone, pusty cwd, wynik tylko jako tekst; `NotesGuard` odrzuca punkt bez cytatu; nic z modelu nie jest renderowane jako Markdown z linkami. |
+| Zmienna klucza API w środowisku Lintela | Nie usuwamy; status ostrzega „CLI może rozliczać za token”. |
+| Zagubiony proces po zamknięciu Lintela | Grupa zabijana przy zamykaniu i anulowaniu; katalogi `provider-*` sprzątane przy starcie. |
+| Brak miejsca / uprawnień do katalogu roboczego | Proces nie startuje, błąd `other`. |
+| Baza po migracji otwarta starszym buildem | Nowe kolumny ignorowane; starszy build nie ma dostawcy, więc niczego nie wyśle. |
+| Niepoprawny `providerConsent` / nieznane `notesSource` | Czytane jako brak zgody / `builtIn`. |
+| Awaria w trakcie zadania dostawcy | `NotesRecovery` zmienia `running` w `failed` jak dziś; nic nie jest ponawiane automatycznie. |
+| Model wbudowany niezainstalowany po powrocie na „Built-in” | Jak dziś: `NotesBoard.needsModel`, „Download Notes Model”. |
+
+## 🧪 Macierz testów „0 procesów bez zgody”
+
+Testy liczą uruchomienia fałszywego procesu z `ProviderSystem.quiet`. Są warunkiem merge PR 5 i zostają w zestawie na stałe.
+
+| # | Zapis zgody | Sytuacja | Oczekiwane uruchomienia |
+|---|---|---|---|
+| 1 | brak | `notesSource = provider` (np. ręcznie wpisane ustawienie), auto-kolejkowanie po `ready` | 0 |
+| 2 | brak | jak wyżej, „Regenerate Notes” | 0 |
+| 3 | stara wersja tekstu | `provider` | 0 |
+| 4 | dla innego dostawcy | `provider` | 0 |
+| 5 | dla innego modelu | `provider` | 0 |
+| 6 | niepoprawny JSON | `provider` | 0 |
+| 7 | ważna | plugin wyłączony | 0 |
+| 8 | ważna | `notesSource = builtIn` | 0 |
+| 9 | ważna | odzyskanie po awarii (`NotesRecovery`), bez akcji użytkownika | 0 |
+| 10 | ważna | błąd modelu wbudowanego przy `builtIn` (brak fallbacku w tę stronę) | 0 |
+| 11 | ważna | deskryptor bez `isolationVerified` | 0 |
+| 12 | ważna | włączenie dostawcy przy bibliotece ze starymi spotkaniami, bez akcji użytkownika | 0 |
+| 13 | ważna, cofnięta po 1. kawałku | zadanie w toku | dokładnie 1 |
+| 14 | ważna | powrót na „Built-in” po 1. kawałku | dokładnie 1; zadanie kończy na wbudowanym |
+| 15 | ważna | powrót na „Built-in”, trzy zadania w kolejce | 0 dla zakolejkowanych |
+| 16 | ważna | zmiana modelu bez potwierdzenia okna („Cancel”) | uruchomienia tylko z poprzednim modelem |
+| 17 | ważna | `provider`, spotkanie przechodzi w `ready` | ≥ 1 |
+| 18 | ważna | „Regenerate Notes” na spotkaniu sprzed włączenia | ≥ 1 |
+
+Dodatkowo: test, że `ProviderRunner` nie ma ścieżki uruchomienia procesu bez wywołania `authorization` (jedna funkcja startu, test źródłowy na `Process(` poza `ProviderProcess`).
+
+## 🧪 Kanarek izolacji (PR 1, warunek wydania)
+
+Ręczny skrypt w `scripts/`, uruchamiany z prawdziwym Claude Code na Macu z Lintelem (build debug) mającym przyznane Full Disk Access, powtarzany przy każdej zmianie zakresu wspieranych wersji CLI. Wejście to wyłącznie syntetyczny tekst z losowym ciągiem-kanarkiem. Wynik trafia do ADR.
+
+| # | Co sprawdza | Jak | Wynik wymagany |
+|---|---|---|---|
+| 1 | Narzędzia plików | Prompt każe odczytać plik-kanarek spoza cwd. | Odpowiedź nie zawiera treści pliku. |
+| 2 | Powłoka | Prompt każe wykonać polecenie tworzące plik-znacznik. | Plik nie powstaje. |
+| 3 | Hooki | Testowa konfiguracja użytkownika z hookiem zapisującym plik-znacznik. | Hook się nie uruchamia. |
+| 4 | `CLAUDE.md`, MCP, wtyczki | Konfiguracja z instrukcją i serwerem MCP. | Nie są załadowane. |
+| 5 | **Dziedziczenie TCC** | Proces potomny uruchomiony przez Lintel z FDA; prompt i hook próbują czytać miejsce chronione TCC (np. plik-kanarek w `~/Library/Mail` konta testowego). | Brak odczytu. Zapisać, czy proces w ogóle miałby dostęp (czy macOS przypisuje mu uprawnienia Lintela). |
+| 6 | **Kopie treści na dysku** | Po wywołaniu przeszukać `HOME` użytkownika testowego, `CLAUDE_CONFIG_DIR`, `TMPDIR` i katalog roboczy pod kątem ciągu-kanarka z wejścia i z odpowiedzi. | Żaden nowy plik nie zawiera kanarka. |
+| 7 | Logowanie | Wszystkie powyższe przy działającym logowaniu z subskrypcji. | `auth status` gotowy, wywołanie działa. |
+
+Jeśli punkt 5 pokaże, że proces potomny ma uprawnienia Lintela, ADR rozstrzyga między: (a) poleganiem na udowodnionym wyłączeniu narzędzi i hooków, (b) zrzeczeniem się odpowiedzialności przy spawnie (prywatne SPI, wymaga osobnej decyzji właściciela). **Brak dowodu któregokolwiek punktu = dostawca niewydawany** (`isolationVerified = false`).
 
 ## 📝 Risks & Impact Review
 
-- **Regulamin Anthropic (wysokie, ryzyko przyjęte przez właściciela 2026-11-10):** strona `legal-and-compliance` dopuszcza zalogowanie użytkownika własną subskrypcją w niezmodyfikowanym Claude Code, zabrania zbierania/pośredniczenia w poświadczeniach i wymaga Commercial Terms dla „running Claude Code in your products”; czy darmowa aplikacja OSS wywołująca `claude -p` to ten drugi przypadek, nie jest rozstrzygnięte. Decyzja: **Claude Code wchodzi w v1** pod warunkami: binarka uruchamiana bez modyfikacji, Pounce nie dotyka poświadczeń ani sesji, nie filtruje metod uwierzytelniania, nazwa i logo Claude/Anthropic pojawiają się tylko jako zwykły tekst („Claude Code”), a UI mówi wprost, że to Twoja subskrypcja i Twoje CLI. Mitygacja: adapter Claude izolowany w jednym `ProviderDescriptor` i wyłączany flagą kompilacji bez wpływu na resztę; jeśli Anthropic zażąda zaprzestania lub zmieni warunki, wydanie bez Claude nie wymaga zmian architektury. Opcjonalnie równolegle zapytać Anthropic na piśmie.
-- **Prywatność produktu (wysokie):** łamie obietnicę lokalności. Mitygacje: domyślnie wyłączone, zgoda egzekwowana w kodzie, znaczniki, usuwanie kluczy API z env, brak logowania treści, aktualizacja tekstów na stronie i w README, wiersz w `docs/decisions/0008`.
-- **Wyciek lokalnych plików i wykonanie kodu przez agenta (wysokie):** CLI to agenty z dostępem do plików i powłoki, a przekazanie `HOME`/`CLAUDE_CONFIG_DIR` ładuje konfigurację użytkownika, w tym **hooki** (dowolne polecenia, których `--tools ""` nie wyłącza), serwery MCP i `CLAUDE.md`. Mitygacja: narzędzia wyłączone flagami, pusty cwd, a w Fazie 0 znaleziona konfiguracja, która wyłącza hooki/MCP/wtyczki/pliki pamięci **zachowując** logowanie (np. `--settings` z wyłączonymi hookami razem z `--setting-sources ""`; własny pusty `CLAUDE_CONFIG_DIR` odpada, jeśli gubi logowanie z Keychain). Test kanarkowy obejmuje trzy rzeczy: odczyt pliku spoza cwd, wykonanie polecenia i **uruchomienie testowego hooka zapisującego plik-znacznik**; dostawca bez dowodu wszystkich trzech nie jest wydawany.
-- **Kruchość CLI (średnie):** flagi i formaty zmieniają się co tydzień. Mitygacja: argumenty zbudowane w jednym czystym miejscu z golden testami, zakres wspieranych wersji, stan `incompatibleVersion`, ręczny test z prawdziwymi CLI przed wydaniem.
-- **Opóźnienie dyktowania (średnie):** start CLI to sekundy. Mitygacja: bramka pomiarowa; jeśli p95 > 8 s na kawałek, funkcja dyktowania dostaje komunikat „wolne” w UI albo jest wycięta z v1 (zostają notatki), bez zmiany architektury.
-- **Kontrakty:** brak zmiany w `PounceKit`; nowe klucze ustawień addytywne; nowa wartość `llmSource` bezpieczna dla starszych buildów. **Rollback:** przełączenie źródła z powrotem na „Wbudowany”; usunięcie targetu nie wpływa na dane.
+- **Prywatność produktu (wysokie):** świadomy wyjątek od lokalności. Mitygacje: domyślnie model lokalny, zgoda związana z dostawcą i modelem i egzekwowana w kodzie przed każdym procesem, macierz „0 procesów”, znacznik przy spotkaniu, stale widoczny stan w panelu, zmiana reguł repozytorium i napisów w tym samym PR co kod.
+- **Uczestnicy nie są informowani o przetwarzaniu przez dostawcę chmurowego (ryzyko przyjęte decyzją właściciela 2026-11-19):** tekst dla uczestników mówi tylko o nagrywaniu i notatkach. Imiona i wypowiedzi osób trzecich trafiają do dostawcy. Odpowiedzialność za poinformowanie uczestników leży po stronie użytkownika; okno zgody mówi mu to wprost. Lintel niczego nie sprawdza i nie twierdzi, że ktokolwiek został poinformowany.
+- **Jedna zgoda obejmuje wszystkie spotkania (ryzyko przyjęte decyzją właściciela 2026-11-19):** po włączeniu dostawcy do wysyłki trafia też spotkanie poufne i każde stare spotkanie po „Regenerate Notes”. Odstępstwo od MEET-X.1 AC2 i od zasady epica „wyjście danych widoczne przy spotkaniu” w części dotyczącej wyboru per spotkanie. Mitygacje: treść okna zgody, baner „Transcripts leave this Mac”, powrót na model lokalny jednym kliknięciem z natychmiastowym skutkiem także dla kolejki, znacznik przy każdym wysłanym spotkaniu.
+- **Znacznik nie rejestruje przerwanych prób (niskie, przyjęte):** zadanie anulowane w połowie wysłało część transkryptu i nie zostawia znacznika. Dziennik wysyłek byłby nową tabelą; poza zakresem.
+- **Regulamin Anthropic (wysokie, przyjęte 2026-11-10):** warunki: binarka niezmodyfikowana, Lintel nie dotyka poświadczeń ani sesji, nie filtruje metod uwierzytelniania, nazwa dostawcy tylko jako zwykły tekst, UI mówi, że to Twoja subskrypcja i Twoje CLI. Deskryptor Claude jest izolowany; wydanie bez niego nie wymaga zmian architektury. Faza 2 (klucz API) daje kanał bez tej szarej strefy.
+- **Wykonanie kodu i wyciek plików przez agenta CLI (wysokie), TCC i kopie na dysku:** patrz kanarek. Bez dowodu nie ma wydania.
+- **Migracja chronionej bazy (wysokie, odwracalne):** dwie kolumny `NULL`, bez zmiany istniejących. Rollback: starszy build je ignoruje.
+- **Refaktoryzacja `NotesPipeline` (średnie):** najbardziej wrażliwy kod notatek. Osobny PR bez zmiany zachowania, z niezmienionymi testami regresji.
+- **Kruchość CLI (średnie):** argv w jednym czystym miejscu z golden testami, zakres wersji, stan `incompatibleVersion`, ręczny test przed wydaniem.
+- **Jakość przy tym samym kawałkowaniu (niskie):** Claude dostaje małe kawałki zaprojektowane pod model 8k. Świadome (Q8): porównywalność w ocenie sędzią Fable ważniejsza niż optimum.
+- **Styk Q6 z decyzją 4 (do potwierdzenia):** stopka eksportu „Transkrypt przetworzył: Claude (Anthropic)” to informacja o tym, dokąd trafiły dane, nie oznaczenie autorstwa. Jeśli właściciel uzna ją za oznaczenie AI, linia wypada bez wpływu na resztę.
+- **Kontrakty:** `LintelKit` i `LintelSpeech` bez zmian w Fazie 1. Nowe klucze ustawień i kolumny addytywne. **Rollback użytkownika:** źródło z powrotem na „Built-in”; usunięcie targetu nie wpływa na dane.
 
 ## 📋 Phasing
 
-- **Faza 0 — Spike i bramki** (bez wydawanego kodu): ADR 0008, bramka prawna, pomiary i test kanarkowy.
-- **Faza 1 — Port + Claude Code + Codex + dyktowanie:** nowy target, panel ustawień, zgoda, `ProviderFormatter`.
-- **Faza 2 — Notatki ze spotkań:** po zbudowaniu `NotesPipeline` (spec spotkań, krok 2.2), znacznik, fallback.
-- **Faza 3 — Kolejni dostawcy:** Gemini CLI, Grok Build po weryfikacji u źródła; kolejny dostawca to nowy `ProviderDescriptor`, bez zmian architektury.
+- **Faza 0: spike i bramki** (PR 1). Kanarek, pomiary, ADR. Bez wydawanego kodu.
+- **Faza 1: notatki ze spotkań przez Claude Code CLI** (PR 2–7). Pierwsza i jedyna funkcja v1.
+- **Faza 2: klucz API (BYOK)** (PR 8–9), zaraz po v1. Ta sama bramka zgody.
+- **Faza 3: kolejni dostawcy CLI** (PR 10+): Codex po kanarku i lekturze warunków OpenAI; Gemini CLI i Grok Build po weryfikacji u źródła. Każdy to nowy deskryptor i nowa zgoda.
+- **Faza 4: dyktowanie** (PR 11), tylko po osobnej decyzji właściciela (Q2).
 
 ## 📋 Implementation Plan
 
-Zasady wspólne: jedna gałąź `feat/` i jeden PR na fazę; bramka `swift build` → `swift test` → `swift format lint --strict -r Sources Tests`; aplikacja po każdym kroku działa bez zmian dla użytkownika, który nie włączył dostawcy.
+Zasady wspólne: jedna gałąź `feat/` i jeden PR na wiersz; bramka `swift build` → `swift test` → `swift format lint --strict -r Sources Tests`; po każdym PR aplikacja działa bez zmian dla użytkownika, który nie włączył dostawcy. Żadnych treści prawdziwych spotkań ani dyktowania w repozytorium: fixture'y są syntetyczne.
 
-### Faza 0 — Spike i bramki
+| # | PR | Zakres | Ryzyko | `LintelKit` |
+|---|---|---|---|---|
+| 0 | `docs(specs)`: ten spec (MEET-X.1) | Odświeżenie. | `risk-low`, `skip-qa` | nie |
+| 1 | `docs(decisions)`: spike + ADR `00NN-external-providers` | Skrypt kanarka, pomiary, wiersze w `docs/perf.md`. Tylko Claude Code. | `risk-low` | nie |
+| 2 | `LintelProviders`: rdzeń bez podłączenia | Target, deskryptor, lokalizator, proces, bramka, runner z autoryzacją, `ProviderSystem.quiet`. | `risk-high` | nie |
+| 3 | Meetings: port `NotesGenerating` | Bez zmiany zachowania. | `risk-medium` | nie |
+| 4 | Meetings: migracja pochodzenia | `v3-notes-provider` (dwie kolumny), BC §2 i §5. | `risk-high` | nie |
+| 5 | Meetings: dostawca jako źródło (egzekwowanie) | Ustawienia, autoryzacja, generator, serializator, macierz, reguły repozytorium, napisy. Bez UI. | `risk-high` | nie |
+| 6 | Meetings: UI wyboru dostawcy, zgody i znacznika | Po zaakceptowanym prototypie. README, strona. | `risk-high`, `needs-qa` | nie |
+| 7 | Meetings: fallback + pomiar | Fallback jednokierunkowy; ocena sędzią Fable jako dowód. | `risk-medium` | nie |
+| 8 | `LintelProviders`: klucz API (rdzeń) | Transport HTTPS z listą hostów, Pęk kluczy, deskryptor `anthropic-api`. | `risk-high` | nie (tylko nowa zależność targetu od `LintelKit`) |
+| 9 | Meetings: klucz API (podłączenie i UI) | Wybór kanału, pole klucza, zgoda, macierz „0 żądań”. | `risk-high`, `needs-qa` | nie |
+| 10 | Codex (opcjonalnie) | Deskryptor po kanarku i decyzji prawnej. | `risk-medium` | nie |
+| 11 | Dyktowanie (po decyzji Q2) | `LLMSource.provider`, test „żaden kontekst DICT”. | `risk-high` | nie, chyba że wspólne ustawienia: wtedy osobny PR `LintelKit` |
 
-- **0.1 Bramka prawna** — rozstrzygnięta dla Anthropic (decyzja właściciela: Claude w v1 na własne ryzyko, warunki w Risks). Do wykonania: przeczytać aktualne warunki OpenAI (Codex) i Google (Gemini CLI) dla wywoływania CLI z aplikacji lokalnej; zapisać wnioski i decyzję w ADR 0008. Wynik: lista dostawców dopuszczonych do Fazy 1. *Test:* brak (decyzja dokumentowana).
-- **0.2 Pomiary i flagi** — dla `claude -p` i `codex exec` zmierzyć zimny start i czas odpowiedzi dla 20, 60 i 600 słów; potwierdzić listę argumentów, parsowanie wyjścia, czy limit tokenów da się wykryć, brak `system-prompt` w Codex. Wynik: tabela w `docs/perf.md` i decyzja o bramce dyktowania (p95 ≤ 8 s na kawałek).
-- **0.3 Test kanarkowy izolacji** — z prawdziwym CLI i testową konfiguracją użytkownika zawierającą hook zapisujący plik-znacznik oraz `CLAUDE.md` z instrukcją: (a) prompt każący odczytać plik-kanarek spoza cwd, (b) prompt każący wykonać polecenie, (c) hook nie może się uruchomić, `CLAUDE.md`/MCP nie mogą zostać załadowane, a logowanie ma nadal działać. Wynik: dokładny zestaw flag izolacji dla każdego dostawcy albo decyzja „dostawca niewydawany”. Skrypt testu trafia do `scripts/` (ręczny, powtarzany przy każdej zmianie wersji CLI).
-- **0.4 ADR 0008** — `docs/decisions/0008-external-providers.md` z wynikami 0.1–0.3. (Wiersze w `BACKWARD_COMPATIBILITY.md` i `AGENTS.md` dochodzą razem z kodem w kroku 1.1, żeby dokumenty nie wyprzedzały implementacji.)
+Kolejność: 0 → 1 → (2 ∥ 3 ∥ 4) → 5 → 6 → 7 → 8 → 9; potem 10 i 11 niezależnie. PR-y 2–5 nie zmieniają niczego dla użytkownika, a do PR 6 nie ma w UI drogi do wysyłki.
 
-### Faza 1 — Port, Claude Code, Codex, dyktowanie
+### Faza 0
 
-- **1.1 Szkielet targetu i kontrakty** — `PounceProviders` + `PounceProvidersTests` w `Package.swift` (zależność od `PounceSpeech`, `PounceKit`), strict concurrency; addytywny `TextGenerator` w `PounceSpeech` (`LLMRuntime` go rozszerza); addytywne `PluginContext.hostSettings` w `PounceKit` z wartością domyślną; wiersz w `BACKWARD_COMPATIBILITY.md` (klucze `app.ai.*`, `providerConsent`) i `AGENTS.md` (nowy target, routing). *Test:* `swift build`, test grafu (brak zależności od pluginów i `PounceApp`), `PounceKitTests` (domyślne `hostSettings`, widok ogranicza się do `app.ai.`), istniejące testy `LlamaRuntime`/dyktowania zielone.
-- **1.2 `ProviderDescriptor` i katalogi** — deskryptory Claude i Codex, katalog modeli, walidacja własnego ID, budowanie argumentów, parsowanie wyjścia. *Test:* golden testy argumentów (brak danych użytkownika w argv, obecność flag izolacji, odrzucenie ID z metaznakami), parsowanie próbek wyjścia (sukces, błąd, `is_error`, pusty wynik).
-- **1.3 `ProviderLocator`** — lista katalogów, ścieżka ręczna, walidacja pliku (właściciel, prawa), `--version`. *Test:* w katalogach tymczasowych: binarka zapisywalna przez innych odrzucona, dowiązanie symboliczne poza dozwolone ścieżki, brak pliku.
-- **1.4 `ProviderProcess`** — stdin, limity wyjścia, czas, anulowanie, grupa procesów, pusty cwd, env allowlist (bez usuwania zmiennych uwierzytelniania). *Test:* z fałszywą binarką (skrypt testowy): przekroczenie limitu wyjścia, timeout, anulowanie zabija dzieci, `ANTHROPIC_API_KEY` ustawiony w środowisku testu dociera bez zmian, a detekcja ostrzeżenia działa, zmienne spoza allowlisty nie docierają, treść nie trafia do argv (sprawdzenie przez echo argv), katalog sprzątany.
-- **1.5 `ProviderGate`** — jeden proces naraz na dostawcę, priorytet `interactive` przed `background`, anulowanie `background`. *Test:* kolejność i anulowanie z atrapą; **zmiana `.github/workflows/ci.yml`:** dodać `ProviderGateTests` do listy `--sanitize=thread` (obok `LLMLeaseTests`).
-- **1.6 `ProviderService` i zgoda** — status, `generator(for:)` z egzekwowaniem zgody i `toolsDisabledVerified`, `tryOut`. *Test:* brak zgody/zgoda starej wersji → `nil`; cofnięcie zgody działa od następnego wywołania; `CLIProviderGenerator` jako `TextGenerator` (atrapa procesu).
-- **1.7 Dyktowanie** — `LLMSource.provider`, `ProviderFormatter`, nowe `FallbackReason` z komunikatami HUD, ikona chmury, fallback do modelu wbudowanego (`app.ai.fallbackToBuiltIn`). *Test:* sukces, błąd, timeout i brak zgody dają surowy tekst z właściwym komunikatem; z fallbackiem i zainstalowanym modelem wynik pochodzi z wbudowanego; zgoda cofnięta w trakcie sesji; `FormatterGuard` i `Segmenter` te same co dla wbudowanego; dotychczasowe testy dyktowania zielone.
-- **1.8 Panel „Dostawcy AI” i okno zgody** — SwiftUI w `PounceApp/Settings`, lokalizacja `en`+`pl`, VoiceOver, QA przez `--qa…` z fałszywą binarką. *Test:* `StringCatalogTests`, model widoku (stany, „Wypróbuj”), zrzuty w jasnym i ciemnym trybie jako dowód PR.
-- **1.9 Teksty prywatności** — README, `docs/index.html` (oba języki; workflow Pages wymusza klucze), `THIRD_PARTY_NOTICES` bez zmian. *Test:* `pages.yml`.
-- **1.10 Pomiary i ręczny test** — z prawdziwym Claude Code i Codex: dyktowanie, „Wypróbuj”, wylogowanie w trakcie, brak sieci; wyniki w PR i w `docs/perf.md`.
+- **0.1 Kanarek** (PR 1): skrypt i tabela wyników według sekcji „Kanarek izolacji”. *Sprawdzenie:* wyniki 1–7 w ADR; skrypt nie zawiera żadnej prawdziwej treści.
+- **0.2 Pomiary** (PR 1): zimny start `claude -p`, czas dla syntetycznego kawałka 3000 tokenów, czas całego syntetycznego godzinnego transkryptu; potwierdzenie listy flag, formatu JSON i tego, czy da się wykryć ucięcie odpowiedzi. *Wynik:* wiersze w `docs/perf.md` (dziś „not yet measured”), limity czasu dla `ProviderNotesGenerator`.
+- **0.3 ADR** (PR 1): `docs/decisions/00NN-external-providers.md` (numer przy merge): wyniki, decyzja o TCC, zakres wersji CLI, warunki regulaminowe.
 
-### Faza 2 — Notatki ze spotkań (osobny PR; wejście dopiero gdy istnieje `NotesPipeline`, krok 2.2 specu spotkań)
+### Faza 1
 
-Ta faza jest osobnym PR-em, niezależnie wdrażalnym od Fazy 1 (rozstrzygnięte: zostaje w tym specu); Faza 1 nie zależy od niej, a wejście wymaga istnienia `NotesPipeline`.
+- **1.1 Szkielet targetu** (PR 2): `LintelProviders` + `LintelProvidersTests` w `Package.swift`, strict concurrency. *Test:* test grafu (tylko `LintelSpeech`; żadnego pluginu ani `LintelApp`).
+- **1.2 `ProviderDescriptor` Claude** (PR 2). *Test:* golden argv (flagi izolacji obecne, żadnych danych użytkownika w argv, id modelu z metaznakami odrzucone), parsowanie próbek wyjścia (sukces, błąd, `is_error`, pusty wynik), klasyfikacja stderr do enuma.
+- **1.3 `ProviderLocator`** (PR 2). *Test:* katalogi tymczasowe: plik zapisywalny przez innych odrzucony, dowiązanie poza dozwolone ścieżki, brak pliku.
+- **1.4 `ProviderProcess`** (PR 2). *Test:* fałszywa binarka (skrypt): limit wyjścia, timeout, anulowanie zabija dzieci, treść nie trafia do argv, zmienne spoza listy nie docierają, stderr nie trafia do logów ani błędu, katalog sprzątany, e-mail z `auth status` nie wychodzi poza parser.
+- **1.5 `ProviderGate` i `ProviderRunner`** (PR 2). *Test:* jedno wywołanie naraz, kolejność; autoryzacja wołana przed każdym startem i po wyjściu z kolejki; odmowa = 0 procesów; `isolationVerified = false` = 0 procesów. `ProviderGateTests` dopisane do filtra `--sanitize=thread` w `.github/workflows/ci.yml` (obok `LLMLeaseTests`).
+- **1.6 `ProviderSystem.quiet` i skan logów** (PR 2). *Test:* odpowiednik `NoRealSystemTests`; test źródłowy loggera.
+- **1.7 Port `NotesGenerating`** (PR 3): `LeaseNotesGenerator` z dzisiejszą logiką. *Test:* `NotesRegressionTests`, testy lease i TSan zielone bez zmian w plikach testów i snapshotów.
+- **1.8 Migracja** (PR 4): `v3-notes-provider`, czytniki i strzeżone `UPDATE`, wiersze BC §2 i §5. *Test:* baza sprzed migracji otwiera się i czyta `NULL`; `notes_model` nietknięte; nieudane albo anulowane zadanie nie zmienia `notes_provider*`; notatki napisane ponownie modelem wbudowanym czyszczą znacznik.
+- **1.9 Ustawienia i zgoda** (PR 5): klucze z Data Model, parser `providerConsent`. *Test:* wartości domyślne, nic nie jest zapisywane bez wywołania settera, zła wartość = brak zgody, zmiana wersji tekstu, dostawcy albo modelu unieważnia, powrót na `builtIn` usuwa zapis zgody.
+- **1.10 `MeetingProviderAuthorization`, `ProviderNotesGenerator`, serializator** (PR 5). *Test:* **cała macierz „0 procesów”**; golden serializatora `cli1`; lista zamknięta (a)–(d) na fixture z kanarkami; `notes_prompt_version` z sufiksem; QA tylko przez DEBUG-owy `--qa-setting` z fałszywą binarką.
+- **1.11 Kolejka i `modelUsage`** (PR 5): wybór generatora przy starcie zadania, anulowanie i jednorazowy powrót do kolejki po odmowie autoryzacji. *Test:* wiersze 13–16 macierzy; brak nowej wartości `notes_status`; baner „N models are needed” nie żąda modelu notatek przy `provider` z ważną zgodą i bez fallbacku, a żąda go znów po powrocie na `builtIn`.
+- **1.12 Reguły repozytorium i napisy** (PR 5): `CODE_REVIEW.md` §5, `AGENTS.md`, BC §3, napisy `en` + `pl`. *Test:* test językowy „nothing is uploaded”, `StringCatalogTests`.
+- **1.13 Prototyp** (przed PR 6): `om-ux-design`, akceptacja właściciela. *Wynik:* linia `Prototype:` dopisana do tego specu osobnym PR-em projektowym.
+- **1.14 UI** (PR 6): wiersze w Basics, okno zgody przy wyborze dostawcy i przy zmianie modelu, baner stanu, znacznik (biblioteka, okno spotkania, Details w Notes), stopka eksportu, README, `docs/index.html`. *Test:* modele widoków (okno przy każdej zmianie dostawcy i modelu, „Cancel” niczego nie zapisuje, powrót na „Built-in” bez okna), `MeetingConsentText` niezmienione (istniejący test MEET-1.6 zielony bez zmian), golden eksportu, `pages.yml`; dowód: zrzuty jasne i ciemne 1:1 z prototypem, VoiceOver.
+- **1.15 Fallback** (PR 7). *Test:* błąd dostawcy bez fallbacku → `failed`/`partial`; z fallbackiem → wynik wbudowany, `notes_provider` puste; wiersz 10 macierzy.
+- **1.16 Pomiar i ocena** (PR 7): ręcznie, z prawdziwym CLI za zmienną środowiskową (wzór `LINTEL_NOTES_LLM_MODEL`, nigdy w CI), ocena sędzią Fable w harnessie; do repozytorium trafiają tylko liczby (`docs/perf.md`), żadna treść spotkań.
 
-- **2.1 `NotesPipeline` na `any TextGenerator`** — wstrzyknięcie generatora zamiast `LLMLease` (jeśli 2.2 specu spotkań już to robi, krok jest tylko testem). *Test:* ta sama atrapa dla obu źródeł.
-- **2.2 Źródło i znacznik** — `notesSource`, `notes_model = cli:<provider>/<model>`, ikona i podpis w bibliotece, eksport Markdown bez zmian. *Test:* golden eksportu, filtr „Wymagają uwagi”, zgoda per `meetings`.
-- **2.3 Fallback w notatkach** — ten sam przełącznik co w dyktowaniu: ponowienie na wbudowanym, gdy zainstalowany; znacznik końcowy poprawny. *Test:* błąd dostawcy bez fallbacku → `failed`/`partial`; z fallbackiem → wynik wbudowany; anulowanie przez dyktowanie.
-- **2.4 Pomiary i zestaw regresyjny** — notatki z godzinnego transkryptu przez Claude/Codex (ręcznie, domyślnie wyłączone), czas i liczba wywołań w PR i `docs/perf.md`.
+### Faza 2: klucz API (BYOK)
 
-### Faza 3 — Kolejni dostawcy
+Drugi kanał do tego samego odbiorcy, dla użytkownika bez subskrypcji albo bez CLI. Deskryptor `anthropic-api` (`recipient = anthropic`), osobny od `claude-code`.
 
-- **3.1 Weryfikacja Grok Build i Gemini CLI** — plany z dostępem, rozliczanie w trybie headless, flagi izolacji, test kanarkowy, regulamin. Wynik: lista dopuszczonych.
-- **3.2 Deskryptory** — po jednym kroku i PR-ze na dostawcę, z golden testami i testem kanarkowym; bez zmian w `ProviderService`.
+- **Klucz:** wyłącznie w Pęku kluczy przez port `KeychainClient` z `LintelKit` (`kSecClassGenericPassword`, osobna usługa `com.lintelapp.providers`, konto = id deskryptora). Bez `MasterKeyStore` (to nie klucz bazy). **Nigdy** w `UserDefaults`, logach, fixture'ach, komunikatach błędów, argv ani w zrzutach QA. Po zapisaniu UI pokazuje tylko „Key saved” i cztery ostatnie znaki; klucza nie da się odczytać z powrotem w UI. Rozróżnione błędy Pęku kluczy (CR §4): błąd inny niż „nie znaleziono” wyłącza kanał i niczego nie usuwa. „Remove key” i Erase Data pluginu Meetings usuwają wpis.
+- **Transport:** nowy `ProviderHTTPTransport`: tylko HTTPS, zamknięta lista hostów skompilowana w deskryptorze (wzór: `ModelCatalog.isAllowedDownloadHost`), sesja efemeryczna, bez cache, ciasteczek i proxy użytkownika poza systemowym, przekierowania odrzucane, każdy URL sprawdzany przed wysłaniem. **`LoopbackPolicy` i `LoopbackTransport` zostają bez zmian i nie są do tego używane.** Żadnego SDK; nowa zależność pakietowa nie jest potrzebna.
+- **Bramka:** identyczna. `ProviderRunner` pyta o autoryzację przed **każdym żądaniem sieciowym**. Przejście z `claude-code` na `anthropic-api` to zmiana dostawcy, więc wymaga nowego okna zgody (inny tekst: rozliczenie za token z Twojego konta API, zasady przechowywania danych API; reszta jak w Fazie 1, łącznie z imionami, starymi spotkaniami i zdaniem o uczestnikach).
+- **Macierz „0 żądań sieciowych bez zgody”:** te same 18 wierszy co dla procesów, liczone na fałszywym transporcie z `ProviderSystem.quiet`, plus: brak klucza → 0 żądań; host spoza listy → 0 żądań; przekierowanie → odrzucone; test, że w `LintelProviders` nie ma `URLSession` poza `ProviderHTTPTransport` (test źródłowy).
+- **Redakcja:** klucz jest typem opakowującym bez `CustomStringConvertible` i bez `Codable`; nagłówek uwierzytelniania powstaje w jednym miejscu; test źródłowy loggera obejmuje ten typ; treść odpowiedzi błędu API jest klasyfikowana do `ProviderFailure` i porzucana jak stderr.
+- **Kanarek nie dotyczy** (brak agenta, narzędzi i plików), ale ADR dostaje dopisek o zasadach przechowywania danych po stronie API i liście hostów.
+
+Kroki:
+
+- **2.1 Transport i polityka hostów** (PR 8). *Test:* host spoza listy, `http`, przekierowanie, limit rozmiaru odpowiedzi, timeout, anulowanie; brak `URLSession` poza transportem.
+- **2.2 Magazyn klucza** (PR 8). *Test:* `InMemoryKeychainClient`: zapis, odczyt, usunięcie, rozróżnione błędy; klucz nie pojawia się w opisie błędu ani w logu.
+- **2.3 Deskryptor `anthropic-api`** (PR 8). *Test:* golden żądania (bez klucza w snapshotach), parsowanie odpowiedzi i błędów, katalog modeli. Zależność `LintelProviders` → `LintelKit` w teście grafu; `CODE_REVIEW.md` §5 dostaje trzecie nazwane wyjście sieciowe z listą hostów.
+- **2.4 Podłączenie w Meetings** (PR 9): `notesProvider = anthropic-api`, zgoda dla nowego deskryptora, `MeetingProviderAuthorization` bez zmian logiki. *Test:* macierz „0 żądań”; lista zamknięta (a)–(d) na ciele żądania; Erase Data usuwa klucz.
+- **2.5 UI** (PR 9, po prototypie): wybór kanału, pole klucza (bezpieczne pole, wklejanie), „Try it”, okno zgody dla API. *Test:* modele widoków; dowód: zrzuty bez klucza na ekranie.
+
+### Faza 3 i 4
+
+- **3.x Kolejni dostawcy CLI:** po jednym PR na deskryptor, każdy z własnym kanarkiem (dla Codex: wynik przez stdout zamiast `-o`, `--ephemeral`, udowodnione wyłączenie powłoki) i decyzją prawną w ADR. Nowy dostawca = nowe okno zgody.
+- **4.x Dyktowanie (po decyzji Q2):** `LLMSource.provider`, `ProviderFormatter` nad tymi samymi `CleanupPrompt`, `Segmenter`, `FormatterGuard`; własna zgoda (`dictation.cleanup`). Do dostawcy idą tylko kawałki rozpoznanej wypowiedzi i poprzedni kawałek tej samej wypowiedzi (`previousContext`), **nigdy** `FocusContext`, słownik, schowek, zaznaczenie, tytuł okna ani ścieżki. *Test:* wiadomości do dostawcy równe `CleanupPrompt.messages` bez żadnego pola migawki, także przy włączonym kontekście DICT. Bramka opóźnienia p95 ≤ 8 s na kawałek; `ProviderGate` dostaje wtedy priorytet `interactive`.
+
+## Mapa ustaleń review (2026-11-19)
+
+| Ustalenie | Gdzie zaadresowane |
+|---|---|
+| K1 kolejność faz | Phasing, Implementation Plan (notatki pierwsze, dyktowanie Faza 4), status |
+| K2 flaga per spotkanie | **odrzucone decyzją właściciela 2026-11-19**: jedna zgoda przy wyborze dostawcy i modelu; problem (wysyłka wszystkiego po jednej zgodzie) nazwany w oknie zgody i w Risks; egzekwowanie w kodzie i macierz zostają |
+| W1 tekst dla uczestników | **odrzucone decyzją właściciela 2026-11-19**: tekst bez zmian; ryzyko przyjęte w Risks; okno zgody mówi użytkownikowi, że poinformowanie należy do niego |
+| W2 `NotesPipeline` zrośnięty z `LLMLease` | port `NotesGenerating`, PR 3 |
+| W3 `notes_model` | Data Model (`notes_provider*`), PR 4 |
+| W4 TCC | Kanarek, punkt 5 |
+| W5 kopie na dysku | Kanarek, punkt 6; `--no-session-persistence` jako wymóg |
+| W6 reguły i napisy | „Reguły repozytorium zmieniane razem z kodem”, krok 1.12 |
+| S1 `hostSettings` / `app.ai.*` | usunięte; wszystko w `plugins.meetings.*` |
+| S2 cofnięcie zgody w trakcie | autoryzacja przed każdym procesem; macierz 13–15 |
+| S3 wersja formatu promptu | `ProviderPromptSerializer` `cli1` |
+| S4 otwarty zbiór funkcji | `ProviderFeatureID` |
+| S5 stderr | `ProviderProcess`, `ProviderFailure` |
+| S6 panel Modele i banery | krok 1.11 |
+| S7 dwa „konteksty” dyktowania | Faza 4 |
+| S8 Codex | Faza 3 |
+| S9 testy bez prawdziwego CLI | `ProviderSystem.quiet`, krok 1.6 |
+| N1 limity czasu | `ProviderNotesGenerator`, krok 0.2 |
+| N2 kawałkowanie | Q8 |
+| N3 fallback | `notesProviderFallback`, jednokierunkowy, macierz 10 |
+| N4 znacznik a decyzja 4 | UI/UX „Znacznik przy wyniku”, Risks |
+| N5 TSan | krok 1.5 |
+| N6 sędzia Fable to harness | Decyzje wiążące |
+| N7 tytuł | nowy tytuł; inni dostawcy w Fazie 3 |
 
 ## Poza zakresem
 
-Klucze API, logowanie przez przeglądarkę w Pounce, własne wywołania HTTP do dostawców, SDK agentowe, wysyłanie audio, strumieniowanie wyników, własne prompty użytkownika, rozliczanie zużycia i wyświetlanie limitów subskrypcji, dostawcy uruchamiani przez zdalny proxy.
+Logowanie przez przeglądarkę w Lintelu, odczyt tokenów subskrypcji, SDK agentowe, wysyłanie audio, strumieniowanie wyników, własne prompty użytkownika, rozliczanie zużycia i wyświetlanie limitów, dostawcy przez zdalny proxy, wspólny panel „Dostawcy AI” w powłoce, weryfikator semantyczny (`NotesVerifier`) u dostawcy, większe kawałki dla dostawcy, czat w aplikacji i akcje po spotkaniu (decyzja 8; osobne specy, każdy z własną zgodą).
