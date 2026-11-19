@@ -45,6 +45,12 @@ assert_contains "$out" "39G44CM6GF" "the failure names the expected Team ID"
 assert_contains "$out" "Notarized Developer ID" "the failure names the missing notarization"
 assert_contains "$out" "stapler validate failed" "the failure names the missing staple"
 assert_contains "$out" "check(s) failed" "the failure is counted"
+# The app alone (no DMG): the app's own spctl and stapler checks must fail, not only the DMG's.
+out="$(zsh "$ROOT/scripts/verify-release-bundle.sh" "$app" 2>&1)"; rc=$?
+assert_eq "1" "$rc" "verify-release-bundle fails on an ad-hoc app alone"
+assert_contains "$out" "spctl does not accept the app" "the app's spctl check fails on its own"
+assert_contains "$out" "stapler validate failed for the app" "the app's stapler check fails on its own"
+assert_contains "$out" "3 check(s) failed" "requirement, spctl and staple fail; only codesign --verify passes"
 assert_fails "no argument is refused" zsh "$ROOT/scripts/verify-release-bundle.sh"
 assert_fails "a missing bundle is refused" zsh "$ROOT/scripts/verify-release-bundle.sh" "$tmp/nope.app"
 # It still prints the requirement and writes it where asked.

@@ -7,11 +7,11 @@
 #   - codesign --verify --strict --deep passes;
 #   - the designated requirement names the Team ID of scripts/release-team-id.txt through certificate
 #     leaf[subject.OU] and anchor apple generic, and has no cdhash (a cdhash means ad-hoc);
-#   - spctl -a -vvv -t exec reports "Notarized Developer ID";
+#   - spctl -a -vvv -t exec reports "accepted" and "source=Notarized Developer ID";
 #   - xcrun stapler validate passes;
 # and, when a DMG is given:
 #   - codesign --verify --strict passes, spctl -a -vvv -t open --context context:primary-signature reports
-#     "Notarized Developer ID" and xcrun stapler validate passes.
+#     "accepted" and "source=Notarized Developer ID" and xcrun stapler validate passes.
 # Every failed check is printed; the exit status is 1 when there is any. It prints the app's designated requirement
 # (also to $REQUIREMENT_OUT when set), which Step 3.4 records in Resources/designated-requirement.txt.
 set -uo pipefail
@@ -48,7 +48,7 @@ fi
 
 step "spctl -a -vvv -t exec $APP"
 out="$(spctl -a -vvv -t exec "$APP" 2>&1)"; print -r -- "$out"
-[[ "$out" == *"Notarized Developer ID"* ]] || fail "spctl does not report 'Notarized Developer ID' for the app (the app is not notarized, or not signed with Developer ID)"
+[[ "$out" == *": accepted"* && "$out" == *"source=Notarized Developer ID"* ]] || fail "spctl does not accept the app as 'Notarized Developer ID' (the app is not notarized, or not signed with Developer ID)"
 
 step "xcrun stapler validate $APP"
 out="$(xcrun stapler validate "$APP" 2>&1)" || fail "stapler validate failed for the app: the notarization ticket is not stapled"
@@ -58,7 +58,7 @@ if [[ -n "$DMG" ]]; then
   out="$(codesign --verify --strict --verbose=2 "$DMG" 2>&1)" || fail "codesign --verify failed for the DMG: $out"
   step "spctl -a -vvv -t open --context context:primary-signature $DMG"
   out="$(spctl -a -vvv -t open --context context:primary-signature "$DMG" 2>&1)"; print -r -- "$out"
-  [[ "$out" == *"Notarized Developer ID"* ]] || fail "spctl does not report 'Notarized Developer ID' for the DMG"
+  [[ "$out" == *": accepted"* && "$out" == *"source=Notarized Developer ID"* ]] || fail "spctl does not accept the DMG as 'Notarized Developer ID'"
   step "xcrun stapler validate $DMG"
   out="$(xcrun stapler validate "$DMG" 2>&1)" || fail "stapler validate failed for the DMG: the notarization ticket is not stapled"
 fi
