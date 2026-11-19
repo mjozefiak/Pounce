@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "lintel:meeting-eval/fable-judge-result/1",
+  "title": "One answer of the Fable judge (judge_protocol_version 1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol_version", "meeting", "reference", "omissions", "fabrications", "format_defects", "evidence", "scores", "overall"],
+  "properties": {
+    "protocol_version": {"const": 1},
+    "meeting": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"},
+    "reference": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "text", "owner", "due", "segment", "core"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^r[0-9]+$"},
+          "kind": {"enum": ["decision", "task", "finding", "number_or_date", "context"]},
+          "text": {"type": "string", "minLength": 1},
+          "owner": {"type": ["string", "null"]},
+          "due": {"type": ["string", "null"]},
+          "segment": {"type": "integer", "minimum": 0},
+          "core": {"type": "boolean"}
+        }
+      }
+    },
+    "omissions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ref_id", "coverage", "why"],
+        "properties": {
+          "ref_id": {"type": "string", "pattern": "^r[0-9]+$"},
+          "coverage": {"enum": ["missed", "partial"]},
+          "why": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "fabrications": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["category", "severity", "notes_quote", "why", "segment"],
+        "properties": {
+          "category": {"enum": ["fact", "person_or_attribution", "number_or_date", "decision", "task"]},
+          "severity": {"enum": ["major", "minor"]},
+          "notes_quote": {"type": "string", "minLength": 1},
+          "why": {"type": "string", "minLength": 1},
+          "segment": {"type": ["integer", "null"], "minimum": 0}
+        }
+      }
+    },
+    "format_defects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["category", "count", "why"],
+        "properties": {
+          "category": {"enum": ["timestamp_in_notes", "author_marker", "raw_speech", "duplicate", "wrong_section", "verbosity", "missing_summary", "language", "markup"]},
+          "count": {"type": "integer", "minimum": 1},
+          "why": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["coverage", "faithfulness", "tasks", "formatting"],
+      "properties": {
+        "coverage": {"type": "string", "minLength": 1},
+        "faithfulness": {"type": "string", "minLength": 1},
+        "tasks": {"type": "string", "minLength": 1},
+        "formatting": {"type": "string", "minLength": 1}
+      }
+    },
+    "scores": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["coverage", "faithfulness", "tasks", "formatting"],
+      "properties": {
+        "coverage": {"type": "integer", "minimum": 0, "maximum": 4},
+        "faithfulness": {"type": "integer", "minimum": 0, "maximum": 4},
+        "tasks": {"type": "integer", "minimum": 0, "maximum": 4},
+        "formatting": {"type": "integer", "minimum": 0, "maximum": 4}
+      }
+    },
+    "overall": {"type": "integer", "minimum": 0, "maximum": 100}
+  }
+}
