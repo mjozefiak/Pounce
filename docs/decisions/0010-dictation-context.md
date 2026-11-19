@@ -425,29 +425,32 @@ DICT-2.2, which is the first story that uses their values.
 `CleanupPrompt.version` is 2 and `FormatterGuard` is adjusted as Decision 2 requires. Numbers come from the
 synthetic corpus (79 cases, 38 of them withdrawals, 21 negatives), both built-in catalog models, greedy
 decoding, on an Apple silicon Mac. "Pass" means the output keeps the `must_keep` words and drops the
-`must_drop` words. The version 1 prompt was run with the new guard, so the rows differ only by the prompt.
-This table replaces the earlier one: after the review of PR #134 the prompt's examples were rewritten (they
-had been corpus cases) and the guard was tightened, so every number was measured again.
+`must_drop` words. The version 1 prompt was run with the final guard, so the rows differ only by the prompt.
+This table replaces the earlier ones: after the first and second review of PR #134 the prompt's examples were
+rewritten (they had been corpus cases) and the guard was rewritten twice, so every number was measured again.
 
 | Model | Prompt | Pass, all (79) | Pass, withdrawals (38) | Pass, negatives (21) | Kept withdrawn | Kept withdrawn and lost final | Fell back to raw | `known_bad` text returned | Negatives that lost a `must_keep` word |
 |---|---|---|---|---|---|---|---|---|---|
-| Qwen3 4B Instruct 2507 Q4_K_M | v1 | 53 | 15 | 19 | 24 | 1 | 0 | 1 | 2 (`en-neg-7`, `pl-neg-10`) |
-| Qwen3 4B Instruct 2507 Q4_K_M | v2 | 71 | 33 | 19 | 4 | 0 | 2 | 0 | 2 (`en-neg-7`, `pl-neg-10`) |
+| Qwen3 4B Instruct 2507 Q4_K_M | v1 | 52 | 14 | 19 | 24 | 1 | 1 | 1 | 2 (`en-neg-7`, `pl-neg-10`) |
+| Qwen3 4B Instruct 2507 Q4_K_M | v2 | 71 | 32 | 20 | 4 | 0 | 4 | 0 | 1 (`en-neg-7`) |
 | Qwen3 30B-A3B Instruct 2507 Q4_K_M | v1 | 49 | 12 | 19 | 27 | 0 | 0 | 1 | 2 (`pl-neg-10`, `pl-neg-12`) |
-| Qwen3 30B-A3B Instruct 2507 Q4_K_M | v2 | 70 | 31 | 21 | 6 | 0 | 1 | 0 | 0 |
+| Qwen3 30B-A3B Instruct 2507 Q4_K_M | v2 | 69 | 30 | 21 | 6 | 0 | 3 | 0 | 0 |
 
 - "Kept withdrawn" and "lost final" are counted on answers the model gave and the guard accepted, not on raw
   fallbacks. `known_bad` texts are reported on their own and never counted as passes.
 - The acceptance rule of Decision 2 holds for both models on this corpus with version 2: no case ends with the
-  retracted version kept and the final one lost. This is a measurement of the model's output, not a guarantee
-  of the guard: the guard cannot tell which of two kept versions the speaker meant.
+  retracted version kept and the final one lost. This time it is also a property of the guard and not only of
+  the model's output (see "The guard"): such an output is rejected whatever the model does, and the cases in
+  which the guard can still accept a text with the withdrawn version are those that keep BOTH versions.
 - Version 1 did keep the wrong version on this corpus (24 and 27 cases keep a withdrawn word; on 4B one of them
   also lost the final version). Version 2 reduces that to 4 and 6 cases, which keep both versions (the safe
   failure).
-- Over-removal is the risk that remains: on 4B, two negatives lose a word of the text (`en-neg-7`, `pl-neg-10`:
-  a marker word used as content, "I mean it …" and "to znaczy że …"). Version 1 does the same on these two,
-  so the prompt did not cause it, and it did not remove it. On 30B version 2 loses none. The guard cannot see
-  it in general (the output only drops words next to a marker), so the prompt and the raw text protect the user.
+- The stricter guard costs a few more raw fallbacks than the first measurement (4B: 4, 30B: 3; they were 2 and
+  1): a fallback is the safe outcome, the raw text is pasted. Pass counts moved by one or two cases against the
+  earlier table because of that and of model variation.
+- Over-removal is the risk that remains: on 4B one negative loses a word of the text (`en-neg-7`: a marker word
+  used as content, "I mean what …"). Version 1 does the same there, so the prompt did not cause it. On 30B
+  version 2 loses none. The guard cannot see it when the model deletes exactly the words before a marker.
 - The prompt's examples are no longer corpus cases (the first version of this change used nine that were
   verbatim or close paraphrases). `CleanupPromptCorpusSeparationTests` fails when an example or a quoted sample of
   the system prompt shares three consecutive words, once markers and fillers are removed, or content-word
@@ -455,30 +458,48 @@ had been corpus cases) and the guard was tightened, so every number was measured
   independent of the prompt in general.
 - The corpus is small (79 cases, single sentences of 5 to 15 words, written by the same hand that wrote the
   marker list). The numbers describe this corpus; the owner's own phrasing and 40 to 60 word chunks may do
-  worse.
+  worse. The prompt grows from about 1 900 to about 4 000 characters; the per-chunk latency of version 2 is not
+  yet measured (`docs/perf.md`).
 
-**The guard.** The lower bound 0.6 stays for every chunk without a marker or filler from the closed lists
-(`retractionMarkers`, `fillers`). For a chunk with one the floor is 0.3 (`removalFloor`). That value was tuned
-on the corpus (its shortest correct output is 0.38); it is a coarse outer limit and not the safety mechanism.
-The safety mechanism is the anchoring: below 0.6 the output must be derivable from the input at a cost of at
-most `max(2, ceil(0.2 × output words))` edits (`FormatterGuard.derivationCost`). Free removals are a filler
-phrase, an immediate repetition (up to four words), a stutter, and a span that ENDS in a marker (the retracted
-words before it and the marker itself) when the retracted part is not longer than the words after the marker
-(up to the next marker) plus two. A word with digits in the output may stand for one to four spoken words.
-Everything else costs one per word, so a cut middle or tail that no marker anchors is rejected as
-`addedContent`, and a marker at the start of the chunk retracts nothing. The output must also add at most 20%
-novel words (digits not counted) and end on the input's last word (or a digit). Any chunk of at least five
-words is rejected as `addedContent` when more than 50% of its output words are not in the input. The 1.15
-upper bound, `answered` and `languageChanged` are unchanged. With the old guard 28 of the 79 `expected` texts
-were rejected; with this one 0 are, and the held-out retractions in `FormatterGuardTests` (not corpus cases) are
-accepted.
+**The guard.** The lower bound 0.6 stays for a chunk without a marker or filler from the closed lists
+(`retractionMarkers`, `fillers`). For a chunk with one, the bound is `min(0.6 x input words, input words -
+allowance)`, never below 0.3 x input words (`FormatterGuard.lowerBound`); the allowance is the words of every
+filler and marker plus 8 (`retractedSpanCap`) per marker. A filler therefore does not lower the bound of a
+60-word chunk, and one retraction lowers it by at most about ten words however long the chunk is. Below 0.6, or
+whenever a marker has words after it, the output must be derivable from the input at a cost of at most
+`max(2, ceil(0.1 x output words))` edits (`FormatterGuard.derivationCost`). Free removals are a filler phrase,
+an immediate repetition (up to four words), a stutter, and a span that ENDS in a marker (the retracted words
+before it and the marker itself) when the retracted part is at most `min(words after the marker up to the next
+marker + 2, 8)`. Everything else costs one per word.
 
-**Known limits of the guard.** It cannot tell a negated imperative from a marker: "napisz Piotrkowi nie czekaj
-na mnie z kolacją" → "Na mnie z kolacją." is derivable and is accepted (asserted in `FormatterGuardTests`); only
-the prompt (keep both versions when unsure) and the raw text protect the user. The same holds for a marker
-word used as content when the model deletes exactly the words before it. The last-word rule does not detect a
-kept first version that shares its tail with the final one, or an output that ends in a digit.
+**The replacement rule.** The words after the end of the LAST marker are the replacement. Each of them can only
+be matched, removed as a filler, an immediate repetition or a stutter, replaced by a near form of itself
+(`isNearForm`: equal after folding case and diacritics, or a shared prefix of at least four letters that is at
+least 60% of the shorter word; "Marka" for "Mark", not "Nowak" for "Nowicki"), or absorbed by a digit whose
+value EQUALS the number words it replaces (`NumberWords`: Polish and English cardinals and ordinals by stem or
+word, 0 to 999 999, "25 000" read as one number, anything it cannot parse is not a number). A replacement
+word is never deleted and never replaced by an unrelated word or by a digit of another value. This holds for
+every chunk with a marker, relaxed or not. It is what rejects "Spotkanie jest o dziesiątej w sali
+konferencyjnej." and "Potrzebujemy 50 sztuk." (the withdrawn version kept, the final one lost), which the
+first version of this guard let through. The output must also end on the input's last word that is not a
+filler or marker (or a near form of it, or digits equal to the number words the input ends on), else the
+reason is `endChanged`, and a relaxed chunk may add at most 20% novel words. Any chunk of at least five words
+is rejected as `addedContent` when more than 50% of its output words are not in the input. The 1.15 upper
+bound, `answered` and `languageChanged` are unchanged. With the old guard 28 of the 79 `expected` texts were
+rejected; with this one 0 are. `GuardReplacementTests` rejects every corpus `known_bad` that loses the final
+version, the digit forms of the withdrawn-version outputs, and, for every contiguous deletion from every
+withdrawing case that falls under 0.6 (what `main` rejected as too short), requires that the replacement is
+still in the output.
+
+**What the guard still cannot see.** A negated imperative used as content, "napisz Piotrkowi nie czekaj na
+mnie z kolacją" → "Na mnie z kolacją.": the output keeps the words after the last marker, so a cut that ends
+in the marker's neighbourhood can pass; only the prompt (keep both versions when unsure) and the raw text
+protect the user. An output that keeps BOTH versions (three corpus `known_bad` texts, listed in
+`GuardReplacementTests`): nothing is lost, and the guard cannot tell which one the speaker meant. A wrong but
+plausible replacement inside the same word stem ("Marka" for "Mark"). A spoken number the parser does not know
+(a year read as "twenty twenty-five") is not absorbed by digits and falls back to the raw text.
 
 **Condition.** Version 2 is safe on both catalog models on this corpus. Should a smaller model be added to the
 catalog, it must pass the same report before it may use version 2; until then the choice is the model's, not a
 size limit.
+

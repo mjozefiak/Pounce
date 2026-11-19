@@ -38,15 +38,23 @@ import Testing
     // MARK: The withdrawn version stayed, the final one is lost
 
     @Test(arguments: [
-        ("spotkanie jest o dziesiątej nie to znaczy o jedenastej w sali konferencyjnej",
-            "Spotkanie jest o dziesiątej w sali konferencyjnej."),
-        ("spotkanie jest o dziesiątej nie to znaczy o jedenastej w sali konferencyjnej",
-            "Spotkanie jest o 10."),
-        ("spotkanie jest o dziesiątej nie to znaczy o jedenastej w sali konferencyjnej",
-            "Spotkanie jest o 10 w sali konferencyjnej."),
+        (
+            "spotkanie jest o dziesiątej nie to znaczy o jedenastej w sali konferencyjnej",
+            "Spotkanie jest o dziesiątej w sali konferencyjnej."
+        ),
+        (
+            "spotkanie jest o dziesiątej nie to znaczy o jedenastej w sali konferencyjnej",
+            "Spotkanie jest o 10."
+        ),
+        (
+            "spotkanie jest o dziesiątej nie to znaczy o jedenastej w sali konferencyjnej",
+            "Spotkanie jest o 10 w sali konferencyjnej."
+        ),
         ("potrzebujemy pięćdziesięciu sztuk przepraszam sześćdziesięciu sztuk", "Potrzebujemy 50 sztuk."),
-        ("potrzebujemy pięćdziesięciu sztuk przepraszam sześćdziesięciu sztuk",
-            "Potrzebujemy pięćdziesięciu sztuk."),
+        (
+            "potrzebujemy pięćdziesięciu sztuk przepraszam sześćdziesięciu sztuk",
+            "Potrzebujemy pięćdziesięciu sztuk."
+        ),
         ("we need fifty units sorry sixty units", "We need 50 units."),
         ("we need fifty units sorry sixty units", "We need fifty units."),
         ("the meeting is at ten I mean eleven in the main room", "The meeting is at 10."),
@@ -78,7 +86,9 @@ import Testing
         var documented = 0
         for item in try AutocorrectCorpus.load() {
             for bad in item.knownBad ?? [] {
-                let lostFinal = !item.mustKeep.allSatisfy { AutocorrectCorpus.holds(Set(AutocorrectCorpus.tokens(bad)), $0) }
+                let lostFinal = !item.mustKeep.allSatisfy {
+                    AutocorrectCorpus.holds(Set(AutocorrectCorpus.tokens(bad)), $0)
+                }
                 if lostFinal {
                     #expect(!accepted(item.raw, bad), "\(item.id): \(bad)")
                 } else {
@@ -136,10 +146,14 @@ import Testing
         ("potrzebujemy pięćdziesięciu sztuk przepraszam sześćdziesięciu sztuk", "Potrzebujemy 60 sztuk."),
         ("potrzebujemy pięćdziesięciu sztuk przepraszam sześćdziesięciu sztuk", "Potrzebujemy sześćdziesięciu sztuk."),
         ("pociąg odjeżdża o szóstej trzydzieści to znaczy o szóstej czterdzieści", "Pociąg odjeżdża o 6:40."),
-        ("budżet wynosi osiemnaście tysięcy to znaczy dwadzieścia pięć tysięcy złotych",
-            "Budżet wynosi 25 000 złotych."),
-        ("budżet wynosi osiemnaście tysięcy to znaczy dwadzieścia pięć tysięcy złotych",
-            "Budżet wynosi dwadzieścia pięć tysięcy złotych."),
+        (
+            "budżet wynosi osiemnaście tysięcy to znaczy dwadzieścia pięć tysięcy złotych",
+            "Budżet wynosi 25 000 złotych."
+        ),
+        (
+            "budżet wynosi osiemnaście tysięcy to znaczy dwadzieścia pięć tysięcy złotych",
+            "Budżet wynosi dwadzieścia pięć tysięcy złotych."
+        ),
         ("the meeting is at ten I mean eleven in the main room", "The meeting is at 11 in the main room."),
         ("we need fifty units sorry sixty units", "We need 60 units."),
         ("termin mija dwunastego a właściwie trzynastego marca", "Termin mija 13 marca."),
@@ -157,13 +171,17 @@ import Testing
 
     @Test func aDigitWithAnotherValueIsNotAbsorbed() {
         // 70 is not "sześćdziesięciu": the digit is an unrelated token in the replacement.
-        #expect(!accepted("potrzebujemy pięćdziesięciu sztuk przepraszam sześćdziesięciu sztuk", "Potrzebujemy 70 sztuk."))
-        #expect(!accepted("pociąg odjeżdża o szóstej trzydzieści to znaczy o szóstej czterdzieści", "Pociąg odjeżdża o 6:45."))
+        #expect(
+            !accepted("potrzebujemy pięćdziesięciu sztuk przepraszam sześćdziesięciu sztuk", "Potrzebujemy 70 sztuk."))
+        #expect(
+            !accepted(
+                "pociąg odjeżdża o szóstej trzydzieści to znaczy o szóstej czterdzieści", "Pociąg odjeżdża o 6:45."))
     }
 
     // MARK: Long chunks (a marker or filler must not license a deletion of half the chunk)
 
-    private let filler = "ostatnio dużo pracujemy nad nowym modułem raportów i musimy dopracować wiele drobnych szczegółów"
+    private let filler =
+        "ostatnio dużo pracujemy nad nowym modułem raportów i musimy dopracować wiele drobnych szczegółów"
 
     private func longChunk(prefix: String, middle: String, suffix: String) -> String {
         [prefix, middle, suffix].filter { !$0.isEmpty }.joined(separator: " ")
@@ -200,7 +218,8 @@ import Testing
         let before = (0..<20).map { "poprzednie\($0)" }
         let after = (0..<22).map { "kolejne\($0)" }
         let retracted = "wyślemy to w poniedziałek rano"
-        let input = (before + retracted.split(separator: " ").map(String.init) + ["nie", "czekaj", "wyślemy", "to"]
+        let input =
+            (before + retracted.split(separator: " ").map(String.init) + ["nie", "czekaj", "wyślemy", "to"]
             + ["we", "wtorek"] + after).joined(separator: " ")
         let output = (before + ["wyślemy", "to", "we", "wtorek"] + after).joined(separator: " ") + "."
         #expect(accepted(input, output))

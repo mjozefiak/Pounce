@@ -308,7 +308,7 @@ KeyboardShortcuts: `KeyboardShortcuts_command_dictation_record`.
 | Wskazany folder zniknął (odmontowany dysk) | Status „Model niedostępny” w Ustawieniach i HUD; brak cichego pobierania. |
 | Ładowanie modelu się nie udało (Core ML, za mało pamięci) | `activate()` nie rzuca (plugin działa); dyktowanie pokazuje błąd; log bez treści. |
 | Endpoint LLM wyłączony / timeout / błąd HTTP | Kawałek wstawiany surowy, `format_status = partial/failed`, HUD informuje; brak ponowień w trakcie sesji poza jednym retry przy błędzie połączenia. |
-| LLM „odpowiada” na dyktowany prompt zamiast go formatować | `CleanupPrompt` (reguły + few-shot) + `FormatterGuard` (stosunek długości, język); odrzucony kawałek → surowy. Surowa wersja zawsze dostępna: `dictation.pasteLastRaw` i historia. |
+| LLM „odpowiada” na dyktowany prompt zamiast go formatować | `CleanupPrompt` (reguły + few-shot) + `FormatterGuard` (stosunek długości, język; od CleanupPrompt v2 także reguła zastąpienia po wycofaniu, ADR 0010); odrzucony kawałek → surowy. Surowa wersja zawsze dostępna: `dictation.pasteLastRaw` i historia. |
 | Model z trybem thinking (Qwen3.x, Gemma 4 z pustym blokiem myśli) | Wycinanie `<think>`; jeśli po wycięciu pusto → surowy. |
 | Adres endpointu spoza loopback | Odrzucony w walidacji Ustawień; klient i tak sprawdza host przed każdym żądaniem. |
 | Użytkownik zmienił aplikację w trakcie nagrania | Wklejenie do aplikacji aktywnej w chwili końca. |

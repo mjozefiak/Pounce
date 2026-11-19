@@ -194,6 +194,7 @@ and filled in then; nothing here is estimated.
 | Built-in model (Qwen3-4B Q4_K_M) loaded while recording, ready before the user stops | < 3 s load on M-series (ADR 0005) | – | Manual (QA, step 4.4) |
 | Resident memory with the built-in 4B model loaded / after keep-warm unload | ≈ 3.3 GB / back to the baseline | – | Manual (Activity Monitor) |
 | Time of one chunk request | printed by `LINTEL_LLM_URL=… swift test --filter CleanupFixtureTests/realServer` | – | Manual |
+| Size of the cleanup prompt (CleanupPrompt version 2) | about 4 000 characters rendered (version 1 about 1 900), roughly 600 to 800 more prefill tokens per chunk; the context still fits (4 096 for `LlamaRuntime`) | – | per-chunk latency of version 2 not yet measured |
 
 ### Context (ADR 0010, epic DICT)
 

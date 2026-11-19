@@ -233,7 +233,9 @@ enum AutocorrectCorpus {
 
     /// Cleans every case with the built-in model in `LINTEL_LLAMA_MODEL` and prints only counts per category
     /// (no text): cases that keep and drop the right words, cleaned outputs that still hold the withdrawn
-    /// version (the ADR 0005 failure), cleaned outputs equal to a `known_bad` text (reported on its own, never counted as a pass) and chunks that fell back to the raw text (the guard rejected the answer). Off by default, like the other
+    /// version (the ADR 0005 failure), cleaned outputs equal to a `known_bad` text (reported on its own, never
+    /// counted as a pass) and chunks that fell back to the raw text (the guard rejected the answer). Off by
+    /// default, like the other
     /// real-model tests. It loads its own copy of the model, so run it alone:
     /// `LINTEL_LLAMA_MODEL=<gguf> swift test --filter AutocorrectCorpusTests`.
     @Test(.enabled(if: ProcessInfo.processInfo.environment["LINTEL_LLAMA_MODEL"] != nil))
