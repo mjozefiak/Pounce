@@ -7,8 +7,11 @@ import os
 struct MoveToApplicationsPrompt {
     /// Which alert is shown.
     enum Variant: Equatable {
-        /// Lintel runs outside Applications: Move, Don't Move.
-        case move
+        /// Lintel runs outside Applications: Move, Don't Move. `folder` is how the chosen folder is shown
+        /// (`/Applications` or `~/Applications`).
+        case move(folder: String)
+        /// `/Applications` cannot be written without an administrator: offer `~/Applications` instead.
+        case fallbackToUserApplications
         /// A copy with a higher build number is already in Applications: Open Installed Copy, Don't Move. Nothing
         /// is replaced.
         case newerInstalled
@@ -62,12 +65,25 @@ struct MoveToApplicationsPrompt {
     /// runs next to a started one.
     func offerIfNeeded(bundleURL: URL, home: URL) async -> Outcome {
         guard Self.shouldOffer(bundleURL: bundleURL, home: home, settings: settings) else { return .notOffered }
-        return await offer(bundleURL: bundleURL)
+        return await offer(bundleURL: bundleURL, home: home)
     }
 
-    /// Shows the alert and acts on the answer.
-    func offer(bundleURL: URL) async -> Outcome {
-        let variant: Variant = mover.installedCopyIsNewer(than: bundleURL) ? .newerInstalled : .move
+    /// Shows the alert and acts on the answer. The folder comes from `InstallDestination.decide`.
+    func offer(bundleURL: URL, home: URL) async -> Outcome {
+        var mover = self.mover
+        mover.home = home
+        var variant: Variant
+        switch InstallDestination.decide(home: home, files: mover.files) {
+        case .direct(let folder):
+            mover.destination = folder.appending(path: ApplicationLocation.bundleName, directoryHint: .isDirectory)
+            variant = .move(folder: InstallDestination.displayPath(folder, home: home))
+        case .fallbackToUserApplications(let folder), .needsAuthorization(let folder):
+            _ = folder
+            let user = InstallDestination.userApplications(home: home)
+            mover.destination = user.appending(path: ApplicationLocation.bundleName, directoryHint: .isDirectory)
+            variant = .fallbackToUserApplications
+        }
+        if mover.installedCopyIsNewer(than: bundleURL) { variant = .newerInstalled }
         let answer = ask(variant)
         if answer.dontAskAgain {
             settings.setValue(.bool(true), forKey: SettingsKeys.moveDeclined)
@@ -92,11 +108,25 @@ struct MoveToApplicationsPrompt {
         String(localized: "Move Lintel to Applications?", comment: "Move to Applications alert: title")
     }
 
-    static var message: String {
+    static func message(folder: String) -> String {
         String(
             localized:
-                "Lintel can update itself only from the Applications folder. After the move it opens again from there.",
-            comment: "Move to Applications alert: explanation")
+                "Lintel can update itself only from an Applications folder. It will be copied to \(folder) and opened again from there.",
+            comment:
+                "Move to Applications alert: explanation; the argument is the folder, /Applications or ~/Applications")
+    }
+
+    static var fallbackTitle: String {
+        String(
+            localized: "Move Lintel to your Applications folder?",
+            comment: "Move to Applications alert: title when the system Applications folder is not writable")
+    }
+
+    static var fallbackMessage: String {
+        String(
+            localized:
+                "Lintel cannot write to the Applications folder without an administrator. Move it to the Applications folder in your home folder instead?",
+            comment: "Move to Applications alert: explanation when the system Applications folder is not writable")
     }
 
     static var newerInstalledTitle: String {
@@ -113,20 +143,23 @@ struct MoveToApplicationsPrompt {
     }
 
     /// The alert with Move (default; Open Installed Copy for `.newerInstalled`), Don't Move and "Don't ask again".
-    static func makeAlert(_ variant: Variant = .move) -> NSAlert {
+    static func makeAlert(_ variant: Variant = .move(folder: "/Applications")) -> NSAlert {
         let alert = NSAlert()
         alert.alertStyle = .informational
         switch variant {
-        case .move:
+        case .move(let folder):
             alert.messageText = title
-            alert.informativeText = message
+            alert.informativeText = message(folder: folder)
+        case .fallbackToUserApplications:
+            alert.messageText = fallbackTitle
+            alert.informativeText = fallbackMessage
         case .newerInstalled:
             alert.messageText = newerInstalledTitle
             alert.informativeText = newerInstalledMessage
         }
         let move: NSButton
         switch variant {
-        case .move:
+        case .move, .fallbackToUserApplications:
             move = alert.addButton(
                 withTitle: String(localized: "Move", comment: "Move to Applications alert: button that moves the app"))
             move.setAccessibilityLabel(
@@ -164,7 +197,7 @@ struct MoveToApplicationsPrompt {
     }
 
     /// Runs the alert. QA mode passes `activates: false`, so the alert never takes focus from the tester.
-    static func presentAlert(_ variant: Variant = .move, activates: Bool) -> Answer {
+    static func presentAlert(_ variant: Variant, activates: Bool) -> Answer {
         let alert = makeAlert(variant)
         if activates { NSApp.activate() }
         let response = alert.runModal()
@@ -192,6 +225,10 @@ struct MoveToApplicationsPrompt {
             String(
                 localized: "The older copy in Applications could not be moved to the Trash. Nothing was changed.",
                 comment: "Move to Applications error: the old copy could not go to the Trash")
+        case .installFailedNothingReplaced:
+            String(
+                localized: "The new copy could not be put in Applications. Nothing was changed.",
+                comment: "Move to Applications error: new copy not put in place, no older copy existed")
         case .installFailed(restored: true):
             String(
                 localized: "The new copy could not be put in Applications. The older copy is back in place.",
@@ -221,6 +258,18 @@ struct MoveToApplicationsPrompt {
 }
 
 #if DEBUG
+/// What `--qa-move-prompt` pretends the Mac looks like (`--qa-move-scenario`).
+enum QAMoveScenario: String, Equatable {
+    /// Nothing in `~/Applications`, `/Applications` writable: the alert names `/Applications`.
+    case standard
+    /// `~/Applications` holds an app: the alert names `~/Applications`.
+    case userApplications = "user-applications"
+    /// `/Applications` is not writable: the alert offers the home folder instead.
+    case unwritable
+    /// A copy with a higher build number is installed: the alert offers to open it.
+    case newer
+}
+
 /// `--qa-move-prompt`: fakes for the Move flow, so the alert can be shown and answered without touching
 /// `/Applications`, the Trash or the running apps. Every step is only logged.
 struct QAInstallFakes: InstallFileManaging, RunningAppListing, QuarantineRemoving, AppRelaunching,
@@ -228,9 +277,30 @@ struct QAInstallFakes: InstallFileManaging, RunningAppListing, QuarantineRemovin
 {
     /// The bundle location the QA alert pretends to run from.
     static let bundleURL = URL(filePath: "/Volumes/Lintel/Lintel.app", directoryHint: .isDirectory)
+    var scenario = QAMoveScenario.standard
+    var home = FileManager.default.homeDirectoryForCurrentUser
     private let logger = Logger(subsystem: "com.lintelapp", category: "qa")
 
-    func itemExists(at url: URL) -> Bool { false }
+    private var userApplications: URL { InstallDestination.userApplications(home: home) }
+    private func isInstalledCopy(_ url: URL) -> Bool {
+        url.path == "/Applications/Lintel.app" || url.path == userApplications.appending(path: "Lintel.app").path
+    }
+
+    func itemExists(at url: URL) -> Bool { scenario == .newer && isInstalledCopy(url) }
+    func childNames(in folder: URL) -> [String] { [] }
+    func directoryExists(at url: URL) -> Bool {
+        url.path == "/Applications" || (scenario == .userApplications && url.path == userApplications.path)
+    }
+    func hasApplicationBundle(in folder: URL) -> Bool {
+        scenario == .userApplications && folder.path == userApplications.path
+    }
+    func isWritable(at url: URL) -> Bool { !(scenario == .unwritable && url.path == "/Applications") }
+    func createDirectory(at url: URL) throws {
+        logger.info("QA: would create \(url.path, privacy: .public)")
+    }
+    func isOnReadOnlyVolume(_ url: URL) -> Bool { true }
+    func isAnotherInstanceRunning(bundleIdentifier: String) -> Bool { false }
+    func bundleIdentifier(ofBundleAt url: URL) -> String? { nil }
     func copyBundle(from source: URL, to destination: URL) throws {
         logger.info("QA: would copy \(source.path, privacy: .public) to \(destination.path, privacy: .public)")
     }
@@ -241,7 +311,10 @@ struct QAInstallFakes: InstallFileManaging, RunningAppListing, QuarantineRemovin
     func removeStagingItem(at url: URL) throws {}
     func isRunning(bundleAt url: URL) -> Bool { false }
     func removeQuarantine(at url: URL) throws {}
-    func buildNumber(ofBundleAt url: URL) -> String? { nil }
+    func buildNumber(ofBundleAt url: URL) -> String? {
+        guard scenario == .newer else { return nil }
+        return isInstalledCopy(url) ? "200" : "100"
+    }
     func open(_ url: URL, newInstance: Bool) async throws {
         logger.info("QA: would open \(url.path, privacy: .public) and quit")
     }

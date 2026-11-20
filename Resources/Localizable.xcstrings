@@ -25345,24 +25345,6 @@
         }
       }
     },
-    "Lintel can update itself only from the Applications folder. After the move it opens again from there." : {
-      "comment" : "Move to Applications alert: explanation",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel can update itself only from the Applications folder. After the move it opens again from there."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lintel może aktualizować się tylko z folderu Aplikacje. Po przeniesieniu otworzy się ponownie stamtąd."
-          }
-        }
-      }
-    },
     "Lintel couldn't be moved to Applications" : {
       "comment" : "Move to Applications error: title",
       "extractionState" : "manual",
@@ -25593,6 +25575,78 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nie udało się przenieść starszej kopii z folderu Aplikacje do Kosza. Nic nie zostało zmienione."
+          }
+        }
+      }
+    },
+    "The new copy could not be put in Applications. Nothing was changed." : {
+      "comment" : "Move to Applications error: new copy not put in place, no older copy existed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The new copy could not be put in Applications. Nothing was changed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się umieścić nowej kopii w folderze Aplikacje. Nic nie zostało zmienione."
+          }
+        }
+      }
+    },
+    "Lintel can update itself only from an Applications folder. It will be copied to %@ and opened again from there." : {
+      "comment" : "Move to Applications alert: explanation; the argument is the folder, /Applications or ~/Applications",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel can update itself only from an Applications folder. It will be copied to %@ and opened again from there."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel może aktualizować się tylko z folderu Aplikacje. Zostanie skopiowany do %@ i otworzy się stamtąd ponownie."
+          }
+        }
+      }
+    },
+    "Move Lintel to your Applications folder?" : {
+      "comment" : "Move to Applications alert: title when the system Applications folder is not writable",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move Lintel to your Applications folder?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przenieść aplikację Lintel do Twojego folderu Aplikacje?"
+          }
+        }
+      }
+    },
+    "Lintel cannot write to the Applications folder without an administrator. Move it to the Applications folder in your home folder instead?" : {
+      "comment" : "Move to Applications alert: explanation when the system Applications folder is not writable",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel cannot write to the Applications folder without an administrator. Move it to the Applications folder in your home folder instead?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel nie może zapisywać w folderze Aplikacje bez uprawnień administratora. Przenieść go zamiast tego do folderu Aplikacje w Twoim folderze domowym?"
           }
         }
       }

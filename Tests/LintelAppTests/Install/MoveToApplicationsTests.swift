@@ -95,6 +95,7 @@ final class FakeInstallDisk: InstallFileManaging, RunningAppListing, QuarantineR
         var identity: String
         var quarantined: Bool
         var build: String?
+        var bundleIdentifier: String? = "com.lintelapp.Lintel"
 
         init(identity: String, quarantined: Bool, build: String? = nil) {
             self.identity = identity
@@ -103,11 +104,19 @@ final class FakeInstallDisk: InstallFileManaging, RunningAppListing, QuarantineR
         }
     }
 
-    enum Failing { case copy, trash, move, open, quarantine }
+    enum Failing { case copy, trash, trashOriginal, move, restore, open, quarantine }
 
     static let trash = "/Users/tester/.Trash/Lintel.app"
+    static let secondTrash = "/Users/tester/.Trash/Lintel 2.app"
+    var folders: Set<String> = ["/Applications"]
+    var unwritable: Set<String> = []
+    var readOnly: Set<String> = []
     var items: [String: Bundle] = [:]
     var running: Set<String> = []
+    /// Bundle identifiers of other processes, running from anywhere.
+    var runningIdentifiers: Set<String> = []
+    /// A copy that does not match its source (a build number that differs), to test the verification.
+    var corruptCopy = false
     var failing: Set<Failing> = []
     var log: [String] = []
     var opened: [String] = []
@@ -125,21 +134,45 @@ final class FakeInstallDisk: InstallFileManaging, RunningAppListing, QuarantineR
             items[destination.path] = Bundle(identity: "partial", quarantined: true)
             throw Failure()
         }
-        guard let bundle = items[source.path] else { throw Failure() }
+        guard var bundle = items[source.path] else { throw Failure() }
+        if corruptCopy { bundle.build = "999" }
         items[destination.path] = bundle
     }
 
     func trashItem(at url: URL) throws -> URL {
         log.append("trash \(url.path)")
         if failing.contains(.trash) { throw Failure() }
+        if failing.contains(.trashOriginal),
+            url.path == MoveToApplicationsFlowTests.source.path
+                || url.path == MoveToApplicationsFlowTests.downloads.path
+        {
+            throw Failure()
+        }
         guard let bundle = items.removeValue(forKey: url.path) else { throw Failure() }
-        items[Self.trash] = bundle
-        return URL(filePath: Self.trash)
+        let target = items[Self.trash] == nil ? Self.trash : Self.secondTrash
+        items[target] = bundle
+        return URL(filePath: target)
     }
+
+    func directoryExists(at url: URL) -> Bool { folders.contains(url.path) }
+
+    func hasApplicationBundle(in folder: URL) -> Bool {
+        childNames(in: folder).contains { $0.hasSuffix(".app") && !$0.hasPrefix(".") }
+    }
+
+    func isWritable(at url: URL) -> Bool { !unwritable.contains(url.path) }
+
+    func createDirectory(at url: URL) throws {
+        log.append("mkdir \(url.path)")
+        folders.insert(url.path)
+    }
+
+    func isOnReadOnlyVolume(_ url: URL) -> Bool { readOnly.contains(url.path) }
 
     func moveItem(at source: URL, to destination: URL) throws {
         log.append("move \(source.path) -> \(destination.path)")
         if failing.contains(.move), source.path != Self.trash { throw Failure() }
+        if failing.contains(.restore), source.path == Self.trash { throw Failure() }
         guard items[destination.path] == nil, let bundle = items.removeValue(forKey: source.path) else {
             throw Failure()
         }
@@ -152,6 +185,17 @@ final class FakeInstallDisk: InstallFileManaging, RunningAppListing, QuarantineR
     }
 
     func isRunning(bundleAt url: URL) -> Bool { running.contains(url.path) }
+
+    func isAnotherInstanceRunning(bundleIdentifier: String) -> Bool { runningIdentifiers.contains(bundleIdentifier) }
+
+    func bundleIdentifier(ofBundleAt url: URL) -> String? { items[url.path]?.bundleIdentifier }
+
+    func childNames(in folder: URL) -> [String] {
+        items.keys.compactMap { path in
+            let url = URL(filePath: path)
+            return url.deletingLastPathComponent().path == folder.path ? url.lastPathComponent : nil
+        }
+    }
 
     func removeQuarantine(at url: URL) throws {
         log.append("unquarantine \(url.path)")
@@ -175,6 +219,7 @@ final class FakeInstallDisk: InstallFileManaging, RunningAppListing, QuarantineR
 @Suite struct MoveToApplicationsFlowTests {
     static let source = URL(filePath: "/Volumes/Lintel/Lintel.app", directoryHint: .isDirectory)
     static let destination = "/Applications/Lintel.app"
+    static let downloads = URL(filePath: "/Users/tester/Downloads/Lintel.app", directoryHint: .isDirectory)
     static let staging = "/Applications/.Lintel-moving-test.app"
 
     static func makeDisk(existing: Bool, newBuild: String? = "200", oldBuild: String? = "100") -> FakeInstallDisk {
@@ -188,6 +233,7 @@ final class FakeInstallDisk: InstallFileManaging, RunningAppListing, QuarantineR
         var mover = MoveToApplications(
             files: disk, processes: disk, quarantine: disk, relauncher: disk, versions: disk)
         mover.stagingName = { ".Lintel-moving-test.app" }
+        mover.home = URL(filePath: "/Users/tester", directoryHint: .isDirectory)
         return mover
     }
 
@@ -276,6 +322,196 @@ final class FakeInstallDisk: InstallFileManaging, RunningAppListing, QuarantineR
             try await Self.mover(disk).openInstalledCopy()
         }
         #expect(disk.quitCalls == 0)
+    }
+
+    static let translocated = URL(
+        filePath: "/private/var/folders/x1/abc/T/AppTranslocation/9F1C2B7E-1D2A-4C55-8E0B-3A4F5D6E7F80/d/Lintel.app",
+        directoryHint: .isDirectory)
+
+    /// A disk whose running copy lives at `path` instead of the disk image.
+    static func makeDisk(runningFrom path: URL, existing: Bool = false) -> FakeInstallDisk {
+        let disk = makeDisk(existing: existing)
+        disk.items[path.path] = disk.items.removeValue(forKey: source.path)
+        return disk
+    }
+
+    @Test func theOriginalGoesToTheTrashAfterTheNewCopyIsVerified() async throws {
+        let disk = Self.makeDisk(runningFrom: Self.downloads)
+        try await Self.mover(disk).run(from: Self.downloads)
+        #expect(disk.items[Self.downloads.path] == nil)
+        #expect(disk.items[FakeInstallDisk.trash]?.identity == "new", "trashed, never deleted")
+        #expect(!disk.log.contains { $0.hasPrefix("remove ") && $0.contains("Downloads") })
+        let rename = disk.log.firstIndex(of: "move \(Self.staging) -> \(Self.destination)")
+        let trash = disk.log.firstIndex(of: "trash \(Self.downloads.path)")
+        #expect((rename ?? .max) < (trash ?? .min), "after the new copy is in place")
+        #expect(disk.items[Self.destination]?.identity == "new")
+        #expect(disk.opened == [Self.destination])
+        #expect(disk.quitCalls == 1)
+    }
+
+    @Test func theOriginalStaysWhenTheNewCopyDoesNotVerify() async throws {
+        let disk = Self.makeDisk(runningFrom: Self.downloads)
+        disk.corruptCopy = true
+        try await Self.mover(disk).run(from: Self.downloads)
+        #expect(disk.items[Self.downloads.path]?.identity == "new")
+        #expect(!disk.log.contains("trash \(Self.downloads.path)"))
+        #expect(disk.quitCalls == 1, "the move itself still succeeded")
+    }
+
+    @Test(arguments: ["mounted", "translocated", "readOnly"])
+    func theOriginalIsNotTrashedFromADiskImageTranslocationOrReadOnlyVolume(kind: String) async throws {
+        let path: URL
+        switch kind {
+        case "mounted": path = Self.source
+        case "translocated": path = Self.translocated
+        default: path = Self.downloads
+        }
+        let disk = Self.makeDisk(runningFrom: path)
+        if kind == "readOnly" { disk.readOnly = [path.path] }
+        try await Self.mover(disk).run(from: path)
+        #expect(!disk.log.contains("trash \(path.path)"), Comment(rawValue: kind))
+        #expect(disk.items[path.path]?.identity == "new")
+        #expect(disk.quitCalls == 1)
+    }
+
+    @Test func aFailedTrashOfTheOriginalStillEndsInSuccess() async throws {
+        let disk = Self.makeDisk(runningFrom: Self.downloads)
+        disk.failing = [.trashOriginal]
+        try await Self.mover(disk).run(from: Self.downloads)
+        #expect(disk.items[Self.downloads.path]?.identity == "new")
+        #expect(disk.items[Self.destination]?.identity == "new")
+        #expect(disk.opened == [Self.destination])
+        #expect(disk.quitCalls == 1)
+    }
+
+    @Test func anEqualBuildNumberStillReplacesTheInstalledCopy() async throws {
+        let disk = Self.makeDisk(existing: true, newBuild: "100", oldBuild: "100")
+        try await Self.mover(disk).run(from: Self.source)
+        #expect(disk.items[Self.destination]?.identity == "new")
+        #expect(disk.items[FakeInstallDisk.trash]?.identity == "old")
+        #expect(disk.quitCalls == 1)
+    }
+
+    @Test func aMissingDestinationFolderIsCreated() async throws {
+        let disk = Self.makeDisk(existing: false)
+        let folder = "/Users/tester/Applications"
+        var mover = Self.mover(disk)
+        mover.destination = URL(filePath: folder + "/Lintel.app", directoryHint: .isDirectory)
+        try await mover.run(from: Self.source)
+        #expect(disk.log.contains("mkdir \(folder)"))
+        #expect(disk.items[folder + "/Lintel.app"]?.identity == "new")
+    }
+
+    @Test func aCopyRunningFromAnywhereElseRefusesTheMove() async {
+        // The running copy has the same bundle identifier but lives in ~/Applications.
+        let disk = Self.makeDisk(existing: true)
+        disk.runningIdentifiers = ["com.lintelapp.Lintel"]
+        let before = disk.items
+        await #expect(throws: MoveToApplications.Failure.destinationRunning) {
+            try await Self.mover(disk).run(from: Self.source)
+        }
+        #expect(disk.items == before)
+        #expect(disk.log.isEmpty)
+        #expect(disk.quitCalls == 0)
+        // Another application's identifier does not block.
+        let other = Self.makeDisk(existing: false)
+        other.runningIdentifiers = ["com.example.Other"]
+        try? await Self.mover(other).run(from: Self.source)
+        #expect(other.items[Self.destination]?.identity == "new")
+    }
+
+    @Test func staleStagingCopiesAreSweptBeforeANewAttempt() async throws {
+        let disk = Self.makeDisk(existing: false)
+        let stale = "/Applications/.Lintel-moving-9F1C2B7E-1D2A-4C55-8E0B-3A4F5D6E7F80.app"
+        let lookalikes = [
+            "/Applications/.Lintel-moving-other.app",
+            "/Applications/Lintel-moving-9F1C2B7E-1D2A-4C55-8E0B-3A4F5D6E7F80.app",
+            "/Applications/.Lintel-moving-9F1C2B7E-1D2A-4C55-8E0B-3A4F5D6E7F80.app.bak",
+            "/Applications/.Lintel-moving-9f1c2b7e-1d2a-4c55-8e0b-3a4f5d6e7f80.app", "/Applications/Other.app",
+            "/Applications/Sub/.Lintel-moving-9F1C2B7E-1D2A-4C55-8E0B-3A4F5D6E7F81.app",
+        ]
+        disk.items[stale] = .init(identity: "stale", quarantined: false)
+        for path in lookalikes { disk.items[path] = .init(identity: "keep", quarantined: false) }
+        try await Self.mover(disk).run(from: Self.source)
+        #expect(disk.items[stale] == nil)
+        for path in lookalikes { #expect(disk.items[path]?.identity == "keep", "\(path)") }
+        #expect(disk.log.contains("remove \(stale)"))
+        #expect(disk.items[Self.destination]?.identity == "new")
+    }
+
+    @Test func theStagingNamePatternIsExact() {
+        #expect(MoveToApplications.isStagingName(".Lintel-moving-\(UUID().uuidString).app"))
+        #expect(!MoveToApplications.isStagingName(".Lintel-moving-.app"))
+        #expect(!MoveToApplications.isStagingName(".Lintel-moving-x.app"))
+        #expect(!MoveToApplications.isStagingName("Lintel.app"))
+    }
+
+    @Test func aSweepIsNotRunWhenTheMoveIsRefused() async {
+        let disk = Self.makeDisk(existing: true)
+        let stale = "/Applications/.Lintel-moving-9F1C2B7E-1D2A-4C55-8E0B-3A4F5D6E7F80.app"
+        disk.items[stale] = .init(identity: "stale", quarantined: false)
+        disk.running = [Self.destination]
+        _ = try? await Self.mover(disk).run(from: Self.source)
+        #expect(disk.items[stale] != nil)
+    }
+
+    @Test func aFailedRestoreFromTheTrashIsReported() async {
+        let disk = Self.makeDisk(existing: true)
+        disk.failing = [.move, .restore]
+        await #expect(throws: MoveToApplications.Failure.installFailed(restored: false)) {
+            try await Self.mover(disk).run(from: Self.source)
+        }
+        #expect(disk.items[FakeInstallDisk.trash]?.identity == "old", "the old copy stays in the Trash")
+        #expect(disk.items[Self.destination] == nil)
+        #expect(disk.quitCalls == 0)
+        #expect(
+            MoveToApplicationsPrompt.failureMessage(.installFailed(restored: false)).contains("Trash"))
+    }
+
+    @Test func aFailedRenameWithNoOldCopySaysNothingWasChanged() async {
+        let disk = Self.makeDisk(existing: false)
+        disk.failing = [.move]
+        await #expect(throws: MoveToApplications.Failure.installFailedNothingReplaced) {
+            try await Self.mover(disk).run(from: Self.source)
+        }
+        #expect(disk.items[Self.destination] == nil)
+        #expect(!MoveToApplicationsPrompt.failureMessage(.installFailedNothingReplaced).contains("back in place"))
+    }
+
+    @Test func aDanglingLinkAtTheDestinationIsAnItemAndNeverFollowed() async throws {
+        // A link counts as an item (lstat), so it goes to the Trash like any older copy, and a failed rename
+        // puts that same link back instead of claiming an older copy that never existed.
+        let disk = Self.makeDisk(existing: true, oldBuild: nil)
+        try await Self.mover(disk).run(from: Self.source)
+        #expect(disk.items[FakeInstallDisk.trash]?.identity == "old")
+        let failing = Self.makeDisk(existing: true, oldBuild: nil)
+        failing.failing = [.move]
+        await #expect(throws: MoveToApplications.Failure.installFailed(restored: true)) {
+            try await Self.mover(failing).run(from: Self.source)
+        }
+        #expect(failing.items[Self.destination]?.identity == "old")
+    }
+
+    @Test func theLiveFileManagerSeesADanglingLinkAndListsWithoutFollowing() throws {
+        let root = FileManager.default.temporaryDirectory.appending(
+            path: "lintel-install-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let link = root.appending(path: "Lintel.app")
+        try FileManager.default.createSymbolicLink(atPath: link.path, withDestinationPath: root.path + "/missing")
+        let files = SystemInstallFileManager()
+        #expect(files.itemExists(at: link))
+        #expect(!files.itemExists(at: root.appending(path: "nothing")))
+        let name = ".Lintel-moving-\(UUID().uuidString).app"
+        let outside = root.appending(path: "keep", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: outside, withIntermediateDirectories: true)
+        // A staging-named link to a folder: removing it removes the link only.
+        let stagingLink = root.appending(path: name)
+        try FileManager.default.createSymbolicLink(atPath: stagingLink.path, withDestinationPath: outside.path)
+        #expect(Set(files.childNames(in: root)).isSuperset(of: ["Lintel.app", name, "keep"]))
+        try files.removeStagingItem(at: stagingLink)
+        #expect(FileManager.default.fileExists(atPath: outside.path))
+        #expect(!files.itemExists(at: stagingLink))
     }
 
     @Test func theQuarantineAttributeIsRemovedFromTheCopy() async throws {
@@ -508,6 +744,12 @@ final class FakeInstallDisk: InstallFileManaging, RunningAppListing, QuarantineR
         let options = try #require(try QAOptions.parse(["Lintel", "--qa-move-prompt"]))
         #expect(options.showsMovePrompt)
         #expect(options.dataRoot == nil, "the rest of QA isolation still applies")
+        #expect(options.moveScenario == .standard)
+        for scenario in ["standard", "user-applications", "unwritable", "newer"] {
+            let parsed = try #require(try QAOptions.parse(["--qa-move-prompt", "--qa-move-scenario", scenario]))
+            #expect(parsed.moveScenario.rawValue == scenario)
+        }
+        #expect(throws: QAOptions.ParseError.self) { try QAOptions.parse(["--qa-move-scenario", "bogus"]) }
         #expect(try QAOptions.parse(["--qa"])?.showsMovePrompt == false)
         #expect(try QAOptions.parse(["Lintel"]) == nil)
         let combined = try #require(
@@ -527,4 +769,118 @@ final class FakeInstallDisk: InstallFileManaging, RunningAppListing, QuarantineR
         #expect(outcome == .moved, "the fakes report success without copying, trashing or quitting")
     }
     #endif
+}
+
+/// The folder choice (LetsMove's rule) and the writable fallback.
+@MainActor
+@Suite struct InstallDestinationTests {
+    static let home = URL(filePath: "/Users/tester", directoryHint: .isDirectory)
+    static let user = URL(filePath: "/Users/tester/Applications", directoryHint: .isDirectory)
+    static let system = URL(filePath: "/Applications", directoryHint: .isDirectory)
+
+    static func disk(
+        userFolder: Bool = false, userItems: [String] = [], unwritable: Set<String> = [], existingCopy: String? = nil
+    ) -> FakeInstallDisk {
+        let disk = FakeInstallDisk()
+        if userFolder { disk.folders.insert(user.path) }
+        for name in userItems { disk.items[user.path + "/" + name] = .init(identity: name, quarantined: false) }
+        if let existingCopy { disk.items[existingCopy] = .init(identity: "old", quarantined: false) }
+        disk.unwritable = unwritable
+        return disk
+    }
+
+    @Test func theDecisionTable() {
+        let cases: [(String, FakeInstallDisk, InstallDecision)] = [
+            ("no home folder", Self.disk(), .direct(folder: Self.system)),
+            (
+                "home folder with an app", Self.disk(userFolder: true, userItems: ["Notes.app"]),
+                .direct(folder: Self.user)
+            ),
+            ("empty home folder", Self.disk(userFolder: true), .direct(folder: Self.system)),
+            (
+                "home folder with only a file", Self.disk(userFolder: true, userItems: ["readme.txt"]),
+                .direct(folder: Self.system)
+            ),
+            (
+                "home folder with only a hidden staging copy",
+                Self.disk(userFolder: true, userItems: [".Lintel-moving-x.app"]), .direct(folder: Self.system)
+            ),
+            (
+                "system folder not writable", Self.disk(unwritable: ["/Applications"]),
+                .fallbackToUserApplications(folder: Self.user)
+            ),
+            (
+                "installed copy not writable",
+                Self.disk(unwritable: ["/Applications/Lintel.app"], existingCopy: "/Applications/Lintel.app"),
+                .fallbackToUserApplications(folder: Self.user)
+            ),
+            (
+                "installed copy writable",
+                Self.disk(existingCopy: "/Applications/Lintel.app"), .direct(folder: Self.system)
+            ),
+            (
+                "home folder preferred but not writable",
+                Self.disk(userFolder: true, userItems: ["Notes.app"], unwritable: [Self.user.path]),
+                .direct(folder: Self.user)
+            ),
+        ]
+        for (name, disk, expected) in cases {
+            #expect(InstallDestination.decide(home: Self.home, files: disk) == expected, "\(name)")
+        }
+    }
+
+    @Test func bothApplicationsFoldersCountAsInstalled() {
+        #expect(
+            !ApplicationLocation.classify(
+                bundleURL: Self.user.appending(path: "Lintel.app"),
+                allowedFolders: ApplicationLocation.allowedFolders(home: Self.home)
+            ).offersMove)
+        #expect(
+            !ApplicationLocation.classify(
+                bundleURL: Self.system.appending(path: "Lintel.app"),
+                allowedFolders: ApplicationLocation.allowedFolders(home: Self.home)
+            ).offersMove)
+    }
+
+    @Test func theAlertNamesTheFolderWithoutTheUserName() {
+        #expect(InstallDestination.displayPath(Self.system, home: Self.home) == "/Applications")
+        #expect(InstallDestination.displayPath(Self.user, home: Self.home) == "~/Applications")
+        #expect(
+            MoveToApplicationsPrompt.makeAlert(.move(folder: "~/Applications")).informativeText.contains(
+                "~/Applications"))
+        #expect(
+            MoveToApplicationsPrompt.makeAlert(.move(folder: "/Applications")).informativeText.contains("/Applications")
+        )
+        let fallback = MoveToApplicationsPrompt.makeAlert(.fallbackToUserApplications)
+        #expect(fallback.informativeText.contains("administrator"))
+        #expect(fallback.buttons.map(\.title) == ["Move", "Don't Move"])
+    }
+
+    @Test func theOfferUsesTheChosenFolderAndTheFallback() async {
+        for (disk, expectedVariant, expectedDestination) in [
+            (Self.disk(), MoveToApplicationsPrompt.Variant.move(folder: "/Applications"), "/Applications/Lintel.app"),
+            (
+                Self.disk(userFolder: true, userItems: ["Notes.app"]), .move(folder: "~/Applications"),
+                "/Users/tester/Applications/Lintel.app"
+            ),
+            (
+                Self.disk(unwritable: ["/Applications"]), .fallbackToUserApplications,
+                "/Users/tester/Applications/Lintel.app"
+            ),
+        ] {
+            disk.items[MoveToApplicationsFlowTests.source.path] = .init(identity: "new", quarantined: true, build: "2")
+            var variants: [MoveToApplicationsPrompt.Variant] = []
+            var prompt = MoveToApplicationsPrompt(
+                settings: InMemorySettingsStore(), mover: MoveToApplicationsFlowTests.mover(disk))
+            prompt.ask = {
+                variants.append($0)
+                return .init(move: true, dontAskAgain: false)
+            }
+            let outcome = await prompt.offerIfNeeded(bundleURL: MoveToApplicationsFlowTests.source, home: Self.home)
+            #expect(outcome == .moved)
+            #expect(variants == [expectedVariant])
+            #expect(disk.items[expectedDestination]?.identity == "new", "\(expectedDestination)")
+            #expect(disk.opened == [expectedDestination])
+        }
+    }
 }

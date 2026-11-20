@@ -139,7 +139,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.closeModalForQA(snapshotPath: options.snapshotPath)
             }
         }
-        let fakes = QAInstallFakes()
+        let fakes = QAInstallFakes(scenario: options.moveScenario)
         var prompt = MoveToApplicationsPrompt(
             settings: environment.settings,
             mover: MoveToApplications(

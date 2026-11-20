@@ -115,6 +115,9 @@ struct QAOptions: Equatable {
     /// logs what it would do, never touches `/Applications` or the Trash and never quits. "Don't ask again" writes
     /// the in-memory settings (spec `2026-11-19-updates-and-open-source-hygiene`, step 4.2).
     var showsMovePrompt = false
+    /// `--qa-move-scenario standard|user-applications|unwritable|newer`: which variant of the alert
+    /// `--qa-move-prompt` shows (`QAMoveScenario`); default `standard`.
+    var moveScenario = QAMoveScenario.standard
 
     /// The file plugin's DEBUG-only fake home and its roots, which QA mode always sets
     /// (`AppEnvironment.qaFileIndexSettings`).
@@ -265,6 +268,10 @@ struct QAOptions: Equatable {
                 options.persistentSettings = true
             case "--qa-move-prompt":
                 options.showsMovePrompt = true
+            case "--qa-move-scenario":
+                let value = try Self.pathValue(argument, iterator.next())
+                guard let scenario = QAMoveScenario(rawValue: value) else { throw .invalidValue(argument, value) }
+                options.moveScenario = scenario
             default:
                 throw .unknownArgument(argument)
             }
