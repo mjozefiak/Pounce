@@ -24174,6 +24174,1032 @@
           }
         }
       }
+    },
+    "Type how the term should be written." : {
+      "comment" : "Vocabulary form: error under the term field when it is empty",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type how the term should be written."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wpisz, jak termin ma być zapisany."
+          }
+        }
+      }
+    },
+    "“%@” is already in the vocabulary." : {
+      "comment" : "Vocabulary form: error when another entry has the same term; the argument is that term",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” is already in the vocabulary."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„%@” jest już w słowniku."
+          }
+        }
+      }
+    },
+    "“%@” is already a spoken variant of %@." : {
+      "comment" : "Vocabulary form: error when the new term is a spoken variant of another entry",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” is already a spoken variant of %@."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„%1$@” jest już wariantem wymowy terminu %2$@."
+          }
+        }
+      }
+    },
+    "“%@” already belongs to %@. A variant can point to one term only." : {
+      "comment" : "Vocabulary form: error when a spoken variant is already used by another term",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” already belongs to %@. A variant can point to one term only."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„%1$@” należy już do terminu %2$@. Wariant może wskazywać tylko jeden termin."
+          }
+        }
+      }
+    },
+    "“%@” is the term %@. It would turn every %@ into %@." : {
+      "comment" : "Vocabulary form: error when a spoken variant equals another term; arguments are the variant, that term, that term and this term",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” is the term %@. It would turn every %@ into %@."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„%1$@” to termin %2$@. Każde %3$@ zmieniłoby się w %4$@."
+          }
+        }
+      }
+    },
+    "A variant can have at most 8 words." : {
+      "comment" : "Vocabulary form: error when a spoken variant has more than 8 words",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A variant can have at most 8 words."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wariant może mieć najwyżej 8 słów."
+          }
+        }
+      }
+    },
+    "“%@” has no letter or digit, so it could never match." : {
+      "comment" : "Vocabulary form: error when a spoken variant has no word in it",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” has no letter or digit, so it could never match."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„%@” nie zawiera litery ani cyfry, więc nigdy nie zadziała."
+          }
+        }
+      }
+    },
+    "Without variants only the capitalisation is fixed: “%@” → %@." : {
+      "comment" : "Vocabulary form: hint when a term has no spoken variants; arguments are the lowercase and the written term",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Without variants only the capitalisation is fixed: “%@” → %@."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bez wariantów poprawiana jest tylko wielkość liter: „%1$@” → %2$@."
+          }
+        }
+      }
+    },
+    "The term couldn’t be saved. Check that the disk isn’t full." : {
+      "comment" : "Vocabulary form: error when writing the vocabulary file failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The term couldn’t be saved. Check that the disk isn’t full."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się zapisać terminu. Sprawdź, czy dysk nie jest pełny."
+          }
+        }
+      }
+    },
+    "%@ is a short word. Every %@ you dictate will become %@, also when you mean the letter." : {
+      "comment" : "Vocabulary form: warning for a one-word variant under 4 characters; arguments are the quoted variants (twice) and the term",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is a short word. Every %@ you dictate will become %@, also when you mean the letter."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ to krótkie słowo. Każde podyktowane %2$@ zmieni się w %3$@, także gdy chodzi o literę."
+          }
+        }
+      }
+    },
+    "Use %@ anyway" : {
+      "comment" : "Vocabulary form: checkbox that confirms a short spoken variant; the argument is the quoted variant",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use %@ anyway"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Użyj %@ mimo to"
+          }
+        }
+      }
+    },
+    "open %@ now" : {
+      "comment" : "Vocabulary form: the example sentence around a spoken variant; keep the argument as it is",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "open %@ now"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "otwórz %@ teraz"
+          }
+        }
+      }
+    },
+    "%lld terms" : {
+      "comment" : "Vocabulary section: number of terms, shown at the right of its title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld term"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld terms"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld termin"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld terminy"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld terminów"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld terminu"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld of %lld" : {
+      "comment" : "Vocabulary section: matches of the search out of all terms, for example 2 of 47",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld of %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld z %2$lld"
+          }
+        }
+      }
+    },
+    "Its %lld spoken variants are removed too. This can’t be undone." : {
+      "comment" : "Confirmation sheet detail when a vocabulary term is deleted; the number is how many spoken variants go with it",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Its %lld spoken variant is removed too. This can’t be undone."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Its %lld spoken variants are removed too. This can’t be undone."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Jego %lld wariant też zostanie usunięty. Tej operacji nie można cofnąć."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Jego %lld warianty też zostaną usunięte. Tej operacji nie można cofnąć."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Jego %lld wariantów też zostanie usuniętych. Tej operacji nie można cofnąć."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Jego %lld wariantu też zostanie usunięte. Tej operacji nie można cofnąć."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%@. No spoken variants." : {
+      "comment" : "VoiceOver: a vocabulary row without variants; the argument is the term",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@. No spoken variants."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@. Bez wariantów."
+          }
+        }
+      }
+    },
+    "%@. When I hear: %@." : {
+      "comment" : "VoiceOver: a vocabulary row; arguments are the term and its spoken variants",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@. When I hear: %@."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@. Gdy usłyszę: %2$@."
+          }
+        }
+      }
+    },
+    "Row %lld of %lld" : {
+      "comment" : "VoiceOver: position of a vocabulary row in the list",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Row %lld of %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiersz %1$lld z %2$lld"
+          }
+        }
+      }
+    },
+    "%@, variant %lld of %lld" : {
+      "comment" : "VoiceOver: a spoken variant in the form; arguments are the text and its position",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, variant %lld of %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, wariant %2$lld z %3$lld"
+          }
+        }
+      }
+    },
+    "Term added. %lld terms." : {
+      "comment" : "VoiceOver announcement after adding a vocabulary term; the number is how many there are now",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Term added. %lld term."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Term added. %lld terms."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Dodano termin. %lld termin."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Dodano termin. %lld terminy."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Dodano termin. %lld terminów."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Dodano termin. %lld terminu."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%@ saved." : {
+      "comment" : "VoiceOver announcement after editing a vocabulary term; the argument is the term",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ saved."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisano: %@."
+          }
+        }
+      }
+    },
+    "%@ deleted." : {
+      "comment" : "VoiceOver announcement after deleting a vocabulary term; the argument is the term",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ deleted."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunięto: %@."
+          }
+        }
+      }
+    },
+    "The vocabulary is full (2,000 terms). Delete one to add another." : {
+      "comment" : "Vocabulary section: shown when the vocabulary holds the most terms it can",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The vocabulary is full (2,000 terms). Delete one to add another."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Słownik jest pełny (2000 terminów). Usuń jeden, aby dodać kolejny."
+          }
+        }
+      }
+    },
+    "Vocabulary" : {
+      "comment" : "Settings → Dictation: title of the section with the user's own terms",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vocabulary"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Słownik"
+          }
+        }
+      }
+    },
+    "Use vocabulary" : {
+      "comment" : "Settings → Dictation: switch that turns the user's vocabulary on",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use vocabulary"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Używaj słownika"
+          }
+        }
+      }
+    },
+    "Replaces what was heard with your spelling. Works without a model." : {
+      "comment" : "Settings → Dictation: help under the Use vocabulary switch",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replaces what was heard with your spelling. Works without a model."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zamienia to, co usłyszane, na Twój zapis. Działa bez modelu."
+          }
+        }
+      }
+    },
+    "Search terms" : {
+      "comment" : "Vocabulary section: placeholder of the search field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search terms"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szukaj terminów"
+          }
+        }
+      }
+    },
+    "Add Term…" : {
+      "comment" : "Vocabulary section: button that opens the form for a new term",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Term…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodaj termin…"
+          }
+        }
+      }
+    },
+    "Off: terms are kept and not used." : {
+      "comment" : "Vocabulary section: note under the list while the switch is off",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off: terms are kept and not used."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyłączony: terminy zostają, ale nie są używane."
+          }
+        }
+      }
+    },
+    "This vocabulary was saved by a newer Lintel. It is used, but can’t be changed here." : {
+      "comment" : "Vocabulary section: notice when the file comes from a newer version",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This vocabulary was saved by a newer Lintel. It is used, but can’t be changed here."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten słownik zapisała nowsza wersja Lintel. Jest używany, ale nie można go tu zmieniać."
+          }
+        }
+      }
+    },
+    "The vocabulary file couldn’t be read. It is left as it is and can’t be changed here." : {
+      "comment" : "Vocabulary section: notice when the file exists but cannot be read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The vocabulary file couldn’t be read. It is left as it is and can’t be changed here."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie można odczytać pliku słownika. Zostaje bez zmian i nie można go tu zmieniać."
+          }
+        }
+      }
+    },
+    "The vocabulary file was damaged, so Lintel started a new one. A copy of the old file was kept." : {
+      "comment" : "Vocabulary section: one-time notice after a damaged file was set aside",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The vocabulary file was damaged, so Lintel started a new one. A copy of the old file was kept."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plik słownika był uszkodzony, więc Lintel zaczął nowy. Kopia starego pliku została zachowana."
+          }
+        }
+      }
+    },
+    "Show Copy in Finder" : {
+      "comment" : "Vocabulary section: button that reveals the kept copy of a damaged file",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Copy in Finder"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż kopię w Finderze"
+          }
+        }
+      }
+    },
+    "No terms match “%@”." : {
+      "comment" : "Vocabulary section: nothing found; the argument is the search text",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No terms match “%@”."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak terminów dla „%@”."
+          }
+        }
+      }
+    },
+    "Search covers terms and spoken variants." : {
+      "comment" : "Vocabulary section: what the search looks in",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search covers terms and spoken variants."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szukam w terminach i wariantach."
+          }
+        }
+      }
+    },
+    "Add “%@”…" : {
+      "comment" : "Vocabulary section: button that adds the searched text as a new term",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add “%@”…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodaj „%@”…"
+          }
+        }
+      }
+    },
+    "No terms yet" : {
+      "comment" : "Vocabulary section: title of the empty list",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No terms yet"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak terminów"
+          }
+        }
+      }
+    },
+    "Add names and identifiers that dictation gets wrong, for example “auth service” → AuthService." : {
+      "comment" : "Vocabulary section: explanation under the empty list",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add names and identifiers that dictation gets wrong, for example “auth service” → AuthService."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodaj nazwy i identyfikatory, które dyktowanie zapisuje źle, na przykład „auth service” → AuthService."
+          }
+        }
+      }
+    },
+    "Edit Term" : {
+      "comment" : "VoiceOver action on a vocabulary row",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Term"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edytuj"
+          }
+        }
+      }
+    },
+    "Delete Term" : {
+      "comment" : "VoiceOver action on a vocabulary row",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Term"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń"
+          }
+        }
+      }
+    },
+    "Term form" : {
+      "comment" : "VoiceOver: the form that adds or edits a vocabulary term",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Term form"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formularz terminu"
+          }
+        }
+      }
+    },
+    "Write as" : {
+      "comment" : "Vocabulary form: label of the term field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write as"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisz jako"
+          }
+        }
+      }
+    },
+    "e.g. AuthService" : {
+      "comment" : "Vocabulary form: placeholder of the term field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "e.g. AuthService"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "np. AuthService"
+          }
+        }
+      }
+    },
+    "When I hear" : {
+      "comment" : "Vocabulary form: label of the field with the spoken variants",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When I hear"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gdy usłyszę"
+          }
+        }
+      }
+    },
+    "type and press Return" : {
+      "comment" : "Vocabulary form: placeholder of the variants field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "type and press Return"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "wpisz i naciśnij Return"
+          }
+        }
+      }
+    },
+    "Add every way it is said or misheard, inflected forms too." : {
+      "comment" : "Vocabulary form: hint under the variants field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add every way it is said or misheard, inflected forms too."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodaj każdy sposób wymowy lub błędnego zapisu, także odmienione formy."
+          }
+        }
+      }
+    },
+    "Risk of wrong replacements" : {
+      "comment" : "Vocabulary form: title of the short-variant warning",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Risk of wrong replacements"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ryzyko błędnych podmian"
+          }
+        }
+      }
+    },
+    "Heard" : {
+      "comment" : "Vocabulary form: label of the example sentence as spoken",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heard"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usłyszane"
+          }
+        }
+      }
+    },
+    "Inserted" : {
+      "comment" : "Vocabulary form: label of the example sentence after the replacement",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserted"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wstawione"
+          }
+        }
+      }
+    },
+    "Example" : {
+      "comment" : "VoiceOver: the example of the replacement in the form",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Example"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przykład"
+          }
+        }
+      }
+    },
+    "Press to remove." : {
+      "comment" : "VoiceOver hint on a spoken variant in the vocabulary form",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press to remove."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naciśnij, aby usunąć."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
