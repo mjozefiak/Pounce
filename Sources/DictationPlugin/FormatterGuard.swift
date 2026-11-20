@@ -123,12 +123,15 @@ enum FormatterGuard {
         let after = Language.dominant(in: output)
         if before != .unknown, after != .unknown, before != after { return .rejected(.languageChanged) }
         // Every chunk of five words or more must be derivable from the input: a marker that is not on the list
-        // ("a nie", "znaczy", "or rather") otherwise lets a deleted final version pass the ratio check.
+        // ("no", "a nie", "znaczy", "or rather") otherwise lets a deleted final version pass the ratio check.
+        // The derivation lets the harmless rewrites of an ordinary cleanup through at no cost (punctuation,
+        // case, contractions, digits for number words, "%", "zł", "OK", a dropped trailing "no").
         if inputWords >= 5 || usesRelaxedBound || replacementStart(spoken) != nil {
             if usesRelaxedBound, novelShare(input: input, output: output) > maximumNovelShare {
                 return .rejected(.addedContent)
             }
             if !endsWhereInputEnds(spoken: spoken, written: written) { return .rejected(.endChanged) }
+            if markerDroppedWithWithdrawnKept(spoken: spoken, written: written) { return .rejected(.replacementLost) }
             if derivationCost(spoken: spoken, written: written) > editBudget(outputWords: written.count) {
                 return .rejected(
                     replacementSurvives(spoken: spoken, written: written) ? .addedContent : .replacementLost)
@@ -234,6 +237,8 @@ enum FormatterGuard {
         return shared >= 4 && Double(shared) >= 0.6 * Double(shorter)
     }
 
+    private static let negations: Set<String> = ["nie", "not", "no", "bez", "ani", "never", "nigdy"]
+
     private static func fold(_ word: String) -> String {
         word.folding(options: .diacriticInsensitive, locale: nil).replacingOccurrences(of: "ł", with: "l")
     }
@@ -264,33 +269,57 @@ enum FormatterGuard {
         return tokens.isEmpty ? spoken : tokens
     }
 
-    /// The output's last word is the input's last word (not counting a trailing filler or marker), a near
-    /// form of it, or digits whose value equals the number words the input ends on.
+    /// Words a speaker adds at the end of a sentence and a cleanup may drop ("no", "prawda", "right").
+    private static let trailingParticles: Set<String> = ["no", "nie", "tak", "prawda", "wiesz", "right", "yeah"]
+    /// Units that are written as a symbol or an abbreviation ("15%", "200 zł", "$30").
+    private static let units: Set<String> = [
+        "procent", "procentów", "percent", "złotych", "złote", "złoty", "zł", "dolarów", "dollars", "dollar",
+        "euro", "euros", "pln", "usd", "eur",
+    ]
+    private static let okForms: Set<String> = ["ok", "okay", "okej"]
+
+    /// The output's last word is the input's last word (not counting a trailing filler, marker or discourse
+    /// particle), a near form of it, the same unit or "OK" in another spelling, or digits whose value equals the
+    /// number words the input ends on (a unit after them may be a symbol). A clock time written in digits
+    /// ("7:30") ends where a spoken number ends.
     static func endsWhereInputEnds(spoken: [String], written fullWritten: [String]) -> Bool {
         // A clock time written "15:00" ends in "00", which only says "o'clock" for the hour before it.
         var written = fullWritten
         if written.count >= 2, written.last == "00", NumberWords.value(ofDigits: written[written.count - 2]) != nil {
             written.removeLast()
         }
-        let core = effectiveSpoken(spoken)
-        guard let lastSpoken = core.last, let lastWritten = written.last else { return false }
-        if isNearForm(lastWritten, lastSpoken) { return true }
-        var values: [Int] = []
-        if let single = NumberWords.value(ofDigits: lastWritten) { values.append(single) }
-        if written.count >= 2, lastWritten.count == 3 {
-            for length in 2...min(3, written.count) {
-                let start = written.count - length
-                if let match = NumberWords.digitValues(in: written, at: start).first(where: { $0.tokens == length }) {
-                    values.append(match.value)
+        guard let lastWritten = written.last else { return false }
+        var candidates = [effectiveSpoken(spoken)]
+        while let last = candidates[candidates.count - 1].last, candidates[candidates.count - 1].count > 1,
+            trailingParticles.contains(last) || units.contains(last)
+        {
+            candidates.append(Array(candidates[candidates.count - 1].dropLast()))
+        }
+        let clock = written.count >= 2 && written.suffix(2).allSatisfy { NumberWords.value(ofDigits: $0) != nil }
+        return candidates.contains { core in
+            guard let lastSpoken = core.last else { return false }
+            if isNearForm(lastWritten, lastSpoken) { return true }
+            if units.contains(lastWritten), units.contains(lastSpoken) { return true }
+            if okForms.contains(lastWritten), okForms.contains(lastSpoken) { return true }
+            if clock, NumberWords.value(of: [lastSpoken]) != nil { return true }
+            var values: [Int] = []
+            if let single = NumberWords.value(ofDigits: lastWritten) { values.append(single) }
+            if written.count >= 2, lastWritten.count == 3 {
+                for length in 2...min(3, written.count) {
+                    let start = written.count - length
+                    if let match = NumberWords.digitValues(in: written, at: start).first(where: { $0.tokens == length })
+                    {
+                        values.append(match.value)
+                    }
                 }
             }
-        }
-        for length in 1...min(9, core.count) {
-            if let spokenValue = NumberWords.value(of: Array(core.suffix(length))), values.contains(spokenValue) {
-                return true
+            for length in 1...min(9, core.count) {
+                if let spokenValue = NumberWords.value(of: Array(core.suffix(length))), values.contains(spokenValue) {
+                    return true
+                }
             }
+            return false
         }
-        return false
     }
 
     /// The cheapest way to turn `spoken` into `written`; `Int.max` when the chunk is too large to check.
@@ -343,6 +372,7 @@ enum FormatterGuard {
         }
 
         var freeEnds = [[Int]](repeating: [], count: rows)
+        var lockedMarker = [Bool](repeating: false, count: rows)
         let markers = occurrences(of: retractionMarkers, in: spoken)
         for index in 0..<spoken.count {
             for length in fillerLengths(spoken, at: index) { freeEnds[index].append(index + length) }
@@ -354,7 +384,9 @@ enum FormatterGuard {
             if index + 1 < spoken.count, spoken[index] != spoken[index + 1],
                 spoken[index + 1].hasPrefix(spoken[index]),
                 // "pięć pięćdziesiąt" is 5,50: the first number word is not a stutter.
-                spokenValues[index] == nil
+                spokenValues[index] == nil,
+                // A fragment is short; a whole word that starts the next ("pizze pizzerii", "nie niszcz") is not.
+                spoken[index].count <= 4, !negations.contains(spoken[index])
             {
                 freeEnds[index].append(index + 1)
             }
@@ -365,34 +397,52 @@ enum FormatterGuard {
             // A marker with no words after it retracts nothing, and a marker inside the replacement licenses
             // no retracted span: only its own phrase is free.
             let allowed = marker.start >= tailStart || after == 0 ? 0 : min(after + 2, retractedSpanCap, marker.start)
-            for start in stride(from: marker.start, through: 0, by: -1) where marker.start - start <= allowed {
+            let minimum = allowed > 0 ? 1 : 0
+            if allowed > 0 { for i in marker.start..<marker.end { lockedMarker[i] = true } }
+            for start in stride(from: marker.start - minimum, through: 0, by: -1) where marker.start - start <= allowed
+            {
                 freeEnds[start].append(marker.end)
             }
         }
 
+        // Two layers: `cost` is the cheapest way when the last step was not a plain deletion, `afterDeletion`
+        // when it was. Two plain deletions in a row are never allowed: an unlisted marker in the middle of a
+        // chunk ("or rather", "a nie", "znaczy") drops the words it retracts and the final version side by side.
         var cost = [Int](repeating: infinity, count: rows * columns)
+        var afterDeletion = [Int](repeating: infinity, count: rows * columns)
         cost[0] = 0
         func relax(_ row: Int, _ column: Int, _ value: Int) {
             let slot = row * columns + column
             if value < cost[slot] { cost[slot] = value }
         }
+        func relaxDeletion(_ row: Int, _ column: Int, _ value: Int) {
+            let slot = row * columns + column
+            if value < afterDeletion[slot] { afterDeletion[slot] = value }
+        }
         for row in 0..<rows {
             for column in 0..<columns {
-                let here = cost[row * columns + column]
+                let kept = cost[row * columns + column]
+                let here = min(kept, afterDeletion[row * columns + column])
                 if here >= infinity { continue }
                 if row < spoken.count {
-                    if row < tailStart { relax(row + 1, column, here + 1) }
+                    if row < tailStart, !lockedMarker[row], kept < infinity { relaxDeletion(row + 1, column, kept + 1) }
                     for end in freeEnds[row] { relax(end, column, here) }
                 }
                 guard column < written.count else { continue }
                 relax(row, column + 1, here + 1)
                 guard row < spoken.count else { continue }
+                // "we are" written "we're": two spoken words, one written word, no cost.
+                if row + 1 < spoken.count, isContraction(spoken[row], spoken[row + 1], written[column]) {
+                    relax(row + 2, column + 1, here)
+                }
                 if spoken[row] == written[column] {
                     relax(row + 1, column + 1, here)
-                } else if row < tailStart
-                    || (!writtenBringsBack[column]
+                } else if (row < tailStart && (!lockedMarker[row] || near(row, column)))
+                    || (row >= tailStart && !writtenBringsBack[column]
                         && (near(row, column)
                             || (!spokenWords.contains(written[column]) && spokenValues[row] == nil
+                                && (written[column].contains("'")
+                                    || closeSpelling(spokenFolded[row], writtenFolded[column]))
                                 && !spoken[row].contains(where: \.isNumber) && !writtenIsNumber[column])))
                 {
                     // In the replacement: a near form of the spoken word, or a word the speaker did not say
@@ -409,7 +459,69 @@ enum FormatterGuard {
                 }
             }
         }
-        return cost[rows * columns - 1]
+        return min(cost[rows * columns - 1], afterDeletion[rows * columns - 1])
+    }
+
+    /// The output dropped the first marker that has words after it but kept the last withdrawn word before it
+    /// (connectors such as "albo", "a nie" skipped, words the replacement repeats skipped): both versions stay
+    /// and nothing tells the reader which one is final ("na pizzę albo na sushi", "we wtorek, a nie w środę").
+    private static let connectors: Set<String> = ["nie", "albo", "a", "lub", "czy", "i", "to", "or", "no", "oh", "and"]
+    static func markerDroppedWithWithdrawnKept(spoken: [String], written: [String]) -> Bool {
+        guard let start = replacementStart(spoken),
+            let marker = occurrences(of: retractionMarkers, in: spoken).first(where: { $0.end == start })
+        else { return false }
+        let phrase = Array(spoken[marker.start..<marker.end])
+        let markerKept = written.indices.contains {
+            written.count - $0 >= phrase.count && Array(written[$0..<($0 + phrase.count)]) == phrase
+        }
+        if markerKept { return false }
+        let tail = Array(spoken[start...])
+        var index = marker.start - 1
+        while index >= 0, connectors.contains(spoken[index]) || !fillerLengths(spoken, at: index).isEmpty { index -= 1 }
+        guard index >= 0 else { return false }
+        let word = spoken[index]
+        let value = NumberWords.value(of: [word])
+        // The word may also be one the replacement says ("czerwoną sofę albo szarą sofę"): the output then holds
+        // it once for the replacement, and a second time means the withdrawn version stayed too.
+        let inReplacement = tail.filter {
+            isNearForm($0, word) || (value != nil && NumberWords.value(of: [$0]) == value)
+        }
+        let inOutput = written.filter {
+            isNearForm($0, word) || (value != nil && NumberWords.value(ofDigits: $0) == value)
+        }
+        return inOutput.count > inReplacement.count
+    }
+
+    private static let irregularContractions: [[String]: String] = [
+        ["will", "not"]: "won't", ["can", "not"]: "can't", ["shall", "not"]: "shan't", ["let", "us"]: "let's",
+    ]
+    private static let contractionSuffixes: [String: String] = [
+        "are": "'re", "is": "'s", "has": "'s", "us": "'s", "will": "'ll", "have": "'ve", "would": "'d",
+        "had": "'d", "am": "'m", "not": "n't",
+    ]
+
+    /// Whether the written word is the contraction of the two spoken ones ("we are" "we're", "do not" "don't",
+    /// "will not" "won't"): the first word plus a fixed ending, or one of four irregular forms.
+    static func isContraction(_ first: String, _ second: String, _ written: String) -> Bool {
+        guard written.contains("'") else { return false }
+        if irregularContractions[[first, second]] == written { return true }
+        guard let suffix = contractionSuffixes[second] else { return false }
+        return written == first + suffix
+    }
+
+    /// A recognition fix: at most a third of the longer word's letters differ (edit distance), at least one.
+    static func closeSpelling(_ a: String, _ b: String) -> Bool {
+        let x = Array(a)
+        let y = Array(b)
+        var previous = Array(0...y.count)
+        for i in 1...max(1, x.count) where !x.isEmpty {
+            var current = [i] + [Int](repeating: 0, count: y.count)
+            for j in stride(from: 1, through: y.count, by: 1) {
+                current[j] = min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + (x[i - 1] == y[j - 1] ? 0 : 1))
+            }
+            previous = current
+        }
+        return previous[y.count] <= max(1, max(x.count, y.count) / 3)
     }
 
     private static func matches(_ tokens: [String], _ phrase: [String], at index: Int) -> Bool {

@@ -51,7 +51,7 @@ enum NumberWords {
         }
         let units: [(Int, [String], String, [String])] = [
             (1, ["jeden"], "jedn", ["a", "e", "o", "ą", "ego", "ej", "emu", "ym", "ych", "ymi"]),
-            (2, ["dwa", "dwie", "dwaj", "dwóch", "dwu", "dwom", "dwoma", "dwiema"], "", []),
+            (2, ["dwa", "dwie", "dwaj", "dwóch", "dwu", "dwom", "dwóm", "dwoma", "dwiema"], "", []),
             (3, ["trzy", "trzech", "trzem", "trzema", "trzej"], "", []),
             (4, ["cztery", "czterech", "czterem", "czterema", "czterej"], "", []),
             (5, ["pięć", "pięciu", "pięcioma"], "", []),
@@ -98,7 +98,8 @@ enum NumberWords {
             add(.tens, value, stem: root, endings: ["ięciu", "ięcioma"])
         }
         let hundreds: [String: Int] = [
-            "sto": 100, "stu": 100, "sta": 100, "dwieście": 200, "dwustu": 200, "dwusta": 200, "trzysta": 300,
+            "sto": 100, "stu": 100, "sta": 100, "stoma": 100, "dwieście": 200, "dwustu": 200, "dwusta": 200,
+            "trzysta": 300,
             "trzystu": 300, "czterysta": 400, "czterystu": 400, "pięćset": 500, "pięciuset": 500,
             "sześćset": 600, "sześciuset": 600, "siedemset": 700, "siedmiuset": 700, "osiemset": 800,
             "ośmiuset": 800, "dziewięćset": 900, "dziewięciuset": 900,
@@ -112,7 +113,9 @@ enum NumberWords {
         for (value, stem) in hundredOrdinals { add(.hundred, value, stem: stem, endings: ordinalEndings) }
         add(
             .thousand, 1000,
-            whole: ["tysiąc", "tysiące", "tysięcy", "tysiącu", "tysiącem", "tysiącom", "tysiącami", "tysiącach"],
+            whole: [
+                "tysiąc", "tysiąca", "tysiące", "tysięcy", "tysiącu", "tysiącem", "tysiącom", "tysiącami", "tysiącach",
+            ],
             stem: "tysięczn", endings: ordinalEndings)
         return table
     }()

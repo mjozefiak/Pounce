@@ -255,6 +255,7 @@ enum AutocorrectCorpus {
         var fellBack: [String: Int] = [:]
         var knownBadHit: [String: Int] = [:]
         var lostFinal: [String: Int] = [:]
+        var keptNoMarker: [String] = []
         var total: [String: Int] = [:]
         // Negatives whose answer (not a raw fallback) lost a `must_keep` word: over-removal. Case ids only.
         var overRemoved: [String] = []
@@ -288,6 +289,13 @@ enum AutocorrectCorpus {
                 }
                 if AutocorrectCorpus.keepsWithdrawn(result.text, item) {
                     keptWithdrawn[key, default: 0] += 1
+                    // Both versions without a marker word between them: the reader cannot tell which is final.
+                    let spokenForms = FormatterGuard.retractionMarkers.filter { phrase in
+                        resultTokens.indices.contains { index in
+                            Array(resultTokens.dropFirst(index).prefix(phrase.count)) == phrase
+                        }
+                    }
+                    if spokenForms.isEmpty { keptNoMarker.append(item.id) }
                     // The ADR 0010 acceptance rule: the withdrawn version kept AND the final one lost.
                     let words = Set(AutocorrectCorpus.tokens(result.text))
                     if !item.mustKeep.allSatisfy({ AutocorrectCorpus.holds(words, $0) }) {
@@ -308,6 +316,7 @@ enum AutocorrectCorpus {
                 + " withdrawals \(sum(passed, withdrawing))/\(sum(total, withdrawing))"
                 + " negatives \(sum(passed, ["negative"]))/\(sum(total, ["negative"]))"
                 + " keptWithdrawn \(keptWithdrawn.values.reduce(0, +)) lostFinal \(lostFinal.values.reduce(0, +))"
+                + " keptWithoutMarker \(keptNoMarker.count) \(keptNoMarker.sorted())"
                 + " fellBack \(fellBack.values.reduce(0, +)) knownBad \(knownBadHit.values.reduce(0, +))"
                 + " overRemovedNegatives \(overRemoved.count) \(overRemoved.sorted())")
         for key in total.keys.sorted() {

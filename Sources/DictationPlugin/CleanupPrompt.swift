@@ -34,7 +34,8 @@ enum CleanupPrompt {
         or place replaces that one, and the rest of the sentence stays.
         - A real alternative ("ser albo szynka"), a question, a doubt, a condition, or a marker word used as \
         ordinary content ("zostań przy bramie", "nie lubię grzybów", "I mean business") is not a \
-        retraction: keep every word. When you are not sure the speaker took something back, keep both versions.
+        retraction: keep every word. When you are not sure the speaker took something back, keep both versions, \
+        and keep the marker words between them, so the reader can tell which version is final.
         - Fix punctuation, capitalisation and obvious recognition errors. Write numbers and enumerations in \
         their usual written form; turn a spoken list into a list only when the speaker said "first, second" \
         or similar.
