@@ -109,6 +109,8 @@ struct FakeCLI {
           rate) echo '{"type":"result","is_error":true,"result":"Claude usage limit reached"}'; exit 1;;
           trunc) echo '{"type":"result","subtype":"success","is_error":true,"result":"API Error: Claude'"'"'s response exceeded the 32000 output token maximum."}'; exit 1;;
           badflag) echo "error: unknown option '--zzz' $stdin" >&2; exit 1;;
+          nosafemode) case " $* " in *" --safe-mode "*) echo "error: unknown option '--safe-mode'" >&2; exit 1;; esac
+            echo '{"type":"result","is_error":false,"result":"Fake answer."}';;
           exit3) echo "boom $stdin" >&2; exit 3;;
           empty) echo '{"type":"result","is_error":false,"result":""}';;
         esac
