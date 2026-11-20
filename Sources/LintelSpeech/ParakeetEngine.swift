@@ -47,14 +47,26 @@ public actor ParakeetEngine: SpeechEngine {
     }
 }
 
-/// Maps the language code of Settings to FluidAudio's script hint for Parakeet TDT v3 (issue #132).
+/// Maps the language codes of Settings to FluidAudio's script hint for Parakeet TDT v3 (issues #132, #210).
+///
+/// The hint only replaces a non-Latin top token with the best Latin one, so it is sent ONLY when every configured
+/// language is known to this table and written in the Latin script. An unknown code, a language in another
+/// script, an empty list ("auto") or a mix with any of those sends no hint, so speech in Cyrillic or Greek keeps
+/// its own script. A new language the app supports must be added to `scripts` (and its test) to get a hint.
 public enum ParakeetLanguage {
+    enum Script: Equatable { case latin, other }
+
+    /// The languages the app offers for meetings, with the script each is written in.
+    static let scripts: [String: Script] = ["pl": .latin, "en": .latin]
+
     public static func hint(for code: String?) -> Language? {
-        switch code {
-        case "pl": .polish
-        case "en": .english
-        default: nil
-        }
+        guard let code else { return nil }
+        return hint(for: [code])
+    }
+
+    public static func hint(for codes: [String]) -> Language? {
+        guard !codes.isEmpty, codes.allSatisfy({ scripts[$0] == .latin }) else { return nil }
+        return codes.contains("pl") ? .polish : .english
     }
 }
 

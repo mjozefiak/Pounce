@@ -17,6 +17,27 @@ import Testing
         #expect(ParakeetLanguage.hint(for: "xx") == nil)
     }
 
+    @Test func onlyLatinScriptLanguagesGetAHint() {
+        #expect(ParakeetLanguage.hint(for: ["pl"]) == .polish)
+        #expect(ParakeetLanguage.hint(for: ["en"]) == .english)
+        #expect(ParakeetLanguage.hint(for: ["en", "pl"]) != nil)
+        // Not in the table (Cyrillic, Greek, unknown, "auto"): no hint.
+        #expect(ParakeetLanguage.hint(for: ["uk"]) == nil)
+        #expect(ParakeetLanguage.hint(for: ["ru"]) == nil)
+        #expect(ParakeetLanguage.hint(for: ["el"]) == nil)
+        #expect(ParakeetLanguage.hint(for: ["auto"]) == nil)
+        #expect(ParakeetLanguage.hint(for: []) == nil)
+        // One non-Latin or unknown language among several: no hint.
+        #expect(ParakeetLanguage.hint(for: ["pl", "uk"]) == nil)
+        #expect(ParakeetLanguage.hint(for: ["en", "xx"]) == nil)
+    }
+
+    @Test func everyTableEntryIsLatinOrDoesNotHint() {
+        for (code, script) in ParakeetLanguage.scripts {
+            #expect((ParakeetLanguage.hint(for: [code]) != nil) == (script == .latin))
+        }
+    }
+
     @Test func engineDefaultsToNoHint() async {
         // Dictation builds `ParakeetEngine()` and must keep decoding exactly as before.
         #expect(await ParakeetEngine().languageHint == nil)
