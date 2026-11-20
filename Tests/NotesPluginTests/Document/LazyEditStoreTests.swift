@@ -102,13 +102,14 @@ import Testing
     private func lazyWriter(_ rig: DocRig, opens: Opens) throws -> RevisionWriter {
         let store = rig.store
         let plan = try rig.plan(rig.layer("seed text"))
-        return RevisionWriter(
-            storeProvider: {
-                opens.hit()
-                return store
-            }, target: .seed(plan), clock: rig.clock,
-            observer: RevisionWriter.Observer(wrote: { [wrote = rig.wrote] _ in wrote.increment() }),
-            log: rig.log)
+        return rig.adopt(
+            RevisionWriter(
+                storeProvider: {
+                    opens.hit()
+                    return store
+                }, target: .seed(plan), clock: rig.clock,
+                observer: RevisionWriter.Observer(wrote: { [wrote = rig.wrote] _ in wrote.increment() }),
+                log: rig.log))
     }
 
     @Test func theDebouncedAutosaveOpensTheStoreOnceAndWrites() async throws {
@@ -182,9 +183,10 @@ import Testing
 
     @Test func aProviderThatCannotOpenKeepsTheTextForARetry() async throws {
         let rig = try DocRig()
-        let writer = RevisionWriter(
-            storeProvider: { nil }, target: .seed(try rig.plan(rig.layer("seed text"))), clock: rig.clock,
-            log: rig.log)
+        let writer = rig.adopt(
+            RevisionWriter(
+                storeProvider: { nil }, target: .seed(try rig.plan(rig.layer("seed text"))), clock: rig.clock,
+                log: rig.log))
         writer.submit("typed")
         await #expect(throws: NotesError.keyUnavailable) { try await writer.flush() }
         #expect(writer.hasPendingText)

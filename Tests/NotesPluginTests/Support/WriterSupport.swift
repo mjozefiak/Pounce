@@ -17,8 +17,11 @@ final class DocRig {
     let saveRecoveries = CountLatch()
     let meeting = NoteKey(pluginID: "meetings", id: "m1")
     let started = Date(timeIntervalSince1970: 1_800_000_000)
+    private var writers: [RevisionWriter] = []
+    private let origin: SourceLocation
 
-    init(readOnly: Bool = false) throws {
+    init(readOnly: Bool = false, sourceLocation: SourceLocation = #_sourceLocation) throws {
+        origin = sourceLocation
         harness = try NotesHarness()
         if readOnly { harness.settingsStore.setValue(.bool(true), forKey: "plugins.notes.readOnly") }
         store = try harness.openStore()
@@ -26,12 +29,25 @@ final class DocRig {
 
     var log: RecordingNotesLog { harness.log }
 
+    /// The end of the test. Every writer this rig made is discarded (its debounce, idle and retry tasks are
+    /// cancelled), then the clock ends. A sleeper still on the clock after that belongs to a timer nobody stopped, so
+    /// the test fails here, at the line that built the rig, instead of leaving a task asleep until the process exits.
+    isolated deinit {
+        for writer in writers { writer.discardPending() }
+        let left = clock.finish()
+        if left > 0 {
+            Issue.record(
+                "\(left) timer task(s) were still asleep on the ManualClock when the test ended: close the writer's session, discard it or retire its owner",
+                sourceLocation: origin)
+        }
+    }
+
     func writer(
         _ target: RevisionWriter.Target, timing: RevisionWriter.Timing = .init(), registry: NoteDocumentRegistry? = nil,
         sourceStartedAtMs: (@Sendable () async -> Int64?)? = nil,
         onWrote: @escaping @Sendable (RevisionWriter.Outcome) -> Void = { _ in }
     ) -> RevisionWriter {
-        RevisionWriter(
+        let writer = RevisionWriter(
             store: store, target: target, clock: clock, timing: timing,
             observer: RevisionWriter.Observer(
                 wrote: { [wrote] outcome in
@@ -42,6 +58,15 @@ final class DocRig {
                     if failed { saveFailures.increment() } else { saveRecoveries.increment() }
                 }),
             sourceStartedAtMs: sourceStartedAtMs, log: log)
+        writers.append(writer)
+        return writer
+    }
+
+    /// A writer a test built itself (a lazy store provider, say) on this rig's clock: the rig discards it at the end.
+    @discardableResult
+    func adopt(_ writer: RevisionWriter) -> RevisionWriter {
+        writers.append(writer)
+        return writer
     }
 
     func layer(
@@ -149,6 +174,9 @@ final class ReconRig {
         let store = rig.store
         registry.cleanup = { open in _ = try? store.deleteUnkeptDetached(excluding: open) }
     }
+
+    /// The registry's writers are discarded before the rig's clock ends (see `DocRig.deinit`).
+    isolated deinit { registry.discardAll() }
 
     /// What the source returns for the note from now on.
     func publish(
