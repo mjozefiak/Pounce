@@ -55,7 +55,7 @@ enum ProviderFixtures {
     /// A runner whose descriptor passed the isolation canary, over `process`. The app's own descriptor has not
     /// (`isolationVerified == false`), so the real runner starts nothing yet.
     static func runner(
-        _ process: CountingProviderProcess, verified: Bool = true
+        _ process: CountingProviderProcess, verified: Bool = true, gate: ProviderGate = .shared
     ) -> ProviderRunner {
         let directory = FileManager.default.temporaryDirectory.appending(
             path: "provider-notes-\(UUID().uuidString)", directoryHint: .isDirectory)
@@ -63,7 +63,7 @@ enum ProviderFixtures {
         return ProviderRunner(
             system: ProviderSystem(locator: QuietProviderLocator(), process: process),
             descriptors: [ProviderDescriptor.claudeCode.with(isolationVerified: verified)],
-            cachesDirectory: directory)
+            cachesDirectory: directory, gate: gate)
     }
 
     /// The settings that choose Claude Code with a model, as the DEBUG `--qa-setting` flag would write them.

@@ -1,6 +1,7 @@
 import Foundation
 import LintelKit
 import LintelSpeech
+import LintelTestSupport
 import Synchronization
 import Testing
 
@@ -99,7 +100,7 @@ import Testing
         rig.service.meetingBecameReady(one)
         rig.service.meetingBecameReady(two)
         rig.service.meetingBecameReady(three)
-        #expect(await rig.wait("the first provider process") { first.isSet })
+        #expect(await waitFor("the first provider process") { first.isSet })
         // The user switches back to the built-in model: the queued jobs are not sent.
         rig.settings.clearNotesProvider()
         release.set()
@@ -139,6 +140,47 @@ import Testing
         #expect(try rig.document(id).notesMarkdown == "Earlier notes")
         #expect(record.provider == nil && record.model == "m")
         #expect(rig.llm.calls.isEmpty, "no second job on the built-in model")
+    }
+
+    /// The job took the provider path (the choice was read at its start), then the choice is removed while its first
+    /// request waits for the provider: the authorization, read again at the start, refuses and nothing runs.
+    @Test func removingTheChoiceWhileTheFirstRequestWaitsForTheProviderStartsNothing() async throws {
+        let gate = ProviderGate()
+        let process = CountingProviderProcess()
+        let rig = try NotesServiceRig(
+            settings: ProviderFixtures.chosen, providerRunner: ProviderFixtures.runner(process, gate: gate))
+        await rig.start()
+        let id = try await rig.addMeeting()
+        try await rig.perform {
+            _ = try $0.beginNotes(id)
+            try $0.finishNotes(
+                id, markdown: "Earlier notes", status: .ok, promptVersion: "1", model: "m", droppedCount: 0,
+                generatedAt: Date(timeIntervalSince1970: 1))
+        }
+        // Another request holds the provider, so the job's first request has to wait in the queue.
+        let holding = Flag()
+        let release = Flag()
+        let holder = Task {
+            try await gate.withSlot(ProviderDescriptor.claudeCode.id) {
+                holding.set()
+                while !release.isSet { try await Task.sleep(for: .milliseconds(2)) }
+            }
+        }
+        #expect(await waitFor("the provider to be held") { holding.isSet })
+        rig.service.regenerate(id)
+        let queued = await pollUntil("the job's request to wait for the provider") { await gate.queuedCount == 1 }
+        #expect(queued)
+        rig.settings.clearNotesProvider()
+        release.set()
+        try await holder.value
+        #expect(await rig.settle())
+
+        #expect(process.contentRuns == 0)
+        let record = try rig.record(id)
+        #expect(record.status == .ok, "the earlier status is back")
+        #expect(try rig.document(id).notesMarkdown == "Earlier notes")
+        #expect(record.provider == nil && record.model == "m")
+        #expect(rig.llm.calls.isEmpty, "no fallback to the built-in model")
     }
 
     @Test func aTranscriptOverEightPartsStartsNothing() async throws {
@@ -250,7 +292,7 @@ import Testing
         await rig.start()
         let id = try await rig.addMeeting()
         rig.service.meetingBecameReady(id)
-        #expect(await rig.wait("the process to start") { started.isSet })
+        #expect(await waitFor("the process to start") { started.isSet })
         await rig.service.shutDown()
         #expect(process.contentRuns == 1)
         #expect(try rig.record(id).status != .running)
