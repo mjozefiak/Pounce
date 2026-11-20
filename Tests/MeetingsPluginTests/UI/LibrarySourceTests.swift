@@ -39,7 +39,9 @@ struct LibraryRig {
         get throws { try #require(library.store) }
     }
 
-    init(regenerate: (@MainActor (Int64) -> Void)? = nil) throws {
+    /// The five meetings are written off the main actor: every commit is durable, and on the one main thread
+    /// that all `@MainActor` tests share those waits starve other tests' main-actor work (#165).
+    init(regenerate: (@MainActor (Int64) -> Void)? = nil) async throws {
         harness = try MeetingsHarness()
         library = harness.library()
         library.open()
@@ -51,7 +53,10 @@ struct LibraryRig {
         source = MeetingsLibrarySource(
             store: { library.store }, actions: actions, timeZone: utc, locale: english,
             appName: { $0 == "us.zoom.xos" ? "Zoom" : nil })
+        ids = try await Self.seed(store)
+    }
 
+    private nonisolated static func seed(_ store: MeetingsStore) async throws -> [String: Int64] {
         let base = ExportFixtures.started
         func add(
             _ key: String, daysAgo: Double, title: String?, status: MeetingStatus, notes: String?,
@@ -92,7 +97,7 @@ struct LibraryRig {
                 "failed", daysAgo: 4, title: "Awaria", status: .failed, notes: nil, notesStatus: .none, duration: 0,
                 bundle: nil, text: nil),
         ]
-        ids = Dictionary(uniqueKeysWithValues: rows)
+        return Dictionary(uniqueKeysWithValues: rows)
     }
 
     func search(_ text: String = "", filter: MeetingLibraryFilter? = nil, limit: Int = 100) async throws
@@ -115,7 +120,7 @@ struct LibraryRig {
 @MainActor
 @Suite struct MeetingsLibrarySourceTests {
     @Test func rowsAreNewestFirstWithTitleDateDurationAppAndBadge() async throws {
-        let rig = try LibraryRig()
+        let rig = try await LibraryRig()
         let rows = try await rig.search()
         #expect(rig.keys(rows) == ["notes", "stale", "plain", "incomplete", "failed"])
 
@@ -144,7 +149,7 @@ struct LibraryRig {
     }
 
     @Test func badgesFollowTheMeetingThenTheNotes() async throws {
-        let rig = try LibraryRig()
+        let rig = try await LibraryRig()
         let rows = try await rig.search()
         #expect(rows.map(\.badge) == ["Notes", "Notes outdated", nil, "Incomplete", "Failed"])
         func entry(_ status: MeetingStatus, _ notes: NotesStatus) -> MeetingLibraryEntry {
@@ -171,7 +176,7 @@ struct LibraryRig {
     }
 
     @Test func theFiltersNarrowTheList() async throws {
-        let rig = try LibraryRig()
+        let rig = try await LibraryRig()
         #expect(rig.keys(try await rig.search(filter: .all)).count == 5)
         #expect(rig.keys(try await rig.search(filter: .withNotes)) == ["notes", "stale"])
         #expect(rig.keys(try await rig.search(filter: .needsAttention)) == ["stale", "incomplete", "failed"])
@@ -185,7 +190,7 @@ struct LibraryRig {
     }
 
     @Test func aQuerySearchesTitlesNotesAndTheTranscriptWithPolishFolding() async throws {
-        let rig = try LibraryRig()
+        let rig = try await LibraryRig()
         // Title (notes index), diacritics folded.
         #expect(rig.keys(try await rig.search("budzetu")) == ["notes"])
         #expect(rig.keys(try await rig.search("PLANN")) == ["notes"])
@@ -201,14 +206,14 @@ struct LibraryRig {
     }
 
     @Test func aQueryThatLooksLikeFTSSyntaxIsJustText() async throws {
-        let rig = try LibraryRig()
+        let rig = try await LibraryRig()
         #expect(try await rig.search("a OR b NOT").isEmpty)
         #expect(try await rig.search("title:Retro").isEmpty)
         #expect(try await rig.search("Retro AND").isEmpty)
     }
 
     @Test func theListIsCappedByTheLimitAndByTheMaximum() async throws {
-        let rig = try LibraryRig()
+        let rig = try await LibraryRig()
         #expect(try await rig.search(limit: 2).count == 2)
         #expect(try await rig.search(limit: 0).isEmpty)
         let store = try rig.store
@@ -258,7 +263,7 @@ struct LibraryRig {
     }
 
     @Test func aCancelledSearchThrows() async throws {
-        let rig = try LibraryRig()
+        let rig = try await LibraryRig()
         let task = Task { () -> [Candidate] in
             withUnsafeCurrentTask { $0?.cancel() }
             return try await rig.source.search(query(""), filter: nil, limit: 10)
@@ -267,7 +272,7 @@ struct LibraryRig {
     }
 
     @Test func theSourceNeverTouchesTheRankingDatabase() async throws {
-        let rig = try LibraryRig()
+        let rig = try await LibraryRig()
         let rows = try await rig.search("budzet")
         for action in rig.source.actions(for: try #require(rows.first)) where action.id != "meetings.library.delete" {
             if action.id == "meetings.library.copy" {
@@ -288,7 +293,7 @@ struct LibraryRig {
     }
 
     @Test func theActionsAreCopyOpenAndDeleteWithTheContractedShortcuts() async throws {
-        let rig = try LibraryRig()
+        let rig = try await LibraryRig()
         let row = try #require(try await rig.search().first)
         let actions = rig.source.actions(for: row)
         #expect(actions.map(\.id) == ["meetings.library.copy", "meetings.library.open", "meetings.library.delete"])
@@ -307,7 +312,7 @@ struct LibraryRig {
 
     @Test func regenerateIsOfferedOnlyWithANotesPipeline() async throws {
         let calls = Box<[Int64]>([])
-        let rig = try LibraryRig(regenerate: { id in calls.withLock { $0.append(id) } })
+        let rig = try await LibraryRig(regenerate: { id in calls.withLock { $0.append(id) } })
         let row = try #require(try await rig.search().first)
         let actions = rig.source.actions(for: row)
         #expect(
@@ -322,7 +327,7 @@ struct LibraryRig {
     }
 
     @Test func returnCopiesTheMarkdownMarkedTransientAndConcealed() async throws {
-        let rig = try LibraryRig()
+        let rig = try await LibraryRig()
         let row = try #require(try await rig.search().first)
         let copy = try #require(rig.source.actions(for: row).first)
         try await copy.perform(context(rig))
@@ -340,7 +345,7 @@ struct LibraryRig {
     }
 
     @Test func aMeetingWithoutAnyTextIsNotCopied() async throws {
-        let rig = try LibraryRig()
+        let rig = try await LibraryRig()
         let incomplete = try #require(rig.ids["incomplete"])
         await #expect(throws: MeetingLibraryActionError.nothingToCopy) {
             try await rig.actions.copyMarkdown(incomplete)
@@ -350,7 +355,7 @@ struct LibraryRig {
     }
 
     @Test func deleteRemovesTheMeetingItsRowsAndItsSpool() async throws {
-        let rig = try LibraryRig()
+        let rig = try await LibraryRig()
         let store = try rig.store
         let uuid = UUID()
         let spoolDirectory = try rig.library.spoolStorage.prepare(meeting: uuid)
@@ -376,7 +381,7 @@ struct LibraryRig {
     }
 
     @Test func aMeetingBeingRecordedIsNotDeleted() async throws {
-        let rig = try LibraryRig()
+        let rig = try await LibraryRig()
         let store = try rig.store
         let id = try store.insertMeeting(uuid: UUID().uuidString.lowercased(), startedAt: Date(), speechModelID: "m")
         await #expect(throws: MeetingActionError.active) { try await rig.actions.delete(id) }
@@ -384,7 +389,7 @@ struct LibraryRig {
     }
 
     @Test func nothingIsRecordedInTheRankingDatabase() async throws {
-        let rig = try LibraryRig()
+        let rig = try await LibraryRig()
         let rows = try await rig.search("budzet")
         let first = try #require(rows.first)
         for action in rig.source.actions(for: first) where action.id == "meetings.library.copy" {

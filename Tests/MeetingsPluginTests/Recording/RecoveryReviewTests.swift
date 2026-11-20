@@ -40,7 +40,7 @@ private func finished(_ handle: MeetingFinishHandle) async -> ResumeOutcome {
 
         let handle = try #require(library.finish(meetingID: meeting.id))
         let engine = rig.engine
-        #expect(await engine.transcribing.wait { engine.entered >= 1 })
+        #expect(await engine.transcribing.wait(timeout: .seconds(60)) { engine.entered >= 1 })
         #expect(try store.status(of: meeting.id) == .processing)
 
         #expect(await library.applyRetention() == 0)
@@ -211,7 +211,7 @@ private func finished(_ handle: MeetingFinishHandle) async -> ResumeOutcome {
         rig.engine.gate.close()
         let handle = try #require(library.finish(meetingID: meeting.id))
         let engine = rig.engine
-        #expect(await engine.transcribing.wait { engine.entered >= 1 })
+        #expect(await engine.transcribing.wait(timeout: .seconds(60)) { engine.entered >= 1 })
 
         library.close()
         library.open()

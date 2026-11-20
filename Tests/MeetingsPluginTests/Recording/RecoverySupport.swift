@@ -28,9 +28,9 @@ final class FinalizeLog: Sendable {
     func record(_ call: Call) { items.withLock { $0.append(call) } }
 }
 
-func eventually(timeout: Duration = .seconds(20), _ condition: @MainActor () -> Bool) async -> Bool {
+func eventually(timeout: Duration = .seconds(60), _ condition: @MainActor () -> Bool) async -> Bool {
     let deadline = ContinuousClock.now + timeout
-    while ContinuousClock.now < deadline {
+    while ContinuousClock.now < deadline, !Task.isCancelled {
         if await condition() { return true }
         try? await Task.sleep(for: .milliseconds(10))
     }

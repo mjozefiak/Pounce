@@ -28,7 +28,7 @@ final class FakeWindows: MeetingWindowPresenting {
     /// The shell asks "Press ⌃X again" (step 6.2): the row's delete action carries the confirmation, so the
     /// plugin no longer arms a second press of its own.
     @Test func theDeleteActionAsksThroughTheShell() async throws {
-        let rig = try LibraryRig()
+        let rig = try await LibraryRig()
         let id = try #require(rig.ids["plain"])
         let row = try #require(try await rig.search().first { $0.itemKey == MeetingLibraryPresentation.itemKey(id) })
         let delete = try #require(rig.source.actions(for: row).first { $0.id == "meetings.library.delete" })
@@ -39,7 +39,7 @@ final class FakeWindows: MeetingWindowPresenting {
     }
 
     @Test func oneCallAfterTheShellsConfirmationDeletes() async throws {
-        let rig = try LibraryRig()
+        let rig = try await LibraryRig()
         let actions = actions(rig)
         let id = try #require(rig.ids["plain"])
         try await actions.requestDelete(id, panel: rig.panel)
@@ -49,7 +49,7 @@ final class FakeWindows: MeetingWindowPresenting {
     }
 
     @Test func anUnfinishedMeetingGoesWithItsAudio() async throws {
-        let rig = try LibraryRig()
+        let rig = try await LibraryRig()
         let actions = actions(rig)
         let uuid = UUID()
         _ = try rig.library.spoolStorage.prepare(meeting: uuid)
@@ -61,7 +61,7 @@ final class FakeWindows: MeetingWindowPresenting {
     }
 
     @Test func aLiveOrProcessingMeetingIsRefusedWithAMessageNotAFailure() async throws {
-        let rig = try LibraryRig()
+        let rig = try await LibraryRig()
         let actions = actions(rig)
         let recording = try rig.store.insertMeeting(
             uuid: UUID().uuidString.lowercased(), startedAt: Date(), speechModelID: "m")
@@ -84,7 +84,7 @@ final class FakeWindows: MeetingWindowPresenting {
     }
 
     @Test func aMissingMeetingStillThrows() async throws {
-        let rig = try LibraryRig()
+        let rig = try await LibraryRig()
         let actions = actions(rig)
         await #expect(throws: MeetingLibraryActionError.missing) {
             try await actions.requestDelete(9_999, panel: rig.panel)
@@ -94,8 +94,8 @@ final class FakeWindows: MeetingWindowPresenting {
 
 @MainActor
 @Suite struct MeetingLibraryWindowTests {
-    private func rig(_ windows: Box<[FakeWindows]>) throws -> (LibraryRig, MeetingsLibraryActions) {
-        let rig = try LibraryRig()
+    private func rig(_ windows: Box<[FakeWindows]>) async throws -> (LibraryRig, MeetingsLibraryActions) {
+        let rig = try await LibraryRig()
         let actions = MeetingsLibraryActions(
             library: rig.library, pasteboard: rig.pasteboard, labels: .english, timeZone: ExportFixtures.utc,
             makeWindows: { _ in
@@ -106,9 +106,9 @@ final class FakeWindows: MeetingWindowPresenting {
         return (rig, actions)
     }
 
-    @Test func oneRegistryServesEveryMeetingAndOpenReusesIt() throws {
+    @Test func oneRegistryServesEveryMeetingAndOpenReusesIt() async throws {
         let windows = Box<[FakeWindows]>([])
-        let (rig, actions) = try rig(windows)
+        let (rig, actions) = try await rig(windows)
         actions.open(try #require(rig.ids["plain"]))
         actions.open(try #require(rig.ids["notes"]))
         let all = windows.withLock { $0 }
@@ -116,9 +116,9 @@ final class FakeWindows: MeetingWindowPresenting {
         #expect(all[0].shown.count == 2)
     }
 
-    @Test func aNewStoreClosesTheOldWindowsFirst() throws {
+    @Test func aNewStoreClosesTheOldWindowsFirst() async throws {
         let windows = Box<[FakeWindows]>([])
-        let (rig, actions) = try rig(windows)
+        let (rig, actions) = try await rig(windows)
         let id = try #require(rig.ids["plain"])
         actions.open(id)
         rig.library.close()
@@ -130,9 +130,9 @@ final class FakeWindows: MeetingWindowPresenting {
         #expect(all[1].shown == [id])
     }
 
-    @Test func closeWindowsClosesThemAndNextOpenStartsOver() throws {
+    @Test func closeWindowsClosesThemAndNextOpenStartsOver() async throws {
         let windows = Box<[FakeWindows]>([])
-        let (rig, actions) = try rig(windows)
+        let (rig, actions) = try await rig(windows)
         let id = try #require(rig.ids["plain"])
         actions.open(id)
         actions.closeWindows()
@@ -144,7 +144,7 @@ final class FakeWindows: MeetingWindowPresenting {
 
     @Test func aDeletedMeetingsWindowIsClosed() async throws {
         let windows = Box<[FakeWindows]>([])
-        let (rig, actions) = try rig(windows)
+        let (rig, actions) = try await rig(windows)
         let id = try #require(rig.ids["plain"])
         actions.open(id)
         try await actions.delete(id)
@@ -166,7 +166,7 @@ final class FakeWindows: MeetingWindowPresenting {
 @MainActor
 @Suite struct MeetingLibraryLowsTests {
     @Test func aHugeQueryIsCappedNotAnError() async throws {
-        let rig = try LibraryRig()
+        let rig = try await LibraryRig()
         let words = Array(repeating: "roadmapa", count: 20) + Array(repeating: "zzzz", count: 480)
         let capped = try await rig.search(words.joined(separator: " "))
         #expect(rig.keys(capped) == ["plain"])
@@ -175,7 +175,7 @@ final class FakeWindows: MeetingWindowPresenting {
     }
 
     @Test func aPreviewSaysMissingForAGoneMeetingAndFailedForAnUnreadableDatabase() async throws {
-        let rig = try LibraryRig()
+        let rig = try await LibraryRig()
         let ok = await MeetingsPlugin.previewContent(of: try #require(rig.ids["notes"]), library: rig.library)
         guard case .content = ok else {
             Issue.record("expected content")
@@ -188,7 +188,7 @@ final class FakeWindows: MeetingWindowPresenting {
     }
 
     @Test func aCancelledReadStops() async throws {
-        let rig = try LibraryRig()
+        let rig = try await LibraryRig()
         let store = try rig.store
         let id = try #require(rig.ids["notes"])
         let task = Task { () async -> Bool in

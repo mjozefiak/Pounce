@@ -73,7 +73,7 @@ private func collect(_ handle: MeetingFinishHandle) async -> (events: [ResumeEve
         let handle = try #require(library.finish(meetingID: meeting.id))
         let events = Task { await collect(handle) }
         let engine = rig.engine
-        #expect(await engine.transcribing.wait { engine.entered >= 1 })
+        #expect(await engine.transcribing.wait(timeout: .seconds(60)) { engine.entered >= 1 })
         handle.cancel()
         engine.gate.open()
         let (_, outcome) = await events.value
