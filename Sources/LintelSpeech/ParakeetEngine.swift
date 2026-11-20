@@ -21,6 +21,9 @@ public actor ParakeetEngine: SpeechEngine {
 
     public var isLoaded: Bool { manager != nil }
 
+    /// The script hint the next segment is decoded with.
+    var languageHint: Language? { ParakeetLanguage.hint(for: language()) }
+
     public func load(modelFolder: URL) async throws {
         let models = try AsrModels.loadLocal(from: modelFolder, version: .ultra)
         manager = AsrManager(config: .default, models: models)
@@ -34,7 +37,7 @@ public actor ParakeetEngine: SpeechEngine {
             samples.count >= minimum ? samples : samples + [Float](repeating: 0, count: minimum - samples.count)
         var state = TdtDecoderState.make(decoderLayers: await manager.decoderLayerCount)
         let result = try await manager.transcribe(
-            padded, decoderState: &state, language: ParakeetLanguage.hint(for: language()))
+            padded, decoderState: &state, language: languageHint)
         return TranscriptSegment(text: result.text)
     }
 

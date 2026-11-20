@@ -12,8 +12,9 @@ import Testing
 ///     LINTEL_MEETING_EVAL_AUDIO=meeting.wav LINTEL_MEETING_EVAL_OUT=/tmp/eval \
 ///     LINTEL_MEETING_EVAL_SPEECH_FOLDER=<Models>/speech/parakeet-ultra swift test -c release --filter MeetingEvalTests
 ///
-/// Optional: `_NAME`, `_ENGINE` (`parakeet-ultra` | `whisper-large-v3-turbo`), `_LANGUAGE` (`pl` | `en`, Whisper
-/// only), `_CODE_VERSION`, `_NOTES_MODEL` (a .gguf), `_DUMP_REJECTIONS` (`1`: also write
+/// Optional: `_NAME`, `_ENGINE` (`parakeet-ultra` | `whisper-large-v3-turbo`), `_LANGUAGE` (`pl` | `en`; Whisper
+/// pins it, Parakeet gets it as a script hint, like the app), `_PARAKEET_HINT` (`0`: Parakeet without the hint, the
+/// behaviour before issue #132), `_CODE_VERSION`, `_NOTES_MODEL` (a .gguf), `_DUMP_REJECTIONS` (`1`: also write
 /// `<name>.notes-rejections.json` with the text of every refused point; the only file that holds notes text
 /// besides the result), `_DIARIZATION_FOLDER`, `_SPEAKER_NAMES` (a JSON of oracle names that replace "Mówca N" after diarization), `_ALLOW_DEBUG`. The WAV must be
 /// 16 kHz mono. The transcript goes only into the JSON; the test prints numbers, never text.
@@ -52,7 +53,9 @@ struct MeetingEvalTests {
 
         let engine: any SpeechEngine
         switch engineID {
-        case "parakeet-ultra": engine = ParakeetEngine()
+        case "parakeet-ultra":
+            let hint: String? = Self.value("PARAKEET_HINT") == "0" ? nil : language
+            engine = ParakeetEngine(language: { hint })
         case "whisper-large-v3-turbo": engine = WhisperKitEngine(language: { language })
         default:
             Issue.record("Unknown engine \(engineID)")
