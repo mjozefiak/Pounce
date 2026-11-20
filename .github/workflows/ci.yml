@@ -76,6 +76,11 @@ jobs:
         timeout-minutes: 6
         run: scripts/test-with-watchdog.sh --limit 240 --name tsan-providers -- swift test --sanitize=thread --filter LintelProvidersTests
 
+      # The shared latches and clocks every test target waits on (atomic registration, one resume, cancellation).
+      - name: Test the shared test support under Thread Sanitizer
+        timeout-minutes: 5
+        run: scripts/test-with-watchdog.sh --limit 200 --name tsan-test-support -- swift test --sanitize=thread --filter LintelTestSupportTests
+
       - name: Format lint
         timeout-minutes: 3
         run: swift format lint --strict -r Sources Tests
