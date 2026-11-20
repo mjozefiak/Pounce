@@ -52,8 +52,10 @@ enum FormatterGuard {
     }
 
     /// The spoken markers with which a speaker withdraws a fragment (the list of the cleanup prompt), as
-    /// lower-cased words.
+    /// lower-cased words. "nie, czekaj", "nie, to znaczy" and "no wait" are listed whole: the "nie" or "no" in
+    /// them belongs to the marker and is not a negation before it.
     static let retractionMarkers: [[String]] = [
+        ["nie", "czekaj"], ["nie", "to", "znaczy"], ["no", "wait"],
         ["czekaj"], ["jednak"], ["właściwie"], ["pomyłka"], ["przepraszam"], ["to", "znaczy"],
         ["wait"], ["actually"], ["sorry"], ["scratch", "that"], ["i", "mean"],
     ]
@@ -62,28 +64,34 @@ enum FormatterGuard {
     /// recogniser left the apostrophe out; "want" or "moment" is not one.
     static let negations: Set<String> = [
         "nie", "nigdy", "nic", "nikt", "żaden", "żadna", "żadne", "bez", "ani",
-        "not", "no", "never", "none", "nothing", "nobody", "neither", "nor", "without", "cannot",
+        "not", "never", "none", "nothing", "nobody", "neither", "nor", "without", "cannot",
     ]
     static let contractions: Set<String> = [
         "dont", "doesnt", "didnt", "cant", "couldnt", "wont", "wouldnt", "shouldnt", "isnt", "arent", "wasnt",
         "werent", "hasnt", "havent", "hadnt", "mustnt", "neednt", "shant", "aint",
     ]
 
-    static func negates(_ token: String) -> Bool {
+    /// "no" negates in English; in a Polish chunk it is the particle of "no więc" and "no to".
+    static func negates(_ token: String, polish: Bool) -> Bool {
         negations.contains(token) || contractions.contains(token) || token.hasSuffix("n't")
+            || (token == "no" && !polish)
+    }
+
+    /// The index of the first word of the first retraction marker in the tokens, `nil` without one.
+    static func firstMarker(in tokens: [String]) -> Int? {
+        tokens.indices.first { index in
+            retractionMarkers.contains {
+                index + $0.count <= tokens.count && Array(tokens[index..<(index + $0.count)]) == $0
+            }
+        }
     }
 
     /// Whether the input holds a retraction marker with a negation anywhere before the first one.
     static func negationBeforeMarker(in input: String) -> Bool {
         let tokens = tokens(input)
-        guard
-            let marker = tokens.indices.first(where: { index in
-                retractionMarkers.contains {
-                    index + $0.count <= tokens.count && Array(tokens[index..<(index + $0.count)]) == $0
-                }
-            })
-        else { return false }
-        return tokens[..<marker].contains(where: negates)
+        guard let marker = firstMarker(in: tokens) else { return false }
+        let polish = Language.dominant(in: input) == .polish
+        return tokens[..<marker].contains { negates($0, polish: polish) }
     }
 
     /// Lower-cased words, split on anything that is not a letter, digit or apostrophe.

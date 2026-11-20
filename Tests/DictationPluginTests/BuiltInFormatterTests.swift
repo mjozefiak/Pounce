@@ -90,12 +90,10 @@ private let cleaned = "Jutro mamy spotkanie o dziesiątej, nie to znaczy o jeden
         ("Oczywiście, oto poprawiony tekst: " + cleaned, .fellBack(.rejected(.answered))),
         (
             "Tomorrow we have the meeting at eleven in the office with the client",
-            .fellBack(.rejected(.selfCorrection))
+            .fellBack(.rejected(.languageChanged))
         ),
-        // The chunk holds a retraction marker, so every answer that is not the input or the input minus the
-        // retracted span has the one reason of that rule.
-        ("Jutro spotkanie.", .fellBack(.rejected(.selfCorrection))),
-        (cleaned + " " + cleaned, .fellBack(.rejected(.selfCorrection))),
+        ("Jutro spotkanie.", .fellBack(.rejected(.tooShort))),
+        (cleaned + " " + cleaned, .fellBack(.rejected(.tooLong))),
     ])
     func theGuardDecides(answer: String, outcome: FormatResult.Outcome) async throws {
         let runtime = ScriptedRuntime()
