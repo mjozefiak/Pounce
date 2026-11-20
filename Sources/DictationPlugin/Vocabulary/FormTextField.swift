@@ -13,6 +13,8 @@ struct FormTextField: NSViewRepresentable {
     /// `true` while the model wants this field to have the keyboard; `focusTick` changes on every request.
     let wantsFocus: Bool
     let focusTick: Int
+    /// A narrow field that sits after the tokens; `nil` takes the width it is offered.
+    var idealWidth: CGFloat?
     var onReturn: () -> Void = {}
     var onEscape: () -> Void = {}
     var onBackspaceWhenEmpty: () -> Void = {}
@@ -46,12 +48,17 @@ struct FormTextField: NSViewRepresentable {
             DispatchQueue.main.async { [weak field] in
                 guard let field, let window = field.window else { return }
                 window.makeFirstResponder(field)
+                // The caret goes to the end of the text instead of selecting all of it.
+                if let editor = field.currentEditor() {
+                    editor.selectedRange = NSRange(location: (editor.string as NSString).length, length: 0)
+                }
             }
         }
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView: FocusReportingTextField, context: Context) -> CGSize? {
-        CGSize(width: proposal.width ?? 140, height: ceil(size * 1.35))
+        CGSize(
+            width: idealWidth.map { min($0, proposal.width ?? $0) } ?? proposal.width ?? 140, height: ceil(size * 1.35))
     }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }

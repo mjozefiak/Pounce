@@ -86,11 +86,14 @@ struct VocabularySection: View {
                 .foregroundStyle(LintelBrand.secondaryText)
                 .accessibilityHidden(true)
             TextField(
+                "",
                 text: $model.query,
                 prompt: Text("Search terms", comment: "Vocabulary section: placeholder of the search field")
-            ) {
+            )
+            .labelsHidden()
+            .accessibilityLabel(
                 Text("Search terms", comment: "Vocabulary section: placeholder of the search field")
-            }
+            )
             .textFieldStyle(.plain)
             .font(textSize.font(.body))
         }
@@ -218,7 +221,7 @@ struct VocabularyListView: View {
     @FocusState private var listFocused: Bool
 
     /// The list's height before it scrolls: about six rows (prototype `.scrollbox`, 15.4 em).
-    private var scrollLimit: CGFloat { 200 * textSize.scale }
+    private var scrollLimit: CGFloat { 312 * textSize.scale }
 
     var body: some View {
         content
@@ -287,7 +290,7 @@ struct VocabularyListView: View {
             .onKeyPress(.return) { handle { model.editSelected() } }
             .onKeyPress(keys: [.delete, .deleteForward]) { _ in handle { model.deleteSelected() } }
             .onChange(of: listFocused) {
-                if listFocused, model.selectedID == nil, let first = model.visibleRows.first {
+                if listFocused, model.editor == nil, model.selectedID == nil, let first = model.visibleRows.first {
                     model.selectedID = first.id
                 }
             }
@@ -316,7 +319,7 @@ struct VocabularyListView: View {
                 } else {
                     VocabularyRowView(
                         row: row, position: offset + 1, total: rows.count,
-                        isSelected: listFocused && model.selectedID == row.id,
+                        isSelected: listFocused && model.editor == nil && model.selectedID == row.id,
                         isHighlighted: model.highlightedID == row.id, query: model.isSearching ? model.query : "",
                         showsActions: model.canEdit, isDimmed: !model.isEnabled,
                         edit: { model.beginEditing(row.id) }, delete: { model.requestDelete(row.id) },

@@ -89,7 +89,7 @@ struct VocabularyFormView: View {
                     accessibilityLabel: String(
                         localized: "When I hear",
                         comment: "Vocabulary form: label of the field with the spoken variants"),
-                    size: fieldSize, wantsFocus: form.focus == .aliases, focusTick: form.focusTick,
+                    size: fieldSize, wantsFocus: form.focus == .aliases, focusTick: form.focusTick, idealWidth: 120,
                     onReturn: { model.returnInAliases() }, onEscape: { model.cancelEditing() },
                     onBackspaceWhenEmpty: { model.removeLastAlias() }, onFocusChange: { aliasFocused = $0 }
                 )
@@ -170,7 +170,8 @@ struct VocabularyFormView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(LintelBrand.fill, in: RoundedRectangle(cornerRadius: 8))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text("Example", comment: "VoiceOver: the example of the replacement in the form"))
+        .accessibilityLabel(
+            Text("Replacement example", comment: "VoiceOver: the example of the replacement in the vocabulary form"))
     }
 
     private func exampleLine(_ label: Text, _ text: Text) -> some View {

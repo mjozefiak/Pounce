@@ -25165,24 +25165,6 @@
         }
       }
     },
-    "Example" : {
-      "comment" : "VoiceOver: the example of the replacement in the form",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Example"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Przykład"
-          }
-        }
-      }
-    },
     "Press to remove." : {
       "comment" : "VoiceOver hint on a spoken variant in the vocabulary form",
       "extractionState" : "manual",
@@ -25197,6 +25179,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Naciśnij, aby usunąć."
+          }
+        }
+      }
+    },
+    "Replacement example" : {
+      "comment" : "VoiceOver: the example of the replacement in the vocabulary form",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replacement example"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przykład zamiany"
           }
         }
       }
